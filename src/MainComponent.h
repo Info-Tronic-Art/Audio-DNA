@@ -105,6 +105,15 @@ private:
     void saveCompositionAs();
     void swapCompositionModel(const std::function<void()>& mutation);
     void refreshUiAfterModelSwap();
+    // L3 STEP 3 (2026-09): the Comp/Decks browser's Decks rows append a saved
+    // deck into the live composition rather than replacing it — a performer
+    // clicking a saved deck mid-set must not lose the deck they are on, and
+    // append closes no live media (zero outgoing ids). openMediaForDeck is
+    // the per-clip media-open loop factored out of loadComposition's OPEN
+    // NEW step (§1 step 4) so both callers share one body. NOT named
+    // loadDeck — that name is the legacy PresetManager path below.
+    void openMediaForDeck(Deck& deck);
+    void appendDeckFromFile(const juce::File& file);
     void timerCallback() override;
     // W5 (outputwindow-arc-design.md): named seam for the mapping tick, so
     // the A1 routing/signal-extraction follow-up can join here later

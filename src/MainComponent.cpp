@@ -1405,18 +1405,21 @@ MainComponent::MainComponent(bool testMode, int testPort)
     addAndMakeVisible(browserPanel_.get());
     browserPanel_->setEffectLibrary(&effectLibrary_);
     browserPanel_->setComposition(&composition_);
-    // L3 (2026-09): wire the Comp/Decks browser's composition load/save
+    // L3 (2026-09): wire the Comp/Decks browser's composition/deck load/save
     // callbacks — the "Save Composition" button and clicking a saved
-    // composition row were silent no-ops until now (onCompositionSave only
-    // reads the model — menu-Save semantics: overwrite if a path is known,
-    // else Save As into the compositions dir — so it does not need the
+    // composition or deck row were silent no-ops until now (onCompositionSave
+    // only reads the model — menu-Save semantics: overwrite if a path is
+    // known, else Save As into the compositions dir — so it does not need the
     // fence/undo-clear treatment loadComposition already gives Open).
-    // onDeckLoad (the Decks-row append) is a separate, later Step 3 — left
-    // unassigned here, matching today's no-op behavior.
+    // onDeckLoad (STEP 3) APPENDS the deck rather than replacing the active
+    // one — see appendDeckFromFile's header comment for why.
     browserPanel_->getCompDecksBrowser().onCompositionLoad = [this](const juce::File& f) {
         loadComposition(f);
     };
     browserPanel_->getCompDecksBrowser().onCompositionSave = [this] { saveComposition(); };
+    browserPanel_->getCompDecksBrowser().onDeckLoad = [this](const juce::File& f) {
+        appendDeckFromFile(f);
+    };
     browserPanel_->getRecordPanel().setSessionRecorder(&sessionRecorder_);
     browserPanel_->getFXBrowser().onEffectActivated = [this](const juce::String& effectName) {
         DBG("FX Browser: activated effect " + effectName);
@@ -2480,6 +2483,46 @@ void MainComponent::openComposition()
     });
 }
 
+// L3 STEP 3 (2026-09): per-clip media-open loop, factored out of
+// loadComposition's OPEN NEW step so appendDeckFromFile (below) can share it
+// verbatim rather than duplicate it. Mirrors applyFileDrop's video block and
+// applyMultiFileDrop's sequence block — see loadComposition's step 4 comment
+// for why this must run on the STAGED deck, before any fence/swap.
+void MainComponent::openMediaForDeck(Deck& deck)
+{
+    auto& renderer = previewPanel_.getRenderer();
+    for (auto& layer : deck.layers)
+    {
+        for (auto& cell : layer.clips)
+        {
+            if (!cell.has_value() || !cell->isPlayable()) continue;
+            Clip& clip = *cell;
+            if (clip.mediaType == Clip::MediaType::Video)
+            {
+                if (!clip.mediaFile.existsAsFile()) continue;   // non-fatal: skip, continue
+                if (renderer.openVideoForClip(clip.id, clip.mediaFile))
+                {
+                    if (auto* p = renderer.getVideoPlayer(clip.id))
+                    {
+                        clip.hasAlpha = p->hasAlpha();
+                        clip.clipWidth = p->getWidth();
+                        clip.clipHeight = p->getHeight();
+                        clip.thumbnail = p->getThumbnail(90, 72);
+                    }
+                }
+            }
+            else // ImageSequence
+            {
+                if (clip.sequenceFiles.empty()) continue;
+                renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
+                auto first = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
+                if (first.isValid())
+                    clip.thumbnail = first.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+            }
+        }
+    }
+}
+
 void MainComponent::loadComposition(const juce::File& file)
 {
     // 1. STAGE — load into a private `incoming`, never the live composition_:
@@ -2517,48 +2560,14 @@ void MainComponent::loadComposition(const juce::File& file)
     compload::remintClipIds(incoming, s_nextClipId);
 
     // 4. OPEN NEW — open every playable clip's media under its new id and
-    //    fill thumbnail/dims INTO `incoming`, BEFORE the swap. Mirrors
-    //    applyFileDrop's video block and applyMultiFileDrop's sequence block.
-    //    Must happen pre-swap: a post-swap write into a live Clip would race
-    //    the GL thread (juce::Image ref-count assignment = torn-read/crash
-    //    class), and the output keeps showing the OLD comp for the whole
-    //    file-probe duration instead of blacking out.
-    {
-        auto& renderer = previewPanel_.getRenderer();
-        for (auto& deck : incoming.decks)
-        {
-            for (auto& layer : deck.layers)
-            {
-                for (auto& cell : layer.clips)
-                {
-                    if (!cell.has_value() || !cell->isPlayable()) continue;
-                    Clip& clip = *cell;
-                    if (clip.mediaType == Clip::MediaType::Video)
-                    {
-                        if (!clip.mediaFile.existsAsFile()) continue;   // non-fatal: skip, continue
-                        if (renderer.openVideoForClip(clip.id, clip.mediaFile))
-                        {
-                            if (auto* p = renderer.getVideoPlayer(clip.id))
-                            {
-                                clip.hasAlpha = p->hasAlpha();
-                                clip.clipWidth = p->getWidth();
-                                clip.clipHeight = p->getHeight();
-                                clip.thumbnail = p->getThumbnail(90, 72);
-                            }
-                        }
-                    }
-                    else // ImageSequence
-                    {
-                        if (clip.sequenceFiles.empty()) continue;
-                        renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
-                        auto first = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
-                        if (first.isValid())
-                            clip.thumbnail = first.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
-                    }
-                }
-            }
-        }
-    }
+    //    fill thumbnail/dims INTO `incoming`, BEFORE the swap (openMediaForDeck,
+    //    shared with Step 3's appendDeckFromFile). Must happen pre-swap: a
+    //    post-swap write into a live Clip would race the GL thread (juce::Image
+    //    ref-count assignment = torn-read/crash class), and the output keeps
+    //    showing the OLD comp for the whole file-probe duration instead of
+    //    blacking out.
+    for (auto& deck : incoming.decks)
+        openMediaForDeck(deck);
 
     // 5. NAME — design decision: composition name = file base name on Load
     //    (and Save As), so the browser row, the inspector label, and Collect
@@ -2644,6 +2653,81 @@ void MainComponent::saveCompositionAs()
                 "Save failed: " + saveFile.getFullPathName());
         }
     });
+}
+
+// L3 STEP 3 (2026-09): the Comp/Decks browser's Decks-row click. APPENDS the
+// saved deck into the live composition and makes it active — never replaces
+// the active deck (see the header comment on appendDeckFromFile's
+// declaration for why). Same STAGE -> VALIDATE -> RE-MINT -> OPEN NEW ->
+// NAME -> SWAP shape as loadComposition, on a Deck instead of a Composition.
+void MainComponent::appendDeckFromFile(const juce::File& file)
+{
+    // 1. STAGE + shape-check — a deck file's top level is `Deck::toVar()`'s
+    //    shape ("layers"/"numColumns"/"name"/"id"), not a composition's
+    //    ("decks") or an FX preset's. Refuse before touching the model:
+    //    Deck::fromVar's own hasProperty-less getProperty calls would
+    //    otherwise happily default-construct an empty/wrong Deck from either.
+    auto parsed = juce::JSON::parse(file.loadFileAsString());
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("layers"))
+    {
+        if (!testMode_)
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::WarningIcon,
+                "Load Deck",
+                file.getFileName() + ": not a deck file");
+        return;   // Live state untouched.
+    }
+
+    Deck incoming;
+    incoming.fromVar(parsed);
+
+    // 2. VALIDATE — refuse (no layers) or repair (numColumns/padding), on
+    //    `incoming` only. Live state untouched either way.
+    if (auto reason = compload::validateDeck(incoming); !reason.empty())
+    {
+        if (!testMode_)
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::WarningIcon,
+                "Load Deck",
+                file.getFileName() + ": " + reason);
+        return;
+    }
+
+    // 3. RE-MINT — every clip gets a fresh id from the SAME file-static mint
+    //    loadComposition uses. A deck appended into a LIVE composition must
+    //    never collide with an id already open in the renderer's media maps
+    //    (or with another live deck's ids) — re-minting makes that
+    //    impossible regardless of what the file's own ids were.
+    compload::remintClipIds(incoming, s_nextClipId);
+
+    // 4. OPEN NEW — shared with loadComposition's per-deck body.
+    openMediaForDeck(incoming);
+
+    // 5. NAME — a deck saved without a "name" key (fromVar's getProperty is
+    //    unguarded and yields "" when the key is absent) falls back to the
+    //    file's base name, matching loadComposition's convention.
+    if (incoming.name.empty())
+        incoming.name = file.getFileNameWithoutExtension().toStdString();
+
+    // 6. SWAP — append, not replace: a performer clicking a saved deck
+    //    mid-set must not lose the deck they are on. idsRetired(before, after)
+    //    is empty for an append (nothing is orphaned), so nothing closes.
+    //    The fence is still required: Composition::appendDeck's push_back
+    //    can reallocate `decks`, which the GL thread walks lock-free
+    //    (renderOpenGL()'s P21 persistent-layer loop) — same hazard class as
+    //    the whole-composition swap, just on push_back instead of move-assign.
+    //    The guard inside withDeckDetached re-points the renderer at the new
+    //    active deck; rebuildGrid() (inside refreshUiAfterModelSwap) rebuilds
+    //    the deck tabs too (setupDeckTabs() runs inside it).
+    swapCompositionModel([this, &incoming] {
+        composition_.activeDeckIndex = composition_.appendDeck(std::move(incoming));
+    });
+
+    // 7. LABEL
+    fileLabel_.setText("Loaded deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+    if (browserPanel_)
+        browserPanel_->getCompDecksBrowser().refresh();
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
