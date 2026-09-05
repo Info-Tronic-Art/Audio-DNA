@@ -89,6 +89,23 @@ public:
     // Call AFTER compositeDeck() each frame.
     void updateFeedbackBuffer(ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
 
+    // S166: Apply the composition-wide Global Effects stack (see
+    // Composition::globalEffects / EffectScope::global()) to the FINAL
+    // composited frame. Call once per frame, AFTER compositeDeck() and any
+    // compositePersistentLayers() calls have finished writing into the
+    // accumulator — this is the "Global Effects" stage of the pipeline
+    // documented in the class comment above (Global Effects -> Master
+    // Opacity -> Screen / Fullscreen Output). Reuses applyClipEffects via a
+    // temporary Clip view, same technique already used for per-layer
+    // effects below (see "Apply per-layer effects" in compositeDeck) — an
+    // empty globalEffects vector is a true no-op (applyClipEffects returns
+    // inputTex before issuing any GL call, same short-circuit as an empty
+    // per-clip/per-layer chain).
+    GLuint applyGlobalEffects(const std::vector<Clip::EffectSlot>& globalEffects,
+                              GLuint inputTex,
+                              ShaderManager& shaderMgr, FullscreenQuad& quad,
+                              float time, int w, int h);
+
     // Get the feedback texture (previous frame's output)
     GLuint getFeedbackTexture() const { return feedbackTex_; }
     bool isFeedbackReady() const { return feedbackReady_; }
@@ -140,6 +157,15 @@ public:
     void setLatestSnapshot(const FeatureSnapshot& snap) { latestSnapshot_ = snap; }
 
 private:
+
+    // S166: reserved layerId passed to applyClipEffects() for the Global
+    // Effects call (see applyGlobalEffects() above), so its temporal buffer
+    // (layerTemporalBuffers_ below) and screen-split ring buffer
+    // (layerRingBuffers_ below) never alias a real layer's. Real layer ids
+    // are assigned sequentially starting at 0 (Deck.h) — including 0 itself,
+    // the bottom layer — so 0 is NOT a safe "no real layer" sentinel; the
+    // max uint32_t value is.
+    static constexpr uint32_t kGlobalEffectsLayerId = 0xFFFFFFFFu;
 
     // Per-layer feedback processors (keyed by layer ID)
     std::unordered_map<uint32_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;

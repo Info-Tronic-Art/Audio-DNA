@@ -920,6 +920,25 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
     }
 }
 
+GLuint CompositorEngine::applyGlobalEffects(const std::vector<Clip::EffectSlot>& globalEffects,
+                                             GLuint inputTex,
+                                             ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                             float time, int w, int h)
+{
+    if (globalEffects.empty())
+        return inputTex;                // true no-op — matches applyClipEffects' own
+                                        // early-return; no GL call issued either way
+
+    // Reuse applyClipEffects the same way per-layer effects do below — a
+    // temporary "clip" view over the chain (see "Apply per-layer effects"
+    // in compositeDeck()). kGlobalEffectsLayerId keeps this call's temporal
+    // buffer / screen-split ring buffer from aliasing a real layer's.
+    Clip globalFxClip;
+    globalFxClip.effects = globalEffects;
+    return applyClipEffects(globalFxClip, inputTex, shaderMgr, quad, time, w, h,
+                            kGlobalEffectsLayerId);
+}
+
 void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
                                          ShaderManager& shaderMgr, FullscreenQuad& quad,
                                          int w, int h)

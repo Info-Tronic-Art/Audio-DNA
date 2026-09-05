@@ -470,6 +470,22 @@ void Renderer::renderOpenGL()
         compositor_.updateFeedbackBuffer(shaderMgr_, quad_,
                                           static_cast<int>(renderW),
                                           static_cast<int>(renderH));
+
+        // S166: Apply Composition::globalEffects to the fully-composited
+        // frame now that the active deck AND any persistent layers from
+        // other decks have both been written into the accumulator —
+        // CompositorEngine.h's documented pipeline stage between layer
+        // compositing and Master Opacity/output. Guarded on sourceTexture
+        // != 0 so a deck with no active layers (compositeDeck returned 0)
+        // does not run effects over nothing.
+        if (composition_ && sourceTexture != 0)
+        {
+            sourceTexture = compositor_.applyGlobalEffects(composition_->globalEffects,
+                                                             sourceTexture, shaderMgr_, quad_,
+                                                             time,
+                                                             static_cast<int>(renderW),
+                                                             static_cast<int>(renderH));
+        }
     }
 
     if (sourceTexture == 0 && sourceActive)

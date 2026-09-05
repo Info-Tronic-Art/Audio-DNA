@@ -659,3 +659,35 @@ live end-to-end today.
 (`executeOnGLThread(..., blockUntilFinished=true)`) rather than firing-and-forgetting — if that
 ever changes to async, the save-after-toggle call in `onToggleFavoriteRequested` would need to
 move (it currently relies on the toggle having already completed by the time it runs).
+
+## 2026-09-05 — S166-GFX: Composition::globalEffects wired into the compositor — the seam was infrastructure-ready, not deliberately blocked
+**Files:** src/render/CompositorEngine.h, src/render/CompositorEngine.cpp, src/render/Renderer.cpp
+**Note:** The "Global Effects" stack (Composition Inspector) had a fully-built UI/model/undo path
+but no renderer ever read `Composition::globalEffects` — three independent comments
+(EffectCommands.h:78-90, CompositionInspector.h:41-47,58-63, CompositorEngine.h's own class-doc
+pipeline "...Global Effects -> Master Opacity -> Screen") all converged on the same story: this
+was an anticipated, infrastructure-ready seam (GL fencing already wired "for free"), not a
+design decision to leave it dead. No blocking reason found. New `CompositorEngine::applyGlobalEffects()`
+reuses `applyClipEffects()` via the same "temporary Clip view" trick already used for
+`layer.layerEffects` (see "Apply per-layer effects" in `compositeDeck()`); called once from
+`Renderer::renderOpenGL()` AFTER `compositeDeck()` AND the `compositePersistentLayers()` loop over
+other decks AND `updateFeedbackBuffer()` — in that order, deliberately: placing it before
+`updateFeedbackBuffer()` would have made the Larsen per-layer feedback loop start incorporating
+the master-bus effect every frame, a much bigger behavior change than asked for.
+**Gotcha for future per-layer-id-keyed compositor state:** Layer ids are assigned sequentially
+starting at 0 (`Deck.h:34,55`) — the bottom layer legitimately has id 0. `applyClipEffects()`
+keys its temporal buffer and screen-split ring buffer maps by `layerId`, so passing the default/0
+for a non-layer scope (like Global) would silently alias the bottom layer's own buffers. Added
+`kGlobalEffectsLayerId = 0xFFFFFFFFu` as a reserved sentinel; any future non-layer caller of
+`applyClipEffects` needs its own distinct sentinel, not 0.
+**Untestable in ctest, documented as a repo-wide constraint (not new):** no ctest target links
+`CompositorEngine.cpp` or `Renderer.cpp` (`tests/test_compositor.cpp`'s own header note;
+`tests/test_renderer_source_confinement.cpp`'s extensive comment on why a live GL context can't
+be driven headless here). This fix lives entirely in GL-thread compositing code, so no new unit
+test could exercise it — verification is app-level (Harmony's behavioral gate), not ctest.
+**Valid while:** `CompositorEngine` has no `Composition*` member — the caller (`Renderer.cpp`)
+must supply `composition_->globalEffects` and the composited texture from outside. If
+`CompositorEngine` ever gains direct `Composition` access, this call site could move inside
+`compositeDeck()`'s own return path, but only if `compositePersistentLayers()` for other decks is
+also folded in before that return (today it happens in a separate loop, called from `Renderer.cpp`
+between `compositeDeck()` and the global-effects call).
