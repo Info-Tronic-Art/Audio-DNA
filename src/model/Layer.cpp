@@ -1,4 +1,27 @@
 #include "Layer.h"
+#include "connect/ConnSerialization.h"
+
+float& manualRef(Layer& l, LayerScalar s)
+{
+    switch (s)
+    {
+        case LayerScalar::Opacity:  return l.opacity;
+        case LayerScalar::PosX:     return l.positionX;
+        case LayerScalar::PosY:     return l.positionY;
+        case LayerScalar::Scale:    return l.layerScale;
+        case LayerScalar::Rotation: return l.layerRotation;
+        case LayerScalar::AnchorX:  return l.layerAnchorX;
+        case LayerScalar::AnchorY:  return l.layerAnchorY;
+        case LayerScalar::Count:    break;
+    }
+    static float dummy = 0.0f;   // unreachable for a valid enumerator
+    return dummy;
+}
+
+float Layer::eff(LayerScalar s) const
+{
+    return scalarLive[static_cast<size_t>(s)].effective(manualRef(const_cast<Layer&>(*this), s));
+}
 
 juce::var Layer::toVar() const
 {
@@ -77,9 +100,30 @@ juce::var Layer::toVar() const
         for (float p : fx.paramValues)
             paramArray.add(static_cast<double>(p));
         fxObj->setProperty("params", paramArray);
+
+        juce::Array<juce::var> connsArray;
+        for (size_t p = 0; p < fx.paramConns.size(); ++p)
+        {
+            if (!fx.paramConns[p].isConnected())
+                continue;
+            auto connVar = ConnSerialization::toVar(fx.paramConns[p]);
+            connVar.getDynamicObject()->setProperty("p", static_cast<int>(p));
+            connsArray.add(connVar);
+        }
+        if (!connsArray.isEmpty())
+            fxObj->setProperty("conns", connsArray);
+        if (fx.dryWetConn.isConnected())
+            fxObj->setProperty("dryWetConn", ConnSerialization::toVar(fx.dryWetConn));
+
         fxArray.add(juce::var(fxObj));
     }
     obj->setProperty("layerEffects", fxArray);
+
+    // s167-l2: per-scalar connection map, sparse -- only written if
+    // something is connected.
+    auto scalarConnsVar = ConnSerialization::scalarsToVar<LayerScalar>(scalarConns, layerScalarDefs());
+    if (!scalarConnsVar.isVoid())
+        obj->setProperty("conns", scalarConnsVar);
 
     // Clips
     juce::Array<juce::var> clipArray;
@@ -200,10 +244,28 @@ void Layer::fromVar(const juce::var& v)
                     if (auto* paramArray = fxObj->getProperty("params").getArray())
                         for (const auto& p : *paramArray)
                             slot.paramValues.push_back(static_cast<float>(static_cast<double>(p)));
+                    slot.resizeParams(slot.paramValues.size());
+                    if (auto* connsArray = fxObj->getProperty("conns").getArray())
+                    {
+                        for (const auto& cv : *connsArray)
+                        {
+                            if (auto* cvObj = cv.getDynamicObject())
+                            {
+                                int p = static_cast<int>(cvObj->getProperty("p"));
+                                if (p >= 0 && static_cast<size_t>(p) < slot.paramConns.size())
+                                    ConnSerialization::fromVar(slot.paramConns[static_cast<size_t>(p)], cv);
+                            }
+                        }
+                    }
+                    if (fxObj->hasProperty("dryWetConn"))
+                        ConnSerialization::fromVar(slot.dryWetConn, fxObj->getProperty("dryWetConn"));
                     layerEffects.push_back(std::move(slot));
                 }
             }
         }
+
+        if (obj->hasProperty("conns"))
+            ConnSerialization::scalarsFromVar<LayerScalar>(scalarConns, layerScalarDefs(), obj->getProperty("conns"));
 
         clips.clear();
         if (auto* clipArray = obj->getProperty("clips").getArray())

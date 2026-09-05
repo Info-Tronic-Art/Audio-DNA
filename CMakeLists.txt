@@ -174,6 +174,17 @@ target_sources(AudioDNA PRIVATE
     src/model/Autopilot.h
     src/model/Autopilot.cpp
 
+    # Connect (s167-l2: the universal connection model + engine)
+    src/connect/ParamConnection.h
+    src/connect/LiveValue.h
+    src/connect/ScalarParams.h
+    src/connect/ConnectionShaper.h
+    src/connect/ConnectionShaper.cpp
+    src/connect/ConnectionEngine.h
+    src/connect/ConnectionEngine.cpp
+    src/connect/ConnSerialization.h
+    src/connect/ConnSerialization.cpp
+
     # Signal (v2)
     src/signal/Signal.h
     src/signal/AudioSignal.h

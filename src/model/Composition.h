@@ -1,10 +1,25 @@
 #pragma once
 #include "model/Deck.h"
+#include "connect/ParamConnection.h"
+#include "connect/LiveValue.h"
+#include "connect/ScalarParams.h"
+#include "connect/ConnSerialization.h"
 #include <juce_core/juce_core.h>
+#include <array>
 #include <algorithm>
 #include <string>
 #include <vector>
 #include <cstdint>
+
+struct Composition;
+
+// The only place that names which Composition field backs each CompScalar
+// (s166 spec section 2.2's exact phrasing). Forward-declared here (defined
+// below the struct, where its fields are visible) so Composition::eff() --
+// an inline member defined inside the class body -- can call it; ordinary
+// name lookup for a free function needs the declaration to precede its use
+// textually, unlike a class's own later-declared members.
+float& manualRef(Composition& c, CompScalar s);
 
 // Composition: the complete app state saved to disk.
 // Contains all decks, global effects, global settings.
@@ -44,6 +59,30 @@ struct Composition
     float compRotation = 0.0f;      // Degrees
     float compAnchorX = 0.0f;
     float compAnchorY = 0.0f;
+
+    // === Connections (s167-l2) ===
+    // One ParamConnection + LiveValue twin per CompScalar. Opacity targets
+    // masterOpacity, not compOpacity -- an owner amendment received during
+    // this lane rules Composition opacity is ONE knob (final = masterOpacity
+    // * layerOpacity * clipOpacity); compOpacity is not separately
+    // connectable here (see ScalarParams.h's CompScalar comment).
+    // eff()/manualRef() are the only places that name which struct field
+    // backs each CompScalar.
+    std::array<ParamConnection, static_cast<size_t>(CompScalar::Count)> scalarConns;
+    std::array<LiveValue, static_cast<size_t>(CompScalar::Count)> scalarLive;
+    float eff(CompScalar s) const
+    {
+        return scalarLive[static_cast<size_t>(s)].effective(manualRef(const_cast<Composition&>(*this), s));
+    }
+
+    // === Connect settings (s167-l2) ===
+    // Composition-level "connect" settings (owner D14/D15): how long a
+    // release-less grip (MIDI/OSC/HTTP) survives after its last write before
+    // the signal takes back over, and how long a hand-back glide runs after
+    // any grip releases. Global to the whole composition, not per-connection
+    // -- keeps ParamConnection to exactly the owner's per-connection list.
+    float gripHoldMs = 250.0f;
+    float handBackGlideMs = 120.0f;
 
     // === Global Settings ===
     float globalTransitionSpeed = 0.3f; // seconds
@@ -252,9 +291,36 @@ struct Composition
             for (float p : fx.paramValues)
                 paramArray.add(static_cast<double>(p));
             fxObj->setProperty("params", paramArray);
+
+            juce::Array<juce::var> connsArray;
+            for (size_t p = 0; p < fx.paramConns.size(); ++p)
+            {
+                if (!fx.paramConns[p].isConnected())
+                    continue;
+                auto connVar = ConnSerialization::toVar(fx.paramConns[p]);
+                connVar.getDynamicObject()->setProperty("p", static_cast<int>(p));
+                connsArray.add(connVar);
+            }
+            if (!connsArray.isEmpty())
+                fxObj->setProperty("conns", connsArray);
+            if (fx.dryWetConn.isConnected())
+                fxObj->setProperty("dryWetConn", ConnSerialization::toVar(fx.dryWetConn));
+
             fxArray.add(juce::var(fxObj));
         }
         obj->setProperty("globalEffects", fxArray);
+
+        // s167-l2: per-scalar connection map, sparse -- only written if
+        // something is connected.
+        auto scalarConnsVar = ConnSerialization::scalarsToVar<CompScalar>(scalarConns, compScalarDefs());
+        if (!scalarConnsVar.isVoid())
+            obj->setProperty("conns", scalarConnsVar);
+
+        // Composition-level connect settings (owner D14/D15).
+        auto* connectObj = new juce::DynamicObject();
+        connectObj->setProperty("gripHoldMs", static_cast<double>(gripHoldMs));
+        connectObj->setProperty("handBackGlideMs", static_cast<double>(handBackGlideMs));
+        obj->setProperty("connect", juce::var(connectObj));
 
         return juce::var(obj);
     }
@@ -392,9 +458,35 @@ struct Composition
                         if (auto* paramArray = fxObj->getProperty("params").getArray())
                             for (const auto& p : *paramArray)
                                 slot.paramValues.push_back(static_cast<float>(static_cast<double>(p)));
+                        slot.resizeParams(slot.paramValues.size());
+                        if (auto* connsArray = fxObj->getProperty("conns").getArray())
+                        {
+                            for (const auto& cv : *connsArray)
+                            {
+                                if (auto* cvObj = cv.getDynamicObject())
+                                {
+                                    int p = static_cast<int>(cvObj->getProperty("p"));
+                                    if (p >= 0 && static_cast<size_t>(p) < slot.paramConns.size())
+                                        ConnSerialization::fromVar(slot.paramConns[static_cast<size_t>(p)], cv);
+                                }
+                            }
+                        }
+                        if (fxObj->hasProperty("dryWetConn"))
+                            ConnSerialization::fromVar(slot.dryWetConn, fxObj->getProperty("dryWetConn"));
                         globalEffects.push_back(std::move(slot));
                     }
                 }
+            }
+
+            if (obj->hasProperty("conns"))
+                ConnSerialization::scalarsFromVar<CompScalar>(scalarConns, compScalarDefs(), obj->getProperty("conns"));
+
+            if (auto* connectObj = obj->getProperty("connect").getDynamicObject())
+            {
+                if (connectObj->hasProperty("gripHoldMs"))
+                    gripHoldMs = static_cast<float>(static_cast<double>(connectObj->getProperty("gripHoldMs")));
+                if (connectObj->hasProperty("handBackGlideMs"))
+                    handBackGlideMs = static_cast<float>(static_cast<double>(connectObj->getProperty("handBackGlideMs")));
             }
         }
     }
@@ -420,3 +512,21 @@ struct Composition
 private:
     uint32_t nextDeckId_ = 100;
 };
+
+inline float& manualRef(Composition& c, CompScalar s)
+{
+    switch (s)
+    {
+        case CompScalar::Opacity:  return c.masterOpacity;   // NOT compOpacity -- see the CompScalar comment
+        case CompScalar::Speed:    return c.masterSpeed;
+        case CompScalar::PosX:     return c.compPositionX;
+        case CompScalar::PosY:     return c.compPositionY;
+        case CompScalar::Scale:    return c.compScale;
+        case CompScalar::Rotation: return c.compRotation;
+        case CompScalar::AnchorX:  return c.compAnchorX;
+        case CompScalar::AnchorY:  return c.compAnchorY;
+        case CompScalar::Count:    break;
+    }
+    static float dummy = 0.0f;   // unreachable for a valid enumerator
+    return dummy;
+}
