@@ -262,6 +262,33 @@ endif()
 apply_sanitizers(test_composition)
 catch_discover_tests(test_composition)
 
+# --- test_session_recorder (S166: pre-landed so the recorder's own parallel
+# lane never touches this shared CMakeLists.txt) ---
+add_executable(test_session_recorder
+    test_session_recorder.cpp
+    ${SRC_DIR}/recording/SessionRecorder.cpp
+)
+target_include_directories(test_session_recorder PRIVATE ${SRC_DIR})
+target_link_libraries(test_session_recorder PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_session_recorder PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_session_recorder PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_session_recorder)
+catch_discover_tests(test_session_recorder)
+
 # --- test_undo_commands (Undo v1 step 2: clip commands + coord resolution) ---
 # Headless: bare Composition, no-op renderer/UI hooks. UndoService resolvers are
 # inline (renderer-free) so this target does NOT link UndoService.cpp/Renderer.
