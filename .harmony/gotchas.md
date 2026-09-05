@@ -285,3 +285,10 @@ Trigger: you add or remove a parameter on any `Command` subclass in `src/core/*C
 Rule: `tests/test_undo_commands.cpp` constructs these commands as heavily as production does — it held 8 of the 10 call sites for `RemoveLayerCmd`/`RemoveDeckCmd`. Before considering the edit finished, run `grep -rn '<CmdName>' src/ tests/` and update EVERY site. The compiler stops reporting once a translation unit fails, so a clean-looking "only 2 errors" can hide more behind them. Related trap: when a test call site needs the new argument, passing a noop/placeholder to satisfy arity silently converts a covered surface into a falsely-covered one — at least one test per changed command must pass a real hook and assert on it.
 Scope: repo
 Promoted: no
+
+### 2026-09-05 — the incremental build can emit a FALSE LINK ERROR from a stale object
+Source: s-rta-0904 — lane L7, nearly reverted a correct lane on this
+Trigger: the build fails with `Undefined symbols ... "Class::method()", referenced from: ... in <File>.cpp.o` and you have just added that method's body
+Rule: CHECK THE DEFINITION EXISTS AND IS CORRECTLY SCOPED BEFORE BELIEVING THE LINKER. In this repo `cmake --build .` did not recompile `src/ui/PreferencesDialog.cpp` after its body was added — the object kept the call sites from an earlier compile and lacked the definition, so the link failed against code that was already correct on disk. `grep -n '<Class>::<method>' src/` showed the definition present, correctly scoped, with no preprocessor guard around it. `touch`ing the .cpp and .h and rebuilding linked cleanly first try. This is the MIRROR IMAGE of the documented stale-binary false-GREEN (ctest passing on binaries from a failed build): the same staleness produces a false RED at link time. Both come from trusting an incremental build's verdict over the source on disk. When a build result contradicts what you can read in the file, force the rebuild before you act on it — and never revert a lane on an unreproduced failure.
+Scope: universal
+Promoted: no

@@ -124,3 +124,25 @@ committed a tree one test newer than the one I gated — a small but real gap be
 stopped moving, it does NOT pin it. Between gate and commit an agent can still write.
 Either stage the exact gated tree before gating, or re-run the gate at HEAD after
 committing. I now do the latter, and it is what caught this.
+
+## CORRECTION TO THE ADDENDUM ABOVE — I over-claimed (2026-09-05)
+
+Later the same session, lane L7's build failed with `commitMilkDropDir()` undefined. I had
+already told that builder it was the last round and that I would revert. Before acting I
+checked the source: the definition was present at `PreferencesDialog.cpp:260`, correctly
+scoped, unguarded. **The build was wrong, not the code** — a stale object file. A forced
+recompile linked first try, 205/205.
+
+So this session produced BOTH directions of the same fault: a builder editing after
+reporting done (L1, self-admitted), AND a build reporting a failure against code that was
+already correct (L7). In the addendum above I wrote that the L1 builder's inference was
+"wrong" — full stop. **That was over-claimed.** The specific L1 evidence still holds (error
+counts falling monotonically, the reviewer independently watching the tree grow, the
+builder's own post-report edit), but I generalised it into "my builds are reliable, the
+builder is mistaken", and one lane later my build was the unreliable party.
+
+**The habit change, not just the record:** when a build result contradicts what I can read
+on disk, force the rebuild and re-run BEFORE acting on it — and never revert a lane on an
+unreproduced failure. Being one step from discarding correct work on a false red is the
+part worth keeping. Filed as a universal gotcha (stale-object false RED, the mirror of the
+documented stale-binary false GREEN).
