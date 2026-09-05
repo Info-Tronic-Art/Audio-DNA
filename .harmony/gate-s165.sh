@@ -49,7 +49,14 @@ fi
 ok "preflight: no Audio-DNA running"
 
 quit_gracefully() {   # $1 = pid
+    # NOTE: the System Events per-process form ("first process whose unix id is N")
+    # was tried first and DID NOT WORK against this app -- the process stayed alive
+    # through a 20s wait. The app-level form does. Kept in this order so the targeted
+    # form is attempted first when several instances could exist, with the working
+    # form as the real quit.
     osascript -e "tell application \"System Events\" to tell (first process whose unix id is $1) to quit" >/dev/null 2>&1
+    sleep 2
+    kill -0 "$1" 2>/dev/null && osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
     for _ in $(seq 1 20); do
         kill -0 "$1" 2>/dev/null || return 0
         sleep 1
@@ -60,6 +67,16 @@ quit_gracefully() {   # $1 = pid
 launch() {            # $1 = bundle, $2 = tag, rest = args ; echoes pid
     local bundle="$1" tag="$2"; shift 2
     rm -f "$OUT/$tag.out" "$OUT/$tag.err"
+    # A PREVIOUS RUN OF THIS SCRIPT REPORTED "TSan app started (pid N)" WHERE N WAS THE
+    # STILL-RUNNING RELEASE APP -- because the quit above had failed, `open -n` self-quit
+    # (single instance), and `pgrep | head -1` cheerfully returned the stale pid. That is
+    # precisely the false green this whole script exists to prevent, committed by the
+    # script itself. So: refuse to launch while anything is alive, and verify the pid we
+    # return is one that did NOT exist beforehand.
+    if pgrep -f 'MacOS/Audio-DNA' >/dev/null 2>&1; then
+        echo ""   # caller treats empty as "did not start"
+        return 0
+    fi
     open -n --stdout "$OUT/$tag.out" --stderr "$OUT/$tag.err" "$bundle" ${1+--args "$@"}
     sleep 12
     pgrep -f 'MacOS/Audio-DNA' | head -1
@@ -113,8 +130,11 @@ else
     sleep 60
     quit_gracefully "$PID" && ok "TSan app quit gracefully" || bad "TSan app did not quit within 20s"
 
-    RACES="$(grep -c 'WARNING: ThreadSanitizer' "$OUT/tsan.err" 2>/dev/null || echo 0)"
-    SIGR="$(grep -c 'SignalRegistry' "$OUT/tsan.err" 2>/dev/null || echo 0)"
+    # grep -c prints "0" AND exits 1 when there are no matches, so `|| echo 0` appends a
+    # SECOND line and every later [ "$X" -eq 0 ] dies with "integer expression expected".
+    # Take the first line only.
+    RACES="$(grep -c 'WARNING: ThreadSanitizer' "$OUT/tsan.err" 2>/dev/null | head -1)"; RACES="${RACES:-0}"
+    SIGR="$(grep -c 'SignalRegistry' "$OUT/tsan.err" 2>/dev/null | head -1)"; SIGR="${SIGR:-0}"
     note "total ThreadSanitizer warnings: $RACES ; lines mentioning SignalRegistry: $SIGR"
     if [ "$SIGR" -eq 0 ]; then
         ok "SIGRACE HOLDS — no SignalRegistry race in this run"

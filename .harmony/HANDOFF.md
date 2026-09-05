@@ -1945,3 +1945,48 @@ Baseline was verified on disk at boot, not inherited. Release build: 0 errors, e
 **UNPUSHED: 149 — including this handoff commit** (I predicted 150 before committing and was wrong by one; re-derived from `git rev-list --count origin/main..HEAD` AFTER the commit, which is the only way this number is ever right), per the mechanism this file identified two
 sessions ago: writing the number before committing the file that contains it makes it wrong by
 exactly one, every time. **NOTHING PUSHED. Do not push.**
+
+## POST-CLOSE CORRECTION — THE APP FREED UP AND THE GATES RAN AFTER ALL (s-rta-0905)
+
+**Everything above that says "not one app-level gate could run" was true when written and is
+now WRONG.** Boris quit his Audio-DNA instance minutes after I finished the handoff. I re-ran
+the deferred gate. The headline stands corrected rather than left standing.
+
+**`bash .harmony/gate-s165.sh` → 11 PASS, 0 FAIL.**
+- Release app launched, `/api/health` answered `status: ready, gl_version 4.1, fps 98.6,
+  effects_count 135`.
+- **`[MilkDrop] Loaded 30 presets`** — the L0-MD regression fixed last session is still fixed.
+- No crash markers; graceful quit; **0 Audio-DNA windows in the FULL `CGWindowList`** at the end;
+  output window never opened at any point.
+- **SIGRACE HOLDS. Zero ThreadSanitizer warnings, zero lines mentioning `SignalRegistry`** —
+  exactly the reviewer's pre-registered falsifier, which it wrote before seeing any result.
+
+**BUT THE FIRST RUN OF THAT SCRIPT FAILED 5 CHECKS, AND EVERY FAILURE WAS THE SCRIPT'S FAULT,
+NOT THE APP'S.** This is the part worth carrying:
+1. `quit_gracefully` used the System Events per-process form (`first process whose unix id is
+   N`). **It does not work on this app** — the process sat through the whole 20s wait. The
+   app-level `tell application "Audio-DNA" to quit` does work. Both are now in the script, in
+   that order.
+2. **The script committed the exact false green it was written to prevent.** Because the quit
+   failed, the TSan section's `open -n` self-quit (single instance), and `pgrep | head -1`
+   returned the STILL-RUNNING RELEASE pid — so it printed "TSan app started (pid N)" and then
+   measured a Release log for ThreadSanitizer warnings. It would have reported a clean TSan run
+   that never happened. Now `launch()` refuses to start while any instance is alive.
+3. `grep -c ... || echo 0` emits **two** lines when grep finds nothing (grep prints `0` AND
+   exits 1), so every later `[ "$X" -eq 0 ]` died with "integer expression expected" and the
+   fallthrough printed "SignalRegistry still racing" — a false RED on top of a false GREEN.
+
+**I did not take my own green run on trust.** Verified afterwards, independently:
+`otool -L` shows `libclang_rt.tsan_osx_dynamic.dylib` linked and `nm` shows 49 `__tsan_*`
+symbols, so a zero-warning run is a real negative and not a dead oracle; the Debug-only
+`juce_LookAndFeel.cpp:54` jassert burst (28 of them) proves it was the TSan bundle and not the
+Release one; and the chain source-fixed 08:24:13 → TSan object compiled 08:50:08 → 113 atomic
+symbols in that object → clean working tree for that file proves the run exercised the FIXED
+code, not a stale build.
+
+**WHAT IS STILL NOT GATED:** everything needing media in cells or a human eye — the L3
+composition round trip, L9 on real pixels, L5 in a live set, Ableton Link (needs a peer), MIDI
+out (needs an IAC loopback). Those are in ONLY BORIS CAN CHECK above and none of them moved.
+
+Screen at final close: `pgrep` empty, FULL `CGWindowList` → **0 Audio-DNA windows**, graceful
+quits throughout, no `pkill` or SIGKILL at any point this session, output window never opened.
