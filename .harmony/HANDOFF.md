@@ -2023,3 +2023,26 @@ Three smaller items from the drain, recorded not fixed:
 
 **FINAL COUNTS:** ctest **222/222** on a build that exited 0. `gate-s165.sh` **11 PASS / 0 FAIL**.
 Screen clean, 0 Audio-DNA windows, output window never opened all session.
+
+## FINAL ADDENDUM — the last gap was a comment, and it lied twice (s-rta-0905)
+
+`79e64eb` closed the untested HIGH fix. `8d4c1f6` then fixed the block-header comment above
+those tests, which said "these five close that gap" with eight tests below it — spotted by the
+agent that wrote them, which correctly declined to fix it out of fence.
+
+**The fix reintroduced the defect.** The rewrite said "each of the FOUR paths that can
+deactivate a deck". There are five — `appendDeckFromFile`'s deck-append also reassigns
+`activeDeckIndex` and got the same `cancelPendingTriggers()` treatment. It was absent for a
+legitimate reason (needs a live MainComponent, unreachable from that test target), but "the
+four paths" asserts four is the TOTAL, so a reader concludes full coverage where one path
+deliberately has none. A stale count had been replaced with a smaller, more confident wrong
+one. Now: five, all named, the deck-append marked fixed-in-code-but-not-covered-here.
+
+This is the session's pattern in miniature — the L5 packet's false VERIFIED enumeration, L9's
+three-that-were-six, a prescribed step ORDER carrying a use-after-free, and now a coverage
+comment wrong twice in a row. **Counts and enumerations are claims.** The durable rule that
+came out of it: describe coverage by MECHANISM, and when a set is deliberately incomplete,
+NAME the omitted member and why, where a reader would look for it.
+
+**FINAL: ctest 222/222 · gate-s165.sh 11 PASS / 0 FAIL · 155 unpushed · nothing pushed ·
+tree clean · no Audio-DNA process · output window never opened all session.**
