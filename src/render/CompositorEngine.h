@@ -95,12 +95,10 @@ public:
     // compositePersistentLayers() calls have finished writing into the
     // accumulator — this is the "Global Effects" stage of the pipeline
     // documented in the class comment above (Global Effects -> Master
-    // Opacity -> Screen / Fullscreen Output). Reuses applyClipEffects via a
-    // temporary Clip view, same technique already used for per-layer
-    // effects below (see "Apply per-layer effects" in compositeDeck) — an
-    // empty globalEffects vector is a true no-op (applyClipEffects returns
-    // inputTex before issuing any GL call, same short-circuit as an empty
-    // per-clip/per-layer chain).
+    // Opacity -> Screen / Fullscreen Output). Calls applyClipEffects directly
+    // with the globalEffects vector — an empty globalEffects vector is a
+    // true no-op (applyClipEffects returns inputTex before issuing any GL
+    // call, same short-circuit as an empty per-clip/per-layer chain).
     GLuint applyGlobalEffects(const std::vector<Clip::EffectSlot>& globalEffects,
                               GLuint inputTex,
                               ShaderManager& shaderMgr, FullscreenQuad& quad,
@@ -228,10 +226,10 @@ private:
                                ShaderManager& shaderMgr, FullscreenQuad& quad,
                                int w, int h);
 
-    // Apply per-clip effect chain to a texture, returns result texture ID.
+    // Apply an effect chain to a texture, returns result texture ID.
     // Uses effectFBO_A_/B_ for ping-pong rendering.
     // layerId: used to key per-layer temporal buffers for time effects (u_prev_frame).
-    GLuint applyClipEffects(const Clip& clip, GLuint inputTex,
+    GLuint applyClipEffects(const std::vector<Clip::EffectSlot>& effects, GLuint inputTex,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
                             float time, int w, int h,
                             uint32_t layerId = 0);

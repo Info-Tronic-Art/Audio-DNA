@@ -229,17 +229,17 @@ GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile)
 
 // === Per-clip effect chain rendering (P13.5.1) ===
 
-GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
+GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& effects, GLuint inputTex,
                                             ShaderManager& shaderMgr, FullscreenQuad& quad,
                                             float time, int w, int h,
                                             uint32_t layerId)
 {
-    if (clip.effects.empty() || effectLibrary_ == nullptr)
+    if (effects.empty() || effectLibrary_ == nullptr)
         return inputTex;
 
     // Check if any effect in this chain is temporal (needs u_prev_frame)
     bool anyTemporal = false;
-    for (const auto& slot : clip.effects)
+    for (const auto& slot : effects)
     {
         if (!slot.enabled || slot.bypassed) continue;
         const auto* def = effectLibrary_->getEffectDef(juce::String(slot.effectName));
@@ -249,7 +249,7 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
     GLuint currentInput = inputTex;
     int writeFBO = 0; // 0 = effectFBO_A_, 1 = effectFBO_B_
 
-    for (const auto& slot : clip.effects)
+    for (const auto& slot : effects)
     {
         if (!slot.enabled || slot.bypassed)
             continue;
@@ -533,7 +533,7 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
         return;
 
     // Apply the clip's effects to the accumulator texture
-    GLuint result = applyClipEffects(clip, accumulatorTex_, shaderMgr, quad, time, w, h, layer.id);
+    GLuint result = applyClipEffects(clip.effects, accumulatorTex_, shaderMgr, quad, time, w, h, layer.id);
 
     if (result != accumulatorTex_)
     {
@@ -741,7 +741,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 clipTex = applyClipTransform(*clip, clipTex, shaderMgr, quad, width, height);
 
                 // P13.5.1: Apply per-clip effects
-                clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height, layer.id);
+                clipTex = applyClipEffects(clip->effects, clipTex, shaderMgr, quad, time, width, height, layer.id);
 
                 // P14: Apply clip-to-clip transition if crossfading
                 float dt = 1.0f / 60.0f;
@@ -757,10 +757,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 // Apply per-layer effects (same mechanism as per-clip effects)
                 if (!layer.layerEffects.empty())
                 {
-                    // Create a temporary "clip" view to reuse applyClipEffects
-                    Clip layerFxClip;
-                    layerFxClip.effects = layer.layerEffects;
-                    clipTex = applyClipEffects(layerFxClip, clipTex, shaderMgr, quad, time, width, height, layer.id);
+                    clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height, layer.id);
                 }
 
                 // P13.5.5: Apply layer transform
@@ -902,7 +899,7 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         if (clipTex == 0) continue;
 
         // Apply clip effects
-        GLuint processedTex = applyClipEffects(*clip, clipTex,
+        GLuint processedTex = applyClipEffects(clip->effects, clipTex,
                                                 shaderMgr, quad, time, width, height,
                                                 layer.id);
         if (processedTex == 0) processedTex = clipTex;
@@ -929,13 +926,9 @@ GLuint CompositorEngine::applyGlobalEffects(const std::vector<Clip::EffectSlot>&
         return inputTex;                // true no-op — matches applyClipEffects' own
                                         // early-return; no GL call issued either way
 
-    // Reuse applyClipEffects the same way per-layer effects do below — a
-    // temporary "clip" view over the chain (see "Apply per-layer effects"
-    // in compositeDeck()). kGlobalEffectsLayerId keeps this call's temporal
-    // buffer / screen-split ring buffer from aliasing a real layer's.
-    Clip globalFxClip;
-    globalFxClip.effects = globalEffects;
-    return applyClipEffects(globalFxClip, inputTex, shaderMgr, quad, time, w, h,
+    // kGlobalEffectsLayerId keeps this call's temporal buffer / screen-split
+    // ring buffer from aliasing a real layer's.
+    return applyClipEffects(globalEffects, inputTex, shaderMgr, quad, time, w, h,
                             kGlobalEffectsLayerId);
 }
 
@@ -1146,7 +1139,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
         return newClipTex;
 
     // Apply previous clip's effects too
-    prevTex = applyClipEffects(*prevClip, prevTex, shaderMgr, quad, time, w, h, layer.id);
+    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, layer.id);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
     juce::String shaderName = getTransitionShaderName(layer.transitionMode);
