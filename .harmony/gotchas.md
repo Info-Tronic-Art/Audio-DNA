@@ -271,3 +271,10 @@ Trigger: `git status` shows hundreds of dirty paths under `graphify-out/` and yo
 Rule: 258 of those files were `cache/ast/*.json` — pure derived cache the tool writes and cleans itself — force-tracked historically despite `graphify-out/` sitting in .gitignore. They are now untracked; the ~13 top-level graph outputs stay tracked so a fresh clone still gets a usable graph. A permanently dirty tree is not cosmetic: it destroys "is the tree clean?" as a signal, which is the check every close depends on. Expect a small residual: the post-commit hook launches a background regen, so after the last commit of a session a few graph files will read modified. That is bounded and explainable; 265 was not.
 Scope: repo
 Promoted: no
+
+### 2026-09-05 — ctest reports 203/203 GREEN on top of a FAILED build
+Source: s-rta-0904 — observed live while gating lane L1 (media-leak)
+Trigger: you run `cmake --build . && ctest` (or run them as separate steps) and read the ctest number
+Rule: `cmake --build .` returned **BUILD_RC=2 with 14 compile errors**, and the `ctest` run immediately after still printed `100% tests passed, 0 tests failed out of 203` — because it executed the PREVIOUS build's stale binaries. A green suite sitting on a failed compile is the most convincing wrong answer available in this repo. ALWAYS capture the build's exit code and treat a non-zero one as terminal: do not run ctest, and never quote a ctest number, until the build that produced those binaries actually succeeded. This is the concrete instance of the packet's standing warning "FORCED REBUILD before any ctest claim (stale-binary false-green is a documented trap here)" — it is not theoretical.
+Scope: universal
+Promoted: no
