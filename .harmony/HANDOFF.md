@@ -2046,3 +2046,178 @@ NAME the omitted member and why, where a reader would look for it.
 
 **FINAL: ctest 222/222 · gate-s165.sh 11 PASS / 0 FAIL · 155 unpushed · nothing pushed ·
 tree clean · no Audio-DNA process · output window never opened all session.**
+# SESSION 2026-09-05 (s166, secondary) — BORIS REVERSED THREE STANDING INSTRUCTIONS, THE CORE
+# ARCHITECTURE IS DESIGNED, SIX LANES SHIPPED, AND I RETRACTED ONE OF MY OWN VERIFICATIONS.
+# AUTHORITATIVE OVER ALL ABOVE.
+
+Boris was present at the start, answered a long question list, then left me to work autonomously
+with: "work on things you understand without me... If you are unsure of something leave that or
+if you are blocked entirely, then stop. Don't do work that doesn't make sense." Near the end he
+added: commit locally AND to the remote; **nothing here goes to Vercel — this is not an internet
+application** (it never did; there is no deploy step in this repo).
+
+## >>> THREE STANDING INSTRUCTIONS IN THIS FILE ARE NOW REVERSED. READ THIS FIRST. <<<
+Full text with citations: `.harmony/binding-decisions.md`, section "2026-09-05 (s166) — BORIS
+RULINGS, SPOKEN DIRECTLY".
+
+1. **PUSH. "NOTHING PUSHED — do not push" IS DEAD.** Boris: "push. this is in development and I
+   don't want to lose your work." 158 commits were pushed at s166 boot (`1eff4f7..6858ec2`), and
+   this session's work is pushed too. Push routinely.
+2. **DO NOT HIDE OR DELETE DEAD UI. BUILD IT.** The L4 "honesty batch" and the `EffectsRackPanel`
+   deletion — both recommended by Harmony AND the Fable architect across two prior sessions — are
+   **REJECTED AS FRAMED**. Boris considers those surfaces necessary features that were never
+   finished. Deleting or greying out a dead control is now the WRONG default in this repo.
+3. **THE CORE PRODUCT LAW — "audio controls the video."** Verbatim: "Every single parameter,
+   including the ones you mentioned will get the same exact method to connect them to an audio
+   signal or an oscillator. All will be timed. This is the core of our application."
+   Plus: **the current UI will be SCRAPPED and replaced** once the features work — so do not
+   spend budget on UI polish; spend it on mechanism that survives a UI rewrite.
+
+## THE DESIGN EXISTS. READ IT BEFORE PLANNING ANYTHING.
+**`.harmony/specs/s166-universal-connection-architecture.md`** (63 KB, Fable-authored, with an
+ADDENDUM that supersedes named lines in the body). It answers the core law with: ONE
+model-resident connection type and ONE message-thread engine; keep v1's ~24 curves and v2's
+shaping as pure functions; retire all four runtime paths in a fixed order; publish to the GL
+threads through per-parameter atomics. It contains a disposition table for every existing
+mechanism, a preset-migration plan (no silent data loss), a mandatory threading contract, and
+**sequenced lanes L0–L7 with their unsafe orderings named**. Do not re-plan. Execute.
+
+**Boris's answers are folded in and are NOT open questions any more:**
+- A connection OWNS the value (Replace), mapped into a chosen SUB-RANGE of the slider's travel,
+  with invert and a direction/loop mode (forward / backward / loop / ping-pong).
+- **Latest input wins with hand-back:** touch the control and the human takes over; release and
+  the signal resumes. This is a MODEL-level "grip", not a mouse handler — MIDI/OSC/HTTP writers
+  need it too, and the UI is being replaced.
+- **"All timed" means TEMPO-LOCKED**, not attack/release envelopes. He said nothing about
+  smoothing; the architect flags anything it adds there as its own recommendation.
+
+## THE SINGLE MOST CONSEQUENTIAL FACT FOUND THIS SESSION
+**THE OUTPUT WINDOW DOES NOT RENDER THE COMPOSITION AT ALL.** Verified by three grep shapes of
+different kind (call-graph, symbol, producer) in the architecture doc §6 + A4. `OutputRenderer`
+draws only its own loaded image or camera through the hidden v1 effect chain. No layers, no
+per-clip effects or transforms, no procedural sources, no global effects. **So on a projector,
+"audio controls the video" currently reaches almost nothing** — the composition is visible only
+in the preview panel or via Syphon. This is a product-level fact for Boris and it plausibly
+outranks the whole connection arc in priority. It is why L7 cannot delete `effectChain_`.
+
+## WHAT SHIPPED — 6 code lanes, each independently reviewed by an agent that did not build it
+- **`ab9b115` MilkDrop favorites/user presets now persist.** `saveUserData`/`loadUserData` were
+  fully implemented with ZERO callers, so a starred preset died at quit. Review: SHIP.
+  **NOTE: this commit's message names only the favorites lane but it ALSO contains the media-leak
+  fix below** — two lanes, one commit, because both landed before my stop reached them.
+- **`694f8f3` Global Effects composite for the first time.** The Composition Inspector's Global
+  Effects stack was a fully working editor no renderer ever read. Review: SHIP (temp-Clip
+  lifetime, sentinel-keyed buffers bounded, pipeline order all traced).
+- **(inside `ab9b115`) + `976f1b9` the clip-replace media leak.** Replacing a video clip with an
+  image never released the outgoing decoder. Reviewer proved the enumeration TOTAL with a 6x2
+  outgoing/incoming matrix: every cell releases exactly 0 or 1 times. Review: SHIP.
+- **`e49a6ad` L1 — one evaluator, one thread.** `SignalRegistry::evaluateAll` was called from BOTH
+  the GL thread and the message thread on the same registry — a live data race, because the UI
+  mutates `Signal` objects (an envelope's `setPoints` reallocates a vector the GL thread iterates).
+  Now message-thread-confined with a jassert. Review: SHIP-WITH-FIXES (3 LOW). **I gated this
+  behaviourally**: injected features move 9 of 30 audio signals live.
+- **`f53a8f1` L0 — no more GL-thread copies of a message-thread vector.** `applyClipEffects` takes
+  the effects vector directly; both per-frame temp `Clip` constructions deleted. Prerequisite for
+  the connection engine, not cleanup. Review: SHIP.
+- **`baa8b7d` + `a5c9782` L5a — an "8 beats" LFO never completed a cycle.** Phase was bounded to
+  one bar, so any `beatDuration > 4` silently retraced a fraction of its waveform forever. The
+  envelope selector offers **16** beats — a worse case. Fixed by folding `barCount` (already in
+  `FeatureSnapshot`; no analysis-pipeline change). Review: SHIP-WITH-FIXES, one HIGH which is
+  fixed in `a5c9782` — see MY OWN ERRORS below.
+- **`84383e0` + `2483e91` L8 — the composition tier finally has an oracle.** 7 TestServer
+  endpoints drive and read back `globalEffects` and the four render-dead scalars. Review found a
+  HIGH: on a DETACHED GL context the add endpoint returned `{"ok":true,"index":-1}` while doing
+  nothing — a fabricated success, in the very lane built to stop lying oracles. Guarded in
+  `2483e91`; I re-gated and confirmed the guard does not over-fire when attached.
+
+## VERIFICATION — STATED HONESTLY, INCLUDING WHAT IS NOT VERIFIED
+- **ctest 246/246** on a clean serialized build at HEAD (222 at session boot). Every number here
+  was produced by ME on an exclusive build slot with no concurrent builders.
+- **`bash .harmony/gate-s165.sh` ran TWICE, 11 PASS / 0 FAIL both times**, the second time at the
+  HEAD carrying L0 and L1 — app launches, `/api/health` ready, MilkDrop loads 30 presets, no
+  crash markers, **ThreadSanitizer clean (0 warnings)**, graceful quit, 0 Audio-DNA windows in
+  the FULL `CGWindowList`, screenshot taken AND read.
+- **NOT VERIFIED, and I withdrew a claim that said otherwise:** I earlier recorded that the
+  Global Effects lane was behaviourally proven because adding `Invert` changed the rendered frame
+  and removing it restored the baseline. **`render_frame` returns a BLANK image intermittently** —
+  two consecutive captures of an unchanged scene disagree, and the blank hash is identical to the
+  "nothing loaded" hash. That fully explains my triple as sampling noise. Retracted in place in
+  `.harmony/idea-ledger.md` (commit `2546258`).
+
+## >>> THE BLOCKING FOLLOW-UP: THIS APP HAS NO PIXEL ORACLE <<<
+Until `POST http://127.0.0.1:7070/api/render_frame` is made synchronous against a COMPLETED
+composite, nothing that changes what is on screen can be verified from outside the app, and every
+composition-tier and connection-engine change will ship on source review alone. Candidates: the
+capture races the draw; the offline path runs on a different context than the deck composite; or
+it fires before `load_source` takes effect. **Related and possibly the same root cause:
+`load_source` returns `ok:false` while apparently succeeding.** Fix this BEFORE building more of
+the connection arc — otherwise the arc's own gates will be blind.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would ever surface them
+1. **I dispatched three builders into one repo fenced BY FILE and hit two collisions a file fence
+   cannot see:** two packets resolved to the same `src/MainComponent.cpp` (one fence said "the
+   call-site file(s) you must touch" — an open-ended fence is not a fence), and all three shared
+   ONE cmake `build/` directory, so concurrent builds invalidated every number they quoted. Caught
+   by a routine `git status` before any lane committed — but they committed before my stop
+   message arrived, which is how `ab9b115` ended up carrying two lanes.
+2. **I handed a builder a measurement with an inferred LABEL and it encoded the label as fact.**
+   I identified `Mod 2` as a SawUp oscillator at `beatDuration 2` from four sampled values that
+   matched perfectly. It is `EnvelopeSignal("Mod 2", 4.0f)` — a triangle whose rising limb equals
+   `beatPhase/2` over exactly the range I sampled. The mislabel reached a committed test named
+   "live-app regression anchors" that constructed the wrong class and guarded nothing while
+   passing. An independent reviewer caught it (HIGH); fixed in `a5c9782`.
+3. **My own gate was wrong before the app was.** Its first run reported 7 failures; five were the
+   gate's bugs (pretty-printed JSON defeated `grep '"ok":false'`; float formatting defeated a
+   `grep '0.42'` against `0.419999986886978`; an empty variable made `grep "$EFF"` match every
+   line) — and two of its PASSES were false, including a 25-cycle stress test in which every add
+   had been silently rejected.
+4. **I published a verification built on an oscillating baseline** (see the retraction above).
+All four are filed as durable gotchas in `.harmony/gotchas.md`, scoped `universal` where they
+generalise beyond this repo.
+
+## STILL OPEN FOR BORIS — product calls, not technical ones
+1. **The output window renders nothing of the composition** (above). Does fixing that outrank the
+   connection arc? I believe it might.
+2. **The Record tab.** Two unrelated recorders exist: the tab is a JSON event-log recorder with a
+   dead Play button, while a REAL FFmpeg video recorder already works and is reachable at
+   **Menu > Output > Start/Stop Recording**. Missing for "record my set": an AUDIO TRACK (the one
+   medium-sized piece), exposure on the tab, on-screen status, settings. **Question he has not yet
+   answered: is replaying a recorded performance something he wants?** That decides whether the
+   event-log recorder is a feature or debris.
+3. **When no beat is detected, every tempo-locked oscillator FREEZES** — observed live, filed with
+   evidence. Silence between tracks stops all modulation dead. Architect recommends running from
+   the last/tapped BPM instead. Boris's call; it is a feel question about his instrument.
+4. **The queued-trigger question**, re-asked and still unanswered: with Quantize on, cueing clip B
+   and then stopping clip A silently discards B's cue. Should B still fire?
+5. The architecture doc's §7 carries D2-D13 (shaping controls, ms vs beats, what Composition
+   "Master" vs "Opacity" mean, whether Composition Speed should break beat lock, macros).
+
+## NEXT SESSION — START HERE
+1. **Fix `render_frame`** (the blocking follow-up above). Everything downstream is unverifiable
+   without it, and it is the cheapest thing on this list.
+2. **Fence the bypass toggle BEFORE Lane 2.** `EffectStackView.cpp`'s `slot.bypassed = !slot.bypassed;`
+   is unfenced while erase/add in the same file are fenced. A benign bool flip TODAY; heap
+   corruption the moment `EffectSlot` grows the connection struct that Lane 2 adds. Found
+   independently by the L0 builder and its reviewer. Details in `.harmony/idea-ledger.md`.
+3. **Then Lane 2** (model + engine core, headless, fully unit-testable) per the architecture doc.
+   L0 and L1, its two prerequisites, are DONE.
+4. The four render-dead fields (`masterOpacity`, `masterSpeed`, `compOpacity`, `clipOpacity`) are
+   lane L4b — a RENDERER lane, not a modulation one. They are written by the UI, by live MIDI
+   bindings, and one is published over HTTP, while NO renderer reads any of them.
+
+## RIG FACTS LEARNED THIS SESSION (they cost me three probe runs; do not re-derive them)
+- **TWO HTTP servers.** `TestServer` on **`http://[::1]:8080`** (IPv6, needs `--test-mode`) owns
+  `health`, `signals`, `inject_features` and all the new composition-tier routes. `ApiServer` on
+  **`http://127.0.0.1:7070`** (IPv4 — it does NOT answer on `[::1]`) owns `effects`, `sources`,
+  `load_source`, `render_frame`. A gate needs BOTH base URLs.
+- **`/api/signals` + `/api/inject_features` are a real headless oracle for the modulation layer** —
+  the first this repo has had. `inject_features` now also accepts `beatInBar` and `barCount`.
+- A global effect can be a **silent no-op at default parameters** (`Kaleidoscope` changed nothing;
+  `Invert` did). Probe with an effect that is non-neutral at defaults.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM (stated after committing this file)
+`ctest` **246/246** on a build that exited 0 (222 at session boot). `gate-s165.sh` **11 PASS /
+0 FAIL**, twice. **Everything is PUSHED to `origin/main`** per Boris's ruling — the count of
+unpushed commits should be **0**; if it is not, push. No Vercel, no deploy: this is a native
+macOS app.
+
