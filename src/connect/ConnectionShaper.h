@@ -1,7 +1,5 @@
 #pragma once
 #include "connect/ParamConnection.h"
-#include <vector>
-#include <utility>
 #include <cstdint>
 
 // Pure, stateless shaping math shared by ConnectionEngine and its unit
@@ -33,9 +31,10 @@ namespace ConnectionShaper
     float lfoShapeValue(ConnSource::Lfo::Shape shape, float phase01, float pulseWidth,
                         long cycleIndex, float& shValue, int& shCycle);
 
-    // Piecewise-linear interpolation over Envelope::points (sorted by
-    // position); empty -> 0.0f, clamps to the first/last point outside range.
-    float envelopeValue(const std::vector<std::pair<float, float>>& points, float pos01);
+    // Envelope::curve's evaluator lives on AutomationCurve itself
+    // (connect/AutomationCurve.h) -- shared verbatim with the future
+    // recorded-performance-take editor (s167-l2 architect ruling), so it is
+    // not duplicated here.
 
     // normalize(inMin/inMax) -> curve -> invert -> range (RANGE). No
     // smoothing (needs persistent EMA memory; see applySmoothing). Bit-
