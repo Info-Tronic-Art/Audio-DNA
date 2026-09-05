@@ -52,3 +52,26 @@ status-note:
 artifact:
 history:     NEW(2026-08-04)
 --- /IDEA ---
+
+## 2026-09-05 — s-rta-0904 (secondary): parked findings from the L2 review
+
+Ruled OUT OF SCOPE for the L2 lane deliberately, not dropped. Both are real and both were
+surfaced by the independent reviewer, not by the builder.
+
+- **Solo button has no tooltip** (`src/ui/LayerStrip.cpp:328`). Not introduced by L2, but L2 is
+  what first makes the distinction behaviourally real: solo NARROWS the set of layers that
+  render, it does not un-hide a hidden layer or un-bypass a bypassed one. A user's likely mental
+  model is that solo overrides everything. One line of tooltip while the behaviour is fresh.
+  Size: trivial. Belongs with L4 (honesty batch) or any UI pass.
+
+- **No compositor-level regression test for solo.** `tests/test_compositor.cpp`'s existing "Deck
+  layer compositing data model" test only exercises the `Layer` struct's `visible`/`bypassed`
+  fields directly and never calls `compositeDeck`. That is consistent with this repo's existing
+  pattern (no GL-context test harness), which is exactly why it is worth recording rather than
+  silently accepting: the solo skip is now live in three loops with **zero** automated coverage,
+  and its only proof is a human looking at pixels. If a GL-context test harness is ever built,
+  solo is a good first customer.
+
+- **`compositePersistentLayers` was a plan gap, not a builder miss.** The Fable-authored plan said
+  "both layer loops"; there are in fact three sites in the same read class. Worth remembering the
+  next time a plan states a count — the plan's count is a claim like any other. The lane fixed it.
