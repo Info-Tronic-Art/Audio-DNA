@@ -278,3 +278,10 @@ Trigger: you run `cmake --build . && ctest` (or run them as separate steps) and 
 Rule: `cmake --build .` returned **BUILD_RC=2 with 14 compile errors**, and the `ctest` run immediately after still printed `100% tests passed, 0 tests failed out of 203` — because it executed the PREVIOUS build's stale binaries. A green suite sitting on a failed compile is the most convincing wrong answer available in this repo. ALWAYS capture the build's exit code and treat a non-zero one as terminal: do not run ctest, and never quote a ctest number, until the build that produced those binaries actually succeeded. This is the concrete instance of the packet's standing warning "FORCED REBUILD before any ctest claim (stale-binary false-green is a documented trap here)" — it is not theoretical.
 Scope: universal
 Promoted: no
+
+### 2026-09-05 — changing a command constructor signature: sweep tests/ too, or lose three rounds
+Source: s-rta-0904 — lane L1 (media-leak) took FOUR compile rounds, three failing for this one reason
+Trigger: you add or remove a parameter on any `Command` subclass in `src/core/*Commands.h`
+Rule: `tests/test_undo_commands.cpp` constructs these commands as heavily as production does — it held 8 of the 10 call sites for `RemoveLayerCmd`/`RemoveDeckCmd`. Before considering the edit finished, run `grep -rn '<CmdName>' src/ tests/` and update EVERY site. The compiler stops reporting once a translation unit fails, so a clean-looking "only 2 errors" can hide more behind them. Related trap: when a test call site needs the new argument, passing a noop/placeholder to satisfy arity silently converts a covered surface into a falsely-covered one — at least one test per changed command must pass a real hook and assert on it.
+Scope: repo
+Promoted: no
