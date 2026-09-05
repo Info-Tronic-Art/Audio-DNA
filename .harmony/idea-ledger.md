@@ -86,3 +86,55 @@ surfaced by the independent reviewer, not by the builder.
   trap (b). Deliberately excluded from L1 to keep the lane bounded; fixing it while 'already in
   the file' is how a scoped lane becomes an unscoped one. Worth its own small lane, and it should
   reuse L1's retire list rather than inventing a second mechanism.
+
+## 2026-09-05 — s166: the Global Effects lane shipped WITHOUT a behavioral gate, and the reason is structural
+
+- **The feature is source-reviewed SHIP and has no way to be exercised headlessly.** `694f8f3`
+  makes `Composition::globalEffects` composite for the first time. The independent reviewer
+  traced the temp-Clip lifetime, the `0xFFFFFFFF` sentinel against all three per-layer caches
+  (bounded insert, no per-frame allocation, nothing enumerates layer ids), and the pipeline
+  order against `updateFeedbackBuffer`'s actual read — verdict SHIP. But **no REST endpoint
+  reaches composition-level effects.** The full endpoint list is `bpm, composition, effects,
+  features, health, inject_features, load_image, load_source, render_frame, reset,
+  set_effect_chain, set_effect, set_layer_opacity, set_param, set_syphon, snapshot, sources,
+  state, status, switch_deck, syphon, trigger_clip, trigger_column` — `set_effect_chain` and
+  `set_effect` address the v1 `effectChain_`, not `composition_->globalEffects`. And no ctest
+  target links `CompositorEngine.cpp` or `Renderer.cpp` at all (headless GL is unavailable in
+  this repo's test rig), so there is no unit surface either.
+- **So the honest status is: source-verified, not behaviour-verified.** It was NOT gated in the
+  running app and must not be described as if it were. The falsifier a human can run: add an
+  effect to the Composition Inspector's Global Effects stack and confirm the output visibly
+  changes, then bypass it and confirm the change reverses.
+- **The small lane that fixes this class permanently:** add a test-server/API endpoint that adds,
+  reorders and bypasses an entry in `composition_->globalEffects`, addressed the way
+  `ApiServer`'s `set_param` addresses effects. Then `render_frame` at two states gives a real
+  headless oracle for every future composition-tier render change — this lane, the four dead
+  render fields, and the master-effects consolidation the s166 architecture calls L7. **Cheap,
+  and it converts a whole tier of the app from ungateable to gateable.** Recommend doing it
+  before, not after, the connection engine lands.
+
+## 2026-09-05 — s166: FIELD EVIDENCE — every tempo-locked oscillator FREEZES when no beat is detected
+
+- **Observed on the live app, not inferred.** With `beatPhase` held static and audio injected,
+  both registry oscillators (Mod 1, Mod 2) sat perfectly still across 2 s of wall time. Sweeping
+  injected `beatPhase` 0.0 → 0.25 → 0.5 → 0.75 moved them exactly as their shapes predict —
+  Mod 1 (sine) 0.5000 → 1.0000 → 0.5000 → 0.0000; Mod 2 (ramp) 0.0000 → 0.1250 → 0.2500 →
+  0.3750. So they are healthy and beat-phase-driven; they freeze because `beatPhase` freezes.
+- **Why this matters for a live set:** silence between tracks, a quiet intro, or a failed beat
+  lock stops EVERY tempo-locked modulation dead, mid-performance — not gracefully, just frozen
+  at whatever phase it held. This is the app's core promise ("audio controls the video") failing
+  in exactly the moment a VJ is most exposed.
+- **This is the architecture pass's open question D3c, now with evidence:** should beat-locked
+  sources freeze when no beat is detected, or keep running from the last/tapped BPM? The design
+  recommends keeping them running from the tapped/last BPM, and the app already has a manual BPM
+  mode and tap tempo to run from. This observation supports that recommendation strongly.
+  **Boris's call — it is a feel question about his instrument, not a technical one.**
+- Method note worth keeping: the first gate run reported "oscillators frozen — the tick is not
+  running" and would have been read as a regression in the lane that had just landed. A single
+  discriminating probe (sweep the phase instead of holding it) separated "the clock stopped"
+  from "the clock has no input", in about two minutes. **An anomaly attributed without a
+  discriminating test is a false lead with a commit message attached.**
+- Rig note: `/api/signals` (test server, port 8080, `--test-mode`) reports every signal's live
+  cached value, and `/api/inject_features` accepts `beatPhase`, `rms` and `bandEnergies`.
+  Together they are a real headless oracle for anything signal-driven — the first one this repo
+  has had for the modulation layer. Use it instead of asking for a human.
