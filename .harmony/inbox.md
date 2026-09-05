@@ -6,8 +6,8 @@ origin:      memory/loose-ends-ledger.md:235,3491
 why-routed:  project norm drift — only an RTA session can fix it
 source-idea: 
 routed-by:   harmony-13732     date: 2026-08-30
-status:      TAKEN
-status-note: s-rta-0904: HEAVY drift confirmed by re-derivation (116 feature-affecting files / 121 commits since 9139dd4). Phase 2.5 deep-audit re-trace running this session; state.md last_normalized_sha bumps only after it lands.
+status:      DONE
+status-note: s-rta-0904: HEAVY drift CLOSED. 127 commits re-traced by a 7-lane read-only swarm + critic + fenced writer + independent verifier. 6 CRITICAL corrections (largest found by 3 lanes independently: the doc claimed undo/redo was a no-op while a full Undo v1 had shipped). Every count re-derived from source. state.md last_normalized_sha -> d93e6ba. Reports in .audit/renorm-2026-09-05/.
 --- /ROUTED-ITEM ---
 
 --- ROUTED-ITEM ---
@@ -39,8 +39,8 @@ origin:      memory/session-handoff.md:31 (c)
 why-routed:  per-repo normalize
 source-idea: 
 routed-by:   harmony-13732     date: 2026-08-30
-status:      TAKEN
-status-note: s-rta-0904: both REQUIRED picks closed (VALIDATION.md created, FEATURES.md 24 fixed) -> validate-features --framework game now PASS=265 FAIL=0 COMPLIANT. Phase 2.5 re-trace in progress. normalize-check.sh default --framework web gives 3 false FAILs here; fix filed up-channel as idea-2026-09-04-harmony2-17885803732009828310.
+status:      DONE
+status-note: s-rta-0904: normalize-check.sh --framework game now reads STATUS: CURRENT ("1 commits since normalize (all chore/docs - no code changes)") + validator COMPLIANT PASS=265 FAIL=0. PRECISION NOTE: the tool never emits the literal word "NORMALIZED" - its vocabulary is CURRENT / NEEDS FIXES / NOT NORMALIZED - so the acceptance wording as written is unsatisfiable; CURRENT is the achievable best and that is what it reads. Under the tool DEFAULT (--framework web) it still reads NEEDS FIXES on 3 false-positive FAILs; fix filed up-channel as idea-2026-09-04-harmony2-17885803732009828310.
 --- /ROUTED-ITEM ---
 
 --- ROUTED-ITEM ---
@@ -61,6 +61,6 @@ origin:      core/WORK_INDEX.md (s158 BORIS mid-session task: update these secon
 why-routed:  Boris 2026-09-02: get the secondaries using the current Harmony template
 source-idea: 
 routed-by:   harmony-57856     date: 2026-09-02
-status:      TAKEN
-status-note: s-rta-0904: report read, REQUIRED both done, most RECOMMENDED done (gotcha schema, .gitignore secrets block, binding-decisions.md, backups triaged: 12 found not 8, 11 byte-identical deleted, 1 divergent archived). Remaining: Phase 2.5 re-trace, graphify cache tracking decision, unclean-close stamp kept ON PURPOSE as the reproducer for a detector defect filed up-channel.
+status:      DONE
+status-note: s-rta-0904: both REQUIRED picks done; RECOMMENDED done except the graphify cache-tracking call (recon agent never reported - carried). Backups: 12 found not 8, 11 byte-identical deleted, 1 divergent archived to .harmony/.archive/. UNCLEAN-CLOSE-STAMP deliberately KEPT as the live reproducer for a detector defect filed up-channel (idea-2026-09-04-harmony2-17885803732007819224).
 --- /ROUTED-ITEM ---
