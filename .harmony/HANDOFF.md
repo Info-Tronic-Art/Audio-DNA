@@ -1990,3 +1990,36 @@ out (needs an IAC loopback). Those are in ONLY BORIS CAN CHECK above and none of
 
 Screen at final close: `pgrep` empty, FULL `CGWindowList` → **0 Audio-DNA windows**, graceful
 quits throughout, no `pkill` or SIGKILL at any point this session, output window never opened.
+
+## SECOND POST-CLOSE ADDENDUM — the teammate reports drained, and one gap was real (s-rta-0905)
+
+All builder/reviewer reports drained after the close. Every one had already been gated and
+committed EXCEPT one finding, which is now closed:
+
+**A HIGH-severity fix had ZERO test coverage, and the lane's commit implied otherwise.**
+`Layer::clearActiveClip()`'s pending-trigger cancellation — one of L5's two HIGH fixes — was
+covered by nothing. The agent that wrote the other tests flagged it as missing (reporting
+6-of-7 rather than quietly counting to six); a reviewer then PROVED it by reverting the two
+lines, rebuilding, and watching all tests still pass, 36/36. Now fixed (`79e64eb`), and the
+new test was proven load-bearing by the same method: neutralize the fix -> **exactly 1 of 222
+fails** (`2 == -1`), tree restored byte-identical by md5. ctest **222/222**.
+
+**A PRODUCT QUESTION FOR BORIS that the test would otherwise have silently decided:** a
+`Layer` has ONE pending-trigger slot, not one per column — so clearing the ACTIVE clip also
+cancels a queued trigger on a DIFFERENT, untouched column. Clip A live on column 0, cue clip B
+on column 2 for the next bar, stop A, and B's cue is silently lost. Plausibly surprising in a
+live set. The cancellation is new; the single-slot design is not. **Should a pending trigger
+be per-column rather than per-layer?** If it ever becomes per-column, the new test fails and
+forces the decision — which is the right failure to have.
+
+Three smaller items from the drain, recorded not fixed:
+- `RemoveDeckCmd::undo()`'s cancellation is fire-and-forget: redo does not restore it, unlike
+  `SwitchDeckCmd`/`AddDeckCmd` which both capture-restore-reapply. Reachable only via
+  Autopilot's non-undo-tracked triggers; failure is a DROPPED trigger, not a late fire.
+- `Composition::removeDeck(int)` has zero call sites anywhere — dead code.
+- L3 Step 3's undo-clear-on-append is stricter than an append needs (surviving decks' commands
+  would still resolve), and repeated clicks on a deck row re-open its media each time. Both
+  deliberate, both worth a glance.
+
+**FINAL COUNTS:** ctest **222/222** on a build that exited 0. `gate-s165.sh` **11 PASS / 0 FAIL**.
+Screen clean, 0 Audio-DNA windows, output window never opened all session.
