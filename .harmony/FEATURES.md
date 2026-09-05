@@ -1,10 +1,12 @@
 # Features — Audio-DNA (RealTimeAudio)
 
-Norm: v2 | Last audited: 2026-05-24 | SHA: 4ee10ad
+Norm: v3 | Last audited: 2026-09-05 | SHA: 8354b0a
 
 > **Re-verified 2026-07-16 against source (7-lane audit, HEAD 9139dd4); counts: 135 effects / 108 sources / 22 REST endpoints.** Targeted corrections applied to the analysis-pipeline stage list (§2), the GenreSmoothing/One-Euro smoothing claims (§3, §16), SignalInspector (§7b), 3D/MilkDrop source param counts (§source census), and video BPM-sync/in-out ownership (§11). See `.harmony/APP-INVENTORY.md` for the full living surface inventory and consolidated FLAGGED (dead/ghost/stub) list.
 >
-> **Synced 2026-07-17 to Wave 0+1 reality:** 13 dead/ghost symbols deleted (UniformBridge, MappingSuggester, ChainedSignal, GenreSmoothing, OneEuroFilter, ProgrammingMode, SyphonInput, SpoutOutput, NdiOutput/NdiInput, shaders/ disk files, and orphaned setters/stubs); OSC subsystem now LIVE (UDP 8000, 11/11 callbacks); Syphon OUTPUT wired (build-flag-gated); persistence now COMPLETE (all model fields round-trip); `/api/set_bpm` wired; TopBar transport wired; waveform snapshot now seqlock (torn-read-free); 48kHz warn-only guard added; Prefs collapsed 8→3 tabs. Undo/redo remains a no-op (Wave 2).
+> **Synced 2026-07-17 to Wave 0+1 reality:** 13 dead/ghost symbols deleted (UniformBridge, MappingSuggester, ChainedSignal, GenreSmoothing, OneEuroFilter, ProgrammingMode, SyphonInput, SpoutOutput, NdiOutput/NdiInput, shaders/ disk files, and orphaned setters/stubs); OSC subsystem now LIVE (UDP 8000, 11/11 callbacks); Syphon OUTPUT wired (build-flag-gated); persistence now COMPLETE (all model fields round-trip); `/api/set_bpm` wired; TopBar transport wired; waveform snapshot now seqlock (torn-read-free); 48kHz warn-only guard added; Prefs collapsed 8→3 tabs.
+>
+> **Re-normalized 2026-09-05 against source (7-lane audit + completeness critic, HEAD 8354b0a; baseline 9139dd4, 127 commits since).** Corrections of note: **Undo v1 shipped** (§8, §14) — the "Undo/redo remains a no-op" line above is now FALSE and is retracted, not carried forward; **FeatureBus rewritten from a triple-buffer atomic swap to a seqlock single-writer protocol** (§3, Shared Infrastructure) — `write()`/`getLatestRead()` no longer exist, replaced by `createWriter()`/`Writer::acquireWrite()`/`publishWrite()` and `read()`/`readIfNewer()`; **`MappingEngine::processAll` never existed** — the real method is `processFrame()`, moved off the render callback onto a 120Hz message-thread timer (§6); a **16th, undocumented deck-to-deck transition** exists alongside the 15/30 clip-level transitions (§5a); the global `EffectChain` (135 effects, preloaded once at startup) and the per-clip/per-layer `EffectSlot` path are two distinct mechanisms, not one (§4); `test_effects.py` discovers all **135** effects, not 112 (§4); REST endpoints are now **24** registered (23 in production — `/api/inject_features` is test-mode-gated) and the API now binds **127.0.0.1 by default**, not always-on 0.0.0.0 (§14); the `DATA RACE` gotcha on `set_layer_opacity`/`set_param` is FIXED (§14); five model-field-written-nothing-reads-it dead surfaces found this pass: BPM Multiplier, Quantize selector, Smart Autopilot, three `UniversalParamControl` source modes, and the Structural Scene trigger callback (§16, §26a, §26m); `resolutionSelector_` and the previously-undocumented `beatRandomToggle_`/`beatCountSelector_` are live-consumer-but-UI-unreachable widgets, not plain dead code (§21); `Renderer::closeMediaForClip` has zero callers — clip Clear strands the FFmpeg decoder + GL texture (§11). See `.harmony/APP-INVENTORY.md` for the full living surface inventory.
 
 <!-- C++20/JUCE/OpenGL desktop application. Framework gating:
      Security/Auth: N/A — local desktop app, no user accounts
@@ -91,7 +93,7 @@ AudioTransportSource (file playback) → same callback path
 13. Stage 12: `StructuralDetector::process()` — 4-scale EMA (0.1s/1s/4s/16s) → drop/buildup/breakdown state machine
 14. Stage 13: `GenreDetector::process()` — 8-genre classification + energy state
 15. Stage 14: `AdvancedAudioAnalyzer::process()` (P25) — sidechain pump, swing ratio, formant, resonance, reese bass
-16. Publishes complete `FeatureSnapshot` to FeatureBus via triple-buffer swap
+16. Publishes complete `FeatureSnapshot` to FeatureBus via `featureBusWriter_.acquireWrite()` / `publishWrite()` against a seqlock `FeatureBus::Writer` handle (see §3 — FeatureBus is no longer a triple buffer)
 
 **Data flow:**
 ```
@@ -145,46 +147,48 @@ RingBuffer → 2048-sample window → FFT → [spectral|onset|BPM|MFCC|chroma|pi
 ---
 
 ## 3. Feature Transport [R]
-**What it does:** Transfers the complete FeatureSnapshot from analysis thread to render thread via lock-free triple-buffer atomic swap, with optional EMA smoothing.
+**What it does:** Transfers the complete FeatureSnapshot from analysis thread to render thread(s) via a lock-free **seqlock, single-writer value-copy protocol** (rewritten from the original triple-buffer atomic swap by commit `cb4d5fa`), with optional EMA smoothing.
 
 **Entry points:**
-- `FeatureBus` class (src/features/FeatureBus.h:21) — triple-buffer transport
+- `FeatureBus` class (src/features/FeatureBus.h:39) — seqlock transport: a `seq_` generation counter + `words_[80]` atomic `uint32_t` array + a single writer-private `staging_` buffer
+- `FeatureBus::Writer` — move-only handle obtained from `createWriter()`; enforces a single writer (a second concurrent `createWriter()` call deterministically returns an invalid handle)
 - `Smoother` class (src/features/Smoother.h) — EMA filter (header-only; One-Euro variant removed Wave 0)
 
 **Implementation chain:**
-1. Analysis thread calls `FeatureBus::write(snapshot)` — writes to next buffer, atomic index swap
-2. Render thread calls `FeatureBus::read()` — reads latest snapshot via atomic index read (~10ns)
-3. `Smoother::process()` — applies EMA filter per-mapping for visual smoothness (the `OneEuroFilter` was removed from Smoother.h Wave 0; mapping/routing use the EMA `Smoother` only)
+1. The single producer obtains a `FeatureBus::Writer` via `FeatureBus::createWriter()` once (e.g. `AnalysisThread`) and holds it for the object's lifetime
+2. Each frame: `Writer::acquireWrite()` returns the writer-private staging buffer → caller fills it → `Writer::publishWrite()` copies it into the seqlock word array under the generation counter
+3. Readers call `FeatureBus::read()` (blocking-retry on a torn read) or `readIfNewer(FeatureSnapshot&, uint64_t&)` (returns whether a newer generation was available) — both are safe with multiple concurrent readers
+4. `Smoother::process()` — applies EMA filter per-mapping for visual smoothness (the `OneEuroFilter` was removed from Smoother.h Wave 0; mapping/routing use the EMA `Smoother` only)
 
 **Data flow:**
 ```
-AnalysisThread → FeatureBus::write() → [atomic triple-buffer] → FeatureBus::read() → RenderThread
+AnalysisThread → Writer::acquireWrite()/publishWrite() → [seqlock: seq_ + words_[80]] → read()/readIfNewer() → RenderThread (4 call sites in MainComponent.cpp)
 Per-mapping: raw value → Smoother (EMA alpha) → smooth value
 ```
 
 **Dependencies & services:**
-- std::atomic for lock-free index management
+- std::atomic (relaxed/acquire-release) for the seqlock generation counter and word array — no mutex, no triple-buffer array
 
 **Config:**
-- Triple buffer: 3x FeatureSnapshot (alignas(64), cache-line aligned)
+- Seqlock word array: `words_[80]` (`uint32_t`, atomic) sized to hold a serialized FeatureSnapshot; single writer-private `staging_` buffer, no fixed buffer count (replaces the old "3x FeatureSnapshot" triple buffer)
 - Smoother defaults: per-mapping smoothing parameter
 
 **Failure modes:**
 - Multiple writes before read → reader gets latest only, intermediate snapshots dropped (by design)
-- No new data → reader gets last consumed snapshot via `getLatestRead()` (handled)
+- Reader catches a writer mid-publish → seqlock generation mismatch detected, reader retries (handled, lock-free)
+- No new data → `readIfNewer()` reports no newer generation; `read()` returns the last published snapshot (handled)
 
 **Test coverage:**
-- `tests/test_feature_bus.cpp` — single write-read, multiple writes, latest-read, slot independence, writer doesn't clobber reader
+- `tests/test_feature_bus.cpp` — 10 `TEST_CASE`s, including "concurrent write-read stress test" and "multi-reader coherence under concurrent publish" (the previously-missing concurrent stress coverage now exists)
 - `tests/test_smoother.cpp` — convergence to constant input
-- Missing: concurrent stress tests (actual multi-thread contention)
+- `FeatureBus::readIfNewer()` has zero call sites in `src/` or `tests/` today — a second reader API that exists but is not yet exercised or consumed; not asserted dead (could be forward-looking), flagged for the next writer to judge
 
 **Gotchas:**
-- FeatureSnapshot must remain POD (no pointers, no vtable) for atomic swap correctness.
-- Triple buffer means analysis can write every 10.7ms while render reads every 16.67ms — no contention.
-- `getLatestRead()` returns the LAST consumed snapshot, not the latest available — different from `read()`.
+- FeatureSnapshot must remain POD (no pointers, no vtable) — it is serialized into the seqlock word array by value.
+- **Only one `FeatureBus::Writer` may be live at a time.** A second `createWriter()` call while one handle is outstanding deterministically returns an invalid handle — this is enforced, not merely documented.
+- `read()` and `readIfNewer()` are both safe for multiple concurrent readers; the old triple-buffer's per-reader "last consumed" semantics (formerly `getLatestRead()`) no longer apply — `getLatestRead()` and `write()` do not exist on this class any more.
 - (OneEuroFilter removed from Smoother.h Wave 0 — its division-by-zero gotcha no longer applies.)
 - **`FeatureSnapshot::clear()` uses `memset(this, 0, sizeof(*this))`** then manually sets non-zero defaults. Adding any non-trivial member (vtable, std::string) would break this.
-- **`hasNewData()` uses relaxed memory order** — fine for single reader, but with multiple readers only one will successfully acquire.
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -197,18 +201,24 @@ Per-mapping: raw value → Smoother (EMA alpha) → smooth value
 **Entry points:**
 - `EffectLibrary` class (src/effects/EffectLibrary.h:12) — effect registry
 - `Effect` class (src/effects/Effect.h) — single effect with shader + params
-- `EffectChain` class (src/effects/EffectChain.h:23) — ordered chain with ping-pong FBOs
+- `EffectChain` class (src/effects/EffectChain.h:59, after an `EffectChainGLState` struct added by `88af683`) — ordered chain with ping-pong FBOs, used **only** at the global-effects level (see Implementation chain below)
 - (`UniformBridge` removed Wave 0 — was a demo-mapping helper superseded by MappingEngine; effect uniforms upload directly in `EffectChain::render`)
 - `ISFShaderLoader` (src/effects/ISFShaderLoader.h) — ISF import with GLSL 410 conversion
 - `EmbeddedShaders.h` (src/render/EmbeddedShaders.h) — all shaders as inline strings
 
-**Implementation chain:**
-1. `EffectLibrary` registers all 135 effects + 15 transitions at startup
-2. User drags effect from FX Browser → `EffectSlot` added to clip/layer/global chain
-3. `EffectChain::render()` iterates effects, ping-ponging between FBO A and FBO B
-4. For each effect: `EffectChain::render` uploads params as `glUniform1f`, shader renders to target FBO
-5. Temporal effects bind `u_prev_frame` from per-layer temporal buffer
-6. ISF shaders parsed from JSON metadata, wrapped with compatibility defines, converted to GLSL 410
+**Implementation chain — TWO distinct mechanisms, not one (corrected 2026-09-05):**
+
+*Global level* (the only place the `EffectChain` C++ class is used):
+1. `Renderer::initEffectChain()` preloads **all 135 effects, disabled**, into a single global `EffectChain` at GL-context creation (one `addEffect()` call per effect, called exactly once total in the whole codebase — never again at runtime)
+2. `EffectChain::render()` iterates only the *enabled* effects, ping-ponging between FBO A and FBO B, uploading params as `glUniform1f` per effect
+3. This is why `/api/health`/`/api/state`'s effect count and `test_effects.py`'s effect-discovery count are always **135** (full library size), not an in-use count — dragging an effect from the FX Browser onto the global chain cannot be adding a new slot (there is only ever the one `addEffect()` call at startup); the drop handler most likely just flips `setEnabled(true)` on an already-present slot (exact UI code path is in `src/ui/EffectsRackPanel.*`, not traced here)
+
+*Clip/layer level* (does **not** touch the `EffectChain` class at all):
+1. User drags effect from FX Browser → a plain-data `Clip::EffectSlot` / layer effect entry is added directly to the clip or layer model (`Clip.h`/`Layer.h` — no `EffectSlot` reference exists in either file to the `EffectChain` class)
+2. `CompositorEngine::applyClipEffects()` resolves each slot's shader directly via `EffectLibrary::getEffectDef()` and renders it through **CompositorEngine's own independent** `effectFBO_A_`/`effectFBO_B_` ping-pong pair — a separate FBO pair from the global `EffectChain`'s
+3. Temporal effects bind `u_prev_frame` from per-layer temporal buffer (`layerTemporalBuffers_`) — whether this shares the global chain's per-GL-context `EffectChainGLState` safety mechanism (added by `88af683`) or uses an older/different lifetime model was not fully traced
+
+ISF import (both levels): shaders parsed from JSON metadata, wrapped with compatibility defines, converted to GLSL 410, then registered into `EffectLibrary` like any other effect.
 
 **Data flow:**
 ```
@@ -286,7 +296,7 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 - Effect display name vs shader key mismatch → resolve via `EffectLibrary::getEffectDef(displayName)->shaderName` (CRITICAL — Pitfall #1)
 
 **Test coverage:**
-- `tests/visual/test_effects.py` — auto-discovers all 112 effects, verifies param changes output
+- `tests/visual/test_effects.py` — auto-discovers all **135** effects (its `all_effects` fixture reads `app.state()['effects']`, which always reports the full global-chain size — see Implementation chain above; this was already the true count at the last normalize, the doc's prior "112" was stale from the start), verifies param changes output
 - `tests/visual/test_range_quality.py` — 11-position sweep, 70%+ useful range, no dead zones
 - Missing: ISF import edge cases, effect chain ordering bugs, temporal effect two-path validation
 
@@ -294,6 +304,7 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 - `Clip::EffectSlot::effectName` stores DISPLAY name ("Ripple"), shaders compiled under snake_case ("ripple"). Always resolve via `EffectLibrary::getEffectDef()`. Never use display name as shader key.
 - Effect defaults must be VISIBLE on first add (0.3-0.7 for primary param). Defaults at 0.0 make effects invisible.
 - Temporal effects need BOTH render paths (EffectChain + CompositorEngine). Fixing only one path = silent failure in the other.
+- **The global `EffectChain` and the clip/layer `EffectSlot` path are architecturally separate** (see Implementation chain above) — they don't share FBOs, and a fix to one does not apply to the other. Don't assume a single "the effect chain" when debugging.
 - Multi-select FX drag drops comma-separated names — must split on commas.
 - Parameter ranges often need nonlinear remapping in shader (`mix(0.82, 0.995, slider)`) for perceptually linear control.
 
@@ -327,7 +338,7 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 **What it does:** Manages the OpenGL 4.1 rendering loop: shader compilation, texture management, deck/layer compositing with per-level effect chains, temporal buffers, feedback system, and frame ring buffer.
 
 **Entry points:**
-- `Renderer` class (src/render/Renderer.h:37) — OpenGLRenderer impl, frame loop
+- `Renderer` class (src/render/Renderer.h:41) — OpenGLRenderer impl, frame loop
 - `ShaderManager` class (src/render/ShaderManager.h:11) — compile, link, hot-reload
 - `TextureManager` class (src/render/TextureManager.h) — image → GL texture, FBO textures
 - `CompositorEngine` class (src/render/CompositorEngine.h:27) — deck/layer compositing
@@ -376,7 +387,7 @@ Accumulator → global FX → composition transform → swap buffers → display
 - `CompositorEngine::applyTransition()` (src/render/CompositorEngine.cpp:1090) — shader-based blending
 - `CompositorEngine::getTransitionShaderName()` (src/render/CompositorEngine.cpp:1065) — enum-to-shader mapping
 - `EmbeddedShaders::transition*` (src/render/EmbeddedShaders.h) — 15 transition fragment shaders
-- `Renderer` shader compilation (src/render/Renderer.cpp:1324-1338) — compiles all 15 transition shaders at startup
+- `Renderer` shader compilation (src/render/Renderer.cpp:1468-1483, Phase-14 block — line-drifted from 1324-1338) — compiles all 15 transition shaders at startup
 
 **Transition inventory (30 enum entries, 15 with dedicated shaders):**
 
@@ -409,8 +420,9 @@ Accumulator → global FX → composition transform → swap buffers → display
 - Previous clip effects are applied during transition (`applyClipEffects` called on prevClip at CompositorEngine.cpp:1110)
 - 15 Creative/VJ and 3D transition enum entries exist as placeholders — selecting them produces a dissolve until shaders are implemented
 - Instant cut (`transitionSpeed <= 0` or `transitionSpeed == -1`) sets `crossfadeProgress = 1.0` immediately, skipping the blend entirely
-- **Transition shader coverage: 15 of 30 enum entries have dedicated shaders.** Shader-mapped: Cut, Dissolve, WipeLeft/Right/Up/Down, WipeEllipse (iris), PushLeft/Right/Up/Down, ZoomIn/Out, Flip, ToBlack. The remaining 15 (WipeDiagonal, RotateX/Y, Spin, Cube, Fold, ToWhite, Pixelate, Blur, Noise, RGBSplit, GlitchBlocks, Strobe, Slide, Stretch, Displace) fall back to dissolve via the `default:` case in `getTransitionShaderName()` (CompositorEngine.cpp:1083). See Renderer.cpp:1324-1338 for compiled shaders.
+- **Transition shader coverage: 15 of 30 enum entries have dedicated shaders.** Shader-mapped: Cut, Dissolve, WipeLeft/Right/Up/Down, WipeEllipse (iris), PushLeft/Right/Up/Down, ZoomIn/Out, Flip, ToBlack. The remaining 15 (WipeDiagonal, RotateX/Y, Spin, Cube, Fold, ToWhite, Pixelate, Blur, Noise, RGBSplit, GlitchBlocks, Strobe, Slide, Stretch, Displace) fall back to dissolve via the `default:` case in `getTransitionShaderName()` (CompositorEngine.cpp:1083). See Renderer.cpp:1468-1483 for compiled shaders.
 - **No test coverage** for transitions — no test file exercises `applyTransition()` or validates per-mode shader output.
+- **A 16th, separate transition mechanism exists at the deck level, undocumented until now.** `Renderer` tracks `deckTransitionProgress_`/`deckTransitionSpeed_` (Renderer.h:286-294), detects `composition_->activeDeckIndex` changes, and blends old→new deck output through a dedicated `deck_transition` shader (`EmbeddedShaders::deckTransition`, EmbeddedShaders.h:111-113), reading `composition_->crossfaderBlendMode` as its blend uniform (Renderer.cpp:~508-592, "P25: Cross-deck transition blending"). This is real, currently-firing, and user-visible on every deck switch — it is entirely separate from the 15/30 clip-level transitions above and from the (unwired) live Crossfader ghost feature described in §22b; §22b's mention of `crossfaderBlendMode` at `Renderer.cpp:508` is this same one-shot deck-switch blend, not a live crossfader. No test file greps positive for `deckTransition` or `deckTransitionProgress_`.
 
 ### 5b. Keying & Masking System
 
@@ -563,7 +575,7 @@ UV centered at origin → anchor offset → rotation (2D mat2) → inverse scale
 **Implementation chain:**
 1. User clicks "map" on any effect param → MappingEditor opens
 2. Configure: source feature, curve type, input range, output range, smoothing
-3. Each render frame: `MappingEngine::processAll(snapshot)`
+3. `MappingEngine::processFrame(snapshot)` — **not** `processAll` (that method never existed in source). As of `c51aff7`, this call was moved OFF the render (GL) callback and onto a dedicated **message-thread `juce::Timer`** (`MainComponent::MappingTickTimer`), ticking unconditionally at 120Hz (`kMappingTickHz`, MainComponent.h:240; `startTimerHz()` call at MainComponent.cpp:261, tick call site MainComponent.cpp:2483) — specifically so mapped params keep updating even when the GL context is detached
 4. For each active mapping: extract source → normalize to [0,1] → apply curve → scale to output range → smooth → write to target param
 5. Multiple mappings can target same param (values summed)
 6. (`MappingSuggester::suggest()` removed Wave 0 — was genre-aware recommendations, never reachable from UI/API)
@@ -818,7 +830,7 @@ FeatureSnapshot fields → SignalRegistry (named signals) → RoutingEngine → 
 - `Clip` struct (src/model/Clip.h:10) — media content + per-clip effects + transport
 - `Layer` struct (src/model/Layer.h:27) — layer with clips, effects, opacity, blend mode
 - `Composition` struct (src/model/Composition.h:10) — top-level container
-- `UndoManager` class (src/core/UndoManager.h:9) — Command pattern undo/redo
+- `UndoManager` class (src/core/UndoManager.h:9) — Command pattern undo/redo, **now fully wired ("Undo v1") — no longer a no-op (see below)**
 - `Autopilot` class (src/model/Autopilot.h:14) — auto-advance clips
 
 **Implementation chain:**
@@ -826,8 +838,8 @@ FeatureSnapshot fields → SignalRegistry (named signals) → RoutingEngine → 
 2. Active deck renders; persistent layers from other decks also render
 3. `Autopilot::processFrame()` runs in render thread — checks beat/video triggers
 4. On advance: `onAutopilotAdvanced_` fires async on message thread to refresh UI
-5. Smart random: uses structural state + energy level for intelligent clip selection
-6. `UndoManager`: Command pattern, records state changes, supports undo/redo chain
+5. Smart random: uses structural state + energy level for intelligent clip selection **in `Autopilot::smartRandomEnabled_`, which has real, working logic — but is currently UNREACHABLE by any user path. Its only setter, `Renderer::setSmartRandomEnabled()`, has zero callers in UI/API/OSC. The separate `Composition::smartAutopilotEnabled` field named in Config below is written/serialized but read by nothing at runtime and set by no UI control — it does NOT gate this logic. Two different flags, same name-shaped bug, neither one reachable end-to-end.**
+6. `UndoManager`: Command pattern, records state changes, supports undo/redo chain — **shipped as "Undo v1" since the last normalize.** 8 new files under `src/core/` (`ClipCommands.h`, `DeckCommands.h`, `EffectCommands.h`, `TriggerCommands.h`, `CompositeCommand.h`, `EffectScope.h`, `MediaReconnect.h`, `UndoService.{h,cpp}`) implement 17 concrete `Command` subclasses (ClipCommands.h: 3, DeckCommands.h: 11, EffectCommands.h: 1, TriggerCommands.h: 1, CompositeCommand.h: 1) covering clip set/swap/trigger, column count, layer add/remove/move/clear/flag, deck add/remove/switch/clear, and effect stacks. 22+ concrete `std::make_unique<...Cmd>()` construction sites in `MainComponent.cpp` route through `pushCommands()`/`undoManager_.perform()` (MainComponent.cpp:3597-3612); Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z are wired, with a dynamic Edit-menu label via `undoDescription()`/`redoDescription()` (MainComponent.cpp:1573-1583). `UndoService::withDeckDetached()` (20+ call sites) is a GL-fence mechanism guarding structural edits made from the message thread. `MediaReconnect.h`'s `needsVideoReopen()` and `TriggerCommands.h`'s `TriggerClipCmd` were spot-checked and confirmed to have real callers (MainComponent.cpp:3524, 3335, 3383) — not dead scaffolding.
 
 **Data flow:**
 ```
@@ -854,11 +866,15 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 - Autopilot on empty layer → no advance, no crash (handled)
 - Undo stack overflow → oldest commands discarded (handled)
 - Transport state race: render thread writes `clip->playing` (mutable) for OneShot stop (documented, by design)
+- **Clip > Clear leaks the video/image-sequence decoder + GL texture (unhandled).** `Clip > Clear` (MainComponent.cpp, `case C::kClipClear`, ~4352) calls `deck->clearCell()` and `layer->clearActiveClip()` only — neither touches `Renderer`'s media maps. The only code path that erases `Renderer::videoPlayers_`/`imageSequences_` entries is `Renderer::closeMediaForClip` (Renderer.cpp:950), which has zero callers anywhere in the repo (confirmed via both a bare-symbol grep and a call-syntax grep). A live FFmpeg decoder context + GL texture is stranded per clip clear, keyed by a clip id the model no longer references. No dedicated decode thread exists to leak — decoding is synchronous on the GL thread, so it is the decoder + texture that leak, not a thread. See §11 for the VideoPlayer/ImageSequence side of this. Other clear/remove paths (`kDeckClearClips`, `kLayerClearClips`, `RemoveColumnCmd`) are suspected to share the same gap (they route through the same open-only media hook) but were not individually traced line-by-line.
 
 **Test coverage:**
 - `tests/test_composition.cpp` — Clip/Layer creation, undo/redo
 - `tests/test_compositor.cpp` — deck compositing, autopilot behavior
-- Missing: preset save/load round-trip, cross-deck transition, persistent layer rendering
+- `tests/test_undo_commands.cpp` — 2222 lines, 59 `TEST_CASE`s, the single largest test file in the repo; covers the full Undo v1 command inventory (clip/column/deck/layer/effect/trigger operations)
+- `tests/test_autopilot.cpp` — dedicated Autopilot behavior tests (previously undocumented; not the same file as `test_compositor.cpp`'s autopilot coverage)
+- `tests/test_preset_manager.cpp` — preset save/load coverage (previously listed below as "Missing: preset save/load round-trip" — that gap is now covered)
+- Still missing: cross-deck transition test coverage, persistent layer rendering test coverage; full enumeration of every mutating UI action was not certified against Undo v1 (22+ command sites spot-checked, not individually walked one-by-one)
 
 **Gotchas:**
 - `Clip::playing` is `mutable` — render thread writes it for OneShot. After `advanceFrame()`, read player state BACK to clip model.
@@ -866,6 +882,7 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 - Per-type autopilot `perTypeEnabled` defaults to false — must be explicitly enabled.
 - Smart random assumes lower column index = calmer content, higher = more intense.
 - **`std::rand()` used in Autopilot without explicit seeding** (Autopilot.cpp:236, 304, 352). Three call sites use `std::rand()` for random clip selection and score jittering. No `std::srand()` call exists in the codebase — seed depends on implementation default. `std::rand()` thread safety is implementation-defined; since Autopilot runs on the render thread, concurrent `std::rand()` calls from other threads could corrupt internal state.
+- **Smart random autopilot cannot currently be turned on by any reachable path.** `Autopilot::smartRandomEnabled_` gates real, working logic in `Autopilot::processFrame`, but its only setter (`Renderer::setSmartRandomEnabled()`) has zero callers in UI/API/OSC. Do not confuse this with `Composition::smartAutopilotEnabled` (§16 Config) — that field is a completely separate, also-dead flag that is written/serialized but read by nothing.
 
 ### 8a. CompDecksBrowser (UI)
 
@@ -1184,6 +1201,7 @@ Image folder → load all images → cycle by timer/BPM → clip texture
 **Gotchas:**
 - HAP Alpha requires specific FFmpeg codec support.
 - BPM Sync with Content Beats requires knowing how many beats the video content represents.
+- **`Renderer::closeMediaForClip` (Renderer.cpp:950, declared Renderer.h:170) — the only code that erases `videoPlayers_`/`imageSequences_` entries — has zero callers anywhere in the repo.** Clip > Clear does not free the decoder or GL texture (see §8 Failure modes for the full trace). Confirmed dead via two independent grep patterns (bare symbol, and `[.\>]closeMediaForClip` call syntax).
 
 ### 11a. FilesBrowser (UI)
 
@@ -1203,6 +1221,9 @@ Image folder → load all images → cycle by timer/BPM → clip texture
 - Favorites system — toggle favorite per file, persisted across sessions
 - `onFileActivated` callback fires on activation
 - `navigateTo(folder)` — programmatic navigation
+
+**Test coverage:**
+- `tests/test_thumbnail_cache.cpp` (previously undocumented) — headless test of `src/ui/ThumbnailCache.h`'s LRU thumbnail cache keying, header-only, depends only on `juce_core`/`juce_graphics`
 
 **Gotchas:**
 - Implements `juce::FileDragAndDropTarget` but returns `false` for `isInterestedInFileDrag()` — receives drags FROM this panel to deck cells, not into it.
@@ -1265,8 +1286,8 @@ Performance events → SessionRecorder → JSON file
 **What it does:** Sends rendered output to fullscreen display on any connected monitor, with optional Syphon output (wired Wave 1-A) for inter-app GPU texture sharing on macOS.
 
 **Entry points:**
-- `OutputWindow` class (src/output/OutputWindow.h) — fullscreen output
-- `SyphonOutput` class (src/output/SyphonOutput.h:21/59) — macOS Syphon server — WIRED Wave 1-A (publishes the final composited frame each frame)
+- `OutputWindow` class (**src/ui/OutputWindow.h** — not `src/output/`; `src/output/` now holds only `SyphonOutput.{h,mm}`) — fullscreen output
+- `SyphonOutput` class (src/output/SyphonOutput.h:24/68 — line-drifted from 21/59) — macOS Syphon server — WIRED Wave 1-A (publishes the final composited frame each frame)
 - (`SyphonInput` removed Wave 0 — was an orphaned macOS Syphon client, never instantiated)
 
 **Implementation chain:**
@@ -1301,6 +1322,7 @@ Renderer output → SyphonOutput → IOSurface → MadMapper/VDMX/OBS   (Wave 1-
 **Gotchas:**
 - Syphon is Obj-C++ (.mm files) — only compiles on macOS.
 - `__has_include` detection means build succeeds without Syphon installed, but feature is silently disabled.
+- **The fullscreen `OutputWindow`'s `OutputRenderer` never renders the live composited deck.** Its constructor takes only `(FeatureBus, MappingEngine, EffectChain)` — no `Compositor`/`Deck`/`Composition` reference exists anywhere in `src/ui/OutputWindow.{h,cpp}` — and its content inputs are limited to `loadImage()`/`queueCameraFrame()` (see §20). Syphon output, by contrast, genuinely does carry the composited frame, because it is published from the main `Renderer` (which owns `CompositorEngine` + `Composition`). Timeline: `OutputWindow` predates both `CompositorEngine` and the `Deck` model, which is consistent with this being an architectural gap rather than a regression.
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -1308,16 +1330,16 @@ Renderer output → SyphonOutput → IOSurface → MadMapper/VDMX/OBS   (Wave 1-
 ---
 
 ## 14. External Control [R]
-**What it does:** REST API (port 7070, 20+ endpoints) and OSC input for external control of all app functions.
+**What it does:** REST API (port 7070, **24 registered endpoints, 23 functional in production builds**) and OSC input for external control of all app functions.
 
 **Entry points:**
-- `ApiServer` class (src/api/ApiServer.h:31) — cpp-httplib server, always-on
+- `ApiServer` class (src/api/ApiServer.h:31) — cpp-httplib server. **No longer always-on-all-interfaces** — see Config below.
 - `OscHandler` class (src/osc/OscHandler.h:27) — juce_osc receiver
 
 **Implementation chain:**
-1. `ApiServer`: cpp-httplib on background thread, CORS headers, 20+ endpoints
+1. `ApiServer`: cpp-httplib on background thread, CORS headers, **24 registered routes** (re-derived from source; up from 22 at the last normalize — new `/api/syphon` GET and `/api/set_syphon` POST, commit `7d39d25`). `/api/inject_features` is conditionally registered only when `allowFeatureInjection_` (= `testMode_`) is true (commit `def0efc`), so production builds expose **23** functional routes and test builds expose 24 — this test/production split was previously undocumented.
 2. GL mutations via existing thread-safe APIs (atomic config vars, message thread dispatch)
-3. `OscHandler`: juce_osc on JUCE message thread (MessageLoopCallback) — LIVE Wave 1-B: `startListening(8000)` at startup, all 11/11 callbacks wired (port hardcoded)
+3. `OscHandler`: juce_osc on JUCE message thread (MessageLoopCallback) — LIVE Wave 1-B: `startListening(8000)` at startup, all 11/11 callbacks wired (port hardcoded); OSC surface is unchanged since the last normalize (zero commits to `src/osc`)
 4. OSC patterns: `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity`, etc.
 
 **Data flow:**
@@ -1331,7 +1353,7 @@ OSC message → OscHandler (message thread) → state change
 - JUCE juce_osc: OSC receiver
 
 **Config:**
-- REST API: port 7070, always-on
+- REST API: port 7070. **As of `def0efc`, binds to `127.0.0.1` by default (loopback-only), not `0.0.0.0`** — overridable via the `AUDIODNA_API_BIND` environment variable. Remote control is now off by default; this is a real, user-reachable behavior change from the previous "always-on, no bind-address qualification" state.
 - Eyes test server: port 8080, conditional (`AUDIODNA_BUILD_TEST_SERVER`)
 - OSC: configurable UDP port
 
@@ -1349,11 +1371,13 @@ OSC message → OscHandler (message thread) → state change
 - cpp-httplib was promoted from test-only to always-linked in P22. `#include <httplib.h>` works everywhere.
 - Eyes test server (`render_frame`) doesn't apply global effect chain — known limitation.
 - All GL mutations from API must go through thread-safe paths (atomics or message thread dispatch).
-- **DATA RACE: `set_layer_opacity` and `set_param` write DIRECTLY from HTTP background thread** — no mutex, no message-thread dispatch. Race with render thread and message thread. Other mutating endpoints (trigger_clip, switch_deck) correctly use `callAsync`.
+- **DATA RACE FIXED (commits `f6b208f`, `8077af7`): `set_layer_opacity` and `set_param` now wrap their full lookup+write in `juce::MessageManager::callAsync`**, the same pattern as `trigger_clip`/`switch_deck` — the direct-from-HTTP-thread race described in earlier normalizes no longer exists. All mutating endpoints now use `callAsync` (10 call sites total). `handleReset`/`handleLoadImage`/`handleLoadSource` still have unfixed HTTP-thread `renderer_` calls per `8077af7`'s own commit message — not re-audited this pass.
 - **`/api/set_bpm` wired Wave 0** — drives the TopBar manual-BPM override path (setManualMode + setManualBPM, marshalled to the message thread).
 - **CORS OPTIONS handler missing** — browser preflight requests get 404. Post-routing handler only adds headers to actual responses, not OPTIONS preflight.
 - **`ApiServer` captures `this` in callAsync lambdas** — if server stopped while lambdas queued, use-after-free possible.
 - **`handleSnapshot()` blocks HTTP thread** while rendering — stalls other API requests.
+- **`/api/syphon` (GET) and `/api/set_syphon` (POST)** — added by `7d39d25`, previously undocumented; not mentioned in §13 either.
+- **`allowFeatureInjection_`/`testMode_` gate on `/api/inject_features`** — previously undocumented; production builds do not expose this endpoint at all (see Implementation chain above).
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -1415,8 +1439,8 @@ Link network session → LinkSync (atomic BPM/phase) → BPMTracker manual mode 
 2. ~2s EMA smoothing + ~3s hysteresis prevents rapid genre flapping
 3. Genre change → `Renderer::onGenreChanged_` callback → auto-preset/deck switch
 4. (`MappingSuggester::suggest()` removed Wave 0 — genre-aware recommendations no longer present)
-5. Smart random autopilot uses structural state + energy level for clip selection
-6. Structural scene triggering: `Renderer::onStructuralStateChanged_` on transitions
+5. Smart random autopilot uses structural state + energy level for clip selection — **see §8 Gotchas: this logic is real but currently unreachable by any user path** (`Composition::smartAutopilotEnabled` below does not gate it; the actual gate, `Autopilot::smartRandomEnabled_`, has no reachable setter)
+6. Structural scene triggering: `Renderer::onStructuralStateChanged_` fires on transitions and IS wired to a real, gated callback via `composition.structuralSceneEnabled` — **but the callback body only does a `std::cerr` debug print (MainComponent.cpp:625-631), it does not switch decks or trigger a scene.** Contrast with the genre-change callback immediately above it in the same file (MainComponent.cpp:601-622), gated by the analogous `autoPresetOnGenre` flag, which really does call `handleDeckSwitch(deckIdx)`. There is no equivalent scene/deck-switch action for structural transitions today.
 
 **Data flow:**
 ```
@@ -1430,9 +1454,10 @@ Structural transitions → onStructuralStateChanged_ → scene trigger
 **Config:**
 - 8 genres: House(0), Techno(1), DnB(2), Hip-Hop(3), Ambient(4), Rock(5), Pop/Electronic(6), Jazz/Other(7)
 - 3 energy states: Low(0), Medium(1), High(2)
-- `composition.autoPresetOnGenre` — auto-switch decks on genre change
+- `composition.autoPresetOnGenre` — auto-switch decks on genre change (wired, calls `handleDeckSwitch`)
 - `composition.genreDeckAssignment[8]` — genre→deck mapping
-- `composition.structuralSceneEnabled` — structural scene triggers
+- `composition.structuralSceneEnabled` — gates a real callback, but that callback only logs to `std::cerr` — no scene/deck action results (see Implementation chain above)
+- `composition.smartAutopilotEnabled` — **written and serialized but read by nothing at runtime; no UI control sets it. Does not gate the real smart-random logic (see Implementation chain above and §8 Gotchas). Dead.**
 
 **Failure modes:**
 - Ambiguous genre → highest scoring genre wins, confidence low (handled)
@@ -1520,7 +1545,7 @@ MilkDropBrowser → drag "milkdrop:{path}" or "milkdrop_playlist:path1|path2|pat
 - Mood manifest missing → falls back to heuristic keyword matching from preset name (handled)
 
 **Test coverage:**
-- Missing: no dedicated MilkDrop/projectM tests
+- `tests/test_renderer_source_confinement.cpp` (previously undocumented) — regression test for the single-owner-GL-thread confinement pattern guarding `Renderer::activeSources_`/`getOrCreateSource()` against a concurrent `unordered_map` mutation race between the GL thread, message thread (MilkDrop preset-manager wiring), and HTTP worker threads (`TestServer.cpp`'s `set_preset` handler)
 - Missing: preset scanning, mood classification accuracy, auto-switch behavior, GL state save/restore
 
 **Gotchas:**
@@ -1818,7 +1843,9 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 - `SpectrumDisplay::kAttackAlpha = 0.6f`, `kReleaseAlpha = 0.08f`
 - `Knob::kPreferredWidth = 64`, `kPreferredHeight = 80`
 - Waveform height: `max(30, int(previewArea.height * 0.12))` — hardcoded in `MainComponent::resized()` line 1467
-- Hidden v1 controls (~15): `audioSourceLabel_`, `audioSourceSelector_`, `inputGainLabel_`, `inputGainSlider_`, `masterLevelSlider_`, `masterLevelLabel_`, `displaySelector_`, `outputLabel_`, `fpsLabel_`, `cpuLabel_`, `viewportLabel_`, `resolutionSelector_`, `randomLabel_`, `beatRandomToggle_`, `beatCountSelector_`, `syncButton_` — all `setVisible(false)` at lines 1331-1346
+- Hidden v1 controls (~15): `audioSourceLabel_`, `audioSourceSelector_`, `inputGainLabel_`, `inputGainSlider_`, `masterLevelSlider_`, `masterLevelLabel_`, `displaySelector_`, `outputLabel_`, `fpsLabel_`, `cpuLabel_`, `viewportLabel_`, `resolutionSelector_`, `randomLabel_`, `beatRandomToggle_`, `beatCountSelector_`, `syncButton_` — all `setVisible(false)` at lines 1331-1346. **Two of these are NOT plain dead duplicates — spot-checked below.** (`audioSourceSelector_`, `inputGainSlider_`, `masterLevelSlider_`, and `displaySelector_` ARE confirmed genuine dead duplicates: TopBar owns its own separate, identically-named LIVE members at TopBar.h:61-98, so hiding the v1 copies costs nothing.)
+  - **`resolutionSelector_` is live, not dead — but its widget is unreachable.** `resolutionSelector_.onChange` calls `Renderer::setLockedResolution(w,h)`, consumed by the same `Renderer` that feeds Syphon output (Renderer.cpp:396-397) — the app's only path to a projector. However the widget itself has zero visible/interactive path in the current build (unconditional `setVisible(false)`, no `setBounds` anywhere) and has no TopBar equivalent. In practice a user can only **restore** a previously-baked-in resolution lock from an old v1-era preset via the still-visible Deck Load button (MainComponent.cpp:2793 restore path) — they cannot **set** a new lock through any current UI, REST, or OSC surface (all three grep clean for "resolution"). Freshly-saved decks can therefore only ever persist "Auto" (the save path reads the same never-touchable widget, MainComponent.cpp:2707).
+  - **`beatRandomToggle_`/`beatCountSelector_` are the same shape as `resolutionSelector_`, and were previously undocumented anywhere (not in this list's original text, not in APP-INVENTORY.md).** `beatRandomToggle_.getToggleState()` is read live in the beat-detection timer callback (MainComponent.cpp:3103) and, when true, calls `randomizeAllEffects()` via `MessageManager::callAsync` every `beatRandomCount_` beats. Like `resolutionSelector_`, the toggle is permanently invisible but restorable from a legacy v1 deck preset via the still-visible Deck Load button (MainComponent.cpp:2760-2761 restore path; persisted via `PresetManager.h:75-82`/`PresetManager.cpp:501,552`) — meaning an old preset can silently start randomizing all effects on a beat cadence with zero on-screen control or indication to see or stop it.
 - Band colors: 7-element arrays in both AudioReadoutPanel and SpectrumDisplay (red through purple gradient), defined as `static constexpr`
 
 **Failure modes:**
@@ -2124,11 +2151,11 @@ JSON → loadFromFile() → events_ vector → advancePlayback(dt) → event poi
 - `MainComponent` owns `sessionRecorder_` (stack member, MainComponent.h:208)
 - `RecordPanel` receives pointer via `setSessionRecorder()` — provides Record/Stop/Play/Save/Load buttons
 - `ApiServer` holds a reference but exposes no REST endpoints for session recording
-- **Only 1 of 7 event types is wired:** `recordClipTrigger()` is called from `MainComponent.cpp:2472`. The other 6 `record*()` methods have complete implementations but ZERO callers anywhere in the codebase:
+- **Only 1 of 7 event types is wired:** `recordClipTrigger()` is called from `MainComponent.cpp:3215`. The other 6 `record*()` methods have complete implementations but ZERO callers anywhere in the codebase:
 
 | Event Type | Method | Wired? | Expected Call Site |
 |------------|--------|--------|--------------------|
-| ClipTrigger | `recordClipTrigger()` | YES (MainComponent.cpp:2472) | Clip activation |
+| ClipTrigger | `recordClipTrigger()` | YES (MainComponent.cpp:3215) | Clip activation |
 | ParameterChange | `recordParameterChange()` | NO — 0 callers | Effect/source param changes |
 | ColumnTrigger | `recordColumnTrigger()` | NO — 0 callers | Column trigger button |
 | MacroChange | `recordMacroChange()` | NO — 0 callers | Macro knob changes |
@@ -2161,7 +2188,7 @@ JSON → loadFromFile() → events_ vector → advancePlayback(dt) → event poi
 - `lock_` is `juce::CriticalSection` (recursive mutex) used on every `record*()` call — if recording high-frequency parameter changes, contention possible between UI/MIDI threads and any concurrent readers.
 - `advancePlayback()` returns raw pointers into `events_` vector — caller must not modify vector during playback iteration.
 - Timestamps are wall-clock-relative, not beat-relative — playback of a session recorded at 120 BPM replayed at 140 BPM will have events at the same wall times, not the same beat positions.
-- **Only 1 of 7 event types is wired** — `recordClipTrigger` is the only `record*()` method called from application code (MainComponent.cpp:2472). The other 6 event types have complete implementations but zero callers. See Integration table above for per-type wiring status.
+- **Only 1 of 7 event types is wired** — `recordClipTrigger` is the only `record*()` method called from application code (MainComponent.cpp:3215). The other 6 event types have complete implementations but zero callers. See Integration table above for per-type wiring status.
 - `Event::action` and `Event::effectName` are `std::string` — heap allocation on every TransportChange/EffectToggle recording event. Not RT-safe if called from audio thread (currently not called from audio thread).
 - **High-frequency lock contention risk**: `lock_` (juce::CriticalSection, recursive mutex) is acquired on every `record*()` call. If all 7 event types were wired, high-frequency parameter changes (~60Hz per mapped param) would contend with UI thread, MIDI thread, and playback reader on the same lock. Current single-caller wiring avoids this, but full wiring would need per-type lock-free queues or batching.
 
@@ -2222,9 +2249,9 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 - Audio Source section: source selector dropdown, input gain slider
 - Transport section: Play/Pause/Stop buttons
 - Tempo section: BPM display label, tracker state label, Tap button (8-tap averaging), Resync button
-- BPM Multiplier: /4, /2, x1, x2, x4 buttons — multiply detected BPM
+- BPM Multiplier: /4, /2, x1, x2, x4 buttons — **DEAD: writes `composition_.bpmMultiplier` and fires `onBpmMultiplierChanged`, but nothing anywhere reads `.bpmMultiplier` besides the write site, and `onBpmMultiplierChanged` is never assigned to a handler. Confirmed with two independent grep patterns. The buttons toggle UI state but do not multiply the detected BPM.**
 - Manual BPM: toggle button + editable text field for manual BPM entry
-- Quantize: dropdown selector for beat snap modes
+- Quantize: dropdown selector for beat snap modes — **DEAD: same shape as BPM Multiplier above. `Composition::QuantizeMode {Off, NextBeat, NextDownbeat}` is written and serialized by TopBar, but never read anywhere else — no trigger/transport code path consults it to delay a clip trigger. `onQuantizeChanged` is likewise declared, fired, and never assigned. Selecting a quantize mode has no effect on playback.**
 - Fade: global fade slider
 - Master Level: master brightness slider
 - Output: display selector dropdown
@@ -2512,7 +2539,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 
 ### 26m. UniversalParamControl
 
-**What it does:** The standard parameter widget used throughout all inspectors. Collapsed view shows a signal-connect triangle (grey=manual, cyan=connected), parameter label, value display, +/- buttons, and a slider. Expanded view adds a source picker dropdown, invert checkbox, and range min/max sliders. Supports 8 source modes: Manual, Signal, BPMSync, Oscillator, Envelope, ClipPosition, Timeline, and Macro.
+**What it does:** The standard parameter widget used throughout all inspectors. Collapsed view shows a signal-connect triangle (grey=manual, cyan=connected), parameter label, value display, +/- buttons, and a slider. Expanded view adds a source picker dropdown, invert checkbox, and range min/max sliders. The `SourceMode` enum has 8 selectable values (Manual, Signal, BPMSync, Oscillator, Envelope, ClipPosition, Timeline, Macro) — **but only 5 of the 8 are actually consumed.** The two live consumer sites (`EffectStackView::refresh`, `ClipInspector::refresh`) only branch on Signal/Oscillator/Envelope (via SignalRegistry) and Macro (via MacroBank). Selecting BPMSync, ClipPosition, or Timeline marks the control "connected" in the UI, but neither consumer has a case for them — the parameter is never actually driven by those three modes.
 
 **Key source files:**
 - `UniversalParamControl` class (src/ui/UniversalParamControl.h:44, src/ui/UniversalParamControl.cpp)
@@ -2534,6 +2561,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 - `kCollapsedHeight=24`, `kExpandedHeight=100` — parent must recalculate layout when expand state changes.
 - `ResettableSlider` is a separate class (not a style) — subclasses `juce::Slider` to add right-click reset behavior.
 - Source picker requires `setSignalRegistry()` to be called — otherwise the dropdown only shows Manual.
+- **BPMSync, ClipPosition, and Timeline source modes are selectable but not wired** — see What it does above. Don't trust the "connected" (cyan) indicator alone as proof a parameter is actually being driven; check whether the mode is one of the 5 that `EffectStackView`/`ClipInspector` actually branch on.
 
 ### 26n. MacroPanel
 
@@ -2665,7 +2693,7 @@ N/A for traditional database — this is a C++ desktop app with in-memory data s
 - **Deck**: Grid container. Owns layers[]. One active deck at a time.
 - **Layer**: Row in deck. Owns clips[] (columns), layer effects, opacity, blend mode, transition settings. Types: Opaque, Transparent, FXOnly, Mask. Has: persistent flag, autopilot settings.
 - **Clip** (struct): Media content. Fields: mediaType (None/Image/Video/Camera/Source/ImageSequence), effects[] (EffectSlot), inPoint, outPoint, speed, transportMode (Timeline/BPMSync), loopMode (Loop/PingPong/OneShot), beatDivision, beatSnap, cuepoints[8], playheadPosition (mutable).
-- **FeatureSnapshot** (POD, alignas(64)): 58 mapping source fields carrying all audio analysis results. Transferred via triple-buffer between threads. No pointers, no vtable.
+- **FeatureSnapshot** (POD, alignas(64)): 40 fields carrying all audio analysis results (exposed downstream as 58 mapping sources). Transferred between threads via FeatureBus's seqlock (§3 — not a triple buffer). No pointers, no vtable.
 - **Mapping**: source (Source enum, 58 entries) → targetEffectId → targetParamIndex → curve (24 types) → input/output range → smoothing → enabled.
 - **Effect**: name, category, shaderProgram (GLuint), params (vector<EffectParam>), enabled, order. 135 effects, 333 parameters.
 - **Binding**: keyCode or MIDI note/CC → action → targetMode (ByPosition/ThisItem/Selected) → triggerMode (Toggle/Momentary).
@@ -2682,7 +2710,7 @@ Each Layer → layerEffects → Effect[]
 
 ### Thread Safety
 - Composition/Deck/Layer/Clip: owned by message thread, read by render thread via atomic config vars
-- FeatureSnapshot: written by analysis thread, read by render thread via triple-buffer (lock-free)
+- FeatureSnapshot: written by one `FeatureBus::Writer` (analysis thread), read by one or more readers (render/message threads) via FeatureBus's seqlock protocol (lock-free)
 - `Clip::playing` and `Clip::playheadPosition` are `mutable` — render thread writes them
 
 ### Persistence
@@ -2704,7 +2732,7 @@ Each Layer → layerEffects → Effect[]
 
 ### Lock-Free Patterns
 1. **SPSC Ring Buffer**: audio → analysis. Power-of-two, cache-line padded, branchless modular.
-2. **Triple-Buffer Atomic Swap**: analysis → render. 3x FeatureSnapshot, atomic index rotation.
+2. **Seqlock, single-writer value copy** (FeatureBus, §3 — rewritten from a triple-buffer atomic swap by `cb4d5fa`): analysis → render/message threads. `seq_` generation counter + `words_[80]` atomic array + single writer-private staging buffer; multi-reader safe via `read()`/`readIfNewer()`.
 3. **std::atomic<T> Config Vars**: UI → render/analysis. Slider changes, effect enable/disable.
 4. **juce::MessageManager::callAsync()**: render → UI. Thread-safe callback posting.
 
@@ -2717,6 +2745,7 @@ Each Layer → layerEffects → Effect[]
 - CI: `.github/workflows/build.yml`
 - Test framework: Catch2 v3.7.1 via FetchContent
 - Visual test harness: Eyes (pytest + HTTP API on port 8080)
+- **Sanitizers (previously undocumented):** `cmake/Sanitizers.cmake` defines `ADNA_SANITIZE` (address/undefined/thread, mutually exclusive, MSVC-guarded at configure time) and is wired via `apply_sanitizers()` onto the app target plus all test executables (18 call sites total: 1 app + 17 tests).
 
 ### Environment Variables
 | Var | Used By | Format | Validated at startup? |

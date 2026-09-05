@@ -16,9 +16,24 @@
 sites**, and it holds the ONLY two `.erase()` calls on the media maps. `Deck::clearCell` never
 touches the Renderer. `s_nextClipId` is monotonic with **no reuse**.
 
-⇒ every Clear on a video or image-sequence strands an FFmpeg decoder + a GL texture + a decode
-thread **for the life of the process**. Unbounded, and it accumulates in exact proportion to how
-much clip churn a set produces.
+⇒ every Clear on a video or image-sequence strands an FFmpeg decoder + a GL texture **for the
+life of the process**. Unbounded, and it accumulates in exact proportion to how much clip churn a
+set produces.
+
+> **CORRECTION, 2026-09-05 renorm lane 3 — the packet premise was VERIFIED, with one amendment.**
+> An independent audit re-confirmed zero call sites using two patterns (bare symbol repo-wide: 2
+> hits, decl + def; call-syntax `[.>]closeMediaForClip(`: 0 hits) and confirmed the `.erase()`
+> calls are reachable only from inside the dead function. **But the "decode thread" in the
+> original sizing does not exist** — decoding is SYNCHRONOUS on the GL thread. Only the decoder
+> and the texture are actually stranded. Do not go looking for a thread to join; you will not
+> find one, and hunting it would burn the lane. The leak is real; its inventory was overstated by
+> one item.
+>
+> Also from that audit, **unresolved and worth 10 minutes before you start**: `kDeckClearClips`,
+> `kLayerClearClips` and `RemoveColumnCmd` are *strongly suspected* to skip `closeMediaForClip`
+> too — they route through the same open-only `makeClipMediaHook` — but were NOT traced
+> line-by-line because their bodies live in `src/core/DeckCommands.h` and `src/core/ClipCommands.h`,
+> outside that lane's paths. Trace them; that is trap (c), family coverage.
 
 **Re-verify the zero-call-sites claim yourself, with at least two different grep patterns, and
 quote both.** A negative from a grep is only as strong as its pattern — a prior session in this
