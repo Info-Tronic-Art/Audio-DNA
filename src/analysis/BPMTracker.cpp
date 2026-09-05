@@ -71,9 +71,12 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     confidence_   = conf;
     beatDetected_ = beat;
 
-    // Manual mode: skip stabilization pipeline, just run phase from locked BPM
+    // Manual mode: skip stabilization pipeline, just run phase from locked BPM.
+    // No real onset can be trusted while the operator has overridden the
+    // tracker, so the predicted phase wrap drives beatInBar_/barCount_ (P24).
     if (manualMode_.load(std::memory_order_relaxed))
     {
+        predictedBeatRegime_ = true;
         updatePhase(beat, conf);
         return;
     }
@@ -82,7 +85,11 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     // Reject zero/invalid, fold into [60, 200] range
     if (rawBpm <= 0.0f)
     {
-        // No valid BPM from aubio this hop — just update phase
+        // No valid BPM from aubio this hop — just update phase. If we're
+        // already locked, a real onset isn't arriving this hop either, so
+        // the predicted wrap takes over (P24); if never locked, updatePhase()
+        // is a no-op anyway (lockedBPM_ <= 0).
+        predictedBeatRegime_ = (lockedBPM_ > 0.0f);
         updatePhase(beat, conf);
         return;
     }
@@ -90,9 +97,12 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     float gatedBPM = foldBPMToRange(rawBpm);
 
     // === P23: Smart BPM Recovery ===
-    // During silence, hold the last good BPM and keep phase running
+    // During silence, hold the last good BPM and keep phase running.
+    // P24: the predicted phase wrap also drives beatInBar_/barCount_ forward
+    // here, since no real onset can arrive during held silence.
     if (inSilence_ && lockedBPM_ > 0.0f)
     {
+        predictedBeatRegime_ = true;
         updatePhase(false, 0.0f); // No beats during silence, phase free-runs
         return;
     }
@@ -101,7 +111,10 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     // Only accept estimates with sufficient confidence
     if (conf < kConfidenceThreshold)
     {
-        // Low confidence — hold last good value, don't feed median
+        // Low confidence — hold last good value, don't feed median. A real
+        // onset still arrived (rawBpm > 0), so this is NOT a predicted-beat
+        // regime; scoreBeat() remains the sole incrementer here (unchanged).
+        predictedBeatRegime_ = false;
         updatePhase(beat, conf);
         return;
     }
@@ -169,6 +182,9 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
         }
     }
 
+    // A real onset arrived and was accepted this hop — scoreBeat() is the
+    // sole incrementer (unchanged pre-P24 behavior).
+    predictedBeatRegime_ = false;
     updatePhase(beat, conf);
 }
 
@@ -185,7 +201,8 @@ void BPMTracker::updatePhase(bool beat, float conf)
     phase_ += static_cast<float>(hopSize_) / lockedPeriodSamples;
 
     // Wrap at 1.0
-    if (phase_ >= 1.0f)
+    bool wrapped = (phase_ >= 1.0f);
+    if (wrapped)
         phase_ -= std::floor(phase_);
 
     // Hard reset on high-confidence beat detection from aubio
@@ -193,6 +210,35 @@ void BPMTracker::updatePhase(bool beat, float conf)
     {
         phase_ = 0.0f;
     }
+
+    // P24: while a real onset cannot arrive this hop (predictedBeatRegime_,
+    // set by runPipeline), the predicted phase wrap is what drives
+    // beatInBar_/barCount_ forward instead of scoreBeat(). scoreBeat() is
+    // itself gated on !predictedBeatRegime_ (see feedDownbeatFeatures), so
+    // the two paths are mutually exclusive by construction -- never both.
+    if (wrapped && predictedBeatRegime_)
+    {
+        advancePredictedBeat();
+    }
+}
+
+void BPMTracker::advancePredictedBeat()
+{
+    // Mirrors the beatInBar_/downbeatDetected_ bookkeeping scoreBeat()'s
+    // locked branch does on a real onset, but driven by the predicted phase
+    // wrap instead. Deliberately does NOT touch totalBeatsScored_/
+    // beatScores_/analyzeDownbeatPosition() -- there is no real spectral
+    // score to push during silence/manual mode, so the downbeat-position
+    // statistics are left untouched rather than polluted with fake data.
+    //
+    // barCount_ itself is NOT incremented here: updatePhrase()'s existing
+    // downbeatDetected_ rising-edge detection (run every hop from
+    // feedDownbeatFeatures, unconditionally, even during silence/manual
+    // mode) remains the sole place barCount_ advances, for either a real or
+    // a predicted beat -- one incrementer, not two racing.
+    beatCounter_ = (beatCounter_ + 1) % kBeatsPerBar;
+    beatInBar_ = static_cast<uint8_t>(beatCounter_);
+    downbeatDetected_ = (beatCounter_ == 0);
 }
 
 // --- Static helpers ---
@@ -253,8 +299,13 @@ void BPMTracker::feedDownbeatFeatures(float bassEnergy, float spectralFlux, floa
     cachedSpectralFlux_ = spectralFlux;
     cachedHarmonicChange_ = harmonicChange;
 
-    // Score the beat if one was detected this hop
-    if (beatDetected_ && lockedBPM_ > 0.0f)
+    // Score the beat if one was detected this hop. Gated on
+    // !predictedBeatRegime_ too (P24): aubio's own -70dB silence gate and our
+    // RMS-based inSilence_ hysteresis use different thresholds, so a stray
+    // beatDetected_ flag can in principle land on a hop where the predicted
+    // wrap already advanced beatInBar_/beatCounter_ in updatePhase() --
+    // skipping scoreBeat() here keeps the two paths mutually exclusive.
+    if (beatDetected_ && lockedBPM_ > 0.0f && !predictedBeatRegime_)
     {
         scoreBeat();
     }

@@ -177,6 +177,17 @@ private:
     // === Beat phase (free-running from locked BPM) ===
     float phase_ = 0.0f;
 
+    // === P24: predicted beat advance (silence/manual mode) ===
+    // True for a hop where a real onset cannot arrive -- inSilence_,
+    // manualMode_, or the locked-but-rawBpm<=0 branch (see runPipeline).
+    // Gates the two mutually-exclusive beat-advance paths: while true,
+    // updatePhase()'s predicted phase wrap drives beatInBar_/beatCounter_/
+    // downbeatDetected_ forward via advancePredictedBeat(), and scoreBeat()
+    // is skipped even if a beat happens to be flagged that hop; while false,
+    // scoreBeat() is the only path (unchanged pre-P24 behavior). Exactly one
+    // of the two can ever run for a given hop.
+    bool predictedBeatRegime_ = false;
+
     // === Downbeat detection state ===
     // Circular buffer of per-beat downbeat scores
     float beatScores_[kBeatScoreBufferSize] = {};
@@ -235,6 +246,10 @@ private:
 
     // Update the free-running beat phase
     void updatePhase(bool beat, float conf);
+
+    // Advance beatInBar_/beatCounter_/downbeatDetected_ off a predicted phase
+    // wrap when a real onset cannot arrive -- see predictedBeatRegime_.
+    void advancePredictedBeat();
 
     // Score a beat and update downbeat detection
     void scoreBeat();
