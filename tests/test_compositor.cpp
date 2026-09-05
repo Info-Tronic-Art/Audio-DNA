@@ -161,6 +161,75 @@ TEST_CASE("Column management", "[deck]")
     }
 }
 
+// S167-L4b: opacity product / speed fold pure-math coverage.
+//
+// The real functions -- CompositorEngine::combinedOpacity() (CompositorEngine.h)
+// and Renderer::effectiveClipSpeed() (Renderer.h) -- are one-line, GL-free
+// arithmetic, but they live in headers that pull in juce_opengl (and, for
+// CompositorEngine.h, ShaderManager/TextureManager/FullscreenQuad/
+// FeedbackProcessor/EffectLibrary/FeatureSnapshot on top of that). This
+// target links only juce_core + juce_graphics and compiles only
+// model/Clip.cpp, model/Layer.cpp, model/Autopilot.cpp (see this file's
+// header comment above and tests/CMakeLists.txt) -- wiring in the GL headers
+// would need linking juce::juce_opengl plus several more .cpp files there,
+// which is out of this lane's fence (tests/CMakeLists.txt is a FORBIDDEN
+// file for this work packet). So these mirror the production one-liners
+// exactly, cited by file:line, rather than including the GL-heavy headers.
+namespace {
+    // Mirrors CompositorEngine::combinedOpacity() (src/render/CompositorEngine.h:244).
+    float combinedOpacity(float layerOpacity, float clipOpacity)
+    {
+        return layerOpacity * clipOpacity;
+    }
+
+    // Mirrors Renderer::effectiveClipSpeed() (src/render/Renderer.h:244).
+    float effectiveClipSpeed(float clipSpeed, float masterSpeed, bool isBpmSynced)
+    {
+        return isBpmSynced ? clipSpeed : clipSpeed * masterSpeed;
+    }
+}
+
+TEST_CASE("Opacity product multiplies master/layer/clip (S167-L4b)", "[compositor][opacity]")
+{
+    SECTION("Full opacity on both sides is a no-op")
+    {
+        REQUIRE_THAT(combinedOpacity(1.0f, 1.0f), WithinAbs(1.0f, 0.0001f));
+    }
+
+    SECTION("Clip pinned at 0.5 can never exceed 50%, regardless of layer opacity")
+    {
+        REQUIRE_THAT(combinedOpacity(1.0f, 0.5f), WithinAbs(0.5f, 0.0001f));
+        REQUIRE_THAT(combinedOpacity(0.7f, 0.5f), WithinAbs(0.35f, 0.0001f));
+    }
+
+    SECTION("Zero at either level zeroes the result")
+    {
+        REQUIRE_THAT(combinedOpacity(0.0f, 1.0f), WithinAbs(0.0f, 0.0001f));
+        REQUIRE_THAT(combinedOpacity(1.0f, 0.0f), WithinAbs(0.0f, 0.0001f));
+    }
+}
+
+TEST_CASE("Speed fold leaves BPM-synced clips tempo-locked (S167-L4b)", "[compositor][speed]")
+{
+    SECTION("Non-BPM-synced clip speed is scaled by masterSpeed")
+    {
+        REQUIRE_THAT(effectiveClipSpeed(1.0f, 2.0f, false), WithinAbs(2.0f, 0.0001f));
+        REQUIRE_THAT(effectiveClipSpeed(0.5f, 0.5f, false), WithinAbs(0.25f, 0.0001f));
+    }
+
+    SECTION("BPM-synced clip speed ignores masterSpeed entirely")
+    {
+        REQUIRE_THAT(effectiveClipSpeed(1.0f, 2.0f, true), WithinAbs(1.0f, 0.0001f));
+        REQUIRE_THAT(effectiveClipSpeed(0.5f, 4.0f, true), WithinAbs(0.5f, 0.0001f));
+    }
+
+    SECTION("masterSpeed at its 1.0 default is a no-op either way")
+    {
+        REQUIRE_THAT(effectiveClipSpeed(0.75f, 1.0f, false), WithinAbs(0.75f, 0.0001f));
+        REQUIRE_THAT(effectiveClipSpeed(0.75f, 1.0f, true), WithinAbs(0.75f, 0.0001f));
+    }
+}
+
 TEST_CASE("Layer keying and blend properties", "[layer]")
 {
     Layer layer;
