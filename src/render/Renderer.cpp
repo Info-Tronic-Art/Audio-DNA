@@ -226,23 +226,14 @@ void Renderer::renderOpenGL()
     // Read latest audio features (R5: coherent caller-owned value copy)
     const FeatureSnapshot snap = featureBus_.read();
 
-    // P16: Evaluate all signals from audio features
-    if (signalRegistry_ != nullptr)
-        signalRegistry_->evaluateAll(snap);
-
-    // P16: Process signal routes → write to effect parameters
-    if (signalRegistry_ != nullptr)
-    {
-        routingEngine_.processFrame(*signalRegistry_, [this](const Route& route, float value) {
-            // Write routed value to the target effect parameter (global scope)
-            if (route.targetScope == Route::TargetScope::Global)
-            {
-                if (auto* effect = effectChain_.getEffect(route.targetEffectIndex))
-                    effect->setParamValue(route.targetParamIndex, value);
-            }
-            // TODO: Clip/Layer scope routing needs compositor integration
-        });
-    }
+    // S166-L1: SignalRegistry::evaluateAll() moved OFF this GL callback — it
+    // is now confined to the message thread (MainComponent::tickFeaturePipeline,
+    // 120Hz), the sole evaluator. GL-thread evaluation raced the UI's Signal
+    // setters (SignalInspector) on the message thread; see Signal.h.
+    // The dead routingEngine_.processFrame() call (RoutingEngine has no live
+    // consumer — addRoute()'s only caller is TestServer.cpp, and no test
+    // depends on per-frame route application; grepped tests/ + tests/visual/
+    // for add_route/addRoute) is deleted with it.
 
     // W5 (outputwindow-arc-design.md): mappingEngine_.processFrame() moved
     // OFF this GL callback. A message-thread juce::Timer

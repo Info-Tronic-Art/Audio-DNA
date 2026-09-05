@@ -110,12 +110,9 @@ int SignalBar::getPreferredHeight() const
 
 void SignalBar::timerCallback()
 {
-    // Read latest snapshot (R5: coherent value copy)
-    displaySnap_ = featureBus_.read();
-
-    // Evaluate all signals with the latest snapshot
-    registry_.evaluateAll(displaySnap_);
-
+    // S166-L1: evaluateAll() is now the message thread's job, driven once
+    // per tick by MainComponent::tickFeaturePipeline (120Hz) — not this
+    // repaint timer. This 30Hz timer only reads the cache and repaints.
     // Update each strip with its cached value
     for (auto& strip : strips_)
     {

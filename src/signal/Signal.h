@@ -5,7 +5,11 @@
 
 // Signal: base class for any value stream used in routing.
 // Audio features, oscillators, envelopes, and macros all derive from this.
-// Signals are evaluated each frame on the render thread.
+// S166-L1: evaluated once per tick on the MESSAGE thread only, via
+// SignalRegistry::evaluateAll (MainComponent::tickFeaturePipeline, 120Hz) —
+// not the render thread. Confinement matters because Signal settings (e.g.
+// OscillatorSignal/EnvelopeSignal fields) are mutated by the UI on this same
+// thread.
 class Signal
 {
 public:

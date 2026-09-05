@@ -1,4 +1,5 @@
 #include "SignalRegistry.h"
+#include <juce_events/juce_events.h>   // MessageManager (S166-L1 message-thread jassert)
 
 static_assert(std::atomic<float>::is_always_lock_free,
               "SignalRegistry::cachedValues_ assumes lock-free float atomics");
@@ -164,6 +165,13 @@ std::vector<Signal*> SignalRegistry::getSignalsByCategory(Signal::Category categ
 
 void SignalRegistry::evaluateAll(const FeatureSnapshot& snapshot)
 {
+    // S166-L1: confined to the message thread — the sole caller is
+    // MainComponent::tickFeaturePipeline (120Hz). Signal settings (e.g.
+    // OscillatorSignal/EnvelopeSignal fields) are mutated by the UI on this
+    // same thread; evaluating from any other thread would race those writers.
+    // Same precedent as MappingEngine.cpp's addMapping/removeMapping (A6).
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+
     for (size_t i = 0; i < signals_.size(); ++i)
     {
         cachedValues_[i].store(signals_[i]->getValue(snapshot), std::memory_order_relaxed);

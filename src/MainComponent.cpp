@@ -3056,6 +3056,14 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
 void MainComponent::tickFeaturePipeline()
 {
     const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+
+    // S166-L1: SignalRegistry is confined to the message thread — this is
+    // now the ONE call site that evaluates it, once per tick, before anything
+    // reads the registry's cached values (macros below, SignalBar's own
+    // repaint timer). GL threads no longer evaluate; see Signal.h and
+    // SignalRegistry::evaluateAll.
+    signalRegistry_.evaluateAll(snap);
+
     previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain());
 
     // L9 (modulation-freeze fix, 2026-09-05): drive the shared global

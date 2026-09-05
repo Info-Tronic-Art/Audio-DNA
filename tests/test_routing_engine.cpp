@@ -52,6 +52,45 @@ TEST_CASE("Signal evaluation", "[signal]")
     REQUIRE_THAT(registry.getCachedValue(bass->getId()), WithinAbs(0.6f, 0.001f));
 }
 
+// S166-L1: with evaluateAll confined to a single message-thread caller
+// (MainComponent::tickFeaturePipeline), the cache must move ONLY on an
+// explicit evaluateAll() call — never as a side effect of any other
+// SignalRegistry accessor. This guards the single-evaluator invariant the
+// lane establishes: it would catch a future accessor (e.g. getCachedValue,
+// getSignalAt) that silently re-evaluates behind the caller's back.
+TEST_CASE("SignalRegistry cache moves only on an explicit evaluateAll tick", "[signal]")
+{
+    SignalRegistry registry;
+    registry.initDefaults();
+
+    auto* vol = registry.getSignalByName("Volume");
+    REQUIRE(vol != nullptr);
+
+    // Freshly initialized: no tick has happened yet, cache holds its
+    // initDefaults() default.
+    REQUIRE_THAT(registry.getCachedValue(vol->getId()), WithinAbs(0.0f, 0.001f));
+
+    FeatureSnapshot tick1;
+    tick1.rms = 0.3f;
+    registry.evaluateAll(tick1);
+    REQUIRE_THAT(registry.getCachedValue(vol->getId()), WithinAbs(0.3f, 0.001f));
+
+    // A later snapshot exists (e.g. audio has moved on) but is never passed
+    // to evaluateAll. Exercising other read-only accessors in between must
+    // not move the cache toward it.
+    FeatureSnapshot tick2;
+    tick2.rms = 0.9f;
+    (void)registry.getNumSignals();
+    (void)registry.getSignalAt(0);
+    (void)registry.getSignalByName("Volume");
+    (void)registry.getSignalsByCategory(Signal::Category::Amplitude);
+    REQUIRE_THAT(registry.getCachedValue(vol->getId()), WithinAbs(0.3f, 0.001f));
+
+    // Only an explicit second tick moves it.
+    registry.evaluateAll(tick2);
+    REQUIRE_THAT(registry.getCachedValue(vol->getId()), WithinAbs(0.9f, 0.001f));
+}
+
 TEST_CASE("OscillatorSignal waveforms", "[signal]")
 {
     FeatureSnapshot snap;
