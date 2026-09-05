@@ -138,3 +138,30 @@ surfaced by the independent reviewer, not by the builder.
   cached value, and `/api/inject_features` accepts `beatPhase`, `rms` and `bandEnergies`.
   Together they are a real headless oracle for anything signal-driven — the first one this repo
   has had for the modulation layer. Use it instead of asking for a human.
+
+## 2026-09-05 — s166: BLOCKING PREREQUISITE for the connection engine — fence the bypass toggle FIRST
+
+- **Independently found by the L0 builder and re-verified by the L0 reviewer, from opposite
+  directions.** `EffectStackView.cpp`'s bypass button handler does `slot.bypassed =
+  !slot.bypassed;` directly on the live `EffectSlot` with **no `runFenced(...)` wrapper**, while
+  the erase and push_back handlers in the same file DO route through the fence. Confirmed by
+  grep: `runFenced` appears around the erase and add sites and NOT around the bypass site.
+- **Today it is harmless and that is exactly why it is dangerous.** A `bool` flip racing a
+  GL-thread read is a torn write of a single byte — no heap object moves, nothing corrupts, so
+  nothing has ever gone wrong and the omission reads as an accepted convention (POD flips
+  tolerated, reallocating ops fenced).
+- **It becomes heap corruption the moment `EffectSlot` grows a connection struct** — a
+  `std::string` signal name and an envelope vector, which is precisely what the s166
+  architecture's Lane 2 adds. Writing a string or vector while the GL thread reads it hands the
+  GL thread a torn pointer and length. The same code pattern that is benign today becomes a
+  crash-or-worse then, and it will not announce itself: it will look like an intermittent,
+  unreproducible graphics glitch under load.
+- **So: fence the bypass toggle BEFORE Lane 2 adds any heap-allocated field to `EffectSlot`.**
+  Small lane, one call site, follows a convention already established two functions away in the
+  same file. Doing it after Lane 2 means shipping a window in which the bug is live.
+- Related and already closed: lane L0 (`f53a8f1`) removed the two per-frame GL-thread deep copies
+  of these same vectors. The reviewer separately verified that iterating them LIVE by reference —
+  a longer exposure window than the old copy — is safe today, because all three effect-vector
+  scopes (clip, layer, global) already fence reallocating edits through the same
+  `makeDeckFence()` hook propagated by `InspectorPanel::setEffectFenceHook`. Reallocation is
+  covered; the bypass FLIP is the hole.
