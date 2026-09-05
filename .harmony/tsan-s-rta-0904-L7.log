@@ -1,0 +1,680 @@
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE Assertion failure in juce_LookAndFeel.cpp:54
+JUCE v8.0.4
+[AudioEngine] Switched to mic input mode
+[MilkDrop] Loaded 30 presets
+[API] HTTP server listening on 127.0.0.1:7070
+[OSC] Listening on port 8000
+[OSC] Input listening on port 8000
+[Renderer] GL context created. Version: 4.1 Metal - 89.4
+[Renderer]   passthrough: OK
+[Renderer]   opacity_blend: OK
+[Renderer]   effect_dry_wet: OK
+[Renderer]   effect_drywet: OK
+[Renderer]   comp_transform: OK
+[Renderer]   deck_transition: OK
+[Renderer]   ripple: OK
+[Renderer]   bulge: OK
+[Renderer]   wave: OK
+[Renderer]   liquid: OK
+[Renderer]   kaleidoscope: OK
+[Renderer]   fisheye: OK
+[Renderer]   swirl: OK
+[Renderer]   hue_shift: OK
+[Renderer]   saturation: OK
+[Renderer]   brightness: OK
+[Renderer]   duotone: OK
+[Renderer]   chromatic_aberration: OK
+[Renderer]   invert: OK
+[Renderer]   posterize: OK
+[Renderer]   color_shift: OK
+[Renderer]   thermal: OK
+[Renderer]   color_matrix: OK
+[Renderer]   pixel_scatter: OK
+[Renderer]   rgb_split: OK
+[Renderer]   block_glitch: OK
+[Renderer]   scanlines: OK
+[Renderer]   digital_rain: OK
+[Renderer]   noise_overlay: OK
+[Renderer]   mirror: OK
+[Renderer]   pixelate: OK
+[Renderer]   gaussian_blur: OK
+[Renderer]   zoom_blur: OK
+[Renderer]   shake: OK
+[Renderer]   vignette: OK
+[Renderer]   motion_blur: OK
+[Renderer]   glow: OK
+[Renderer]   edge_detect: OK
+[Renderer]   perspective_tilt: OK
+[Renderer]   cylinder_wrap: OK
+[Renderer]   sphere_wrap: OK
+[Renderer]   tunnel: OK
+[Renderer]   page_curl: OK
+[Renderer]   parallax_layers: OK
+[Renderer]   polar_coords: OK
+[Renderer]   twirl: OK
+[Renderer]   shear: OK
+[Renderer]   elastic_bounce: OK
+[Renderer]   ripple_pond: OK
+[Renderer]   diamond_distort: OK
+[Renderer]   barrel_distort: OK
+[Renderer]   sine_grid: OK
+[Renderer]   glitch_displace: OK
+[Renderer]   sepia: OK
+[Renderer]   cross_process: OK
+[Renderer]   split_tone: OK
+[Renderer]   color_halftone: OK
+[Renderer]   ordered_dither: OK
+[Renderer]   heat_map: OK
+[Renderer]   selective_color: OK
+[Renderer]   film_grain: OK
+[Renderer]   gamma_levels: OK
+[Renderer]   solarize: OK
+[Renderer]   crt_simulation: OK
+[Renderer]   vhs_effect: OK
+[Renderer]   ascii_art: OK
+[Renderer]   dot_matrix: OK
+[Renderer]   crosshatch: OK
+[Renderer]   emboss: OK
+[Renderer]   oil_paint: OK
+[Renderer]   pencil_sketch: OK
+[Renderer]   voronoi_glass: OK
+[Renderer]   cross_stitch: OK
+[Renderer]   night_vision: OK
+[Renderer]   strobe: OK
+[Renderer]   pulse: OK
+[Renderer]   slit_scan: OK
+[Renderer]   double_exposure: OK
+[Renderer]   frosted_glass: OK
+[Renderer]   prism_refract: OK
+[Renderer]   rain_on_glass: OK
+[Renderer]   hexagonalize: OK
+[Renderer]   key_alpha: OK
+[Renderer]   key_luma: OK
+[Renderer]   key_chroma: OK
+[Renderer]   key_max_rgb: OK
+[Renderer]   key_inv_luma: OK
+[Renderer]   key_luma_alpha: OK
+[Renderer]   key_inv_luma_alpha: OK
+[Renderer]   key_saturation: OK
+[Renderer]   key_edge: OK
+[Renderer]   key_threshold: OK
+[Renderer]   key_channel_r: OK
+[Renderer]   key_channel_g: OK
+[Renderer]   key_channel_b: OK
+[Renderer]   key_vignette: OK
+[Renderer]   source_perlin_noise: OK
+[Renderer]   source_plasma: OK
+[Renderer]   source_voronoi: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_kaleido_fractal: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_mandelbrot: OK
+[Renderer]   source_geometric_tunnel: OK
+[Renderer]   source_color_gradient: OK
+[Renderer]   source_audio_waveform: OK
+[Renderer]   source_reaction_diffusion: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_cellular_automata: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   layer_transform: OK
+[Renderer]   mask_luminance: OK
+[Renderer]   greyscale: OK
+[Renderer]   threshold: OK
+[Renderer]   exposure: OK
+[Renderer]   vibrance: OK
+[Renderer]   quad_mirror: OK
+[Renderer]   flip: OK
+[Renderer]   warp_field: OK
+[Renderer]   sharpen: OK
+[Renderer]   pixel_explosion: OK
+[Renderer]   color_flash: OK
+[Renderer]   slide_wrap: OK
+[Renderer]   dot_field: OK
+[Renderer]   triangulate: OK
+[Renderer]   auto_mask: OK
+[Renderer]   chromakey_effect: OK
+[Renderer]   tile_grid: OK
+[Renderer]   spot_zoom: OK
+[Renderer]   neon_edge: OK
+[Renderer]   cartoon_ink: OK
+[Renderer]   pop_raster: OK
+[Renderer]   palette_remap: OK
+[Renderer]   lut_grade: OK
+[Renderer]   bendoscope: OK
+[Renderer]   uv_remap: OK
+[Renderer]   liquid_morph: OK
+[Renderer]   edge_blur: OK
+[Renderer]   brush_strokes: OK
+[Renderer]   fragment_burst: OK
+[Renderer]   signal_destroy: OK
+[Renderer]   line_cloner: OK
+[Renderer]   radial_cloner: OK
+[Renderer]   cube_scatter: OK
+[Renderer]   infinite_zoom: OK
+[Renderer]   bump_light: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   feedback: OK
+[Renderer]   directional_feedback: OK
+[Renderer]   source_solid_color: OK
+[Renderer]   source_strobe_light: OK
+[Renderer]   source_checkerboard: OK
+[Renderer]   source_line_pattern: OK
+[Renderer]   source_concentric_rings: OK
+[Renderer]   source_sine_oscillator: OK
+[Renderer]   source_spiral_pattern: OK
+[Renderer]   source_metaballs: OK
+[Renderer]   source_terrain_lines: OK
+[Renderer]   source_shape_generator: OK
+[Renderer]   source_bump_light: OK
+[Renderer]   source_infinite_zoom: OK
+[Renderer]   source_spiral_tunnel: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_wireframe_3d: OK
+[Renderer]   source_line_generator: OK
+[Renderer]   source_zigzag_lines: OK
+[Renderer]   source_star_burst: OK
+[Renderer]   source_polygon_lines: OK
+[Renderer]   source_waveform_lines: OK
+[Renderer]   source_lissajous: OK
+[Renderer]   source_spirograph: OK
+[Renderer]   source_angular_grid: OK
+[Renderer]   source_fractal_tree: OK
+[Renderer]   source_laser_scan: OK
+[Renderer]   source_moire_lines: OK
+ERROR: 0:60: Regular non-array variable 'diveRate' may not be redeclared
+
+JUCE Assertion failure in juce_OpenGLShaderProgram.cpp:98
+ShaderManager: fragment shader error for 'source_julia_set': ERROR: 0:60: Regular non-array variable 'diveRate' may not be redeclared
+
+[Renderer]   source_julia_set: FAILED
+[Renderer]   source_burning_ship: OK
+[Renderer]   source_newton_fractal: OK
+[Renderer]   source_sierpinski: OK
+[Renderer]   source_apollonian: OK
+[Renderer]   source_mandelbulb: OK
+[Renderer]   source_menger_sponge: OK
+[Renderer]   source_kifs: OK
+[Renderer]   source_julia_set_3d: OK
+[Renderer]   source_burning_ship_3d: OK
+[Renderer]   source_newton_3d: OK
+[Renderer]   source_sierpinski_tetra: OK
+[Renderer]   source_apollonian_3d: OK
+[Renderer]   source_striped_torus: OK
+[Renderer]   source_spiral_vortex: OK
+[Renderer]   source_checker_torus: OK
+[Renderer]   source_ribbed_vortex: OK
+[Renderer]   source_wormhole_tunnel: OK
+[Renderer]   source_twisted_torus: OK
+[Renderer]   source_wormhole: OK
+[Renderer]   source_torus_hole: OK
+[Renderer]   source_lissajous_weaver: OK
+[Renderer]   source_fermat_spiral: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_hyperbolic_tiling: OK
+[Renderer]   source_penrose_pulse: OK
+[Renderer]   source_moire_interference: OK
+[Renderer]   source_astral_grid: OK
+[Renderer]   source_radial_burst: OK
+[Renderer]   source_hex_grid: OK
+[Renderer]   source_sacred_geometry: OK
+[Renderer]   source_crystal_cavern: OK
+[Renderer]   source_infinite_corridor: OK
+[Renderer]   source_orbit_chamber: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_fire_wall: OK
+[Renderer]   source_water_caustics: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_electric_arc: OK
+[Renderer]   source_laser_scanner: OK
+[Renderer]   source_scroll_plane: OK
+[Renderer]   source_rotating_cube_map: OK
+[Renderer]   source_dual_plane_drift: OK
+[Renderer]   ghost_trails: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   frame_hold: OK
+[Renderer]   time_freeze: OK
+[Renderer]   screen_split: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   frame_delay: OK
+[Renderer]   feedback_blend: OK
+[Renderer]   harmonic_displace: OK
+[Renderer]   timbral_mosaic: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   structural_morph: OK
+[Renderer]   pitch_chroma_shift: OK
+[Renderer]   key_palette: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   transient_flash: OK
+[Renderer]   beat_ripple: OK
+[Renderer]   rhythm_slice: OK
+[Renderer]   density_wave: OK
+[Renderer]   chroma_dissolve: OK
+[Renderer]   source_spectrum_landscape: OK
+[Renderer]   source_chromatic_ring: OK
+[Renderer]   source_band_tower: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_timbral_nebula: OK
+[Renderer]   source_structural_landscape: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_cymatics: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_spectral_waterfall: OK
+[Renderer]   source_spectral_ring: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_text_wall: OK
+[Renderer]   luma_terrain: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   voxel_matrix: OK
+[Renderer]   monitor_wall: OK
+[Renderer]   drop_shadow: OK
+[Renderer]   channel_delay: OK
+[Renderer]   topo_lines: OK
+[Renderer]   data_corrupt: OK
+[Renderer]   glitch_sort: OK
+[Renderer]   source_superformula: OK
+[Renderer]   source_truchet: OK
+[Renderer]   source_rose: OK
+[Renderer]   source_fibonacci: OK
+[Renderer]   source_lightning: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_fire: OK
+[Renderer]   source_starfield: OK
+[Renderer]   source_nebula: OK
+[Renderer]   source_radar: OK
+[Renderer]   source_glitch_grid: OK
+[Renderer]   source_dna: OK
+[Renderer]   source_dot_matrix: OK
+[Renderer]   transition_dissolve: OK
+[Renderer]   transition_wipe_left: OK
+[Renderer]   transition_wipe_right: OK
+[Renderer]   transition_wipe_up: OK
+[Renderer]   transition_wipe_down: OK
+[Renderer]   transition_push_left: OK
+[Renderer]   transition_push_right: OK
+[Renderer]   transition_push_up: OK
+[Renderer]   transition_push_down: OK
+[Renderer]   transition_zoom_in: OK
+[Renderer]   transition_zoom_out: OK
+[Renderer]   transition_iris: OK
+[Renderer]   transition_flip_h: OK
+[Renderer]   transition_cut: OK
+[Renderer]   transition_fade_black: OK
+[Renderer]   source_text_animator: OK
+[Renderer]   source_strange_attractor: OK
+JUCE Assertion failure in juce_String.cpp:327
+[Renderer]   source_gravity_well: OK
+[Renderer]   source_fluid_dynamics: OK
+[Renderer]   source_layer_router: OK
+[Renderer] All shaders compiled.
+[Renderer] programID(passthrough)=2
+[Renderer] programID(hue_shift)=41
+[Renderer] programID(vignette)=104
+[Renderer] Loaded 135 effects from library.
+2026-09-05 01:53:34.782 Audio-DNA[31796:26835807] SYPHON DEBUG: SyphonServerConnectionManager: Start Connection
+2026-09-05 01:53:34.782 Audio-DNA[31796:26835807] SYPHON DEBUG: SyphonServerConnectionManager: Created connection with UUID: info.v002.Syphon.673B82ED-2D71-4518-815C-329F2FE355EA
+2026-09-05 01:53:34.783 Audio-DNA[31796:26835807] SYPHON DEBUG: SyphonServerRendererCoreGL: Neither SYPHON_CORE_RESTORE nor SYPHON_CORE_SHARE are in use
+2026-09-05 01:53:34.783 Audio-DNA[31796:26835807] [Syphon] Server created: Audio-DNA
+[Syphon] Output initialized
+==================
+WARNING: ThreadSanitizer: data race (pid=31796)
+  Write of size 4 at 0x00011561fc80 by main thread:
+    #0 SignalRegistry::evaluateAll(FeatureSnapshot const&) SignalRegistry.cpp:154 (Audio-DNA:arm64+0x10039a6bc)
+    #1 SignalBar::timerCallback() SignalBar.cpp:117 (Audio-DNA:arm64+0x1006431fc)
+    #2 non-virtual thunk to SignalBar::timerCallback() SignalBar.cpp (Audio-DNA:arm64+0x100643390)
+    #3 juce::Timer::TimerThread::callTimers() juce_Timer.cpp:170 (Audio-DNA:arm64+0x100eb0980)
+    #4 juce::Timer::TimerThread::CallTimersMessage::messageCallback() juce_Timer.cpp:271 (Audio-DNA:arm64+0x100eb0794)
+    #5 juce::MessageQueue::deliverNextMessage() juce_MessageQueue_mac.h:93 (Audio-DNA:arm64+0x100ecf838)
+    #6 juce::MessageQueue::runLoopCallback() juce_MessageQueue_mac.h:104 (Audio-DNA:arm64+0x100ecf768)
+    #7 juce::MessageQueue::runLoopSourceCallback(void*) juce_MessageQueue_mac.h:112 (Audio-DNA:arm64+0x100ecf234)
+    #8 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ <null>:333480128 (CoreFoundation:arm64e+0x7ca60)
+    #9 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:277 (Audio-DNA:arm64+0x100e889c8)
+    #10 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #11 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+  Previous write of size 4 at 0x00011561fc80 by thread T36 (mutexes: write M0, write M1):
+    #0 SignalRegistry::evaluateAll(FeatureSnapshot const&) SignalRegistry.cpp:154 (Audio-DNA:arm64+0x10039a6bc)
+    #1 Renderer::renderOpenGL() Renderer.cpp:231 (Audio-DNA:arm64+0x1002f5740)
+    #2 juce::OpenGLContext::CachedImage::renderFrame(juce::MessageManager::Lock&) juce_OpenGLContext.cpp:414 (Audio-DNA:arm64+0x10205f750)
+    #3 juce::OpenGLContext::CachedImage::RenderThread::renderAll() juce_OpenGLContext.cpp:802 (Audio-DNA:arm64+0x10205ee10)
+    #4 juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()::operator()() const juce_OpenGLContext.cpp:891 (Audio-DNA:arm64+0x10205eb48)
+    #5 decltype(std::declval<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>()()) std::__1::__invoke[abi:ne180100]<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&...) invoke.h:344 (Audio-DNA:arm64+0x10205ea58)
+    #6 void std::__1::__thread_execute[abi:ne180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>&, std::__1::__tuple_indices<>) thread.h:199 (Audio-DNA:arm64+0x10205ea04)
+    #7 void* std::__1::__thread_proxy[abi:ne180100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>) thread.h:208 (Audio-DNA:arm64+0x10205e498)
+
+  Location is heap block of size 128 at 0x00011561fc80 allocated by main thread:
+    #0 operator new(unsigned long) <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x84210)
+    #1 void* std::__1::__libcpp_operator_new[abi:ne180100]<unsigned long>(unsigned long) new:303 (Audio-DNA:arm64+0x100051c58)
+    #2 std::__1::__libcpp_allocate[abi:ne180100](unsigned long, unsigned long) new:327 (Audio-DNA:arm64+0x100051b7c)
+    #3 std::__1::allocator<float>::allocate[abi:ne180100](unsigned long) allocator.h:125 (Audio-DNA:arm64+0x100076be0)
+    #4 std::__1::__allocation_result<std::__1::allocator_traits<std::__1::allocator<float>>::pointer> std::__1::__allocate_at_least[abi:ne180100]<std::__1::allocator<float>>(std::__1::allocator<float>&, unsigned long) allocate_at_least.h:55 (Audio-DNA:arm64+0x100076a70)
+    #5 std::__1::__split_buffer<float, std::__1::allocator<float>&>::__split_buffer(unsigned long, unsigned long, std::__1::allocator<float>&) __split_buffer:343 (Audio-DNA:arm64+0x100150524)
+    #6 std::__1::__split_buffer<float, std::__1::allocator<float>&>::__split_buffer(unsigned long, unsigned long, std::__1::allocator<float>&) __split_buffer:339 (Audio-DNA:arm64+0x1001501f4)
+    #7 float* std::__1::vector<float, std::__1::allocator<float>>::__push_back_slow_path<float>(float&&) vector:1451 (Audio-DNA:arm64+0x100368e74)
+    #8 std::__1::vector<float, std::__1::allocator<float>>::push_back[abi:ne180100](float&&) vector:1479 (Audio-DNA:arm64+0x100368c18)
+    #9 SignalRegistry::initDefaults()::$_1::operator()(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, MappingSource, Signal::Category) const SignalRegistry.cpp:34 (Audio-DNA:arm64+0x100398914)
+    #10 SignalRegistry::initDefaults() SignalRegistry.cpp:45 (Audio-DNA:arm64+0x100397c94)
+    #11 MainComponent::MainComponent(bool, int) MainComponent.cpp:423 (Audio-DNA:arm64+0x10001a458)
+    #12 MainComponent::MainComponent(bool, int) MainComponent.cpp:15 (Audio-DNA:arm64+0x100015544)
+    #13 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:48 (Audio-DNA:arm64+0x100010c34)
+    #14 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:47 (Audio-DNA:arm64+0x100010ab4)
+    #15 std::__1::__unique_if<AudioDNAApplication::MainWindow>::__unique_single std::__1::make_unique[abi:ne180100]<AudioDNAApplication::MainWindow, juce::String const, bool&, int&>(juce::String const&&, bool&, int&) unique_ptr.h:597 (Audio-DNA:arm64+0x100010720)
+    #16 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000fed0)
+    #17 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100e88cfc)
+    #18 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x10132a6e0)
+    #19 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100e88978)
+    #20 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #21 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+  Mutex M0 (0x000115042b00) created at:
+    #0 pthread_mutex_lock <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x319bc)
+    #1 std::__1::mutex::lock() <null>:327158816 (libc++.1.dylib:arm64e+0x1f3d8)
+    #2 std::__1::unique_lock<std::__1::mutex>::unique_lock[abi:ne180100](std::__1::mutex&) unique_lock.h:40 (Audio-DNA:arm64+0x10034f4ac)
+    #3 void std::__1::lock[abi:ne180100]<std::__1::mutex, std::__1::mutex>(std::__1::mutex&, std::__1::mutex&) mutex:361 (Audio-DNA:arm64+0x10205fb78)
+    #4 std::__1::scoped_lock<std::__1::mutex, std::__1::mutex>::scoped_lock[abi:ne180100](std::__1::mutex&, std::__1::mutex&) mutex:487 (Audio-DNA:arm64+0x10205faa4)
+    #5 std::__1::scoped_lock<std::__1::mutex, std::__1::mutex>::scoped_lock[abi:ne180100](std::__1::mutex&, std::__1::mutex&) mutex:487 (Audio-DNA:arm64+0x10205f098)
+    #6 juce::OpenGLContext::CachedImage::RenderThread::renderAll() juce_OpenGLContext.cpp:795 (Audio-DNA:arm64+0x10205ed70)
+    #7 juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()::operator()() const juce_OpenGLContext.cpp:891 (Audio-DNA:arm64+0x10205eb48)
+    #8 decltype(std::declval<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>()()) std::__1::__invoke[abi:ne180100]<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&...) invoke.h:344 (Audio-DNA:arm64+0x10205ea58)
+    #9 void std::__1::__thread_execute[abi:ne180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>&, std::__1::__tuple_indices<>) thread.h:199 (Audio-DNA:arm64+0x10205ea04)
+    #10 void* std::__1::__thread_proxy[abi:ne180100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>) thread.h:208 (Audio-DNA:arm64+0x10205e498)
+
+  Mutex M1 (0x00011c925ea8) created at:
+    #0 pthread_mutex_init <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x3181c)
+    #1 CGLCreateContext <null>:335547456 (OpenGL:arm64e+0x493c)
+    #2 juce::OpenGLContext::NativeContext::NativeContext(juce::Component&, juce::OpenGLPixelFormat const&, void*, bool, juce::OpenGLContext::OpenGLVersion) juce_OpenGL_mac.h:49 (Audio-DNA:arm64+0x10205c894)
+    #3 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:153 (Audio-DNA:arm64+0x10205c130)
+    #4 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:152 (Audio-DNA:arm64+0x10205bd14)
+    #5 juce::OpenGLContext::Attachment::attach() juce_OpenGLContext.cpp:1187 (Audio-DNA:arm64+0x10205b1f0)
+    #6 juce::OpenGLContext::Attachment::componentVisibilityChanged() juce_OpenGLContext.cpp:1138 (Audio-DNA:arm64+0x10205b6c8)
+    #7 juce::OpenGLContext::Attachment::componentMovedOrResized(bool, bool) juce_OpenGLContext.cpp:1108 (Audio-DNA:arm64+0x10205b48c)
+    #8 juce::ComponentMovementWatcher::componentMovedOrResized(juce::Component&, bool, bool) juce_ComponentMovementWatcher.cpp:108 (Audio-DNA:arm64+0x10138f784)
+    #9 juce::Component::sendMovedResizedMessages(bool, bool)::$_0::operator()(juce::ComponentListener&) const juce_Component.cpp:895 (Audio-DNA:arm64+0x1016ee248)
+    #10 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callCheckedExcluding<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::ComponentListener*, juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:271 (Audio-DNA:arm64+0x1016ee02c)
+    #11 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callChecked<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:217 (Audio-DNA:arm64+0x101347678)
+    #12 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:893 (Audio-DNA:arm64+0x10134755c)
+    #13 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #14 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #15 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #16 PreviewPanel::resized() PreviewPanel.cpp:52 (Audio-DNA:arm64+0x1005c7248)
+    #17 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #18 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #19 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #20 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #21 MainComponent::resized() MainComponent.cpp:2201 (Audio-DNA:arm64+0x10002a36c)
+    #22 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #23 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #24 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #25 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #26 juce::Component::setBoundsInset(juce::BorderSize<int>) juce_Component.cpp:944 (Audio-DNA:arm64+0x101348550)
+    #27 juce::ResizableWindow::resized() juce_ResizableWindow.cpp:215 (Audio-DNA:arm64+0x10147a2d8)
+    #28 juce::DocumentWindow::resized() juce_DocumentWindow.cpp:244 (Audio-DNA:arm64+0x101477b58)
+    #29 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #30 juce::ComponentPeer::handleMovedOrResized() juce_ComponentPeer.cpp:342 (Audio-DNA:arm64+0x101475428)
+    #31 juce::NSViewComponentPeer::redirectMovedOrResized() juce_NSViewComponentPeer_mac.mm:1226 (Audio-DNA:arm64+0x10148ab94)
+    #32 void juce::JuceNSViewClass::callOnOwner<void (juce::NSViewComponentPeer::*)()>(objc_object*, void (juce::NSViewComponentPeer::*&&)()) juce_NSViewComponentPeer_mac.mm:2640 (Audio-DNA:arm64+0x101489f8c)
+    #33 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::operator()(objc_object*, objc_selector*, NSNotification*) const juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148aaac)
+    #34 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::__invoke(objc_object*, objc_selector*, NSNotification*) juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148ab3c)
+    #35 __CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ <null>:333450368 (CoreFoundation:arm64e+0x713b8)
+    #36 juce::Component::toFront(bool) juce_Component.cpp:606 (Audio-DNA:arm64+0x101344a6c)
+    #37 juce::TopLevelWindow::visibilityChanged() juce_TopLevelWindow.cpp:97 (Audio-DNA:arm64+0x10147cb00)
+    #38 juce::ResizableWindow::visibilityChanged() juce_ResizableWindow.cpp:183 (Audio-DNA:arm64+0x10147ca30)
+    #39 juce::Component::sendVisibilityChangeMessage() juce_Component.cpp:331 (Audio-DNA:arm64+0x101342c18)
+    #40 juce::Component::setVisible(bool) juce_Component.cpp:312 (Audio-DNA:arm64+0x101342730)
+    #41 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:75 (Audio-DNA:arm64+0x100010de0)
+    #42 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:47 (Audio-DNA:arm64+0x100010ab4)
+    #43 std::__1::__unique_if<AudioDNAApplication::MainWindow>::__unique_single std::__1::make_unique[abi:ne180100]<AudioDNAApplication::MainWindow, juce::String const, bool&, int&>(juce::String const&&, bool&, int&) unique_ptr.h:597 (Audio-DNA:arm64+0x100010720)
+    #44 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000fed0)
+    #45 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100e88cfc)
+    #46 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x10132a6e0)
+    #47 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100e88978)
+    #48 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #49 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+  Thread T36 (tid=26835807, running) created by main thread at:
+    #0 pthread_create <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x309d8)
+    #1 std::__1::__libcpp_thread_create[abi:ne180100](_opaque_pthread_t**, void* (*)(void*), void*) __threading_support:317 (Audio-DNA:arm64+0x1001d99ec)
+    #2 std::__1::thread::thread<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'(), void>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&) thread.h:218 (Audio-DNA:arm64+0x10205e27c)
+    #3 std::__1::thread::thread<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'(), void>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&) thread.h:213 (Audio-DNA:arm64+0x10205dcfc)
+    #4 juce::OpenGLContext::CachedImage::RenderThread::RenderThread() juce_OpenGLContext.cpp:888 (Audio-DNA:arm64+0x10205dba0)
+    #5 juce::OpenGLContext::CachedImage::RenderThread::RenderThread() juce_OpenGLContext.cpp:749 (Audio-DNA:arm64+0x10205d87c)
+    #6 juce::SharedResourcePointer<juce::OpenGLContext::CachedImage::RenderThread>::Weak::lockOrCreate() juce_SharedResourcePointer.h:168 (Audio-DNA:arm64+0x10205d29c)
+    #7 juce::SharedResourcePointer<juce::OpenGLContext::CachedImage::RenderThread>::SharedResourcePointer() juce_SharedResourcePointer.h:184 (Audio-DNA:arm64+0x10205d0c0)
+    #8 juce::SharedResourcePointer<juce::OpenGLContext::CachedImage::RenderThread>::SharedResourcePointer() juce_SharedResourcePointer.h:102 (Audio-DNA:arm64+0x10205c3ac)
+    #9 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:148 (Audio-DNA:arm64+0x10205bed0)
+    #10 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:152 (Audio-DNA:arm64+0x10205bd14)
+    #11 juce::OpenGLContext::Attachment::attach() juce_OpenGLContext.cpp:1187 (Audio-DNA:arm64+0x10205b1f0)
+    #12 juce::OpenGLContext::Attachment::componentVisibilityChanged() juce_OpenGLContext.cpp:1138 (Audio-DNA:arm64+0x10205b6c8)
+    #13 juce::OpenGLContext::Attachment::componentMovedOrResized(bool, bool) juce_OpenGLContext.cpp:1108 (Audio-DNA:arm64+0x10205b48c)
+    #14 juce::ComponentMovementWatcher::componentMovedOrResized(juce::Component&, bool, bool) juce_ComponentMovementWatcher.cpp:108 (Audio-DNA:arm64+0x10138f784)
+    #15 juce::Component::sendMovedResizedMessages(bool, bool)::$_0::operator()(juce::ComponentListener&) const juce_Component.cpp:895 (Audio-DNA:arm64+0x1016ee248)
+    #16 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callCheckedExcluding<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::ComponentListener*, juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:271 (Audio-DNA:arm64+0x1016ee02c)
+    #17 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callChecked<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:217 (Audio-DNA:arm64+0x101347678)
+    #18 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:893 (Audio-DNA:arm64+0x10134755c)
+    #19 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #20 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #21 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #22 PreviewPanel::resized() PreviewPanel.cpp:52 (Audio-DNA:arm64+0x1005c7248)
+    #23 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #24 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #25 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #26 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #27 MainComponent::resized() MainComponent.cpp:2201 (Audio-DNA:arm64+0x10002a36c)
+    #28 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #29 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #30 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #31 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #32 juce::Component::setBoundsInset(juce::BorderSize<int>) juce_Component.cpp:944 (Audio-DNA:arm64+0x101348550)
+    #33 juce::ResizableWindow::resized() juce_ResizableWindow.cpp:215 (Audio-DNA:arm64+0x10147a2d8)
+    #34 juce::DocumentWindow::resized() juce_DocumentWindow.cpp:244 (Audio-DNA:arm64+0x101477b58)
+    #35 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #36 juce::ComponentPeer::handleMovedOrResized() juce_ComponentPeer.cpp:342 (Audio-DNA:arm64+0x101475428)
+    #37 juce::NSViewComponentPeer::redirectMovedOrResized() juce_NSViewComponentPeer_mac.mm:1226 (Audio-DNA:arm64+0x10148ab94)
+    #38 void juce::JuceNSViewClass::callOnOwner<void (juce::NSViewComponentPeer::*)()>(objc_object*, void (juce::NSViewComponentPeer::*&&)()) juce_NSViewComponentPeer_mac.mm:2640 (Audio-DNA:arm64+0x101489f8c)
+    #39 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::operator()(objc_object*, objc_selector*, NSNotification*) const juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148aaac)
+    #40 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::__invoke(objc_object*, objc_selector*, NSNotification*) juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148ab3c)
+    #41 __CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ <null>:333475088 (CoreFoundation:arm64e+0x713b8)
+    #42 juce::Component::toFront(bool) juce_Component.cpp:606 (Audio-DNA:arm64+0x101344a6c)
+    #43 juce::TopLevelWindow::visibilityChanged() juce_TopLevelWindow.cpp:97 (Audio-DNA:arm64+0x10147cb00)
+    #44 juce::ResizableWindow::visibilityChanged() juce_ResizableWindow.cpp:183 (Audio-DNA:arm64+0x10147ca30)
+    #45 juce::Component::sendVisibilityChangeMessage() juce_Component.cpp:331 (Audio-DNA:arm64+0x101342c18)
+    #46 juce::Component::setVisible(bool) juce_Component.cpp:312 (Audio-DNA:arm64+0x101342730)
+    #47 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:75 (Audio-DNA:arm64+0x100010de0)
+    #48 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:47 (Audio-DNA:arm64+0x100010ab4)
+    #49 std::__1::__unique_if<AudioDNAApplication::MainWindow>::__unique_single std::__1::make_unique[abi:ne180100]<AudioDNAApplication::MainWindow, juce::String const, bool&, int&>(juce::String const&&, bool&, int&) unique_ptr.h:597 (Audio-DNA:arm64+0x100010720)
+    #50 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000fed0)
+    #51 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100e88cfc)
+    #52 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x10132a6e0)
+    #53 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100e88978)
+    #54 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #55 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+SUMMARY: ThreadSanitizer: data race SignalRegistry.cpp:154 in SignalRegistry::evaluateAll(FeatureSnapshot const&)
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=31796)
+  Write of size 4 at 0x00011561fcf8 by thread T36 (mutexes: write M0, write M1):
+    #0 SignalRegistry::evaluateAll(FeatureSnapshot const&) SignalRegistry.cpp:154 (Audio-DNA:arm64+0x10039a6bc)
+    #1 Renderer::renderOpenGL() Renderer.cpp:231 (Audio-DNA:arm64+0x1002f5740)
+    #2 juce::OpenGLContext::CachedImage::renderFrame(juce::MessageManager::Lock&) juce_OpenGLContext.cpp:414 (Audio-DNA:arm64+0x10205f750)
+    #3 juce::OpenGLContext::CachedImage::RenderThread::renderAll() juce_OpenGLContext.cpp:802 (Audio-DNA:arm64+0x10205ee10)
+    #4 juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()::operator()() const juce_OpenGLContext.cpp:891 (Audio-DNA:arm64+0x10205eb48)
+    #5 decltype(std::declval<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>()()) std::__1::__invoke[abi:ne180100]<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&...) invoke.h:344 (Audio-DNA:arm64+0x10205ea58)
+    #6 void std::__1::__thread_execute[abi:ne180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>&, std::__1::__tuple_indices<>) thread.h:199 (Audio-DNA:arm64+0x10205ea04)
+    #7 void* std::__1::__thread_proxy[abi:ne180100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>) thread.h:208 (Audio-DNA:arm64+0x10205e498)
+
+  Previous read of size 4 at 0x00011561fcf8 by main thread:
+    #0 SignalRegistry::getCachedValue(unsigned int) const SignalRegistry.cpp:163 (Audio-DNA:arm64+0x10039a7a4)
+    #1 SignalBar::timerCallback() SignalBar.cpp:122 (Audio-DNA:arm64+0x10064327c)
+    #2 non-virtual thunk to SignalBar::timerCallback() SignalBar.cpp (Audio-DNA:arm64+0x100643390)
+    #3 juce::Timer::TimerThread::callTimers() juce_Timer.cpp:170 (Audio-DNA:arm64+0x100eb0980)
+    #4 juce::Timer::TimerThread::CallTimersMessage::messageCallback() juce_Timer.cpp:271 (Audio-DNA:arm64+0x100eb0794)
+    #5 juce::MessageQueue::deliverNextMessage() juce_MessageQueue_mac.h:93 (Audio-DNA:arm64+0x100ecf838)
+    #6 juce::MessageQueue::runLoopCallback() juce_MessageQueue_mac.h:104 (Audio-DNA:arm64+0x100ecf768)
+    #7 juce::MessageQueue::runLoopSourceCallback(void*) juce_MessageQueue_mac.h:112 (Audio-DNA:arm64+0x100ecf234)
+    #8 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ <null>:333475168 (CoreFoundation:arm64e+0x7ca60)
+    #9 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:277 (Audio-DNA:arm64+0x100e889c8)
+    #10 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #11 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+  Location is heap block of size 128 at 0x00011561fc80 allocated by main thread:
+    #0 operator new(unsigned long) <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x84210)
+    #1 void* std::__1::__libcpp_operator_new[abi:ne180100]<unsigned long>(unsigned long) new:303 (Audio-DNA:arm64+0x100051c58)
+    #2 std::__1::__libcpp_allocate[abi:ne180100](unsigned long, unsigned long) new:327 (Audio-DNA:arm64+0x100051b7c)
+    #3 std::__1::allocator<float>::allocate[abi:ne180100](unsigned long) allocator.h:125 (Audio-DNA:arm64+0x100076be0)
+    #4 std::__1::__allocation_result<std::__1::allocator_traits<std::__1::allocator<float>>::pointer> std::__1::__allocate_at_least[abi:ne180100]<std::__1::allocator<float>>(std::__1::allocator<float>&, unsigned long) allocate_at_least.h:55 (Audio-DNA:arm64+0x100076a70)
+    #5 std::__1::__split_buffer<float, std::__1::allocator<float>&>::__split_buffer(unsigned long, unsigned long, std::__1::allocator<float>&) __split_buffer:343 (Audio-DNA:arm64+0x100150524)
+    #6 std::__1::__split_buffer<float, std::__1::allocator<float>&>::__split_buffer(unsigned long, unsigned long, std::__1::allocator<float>&) __split_buffer:339 (Audio-DNA:arm64+0x1001501f4)
+    #7 float* std::__1::vector<float, std::__1::allocator<float>>::__push_back_slow_path<float>(float&&) vector:1451 (Audio-DNA:arm64+0x100368e74)
+    #8 std::__1::vector<float, std::__1::allocator<float>>::push_back[abi:ne180100](float&&) vector:1479 (Audio-DNA:arm64+0x100368c18)
+    #9 SignalRegistry::initDefaults()::$_1::operator()(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, MappingSource, Signal::Category) const SignalRegistry.cpp:34 (Audio-DNA:arm64+0x100398914)
+    #10 SignalRegistry::initDefaults() SignalRegistry.cpp:45 (Audio-DNA:arm64+0x100397c94)
+    #11 MainComponent::MainComponent(bool, int) MainComponent.cpp:423 (Audio-DNA:arm64+0x10001a458)
+    #12 MainComponent::MainComponent(bool, int) MainComponent.cpp:15 (Audio-DNA:arm64+0x100015544)
+    #13 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:48 (Audio-DNA:arm64+0x100010c34)
+    #14 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:47 (Audio-DNA:arm64+0x100010ab4)
+    #15 std::__1::__unique_if<AudioDNAApplication::MainWindow>::__unique_single std::__1::make_unique[abi:ne180100]<AudioDNAApplication::MainWindow, juce::String const, bool&, int&>(juce::String const&&, bool&, int&) unique_ptr.h:597 (Audio-DNA:arm64+0x100010720)
+    #16 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000fed0)
+    #17 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100e88cfc)
+    #18 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x10132a6e0)
+    #19 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100e88978)
+    #20 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #21 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+  Mutex M0 (0x000115042b00) created at:
+    #0 pthread_mutex_lock <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x319bc)
+    #1 std::__1::mutex::lock() <null>:327156992 (libc++.1.dylib:arm64e+0x1f3d8)
+    #2 std::__1::unique_lock<std::__1::mutex>::unique_lock[abi:ne180100](std::__1::mutex&) unique_lock.h:40 (Audio-DNA:arm64+0x10034f4ac)
+    #3 void std::__1::lock[abi:ne180100]<std::__1::mutex, std::__1::mutex>(std::__1::mutex&, std::__1::mutex&) mutex:361 (Audio-DNA:arm64+0x10205fb78)
+    #4 std::__1::scoped_lock<std::__1::mutex, std::__1::mutex>::scoped_lock[abi:ne180100](std::__1::mutex&, std::__1::mutex&) mutex:487 (Audio-DNA:arm64+0x10205faa4)
+    #5 std::__1::scoped_lock<std::__1::mutex, std::__1::mutex>::scoped_lock[abi:ne180100](std::__1::mutex&, std::__1::mutex&) mutex:487 (Audio-DNA:arm64+0x10205f098)
+    #6 juce::OpenGLContext::CachedImage::RenderThread::renderAll() juce_OpenGLContext.cpp:795 (Audio-DNA:arm64+0x10205ed70)
+    #7 juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()::operator()() const juce_OpenGLContext.cpp:891 (Audio-DNA:arm64+0x10205eb48)
+    #8 decltype(std::declval<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>()()) std::__1::__invoke[abi:ne180100]<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&...) invoke.h:344 (Audio-DNA:arm64+0x10205ea58)
+    #9 void std::__1::__thread_execute[abi:ne180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>&, std::__1::__tuple_indices<>) thread.h:199 (Audio-DNA:arm64+0x10205ea04)
+    #10 void* std::__1::__thread_proxy[abi:ne180100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>) thread.h:208 (Audio-DNA:arm64+0x10205e498)
+
+  Mutex M1 (0x00011c925ea8) created at:
+    #0 pthread_mutex_init <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x3181c)
+    #1 CGLCreateContext <null>:335550272 (OpenGL:arm64e+0x493c)
+    #2 juce::OpenGLContext::NativeContext::NativeContext(juce::Component&, juce::OpenGLPixelFormat const&, void*, bool, juce::OpenGLContext::OpenGLVersion) juce_OpenGL_mac.h:49 (Audio-DNA:arm64+0x10205c894)
+    #3 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:153 (Audio-DNA:arm64+0x10205c130)
+    #4 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:152 (Audio-DNA:arm64+0x10205bd14)
+    #5 juce::OpenGLContext::Attachment::attach() juce_OpenGLContext.cpp:1187 (Audio-DNA:arm64+0x10205b1f0)
+    #6 juce::OpenGLContext::Attachment::componentVisibilityChanged() juce_OpenGLContext.cpp:1138 (Audio-DNA:arm64+0x10205b6c8)
+    #7 juce::OpenGLContext::Attachment::componentMovedOrResized(bool, bool) juce_OpenGLContext.cpp:1108 (Audio-DNA:arm64+0x10205b48c)
+    #8 juce::ComponentMovementWatcher::componentMovedOrResized(juce::Component&, bool, bool) juce_ComponentMovementWatcher.cpp:108 (Audio-DNA:arm64+0x10138f784)
+    #9 juce::Component::sendMovedResizedMessages(bool, bool)::$_0::operator()(juce::ComponentListener&) const juce_Component.cpp:895 (Audio-DNA:arm64+0x1016ee248)
+    #10 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callCheckedExcluding<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::ComponentListener*, juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:271 (Audio-DNA:arm64+0x1016ee02c)
+    #11 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callChecked<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:217 (Audio-DNA:arm64+0x101347678)
+    #12 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:893 (Audio-DNA:arm64+0x10134755c)
+    #13 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #14 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #15 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #16 PreviewPanel::resized() PreviewPanel.cpp:52 (Audio-DNA:arm64+0x1005c7248)
+    #17 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #18 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #19 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #20 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #21 MainComponent::resized() MainComponent.cpp:2201 (Audio-DNA:arm64+0x10002a36c)
+    #22 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #23 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #24 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #25 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #26 juce::Component::setBoundsInset(juce::BorderSize<int>) juce_Component.cpp:944 (Audio-DNA:arm64+0x101348550)
+    #27 juce::ResizableWindow::resized() juce_ResizableWindow.cpp:215 (Audio-DNA:arm64+0x10147a2d8)
+    #28 juce::DocumentWindow::resized() juce_DocumentWindow.cpp:244 (Audio-DNA:arm64+0x101477b58)
+    #29 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #30 juce::ComponentPeer::handleMovedOrResized() juce_ComponentPeer.cpp:342 (Audio-DNA:arm64+0x101475428)
+    #31 juce::NSViewComponentPeer::redirectMovedOrResized() juce_NSViewComponentPeer_mac.mm:1226 (Audio-DNA:arm64+0x10148ab94)
+    #32 void juce::JuceNSViewClass::callOnOwner<void (juce::NSViewComponentPeer::*)()>(objc_object*, void (juce::NSViewComponentPeer::*&&)()) juce_NSViewComponentPeer_mac.mm:2640 (Audio-DNA:arm64+0x101489f8c)
+    #33 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::operator()(objc_object*, objc_selector*, NSNotification*) const juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148aaac)
+    #34 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::__invoke(objc_object*, objc_selector*, NSNotification*) juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148ab3c)
+    #35 __CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ <null>:333447168 (CoreFoundation:arm64e+0x713b8)
+    #36 juce::Component::toFront(bool) juce_Component.cpp:606 (Audio-DNA:arm64+0x101344a6c)
+    #37 juce::TopLevelWindow::visibilityChanged() juce_TopLevelWindow.cpp:97 (Audio-DNA:arm64+0x10147cb00)
+    #38 juce::ResizableWindow::visibilityChanged() juce_ResizableWindow.cpp:183 (Audio-DNA:arm64+0x10147ca30)
+    #39 juce::Component::sendVisibilityChangeMessage() juce_Component.cpp:331 (Audio-DNA:arm64+0x101342c18)
+    #40 juce::Component::setVisible(bool) juce_Component.cpp:312 (Audio-DNA:arm64+0x101342730)
+    #41 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:75 (Audio-DNA:arm64+0x100010de0)
+    #42 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:47 (Audio-DNA:arm64+0x100010ab4)
+    #43 std::__1::__unique_if<AudioDNAApplication::MainWindow>::__unique_single std::__1::make_unique[abi:ne180100]<AudioDNAApplication::MainWindow, juce::String const, bool&, int&>(juce::String const&&, bool&, int&) unique_ptr.h:597 (Audio-DNA:arm64+0x100010720)
+    #44 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000fed0)
+    #45 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100e88cfc)
+    #46 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x10132a6e0)
+    #47 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100e88978)
+    #48 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #49 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+  Thread T36 (tid=26835807, running) created by main thread at:
+    #0 pthread_create <null>:337651232 (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x309d8)
+    #1 std::__1::__libcpp_thread_create[abi:ne180100](_opaque_pthread_t**, void* (*)(void*), void*) __threading_support:317 (Audio-DNA:arm64+0x1001d99ec)
+    #2 std::__1::thread::thread<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'(), void>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&) thread.h:218 (Audio-DNA:arm64+0x10205e27c)
+    #3 std::__1::thread::thread<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'(), void>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&) thread.h:213 (Audio-DNA:arm64+0x10205dcfc)
+    #4 juce::OpenGLContext::CachedImage::RenderThread::RenderThread() juce_OpenGLContext.cpp:888 (Audio-DNA:arm64+0x10205dba0)
+    #5 juce::OpenGLContext::CachedImage::RenderThread::RenderThread() juce_OpenGLContext.cpp:749 (Audio-DNA:arm64+0x10205d87c)
+    #6 juce::SharedResourcePointer<juce::OpenGLContext::CachedImage::RenderThread>::Weak::lockOrCreate() juce_SharedResourcePointer.h:168 (Audio-DNA:arm64+0x10205d29c)
+    #7 juce::SharedResourcePointer<juce::OpenGLContext::CachedImage::RenderThread>::SharedResourcePointer() juce_SharedResourcePointer.h:184 (Audio-DNA:arm64+0x10205d0c0)
+    #8 juce::SharedResourcePointer<juce::OpenGLContext::CachedImage::RenderThread>::SharedResourcePointer() juce_SharedResourcePointer.h:102 (Audio-DNA:arm64+0x10205c3ac)
+    #9 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:148 (Audio-DNA:arm64+0x10205bed0)
+    #10 juce::OpenGLContext::CachedImage::CachedImage(juce::OpenGLContext&, juce::Component&, juce::OpenGLPixelFormat const&, void*) juce_OpenGLContext.cpp:152 (Audio-DNA:arm64+0x10205bd14)
+    #11 juce::OpenGLContext::Attachment::attach() juce_OpenGLContext.cpp:1187 (Audio-DNA:arm64+0x10205b1f0)
+    #12 juce::OpenGLContext::Attachment::componentVisibilityChanged() juce_OpenGLContext.cpp:1138 (Audio-DNA:arm64+0x10205b6c8)
+    #13 juce::OpenGLContext::Attachment::componentMovedOrResized(bool, bool) juce_OpenGLContext.cpp:1108 (Audio-DNA:arm64+0x10205b48c)
+    #14 juce::ComponentMovementWatcher::componentMovedOrResized(juce::Component&, bool, bool) juce_ComponentMovementWatcher.cpp:108 (Audio-DNA:arm64+0x10138f784)
+    #15 juce::Component::sendMovedResizedMessages(bool, bool)::$_0::operator()(juce::ComponentListener&) const juce_Component.cpp:895 (Audio-DNA:arm64+0x1016ee248)
+    #16 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callCheckedExcluding<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::ComponentListener*, juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:271 (Audio-DNA:arm64+0x1016ee02c)
+    #17 void juce::ListenerList<juce::ComponentListener, juce::Array<juce::ComponentListener*, juce::DummyCriticalSection, 0>>::callChecked<juce::Component::sendMovedResizedMessages(bool, bool)::$_0, juce::Component::BailOutChecker>(juce::Component::BailOutChecker const&, juce::Component::sendMovedResizedMessages(bool, bool)::$_0&&) juce_ListenerList.h:217 (Audio-DNA:arm64+0x101347678)
+    #18 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:893 (Audio-DNA:arm64+0x10134755c)
+    #19 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #20 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #21 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #22 PreviewPanel::resized() PreviewPanel.cpp:52 (Audio-DNA:arm64+0x1005c7248)
+    #23 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #24 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #25 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #26 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #27 MainComponent::resized() MainComponent.cpp:2201 (Audio-DNA:arm64+0x10002a36c)
+    #28 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #29 juce::Component::sendMovedResizedMessagesIfPending() juce_Component.cpp:854 (Audio-DNA:arm64+0x1013472d8)
+    #30 juce::Component::setBounds(int, int, int, int) juce_Component.cpp:840 (Audio-DNA:arm64+0x101347160)
+    #31 juce::Component::setBounds(juce::Rectangle<int>) juce_Component.cpp:910 (Audio-DNA:arm64+0x101320474)
+    #32 juce::Component::setBoundsInset(juce::BorderSize<int>) juce_Component.cpp:944 (Audio-DNA:arm64+0x101348550)
+    #33 juce::ResizableWindow::resized() juce_ResizableWindow.cpp:215 (Audio-DNA:arm64+0x10147a2d8)
+    #34 juce::DocumentWindow::resized() juce_DocumentWindow.cpp:244 (Audio-DNA:arm64+0x101477b58)
+    #35 juce::Component::sendMovedResizedMessages(bool, bool) juce_Component.cpp:872 (Audio-DNA:arm64+0x1013473e4)
+    #36 juce::ComponentPeer::handleMovedOrResized() juce_ComponentPeer.cpp:342 (Audio-DNA:arm64+0x101475428)
+    #37 juce::NSViewComponentPeer::redirectMovedOrResized() juce_NSViewComponentPeer_mac.mm:1226 (Audio-DNA:arm64+0x10148ab94)
+    #38 void juce::JuceNSViewClass::callOnOwner<void (juce::NSViewComponentPeer::*)()>(objc_object*, void (juce::NSViewComponentPeer::*&&)()) juce_NSViewComponentPeer_mac.mm:2640 (Audio-DNA:arm64+0x101489f8c)
+    #39 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::operator()(objc_object*, objc_selector*, NSNotification*) const juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148aaac)
+    #40 juce::JuceNSViewClass::JuceNSViewClass()::'lambda'(objc_object*, objc_selector*, NSNotification*)::__invoke(objc_object*, objc_selector*, NSNotification*) juce_NSViewComponentPeer_mac.mm:2157 (Audio-DNA:arm64+0x10148ab3c)
+    #41 __CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ <null>:333483488 (CoreFoundation:arm64e+0x713b8)
+    #42 juce::Component::toFront(bool) juce_Component.cpp:606 (Audio-DNA:arm64+0x101344a6c)
+    #43 juce::TopLevelWindow::visibilityChanged() juce_TopLevelWindow.cpp:97 (Audio-DNA:arm64+0x10147cb00)
+    #44 juce::ResizableWindow::visibilityChanged() juce_ResizableWindow.cpp:183 (Audio-DNA:arm64+0x10147ca30)
+    #45 juce::Component::sendVisibilityChangeMessage() juce_Component.cpp:331 (Audio-DNA:arm64+0x101342c18)
+    #46 juce::Component::setVisible(bool) juce_Component.cpp:312 (Audio-DNA:arm64+0x101342730)
+    #47 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:75 (Audio-DNA:arm64+0x100010de0)
+    #48 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:47 (Audio-DNA:arm64+0x100010ab4)
+    #49 std::__1::__unique_if<AudioDNAApplication::MainWindow>::__unique_single std::__1::make_unique[abi:ne180100]<AudioDNAApplication::MainWindow, juce::String const, bool&, int&>(juce::String const&&, bool&, int&) unique_ptr.h:597 (Audio-DNA:arm64+0x100010720)
+    #50 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000fed0)
+    #51 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100e88cfc)
+    #52 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x10132a6e0)
+    #53 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100e88978)
+    #54 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e8876c)
+    #55 main Main.cpp:99 (Audio-DNA:arm64+0x10000f4e0)
+
+SUMMARY: ThreadSanitizer: data race SignalRegistry.cpp:154 in SignalRegistry::evaluateAll(FeatureSnapshot const&)
+==================
+[API] HTTP server stopped
+2026-09-05 01:54:40.809 Audio-DNA[31796:26835517] SYPHON DEBUG: SyphonServerConnectionManager: stopping
+2026-09-05 01:54:40.809 Audio-DNA[31796:26835517] SYPHON DEBUG: SyphonServerConnectionManager: Releasing SyphonServerConnectionManager for server "info.v002.Syphon.673B82ED-2D71-4518-815C-329F2FE355EA"
+2026-09-05 01:54:40.810 Audio-DNA[31796:26835517] SYPHON DEBUG: SyphonOpenGLServer: Server deallocing, name: Audio-DNA, UUID: info.v002.Syphon.673B82ED-2D71-4518-815C-329F2FE355EA
+2026-09-05 01:54:40.810 Audio-DNA[31796:26835517] [Syphon] Server stopped
+[OSC] Stopped listening
+ThreadSanitizer: reported 2 warnings

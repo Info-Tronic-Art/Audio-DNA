@@ -1525,7 +1525,7 @@ I did not decide these for you — they are product calls, not technical ones.
 ## COUNTS — RUN THEM, NEVER INHERIT THEM
 `ctest` **205/205** (was 203; L1 and its guard-refusal twins added two), re-run after a build that
 exited 0. Release build: 0 errors. `[MilkDrop] Loaded 30 presets`. Effects 135, GL 4.1.
-**UNPUSHED: 137 — including this docs commit and the EOS-surfaces commit.** Stated AFTER committing, per the mechanism
+**UNPUSHED: 139 — including the two post-close commits (dispatch correction + TSan gate).** Stated AFTER committing, per the mechanism
 this file identified: writing the number before committing the file that contains it makes it wrong
 by exactly one, every time. **NOTHING PUSHED. Do not push.**
 
@@ -1607,3 +1607,33 @@ GL thread WHILE the folder changes in Preferences, and driving that requires a n
 that `ax_press.py` cannot reach (AXButton only). So TSan can prove the startup and steady-state
 paths clean; it cannot, with today's tooling, exercise the specific window this fix was written
 for. That check stays owner-attended.
+
+### TSAN GATE RESULT — run after the fact, 2026-09-05. L7's confinement HOLDS.
+Build: `build-tsan` (`ADNA_SANITIZE=thread`, Debug) → **TSAN_BUILD_RC=0**. Launched `--test-mode`,
+ran to steady state, quit gracefully. Full log preserved: `.harmony/tsan-s-rta-0904-L7.log` (680 lines).
+
+- **`[MilkDrop] Loaded 30 presets` printed under TSan with ZERO races in the preset path.**
+  The startup path now runs through `setPresetDirectories()` + `rescan()` — the exact code L7
+  added — and TSan reports nothing on it. That is the evidence the confinement works.
+- **2 ThreadSanitizer reports, but only ONE distinct defect** (TSan reports each racing pair
+  separately; `#0` frame is identical in both). Counted, then re-derived rather than quoted:
+  `grep -c 'WARNING: ThreadSanitizer'` = 2, distinct `#0` frames = 1.
+- **That one defect is PRE-EXISTING and ALREADY DOCUMENTED IN THIS REPO.**
+  `SignalRegistry::evaluateAll` at **`SignalRegistry.cpp:154`** — `SignalBar::timerCallback`
+  (message thread) racing `Renderer::renderOpenGL` (GL thread) on the same float buffer.
+  `.harmony/ow-c1-signalregistry-race.log`, captured **2026-08-02**, records the identical race at
+  the identical function and line number. Same defect, different build address. Nothing to do with
+  MilkDrop, presets or L7.
+
+**SO: the SignalRegistry race is still live, 34 days after it was first captured.** It is not
+this lane's, and I did not fix it — but it should stop being rediscovered. It belongs on the
+backlog as its own lane with an already-captured reproducer.
+
+**The honest limit of this gate, restated:** TSan proves the startup and steady-state paths clean.
+It does NOT exercise the specific window L7's fix was written for — autopilot driving
+`PresetSelector::processFrame` on the GL thread WHILE the folder changes in Preferences — because
+that needs a native file chooser `ax_press.py` cannot reach. **That check remains owner-attended
+and is listed under ONLY BORIS CAN CHECK.**
+
+Screen after the TSan run: `pgrep` empty, `CGWindowList` FULL list → **0 Audio-DNA windows**,
+graceful quit, output window never opened.
