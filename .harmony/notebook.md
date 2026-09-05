@@ -691,3 +691,45 @@ must supply `composition_->globalEffects` and the composited texture from outsid
 `compositeDeck()`'s own return path, but only if `compositePersistentLayers()` for other decks is
 also folded in before that return (today it happens in a separate loop, called from `Renderer.cpp`
 between `compositeDeck()` and the global-effects call).
+
+## 2026-09-05 — S166-LEAK: kClipReplaceContent's IMAGE branch leaked the outgoing video/sequence decoder; fix landed inside an unrelated concurrent commit
+**Files:** src/MainComponent.cpp, tests/test_clip_replace_media_retire.cpp, tests/CMakeLists.txt
+**Note:** Confirmed real via `git show c7247a9` (L1-FU's own commit message names this exact gap
+as a filed follow-up). The IMAGE branch of `case C::kClipReplaceContent` (src/MainComponent.cpp)
+built `newContent` and called neither `openVideoForClip`/`openImageSequenceForClip` NOR
+`closeMediaForClip` on `existing->id` — so replacing a Video/ImageSequence clip's content with a
+still image left the old `videoPlayers_`/`imageSequences_` entry (decoder + map slot) permanently
+orphaned. The VIDEO branch never had this problem because `openVideoForClip` retires the outgoing
+entry internally (L1-FU, c7247a9). Fix: one line, `previewPanel_.getRenderer().closeMediaForClip(existing->id);`,
+added to the IMAGE branch — reuses the existing retire mechanism, no new release path. Verified
+`SetClipCmd`'s dispose hook (ClipCommands.h) structurally CANNOT catch this: it explicitly skips
+disposal when `state->id == leaving->id` (an id-stable replace, which is exactly what
+`Clip::replaceContent` does), so the Command layer was never a viable fix location — Renderer's
+own open functions are the only place equipped to retire an id-stable outgoing entry.
+**Concurrent-tree hazard, worth generalizing:** this fix sat correctly-applied-but-uncommitted in
+the shared working tree while another concurrent builder (S166-FAV, favorites persistence) ran
+what was evidently a whole-tree `git add`/`commit`, sweeping this unrelated one-line fix into
+commit `ab9b115` ("wire up MilkDrop favorites/user-preset persistence") — a commit message with
+zero mention of media leaks. Confirmed via `git show ab9b115 -- src/MainComponent.cpp | grep -n
+"S166-LEAK"`: the hunk is there, byte-correct (md5-verified before/after this session's own
+neutralize/restore cycles). No data was lost, but attribution is now split across an unrelated
+commit; a reviewer or future git-blame reader would not find "media leak" in the commit that
+carries it without knowing to search. **When multiple builders share one working tree
+concurrently, an uncommitted, unrelated, already-correct edit from ANOTHER lane can ride along
+inside your commit if you `git add -A`/`git commit -a` — stage explicitly (`git add <your files>`)
+rather than whole-tree, even when you believe the tree is otherwise clean.**
+**Untestable in ctest, same repo-wide constraint independently reconfirmed today (see the
+S166-GFX entry above, a different concurrent lane hitting the identical wall):** no ctest target
+links `MainComponent.cpp` (needs the full JUCE GUI stack) or `Renderer.cpp` (pulls in
+CompositorEngine/ProjectMSource/AnalysisThread/VideoRecorder/SyphonOutput, needs a live GL
+context for most of its surface). `test_clip_replace_media_retire.cpp` mirrors the
+`videoPlayers_`/`imageSequences_` retire state machine and kClipReplaceContent's exact per-branch
+call pattern (same "mirror the mechanism" approach as `test_renderer_source_confinement.cpp`) —
+proven to have teeth against ITS OWN mirror logic (mutate-rebuild-fail, restore-rebuild-pass,
+md5-verified), but explicitly proven NOT to catch a regression to the real one-line fix
+(neutralizing it in `MainComponent.cpp` left ctest at 232/232 GREEN). Real regression protection
+for this class of fix is app-level behavioral verification, not ctest.
+**Valid while:** `Clip::replaceContent()` keeps the clip id stable across a content replace
+(it copies media fields but never `id`), and `SetClipCmd::apply()` keeps its `state->id ==
+leaving->id` dispose-skip. If either changes, re-check whether the Command-layer dispose hook
+becomes a viable (and testable) fix location instead.
