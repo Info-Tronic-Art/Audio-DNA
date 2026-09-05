@@ -1177,7 +1177,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         const juce::String desc = dstBefore.has_value() ? "Swap Clips" : "Move Clip";
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<SwapClipsCmd>(
-            makeDeckResolver(), makeDeckFence(), makeClipMediaHook(), composition_.activeDeckIndex,
+            makeDeckResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
+            composition_.activeDeckIndex,
             srcLayer, srcCol, dstLayer, dstCol,
             srcBefore, srcAfter, dstBefore, dstAfter,
             numColsBefore, numColsAfter, desc.toStdString()));
@@ -3510,9 +3511,10 @@ ClipDeckResolver MainComponent::makeDeckResolver()
 
 ClipMediaHook MainComponent::makeClipMediaHook()
 {
-    // Risk #4 guard: video/sequence players are keyed by clip id and never
-    // closed, so redo reconnects for free today. Reconnect-if-missing keeps
-    // redo correct even if a future wave adds player disposal.
+    // Risk #4 guard, "attach" half: reconnect-if-missing keeps undo/redo
+    // correct now that closeMediaForClip is actually wired up (media-leak
+    // fix, L1) — a clip landing back in a cell via undo must reopen media
+    // this same clip's dispose (below) may have just closed.
     return [this](const Clip& clip) {
         if (!clip.isPlayable()) return;
         auto& renderer = previewPanel_.getRenderer();
@@ -3532,6 +3534,38 @@ ClipMediaHook MainComponent::makeClipMediaHook()
             if (!renderer.getImageSequence(clip.id))
                 renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
         }
+    };
+}
+
+ClipMediaDisposeHook MainComponent::makeClipMediaDisposeHook()
+{
+    // Risk #4 guard, "close" half (media-leak fix, L1, 2026-09). Commands
+    // call this with a clip that is LEAVING a cell and whose id they've
+    // already determined (by their own before/after-snapshot orphan check —
+    // see SetClipCmd/SwapClipsCmd/ClearLayerClipsCmd/RemoveColumnCmd) is not
+    // retained by anything THAT COMMAND just wrote.
+    //
+    // FUTURE-FRAGILE — READ BEFORE TOUCHING CLIPBOARD/DUPLICATE: this is safe
+    // ONLY because a clip id can appear in AT MOST one live cell at a time —
+    // ids are minted at 6 sites, are monotonic with no reuse, and there is no
+    // clipboard/duplicate feature today. Under that invariant, "this command
+    // is retiring id X" can only ever mean "X is not live anywhere," because
+    // nothing else could hold X. The liveness scan below is the SECOND,
+    // defensive half of that guarantee: it re-walks every deck/layer/cell in
+    // the live composition and skips the close if the id turns up anywhere,
+    // so a violated invariant fails SAFE (a leak) instead of unsafe (closing
+    // a handle a visible clip still needs). If a future wave adds copy/paste
+    // or any other way to put the same clip id in a second cell, this is the
+    // function that needs to change — a per-command orphan check alone would
+    // no longer be sufficient once an id can be live in more than one place.
+    return [this](const Clip& clip) {
+        if (!clip.isPlayable()) return;
+        for (auto& deck : composition_.decks)
+            for (auto& layer : deck.layers)
+                for (auto& cell : layer.clips)
+                    if (cell.has_value() && cell->id == clip.id)
+                        return;   // still live somewhere — do not close
+        previewPanel_.getRenderer().closeMediaForClip(clip.id);
     };
 }
 
@@ -3592,6 +3626,7 @@ std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const Cell
                                                        const juce::String& description)
 {
     return std::make_unique<SetClipCmd>(makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+                                        makeClipMediaDisposeHook(),
                                         deckIndex, edit.layerIndex, edit.column,
                                         edit.before, edit.after, description.toStdString());
 }
@@ -4105,6 +4140,7 @@ void MainComponent::handleMenuCommand(int commandId)
                 std::vector<std::unique_ptr<Command>> children;
                 children.push_back(std::make_unique<RemoveDeckCmd>(
                     makeCompositionResolver(), makeDeckFence(),
+                    makeClipMediaHook(), makeClipMediaDisposeHook(),
                     removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
                 pushCommands(std::move(children), "Remove Deck");
                 if (deckView_) deckView_->rebuildGrid();
@@ -4134,6 +4170,7 @@ void MainComponent::handleMenuCommand(int commandId)
                         LayerClipsSnapshot after = captureLayerClips(*layer);
                         children.push_back(std::make_unique<ClearLayerClipsCmd>(
                             makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+                            makeClipMediaDisposeHook(),
                             composition_.activeDeckIndex, l,
                             std::move(before), std::move(after), "Clear Layer Clips"));
                     }
@@ -4178,6 +4215,7 @@ void MainComponent::handleMenuCommand(int commandId)
                     std::vector<std::unique_ptr<Command>> children;
                     children.push_back(std::make_unique<RemoveLayerCmd>(
                         makeDeckResolver(), makeDeckFence(), makeClipMediaHook(),
+                        makeClipMediaDisposeHook(),
                         composition_.activeDeckIndex, removeIdx,
                         std::move(removed), "Remove Layer"));
                     pushCommands(std::move(children), "Remove Layer");
@@ -4211,6 +4249,7 @@ void MainComponent::handleMenuCommand(int commandId)
                             std::vector<std::unique_ptr<Command>> children;
                             children.push_back(std::make_unique<ClearLayerClipsCmd>(
                                 makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+                                makeClipMediaDisposeHook(),
                                 composition_.activeDeckIndex, selLayer,
                                 std::move(before), std::move(after), "Clear Layer Clips"));
                             pushCommands(std::move(children), "Clear Layer Clips");
@@ -4340,6 +4379,7 @@ void MainComponent::handleMenuCommand(int commandId)
                     std::vector<std::unique_ptr<Command>> children;
                     children.push_back(std::make_unique<RemoveColumnCmd>(
                         makeDeckResolver(), makeDeckFence(), makeClipMediaHook(),
+                        makeClipMediaDisposeHook(),
                         composition_.activeDeckIndex, col, before,
                         std::move(removed), "Remove Column"));
                     pushCommands(std::move(children), "Remove Column");

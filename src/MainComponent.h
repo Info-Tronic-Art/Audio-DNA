@@ -134,6 +134,10 @@ private:
     ClipLayerResolver makeLayerResolver();
     ClipDeckResolver makeDeckResolver();
     ClipMediaHook makeClipMediaHook();
+    // Close half of the risk #4 guard (media-leak fix, L1) — see the doc
+    // comment on ClipMediaDisposeHook (ClipCommands.h) and on the function
+    // definition (MainComponent.cpp) for the liveness-scan safety guard.
+    ClipMediaDisposeHook makeClipMediaDisposeHook();
     // GL fence for structure-changing layer commands (add/remove/move) — binds to
     // UndoService::withDeckDetached so execute/undo/redo fence the deck->layers mutation.
     DeckFenceHook makeDeckFence();

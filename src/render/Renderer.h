@@ -166,7 +166,13 @@ public:
     // Open an image sequence for a clip. Returns true on success.
     bool openImageSequenceForClip(uint32_t clipId, const std::vector<juce::File>& files, float fps);
 
-    // Close video/sequence for a clip.
+    // Close video/sequence for a clip (media-leak fix, L1, 2026-09). Call
+    // from the message thread (undo/redo command hooks, Clear/Remove Column/
+    // Clear Layer Clips). Safe with no GL context current: the FFmpeg/CPU
+    // side is freed immediately, but the actual GL texture release is
+    // deferred to drainRetiredMedia() on the GL thread (see the retire-list
+    // members' comment in this header) — the player/sequence itself is not
+    // destroyed synchronously here.
     void closeMediaForClip(uint32_t clipId);
 
     // Get the VideoPlayer for a clip (nullptr if none). For transport control.
@@ -395,6 +401,28 @@ private:
     // Image sequences — keyed by clip ID
     std::mutex imageSeqMutex_;
     std::unordered_map<uint32_t, std::unique_ptr<ImageSequence>> imageSequences_;
+
+    // GL-THREAD DESTROY GUARD (media-leak fix, L1, 2026-09): closeMediaForClip()
+    // can be called from the message thread (undo/redo, Clear), but
+    // ~VideoPlayer() unconditionally calls releaseGL() (glDeleteTextures) and
+    // ImageSequence's GL textures are only freed by an explicit releaseGL()
+    // call — neither is safe to run with no GL context current. Rather than
+    // let the erased unique_ptr destruct in place, closeMediaForClip() moves
+    // it here; drainRetiredMedia() is the only place these actually get
+    // releaseGL()'d and destroyed. Called from TWO places, both GL-thread-
+    // guaranteed-current per JUCE's contract: every frame from
+    // renderOpenGL(), AND once more from openGLContextClosing() (round 2 fix
+    // — without that second call, anything retired but not yet drained by a
+    // renderOpenGL() frame would sit until the NEXT context's first frame and
+    // then releaseGL() against a texture ID that belonged to THIS, by-then-
+    // destroyed context). Precedent for "GL resource release only happens
+    // where the GL thread is guaranteed": openGLContextClosing()'s
+    // videoPlayers_/imageSequences_ releaseGL() loop above, under these SAME
+    // two mutexes.
+    std::mutex retiredMediaMutex_;
+    std::vector<std::unique_ptr<VideoPlayer>> retiredVideoPlayers_;
+    std::vector<std::unique_ptr<ImageSequence>> retiredImageSequences_;
+    void drainRetiredMedia();
 
     // Get video frame texture for a clip (used as compositor callback)
     GLuint getVideoFrameTexture(const Clip* clip, float dt);

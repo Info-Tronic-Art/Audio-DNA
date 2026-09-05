@@ -144,6 +144,12 @@ void Renderer::newOpenGLContextCreated()
 
 void Renderer::renderOpenGL()
 {
+    // Release any media players closeMediaForClip() retired from the message
+    // thread (media-leak fix, L1) — the only place this runs, since this
+    // function is guaranteed to execute on the GL thread with a context
+    // current.
+    drainRetiredMedia();
+
     // Handle pending image load or clear (from message thread)
     {
         std::lock_guard<std::mutex> lock(pendingImageMutex_);
@@ -736,6 +742,19 @@ void Renderer::openGLContextClosing()
             seq->releaseGL();
     }
 
+    // Drain any media closeMediaForClip() retired but that hasn't been
+    // through a renderOpenGL() frame yet (media-leak fix, L1 round 2). Reuse
+    // drainRetiredMedia() rather than a second copy of its release loop —
+    // this function runs on the GL thread with the SAME still-current
+    // context drainRetiredMedia() requires, so it is a safe, ordinary call
+    // here, not a special case. Without this, a retired-but-undrained player/
+    // sequence would sit until the NEXT context's first renderOpenGL() call,
+    // which would then call releaseGL() (glDeleteTextures) against a texture
+    // ID that belonged to THIS (by then destroyed) context — the same
+    // per-context-state class of bug EffectChainGLState::release() exists to
+    // avoid (see the notebook 2026-08-02 entry on that class).
+    drainRetiredMedia();
+
     compositor_.releaseGL();
 
     // W1: Release this context's EffectChain GL state (prevFrame FBO +
@@ -949,12 +968,23 @@ bool Renderer::openImageSequenceForClip(uint32_t clipId, const std::vector<juce:
 
 void Renderer::closeMediaForClip(uint32_t clipId)
 {
+    // May run on the message thread (undo/redo, Clear) with no GL context
+    // current. close() itself is thread-safe (VideoPlayer::close() is
+    // FFmpeg-only; ImageSequence::close() only resets CPU-side state — see
+    // each class's threading-model comment), so it runs here immediately,
+    // freeing the decoder right away. The unique_ptr is then handed to the
+    // retire list instead of being erased-and-destructed in place: erasing
+    // here would run ~VideoPlayer()/an eventual releaseGL() with no context
+    // current (see the GL-THREAD DESTROY GUARD comment on the retire members
+    // in Renderer.h). drainRetiredMedia() does the actual GL-thread release.
     {
         std::lock_guard<std::mutex> lock(videoPlayerMutex_);
         auto it = videoPlayers_.find(clipId);
         if (it != videoPlayers_.end())
         {
             it->second->close();
+            std::lock_guard<std::mutex> retireLock(retiredMediaMutex_);
+            retiredVideoPlayers_.push_back(std::move(it->second));
             videoPlayers_.erase(it);
         }
     }
@@ -964,9 +994,37 @@ void Renderer::closeMediaForClip(uint32_t clipId)
         if (it != imageSequences_.end())
         {
             it->second->close();
+            std::lock_guard<std::mutex> retireLock(retiredMediaMutex_);
+            retiredImageSequences_.push_back(std::move(it->second));
             imageSequences_.erase(it);
         }
     }
+}
+
+void Renderer::drainRetiredMedia()
+{
+    // GL-thread only — called every frame from renderOpenGL() AND once more
+    // from openGLContextClosing() (round 2 fix, so nothing retired-but-
+    // undrained survives into the next context), both of which guarantee a
+    // current GL context. Swap the retired lists out under lock so the
+    // (possibly slow) GL teardown calls below never run while holding
+    // retiredMediaMutex_ — closeMediaForClip() on the message thread only
+    // needs that mutex for the brief hand-off, not for the whole drain.
+    std::vector<std::unique_ptr<VideoPlayer>> videoToRetire;
+    std::vector<std::unique_ptr<ImageSequence>> seqToRetire;
+    {
+        std::lock_guard<std::mutex> lock(retiredMediaMutex_);
+        if (retiredVideoPlayers_.empty() && retiredImageSequences_.empty())
+            return;
+        videoToRetire.swap(retiredVideoPlayers_);
+        seqToRetire.swap(retiredImageSequences_);
+    }
+    for (auto& player : videoToRetire) player->releaseGL();
+    for (auto& seq : seqToRetire) seq->releaseGL();
+    // videoToRetire/seqToRetire go out of scope here, destroying each player/
+    // sequence. VideoPlayer's destructor re-runs close()+releaseGL() (both
+    // already-idempotent no-ops at this point); ImageSequence's destructor
+    // re-runs close() (also idempotent).
 }
 
 VideoPlayer* Renderer::getVideoPlayer(uint32_t clipId)

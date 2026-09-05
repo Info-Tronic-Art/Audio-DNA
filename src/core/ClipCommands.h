@@ -17,9 +17,21 @@ using ClipLayerResolver = std::function<Layer*(int deckIndex, int layerIndex)>;
 
 // Reconnect renderer-side media (video / image sequence, keyed by clip id) for
 // a clip if it is missing. No-op in headless contexts. This is the spec risk #4
-// guard: players are never closed today so redo reconnects for free, but the
-// guard keeps redo correct if a future wave adds player disposal.
+// guard's "attach" half — called whenever an apply() lands a clip back into a
+// cell (undo/redo, restore).
 using ClipMediaHook = std::function<void(const Clip& clip)>;
+
+// Close renderer-side media for a clip an apply() is RETIRING — the risk #4
+// guard's "detach" half (media-leak fix, L1, 2026-09). Commands call this with
+// the clip that is LEAVING a cell exactly when the id it held is not retained
+// by any cell the same apply() just wrote (a plain clear disposes; a move/
+// swap that relocates the same id to another cell does not — see each
+// command's apply() below for the exact orphan check). No-op in headless
+// contexts. MainComponent's implementation (makeClipMediaDisposeHook) runs a
+// defensive liveness scan across the WHOLE composition before actually
+// closing, in case a future feature breaks a per-command orphan check's
+// assumptions — see the load-bearing comment on that function.
+using ClipMediaDisposeHook = std::function<void(const Clip& clip)>;
 
 // Re-resolve a Deck through the live model by index. Returns nullptr if the
 // index no longer resolves (deck removed). Like ClipLayerResolver, this keeps
@@ -59,21 +71,31 @@ class SetClipCmd : public Command
 {
 public:
     SetClipCmd(ClipLayerResolver resolver, DeckFenceHook fence, ClipMediaHook mediaHook,
+               ClipMediaDisposeHook disposeHook,
                int deckIndex, int layerIndex, int column,
                std::optional<Clip> before, std::optional<Clip> after,
                std::string description)
         : resolver_(std::move(resolver)), fence_(std::move(fence)),
-          mediaHook_(std::move(mediaHook)),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
           deckIndex_(deckIndex), layerIndex_(layerIndex), column_(column),
           before_(std::move(before)), after_(std::move(after)),
           description_(std::move(description)) {}
 
-    void execute() override { runFenced([this] { apply(after_); }); }
-    void undo() override    { runFenced([this] { apply(before_); }); }
+    // DOUBLE-APPLY TRAP (media-leak fix, L1): the live UI handler for Clear
+    // already pre-mutates the cell (deck->clearCell) BEFORE this command is
+    // even constructed, so by the time execute() runs the cell is already
+    // empty. Any dispose keyed off the LIVE cell state would therefore fire
+    // never. apply() takes `leaving` explicitly — the command's OWN before_/
+    // after_ snapshot of whichever state this call is moving away from — so
+    // disposal is keyed off what the command recorded, not off live model
+    // state that a pre-mutating handler may have already changed out from
+    // under it.
+    void execute() override { runFenced([this] { apply(after_, before_); }); }
+    void undo() override    { runFenced([this] { apply(before_, after_); }); }
     std::string description() const override { return description_; }
 
 private:
-    void apply(const std::optional<Clip>& state)
+    void apply(const std::optional<Clip>& state, const std::optional<Clip>& leaving)
     {
         Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
         if (layer == nullptr)
@@ -89,12 +111,20 @@ private:
         {
             cell.reset();                       // empty cell
         }
+        // Dispose the clip this apply() is leaving behind, UNLESS the landed
+        // state is the very same clip id (a no-op replace) — that can't
+        // happen for this single-cell command in practice (before_/after_
+        // are fixed at construction), but the id check keeps the logic
+        // correct if that ever changes, and matches SwapClipsCmd's shape.
+        if (leaving.has_value() && (!state.has_value() || state->id != leaving->id))
+            if (disposeHook_) disposeHook_(*leaving);
     }
     void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipLayerResolver resolver_;
     DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
     int deckIndex_, layerIndex_, column_;
     std::optional<Clip> before_, after_;
     std::string description_;
@@ -149,6 +179,7 @@ class SwapClipsCmd : public Command
 {
 public:
     SwapClipsCmd(ClipDeckResolver deckResolver, DeckFenceHook fence, ClipMediaHook mediaHook,
+                 ClipMediaDisposeHook disposeHook,
                  int deckIndex,
                  int srcLayer, int srcColumn, int dstLayer, int dstColumn,
                  std::optional<Clip> srcBefore, std::optional<Clip> srcAfter,
@@ -156,7 +187,7 @@ public:
                  int numColumnsBefore, int numColumnsAfter,
                  std::string description)
         : deckResolver_(std::move(deckResolver)), fence_(std::move(fence)),
-          mediaHook_(std::move(mediaHook)),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
           deckIndex_(deckIndex),
           srcLayer_(srcLayer), srcColumn_(srcColumn),
           dstLayer_(dstLayer), dstColumn_(dstColumn),
@@ -165,13 +196,14 @@ public:
           numColumnsBefore_(numColumnsBefore), numColumnsAfter_(numColumnsAfter),
           description_(std::move(description)) {}
 
-    void execute() override { runFenced([this] { apply(srcAfter_,  dstAfter_,  numColumnsAfter_); }); }
-    void undo() override    { runFenced([this] { apply(srcBefore_, dstBefore_, numColumnsBefore_); }); }
+    void execute() override { runFenced([this] { apply(srcAfter_,  dstAfter_,  srcBefore_, dstBefore_, numColumnsAfter_); }); }
+    void undo() override    { runFenced([this] { apply(srcBefore_, dstBefore_, srcAfter_,  dstAfter_,  numColumnsBefore_); }); }
     std::string description() const override { return description_; }
 
 private:
-    void apply(const std::optional<Clip>& srcState,
-               const std::optional<Clip>& dstState, int numColumns)
+    void apply(const std::optional<Clip>& srcState, const std::optional<Clip>& dstState,
+               const std::optional<Clip>& srcLeaving, const std::optional<Clip>& dstLeaving,
+               int numColumns)
     {
         Deck* deck = deckResolver_ ? deckResolver_(deckIndex_) : nullptr;
         if (deck == nullptr)
@@ -182,6 +214,23 @@ private:
         // layer's clips vector, but numColumns is the authoritative visible
         // count (the grid draws numColumns, not raw clips.size()).
         deck->numColumns = numColumns;
+
+        // A swap/move RELOCATES an id, it doesn't remove it — only dispose a
+        // leaving clip whose id is retained by NEITHER of the two resulting
+        // cells. A pure move (src empties, dst gets src's old clip) must NOT
+        // dispose: the leaving src clip's id is still alive at dst.
+        disposeIfOrphaned(srcLeaving, srcState, dstState);
+        disposeIfOrphaned(dstLeaving, srcState, dstState);
+    }
+
+    void disposeIfOrphaned(const std::optional<Clip>& leaving,
+                            const std::optional<Clip>& a, const std::optional<Clip>& b)
+    {
+        if (!leaving.has_value() || !disposeHook_) return;
+        const bool stillPresent = (a.has_value() && a->id == leaving->id)
+                                || (b.has_value() && b->id == leaving->id);
+        if (!stillPresent)
+            disposeHook_(*leaving);
     }
 
     void applyCell(Deck& deck, int layerIndex, int column,
@@ -207,6 +256,7 @@ private:
     ClipDeckResolver deckResolver_;
     DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
     int deckIndex_;
     int srcLayer_, srcColumn_, dstLayer_, dstColumn_;
     std::optional<Clip> srcBefore_, srcAfter_, dstBefore_, dstAfter_;

@@ -1,6 +1,6 @@
 #pragma once
 #include "core/Command.h"
-#include "core/ClipCommands.h"   // ClipLayerResolver / ClipDeckResolver / ClipMediaHook
+#include "core/ClipCommands.h"   // ClipLayerResolver / ClipDeckResolver / ClipMediaHook / ClipMediaDisposeHook
 #include "model/Deck.h"          // Deck / Layer / Clip
 #include "model/Composition.h"   // Composition (deck-vector ops: decks + activeDeckIndex)
 #include <juce_events/juce_events.h>   // MessageManager (guarded jassert, like UndoManager)
@@ -96,12 +96,12 @@ class RemoveColumnCmd : public Command
 {
 public:
     RemoveColumnCmd(ClipDeckResolver deckResolver, DeckFenceHook fence,
-                    ClipMediaHook mediaHook,
+                    ClipMediaHook mediaHook, ClipMediaDisposeHook disposeHook,
                     int deckIndex, int column, int columnsBefore,
                     std::vector<std::optional<Clip>> removedCells,
                     std::string description)
         : deckResolver_(std::move(deckResolver)), fence_(std::move(fence)),
-          mediaHook_(std::move(mediaHook)),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
           deckIndex_(deckIndex), column_(column), columnsBefore_(columnsBefore),
           removedCells_(std::move(removedCells)),
           description_(std::move(description))
@@ -124,6 +124,17 @@ public:
         {
             if (Deck* deck = resolve())
                 deck->removeColumn(column_);   // re-remove (matches live mutation)
+            // Family coverage (media-leak fix, L1): removedCells_ is the
+            // BEFORE snapshot, captured by the live handler ahead of its own
+            // removeColumn() call — same double-apply shape as SetClipCmd.
+            // The removed column is gone from the model for good (no move
+            // target, unlike SwapClipsCmd), so every occupied cell in it
+            // disposes unconditionally; undo's mediaHook_ call below
+            // reconnects them if the column comes back.
+            if (disposeHook_)
+                for (const auto& cell : removedCells_)
+                    if (cell.has_value())
+                        disposeHook_(*cell);
         });
     }
 
@@ -157,6 +168,7 @@ private:
     ClipDeckResolver deckResolver_;
     DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
     int deckIndex_, column_, columnsBefore_;
     std::vector<std::optional<Clip>> removedCells_;
     std::string description_;
@@ -242,22 +254,22 @@ class ClearLayerClipsCmd : public Command
 {
 public:
     ClearLayerClipsCmd(ClipLayerResolver resolver, DeckFenceHook fence,
-                       ClipMediaHook mediaHook,
+                       ClipMediaHook mediaHook, ClipMediaDisposeHook disposeHook,
                        int deckIndex, int layerIndex,
                        LayerClipsSnapshot before, LayerClipsSnapshot after,
                        std::string description)
         : resolver_(std::move(resolver)), fence_(std::move(fence)),
-          mediaHook_(std::move(mediaHook)),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
           deckIndex_(deckIndex), layerIndex_(layerIndex),
           before_(std::move(before)), after_(std::move(after)),
           description_(std::move(description)) {}
 
-    void execute() override { runFenced([this] { apply(after_); }); }
-    void undo() override    { runFenced([this] { apply(before_); }); }
+    void execute() override { runFenced([this] { apply(after_, before_); }); }
+    void undo() override    { runFenced([this] { apply(before_, after_); }); }
     std::string description() const override { return description_; }
 
 private:
-    void apply(const LayerClipsSnapshot& state)
+    void apply(const LayerClipsSnapshot& state, const LayerClipsSnapshot& leaving)
     {
         Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
         if (layer == nullptr)
@@ -268,12 +280,29 @@ private:
             for (const auto& c : layer->clips)
                 if (c.has_value())
                     mediaHook_(*c);                       // reconnect restored media
+        // Family coverage (media-leak fix, L1): dispose every clip this
+        // apply() is leaving behind whose id isn't retained anywhere in the
+        // LANDED row (clip ids are unique per the whole composition, never
+        // reshuffled within one layer's own clear/restore, so a plain
+        // per-id membership check is sufficient here — no cross-cell "moved,
+        // not removed" case like SwapClipsCmd's).
+        if (disposeHook_)
+            for (const auto& lc : leaving.clips)
+            {
+                if (!lc.has_value()) continue;
+                bool stillPresent = false;
+                for (const auto& sc : state.clips)
+                    if (sc.has_value() && sc->id == lc->id) { stillPresent = true; break; }
+                if (!stillPresent)
+                    disposeHook_(*lc);
+            }
     }
     void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipLayerResolver resolver_;
     DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
     int deckIndex_, layerIndex_;
     LayerClipsSnapshot before_, after_;
     std::string description_;
@@ -438,14 +467,18 @@ private:
 // snapshots the full Layer value, does NOT pre-remove; execute() erases). undo
 // re-inserts the exact layer at its index; the media hook reconnects any clips
 // it carried (spec risk #4). GL fence: erase/insert reallocate deck->layers.
+// Media-leak fix (L1 round 2): execute() now disposes every occupied cell
+// removed_ carried — previously erased the layer with no dispose call at all.
 class RemoveLayerCmd : public Command
 {
 public:
     RemoveLayerCmd(ClipDeckResolver deckResolver, DeckFenceHook fence,
-                   ClipMediaHook mediaHook, int deckIndex, int layerIndex,
+                   ClipMediaHook mediaHook, ClipMediaDisposeHook disposeHook,
+                   int deckIndex, int layerIndex,
                    Layer removed, std::string description)
         : deckResolver_(std::move(deckResolver)), fence_(std::move(fence)),
-          mediaHook_(std::move(mediaHook)), deckIndex_(deckIndex),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
+          deckIndex_(deckIndex),
           layerIndex_(layerIndex), removed_(std::move(removed)),
           description_(std::move(description)) {}
 
@@ -460,7 +493,23 @@ public:
             // more than one exists, and linear undo preserves that.
             if (deck->layers.size() > 1
                 && layerIndex_ >= 0 && layerIndex_ < static_cast<int>(deck->layers.size()))
+            {
                 deck->layers.erase(deck->layers.begin() + layerIndex_);
+                // Family coverage (media-leak fix, L1 round 2): removed_ is
+                // the handler's pre-removal snapshot of the WHOLE layer —
+                // command-owns-the-mutation here (unlike SetClipCmd's
+                // double-apply shape, where the live handler already did the
+                // real removal before this command was even built) — this
+                // guard is the ONLY place the removal actually happens, so
+                // dispose MUST be gated on it too: if the guard above refused
+                // (e.g. only 1 layer left), removed_'s clips are still LIVE
+                // in the model and must NOT be disposed. undo's mediaHook_
+                // call below reconnects them if the layer comes back.
+                if (disposeHook_)
+                    for (const auto& c : removed_.clips)
+                        if (c.has_value())
+                            disposeHook_(*c);
+            }
         });
     }
 
@@ -491,6 +540,7 @@ private:
     ClipDeckResolver deckResolver_;
     DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
     int deckIndex_, layerIndex_;
     Layer removed_;
     std::string description_;
@@ -643,14 +693,19 @@ private:
 // erase/insert reallocate composition->decks; withDeckDetached also re-points the
 // renderer's activeDeck_ by re-resolving getActiveDeck() after the mutation, on
 // execute AND undo (HEAD's kDeckRemove did not re-point — same latent bug class
-// as kDeckNew).
+// as kDeckNew). Media-leak fix (L1 round 2): previously carried NO media hook at
+// all — removing a deck stranded every video/sequence player across every layer
+// it held, permanently, with no reconnect even on undo. Now disposes every
+// occupied cell on execute (across all layers) and reconnects them all on undo.
 class RemoveDeckCmd : public Command
 {
 public:
     RemoveDeckCmd(CompositionResolver compResolver, DeckFenceHook fence,
+                  ClipMediaHook mediaHook, ClipMediaDisposeHook disposeHook,
                   int deckIndex, Deck removed, int priorActiveIndex,
                   std::string description)
         : compResolver_(std::move(compResolver)), fence_(std::move(fence)),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
           deckIndex_(deckIndex), removed_(std::move(removed)),
           priorActiveIndex_(priorActiveIndex), description_(std::move(description))
     {
@@ -684,6 +739,22 @@ public:
                 // fell past the end — kDeckRemove removes the active deck).
                 if (comp->activeDeckIndex >= static_cast<int>(comp->decks.size()))
                     comp->activeDeckIndex = static_cast<int>(comp->decks.size()) - 1;
+                // Family coverage (media-leak fix, L1 round 2): removed_ is
+                // the handler's pre-removal snapshot of the WHOLE deck
+                // (command-owns-the-mutation, like RemoveLayerCmd — this
+                // guard is the ONLY place the removal actually happens, so
+                // dispose MUST be gated on it too: if the guard above refused
+                // (e.g. only 1 deck left), removed_'s clips are still LIVE in
+                // the model and must NOT be disposed). Dispose every occupied
+                // cell across every layer it held; undo's mediaHook_ loop
+                // below reconnects them all if the deck comes back. This was
+                // previously the largest unfixed leak in the family —
+                // RemoveDeckCmd had no media hook of any kind before this fix.
+                if (disposeHook_)
+                    for (const auto& layer : removed_.layers)
+                        for (const auto& c : layer.clips)
+                            if (c.has_value())
+                                disposeHook_(*c);
             }
         });
     }
@@ -700,6 +771,14 @@ public:
             comp->decks.insert(comp->decks.begin() + static_cast<std::ptrdiff_t>(at),
                                removed_);
             comp->activeDeckIndex = priorActiveIndex_;      // restore prior active deck
+            // Reconnect every occupied cell across every layer of the
+            // restored deck (media-leak fix, L1 round 2 — mirrors
+            // RemoveLayerCmd/RemoveColumnCmd's undo-side reconnect).
+            if (mediaHook_)
+                for (const auto& layer : comp->decks[at].layers)
+                    for (const auto& c : layer.clips)
+                        if (c.has_value())
+                            mediaHook_(*c);
         });
     }
 
@@ -711,6 +790,8 @@ private:
 
     CompositionResolver compResolver_;
     DeckFenceHook fence_;
+    ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
     int deckIndex_;
     Deck removed_;
     int priorActiveIndex_;
