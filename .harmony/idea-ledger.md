@@ -75,3 +75,14 @@ surfaced by the independent reviewer, not by the builder.
 - **`compositePersistentLayers` was a plan gap, not a builder miss.** The Fable-authored plan said
   "both layer loops"; there are in fact three sites in the same read class. Worth remembering the
   next time a plan states a count — the plan's count is a claim like any other. The lane fixed it.
+## 2026-09-05 — s-rta-0904: L1 review follow-up (OUT OF SCOPE, logged not fixed)
+
+- **Pre-existing, INFO severity, not introduced by L1.** `openVideoForClip` /
+  `openImageSequenceForClip` (`src/render/Renderer.cpp:933-954`) assign into the media maps
+  directly. That assignment can DESTROY a live VideoPlayer/ImageSequence on the MESSAGE thread,
+  outside the retire-list path L1 just built — specifically when reconnect-on-replace fires for a
+  clip id whose media is already open. Same hazard class L1 exists to fix (GL resource destroyed
+  off the GL thread), different entry point. Found by the independent reviewer while adjudicating
+  trap (b). Deliberately excluded from L1 to keep the lane bounded; fixing it while 'already in
+  the file' is how a scoped lane becomes an unscoped one. Worth its own small lane, and it should
+  reuse L1's retire list rather than inventing a second mechanism.
