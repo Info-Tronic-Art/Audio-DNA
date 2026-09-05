@@ -113,7 +113,7 @@ message thread, fed by the 120 Hz tick — G12):
 |---|---|---|---|
 | `t` | double, seconds since record start | `juce::Time::getMillisecondCounterHiRes()` (G3, kept) | **Replay** (1) |
 | `beat` | double, continuous beats since record start | integrated beat counter (below) | **Routines** (4), the editor's bar grid (3) |
-| `sample` | uint64, **delivered-audio sample counter** | the audio callback's producin counter (D10) — NOT `snap.timestamp` (G9/G26 undercount) | **Audio alignment** and **offline render** (2) |
+| `sample` | uint64, **delivered-audio sample counter** | the audio callback's producer counter (D10) — NOT `snap.timestamp` (G9/G26 undercount) | **Audio alignment** and **offline render** (2) |
 | `bpm` | float | `snap.bpm` at capture | retime math, lint |
 
 Plus a take-level **tempo map**: anchors `{t, beat, sample, bpm, why}` appended when the locked
@@ -1106,7 +1106,6 @@ produces it by a k-way merge on `(at, seq)` with capture order preserved by the 
 and simultaneity by `group`. The chronological list survives as a derived view
 (`Take::chronological()`) for a history list and debugging, never as the authority. D4/D5's
 document-vs-program split is about safety; D3's lanes are about editing; they compose.
-
 
 REPORT_FILE: /Users/boriskarpman/Harmony_Main/memory/.reports/s167-rta-performance-log-and-routines.md
 STATUS: COMPLETE

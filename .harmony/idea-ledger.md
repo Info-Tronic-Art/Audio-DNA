@@ -344,3 +344,24 @@ byte-identical; changing `beatPhase` alone changed nothing; only rms/bass/mid/tr
 picture). **Anything time-based — speed, animation, motion — cannot be proven by render-diffing.**
 A "the frame stopped changing" result is meaningless when the frame was never changing. This
 blind spot is the single most likely source of a confident false PASS in this repo's test rig.
+
+### TWO PRE-EXISTING AUDIO DEFECTS SURFACED BY THE RECORDING DESIGN (neither fixed; both filed)
+
+**R12 — the audio ring buffer drops samples SILENTLY.** The producer in `AudioCallback.cpp` (~:47)
+ignores `push`'s return value, so on overflow samples vanish with no signal to anyone, and the
+analysis sample counter undercounts as a result. This is why the recording design does NOT reuse
+that buffer for the audio tap (it is also single-consumer) and instead specifies a second fan-out
+inside the device callback with its own delivered-sample counter. The defect stands on its own
+merits though: anything that trusts that counter as a clock is trusting a number that quietly
+loses time under load.
+
+**R13 — the analysis pipeline hard-codes 48 kHz with no resampling** (`AnalysisThread.h:47`).
+On a 44.1 kHz device every derived quantity is off by 8.8%: BPM reads ~8.8% wrong, and the
+analysis wall-clock drifts by the same factor. Everything tempo-locked inherits that error, which
+makes it a direct threat to the core product law.
+**MEASURED, not assumed: Boris's machine is currently safe.** `system_profiler SPAudioDataType`
+reports Current SampleRate 48000 for the MacBook Pro Microphone, the default input, and the
+speakers. So this is LATENT on his present hardware and becomes live the moment a 44.1 kHz audio
+interface or DJ mixer is plugged in — which for a VJ rig is a matter of when, not whether.
+Cheapest mitigation until it is fixed properly: force 48 kHz at the device. Proper fix: resample
+into the analysis thread, which the offline render path will need regardless.
