@@ -27,6 +27,33 @@ static void feedWithBeats(BPMTracker& tracker, float bpm, int hops,
     }
 }
 
+// Helper: feed `numBeats` real synthetic onsets at `bpm`, driving both the
+// BPM pipeline (processRawBPM) and the downbeat scorer (feedDownbeatFeatures)
+// on every hop -- mirrors AnalysisThread's per-hop call order. Bass energy is
+// biased high whenever (startBeatIndex + local beat index) % kBeatsPerBar
+// == 0, so the downbeat detector consistently locks position 0 as the
+// downbeat. `startBeatIndex` lets callers make consecutive calls continue
+// the same bias phase (so a second call doesn't look like a phase shift to
+// the already-locked downbeat position).
+static void feedRealOnsets(BPMTracker& tracker, float bpm, int numBeats,
+                           int startBeatIndex = 0, int sampleRate = 48000, int hopSize = 512)
+{
+    int hopsPerBeat = static_cast<int>(std::lround(
+        (static_cast<double>(sampleRate) * 60.0) / (static_cast<double>(bpm) * hopSize)));
+
+    for (int b = 0; b < numBeats; ++b)
+    {
+        int beatIndex = startBeatIndex + b;
+        for (int h = 0; h < hopsPerBeat; ++h)
+        {
+            bool beat = (h == 0);
+            tracker.processRawBPM(bpm, 1.0f, beat);
+            float bass = (beat && (beatIndex % BPMTracker::kBeatsPerBar) == 0) ? 1.0f : 0.0f;
+            tracker.feedDownbeatFeatures(bass, 0.0f, 0.0f, 0);
+        }
+    }
+}
+
 // ============================================================================
 // Median Filter Tests
 // ============================================================================
@@ -291,4 +318,126 @@ TEST_CASE("BPMTracker constants are valid", "[bpm][sanity]")
     REQUIRE(BPMTracker::kHysteresisHops > 0);
     REQUIRE(BPMTracker::kConfidenceThreshold >= 0.0f);
     REQUIRE(BPMTracker::kBPMChangeThreshold > 0.0f);
+}
+
+// ============================================================================
+// P24: Predicted Beat Advance (silence / manual mode must not freeze
+// beatInBar/barCount) -- see BPMTracker::advancePredictedBeat().
+//
+// Nothing above this point exercises feedSilenceDetection(), isSilent(), or
+// downbeat/phrase state at all -- this is the first coverage of that path.
+// ============================================================================
+
+TEST_CASE("Silence: beatInBar and barCount keep advancing off the predicted phase wrap",
+          "[bpm][silence][p24]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+
+    // Lock BPM and downbeat position with real onsets first (mirrors a track
+    // that was already playing and tracked before silence hits).
+    feedRealOnsets(tracker, 120.0f, 24);
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+    REQUIRE(tracker.downbeatLocked());
+
+    uint16_t barCountBeforeSilence = tracker.barCount();
+
+    // Feed ~8 seconds of real silence (RMS held below threshold via
+    // feedSilenceDetection, mirroring AnalysisThread's call order). At
+    // 120 BPM that is 16 beats == 4 bars.
+    const float hopsPerSec = 48000.0f / 512.0f;
+    const int silenceHops = static_cast<int>(8.0f * hopsPerSec);
+
+    bool seenBeatInBar[BPMTracker::kBeatsPerBar] = {};
+    for (int i = 0; i < silenceHops; ++i)
+    {
+        tracker.feedSilenceDetection(0.0001f); // well below silenceRmsThreshold_ (0.005)
+        tracker.processRawBPM(120.0f, 1.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+        seenBeatInBar[tracker.beatInBar()] = true;
+    }
+
+    REQUIRE(tracker.isSilent());
+
+    // Not frozen: every position in the bar was visited during silence.
+    for (int p = 0; p < BPMTracker::kBeatsPerBar; ++p)
+        REQUIRE(seenBeatInBar[p]);
+
+    // ~4 bars advanced over ~8 seconds of held silence at 120 BPM.
+    uint16_t barsAdvanced = static_cast<uint16_t>(tracker.barCount() - barCountBeforeSilence);
+    REQUIRE(barsAdvanced >= 3);
+    REQUIRE(barsAdvanced <= 5);
+}
+
+TEST_CASE("Manual mode: beatInBar and barCount advance from cold with no audio",
+          "[bpm][manual][p24]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+
+    // Tap tempo from cold -- no prior onsets, no downbeat lock, no audio.
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+    REQUIRE(tracker.isManualMode());
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 0.5));
+    REQUIRE_FALSE(tracker.downbeatLocked());
+
+    const float hopsPerSec = 48000.0f / 512.0f;
+    const int hops = static_cast<int>(8.0f * hopsPerSec); // ~8s == 16 beats == 4 bars at 120 BPM
+
+    uint16_t barCountStart = tracker.barCount();
+    bool seenBeatInBar[BPMTracker::kBeatsPerBar] = {};
+    for (int i = 0; i < hops; ++i)
+    {
+        // "No audio at all" -- aubio would report no usable raw BPM/confidence/beat.
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+        seenBeatInBar[tracker.beatInBar()] = true;
+    }
+
+    // Not frozen: every position in the bar was visited, with no onsets and
+    // no downbeat lock ever established.
+    for (int p = 0; p < BPMTracker::kBeatsPerBar; ++p)
+        REQUIRE(seenBeatInBar[p]);
+
+    uint16_t barsAdvanced = static_cast<uint16_t>(tracker.barCount() - barCountStart);
+    REQUIRE(barsAdvanced >= 3);
+    REQUIRE(barsAdvanced <= 5);
+}
+
+TEST_CASE("Anti-double-count: 16 live onsets advance barCount by exactly 4, not 8",
+          "[bpm][downbeat][p24]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+
+    // Establish BPM + downbeat lock first (needs >= kDownbeatLockThreshold beats).
+    feedRealOnsets(tracker, 120.0f, 24);
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+    REQUIRE(tracker.downbeatLocked());
+
+    uint16_t barCountBefore = tracker.barCount();
+
+    // Feed exactly 16 more live onsets, continuing the same bias phase (no
+    // relock churn). If the predicted-wrap path were active in parallel with
+    // scoreBeat() during ordinary locked playback, this would double-count
+    // to 8 bars instead of 4 -- the exact hazard this pipeline must avoid.
+    feedRealOnsets(tracker, 120.0f, 16, /*startBeatIndex=*/24);
+
+    uint16_t barsAdvanced = static_cast<uint16_t>(tracker.barCount() - barCountBefore);
+    REQUIRE(barsAdvanced == 4);
+}
+
+TEST_CASE("Pre-existing BPM/beat-phase tests are unaffected by predicted beat advance",
+          "[bpm][regression][p24]")
+{
+    // Sanity check that the P24 gating (predictedBeatRegime_) doesn't leak
+    // into ordinary locked playback: repeat the existing hysteresis-lock
+    // scenario and confirm behavior is identical to before.
+    BPMTracker tracker(512, 1024, 48000);
+
+    feedConstantBPM(tracker, 120.0f, 60);
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 1.0));
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+
+    feedConstantBPM(tracker, 140.0f, 250);
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(140.0, 2.0));
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
 }
