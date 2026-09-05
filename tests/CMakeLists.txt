@@ -37,6 +37,17 @@ target_link_libraries(test_renderer_source_confinement PRIVATE Catch2::Catch2Wit
 apply_sanitizers(test_renderer_source_confinement)
 catch_discover_tests(test_renderer_source_confinement)
 
+# --- test_clip_replace_media_retire (S166-LEAK: kClipReplaceContent's IMAGE
+# branch never retired the outgoing video/image-sequence decoder). Headless:
+# mirrors the videoPlayers_/imageSequences_ retire mechanism, same reason and
+# approach as test_renderer_source_confinement above — MainComponent.cpp and
+# Renderer.cpp are not linked into any ctest target here.
+add_executable(test_clip_replace_media_retire test_clip_replace_media_retire.cpp)
+target_include_directories(test_clip_replace_media_retire PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_replace_media_retire PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_clip_replace_media_retire)
+catch_discover_tests(test_clip_replace_media_retire)
+
 # --- test_spectral_features ---
 add_executable(test_spectral_features
     test_spectral_features.cpp
