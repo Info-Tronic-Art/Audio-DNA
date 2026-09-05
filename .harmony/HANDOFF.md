@@ -1360,3 +1360,171 @@ FORCED REBUILD before any ctest claim; baseline 203/203, re-run it, never inheri
 and still stages, which breaks `&&` chains; use `;` · **`~/projects/RealTimeAudio copy` is a
 STALE DUPLICATE REPO (HEAD f128bdc, Jul 11) — confirm you are in the real one; HEAD should
 descend from `7d3a203`.**
+
+---
+
+# SESSION 2026-09-05 (s-rta-0904, secondary, autonomous) — INBOX CLOSED, 4 LANES SHIPPED,
+# 127 COMMITS OF DOC DRIFT RE-TRACED. AUTHORITATIVE OVER ALL ABOVE.
+
+Boris's instruction was one line: read the handoff, boot secondary, work through all items to
+55% context, then EOS. No further input was given or asked for. Everything below was done
+autonomously, and everything below was gated.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4 — mandatory)
+**Audio-DNA: CLEAN.** Launched 4 times across the session, always `--test-mode`, Release from
+HEAD. **THE OUTPUT WINDOW WAS NEVER OPENED AT ANY POINT.** Every quit was GRACEFUL via
+`osascript ... to quit` — **no `pkill`, no SIGKILL, at any point, ever.** At close:
+`pgrep` → nothing. `CGWindowListCopyWindowInfo(kCGWindowListOptionAll)` (the FULL list, not
+on-screen-only) → **0 Audio-DNA windows.** Log tail shows orderly teardown every time:
+API → Eyes → Syphon → OSC. Zero crash markers across all runs.
+
+## >>> ONE THING ON YOUR SCREEN NEEDS YOU, BORIS — I DELIBERATELY DID NOT TOUCH IT <<<
+`screencapture -x /tmp/eos-screen-s-rta-0904.png` was taken **and the image was actually READ**
+(law #3). Audio-DNA is clean in it. But a **macOS TCC security dialog is sitting modal on your
+desktop**:
+> "Ghostty" is requesting to bypass the system private window picker and directly access your
+> screen and audio. [Allow] [Open System Settings]
+
+It was raised by this session's own `screencapture` activity, not by Audio-DNA. **I did not click
+either button and will not:** granting or refusing screen-recording permission is your decision,
+not mine, and a TCC grant is not something an agent should make on your behalf. It is harmless
+sitting there; dismiss it however you like.
+This is precisely the case screen-safety law #3 was written for — "no CLI probe can see a black
+overlay, a TCC dialog, or a stuck window." `pgrep` was empty and the screen was not clean.
+
+## WHAT SHIPPED — 4 lanes, each gated, each independently reviewed
+**L0-MD — MilkDrop autoload restored** (`123555e`). Dead on EVERY launch since `22fcedc`
+(2026-07-30) — 36 days. `[MilkDrop] Loaded 30 presets` now prints where zero MilkDrop lines did.
+Browser lists mood headers with counts (Energetic 9, Psychedelic 9). Reviewer caught a
+destruction-order landmine the green gate could not: `presetManager_` was declared AFTER the two
+things holding pointers into it, so it would have died first, while the new comment claimed the
+opposite. Moved to declare-first/destroy-last, re-gated.
+
+**L2 — Layer Solo actually solos** (`c792ecc`). The control toggled, undid and repainted; the
+compositor never read it. **The plan said "both layer loops". There are THREE** — the reviewer
+found `compositePersistentLayers()`, which paints every non-active deck's persistent layers every
+frame. Two-site fix would have made solo's effect depend on which deck happened to be active.
+
+**L1 — Clip>Clear and its whole family stop stranding decoders** (`349f676`). `closeMediaForClip`
+held the only `.erase()` calls on the media maps and had zero callers. **The plan, the packet AND
+the audit all said three vacate paths. There are SIX** — `RemoveLayerCmd` and `RemoveDeckCmd`
+were found by the reviewer; removing a deck stranded every clip in every layer it held.
+
+**L7 — the MilkDrop folder preference does something** (`31d8c28`). The browser's empty-state text
+literally says "Or set a directory in Preferences > Video". That preference was wired to nothing;
+`setPresetDirectories`/`rescan` had zero call sites. Now persists, applies before the initial scan,
+and rescans. Reviewer PASS on all six adjudications including no threading race.
+
+## THE ROUTED INBOX IS EMPTY — all 6 records SENT → DONE
+Including the two that had been bouncing: the HEAVY norm drift (out-of-scope'd twice by the
+primary, s127/s128) and the gotcha schema drift. See `.harmony/inbox.md` for per-record notes.
+
+## NORMALIZE — `STATUS: CURRENT`, 127 commits of drift re-traced
+7 read-only lanes → completeness critic → one fenced writer → independent verifier.
+`state.md` `last_normalized_sha` → `d93e6ba`. Full reports: `.audit/renorm-2026-09-05/` (1309 lines).
+**6 CRITICAL doc corrections. The biggest was found independently by THREE lanes:** FEATURES.md's
+own banner said *"Undo/redo remains a no-op (Wave 2)"* while a full Undo v1 had shipped underneath
+it — 8 new `src/core` files, 17 Command subclasses, Cmd/Ctrl+Z wired end to end. The doc was
+telling every future session that a shipped subsystem did not exist.
+Also: FeatureBus documented as a triple-buffer swap when `cb4d5fa` had replaced it with a seqlock;
+a documented `MappingEngine::processAll` that exists nowhere (it is `processFrame`, moved off the
+render callback onto a 120Hz message-thread timer by `c51aff7`); and a §14 DATA RACE gotcha
+describing a race fixed on Jul 30.
+Counts re-derived, never carried: embedded shaders 244→243 · test_effects.py discovery 112→135 ·
+REST endpoints 22/21→24 registered / 23 production · `u_beatPhase` real uses 11 ·
+`uploadAudioUniforms` 28→29.
+**Dead surfaces confirmed by tracing to a consumer** (two grep patterns each): `bpmMultiplier`,
+`quantizeMode`, `smartAutopilotEnabled` (unreachable by ANY user path — its only setter has no
+callers), and the BPMSync/ClipPosition/Timeline param sources.
+
+## SETTLED — an "only Boris can check" item that never needed Boris
+The **MilkDrop Favorites sub-tab** question had been open for a month. All four sub-tabs render
+"No presets loaded.", NOT "No favorites yet" — which per this file's own discriminator CONFIRMS
+the root cause. It took one screenshot and reading it.
+**The lesson is now a universal gotcha:** before parking anything as owner-only, separate
+perceptual JUDGEMENT (his) from perceptual ACCESS (mine, via `screencapture` + actually looking).
+Access is not judgement.
+
+## THE TREE IS CLEAN — first time per this file's own notes
+`graphify-out/` was force-tracked against the repo's own `.gitignore`: 271 files / 105MB, of which
+258 files / 46MB were derived AST cache. Untracked; the ~13 top-level graph outputs stay tracked so
+a clone still gets a usable graph. Expect a small residual: the post-commit hook backgrounds a
+regen, so after the last commit a few graph files read modified. Bounded and explainable; 265 was
+not.
+
+## THREE THINGS THAT COST REAL TIME — all now gotchas, read them before you build
+1. **ctest printed `203/203 PASS` on top of a build that FAILED with 14 errors** — it ran the
+   previous build's stale binaries, for a suite that at that moment did not compile. Every gate
+   here now captures the build exit code and refuses to run or quote ctest unless it is zero.
+2. **The mirror image: a STALE OBJECT produced a false "undefined symbol" link error** for a
+   method whose definition was on disk, correctly scoped, unguarded. **I was one step from
+   reverting a correct lane on it.** `touch` + rebuild linked first try. When a build result
+   contradicts what you can read in the file, force the rebuild before acting.
+3. **Four separate times, a builder changed a signature and missed call sites** — `tests/` builds
+   these commands as heavily as production does. An explicit bold warning in the dispatch did not
+   prevent the fourth. This is structural, not carelessness: builders are fenced from compiling
+   (correctly — the party that builds never verifies), so they have no feedback loop for this
+   class at all. Logged with candidate fixes; the cheapest is to require the call-site sweep's
+   grep OUTPUT in the builder's report.
+
+## I OVER-CLAIMED ONCE, AND CORRECTED IT
+A builder inferred my builds were running against in-flight edits. I wrote that it was "wrong",
+full stop. The lane-specific evidence held — but I generalised it into "my builds are reliable",
+and one lane later my build was the unreliable party (finding 2 above). The correction is written
+into `.harmony/.reports/L0-MD-failfirst-2026-09-04.md` rather than left with the stronger version
+standing.
+
+## ONLY BORIS CAN CHECK — what a gate structurally cannot
+- **The TCC dialog on your screen** (top of this section). Yours to dismiss.
+- **The SEQ badge** — now THREE sessions unseen. The probe established from source that it needs an
+  ImageSequence clip (3+ images dropped on ONE cell) and that no such clip exists in the live
+  session, so it is **not observable without creating that state** — which it correctly refused to
+  do. To see it: drop 3+ images on a single cell.
+- **The L7 folder-pick round trip.** Wired and reviewed, but driving a native file chooser is
+  outside `ax_press.py` (AXButton only). Pick a folder in Preferences > Video and confirm presets
+  appear.
+- **The output test** — does a VIDEO clip show vs a STILL IMAGE clip. Still unanswered, still
+  owner-attended only.
+- **Solo, on real pixels.** Live in three loops with ZERO automated coverage; its only proof is a
+  human looking.
+- **The L1 leak, end to end.** `lsof` is the right oracle but the setup (a video into a cell) has
+  no REST path and `ax_press.py` cannot press the native "Clip > Clear" AXMenuItem.
+
+## TWO RULINGS STILL OPEN — they gate lanes, and they are genuinely yours
+- **The honesty batch** (L4): hide/remove Record tab, Timing placeholder, Comp-Inspector dead
+  blocks, dead param-source trio. Harmony and the architect both recommend yes; all reversible.
+  New evidence: Record and Comp/Deck already render greyed out in the live UI.
+- **The rack** (`EffectsRackPanel`): both recommend DELETE, curve-shaping consciously parked.
+I did not decide these for you — they are product calls, not technical ones.
+
+## NEXT SESSION — START HERE
+1. **L3 — composition persistence. START AT SESSION BEGINNING; it is medium-large and will not fit
+   if you start it late.** It was deliberately NOT started here for exactly that reason. Its
+   dependency (L1) is now committed and green. One root cause behind three broken surfaces:
+   Open/Save operate on the v1 FX preset and `Composition::loadFromFile` has zero callers.
+2. Get the two rulings above early.
+3. Then L-DEL (hard deps: after L-OUT and L3), then L4, L5, L6.
+4. **L-OUT stays owner-attended only.** He has explicitly offered to run an output test — ASK.
+5. Follow-up logged in `.harmony/idea-ledger.md`: a pre-existing message-thread media destroy in
+   `openVideoForClip`/`openImageSequenceForClip` that bypasses L1's new retire list. Same hazard
+   class, different entry point. Should reuse L1's retire list, not invent a second mechanism.
+
+## FILED UP-CHANNEL TO THE PRIMARY (4 records, `memory/.pending/`)
+- The MCP usage-query answer: **codegraph-rta REMOVE, clangd-rta KEEP** (sole authority for
+  C3/blast-radius), graphify-rta keep. The scan conflates graphify's live DATA PIPELINE with its
+  never-called MCP SERVER.
+- **The graphify launchd job points entirely at `~/projects/RealTimeAudio copy`** — the stale
+  duplicate at HEAD `f128bdc` (Jul 11) this file already flags as a HAZARD. It is LOADED. There is
+  no equivalent job for the real repo. An agent had cited that job as proof this repo's pipeline
+  was healthy; it is not.
+- The unclean-close detector never consumed a 5-day-old stamp; it may never fire for project repos
+  at all. The stamp is being kept ON PURPOSE as the reproducer — do not tidy it away.
+- `normalize-check.sh` hardcodes `--framework web`, giving this repo 3 false FAILs on the default
+  invocation.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM
+`ctest` **205/205** (was 203; L1 and its guard-refusal twins added two), re-run after a build that
+exited 0. Release build: 0 errors. `[MilkDrop] Loaded 30 presets`. Effects 135, GL 4.1.
+**UNPUSHED: 136 — including this docs commit.** Stated AFTER committing, per the mechanism
+this file identified: writing the number before committing the file that contains it makes it wrong
+by exactly one, every time. **NOTHING PUSHED. Do not push.**
