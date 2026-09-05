@@ -1116,6 +1116,28 @@ void TestServer::handleAddGlobalEffect(const httplib::Request& req, httplib::Res
     // activeSources_ comment (~395-403): run the mutation itself on the GL
     // thread via a blocking executeOnGLThread round-trip, so there is no
     // window in which this thread's push_back can race a live iteration.
+    //
+    // Reviewer fix-round 1 (S166-L8): executeOnGLThread only constructs and
+    // blocks on a BlockingWorker when the context has a live CachedImage
+    // (vendored juce_OpenGLContext.cpp's execute(): `if (auto* c =
+    // getCachedImage()) c->execute(...); else jassertfalse;`). With no
+    // CachedImage — the state previewPanel_'s context enters when hidden or
+    // zero-sized, per this repo's own isAttached() guards at
+    // Renderer.cpp:823, :890, :924 — the `else` branch returns immediately
+    // and the lambda above NEVER RUNS. In a Release build (jassertfalse is a
+    // no-op) that silently leaves newIndex at -1 and globalEffects untouched
+    // while this handler still reported {"ok":true} — a fabricated success,
+    // exactly the lying-oracle failure this lane exists to prevent. Guard
+    // and fail loudly instead of proceeding into a call that would silently
+    // no-op.
+    if (!renderer_.getContext().isAttached())
+    {
+        res.status = 503;
+        res.set_content(jsonError("Renderer not attached (no GL context — cannot safely mutate globalEffects)"),
+                        "application/json");
+        return;
+    }
+
     int newIndex = -1;
     renderer_.getContext().executeOnGLThread(
         [this, &slot, &newIndex](juce::OpenGLContext&) {
@@ -1151,6 +1173,19 @@ void TestServer::handleRemoveGlobalEffect(const httplib::Request& req, httplib::
     }
 
     int index = static_cast<int>(obj->getProperty("index"));
+
+    // Reviewer fix-round 1 (S166-L8): same detached-context gap as
+    // handleAddGlobalEffect above — without it, an out-of-range index and a
+    // detached context both fall through to "Index out of range", a
+    // misleading diagnosis for the latter. Guard before the fence, not
+    // after, so the error names the real cause.
+    if (!renderer_.getContext().isAttached())
+    {
+        res.status = 503;
+        res.set_content(jsonError("Renderer not attached (no GL context — cannot safely mutate globalEffects)"),
+                        "application/json");
+        return;
+    }
 
     // GL fence — same reallocation-race reasoning as handleAddGlobalEffect
     // above: erase() shifts/resizes the live vector CompositorEngine
