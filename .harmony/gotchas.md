@@ -250,3 +250,24 @@ Rule: (1) The output window is a REAL fullscreen window on Boris's actual displa
 ### 2026-08-03 — LAW: verify the SCREEN before session close, never just the process
 Source: Boris reported a black overlay on all non-fullscreen displays after a C3 gate session that drove the fullscreen output window 3x across 2 launches and pkill'd the app repeatedly. The overlay OUTLIVED a clean app exit (stderr showed graceful shutdown, no crash report, no process remaining).
 Rule (MANDATORY, see SCREEN-SAFETY LAW in HANDOFF.md): (1) Audio-DNA's output window is a real fullscreen window on Boris's actual monitors — driving it in a gate has visible consequences on the machine he is using. Never end a session with it open. (2) Never pkill/SIGKILL the app while the output window is open — close the window first (`Output > "Disabled"`), let it tear down, then quit. (3) `pgrep` empty does NOT mean the screen is clean — this incident proves it. Run `screencapture -x` and READ THE IMAGE before declaring safe-to-close. Same class as the 2026-07-25 TCC-dialog gotcha: the screen holds state no socket or process probe can see. (4) Every session that launches the app must state in its handoff what window/app state it left behind and whether the screen was visually verified. (5) A Boris-reported screen artifact OUTRANKS the current lane — his machine is not a test rig.
+
+### 2026-09-05 — an "only Boris can check" item may only need someone to LOOK
+Source: s-rta-0904 — the MilkDrop Favorites empty-state string, carried as owner-only for 5 sessions
+Trigger: an item is parked as ONLY BORIS CAN CHECK because it is described in perceptual terms ("does the tab say X")
+Rule: before parking anything as owner-only, separate perceptual JUDGEMENT (his — taste, density, does-this-read-right) from perceptual ACCESS (yours — `screencapture -x` plus actually READING the image, or a cropped region via `sips -c H W --cropOffset Y X`). Access is not judgement. This item sat open for a month and took one screenshot; the answer ("No presets loaded." on Favorites, not "No favorites yet") confirmed a root cause that had been blocked on it.
+Scope: universal
+Promoted: no
+
+### 2026-09-05 — a scheduled job can be silently serving the STALE DUPLICATE repo
+Source: s-rta-0904 — `com.harmony.graphify-refresh.realtimeaudio-copy.plist`
+Trigger: you are about to cite an automated pipeline (launchd job, cron, hook) as evidence that some data for THIS repo is fresh or self-maintaining
+Rule: open the job definition and read its actual path strings before believing it serves this repo. The loaded graphify refresh job points every path at `~/projects/RealTimeAudio copy` (HEAD f128bdc, Jul 11 — the documented HAZARD duplicate), and there is no equivalent job for the real repo. An agent this session cited that job as proof the real repo's graph pipeline was alive; it was not. The existence of a job named after your project is not evidence it runs on your project.
+Scope: universal
+Promoted: no
+
+### 2026-09-05 — graphify-out was force-tracked against this repo's own .gitignore
+Source: s-rta-0904 — 271 tracked files / 105MB under a directory .gitignore already excluded
+Trigger: `git status` shows hundreds of dirty paths under `graphify-out/` and you are tempted to ignore the noise
+Rule: 258 of those files were `cache/ast/*.json` — pure derived cache the tool writes and cleans itself — force-tracked historically despite `graphify-out/` sitting in .gitignore. They are now untracked; the ~13 top-level graph outputs stay tracked so a fresh clone still gets a usable graph. A permanently dirty tree is not cosmetic: it destroys "is the tree clean?" as a signal, which is the check every close depends on. Expect a small residual: the post-commit hook launches a background regen, so after the last commit of a session a few graph files will read modified. That is bounded and explainable; 265 was not.
+Scope: repo
+Promoted: no
