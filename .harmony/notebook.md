@@ -493,3 +493,38 @@ MainComponent.cpp's bundledDir/CWD-fallback resolution logic are unchanged.
 **Files:** src/api/ApiServer.cpp, tests/README.md
 **Note:** tests/README.md:85 and notebook.md's 2026-05-18 entry both claim "ApiServer.cpp at exactly 900 lines — budget ceiling, next addition needs refactor first." At session start (before this session's ~24-line R6/R8 hardening diff) the file was already 1017 lines — the ceiling was breached by a prior session without the doc being updated or the refactor happening. Not fixed here (out of scope for this work packet); flagging so the next session that hits this doc doesn't trust a stale number.
 **Valid while:** tests/README.md:85 still states the 900-line figure.
+
+## 2026-09-05 — MilkDrop folder pref (L7) wired end-to-end; introduces the app's FIRST auto-persisted setting
+**Files:** src/ui/PreferencesDialog.{h,cpp}, src/MainComponent.{h,cpp}, src/render/Renderer.{h,cpp}
+**Note:** `Preferences > Video`'s MilkDrop Presets field/Browse button existed and worked at the
+widget level, but `ProjectMPresetManager::setPresetDirectories()`/`rescan()` had ZERO callers —
+picking a folder wrote into a `juce::TextEditor` nobody read. Wired via `MainComponent::
+setMilkDropPresetDir()` (fired by a new `PreferencesDialog` ctor/`show()` param pair, mirroring
+the existing `onTooltipToggled` shape). **Important gotcha for anyone touching `presetDirs_`
+again:** `ProjectMPresetManager::rescan()` does `presets_.clear()` then rescans ONLY
+`presetDirs_` — before this fix, the ctor populated `presets_` via direct `scanDirectory()`
+calls that never touched `presetDirs_` (always empty), so calling `setPresetDirectories({userDir})
++ rescan()` naively would have WIPED the bundled + Cream-of-the-Crop presets. Fixed by having the
+ctor register bundled+cream into `presetDirs_` too (via `setPresetDirectories()+rescan()`,
+`milkDropBaseDirs_` caches this base set), so every later rescan is base-set + user dir, never
+base-set alone.
+**Threading — REAL race found and closed, not improvised:** `PresetSelector::processFrame`
+(`ProjectMSource.cpp:136`, inside `ProjectMSource::render()`) reads `presetManager_` every frame
+on the GL thread with NO lock in `ProjectMPresetManager`. A Preferences-triggered rescan runs on
+the message thread. Rather than add per-method locking to `ProjectMPresetManager` (rejected:
+`randomPresetInMood()` calls `randomPreset()` internally — a naive same-mutex lock on both would
+self-deadlock), the fix confines the mutation to the GL thread via a NEW
+`Renderer::rescanMilkDropPresets()`, mirroring the file's own existing `getOrCreateSource()` /
+`activeSources_` confinement idiom byte-for-byte (same `isAttached()` guard, same
+`getCurrentContext() != &glContext_` check, same blocking `executeOnGLThread`). Zero changes to
+`ProjectMPresetManager` itself.
+**Also new:** the app's first ever auto-persisted setting. `tooltipsEnabled_` (the ONLY other
+Preferences-tab value) resets to `true` every launch — there is no `ApplicationProperties`/
+`PropertiesFile` anywhere in this codebase. Persistence for the MilkDrop dir uses
+`userApplicationDataDirectory/Audio-DNA/settings.json` via `juce::DynamicObject`+
+`JSON::toString`/`JSON::parse` — the exact idiom already used for View > Save/Load Layout
+(`MainComponent.cpp`, `kViewSaveLayout`/`kViewLoadLayout`), just auto-triggered instead of behind
+an explicit FileChooser. If a broader settings system gets built later, this key
+(`milkDropPresetDir`) should move into it.
+**Valid while:** `ProjectMPresetManager` has no internal locking and `PresetSelector::
+processFrame` stays GL-thread-only (both true as of this commit).

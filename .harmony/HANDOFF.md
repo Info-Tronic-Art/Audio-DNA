@@ -1525,6 +1525,39 @@ I did not decide these for you — they are product calls, not technical ones.
 ## COUNTS — RUN THEM, NEVER INHERIT THEM
 `ctest` **205/205** (was 203; L1 and its guard-refusal twins added two), re-run after a build that
 exited 0. Release build: 0 errors. `[MilkDrop] Loaded 30 presets`. Effects 135, GL 4.1.
-**UNPUSHED: 136 — including this docs commit.** Stated AFTER committing, per the mechanism
+**UNPUSHED: 137 — including this docs commit and the EOS-surfaces commit.** Stated AFTER committing, per the mechanism
 this file identified: writing the number before committing the file that contains it makes it wrong
 by exactly one, every time. **NOTHING PUSHED. Do not push.**
+
+## LOOSE-ENDS LEDGER — s-rta-0904
+
+OPEN LOOSE ENDS at s-rta-0904 close:
+1. TCC security dialog left on Boris's screen (Ghostty screen-recording prompt) — deliberately not clicked; his decision.
+2. Two Boris rulings still open: the honesty batch (L4) and the rack (EffectsRackPanel). Both gate lanes.
+3. L3 composition persistence NOT started — medium-large, deferred to next session's beginning by the long-task rule. Its dependency L1 is now committed and green.
+4. Pre-existing message-thread media destroy in openVideoForClip/openImageSequenceForClip bypasses L1's new retire list. Same hazard class, different entry point. Logged in idea-ledger.md.
+5. SEQ badge still unseen (3 sessions) — not observable without creating an ImageSequence clip.
+6. L7 folder-pick round trip wired+reviewed but not behaviorally driven (native file chooser out of ax_press.py's reach).
+7. Solo is live in three compositor loops with zero automated coverage.
+8. L1 leak has no end-to-end oracle: no REST path loads a video into a cell, and ax_press.py cannot press the native "Clip > Clear" AXMenuItem.
+9. UNCLEAN-CLOSE-STAMP-harmony-31879.md kept ON PURPOSE as the reproducer for the detector defect filed up-channel. Do not tidy it away.
+
+## META-LEARNINGS — s-rta-0904
+
+META-LEARNINGS s-rta-0904:
+1. ctest printed 203/203 GREEN on top of a build that FAILED with 14 errors — stale binaries, for a suite that did not compile. Gates must capture the build exit code and refuse to quote ctest unless it is zero.
+2. The mirror image: a STALE OBJECT produced a false "undefined symbol" link error for a method whose definition was on disk, correctly scoped. I was one step from reverting a correct lane on it. Force the rebuild before acting when a build result contradicts the source.
+3. Four times a builder changed a signature and missed call sites; tests/ constructs these as heavily as production. A bold in-prompt warning did not prevent the fourth. Structural, not careless: builders are fenced from compiling so they have no feedback loop for this class. Cheapest fix: require the call-site sweep's grep OUTPUT in the report.
+4. An "only Boris can check" item may only need someone to LOOK. The MilkDrop Favorites question sat a month and took one screenshot. Separate perceptual JUDGEMENT (his) from perceptual ACCESS (mine).
+5. A plan's COUNT is a claim like any other. "Both layer loops" was three. "Three vacate paths" was six. Reviewers told not to trust the packet's enumeration found both.
+6. I over-claimed once: told a builder its stale-build inference was "wrong", full stop. The lane-specific evidence held, but I generalised it into "my builds are reliable" and one lane later my build was the unreliable party. Corrected in writing rather than left standing.
+7. The parallel-generation/serial-integration fence held perfectly across 5 concurrent writers: every dirty path mapped to exactly one owner. Reviewers correctly refused to attribute cross-agent churn they could not prove.
+
+## CHANNEL HARVEST — s-rta-0904
+
+CHANNEL HARVEST s-rta-0904 — 4 records filed up-channel to the primary via scripts/idea-capture.sh (memory/.pending/, secondary-ideas-inbox):
+1. idea-2026-09-04-harmony2-17885803531987214855 — MCP usage-query ANSWER: codegraph-rta REMOVE, clangd-rta KEEP (sole authority for C3/blast-radius), graphify-rta keep. The removal scan conflates graphify's live data pipeline with its never-called MCP server.
+2. idea-2026-09-04-harmony2-17885803732007819224 — unclean-close detector never consumed a 5-day-old stamp; may never fire for project repos at all. Reproducer kept on disk on purpose.
+3. idea-2026-09-04-harmony2-17885803732009828310 — normalize-check.sh hardcodes --framework web; 3 false FAILs on this repo's default invocation.
+4. idea-2026-09-05-harmony2-1788583476943004783 — the graphify launchd job targets "~/projects/RealTimeAudio copy" (stale duplicate, HEAD f128bdc) and is LOADED; no equivalent job for the real repo.
+DOWN-CHANNEL: all 6 routed inbox records flipped SENT -> DONE.
