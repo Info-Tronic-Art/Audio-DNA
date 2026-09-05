@@ -226,6 +226,26 @@ private:
                                ShaderManager& shaderMgr, FullscreenQuad& quad,
                                int w, int h);
 
+    // S167-L4b: bake a clip's per-clip opacity into its alpha channel via a
+    // single GL pass (reuses the existing "opacity_blend" program: col.a *=
+    // u_opacity, same math as the layer-opacity sites in .cpp). True no-op
+    // (returns srcTex unchanged, no GL call) at the default 1.0 opacity,
+    // matching this file's other needsTransform-style early-outs. dstFBO/
+    // dstTex let each caller pick a scratch buffer that won't alias srcTex.
+    GLuint applyClipOpacity(float opacity, GLuint srcTex, GLuint dstFBO, GLuint dstTex,
+                            ShaderManager& shaderMgr, FullscreenQuad& quad,
+                            int w, int h);
+
+    // S167-L4b: pure opacity product for the FX-Only constant-alpha blend.
+    // Owner's ruling (2026-09-05): master/layer/clip opacity multiply, so a
+    // clip pinned at 0.5 can never exceed 50% regardless of the layer's own
+    // opacity. No clamp needed -- both inputs are already normalized [0,1]
+    // sliders, so their product is itself in [0,1].
+    static float combinedOpacity(float layerOpacity, float clipOpacity)
+    {
+        return layerOpacity * clipOpacity;
+    }
+
     // Apply an effect chain to a texture, returns result texture ID.
     // Uses effectFBO_A_/B_ for ping-pong rendering.
     // layerId: used to key per-layer temporal buffers for time effects (u_prev_frame).

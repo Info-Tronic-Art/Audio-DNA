@@ -443,39 +443,83 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
                            std::abs(clip.positionY) > eps ||
                            std::abs(clip.scale - 1.0f) > eps ||
                            std::abs(clip.rotation) > eps);
-    if (!needsTransform)
-        return srcTex;
 
-    auto* prog = shaderMgr.getProgram("layer_transform");
+    GLuint transformedTex = srcTex;
+
+    if (needsTransform)
+    {
+        auto* prog = shaderMgr.getProgram("layer_transform");
+        if (prog != nullptr)
+        {
+            // Use effectFBO_A_ as scratch (it's not in use yet at this point)
+            glBindFramebuffer(GL_FRAMEBUFFER, effectFBO_A_);
+            glViewport(0, 0, w, h);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_BLEND);
+
+            prog->use();
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, srcTex);
+            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+            // Normalize position: pixels → normalized UV offset
+            glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_translate"),
+                        clip.positionX / static_cast<float>(w),
+                        clip.positionY / static_cast<float>(h));
+            glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_anchor"),
+                        0.5f + clip.anchorX, 0.5f + clip.anchorY);
+            glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_scale"),
+                        clip.scale);
+            glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
+                        clip.rotation * 3.14159265f / 180.0f);
+
+            quad.draw();
+
+            transformedTex = effectTex_A_;
+        }
+    }
+
+    // S167-L4b: bake clipOpacity in here (rather than only at the final
+    // layer-opacity site) so a crossfading clip's OWN opacity survives into
+    // applyTransition's blend below -- none of the transition_* shaders in
+    // EmbeddedShaders.h (transition_dissolve, wipes, pushes, zoom, iris,
+    // flip, cut, fade-to-black) take a per-input opacity uniform, so this is
+    // the only place a clip pinned below 1.0 stays capped through a
+    // crossfade. Targets effectFBO_B_/effectTex_B_ -- distinct from
+    // effectFBO_A_ used above, so this pass never reads and writes the same
+    // texture whether or not a positional transform ran first.
+    return applyClipOpacity(clip.clipOpacity, transformedTex, effectFBO_B_, effectTex_B_,
+                            shaderMgr, quad, w, h);
+}
+
+GLuint CompositorEngine::applyClipOpacity(float opacity, GLuint srcTex, GLuint dstFBO, GLuint dstTex,
+                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                           int w, int h)
+{
+    constexpr float eps = 0.001f;
+    if (std::abs(opacity - 1.0f) <= eps)
+        return srcTex; // true no-op -- no GL call issued
+
+    auto* prog = shaderMgr.getProgram("opacity_blend");
     if (prog == nullptr)
         return srcTex;
 
-    // Use effectFBO_A_ as scratch (it's not in use yet at this point)
-    glBindFramebuffer(GL_FRAMEBUFFER, effectFBO_A_);
+    glBindFramebuffer(GL_FRAMEBUFFER, dstFBO);
     glViewport(0, 0, w, h);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_BLEND);
 
     prog->use();
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, srcTex);
     glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
-    // Normalize position: pixels → normalized UV offset
-    glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_translate"),
-                clip.positionX / static_cast<float>(w),
-                clip.positionY / static_cast<float>(h));
-    glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_anchor"),
-                0.5f + clip.anchorX, 0.5f + clip.anchorY);
-    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_scale"),
-                clip.scale);
-    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
-                clip.rotation * 3.14159265f / 180.0f);
+    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_opacity"), opacity);
 
     quad.draw();
 
-    return effectTex_A_;
+    return dstTex;
 }
 
 // === Layer transform (P13.5.5) ===
@@ -535,11 +579,18 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
     // Apply the clip's effects to the accumulator texture
     GLuint result = applyClipEffects(clip.effects, accumulatorTex_, shaderMgr, quad, time, w, h, layer.id);
 
+    // S167-L4b: fold the clip's own opacity in here, the FX-Only layer's
+    // constant-alpha blend -- owner's ruling is that master/layer/clip
+    // opacity multiply (see combinedOpacity()'s comment), so a clip pinned
+    // below 1.0 dilutes the FX-Only blend even further than layer.opacity
+    // alone would.
+    float effOpacity = combinedOpacity(layer.opacity, clip.clipOpacity);
+
     if (result != accumulatorTex_)
     {
         // If opacity < 1, blend between original accumulator and FX'd result
         // First, save the original accumulator to scratch
-        if (layer.opacity < 0.999f)
+        if (effOpacity < 0.999f)
         {
             glBindFramebuffer(GL_FRAMEBUFFER, scratchFBO_);
             glViewport(0, 0, w, h);
@@ -570,11 +621,11 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
         quad.draw();
 
         // Blend original back if opacity < 1
-        if (layer.opacity < 0.999f)
+        if (effOpacity < 0.999f)
         {
             glEnable(GL_BLEND);
             glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
-            glBlendColor(0.0f, 0.0f, 0.0f, 1.0f - layer.opacity);
+            glBlendColor(0.0f, 0.0f, 0.0f, 1.0f - effOpacity);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, scratchTex_);
             quad.draw();
@@ -1140,6 +1191,16 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
 
     // Apply previous clip's effects too
     prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, layer.id);
+
+    // S167-L4b: the outgoing clip keeps its OWN opacity through the
+    // crossfade too, not just the incoming one (baked above in
+    // applyClipTransform) -- same reasoning, see that function's comment.
+    // scratchFBO_/scratchTex_ aren't touched again until after this
+    // function returns (feedback/layer-effects/layer-transform/keying all
+    // come later in compositeDeck's per-layer sequence), so they're free
+    // here as scratch.
+    prevTex = applyClipOpacity(prevClip->clipOpacity, prevTex, scratchFBO_, scratchTex_,
+                               shaderMgr, quad, w, h);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
     juce::String shaderName = getTransitionShaderName(layer.transitionMode);
