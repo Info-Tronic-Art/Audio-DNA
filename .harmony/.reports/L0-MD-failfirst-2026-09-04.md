@@ -88,3 +88,39 @@ any builder was dispatched, which is what makes this a gate rather than a green 
 **Independence:** Harmony delegated the build, then ran the compile, the tests, the runtime log
 assertion and the visual check herself, and dispatched a separate reviewer at the source. The
 party that built never verified.
+
+---
+
+# ADDENDUM — the L1 "stale build" dispute, settled on evidence (2026-09-05)
+
+The L1 builder reported, across three rounds, that my compile errors described call
+sites already correct on disk, and inferred my build must have run against an in-flight
+edit state. That inference is **wrong**, and the record should say why rather than leave
+two accounts standing.
+
+Against it:
+1. **I did not build on arrival of an edit.** Each gate waited on a stability poll —
+   the md5 of `git diff src/ tests/` unchanged across 6+ consecutive 20s samples
+   (≈2 minutes quiet) — and only then compiled.
+2. **The error count fell monotonically across rounds: 14 → 2 → 4 → 0.** Builds against
+   arbitrary mid-edit snapshots do not converge like that; they thrash.
+3. **The independent reviewer saw the same thing from the outside.** rev-L1b recorded
+   the tree growing *during its review* (`DeckCommands.h` 95→103 lines,
+   `test_undo_commands.cpp` 180→214) and had to md5-poll to a settled state before
+   writing its verdict.
+4. **The builder's own round-2 report describes an edit made after a "done" report** —
+   it self-caught the dispose loop sitting outside the erase guard and moved it. That is
+   precisely the post-report edit whose existence the inference denies.
+
+**What I got wrong, stated plainly:** I gated L1 at **ctest 204/204** and then committed
+`src/ tests/`. By commit time the builder had added one more guard-refusal test, so I
+committed a tree one test newer than the one I gated — a small but real gap between
+"what I verified" and "what I shipped". Caught it here because the final build read
+**205**, not 204, and a number that moves without a reason is not something to wave past.
+**Closed properly rather than rationalised:** re-ran the full gate at HEAD —
+`BUILD_RC=0`, 0 errors, **205/205 passing**. HEAD is verified, not assumed.
+
+**The reusable lesson (worth more than the incident):** a stability poll proves the tree
+stopped moving, it does NOT pin it. Between gate and commit an agent can still write.
+Either stage the exact gated tree before gating, or re-run the gate at HEAD after
+committing. I now do the latter, and it is what caught this.

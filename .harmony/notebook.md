@@ -2,6 +2,64 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-09-05 — closeMediaForClip is now wired up (L1 media-leak fix, rounds 1+2) — the 2026-07-20 entry's "NEVER closed" is now STALE for video/sequence
+**Files:** src/render/Renderer.{h,cpp} (closeMediaForClip, drainRetiredMedia, retiredVideoPlayers_/retiredImageSequences_), src/core/ClipCommands.h (ClipMediaDisposeHook, SetClipCmd, SwapClipsCmd), src/core/DeckCommands.h (ClearLayerClipsCmd, RemoveColumnCmd, RemoveLayerCmd, RemoveDeckCmd), src/MainComponent.cpp (makeClipMediaDisposeHook)
+**Note:** `Renderer::closeMediaForClip` had zero call sites for the life of the
+project (bare-symbol grep: 2 hits = decl+def only) — every vacate path
+stranded a VideoPlayer/ImageSequence (live FFmpeg decoder + GL texture)
+forever. Round 1 fixed `Clip > Clear` (SetClipCmd), `SwapClipsCmd`,
+`ClearLayerClipsCmd`, `RemoveColumnCmd`. **Round 2 (reviewer-caught FAIL on
+family coverage) added `RemoveLayerCmd` (execute() erased a whole layer with
+zero dispose call) and `RemoveDeckCmd` (had NO media hook of any kind —
+zero reconnect on undo too — the largest single leak in the family, since it
+strands every clip across every layer of the removed deck). ALL SIX command
+classes that can vacate a cell now dispose.** `ClipMediaDisposeHook` (new
+hook, same shape as the existing `ClipMediaHook` reconnect hook,
+ClipCommands.h) is threaded through all six. THREE things future editors of
+this area must not re-break: (1) **Dispose is
+keyed off the command's OWN before_/after_ snapshot, never live cell state**
+— the UI handlers (kClipClear etc.) pre-mutate the model directly BEFORE
+building the command, so by execute() time the live cell is already in its
+post-state; a dispose gated on live state would never fire. (2)
+**closeMediaForClip no longer synchronously destroys the player/sequence** —
+it can run on the message thread with no GL context current, so it calls
+`->close()` (FFmpeg/CPU-only, safe off-GL-thread per each class's own
+threading-model comment) then moves the unique_ptr to
+`retiredVideoPlayers_`/`retiredImageSequences_` (mutex-guarded) instead of
+erasing-in-place; `Renderer::drainRetiredMedia()`, called every frame from
+the TOP of `renderOpenGL()` (guaranteed GL thread + context current), is the
+ONLY place `releaseGL()` runs and the ONLY place these objects actually get
+destroyed. Do not add a second path that erases these maps directly — it
+would resurrect the "glDeleteTextures with no context current" bug.
+(3) **A swap/move must NOT dispose an id that just relocated to the other
+cell** — SwapClipsCmd's `disposeIfOrphaned` checks a leaving clip's id
+against BOTH resulting cells (src and dst) before disposing; only an id
+retained by neither gets closed. `ClearLayerClipsCmd`/`RemoveColumnCmd` don't
+need this cross-cell check (nothing moves within their own apply — a full
+row-clear or a column-removal only ever loses ids, never relocates them).
+Final safety net: `MainComponent::makeClipMediaDisposeHook()` re-scans the
+WHOLE composition for the id before actually calling `closeMediaForClip` —
+load-bearing ONLY while there is no clipboard/duplicate feature (ids unique,
+6 minting sites, no reuse); if that ever changes, this scan is what needs to
+change, not the per-command orphan checks. (4) **RemoveLayerCmd/RemoveDeckCmd
+are command-owns-the-mutation, NOT double-apply** — the handler snapshots the
+full Layer/Deck value and does NOT pre-mutate live state before building the
+command (unlike SetClipCmd/ClearLayerClipsCmd/RemoveColumnCmd's shape), so
+execute() is the only place the removal ever actually happens, first time AND
+every redo — dispose lives directly in execute() against `removed_`/`removed_
+.layers`, no `leaving`-parameter trick needed. (5) `openGLContextClosing()`
+now also calls `drainRetiredMedia()` (round 2 fix #3) — without it, anything
+`closeMediaForClip()` retired but that hadn't yet been through a
+`renderOpenGL()` frame would survive context teardown and get `releaseGL()`'d
+against a texture ID belonging to the NEXT context on ITS first frame — same
+per-context-state bug class as `EffectChainGLState::release()` two entries
+below this one guards against. Do not drain the retire lists from anywhere
+else — `drainRetiredMedia()` is the single reused helper for both call sites,
+by design (two independent copies of the release loop is how this class of
+bug re-appears, per the reviewer's own words on this fix).
+**Valid while:** the six command classes' hook-injection shape and the
+message-thread/GL-thread split in Renderer.{h,cpp} are unchanged.
+
 ## 2026-08-04 — Multi-image drop has THREE entry points, not two; a pure-image Finder drop was completely un-thresholded
 **Files:** src/ui/ClipCell.cpp (filesDropped ~292, itemDropped "files:" branch ~514-545),
 src/MainComponent.cpp (onMixedFilesDropped lambda ~788-862, handleMultiFileDrop ~3791-3854,
@@ -296,7 +354,7 @@ Extension-list nits while there: image bin lacks .tif/.webp/.heic; internal path
 
 ## 2026-07-20 — Renderer video/sequence/image resources are keyed by clip id; only video content-swaps
 **Files:** src/render/Renderer.cpp (videoPlayers_), src/render/CompositorEngine.cpp:1047
-**Note:** Videos (videoPlayers_[id]) and image sequences (imageSequences_[id]) are keyed by clip id and NEVER closed. Static images are keyed by FILE PATH via getKeyTexture(clip.mediaFile) — self-healing on undo. Only VIDEO can be content-swapped under an EXISTING id: kClipReplaceContent calls openVideoForClip(existing->id, newFile), overwriting the player while replaceContent keeps the id. So a reconnect-if-MISSING media guard misses replace-undo (player exists → skip → decodes wrong file). Fix: compare loaded file vs clip.mediaFile (Renderer::getVideoPlayerFile + VideoPlayer::getFile + pure needsVideoReopen() in core/MediaReconnect.h), reopen on mismatch. Sequences can't hit it (replace produces only Image/Video; sequences always get a fresh s_nextClipId).
+**Note:** Videos (videoPlayers_[id]) and image sequences (imageSequences_[id]) are keyed by clip id — **"NEVER closed" is STALE as of 2026-09-05's L1 media-leak fix (see that entry, above)**; Clear/RemoveColumn/ClearLayerClips now dispose via closeMediaForClip, they just still never get closed on a REPLACE (see below), which is the part of this entry that's still true. Static images are keyed by FILE PATH via getKeyTexture(clip.mediaFile) — self-healing on undo. Only VIDEO can be content-swapped under an EXISTING id: kClipReplaceContent calls openVideoForClip(existing->id, newFile), overwriting the player while replaceContent keeps the id. So a reconnect-if-MISSING media guard misses replace-undo (player exists → skip → decodes wrong file). Fix: compare loaded file vs clip.mediaFile (Renderer::getVideoPlayerFile + VideoPlayer::getFile + pure needsVideoReopen() in core/MediaReconnect.h), reopen on mismatch. Sequences can't hit it (replace produces only Image/Video; sequences always get a fresh s_nextClipId).
 **Valid while:** replaceContent reuses the clip id and video players are keyed by id
 
 ## 2026-07-19 — Undo v1 Step 2: clip commands decoupled from Renderer via hooks
