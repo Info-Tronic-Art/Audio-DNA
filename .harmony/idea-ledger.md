@@ -365,3 +365,41 @@ speakers. So this is LATENT on his present hardware and becomes live the moment 
 interface or DJ mixer is plugged in — which for a VJ rig is a matter of when, not whether.
 Cheapest mitigation until it is fixed properly: force 48 kHz at the device. Proper fix: resample
 into the analysis thread, which the offline render path will need regardless.
+
+### THE BAR-COUNTER FIX: WHAT IS PROVEN, WHAT IS NOT, AND ONE CONTRADICTION RECONCILED
+
+**PROVEN behaviourally, in the real app, production mode, silent room:** `POST /api/set_bpm
+{"bpm":120}` takes effect immediately (bpm 0 → 120), and the bar counters then advance with NO
+AUDIO AT ALL. First run: `barCount` 0→4 over 8 s, which is exactly one bar per 2 s at 120 BPM.
+Before `e437872` it would have sat at 0 forever. Boris's ruling (keep running from the last
+detected or TAPPED tempo) is implementable and implemented on the tapped half.
+
+**NOT PROVEN, and being investigated:** on two later runs of the identical sequence, `barCount`
+was NOT monotonic — `0,1,0,1,0,1,1,2,0,1,0,0,0,1` over 14 s, with `phrasePhase` repeatedly
+falling back too. Something resets the phrase bookkeeping roughly every 2 s, and it is
+**intermittent** — the first run showed a clean monotonic climb, the next two did not, same
+binary, seconds apart. This matters because every oscillator folds `4*barCount` into its phase, so
+a reset makes a long-cycle shape jump BACKWARDS — the very symptom Boris reported. **A fix that
+advances the counters but leaves them resetting has not fixed his complaint for 4/8/16-beat
+shapes.** Open question also worth settling: whether `barCount` is even DESIGNED to be monotonic
+or is phrase-relative and intended to wrap — if it wraps by design, long-cycle oscillators were
+always broken across phrase boundaries, a deeper pre-existing defect this lane neither caused nor
+cures.
+
+**A GATE HELD BACK ON PURPOSE.** `.harmony/probe-tempo-silence.sh` is written and works, but its
+bar-rate assertion is NOT committed as a gate yet, because it reported 2 bars where the manual run
+measured 4. **Shipping a gate whose expected value I cannot reproduce would install a flaky test
+as a source of truth** — worse than having no gate. It goes in once the reset behaviour is
+understood and the assertion can state what SHOULD happen rather than what happened once.
+
+**CONTRADICTION RECONCILED — the builder and the reviewer were both right, about different
+mutations.** The builder said it mutation-tested the anti-double-count guard and saw the test fail
+8-instead-of-4. The reviewer said the same test is VACUOUS because `predictedBeatRegime_` is false
+on every hop of it, so removing the `!predictedBeatRegime_` clause from the `scoreBeat` gate would
+not change the result. Both are true: the builder mutated the guard on the PREDICTED path
+(`if (wrapped && predictedBeatRegime_)` → `if (wrapped)`), which the test does catch; the reviewer
+mutated the clause on the SCORED path, which it does not. So the test has teeth in one direction
+and none in the other. **The real gap: there is no test in which `predictedBeatRegime_` is TRUE
+while real onsets also arrive** — the silence-exit hysteresis window, which the same review
+independently flagged as a ≤100 ms suppression window. One test covers both. Fast-follow, not a
+blocker: the shipped code was traced correct by construction on all five exit routes.
