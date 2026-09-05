@@ -86,6 +86,54 @@ above exists, plus one NOT-IMPLEMENTED proposal noted above).
 
 ## PROJECT-level (this repo's own rulings — equally binding, local scope)
 
+### 2026-09-05 (s-rta-0906) — BORIS RULINGS, SPOKEN DIRECTLY. THREE REVERSE STANDING INSTRUCTIONS.
+
+Answers to eight questions put to Boris at boot of s-rta-0906. Verbatim intent preserved;
+each is BINDING and outranks any earlier handoff text in this repo that contradicts it.
+
+1. **PUSH. The "NOTHING PUSHED — do not push" standing instruction is REVERSED.**
+   Boris: "push. this is in development and I don't want to lose your work." 158 commits
+   pushed at s-rta-0906 boot (`1eff4f7..6858ec2`). Push routinely from now on; losing work
+   is the risk being managed, not premature release.
+
+2. **DO NOT HIDE, GREY OUT, OR DELETE DEAD UI. WIRE IT UP.** The "honesty batch" (L4) and
+   the rack deletion (L-DEL) — both of which Harmony AND the Fable architect had recommended
+   across two sessions — are REJECTED AS FRAMED. Boris considers those surfaces NECESSARY
+   FEATURES that are not built yet, not lies to be hidden. He will confirm each once given
+   detail. **Deleting/hiding a dead control is now the wrong default in this repo; building
+   it is the right one.**
+
+3. **THE CORE PRODUCT LAW: AUDIO CONTROLS THE VIDEO.** Boris, verbatim: "Every single
+   parameter, including the ones you mentioned will get the same exact method to connect
+   them to an audio signal or an oscillator. All will be timed. This is the core of our
+   application. Audio controls the video."
+   Consequences that bind design from here:
+   - The 21 `UniversalParamControl` fields with no compute-and-apply path are NOT an honesty
+     problem to be papered over. They are the visible edge of a MISSING UNIVERSAL MECHANISM.
+   - "Every single parameter" means the connect mechanism is UNIVERSAL and UNIFORM — one
+     method, not per-panel special cases. Today it exists in exactly two places
+     (`EffectStackView.cpp` and `ClipInspector.cpp`'s sourceParams loop).
+   - Sources are audio signals AND oscillators. "All will be timed" — a connected parameter
+     is time-driven, not only level-driven.
+
+4. **BPM multiplier is REAL and load-bearing.** Boris: the /4 /2 x1 x2 x4 buttons are "used
+   by the main BPM of the application." The L6 recon's finding stands (it cannot be applied
+   at the analysis publish point without corrupting GenreDetector's absolute-BPM buckets),
+   so the multiplier belongs downstream of analysis, at the point video timing consumes
+   tempo — consistent with #3. Deleting the control is OFF the table.
+
+5. **The current UI is DISPOSABLE. Features first.** Boris: "After we build all the features,
+   I will give you the new UI. It will be a welcome change, but we need to make sure all the
+   features can work first. The UI we have right now will be scrapped."
+   Consequence: **do not spend budget on cosmetic UI work, restyling, or hiding.** Spend it on
+   MECHANISM that survives a UI rewrite — model, engine, persistence, timing, connection
+   plumbing. When choosing between two fixes, prefer the one that outlives the UI.
+
+6. **Owner-attended work is available this session** — Boris is around, and the app may be
+   launched and quit "anytime you want." The single-instance blockade that disabled every
+   app-level gate in s-rta-0905 does not apply while this holds.
+
+
 - **SCREEN-SAFETY LAW — mandatory, every session, no exceptions.** Audio-DNA's output window is a
   real fullscreen window on Boris's actual monitors, not a headless test artifact. Never end a
   session with it open; never `pkill`/SIGKILL the app while it is open (close the window first,
