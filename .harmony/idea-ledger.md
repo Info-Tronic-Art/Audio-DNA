@@ -436,3 +436,38 @@ quantity the other two scale, at its own stage, rather than only the alpha chann
 (`combinedOpacity` = layer × clip) and it is correct. Nothing rendered a frame and measured it.
 **A correct multiplier applied to the wrong quantity passes every arithmetic test there is.**
 This is the strongest argument in this repo for pixel-level gates over helper-level ones.
+
+### THE BAR-COUNT RESET: ROOT-CAUSED, AND WHY IT LOOKED INTERMITTENT
+An independent investigation found exactly three writers to `barCount_`, all in `BPMTracker.cpp`,
+and identified the live culprit as the **structural-transition reset inside `updatePhrase()`**
+(~:481-489): it zeroes the phrase whenever `structuralState` enters "drop" (2) or leaves
+"breakdown" (3). `feedDownbeatFeatures()` runs every hop unconditionally, and **`updatePhrase()`
+is NOT gated on `predictedBeatRegime_` while `scoreBeat()` IS** — that asymmetry is the whole gap,
+and it means the first half of the fix (making counters advance in silence) shipped alongside an
+ungated path that undoes it.
+
+`StructuralDetector::classifyState()` compares a 100 ms RMS EMA to a 4 s RMS EMA with a near-zero
+guard of **1e-8 RMS (≈ -160 dBFS)**. No real microphone floor is anywhere near that, and the
+thresholds are scale-INVARIANT ratios, so ambient room noise keeps getting classified.
+
+**MY LIVE MEASUREMENT — it both supports the diagnosis and bounds it honestly.** Manual 120 BPM,
+quiet room, `/api/features` + `/api/bpm` polled together at ~10 Hz, three 20-second runs:
+- `structuralState` flipped **3, 2 and 10 times** across the three runs — in a SILENT room. The
+  detector is demonstrably reacting to ambient noise, exactly as predicted.
+- measured `rms` ≈ **0.0053** (`rmsDB` ≈ -45 dB) — **five orders of magnitude above the 1e-8
+  guard**, so the guard protects nothing in practice.
+- **`barCount` did NOT reset in any of the three runs**, because the flips stayed between states 0
+  and 1 and never entered 2 or left 3. An earlier run DID reset repeatedly.
+
+So: the mechanism is confirmed, and the TRIGGER is ambient-noise dependent. **That is the whole
+explanation of the intermittency** — it is not flakiness in the measurement, it is a real
+dependency on what the room sounds like in that minute. Which is also why this must be fixed
+structurally rather than chased by reproduction: a test that waits for the room to cooperate is
+not a test.
+
+**Still open beyond the fix (design, not defect):** `OscillatorSignal.h`'s own comment already asks
+whether long-cycle oscillators should be exposed to phrase-structure resets AT ALL. Even fully
+fixed for silence, a REAL drop mid-track will still yank an 8-beat shape backwards. The likely
+right answer is that oscillator phase should run off a monotonic beat counter that structural
+events never touch, with phrase resets reaching only things that genuinely want phrase alignment.
+Not this session's call.
