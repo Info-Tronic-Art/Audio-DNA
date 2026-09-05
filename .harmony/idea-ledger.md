@@ -165,3 +165,85 @@ surfaced by the independent reviewer, not by the builder.
   scopes (clip, layer, global) already fence reallocating edits through the same
   `makeDeckFence()` hook propagated by `InspectorPanel::setEffectFenceHook`. Reallocation is
   covered; the bypass FLIP is the hole.
+
+## 2026-09-05 — s166: the composition tier now HAS an oracle, and the first thing it proved was this morning's ungated lane
+
+- **`694f8f3` (Global Effects compositing) is now BEHAVIOURALLY VERIFIED.** With a procedural
+  source loaded, adding `Invert` to the composition's Global Effects stack via
+  `POST http://[::1]:8080/api/add_global_effect` changed the rendered frame, and removing it
+  restored the baseline byte-for-byte (identical md5). That lane shipped this morning
+  source-reviewed and un-exercised because no surface could reach it; the oracle built this
+  afternoon closed its own gap the same session.
+- **The GL fence held under real contention.** 25 back-to-back add/remove cycles against a live
+  render loop, all 25 adds returning `ok:true`, no crash, no assertion, health still answering,
+  graceful quit. That was the builder's own stated open concern and it is now closed empirically.
+
+### RIG FACTS — the two-server layout, which cost me three probe runs to establish
+- **There are TWO HTTP servers and they serve DIFFERENT routes.** `TestServer` answers on
+  **`http://[::1]:8080`** (IPv6 loopback) and owns `health`, `signals`, `inject_features`, and
+  all the new composition-tier routes. `ApiServer` answers on **`http://127.0.0.1:7070`** (IPv4 —
+  it does NOT answer on `[::1]`) and owns `effects`, `sources`, `load_source`, `render_frame`.
+  Hitting the wrong one returns 404 (right host, wrong server) or a bare connection failure
+  (wrong address family), and neither looks like "you used the wrong port".
+- A gate that drives this app therefore needs BOTH base URLs. Write them down rather than
+  rediscovering them.
+
+### TWO ANOMALIES OBSERVED, both filed for follow-up
+- **`load_source` returns `ok:false` and yet works.** `POST /api/load_source {"name":"Gravity
+  Well"}` reported failure, and the very next rendered frame had changed. An endpoint that
+  reports failure while having an effect is exactly the lying oracle this lane exists to
+  prevent — pre-existing production endpoint, not this lane's doing. Under review.
+- **A global effect can be a silent no-op at default parameters.** `Kaleidoscope` added cleanly
+  and changed nothing on screen; `Invert` changed it immediately. Any future gate written
+  against this oracle must probe with an effect that is non-neutral at defaults, or it will
+  report "the tier is broken" when the tier is fine.
+
+### METHOD NOTE — my own gate was wrong before the app was
+The first run of this gate reported 7 failures. Five were bugs in the GATE, not the app:
+pretty-printed JSON defeated `grep '"ok":false'` (the real text is `"ok": false`), float
+formatting defeated a `grep '0.42'` against `0.419999986886978`, and an empty effect-name
+variable made `grep "$EFF"` match every line — which produced a false PASS on the readback check
+AND a stress test where all 25 "adds" were silently rejected, so it stressed nothing while
+reporting success. **Assert on parsed JSON, never on the text of a JSON response, and never
+interpolate a possibly-empty variable into a grep pattern.** A gate that cannot fail is not a
+gate, and this one could neither fail correctly nor pass correctly.
+
+## 2026-09-05 — s166 RETRACTION: `render_frame` is NOT a reliable pixel oracle, and my "PROVEN" claim above is withdrawn
+
+**Correcting my own entry earlier in this file.** I wrote that `694f8f3` (Global Effects
+compositing) was BEHAVIOURALLY VERIFIED because adding `Invert` changed the rendered frame and
+removing it restored the baseline. **That claim does not hold and I am withdrawing it.**
+
+**What I found on a third run.** `POST /api/render_frame` returns a BLANK image most of the
+time. Measured directly:
+- With nothing loaded: `a49e72c11f5655dbdadf61256a88c69d`.
+- After `load_source "Gravity Well"`, one frame came back as `8323700d0a510a251f57b54cc5ac8a97`
+  (a real render) — and the very next consecutive frame, same source, no changes in between,
+  came back as `a49e72c1...` again, i.e. the blank hash.
+So the endpoint alternates between a genuine capture and a blank one. **That means my earlier
+"the frame changed when I added Invert" is fully explained by the flicker** — I sampled a
+non-blank frame at that moment and a blank one before it. The effect may well work; my evidence
+does not show it. **A test whose baseline oscillates between two values cannot establish
+causation, and I treated a coincidence as a proof.**
+
+**What IS still verified** (model layer, unaffected by the render flakiness, and each one
+observed directly): all 7 endpoints round-trip; `add_global_effect` returns a real slot index
+and the readback lists the effect; `remove_global_effect` empties the stack; empty bodies,
+unknown effect names and out-of-range clips are all REJECTED rather than silently accepted;
+25 consecutive add/remove cycles against a live render loop with 25/25 genuine successes, no
+crash, no assertion, graceful quit; and after the review fix, the detached-context guard does
+NOT over-fire on an attached context (real index 0, not the `-1` sentinel).
+
+**THE BLOCKING FOLLOW-UP, and it now outranks the rest of this arc's tooling work:**
+find out why `render_frame` returns a blank image intermittently. Until that is fixed there is
+NO pixel oracle for this app, and every composition-tier and connection-engine change will keep
+shipping on source review alone — which is the exact hole L8 was built to close. Candidate
+causes worth checking first: the capture races the draw and grabs an unpainted buffer; the
+offline render path runs on a context that is not the one compositing the deck; or it captures
+before `load_source` has actually taken effect (note `load_source` also returns `ok:false` while
+apparently working — see the anomaly above; the two may share a root cause).
+**Recommended shape of the fix:** make `render_frame` synchronous against a real completed
+composite — render, wait for the frame it rendered, then write — and have it return a
+distinguishing marker (e.g. frame counter or a non-blank assertion) so a caller can tell a
+capture from a miss. An oracle that silently returns blank is worse than no oracle, which is the
+lesson this whole session keeps re-teaching.
