@@ -130,6 +130,18 @@ public:
     // as it's created on the GL thread — see getOrCreateSourceOnGLThread().
     void setProjectMPresetManager(class ProjectMPresetManager* mgr) { projectMPresetManager_ = mgr; }
 
+    // Update the MilkDrop preset manager's configured directories and
+    // rescan (2026-09 L7: Preferences > Video folder pref). The manager's
+    // presets_ has no internal lock and is read every frame on the GL
+    // thread by PresetSelector::processFrame (a per-source, GL-thread
+    // member — see setOnProjectMSourceCreated below); mutating it
+    // concurrently from the message thread (where Preferences fires this)
+    // would race that read. Mirrors getOrCreateSource()'s activeSources_
+    // confinement (Renderer.cpp): rather than add a lock to a container
+    // walked every frame on the GL hot path, confine the one external
+    // mutator to the GL thread instead. Defined out-of-line in Renderer.cpp.
+    void rescanMilkDropPresets(const std::vector<std::string>& dirs);
+
     // Callback fired (async, message thread) the first time a ProjectMSource
     // is actually created on the GL thread. PresetSelector stays a
     // per-source, GL-thread member (it runs inside ProjectMSource::render())

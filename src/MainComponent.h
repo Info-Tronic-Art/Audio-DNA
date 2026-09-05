@@ -190,6 +190,13 @@ private:
     // Renderer::openGLContextClosing()).
     ProjectMPresetManager presetManager_;
 
+    // Fixed MilkDrop preset sources scanned unconditionally at startup
+    // (bundled resources + Cream-of-the-Crop, computed once in the ctor).
+    // Preferences > Video's user directory is appended on top of this base
+    // set on every (re)scan — see setMilkDropPresetDir() — so picking a
+    // custom folder never loses the built-in presets.
+    std::vector<std::string> milkDropBaseDirs_;
+
     // Core audio pipeline
     RingBuffer<float> ringBuffer_{16384};
     AudioEngine audioEngine_{ringBuffer_};
@@ -313,6 +320,9 @@ private:
     LinkSync linkSync_;
     std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
     bool tooltipsEnabled_ = true;
+    // Preferences > Video: user's custom MilkDrop preset folder (empty =
+    // none set). Persisted to settings.json — see save/loadMilkDropPresetDirSetting().
+    juce::String milkDropPresetDir_;
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<DeckView> deckView_;
@@ -388,6 +398,20 @@ private:
 
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
     void setTooltipsEnabled(bool enabled);
+
+    // Preferences → Video → MilkDrop Presets folder pref (L7). Updates
+    // milkDropPresetDir_, persists it, rebuilds the manager's directory
+    // list (milkDropBaseDirs_ + this one) and rescans (via Renderer, which
+    // confines the mutation to the GL thread — see
+    // Renderer::rescanMilkDropPresets()), then refreshes the browser.
+    void setMilkDropPresetDir(const juce::String& dir);
+    // settings.json lives at userApplicationDataDirectory/Audio-DNA/,
+    // matching the JSON+DynamicObject idiom already used for View > Save/
+    // Load Layout (MainComponent.cpp, kViewSaveLayout/kViewLoadLayout) —
+    // the only difference is these run automatically instead of via an
+    // explicit user-facing file chooser.
+    juce::String loadMilkDropPresetDirSetting() const;
+    void saveMilkDropPresetDirSetting(const juce::String& dir) const;
 
     // Test mode
     bool testMode_ = false;

@@ -1497,19 +1497,42 @@ MainComponent::MainComponent(bool testMode, int testPort)
             // Development fallback: look relative to working directory
             bundledDir = juce::File::getCurrentWorkingDirectory().getChildFile("resources/projectm_presets");
         }
+
+        // Also scan the Cream of the Crop collection if available
+        auto creamDir = juce::File("/tmp/milkdrop-presets");
+
+        milkDropBaseDirs_.clear();
+        if (bundledDir.isDirectory())
+            milkDropBaseDirs_.push_back(bundledDir.getFullPathName().toStdString());
+        if (creamDir.isDirectory())
+            milkDropBaseDirs_.push_back(creamDir.getFullPathName().toStdString());
+
+        // Preferences > Video: apply a previously saved MilkDrop preset
+        // folder BEFORE this initial scan (L7 fix — see
+        // .harmony/session-c-new-findings.md FINDING 0b), so presets from
+        // it appear on this very first launch/paint rather than only after
+        // the user re-opens Preferences and re-picks.
+        milkDropPresetDir_ = loadMilkDropPresetDirSetting();
+        auto initialDirs = milkDropBaseDirs_;
+        if (milkDropPresetDir_.isNotEmpty() && juce::File(milkDropPresetDir_).isDirectory())
+            initialDirs.push_back(milkDropPresetDir_.toStdString());
+
+        // setPresetDirectories()+rescan() (rather than direct scanDirectory()
+        // calls, as before this fix) so presetDirs_ actually holds the full
+        // set — required so a LATER rescan (triggered by a Preferences
+        // change, see setMilkDropPresetDir()) doesn't wipe the bundled/cream
+        // presets. presets_ is empty at this point (ctor), so this rescan()
+        // is behavior-identical to the old direct scans for these two dirs.
+        presetManager_.setPresetDirectories(initialDirs);
+        presetManager_.rescan();
+
         if (bundledDir.isDirectory())
         {
-            presetManager_.scanDirectory(bundledDir.getFullPathName().toStdString());
             // Load mood/energy metadata manifest
             auto manifestFile = bundledDir.getChildFile("presets.json");
             if (manifestFile.existsAsFile())
                 presetManager_.loadManifest(manifestFile.getFullPathName().toStdString());
         }
-
-        // Also scan the Cream of the Crop collection if available
-        auto creamDir = juce::File("/tmp/milkdrop-presets");
-        if (creamDir.isDirectory())
-            presetManager_.scanDirectory(creamDir.getFullPathName().toStdString());
 
         // Wire the browser to the (MainComponent-owned) preset manager. This
         // pointer outlives Renderer and every ProjectMSource, so it never
@@ -1787,6 +1810,51 @@ void MainComponent::setTooltipsEnabled(bool enabled)
     {
         tooltipWindow_.reset();
     }
+}
+
+juce::String MainComponent::loadMilkDropPresetDirSetting() const
+{
+    auto file = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                    .getChildFile("Audio-DNA").getChildFile("settings.json");
+    if (!file.existsAsFile())
+        return {};
+
+    auto parsed = juce::JSON::parse(file.loadFileAsString());
+    if (auto* obj = parsed.getDynamicObject())
+        return obj->getProperty("milkDropPresetDir").toString();
+    return {};
+}
+
+void MainComponent::saveMilkDropPresetDirSetting(const juce::String& dir) const
+{
+    auto settingsDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                            .getChildFile("Audio-DNA");
+    settingsDir.createDirectory();
+
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("milkDropPresetDir", dir);
+    settingsDir.getChildFile("settings.json").replaceWithText(juce::JSON::toString(juce::var(obj)));
+}
+
+void MainComponent::setMilkDropPresetDir(const juce::String& dir)
+{
+    if (dir == milkDropPresetDir_)
+        return;
+
+    milkDropPresetDir_ = dir;
+    saveMilkDropPresetDirSetting(dir);
+
+    auto allDirs = milkDropBaseDirs_;
+    if (dir.isNotEmpty() && juce::File(dir).isDirectory())
+        allDirs.push_back(dir.toStdString());
+
+    // See Renderer::rescanMilkDropPresets() for why this must not call
+    // presetManager_.setPresetDirectories()/rescan() directly: those
+    // mutate presets_, which PresetSelector::processFrame reads every
+    // frame with no lock on the GL thread.
+    previewPanel_.getRenderer().rescanMilkDropPresets(allDirs);
+
+    browserPanel_->getMilkDropBrowser().refresh();
 }
 
 MainComponent::~MainComponent()
@@ -3953,11 +4021,15 @@ void MainComponent::handleMenuCommand(int commandId)
         // --- Audio-DNA menu ---
         case C::kPreferences:
             PreferencesDialog::show(this, tooltipsEnabled_,
-                                    [this](bool enabled) { setTooltipsEnabled(enabled); });
+                                    [this](bool enabled) { setTooltipsEnabled(enabled); },
+                                    milkDropPresetDir_,
+                                    [this](juce::String dir) { setMilkDropPresetDir(dir); });
             break;
         case C::kAbout:
             PreferencesDialog::show(this, tooltipsEnabled_,
-                                    [this](bool enabled) { setTooltipsEnabled(enabled); });
+                                    [this](bool enabled) { setTooltipsEnabled(enabled); },
+                                    milkDropPresetDir_,
+                                    [this](juce::String dir) { setMilkDropPresetDir(dir); });
             // TODO: auto-switch to About tab
             break;
         case C::kQuit:

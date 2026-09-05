@@ -8,21 +8,29 @@
 class PreferencesDialog : public juce::DialogWindow
 {
 public:
-    PreferencesDialog(bool tooltipsEnabled, std::function<void(bool)> onTooltipToggled);
+    PreferencesDialog(bool tooltipsEnabled, std::function<void(bool)> onTooltipToggled,
+                      const juce::String& milkDropDir,
+                      std::function<void(juce::String)> onMilkDropDirChanged);
     ~PreferencesDialog() override = default;
 
     void closeButtonPressed() override;
 
     // Show the dialog (centered on parent). `tooltipsEnabled` seeds the toggle
     // to the caller's current state; `onTooltipToggled` fires on every change.
+    // `milkDropDir` seeds the Video tab's preset folder field; `onMilkDropDirChanged`
+    // fires when the user commits a new (valid, or cleared) directory.
     static void show(juce::Component* parent, bool tooltipsEnabled,
-                     std::function<void(bool)> onTooltipToggled);
+                     std::function<void(bool)> onTooltipToggled,
+                     const juce::String& milkDropDir,
+                     std::function<void(juce::String)> onMilkDropDirChanged);
 
 private:
     class Content : public juce::Component
     {
     public:
-        Content(bool tooltipsEnabled, std::function<void(bool)> onTooltipToggled);
+        Content(bool tooltipsEnabled, std::function<void(bool)> onTooltipToggled,
+               const juce::String& milkDropDir,
+               std::function<void(juce::String)> onMilkDropDirChanged);
 
         void paint(juce::Graphics& g) override;
         void resized() override;
@@ -48,6 +56,7 @@ private:
 
     public:
         std::function<void(bool enabled)> onTooltipToggled;
+        std::function<void(juce::String dir)> onMilkDropDirChanged;
     private:
 
         // MilkDrop preset directory (in Video tab)
@@ -68,6 +77,11 @@ private:
         void layoutGeneralTab(juce::Rectangle<int> area);
         void layoutVideoTab(juce::Rectangle<int> area);
         void layoutAboutTab(juce::Rectangle<int> area);
+        // Reads milkDropDirEdit_, fires onMilkDropDirChanged if the text is
+        // empty (clears the pref) or an existing directory; silently
+        // ignores an invalid typed path (matches FilesBrowser::pathBar_'s
+        // onReturnKey convention).
+        void commitMilkDropDir();
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PreferencesDialog)

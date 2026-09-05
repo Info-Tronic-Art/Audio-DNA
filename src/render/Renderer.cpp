@@ -865,6 +865,42 @@ ProceduralSource* Renderer::getOrCreateSourceOnGLThread(const std::string& sourc
     return ptr;
 }
 
+void Renderer::rescanMilkDropPresets(const std::vector<std::string>& dirs)
+{
+    if (projectMPresetManager_ == nullptr)
+        return;
+
+    auto doRescan = [this, dirs]()
+    {
+        projectMPresetManager_->setPresetDirectories(dirs);
+        projectMPresetManager_->rescan();
+    };
+
+    // No GL thread is running while the context is detached — no
+    // ProjectMSource can be mid-processFrame — so it's safe to mutate
+    // inline on the caller's thread. Mirrors the isAttached() defense-in-
+    // depth check in getOrCreateSource() above.
+    if (!glContext_.isAttached())
+    {
+        doRescan();
+        return;
+    }
+
+    // presets_ is GL-thread-read (see the declaration comment in
+    // Renderer.h). Marshal onto the GL thread when called from elsewhere
+    // (the message thread, via Preferences); run inline when already
+    // there — marshaling to self would deadlock the blocking round-trip,
+    // same reasoning as getOrCreateSource() above.
+    if (juce::OpenGLContext::getCurrentContext() != &glContext_)
+    {
+        glContext_.executeOnGLThread([&doRescan](juce::OpenGLContext&) { doRescan(); },
+                                      /*blockUntilFinished*/ true);
+        return;
+    }
+
+    doRescan();
+}
+
 GLuint Renderer::renderSource(const std::string& sourceId, float time, int width, int height,
                                const std::vector<Clip::SourceParam>* clipSourceParams)
 {

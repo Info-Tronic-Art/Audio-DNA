@@ -5,13 +5,16 @@
 // ============================================================
 
 PreferencesDialog::PreferencesDialog(bool tooltipsEnabled,
-                                     std::function<void(bool)> onTooltipToggled)
+                                     std::function<void(bool)> onTooltipToggled,
+                                     const juce::String& milkDropDir,
+                                     std::function<void(juce::String)> onMilkDropDirChanged)
     : DialogWindow("Preferences",
                    juce::Colour(AudioDNALookAndFeel::kBackground),
                    true)
 {
     setUsingNativeTitleBar(true);
-    setContentOwned(new Content(tooltipsEnabled, std::move(onTooltipToggled)), true);
+    setContentOwned(new Content(tooltipsEnabled, std::move(onTooltipToggled),
+                                milkDropDir, std::move(onMilkDropDirChanged)), true);
     setResizable(true, true);
     setResizeLimits(500, 400, 1200, 900);
     centreWithSize(700, 500);
@@ -23,9 +26,12 @@ void PreferencesDialog::closeButtonPressed()
 }
 
 void PreferencesDialog::show(juce::Component* parent, bool tooltipsEnabled,
-                             std::function<void(bool)> onTooltipToggled)
+                             std::function<void(bool)> onTooltipToggled,
+                             const juce::String& milkDropDir,
+                             std::function<void(juce::String)> onMilkDropDirChanged)
 {
-    auto* dialog = new PreferencesDialog(tooltipsEnabled, std::move(onTooltipToggled));
+    auto* dialog = new PreferencesDialog(tooltipsEnabled, std::move(onTooltipToggled),
+                                         milkDropDir, std::move(onMilkDropDirChanged));
     dialog->setVisible(true);
     dialog->toFront(true);
 
@@ -41,9 +47,12 @@ void PreferencesDialog::show(juce::Component* parent, bool tooltipsEnabled,
 // ============================================================
 
 PreferencesDialog::Content::Content(bool tooltipsEnabled,
-                                    std::function<void(bool)> onTooltipToggledCb)
+                                    std::function<void(bool)> onTooltipToggledCb,
+                                    const juce::String& milkDropDir,
+                                    std::function<void(juce::String)> onMilkDropDirChangedCb)
 {
     onTooltipToggled = std::move(onTooltipToggledCb);
+    onMilkDropDirChanged = std::move(onMilkDropDirChangedCb);
 
     // Tab buttons
     auto addTab = [this](juce::TextButton& btn, Tab tab) {
@@ -64,13 +73,19 @@ PreferencesDialog::Content::Content(bool tooltipsEnabled,
             onTooltipToggled(tooltipToggle_.getToggleState());
     };
 
-    // MilkDrop preset directory (Video tab)
+    // MilkDrop preset directory (Video tab). Seeds from the caller's
+    // persisted value (no notification, matching tooltipToggle_'s seeding
+    // above) — fires onMilkDropDirChanged only once the user commits a new
+    // value (Return, focus-lost, or a Browse pick), not on every keystroke.
     addChildComponent(milkDropDirLabel_);
     addChildComponent(milkDropDirEdit_);
     milkDropDirEdit_.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xff2a2a2a));
     milkDropDirEdit_.setColour(juce::TextEditor::textColourId,
                                 juce::Colour(AudioDNALookAndFeel::kTextPrimary));
     milkDropDirEdit_.setTextToShowWhenEmpty("Path to .milk preset folder...", juce::Colour(0xff606070));
+    milkDropDirEdit_.setText(milkDropDir, juce::dontSendNotification);
+    milkDropDirEdit_.onReturnKey = [this] { commitMilkDropDir(); };
+    milkDropDirEdit_.onFocusLost = [this] { commitMilkDropDir(); };
     addChildComponent(milkDropBrowseBtn_);
     milkDropBrowseBtn_.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a3e));
     milkDropBrowseBtn_.setColour(juce::TextButton::textColourOffId,
@@ -83,7 +98,10 @@ PreferencesDialog::Content::Content(bool tooltipsEnabled,
             [this, chooser](const juce::FileChooser& fc) {
                 auto result = fc.getResult();
                 if (result.isDirectory())
-                    milkDropDirEdit_.setText(result.getFullPathName(), true);
+                {
+                    milkDropDirEdit_.setText(result.getFullPathName(), juce::dontSendNotification);
+                    commitMilkDropDir();
+                }
             });
     };
 
@@ -237,4 +255,14 @@ void PreferencesDialog::Content::layoutAboutTab(juce::Rectangle<int> area)
     versionLabel_.setBounds(area.removeFromTop(30));
     area.removeFromTop(20);
     creditsLabel_.setBounds(area.removeFromTop(120));
+}
+
+void PreferencesDialog::Content::commitMilkDropDir()
+{
+    auto text = milkDropDirEdit_.getText().trim();
+    if (text.isNotEmpty() && !juce::File(text).isDirectory())
+        return; // ignore invalid typed path — matches FilesBrowser::pathBar_'s onReturnKey
+
+    if (onMilkDropDirChanged)
+        onMilkDropDirChanged(text);
 }
