@@ -83,3 +83,18 @@ __pycache__/
 .playwright-mcp/
 node_modules/
 # <<< harmony transient-artifact hygiene <<<
+
+# === Secrets / credentials (defensive; nothing currently tracked here) ===
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+*.mobileprovision
+*_rsa
+*_rsa.pub
+*.credentials.json
+secrets.json

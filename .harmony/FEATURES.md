@@ -2007,6 +2007,8 @@ No external data flows into TimingWindow — it receives no analysis data, BPM, 
 ---
 
 ## 24. Dual-Mode System (ProgrammingMode — REMOVED Wave 0) [C]
+**What it does:** Removed. Before deletion, `ProgrammingMode` was a vestigial always-hidden overlay component that was never shown; the View menu's "Programming Mode" item bypassed it entirely and just toggled the SignalBar between Expanded/Normal display size.
+
 **Status: REMOVED 2026-07-17 (Wave 0)** — the `ProgrammingMode` component (.cpp/.h), its MainComponent construction/wiring, and the View → "Programming Mode" menu item were all deleted. This section is retained as a historical record. (Before removal: a vestigial always-hidden component; the View menu's "Programming Mode" item merely toggled the SignalBar between Expanded/Normal display size, bypassing the component entirely — a binary fullscreen-SignalBar toggle, not a graduated mode system.)
 
 **Entry points:**
