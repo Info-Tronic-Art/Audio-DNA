@@ -305,3 +305,42 @@ anything); `load_source` was "lying" (I sent the wrong field). Each was resolved
 varied MY input rather than re-measuring the tool's output. **When a mechanism looks broken,
 suspect the way you are driving it before you suspect it — and prove which one it is with a
 test that changes your own input.**
+
+---
+
+## s167 (2026-09-05) — OPEN ITEMS FILED THE MOMENT THEY AROSE
+
+### R8 — ONE OWNER MUST BE NAMED FOR `manualWrite`, ACROSS TWO SEPARATE LANES
+The performance-log spec and the connection architecture's Lane 3(e) BOTH need to instrument the
+same thing: the funnel every manual parameter write passes through (`manualWrite(ParamPath,
+value, GripKind, Origin)` — the connection spec calls this family `touchScalar`/`gripTouch`).
+It is the same ~9 REST / MIDI / OSC call sites in both plans.
+
+Why it matters: `src/connect/` does not exist yet, so whichever lane lands first CREATES this
+funnel and the second one inherits it. If both lanes are dispatched without naming an owner, two
+builders instrument the same nine sites differently and the merge is a mess in the one place the
+whole product law depends on.
+
+**Ruling needed before either lane is dispatched: the recorder lane and connection L3 cannot both
+own `manualWrite`.** Recommendation: the CONNECTION lane owns it (it is a connection-architecture
+concept, and recording is a consumer), and the recorder lane hooks it rather than defining it.
+Whoever picks this up: decide it in the packet, not in the merge.
+
+### A SIDE FINDING WORTH ITS OWN CHECK — video may already run at half speed at 30 fps
+Tagged **ASSUMED** by the architect that raised it, NOT verified: `CompositorEngine.cpp`
+hard-codes video `dt = 1/60` at four sites (~728, 747, 831, 895 — re-grep, offsets drift). If
+`VideoPlayer::advanceFrame` uses that `dt` literally, then whenever the preview renders at 30 fps
+video plays at HALF SPEED. Independent of any lane, and it would silently corrupt any master-speed
+work layered on top of it, since that multiplies a rate that is already wrong.
+Routed to the renderer lane (which owns those files) with instructions to settle it TRUE or FALSE
+and, if true, fix it in its own commit rather than burying a real bug inside a feature commit.
+**If that lane did not reach it, this is the first thing to close next session — it is cheap and
+it invalidates other measurements while it stands.**
+
+### THE ORACLE'S BLIND SPOT, now known and worth remembering before designing any test
+`render_frame` is deterministic and repeatable on app STATE + INJECTED AUDIO LEVELS, and blind to
+wall-clock time (proven: two captures 4 s apart of a live procedural source at ~118 fps were
+byte-identical; changing `beatPhase` alone changed nothing; only rms/bass/mid/treble moved the
+picture). **Anything time-based — speed, animation, motion — cannot be proven by render-diffing.**
+A "the frame stopped changing" result is meaningless when the frame was never changing. This
+blind spot is the single most likely source of a confident false PASS in this repo's test rig.
