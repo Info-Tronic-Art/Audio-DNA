@@ -1,6 +1,7 @@
 #pragma once
 #include "model/Deck.h"
 #include <juce_core/juce_core.h>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -156,6 +157,15 @@ struct Composition
         if (activeDeckIndex >= static_cast<int>(decks.size()))
             activeDeckIndex = static_cast<int>(decks.size()) - 1;
         return true;
+    }
+
+    // Append a fully-formed deck (e.g. loaded from a deck file) under a fresh id.
+    // Returns its index. Caller is responsible for the GL fence (push_back reallocates).
+    int appendDeck(Deck deck)
+    {
+        deck.id = nextDeckId_++;
+        decks.push_back(std::move(deck));
+        return static_cast<int>(decks.size()) - 1;
     }
 
     // === Serialization ===
@@ -359,6 +369,12 @@ struct Composition
                     decks.push_back(std::move(deck));
                 }
             }
+
+            // L3: nextDeckId_ resets to its default on every Composition constructed
+            // by fromVar; without this, a post-load addDeck()/appendDeck() re-mints an
+            // id a loaded deck already holds.
+            for (const auto& deck : decks)
+                nextDeckId_ = std::max(nextDeckId_, deck.id + 1u);
 
             globalEffects.clear();
             if (auto* fxArray = obj->getProperty("globalEffects").getArray())

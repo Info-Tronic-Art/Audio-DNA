@@ -1,9 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "model/Composition.h"
+#include "core/CompositionLoad.h"
 #include "core/UndoManager.h"
 #include "core/Command.h"
 #include "core/CompositeCommand.h"
+#include <algorithm>
+#include <vector>
 
 using Catch::Matchers::WithinAbs;
 
@@ -558,6 +561,257 @@ TEST_CASE("Backward compatibility: old-format presets load with struct defaults"
         REQUIRE(comp.autoPresetOnGenre == false);
         REQUIRE(comp.genreDeckAssignment[0] == -1);
         REQUIRE(comp.genrePresetNames[0].empty());
+    }
+}
+
+// ============================================================
+// L3 — Composition Persistence, Step 1: id-mint bumps, appendDeck,
+// compload:: validate/remint/idsRetired helpers.
+// ============================================================
+
+TEST_CASE("Deck::fromVar bumps the layer-id mint past every loaded id", "[composition][serialization]")
+{
+    // A file whose layers already hold ids at/past the private nextLayerId_
+    // default (100) — without the bump, a post-load addLayer() re-mints an id
+    // a loaded layer already holds, aliasing two layers onto one GL resource.
+    auto* deckObj = new juce::DynamicObject();
+    deckObj->setProperty("name", "Loaded Deck");
+    deckObj->setProperty("id", 0);
+    deckObj->setProperty("numColumns", 12);
+
+    juce::Array<juce::var> layerArray;
+    for (uint32_t id : { 0u, 1u, 2u, 100u, 101u })
+    {
+        Layer layer;
+        layer.id = id;
+        layerArray.add(layer.toVar());
+    }
+    deckObj->setProperty("layers", layerArray);
+
+    Deck deck;
+    deck.fromVar(juce::var(deckObj));
+    REQUIRE(deck.layers.size() == 5);
+
+    deck.addLayer(Layer::Type::Transparent);
+    REQUIRE(deck.layers.back().id == 102);
+
+    // No behavior change for a deck that never loaded ids past the default mint.
+    Deck fresh;
+    fresh.initDefault();
+    fresh.addLayer(Layer::Type::Transparent);
+    REQUIRE(fresh.layers.back().id == 100);
+}
+
+TEST_CASE("Composition::fromVar bumps the deck-id mint past every loaded id", "[composition][serialization]")
+{
+    auto* compObj = new juce::DynamicObject();
+    compObj->setProperty("name", "Loaded Comp");
+
+    juce::Array<juce::var> deckArray;
+    for (uint32_t id : { 0u, 100u, 250u })
+    {
+        Deck deck;
+        deck.id = id;
+        deck.initDefault();
+        deckArray.add(deck.toVar());
+    }
+    compObj->setProperty("decks", deckArray);
+
+    Composition comp;
+    comp.fromVar(juce::var(compObj));
+    REQUIRE(comp.decks.size() == 3);
+
+    comp.addDeck();
+    REQUIRE(comp.decks.back().id == 251);
+}
+
+TEST_CASE("Composition::appendDeck assigns a fresh id, keeps contents, returns the index", "[composition]")
+{
+    Composition comp;
+    comp.initDefault(); // one deck, default id 0, mint still at its default (100)
+
+    Deck incoming;
+    incoming.name = "Appended Deck";
+    incoming.id = 999; // stale id from a loaded file — must be overwritten, not kept
+    incoming.initDefault();
+
+    int index = comp.appendDeck(incoming);
+    REQUIRE(index == 1);
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.decks[1].name == "Appended Deck");
+    REQUIRE(comp.decks[1].id != 999);
+    REQUIRE(comp.decks[1].id == 100); // mint's default — comp was never loaded via fromVar
+
+    // A second append keeps minting distinct, incrementing ids.
+    Deck another;
+    another.name = "Second Appended";
+    another.initDefault();
+    int index2 = comp.appendDeck(another);
+    REQUIRE(index2 == 2);
+    REQUIRE(comp.decks[2].id == 101);
+    REQUIRE(comp.decks[2].id != comp.decks[1].id);
+}
+
+TEST_CASE("compload::validateComposition refuses structurally-empty files and repairs indices/columns", "[composition][compload]")
+{
+    SECTION("No decks refused")
+    {
+        Composition comp;
+        comp.decks.clear();
+        auto reason = compload::validateComposition(comp);
+        REQUIRE_FALSE(reason.empty());
+    }
+
+    SECTION("A deck with zero layers is refused")
+    {
+        Composition comp;
+        Deck deck;
+        deck.name = "Empty Deck";
+        deck.layers.clear();
+        comp.decks = { deck };
+        auto reason = compload::validateComposition(comp);
+        REQUIRE_FALSE(reason.empty());
+    }
+
+    SECTION("Out-of-range activeDeckIndex is repaired to 0")
+    {
+        Composition comp;
+        comp.initDefault(); // one deck
+        comp.activeDeckIndex = 7;
+        auto reason = compload::validateComposition(comp);
+        REQUIRE(reason.empty());
+        REQUIRE(comp.activeDeckIndex == 0);
+    }
+
+    SECTION("numColumns is repaired to fit the widest layer")
+    {
+        // A single layer with 5 clips and no others — the widest layer sets
+        // numColumns, and every layer (there's only the one) gets padded to it.
+        Deck deck;
+        deck.name = "Deck";
+        deck.numColumns = 0;
+        Layer layer;
+        layer.clips.resize(5);
+        deck.layers = { layer };
+
+        Composition comp;
+        comp.decks = { deck };
+        comp.activeDeckIndex = 0;
+
+        auto reason = compload::validateComposition(comp);
+        REQUIRE(reason.empty());
+        REQUIRE(comp.decks[0].numColumns == 5);
+        for (const auto& l : comp.decks[0].layers)
+            REQUIRE(l.clips.size() == 5);
+    }
+}
+
+TEST_CASE("compload::remintClipIds gives every clip a unique monotonic id and advances the mint", "[composition][compload]")
+{
+    Composition comp;
+    comp.initDefault();
+    comp.addDeck("Deck 2");
+
+    // All-zero / duplicate ids across both decks, as a hand-edited or
+    // older-build file (or a deck appended into a live composition) could carry.
+    Clip a; a.id = 0; a.mediaType = Clip::MediaType::Image;
+    Clip b; b.id = 0; b.mediaType = Clip::MediaType::Image;
+    Clip c; c.id = 5; c.mediaType = Clip::MediaType::Image;
+    Clip d; d.id = 5; d.mediaType = Clip::MediaType::Image;
+
+    comp.decks[0].setClip(0, 0, a);
+    comp.decks[0].setClip(0, 1, b);
+    comp.decks[1].setClip(0, 0, c);
+    comp.decks[1].setClip(0, 1, d);
+
+    uint32_t nextId = 1000;
+    int n = compload::remintClipIds(comp, nextId);
+    REQUIRE(n == 4);
+    REQUIRE(nextId == 1000u + 4u);
+
+    std::vector<uint32_t> ids;
+    for (auto& deck : comp.decks)
+        for (auto& layer : deck.layers)
+            for (auto& cell : layer.clips)
+                if (cell.has_value()) ids.push_back(cell->id);
+
+    REQUIRE(ids.size() == 4);
+    for (auto id : ids)
+        REQUIRE(id >= 1000u);
+    std::sort(ids.begin(), ids.end());
+    REQUIRE(std::adjacent_find(ids.begin(), ids.end()) == ids.end()); // all unique
+}
+
+TEST_CASE("compload::idsRetired is before minus after", "[composition][compload]")
+{
+    using Ids = std::vector<uint32_t>;
+
+    REQUIRE(compload::idsRetired(Ids{ 1, 2, 3 }, Ids{ 2, 3, 4 }) == Ids{ 1 });
+    REQUIRE(compload::idsRetired(Ids{ 1, 2, 3 }, Ids{ 1, 2, 3, 4 }) == Ids{}); // superset: nothing retired
+    REQUIRE(compload::idsRetired(Ids{ 1, 2, 3 }, Ids{ 4, 5, 6 }) == Ids{ 1, 2, 3 }); // disjoint: all retired
+    REQUIRE(compload::idsRetired(Ids{}, Ids{}) == Ids{});
+}
+
+TEST_CASE("Composition saveToFile/loadFromFile round-trips through a real file and sets filePath", "[composition][serialization]")
+{
+    auto file = juce::File::createTempFile(".json");
+
+    Composition comp;
+    comp.initDefault();
+    comp.name = "File RoundTrip";
+    comp.decks[0].name = "Deck A";
+    comp.addDeck("Deck B");
+
+    Clip clip;
+    clip.name = "file_clip";
+    clip.mediaType = Clip::MediaType::Image;
+    comp.decks[0].setClip(0, 0, clip);
+
+    REQUIRE(comp.saveToFile(file));
+
+    Composition loaded;
+    REQUIRE(loaded.loadFromFile(file));
+
+    REQUIRE(loaded.decks.size() == 2);
+    REQUIRE(loaded.decks[0].name == "Deck A");
+    REQUIRE(loaded.decks[1].name == "Deck B");
+    auto* loadedClip = loaded.decks[0].getClip(0, 0);
+    REQUIRE(loadedClip != nullptr);
+    REQUIRE(loadedClip->name == "file_clip");
+    REQUIRE(loaded.filePath == file);
+
+    file.deleteFile();
+}
+
+TEST_CASE("Composition::loadFromFile fails closed on a missing or non-JSON file", "[composition][serialization]")
+{
+    SECTION("Nonexistent file")
+    {
+        auto missing = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                           .getChildFile("l3-gate-does-not-exist.json");
+        missing.deleteFile(); // ensure absence, no leftover from a prior run
+
+        Composition comp;
+        comp.initDefault();
+        auto decksBefore = comp.decks.size();
+
+        REQUIRE_FALSE(comp.loadFromFile(missing));
+        REQUIRE(comp.decks.size() == decksBefore);
+    }
+
+    SECTION("Non-JSON content")
+    {
+        auto file = juce::File::createTempFile(".json");
+        file.replaceWithText("not json");
+
+        Composition comp;
+        comp.initDefault();
+        auto decksBefore = comp.decks.size();
+
+        REQUIRE_FALSE(comp.loadFromFile(file));
+        REQUIRE(comp.decks.size() == decksBefore);
+
+        file.deleteFile();
     }
 }
 

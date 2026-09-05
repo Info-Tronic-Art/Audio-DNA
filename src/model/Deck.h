@@ -1,6 +1,7 @@
 #pragma once
 #include "model/Layer.h"
 #include <juce_core/juce_core.h>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <memory>
@@ -184,6 +185,12 @@ struct Deck
                     layers.push_back(std::move(layer));
                 }
             }
+
+            // L3: nextLayerId_ resets to its default on every Deck constructed by
+            // fromVar; without this, a post-load addLayer() re-mints an id a loaded
+            // layer already holds, aliasing two layers onto one GL resource set.
+            for (const auto& layer : layers)
+                nextLayerId_ = std::max(nextLayerId_, layer.id + 1u);
         }
     }
 
