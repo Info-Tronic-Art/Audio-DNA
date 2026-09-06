@@ -490,3 +490,45 @@ it invoked it**; the builder independently flagged it as looking like an injecte
 rather than a real tool offering, which is two independent refusals rather than one.
 Recorded here because an unexplained capability appearing mid-session is exactly the kind of thing
 that gets normalised by silence. If it appears again: do not invoke it, and tell Boris.
+
+### THE FRAME-RATE BUG SHAPE: SIX INSTANCES, AND THE FULL MAP
+A sweep of `src/render/` after fixing the first two turned this from a bug into a CLASS. Recording
+the complete map so nobody re-derives it:
+
+**FIXED (5):** video playback rate and image-sequence rate (`547969a`); layer crossfade duration
+and deck-to-deck transition duration (`02b89a1`); procedural-source animation rate for masterSpeed
+(this session's last lane — see below).
+
+**MAPPED, NOT FIXED (1):** `CompositorEngine.cpp:1457` Screen Split's
+`framesPerCell = round(60.0f * delayParam)` is a frame-INDEXED ring buffer (480 slots pushed once
+per callback), not a delta accumulator — there is no `1/60 → dt` substitution available. Fixing it
+needs a timestamped ring or an fps-aware frame count, i.e. a redesign. **Do not "fix" it with a
+substitution; it does not have one.**
+
+**CLASSIFIED AS LEGITIMATE, LEAVE ALONE (3):** `Renderer.cpp` ~:412 `(1.0f/60.0f)` is the
+first-frame bootstrap default before a prior timestamp exists; `Renderer.cpp` ~:1346
+`beatDivision * 60.0f / bpm` is a BPM-to-seconds conversion (60 seconds per minute, nothing to do
+with frame rate); `EmbeddedShaders.h` ~:8504's Posterize-Time shader already runs off wall-clock
+`u_time` and its 60 is a slider bound.
+
+**THE LESSON WORTH KEEPING.** The first instance was found by an architect designing something
+else entirely and tagged ASSUMED. Chasing it turned up five more in the same subsystem, two of
+them in code that had ALREADY been reviewed and gated that same day — including one inside a
+feature I had personally reported to Boris as working. **A defect that is a SHAPE rather than a
+site is not finished when the reported instance is fixed; it is finished when the subsystem has
+been swept and every hit classified.** Naming the shape ("a rate hardcoded to 60 where a real
+delta belongs") and grepping for it cost minutes and found more than any amount of reviewing the
+original site would have.
+
+### A REFUTATION THAT WAS RIGHT TO MAKE, AND THE MEASUREMENT THAT SETTLED IT
+My hypothesis for the clipOpacity defect — "alpha-only scaling is ignored by an additive blend" —
+was REFUTED by the builder's blend-equation math: `GL_SRC_ALPHA, GL_ONE` is linear in alpha and
+predicts 0.5, not the 0.892 I measured. It could not close that gap statically and said so plainly
+rather than dressing the fix in a story that fit.
+But the broader diagnosis held and was WORSE than I thought: alpha is a **total no-op** under
+Multiply/Screen/Darken/Lighten (none reference `GL_SRC_ALPHA`), and an Opaque-type layer at default
+opacity disables `GL_BLEND` outright — so the alpha bake was invisible there too. The fix baked
+into RGB instead. **Deliberately NOT premultiplying both channels**, which would have squared the
+opacity under Normal/Additive.
+It asked for the behavioural gate to be the confirmation rather than its algebra. I re-ran the
+isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by measurement.
