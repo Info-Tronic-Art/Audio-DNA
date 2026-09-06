@@ -363,3 +363,43 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 21. **STILL OWED HIM: question 3 (routine once-vs-loop) was asked without context.** Verbatim:
     "what is this in reference to?" — a fair complaint about the question, not an answer. Re-put in
     plain terms with the concept explained first. DO NOT count it as answered.
+
+### 2026-09-05 (s167) — TWO MORE, AND THE FIRST ONE PARTLY CONTRADICTS AN ARCHITECT REFUTATION
+
+22. **A ROUTINE IS A KIND OF SIGNAL, WITH LOOP/ONCE AS ITS CONTROLS.** Verbatim: "it would be
+    great if we could set it to loop or play once. Perhaps you could treat this similar to a
+    signal. It's a routine and controls similar to how a signal works. This is just a very
+    specific signal rather than just an oscillator."
+    ANSWERS the once-vs-loop question: **both, as a setting.**
+    But it says something larger: he wants ONE MENTAL MODEL. Audio bands, oscillators and routines
+    are all "signals" — things that drive other things — differing in kind, not in category.
+    **NOTE THE TENSION, DO NOT PAPER OVER IT.** An architect refuted exactly this unification at
+    the OWNERSHIP level, with four reasons that still stand: a connection is the exclusive owner of
+    one parameter, while a routine spans many parameters at once, stacks with other routines and
+    with the hand, is silent between its gestures, and includes BUTTON events (clip hits, deck
+    switches) that are not connectable at all.
+    RESOLUTION ADOPTED — his model is right about presentation, the refutation is right about
+    mechanism, and they do not actually collide: routines get signal-like CONTROLS (loop / once /
+    direction / quantize) and live in the same family in the user's head. The one place the
+    difference surfaces is that a routine is FIRED AS A UNIT rather than picked inside a single
+    knob's source list — because it is not about one knob. A routine's individual continuous lane
+    CAN be printed onto a knob, and at that moment it becomes an ordinary curve source. Flagged to
+    Boris explicitly rather than silently resolved.
+
+23. **>>> DRAW, DON'T DRAG. <<<** Verbatim: "If the knob recording doesn't change, there's nothing
+    to record if I drag the feeder from 0 to 100 and park it at 100 the last thing you record is
+    the final movement at 100. Maybe we could just adjust the resolution for easy movement. We
+    wanna snap to to grid control, toggle, or button. I think the simpler solution is that we could
+    just draw rather than drag and have the grid control or free hand. Also, if we could select and
+    move it left and right, that will snap to grid."
+    Four decisions, and the third dissolves the problem I was solving:
+    (a) **Only CHANGES are recorded.** A knob dragged to 100 and parked records the movement and
+        then nothing — silence in a lane means "unchanged", not "absent data". Sparse by nature,
+        which is also why a take is kilobytes.
+    (b) **Resolution stays** as a control for comfortable editing.
+    (c) **EDITING IS DRAWING, NOT POINT-DRAGGING.** You draw the shape you want over the lane,
+        either snapped to a grid or freehand, chosen by a toggle. This sidesteps the entire
+        "30 fps means 300 points" problem rather than managing it: the user never handles points
+        at all, and the tool decides the point density behind the scenes.
+    (d) **Selection moves horizontally and snaps to the grid** — retiming a gesture without
+        redrawing it.
