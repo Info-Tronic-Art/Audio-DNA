@@ -134,7 +134,7 @@ float ConnectionEngine::evaluate(ParamConnection& c, float manualNorm, const Con
                 float clipPos = clock ? clock->position() : 0.0f;
                 pos = ConnectionShaper::playbackXform(clipPos, c.shape.playback);
             }
-            raw = ConnectionShaper::envelopeValue(c.source.env.points, pos);
+            raw = c.source.env.curve.eval(static_cast<double>(pos));
             break;
         }
         case ConnSource::Kind::ClipPosition:
@@ -237,6 +237,15 @@ namespace
 void ConnectionEngine::tick(Composition& comp, const Context& ctx)
 {
     jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+
+    // ORDERING FACT for whoever adds a recorded-performance player later: a
+    // performance take is a WRITER (see ParamConnection.h's Kind-level
+    // comment), so its per-tick `advanceTo` call must run BEFORE this
+    // tick() -- grip state has to already be current (Held/Decaying/None)
+    // by the time evaluate() below decides whether to publish, or a
+    // gesture's first tick renders one frame late. Nothing in this lane
+    // calls such a player; this is a placement constraint for that future
+    // caller, not a TODO for this lane.
 
     // Macros tick first -- they are sources for parameters (s166 spec
     // section 2.2). ctx.macros is caller-supplied (not reached through

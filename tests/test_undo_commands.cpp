@@ -39,9 +39,17 @@ static bool operator==(const ConnSource::Lfo& a, const ConnSource::Lfo& b)
     return a.shape == b.shape && a.cycleBeats == b.cycleBeats
         && a.phaseOffset == b.phaseOffset && a.pulseWidth == b.pulseWidth;
 }
+static bool operator==(const Breakpoint& a, const Breakpoint& b)
+{
+    return a.x == b.x && a.y == b.y && a.interp == b.interp;
+}
+static bool operator==(const AutomationCurve& a, const AutomationCurve& b)
+{
+    return a.pts == b.pts;
+}
 static bool operator==(const ConnSource::Envelope& a, const ConnSource::Envelope& b)
 {
-    return a.points == b.points && a.clock == b.clock && a.cycleBeats == b.cycleBeats;
+    return a.curve == b.curve && a.clock == b.clock && a.cycleBeats == b.cycleBeats;
 }
 static bool operator==(const ConnSource& a, const ConnSource& b)
 {

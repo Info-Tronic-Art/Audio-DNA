@@ -1,7 +1,6 @@
 #pragma once
+#include "connect/AutomationCurve.h"
 #include <string>
-#include <vector>
-#include <utility>
 #include <cstdint>
 #include <cmath>
 
@@ -18,17 +17,20 @@
 // an unconfigured connection behaves exactly as the owner described it).
 struct ConnSource
 {
-    // s167-l2 owner amendment (received after the spec was written): a
-    // recorded, per-control editable performance TIMELINE (Ableton-style)
-    // is being scoped by an architect right now and is plausibly the SAME
-    // object as the hand-drawable Envelope below, or a distinct future
-    // Kind -- undecided as of this lane, and deliberately NOT implemented
-    // here. Nothing in this struct commits either way: Kind is a uint8_t
-    // enum, and ConnSerialization already loads any kind value it does not
-    // recognize as None and reports it (see ConnSerialization::fromVar) --
-    // so adding e.g. `Timeline` to this enum later is a value-space-only
-    // change: no file-format break, no rewrite of this struct or the
-    // shaping pipeline.
+    // A recorded per-control performance take is NOT a connection Kind --
+    // architect ruling, s167-l2 (retracts this lane's original packet,
+    // which asked for a reserved Timeline/Lane seam here). A recorded lane
+    // is a WRITER: it goes through the manual-write/grip path as one more
+    // "hand" on the parameter, exactly like a human or a MIDI knob, because
+    // a connection is exclusive (one owner) while several takes and a hand
+    // can touch one knob in a minute; a lane is silent between gestures
+    // where an owner is a total function; a lane's clock belongs to the
+    // take that triggered it, not to the parameter; and half of all lanes
+    // are buttons (clip hits, deck switches), which are not connectable at
+    // all. No enum value is reserved for it. Forward-compatibility for any
+    // future Kind is already unconditional: kinds serialize as strings, and
+    // ConnSerialization loads any it does not recognize as None and reports
+    // it (see ConnSerialization::fromVar) -- nothing further is needed here.
     enum class Kind : uint8_t { None, Signal, Macro, Lfo, Envelope, ClipPosition };
     Kind kind = Kind::None;
 
@@ -49,9 +51,12 @@ struct ConnSource
 
     struct Envelope
     {
-        // Inline keyframes -- the picker's "Timeline" per the ORIGINAL spec
-        // text (owner D6); see the Kind-level note above re: the amendment.
-        std::vector<std::pair<float, float>> points;  // (position 0..1, value 0..1), sorted by position
+        // The hand-drawable per-control curve (owner D6). AutomationCurve is
+        // the SAME type a future recorded performance take will use to hold
+        // its captured shape (architect ruling, s167-l2: one drawn, one
+        // captured, one struct/evaluator/editor) -- x runs 0..1 over
+        // whichever domain `clock` selects below.
+        AutomationCurve curve;
         enum class Clock : uint8_t { Beats, ClipPosition };
         Clock clock = Clock::Beats;
         float cycleBeats = 4.0f;

@@ -3,6 +3,7 @@
 // tests (a)-(g). No renderer/UI: Composition/Clip/Layer + connect/* only.
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include "connect/AutomationCurve.h"
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
@@ -379,6 +380,117 @@ TEST_CASE("ConnSerialization: round-trips a real connection through toVar/fromVa
     REQUIRE(loaded.shape.loop == false);
     REQUIRE(loaded.shape.curve == 3);
     REQUIRE(loaded.enabled == true);
+}
+
+// ============================================================================
+// AutomationCurve -- the shared curve type behind Envelope (s167-l2, added
+// after a team-lead correction: this is the SAME type a future recorded
+// performance take will use, so its shape is fixed now rather than
+// migrated later).
+// ============================================================================
+
+TEST_CASE("AutomationCurve::eval interpolates Linear/Hold/Smooth segments and clamps outside range", "[connection][automation]")
+{
+    AutomationCurve curve;
+    curve.pts = {
+        { 0.0, 0.0f, Breakpoint::Interp::Linear },
+        { 0.5, 1.0f, Breakpoint::Interp::Hold },
+        { 1.0, 0.0f, Breakpoint::Interp::Linear },
+    };
+
+    REQUIRE(curve.eval(0.0) == Approx(0.0f).margin(0.001f));
+    REQUIRE(curve.eval(0.25) == Approx(0.5f).margin(0.001f));   // linear ramp, first segment
+    REQUIRE(curve.eval(0.5) == Approx(1.0f).margin(0.001f));
+    REQUIRE(curve.eval(0.75) == Approx(1.0f).margin(0.001f));   // held through the Hold segment
+    REQUIRE(curve.eval(1.0) == Approx(0.0f).margin(0.001f));
+    REQUIRE(curve.eval(-1.0) == Approx(0.0f).margin(0.001f));   // clamps below xMin
+    REQUIRE(curve.eval(2.0) == Approx(0.0f).margin(0.001f));    // clamps above xMax
+}
+
+TEST_CASE("AutomationCurve::eval Smooth eases via smoothstep, not linear", "[connection][automation]")
+{
+    AutomationCurve curve;
+    curve.pts = {
+        { 0.0, 0.0f, Breakpoint::Interp::Smooth },
+        { 1.0, 1.0f, Breakpoint::Interp::Linear },
+    };
+    // smoothstep(0.25) = 0.25^2 * (3 - 2*0.25) = 0.15625, well below the
+    // linear 0.25 a plain lerp would give -- proves Smooth is really eased.
+    REQUIRE(curve.eval(0.25) == Approx(0.15625f).margin(0.001f));
+    REQUIRE(curve.eval(0.5) == Approx(0.5f).margin(0.001f));   // smoothstep is symmetric at the midpoint
+}
+
+TEST_CASE("ConnSerialization: Envelope round-trips AutomationCurve breakpoints with interp", "[connection][serialization][automation]")
+{
+    ParamConnection conn;
+    conn.source.kind = ConnSource::Kind::Envelope;
+    conn.source.env.cycleBeats = 8.0f;
+    conn.source.env.clock = ConnSource::Envelope::Clock::ClipPosition;
+    conn.source.env.curve.pts = {
+        { 0.0, 0.0f, Breakpoint::Interp::Linear },
+        { 0.5, 1.0f, Breakpoint::Interp::Hold },
+        { 1.0, 0.2f, Breakpoint::Interp::Smooth },
+    };
+
+    auto v = ConnSerialization::toVar(conn);
+    ParamConnection loaded;
+    ConnSerialization::fromVar(loaded, v);
+
+    REQUIRE(loaded.source.kind == ConnSource::Kind::Envelope);
+    REQUIRE(loaded.source.env.clock == ConnSource::Envelope::Clock::ClipPosition);
+    REQUIRE(loaded.source.env.cycleBeats == Approx(8.0f));
+    REQUIRE(loaded.source.env.curve.pts.size() == 3);
+    REQUIRE(loaded.source.env.curve.pts[0].interp == Breakpoint::Interp::Linear);
+    REQUIRE(loaded.source.env.curve.pts[1].interp == Breakpoint::Interp::Hold);
+    REQUIRE(loaded.source.env.curve.pts[1].x == Approx(0.5));
+    REQUIRE(loaded.source.env.curve.pts[1].y == Approx(1.0f));
+    REQUIRE(loaded.source.env.curve.pts[2].interp == Breakpoint::Interp::Smooth);
+}
+
+TEST_CASE("ConnSerialization: old flat [x,y] pair points load as Interp::Linear", "[connection][serialization][automation]")
+{
+    // Simulates a file written before the Breakpoint/interp change -- a
+    // "points" array of bare [x,y] pairs with no interp field at all.
+    auto* srcObj = new juce::DynamicObject();
+    srcObj->setProperty("kind", "envelope");
+    juce::Array<juce::var> pts;
+    { juce::Array<juce::var> p; p.add(0.0); p.add(0.0); pts.add(p); }
+    { juce::Array<juce::var> p; p.add(1.0); p.add(1.0); pts.add(p); }
+    srcObj->setProperty("points", pts);
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("src", juce::var(srcObj));
+
+    ParamConnection conn;
+    ConnSerialization::fromVar(conn, juce::var(obj));
+
+    REQUIRE(conn.source.kind == ConnSource::Kind::Envelope);
+    REQUIRE(conn.source.env.curve.pts.size() == 2);
+    REQUIRE(conn.source.env.curve.pts[0].interp == Breakpoint::Interp::Linear);
+    REQUIRE(conn.source.env.curve.pts[1].interp == Breakpoint::Interp::Linear);
+    REQUIRE(conn.source.env.curve.pts[1].x == Approx(1.0));
+    REQUIRE(conn.source.env.curve.pts[1].y == Approx(1.0f));
+}
+
+TEST_CASE("ConnectionEngine::evaluate drives an Envelope connection through AutomationCurve", "[connection][engine][automation]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.beatPhase = 0.0f; snap.beatInBar = 2; snap.barCount = 0;   // bn = 2
+
+    ParamConnection conn;
+    conn.source.kind = ConnSource::Kind::Envelope;
+    conn.source.env.clock = ConnSource::Envelope::Clock::Beats;
+    conn.source.env.cycleBeats = 4.0f;   // pos = bn/4 = 0.5
+    conn.source.env.curve.pts = {
+        { 0.0, 0.0f, Breakpoint::Interp::Linear },
+        { 0.5, 1.0f, Breakpoint::Interp::Linear },
+        { 1.0, 0.0f, Breakpoint::Interp::Linear },
+    };
+
+    ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f };
+    float y = ConnectionEngine::evaluate(conn, 0.0f, ctx, nullptr);
+    REQUIRE(y == Approx(1.0f).margin(0.001f));
 }
 
 TEST_CASE("Clip::fromVar loads a clip with no connections at all (old-file shape)", "[connection][serialization]")

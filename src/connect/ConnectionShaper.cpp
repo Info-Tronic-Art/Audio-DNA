@@ -72,28 +72,6 @@ float ConnectionShaper::lfoShapeValue(ConnSource::Lfo::Shape shape, float phase0
     return 0.0f;
 }
 
-float ConnectionShaper::envelopeValue(const std::vector<std::pair<float, float>>& points, float pos01)
-{
-    if (points.empty())
-        return 0.0f;
-    if (pos01 <= points.front().first)
-        return points.front().second;
-    if (pos01 >= points.back().first)
-        return points.back().second;
-
-    for (size_t i = 1; i < points.size(); ++i)
-    {
-        if (pos01 <= points[i].first)
-        {
-            const auto& a = points[i - 1];
-            const auto& b = points[i];
-            float span = b.first - a.first;
-            float t = (span > 1e-8f) ? (pos01 - a.first) / span : 0.0f;
-            return a.second + t * (b.second - a.second);
-        }
-    }
-    return points.back().second;
-}
 
 float ConnectionShaper::shapeValue(const ConnShape& s, float raw01)
 {

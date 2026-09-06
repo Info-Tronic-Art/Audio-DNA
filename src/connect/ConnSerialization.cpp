@@ -59,6 +59,24 @@ namespace
         if (name == "pingPong") return ConnShape::Playback::PingPong;
         return ConnShape::Playback::Forward;
     }
+
+    const char* interpName(Breakpoint::Interp i)
+    {
+        switch (i)
+        {
+            case Breakpoint::Interp::Linear: return "linear";
+            case Breakpoint::Interp::Hold:   return "hold";
+            case Breakpoint::Interp::Smooth: return "smooth";
+        }
+        return "linear";
+    }
+
+    Breakpoint::Interp interpFromName(const juce::String& name)
+    {
+        if (name == "hold")   return Breakpoint::Interp::Hold;
+        if (name == "smooth") return Breakpoint::Interp::Smooth;
+        return Breakpoint::Interp::Linear;
+    }
 }
 
 const char* ConnSerialization::curveName(uint8_t curve)
@@ -106,12 +124,13 @@ juce::var ConnSerialization::toVar(const ParamConnection& c)
                                         ? "beats" : "clipPosition");
             srcObj->setProperty("cycleBeats", static_cast<double>(c.source.env.cycleBeats));
             juce::Array<juce::var> pts;
-            for (const auto& p : c.source.env.points)
+            for (const auto& bp : c.source.env.curve.pts)
             {
-                juce::Array<juce::var> pair;
-                pair.add(static_cast<double>(p.first));
-                pair.add(static_cast<double>(p.second));
-                pts.add(pair);
+                auto* ptObj = new juce::DynamicObject();
+                ptObj->setProperty("x", bp.x);
+                ptObj->setProperty("y", static_cast<double>(bp.y));
+                ptObj->setProperty("interp", interpName(bp.interp));
+                pts.add(juce::var(ptObj));
             }
             srcObj->setProperty("points", pts);
             break;
@@ -187,16 +206,30 @@ void ConnSerialization::fromVar(ParamConnection& c, const juce::var& v, int* unk
                 ? ConnSource::Envelope::Clock::ClipPosition : ConnSource::Envelope::Clock::Beats;
             if (srcObj->hasProperty("cycleBeats"))
                 c.source.env.cycleBeats = static_cast<float>(static_cast<double>(srcObj->getProperty("cycleBeats")));
-            c.source.env.points.clear();
+            c.source.env.curve.pts.clear();
             if (auto* pts = srcObj->getProperty("points").getArray())
             {
                 for (const auto& pv : *pts)
                 {
-                    if (auto* pair = pv.getArray(); pair != nullptr && pair->size() >= 2)
+                    if (auto* ptObj = pv.getDynamicObject())
                     {
-                        c.source.env.points.emplace_back(
-                            static_cast<float>(static_cast<double>((*pair)[0])),
-                            static_cast<float>(static_cast<double>((*pair)[1])));
+                        // Current form: {"x":..,"y":..,"interp":".."}.
+                        Breakpoint bp;
+                        bp.x = static_cast<double>(ptObj->getProperty("x"));
+                        bp.y = static_cast<float>(static_cast<double>(ptObj->getProperty("y")));
+                        bp.interp = interpFromName(ptObj->getProperty("interp").toString());
+                        c.source.env.curve.pts.push_back(bp);
+                    }
+                    else if (auto* pair = pv.getArray(); pair != nullptr && pair->size() >= 2)
+                    {
+                        // Old flat [x,y] pair form (pre-Breakpoint) -- loads
+                        // as Interp::Linear, matching what that shape always
+                        // meant (s167-l2 team-lead correction).
+                        Breakpoint bp;
+                        bp.x = static_cast<double>((*pair)[0]);
+                        bp.y = static_cast<float>(static_cast<double>((*pair)[1]));
+                        bp.interp = Breakpoint::Interp::Linear;
+                        c.source.env.curve.pts.push_back(bp);
                     }
                 }
             }
