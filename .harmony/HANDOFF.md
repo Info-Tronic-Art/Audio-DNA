@@ -2239,3 +2239,116 @@ generalise beyond this repo.
 unpushed commits should be **0**; if it is not, push. No Vercel, no deploy: this is a native
 macOS app.
 
+
+---
+
+# >>> SESSION s167 (2026-09-05, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+The connection engine trunk landed, three dead knobs started rendering, the "everything freezes
+between tracks" complaint was root-caused in TWO independent places and both are fixed and proven
+live, and **Boris redefined what a recording is** — read the rulings before planning anything.
+
+## >>> READ `.harmony/binding-decisions.md` s167 SECTIONS FIRST — 23 RULINGS, SPOKEN DIRECTLY <<<
+He answered every open question and volunteered scope that changes the product. The three that
+reach code:
+1. **A recording is a set of PER-CONTROL TIMELINES, Ableton-style** — every slider and button gets
+   its own editable lane. Not an event log with an editor bolted on.
+2. **EDITING IS DRAWING, NOT DRAGGING.** His words, and better than the design I offered him:
+   draw the shape over the lane, grid-snap or freehand by toggle, selection slides left/right on
+   the grid. The user never handles individual points. Only CHANGES are recorded — a knob parked
+   at 100 records the move and then nothing.
+3. **ROUTINES ARE A KIND OF SIGNAL** — slice a piece of a performance, save it, fire it again,
+   with loop/once as ordinary controls. He wants one mental model: audio bands, oscillators and
+   routines are all things that drive other things.
+   **A tension is recorded, not resolved by fiat:** an architect refuted this at the OWNERSHIP
+   level (a connection exclusively owns one parameter; a routine spans many, stacks, is silent
+   between gestures, and includes buttons that are not connectable). Adopted resolution: his model
+   is right about presentation, the refutation about mechanism. Do not re-litigate without reading
+   §9 of the spec.
+
+## THE DESIGN EXISTS — `.harmony/specs/s167-performance-log-and-routines.md` (1111 lines)
+Fable-authored, revision 2, with a §9 addendum. Timebase, addressing, slicing, editability,
+the audio tap and its sync test, versioning, and a NOW/LATER cut. **Do not re-plan. Execute.**
+Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-ask him.
+
+## WHAT SHIPPED — every lane independently reviewed or measured, none self-verified
+- **Lane 2, the connection model + engine** (`d8562d8` + `8469248`). One connection owns one
+  parameter; grip and hand-back live in the MODEL so MIDI/OSC/HTTP inherit them and none of it
+  dies with the UI rewrite. `AutomationCurve` with per-point interpolation replaced Envelope's
+  bare pair-vector — the one change that would have become a format break later.
+- **The renderer lane** (`3e19504`/`7401c56`/`f946c91`/`da2d881`). master × layer × clip opacity
+  now actually render, master applies before Syphon and the video recorder so it dims what leaves
+  the app, and masterSpeed deliberately does NOT scale BPM-synced clips.
+- **`e2cbcbe` clipOpacity dimmed to 89% when set to 50%** — found by measuring luminance, fixed,
+  re-measured at 0.521 against master's 0.521.
+- **`547969a` video played at the wrong SPEED, tied to frame rate.** Half speed at 30 fps, nearly
+  double at 118. Sat underneath the masterSpeed work and would have compounded with it silently.
+- **`e437872` + `ab7ad06` + `1e79092` the freeze, both halves.** Counters now advance from the
+  predicted beat in silence/manual, AND the structural phrase reset that was zeroing them again is
+  gated. The detector's near-zero guard was 1e-8 RMS (-160 dBFS) against a room floor of -45 dB.
+- **`0aeb147` POST /api/load_composition** — the missing mechanism that made the deck path testable
+  at all.
+
+## VERIFICATION — WHAT IS PROVEN, AND HOW
+- **ctest 283/283** on a build that exited 0 (247 at the start of this session's work).
+- **`.harmony/probe-deck-path.sh` — 13 PASS / 0 FAIL.** Proves global effects composite on the
+  deck path (Invert changes the frame, removing it restores it byte-for-byte), render_frame is a
+  deterministic oracle, and all three opacity levels dim to within 0.06 of half at 0.5. It
+  measures LIGHT, not just "something changed" — which is the only reason the 89% bug was caught.
+- **`.harmony/probe-tempo-silence.sh` — 5 PASS / 0 FAIL.** A tapped tempo takes effect with no
+  audio and the bars keep advancing. Separately measured: 10 bars in exactly 20 s at 120 BPM.
+- **The phrase-reset fix, before/after:** structural state flipped 3, 2 and 10 times in three
+  silent runs before; **0 flips** in two runs after, with barCount monotonic across both.
+- Both probes launch the real app and prove their own screen safety: graceful AppleScript quit,
+  never pkill, zero windows in the FULL CGWindowList, verified.
+
+## NOT VERIFIED — say so, do not quote these as done
+- **Nothing behavioural was run for Lane 2.** It is headless model code with 105 assertions, but
+  no live app exercised a connection end to end, because Lane 3 (the UI/instrumentation lane that
+  would drive one) was not built.
+- The clipOpacity fix is proven on the ACTIVE deck path only. `compositePersistentLayers` never
+  calls `applyClipTransform` at all, so clip opacity — and apparently layer opacity too — does not
+  reach persistent layers pulled in from other decks. Pre-existing, filed, unfixed.
+
+## NEXT SESSION — START HERE
+1. **The crossfade `(1.0f/60.0f)/speed` step** — the last instance of the frame-rate bug shape.
+   A dispatch was in flight when this session ended; **check `git log` for it before rebuilding
+   it.** Real dt is already threaded to that function, so it is close to a one-liner.
+2. **Lane 3** — bind the connection engine to something that drives it, and retire the old
+   modulation path in the fixed order the architecture doc names. Lane 2's prerequisites are done.
+   **R8, ruled: the CONNECTION lane owns `manualWrite`; the recorder lane hooks it, never defines
+   it.** Name that in both packets.
+3. **The recorder core**, per the s167 spec's NOW list — lanes as the on-disk form, the audio tap
+   as a second fan-out in the device callback (the existing ring buffer is single-consumer AND
+   drops silently), and the T1 sync ctest with its stated tolerances.
+4. **The design question that outlives the freeze fix:** even fully fixed, a REAL drop mid-track
+   still yanks an 8-beat shape backwards, because phrase resets reach oscillator phase at all.
+   `OscillatorSignal.h`'s own comment already asks this. Likely right answer: oscillator phase runs
+   off a monotonic beat counter that structural events never touch.
+
+## STILL OPEN FOR BORIS — product calls, not technical ones
+1. **The output window renders nothing of the composition.** He ruled "fix it later, engine first",
+   so this is ACCEPTED, not forgotten. It is still true and still means a projector sees almost
+   nothing of what he builds.
+2. **R13, latent not live:** analysis hard-codes 48 kHz with no resampling, so BPM reads 8.8% wrong
+   on a 44.1 kHz device. MEASURED: his Mac reports 48000 everywhere, so he is safe TODAY. It goes
+   live the moment a 44.1 kHz interface or mixer is plugged in.
+
+## RIG FACTS — do not re-derive these, each cost a run
+- **`--test-mode` NEVER STARTS THE ANALYSIS THREAD.** `/api/bpm` reads a FeatureBus that only the
+  TestServer writes in test mode, so it reports zeros forever no matter what the tracker does.
+  **Anything about BPM, beats or bars MUST be tested in PRODUCTION mode** (port 7070 exists there;
+  8080 does not). This cost a full gate run and produced a false "tap tempo is broken" scare.
+- `render_frame` lives on **7070** and REQUIRES `{"output_path": ...}`. It is deterministic and
+  repeatable on state + injected audio LEVELS, and **BLIND to wall-clock time** — two captures four
+  seconds apart of a live procedural source are byte-identical. **You cannot render-diff anything
+  time-based.** A "the frame stopped changing" result is meaningless when it was never changing.
+- `set_clip_opacity`'s field is `clipOpacity`, not `opacity`.
+- **A composition file's OMITTED fields load as FALSY** — omit masterOpacity and it loads as 0.0,
+  omit a layer's `visible` and it loads false. Write them explicitly in every fixture.
+- Probe with `Invert`/`Vignette`/`Thermal` only. A warp effect can be invisible while working.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM (stated after committing this file)
+`ctest` **283/283** on a build that exited 0. Deck probe **13/13**, tempo probe **5/5**.
+Everything is **PUSHED**; unpushed should be **0**.
