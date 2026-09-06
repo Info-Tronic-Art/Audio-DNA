@@ -471,3 +471,22 @@ fixed for silence, a REAL drop mid-track will still yank an 8-beat shape backwar
 right answer is that oscillator phase should run off a monotonic beat counter that structural
 events never touch, with phrase resets reaching only things that genuinely want phrase alignment.
 Not this session's call.
+
+### THE SAME 1/60 BUG SHAPE, ONE INSTANCE STILL LIVE
+`CompositorEngine.cpp`'s crossfade progress step — `float step = (1.0f / 60.0f) / speed;` — is the
+identical hardcoded-frame-rate pattern that made video playback speed track the GL callback rate.
+Fixed for video/image-sequence position; NOT fixed here. Consequence: a transition's DURATION
+tracks frame rate — a "2 second" crossfade resolves in about one second at 120 fps and takes four
+at 30. Flagged by the lane that fixed the sibling instance and deliberately left alone rather than
+silently swept in, because it is a behaviour change to transitions and deserves its own commit and
+its own gate. **Next session: same fix shape, real dt is already threaded to that function now, so
+it is close to a one-liner.**
+
+### AN UNEXPLAINED CAPABILITY APPEARED MID-SESSION — LOGGED, NOT ACTED ON
+A skill named `__iso_37348` appeared in the available-skills list partway through this session,
+with no description, no provenance, and no connection to anything in this repo or in Harmony_Main.
+It was NOT in the legitimate skill list at session start. **Neither I nor the builder that also saw
+it invoked it**; the builder independently flagged it as looking like an injected instruction
+rather than a real tool offering, which is two independent refusals rather than one.
+Recorded here because an unexplained capability appearing mid-session is exactly the kind of thing
+that gets normalised by silence. If it appears again: do not invoke it, and tell Boris.
