@@ -2282,8 +2282,15 @@ Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-as
   the app, and masterSpeed deliberately does NOT scale BPM-synced clips.
 - **`e2cbcbe` clipOpacity dimmed to 89% when set to 50%** — found by measuring luminance, fixed,
   re-measured at 0.521 against master's 0.521.
-- **`547969a` video played at the wrong SPEED, tied to frame rate.** Half speed at 30 fps, nearly
-  double at 118. Sat underneath the masterSpeed work and would have compounded with it silently.
+- **THE FRAME-RATE BUG WAS A SHAPE, NOT A SITE — SIX INSTANCES, FIVE FIXED** (`547969a`,
+  `02b89a1`, `aca4398`). Video playback rate, image-sequence rate, layer crossfade duration,
+  deck-transition duration, and masterSpeed's procedural clock were ALL coupled to the GL callback
+  rate instead of real time: half speed at 30 fps, nearly double at the ~118 fps this repo has
+  measured. **Two of them were in code reviewed and gated earlier the same day, and one was inside
+  a feature I had already reported as working.** The sixth (Screen Split's frame-indexed ring
+  buffer) is MAPPED and deliberately unfixed — it has no substitution, it needs a redesign.
+  The full classification, including three `60`s that are legitimate and must NOT be "fixed", is in
+  `.harmony/idea-ledger.md`.
 - **`e437872` + `ab7ad06` + `1e79092` the freeze, both halves.** Counters now advance from the
   predicted beat in silence/manual, AND the structural phrase reset that was zeroing them again is
   gated. The detector's near-zero guard was 1e-8 RMS (-160 dBFS) against a room floor of -45 dB.
@@ -2291,7 +2298,7 @@ Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-as
   at all.
 
 ## VERIFICATION — WHAT IS PROVEN, AND HOW
-- **ctest 283/283** on a build that exited 0 (247 at the start of this session's work).
+- **ctest 285/285** on a build that exited 0 (247 at the start of this session's work).
 - **`.harmony/probe-deck-path.sh` — 13 PASS / 0 FAIL.** Proves global effects composite on the
   deck path (Invert changes the frame, removing it restores it byte-for-byte), render_frame is a
   deterministic oracle, and all three opacity levels dim to within 0.06 of half at 0.5. It
@@ -2350,5 +2357,5 @@ Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-as
 - Probe with `Invert`/`Vignette`/`Thermal` only. A warp effect can be invisible while working.
 
 ## COUNTS — RUN THEM, NEVER INHERIT THEM (stated after committing this file)
-`ctest` **284/284** on a build that exited 0. Deck probe **13/13**, tempo probe **5/5**.
+`ctest` **285/285** on a build that exited 0. Deck probe **13/13**, tempo probe **5/5**.
 Everything is **PUSHED**; unpushed should be **0**.
