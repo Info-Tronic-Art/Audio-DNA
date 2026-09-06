@@ -1,6 +1,27 @@
 #include "recording/AudioTap.h"
 #include <algorithm>
 #include <cstring>
+#include <thread>
+
+namespace
+{
+    // Sets `flag` true for the lifetime of the guard, false on every exit
+    // path (RAII -- push() has several early returns) -- see
+    // audioThreadBusy_'s own comment in AudioTap.h and stopInternal() below
+    // for the race this closes. seq_cst on both sides: this runs at most
+    // once per audio block, the cost is one uncontended store either way,
+    // and seq_cst removes any doubt about the ordering against
+    // stopInternal()'s acquire load without having to reason about a
+    // weaker pairing.
+    struct ScopedBusyFlag
+    {
+        std::atomic<bool>& flag;
+        explicit ScopedBusyFlag(std::atomic<bool>& f) : flag(f) { flag.store(true, std::memory_order_seq_cst); }
+        ~ScopedBusyFlag() { flag.store(false, std::memory_order_seq_cst); }
+        ScopedBusyFlag(const ScopedBusyFlag&) = delete;
+        ScopedBusyFlag& operator=(const ScopedBusyFlag&) = delete;
+    };
+}
 
 AudioTap::AudioTap() {}
 
@@ -112,6 +133,7 @@ bool AudioTap::start(const juce::File& wavFile)
     framesWritten_.store(0, std::memory_order_relaxed);
     gapDetectionSupported_.store(true, std::memory_order_relaxed);
     pendingFrames_ = 0;
+    silenceDebtFrames_ = 0;
     haveLastHostTime_ = false;
 
     // Release-paired with push()'s armed_.exchange(acquire): everything
@@ -125,6 +147,28 @@ uint32_t AudioTap::push(const float* const* ch, int chans, int numSamples,
                           uint64_t deliveredBefore,
                           const juce::AudioIODeviceCallbackContext& context)
 {
+    // s168 review fix (stop()/push() UAF race): busy for the whole call, on
+    // every return path (RAII) -- see audioThreadBusy_'s comment in
+    // AudioTap.h and stopInternal() below. Wait-free (a store on entry, a
+    // store on exit, no CAS/loop/lock): the ONLY thing this adds to the
+    // audio-thread path is two uncontended atomic stores.
+    ScopedBusyFlag busy(audioThreadBusy_);
+
+#if defined(AUDIODNA_AUDIOTAP_TEST_HOOKS)
+    // TEST ONLY -- see debugArmPushBlockForTest() in AudioTap.h. Deliberately
+    // placed right after the busy guard above (not before it): this is the
+    // exact "in flight, busy == true" window stopInternal()'s wait loop is
+    // built to wait out.
+    if (debugBlockPushForTest_.exchange(false, std::memory_order_acq_rel))
+    {
+        debugPushIsBlockedForTest_.store(true, std::memory_order_release);
+        while (!debugReleasePushForTest_.load(std::memory_order_acquire))
+            std::this_thread::yield();
+        debugPushIsBlockedForTest_.store(false, std::memory_order_relaxed);
+        debugReleasePushForTest_.store(false, std::memory_order_relaxed);
+    }
+#endif
+
     // Unconditional RMW (cheap, uncontended, no lock) rather than a relaxed
     // peek-then-exchange -- a relaxed peek could miss a same-instant
     // release-store from start() on the message thread and silently skip
@@ -184,10 +228,14 @@ void AudioTap::writeFrames(const float* const* ch, int chans, int numSamples)
         return;
     }
 
-    // Defensive, not expected in practice (see header/report ASSUMPTION):
-    // fewer channels than the writer was created with. Pad the missing
+    // Fewer channels than the writer was created with -- pad the missing
     // trailing channels with silence via a scratch array pre-sized in
-    // prepare() -- no allocation on the audio thread.
+    // prepare() (no allocation on the audio thread). channels_ > 0 is
+    // guaranteed here (checked above), so chans == 0 always lands here too:
+    // this is the deliberate path for "no analyzable buffer this block"
+    // (ch == nullptr, chans == 0, s168 review's "listened == nullptr"
+    // case, CombinedCallback.h) -- the loop below is simply empty when
+    // chans == 0, so ch is never dereferenced.
     for (int c = 0; c < chans; ++c)
         scratchChannelPtrs_[static_cast<size_t>(c)] = ch[c];
     for (int c = chans; c < channels_; ++c)
@@ -216,15 +264,24 @@ void AudioTap::writeBlockRetrying(const float* const* data, int numSamples)
     if (pendingFrames_ > 0)
         flushPendingNonBlocking();
 
-    if (pendingFrames_ == 0)
+    // s168 review fix: pay down any outstanding "must become silence" debt
+    // (spillIntoPending's genuine-overrun branch, below) BEFORE this call's
+    // data is considered -- the debt is strictly older (the tail of an
+    // earlier block that could not be buffered) than whatever this call is
+    // about to do.
+    if (silenceDebtFrames_ > 0)
+        queueSilenceDebt();
+
+    if (pendingFrames_ == 0 && silenceDebtFrames_ == 0)
     {
         if (tryRealWrite(data, numSamples))
             return;
     }
 
-    // Either older pending data still hasn't drained (must preserve
-    // frame order -- cannot let this block's data overtake it), or the
-    // direct write just failed/was forced to fail: spill the whole block.
+    // Either older pending data (or unpaid silence debt) still hasn't
+    // drained -- must preserve frame order -- cannot let this block's data
+    // overtake it -- or the direct write just failed/was forced to fail:
+    // spill the whole block.
     spillIntoPending(data, numSamples);
 }
 
@@ -234,6 +291,28 @@ void AudioTap::flushPendingNonBlocking()
     if (tryRealWrite(pendingChannelPtrs_.data(), pendingFrames_))
         pendingFrames_ = 0;
     // else: leave it queued -- the next push() call retries.
+}
+
+void AudioTap::queueSilenceDebt()
+{
+    // Writes as much of the outstanding silence debt as currently fits into
+    // pendingStorage_, in maxBlock_-sized chunks (silenceStorage_ is only
+    // ever sized to maxBlock_ per channel -- see prepare()). Audio-thread,
+    // RT-safe: a bounded number of memcpys into fixed-capacity storage,
+    // same as spillIntoPending itself; no allocation.
+    while (silenceDebtFrames_ > 0)
+    {
+        const int freeCapacity = pendingCapacityFrames_ - pendingFrames_;
+        if (freeCapacity <= 0) break;   // no room yet -- next call retries
+
+        const int chunk = std::min({ silenceDebtFrames_, freeCapacity, maxBlock_ });
+        for (int c = 0; c < channels_; ++c)
+            std::memcpy(pendingStorage_[static_cast<size_t>(c)].data() + pendingFrames_,
+                        silenceStorage_[static_cast<size_t>(c)].data(),
+                        static_cast<size_t>(chunk) * sizeof(float));
+        pendingFrames_ += chunk;
+        silenceDebtFrames_ -= chunk;
+    }
 }
 
 void AudioTap::spillIntoPending(const float* const* data, int numSamples)
@@ -251,14 +330,20 @@ void AudioTap::spillIntoPending(const float* const* data, int numSamples)
     if (accepted < numSamples)
     {
         // D10.1's FIFO-overrun path: the stall outlasted even this tap's
-        // own retry headroom (untested by T1 -- its forced-failure window
-        // is deliberately shorter than pendingCapacityFrames_). The
-        // frame-count invariant (framesWritten_ == deliveredSamples -
-        // firstSample) was already preserved by the caller incrementing
-        // framesWritten_ before this call; what's lost here is CONTENT,
-        // counted and flagged rather than silently dropped.
+        // own retry headroom (T1's forced-failure window is deliberately
+        // shorter than pendingCapacityFrames_; the genuine-overrun test
+        // drives a longer one). The frame-count invariant (framesWritten_
+        // == deliveredSamples - firstSample) is preserved NOT by writing
+        // this content -- it is genuinely, unrecoverably lost; there is no
+        // room -- but by recording a debt of that many SILENCE frames in
+        // silenceDebtFrames_, which queueSilenceDebt() (writeBlockRetrying,
+        // above) writes into this same buffer, in order, ahead of any
+        // later block's real data, the moment room exists again (and which
+        // stopInternal() also drains directly if stop() lands mid-overrun).
+        // Content is lost; the frame count and the take's timeline are not.
         const uint32_t lost = static_cast<uint32_t>(numSamples - accepted);
         droppedFrames_.fetch_add(lost, std::memory_order_relaxed);
+        silenceDebtFrames_ += static_cast<int>(lost);
         if (!hasUnreliableFrom_.exchange(true, std::memory_order_relaxed))
         {
             const uint64_t framesBeforeThisBlock =
@@ -279,7 +364,13 @@ bool AudioTap::tryRealWrite(const float* const* data, int numSamples)
         return false;
     }
 #endif
-    auto* w = activeWriter_.load(std::memory_order_relaxed);
+    // seq_cst, paired with stopInternal()'s seq_cst null-store: together
+    // with audioThreadBusy_ (also seq_cst), this guarantees any push() call
+    // that could still observe a non-null activeWriter_ after
+    // stopInternal() has nulled it has already finished doing so (and
+    // therefore any call into w->write() below) before stopInternal()
+    // destroys the writer -- see stopInternal()'s own comment.
+    auto* w = activeWriter_.load(std::memory_order_seq_cst);
     return w != nullptr && w->write(data, numSamples);
 }
 
@@ -323,20 +414,32 @@ void AudioTap::stop()
 
 void AudioTap::stopInternal()
 {
-    // Null this FIRST so any push() call that loads it fresh sees the tap
-    // as unwritable before the writer is torn down.
+    // Null this FIRST (seq_cst -- see tryRealWrite()'s matching load) so
+    // any push() call that loads it fresh sees the tap as unwritable before
+    // the writer is torn down below.
+    activeWriter_.store(nullptr, std::memory_order_seq_cst);
+
+    // s168 review fix (stop()/push() UAF race): wait out a push() call that
+    // may ALREADY be inside tryRealWrite()/w->write() at this exact
+    // instant, holding a copy of the (now stale) OLD non-null pointer read
+    // before the store above took effect. Without this wait,
+    // threadedWriter_.reset() below could destroy the ThreadedWriter out
+    // from under a write() call still running on the real audio thread --
+    // the exact race the s168 review flagged.
     //
-    // KNOWN LIMITATION (see builder report RISKS): this does not by itself
-    // make stop() safe to call concurrently with an in-flight push() on
-    // another (the real audio) thread -- a push() that already loaded a
-    // non-null activeWriter_ before this store could still be inside
-    // ThreadedWriter::write() while the destructor below runs. T1 never
-    // exercises this (its single-threaded FakeDevice harness never calls
-    // stop() concurrently with push()); step 3's caller is ASSUMED to
-    // serialize AudioTap::stop() against the audio thread the same way
-    // AudioEngine::stop()/loadFile() already lean on AudioTransportSource's
-    // own internal locking for the equivalent transport-swap race.
-    activeWriter_.store(nullptr, std::memory_order_release);
+    // Unbounded on purpose, not a defended-against hang: push()'s entire
+    // call graph is RT-safe by construction -- no lock, no allocation, no
+    // blocking I/O, only a bounded number of memcpys into fixed-capacity
+    // storage sized once in prepare() (see the class-level threading
+    // contract and every push()-reachable function's own comment) -- so
+    // this flag is provably cleared again within one push() call's bounded
+    // duration. Blocking here is explicitly fine per this class's own
+    // threading contract (stop() runs on the message thread, off the audio
+    // thread); the audio thread itself never waits on anything in return --
+    // it only ever performs the wait-free store/load pair in
+    // ScopedBusyFlag (AudioTap.cpp, anonymous namespace).
+    while (audioThreadBusy_.load(std::memory_order_seq_cst))
+        std::this_thread::yield();
 
     if (threadedWriter_)
     {
@@ -349,6 +452,21 @@ void AudioTap::stopInternal()
             else
                 break;   // the real writer's own FIFO is still full -- give up rather than spin forever
         }
+
+        // s168 review fix (spillIntoPending's genuine-overrun branch, D10.1's
+        // FIFO-overrun bullet): any outstanding "must still become silence"
+        // debt that hadn't drained yet must still land in the file now, or
+        // the WAV would end short of deliveredSamples_ - firstSample_ even
+        // though droppedFrames_/unreliableFrom() already explain why.
+        while (silenceDebtFrames_ > 0)
+        {
+            const int chunk = std::min(silenceDebtFrames_, maxBlock_);
+            if (threadedWriter_->write(silenceChannelPtrs_.data(), chunk))
+                silenceDebtFrames_ -= chunk;
+            else
+                break;   // still stalled -- give up rather than spin forever; droppedFrames_ already says why
+        }
+
         threadedWriter_.reset();   // destructor flushes to disk (blocking, message thread -- fine)
     }
 

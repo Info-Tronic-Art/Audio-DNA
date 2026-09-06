@@ -5,6 +5,7 @@
 #include <atomic>
 #include <cstdint>
 #include <optional>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -82,15 +83,24 @@ public:
     // (D10.1: "deliveredSamples_ advances by the same amount"). Returns 0,
     // touching nothing else, when the tap is neither armed nor running --
     // CombinedCallback calls this unconditionally every block, the same
-    // way it always feeds the analysis callback.
+    // way it always feeds the analysis callback -- INCLUDING a block where
+    // there is nothing to analyze this callback (`ch == nullptr`,
+    // `chans == 0`, e.g. mic mode with no input channels open):
+    // writeFrames' pad-with-silence path (see scratchChannelPtrs_ below)
+    // turns that into a full block of silence, so framesWritten_ still
+    // advances in lockstep with the caller's own counter. Do not gate this
+    // call on `ch`/`chans` being valid -- that is exactly the s168 review's
+    // "listened == nullptr" desync (CombinedCallback.h).
     uint32_t push(const float* const* ch, int chans, int numSamples,
                   uint64_t deliveredBefore,
                   const juce::AudioIODeviceCallbackContext& context);
 
-    // Message thread. Synchronously drains any still-pending (retried)
-    // frames into the real writer, then destroys it (ThreadedWriter's
-    // destructor blocks until its own FIFO is flushed to disk -- fine here,
-    // off the audio thread) and disarms.
+    // Message thread. Synchronously waits out any push() call already in
+    // flight on the audio thread (see audioThreadBusy_ below), drains any
+    // still-pending (retried) frames and any still-outstanding silence
+    // debt (D10.1's FIFO-overrun bullet) into the real writer, then
+    // destroys it (ThreadedWriter's destructor blocks until its own FIFO
+    // is flushed to disk -- fine here, off the audio thread) and disarms.
     void stop();
 
     uint64_t firstSample() const noexcept { return firstSample_.load(std::memory_order_relaxed); }
@@ -132,6 +142,29 @@ public:
     // duration from a unit test would be a real-time race. See the builder
     // report's "HOW T1 SIMULATES ... THE STALL" section.
     void debugForceNextWritesToFail(int n) { forcedFailuresRemaining_ = n; }
+
+    // TEST ONLY -- lets a test deterministically hold a push() call "in
+    // flight" (busy-guarded, mid-call) on a background thread while another
+    // thread calls stop(), instead of depending on real audio-thread timing
+    // (which cannot be made deterministic). debugArmPushBlockForTest() arms
+    // a one-shot pause point inside the NEXT push() call; that call spins
+    // (audio-thread side, no lock) until debugReleaseBlockedPush() is
+    // called; debugWaitUntilPushBlocked() lets the controlling thread block
+    // (test-thread side, blocking is fine) until the pause point is
+    // reached, bounded so a broken test can never hang the suite. Never
+    // compiled into the app target.
+    void debugArmPushBlockForTest() { debugBlockPushForTest_.store(true, std::memory_order_release); }
+    void debugReleaseBlockedPush() { debugReleasePushForTest_.store(true, std::memory_order_release); }
+    bool debugWaitUntilPushBlocked(int maxSpins = 2'000'000)
+    {
+        for (int i = 0; i < maxSpins; ++i)
+        {
+            if (debugPushIsBlockedForTest_.load(std::memory_order_acquire))
+                return true;
+            std::this_thread::yield();
+        }
+        return false;
+    }
 #endif
 
 private:
@@ -139,6 +172,7 @@ private:
     void writeSilenceFrames(uint32_t numFrames);
     void writeBlockRetrying(const float* const* data, int numSamples);
     void flushPendingNonBlocking();
+    void queueSilenceDebt();
     void spillIntoPending(const float* const* data, int numSamples);
     bool tryRealWrite(const float* const* data, int numSamples);
     void pushGapMarker(uint64_t sample, uint32_t n);
@@ -162,6 +196,17 @@ private:
     std::atomic<bool> hasUnreliableFrom_{ false };
     std::atomic<uint64_t> unreliableFromSample_{ 0 };
 
+    // s168 review fix: set for the duration of every push() call (wait-free
+    // store/load, no lock -- see push()'s own comment), cleared on every
+    // return path via ScopedBusyFlag (AudioTap.cpp, anonymous namespace).
+    // stopInternal() spins on this (message thread; blocking there is
+    // explicitly fine per this class's threading contract) after nulling
+    // activeWriter_ and before destroying threadedWriter_, so a push() call
+    // that already read the old (non-null) activeWriter_ before the null
+    // store always finishes calling into the writer BEFORE the writer is
+    // destroyed. Closes the stop()/push() UAF race the s168 review flagged.
+    std::atomic<bool> audioThreadBusy_{ false };
+
     // Audio-thread-only (single producer -- CombinedCallback calls push()
     // from one thread only, so these need no atomics of their own).
     bool haveLastHostTime_ = false;
@@ -178,19 +223,40 @@ private:
     int pendingCapacityFrames_ = 0;
     int pendingFrames_ = 0;   // frames currently held, oldest-first
 
+    // s168 review fix (spillIntoPending's genuine-overrun branch, D10.1's
+    // FIFO-overrun bullet): frames that were genuinely lost because
+    // pendingStorage_ was already full, still owed to the file as SILENCE
+    // so framesWritten_ never runs ahead of what actually reaches the WAV.
+    // Audio-thread-only, same rationale as pendingFrames_ above; paid down
+    // by queueSilenceDebt() the moment pendingStorage_ has room again,
+    // strictly BEFORE any later block's real data (it represents the tail
+    // of an earlier, already-queued block). stopInternal() also drains it
+    // directly if stop() lands mid-overrun.
+    int silenceDebtFrames_ = 0;
+
     // All-zero scratch buffer for gap-fill (never written to after
     // prepare() -- always zero, so no need to re-zero per gap).
     std::vector<std::vector<float>> silenceStorage_;
     std::vector<const float*> silenceChannelPtrs_;
 
     // Pre-sized (prepare()) scratch for the defensive chans < channels_
-    // pad-with-silence path in writeFrames() -- never expected to fire in
-    // practice (ASSUMPTION: CombinedCallback keeps chans == channels_), but
-    // must not allocate on the audio thread if it ever does.
+    // pad-with-silence path in writeFrames(). Fires whenever a block's real
+    // chans disagrees with channels_ -- in practice that is exactly the
+    // s168 review's "listened == nullptr" case (CombinedCallback.h calls
+    // push() unconditionally, chans == 0), which this path turns into a
+    // full block of silence rather than the ASSUMPTION (CombinedCallback
+    // keeps chans == channels_) failing silently. Must not allocate on the
+    // audio thread.
     std::vector<const float*> scratchChannelPtrs_;
 
 #if defined(AUDIODNA_AUDIOTAP_TEST_HOOKS)
     int forcedFailuresRemaining_ = 0;
+
+    // TEST ONLY -- see debugArmPushBlockForTest()/debugReleaseBlockedPush()/
+    // debugWaitUntilPushBlocked() above.
+    std::atomic<bool> debugBlockPushForTest_{ false };
+    std::atomic<bool> debugPushIsBlockedForTest_{ false };
+    std::atomic<bool> debugReleasePushForTest_{ false };
 #endif
 
     juce::AbstractFifo gapFifo_{ 64 };

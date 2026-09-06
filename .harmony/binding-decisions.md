@@ -413,3 +413,54 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
     (lanes, take format, audio tap, T1 sync test, player, RecordPanel, REST) is the priority;
     the offline video render (`L-D`) stays LATER. Do not trade budget from the log core to the
     video path. Recording performances is APPROVED without further gating.
+
+### 2026-09-06 (s168) — THREE ANSWERS, SPOKEN DIRECTLY
+
+25. **DROP vs OSCILLATOR PHASE: MAKE IT A SWITCH.** Verbatim: "switch". Asked whether a
+    structural drop should restart oscillator shapes or let them flow through, he ruled the
+    MECHANISM rather than the taste: both behaviours exist and the user chooses.
+    CONFIRMS what was built this session — `resetPhaseOnStructural`, per-oscillator, DEFAULT
+    FALSE (flow through the drop). The switch is the answer; do not remove either branch, and do
+    not quietly pick one at some later refactor. When the UI is rebuilt this needs to be a real,
+    visible control, not a runtime-only flag.
+
+26. **A ROUTINE RESTORES THE STATE IT WAS RECORDED IN.** Verbatim: "restore". Firing a saved
+    routine first puts the layers and knobs it uses back the way they were at record time, then
+    plays. Per the recommendation he accepted, a per-routine "start from now" switch remains,
+    for routines meant to layer on top of whatever is live. Restore is the DEFAULT.
+
+27. **A ROUTINE STARTS ON THE NEXT BAR.** Verbatim: "bar". Not the next beat. Per-routine
+    override stays available, and the global Quantize setting overrides when it is on —
+    consistent with how a quantized clip trigger already behaves.
+
+28. **>>> THE AUDIO IS THE ANCHOR, AND MANY TAKES SHARE ONE AUDIO. <<<** Verbatim: "2-4 hours.
+    We need to be able to use the recorded audio (lets say from a first show of a tour) to go
+    through all the slider recordings and clean them up. Does that make sense? The first take will
+    never be perfect, but we could reuse the same audio that's locked to the files so the user can
+    redo it. This can be for a whole DJ set which could be a few hours, down to a song which will
+    just be between 3 to 10 minutes." And: "we can have multiple slider recordings per audio as
+    the logs are low memory usage."
+    THIS IS A WORKFLOW STATEMENT, NOT A SIZE ANSWER, and it reshapes the on-disk model:
+    - **Duration envelope: 3-10 minutes (one song) to 2-4 hours (a full set).** Design for four
+      hours, not for a demo clip.
+    - **The captured audio is a FIRST-CLASS, SHARED, REUSABLE ASSET.** One night's audio is
+      recorded once and then performed against repeatedly — record the show, then rehearse and
+      clean up the knob work over the real audio until it is right.
+    - **N lane-sets reference 1 audio.** Cheap because a log is kilobytes and the audio is
+      gigabytes. This is the reason the format is sparse in the first place.
+    CONSEQUENCES THAT REACH CODE ALREADY WRITTEN — do not defer these:
+    (a) **Audio must NOT be a private copy inside each `.adna-take` folder.** As built today the
+        tap writes `audio.wav` beside `take.json`; a user who re-does a 4-hour set five times
+        would burn ~14 GB duplicating identical audio. Audio needs its own store, referenced by a
+        stable id + content hash, with the take holding a REFERENCE and a sample offset. Ruling 16
+        already said "connected to the same audio, referenced not copied" — this makes it binding
+        for the recorder core, not just the versioning UI.
+    (b) **Long-take timebase accuracy is now load-bearing.** A reviewer MEASURED ~1.2 beats of
+        reconstruction drift over 40 minutes at a 0.03 BPM bias, because `RecorderClock` writes a
+        tempo anchor only on a >0.05 BPM change and the map then linearly extrapolates. Over a
+        4-hour set that is several beats. The periodic anchor and the use of exact per-breakpoint
+        stamps stop being nice-to-haves and become required before this ships.
+    (c) **Disk budget: ~690 MB/hour, so ~2.8 GB for a 4-hour night** — acceptable exactly BECAUSE
+        it is stored once and shared. It would not be acceptable per-take.
+    (d) The "clean it up afterwards" loop is the DRAW-DON'T-DRAG editor (ruling 23) applied to a
+        real recording. Editing is the point of recording, not a bonus feature.

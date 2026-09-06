@@ -169,6 +169,124 @@ TEST_CASE("An 8-beat LFO progresses across two full bars instead of retracing fo
 }
 
 // ============================================================================
+// review-b2 (s168), blocking issue: no test at the ConnectionShaper/
+// ConnectionEngine level proved the two bar counters actually DIVERGE
+// across a structural reset, and none exercised the legacy opt-in
+// (ConnShape::resetPhaseOnStructural = true) at this level either.
+// ConnectionEngine::evaluate (ConnectionEngine.cpp) is the call site hit
+// for EVERY enabled Lfo/Envelope(Beats) connection at runtime -- higher
+// blast radius than the oscillator-level guard alone (tests/
+// test_oscillator_bar_fold.cpp's "S168: default oscillator phase is
+// monotonic..." case, which only proves OscillatorSignal's own copy of the
+// same switch). These two cases mirror that oscillator-level case's exact
+// snapshot sequence (start / beforeReset / atReset / afterReset), first at
+// the pure beatsNow() level, then through a real Lfo connection via
+// evaluate().
+// ============================================================================
+
+TEST_CASE("ConnectionShaper::beatsNow diverges across a structural reset -- default (totalBarCount) keeps climbing, legacy (barCount) jumps back", "[connection][shaper][s168]")
+{
+    // Pre-reset, both switch settings must agree exactly (barCount ==
+    // totalBarCount so far -- the switch has not diverged them yet).
+    REQUIRE(ConnectionShaper::beatsNow(0.0f, 0, 0, 0, false)
+            == Approx(ConnectionShaper::beatsNow(0.0f, 0, 0, 0, true)).margin(0.0001f));
+    REQUIRE(ConnectionShaper::beatsNow(0.0f, 0, 5, 5, false)
+            == Approx(ConnectionShaper::beatsNow(0.0f, 0, 5, 5, true)).margin(0.0001f));
+
+    const float bBefore = ConnectionShaper::beatsNow(0.0f, 0, 5, 5, false);
+
+    // A real structural-transition reset lands mid-cycle: barCount snaps to
+    // 0, beatPhase/beatInBar continue undisturbed, totalBarCount is
+    // untouched (the S168 guarantee itself).
+    const float bAtResetDefault = ConnectionShaper::beatsNow(0.5f, 2, 0, 5, false);   // reads totalBarCount (5) -- untouched
+    const float bAtResetLegacy = ConnectionShaper::beatsNow(0.5f, 2, 0, 5, true);     // reads barCount (0) -- snapped
+
+    // Default: still climbing through the reset. Legacy: a real, visible
+    // backward jump at the reset (matches the oscillator-level case's
+    // l1 - l2 > 0.3f threshold).
+    REQUIRE(bAtResetDefault > bBefore);
+    REQUIRE(bBefore - bAtResetLegacy > 0.3f);
+
+    // The two switch settings must therefore DISAGREE at the reset point --
+    // this is what "diverge" means; a test that passed with these equal
+    // would prove nothing about the switch at all.
+    REQUIRE(bAtResetDefault - bAtResetLegacy > 0.3f);
+}
+
+TEST_CASE("ConnectionEngine::evaluate: default Lfo phase is monotonic across a structural reset; resetPhaseOnStructural=true still jumps", "[connection][lfo][s168]")
+{
+    // ConnectionEngine::evaluate is the call site actually hit by every
+    // enabled Lfo/Envelope(Beats) connection at runtime (ConnectionEngine
+    // .cpp: "ConnectionShaper::beatsNow(... c.shape.resetPhaseOnStructural)")
+    // -- the coverage gap review-b2 named. cycleBeats=32 (8-bar cycle) keeps
+    // bn well under one full cycle across every snapshot below, so a SawUp
+    // connection's value tracks bn/cycleBeats with no wraparound to confuse
+    // a genuine backward jump with the waveform's own 1->0 wrap (same
+    // reasoning as the oscillator-level S168 case this mirrors).
+    SignalRegistry sig;
+    MacroBank bank;
+
+    ParamConnection defaultConn;
+    defaultConn.source.kind = ConnSource::Kind::Lfo;
+    defaultConn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+    defaultConn.source.lfo.cycleBeats = 32.0f;
+    REQUIRE_FALSE(defaultConn.shape.resetPhaseOnStructural);   // default is false
+
+    ParamConnection legacyConn;
+    legacyConn.source.kind = ConnSource::Kind::Lfo;
+    legacyConn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+    legacyConn.source.lfo.cycleBeats = 32.0f;
+    legacyConn.shape.resetPhaseOnStructural = true;
+
+    FeatureSnapshot start = bareSnapshot();
+    start.beatPhase = 0.0f; start.beatInBar = 0; start.barCount = 0; start.totalBarCount = 0;
+
+    FeatureSnapshot beforeReset = bareSnapshot();
+    beforeReset.beatPhase = 0.0f; beforeReset.beatInBar = 0; beforeReset.barCount = 5; beforeReset.totalBarCount = 5;
+
+    // A real structural-transition reset (BPMTracker::updatePhrase's
+    // drop-entry branch): barCount snaps to 0; totalBarCount is untouched
+    // (the S168 guarantee this test exists to prove at THIS level).
+    FeatureSnapshot atReset = bareSnapshot();
+    atReset.beatPhase = 0.5f; atReset.beatInBar = 2; atReset.barCount = 0; atReset.totalBarCount = 5;
+
+    FeatureSnapshot afterReset = bareSnapshot();
+    afterReset.beatPhase = 0.0f; afterReset.beatInBar = 0; afterReset.barCount = 1; afterReset.totalBarCount = 6;
+
+    auto evalAt = [&](ParamConnection& conn, const FeatureSnapshot& snap, double now)
+    {
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, now, 250.0f, 120.0f };
+        return ConnectionEngine::evaluate(conn, 0.0f, ctx, nullptr);
+    };
+
+    const float d0 = evalAt(defaultConn, start, 1.0);
+    const float d1 = evalAt(defaultConn, beforeReset, 2.0);
+    const float d2 = evalAt(defaultConn, atReset, 3.0);
+    const float d3 = evalAt(defaultConn, afterReset, 4.0);
+    INFO("default sequence: " << d0 << ", " << d1 << ", " << d2 << ", " << d3);
+    // Monotonically non-decreasing across the whole sequence, INCLUDING the
+    // structural reset -- the defining assertion. A reverted evaluate()
+    // (always feeding beatsNow() the resettable barCount, i.e. as if
+    // resetPhaseOnStructural were hardcoded true) would drop at d2 exactly
+    // the way the legacy connection does below -- confirmed by mutation
+    // test (see the report).
+    REQUIRE(d1 >= d0 - 0.0001f);
+    REQUIRE(d2 >= d1 - 0.0001f);
+    REQUIRE(d3 >= d2 - 0.0001f);
+
+    const float l0 = evalAt(legacyConn, start, 1.0);
+    const float l1 = evalAt(legacyConn, beforeReset, 2.0);
+    const float l2 = evalAt(legacyConn, atReset, 3.0);
+    const float l3 = evalAt(legacyConn, afterReset, 4.0);
+    INFO("legacy sequence: " << l0 << ", " << l1 << ", " << l2 << ", " << l3);
+    // The legacy opt-in (resetPhaseOnStructural=true) must still be
+    // reachable THROUGH evaluate(), not just through beatsNow() directly: a
+    // real, visible backward jump at the reset, then climbing again.
+    REQUIRE(l1 - l2 > 0.3f);
+    REQUIRE(l3 > l2);
+}
+
+// ============================================================================
 // Each Playback transform.
 // ============================================================================
 

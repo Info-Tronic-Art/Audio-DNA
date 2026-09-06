@@ -16,9 +16,13 @@
 #include "recording/AudioTap.h"
 #include "recording/Take.h"
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -409,4 +413,277 @@ TEST_CASE("AudioTap + Take -- .adna-take folder save/load completion", "[audiota
         format.createReaderFor(new juce::FileInputStream(folder.dir.getChildFile(loaded->audio.segments[0].file)), true));
     REQUIRE(reader != nullptr);
     REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == frames);
+}
+
+// ============================================================================
+// s168 review (review-lane-s2), blocking issue 2: spillIntoPending's
+// genuine-overrun branch (accepted < numSamples) must insert SILENCE for
+// the lost span, not just count it -- D10.1's FIFO-overrun bullet and the
+// function's own header comment both say so; pre-fix, neither was true
+// (the lost content was never replaced with anything, so the eventual WAV
+// fell short of deliveredSamples_ - firstSample_). T1's own stall (3
+// blocks) is deliberately far under pendingCapacityFrames_ (~2s of audio,
+// AudioTap::prepare()) and never exercises this branch at all.
+// ============================================================================
+
+TEST_CASE("AudioTap genuine FIFO overrun -- a stall longer than the retry buffer inserts silence, keeps the frame count honest, and is surfaced", "[audiotap][overrun]")
+{
+    RingBuffer<float> ring(8192);
+    AudioCallback analysis(ring);
+    juce::AudioSourcePlayer player;
+    CombinedCallback combined(player, analysis);
+    combined.useInputForAnalysis.store(true);
+
+    constexpr double rate = 48000.0;
+    constexpr int blockSize = 512;
+    FakeAudioIODevice device(rate, blockSize, 2);
+    combined.audioDeviceAboutToStart(&device);
+
+    TempWavFile wav("overrun");
+    REQUIRE(combined.tap().start(wav.file));
+
+    // pendingCapacityFrames_ is sized to ~2s of audio in AudioTap::prepare()
+    // (rate * 2.0 when rate > 0) -- 96000 frames at 48 kHz. 300 consecutive
+    // forced write failures (300 * 512 = 153600 samples) guarantees the
+    // buffer fills completely partway through and stays full for the rest
+    // of the stall, so the genuine-overrun branch fires repeatedly, unlike
+    // T1's own 3-block stall. kStallBlocks == kForcedFailures exactly: this
+    // test's own trace (see the report) shows every one of the 300 blocks
+    // consumes exactly one forced-write attempt (pendingFrames_ never
+    // drains to 0 mid-stall, so writeBlockRetrying never gets a second
+    // tryRealWrite attempt in the same block).
+    constexpr int kForcedFailures = 300;
+    constexpr int kStallBlocks = 300;
+    constexpr uint64_t kApproxCapacityFrames = static_cast<uint64_t>(rate * 2.0);   // AudioTap::prepare()'s own formula
+
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    uint64_t mirrorDelivered = 0;
+    constexpr float kSignalValue = 0.3f;   // plain, non-zero, non-silent -- so the dropped span reads back unambiguously as zero, not leftover content
+
+    combined.tap().debugForceNextWritesToFail(kForcedFailures);
+
+    for (int b = 0; b < kStallBlocks; ++b)
+    {
+        std::vector<float> inL(blockSize, kSignalValue), inR(blockSize, kSignalValue);
+        std::vector<float> outL(static_cast<size_t>(blockSize), 0.0f), outR(static_cast<size_t>(blockSize), 0.0f);
+        const float* inPtrs[2] = { inL.data(), inR.data() };
+        float* outPtrs[2] = { outL.data(), outR.data() };
+
+        hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
+        juce::AudioIODeviceCallbackContext ctx;
+        ctx.hostTimeNs = &hostTimeNs;
+
+        combined.audioDeviceIOCallbackWithContext(inPtrs, 2, outPtrs, 2, blockSize, ctx);
+        mirrorDelivered += static_cast<uint64_t>(blockSize);
+        REQUIRE(combined.getDeliveredSamples() == mirrorDelivered);
+    }
+
+    // Stop IMMEDIATELY after the stall, with no recovery blocks -- forces
+    // stopInternal()'s own silence-debt drain (the s168 fix's other new
+    // code path) to be what pays down the debt, not ordinary push()-driven
+    // recovery.
+    combined.tap().stop();
+
+    // Surfaced: genuinely lost, not silently dropped.
+    REQUIRE(combined.tap().droppedFrames() > 0);
+    REQUIRE(combined.tap().unreliableFrom().has_value());
+    // Exact, not approximate: the first overrun always lands the instant
+    // pendingStorage_ fills to capacity (spillIntoPending's own accounting
+    // -- framesBeforeThisBlock + accepted == pendingCapacityFrames_ at that
+    // instant), and firstSample() == 0 here (armed on the very first push).
+    REQUIRE(*combined.tap().unreliableFrom() == kApproxCapacityFrames);
+
+    // The frame-count invariant (D10.1/D10.3) must still hold even though
+    // content was lost -- this is the assertion that fails against the
+    // pre-fix code, which left a genuine hole (a file short of
+    // deliveredSamples_ - firstSample_) instead of silence.
+    juce::WavAudioFormat format;
+    std::unique_ptr<juce::AudioFormatReader> reader(
+        format.createReaderFor(new juce::FileInputStream(wav.file), true));
+    REQUIRE(reader != nullptr);
+    const uint64_t firstSample = combined.tap().firstSample();
+    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == combined.getDeliveredSamples() - firstSample);
+
+    // The dropped span itself must actually BE silence (zeros), not
+    // leftover/garbage content: probe the frames starting exactly at
+    // unreliableFrom() and confirm they read back near-zero, distinct from
+    // the constant 0.3f signal used everywhere else in this run.
+    const uint64_t unreliableFrame = *combined.tap().unreliableFrom() - firstSample;
+    const int probeFrames = std::min(static_cast<int>(reader->lengthInSamples - static_cast<int64_t>(unreliableFrame)), 256);
+    REQUIRE(probeFrames > 0);
+    juce::AudioBuffer<float> probe(2, probeFrames);
+    reader->read(&probe, 0, probeFrames, static_cast<int64_t>(unreliableFrame), true, true);
+    const float* p0 = probe.getReadPointer(0);
+    float maxAbs = 0.0f;
+    for (int i = 0; i < probeFrames; ++i)
+        maxAbs = std::max(maxAbs, std::fabs(p0[i]));
+    REQUIRE(maxAbs < 0.001f);
+}
+
+// ============================================================================
+// s168 review (review-lane-s2), narrower gap: `listened == nullptr` (mic
+// mode with no input channels open this callback) used to skip the whole
+// analysis+tap block, including audioTap_.push() -- deliveredSamples_ still
+// advanced by numSamples (D10.1: unconditional, every callback), but
+// AudioTap::framesWritten() never did for that span. Fix: CombinedCallback
+// now calls push() unconditionally; AudioTap's existing chans < channels_
+// pad-with-silence path (writeFrames) turns chans == 0 into a full block of
+// silence.
+// ============================================================================
+
+TEST_CASE("CombinedCallback: a block with no analyzable buffer (listened == nullptr) still advances AudioTap in lockstep with deliveredSamples_", "[audiotap][combinedcallback]")
+{
+    RingBuffer<float> ring(8192);
+    AudioCallback analysis(ring);
+    juce::AudioSourcePlayer player;
+    CombinedCallback combined(player, analysis);
+    combined.useInputForAnalysis.store(true);   // mic mode -- listened comes from inputChannelData
+
+    constexpr double rate = 48000.0;
+    constexpr int blockSize = 512;
+    FakeAudioIODevice device(rate, blockSize, 2);
+    combined.audioDeviceAboutToStart(&device);
+
+    TempWavFile wav("nullbuf");
+    REQUIRE(combined.tap().start(wav.file));
+
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    uint64_t mirrorDelivered = 0;
+
+    auto pushBlock = [&](bool withInput)
+    {
+        std::vector<float> outL(static_cast<size_t>(blockSize), 0.0f), outR(static_cast<size_t>(blockSize), 0.0f);
+        float* outPtrs[2] = { outL.data(), outR.data() };
+
+        hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
+        juce::AudioIODeviceCallbackContext ctx;
+        ctx.hostTimeNs = &hostTimeNs;
+
+        if (withInput)
+        {
+            std::vector<float> inL(blockSize, 0.4f), inR(blockSize, 0.4f);
+            const float* inPtrs[2] = { inL.data(), inR.data() };
+            combined.audioDeviceIOCallbackWithContext(inPtrs, 2, outPtrs, 2, blockSize, ctx);
+        }
+        else
+        {
+            // The exact scenario the s168 review flagged: mic mode with no
+            // input channels open this callback -- CombinedCallback's own
+            // "if (numInputChannels > 0 && inputChannelData != nullptr)"
+            // guard leaves listened == nullptr / listenedChans == 0.
+            combined.audioDeviceIOCallbackWithContext(nullptr, 0, outPtrs, 2, blockSize, ctx);
+        }
+        mirrorDelivered += static_cast<uint64_t>(blockSize);
+    };
+
+    for (int b = 0; b < 5; ++b) pushBlock(true);
+    for (int b = 0; b < 3; ++b) pushBlock(false);   // the no-buffer span
+    for (int b = 0; b < 5; ++b) pushBlock(true);
+
+    combined.tap().stop();
+
+    // The defining assertion: without the fix, deliveredSamples_ would
+    // outrun AudioTap::framesWritten() by exactly the 3 no-buffer blocks
+    // (1536 samples) -- pre-fix, push() was never called for them at all,
+    // so framesWritten_ never advanced for that span.
+    REQUIRE(combined.getDeliveredSamples() == mirrorDelivered);
+    const uint64_t firstSample = combined.tap().firstSample();
+    REQUIRE(combined.tap().framesWritten() == mirrorDelivered - firstSample);
+
+    juce::WavAudioFormat format;
+    std::unique_ptr<juce::AudioFormatReader> reader(
+        format.createReaderFor(new juce::FileInputStream(wav.file), true));
+    REQUIRE(reader != nullptr);
+    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == combined.getDeliveredSamples() - firstSample);
+
+    // The no-buffer span itself must be silence in the file (not garbage,
+    // not a hole): frames [5*blockSize, 8*blockSize) relative to
+    // firstSample (0 here -- armed on the very first, withInput==true push).
+    REQUIRE(firstSample == 0);
+    const int64_t noBufferStart = 5 * blockSize;
+    juce::AudioBuffer<float> probe(2, 3 * blockSize);
+    reader->read(&probe, 0, 3 * blockSize, noBufferStart, true, true);
+    const float* p0 = probe.getReadPointer(0);
+    float maxAbs = 0.0f;
+    for (int i = 0; i < 3 * blockSize; ++i)
+        maxAbs = std::max(maxAbs, std::fabs(p0[i]));
+    REQUIRE(maxAbs < 0.0001f);
+}
+
+// ============================================================================
+// s168 review (review-lane-s2), the priority blocking issue: a UAF race
+// between stopInternal() (message thread) and an in-flight push() (audio
+// thread) -- stopInternal() could destroy the ThreadedWriter while a
+// push() call already past its activeWriter_ load was still inside
+// w->write(). Deterministic reproduction via the test-only pause hooks
+// (AudioTap.h's debugArmPushBlockForTest/debugReleaseBlockedPush/
+// debugWaitUntilPushBlocked) rather than real thread timing (which cannot
+// be made to race reliably): a background thread's push() call is held
+// "in flight" (busy == true, paused mid-call, past the point where a real
+// push() would have already loaded activeWriter_) while the main thread
+// calls stop() concurrently.
+// ============================================================================
+
+TEST_CASE("AudioTap::stop() waits out an in-flight push() before destroying the writer (s168 review: UAF race)", "[audiotap][concurrency]")
+{
+    RingBuffer<float> ring(8192);
+    AudioCallback analysis(ring);
+    juce::AudioSourcePlayer player;
+    CombinedCallback combined(player, analysis);
+    combined.useInputForAnalysis.store(true);
+
+    constexpr double rate = 48000.0;
+    constexpr int blockSize = 512;
+    FakeAudioIODevice device(rate, blockSize, 2);
+    combined.audioDeviceAboutToStart(&device);
+
+    TempWavFile wav("uafrace");
+    REQUIRE(combined.tap().start(wav.file));
+
+    // One real push() first, off the test hook, so the tap is armed/running
+    // and has a real writer for stop() to (eventually) tear down.
+    std::vector<float> inL(blockSize, 0.2f), inR(blockSize, 0.2f);
+    std::vector<float> outL(static_cast<size_t>(blockSize), 0.0f), outR(static_cast<size_t>(blockSize), 0.0f);
+    const float* inPtrs[2] = { inL.data(), inR.data() };
+    float* outPtrs[2] = { outL.data(), outR.data() };
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    juce::AudioIODeviceCallbackContext ctx0;
+    ctx0.hostTimeNs = &hostTimeNs;
+    combined.audioDeviceIOCallbackWithContext(inPtrs, 2, outPtrs, 2, blockSize, ctx0);
+
+    combined.tap().debugArmPushBlockForTest();
+
+    std::atomic<bool> pushReturned{ false };
+    std::thread pushThread([&]()
+    {
+        hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
+        juce::AudioIODeviceCallbackContext ctx;
+        ctx.hostTimeNs = &hostTimeNs;
+        combined.audioDeviceIOCallbackWithContext(inPtrs, 2, outPtrs, 2, blockSize, ctx);
+        pushReturned.store(true, std::memory_order_release);
+    });
+
+    REQUIRE(combined.tap().debugWaitUntilPushBlocked());   // push() is now paused, busy == true
+
+    std::atomic<bool> stopReturned{ false };
+    std::thread stopThread([&]()
+    {
+        combined.tap().stop();
+        stopReturned.store(true, std::memory_order_release);
+    });
+
+    // stop() must NOT return while push() is still held -- give it a
+    // generous window and assert it has genuinely not finished. THIS is
+    // the assertion that fails against the pre-fix code: without the
+    // busy-wait, stop() would race ahead and return almost immediately,
+    // regardless of the paused push() call.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    REQUIRE_FALSE(stopReturned.load(std::memory_order_acquire));
+    REQUIRE_FALSE(pushReturned.load(std::memory_order_acquire));
+
+    combined.tap().debugReleaseBlockedPush();
+    pushThread.join();
+
+    stopThread.join();
+    REQUIRE(stopReturned.load(std::memory_order_acquire));
 }

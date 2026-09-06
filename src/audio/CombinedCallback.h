@@ -104,15 +104,29 @@ public:
         // reading AudioTap uses to capture firstSample on arm.
         const uint64_t deliveredBefore = deliveredSamples_.load(std::memory_order_relaxed);
 
-        uint32_t gapFrames = 0;
         if (listened != nullptr && listenedChans > 0)
         {
             analysisCallback_.audioDeviceIOCallbackWithContext(
                 nullptr, 0, const_cast<float* const*>(listened), listenedChans, numSamples, context);
-
-            // D10.1's second fan-out -- one tap call per block.
-            gapFrames = audioTap_.push(listened, listenedChans, numSamples, deliveredBefore, context);
         }
+
+        // D10.1's second fan-out -- one tap call per block, UNCONDITIONALLY:
+        // even when there is nothing to analyze this callback (listened ==
+        // nullptr, e.g. mic mode with no input channels open), AudioTap
+        // must still be told about this block. Skipping the call here would
+        // advance deliveredSamples_ (below) without ever advancing the
+        // tap's own framesWritten_ for the same span -- a silent desync
+        // between the take's origin and its own audio file (s168 review's
+        // "listened == nullptr" gap). AudioTap::push()'s existing
+        // pad-with-silence path (writeFrames, AudioTap.cpp) already turns a
+        // chans == 0 call into a full block of silence, so pushing silence
+        // rather than skipping the advance is the fix: D10.1 says the
+        // counter "increments ... at the top of every callback in both
+        // modes" -- unconditionally -- so the counter's identity as THE
+        // origin must not bend around this case; the tap's own bookkeeping
+        // bends to match it instead, exactly as it already does for a gap
+        // or a FIFO overrun.
+        const uint32_t gapFrames = audioTap_.push(listened, listenedChans, numSamples, deliveredBefore, context);
 
         // D10.1: "incremented by numSamples at the top of every callback in
         // both modes (plus any inserted gap)". Done once, after computing
