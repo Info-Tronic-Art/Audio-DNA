@@ -76,6 +76,15 @@ struct ConnShape
                                       // complete shaping math; needed for lossless v1 preset conversion.
     float inMin = 0.0f, inMax = 1.0f; // input normalization window (v1 conversion parity). Hidden.
     float smoothingMs = 0.0f;         // 0 = off (the owner's literal ruling; not owner-required otherwise)
+
+    // S168: false (default) = ConnectionShaper::beatsNow folds this
+    // connection's Lfo/Envelope(Beats) phase across FeatureSnapshot::
+    // totalBarCount (never jumps backward on a structural reset); true =
+    // the original S166-L1 behaviour, folding across FeatureSnapshot::
+    // barCount (jumps on a real drop/breakdown transition). Same name/
+    // default as OscillatorSignal::resetPhaseOnStructural_ and
+    // EnvelopeSignal::resetPhaseOnStructural_ -- one design, three places.
+    bool resetPhaseOnStructural = false;
 };
 
 // ParamConnection: the whole story for ONE slider. Exactly one per

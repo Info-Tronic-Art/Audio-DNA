@@ -151,6 +151,8 @@ juce::var ConnSerialization::toVar(const ParamConnection& c)
     shapeObj->setProperty("inMin", static_cast<double>(c.shape.inMin));
     shapeObj->setProperty("inMax", static_cast<double>(c.shape.inMax));
     shapeObj->setProperty("smoothMs", static_cast<double>(c.shape.smoothingMs));
+    // S168: additive -- see ParamConnection.h's ConnShape::resetPhaseOnStructural.
+    shapeObj->setProperty("resetPhaseOnStructural", c.shape.resetPhaseOnStructural);
     obj->setProperty("shape", juce::var(shapeObj));
 
     obj->setProperty("enabled", c.enabled);
@@ -273,6 +275,10 @@ void ConnSerialization::fromVar(ParamConnection& c, const juce::var& v, int* unk
             c.shape.inMax = static_cast<float>(static_cast<double>(shapeObj->getProperty("inMax")));
         if (shapeObj->hasProperty("smoothMs"))
             c.shape.smoothingMs = static_cast<float>(static_cast<double>(shapeObj->getProperty("smoothMs")));
+        // S168: absent (old-file shape) -> default false, matching ConnShape's
+        // own default and every other unserialized-if-absent field above.
+        if (shapeObj->hasProperty("resetPhaseOnStructural"))
+            c.shape.resetPhaseOnStructural = static_cast<bool>(shapeObj->getProperty("resetPhaseOnStructural"));
     }
 
     if (obj->hasProperty("enabled"))

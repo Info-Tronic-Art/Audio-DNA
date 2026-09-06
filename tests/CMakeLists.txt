@@ -264,32 +264,98 @@ endif()
 apply_sanitizers(test_composition)
 catch_discover_tests(test_composition)
 
-# --- test_session_recorder (S166: pre-landed so the recorder's own parallel
-# lane never touches this shared CMakeLists.txt) ---
-add_executable(test_session_recorder
-    test_session_recorder.cpp
-    ${SRC_DIR}/recording/SessionRecorder.cpp
+# --- test_take (s168 step 1: recorder core -- ControlPath/Lane/Take/
+# TempoMap/Program/Player/PerformanceRecorder/RecorderClock, headless.
+# SessionRecorder is retired -- s167-performance-log-and-routines.md
+# section 5 row 1. Links EffectLibrary.cpp/Effect.cpp for Program::compile's
+# param-slot resolution against real Clip::EffectSlot data (same headless
+# pattern as test_composition_tier_oracle above -- no OpenGL/ShaderManager
+# needed, EffectLibrary/Effect are juce_core-only).
+add_executable(test_take
+    test_take.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+    ${SRC_DIR}/recording/Player.cpp
+    ${SRC_DIR}/recording/RecorderClock.cpp
+    ${SRC_DIR}/recording/PerformanceRecorder.cpp
 )
-target_include_directories(test_session_recorder PRIVATE ${SRC_DIR})
-target_link_libraries(test_session_recorder PRIVATE
+target_include_directories(test_take PRIVATE ${SRC_DIR})
+target_link_libraries(test_take PRIVATE
     Catch2::Catch2WithMain
     juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
 )
-target_compile_definitions(test_session_recorder PRIVATE
+target_compile_definitions(test_take PRIVATE
     _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
 )
 if(NOT MSVC)
-    target_compile_options(test_session_recorder PRIVATE
+    target_compile_options(test_take PRIVATE
         -Wno-old-style-cast
         -Wno-conversion
         -Wno-sign-conversion
     )
 endif()
-apply_sanitizers(test_session_recorder)
-catch_discover_tests(test_session_recorder)
+apply_sanitizers(test_take)
+catch_discover_tests(test_take)
+
+# --- test_audio_tap_sync (s168 step 2: T1 -- D10.3's headless alignment
+# proof for AudioTap/CombinedCallback/the delivered-sample counter/gap
+# detection, s167-performance-log-and-routines.md section 2 D10.3, section 5
+# Build order row 2). Drives CombinedCallback directly with a fake
+# AudioIODevice -- no real device, headless, deterministic. Links
+# AudioCallback.cpp (the analysis fan-out CombinedCallback also feeds) and
+# AudioTap.cpp/Take.cpp/TempoMap.cpp/PerfState.cpp (the folder save/load
+# completion case) -- none of Program/Player/RecorderClock/
+# PerformanceRecorder are needed here, unlike test_take above.
+# AUDIODNA_AUDIOTAP_TEST_HOOKS compiles in AudioTap's test-only forced-write-
+# failure hook (see AudioTap.h) -- defined ONLY for this target, never for
+# the AudioDNA app itself.
+add_executable(test_audio_tap_sync
+    test_audio_tap_sync.cpp
+    ${SRC_DIR}/audio/AudioCallback.cpp
+    ${SRC_DIR}/recording/AudioTap.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+)
+target_include_directories(test_audio_tap_sync PRIVATE ${SRC_DIR})
+target_link_libraries(test_audio_tap_sync PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_audio_utils
+)
+target_compile_definitions(test_audio_tap_sync PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    AUDIODNA_AUDIOTAP_TEST_HOOKS=1
+)
+if(NOT MSVC)
+    target_compile_options(test_audio_tap_sync PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_audio_tap_sync)
+catch_discover_tests(test_audio_tap_sync)
 
 # --- test_undo_commands (Undo v1 step 2: clip commands + coord resolution) ---
 # Headless: bare Composition, no-op renderer/UI hooks. UndoService resolvers are

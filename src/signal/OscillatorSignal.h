@@ -23,25 +23,37 @@ public:
     float getValue(const FeatureSnapshot& snapshot) const override
     {
         // Phase is derived from beatPhase scaled by duration.
-        // beatPhase is [0,1) per beat; beatInBar is 0-3 within the current bar;
-        // barCount is bars since the last phrase reset (FeatureSnapshot.h) and
-        // grows monotonically except on rare structural-transition resets
-        // (BPMTracker::updatePhrase resets it only on entering a drop or
-        // leaving a breakdown -- NOT on a fixed period). Folding in
-        // 4*barCount (beats/bar) extends the phase across bars so cycles
-        // longer than one bar (beatDuration_ > 4, e.g. an "8 beat" LFO)
-        // actually complete, instead of retracing only the fraction of the
-        // waveform that fits inside one bar, forever.
-        // S166-L5a trade-off: a phrase reset can still jump this phase
-        // mid-cycle unless beatDuration_ divides the bar count evenly at
-        // that moment -- rare (only at drop/breakdown transitions), and
-        // strictly better than never completing a cycle at all. Deriving
-        // from phrasePhase instead was considered and rejected: it resets
-        // on a fixed period (not just structural events) and FeatureSnapshot
-        // does not publish the phrase length in bars, so there is no way to
-        // convert it back into beat units for an arbitrary beatDuration_.
+        // beatPhase is [0,1) per beat; beatInBar is 0-3 within the current bar.
+        // Folding in 4*<bar count> (beats/bar) extends the phase across bars
+        // so cycles longer than one bar (beatDuration_ > 4, e.g. an "8 beat"
+        // LFO) actually complete, instead of retracing only the fraction of
+        // the waveform that fits inside one bar, forever (S166-L5a).
+        //
+        // Which bar count feeds that fold is a per-oscillator choice
+        // (S168, resetPhaseOnStructural_):
+        //   - false (default): FeatureSnapshot::totalBarCount -- the same
+        //     bar-advance events, but BPMTracker never rewinds it for a
+        //     phrase/structural reset. Phase only ever runs forward, so a
+        //     real drop landing mid-gesture can no longer yank this
+        //     oscillator's shape backward mid-cycle.
+        //   - true: FeatureSnapshot::barCount -- bars since the last phrase
+        //     reset. Grows monotonically except on rare structural-
+        //     transition resets (BPMTracker::updatePhrase resets it only on
+        //     entering a drop or leaving a breakdown -- NOT on a fixed
+        //     period), which snap this oscillator's phase at that moment.
+        //     This is the original S166-L5a trade-off, kept reachable as an
+        //     opt-in for whichever reads better musically -- Boris has not
+        //     ruled on a preference yet.
+        // Deriving from phrasePhase instead was considered and rejected
+        // (both S166-L5a and S168): it resets on a fixed period (not just
+        // structural events) and FeatureSnapshot does not publish the
+        // phrase length in bars, so there is no way to convert it back into
+        // beat units for an arbitrary beatDuration_.
+        float barsElapsed = resetPhaseOnStructural_
+            ? static_cast<float>(snapshot.barCount)
+            : static_cast<float>(snapshot.totalBarCount);
         float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar)
-                             + 4.0f * static_cast<float>(snapshot.barCount);
+                             + 4.0f * barsElapsed;
         float cyclePhase = std::fmod(totalBeatPhase / beatDuration_, 1.0f);
         if (cyclePhase < 0.0f) cyclePhase += 1.0f;
 
@@ -84,9 +96,18 @@ public:
     float getPhaseOffset() const { return phaseOffset_; }
     void setPhaseOffset(float p) { phaseOffset_ = p; } // [0, 1]
 
+    // S168: false (default) = phase folds across FeatureSnapshot::totalBarCount
+    // (never jumps backward on a structural reset); true = the original
+    // S166-L5a behaviour, folding across FeatureSnapshot::barCount (jumps on
+    // a real drop/breakdown transition). Runtime-only -- not currently
+    // serialized, since no OscillatorSignal field is (see s168 report).
+    bool getResetPhaseOnStructural() const { return resetPhaseOnStructural_; }
+    void setResetPhaseOnStructural(bool r) { resetPhaseOnStructural_ = r; }
+
 private:
     WaveShape shape_;
     float beatDuration_;
     float amplitude_ = 1.0f;
     float phaseOffset_ = 0.0f;
+    bool resetPhaseOnStructural_ = false; // S168, default false = flow-through
 };

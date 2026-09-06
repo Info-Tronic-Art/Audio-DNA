@@ -109,6 +109,10 @@ public:
 
     // --- Phrase tracking accessors ---
     uint16_t barCount()         const { return barCount_; }
+    // S168: monotonic twin of barCount_ -- advances on the same newBar edge,
+    // never zeroed by a structural reset, resetPhrase(), or the no-lock
+    // branch of updatePhrase(). See totalBarCount_ for the full rationale.
+    uint32_t totalBarCount()    const { return totalBarCount_; }
     float    phrasePhase()      const { return phrasePhase_; }
     int      phraseBars()       const { return phraseBars_; }
 
@@ -221,6 +225,13 @@ private:
 
     // === Phrase tracking state ===
     uint16_t barCount_ = 0;            // bars since last phrase reset
+    // S168: same newBar advance as barCount_, but intentionally NEVER
+    // reset -- not on a structural transition (drop/breakdown), not on
+    // resetPhrase() (manual Resync), not on the no-lock early-return in
+    // updatePhrase(). Consumers that must never see a backward jump
+    // (e.g. OscillatorSignal via FeatureSnapshot::totalBarCount) read this
+    // instead of barCount_.
+    uint32_t totalBarCount_ = 0;
     float    phrasePhase_ = 0.0f;      // [0, 1) sawtooth over N bars
     int      phraseBars_ = kDefaultPhraseBars; // configurable phrase length
     bool     prevDownbeatDetected_ = false;    // edge detection for bar counting

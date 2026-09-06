@@ -96,6 +96,7 @@ target_sources(AudioDNA PRIVATE
     src/audio/AudioEngine.cpp
     src/audio/AudioCallback.h
     src/audio/AudioCallback.cpp
+    src/audio/CombinedCallback.h
     src/audio/RingBuffer.h
 
     # Analysis
@@ -221,9 +222,27 @@ target_sources(AudioDNA PRIVATE
     src/media/ImageSequence.h
     src/media/ImageSequence.cpp
 
-    # Recording (v2 - Phase 12 + P22.6 video recording)
-    src/recording/SessionRecorder.h
-    src/recording/SessionRecorder.cpp
+    # Recording (v2 - Phase 12 + P22.6 video recording; s168: SessionRecorder
+    # retired -- per-control lanes + Take/Program/Player/PerformanceRecorder
+    # replace it, s167-performance-log-and-routines.md section 5 row 1)
+    src/model/ControlPath.h
+    src/recording/Lane.h
+    src/recording/TempoMap.h
+    src/recording/TempoMap.cpp
+    src/recording/PerfState.h
+    src/recording/PerfState.cpp
+    src/recording/Take.h
+    src/recording/Take.cpp
+    src/recording/Program.h
+    src/recording/Program.cpp
+    src/recording/Player.h
+    src/recording/Player.cpp
+    src/recording/RecorderClock.h
+    src/recording/RecorderClock.cpp
+    src/recording/PerformanceRecorder.h
+    src/recording/PerformanceRecorder.cpp
+    src/recording/AudioTap.h
+    src/recording/AudioTap.cpp
     src/recording/VideoRecorder.h
     src/recording/VideoRecorder.cpp
 

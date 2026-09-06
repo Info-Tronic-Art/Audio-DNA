@@ -11,10 +11,10 @@
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
 #include "binding/BindingManager.h"
-#include "recording/SessionRecorder.h"
 #include <juce_core/juce_core.h>
 #include <algorithm>
 #include <iostream>
+#include <limits>
 
 ApiServer::ApiServer(Renderer& renderer,
                      const FeatureBus& featureBus,
@@ -24,7 +24,6 @@ ApiServer::ApiServer(Renderer& renderer,
                      SignalRegistry& signalRegistry,
                      RoutingEngine& routingEngine,
                      BindingManager& bindingManager,
-                     SessionRecorder& sessionRecorder,
                      int port,
                      bool allowFeatureInjection)
     : renderer_(renderer)
@@ -35,7 +34,6 @@ ApiServer::ApiServer(Renderer& renderer,
     , signalRegistry_(signalRegistry)
     , routingEngine_(routingEngine)
     , bindingManager_(bindingManager)
-    , sessionRecorder_(sessionRecorder)
     , port_(port)
     , allowFeatureInjection_(allowFeatureInjection)
 {
@@ -550,6 +548,11 @@ void ApiServer::handleGetBpm(const httplib::Request&, httplib::Response& res)
     obj->setProperty("phrasePhase", static_cast<double>(snap.phrasePhase));
     obj->setProperty("beatInBar", static_cast<int>(snap.beatInBar));
     obj->setProperty("barCount", static_cast<int>(snap.barCount));
+    // S168: additive twin of barCount -- never rewound by a structural
+    // reset. Needed so a live sweep can prove the ConnectionShaper/
+    // OscillatorSignal/EnvelopeSignal monotonic-fold fix through the app,
+    // not just in a unit test.
+    obj->setProperty("totalBarCount", static_cast<int>(snap.totalBarCount));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
@@ -638,6 +641,13 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
         snap.beatInBar = static_cast<uint8_t>(std::clamp(static_cast<int>(json["beatInBar"]), 0, 3));
     if (json.hasProperty("barCount"))
         snap.barCount = static_cast<uint16_t>(std::clamp(static_cast<int>(json["barCount"]), 0, 65535));
+    // S168: additive twin of barCount -- see FeatureSnapshot.h. Same clamp
+    // precedent as barCount above; juce::var's int property is 32-bit
+    // signed, so clamp to INT_MAX rather than totalBarCount's real
+    // (uint32_t) range -- no legitimate sweep needs bars beyond that.
+    if (json.hasProperty("totalBarCount"))
+        snap.totalBarCount = static_cast<uint32_t>(std::clamp(static_cast<int>(json["totalBarCount"]), 0,
+                                                                std::numeric_limits<int>::max()));
     if (json.hasProperty("spectralCentroid")) snap.spectralCentroid = static_cast<float>(static_cast<double>(json["spectralCentroid"]));
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));

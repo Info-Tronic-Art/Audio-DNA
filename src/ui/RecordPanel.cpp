@@ -1,5 +1,4 @@
 #include "ui/RecordPanel.h"
-#include "recording/SessionRecorder.h"
 
 RecordPanel::RecordPanel()
 {
@@ -12,7 +11,6 @@ RecordPanel::RecordPanel()
         stopBtn_.setEnabled(true);
         statusLabel_.setText("Recording...", juce::dontSendNotification);
         statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterRed));
-        if (recorder_) recorder_->startRecording();
         if (onStartRecording) onStartRecording();
     };
 
@@ -23,9 +21,7 @@ RecordPanel::RecordPanel()
         recording_ = false;
         recordBtn_.setEnabled(true);
         stopBtn_.setEnabled(false);
-        if (recorder_) recorder_->stopRecording();
-        statusLabel_.setText("Stopped (" + juce::String(recorder_ ? recorder_->getNumEvents() : 0) + " events)",
-                            juce::dontSendNotification);
+        statusLabel_.setText("Stopped", juce::dontSendNotification);
         statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         if (onStopRecording) onStopRecording();
     };
@@ -33,57 +29,14 @@ RecordPanel::RecordPanel()
     // Play button
     addAndMakeVisible(playBtn_);
     playBtn_.onClick = [this] {
-        if (recorder_ && recorder_->getNumEvents() > 0)
-        {
-            recorder_->startPlayback();
-            statusLabel_.setText("Playing...", juce::dontSendNotification);
-            statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterGreen));
-        }
         if (onPlayRecording) onPlayRecording();
     };
 
-    // Save button
+    // Save/Load: dead until step 3/4 wires this panel against
+    // PerformanceRecorder/Take (see the header comment) -- the buttons
+    // stay visible (G25's already-dead UI) rather than disappearing.
     addAndMakeVisible(saveBtn_);
-    saveBtn_.onClick = [this] {
-        if (!recorder_ || recorder_->getNumEvents() == 0) return;
-
-        juce::File saveDir = outputDir_.exists() ? outputDir_
-            : juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
-        auto chooser = std::make_shared<juce::FileChooser>(
-            "Save recording...", saveDir.getChildFile("session.json"), "*.json");
-        auto flags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
-        chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
-            auto file = fc.getResult();
-            if (file != juce::File())
-            {
-                if (recorder_->saveToFile(file))
-                    statusLabel_.setText("Saved: " + file.getFileName(), juce::dontSendNotification);
-                else
-                    statusLabel_.setText("Save failed!", juce::dontSendNotification);
-            }
-        });
-    };
-
-    // Load button
     addAndMakeVisible(loadBtn_);
-    loadBtn_.onClick = [this] {
-        if (!recorder_) return;
-        auto chooser = std::make_shared<juce::FileChooser>(
-            "Load recording...", juce::File(), "*.json");
-        auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
-        chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
-            auto file = fc.getResult();
-            if (file.existsAsFile())
-            {
-                if (recorder_->loadFromFile(file))
-                    statusLabel_.setText("Loaded: " + file.getFileName()
-                        + " (" + juce::String(recorder_->getNumEvents()) + " events)",
-                        juce::dontSendNotification);
-                else
-                    statusLabel_.setText("Load failed!", juce::dontSendNotification);
-            }
-        });
-    };
 
     // Format selector
     addAndMakeVisible(formatSelector_);
@@ -126,23 +79,8 @@ RecordPanel::RecordPanel()
 
 void RecordPanel::refresh()
 {
-    if (!recorder_) return;
-
-    if (recorder_->isRecording())
-    {
-        eventCountLabel_.setText(juce::String(recorder_->getNumEvents()) + " events",
-                                juce::dontSendNotification);
-    }
-    else if (recorder_->isPlaying())
-    {
-        // Update playback status
-    }
-    else if (!recording_ && recorder_->getNumEvents() > 0)
-    {
-        eventCountLabel_.setText(juce::String(recorder_->getNumEvents()) + " events, "
-            + juce::String(recorder_->getDuration(), 1) + "s",
-            juce::dontSendNotification);
-    }
+    // Still has no caller (G25) -- SessionRecorder is deleted; step 3/4
+    // re-wires this against PerformanceRecorder/Player's own status.
 }
 
 void RecordPanel::paint(juce::Graphics& g)

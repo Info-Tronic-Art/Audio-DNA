@@ -177,6 +177,7 @@ void AnalysisThread::run()
         snap->barPhase         = bpmTracker_->barPhase();
         snap->downbeatDetected = bpmTracker_->downbeatDetected();
         snap->barCount         = bpmTracker_->barCount();
+        snap->totalBarCount    = bpmTracker_->totalBarCount(); // S168
         snap->phrasePhase      = bpmTracker_->phrasePhase();
 
         stageEnd = std::chrono::high_resolution_clock::now();

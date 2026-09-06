@@ -37,7 +37,6 @@
 #include <optional>
 #include <memory>
 #include <vector>
-#include "recording/SessionRecorder.h"
 #include "recording/VideoRecorder.h"
 #include "sync/LinkSync.h"
 #include "api/ApiServer.h"
@@ -337,7 +336,6 @@ private:
     UndoService undoService_;
     SignalRegistry signalRegistry_;
     MacroBank globalMacroBank_{MacroBank::Scope::Global};
-    SessionRecorder sessionRecorder_;
     LinkSync linkSync_;
     std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
     bool tooltipsEnabled_ = true;

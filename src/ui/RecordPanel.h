@@ -2,10 +2,11 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/LookAndFeel.h"
 
-class SessionRecorder;
-
 // RecordPanel: settings recording controls (start/stop, playback).
-// Records parameter changes and clip triggers as timestamped events.
+// s168 step 1 (recorder core): SessionRecorder is deleted (see
+// src/recording/{Take,Program,Player,PerformanceRecorder}.h) -- this panel
+// is left as dead UI (already noted, G25) until step 3/4 wires it against
+// the new PerformanceRecorder/Player classes.
 class RecordPanel : public juce::Component
 {
 public:
@@ -13,9 +14,6 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
-
-    // Set the session recorder to control
-    void setSessionRecorder(SessionRecorder* recorder) { recorder_ = recorder; }
 
     // Callbacks for actions that MainComponent handles
     std::function<void()> onStartRecording;
@@ -31,7 +29,6 @@ public:
     juce::File getOutputDir() const { return outputDir_; }
 
 private:
-    SessionRecorder* recorder_ = nullptr;
     bool recording_ = false;
 
     juce::TextButton recordBtn_{"Record"};

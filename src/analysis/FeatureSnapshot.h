@@ -47,6 +47,12 @@ struct alignas(64) FeatureSnapshot
 
     // Phrase tracking
     uint16_t barCount = 0;             // bars since last phrase reset
+    uint32_t totalBarCount = 0;        // S168: monotonic bars since transport start --
+                                        // same advance events as barCount, but NEVER
+                                        // rewound by a phrase/structural reset (barCount
+                                        // is, on entering a drop / leaving a breakdown).
+                                        // Use for anything that must never jump backward
+                                        // mid-gesture (e.g. OscillatorSignal).
     float    phrasePhase = 0.0f;       // [0, 1) sawtooth over N bars (configurable)
 
     // Structural

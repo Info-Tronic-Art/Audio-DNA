@@ -555,6 +555,39 @@ TEST_CASE("Real audio: structural transition into drop still resets barCount",
     REQUIRE(tracker.barCount() == 0);
 }
 
+TEST_CASE("Real audio: structural transition into drop zeroes barCount while totalBarCount keeps climbing",
+          "[bpm][phrase][structural][regression]")
+{
+    // S168: same scripted transition as "...still resets barCount" above,
+    // now pinning totalBarCount_'s side of the trade-off -- it must NOT be
+    // reset by the same event that zeroes barCount_. Checking
+    // totalBarCount's growth across Phase A ALONE, before any reset is even
+    // fed, is what makes this non-tautological: a mis-wired ++totalBarCount_
+    // that only fires inside the structural-reset branch (instead of the
+    // newBar branch, where it belongs) would leave totalBarCount() sitting
+    // at 0 through the entire build-up below, failing the very first
+    // totalBarCount assertion well before the transition is ever reached.
+    BPMTracker tracker(512, 1024, 48000);
+
+    feedRealOnsets(tracker, 120.0f, 24, /*startBeatIndex=*/0, 48000, 512, /*structuralState=*/0);
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+    REQUIRE(tracker.downbeatLocked());
+    uint16_t barCountBeforeTransition = tracker.barCount();
+    uint32_t totalBarCountBeforeTransition = tracker.totalBarCount();
+    REQUIRE(barCountBeforeTransition > 0);
+    REQUIRE(totalBarCountBeforeTransition > 0);
+    // No reset has happened yet -- the two counters have advanced in exact
+    // lockstep since both started at 0.
+    REQUIRE(totalBarCountBeforeTransition == static_cast<uint32_t>(barCountBeforeTransition));
+
+    // Same transition hop as the sibling test above: a real onset lands on
+    // the very hop structuralState flips into drop (2).
+    feedRealOnsets(tracker, 120.0f, 1, /*startBeatIndex=*/24, 48000, 512, /*structuralState=*/2);
+
+    REQUIRE(tracker.barCount() == 0);                                  // zeroed, as before
+    REQUIRE(tracker.totalBarCount() > totalBarCountBeforeTransition);  // kept climbing through the SAME event
+}
+
 // ============================================================================
 // Coverage gap: predictedBeatRegime_ can be true (runPipeline's inSilence_
 // branch) on the very hop a real, high-confidence onset also arrives --

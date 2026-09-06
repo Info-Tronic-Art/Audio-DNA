@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "events": [
+        { "t": 0.5, "type": 1, "layer": 0, "column": 2 },
+        { "t": 1.2, "type": 1, "layer": 0, "column": 5 },
+        { "t": 2.0, "type": 1, "layer": 1, "column": 1 },
+        { "t": 3.0, "type": 2, "column": 7 }
+    ]
+}

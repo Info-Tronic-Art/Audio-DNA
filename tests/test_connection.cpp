@@ -102,8 +102,14 @@ TEST_CASE("ConnectionShaper::shapeValue: RANGE sweeps only the chosen sub-range"
 
 TEST_CASE("ConnectionShaper::beatsNow folds across bars (4*barCount term)", "[connection][shaper]")
 {
-    REQUIRE(ConnectionShaper::beatsNow(0.5f, 2, 3) == Approx(0.5f + 2.0f + 4.0f * 3.0f).margin(0.0001f));
-    REQUIRE(ConnectionShaper::beatsNow(0.0f, 0, 0) == Approx(0.0f).margin(0.0001f));
+    // S168: beatsNow now takes BOTH counters plus the switch that picks
+    // between them (ConnShape::resetPhaseOnStructural, default false ==
+    // totalBarCount). This test predates the switch and is about the raw
+    // fold math, not which counter feeds it -- barCount and totalBarCount
+    // are passed equal so the default (totalBarCount) reproduces the exact
+    // pre-S168 numbers unchanged.
+    REQUIRE(ConnectionShaper::beatsNow(0.5f, 2, 3, 3) == Approx(0.5f + 2.0f + 4.0f * 3.0f).margin(0.0001f));
+    REQUIRE(ConnectionShaper::beatsNow(0.0f, 0, 0, 0) == Approx(0.0f).margin(0.0001f));
 }
 
 TEST_CASE("Lfo phase at bar 0/1/2 for cycle lengths 1, 4, 8, 16 beats", "[connection][lfo]")
@@ -119,6 +125,7 @@ TEST_CASE("Lfo phase at bar 0/1/2 for cycle lengths 1, 4, 8, 16 beats", "[connec
             snap.beatPhase = 0.5f;
             snap.beatInBar = 1;
             snap.barCount = bar;
+            snap.totalBarCount = bar;   // no structural reset in this scenario -- the two agree
 
             ParamConnection conn;
             conn.source.kind = ConnSource::Kind::Lfo;
@@ -126,7 +133,8 @@ TEST_CASE("Lfo phase at bar 0/1/2 for cycle lengths 1, 4, 8, 16 beats", "[connec
             conn.source.lfo.cycleBeats = cycleBeats;
 
             ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0 + bar, 250.0f, 120.0f };
-            float bn = ConnectionShaper::beatsNow(snap.beatPhase, snap.beatInBar, snap.barCount);
+            float bn = ConnectionShaper::beatsNow(snap.beatPhase, snap.beatInBar, snap.barCount,
+                                                  snap.totalBarCount, conn.shape.resetPhaseOnStructural);
             float expectedPhase = bn / cycleBeats;
             expectedPhase -= std::floor(expectedPhase);
 
@@ -148,6 +156,7 @@ TEST_CASE("An 8-beat LFO progresses across two full bars instead of retracing fo
     snap.beatPhase = 0.0f;
     snap.beatInBar = 0;
     snap.barCount = 1;   // bn = 4 with the fold, 0 without it
+    snap.totalBarCount = 1;   // default (resetPhaseOnStructural=false) reads this instead
 
     ParamConnection conn;
     conn.source.kind = ConnSource::Kind::Lfo;
@@ -201,11 +210,11 @@ TEST_CASE("loop=false holds the Lfo's end value instead of wrapping", "[connecti
     REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx1, nullptr) == Approx(0.5f).margin(0.01f));
 
     // Well past one full cycle -- must HOLD near 1.0, not wrap back to 0.
-    snap.beatPhase = 0.0f; snap.barCount = 5;
+    snap.beatPhase = 0.0f; snap.barCount = 5; snap.totalBarCount = 5;
     ConnectionEngine::Context ctx2{ sig, bank, snap, 0.016f, 5.0, 250.0f, 120.0f };
     REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx2, nullptr) == Approx(1.0f).margin(0.01f));
 
-    snap.barCount = 20;
+    snap.barCount = 20; snap.totalBarCount = 20;
     ConnectionEngine::Context ctx3{ sig, bank, snap, 0.016f, 20.0, 250.0f, 120.0f };
     REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx3, nullptr) == Approx(1.0f).margin(0.01f));
 }

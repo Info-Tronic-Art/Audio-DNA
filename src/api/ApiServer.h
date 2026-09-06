@@ -16,7 +16,6 @@ class SignalRegistry;
 class RoutingEngine;
 struct Composition;
 class BindingManager;
-class SessionRecorder;
 
 // ApiServer: Production HTTP REST API for external control.
 //
@@ -41,7 +40,6 @@ public:
               SignalRegistry& signalRegistry,
               RoutingEngine& routingEngine,
               BindingManager& bindingManager,
-              SessionRecorder& sessionRecorder,
               int port = 7070,
               bool allowFeatureInjection = false);
 
@@ -117,7 +115,6 @@ private:
     SignalRegistry& signalRegistry_;
     RoutingEngine& routingEngine_;
     BindingManager& bindingManager_;
-    SessionRecorder& sessionRecorder_;
 
     int port_;
     // R6 (featurebus-thread-safety-design.md): production = not registered

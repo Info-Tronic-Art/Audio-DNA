@@ -92,7 +92,8 @@ float ConnectionEngine::evaluate(ParamConnection& c, float manualNorm, const Con
     }
 
     float raw = 0.0f;
-    float bn = ConnectionShaper::beatsNow(ctx.snap.beatPhase, ctx.snap.beatInBar, ctx.snap.barCount);
+    float bn = ConnectionShaper::beatsNow(ctx.snap.beatPhase, ctx.snap.beatInBar, ctx.snap.barCount,
+                                          ctx.snap.totalBarCount, c.shape.resetPhaseOnStructural);
 
     switch (c.source.kind)
     {

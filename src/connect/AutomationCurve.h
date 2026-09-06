@@ -1,4 +1,5 @@
 #pragma once
+#include <juce_core/juce_core.h>
 #include <vector>
 #include <cstdint>
 
@@ -23,6 +24,42 @@ struct Breakpoint
     // Smooth eases via smoothstep.
     enum class Interp : uint8_t { Linear, Hold, Smooth };
     Interp interp = Interp::Linear;
+
+    // s167 step 1 (recorder core): additive -- a recorded lane's gesture
+    // (src/recording/Lane.h) stores its curve as this shared type (D7) and
+    // needs to put it in a take.json. Enums are strings (D12 "ADD, never
+    // REDEFINE"); an unrecognised string on load falls back to Linear
+    // rather than failing the point.
+    juce::var toVar() const
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("x", x);
+        obj->setProperty("y", static_cast<double>(y));
+        const char* name = "linear";
+        switch (interp)
+        {
+            case Interp::Hold:   name = "hold";   break;
+            case Interp::Smooth: name = "smooth"; break;
+            case Interp::Linear: default:          break;
+        }
+        obj->setProperty("interp", juce::String(name));
+        return juce::var(obj);
+    }
+
+    static Breakpoint fromVar(const juce::var& v)
+    {
+        Breakpoint bp;
+        if (auto* obj = v.getDynamicObject())
+        {
+            bp.x = static_cast<double>(obj->getProperty("x"));
+            bp.y = static_cast<float>(static_cast<double>(obj->getProperty("y")));
+            auto interpStr = obj->getProperty("interp").toString();
+            if (interpStr == "hold")        bp.interp = Interp::Hold;
+            else if (interpStr == "smooth") bp.interp = Interp::Smooth;
+            else                            bp.interp = Interp::Linear;   // default/unknown -> Linear
+        }
+        return bp;
+    }
 };
 
 struct AutomationCurve
@@ -31,6 +68,24 @@ struct AutomationCurve
 
     double xMin() const { return pts.empty() ? 0.0 : pts.front().x; }
     double xMax() const { return pts.empty() ? 0.0 : pts.back().x; }
+
+    // s167 step 1: additive, same reason as Breakpoint::toVar above.
+    juce::var toVar() const
+    {
+        juce::Array<juce::var> arr;
+        for (const auto& bp : pts)
+            arr.add(bp.toVar());
+        return arr;
+    }
+
+    static AutomationCurve fromVar(const juce::var& v)
+    {
+        AutomationCurve c;
+        if (auto* arr = v.getArray())
+            for (const auto& e : *arr)
+                c.pts.push_back(Breakpoint::fromVar(e));
+        return c;
+    }
 
     // Evaluates at x; clamps to the first/last point outside [xMin, xMax].
     // Empty -> 0.0f.

@@ -461,8 +461,8 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
     if (lockedBPM_ <= 0.0f)
     {
         phrasePhase_ = 0.0f;
-        barCount_ = 0;
-        prevDownbeatDetected_ = false;
+        barCount_ = 0;              // totalBarCount_ intentionally NOT touched (S168):
+        prevDownbeatDetected_ = false;   // never rewound, even on a no-lock reset
         prevStructuralState_ = structuralState;
         return;
     }
@@ -474,6 +474,7 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
     if (newBar)
     {
         ++barCount_;
+        ++totalBarCount_; // S168: mirrors barCount_'s advance; never reset below
     }
 
     // Reset phrase on structural transitions (e.g., drop hits → reset phrase counter)
@@ -492,7 +493,8 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
                             || (prevStructuralState_ == 3 && structuralState != 3); // leaving breakdown
         if (resetTransition && !predictedBeatRegime_)
         {
-            barCount_ = 0;
+            barCount_ = 0; // totalBarCount_ intentionally NOT touched -- S168, see its
+                            // declaration: this counter must never jump backward.
         }
     }
     prevStructuralState_ = structuralState;
@@ -513,6 +515,8 @@ void BPMTracker::resetPhrase()
     barCount_ = 0;
     phrasePhase_ = 0.0f;
     prevDownbeatDetected_ = false;
+    // totalBarCount_ intentionally NOT reset here (S168): monotonic for the
+    // life of the tracker, including across a manual Resync.
 }
 
 void BPMTracker::setManualBPM(float bpm)

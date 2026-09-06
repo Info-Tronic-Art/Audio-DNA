@@ -13,9 +13,13 @@ namespace
     }
 }
 
-float ConnectionShaper::beatsNow(float beatPhase, uint8_t beatInBar, uint16_t barCount)
+float ConnectionShaper::beatsNow(float beatPhase, uint8_t beatInBar, uint16_t barCount,
+                                  uint32_t totalBarCount, bool resetPhaseOnStructural)
 {
-    return beatPhase + static_cast<float>(beatInBar) + 4.0f * static_cast<float>(barCount);
+    float barsElapsed = resetPhaseOnStructural
+        ? static_cast<float>(barCount)
+        : static_cast<float>(totalBarCount);
+    return beatPhase + static_cast<float>(beatInBar) + 4.0f * barsElapsed;
 }
 
 float ConnectionShaper::playbackXform(float continuousCycles, ConnShape::Playback pb)

@@ -21,12 +21,33 @@ using Catch::Matchers::WithinAbs;
 // barCount_/phrasePhase_/prevDownbeatDetected_). These tests pin both
 // halves of that trade-off: no artificial jump at a fixed "phrase" period,
 // but a real jump at an actual structural-reset event.
+//
+// S168: the structural-reset jump above is no longer the only option. A
+// second FeatureSnapshot field, totalBarCount, mirrors barCount's advance
+// but is NEVER rewound by a structural reset (or resetPhrase()/Resync).
+// OscillatorSignal::resetPhaseOnStructural_ (and EnvelopeSignal's own copy
+// of the same switch) picks which one feeds the fold; false (the new
+// default) reads totalBarCount -- phase only ever runs forward -- and true
+// reads barCount, reproducing the S166-L5a jump exactly as before. The
+// four OscillatorSignal cases below that predate S168 (multi-bar fold
+// correctness, the phrase-reset trade-off) explicitly opt into
+// resetPhaseOnStructural_ = true so their original barCount-driven
+// assertions keep meaning unchanged, and each now carries its own
+// default-mode (totalBarCount) sibling assertion right after it -- the new
+// default path is no longer guarded by only the one dedicated "S168" test
+// case further down. Three pre-existing EnvelopeSignal cases needed the
+// same true-opt-in once EnvelopeSignal grew the switch (it previously read
+// barCount unconditionally, see EnvelopeSignal.h); they were not given
+// their own totalBarCount siblings, since the review that opened this work
+// packet named only the four OscillatorSignal cases for that treatment.
 
 TEST_CASE("OscillatorSignal 8-beat cycle completes across two bars (was bounded to 4/8)", "[signal][oscillator]")
 {
     // beatDuration_ = 8 beats = 2 bars. SawUp's value IS cyclePhase, so it
     // is the simplest probe for "did the phase actually reach here".
     OscillatorSignal osc("test", OscillatorSignal::WaveShape::SawUp, 8.0f);
+    osc.setResetPhaseOnStructural(true); // S168: pins the legacy barCount-driven
+                                          // fold; this test predates the switch.
 
     FeatureSnapshot start;
     start.beatPhase = 0.0f;
@@ -73,6 +94,52 @@ TEST_CASE("OscillatorSignal 8-beat cycle completes across two bars (was bounded 
         }
     }
     REQUIRE(prev > 0.9f); // reached near the top of the ramp, not stuck at 0.5
+
+    // S168 default-mode sibling: same fold, same numbers, but via a
+    // default-settings oscillator reading totalBarCount instead of
+    // barCount (the switch is a pure re-point -- the math it feeds is
+    // identical either way).
+    OscillatorSignal oscDefault("test", OscillatorSignal::WaveShape::SawUp, 8.0f);
+    REQUIRE_FALSE(oscDefault.getResetPhaseOnStructural());
+
+    FeatureSnapshot startTbc;
+    startTbc.beatPhase = 0.0f;
+    startTbc.beatInBar = 0;
+    startTbc.totalBarCount = 0;
+    REQUIRE_THAT(oscDefault.getValue(startTbc), WithinAbs(0.0f, 0.001f));
+
+    FeatureSnapshot secondBarTbc;
+    secondBarTbc.beatPhase = 0.0f;
+    secondBarTbc.beatInBar = 0;
+    secondBarTbc.totalBarCount = 1;
+    REQUIRE_THAT(oscDefault.getValue(secondBarTbc), WithinAbs(0.5f, 0.001f));
+
+    FeatureSnapshot nearEndTbc;
+    nearEndTbc.beatPhase = 0.99f;
+    nearEndTbc.beatInBar = 3;
+    nearEndTbc.totalBarCount = 1;
+    float valNearEndTbc = oscDefault.getValue(nearEndTbc);
+    REQUIRE(valNearEndTbc > 0.9f);
+
+    float prevTbc = -1.0f;
+    for (uint32_t totalBarCount = 0; totalBarCount <= 1; ++totalBarCount)
+    {
+        for (int beatInBar = 0; beatInBar < 4; ++beatInBar)
+        {
+            for (float beatPhase : {0.0f, 0.25f, 0.5f, 0.75f})
+            {
+                FeatureSnapshot s;
+                s.beatPhase = beatPhase;
+                s.beatInBar = static_cast<uint8_t>(beatInBar);
+                s.totalBarCount = totalBarCount;
+                float v = oscDefault.getValue(s);
+                INFO("totalBarCount=" << totalBarCount << " beatInBar=" << beatInBar << " beatPhase=" << beatPhase);
+                REQUIRE(v >= prevTbc - 0.0001f);
+                prevTbc = v;
+            }
+        }
+    }
+    REQUIRE(prevTbc > 0.9f); // reached near the top of the ramp, not stuck at 0.5
 }
 
 TEST_CASE("OscillatorSignal Sine 8-beat cycle reaches both extremes", "[signal][oscillator]")
@@ -83,6 +150,8 @@ TEST_CASE("OscillatorSignal Sine 8-beat cycle reaches both extremes", "[signal][
     // (no barCount term), totalBeatPhase was bounded to [0,4), so cyclePhase
     // could never exceed 0.5 -- the trough was UNREACHABLE.
     OscillatorSignal osc("test", OscillatorSignal::WaveShape::Sine, 8.0f);
+    osc.setResetPhaseOnStructural(true); // S168: pins the legacy barCount-driven
+                                          // fold; this test predates the switch.
 
     FeatureSnapshot atPeak; // totalBeatPhase = 2 -> cyclePhase = 0.25
     atPeak.beatPhase = 0.0f;
@@ -95,6 +164,22 @@ TEST_CASE("OscillatorSignal Sine 8-beat cycle reaches both extremes", "[signal][
     atTrough.beatInBar = 2;
     atTrough.barCount = 1;
     REQUIRE_THAT(osc.getValue(atTrough), WithinAbs(0.0f, 0.01f));
+
+    // S168 default-mode sibling: same two probes via totalBarCount.
+    OscillatorSignal oscDefault("test", OscillatorSignal::WaveShape::Sine, 8.0f);
+    REQUIRE_FALSE(oscDefault.getResetPhaseOnStructural());
+
+    FeatureSnapshot atPeakTbc; // totalBeatPhase = 2 -> cyclePhase = 0.25
+    atPeakTbc.beatPhase = 0.0f;
+    atPeakTbc.beatInBar = 2;
+    atPeakTbc.totalBarCount = 0;
+    REQUIRE_THAT(oscDefault.getValue(atPeakTbc), WithinAbs(1.0f, 0.01f));
+
+    FeatureSnapshot atTroughTbc; // totalBeatPhase = 6 -> cyclePhase = 0.75
+    atTroughTbc.beatPhase = 0.0f;
+    atTroughTbc.beatInBar = 2;
+    atTroughTbc.totalBarCount = 1;
+    REQUIRE_THAT(oscDefault.getValue(atTroughTbc), WithinAbs(0.0f, 0.01f));
 }
 
 TEST_CASE("OscillatorSignal short beat durations unchanged across bars", "[signal][oscillator]")
@@ -124,6 +209,7 @@ TEST_CASE("OscillatorSignal short beat durations unchanged across bars", "[signa
         for (auto shape : shapes)
         {
             OscillatorSignal osc("test", shape, d);
+            osc.setResetPhaseOnStructural(true); // S168: legacy barCount-driven fold
             float expected = osc.getValue(baseline);
 
             for (uint16_t bc : barCounts)
@@ -133,6 +219,34 @@ TEST_CASE("OscillatorSignal short beat durations unchanged across bars", "[signa
                 float actual = osc.getValue(s);
                 INFO("beatDuration=" << d << " shape=" << static_cast<int>(shape) << " barCount=" << bc);
                 REQUIRE_THAT(actual, WithinAbs(expected, 0.0005f));
+            }
+        }
+    }
+
+    // S168 default-mode sibling: same durations/shapes/no-op claim, this
+    // time via a default-settings oscillator swept across totalBarCount.
+    const uint32_t totalBarCounts[] = {0, 1, 2, 3, 5, 10, 50};
+
+    FeatureSnapshot baselineTbc;
+    baselineTbc.beatPhase = 0.37f;
+    baselineTbc.beatInBar = 2;
+    baselineTbc.totalBarCount = 0;
+
+    for (float d : durations)
+    {
+        for (auto shape : shapes)
+        {
+            OscillatorSignal oscDefault("test", shape, d);
+            REQUIRE_FALSE(oscDefault.getResetPhaseOnStructural());
+            float expectedTbc = oscDefault.getValue(baselineTbc);
+
+            for (uint32_t tbc : totalBarCounts)
+            {
+                FeatureSnapshot s = baselineTbc;
+                s.totalBarCount = tbc;
+                float actual = oscDefault.getValue(s);
+                INFO("beatDuration=" << d << " shape=" << static_cast<int>(shape) << " totalBarCount=" << tbc);
+                REQUIRE_THAT(actual, WithinAbs(expectedTbc, 0.0005f));
             }
         }
     }
@@ -196,6 +310,9 @@ TEST_CASE("EnvelopeSignal completes a full cycle over 8 beats (2 bars)", "[signa
     // boundary barCount=1 (totalBeatPhase=4, cyclePhase=0.5), not at the
     // end of bar 0 as it would if the fix were missing.
     EnvelopeSignal env("test", 8.0f);
+    env.setResetPhaseOnStructural(true); // S168: EnvelopeSignal now has the same
+                                          // switch as OscillatorSignal; this test
+                                          // predates it and drives barCount directly.
 
     FeatureSnapshot start;
     start.beatPhase = 0.0f;
@@ -224,6 +341,8 @@ TEST_CASE("EnvelopeSignal 16-beat option (SignalInspector's longest envelope dur
     // 4/16 = 0.25, a quarter of the cycle, so the envelope never even
     // reached its peak (position 0.5) before this fix.
     EnvelopeSignal env("test", 16.0f);
+    env.setResetPhaseOnStructural(true); // S168: pins the legacy barCount-driven
+                                          // fold; this test predates the switch.
 
     FeatureSnapshot start;
     start.beatPhase = 0.0f;
@@ -255,6 +374,7 @@ TEST_CASE("EnvelopeSignal default duration (4.0, the boundary case) is unchanged
     baseline.barCount = 0;
 
     EnvelopeSignal env("test"); // default beatDuration_ = 4.0f
+    env.setResetPhaseOnStructural(true); // S168: legacy barCount-driven fold
     float expected = env.getValue(baseline);
 
     for (uint16_t bc : barCounts)
@@ -272,6 +392,10 @@ TEST_CASE("Phrase-reset trade-off is pinned: no jump from a fixed period, a real
     // default 8-bar phrase length evenly, so it exercises the trade-off
     // named in the S166-L5a work packet.
     OscillatorSignal osc("test", OscillatorSignal::WaveShape::SawUp, 12.0f);
+    osc.setResetPhaseOnStructural(true); // S168: this test pins the legacy
+                                          // barCount-driven trade-off, now opt-in;
+                                          // see the "S168" test below for the new
+                                          // totalBarCount-driven default.
 
     // (1) Crossing a "phrase" boundary (8 bars) with NO structural-reset
     // event -- barCount simply keeps incrementing, exactly as
@@ -317,4 +441,135 @@ TEST_CASE("Phrase-reset trade-off is pinned: no jump from a fixed period, a real
 
     INFO("beforeReset=" << beforeReset << " afterReset=" << afterReset);
     REQUIRE(std::abs(afterReset - beforeReset) > 0.3f); // a real, visible jump
+
+    // S168 default-mode sibling: same duration, same scripted sequence,
+    // via totalBarCount instead of barCount. Part (1) is identical in
+    // spirit (a "phrase boundary" means nothing to either counter). Part
+    // (2) inverts the conclusion -- totalBarCount is never rewound by a
+    // structural reset (that IS the S168 guarantee), so where the legacy
+    // oscillator jumps, this one must keep climbing with no jump at all.
+    OscillatorSignal oscDefault("test", OscillatorSignal::WaveShape::SawUp, 12.0f);
+    REQUIRE_FALSE(oscDefault.getResetPhaseOnStructural());
+
+    FeatureSnapshot beforePhraseBoundaryTbc;
+    beforePhraseBoundaryTbc.beatPhase = 0.9f;
+    beforePhraseBoundaryTbc.beatInBar = 3;
+    beforePhraseBoundaryTbc.totalBarCount = 7;
+    float justBeforeTbc = oscDefault.getValue(beforePhraseBoundaryTbc);
+
+    FeatureSnapshot afterPhraseBoundaryTbc;
+    afterPhraseBoundaryTbc.beatPhase = 0.0f;
+    afterPhraseBoundaryTbc.beatInBar = 0;
+    afterPhraseBoundaryTbc.totalBarCount = 8;
+    float justAfterTbc = oscDefault.getValue(afterPhraseBoundaryTbc);
+
+    INFO("justBeforeTbc=" << justBeforeTbc << " justAfterTbc=" << justAfterTbc);
+    REQUIRE(justAfterTbc > justBeforeTbc); // kept climbing, no reset-induced drop
+
+    // NOT the same totalBarCount values as the legacy midCycle/justAfterReset
+    // snapshots above -- duration_=12 wraps its 3-bar cycle at totalBarCount
+    // 0,3,6,9..., and bar 5->6 crosses one, so a naive same-numbers mirror
+    // would confuse the waveform's own normal 1->0 wrap for a jump (the
+    // "S168" test's own header comment names this exact trap). Bars 4->5
+    // stay inside the same cycle (cycle 2 spans totalBeatPhase [12,24),
+    // i.e. bars [2.375, 5.375) at this beatInBar/beatPhase), so a genuine
+    // "no jump" claim can be checked without the wrap in the way.
+    FeatureSnapshot midCycleTbc;
+    midCycleTbc.beatPhase = 0.5f;
+    midCycleTbc.beatInBar = 2;
+    midCycleTbc.totalBarCount = 4;
+    float beforeResetTbc = oscDefault.getValue(midCycleTbc);
+
+    // The event that snaps the LEGACY oscillator's barCount to 0 above
+    // does NOT touch totalBarCount (S168) -- one more bar elapses instead.
+    FeatureSnapshot justAfterResetTbc = midCycleTbc;
+    justAfterResetTbc.totalBarCount = 5;
+
+    float afterResetTbc = oscDefault.getValue(justAfterResetTbc);
+
+    INFO("beforeResetTbc=" << beforeResetTbc << " afterResetTbc=" << afterResetTbc);
+    REQUIRE(afterResetTbc > beforeResetTbc); // kept climbing, no jump at all
+}
+
+// S168: oscillator phase must run off a MONOTONIC beat counter, so a real
+// structural reset mid-track can no longer yank the phase backward. Same
+// scripted sequence (bars advancing normally, then a structural reset that
+// zeros barCount but leaves totalBarCount climbing, per BPMTracker::
+// updatePhrase) is fed to two oscillators differing only in
+// resetPhaseOnStructural_: the default (false) must never jump backward;
+// the legacy opt-in (true) must reproduce the old jump exactly like the
+// "Phrase-reset trade-off is pinned" test above.
+TEST_CASE("S168: default oscillator phase is monotonic across a structural reset; switch=true still jumps", "[signal][oscillator]")
+{
+    // beatDuration_=32 (8-bar cycle) keeps totalBeatPhase for every snapshot
+    // below well under one full cycle, so a SawUp's value tracks cyclePhase
+    // with no wraparound to confuse a genuine backward jump with the
+    // waveform's normal 1->0 wrap.
+    OscillatorSignal defaultOsc("test", OscillatorSignal::WaveShape::SawUp, 32.0f);
+    OscillatorSignal legacyOsc("test", OscillatorSignal::WaveShape::SawUp, 32.0f);
+    legacyOsc.setResetPhaseOnStructural(true);
+    REQUIRE_FALSE(defaultOsc.getResetPhaseOnStructural()); // default is false
+
+    // Bars advance normally from a cold start -- barCount and totalBarCount
+    // agree because no structural reset has happened yet.
+    FeatureSnapshot start;
+    start.beatPhase = 0.0f;
+    start.beatInBar = 0;
+    start.barCount = 0;
+    start.totalBarCount = 0;
+
+    FeatureSnapshot beforeReset;
+    beforeReset.beatPhase = 0.0f;
+    beforeReset.beatInBar = 0;
+    beforeReset.barCount = 5;
+    beforeReset.totalBarCount = 5;
+
+    // Pre-reset, both switch settings must agree exactly (barCount ==
+    // totalBarCount so far -- the switch has not diverged them yet).
+    REQUIRE_THAT(defaultOsc.getValue(start), WithinAbs(legacyOsc.getValue(start), 0.0001f));
+    REQUIRE_THAT(defaultOsc.getValue(beforeReset), WithinAbs(legacyOsc.getValue(beforeReset), 0.0001f));
+
+    // A real structural-transition reset lands mid-cycle (BPMTracker::
+    // updatePhrase's drop-entry branch): barCount snaps to 0, beatPhase/
+    // beatInBar continue undisturbed from wherever the beat clock already
+    // was (established precedent, "Phrase-reset trade-off is pinned" above),
+    // and totalBarCount is untouched -- this is the S168 guarantee itself.
+    FeatureSnapshot atReset;
+    atReset.beatPhase = 0.5f;
+    atReset.beatInBar = 2;
+    atReset.barCount = 0;             // structural reset: zeroed
+    atReset.totalBarCount = 5;        // S168: NOT rewound by the same reset
+
+    // One more bar elapses after the reset, continuing to climb from the
+    // post-reset baseline (barCount) and from where it always was
+    // (totalBarCount).
+    FeatureSnapshot afterReset;
+    afterReset.beatPhase = 0.0f;
+    afterReset.beatInBar = 0;
+    afterReset.barCount = 1;
+    afterReset.totalBarCount = 6;
+
+    float d0 = defaultOsc.getValue(start);
+    float d1 = defaultOsc.getValue(beforeReset);
+    float d2 = defaultOsc.getValue(atReset);
+    float d3 = defaultOsc.getValue(afterReset);
+    INFO("default sequence: " << d0 << ", " << d1 << ", " << d2 << ", " << d3);
+    // Monotonically non-decreasing across the whole sequence, INCLUDING the
+    // structural reset -- the defining S168 assertion. Pre-fix (reading
+    // barCount unconditionally), d2 would have dropped to ~0.078 here,
+    // failing this exact check.
+    REQUIRE(d1 >= d0 - 0.0001f);
+    REQUIRE(d2 >= d1 - 0.0001f); // <- fails against the old (pre-S168) behaviour
+    REQUIRE(d3 >= d2 - 0.0001f);
+
+    float l0 = legacyOsc.getValue(start);
+    float l1 = legacyOsc.getValue(beforeReset);
+    float l2 = legacyOsc.getValue(atReset);
+    float l3 = legacyOsc.getValue(afterReset);
+    INFO("legacy sequence: " << l0 << ", " << l1 << ", " << l2 << ", " << l3);
+    // With the switch enabled, the old S166-L5a jump-on-reset behaviour must
+    // still be reachable: a real, visible backward jump at the reset point,
+    // then climbing again afterward.
+    REQUIRE(l1 - l2 > 0.3f);  // a real, visible backward jump at the reset
+    REQUIRE(l3 > l2);         // resumes climbing after the reset
 }

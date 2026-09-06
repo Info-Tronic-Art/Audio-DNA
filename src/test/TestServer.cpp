@@ -459,6 +459,7 @@ void TestServer::handleInjectFeatures(const httplib::Request& req, httplib::Resp
     snap->barPhase = get("barPhase");
     snap->phrasePhase = get("phrasePhase");
     snap->barCount = static_cast<uint16_t>(get("barCount"));
+    snap->totalBarCount = static_cast<uint32_t>(get("totalBarCount")); // S168: additive twin of barCount
     snap->structuralState = static_cast<uint8_t>(get("structuralState"));
     snap->dominantPitch = get("dominantPitch");
     snap->pitchConfidence = get("pitchConfidence");

@@ -10,11 +10,22 @@
 // in/out explicitly.
 namespace ConnectionShaper
 {
-    // beatPhase + beatInBar + 4*barCount, folded across bars so a cycle
+    // beatPhase + beatInBar + 4*<bar count>, folded across bars so a cycle
     // longer than one bar actually completes instead of retracing a
     // fraction of itself forever (s166 spec section 2.4). Matches the fix
     // already shipped in OscillatorSignal.h / EnvelopeSignal.h (S166-L1).
-    float beatsNow(float beatPhase, uint8_t beatInBar, uint16_t barCount);
+    //
+    // S168: which bar count feeds the fold is a per-connection choice
+    // (ConnShape::resetPhaseOnStructural, same name/default as
+    // OscillatorSignal's switch): false (default) folds across
+    // totalBarCount -- never rewound by a structural reset, so an LFO or
+    // Beats-clock Envelope connection can no longer jump backward mid-
+    // gesture; true folds across barCount, reproducing the original
+    // S166-L1 jump-on-drop behaviour. ConnectionEngine::evaluate is called
+    // for EVERY enabled connection with an Lfo/Envelope(Beats) source, so
+    // this one call site drives the whole macro/mapping/connection path.
+    float beatsNow(float beatPhase, uint8_t beatInBar, uint16_t barCount,
+                    uint32_t totalBarCount, bool resetPhaseOnStructural = false);
 
     // Maps a continuous, ever-increasing "cycles elapsed" counter (NOT
     // wrapped to [0,1) by the caller) to a position in [0,1) per Playback

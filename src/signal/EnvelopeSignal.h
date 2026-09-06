@@ -33,15 +33,26 @@ public:
         if (points_.size() < 2) return 0.0f;
 
         // Calculate phase from beat position.
-        // S166-L5a: same fold-across-bars fix and trade-off as
-        // OscillatorSignal::getValue (see its comment for the full
-        // rationale) -- barCount is bars since the last phrase reset and
-        // grows monotonically except on rare structural-transition resets,
-        // so beatDuration_ > 4 (the default here is 4.0, the boundary case
-        // that happened to still work) now completes a full cycle instead
-        // of stalling partway through.
+        // S166-L5a: same fold-across-bars fix as OscillatorSignal::getValue
+        // (see its comment for the full rationale) -- extends the phase
+        // across bars so beatDuration_ > 4 (the default here is 4.0, the
+        // boundary case that happened to still work) completes a full cycle
+        // instead of stalling partway through.
+        //
+        // Which bar count feeds that fold is the same per-instance choice
+        // as OscillatorSignal (S168, resetPhaseOnStructural_): false
+        // (default) reads FeatureSnapshot::totalBarCount, so a real
+        // structural drop mid-gesture can no longer yank this envelope's
+        // shape backward; true reads FeatureSnapshot::barCount, reproducing
+        // the original S166-L5a jump-on-drop trade-off. CORRECTION: this
+        // comment previously claimed EnvelopeSignal "already received the
+        // same fold-across-bars fix as OscillatorSignal" -- it had NOT; it
+        // read barCount unconditionally with no switch at all until S168.
+        float barsElapsed = resetPhaseOnStructural_
+            ? static_cast<float>(snapshot.barCount)
+            : static_cast<float>(snapshot.totalBarCount);
         float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar)
-                             + 4.0f * static_cast<float>(snapshot.barCount);
+                             + 4.0f * barsElapsed;
         float cyclePhase = std::fmod(totalBeatPhase / beatDuration_, 1.0f);
         if (cyclePhase < 0.0f) cyclePhase += 1.0f;
 
@@ -123,6 +134,14 @@ public:
     bool isLooping() const { return looping_; }
     void setLooping(bool l) { looping_ = l; }
 
+    // S168: false (default) = phase folds across FeatureSnapshot::totalBarCount
+    // (never jumps backward on a structural reset); true = the original
+    // S166-L5a behaviour, folding across FeatureSnapshot::barCount (jumps on
+    // a real drop/breakdown transition). Runtime-only -- not currently
+    // serialized, since no EnvelopeSignal field is (see s168 report).
+    bool getResetPhaseOnStructural() const { return resetPhaseOnStructural_; }
+    void setResetPhaseOnStructural(bool r) { resetPhaseOnStructural_ = r; }
+
 private:
     std::vector<ControlPoint> points_;
     float beatDuration_;
@@ -131,4 +150,5 @@ private:
     CurveType curveType_ = CurveType::Linear;
     bool oneShot_ = false;
     bool looping_ = true;
+    bool resetPhaseOnStructural_ = false; // S168, default false = flow-through
 };

@@ -1489,7 +1489,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     browserPanel_->getCompDecksBrowser().onDeckLoad = [this](const juce::File& f) {
         appendDeckFromFile(f);
     };
-    browserPanel_->getRecordPanel().setSessionRecorder(&sessionRecorder_);
     browserPanel_->getFXBrowser().onEffectActivated = [this](const juce::String& effectName) {
         DBG("FX Browser: activated effect " + effectName);
     };
@@ -1796,7 +1795,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
         signalRegistry_,
         previewPanel_.getRenderer().getRoutingEngine(),
         bindingManager_,
-        sessionRecorder_,
         7070,
         testMode_);
     apiServer_->onTriggerClip = [this](int layer, int column) { handleClipTrigger(layer, column); };
@@ -3811,9 +3809,6 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
     std::optional<bool> playAfter;
     if (const Clip* tc = layer->getClipAt(column)) playAfter = tc->playing;
-
-    // Record clip trigger for session recording
-    sessionRecorder_.recordClipTrigger(layerIndex, column);
 
     // Load the clip content into preview
     if (auto* clip = layer->getActiveClip())
