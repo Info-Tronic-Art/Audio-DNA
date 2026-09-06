@@ -274,14 +274,20 @@ private:
     // only (clip transport/effects/transitions keep using wall-clock `time`
     // in renderOpenGL). Advances by dt * composition_->masterSpeed each
     // frame -- NOT masterSpeed * wall-clock time -- so a live speed change
-    // changes the animation's RATE without jumping its phase. GL-thread-
-    // owned (only ever touched from renderOpenGL), no atomic needed.
+    // changes the animation's RATE without jumping its phase. dt here is
+    // the same real measured delta as lastFrameTimestampMs_ below (S167-L4b
+    // DT-FIX) -- previously this accumulated with a hardcoded 1/60 instead,
+    // which coupled procedural-source speed to the GL callback rate exactly
+    // like the video/image-sequence bug documented below, just with a
+    // second, independent 1/60 timing source. GL-thread-owned (only ever
+    // touched from renderOpenGL), no atomic needed.
     double scaledTime_ = 0.0;
 
     // S167-L4b DT-FIX: wall-clock timestamp (ms) of the previous
     // renderOpenGL() call, used to compute a REAL measured frame delta fed
-    // to CompositorEngine::compositeDeck()/compositePersistentLayers(),
-    // which pass it straight through to VideoPlayer::advanceFrame() and
+    // to scaledTime_ above (procedural sources) and to
+    // CompositorEngine::compositeDeck()/compositePersistentLayers(), which
+    // pass it straight through to VideoPlayer::advanceFrame() and
     // ImageSequence::advanceFrame() (both do `currentTime_ += dt * speed`
     // literally, no other timing source). Previously those call sites
     // hardcoded dt=1/60, which silently coupled video/image-sequence

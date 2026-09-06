@@ -316,6 +316,82 @@ TEST_CASE("Transition progress step is frame-rate independent (S167-L4b)", "[com
     }
 }
 
+// S167-L4b DT-FIX: procedural-source scaledTime_ accumulation frame-rate-
+// independence pure-math coverage.
+//
+// The real accumulation -- Renderer::renderOpenGL()'s non-override branch,
+// `scaledTime_ += static_cast<double>(realDt) * static_cast<double>(masterSpeedVal);`
+// (src/render/Renderer.cpp:400, with realDt computed just above it at
+// Renderer.cpp:409-414) -- lives inside a GL-heavy function this GL-free
+// test target cannot link (see this file's header comment above and
+// tests/CMakeLists.txt, a FORBIDDEN file for this work packet). Before this
+// fix, scaledTime_ accumulated with a hardcoded `(1.0 / 60.0)` step instead
+// of realDt -- the same bug shape as the transitionProgressStep and
+// combinedOpacity/effectiveClipSpeed cases above, just for procedural-
+// source animation (noise/plasma/etc. sources rendered via renderSource()).
+// Mirrored here exactly, cited by file:line, rather than pulling in the GL
+// headers.
+namespace {
+    // Mirrors the non-override accumulation at Renderer.cpp:400.
+    double scaledTimeStep(double realDt, double masterSpeed)
+    {
+        return realDt * masterSpeed;
+    }
+}
+
+TEST_CASE("Procedural-source scaledTime_ accumulation is frame-rate independent (S167-L4b)", "[compositor][speed]")
+{
+    SECTION("Same total scaled time after one simulated second, 30 steps vs 120 steps")
+    {
+        const double masterSpeed = 1.0;
+
+        double scaled30 = 0.0;
+        for (int i = 0; i < 30; ++i)
+            scaled30 += scaledTimeStep(1.0 / 30.0, masterSpeed);
+
+        double scaled120 = 0.0;
+        for (int i = 0; i < 120; ++i)
+            scaled120 += scaledTimeStep(1.0 / 120.0, masterSpeed);
+
+        REQUIRE_THAT(static_cast<float>(scaled30), WithinAbs(static_cast<float>(scaled120), 0.0001f));
+        REQUIRE_THAT(static_cast<float>(scaled30), WithinAbs(1.0f, 0.0001f)); // 1s of real time at 1x speed
+    }
+
+    SECTION("masterSpeed scales the accumulation rate independent of frame rate")
+    {
+        const double masterSpeed = 2.0;
+
+        double scaled60 = 0.0;
+        for (int i = 0; i < 60; ++i)
+            scaled60 += scaledTimeStep(1.0 / 60.0, masterSpeed);
+
+        double scaled24 = 0.0;
+        for (int i = 0; i < 24; ++i)
+            scaled24 += scaledTimeStep(1.0 / 24.0, masterSpeed);
+
+        REQUIRE_THAT(static_cast<float>(scaled60), WithinAbs(2.0f, 0.0001f)); // 1s real time * 2x speed
+        REQUIRE_THAT(static_cast<float>(scaled24), WithinAbs(2.0f, 0.0001f)); // 1s real time * 2x speed
+    }
+
+    SECTION("Regression guard: a hardcoded 1/60 step would couple procedural-source speed to fps")
+    {
+        // Documents the OLD bug's consequence -- accumulating with a
+        // constant 1/60 step (ignoring realDt) makes scaledTime_ track
+        // frame COUNT instead of wall-clock time.
+        const double oldHardcodedStep = 1.0 / 60.0; // the bug: constant regardless of real fps
+        const double masterSpeed = 1.0;
+
+        // At a sustained 30fps, 30 real callbacks land in one real second,
+        // but the hardcoded step only ever advanced by 1/60 per callback --
+        // procedural sources animated at HALF the intended rate.
+        REQUIRE_THAT(static_cast<float>(30.0 * oldHardcodedStep * masterSpeed), WithinAbs(0.5f, 0.0001f));
+
+        // At 120fps, 120 real callbacks land in one real second --
+        // procedural sources animated at DOUBLE the intended rate.
+        REQUIRE_THAT(static_cast<float>(120.0 * oldHardcodedStep * masterSpeed), WithinAbs(2.0f, 0.0001f));
+    }
+}
+
 TEST_CASE("Layer keying and blend properties", "[layer]")
 {
     Layer layer;

@@ -387,6 +387,25 @@ void Renderer::renderOpenGL()
     float time = (overrideT >= 0.0f) ? overrideT
         : static_cast<float>(juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
+    // S167-L4b DT-FIX: real measured frame delta, fed to scaledTime_ below
+    // (procedural-source clock) and to compositeDeck()/
+    // compositePersistentLayers() further down (video/image-sequence
+    // playhead advancement) -- see lastFrameTimestampMs_'s comment in
+    // Renderer.h for why this must be a REAL delta, not a hardcoded 1/60.
+    // Clamped to [0, 0.25]s so a debugger pause, backgrounding, or the very
+    // first frame (lastFrameTimestampMs_ == -1) can't make video (or
+    // procedural-source time) jump by an unbounded amount in one frame.
+    // Computed here, BEFORE scaledTime_, so both consumers share this one
+    // timing source instead of scaledTime_ keeping its own independent
+    // 1/60 tick (that second, parallel timing source was the bug: see
+    // scaledTime_'s comment in Renderer.h).
+    double nowMs = juce::Time::getMillisecondCounterHiRes();
+    float realDt = (lastFrameTimestampMs_ >= 0.0)
+        ? static_cast<float>((nowMs - lastFrameTimestampMs_) / 1000.0)
+        : (1.0f / 60.0f);
+    realDt = std::clamp(realDt, 0.0f, 0.25f);
+    lastFrameTimestampMs_ = nowMs;
+
     // S167-L4b: advance scaledTime_ for procedural sources (see its comment
     // in Renderer.h). In deterministic test-capture mode (timeOverride_ set)
     // track the override 1:1, scaled, instead of accumulating -- otherwise
@@ -397,21 +416,7 @@ void Renderer::renderOpenGL()
     if (overrideT >= 0.0f)
         scaledTime_ = static_cast<double>(overrideT) * static_cast<double>(masterSpeedVal);
     else
-        scaledTime_ += (1.0 / 60.0) * static_cast<double>(masterSpeedVal);
-
-    // S167-L4b DT-FIX: real measured frame delta, fed to
-    // compositeDeck()/compositePersistentLayers() below for video/image-
-    // sequence playhead advancement -- see lastFrameTimestampMs_'s comment
-    // in Renderer.h for why this must be a REAL delta, not a hardcoded
-    // 1/60. Clamped to [0, 0.25]s so a debugger pause, backgrounding, or the
-    // very first frame (lastFrameTimestampMs_ == -1) can't make video jump
-    // by an unbounded amount in one advanceFrame() call.
-    double nowMs = juce::Time::getMillisecondCounterHiRes();
-    float realDt = (lastFrameTimestampMs_ >= 0.0)
-        ? static_cast<float>((nowMs - lastFrameTimestampMs_) / 1000.0)
-        : (1.0f / 60.0f);
-    realDt = std::clamp(realDt, 0.0f, 0.25f);
-    lastFrameTimestampMs_ = nowMs;
+        scaledTime_ += static_cast<double>(realDt) * static_cast<double>(masterSpeedVal);
 
     // Get physical pixel dimensions
     auto* component = glContext_.getTargetComponent();
