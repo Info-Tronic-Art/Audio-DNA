@@ -2504,3 +2504,51 @@ Commits this session: `37a250f`, `2187d04`, `de6aa76`, `3736f02`, `a50788b`. Eve
 output window was ever opened, so no fullscreen window, black overlay or TCC dialog can be
 outstanding. Every proof this session is headless (unit/integration + ThreadSanitizer). Nothing
 was `pkill`ed because nothing was running.
+
+## POST-CLOSE ADDENDUM — six things the agent reports carried that the handoff above did not (s168)
+The lane and review reports drained AFTER the close was written. Everything below was already on
+disk in `.harmony/.reports/s168-*` and `~/Harmony_Main/memory/.reports/s168-*`; it is repeated here
+because the handoff is what the next session reads, and none of these six were in it.
+
+1. **[ASK BORIS] A manual Resync does NOT rewind the monotonic counter either.** Lane B read
+   `BPMTracker::resetPhrase()` — which is the manual **Resync** button, not just an automatic
+   structural transition — as a "phrase reset", so `totalBarCount_` survives it too. That is the
+   strictest reading of the packet and it is a JUDGMENT CALL the builder flagged rather than
+   buried. It is genuinely Boris's: **when he hits Resync by hand, should the oscillator shapes
+   re-align to the new downbeat, or keep flowing?** Resync is a deliberate human act, unlike a
+   detected drop, so the answer may well differ from ruling 25. Not asked yet.
+
+2. **[LATENT BUG, NOT FILED BEFORE] `Player::advanceTo` never checks that `pos` is
+   non-decreasing.** A backwards seek makes it silently skip every remaining event, forever, with
+   no diagnostic. This is NOT theoretical: spec D10.2 drives `pos` from the AUDIO PLAYER's sample
+   position, which jumps backward on any seek or restart — and ruling 28's whole workflow is
+   scrubbing back and forth over recorded audio while cleaning up knob lanes. Found by the
+   recorder-core reviewer as a non-blocking note; ruling 28 promotes it.
+
+3. **[GAP] The R14 `gapDetection` flag never reaches a live take.** `gapDetectionSupported()` is
+   correct and both branches are tested, but only TEST code copies it into `take.audio.gapDetection`.
+   No production glue exists — a real recording made today would not record whether gap detection
+   was even available. Step 3's job; name it in that packet.
+
+4. **[SUGGESTIONS, still unaddressed] Two guards the recorder-core review raised as non-blocking:**
+   `PerformanceRecorder::touch()` unconditionally overwrites an already-open gesture on the same
+   key, silently discarding in-progress data on a stray double-touch; and `Player::Override::Latch`
+   is stored but never read anywhere, so requesting it is accepted, does nothing, and says nothing.
+   An unimplemented mode that fails silently is worse than one that refuses loudly.
+
+5. **[COVERAGE] Three EnvelopeSignal-only cases in `test_oscillator_bar_fold.cpp` were opted into
+   legacy mode to keep passing and never got default-mode siblings.** Lane B2 disclosed this; the
+   packet had named only the four OscillatorSignal cases. Small, but it means EnvelopeSignal's
+   DEFAULT path — the bug that was actually fixed there — has thinner coverage than the legacy one.
+
+6. **[HONEST NUANCE] The audio tap's "lock-free" claim has one asterisk.** JUCE
+   `ThreadedWriter::write()` ends in `notify()` → `WaitableEvent::signal()`, a semaphore post.
+   The reviewer's words: usually-fast, not strictly wait-free. It is JUCE's own canonical pattern
+   and nothing better is available at that seam, but do not repeat "wait-free" without the caveat.
+
+**Also confirmed by the drain, no action needed:** the beat-timebase sweep really is complete — the
+B2 reviewer independently re-grepped with two different patterns and found exactly the three known
+fold sites and no fourth; nothing that legitimately wants the resettable `barCount` was migrated;
+and the `ConnSerialization` addition is `hasProperty`-guarded, so old composition files load
+unchanged. The B2 reviewer's one required fix (a divergent-counter test at the ConnectionShaper /
+ConnectionEngine level) WAS delivered in `a50788b` — two cases in `tests/test_connection.cpp`.
