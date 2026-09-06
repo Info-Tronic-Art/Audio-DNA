@@ -414,3 +414,16 @@ fixture paths, so a count is untrustworthy while another lane is live.
 **Cost when missed:** s168 dispatched Lane A (recorder core) and Lane B (oscillator beat) into
 one `build/`; caught before either count was believed, but only because the independent gate
 was going to be run regardless.
+
+## `git add` under `.harmony/` SILENTLY DROPS NEW FILES — the warn-and-stage rule only covers already-tracked ones
+**Trigger:** committing anything newly created under `.harmony/` (a report, a work packet, a spec,
+an answer doc).
+**The half-truth that bites:** the long-standing note in this file says `.harmony/` is gitignored
+with files force-tracked, and that `git add` there "prints an ignored WARNING and still stages".
+That is TRUE ONLY for paths git already tracks. For a **NEW** path under `.harmony/`, `git add`
+REFUSES it, prints the `hint: Use -f if you really want to add them` block, and **exits 0** — so an
+`&&`-chained `git commit` runs anyway and produces a commit that looks fine and is missing every
+new file. s168 lost 8 files (two builder reports, four work packets, a recon and the answers
+written for Boris) to exactly this and only caught it by running `git show --stat` afterwards.
+**Fix:** use `git add -f` for any NEW path under `.harmony/`, and **always `git show --stat HEAD`
+after a `.harmony/` commit** and read the file list. Do not trust the commit's exit code.
