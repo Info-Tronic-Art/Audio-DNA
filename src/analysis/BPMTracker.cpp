@@ -477,12 +477,20 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
     }
 
     // Reset phrase on structural transitions (e.g., drop hits → reset phrase counter)
-    // Only reset on transition TO drop (state 2) or FROM breakdown (state 3)
+    // Only reset on transition TO drop (state 2) or FROM breakdown (state 3).
+    // Suppressed while predictedBeatRegime_ (silence/manual/locked-with-no-raw-BPM):
+    // this method runs every hop unconditionally, including hops where no real
+    // onset can arrive, but StructuralDetector keeps classifying off live
+    // RMS/flux/onset-rate the whole time -- so a "drop"/"breakdown" transition
+    // inferred from room noise during silence is meaningless and must not
+    // corrupt the phrase position. Mirrors the !predictedBeatRegime_ guard
+    // scoreBeat() already gets in feedDownbeatFeatures(). A real transition
+    // during real playback (predictedBeatRegime_ false) still resets, unchanged.
     if (structuralState != prevStructuralState_)
     {
         bool resetTransition = (structuralState == 2)                         // entering drop
                             || (prevStructuralState_ == 3 && structuralState != 3); // leaving breakdown
-        if (resetTransition)
+        if (resetTransition && !predictedBeatRegime_)
         {
             barCount_ = 0;
         }

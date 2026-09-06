@@ -36,7 +36,8 @@ static void feedWithBeats(BPMTracker& tracker, float bpm, int hops,
 // the same bias phase (so a second call doesn't look like a phase shift to
 // the already-locked downbeat position).
 static void feedRealOnsets(BPMTracker& tracker, float bpm, int numBeats,
-                           int startBeatIndex = 0, int sampleRate = 48000, int hopSize = 512)
+                           int startBeatIndex = 0, int sampleRate = 48000, int hopSize = 512,
+                           uint8_t structuralState = 0)
 {
     int hopsPerBeat = static_cast<int>(std::lround(
         (static_cast<double>(sampleRate) * 60.0) / (static_cast<double>(bpm) * hopSize)));
@@ -49,7 +50,7 @@ static void feedRealOnsets(BPMTracker& tracker, float bpm, int numBeats,
             bool beat = (h == 0);
             tracker.processRawBPM(bpm, 1.0f, beat);
             float bass = (beat && (beatIndex % BPMTracker::kBeatsPerBar) == 0) ? 1.0f : 0.0f;
-            tracker.feedDownbeatFeatures(bass, 0.0f, 0.0f, 0);
+            tracker.feedDownbeatFeatures(bass, 0.0f, 0.0f, structuralState);
         }
     }
 }
@@ -440,4 +441,172 @@ TEST_CASE("Pre-existing BPM/beat-phase tests are unaffected by predicted beat ad
     feedConstantBPM(tracker, 140.0f, 250);
     REQUIRE_THAT(tracker.bpm(), WithinAbs(140.0, 2.0));
     REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+}
+
+// ============================================================================
+// Structural phrase-reset gating: updatePhrase()'s structural-transition
+// reset branch (entering drop / leaving breakdown) must not fire while a
+// real onset cannot arrive (predictedBeatRegime_) -- StructuralDetector
+// keeps classifying off live RMS/flux/onset-rate the whole time, so a
+// "drop"/"breakdown" it infers from room noise during silence/manual mode
+// is meaningless and must not corrupt barCount_. A real transition during
+// real playback must still reset it -- that's a genuine feature, not a bug.
+// ============================================================================
+
+TEST_CASE("Manual mode: structural transition into drop does not reset barCount",
+          "[bpm][phrase][structural]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    const float hopsPerSec = 48000.0f / 512.0f;
+    const int hopsPerPhase = static_cast<int>(4.0f * hopsPerSec); // ~4s, no audio at all
+
+    uint16_t maxBarCountSeen = 0;
+    bool sawDecrease = false;
+
+    // Phase A: structuralState == 0 (normal) -- build up some bar progress
+    // purely off the predicted phase wrap (no real onsets exist at all).
+    for (int i = 0; i < hopsPerPhase; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, /*structuralState=*/0);
+        uint16_t bc = tracker.barCount();
+        if (bc < maxBarCountSeen) sawDecrease = true;
+        if (bc > maxBarCountSeen) maxBarCountSeen = bc;
+    }
+    uint16_t barCountBeforeTransition = tracker.barCount();
+    REQUIRE(barCountBeforeTransition > 0);
+
+    // Phase B: structuralState flips to drop (2) on its very first hop --
+    // exactly the transition updatePhrase() used to reset unconditionally.
+    // Still manual mode, still no real onset possible.
+    for (int i = 0; i < hopsPerPhase; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, /*structuralState=*/2);
+        uint16_t bc = tracker.barCount();
+        if (bc < maxBarCountSeen) sawDecrease = true;
+        if (bc > maxBarCountSeen) maxBarCountSeen = bc;
+    }
+
+    REQUIRE_FALSE(sawDecrease); // never dipped below its running max -- no reset happened
+    REQUIRE(tracker.barCount() > barCountBeforeTransition); // kept advancing through the transition
+}
+
+TEST_CASE("Manual mode: structural transition out of breakdown does not reset barCount",
+          "[bpm][phrase][structural]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    const float hopsPerSec = 48000.0f / 512.0f;
+    const int hopsPerPhase = static_cast<int>(4.0f * hopsPerSec);
+
+    // Phase A: structuralState == 3 (breakdown) from the start -- build up
+    // bar progress while "in breakdown" (entering breakdown itself is not a
+    // reset transition).
+    for (int i = 0; i < hopsPerPhase; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, /*structuralState=*/3);
+    }
+    uint16_t barCountBeforeTransition = tracker.barCount();
+    REQUIRE(barCountBeforeTransition > 0);
+
+    uint16_t maxBarCountSeen = barCountBeforeTransition;
+    bool sawDecrease = false;
+
+    // Phase B: leaves breakdown (3 -> 0) on its very first hop -- the other
+    // unconditional reset branch (prevStructuralState_ == 3 && state != 3).
+    for (int i = 0; i < hopsPerPhase; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, /*structuralState=*/0);
+        uint16_t bc = tracker.barCount();
+        if (bc < maxBarCountSeen) sawDecrease = true;
+        if (bc > maxBarCountSeen) maxBarCountSeen = bc;
+    }
+
+    REQUIRE_FALSE(sawDecrease);
+    REQUIRE(tracker.barCount() > barCountBeforeTransition);
+}
+
+TEST_CASE("Real audio: structural transition into drop still resets barCount",
+          "[bpm][phrase][structural][regression]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+
+    // Real onsets, normal structural state -- lock BPM/downbeat and build up
+    // bar progress the way real playback would.
+    feedRealOnsets(tracker, 120.0f, 24, /*startBeatIndex=*/0, 48000, 512, /*structuralState=*/0);
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+    REQUIRE(tracker.downbeatLocked());
+    REQUIRE(tracker.barCount() > 0);
+
+    // A real onset arrives on the very hop where structuralState flips into
+    // drop (2). predictedBeatRegime_ is false throughout (a real onset
+    // arrives every beat), so the reset must still fire -- a real drop
+    // inferred from real audio is exactly what this branch exists for.
+    feedRealOnsets(tracker, 120.0f, 1, /*startBeatIndex=*/24, 48000, 512, /*structuralState=*/2);
+
+    REQUIRE(tracker.barCount() == 0);
+}
+
+// ============================================================================
+// Coverage gap: predictedBeatRegime_ can be true (runPipeline's inSilence_
+// branch) on the very hop a real, high-confidence onset also arrives --
+// isSilent()'s own exit hysteresis takes several consecutive above-threshold
+// hops to clear, so a beat can land before it does. That's the one case
+// where feedDownbeatFeatures()'s existing `!predictedBeatRegime_` guard on
+// scoreBeat() (as opposed to updatePhase()'s hard hasBeat hard-reset branch)
+// actually matters -- nothing above this point ever exercises it.
+// ============================================================================
+
+TEST_CASE("Silence-exit hysteresis: a real onset arriving while still officially silent "
+          "is not double-scored",
+          "[bpm][silence][downbeat]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+
+    feedRealOnsets(tracker, 120.0f, 24);
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+    REQUIRE(tracker.downbeatLocked());
+
+    // Enter held silence (>= silenceEntryHops_, ~300ms at 48000/512).
+    const float hopsPerSec = 48000.0f / 512.0f;
+    const int silenceEntryHops = static_cast<int>(0.3f * hopsPerSec) + 2; // small safety margin
+    for (int i = 0; i < silenceEntryHops; ++i)
+    {
+        tracker.feedSilenceDetection(0.0001f); // well below silenceRmsThreshold_ (0.005)
+        tracker.processRawBPM(120.0f, 1.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    }
+    REQUIRE(tracker.isSilent());
+
+    // Pin beatInBar_/beatCounter_/phase_ to a known state so the single test
+    // hop below can't coincidentally straddle a predicted phase wrap --  that
+    // would make advancePredictedBeat() a legitimate source of an advance
+    // and mask whether scoreBeat() also (wrongly) ran.
+    tracker.resetBeatPhase();
+    REQUIRE(tracker.beatInBar() == 0);
+
+    // One hop of real, high-confidence audio -- but isSilent()'s own exit
+    // hysteresis (silenceExitHops_, several consecutive above-threshold
+    // hops) hasn't elapsed after just one loud reading, so runPipeline's
+    // inSilence_ branch still wins and predictedBeatRegime_ stays true even
+    // though a genuine beat arrived this hop. Phase was just reset, so this
+    // hop's tiny phase increment cannot itself wrap.
+    tracker.feedSilenceDetection(1.0f); // loud -- starts the exit countdown, doesn't clear it yet
+    REQUIRE(tracker.isSilent());
+    tracker.processRawBPM(120.0f, 1.0f, true);
+    tracker.feedDownbeatFeatures(1.0f, 1.0f, 1.0f, 0);
+
+    // With the guard: neither advancePredictedBeat() (no wrap this hop) nor
+    // scoreBeat() (skipped by !predictedBeatRegime_) advances the counter --
+    // beatInBar stays 0. Without the guard, scoreBeat() would run
+    // (downbeatLocked_ is already true) and advance it to 1.
+    REQUIRE(tracker.beatInBar() == 0);
 }
