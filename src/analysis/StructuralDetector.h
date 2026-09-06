@@ -58,6 +58,16 @@ private:
     // Onset rate threshold for drop detection
     float onsetRateThreshold_ = 3.0f;  // onsets/sec
 
+    // Near-silent guard for the slow (4s) RMS envelope in classifyState() --
+    // below this, fast/slow ratios are meaningless and the classifier bails
+    // out to kNormal rather than reacting to noise-floor arithmetic. Same
+    // order of magnitude as BPMTracker::silenceRmsThreshold_ (0.005);
+    // duplicated rather than shared since StructuralDetector and BPMTracker
+    // are otherwise decoupled (they communicate only via the plain uint8_t
+    // structuralState parameter) and pulling in BPMTracker.h here just for
+    // one float would break that. See classifyState() for the boundary.
+    float nearSilentRmsThreshold_ = 0.005f;
+
     // Determine raw state from current envelopes and onset rate
     uint8_t classifyState(float onsetRate) const;
 };

@@ -58,8 +58,22 @@ uint8_t StructuralDetector::classifyState(float onsetRate) const
     float fluxFast = fluxEnv_[kFast];
     float fluxSlow = fluxEnv_[kSlow];
 
-    // Guard against near-zero slow envelope
-    if (slow < 1e-8f)
+    // Guard against a near-silent slow envelope. Was 1e-8f (~-160 dBFS, five
+    // orders of magnitude below any real microphone noise floor -- a real
+    // room measured ~0.0053 RMS, i.e. always past that guard), so it never
+    // actually caught anything but true digital silence (e.g. before input
+    // starts flowing). Raised to nearSilentRmsThreshold_ so it's in the same
+    // range as BPMTracker's own silence threshold. Strict `<`, matching
+    // BPMTracker::feedSilenceDetection()'s `rms < silenceRmsThreshold_`: at
+    // exactly the threshold value, both components agree it's NOT silent, so
+    // this guard and BPMTracker's inSilence_ decision never disagree right at
+    // the boundary. This is still just a numerical-stability guard, not the
+    // fix for ambient noise flipping structuralState during quiet playback --
+    // that's handled at the BPMTracker::updatePhrase() call site by gating
+    // the phrase reset on predictedBeatRegime_, since a slow-envelope
+    // threshold here can't distinguish "genuinely quiet music" from "room
+    // noise with no music at all".
+    if (slow < nearSilentRmsThreshold_)
         return kNormal;
 
     // DROP: energy well above average AND high onset rate
