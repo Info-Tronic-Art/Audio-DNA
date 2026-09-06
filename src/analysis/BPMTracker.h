@@ -86,7 +86,8 @@ public:
     // Call this AFTER process() on each hop, passing current spectral features.
     // The downbeat detector uses these on beat detections to score each beat position.
     // structuralState: current structural detector output (0=normal, 1=buildup, 2=drop, 3=breakdown)
-    //   used for phrase reset on structural transitions.
+    //   used for phrase reset on structural transitions -- but only while a real onset can
+    //   arrive; see predictedBeatRegime_ and updatePhrase().
     void feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange,
                               uint8_t structuralState = 0);
 
@@ -186,6 +187,10 @@ private:
     // is skipped even if a beat happens to be flagged that hop; while false,
     // scoreBeat() is the only path (unchanged pre-P24 behavior). Exactly one
     // of the two can ever run for a given hop.
+    // Also gates updatePhrase()'s structural-transition reset branch: a
+    // "drop"/"breakdown" transition inferred by StructuralDetector from
+    // ambient noise while no real onset can arrive is meaningless and must
+    // not zero barCount_.
     bool predictedBeatRegime_ = false;
 
     // === Downbeat detection state ===
