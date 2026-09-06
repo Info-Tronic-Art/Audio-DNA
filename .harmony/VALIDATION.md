@@ -49,6 +49,11 @@
 <!-- No shipped-item rows yet — scaffold written at normalize time.
      Populate at this repo's first session close. -->
 
+| `3736f02` recorder core + audio tap + monotonic beat timebase; `a50788b` UAF/desync fixes | `cd /Users/boriskarpman/projects/RealTimeAudio && cmake --build build --config Release --clean-first -j$(sysctl -n hw.ncpu) && cd build && ctest` | build exits 0; **306/306 pass, 0 failed** (session start was 285/285) | PENDING |
+| `a50788b` AudioTap stop()/push() use-after-free fix | `cd /Users/boriskarpman/projects/RealTimeAudio/build && ctest -R audio_tap --output-on-failure` then `build/tests/test_audio_tap_sync --order rand` | all pass; the concurrency case is the one that dies with SIGABRT if the fix is reverted | PENDING |
+| `3736f02` totalBarCount is monotonic across a structural reset | `cd /Users/boriskarpman/projects/RealTimeAudio/build && ctest -R "bpm_stabilization|oscillator_bar_fold|connection" --output-on-failure` | all pass; these pin the two counters DIVERGING, at oscillator AND connection-engine level | PENDING |
+| `3736f02` totalBarCount reaches the LIVE app, not just the tests | launch in PRODUCTION mode (NOT `--test-mode` — it never starts the analysis thread), then read `totalBarCount` from the signals/bpm JSON on 7070 while audio plays | field present and INCREASING; must NOT reset when a structural transition zeroes `barCount` | PENDING — **this is the live proof that does not exist yet; it is owed** |
+
 ## STANDING VALIDATION COMMANDS (rig primitives — not tied to one shipped item)
 
 | purpose | command | expected | how known |

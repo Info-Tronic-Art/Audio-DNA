@@ -2498,3 +2498,9 @@ starts on the next **bar**.
 `ctest` **306/306** on a clean forced rebuild that exited 0. Session start was 285/285.
 Commits this session: `37a250f`, `2187d04`, `de6aa76`, `3736f02`, `a50788b`. Everything is
 **PUSHED**; unpushed should be **0**.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4 — mandatory)
+**The app was never launched this session.** `pgrep -f Audio-DNA` returns nothing at close; no
+output window was ever opened, so no fullscreen window, black overlay or TCC dialog can be
+outstanding. Every proof this session is headless (unit/integration + ThreadSanitizer). Nothing
+was `pkill`ed because nothing was running.
