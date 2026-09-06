@@ -72,15 +72,39 @@ curl -s --max-time 6 -X POST "$A/api/set_layer_opacity" -H 'Content-Type: applic
 sleep 1; R lo1.png
 [ "$(H lo1.png)" = "$BASE" ] && ok "layer opacity restores exactly" || no "layer opacity 1.0 did not restore the baseline"
 
-# These two are EXPECTED-DEAD until the renderer lane lands. When they start FAILING here,
-# that is the feature working -- flip the assertions then.
-curl -s --max-time 6 -X POST "$T/api/set_composition_params" -H 'Content-Type: application/json' -d '{"masterOpacity":0.0}' >/dev/null
-sleep 1; R mo0.png
-[ "$(H mo0.png)" = "$BASE" ] && ok "masterOpacity still render-dead (expected today)" || echo "NOTE  masterOpacity now CHANGES the frame -- the renderer lane has landed; update this probe"
-curl -s --max-time 6 -X POST "$T/api/set_composition_params" -H 'Content-Type: application/json' -d '{"masterOpacity":1.0}' >/dev/null
-curl -s --max-time 6 -X POST "$T/api/set_clip_opacity" -H 'Content-Type: application/json' -d '{"layer":0,"column":0,"clipOpacity":0.0}' >/dev/null
-sleep 1; R co0.png
-[ "$(H co0.png)" = "$BASE" ] && ok "clipOpacity still render-dead (expected today)" || echo "NOTE  clipOpacity now CHANGES the frame -- the renderer lane has landed; update this probe"
+# OPACITY STRENGTH — the check that caught a real defect that every other test passed.
+# clipOpacity was implemented, visibly changed the frame, and was WRONG: it dimmed to 89%
+# where 50% was asked for. Its unit tests were correct (they checked layer*clip arithmetic)
+# and could never have caught it, because a correct multiplier applied to the wrong quantity
+# passes every arithmetic test there is. Only measuring the light finds this class of bug.
+# Boris's ruling: final = master * layer * clip, and a clip pinned at 50% is a CEILING.
+lum(){ "$ROOT/.venv/bin/python" -c "
+from PIL import Image; import numpy as np
+print('%.4f' % (np.asarray(Image.open('$OUT/$1').convert('RGB')).astype('float32').mean()))" 2>/dev/null; }
+near(){ "$ROOT/.venv/bin/python" -c "print('yes' if abs($1-$2)<=$3 else 'no')" 2>/dev/null; }
+
+R full.png; BL=$(lum full.png)
+if [ -z "$BL" ]; then
+  echo "SKIP  opacity-strength checks (PIL unavailable in .venv -- install Pillow to restore this guard)"
+else
+  curl -s --max-time 6 -X POST "$T/api/set_composition_params" -H 'Content-Type: application/json' -d '{"masterOpacity":0.5}' >/dev/null
+  sleep 1; R m50.png; MR=$("$ROOT/.venv/bin/python" -c "print('%.3f'%($(lum m50.png)/$BL))")
+  curl -s --max-time 6 -X POST "$T/api/set_composition_params" -H 'Content-Type: application/json' -d '{"masterOpacity":1.0}' >/dev/null
+  [ "$(near $MR 0.5 0.06)" = "yes" ] && ok "masterOpacity 0.5 dims to $MR of baseline (want ~0.5)" || no "masterOpacity 0.5 gave $MR, expected ~0.5"
+
+  curl -s --max-time 6 -X POST "$T/api/set_clip_opacity" -H 'Content-Type: application/json' -d '{"layer":0,"column":0,"clipOpacity":0.5}' >/dev/null
+  sleep 1; R c50.png; CR=$("$ROOT/.venv/bin/python" -c "print('%.3f'%($(lum c50.png)/$BL))")
+  curl -s --max-time 6 -X POST "$T/api/set_clip_opacity" -H 'Content-Type: application/json' -d '{"layer":0,"column":0,"clipOpacity":1.0}' >/dev/null
+  [ "$(near $CR 0.5 0.06)" = "yes" ] && ok "clipOpacity 0.5 dims to $CR of baseline (want ~0.5 -- was 0.892 before the fix)" || no "clipOpacity 0.5 gave $CR, expected ~0.5. THE CEILING RULE IS BROKEN AGAIN."
+
+  curl -s --max-time 6 -X POST "$A/api/set_layer_opacity" -H 'Content-Type: application/json' -d '{"layer":0,"opacity":0.5}' >/dev/null
+  sleep 1; R l50.png; LR=$("$ROOT/.venv/bin/python" -c "print('%.3f'%($(lum l50.png)/$BL))")
+  curl -s --max-time 6 -X POST "$A/api/set_layer_opacity" -H 'Content-Type: application/json' -d '{"layer":0,"opacity":1.0}' >/dev/null
+  [ "$(near $LR 0.5 0.06)" = "yes" ] && ok "layerOpacity 0.5 dims to $LR of baseline (want ~0.5)" || no "layerOpacity 0.5 gave $LR, expected ~0.5"
+
+  sleep 1; R restored.png
+  [ "$(H restored.png)" = "$BASE" ] && ok "all three opacities restore the exact baseline" || no "opacity round-trip left residue"
+fi
 
 osascript -e "tell application \"System Events\" to tell (first process whose unix id is $PID) to quit" >/dev/null 2>&1
 sleep 2; kill -0 "$PID" 2>/dev/null && osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
