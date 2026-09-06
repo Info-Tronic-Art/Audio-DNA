@@ -278,6 +278,26 @@ private:
     // owned (only ever touched from renderOpenGL), no atomic needed.
     double scaledTime_ = 0.0;
 
+    // S167-L4b DT-FIX: wall-clock timestamp (ms) of the previous
+    // renderOpenGL() call, used to compute a REAL measured frame delta fed
+    // to CompositorEngine::compositeDeck()/compositePersistentLayers(),
+    // which pass it straight through to VideoPlayer::advanceFrame() and
+    // ImageSequence::advanceFrame() (both do `currentTime_ += dt * speed`
+    // literally, no other timing source). Previously those call sites
+    // hardcoded dt=1/60, which silently coupled video/image-sequence
+    // playback speed to the actual GL callback rate -- half speed at a
+    // sustained 30fps, double at 120fps -- independent of and compounding
+    // with the masterSpeed fold above. -1.0 means "no previous frame yet"
+    // (first frame after context creation). Unlike scaledTime_, this is
+    // NOT gated on timeOverride_: video/image-sequence position is
+    // persistent VideoPlayer/ImageSequence state that already advances
+    // every real GL callback regardless of deterministic test-capture mode
+    // (it was never part of render_frame's byte-identical-repeat
+    // guarantee, which covers procedural-source time only), so there is no
+    // determinism contract here to preserve -- only the RATE was wrong.
+    // GL-thread-owned, no atomic needed.
+    double lastFrameTimestampMs_ = -1.0;
+
     // FPS tracking
     std::atomic<float> currentFps_{0.0f};
     int frameCount_ = 0;
