@@ -73,9 +73,11 @@ public:
     // renderOpenGL's lastFrameTimestampMs_) -- fed straight into video/
     // image-sequence playhead advancement (VideoPlayer::advanceFrame,
     // ImageSequence::advanceFrame both do `currentTime_ += dt * speed`,
-    // literally, with no other timing source). A hardcoded 1/60 here used
-    // to silently couple playback speed to the actual GL callback rate
-    // (half speed at 30fps, double at 120fps) -- S167-L4b DT-FIX.
+    // literally, with no other timing source) AND crossfade progress
+    // advancement (step = dt / transitionDuration -- S167-L4b DT-FIX,
+    // second instance). A hardcoded 1/60 at both sites used to silently
+    // couple playback speed / transition duration to the actual GL
+    // callback rate (half speed/duration at 30fps, double at 120fps).
     GLuint compositeDeck(Deck& deck,
                          ShaderManager& shaderMgr,
                          FullscreenQuad& quad,

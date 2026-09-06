@@ -365,7 +365,8 @@ private:
     void ensurePrevDeckFBO(int width, int height);
     int prevActiveDeckIndex_ = 0;
     float deckTransitionProgress_ = 1.0f;  // 1.0 = complete (no transition)
-    float deckTransitionSpeed_ = 0.0f;     // Progress per frame (0 = instant)
+    float deckTransitionSpeed_ = 0.0f;     // Progress per SECOND (0 = instant) -- S167-L4b
+                                            // DT-FIX: was progress-per-frame assuming 60fps
 
     // P22.1: Syphon output — blit the final composited frame into a texture
     // so it can be published to Syphon clients. Only allocated/used when the

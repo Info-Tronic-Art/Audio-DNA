@@ -758,12 +758,27 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
-        // P14: Advance crossfade progress each frame
+        // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
+        // `speed` here is actually a DURATION in seconds (transitionSpeed
+        // is a misleading name inherited from the model -- see its slider
+        // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
+        // seconds UI), so step = dt / duration is the frame-rate-
+        // independent progress increment: cumulative progress after real
+        // elapsed time T is T / duration, completing exactly at T ==
+        // duration regardless of callback rate. Real dt (function param),
+        // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
+        // Not gated on timeOverride_/`time`, same reasoning as
+        // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
+        // is persistent per-layer state (like previousClipColumn) that
+        // already advances every real GL callback regardless of
+        // deterministic test-capture mode, so there is no
+        // render_frame byte-identical-repeat contract covering it to
+        // preserve here either -- only the rate was wrong.
         if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
         {
             float speed = layer.transitionSpeed;
             if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
-            float step = (1.0f / 60.0f) / speed;
+            float step = dt / speed;
             layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
             if (layer.crossfadeProgress >= 1.0f)
                 layer.previousClipColumn = -1; // transition complete

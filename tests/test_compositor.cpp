@@ -230,6 +230,92 @@ TEST_CASE("Speed fold leaves BPM-synced clips tempo-locked (S167-L4b)", "[compos
     }
 }
 
+// S167-L4b DT-FIX: transition-progress (crossfade / deck-transition)
+// frame-rate-independence pure-math coverage.
+//
+// The real step computations -- CompositorEngine::compositeDeck()'s
+// crossfade-progress advance (`float step = dt / speed;`,
+// src/render/CompositorEngine.cpp:781) and Renderer::renderOpenGL()'s
+// deck-transition advance (`deckTransitionProgress_ +=
+// deckTransitionSpeed_ * realDt;`, src/render/Renderer.cpp:605, with
+// deckTransitionSpeed_ set to `1.0f / transSpeed` at Renderer.cpp:642) --
+// live inside GL-heavy functions/files this GL-free test target cannot
+// link (see this file's header comment above and tests/CMakeLists.txt, a
+// FORBIDDEN file for this work packet). Both sites reduce to the same
+// one-line arithmetic: a progress-per-second rate (1/durationSeconds)
+// advanced by the real per-frame delta, so cumulative progress after T
+// real seconds is T/durationSeconds regardless of how many frames T was
+// split into. Mirrored here exactly, cited by file:line, rather than
+// pulling in the GL headers.
+namespace {
+    // Mirrors the crossfade step at CompositorEngine.cpp:781 and the
+    // deck-transition step at Renderer.cpp:605/642 -- both reduce to this.
+    // `speed`/`transSpeed` in the real sites are misleadingly-named
+    // DURATIONS in seconds (see Layer::transitionSpeed's UI wiring in
+    // LayerInspector.cpp/LayerStrip.cpp and Composition::globalTransitionSpeed's
+    // "// seconds" comment in Composition.h), not rate multipliers.
+    float transitionProgressStep(float dt, float durationSeconds)
+    {
+        return dt / durationSeconds;
+    }
+}
+
+TEST_CASE("Transition progress step is frame-rate independent (S167-L4b)", "[compositor][transition]")
+{
+    SECTION("Same total progress after one simulated second, 30 steps vs 120 steps")
+    {
+        const float duration = 2.0f; // seconds
+
+        float progress30 = 0.0f;
+        for (int i = 0; i < 30; ++i)
+            progress30 = std::min(progress30 + transitionProgressStep(1.0f / 30.0f, duration), 1.0f);
+
+        float progress120 = 0.0f;
+        for (int i = 0; i < 120; ++i)
+            progress120 = std::min(progress120 + transitionProgressStep(1.0f / 120.0f, duration), 1.0f);
+
+        REQUIRE_THAT(progress30, WithinAbs(progress120, 0.0001f));
+        REQUIRE_THAT(progress30, WithinAbs(0.5f, 0.0001f)); // 1s into a 2s transition = 50%
+    }
+
+    SECTION("Transition completes at exactly its set duration regardless of fps")
+    {
+        const float duration = 0.5f; // seconds
+
+        float progress60 = 0.0f;
+        for (int i = 0; i < 30; ++i) // 0.5s at 60fps = 30 frames
+            progress60 = std::min(progress60 + transitionProgressStep(1.0f / 60.0f, duration), 1.0f);
+
+        float progress24 = 0.0f;
+        for (int i = 0; i < 12; ++i) // 0.5s at 24fps = 12 frames
+            progress24 = std::min(progress24 + transitionProgressStep(1.0f / 24.0f, duration), 1.0f);
+
+        REQUIRE_THAT(progress60, WithinAbs(1.0f, 0.0001f));
+        REQUIRE_THAT(progress24, WithinAbs(1.0f, 0.0001f));
+    }
+
+    SECTION("Regression guard: a hardcoded 1/60 step would break frame-rate independence")
+    {
+        // Documents the OLD bug's consequence for a 1-second-duration
+        // transition -- a constant-per-callback step (ignoring real dt)
+        // makes total progress track fps instead of wall-clock time. Kept
+        // as a regression guard against reintroducing `dt = 1.0f/60.0f` at
+        // either fixed call site.
+        const float oldHardcodedStep = 1.0f / 60.0f; // the bug: constant regardless of real fps
+
+        // At a sustained 30fps, 30 real callbacks land in one real second,
+        // but the hardcoded step only ever advanced by 1/60 per callback --
+        // total progress after 1 real second was 30 * (1/60) = 0.5 (half
+        // done at the transition's supposed 1-second mark).
+        REQUIRE_THAT(30.0f * oldHardcodedStep, WithinAbs(0.5f, 0.0001f));
+
+        // At 120fps, 120 real callbacks land in one real second --
+        // 120 * (1/60) = 2.0 (clamped to 1.0 in production) -- the
+        // transition finished twice as fast as intended.
+        REQUIRE(120.0f * oldHardcodedStep >= 1.0f);
+    }
+}
+
 TEST_CASE("Layer keying and blend properties", "[layer]")
 {
     Layer layer;

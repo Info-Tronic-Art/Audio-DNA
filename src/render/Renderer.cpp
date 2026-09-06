@@ -594,8 +594,15 @@ void Renderer::renderOpenGL()
             }
         }
 
-        // Advance transition progress
-        deckTransitionProgress_ += deckTransitionSpeed_;
+        // Advance transition progress. S167-L4b DT-FIX (deck-transition
+        // instance, found sweeping for the same shape as the layer-
+        // crossfade fix above): deckTransitionSpeed_ is progress-per-SECOND
+        // now (see its computation below), so multiplying by the real
+        // measured frame delta keeps total transition duration constant
+        // regardless of callback rate -- a hardcoded progress-per-frame
+        // constant here used to make deck transitions run 2x fast at
+        // 120fps / 2x slow at 30fps, same as the layer-crossfade defect.
+        deckTransitionProgress_ += deckTransitionSpeed_ * realDt;
         if (deckTransitionProgress_ >= 1.0f)
             deckTransitionProgress_ = 1.0f;
     }
@@ -626,9 +633,13 @@ void Renderer::renderOpenGL()
             if (transSpeed > 0.001f)
             {
                 deckTransitionProgress_ = 0.0f;
-                // Speed in progress-per-frame: 1.0 / (transSpeed * fps)
-                // Assume ~60fps
-                deckTransitionSpeed_ = 1.0f / (transSpeed * 60.0f);
+                // globalTransitionSpeed is a DURATION in seconds (see its
+                // comment in Composition.h), same misleading-name pattern
+                // as Layer::transitionSpeed. S167-L4b DT-FIX: progress-per-
+                // SECOND (1.0 / duration), multiplied by the real measured
+                // dt each frame above -- not a hardcoded assume-60fps
+                // progress-per-frame constant.
+                deckTransitionSpeed_ = 1.0f / transSpeed;
             }
             else
             {
