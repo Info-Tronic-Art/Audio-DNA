@@ -403,3 +403,13 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
         at all, and the tool decides the point density behind the scenes.
     (d) **Selection moves horizontally and snaps to the grid** — retiming a gesture without
         redrawing it.
+
+### 2026-09-06 (s168) — RECORDING PRIORITY, SPOKEN DIRECTLY AT SESSION BOOT
+
+24. **THE EVENT LOG IS THE PRODUCT; VIDEO IS SECONDARY.** Verbatim: "I definitely want to record
+    the performances. The event logger is crucial. We can record videos as well, but the events
+    are more important."
+    CONFIRMS and RANKS the s167 NOW/LATER cut rather than changing it: spec §D14's NOW list
+    (lanes, take format, audio tap, T1 sync test, player, RecordPanel, REST) is the priority;
+    the offline video render (`L-D`) stays LATER. Do not trade budget from the log core to the
+    video path. Recording performances is APPROVED without further gating.

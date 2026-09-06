@@ -394,3 +394,23 @@ Two lessons, and the second is the general one:
 FULL RECOVERY IS POSSIBLE and cost about three minutes: the heredoc bodies live verbatim in the agent's own transcript at `~/.claude/projects/<project>/<session>/subagents/agent-<name>-<id>.jsonl`. Parse the JSONL for `tool_use` blocks named `Bash`, pull `input.command`, and extract the text between the heredoc marker lines. In this case the transcript held THREE versions — the original, a full rewrite that folded in a mid-flight amendment, and the addendum — so recovery also revealed that the rewrite had superseded the version I had been quoting.
 Scope: universal
 Promoted: no
+
+## Two builders fenced by SOURCE file still collide in the shared `build/` directory
+**Trigger:** dispatching 2+ builder agents into this repo in parallel, each with a disjoint
+source-file fence, each told to run `cmake --build build`.
+**Why the fence does not save you:** the file fence is on `src/`, but BOTH agents invoke the
+SAME `build/` tree. CMake/Ninja/Make take no cross-process lock, so two concurrent builds
+interleave writes to object files, `.ninja_deps`/dependency state and the test binaries. The
+failure is not a clean error — it is a *plausible* build result computed from a half-updated
+tree, i.e. a false green or a false red that neither agent can explain.
+**Also:** two concurrent `ctest` runs in the same `build/` fight over test working dirs and
+fixture paths, so a count is untrustworthy while another lane is live.
+**Fix, in order of preference:**
+1. Give each parallel builder its OWN build dir (`-B build-laneA`, `-B build-laneB`) in the packet.
+2. Or serialize the BUILD step: builders write source only and report; Harmony runs one build.
+3. Never accept a build/ctest count produced while another lane was building. Harmony's own
+   forced rebuild + ctest afterwards is the only trustworthy number — which she owes anyway,
+   because the party that builds never verifies.
+**Cost when missed:** s168 dispatched Lane A (recorder core) and Lane B (oscillator beat) into
+one `build/`; caught before either count was believed, but only because the independent gate
+was going to be run regardless.

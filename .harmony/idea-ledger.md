@@ -532,3 +532,52 @@ into RGB instead. **Deliberately NOT premultiplying both channels**, which would
 opacity under Normal/Additive.
 It asked for the behavioural gate to be the confirmation rather than its algebra. I re-ran the
 isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by measurement.
+
+## s168 — OPEN ITEMS RAISED BY REVIEW, EACH WITH ITS EVIDENCE
+
+- **[MUST — SAME BUG SHAPE, BIGGER BLAST RADIUS] `EnvelopeSignal` and `ConnectionShaper` still
+  read the resettable `barCount`.** Lane B moved `OscillatorSignal` onto the new monotonic
+  `totalBarCount`, but the independent reviewer enumerated every consumer and found TWO more
+  running the identical pre-fix fold (`beatPhase + beatInBar + 4*barCount`):
+  `src/signal/EnvelopeSignal.h::getValue` — whose own comment claims it got "the same fold-across-
+  bars fix as OscillatorSignal" and did not — and `ConnectionShaper::beatsNow()`
+  (`src/connect/ConnectionShaper.cpp`), which `ConnectionEngine` calls for EVERY enabled
+  connection with an LFO/shape source. The shaper is the big one: it is the whole macro/mapping
+  path, not one oscillator instance. **This is the repo's recurring pattern — the defect is a
+  SHAPE, not a SITE** (s167 found six instances of the frame-rate coupling the same way).
+  Dispatched as s168 Lane B2.
+
+- **[SHOULD] The new DEFAULT oscillator path is covered by exactly one test case.** The four
+  pre-existing `test_oscillator_bar_fold.cpp` cases were adapted by opting IN to the legacy mode,
+  which is legitimate (they test the legacy trade-off, which still exists) but leaves the default
+  with a single guard. Add a `false`-mode sibling assertion to each.
+
+- **[SHOULD] No BPMTracker-LEVEL test asserts `totalBarCount()` survives a structural reset**
+  while `barCount()` zeroes. `tests/test_bpm_stabilization.cpp` already carries the "structural
+  transition into drop does not reset barCount" pattern to mirror. The builder flagged this
+  itself; it was not added only because this session's packet fenced it to one test file.
+
+- **[SHOULD] `totalBarCount` is not exposed on `/api/signals` or the TestServer snapshot**, so
+  the LIVE verification path that was used to prove the S166-L5a fix is unavailable for S168.
+  Unit-proven only. Cheap to add and it unblocks a real behavioural gate.
+
+- **[WATCH, not now] Float precision, not integer overflow, is the real ceiling.**
+  `uint32_t totalBarCount` wraps in centuries, but `static_cast<float>` is exact only to 2^24
+  bars ≈ 260–520 days of ONE BPMTracker instance's continuous uptime. Failure mode is a one-bar
+  phase stutter, never a backward jump. Irrelevant for a festival set; real for a permanent
+  installation. Measured by the reviewer, not inferred.
+
+- **[MUST THIS ARC] `RecordPanel` is now MORE dead than it was.** Lane A deleted `SessionRecorder`
+  and stripped every `recorder_`-dependent branch from the panel (Save/Load/Play bodies,
+  `refresh()`), leaving buttons that no-op. Boris's standing ruling is that dead UI gets BUILT,
+  never hidden — so this is only acceptable as a same-arc intermediate state. Spec step 4 wires
+  the panel to `PerformanceRecorder`/`Player`. Do not close this arc with the panel lying.
+
+- **[SHOULD] `RecorderClock` omits D1's "at least every 8 bars" periodic tempo-map anchor.**
+  Declared by the builder, not silent. On a long take at a steady tempo the tempo map stays very
+  sparse; confirm `beatAt`/`tAt`/`sampleAt` reconstruct musical time accurately across a 40-minute
+  gap before shipping the recorder, or implement the periodic anchor.
+
+- **[SHOULD] `Player::Override::Latch` is accepted and stored but not wired into dispatch.**
+  An unimplemented mode that is silently accepted risks quiet wrong behaviour instead of a loud
+  failure. Either wire it or make setting it a hard error until it exists.
