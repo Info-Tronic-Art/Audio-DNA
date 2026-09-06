@@ -2312,9 +2312,9 @@ Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-as
   reach persistent layers pulled in from other decks. Pre-existing, filed, unfixed.
 
 ## NEXT SESSION — START HERE
-1. **The crossfade `(1.0f/60.0f)/speed` step** — the last instance of the frame-rate bug shape.
-   A dispatch was in flight when this session ended; **check `git log` for it before rebuilding
-   it.** Real dt is already threaded to that function, so it is close to a one-liner.
+1. ~~The crossfade frame-rate step~~ — **DONE, `02b89a1`.** It landed before this session closed,
+   and the sweep found a FOURTH instance nobody had named: deck-transition duration was coupled to
+   fps the same way. Both fixed. Do not rebuild this.
 2. **Lane 3** — bind the connection engine to something that drives it, and retire the old
    modulation path in the fixed order the architecture doc names. Lane 2's prerequisites are done.
    **R8, ruled: the CONNECTION lane owns `manualWrite`; the recorder lane hooks it, never defines
@@ -2350,5 +2350,5 @@ Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-as
 - Probe with `Invert`/`Vignette`/`Thermal` only. A warp effect can be invisible while working.
 
 ## COUNTS — RUN THEM, NEVER INHERIT THEM (stated after committing this file)
-`ctest` **283/283** on a build that exited 0. Deck probe **13/13**, tempo probe **5/5**.
+`ctest` **284/284** on a build that exited 0. Deck probe **13/13**, tempo probe **5/5**.
 Everything is **PUSHED**; unpushed should be **0**.
