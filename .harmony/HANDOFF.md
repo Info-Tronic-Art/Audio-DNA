@@ -2186,6 +2186,14 @@ testing-setup reason, not a broken oracle and not evidence the feature is wrong.
 All four are filed as durable gotchas in `.harmony/gotchas.md`, scoped `universal` where they
 generalise beyond this repo.
 
+## TRIVIAL CLEANUP, NOT WORTH A DISPATCH ON ITS OWN
+`src/render/Renderer.h` (~line 295) still says the old hardcoded-1/60 bug was "independent of and
+compounding with the masterSpeed fold above". That WAS true when written and is past-tense in
+context, but masterSpeed no longer uses 1/60 (`aca4398`), so the clause now reads as current to a
+skimmer. Judged defensible rather than false, so it was not worth a builder dispatch on its own --
+fold it into the next edit that touches that header. Flagged by the builder that wrote it, which is
+the right instinct.
+
 ## STILL OPEN FOR BORIS — product calls, not technical ones
 1. **The output window renders nothing of the composition** (above). Does fixing that outrank the
    connection arc? I believe it might.
