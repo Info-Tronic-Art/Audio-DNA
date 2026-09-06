@@ -501,7 +501,24 @@ GLuint CompositorEngine::applyClipOpacity(float opacity, GLuint srcTex, GLuint d
     if (std::abs(opacity - 1.0f) <= eps)
         return srcTex; // true no-op -- no GL call issued
 
-    auto* prog = shaderMgr.getProgram("opacity_blend");
+    // fix-needed(s167): this used to bake opacity into ALPHA via the shared
+    // "opacity_blend" program (col.a *= u_opacity), on the theory that the
+    // final layer-composite would consume that alpha. Measured on the live
+    // app it does not, reliably: blendLayerOntoAccumulator's Multiply/
+    // Screen/Darken/Lighten blend modes never reference GL_SRC_ALPHA for the
+    // src operand at all (alpha is a complete no-op under those), and a
+    // layer left at the Opaque type with layer.opacity at its 1.0 default
+    // disables GL_BLEND outright (CompositorEngine.cpp's compositeDeck,
+    // Opaque branch) -- a straight overwrite that never reads alpha either.
+    // "clip_opacity_blend" scales RGB directly instead (dims toward black),
+    // the same technique masterOpacity and layer.opacity's own Opaque-path
+    // multiply already rely on -- it survives regardless of which blend
+    // mode or layer type ends up consuming this texture, and composes
+    // correctly with layer.opacity's alpha-consuming Normal/Additive blend
+    // (leaving alpha untouched here means that later stage still applies
+    // its own factor on top, giving master*layer*clip rather than
+    // double-counting clip's contribution).
+    auto* prog = shaderMgr.getProgram("clip_opacity_blend");
     if (prog == nullptr)
         return srcTex;
 

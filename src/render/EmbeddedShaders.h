@@ -49,6 +49,29 @@ inline const char* opacityBlend = R"(
     }
 )";
 
+// S167-L4b fix: clip opacity blend -- scales RGB (dims toward black), leaves
+// alpha untouched. See applyClipOpacity()'s comment in CompositorEngine.cpp
+// for why this has to be RGB and not alpha: blendLayerOntoAccumulator's
+// Multiply/Screen/Darken/Lighten modes never reference GL_SRC_ALPHA at all,
+// so an alpha-only reduction (opacityBlend above) is a complete no-op under
+// those modes, and a layer left at the Opaque type with layer.opacity at its
+// 1.0 default disables blending entirely (a straight overwrite that also
+// never reads alpha). Scaling RGB directly survives every blend mode and
+// every layer type, the same way masterOpacity/layer.opacity's own
+// dim-toward-black techniques do.
+inline const char* clipOpacityBlend = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_opacity;
+    void main()
+    {
+        vec4 col = texture(u_texture, v_texCoord);
+        fragColor = vec4(col.rgb * u_opacity, col.a);
+    }
+)";
+
 // Dry/wet compositing shader: blends effected (u_texture) with pre-effect (u_original)
 inline const char* effectDryWet = R"(
     #version 410 core

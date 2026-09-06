@@ -1383,6 +1383,7 @@ void Renderer::compileAllShaders()
     // Core
     compile("passthrough",          EmbeddedShaders::passthrough);
     compile("opacity_blend",        EmbeddedShaders::opacityBlend);
+    compile("clip_opacity_blend",   EmbeddedShaders::clipOpacityBlend);
     compile("effect_dry_wet",       EmbeddedShaders::effectDryWet);
     compile("effect_drywet",        EmbeddedShaders::effectDryWet);
     compile("comp_transform",       EmbeddedShaders::compTransform);

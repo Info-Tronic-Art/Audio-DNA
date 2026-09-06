@@ -235,9 +235,13 @@ private:
                                ShaderManager& shaderMgr, FullscreenQuad& quad,
                                int w, int h);
 
-    // S167-L4b: bake a clip's per-clip opacity into its alpha channel via a
-    // single GL pass (reuses the existing "opacity_blend" program: col.a *=
-    // u_opacity, same math as the layer-opacity sites in .cpp). True no-op
+    // S167-L4b, fix-needed(s167): bake a clip's per-clip opacity into a
+    // texture via a single GL pass using the "clip_opacity_blend" program
+    // (col.rgb *= u_opacity, alpha untouched -- see the .cpp comment at the
+    // call site for why RGB and not alpha: several blend modes in
+    // blendLayerOntoAccumulator never read alpha at all, and an Opaque-type
+    // layer left at its 1.0 opacity default disables blending outright, so
+    // an alpha-only reduction is invisible in both cases). True no-op
     // (returns srcTex unchanged, no GL call) at the default 1.0 opacity,
     // matching this file's other needsTransform-style early-outs. dstFBO/
     // dstTex let each caller pick a scratch buffer that won't alias srcTex.
