@@ -2367,3 +2367,134 @@ Its §7 NEEDS BORIS list is fully answered in binding-decisions — do not re-as
 ## COUNTS — RUN THEM, NEVER INHERIT THEM (stated after committing this file)
 `ctest` **285/285** on a build that exited 0. Deck probe **13/13**, tempo probe **5/5**.
 Everything is **PUSHED**; unpushed should be **0**.
+
+# >>> SESSION s168 (2026-09-06, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+The recorder core and the audio tap exist and are proven; a tempo-locked oscillator no longer
+jumps backwards on a drop — in three places, not one; two reviewers found a use-after-free on the
+audio thread in code I had already pushed, and it is fixed and proven; and **Boris redefined what
+a recording is FOR** — read ruling 28 before planning anything.
+
+## >>> RULING 28 CHANGES CODE THAT IS ALREADY WRITTEN. READ IT FIRST. <<<
+`.harmony/binding-decisions.md`, rulings 25-28. The big one, in his words: *"We need to be able to
+use the recorded audio (lets say from a first show of a tour) to go through all the slider
+recordings and clean them up... we could reuse the same audio that's locked to the files so the
+user can redo it"* and *"we can have multiple slider recordings per audio as the logs are low
+memory usage."*
+**The audio is the ANCHOR and MANY takes share ONE audio.** Record the show, then rehearse the
+knob work against that real audio until it is right. Sets run 3-10 minutes (one song) to 2-4 hours
+(a night).
+**This contradicts what shipped today.** The tap writes `audio.wav` INSIDE each `.adna-take`
+folder. Five re-dos of a 4-hour set = ~14 GB of identical duplicated audio. Audio needs its own
+store, referenced by stable id + content hash, with the take holding a reference and a sample
+offset. **This is next session's first job and it is a FORMAT decision — do it before anyone
+records anything real, because migrating takes later is far worse than getting it right now.**
+Rulings 25-27, also his, verbatim: drop-vs-oscillator-phase is a **switch** (both behaviours, user
+picks — confirms what was built); a routine **restores** the state it was recorded in; a routine
+starts on the next **bar**.
+
+## WHAT SHIPPED — 5 lanes, every one reviewed by an agent that did not build it
+- **`3736f02` the recorder core (spec s167 build-order row 1).** `SessionRecorder` deleted;
+  `ControlPath`/`Lane`/`Take`/`TempoMap`/`PerfState`/`Program`/`Player`/`PerformanceRecorder`/
+  `RecorderClock` replace it, with `test_take` (11 cases, verify items a-g) and two fixtures.
+  `AutomationCurve` was EXTENDED, never forked — the connection lane still owns it.
+- **`3736f02` the audio tap + T1.** A second independent fan-out off the device callback (the
+  existing ring buffer is single-consumer and drops silently). Delivered-sample counter, gap
+  detection, T1 passing at D10.3's tolerances at 48 kHz/512 AND 44.1 kHz/128, across a dropout, a
+  restart and a FIFO stall, on both `hostTimeNs` branches.
+- **`3736f02` the monotonic beat timebase.** `totalBarCount` — single increment site, never reset
+  — now drives tempo-locked phase, with `resetPhaseOnStructural` as a per-oscillator opt-in
+  defaulting to false. **The first fix landed on ONE SITE of a THREE-SITE bug.** A reviewer
+  enumerated every `barCount` consumer and found `EnvelopeSignal` running the identical fold under
+  a comment CLAIMING it had already been fixed, and `ConnectionShaper::beatsNow()`, which the
+  connection engine calls for every enabled LFO-sourced connection. Both migrated, the false
+  comment corrected, `totalBarCount` exposed through the API so a live gate can reach it.
+- **`a50788b` three blocking defects found by review IN CODE I HAD ALREADY PUSHED.**
+  (1) A **use-after-free between `AudioTap::stop()` and the audio-thread `push()`** — a crash, on
+  the audio thread, mid-show. Fixed wait-free: the message thread waits, the audio thread never
+  does. **Reverting the fix makes the new test die with SIGABRT** — real memory corruption, not a
+  failed expectation — and the fixed version is ThreadSanitizer-clean across four runs.
+  (2) On a genuine FIFO overrun the tap dropped audio and **kept counting**, so the WAV grew
+  shorter than the timeline indexing it and every later lane pointed at the wrong moment, silently.
+  Overruns now carry a silence debt. Same fix for a null input buffer.
+  (3) Two engine-level cases now pin the shaper's counter divergence and the legacy opt-in.
+  **All five new tests were mutation-tested** against a reverted copy of the exact fix they cover,
+  confirmed to FAIL, source restored byte-identical under sha256.
+
+## VERIFICATION — WHAT IS PROVEN, AND HOW
+- **ctest 306/306 on a CLEAN FORCED REBUILD that exited 0**, run by me, after all lanes were
+  quiet. Session started at 285/285. Three separate clean-rebuild gates were run (296, 301, 306);
+  no count in this file was produced while another lane was building.
+- ThreadSanitizer clean on the audio-tap concurrency test.
+- Five independent reviews on disk: `memory/.reports/s168-review-{lane-a,lane-b,b2,s2}.md` in
+  Harmony_Main, builder reports in `.harmony/.reports/s168-*`.
+
+## NOT VERIFIED — say so, do not quote these as done
+- **The app was never launched this session.** Everything is headless unit/integration proof.
+  Nothing about the recorder has been seen working in the real app.
+- **`totalBarCount` is exposed on the API but no live gate has read it.** The S166-L5a fix was
+  proven live through `/api/signals`; this one is not. That check is cheap and is owed.
+- **T2 — the on-real-hardware sync run — has not happened.** T1 is headless. Boris's own words
+  were "we will test it to make sure it stays in time"; that test is still outstanding.
+- The `<2 GB free` refusal path exists and compiles but was never exercised on a real full volume.
+- Multi-segment restart (device sample-rate/channel change MID-recording) is NOT built — disclosed.
+
+## NEXT SESSION — START HERE
+1. **[FORMAT, DO IT FIRST] Ruling 28: move audio out of the take folder into a shared store.**
+   Reference by stable id + content hash + sample offset. Cheap now, ugly later.
+2. **[CARRIED, UNFIXED] The four required fixes from the recorder-core review**
+   (`memory/.reports/s168-review-lane-a.md`), none of them addressed this session:
+   (a) `Take::fromV1Var`'s `TransportChange` resolves as Comp-scope and WILL dispatch legacy
+       value*1000-scaled data once step 3 wires a Sink — the builder believed it was unresolvable
+       and it is not, and no fixture exercises it;
+   (b) `Program::compile` discards the EXACT per-breakpoint stamps sitting right beside it and
+       reconstructs x from a sparse tempo map instead;
+   (c) `RecorderClock` has no periodic tempo anchor, so a long steady-tempo take gets ONE anchor
+       and linear extrapolation — MEASURED ~1.2 beats of drift over 40 minutes at a 0.03 BPM bias.
+       **Ruling 28 makes this load-bearing: he records 2-4 HOUR sets.** (b) and (c) together.
+   (d) `RecordPanel`'s Save/Load/Play are inert and say nothing. Interim: disable + "coming"
+       tooltip per D14's own pattern; real answer is spec step 4.
+3. **Spec step 3** — `MainComponent` wiring: `RecorderClock::tick` + `Player::advanceTo` in the
+   tick, `Origin`/`deck` on the handlers, `manualWrite` at the D6a sites. **R8 stands: the
+   CONNECTION lane owns `manualWrite`; the recorder hooks it, never defines it.**
+4. **Lane 3, the connection binding** — recon is done and on disk at
+   `.harmony/scout-lane3-connect-surface.md` (unread by me, written this session). This is the
+   "21 controls that do nothing" lane and Boris's core product law lives in it.
+
+## STILL OPEN FOR BORIS — product calls, not technical ones
+1. The output window still renders nothing of the composition. He ruled "fix it later, engine
+   first" — ACCEPTED, not forgotten, still true.
+2. R13 latent: analysis hard-codes 48 kHz. His Mac reports 48000 everywhere so he is safe TODAY;
+   it goes live the moment a 44.1 kHz interface is plugged in.
+3. Only-Boris checks: whether flow-through vs restart-on-drop LOOKS right on his monitors, and
+   the T2 hardware sync run on his real interface.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would ever surface them
+1. **I dispatched two builders into one shared cmake `build/` directory**, fenced by source file
+   but not by build directory. Two concurrent builds take no cross-process lock and produce
+   plausible-but-wrong results. Caught only because I owed an independent gate anyway. Filed as a
+   repo gotcha; every later lane got its own `-B` dir.
+2. **My own packet created the gap the reviewer then found.** I fenced Lane B to a single test
+   file, which is exactly why the BPMTracker-level monotonicity assertion went unwritten. The
+   fence was right for concurrency and wrong for coverage; I should have named the second file.
+3. **My first docs commit silently dropped 8 new files** — in this repo `git add` under `.harmony/`
+   REFUSES a new path while still exiting 0, so the `&&`-chained commit succeeded and was missing
+   every report and packet. I trusted an exit code. Caught by `git show --stat`; gotcha sharpened.
+4. **I pushed code containing a use-after-free.** The gate was green and the reviews had not
+   landed yet, and I committed on green. Green ctest was never evidence of thread safety. The
+   reviews caught it within the hour and it is fixed, but the ordering was mine.
+
+## RIG FACTS — do not re-derive these
+- Everything in the previous session's RIG FACTS section still holds. Additionally:
+- **`.harmony/` is gitignored with files force-tracked. `git add` WARNS-AND-STAGES an
+  already-tracked path but SILENTLY REFUSES a NEW one and still exits 0.** Use `git add -f` and
+  ALWAYS verify with `git show --stat HEAD`.
+- **Parallel builders need `-B <own-dir>`**, not just a source-file fence.
+- `sizeof(FeatureSnapshot)` is 320, held by a `static_assert` in `src/features/FeatureBus.h`, with
+  ~12 bytes of tail slack left. Prove the size with a scratch compile BEFORE adding a field.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM (stated after committing this file)
+`ctest` **306/306** on a clean forced rebuild that exited 0. Session start was 285/285.
+Commits this session: `37a250f`, `2187d04`, `de6aa76`, `3736f02`, `a50788b`. Everything is
+**PUSHED**; unpushed should be **0**.
