@@ -1,0 +1,24 @@
+[preflight] Screen Recording: granted
+[preflight] Accessibility: granted
+[preflight] attaching to running Audio-DNA (pid 17817)
+[open] Output menu items: ['Disabled', 'Fullscreen: 1728x1117 (main)', 'Snapshot', 'Start Recording', 'Stop Recording', 'Syphon Output']
+[open] using menu item 'Fullscreen: 1728x1117 (main)'
+[open] output window on screen (attempt 1)
+
+=== MEASUREMENT ===
+  window        : 'Audio-DNA Output' (#6009)
+  owner         : 'Audio-DNA' pid 17817
+  bounds        : x=0.0 y=38.0 1728.0x1117.0  (main display 1728x1117)
+  kCGWindowLayer: 3
+
+=== TEARDOWN ===
+[teardown] closed via Output > "Disabled" (attempt 1)
+[teardown] app: left running (attached mode — this probe did not launch it)
+
+=== FINAL STATE ===
+  output window on screen : NO
+  app process alive       : YES (pid 17817)
+  screenshot              : /tmp/ow-level-teardown-1785778760.png  <- READ IT to confirm
+
+=== RESULT ===
+  FAIL: expected layer 0 (NSNormalWindowLevel), got 3 — this is NSFloatingWindowLevel, i.e. src/ui/OutputWindow.cpp:337 setAlwaysOnTop(true) is still in goFullscreenOnDisplay. A non-normal level with no Spaces-participation bit makes macOS treat the window as Transient, so it floats onto EVERY desktop Space as an opaque black rectangle.
