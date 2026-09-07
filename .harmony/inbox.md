@@ -64,3 +64,14 @@ routed-by:   harmony-57856     date: 2026-09-02
 status:      DONE
 status-note: s-rta-0904: both REQUIRED picks done; RECOMMENDED done except the graphify cache-tracking call (recon agent never reported - carried). Backups: 12 found not 8, 11 byte-identical deleted, 1 divergent archived to .harmony/.archive/. UNCLEAN-CLOSE-STAMP deliberately KEPT as the live reproducer for a detector defect filed up-channel (idea-2026-09-04-harmony2-17885803732007819224).
 --- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-06-RealTimeAudio-17887267064132214072
+raw:         REMOVE the codegraph-rta MCP server. Verdict is your own repo's (up-channel idea idea-2026-09-04-harmony2-17885803531987214855, from RTA session s-rta-0904): codegraph-rta = REMOVE (stale DB, no refresh mechanism, zero use, purpose never differentiated against graphify-rta by a live comparison); clangd-rta = KEEP (sole authoritative C3 blast-radius source); graphify-rta = KEEP (data pipeline is alive and self-maintaining via post-commit hook + launchd; only the MCP SERVER is unqueried — do not conflate those). TWO EDITS, BOTH IN YOUR REPO: (1) delete the codegraph-rta block from ~/projects/RealTimeAudio/.mcp.json; (2) remove codegraph from ~/projects/RealTimeAudio/.harmony/knowledge-tools.yml AND re-probe its stale graphify node/edge counts (GRAPH_REPORT.md reads 5297N/8466E; knowledge-tools.yml still cites a 2026-07-02 probe at 2416N/3779E/275C, and the on-disk graph is ~1 month / 3 commits behind HEAD). AFTER your edit lands, the primary re-runs scripts/mcp-catalogue.sh --render and the catalogue row disappears on its own.
+origin:      memory/session-handoff.md:111 MUST-2(c)
+why-routed:  config/mcp-catalogue.md is a GENERATED render (scripts/mcp-catalogue.sh --render) and --check asserts every disk server is catalogued. Deleting the row from the render while ~/projects/RealTimeAudio/.mcp.json still declares codegraph-rta creates an awareness gap that hygiene.sh flags as WARN (scripts/hygiene.sh:6329). The removal must happen at the SOURCE, which is your .mcp.json — a foreign repo the primary must not commit to. Handing it to its owner, not deferring it a fifth time.
+source-idea: idea-2026-09-04-harmony2-17885803531987214855
+routed-by:   harmony-21985     date: 2026-09-06
+status:      SENT
+status-note:
+--- /ROUTED-ITEM ---
