@@ -2552,3 +2552,38 @@ fold sites and no fourth; nothing that legitimately wants the resettable `barCou
 and the `ConnSerialization` addition is `hasProperty`-guarded, so old composition files load
 unchanged. The B2 reviewer's one required fix (a divergent-counter test at the ConnectionShaper /
 ConnectionEngine level) WAS delivered in `a50788b` — two cases in `tests/test_connection.cpp`.
+
+---
+
+## s171 (2026-09-07) — Harmony primary touched this repo
+
+**APPENDED, not replaced.** The close tool `per-repo-handoff.sh` overwrites this file wholesale
+(`> "$handoff"`); running it here destroyed 137 sections of accumulated project knowledge including the
+"READ IT BEFORE ANYTHING ELSE" plan pointer and the verified rig mechanics. Caught by the s171 close
+swarm before it was committed, restored from HEAD, and re-applied by hand as an append. **Do not run
+that tool against this repo until it appends.**
+
+**BROKEN — the code graph is gone.** `graphify-out/graph.json` and `manifest.json` are BOTH absent.
+`graphify extract` failed `rc=1` twice on 2026-09-07: at 17:26 (~20 min) and again at 20:40 (~30 min).
+The refresh wrapper DELETES both files before extracting — deliberately, to force a clean rebuild rather
+than the unreliable incremental path — so every failure leaves this repo with no graph at all.
+`graphify-out/.refresh-launchd.log` records `rc=1` with NO error detail, so the cause is not diagnosable
+from disk. Next step: re-run with stdout/stderr actually captured, and try `--code-only` (keyless local
+AST) to isolate whether the semantic/LLM stage is what dies. Do not simply re-run and hope.
+
+**Committed here this session:**
+1. `chore(s171): drop 5 committed unclean-close stamps — all proven false positives` — five
+   `UNCLEAN-CLOSE-STAMP-*.md` files claimed sessions here closed without EOS. They did not. Root cause
+   (fixed upstream in Harmony_Main): the stamp writer keys its path off the session's LIVE cwd while the
+   consumer looks under the DB `repo` column, so a Harmony subagent registered as Harmony_Main stamped
+   whichever repo it had cd'd into. Adjudicated per-file against `coordination.db`, not assumed; the same
+   test returned 24 GENUINE elsewhere, so it was capable of both verdicts.
+2. `chore(s171): untrack .harmony/CHECKPOINT.md — machine-written churn` — this was the ONLY repo of nine
+   tracking that auto-regenerated snapshot, which made the repo read dirty after every session. The file
+   stays on disk and keeps working; only the index entry was removed.
+
+**Worth knowing:** this repo's `.gitignore:62` ignores `.harmony/` while ~20 files inside it are
+force-tracked — self-contradictory, and it means a GENUINE unclean-close stamp would be invisible here
+(the other repos show them). Pre-existing since 2026-05-18, filed as candidate
+`rta-gitignore-hides-unclean-close-stamp`. Also: 685 files under `graphify-out/` were untracked by s170
+(`0094774`); the s171 audit confirmed all of them are generated output, no source or config.
