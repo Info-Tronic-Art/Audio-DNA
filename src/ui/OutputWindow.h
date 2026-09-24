@@ -7,6 +7,7 @@
 #include "effects/EffectChain.h"
 #include "mapping/MappingEngine.h"
 #include "features/FeatureBus.h"
+#include "features/OnsetPulse.h"
 
 // OutputRenderer: renders the same effect chain as the primary Renderer
 // but in its own OpenGL context (for the output window/display).
@@ -53,6 +54,11 @@ private:
     // GL state anymore (EffectChainGLState, EffectChain.h). Released in
     // openGLContextClosing().
     EffectChainGLState effectChainGLState_;
+
+    // Onset render-path fix: this context's own consumer of FeatureSnapshot::onsetCount
+    // (see OnsetPulse.h) -- a separate bus reader from the main Renderer, so it keeps its own
+    // baseline. GL-thread-owned (this context's render thread), no atomic needed.
+    OnsetPulse onsetPulse_;
 
     double startTime_ = 0.0;
 

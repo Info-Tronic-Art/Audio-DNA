@@ -2157,8 +2157,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // R4: test-mode inject_features on the production port relays through
     // the TestServer-held Writer (the only writer in test mode).
     if (testMode_ && testServer_)
-        apiServer_->onInjectFeatures = [this](const FeatureSnapshot& snap) {
-            testServer_->injectSnapshot(snap);
+        apiServer_->onInjectFeatures = [this](const FeatureSnapshot& snap,
+                                              const InjectedOnsetCount& onsetIntent) {
+            testServer_->injectSnapshot(snap, onsetIntent);
         };
 #endif
     apiServer_->start();

@@ -10,6 +10,7 @@
 class Renderer;
 class FeatureBus;
 struct FeatureSnapshot;
+struct InjectedOnsetCount;
 class EffectChain;
 class SourceRegistry;
 class SignalRegistry;
@@ -67,7 +68,11 @@ public:
     // R4: this server holds no FeatureBus writer — test-mode
     // /api/inject_features relays the built snapshot to the TestServer-held
     // Writer through this callback (wired by MainComponent in test mode).
-    std::function<void(const FeatureSnapshot&)> onInjectFeatures;
+    // Onset render-path fix: the snapshot's onsetCount is NOT computed here --
+    // the request's onset intent is passed through and resolved against the
+    // previously injected count under TestServer::injectSnapshot's lock (the
+    // one place both inject routes funnel into; see OnsetPulse.h).
+    std::function<void(const FeatureSnapshot&, const InjectedOnsetCount&)> onInjectFeatures;
     // s-rta-0923 lane 3 (plan section 3.6, sites #9/#10): the message-thread
     // write these two endpoints used to do inline is now routed through
     // MainComponent::manualWrite so a layer-opacity / clip-effect-param REST

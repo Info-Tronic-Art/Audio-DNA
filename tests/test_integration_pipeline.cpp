@@ -13,6 +13,7 @@
 #include "analysis/PitchTracker.h"
 #include "analysis/FeatureSnapshot.h"
 #include "features/FeatureBus.h"
+#include "features/OnsetPulse.h"
 #include "audio/RingBuffer.h"
 #include <array>
 #include <cmath>
@@ -747,4 +748,73 @@ TEST_CASE("Onset count: FeatureSnapshot::onsetCount increments exactly once per 
     REQUIRE(detectedOnsets > 5);
     REQUIRE(countIncrements == detectedOnsets);
     REQUIRE(lastOnsetCount == static_cast<uint32_t>(detectedOnsets));
+}
+
+// Onset render-path fix: a render-cadence reader of FeatureBus's always-latest snapshot
+// sees the one-hop onsetDetected bool on 0, 1 or 2 frames per onset depending on its rate
+// relative to analysis (93.75 Hz): LOSS below, DUPLICATION above. Acting on the onsetCount
+// delta instead gives exactly one pulse frame per onset at any frame rate.
+TEST_CASE("Onset pulse: a render-cadence reader of the always-latest snapshot sees every onset "
+          "exactly once", "[integration][onsetcount][render]")
+{
+    constexpr float bpmVal      = 120.0f;
+    constexpr float burstMs     = 20.0f;
+    constexpr float dBFS        = -6.0f;
+    constexpr float floorDBFS   = -50.0f;
+    constexpr float durationSec = 20.0f;   // 120 BPM over 20s = 40 bursts
+
+    auto signal = generateClickTrainWithNoiseFloor(bpmVal, burstMs, dBFS, floorDBFS, durationSec,
+                                                     static_cast<double>(kSampleRate));
+
+    struct RenderReader
+    {
+        double fps;
+        double nextFrame = 0.0;
+        int framesRawTrue = 0;   // pre-fix expression: latest.onsetDetected on this frame
+        int framesPulse = 0;     // fixed expression: onsetCount delta > 0 on this frame
+        OnsetPulse pulse;
+    };
+    RenderReader readers[] = { { 60.0 }, { 120.0 } };
+
+    PipelineRunner runner;
+    FeatureSnapshot latest;
+    latest.clear();
+    int detectedOnsets = 0;
+
+    size_t offset = 0;
+    while (offset + kHopSize <= signal.size())
+    {
+        FeatureSnapshot snap;
+        if (runner.processHop(signal.data() + offset, snap))
+        {
+            latest = snap;   // FeatureBus: always-latest publish
+            if (snap.onsetDetected)
+                ++detectedOnsets;
+        }
+        offset += kHopSize;
+
+        const double tPub = static_cast<double>(offset) / static_cast<double>(kSampleRate);
+        for (auto& r : readers)
+        {
+            while (r.nextFrame <= tPub)
+            {
+                r.framesRawTrue += latest.onsetDetected ? 1 : 0;
+                r.framesPulse += r.pulse.consume(latest.onsetCount) > 0u ? 1 : 0;
+                r.nextFrame += 1.0 / r.fps;
+            }
+        }
+    }
+
+    INFO("detectedOnsets=" << detectedOnsets
+         << " raw60=" << readers[0].framesRawTrue << " raw120=" << readers[1].framesRawTrue
+         << " pulse60=" << readers[0].framesPulse << " pulse120=" << readers[1].framesPulse);
+    REQUIRE(detectedOnsets > 5);
+    // The fix: one pulse frame per onset at both frame rates.
+    REQUIRE(readers[0].framesPulse == detectedOnsets);
+    REQUIRE(readers[1].framesPulse == detectedOnsets);
+    // Defect-documenting (pass before and after the fix): the raw bool loses onsets below
+    // the analysis rate and duplicates them above it -- the RED form of this test asserted
+    // framesRawTrue == detectedOnsets and failed with 25 == 57 at 60 fps (83 at 120 fps).
+    CHECK(readers[0].framesRawTrue < detectedOnsets);
+    CHECK(readers[1].framesRawTrue > detectedOnsets);
 }

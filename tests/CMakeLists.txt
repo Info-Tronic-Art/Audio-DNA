@@ -125,6 +125,13 @@ target_link_libraries(test_smoother PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_smoother)
 catch_discover_tests(test_smoother)
 
+# --- test_onset_pulse (onset render-path fix: header-only onsetCount delta helper) ---
+add_executable(test_onset_pulse test_onset_pulse.cpp)
+target_include_directories(test_onset_pulse PRIVATE ${SRC_DIR})
+target_link_libraries(test_onset_pulse PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_onset_pulse)
+catch_discover_tests(test_onset_pulse)
+
 # --- test_oscillator_bar_fold (S166-L5a: multi-bar OscillatorSignal/EnvelopeSignal phase) ---
 add_executable(test_oscillator_bar_fold test_oscillator_bar_fold.cpp)
 target_include_directories(test_oscillator_bar_fold PRIVATE ${SRC_DIR})
