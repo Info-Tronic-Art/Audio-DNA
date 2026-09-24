@@ -208,7 +208,16 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
             return res;
         }
         tapWasStarted_ = true;
-        tapWasRunningLastTick_ = true;
+        // BUGFIX (self-stop false positive): tap.start() only ARMS the tap -- AudioTap::running_
+        // flips true inside push(), on the audio thread's NEXT callback, not here. Seeding this
+        // true made the very first tick() after arm() (which can land on the message thread before
+        // that first push()) read "was running last tick, not running now" and fire a false-positive
+        // self-stop. Leaving it false means the self-stop edge in tick() only fires once a tick has
+        // actually OBSERVED the tap running -- and since tick() re-sets this field from the tap's
+        // real state every call (never leaves it stuck true after an observed stop), the same
+        // edge-detector self-re-arms: a later genuine stop, after the tap is observed running again,
+        // is reported again rather than swallowed.
+        tapWasRunningLastTick_ = false;
         assetId_ = *id;
         liveGapDetection_ = tap.gapDetectionSupported();
         liveFramesWritten_ = 0;
@@ -364,6 +373,14 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
     {
         if (tapWasStarted_)
         {
+            // Rising-to-falling edge on the tap's OWN observed running state (never seeded true at
+            // arm -- see arm()'s comment): fires once per genuine running -> stopped transition. Since
+            // `tapWasRunningLastTick_` is re-set from the tap's real state every tick below (including
+            // after a fire), the edge self-re-arms -- if the tap is later observed running again (a
+            // device reconnect), a subsequent genuine stop is reported again, not swallowed.
+            // `lastError_` is NOT cleared on recovery; it simply gets overwritten with the (same-shaped)
+            // message the next time this branch fires, so status().lastError always reflects the MOST
+            // RECENT self-stop, not a stale first one.
             const bool runningNow = tap.isRunning();
             if (tapWasRunningLastTick_ && !runningNow)
             {

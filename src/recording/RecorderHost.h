@@ -226,6 +226,12 @@ private:
     bool recording_ = false;
     bool overdub_ = false;
     bool tapWasStarted_ = false;
+    // Edge-detector for tick()'s self-stop check (RecorderHost.cpp): the tap's own `running_` state
+    // as observed on the PREVIOUS tick. Always seeded/reset false -- never true -- at arm(), because
+    // tap.start() only ARMS the tap; AudioTap::running_ flips true inside push(), on the audio
+    // thread's next callback, not synchronously with start(). Re-set from the tap's real state every
+    // tick (see tick()'s own comment), so a stop -> recover -> stop sequence re-arms itself with no
+    // extra state needed.
     bool tapWasRunningLastTick_ = false;
     juce::File takeFolder_;
     std::string assetId_;
