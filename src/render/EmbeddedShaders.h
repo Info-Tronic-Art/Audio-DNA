@@ -6235,7 +6235,6 @@ inline const char* sourceJuliaSet = R"(
         // === C-VALUE: Location presets override C Real/C Imaginary ===
         // Dive speed morphs through presets (Julia "dive" = c-value animation)
         float cx, cy;
-        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
         float locIdx = u_src_location * 9.0;
 
         if (diveRate > 0.001) {
