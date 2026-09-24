@@ -29,6 +29,9 @@
 #include "connect/ConnClock.h"
 #include "connect/ManualWrite.h"
 #include "recording/Lane.h"
+// s-rta-0923/0924 step 3 (Lane S3-B): the recorder host this component
+// wires the tick, choke points and REST surface into (recorderHost_ below).
+#include "recording/RecorderHost.h"
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
@@ -426,8 +429,13 @@ private:
     void mouseMove(const juce::MouseEvent& event) override;
 
     void handleImportISF();
-    void handleClipTrigger(int layerIndex, int column);
-    void handleColumnTrigger(int column);
+    // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B2, critic A3/A4):
+    // origin/deckIndex are defaulted so all nine existing (Human, active-deck)
+    // callers compile unchanged; RecorderHost's Dispatch::fire is the only
+    // caller that ever passes Origin::Replay (+ a specific deckIndex from the
+    // compiled Fired's ResolvedTarget).
+    void handleClipTrigger(int layerIndex, int column, Origin origin = Origin::Human, int deckIndex = -1);
+    void handleColumnTrigger(int column, Origin origin = Origin::Human, int deckIndex = -1);
     // A1 fix (2026-07-30): re-sync the previewPanel_ renderer's global fallback
     // state (activeSourceType_ / loaded image) to whichever layer still owns
     // active content after a layer's clip is cleared. Mirrors handleColumnTrigger's
@@ -449,7 +457,21 @@ private:
     // handler (2026-07-30) combines it with applyFileDrop's video edits into one
     // composite so an image+video Finder drop is a single undo entry.
     std::optional<CellEdit> applyMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
-    void handleDeckSwitch(int deckIndex);
+    void handleDeckSwitch(int deckIndex, Origin origin = Origin::Human);
+
+    // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B3, D6b): the five
+    // choke points every writer of a discrete control funnels through, so
+    // RecorderHost can capture Human writes and replay Replay ones through
+    // the SAME mutation code every other origin uses. Each captures (via
+    // recorderHost_.capture) only when origin != Origin::Replay (belt and
+    // braces -- the host filters on this too, RecorderHost.h's capture() doc).
+    void applyClearActiveClip(int layerIndex, Origin origin);
+    void applyTempoCommand(const std::string& action, float bpm, Origin origin);
+    void applyAudioTransport(const std::string& action, Origin origin);
+    void applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin);
+    void applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin);
+    void applyClipPlaying(int layerIndex, int column, const std::string& action, Origin origin,
+                          uint64_t group = 0);
 
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
     void setTooltipsEnabled(bool enabled);
@@ -484,6 +506,20 @@ private:
     MidiOutputHandler midiOutputHandler_;
     VideoRecorder videoRecorder_;
     SyphonOutput syphonOutput_;
+
+    // s-rta-0923/0924 step 3 (Lane S3-A contract / Lane S3-B wiring): owns
+    // the recording/playback lifecycle (arm/tick/disarm/load/play). Declared
+    // AFTER syphonOutput_ (the previous last member) so it is destroyed
+    // FIRST, before audioEngine_ and composition_ -- both still needed by
+    // the shutdown() call in ~MainComponent().
+    RecorderHost recorderHost_{ AudioStore(AudioStore::defaultRoot()) };
+    // The recorder's checkpoint capture (PerfState.audioAction) needs the
+    // last transport action; applyAudioTransport is its only writer.
+    std::string lastAudioAction_ = "stop";
+    // R3 throttle (plan section 3.3 B3): Ableton Link ticks the tempo choke
+    // point at ~30Hz -- only capture a tempo point when the BPM actually
+    // moved by a meaningful amount.
+    float lastLinkCapturedBpm_ = -1.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -8,6 +8,7 @@
 #include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
 #include "core/CompositionLoad.h"
+#include "recording/PerfStateCapture.h"
 #include <algorithm>
 
 static uint32_t s_nextClipId = 1000;
@@ -284,14 +285,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     {
                         currentAudioFile_ = file;
                         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
-                        audioEngine_.play();
+                        applyAudioTransport("play", Origin::Human);
                     }
                 });
             }
             else
             {
                 fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
-                audioEngine_.play();
+                applyAudioTransport("play", Origin::Human);
             }
         }
     };
@@ -620,14 +621,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     {
                         currentAudioFile_ = file;
                         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
-                        audioEngine_.play();
+                        applyAudioTransport("play", Origin::Human);
                     }
                 });
             }
             else
             {
                 fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
-                audioEngine_.play();
+                applyAudioTransport("play", Origin::Human);
             }
         }
     };
@@ -672,9 +673,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
             openOutputOnDisplay(selected - 2);
     };
 
+    // s-rta-0923/0924 step 3 (plan section 3.3 B3): all tempo writers now go
+    // through applyTempoCommand -- a MOVE of each site's body, not a change.
     topBar_->onTapTempo = [this](float tappedBPM) {
-        if (auto* tracker = analysisThread_.getBpmTracker())
-            tracker->setManualBPM(tappedBPM);
+        applyTempoCommand("tap", tappedBPM, Origin::Human);
     };
 
     // L7-JUKE: Ableton Link toggle. linkSync_'s consumer loop (below, in the
@@ -683,24 +685,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
     topBar_->onLinkToggled = [this](bool enabled) { linkSync_.setEnabled(enabled); };
 
     topBar_->onManualBpmChanged = [this](bool manual, float bpm) {
-        if (auto* tracker = analysisThread_.getBpmTracker())
-        {
-            tracker->setManualMode(manual);
-            if (manual && bpm > 0.0f)
-                tracker->setManualBPM(bpm);
-        }
+        applyTempoCommand(manual ? "manual" : "auto", bpm, Origin::Human);
     };
 
     topBar_->onResync = [this] {
-        // Reset beat counters
-        beatCounter_ = 0;
-        lastBeatPhase_ = 0.0f;
-        // Reset beat phase and phrase/bar counters in the BPM tracker
-        if (auto* tracker = analysisThread_.getBpmTracker())
-        {
-            tracker->resetBeatPhase();
-            tracker->resetPhrase();
-        }
+        applyTempoCommand("resync", 0.0f, Origin::Human);
     };
 
     // Global transport (TopBar Play/Pause/Stop). There is no single global
@@ -708,32 +697,37 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // layer's active clip. The honest global mapping is therefore: apply
     // play/pause/stop to every layer's active clip on the ACTIVE deck. Stop =
     // pause + rewind to the clip's in-point (distinct from Pause, which holds).
+    // s-rta-0923/0924 step 3 (plan section 3.3 B3): routed through
+    // applyClipPlaying, one point per layer, sharing a `group` id.
     topBar_->onPlay = [this] {
         if (auto* deck = composition_.getActiveDeck())
+        {
+            const uint64_t group = recorderHost_.nextGroupId();
             for (int l = 0; l < deck->getNumLayers(); ++l)
                 if (auto* layer = deck->getLayer(l))
-                    if (auto* clip = layer->getActiveClip())
-                    {
-                        clip->reverse = false;
-                        clip->playing = true;
-                    }
+                    if (layer->getActiveClip())
+                        applyClipPlaying(l, layer->activeClipColumn, "play", Origin::Human, group);
+        }
     };
     topBar_->onPause = [this] {
         if (auto* deck = composition_.getActiveDeck())
+        {
+            const uint64_t group = recorderHost_.nextGroupId();
             for (int l = 0; l < deck->getNumLayers(); ++l)
                 if (auto* layer = deck->getLayer(l))
-                    if (auto* clip = layer->getActiveClip())
-                        clip->playing = false;
+                    if (layer->getActiveClip())
+                        applyClipPlaying(l, layer->activeClipColumn, "pause", Origin::Human, group);
+        }
     };
     topBar_->onStop = [this] {
         if (auto* deck = composition_.getActiveDeck())
+        {
+            const uint64_t group = recorderHost_.nextGroupId();
             for (int l = 0; l < deck->getNumLayers(); ++l)
                 if (auto* layer = deck->getLayer(l))
-                    if (auto* clip = layer->getActiveClip())
-                    {
-                        clip->playing = false;
-                        clip->playheadPosition = clip->inPoint;
-                    }
+                    if (layer->getActiveClip())
+                        applyClipPlaying(l, layer->activeClipColumn, "stop", Origin::Human, group);
+        }
     };
 
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
@@ -780,7 +774,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (deckIdx >= 0 && deckIdx < static_cast<int>(composition_.decks.size())
             && deckIdx != composition_.activeDeckIndex)
         {
-            handleDeckSwitch(deckIdx);
+            // s-rta-0923/0924 step 3 (critic N2/A4): this is an automatic
+            // (non-user) deck switch -- record it as Origin::Engine, not the
+            // default Human.
+            handleDeckSwitch(deckIdx, Origin::Engine);
         }
 
         std::cerr << "[P23] Genre changed to: " << GenreDetector::genreName(genre)
@@ -1914,11 +1911,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
     apiServer_->onSetBpm = [this](float bpm) {
         // Same path as the TopBar manual-BPM toggle+edit (manual override).
-        if (auto* tracker = analysisThread_.getBpmTracker())
-        {
-            tracker->setManualMode(true);
-            tracker->setManualBPM(bpm);
-        }
+        applyTempoCommand("link", bpm, Origin::Human);
     };
     // s-rta-0923 lane 3 (plan section 3.6, site #9): the inline
     // `lay->opacity = opacity;` write was removed from
@@ -1938,6 +1931,233 @@ MainComponent::MainComponent(bool testMode, int testPort)
                                   paramIndex, juce::String(paramName)),
                    value, GripKind::Decaying, Origin::Human);
     };
+
+    // === s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B4/B5) ===
+    // RecorderHost::Dispatch -- discrete replay re-dispatches through the
+    // SAME choke points the human path uses (Origin::Replay).
+    recorderHost_.dispatch.fire = [this](const Fired& f) -> bool {
+        const auto& control = f.key.control;
+        if (control == "activeClip")
+        {
+            if (f.target.layer < 0) return false;
+            if (f.p.v < 0)
+                applyClearActiveClip(f.target.layer, Origin::Replay);
+            else
+                handleClipTrigger(f.target.layer, f.p.v, Origin::Replay, f.target.deck);
+            return true;
+        }
+        if (control == "activeDeck")
+        {
+            handleDeckSwitch(f.p.v, Origin::Replay);
+            return true;
+        }
+        if (control == "tempo")
+        {
+            applyTempoCommand(f.p.action, static_cast<float>(f.p.v) / 100.0f, Origin::Replay);
+            return true;
+        }
+        if (control == "audio")
+        {
+            applyAudioTransport(f.p.action, Origin::Replay);
+            return true;
+        }
+        if (f.key.scope == ControlPath::Scope::Layer &&
+            (control == "visible" || control == "solo" || control == "mute" ||
+             control == "bypass" || control == "autopilot"))
+        {
+            if (f.target.layer < 0) return false;
+            applyLayerFlag(f.target.layer, control, f.p.v != 0, Origin::Replay);
+            return true;
+        }
+        if (control == "bypass" && f.key.scope == ControlPath::Scope::Clip && f.target.fx >= 0)
+        {
+            if (f.target.layer < 0 || f.target.col < 0) return false;
+            applyEffectBypass(f.target.layer, f.target.col, f.target.fx, f.p.v != 0, Origin::Replay);
+            return true;
+        }
+        if (control == "playing")
+        {
+            if (f.target.layer < 0 || f.target.col < 0) return false;
+            applyClipPlaying(f.target.layer, f.target.col, f.p.action, Origin::Replay);
+            return true;
+        }
+        if (control == "quantize")
+        {
+            composition_.quantizeMode = static_cast<Composition::QuantizeMode>(f.p.v);
+            return true;
+        }
+        return false;
+    };
+
+    // Continuous replay (critic A1): hooks the connection lane's shipped
+    // manualTouch/manualWrite/manualRelease funnel (R8) -- Origin::Replay
+    // means handFor() gives it Hand::Lane, so a human hand always wins (D8),
+    // and the capture hooks below never record these writes back (D6).
+    recorderHost_.dispatch.continuous.touch   = [this](const ControlPath& k, const std::string& /*grip*/) {
+        return manualTouch(k, GripKind::Held, Origin::Replay); };
+    recorderHost_.dispatch.continuous.set     = [this](const ControlPath& k, float v) {
+        return manualWrite(k, v, GripKind::Held, Origin::Replay); };
+    recorderHost_.dispatch.continuous.release = [this](const ControlPath& k) { manualRelease(k, Origin::Replay); };
+
+    recorderHost_.dispatch.capturePerfState = [this]() {
+        return capturePerfState(composition_, analysisThread_.getFeatureBus().read().bpm, lastAudioAction_);
+    };
+    recorderHost_.dispatch.notify = [](const std::string& msg) {
+        std::cerr << "[Recorder] " << msg << std::endl;
+    };
+
+    // Continuous capture: the recorder HOOKS the funnel's own accept/refuse
+    // notification (critic A1/A2/N12) -- Human writes only; Replay writes are
+    // filtered here too (handFor already routed them to Hand::Lane above).
+    onManualWrite = [this](const ControlPath& k, float v, GripKind g, Origin o, bool ok) {
+        if (o != Origin::Human) return;
+        if (ok) recorderHost_.onHumanWrite(k, v, g == GripKind::Held ? "held" : "decaying");
+        else    recorderHost_.noteHumanRefused(k);
+    };
+    onManualTouch = [this](const ControlPath& k, GripKind g, Origin o, bool ok) {
+        if (o == Origin::Human && ok) recorderHost_.onHumanTouch(k, g == GripKind::Held ? "held" : "decaying");
+    };
+    onManualRelease = [this](const ControlPath& k, Origin o) {
+        if (o == Origin::Human) recorderHost_.onHumanRelease(k);
+    };
+
+    // REST /api/perf/* (Lane S3-C's callbacks, wired here per critic A5).
+    apiServer_->onPerfRecord = [this](const ApiServer::PerfRecordOpts& opts) {
+        if (recorderHost_.isRecording())
+        {
+            if (recorderHost_.dispatch.notify)
+                recorderHost_.dispatch.notify("perf/record refused: already recording");
+            return;
+        }
+
+        // A5(c)/N8: switch to File mode only if not already there, and read
+        // deviceRate/channels AFTER the switch (a mode change can restart
+        // the device at a different rate/channel count).
+        if (opts.audioFile.isNotEmpty())
+        {
+            juce::File f(opts.audioFile);
+            if (f.existsAsFile() && audioEngine_.loadFile(f))
+                currentAudioFile_ = f;
+            if (audioEngine_.getSourceMode() != AudioEngine::SourceMode::File)
+                audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
+        }
+
+        RecorderHost::ArmOptions armOpts;
+        juce::String name = opts.name.isNotEmpty()
+            ? opts.name
+            : juce::Time::getCurrentTime().formatted("%Y-%m-%d_%H%M%S");
+        armOpts.takeFolder = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+                                  .getChildFile("Audio-DNA").getChildFile("Takes")
+                                  .getChildFile(name + ".adna-take");
+        armOpts.audio = opts.audio;
+        armOpts.audioMode = (audioEngine_.getSourceMode() == AudioEngine::SourceMode::File) ? "file" : "input";
+        armOpts.deviceRate = audioEngine_.getCurrentSampleRate();
+        if (auto* dev = audioEngine_.getDeviceManager().getCurrentAudioDevice())
+            armOpts.deviceChannels = dev->getActiveOutputChannels().countNumberOfSetBits();
+        armOpts.appVersion = juce::JUCEApplication::getInstance()
+            ? juce::JUCEApplication::getInstance()->getApplicationVersion().toStdString()
+            : "0.1.0";
+        armOpts.onsetMarkers = opts.onsetMarkers;
+        if (opts.overdubAssetId.isNotEmpty())
+            armOpts.overdubAssetId = opts.overdubAssetId.toStdString();
+        armOpts.analysisRate = static_cast<double>(AnalysisThread::kSampleRate);
+        armOpts.gripHoldMs = composition_.gripHoldMs;
+
+        auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
+        if (!result.ok)
+        {
+            if (recorderHost_.dispatch.notify)
+                recorderHost_.dispatch.notify("perf/record failed: " + result.error);
+        }
+        else if (opts.audioFile.isNotEmpty())
+        {
+            applyAudioTransport("play", Origin::Human);
+        }
+    };
+    apiServer_->onPerfStop = [this] {
+        auto result = recorderHost_.disarm(composition_, audioEngine_.getAudioTap());
+        if (!result.ok && recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify("perf/stop: " + result.error);
+    };
+    apiServer_->onPerfLoad = [this](juce::File takeFolder) {
+        auto result = recorderHost_.load(takeFolder);
+        if (!result.ok && recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify("perf/load failed: " + result.error);
+    };
+    apiServer_->onPerfPlay = [this](bool withAudio) {
+        auto mode = withAudio ? RecorderHost::PlayMode::WithAudio : RecorderHost::PlayMode::WallClock;
+        auto result = recorderHost_.play(mode, composition_);
+        if (!result.ok)
+        {
+            if (recorderHost_.dispatch.notify)
+                recorderHost_.dispatch.notify("perf/play failed: " + result.error);
+            return;
+        }
+        if (withAudio && result.wav.existsAsFile())
+        {
+            if (audioEngine_.loadFile(result.wav))
+            {
+                currentAudioFile_ = result.wav;
+                if (audioEngine_.getSourceMode() != AudioEngine::SourceMode::File)
+                    audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
+                applyAudioTransport("play", Origin::Human);
+            }
+        }
+    };
+    apiServer_->onPerfStopPlay = [this] {
+        recorderHost_.stopPlay();
+        applyAudioTransport("stop", Origin::Human);
+    };
+    apiServer_->onPerfRepair = [this] {
+        auto err = recorderHost_.repairLoadedAudio(
+            juce::JUCEApplication::getInstance()
+                ? juce::JUCEApplication::getInstance()->getApplicationVersion().toStdString()
+                : "0.1.0");
+        if (!err.empty() && recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify("perf/repair: " + err);
+    };
+    // Synchronous (critic A5(b)/N3): reads ONLY recorderHost_.status()'s
+    // mutex-guarded copy -- never audioEngine_.getCurrentSampleRate()/
+    // getCurrentAudioDevice() on the HTTP thread.
+    apiServer_->onPerfStatus = [this]() -> juce::var {
+        const auto s = recorderHost_.status();
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("ok", true);
+        obj->setProperty("recording", s.recording);
+        obj->setProperty("playing", s.playing);
+        obj->setProperty("overdub", s.overdub);
+        obj->setProperty("takeFolder", juce::String(s.takeFolder));
+        obj->setProperty("assetId", juce::String(s.assetId));
+        obj->setProperty("audioMode", juce::String(s.audioMode));
+        obj->setProperty("playMode", juce::String(s.playMode));
+        obj->setProperty("lastError", juce::String(s.lastError));
+        obj->setProperty("t", s.t);
+        obj->setProperty("beat", s.beat);
+        obj->setProperty("sample", static_cast<juce::int64>(s.sample));
+        obj->setProperty("bpm", static_cast<double>(s.bpm));
+        obj->setProperty("lanes", s.lanes);
+        obj->setProperty("points", s.points);
+        obj->setProperty("gestures", s.gestures);
+        obj->setProperty("markers", s.markers);
+        obj->setProperty("gapDetection", s.gapDetection);
+        obj->setProperty("framesWritten", static_cast<juce::int64>(s.framesWritten));
+        obj->setProperty("gaps", s.gaps);
+        obj->setProperty("position", s.position);
+        obj->setProperty("length", s.length);
+        obj->setProperty("unresolved", s.unresolved);
+        obj->setProperty("reboundByPosition", s.reboundByPosition);
+        obj->setProperty("reboundByName", s.reboundByName);
+        obj->setProperty("invalid", s.invalid);
+        obj->setProperty("skipped", s.skipped);
+        obj->setProperty("continuousUnavailable", s.continuousUnavailable);
+        obj->setProperty("refusedByHand", s.refusedByHand);
+        obj->setProperty("audioStatus", juce::String(s.audioStatus));
+        obj->setProperty("deviceRate", s.deviceRate);
+        obj->setProperty("rateMismatch", s.rateMismatch);
+        obj->setProperty("humanRefused", s.humanRefused);
+        return juce::var(obj);
+    };
+
 #if AUDIODNA_TEST_SERVER
     // R4: test-mode inject_features on the production port relays through
     // the TestServer-held Writer (the only writer in test mode).
@@ -1967,28 +2187,19 @@ MainComponent::MainComponent(bool testMode, int testPort)
         manualWrite(layerScalarPath(composition_, composition_.activeDeckIndex, layerIdx, "opacity"),
                    opacity, GripKind::Decaying, Origin::Human);
     };
+    // s-rta-0923/0924 step 3 (plan section 3.3 B3): routed through applyLayerFlag.
     oscHandler_.onSetLayerBypass = [this](int layerIdx, bool bypass) {
-        if (auto* deck = composition_.getActiveDeck())
-            if (auto* layer = deck->getLayer(layerIdx))
-                layer->bypassed = bypass;
+        applyLayerFlag(layerIdx, "bypass", bypass, Origin::Human);
     };
     oscHandler_.onSetLayerSolo = [this](int layerIdx, bool solo) {
-        if (auto* deck = composition_.getActiveDeck())
-            if (auto* layer = deck->getLayer(layerIdx))
-                layer->solo = solo;
+        applyLayerFlag(layerIdx, "solo", solo, Origin::Human);
     };
     oscHandler_.onSetLayerMute = [this](int layerIdx, bool mute) {
-        if (auto* deck = composition_.getActiveDeck())
-            if (auto* layer = deck->getLayer(layerIdx))
-                layer->muted = mute;
+        applyLayerFlag(layerIdx, "mute", mute, Origin::Human);
     };
     oscHandler_.onSetBpm = [this](float bpm) {
         // Same manual-override path as apiServer_->onSetBpm / the TopBar manual-BPM toggle.
-        if (auto* tracker = analysisThread_.getBpmTracker())
-        {
-            tracker->setManualMode(true);
-            tracker->setManualBPM(bpm);
-        }
+        applyTempoCommand("link", bpm, Origin::Human);
     };
     oscHandler_.onSetMacro = [this](int macroIdx, float value) {
         // s-rta-0923 lane 3 (plan section 3.6, site #3). Same path as the
@@ -2124,6 +2335,14 @@ MainComponent::~MainComponent()
     // join.
     if (apiServer_)
         apiServer_->stop();
+
+    // s-rta-0923/0924 step 3 (critic A4/N9): flush/finalize/save any
+    // in-progress take (or stop playback) BEFORE the audio device closes.
+    // Placed immediately after apiServer_->stop() (not first): the shipped
+    // "HTTP servers stop first" invariant stays as-is (post-quit callAsync
+    // is refused anyway -- ApiServer.cpp), and shutdown() still needs a live
+    // audioEngine_ (getAudioTap()) and composition_, both intact here.
+    recorderHost_.shutdown(composition_, audioEngine_.getAudioTap());
 #if AUDIODNA_TEST_SERVER
     if (testServer_)
         testServer_->stop();
@@ -3166,7 +3385,7 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
                 audioSourceSelector_.setSelectedId(2, juce::dontSendNotification);
                 audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
                 fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
-                audioEngine_.play();
+                applyAudioTransport("play", Origin::Human);
             }
         }
         else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
@@ -3234,16 +3453,32 @@ void MainComponent::tickFeaturePipeline()
     // the previous one.
     globalMacroBank_.updateValues(signalRegistry_);
 
+    // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B1, critic A3): the
+    // recorder's clock tick + Player::advanceTo run BEFORE the connection
+    // engine evaluates below, so a replayed gesture's grip is current when
+    // the engine decides what to publish (ConnectionEngine.cpp's own
+    // ORDERING FACT). `now` is hoisted above the block and shared with the
+    // engine's ctx.now just below -- ONE clock for grips and recorder stamps
+    // (ConnClock.h), not two unequal readings.
+    const double now = connNow();
+    {
+        std::optional<int64_t> transportFrames;
+        if (recorderHost_.needsTransportFrames())
+            transportFrames = audioEngine_.getTransportSource().getNextReadPosition();
+        recorderHost_.tick(snap, now, audioEngine_.getDeliveredSamples(),
+                           audioEngine_.getAudioTap(), transportFrames,
+                           audioEngine_.getCurrentSampleRate());
+    }
+
     // S-RTA-0923 LANE 3: the ONE evaluator for every ParamConnection (s166
     // spec section 4.2/4.3). Macros were updated just above (they are
-    // sources); the recorder's Player::advanceTo (step 3) MUST be inserted
-    // BETWEEN updateValues and this call (ConnectionEngine.cpp's own
-    // ORDERING FACT — see the COLLISION NOTICE in the lane 3 plan section 5,
-    // C3). tickModulation() (below) is the pre-existing effect/source-param
-    // path (retired later by the effect-param lane, plan section 11) and
-    // coexists safely: the engine below publishes only into scalarLive
-    // twins; tickModulation() still writes the old fields directly.
-    const double now = connNow();
+    // sources); ConnectionEngine::tick IS called here, right after the
+    // recorder's tick above (ConnectionEngine.cpp's own ORDERING FACT — see
+    // the COLLISION NOTICE in the lane 3 plan section 5, C3). tickModulation()
+    // (below) is the pre-existing effect/source-param path (retired later by
+    // the effect-param lane, plan section 11) and coexists safely: the
+    // engine below publishes only into scalarLive twins; tickModulation()
+    // still writes the old fields directly.
     const float dt = (lastConnTick_ > 0.0)
                         ? std::clamp(static_cast<float>(now - lastConnTick_), 0.0f, 0.05f)
                         : 1.0f / static_cast<float>(kMappingTickHz);
@@ -3292,13 +3527,7 @@ void MainComponent::timerCallback()
         linkSync_.update();
         double linkBPM = linkSync_.getBPM();
         if (linkBPM > 0.0)
-        {
-            if (auto* tracker = analysisThread_.getBpmTracker())
-            {
-                tracker->setManualMode(true);
-                tracker->setManualBPM(static_cast<float>(linkBPM));
-            }
-        }
+            applyTempoCommand("link", static_cast<float>(linkBPM), Origin::Human);
     }
 
     // P22.10: Update MIDI output pad feedback (~6Hz)
@@ -3588,7 +3817,7 @@ void MainComponent::loadDeck()
                 currentAudioFile_ = deck.audioFile;
                 audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
                 audioSourceSelector_.setSelectedId(2, juce::dontSendNotification);
-                audioEngine_.play();
+                applyAudioTransport("play", Origin::Human);
             }
         }
 
@@ -3955,10 +4184,26 @@ void MainComponent::handleImportISF()
 
 // === v2: Deck View Handlers ===
 
-void MainComponent::handleClipTrigger(int layerIndex, int column)
+void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin, int deckIndex)
 {
-    auto* deck = composition_.getActiveDeck();
-    if (!deck) return;
+    // s-rta-0923/0924 step 3 (plan section 3.3 B2): deckIndex < 0 means "the
+    // active deck" (every pre-existing caller); a Replay dispatch passes the
+    // Fired's resolved target deck explicitly, which may not be the active
+    // one. Bounds-checked; a non-Human origin failing to resolve is logged
+    // (G5's silent early-out stays silent only on the Human path, where the
+    // UI already refused the click).
+    Deck* deck = nullptr;
+    if (deckIndex < 0)
+        deck = composition_.getActiveDeck();
+    else if (deckIndex < static_cast<int>(composition_.decks.size()))
+        deck = &composition_.decks[static_cast<size_t>(deckIndex)];
+    if (!deck)
+    {
+        if (origin != Origin::Human && recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify("handleClipTrigger: deck unresolved");
+        return;
+    }
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
 
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
@@ -3988,6 +4233,12 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     std::optional<bool> playAfter;
     if (const Clip* tc = layer->getClipAt(column)) playAfter = tc->playing;
 
+    // Preview/deck-view refresh only when the targeted deck is the active
+    // one (plan section 3.3 B2) -- a Replay dispatch may target a deck the
+    // user isn't currently looking at; the model mutation above still ran
+    // regardless.
+    if (resolvedDeckIndex == composition_.activeDeckIndex)
+    {
     // Load the clip content into preview
     if (auto* clip = layer->getActiveClip())
     {
@@ -4097,26 +4348,54 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
 
     if (deckView_)
         deckView_->refresh();
+    }
 
     // Push the trigger command unless it changed nothing (spec §3: retrigger of
     // the already-active cell early-outs into a playhead reset — no runtime and
     // no target-`playing` change → pushes nothing, so no inert history entry).
     // Consecutive same-layer triggers coalesce in UndoManager::perform via
     // TriggerClipCmd::canMergeWith/mergeWith — one history slot per layer run.
-    if (!(rtBefore == rtAfter) || playBefore != playAfter)
+    // s-rta-0923/0924 step 3 (plan section 3.3 B2): undo push is gated on
+    // Origin::Human -- a Replay dispatch re-runs the same mutation but must
+    // never create a new undo entry.
+    if (origin == Origin::Human && (!(rtBefore == rtAfter) || playBefore != playAfter))
     {
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<TriggerClipCmd>(
-            makeLayerResolver(), composition_.activeDeckIndex, layerIndex, column,
+            makeLayerResolver(), resolvedDeckIndex, layerIndex, column,
             rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
         pushCommands(std::move(children), "Trigger Clip");
     }
+
+    // Capture (plan section 3.3 B2): never reached with Origin::Replay (the
+    // host's own capture() also filters on this -- belt and braces).
+    if (origin != Origin::Replay)
+    {
+        ControlPath key = layerScalarPath(composition_, resolvedDeckIndex, layerIndex, "");
+        key.control = "activeClip";
+        key.scalar.clear();
+        DiscretePoint p;
+        p.origin = origin;
+        p.v = column;
+        p.retrigger = wasRetrigger;
+        recorderHost_.capture(key, std::move(p));
+    }
 }
 
-void MainComponent::handleColumnTrigger(int column)
+void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex)
 {
-    auto* deck = composition_.getActiveDeck();
-    if (!deck) return;
+    Deck* deck = nullptr;
+    if (deckIndex < 0)
+        deck = composition_.getActiveDeck();
+    else if (deckIndex < static_cast<int>(composition_.decks.size()))
+        deck = &composition_.decks[static_cast<size_t>(deckIndex)];
+    if (!deck)
+    {
+        if (origin != Origin::Human && recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify("handleColumnTrigger: deck unresolved");
+        return;
+    }
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
 
     // Undo capture (mutate-then-push, spec §2 row 2 / step 8): a column trigger
     // is a composite of one TriggerClipCmd per NON-ignoring layer that actually
@@ -4145,8 +4424,12 @@ void MainComponent::handleColumnTrigger(int column)
     // One child per considered layer whose runtime or target-`playing` changed;
     // pushCommands composites them into one slot (a single changed layer collapses
     // to a lone TriggerClipCmd, which may then merge into a prior same-layer run —
-    // accepted, consistent with spec §3's per-layer merge).
+    // accepted, consistent with spec §3's per-layer merge). Gated on Origin::Human
+    // (plan section 3.3 B2) -- a Replay dispatch never creates an undo entry.
+    // Capture (one activeClip point per changed layer, shared `group` id) shares
+    // the same considered/after loop; never reached with Origin::Replay.
     std::vector<std::unique_ptr<Command>> children;
+    const uint64_t captureGroup = (origin != Origin::Replay) ? recorderHost_.nextGroupId() : 0;
     for (int l = 0; l < numLayers; ++l)
     {
         if (!considered[static_cast<size_t>(l)]) continue;
@@ -4156,15 +4439,33 @@ void MainComponent::handleColumnTrigger(int column)
         std::optional<bool> playAfter;
         if (const Clip* tc = layer->getClipAt(column))
             playAfter = tc->playing;
-        if (!(before[static_cast<size_t>(l)] == after)
-            || playBefore[static_cast<size_t>(l)] != playAfter)
+        const bool changed = !(before[static_cast<size_t>(l)] == after)
+                            || playBefore[static_cast<size_t>(l)] != playAfter;
+        if (changed && origin == Origin::Human)
             children.push_back(std::make_unique<TriggerClipCmd>(
-                makeLayerResolver(), composition_.activeDeckIndex, l, column,
+                makeLayerResolver(), resolvedDeckIndex, l, column,
                 before[static_cast<size_t>(l)], after,
                 playBefore[static_cast<size_t>(l)], playAfter, "Trigger Column"));
-    }
-    pushCommands(std::move(children), "Trigger Column");
 
+        if (origin != Origin::Replay)
+        {
+            ControlPath key = layerScalarPath(composition_, resolvedDeckIndex, l, "");
+            key.control = "activeClip";
+            key.scalar.clear();
+            DiscretePoint p;
+            p.origin = origin;
+            p.v = column;
+            p.group = captureGroup;
+            recorderHost_.capture(key, std::move(p));
+        }
+    }
+    if (origin == Origin::Human)
+        pushCommands(std::move(children), "Trigger Column");
+
+    // Preview/deck-view refresh only when the targeted deck is active (plan
+    // section 3.3 B2) -- see the identical rule in handleClipTrigger above.
+    if (resolvedDeckIndex == composition_.activeDeckIndex)
+    {
     if (deckView_)
     {
         deckView_->setActiveColumn(column);
@@ -4208,6 +4509,7 @@ void MainComponent::handleColumnTrigger(int column)
         previewPanel_.clearImage();
         currentImageFile_ = juce::File();
         fileLabel_.setText("", juce::dontSendNotification);
+    }
     }
 }
 
@@ -4687,10 +4989,31 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
         deckView_->rebuildGrid();
 }
 
-void MainComponent::handleDeckSwitch(int deckIndex)
+void MainComponent::handleDeckSwitch(int deckIndex, Origin origin)
 {
     if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+    {
+        if (origin != Origin::Human && recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify("handleDeckSwitch: deck unresolved");
         return;
+    }
+
+    // s-rta-0923/0924 step 3 (plan section 3.3 B2): capture only on an
+    // ACTUAL change -- a same-deck no-op switch records nothing. handleDeckSwitch
+    // never pushes an undo command itself (deckView_->onDeckSwitched, the user
+    // entry point, does that) so there is nothing to gate on origin here beyond
+    // the capture call, which the host also filters (never Origin::Replay).
+    const bool actualChange = deckIndex != composition_.activeDeckIndex;
+    if (actualChange && origin != Origin::Replay)
+    {
+        ControlPath key;
+        key.scope = ControlPath::Scope::Comp;
+        key.control = "activeDeck";
+        DiscretePoint p;
+        p.origin = origin;
+        p.v = deckIndex;
+        recorderHost_.capture(key, std::move(p));
+    }
 
     // L5 Quantize fix: cancel any pending quantized trigger left waiting on the
     // deck we're LEAVING, via the shared DeckCommands.h helper (also used by
@@ -4730,6 +5053,220 @@ void MainComponent::handleDeckSwitch(int deckIndex)
 
     if (deckView_)
         deckView_->rebuildGrid();
+}
+
+// s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B3, D6b): the five
+// choke points every writer of a discrete control funnels through. Each
+// captures a point only when origin != Origin::Replay (the host's own
+// capture() filters on this too -- belt and braces, plan text).
+
+void MainComponent::applyClearActiveClip(int layerIndex, Origin origin)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+    auto* layer = deck->getLayer(layerIndex);
+    if (!layer || layer->activeClipColumn < 0) return;
+
+    layer->clearActiveClip();
+    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+    if (deckView_) deckView_->refresh();
+
+    if (origin != Origin::Replay)
+    {
+        ControlPath key = layerScalarPath(composition_, composition_.activeDeckIndex, layerIndex, "");
+        key.control = "activeClip";
+        key.scalar.clear();
+        DiscretePoint p;
+        p.origin = origin;
+        p.v = -1;
+        recorderHost_.capture(key, std::move(p));
+    }
+}
+
+// Dispatch table (critic N10) -- a MOVE of each site's existing body, not a
+// behaviour change: "tap" calls the tracker's BPM setter only (TopBar's own
+// prior behaviour); "manual" turns manual mode on and applies the BPM if
+// positive; "auto" turns manual mode off; "resync" resets the beat/phrase
+// counters; "link" (also REST/OSC set_bpm) turns manual mode on and applies
+// the BPM.
+void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin)
+{
+    auto* tracker = analysisThread_.getBpmTracker();
+    if (action == "tap")
+    {
+        if (tracker) tracker->setManualBPM(bpm);
+    }
+    else if (action == "manual")
+    {
+        if (tracker)
+        {
+            tracker->setManualMode(true);
+            if (bpm > 0.0f) tracker->setManualBPM(bpm);
+        }
+    }
+    else if (action == "auto")
+    {
+        if (tracker) tracker->setManualMode(false);
+    }
+    else if (action == "resync")
+    {
+        beatCounter_ = 0;
+        lastBeatPhase_ = 0.0f;
+        if (tracker)
+        {
+            tracker->resetBeatPhase();
+            tracker->resetPhrase();
+        }
+    }
+    else if (action == "link")
+    {
+        if (tracker)
+        {
+            tracker->setManualMode(true);
+            tracker->setManualBPM(bpm);
+        }
+    }
+
+    if (origin == Origin::Replay) return;
+
+    // R3 (critic B1): only capture a Link tick's tempo point when the BPM
+    // actually moved by a meaningful amount -- Link ticks at ~30Hz.
+    if (action == "link")
+    {
+        if (std::abs(bpm - lastLinkCapturedBpm_) < 0.01f) return;
+        lastLinkCapturedBpm_ = bpm;
+    }
+
+    ControlPath key;
+    key.scope = ControlPath::Scope::Comp;
+    key.control = "tempo";
+    DiscretePoint p;
+    p.origin = origin;
+    p.action = action;
+    // Centi-BPM (plan section 3.3 B3): 0 for auto/resync, which carry no BPM.
+    p.v = (action == "auto" || action == "resync") ? 0 : juce::roundToInt(bpm * 100.0f);
+    recorderHost_.capture(key, std::move(p));
+}
+
+void MainComponent::applyAudioTransport(const std::string& action, Origin origin)
+{
+    if (action == "stop")
+    {
+        // R-A8/v2 R3 (critic A5): refuse a backward transport jump while an
+        // overdub is armed -- AudioEngine::stop() resets position to 0.0,
+        // which would break the overdub's monotonic sample stamps.
+        if (recorderHost_.status().overdub)
+        {
+            if (recorderHost_.dispatch.notify)
+                recorderHost_.dispatch.notify("audio stop refused: overdub in progress (R-A8)");
+            return;
+        }
+        audioEngine_.stop();
+    }
+    else if (action == "play")
+    {
+        audioEngine_.play();
+    }
+    else if (action == "pause")
+    {
+        audioEngine_.pause();
+    }
+    else
+    {
+        return;
+    }
+    lastAudioAction_ = action;
+
+    if (origin == Origin::Replay) return;
+
+    ControlPath key;
+    key.scope = ControlPath::Scope::Comp;
+    key.control = "audio";
+    DiscretePoint p;
+    p.origin = origin;
+    p.action = action;
+    p.v = 0;   // matches L1's bridge convention for audio-control points
+    recorderHost_.capture(key, std::move(p));
+}
+
+void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+    auto* layer = deck->getLayer(layerIndex);
+    if (!layer) return;
+
+    if (flag == "visible") layer->visible = value;
+    else if (flag == "solo") layer->solo = value;
+    else if (flag == "mute") layer->muted = value;
+    else if (flag == "bypass") layer->bypassed = value;
+    else if (flag == "autopilot") layer->autopilotEnabled = value;
+    else return;
+
+    if (deckView_) deckView_->refresh();
+
+    if (origin == Origin::Replay) return;
+    ControlPath key = layerScalarPath(composition_, composition_.activeDeckIndex, layerIndex, "");
+    key.control = flag;
+    key.scalar.clear();
+    DiscretePoint p;
+    p.origin = origin;
+    p.v = value ? 1 : 0;
+    recorderHost_.capture(key, std::move(p));
+}
+
+void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+    auto* layer = deck->getLayer(layerIndex);
+    if (!layer) return;
+    auto* clip = layer->getClipAt(column);
+    if (!clip || fxIndex < 0 || fxIndex >= static_cast<int>(clip->effects.size())) return;
+
+    auto& slot = clip->effects[static_cast<size_t>(fxIndex)];
+    slot.bypassed = value;
+
+    if (origin == Origin::Replay) return;
+    ControlPath key = clipScalarPath(composition_, composition_.activeDeckIndex, layerIndex, column, "");
+    key.fx = fxIndex;
+    key.fxName = slot.effectName;
+    key.control = "bypass";
+    key.scalar.clear();
+    DiscretePoint p;
+    p.origin = origin;
+    p.v = value ? 1 : 0;
+    recorderHost_.capture(key, std::move(p));
+}
+
+void MainComponent::applyClipPlaying(int layerIndex, int column, const std::string& action, Origin origin,
+                                     uint64_t group)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+    auto* layer = deck->getLayer(layerIndex);
+    if (!layer) return;
+    auto* clip = layer->getClipAt(column);
+    if (!clip) return;
+
+    if (action == "play") { clip->reverse = false; clip->playing = true; }
+    else if (action == "pause") { clip->playing = false; }
+    else if (action == "stop") { clip->playing = false; clip->playheadPosition = clip->inPoint; }
+    else if (action == "reverse") { clip->reverse = !clip->reverse; }
+    else return;
+
+    if (deckView_) deckView_->refresh();
+
+    if (origin == Origin::Replay) return;
+    ControlPath key = clipScalarPath(composition_, composition_.activeDeckIndex, layerIndex, column, "");
+    key.control = "playing";
+    key.scalar.clear();
+    DiscretePoint p;
+    p.origin = origin;
+    p.action = action;
+    p.v = clip->playing ? 1 : 0;
+    p.group = group;
+    recorderHost_.capture(key, std::move(p));
 }
 
 // === Menu Command Handler ===
@@ -5958,27 +6495,28 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     auto* layer = deck->getLayer(resolvedLayer);
                     if (layer)
                     {
+                        // s-rta-0923/0924 step 3 (plan section 3.3 B3): routed
+                        // through applyLayerFlag (also does the deckView_->refresh()).
                         switch (binding.action)
                         {
                             case Binding::Action::ToggleLayerBypass:
-                                layer->bypassed = !layer->bypassed;
+                                applyLayerFlag(resolvedLayer, "bypass", !layer->bypassed, Origin::Human);
                                 break;
                             case Binding::Action::ToggleLayerSolo:
-                                layer->solo = !layer->solo;
+                                applyLayerFlag(resolvedLayer, "solo", !layer->solo, Origin::Human);
                                 break;
                             case Binding::Action::ToggleLayerMute:
-                                layer->muted = !layer->muted;
+                                applyLayerFlag(resolvedLayer, "mute", !layer->muted, Origin::Human);
                                 break;
                             case Binding::Action::ToggleLayerAutopilot:
-                                layer->autopilotEnabled = !layer->autopilotEnabled;
+                                applyLayerFlag(resolvedLayer, "autopilot", !layer->autopilotEnabled, Origin::Human);
                                 break;
                             case Binding::Action::ToggleLayerVisible:
-                                layer->visible = !layer->visible;
+                                applyLayerFlag(resolvedLayer, "visible", !layer->visible, Origin::Human);
                                 break;
                             default:
                                 break;
                         }
-                        if (deckView_) deckView_->refresh();
                     }
                 }
             }
@@ -6010,8 +6548,7 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     if (total > 0.0)
                     {
                         float tappedBPM = static_cast<float>(60.0 / (total / (n - 1)));
-                        if (auto* tracker = analysisThread_.getBpmTracker())
-                            tracker->setManualBPM(tappedBPM);
+                        applyTempoCommand("tap", tappedBPM, Origin::Human);
                     }
                 }
             }
@@ -6019,30 +6556,17 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
 
         case Binding::Action::Resync:
             if (value > 0.0f)
-            {
-                beatCounter_ = 0;
-                lastBeatPhase_ = 0.0f;
-                if (auto* tracker = analysisThread_.getBpmTracker())
-                {
-                    tracker->resetBeatPhase();
-                    tracker->resetPhrase();
-                }
-            }
+                applyTempoCommand("resync", 0.0f, Origin::Human);
             break;
 
         case Binding::Action::GlobalPlayPause:
             if (value > 0.0f)
-            {
-                if (audioEngine_.isPlaying())
-                    audioEngine_.stop();
-                else
-                    audioEngine_.play();
-            }
+                applyAudioTransport(audioEngine_.isPlaying() ? "stop" : "play", Origin::Human);
             break;
 
         case Binding::Action::GlobalStop:
             if (value > 0.0f)
-                audioEngine_.stop();
+                applyAudioTransport("stop", Origin::Human);
             break;
 
         case Binding::Action::MasterOpacity:
@@ -6069,10 +6593,8 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     {
                         auto* clip = layer->getActiveClip();
                         if (clip)
-                        {
-                            clip->playing = !clip->playing;
-                            if (deckView_) deckView_->refresh();
-                        }
+                            applyClipPlaying(resolvedLayer, layer->activeClipColumn,
+                                             clip->playing ? "pause" : "play", Origin::Human);
                     }
                 }
             }
@@ -6093,7 +6615,8 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                             binding.targetEffectIndex < static_cast<int>(clip->effects.size()))
                         {
                             auto& fx = clip->effects[static_cast<size_t>(binding.targetEffectIndex)];
-                            fx.bypassed = !fx.bypassed;
+                            applyEffectBypass(resolvedLayer, layer->activeClipColumn,
+                                              binding.targetEffectIndex, !fx.bypassed, Origin::Human);
                         }
                     }
                 }
