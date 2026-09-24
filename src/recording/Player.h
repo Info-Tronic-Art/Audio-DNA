@@ -40,9 +40,30 @@ public:
     void start(double at = 0.0);
 
     // Fires everything newly due since the last call, and drives every
-    // continuous lane's cursor up to `pos`. `pos` must be non-decreasing
-    // and in the SAME domain as the compiled Program's DriveClock.
+    // continuous lane's cursor up to `pos`, in the SAME domain as the
+    // compiled Program's DriveClock. A `pos` smaller than the current
+    // position is a defined SEEK (R8/addendum item 2): `advanceTo` calls
+    // `seek(pos, sink)` first (a backwards jump is never a stall), then
+    // runs its normal forward pass from the re-seated cursors -- no
+    // epsilon, any decrease triggers it. A caller that wants a deliberate
+    // FORWARD jump WITHOUT catch-up (D3's exactly-once semantics fire
+    // every skipped discrete event as a burst otherwise) MUST call
+    // `seek()` explicitly first.
     void advanceTo(double pos, Sink& sink);
+
+    // Re-seats every cursor at `pos` without firing anything and without
+    // synthesizing state for what `pos` skipped past (same contract as a
+    // mid-take `start()`, see below) -- running only (no-op otherwise).
+    // A gesture a lane is currently `inGesture` for keeps its grip/
+    // displaced flags if it still covers `pos` (`g.x0 <= pos < g.x1`); the
+    // next `advanceTo` re-evaluates the curve at the new `pos` with no
+    // fresh touch(). Otherwise the gesture is released (unless already
+    // displaced) and the cursor resets. `nextDiscrete_` becomes the first
+    // event with `at >= pos`, so an event exactly AT the seek target
+    // re-fires on the next `advanceTo(pos')` with `pos' >= at`; a seek
+    // landing inside an earlier gesture re-touches it on the next
+    // `advanceTo`, exactly as `start()` does.
+    void seek(double pos, Sink& sink);
 
     // Releases every gesture this Player still holds (D5/R9: "a stopped
     // routine lets go of its hands") and stops firing discrete points.
@@ -56,11 +77,12 @@ public:
     // re-seat, not a re-trigger).
     void swap(std::shared_ptr<const Program> program, Sink& sink);
 
-    // Override::Latch is accepted and stored but not yet wired into
-    // advanceTo's dispatch this step (see the builder report's
-    // DEVIATIONS) -- Touch (D8's default) is what row 1 implements and
-    // tests.
-    void setOverride(Override o) { override_ = o; }
+    // D8's LATCH ("your value holds until the lane's next gesture / re-enable") is
+    // LATER (D14). Requesting it today is REFUSED, not silently mapped to Touch:
+    // returns false, logs, leaves the mode unchanged. Touch (D8's default) is
+    // what row 1 implements and tests.
+    [[nodiscard]] bool setOverride(Override o);
+    Override overrideMode() const { return override_; }
 
     void reenable(const ControlPath& key);
     void reenableAll();

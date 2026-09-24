@@ -33,9 +33,59 @@ void Player::start(double at)
     }
 }
 
+void Player::seek(double pos, Sink& sink)
+{
+    if (!running_) return;
+
+    // Decide retain-or-release for every lane currently in a gesture,
+    // using the CURRENT gestureIndex -- before the generic re-seat below
+    // recomputes it.
+    for (size_t i = 0; i < prog_->continuous.size(); ++i)
+    {
+        const ContLane& lane = prog_->continuous[i];
+        LaneCursor& cur = cursors_[i];
+        if (!cur.inGesture)
+            continue;
+
+        bool stillCovers = false;
+        if (cur.gestureIndex < lane.gestures.size())
+        {
+            const ContLane::G& g = lane.gestures[cur.gestureIndex];
+            stillCovers = (pos >= g.x0 && pos < g.x1);
+        }
+
+        if (stillCovers)
+            continue;   // grip retained; the next advanceTo re-evaluates the curve
+
+        if (!cur.displaced)
+            sink.release(lane.key);
+        cur.inGesture = false;
+        cur.displaced = false;
+    }
+
+    // Re-seat exactly as start(at) does (Player.cpp:17-33): no state
+    // synthesis for what `pos` skipped past.
+    nextDiscrete_ = 0;
+    while (nextDiscrete_ < prog_->discrete.size() && prog_->discrete[nextDiscrete_].at < pos)
+        ++nextDiscrete_;
+
+    for (size_t i = 0; i < prog_->continuous.size(); ++i)
+    {
+        const auto& gestures = prog_->continuous[i].gestures;
+        size_t idx = 0;
+        while (idx < gestures.size() && gestures[idx].x1 <= pos)
+            ++idx;
+        cursors_[i].gestureIndex = idx;
+    }
+
+    pos_ = pos;
+}
+
 void Player::advanceTo(double pos, Sink& sink)
 {
     if (!running_) return;
+    if (pos < pos_)
+        seek(pos, sink);   // a backwards jump is never a stall (R8/addendum item 2)
     pos_ = pos;
 
     while (nextDiscrete_ < prog_->discrete.size() && prog_->discrete[nextDiscrete_].at <= pos)
@@ -147,6 +197,17 @@ void Player::swap(std::shared_ptr<const Program> newProgram, Sink& sink)
         if (!stillCovered)
             sink.release(key);
     }
+}
+
+bool Player::setOverride(Override o)
+{
+    if (o != Override::Touch)
+    {
+        juce::Logger::writeToLog("Player::setOverride: Latch override is not implemented (spec D8, LATER); staying in Touch");
+        return false;
+    }
+    override_ = o;
+    return true;
 }
 
 void Player::reenable(const ControlPath& key)

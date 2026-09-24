@@ -14,6 +14,7 @@
 #include "recording/RecorderClock.h"
 #include "analysis/FeatureSnapshot.h"
 #include <algorithm>
+#include <cmath>
 #include <random>
 #include <vector>
 
@@ -554,4 +555,196 @@ TEST_CASE("Player::stop releases every held gesture", "[player]")
     const size_t setsBefore = sink.sets.size();
     player.advanceTo(0.7, sink);   // stopped -- no further dispatch at all
     REQUIRE(sink.sets.size() == setsBefore);
+}
+
+// === Lane E: RecorderClock periodic tempo anchor (review fix c) + Player
+//     backwards seek (HANDOFF addendum item 2) + L4 (Player::Override::
+//     Latch refuses loudly) ===
+
+TEST_CASE("RecorderClock stays within 0.05 beats and one block of the map over a long steady take", "[recorderclock][long]")
+{
+    RecorderClock clock;
+    const float reportedBpm = 127.97f;                     // the tracker's biased reading
+    const double trueBeatsPerTick = 128.0 / 60.0 / 120.0;   // true tempo, 120 Hz tick
+    double truePhase = 0.0;                                 // double accumulator, fmod 1.0
+    double wall = 0.0;
+    uint64_t samples = 0;
+
+    clock.tick(makeSnap(reportedBpm, 0.0f), wall, samples);   // seed t=0 ("start" anchor)
+
+    const int ticks = 120 * 2400;   // 40 minutes at 120 Hz
+    for (int i = 0; i < ticks; ++i)
+    {
+        wall += 1.0 / 120.0;
+        samples += 400;
+        truePhase = std::fmod(truePhase + trueBeatsPerTick, 1.0);
+        clock.tick(makeSnap(reportedBpm, static_cast<float>(truePhase)), wall, samples);
+    }
+
+    const auto now = clock.now();
+    REQUIRE(now.beat == Approx(5120.0).margin(0.5));
+    REQUIRE(std::fabs(clock.tempo().beatAt(now.t) - now.beat) < 0.05);
+    REQUIRE(std::fabs(static_cast<double>(clock.tempo().sampleAt(now.t))
+                       - static_cast<double>(now.sample)) <= 400.0);
+
+    int periodicCount = 0;
+    const auto& anchors = clock.tempo().a;
+    for (size_t i = 0; i < anchors.size(); ++i)
+    {
+        if (anchors[i].why == "periodic") ++periodicCount;
+        if (i > 0)
+        {
+            REQUIRE(anchors[i].t >= anchors[i - 1].t);
+            REQUIRE(anchors[i].beat - anchors[i - 1].beat <= 32.5);
+        }
+    }
+    REQUIRE(periodicCount >= 150);
+    REQUIRE(periodicCount <= 170);   // 5120 / 32 = 160
+}
+
+TEST_CASE("RecorderClock writes no periodic anchors while unmetered", "[recorderclock][long]")
+{
+    RecorderClock clock;
+    double wall = 0.0;
+    uint64_t samples = 0;
+    clock.tick(makeSnap(120.0f, 0.0f), wall, samples);   // seed, locked
+
+    wall += 0.1; samples += 1200;
+    clock.tick(makeSnap(120.0f, 0.2f), wall, samples);   // still locked
+
+    const size_t before = clock.tempo().a.size();
+
+    for (int i = 0; i < 600; ++i)   // 60 s at 100 ms ticks, bpm == 0 throughout
+    {
+        wall += 0.1;
+        samples += 1200;
+        clock.tick(makeSnap(0.0f, 0.0f), wall, samples);
+    }
+
+    REQUIRE(clock.tempo().a.size() == before + 1);   // exactly the one "unmetered" edge
+    REQUIRE(clock.tempo().a.back().why == "unmetered");
+}
+
+TEST_CASE("Player: a backwards advanceTo re-seats and events re-fire on re-pass", "[player][seek]")
+{
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+
+    const ControlPath markerKey = [] { ControlPath k; k.scope = ControlPath::Scope::Comp; k.control = "marker"; return k; }();
+    const std::vector<double> ats = { 1.0, 2.0, 3.0 };
+    for (size_t i = 0; i < ats.size(); ++i)
+    {
+        DiscretePoint p; p.s = { static_cast<uint64_t>(i + 1), ats[i], 0 }; p.v = static_cast<int>(i);
+        prog->discrete.push_back(Fired{ ats[i], p.s.seq, markerKey, {}, p });
+    }
+
+    ControlPath contKey = layerKey(0, "scalar"); contKey.scalar = "opacity";
+    ContLane cl; cl.key = contKey;
+    ContLane::G g; g.grip = "held";
+    g.curve.pts = { { 1.5, 0.0f, Breakpoint::Interp::Linear }, { 2.5, 1.0f, Breakpoint::Interp::Linear } };
+    g.x0 = 1.5; g.x1 = 2.5;
+    cl.gestures = { g };
+    prog->continuous.push_back(cl);
+
+    FakeSink sink;
+    Player player(prog);
+    player.start(0.0);
+
+    player.advanceTo(2.2, sink);
+    REQUIRE(sink.fired.size() == 2);      // events at 1.0, 2.0
+    REQUIRE(sink.touches.size() == 1);
+    REQUIRE(sink.releases.empty());
+
+    player.advanceTo(1.2, sink);          // backwards -- a defined seek
+    REQUIRE(sink.releases.size() == 1);   // the gesture no longer covers 1.2
+    REQUIRE(sink.fired.size() == 2);      // no new fire
+
+    player.advanceTo(2.2, sink);          // forward again, re-crosses 1.0/2.0/the gesture
+    REQUIRE(sink.fired.size() == 3);      // 1, 2, 2
+    REQUIRE(sink.fired[0].at == Approx(1.0));
+    REQUIRE(sink.fired[1].at == Approx(2.0));
+    REQUIRE(sink.fired[2].at == Approx(2.0));
+    REQUIRE(sink.touches.size() == 2);    // fresh touch on re-entry
+
+    player.advanceTo(3.5, sink);
+    REQUIRE(sink.fired.size() == 4);      // + event at 3.0
+    REQUIRE(sink.releases.size() == 2);
+}
+
+TEST_CASE("Player: seeking within a gesture keeps the grip and re-evaluates", "[player][seek]")
+{
+    ControlPath contKey = layerKey(0, "scalar"); contKey.scalar = "opacity";
+    ContLane cl; cl.key = contKey;
+    ContLane::G g; g.grip = "held";
+    g.curve.pts = { { 1.0, 0.0f, Breakpoint::Interp::Linear }, { 3.0, 1.0f, Breakpoint::Interp::Linear } };
+    g.x0 = 1.0; g.x1 = 3.0;
+    cl.gestures = { g };
+
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+    prog->continuous.push_back(cl);
+
+    FakeSink sink;
+    Player player(prog);
+    player.start(0.0);
+
+    player.advanceTo(2.0, sink);
+    REQUIRE(sink.touches.size() == 1);
+    REQUIRE_FALSE(sink.sets.empty());
+    const float valueAt2_0 = sink.sets.back().second;
+
+    player.advanceTo(1.8, sink);          // backwards, but still inside [1.0, 3.0) -- retains the grip
+    REQUIRE(sink.releases.empty());
+    REQUIRE(sink.touches.size() == 1);    // no fresh touch()
+    REQUIRE(sink.sets.back().second < valueAt2_0);   // re-evaluated at the new pos
+}
+
+TEST_CASE("Player: explicit forward seek skips discrete events; advanceTo alone catches up", "[player][seek]")
+{
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+
+    const ControlPath markerKey = [] { ControlPath k; k.scope = ControlPath::Scope::Comp; k.control = "marker"; return k; }();
+    const std::vector<double> ats = { 1.0, 2.0, 3.0 };
+    for (size_t i = 0; i < ats.size(); ++i)
+    {
+        DiscretePoint p; p.s = { static_cast<uint64_t>(i + 1), ats[i], 0 }; p.v = static_cast<int>(i);
+        prog->discrete.push_back(Fired{ ats[i], p.s.seq, markerKey, {}, p });
+    }
+
+    {
+        FakeSink sink;
+        Player player(prog);
+        player.start(0.0);
+        player.advanceTo(1.2, sink);
+        REQUIRE(sink.fired.size() == 1);
+
+        player.seek(2.9, sink);           // explicit forward seek -- no fire
+        REQUIRE(sink.fired.size() == 1);
+
+        player.advanceTo(3.1, sink);      // only event 3 fires -- event 2 was skipped by the seek
+        REQUIRE(sink.fired.size() == 2);
+        REQUIRE(sink.fired[1].at == Approx(3.0));
+    }
+    {
+        // Same program, a fresh Player: an ordinary forward advanceTo (the
+        // 384-443 stall case's contract) still catches up every skipped event.
+        FakeSink sink;
+        Player player(prog);
+        player.start(0.0);
+        player.advanceTo(1.2, sink);
+        player.advanceTo(3.1, sink);      // forward jump WITHOUT seek -- catch-up fires both 2 and 3
+        REQUIRE(sink.fired.size() == 3);
+        REQUIRE(sink.fired[1].at == Approx(2.0));
+        REQUIRE(sink.fired[2].at == Approx(3.0));
+    }
+}
+
+TEST_CASE("Player::setOverride refuses Latch loudly; Touch remains the mode", "[player][override]")
+{
+    Player player(std::make_shared<Program>());
+    REQUIRE(player.overrideMode() == Player::Override::Touch);
+    REQUIRE_FALSE(player.setOverride(Player::Override::Latch));
+    REQUIRE(player.overrideMode() == Player::Override::Touch);
+    REQUIRE(player.setOverride(Player::Override::Touch));
 }

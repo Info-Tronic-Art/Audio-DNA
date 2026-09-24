@@ -48,6 +48,13 @@ public:
     const TempoMap& tempo() const { return tempo_; }
 
 private:
+    // Writes one anchor and remembers where it landed (in beats), so the
+    // periodic check below knows how far the map has drifted since the
+    // last anchor of ANY kind -- review fix (c): a steady-tempo take must
+    // not go 2-4 hours with only its "start" anchor (D1 "at least every
+    // 8 bars"; s167 spec 121-122).
+    void anchor(double t, double beat, uint64_t sample, float bpm, const char* why);
+
     bool haveTicked_ = false;
     double startWall_ = 0.0;
 
@@ -58,6 +65,11 @@ private:
 
     TempoMap tempo_;
     ClockStamp current_;
+    double lastAnchorBeat_ = 0.0;
 
     static constexpr float kBpmChangeThreshold = 0.05f;
+    // 8 bars x 4 beats (FeatureSnapshot.h:44, beatInBar 0-3); bounds
+    // TempoMap::beatAt's linear-extrapolation bias to ~0.0075 beats over a
+    // 32-beat segment at a typical 0.03 BPM reporting jitter.
+    static constexpr double kPeriodicAnchorBeats = 32.0;
 };

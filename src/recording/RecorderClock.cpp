@@ -2,6 +2,12 @@
 #include "analysis/FeatureSnapshot.h"
 #include <cmath>
 
+void RecorderClock::anchor(double t, double beat, uint64_t sample, float bpm, const char* why)
+{
+    tempo_.append({ t, beat, sample, bpm, why });
+    lastAnchorBeat_ = beat;
+}
+
 void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t deliveredSamples)
 {
     if (!haveTicked_)
@@ -13,7 +19,7 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
         wholeBeats_ = 0.0;
         beatOffset_ = 0.0;
 
-        tempo_.append({ 0.0, 0.0, deliveredSamples, snap.bpm, "start" });
+        anchor(0.0, 0.0, deliveredSamples, snap.bpm, "start");
         current_ = { 0.0, 0.0, deliveredSamples, snap.bpm };
         return;
     }
@@ -25,8 +31,11 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
     if (isUnmetered)
     {
         if (!wasUnmetered)
-            tempo_.append({ t, wholeBeats_ + lastPhase_ + beatOffset_, deliveredSamples, 0.0f, "unmetered" });
+            anchor(t, wholeBeats_ + lastPhase_ + beatOffset_, deliveredSamples, 0.0f, "unmetered");
         // Frozen: wholeBeats_/lastPhase_/beatOffset_ untouched while unmetered.
+        // No periodic anchors while unmetered (D1's documented limitation --
+        // several equal-beat anchors would move TempoMap::tAt's canonical
+        // answer for that beat).
     }
     else if (wasUnmetered)
     {
@@ -36,10 +45,11 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
         const double target = wholeBeats_ + lastPhase_ + beatOffset_;
         beatOffset_ = target - wholeBeats_ - snap.beatPhase;
         lastPhase_ = snap.beatPhase;
-        tempo_.append({ t, target, deliveredSamples, snap.bpm, "lock" });
+        anchor(t, target, deliveredSamples, snap.bpm, "lock");
     }
     else
     {
+        bool anchorWrittenThisTick = false;
         const double phase = snap.beatPhase;
         if (phase < lastPhase_ - 0.5)
         {
@@ -53,15 +63,27 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
             const double target = wholeBeats_ + lastPhase_ + beatOffset_;
             beatOffset_ = target - wholeBeats_ - phase;
             lastPhase_ = phase;
-            tempo_.append({ t, target, deliveredSamples, snap.bpm, "reset" });
+            anchor(t, target, deliveredSamples, snap.bpm, "reset");
+            anchorWrittenThisTick = true;
         }
         else
         {
             lastPhase_ = phase;
         }
 
+        const double beatNow = wholeBeats_ + lastPhase_ + beatOffset_;
         if (std::fabs(snap.bpm - lastBpm_) > kBpmChangeThreshold)
-            tempo_.append({ t, wholeBeats_ + lastPhase_ + beatOffset_, deliveredSamples, snap.bpm, "bpm" });
+        {
+            anchor(t, beatNow, deliveredSamples, snap.bpm, "bpm");
+            anchorWrittenThisTick = true;
+        }
+
+        // Review fix (c): a steady-tempo take otherwise never anchors again
+        // after "start", so TempoMap::sampleAt has no second reading to
+        // interpolate against and beatAt drifts with the tracker's bpm
+        // rounding. Re-anchor at least every kPeriodicAnchorBeats.
+        if (!anchorWrittenThisTick && beatNow - lastAnchorBeat_ >= kPeriodicAnchorBeats)
+            anchor(t, beatNow, deliveredSamples, snap.bpm, "periodic");
     }
 
     lastBpm_ = snap.bpm;
