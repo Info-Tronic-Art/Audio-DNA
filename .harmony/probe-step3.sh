@@ -92,6 +92,13 @@
 #   * The crash-readability row (plan section 4, "optional, destructive")
 #     is included but gated behind STEP3_RUN_CRASH_TEST=1 (unset by
 #     default) since it `kill -9`s the running app.
+#   * The LONG take for the T2 drift proof (spec D10.3: offset at minute 10
+#     minus offset at minute 0 over a 10-minute file-mode click take) is
+#     section 11L, gated behind STEP3_LONG=1 (unset by default;
+#     STEP3_LONG_MINUTES=N overrides the length, 2 = cheap dry run of the
+#     branch). Adds ~11 min wall time and ~240 MB of disk per 10-minute run
+#     (~121 MB click WAV in /tmp, ~117 MB asset in the store -- Ruling 28,
+#     never auto-deleted). Nothing in the default run changes.
 set -u
 OUT="${1:-/tmp/audiodna-step3}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -105,6 +112,16 @@ CLICK_WAV="${STEP3_CLICK_WAV:-/tmp/click_48k.wav}"
 # the T2 alignment python (section 9) so the two never hardcode 24000
 # independently and drift apart.
 CLICK_INTERVAL="${STEP3_CLICK_INTERVAL:-24000}"
+# s-rta-0924b: opt-in LONG take for the T2 drift proof (section 11L). Off by
+# default. STEP3_LONG_MINUTES = spec D10.3's "minute 10" (default 10); 2 is
+# the cheap dry run. The long click WAV is derived from CLICK_WAV (same
+# interval: CLICK_INTERVAL stays the one source of truth for the grid).
+LONG="${STEP3_LONG:-0}"
+LONG_MINUTES="${STEP3_LONG_MINUTES:-10}"
+if [ "$LONG" = "1" ] && ! echo "$LONG_MINUTES" | grep -Eq '^[1-9][0-9]*$'; then
+    echo "REFUSE: STEP3_LONG_MINUTES must be a positive integer (got '$LONG_MINUTES')"; exit 64
+fi
+CLICK_WAV_LONG="${CLICK_WAV%.wav}_long.wav"
 TAKES_DIR="$HOME/Documents/Audio-DNA/Takes"
 AUDIO_DIR="$HOME/Documents/Audio-DNA/Audio"
 PASS=0; FAIL=0
@@ -164,10 +181,23 @@ python3 "$ROOT/.harmony/gen-click-wav.py" "$CLICK_WAV" --interval "$CLICK_INTERV
   && ok "click-track WAV generated at $CLICK_WAV" \
   || { no "click-track WAV generation FAILED"; }
 
+# STEP3_LONG: a second, longer click WAV for section 11L. Length = M*60 + 30 s
+# (M*60 + 10 s recorded, plus slack for arm->play and stop latency) so the
+# transport never reaches end-of-file mid-take: nothing in the app reacts to
+# end-of-file (AudioEngine's onTransportStateChanged has no consumer), the
+# take would just go silent and the minute-M window would be empty.
+if [ "$LONG" = "1" ]; then
+    python3 "$ROOT/.harmony/gen-click-wav.py" "$CLICK_WAV_LONG" --interval "$CLICK_INTERVAL" \
+        --duration-s $((LONG_MINUTES * 60 + 30)) >/dev/null \
+      && ok "LONG: click-track WAV generated at $CLICK_WAV_LONG ($((LONG_MINUTES * 60 + 30)) s)" \
+      || no "LONG: click-track WAV generation FAILED"
+fi
+
 # --- 1. preconditions ------------------------------------------------------
 pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set STEP3_BUILD_DIR to override the build dir name)"; exit 64; }
 [ -f "$CLICK_WAV" ] || { echo "REFUSE: click WAV missing after generation step"; exit 64; }
+[ "$LONG" = "1" ] && { [ -f "$CLICK_WAV_LONG" ] || { echo "REFUSE: long click WAV missing after generation step"; exit 64; }; }
 python3 -m json.tool "$FIXTURE" >/dev/null 2>&1 && ok "fixture $FIXTURE is valid JSON" || no "fixture $FIXTURE is NOT valid JSON"
 
 # --- 2. launch (production, NO --test-mode -- T4) -------------------------
@@ -346,12 +376,23 @@ echo "(informational) take-level rate fields: $DEV_RATE_TAKE"
 #        the interval (not to the raw-peak detector's threshold-crossing
 #        estimate) is the correct oracle; the raw-peak detector is kept only
 #        as an informational cross-check below. --------------------------
-if [ -x "$ROOT/.venv/bin/python" ]; then
-    ALIGN="$("$ROOT/.venv/bin/python" - "$ASSET_DIR/audio.wav" "$TAKE_FOLDER/take.json" "$CLICK_INTERVAL" <<'PYEOF'
+# t2_align WAV TAKE INTERVAL [M [W]] -- the ONE alignment oracle, shared by
+# section 9 (short take) and section 11L (STEP3_LONG). Prints a single
+# "key=value ..." line. With M given it appends the D10.3 window keys
+# (win_first_ms win_last_ms drift_win_ms drift_win_stderr_ms n_win_first
+# n_win_last minutes_for_0p5ms); without M the line is byte-identical to the
+# pre-11L output, so section 9's parsing (below) is untouched.
+t2_align(){
+  "$ROOT/.venv/bin/python" - "$@" <<'PYEOF'
 import sys, json, wave
 import numpy as np
 wav_path, take_path, interval_str = sys.argv[1], sys.argv[2], sys.argv[3]
 interval = int(interval_str)
+# STEP3_LONG (D10.3, minute M vs minute 1): optional argv[4] = M minutes -> also
+# report the mean offset in asset-time window [0, W) vs [(M-1)*W, M*W), with
+# W = argv[5] seconds (default 60). Absent: output unchanged.
+long_minutes = int(sys.argv[4]) if len(sys.argv)>4 else 0
+win_s = float(sys.argv[5]) if len(sys.argv)>5 else 60.0
 try:
     with wave.open(wav_path, 'rb') as w:
         rate = w.getframerate()
@@ -426,6 +467,7 @@ try:
                 offs_arr = np.array(offsets)
                 n_pts = len(ts_arr)
                 drift_stderr_ms = 0.0
+                s_err = None
                 if n_pts > 2:
                     dof = n_pts - 2
                     sxx = float(np.sum((ts_arr - ts_arr.mean()) ** 2))
@@ -442,16 +484,35 @@ try:
             srt = sorted(abs(o - mean_off) for o in offsets)
             p95 = srt[int(0.95 * (len(srt) - 1))] if srt else 0.0
             pct_matched = 100.0 * len(matched) / n_grid_in_range if n_grid_in_range else 0.0
+            extra = ""
+            if long_minutes>0:
+                w0 = [o for t, o in matched if 0.0 <= t < win_s]
+                w1 = [o for t, o in matched if (long_minutes - 1) * win_s <= t < long_minutes * win_s]
+                if len(w0)>=2 and len(w1)>=2:
+                    m0, m1 = float(np.mean(w0)), float(np.mean(w1))
+                    se = float(np.sqrt(np.var(w0, ddof=1) / len(w0) + np.var(w1, ddof=1) / len(w1)))
+                    extra = (f" win_first_ms={m0:.2f} win_last_ms={m1:.2f} drift_win_ms={m1 - m0:.2f}"
+                             f" drift_win_stderr_ms={se:.2f} n_win_first={len(w0)} n_win_last={len(w1)}")
+                else:
+                    extra = f" drift_win_ms=NA drift_win_stderr_ms=NA n_win_first={len(w0)} n_win_last={len(w1)}"
+                # Minutes of take needed for a 0.5 ms slope-drift stderr at THIS
+                # run's residual sigma and marker rate (stderr ~ sigma*sqrt(12/n)):
+                # n = 12*(sigma/0.5)^2, minutes = n / (markers per second) / 60.
+                if len(matched)>2 and drift_stderr_ms>0.0 and s_err is not None:
+                    rate_m = len(matched) / take_duration_s
+                    extra += f" minutes_for_0p5ms={12.0 * (float(s_err) / 0.5) ** 2 / rate_m / 60.0:.1f}"
             print(f"mean_offset_ms={mean_off:.2f} drift_ms={drift_ms:.2f} "
                   f"drift_stderr_ms={drift_stderr_ms:.2f} "
                   f"p95_jitter_ms={p95:.2f} n_markers_raw={len(raw_markers)} "
                   f"n_dupes={n_dupes} n_matched={len(matched)} "
                   f"n_spurious={n_spurious} n_grid_in_range={n_grid_in_range} "
-                  f"pct_matched={pct_matched:.1f} n_peaks={len(peaks)}")
+                  f"pct_matched={pct_matched:.1f} n_peaks={len(peaks)}" + extra)
 except Exception as e:
     print(f"NA({e})")
 PYEOF
-)"
+}
+if [ -x "$ROOT/.venv/bin/python" ]; then
+    ALIGN="$(t2_align "$ASSET_DIR/audio.wav" "$TAKE_FOLDER/take.json" "$CLICK_INTERVAL")"
     echo "T2 alignment: $ALIGN"
     if echo "$ALIGN" | grep -q '^mean_offset_ms='; then
         MEAN_MS="$(echo "$ALIGN" | sed -n 's/.*mean_offset_ms=\([0-9.-]*\).*/\1/p')"
@@ -632,6 +693,137 @@ if [ -f "$GATE2_FOLDER/take.json" ]; then
     [ "$N_NEW" = "1" ] && ok "Audio/ gained exactly one asset this run, overdub added none ($N_ASSETS_BEFORE -> $N_ASSETS)" || no "Audio/ gained $N_NEW assets this run ($N_ASSETS_BEFORE -> $N_ASSETS; expected 1 -- overdub must not create a new one)"
 else
     no "overdub take.json missing at $GATE2_FOLDER"
+fi
+
+# --- 11L. LONG take for the T2 drift proof (OPT-IN: STEP3_LONG=1) ----------
+# Spec D10.3 T2 (s167 spec :606-612) measures drift as offset(minute 10) -
+# offset(minute 0) over a 10-minute file-mode click take; the ~65 s take of
+# section 5-9 cannot support the 1 ms claim (slope-drift stderr ~2.3 ms).
+# This block records ONE extra take (step3long) of STEP3_LONG_MINUTES minutes
+# (+10 s margin) against the longer click WAV from step 0, stops it, and runs
+# the SAME t2_align oracle with the window argument. No replay of this take
+# (2x its length for no drift information). Placed AFTER section 11 so its
+# "Audio/ gained exactly one asset" delta is untouched, and BEFORE the crash
+# row. Endpoints used: /api/perf/record, /api/perf/status, /api/perf/stop
+# only -- the A6-verified safe set; no output-window path.
+# Thresholds: the spec's 1 ms drift and 15 ms p95, applied with the SAME
+# "<= 1 ms + 2*stderr" rule as section 9 (a hard 1 ms bound is at noise level
+# even at 10 minutes: window-difference stderr ~1 ms, slope stderr ~0.75 ms at
+# the observed ~7.6 ms per-marker jitter -- a ~31% / ~19% false-FAIL rate).
+# The WARN prints the take length that WOULD retire it at this run's jitter.
+# critic-long-drift.md MINOR amendment: a tap self-stop (device rate/channel
+# change) sets lastError but leaves recording=true (RecorderHost.cpp
+# :403-415) -- the poll loop below inspects BOTH fields and breaks early on
+# either, so a dead recorder never costs the full wall time.
+if [ "$LONG" = "1" ]; then
+    LONG_TAKE_NAME="step3long"
+    LONG_TAKE_FOLDER="$TAKES_DIR/$LONG_TAKE_NAME.adna-take"
+    LONG_SECS=$((LONG_MINUTES * 60))
+    curl -s --max-time 6 -X POST "$A/api/perf/record" -H 'Content-Type: application/json' \
+      -d "{\"name\":\"$LONG_TAKE_NAME\",\"audio\":true,\"audioFile\":\"$CLICK_WAV_LONG\",\"onsetMarkers\":true}" \
+      | grep -q '"ok":[[:space:]]*true' \
+      && ok "LONG: perf/record accepted (file-mode ${LONG_MINUTES}-minute click, onset markers)" \
+      || no "LONG: perf/record refused"
+    sleep 2
+    LREC="$(perf_field "d.get('recording','NA')")"
+    [ "$LREC" = "True" -o "$LREC" = "true" ] && ok "LONG: perf/status recording=true" || no "LONG: perf/status recording is not true ($LREC)"
+    LASSET="$(perf_field "d.get('assetId','NA')")"
+    # Record LONG_SECS + 10 s so the minute-M window [(M-1)*60, M*60) sits
+    # fully inside the asset. Poll every <=30 s and FAIL out the moment the
+    # recorder reports recording=false OR a non-empty lastError (a self-stop
+    # only sets lastError and keeps recording=true -- RecorderHost.cpp
+    # :403-415, critic amendment). A transient perf/status read failure is
+    # tolerated, not treated as a stop.
+    LONG_EARLY_STOP=0; LONG_EARLY_REASON=""; LNOW=0
+    LSTART=$(date +%s)
+    while :; do
+        LNOW=$(( $(date +%s) - LSTART ))
+        LR="$(perf_status | python3 -c 'import json,sys
+d=json.load(sys.stdin)
+le=str(d.get("lastError","") or "")
+print("%s|%s|t=%s markers=%s framesWritten=%s" % (d.get("recording","NA"), le, d.get("t","NA"), d.get("markers","NA"), d.get("framesWritten","NA")))' 2>/dev/null || echo "NA||")"
+        LREC_POLL="${LR%%|*}"
+        LR_REST="${LR#*|}"
+        LERR_POLL="${LR_REST%%|*}"
+        LR_TAIL="${LR_REST#*|}"
+        echo "  long take: wall ${LNOW}s  recording=$LREC_POLL lastError='$LERR_POLL' $LR_TAIL"
+        case "$LREC_POLL" in
+            True|true)
+                if [ -n "$LERR_POLL" ]; then
+                    LONG_EARLY_STOP=1; LONG_EARLY_REASON="lastError='$LERR_POLL'"; break
+                fi
+                ;;
+            False|false) LONG_EARLY_STOP=1; LONG_EARLY_REASON="recording=false"; break ;;
+            *) echo "  (transient perf/status read failure, continuing)" ;;
+        esac
+        LLEFT=$((LONG_SECS + 10 - LNOW))
+        [ "$LLEFT" -le 0 ] && break
+        sleep $(( LLEFT<30 ? LLEFT : 30 ))
+    done
+    [ "$LONG_EARLY_STOP" = "0" ] \
+      && ok "LONG: recorder stayed armed for the whole ${LONG_MINUTES}-minute take" \
+      || no "LONG: recorder stopped early at wall ~${LNOW}s (${LONG_EARLY_REASON:-unknown}; see the status line above)"
+    curl -s --max-time 6 -X POST "$A/api/perf/stop" >/dev/null
+    sleep 3
+    LERR="$(perf_field "d.get('lastError','NA')")"
+    [ -z "$LERR" ] && ok "LONG: lastError empty after stop (no tap self-stop, no rate change, no save failure)" || no "LONG: lastError=$LERR"
+    LRATE="$(perf_field "d.get('rateChangedSinceArm','NA')")"
+    [ "$LRATE" = "False" -o "$LRATE" = "false" ] \
+      && ok "LONG: rateChangedSinceArm == false across ${LONG_MINUTES} minutes" \
+      || no "LONG: rateChangedSinceArm == $LRATE (expected false)"
+    LASSET_DIR="$AUDIO_DIR/$LASSET.adna-audio"
+    LSEG_FRAMES="$(take_field "$LONG_TAKE_FOLDER" "d['audio']['segments'][0]['frames']")"
+    LSEG_RATE="$(take_field "$LONG_TAKE_FOLDER" "d['audio']['segments'][0]['rate']")"
+    awk -v f="$LSEG_FRAMES" -v r="$LSEG_RATE" -v s="$LONG_SECS" 'BEGIN{exit !(r+0>0 && f+0>=s*r)}' 2>/dev/null \
+      && ok "LONG: take audio covers the full ${LONG_MINUTES} min ($LSEG_FRAMES frames @ $LSEG_RATE Hz)" \
+      || no "LONG: take audio shorter than ${LONG_MINUTES} min ($LSEG_FRAMES frames @ $LSEG_RATE Hz) -- the D10.3 window rows below cannot be trusted"
+    if [ -x "$ROOT/.venv/bin/python" ]; then
+        LALIGN="$(t2_align "$LASSET_DIR/audio.wav" "$LONG_TAKE_FOLDER/take.json" "$CLICK_INTERVAL" "$LONG_MINUTES")"
+        echo "T2 alignment (LONG, ${LONG_MINUTES} min): $LALIGN"
+        if echo "$LALIGN" | grep -q '^mean_offset_ms='; then
+            LMEAN="$(echo "$LALIGN" | sed -n 's/.*mean_offset_ms=\([0-9.-]*\).*/\1/p')"
+            LDRIFT="$(echo "$LALIGN" | sed -n 's/.* drift_ms=\([0-9.-]*\).*/\1/p')"
+            LDRIFT_SE="$(echo "$LALIGN" | sed -n 's/.* drift_stderr_ms=\([0-9.-]*\).*/\1/p')"
+            LP95="$(echo "$LALIGN" | sed -n 's/.*p95_jitter_ms=\([0-9.-]*\).*/\1/p')"
+            LPCT="$(echo "$LALIGN" | sed -n 's/.*pct_matched=\([0-9.-]*\).*/\1/p')"
+            LWIN="$(echo "$LALIGN" | sed -n 's/.* drift_win_ms=\([0-9.-]*\).*/\1/p')"
+            LWIN_SE="$(echo "$LALIGN" | sed -n 's/.* drift_win_stderr_ms=\([0-9.-]*\).*/\1/p')"
+            LN0="$(echo "$LALIGN" | sed -n 's/.* n_win_first=\([0-9]*\).*/\1/p')"
+            LN1="$(echo "$LALIGN" | sed -n 's/.* n_win_last=\([0-9]*\).*/\1/p')"
+            LMIN_NEEDED="$(echo "$LALIGN" | sed -n 's/.* minutes_for_0p5ms=\([0-9.]*\).*/\1/p')"
+            # (a) D10.3 literal statistic: offset(minute M) - offset(minute 1).
+            if [ -n "$LWIN" ]; then
+                LWIN_BOUND="$(awk -v se="$LWIN_SE" 'BEGIN{printf "%.4f", 1.0 + 2*se}' 2>/dev/null)"
+                awk -v x="$LWIN" -v b="$LWIN_BOUND" 'BEGIN{exit !(x<=b && x>=-b)}' 2>/dev/null \
+                  && ok "LONG D10.3: |offset(min $LONG_MINUTES) - offset(min 1)| within +-${LWIN_BOUND}ms (<=1ms+2*stderr; drift=${LWIN}ms stderr=${LWIN_SE}ms n=${LN0}/${LN1})" \
+                  || no "LONG D10.3: |offset(min $LONG_MINUTES) - offset(min 1)| exceeds +-${LWIN_BOUND}ms (<=1ms+2*stderr; drift=${LWIN}ms stderr=${LWIN_SE}ms n=${LN0}/${LN1})"
+                awk -v se="$LWIN_SE" 'BEGIN{exit !(se>0.5)}' 2>/dev/null \
+                  && warn "LONG D10.3: window stderr ${LWIN_SE}ms exceeds 0.5ms -- two 60 s windows cannot support a tight 1ms claim at this per-marker jitter (informational; the slope row below uses every marker)"
+            else
+                no "LONG D10.3: window statistic unavailable (n_win_first=$LN0 n_win_last=$LN1 -- fewer than 2 markers in a window: take too short, onsets stopped, or the WAV ran out)"
+            fi
+            # (b) slope over the whole take (every marker), same rule as section 9.
+            LDRIFT_BOUND="$(awk -v se="$LDRIFT_SE" 'BEGIN{printf "%.4f", 1.0 + 2*se}' 2>/dev/null)"
+            awk -v x="$LDRIFT" -v b="$LDRIFT_BOUND" 'BEGIN{exit !(x<=b && x>=-b)}' 2>/dev/null \
+              && ok "LONG slope: drift over ${LONG_MINUTES} min within +-${LDRIFT_BOUND}ms (<=1ms+2*stderr; drift=${LDRIFT}ms stderr=${LDRIFT_SE}ms)" \
+              || no "LONG slope: drift over ${LONG_MINUTES} min exceeds +-${LDRIFT_BOUND}ms (<=1ms+2*stderr; drift=${LDRIFT}ms stderr=${LDRIFT_SE}ms)"
+            awk -v se="$LDRIFT_SE" 'BEGIN{exit !(se>0.5)}' 2>/dev/null \
+              && warn "LONG slope: stderr ${LDRIFT_SE}ms exceeds 0.5ms -- at this run's jitter a 0.5ms stderr needs ~${LMIN_NEEDED:-?} minutes (STEP3_LONG_MINUTES=N); informational, does not fail the gate"
+            echo "(informational) LONG drift bound in ppm: $(awk -v b="$LDRIFT_BOUND" -v s="$LONG_SECS" 'BEGIN{printf "%.1f", b*1000.0/s}' 2>/dev/null) ppm over ${LONG_SECS}s (spec D10.2 warns wall clock drifts tens of ppm)"
+            awk -v x="$LP95" 'BEGIN{exit !(x<=15.0)}' 2>/dev/null \
+              && ok "LONG: p95 jitter <=15ms ($LP95 ms, D10.3)" || no "LONG: p95 jitter exceeds 15ms ($LP95 ms)"
+            awk -v x="$LMEAN" 'BEGIN{exit !(x>=0.0 && x<=60.0)}' 2>/dev/null \
+              && ok "LONG: mean offset within [0,60]ms ($LMEAN ms)" || no "LONG: mean offset outside [0,60]ms ($LMEAN ms)"
+            awk -v x="$LPCT" 'BEGIN{exit !(x>=90.0)}' 2>/dev/null \
+              && ok "LONG: matched markers cover >=90% of grid clicks ($LPCT%)" || no "LONG: matched markers cover only $LPCT% of grid clicks (expected >=90%)"
+        else
+            no "LONG: T2 alignment could not be computed ($LALIGN)"
+        fi
+    else
+        no "LONG: .venv/bin/python with numpy unavailable -- run from the main checkout"
+    fi
+else
+    skip "LONG take for the T2 drift proof (set STEP3_LONG=1; STEP3_LONG_MINUTES=N overrides, default 10, 2 = dry run)"
 fi
 
 # --- 12. crash-readability (OPTIONAL, DESTRUCTIVE -- run only if asked) ---
