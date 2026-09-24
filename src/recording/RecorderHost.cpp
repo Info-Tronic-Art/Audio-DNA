@@ -588,10 +588,12 @@ RecorderHost::LoadResult RecorderHost::load(const juce::File& takeFolder)
     }
 
     loadedTake_ = std::move(*loaded);
+    loadedTakeFolder_ = takeFolder;
     loadStats_ = stats;
     loadedAudio_ = store_.resolve(loadedTake_->audio);
     res.audio = loadedAudio_;
     res.ok = true;
+    publishStatus();   // s-rta-0924b S4-A: the panel and REST see a load at once, without waiting for a tick
     return res;
 }
 
@@ -658,6 +660,23 @@ void RecorderHost::stopPlay()
     sink_.reset();
     program_.reset();
     publishStatus();
+}
+
+RecorderHost::StopPlaybackResult RecorderHost::stopPlayback(const Composition& comp, AudioTap& tap)
+{
+    RECORDER_HOST_ASSERT_MESSAGE_THREAD();
+    StopPlaybackResult res;
+    // Ruling 1: the overdub goes first -- its clock is the transport this stop is about to halt.
+    // Unconditional on playing_: an overdub armed with no replay running (REST-only) is ended too,
+    // because its clock is still the audio transport, not the device counter.
+    if (recording_ && overdub_)
+    {
+        res.overdub = disarm(comp, tap);
+        res.overdubStopped = true;
+    }
+    stopPlay();
+    publishStatus();   // stopPlay() only publishes when a replay was running
+    return res;
 }
 
 std::string RecorderHost::repairLoadedAudio(const std::string& appVersion)
@@ -728,10 +747,39 @@ void RecorderHost::publishStatus()
             s.reboundByName = static_cast<int>(rep.reboundByName.size());
             s.invalid = static_cast<int>(rep.invalid.size());
         }
+
+        // s-rta-0924b S4-A: the same position in seconds. Wall is seconds already; Sample is the
+        // absolute take-clock sample (playFirstSample_ + transport frames), so subtract the asset's
+        // firstSample and divide by the asset rate.
+        if (playMode_ == PlayMode::WithAudio)
+        {
+            if (playAssetRate_ > 0.0)
+            {
+                const double first = static_cast<double>(playFirstSample_);
+                s.positionSeconds = std::max(0.0, s.position - first) / playAssetRate_;
+                s.lengthSeconds = std::max(0.0, s.length - first) / playAssetRate_;
+            }
+        }
+        else
+        {
+            s.positionSeconds = s.position;
+            s.lengthSeconds = s.length;
+        }
     }
 
     if (loadedTake_.has_value())
+    {
         s.audioStatus = audioStatusName(loadedAudio_.status);
+        // s-rta-0924b S4-A: loaded-take facts.
+        s.loadedTakeFolder = loadedTakeFolder_.getFullPathName().toStdString();
+        s.loadedRecordedAt = loadedTake_->meta.recordedAt;
+        s.loadedDuration = loadedTake_->meta.duration;
+        s.loadedLanes = static_cast<int>(loadedTake_->lanes.size());
+        const bool resolved = loadedAudio_.status == AudioStore::Status::Resolved
+                           || loadedAudio_.status == AudioStore::Status::ResolvedUnverified;
+        s.loadedAssetId = resolved ? loadedAudio_.asset.id : std::string();
+        s.audioReason = loadedAudio_.reason;
+    }
 
     s.skipped = skippedCount_;
     s.continuousUnavailable = continuousUnavailableCount_;

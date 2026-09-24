@@ -1439,3 +1439,258 @@ TEST_CASE("RecorderHost onset marker -- onsetCount wrapping past UINT32_MAX yiel
 
     host.disarm(comp, dummyTap);
 }
+
+// =====================================================================================
+// s-rta-0924b step 4 (Lane S4-A): the Status facts the Record panel reads, and
+// Harmony ruling 1 (Stop Playback during an overdub also ends the overdub).
+// =====================================================================================
+
+namespace
+{
+    // A small, real, finalized (Resolved) asset in `store` -- the replay/overdub tests' own idiom.
+    AudioAsset makeFinalizedAsset(AudioStore& store, double rate, int blocks)
+    {
+        auto id = store.beginAsset();
+        REQUIRE(id.has_value());
+        AudioTap sourceTap;
+        sourceTap.prepare(rate, 2, 512);
+        REQUIRE(sourceTap.start(store.wavFile(*id)));
+        uint64_t delivered = 0;
+        uint64_t hostTimeNs = 1'000'000'000ULL;
+        pushCleanBlocks(sourceTap, rate, 512, blocks, delivered, hostTimeNs);
+        sourceTap.stop();
+
+        AudioStore::CaptureFacts facts;
+        facts.mode = "input";
+        facts.gapDetection = sourceTap.gapDetectionSupported();
+        facts.firstSample = sourceTap.firstSample();
+        facts.framesWritten = sourceTap.framesWritten();
+        facts.rate = rate;
+        facts.channels = 2;
+        facts.app = "test";
+        const auto fin = store.finalize(*id, facts);
+        REQUIRE(fin.error.empty());
+        return fin.asset;
+    }
+
+    // One activeClip lane with two points; Sample stamps (absolute take-clock samples) or Wall times.
+    Take makeTwoPointTake(DriveClock clock, double a, double b)
+    {
+        Take take;
+        DiscretePoint p1, p2;
+        p1.origin = Origin::Human; p1.v = 1; p1.s.seq = 1; p1.beat = 1.0;
+        p2.origin = Origin::Human; p2.v = 2; p2.s.seq = 2; p2.beat = 2.0;
+        if (clock == DriveClock::Wall) { p1.s.t = a; p2.s.t = b; }
+        else { p1.s.sample = static_cast<uint64_t>(a); p2.s.sample = static_cast<uint64_t>(b); }
+        const ControlPath key = layerKey(0, "activeClip");
+        Lane lane; lane.key = key; lane.kind = Lane::Kind::Discrete; lane.points = { p1, p2 };
+        take.lanes[key] = lane;
+        take.nextSeq = 3;
+        return take;
+    }
+}
+
+TEST_CASE("RecorderHost status loaded -- load() publishes the loaded take's facts without a tick", "[host][status][loaded]")
+{
+    TempDir storeRoot("loaded_store");
+    TempDir takeFolder("loaded_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    constexpr double rate = 48000.0;
+    AudioTap tap;
+    tap.prepare(rate, 2, 512);
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = true;
+    opts.audioMode = "input";
+    opts.deviceRate = rate;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+
+    const auto armRes = host.arm(comp, tap, opts);
+    REQUIRE(armRes.ok);
+    uint64_t delivered = 0;
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    host.tick(makeSnap(), 0.0, delivered, tap, std::nullopt, rate);
+    DiscretePoint p1; p1.origin = Origin::Human; p1.v = 1;
+    host.capture(layerKey(0, "activeClip"), std::move(p1));
+    pushCleanBlocks(tap, rate, 512, 10, delivered, hostTimeNs);
+    host.tick(makeSnap(), 1.0, delivered, tap, std::nullopt, rate);
+    DiscretePoint p2; p2.origin = Origin::Human; p2.v = 2;
+    host.capture(layerKey(0, "activeClip"), std::move(p2));
+    REQUIRE(host.disarm(comp, tap).ok);
+
+    // Before load(): nothing loaded, every loaded fact empty/0.
+    {
+        const auto st = host.status();
+        CHECK(st.loadedTakeFolder.empty());
+        CHECK(st.loadedRecordedAt.empty());
+        CHECK(st.loadedDuration == 0.0);
+        CHECK(st.loadedLanes == 0);
+        CHECK(st.loadedAssetId.empty());
+        CHECK(st.audioReason.empty());
+    }
+
+    LoadStats stats;
+    auto onDisk = Take::load(takeFolder.dir, stats);
+    REQUIRE(onDisk.has_value());
+
+    REQUIRE(host.load(takeFolder.dir).ok);   // NO tick after this -- load() itself must publish
+    const auto st = host.status();
+    CHECK(st.loadedTakeFolder == takeFolder.dir.getFullPathName().toStdString());
+    CHECK(st.loadedLanes == 1);
+    CHECK(st.loadedDuration == Approx(onDisk->meta.duration));
+    CHECK(st.loadedRecordedAt == onDisk->meta.recordedAt);
+    CHECK_FALSE(st.loadedRecordedAt.empty());
+    CHECK(st.audioStatus == "Resolved");
+    CHECK(st.loadedAssetId == armRes.assetId);
+    CHECK(st.audioReason.empty());
+
+    // A refused load keeps the previously loaded take's facts (load() changes nothing on refusal).
+    TempDir empty("loaded_empty");
+    CHECK_FALSE(host.load(empty.dir).ok);
+    CHECK(host.status().loadedTakeFolder == takeFolder.dir.getFullPathName().toStdString());
+}
+
+TEST_CASE("RecorderHost status seconds -- positionSeconds/lengthSeconds in both drive clocks", "[host][status][seconds]")
+{
+    TempDir storeRoot("seconds_store");
+    AudioStore store(storeRoot.dir);
+    const AudioAsset asset = makeFinalizedAsset(store, 48000.0, 20);
+
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    SECTION("WithAudio -- relative to the asset's firstSample, divided by the asset rate")
+    {
+        TempDir folder("seconds_audio_take");
+        Take take = makeTwoPointTake(DriveClock::Sample, 100000.0, 144000.0);
+        take.audio = AudioStore::referencing(asset, 96000);   // take-clock sample 96 000 == asset frame 0
+        REQUIRE(take.save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+        REQUIRE(host.play(RecorderHost::PlayMode::WithAudio, comp).ok);
+
+        host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(24000), 48000.0);
+        const auto st = host.status();
+        CHECK(st.position == Approx(120000.0));          // drive-clock domain unchanged
+        CHECK(st.positionSeconds == Approx(0.5));
+        CHECK(st.lengthSeconds == Approx(1.0));
+        host.stopPlay();
+        CHECK(host.status().positionSeconds == 0.0);     // not playing -> 0
+    }
+
+    SECTION("WallClock -- seconds as-is")
+    {
+        TempDir folder("seconds_wall_take");
+        Take take = makeTwoPointTake(DriveClock::Wall, 0.2, 1.0);
+        REQUIRE(take.save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+        const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+
+        host.tick(makeSnap(), w0 + 0.5, 0, dummyTap, std::nullopt, 48000.0);
+        const auto st = host.status();
+        CHECK(st.positionSeconds == Approx(0.5).margin(0.05));
+        CHECK(st.lengthSeconds == Approx(1.0));
+        host.stopPlay();
+    }
+}
+
+TEST_CASE("RecorderHost stopPlayback -- Stop Playback during an overdub ends the overdub too (ruling 1)", "[host][overdub][stopplayback]")
+{
+    TempDir storeRoot("stopplay_store");
+    AudioStore store(storeRoot.dir);
+    const AudioAsset asset = makeFinalizedAsset(store, 48000.0, 20);
+
+    TempDir replayFolder("stopplay_replay_take");
+    Take replayTake = makeTwoPointTake(DriveClock::Sample, 100.0, 200.0);
+    replayTake.audio = AudioStore::referencing(asset, 0);
+    REQUIRE(replayTake.save(replayFolder.dir));
+
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap unusedTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.audio = true;
+    opts.audioMode = "file";
+    opts.deviceRate = 48000.0;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+
+    SECTION("overdub recording while playing with audio -> both stop, overdub cleared, take saved")
+    {
+        REQUIRE(host.load(replayFolder.dir).ok);
+        REQUIRE(host.play(RecorderHost::PlayMode::WithAudio, comp).ok);
+        host.tick(makeSnap(), 0.0, 0, unusedTap, std::optional<int64_t>(0), 48000.0);
+
+        TempDir overFolder("stopplay_over_take");
+        opts.takeFolder = overFolder.dir;
+        opts.overdubAssetId = asset.id;
+        REQUIRE(host.arm(comp, unusedTap, opts).ok);
+        host.tick(makeSnap(), 0.5, 0, unusedTap, std::optional<int64_t>(24000), 48000.0);
+        REQUIRE(host.status().overdub);
+
+        const auto res = host.stopPlayback(comp, unusedTap);
+        CHECK(res.overdubStopped);
+        CHECK(res.overdub.ok);
+        CHECK_FALSE(host.isRecording());
+        CHECK_FALSE(host.isPlaying());
+        const auto st = host.status();
+        CHECK_FALSE(st.overdub);          // MainComponent's transport stop is no longer refused (R-A8)
+        CHECK_FALSE(st.recording);
+        CHECK_FALSE(st.playing);
+
+        LoadStats stats;
+        auto saved = Take::load(overFolder.dir, stats);
+        REQUIRE(saved.has_value());
+        REQUIRE(saved->audio.segments.size() == 1);
+        CHECK(saved->audio.segments[0].id == asset.id);
+    }
+
+    SECTION("overdub armed with no replay running -> still ended (its clock is the transport)")
+    {
+        TempDir overFolder("stopplay_over_noplay_take");
+        opts.takeFolder = overFolder.dir;
+        opts.overdubAssetId = asset.id;
+        REQUIRE(host.arm(comp, unusedTap, opts).ok);
+        const auto res = host.stopPlayback(comp, unusedTap);
+        CHECK(res.overdubStopped);
+        CHECK_FALSE(host.isRecording());
+        CHECK_FALSE(host.status().overdub);
+    }
+
+    SECTION("a plain recording while playing keeps recording; only the replay stops")
+    {
+        REQUIRE(host.load(replayFolder.dir).ok);
+        REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+        TempDir plainFolder("stopplay_plain_take");
+        opts.takeFolder = plainFolder.dir;
+        opts.audio = false;
+        REQUIRE(host.arm(comp, unusedTap, opts).ok);
+
+        const auto res = host.stopPlayback(comp, unusedTap);
+        CHECK_FALSE(res.overdubStopped);
+        CHECK(host.isRecording());
+        CHECK_FALSE(host.isPlaying());
+        host.disarm(comp, unusedTap);
+    }
+
+    SECTION("nothing running -> no-op")
+    {
+        const auto res = host.stopPlayback(comp, unusedTap);
+        CHECK_FALSE(res.overdubStopped);
+        CHECK_FALSE(host.isRecording());
+        CHECK_FALSE(host.isPlaying());
+    }
+}

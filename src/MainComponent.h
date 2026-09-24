@@ -477,6 +477,26 @@ private:
     void applyClipPlaying(int layerIndex, int column, const std::string& action, Origin origin,
                           uint64_t group = 0);
 
+    // s-rta-0924b step 4 (Lane S4-B): ONE funnel for REST (/api/perf/*) and the
+    // Record panel. Each returns "" on success, else the refusal/failure text --
+    // the same text is also sent through recorderHost_.dispatch.notify. The
+    // bodies are the former apiServer_->onPerf* lambda bodies, moved; the only
+    // behaviour changes are (a) programmatic source-mode switches go through
+    // setAudioSourceModeSynced (the "Audio" selectors follow), (b) Stop Playback
+    // restores the source mode active before a play-with-audio, and (c) Harmony
+    // ruling 1: Stop Playback during an overdub ends the overdub first
+    // (RecorderHost::stopPlayback), so the transport stop is not refused.
+    std::string perfRecord(const ApiServer::PerfRecordOpts& opts);
+    std::string perfStop();
+    std::string perfLoad(const juce::File& takeFolder);
+    std::string perfPlay(bool withAudio);
+    std::string perfStopPlay();
+    std::string perfRepair();
+    juce::var   perfStatusVar() const;                 // /api/perf/status; reads ONLY recorderHost_.status()
+    static juce::File takesRoot();                     // ~/Documents/Audio-DNA/Takes
+    void setAudioSourceModeSynced(AudioEngine::SourceMode mode);   // engine + BOTH selectors (dontSendNotification)
+    std::optional<AudioEngine::SourceMode> sourceModeBeforeReplay_; // set by perfPlay(withAudio), consumed by perfStopPlay
+
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
     void setTooltipsEnabled(bool enabled);
 

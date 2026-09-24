@@ -1590,6 +1590,26 @@ MainComponent::MainComponent(bool testMode, int testPort)
             outputWindow_->loadImage(file);
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     };
+    // s-rta-0924b step 4 (Lane S4-B): the Record tab drives the recorder through
+    // the SAME perf* funnel the /api/perf/* endpoints use -- it never touches
+    // recorderHost_ itself.
+    {
+        auto& rp = browserPanel_->getRecordPanel();
+        rp.setTakesRoot(takesRoot());
+        rp.onRecord = [this](const RecordPanel::RecordRequest& r) {
+            ApiServer::PerfRecordOpts o;
+            o.name = r.name;
+            o.audio = r.audio;
+            if (r.overdub)
+                o.overdubAssetId = juce::String(recorderHost_.status().loadedAssetId);
+            return perfRecord(o);
+        };
+        rp.onStop     = [this] { return perfStop(); };
+        rp.onPlay     = [this](bool withAudio) { return perfPlay(withAudio); };
+        rp.onStopPlay = [this] { return perfStopPlay(); };
+        rp.onLoad     = [this](const juce::File& f) { return perfLoad(f); };
+        rp.onRepair   = [this] { return perfRepair(); };
+    }
     browserPanel_->getSourcesBrowser().onSourceActivated = [this](const juce::String& sourceId) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
@@ -1989,8 +2009,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     recorderHost_.dispatch.capturePerfState = [this]() {
         return capturePerfState(composition_, analysisThread_.getFeatureBus().read().bpm, lastAudioAction_);
     };
-    recorderHost_.dispatch.notify = [](const std::string& msg) {
+    recorderHost_.dispatch.notify = [this](const std::string& msg) {
         std::cerr << "[Recorder] " << msg << std::endl;
+        // s-rta-0924b S4-B: the Record panel shows it as its notice line (stored
+        // only; applied at the panel's 4 Hz refresh). Message thread only (G10).
+        if (browserPanel_)
+            browserPanel_->getRecordPanel().setNotice(msg);
     };
 
     // Continuous capture: the recorder HOOKS the funnel's own accept/refuse
@@ -2009,149 +2033,19 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 
     // REST /api/perf/* (Lane S3-C's callbacks, wired here per critic A5).
-    apiServer_->onPerfRecord = [this](const ApiServer::PerfRecordOpts& opts) {
-        if (recorderHost_.isRecording())
-        {
-            if (recorderHost_.dispatch.notify)
-                recorderHost_.dispatch.notify("perf/record refused: already recording");
-            return;
-        }
-
-        // A5(c)/N8: switch to File mode only if not already there, and read
-        // deviceRate/channels AFTER the switch (a mode change can restart
-        // the device at a different rate/channel count).
-        if (opts.audioFile.isNotEmpty())
-        {
-            juce::File f(opts.audioFile);
-            if (f.existsAsFile() && audioEngine_.loadFile(f))
-                currentAudioFile_ = f;
-            if (audioEngine_.getSourceMode() != AudioEngine::SourceMode::File)
-                audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
-        }
-
-        RecorderHost::ArmOptions armOpts;
-        juce::String name = opts.name.isNotEmpty()
-            ? opts.name
-            : juce::Time::getCurrentTime().formatted("%Y-%m-%d_%H%M%S");
-        armOpts.takeFolder = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-                                  .getChildFile("Audio-DNA").getChildFile("Takes")
-                                  .getChildFile(name + ".adna-take");
-        armOpts.audio = opts.audio;
-        armOpts.audioMode = (audioEngine_.getSourceMode() == AudioEngine::SourceMode::File) ? "file" : "input";
-        armOpts.deviceRate = audioEngine_.getCurrentSampleRate();
-        if (auto* dev = audioEngine_.getDeviceManager().getCurrentAudioDevice())
-            armOpts.deviceChannels = dev->getActiveOutputChannels().countNumberOfSetBits();
-        armOpts.appVersion = juce::JUCEApplication::getInstance()
-            ? juce::JUCEApplication::getInstance()->getApplicationVersion().toStdString()
-            : "0.1.0";
-        armOpts.onsetMarkers = opts.onsetMarkers;
-        if (opts.overdubAssetId.isNotEmpty())
-            armOpts.overdubAssetId = opts.overdubAssetId.toStdString();
-        armOpts.gripHoldMs = composition_.gripHoldMs;
-
-        auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
-        if (!result.ok)
-        {
-            if (recorderHost_.dispatch.notify)
-                recorderHost_.dispatch.notify("perf/record failed: " + result.error);
-        }
-        else if (opts.audioFile.isNotEmpty())
-        {
-            applyAudioTransport("play", Origin::Human);
-        }
-    };
-    apiServer_->onPerfStop = [this] {
-        auto result = recorderHost_.disarm(composition_, audioEngine_.getAudioTap());
-        if (!result.ok && recorderHost_.dispatch.notify)
-            recorderHost_.dispatch.notify("perf/stop: " + result.error);
-    };
-    apiServer_->onPerfLoad = [this](juce::File takeFolder) {
-        auto result = recorderHost_.load(takeFolder);
-        if (!result.ok && recorderHost_.dispatch.notify)
-            recorderHost_.dispatch.notify("perf/load failed: " + result.error);
-    };
-    apiServer_->onPerfPlay = [this](bool withAudio) {
-        auto mode = withAudio ? RecorderHost::PlayMode::WithAudio : RecorderHost::PlayMode::WallClock;
-        auto result = recorderHost_.play(mode, composition_);
-        if (!result.ok)
-        {
-            if (recorderHost_.dispatch.notify)
-                recorderHost_.dispatch.notify("perf/play failed: " + result.error);
-            return;
-        }
-        if (withAudio && result.wav.existsAsFile())
-        {
-            if (audioEngine_.loadFile(result.wav))
-            {
-                currentAudioFile_ = result.wav;
-                if (audioEngine_.getSourceMode() != AudioEngine::SourceMode::File)
-                    audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
-                applyAudioTransport("play", Origin::Human);
-            }
-        }
-    };
-    apiServer_->onPerfStopPlay = [this] {
-        recorderHost_.stopPlay();
-        applyAudioTransport("stop", Origin::Human);
-    };
-    apiServer_->onPerfRepair = [this] {
-        auto err = recorderHost_.repairLoadedAudio(
-            juce::JUCEApplication::getInstance()
-                ? juce::JUCEApplication::getInstance()->getApplicationVersion().toStdString()
-                : "0.1.0");
-        if (!err.empty() && recorderHost_.dispatch.notify)
-            recorderHost_.dispatch.notify("perf/repair: " + err);
-    };
+    // s-rta-0924b S4-B: every body now lives in the perf* funnel the Record
+    // panel shares (MainComponent.h); ApiServer's void callbacks discard the
+    // returned refusal text (it has already gone through dispatch.notify).
+    apiServer_->onPerfRecord   = [this](const ApiServer::PerfRecordOpts& opts) { perfRecord(opts); };
+    apiServer_->onPerfStop     = [this] { perfStop(); };
+    apiServer_->onPerfLoad     = [this](juce::File takeFolder) { perfLoad(takeFolder); };
+    apiServer_->onPerfPlay     = [this](bool withAudio) { perfPlay(withAudio); };
+    apiServer_->onPerfStopPlay = [this] { perfStopPlay(); };
+    apiServer_->onPerfRepair   = [this] { perfRepair(); };
     // Synchronous (critic A5(b)/N3): reads ONLY recorderHost_.status()'s
     // mutex-guarded copy -- never audioEngine_.getCurrentSampleRate()/
     // getCurrentAudioDevice() on the HTTP thread.
-    apiServer_->onPerfStatus = [this]() -> juce::var {
-        const auto s = recorderHost_.status();
-        auto* obj = new juce::DynamicObject();
-        obj->setProperty("ok", true);
-        obj->setProperty("recording", s.recording);
-        obj->setProperty("playing", s.playing);
-        obj->setProperty("overdub", s.overdub);
-        obj->setProperty("takeFolder", juce::String(s.takeFolder));
-        obj->setProperty("assetId", juce::String(s.assetId));
-        obj->setProperty("audioMode", juce::String(s.audioMode));
-        obj->setProperty("playMode", juce::String(s.playMode));
-        obj->setProperty("lastError", juce::String(s.lastError));
-        obj->setProperty("t", s.t);
-        obj->setProperty("beat", s.beat);
-        obj->setProperty("sample", static_cast<juce::int64>(s.sample));
-        obj->setProperty("bpm", static_cast<double>(s.bpm));
-        obj->setProperty("lanes", s.lanes);
-        obj->setProperty("points", s.points);
-        obj->setProperty("gestures", s.gestures);
-        obj->setProperty("markers", s.markers);
-        obj->setProperty("gapDetection", s.gapDetection);
-        obj->setProperty("framesWritten", static_cast<juce::int64>(s.framesWritten));
-        obj->setProperty("gaps", s.gaps);
-        obj->setProperty("position", s.position);
-        obj->setProperty("length", s.length);
-        obj->setProperty("unresolved", s.unresolved);
-        obj->setProperty("reboundByPosition", s.reboundByPosition);
-        obj->setProperty("reboundByName", s.reboundByName);
-        obj->setProperty("invalid", s.invalid);
-        obj->setProperty("skipped", s.skipped);
-        obj->setProperty("continuousUnavailable", s.continuousUnavailable);
-        obj->setProperty("refusedByHand", s.refusedByHand);
-        obj->setProperty("audioStatus", juce::String(s.audioStatus));
-        obj->setProperty("deviceRate", s.deviceRate);
-        // R13-D: rateChangedSinceArm replaces rateMismatch as the published
-        // JSON key (the deprecated RecorderHost::Status::rateMismatch mirror
-        // was removed once its only caller -- pre-lane-D MainComponent.cpp --
-        // was gone; s-rta-0924 cleanup lane). sourceSampleRate
-        // mirrors deviceRate here -- onPerfStatus reads ONLY the mutex-
-        // guarded Status copy (critic A5(b)/N3), and the analysis thread
-        // always resamples to its own fixed internal 48 kHz, so deviceRate
-        // IS the "source" rate at the recorder/provenance level.
-        obj->setProperty("rateChangedSinceArm", s.rateChangedSinceArm);
-        obj->setProperty("sourceSampleRate", s.deviceRate);
-        obj->setProperty("humanRefused", s.humanRefused);
-        return juce::var(obj);
-    };
+    apiServer_->onPerfStatus   = [this]() -> juce::var { return perfStatusVar(); };
 
 #if AUDIODNA_TEST_SERVER
     // R4: test-mode inject_features on the production port relays through
@@ -3507,6 +3401,11 @@ void MainComponent::timerCallback()
             topBar_->setFps(fps);
             topBar_->setDspLoad(cpu);
         }
+
+        // s-rta-0924b step 4: the Record tab's ~4 Hz refresh (spec row 4).
+        if (browserPanel_)
+            browserPanel_->getRecordPanel().refresh(recorderHost_.status(),
+                                                    juce::Time::getMillisecondCounterHiRes() / 1000.0);
     }
 
     // Repaint input level meter
@@ -5142,6 +5041,246 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
     // Centi-BPM (plan section 3.3 B3): 0 for auto/resync, which carry no BPM.
     p.v = (action == "auto" || action == "resync") ? 0 : juce::roundToInt(bpm * 100.0f);
     recorderHost_.capture(key, std::move(p));
+}
+
+// ---------------------------------------------------------------------------
+// s-rta-0924b step 4 (Lane S4-B): the perf* funnel -- ONE path for REST
+// (/api/perf/*) and the Record panel. Bodies moved from the former
+// apiServer_->onPerf* lambdas; each failure branch now also RETURNS the text it
+// notifies ("" = success). Message thread only (RecorderHost asserts it).
+// ---------------------------------------------------------------------------
+
+juce::File MainComponent::takesRoot()
+{
+    return juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+               .getChildFile("Audio-DNA").getChildFile("Takes");
+}
+
+void MainComponent::setAudioSourceModeSynced(AudioEngine::SourceMode mode)
+{
+    // A programmatic source-mode switch keeps BOTH "Audio" selectors honest
+    // (dontSendNotification: their onChange handlers would prompt for a file).
+    audioEngine_.setSourceMode(mode);
+    const int id = (mode == AudioEngine::SourceMode::File) ? 2 : 1;
+    audioSourceSelector_.setSelectedId(id, juce::dontSendNotification);
+    if (topBar_)
+        topBar_->getAudioSourceSelector().setSelectedId(id, juce::dontSendNotification);
+    if (mode == AudioEngine::SourceMode::MicInput)
+        fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(), juce::dontSendNotification);
+    else if (currentAudioFile_.existsAsFile())
+        fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
+}
+
+std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
+{
+    if (recorderHost_.isRecording())
+    {
+        const std::string msg = "perf/record refused: already recording";
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(msg);
+        return msg;
+    }
+
+    // A5(c)/N8: switch to File mode only if not already there, and read
+    // deviceRate/channels AFTER the switch (a mode change can restart
+    // the device at a different rate/channel count).
+    if (opts.audioFile.isNotEmpty())
+    {
+        juce::File f(opts.audioFile);
+        if (f.existsAsFile() && audioEngine_.loadFile(f))
+            currentAudioFile_ = f;
+        if (audioEngine_.getSourceMode() != AudioEngine::SourceMode::File)
+            setAudioSourceModeSynced(AudioEngine::SourceMode::File);
+    }
+
+    RecorderHost::ArmOptions armOpts;
+    juce::String name = opts.name.isNotEmpty()
+        ? opts.name
+        : juce::Time::getCurrentTime().formatted("%Y-%m-%d_%H%M%S");
+    armOpts.takeFolder = takesRoot().getChildFile(name + ".adna-take");
+    armOpts.audio = opts.audio;
+    armOpts.audioMode = (audioEngine_.getSourceMode() == AudioEngine::SourceMode::File) ? "file" : "input";
+    armOpts.deviceRate = audioEngine_.getCurrentSampleRate();
+    if (auto* dev = audioEngine_.getDeviceManager().getCurrentAudioDevice())
+        armOpts.deviceChannels = dev->getActiveOutputChannels().countNumberOfSetBits();
+    armOpts.appVersion = juce::JUCEApplication::getInstance()
+        ? juce::JUCEApplication::getInstance()->getApplicationVersion().toStdString()
+        : "0.1.0";
+    armOpts.onsetMarkers = opts.onsetMarkers;
+    if (opts.overdubAssetId.isNotEmpty())
+        armOpts.overdubAssetId = opts.overdubAssetId.toStdString();
+    armOpts.gripHoldMs = composition_.gripHoldMs;
+
+    auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
+    if (!result.ok)
+    {
+        const std::string msg = "perf/record failed: " + result.error;
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(msg);
+        return msg;
+    }
+    if (opts.audioFile.isNotEmpty())
+        applyAudioTransport("play", Origin::Human);
+    return {};
+}
+
+std::string MainComponent::perfStop()
+{
+    auto result = recorderHost_.disarm(composition_, audioEngine_.getAudioTap());
+    if (!result.ok)
+    {
+        const std::string msg = "perf/stop: " + result.error;
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(msg);
+        return msg;
+    }
+    return {};
+}
+
+std::string MainComponent::perfLoad(const juce::File& takeFolder)
+{
+    auto result = recorderHost_.load(takeFolder);
+    if (!result.ok)
+    {
+        const std::string msg = "perf/load failed: " + result.error;
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(msg);
+        return msg;
+    }
+    return {};
+}
+
+std::string MainComponent::perfPlay(bool withAudio)
+{
+    auto mode = withAudio ? RecorderHost::PlayMode::WithAudio : RecorderHost::PlayMode::WallClock;
+    auto result = recorderHost_.play(mode, composition_);
+    if (!result.ok)
+    {
+        const std::string msg = "perf/play failed: " + result.error;
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(msg);
+        return msg;
+    }
+    if (withAudio && result.wav.existsAsFile())
+    {
+        if (audioEngine_.loadFile(result.wav))
+        {
+            currentAudioFile_ = result.wav;
+            // Remember the input to go back to at Stop Playback (plan 5 #5).
+            if (!sourceModeBeforeReplay_)
+                sourceModeBeforeReplay_ = audioEngine_.getSourceMode();
+            if (audioEngine_.getSourceMode() != AudioEngine::SourceMode::File)
+                setAudioSourceModeSynced(AudioEngine::SourceMode::File);
+            applyAudioTransport("play", Origin::Human);
+        }
+    }
+    return {};
+}
+
+std::string MainComponent::perfStopPlay()
+{
+    std::string msg;
+    // Harmony ruling 1 (s-rta-0924b): an overdub's clock IS the replayed audio's
+    // transport, so Stop Playback ends a recording overdub first (disarm:
+    // finalize + save). Overdub is then clear, so the transport stop below is
+    // no longer refused by applyAudioTransport's R-A8 guard -- the audio really
+    // stops. A plain recording keeps running.
+    const auto stopped = recorderHost_.stopPlayback(composition_, audioEngine_.getAudioTap());
+    if (stopped.overdubStopped)
+    {
+        const std::string note = stopped.overdub.ok
+            ? std::string("perf/stop_play: the recording over the take was stopped too (its clock is the replayed audio)")
+            : "perf/stop_play: stopping the recording over the take failed: " + stopped.overdub.error;
+        if (!stopped.overdub.ok)
+            msg = note;
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(note);
+    }
+
+    applyAudioTransport("stop", Origin::Human);
+
+    // Go back to the input that was active before a play-with-audio -- never
+    // while a take is still recording (a mode change can restart the device
+    // and re-prepare the tap mid-take).
+    if (sourceModeBeforeReplay_ && !recorderHost_.isRecording())
+        setAudioSourceModeSynced(*sourceModeBeforeReplay_);
+    sourceModeBeforeReplay_.reset();
+    return msg;
+}
+
+std::string MainComponent::perfRepair()
+{
+    auto err = recorderHost_.repairLoadedAudio(
+        juce::JUCEApplication::getInstance()
+            ? juce::JUCEApplication::getInstance()->getApplicationVersion().toStdString()
+            : "0.1.0");
+    if (!err.empty())
+    {
+        const std::string msg = "perf/repair: " + err;
+        if (recorderHost_.dispatch.notify)
+            recorderHost_.dispatch.notify(msg);
+        return msg;
+    }
+    return {};
+}
+
+juce::var MainComponent::perfStatusVar() const
+{
+    const auto s = recorderHost_.status();
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("recording", s.recording);
+    obj->setProperty("playing", s.playing);
+    obj->setProperty("overdub", s.overdub);
+    obj->setProperty("takeFolder", juce::String(s.takeFolder));
+    obj->setProperty("assetId", juce::String(s.assetId));
+    obj->setProperty("audioMode", juce::String(s.audioMode));
+    obj->setProperty("playMode", juce::String(s.playMode));
+    obj->setProperty("lastError", juce::String(s.lastError));
+    obj->setProperty("t", s.t);
+    obj->setProperty("beat", s.beat);
+    obj->setProperty("sample", static_cast<juce::int64>(s.sample));
+    obj->setProperty("bpm", static_cast<double>(s.bpm));
+    obj->setProperty("lanes", s.lanes);
+    obj->setProperty("points", s.points);
+    obj->setProperty("gestures", s.gestures);
+    obj->setProperty("markers", s.markers);
+    obj->setProperty("gapDetection", s.gapDetection);
+    obj->setProperty("framesWritten", static_cast<juce::int64>(s.framesWritten));
+    obj->setProperty("gaps", s.gaps);
+    obj->setProperty("position", s.position);
+    obj->setProperty("length", s.length);
+    obj->setProperty("unresolved", s.unresolved);
+    obj->setProperty("reboundByPosition", s.reboundByPosition);
+    obj->setProperty("reboundByName", s.reboundByName);
+    obj->setProperty("invalid", s.invalid);
+    obj->setProperty("skipped", s.skipped);
+    obj->setProperty("continuousUnavailable", s.continuousUnavailable);
+    obj->setProperty("refusedByHand", s.refusedByHand);
+    obj->setProperty("audioStatus", juce::String(s.audioStatus));
+    obj->setProperty("deviceRate", s.deviceRate);
+    // R13-D: rateChangedSinceArm replaces rateMismatch as the published
+    // JSON key (the deprecated RecorderHost::Status::rateMismatch mirror
+    // was removed once its only caller -- pre-lane-D MainComponent.cpp --
+    // was gone; s-rta-0924 cleanup lane). sourceSampleRate
+    // mirrors deviceRate here -- onPerfStatus reads ONLY the mutex-
+    // guarded Status copy (critic A5(b)/N3), and the analysis thread
+    // always resamples to its own fixed internal 48 kHz, so deviceRate
+    // IS the "source" rate at the recorder/provenance level.
+    obj->setProperty("rateChangedSinceArm", s.rateChangedSinceArm);
+    obj->setProperty("sourceSampleRate", s.deviceRate);
+    obj->setProperty("humanRefused", s.humanRefused);
+    // s-rta-0924b step 4 (S4-A, additive): loaded-take facts and the playback
+    // position in seconds -- the Record panel's own inputs, published here too.
+    obj->setProperty("loadedTakeFolder", juce::String(s.loadedTakeFolder));
+    obj->setProperty("loadedRecordedAt", juce::String(s.loadedRecordedAt));
+    obj->setProperty("loadedDuration", s.loadedDuration);
+    obj->setProperty("loadedLanes", s.loadedLanes);
+    obj->setProperty("loadedAssetId", juce::String(s.loadedAssetId));
+    obj->setProperty("audioReason", juce::String(s.audioReason));
+    obj->setProperty("positionSeconds", s.positionSeconds);
+    obj->setProperty("lengthSeconds", s.lengthSeconds);
+    return juce::var(obj);
 }
 
 void MainComponent::applyAudioTransport(const std::string& action, Origin origin)
