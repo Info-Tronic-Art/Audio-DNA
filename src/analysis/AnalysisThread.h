@@ -144,6 +144,11 @@ private:
     int onsetCount_ = 0;
     float hopsPerSecond_ = 0.0f;
 
+    // R13 onset-pulse-loss fix: FeatureSnapshot::onsetCount's source of truth. Distinct from
+    // onsetCount_ above (the sliding-window transient-density counter, which decreases as old
+    // onsets leave the window) -- this one is monotonic for the process lifetime of this thread.
+    uint32_t totalOnsetCount_ = 0;
+
     // Cached HCDF from previous hop (for downbeat scoring in stage 5,
     // since chroma HCDF is computed in stage 7)
     float prevHCDF_ = 0.0f;

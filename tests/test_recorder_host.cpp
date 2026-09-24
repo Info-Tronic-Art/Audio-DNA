@@ -60,14 +60,17 @@ namespace
         return s;
     }
 
-    // s167 D10.3 onset-marker dedupe: a snapshot with onsetDetected set, stamped with the given
-    // FeatureBus timestamp -- two ticks reading the SAME timestamp simulate FeatureBus::read()'s
+    // s167 D10.3 onset-marker dedupe (R13 onset-pulse-loss fix): a snapshot with onsetDetected
+    // set and a given FeatureSnapshot::onsetCount -- RecorderHost::tick() now dedupes on the
+    // monotonic count (delta since the last observed value), not FeatureSnapshot::timestamp, so
+    // that a hop published while no tick was looking is never silently lost (the defect the old
+    // timestamp dedupe had). Two ticks passed the SAME onsetCount simulate FeatureBus::read()'s
     // always-latest semantics returning the same published snapshot twice.
-    FeatureSnapshot makeOnsetSnap(uint64_t timestamp, float bpm = 120.0f, float phase = 0.0f)
+    FeatureSnapshot makeOnsetSnap(uint32_t onsetCount, float bpm = 120.0f, float phase = 0.0f)
     {
         FeatureSnapshot s = makeSnap(bpm, phase);
         s.onsetDetected = true;
-        s.timestamp = timestamp;
+        s.onsetCount = onsetCount;
         return s;
     }
 
@@ -1088,7 +1091,14 @@ TEST_CASE("RecorderHost selfstop -- after a reported self-stop, a recovered tap 
 // Diagnosis (step3gate1, 156 markers vs 108 detected onsets): 22 markers were DUPLICATES -- tick()
 // fired marker("onset") on every 120 Hz tick where snap.onsetDetected was true, but FeatureBus::read()
 // is always-latest and analysis publishes slower (~93.75 Hz), so two consecutive ticks read the SAME
-// published snapshot ~14% of the time. Fix: dedupe on FeatureSnapshot::timestamp.
+// published snapshot ~14% of the time. Original fix: dedupe on FeatureSnapshot::timestamp.
+//
+// R13 onset-pulse-loss defect: onsetDetected/onsetStrength are a ONE-HOP PULSE -- a hop published
+// while no tick was looking (analysis publishes at ~93.75 Hz, ticks poll at 120 Hz but can also
+// fall behind/skip) is lost entirely, timestamp dedupe or not. Fix: FeatureSnapshot::onsetCount is
+// a monotonic per-hop counter (AnalysisThread increments it once per detected onset, independent
+// of who is reading). RecorderHost now dedupes on the DELTA between consecutive counts, not on
+// FeatureSnapshot::timestamp -- see onsetCountBaseline_'s comment in RecorderHost.h.
 
 TEST_CASE("RecorderHost onset marker -- two ticks reading the SAME onset snapshot produce exactly one marker", "[host][onsetmarker]")
 {
@@ -1110,18 +1120,21 @@ TEST_CASE("RecorderHost onset marker -- two ticks reading the SAME onset snapsho
 
     REQUIRE(host.arm(comp, dummyTap, opts).ok);
 
-    // Two ticks reading the SAME published FeatureSnapshot (same `timestamp`) -- the always-latest
+    // First tick after arm establishes the dedupe baseline (no onset yet -- onsetCount 0).
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+
+    // Two ticks reading the SAME published FeatureSnapshot (same onsetCount) -- the always-latest
     // FeatureBus::read() scenario that produced the 22 duplicate markers in step3gate1.
-    const FeatureSnapshot snap = makeOnsetSnap(1000);
-    host.tick(snap, 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    const FeatureSnapshot snap = makeOnsetSnap(1);
     host.tick(snap, 0.01, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(snap, 0.02, 0, dummyTap, std::nullopt, 48000.0);
 
     CHECK(host.status().markers == 1);
 
     host.disarm(comp, dummyTap);
 }
 
-TEST_CASE("RecorderHost onset marker -- a new onset snapshot (different timestamp) produces a second marker", "[host][onsetmarker]")
+TEST_CASE("RecorderHost onset marker -- a new onset snapshot (onsetCount advanced by 1) produces a second marker", "[host][onsetmarker]")
 {
     TempDir storeRoot("onsetmarker_newevent_store");
     TempDir takeFolder("onsetmarker_newevent_take");
@@ -1141,17 +1154,50 @@ TEST_CASE("RecorderHost onset marker -- a new onset snapshot (different timestam
 
     REQUIRE(host.arm(comp, dummyTap, opts).ok);
 
-    host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
-    host.tick(makeOnsetSnap(1000), 0.01, 0, dummyTap, std::nullopt, 48000.0);   // same snapshot -- no new marker
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::nullopt, 48000.0);               // baseline = 0
+    host.tick(makeOnsetSnap(1), 0.01, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(makeOnsetSnap(1), 0.02, 0, dummyTap, std::nullopt, 48000.0);        // same count -- no new marker
     CHECK(host.status().markers == 1);
 
-    host.tick(makeOnsetSnap(2000), 0.02, 0, dummyTap, std::nullopt, 48000.0);   // a genuinely new onset event
+    host.tick(makeOnsetSnap(2), 0.03, 0, dummyTap, std::nullopt, 48000.0);        // a genuinely new onset event
     CHECK(host.status().markers == 2);
 
     host.disarm(comp, dummyTap);
 }
 
-TEST_CASE("RecorderHost onset marker -- a new arm resets the dedupe state", "[host][onsetmarker]")
+TEST_CASE("RecorderHost onset marker -- a tick seeing onsetCount jump by 2 since the last tick emits 2 markers", "[host][onsetmarker]")
+{
+    // Fail-first against the timestamp-dedupe code: two onsets published between two ticks (the
+    // 120 Hz tick fell behind analysis for one cycle) used to collapse to at most 1 marker because
+    // the old dedupe only ever compared "is this the same snapshot as last time", never counted how
+    // many onset events happened in between. onsetCount's delta makes the count exact.
+    TempDir storeRoot("onsetmarker_jump_store");
+    TempDir takeFolder("onsetmarker_jump_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    opts.onsetMarkers = true;
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::nullopt, 48000.0);               // baseline = 0
+    host.tick(makeOnsetSnap(2), 0.01, 0, dummyTap, std::nullopt, 48000.0);        // jumped by 2 in one tick
+
+    CHECK(host.status().markers == 2);
+
+    host.disarm(comp, dummyTap);
+}
+
+TEST_CASE("RecorderHost onset marker -- a new arm resets the dedupe baseline (onsets before arm never emit)", "[host][onsetmarker]")
 {
     TempDir storeRoot("onsetmarker_rearm_store");
     TempDir takeFolder1("onsetmarker_rearm_take1");
@@ -1171,16 +1217,26 @@ TEST_CASE("RecorderHost onset marker -- a new arm resets the dedupe state", "[ho
     opts.onsetMarkers = true;
 
     REQUIRE(host.arm(comp, dummyTap, opts).ok);
-    host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::nullopt, 48000.0);               // baseline = 0
+    host.tick(makeOnsetSnap(1), 0.01, 0, dummyTap, std::nullopt, 48000.0);
     CHECK(host.status().markers == 1);
     host.disarm(comp, dummyTap);
 
-    // Re-arm into a fresh take, then feed the SAME timestamp (1000) that the previous take already
-    // marked -- without a reset, the stale lastOnsetMarkerSnapshot_ would swallow this take's very
-    // first onset.
+    // Re-arm into a fresh take. AnalysisThread's onsetCount is a PROCESS-LIFETIME monotonic counter
+    // (unrelated to per-take state), so the first snapshot this new take observes can already carry
+    // a high count (e.g. 50 onsets happened during the previous take/before this arm). Without a
+    // baseline reset, that would either swallow this take's real onsets (if compared against the
+    // stale old baseline it happens to still be ahead of) or flood dozens of bogus markers (if
+    // compared against 0). The fix: the baseline is unset at arm() and the FIRST snapshot observed
+    // after arm becomes the new baseline with ZERO markers emitted for it -- "never emit for onsets
+    // before arm".
     opts.takeFolder = takeFolder2.dir;
     REQUIRE(host.arm(comp, dummyTap, opts).ok);
-    host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(makeOnsetSnap(50), 0.0, 0, dummyTap, std::nullopt, 48000.0);        // establishes baseline = 50
+    CHECK(host.status().markers == 0);
+
+    // A genuinely new onset after the new arm (count 51) DOES emit.
+    host.tick(makeOnsetSnap(51), 0.01, 0, dummyTap, std::nullopt, 48000.0);
     CHECK(host.status().markers == 1);
 
     host.disarm(comp, dummyTap);

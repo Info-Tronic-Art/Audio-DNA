@@ -172,6 +172,13 @@ void AnalysisThread::run()
         snap->onsetDetected = onsetDetector_->onsetDetected();
         snap->onsetStrength = onsetDetector_->onsetStrength();
 
+        // R13 onset-pulse-loss fix: publish a monotonic count alongside the one-hop pulse so a
+        // consumer reading the always-latest FeatureBus at a slower/unsynchronised cadence can
+        // recover exactly how many onsets it missed (see FeatureSnapshot::onsetCount's comment).
+        if (snap->onsetDetected)
+            ++totalOnsetCount_;
+        snap->onsetCount = totalOnsetCount_;
+
         stageEnd = std::chrono::high_resolution_clock::now();
         stageTimesUs_[3] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
         stageStart = stageEnd;
