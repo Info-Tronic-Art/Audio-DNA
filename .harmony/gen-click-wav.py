@@ -61,6 +61,12 @@ def main() -> int:
     p.add_argument("--noise-mix", type=float, default=0.3)
     p.add_argument("--decay-k", type=float, default=5.0)
     p.add_argument("--seed", type=int, default=0)
+    # s-rta-0924: a continuous noise floor between bursts. aubio's onset
+    # detector confirms a peak one hop late and drops it if that hop is TRUE
+    # digital silence (-inf dB) -- with an all-zero gap no onset ever fires
+    # (diagnosed: 0 onsets at any threshold/silence setting; -60..-40 dBFS
+    # floor restores 10/10). Real mic/file audio always has a floor.
+    p.add_argument("--floor-dbfs", type=float, default=-50.0)
     args = p.parse_args()
 
     total_frames = int(round(args.duration_s * args.rate))
@@ -72,6 +78,7 @@ def main() -> int:
     decay_frames = max(1, burst_frames - attack_frames)
 
     rng = random.Random(args.seed)
+    floor_amp = 32767.0 * (10.0 ** (args.floor_dbfs / 20.0))
     silence_frame = struct.pack("<" + "h" * args.channels, *([0] * args.channels))
 
     def envelope(k: int) -> float:
@@ -102,7 +109,8 @@ def main() -> int:
                 n_clicks += 1
                 i += this_burst
             else:
-                w.writeframesraw(silence_frame)
+                fv = int(round(rng.uniform(-1.0, 1.0) * floor_amp))
+                w.writeframesraw(struct.pack("<" + "h" * args.channels, *([fv] * args.channels)))
                 i += 1
 
     print(f"wrote {args.output}: {total_frames} frames @ {args.rate} Hz, "
