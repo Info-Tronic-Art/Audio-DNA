@@ -1,0 +1,24 @@
+{
+  "name": "probe-step3",
+  "activeDeckIndex": 0,
+  "masterOpacity": 1.0,
+  "quantizeMode": 0,
+  "decks": [
+    {
+      "name": "A",
+      "id": 0,
+      "numColumns": 4,
+      "layers": [
+        {
+          "name": "L1", "id": 0, "opacity": 1.0, "visible": true, "blendMode": 1,
+          "clips": [
+            { "name": "gw0", "id": 1, "mediaType": 4, "sourceType": "gravity_well" },
+            { "name": "gw1", "id": 2, "mediaType": 4, "sourceType": "gravity_well" },
+            { "name": "gw2", "id": 3, "mediaType": 4, "sourceType": "gravity_well" },
+            { "name": "gw3", "id": 4, "mediaType": 4, "sourceType": "gravity_well" }
+          ]
+        }
+      ]
+    }
+  ]
+}
