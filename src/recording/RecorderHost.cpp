@@ -151,7 +151,6 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     }
 
     armedGripHoldMs_ = opts.gripHoldMs > 0.0f ? opts.gripHoldMs : 250.0f;
-    // R13-C: opts.analysisRate is a deprecated no-op (see ArmOptions::analysisRate) -- never read.
     armedDeviceRate_ = opts.deviceRate;
     armedDeviceChannels_ = opts.deviceChannels;
     audioMode_ = opts.audioMode;
@@ -739,7 +738,6 @@ void RecorderHost::publishStatus()
     s.refusedByHand = 0;   // reserved: not distinguished from continuousUnavailable in this lane
     s.deviceRate = lastDeviceRate_;
     s.rateChangedSinceArm = rateChangedSinceArm_;
-    s.rateMismatch = rateChangedSinceArm_;   // DEPRECATED mirror -- see Status::rateMismatch comment
     s.humanRefused = humanRefused_;
 
     std::lock_guard<std::mutex> lock(statusMutex_);

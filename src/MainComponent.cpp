@@ -2140,9 +2140,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
         obj->setProperty("audioStatus", juce::String(s.audioStatus));
         obj->setProperty("deviceRate", s.deviceRate);
         // R13-D: rateChangedSinceArm replaces rateMismatch as the published
-        // JSON key (RecorderHost::Status still carries the deprecated
-        // rateMismatch mirror for other pre-lane-D callers, but this
-        // endpoint now publishes only the current name). sourceSampleRate
+        // JSON key (the deprecated RecorderHost::Status::rateMismatch mirror
+        // was removed once its only caller -- pre-lane-D MainComponent.cpp --
+        // was gone; s-rta-0924 cleanup lane). sourceSampleRate
         // mirrors deviceRate here -- onPerfStatus reads ONLY the mutex-
         // guarded Status copy (critic A5(b)/N3), and the analysis thread
         // always resamples to its own fixed internal 48 kHz, so deviceRate

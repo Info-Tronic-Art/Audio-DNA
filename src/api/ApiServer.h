@@ -87,7 +87,7 @@ public:
     // RecorderHost::status()'s mutex-guarded copy — never
     // audioEngine_.getCurrentSampleRate()/getCurrentAudioDevice() directly (critic
     // A5(b)/N3: the message thread may be mid-restart of the audio device). The
-    // returned juce::var is a fully-built status object (deviceRate, rateMismatch,
+    // returned juce::var is a fully-built status object (deviceRate, rateChangedSinceArm,
     // humanRefused, and the rest of RecorderHost::Status) — this file only
     // serializes it, never shapes it. Any callback left unassigned (recorder not
     // yet wired) answers 503 {"ok":false,"error":...} — never a crash, never a

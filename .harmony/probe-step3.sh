@@ -491,7 +491,13 @@ PYEOF
         no "T2 alignment could not be computed ($ALIGN)"
     fi
 else
-    skip "T2 alignment (.venv/bin/python with numpy unavailable)"
+    # s-rta-0924 cleanup lane: FAIL, not SKIP -- a missing .venv/numpy silently
+    # dropped the T2 alignment row from the count entirely, so a run could still
+    # print "N PASS / 0 FAIL" while never having checked click-grid alignment at
+    # all (a silently weaker gate). Run from the main checkout (which already
+    # has a numpy-provisioned .venv), or create one here:
+    #   python3 -m venv .venv && .venv/bin/pip install numpy
+    no "T2 alignment: .venv/bin/python with numpy unavailable -- run from the main checkout, or: python3 -m venv .venv && .venv/bin/pip install numpy"
 fi
 
 # --- 10. load + replay (WithAudio then WallClock) --------------------------
@@ -692,7 +698,13 @@ print(len([w for w in wl if 'Audio-DNA' in str(w.get('kCGWindowOwnerName',''))
         no "$W Audio-DNA Output window(s) were open during the run -- screen-safety breach"
     fi
 else
-    skip "Output-window check (.venv/bin/python with pyobjc/Quartz unavailable)"
+    # s-rta-0924 cleanup lane: FAIL, not SKIP -- a missing .venv/pyobjc silently
+    # dropped the SCREEN-SAFETY LAW check from the count entirely, so a run could
+    # still print "N PASS / 0 FAIL" while never having confirmed the Output
+    # window stayed closed (a silently weaker gate). Run from the main checkout
+    # (which already has a pyobjc-provisioned .venv), or create one here:
+    #   python3 -m venv .venv && .venv/bin/pip install pyobjc-framework-Quartz
+    no "Output-window check: .venv/bin/python with pyobjc/Quartz unavailable -- run from the main checkout, or: python3 -m venv .venv && .venv/bin/pip install pyobjc-framework-Quartz"
 fi
 
 # Final screen state, for the handoff (plan section 4 Teardown paragraph:

@@ -1355,3 +1355,87 @@ TEST_CASE("RecorderHost r13 -- a mid-take device rate change (no audio) reports 
 
     host.disarm(comp, dummyTap);
 }
+
+// === 23: [host][onsetmarker] a tick seeing onsetCount jump by 10 caps at kMaxOnsetMarkersPerTick
+// (8, RecorderHost.cpp anonymous namespace); the excess is carried to the next tick, never lost ===
+//
+// s-rta-0924 cleanup lane: dedicated coverage for the cap itself -- test 21 above ("jump by 2")
+// exercises a delta under the cap; this proves the cap actually caps AND that the excess (delta -
+// n) is recovered on a later tick because onsetCountBaseline_ only advances by `n`, not to
+// snap.onsetCount (see onsetCountBaseline_'s comment in RecorderHost.h).
+
+TEST_CASE("RecorderHost onset marker -- onsetCount jump of 10 emits 8 markers this tick, 2 more next tick", "[host][onsetmarker]")
+{
+    TempDir storeRoot("onsetmarker_cap_store");
+    TempDir takeFolder("onsetmarker_cap_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    opts.onsetMarkers = true;
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::nullopt, 48000.0);               // baseline = 0
+    host.tick(makeOnsetSnap(10), 0.01, 0, dummyTap, std::nullopt, 48000.0);       // delta 10, capped at 8
+    CHECK(host.status().markers == 8);
+
+    // Next tick reads the SAME onsetCount (no genuinely new onset since last tick) -- the 2
+    // markers the cap held back are still owed, because the baseline only advanced to 8, not 10.
+    host.tick(makeOnsetSnap(10), 0.02, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().markers == 10);
+
+    host.disarm(comp, dummyTap);
+}
+
+// === 24: [host][onsetmarker] onsetCount wraps past UINT32_MAX -- unsigned delta stays correct
+// and small, never a flood ===
+//
+// s-rta-0924 cleanup lane: FeatureSnapshot::onsetCount is a PROCESS-LIFETIME monotonic counter
+// (AnalysisThread comment, FeatureSnapshot.h) -- a long-running session can genuinely wrap it past
+// 2^32-1 back to 0. onsetCountBaseline_'s delta is computed with plain uint32_t subtraction
+// (`snap.onsetCount - *onsetCountBaseline_`), which wraps the identical way C++ unsigned integers
+// always do, so the delta across a wrap comes out as the true small onset count, not a ~4 billion
+// flood a naive signed comparison would produce.
+
+TEST_CASE("RecorderHost onset marker -- onsetCount wrapping past UINT32_MAX yields the correct small delta, no flood", "[host][onsetmarker]")
+{
+    TempDir storeRoot("onsetmarker_wrap_store");
+    TempDir takeFolder("onsetmarker_wrap_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    opts.onsetMarkers = true;
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    // Baseline lands 2 below the top of uint32_t's range -- the FIRST snapshot after arm
+    // establishes it, zero markers (same "never emit for onsets before arm" rule as test 20).
+    constexpr uint32_t kNearMax = 4294967293u;   // std::numeric_limits<uint32_t>::max() - 2
+    host.tick(makeOnsetSnap(kNearMax), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().markers == 0);
+
+    // AnalysisThread's counter wraps past 0 (kNearMax -> max -> 0 -> 1 -> 2 -> 3: 6 genuine onset
+    // events). Unsigned subtraction wraps the same way, so the delta is exactly 6 -- not a flood.
+    host.tick(makeOnsetSnap(3), 0.01, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().markers == 6);
+
+    host.disarm(comp, dummyTap);
+}
