@@ -37,9 +37,9 @@ using Catch::Matchers::WithinAbs;
 // default path is no longer guarded by only the one dedicated "S168" test
 // case further down. Three pre-existing EnvelopeSignal cases needed the
 // same true-opt-in once EnvelopeSignal grew the switch (it previously read
-// barCount unconditionally, see EnvelopeSignal.h); they were not given
-// their own totalBarCount siblings, since the review that opened this work
-// packet named only the four OscillatorSignal cases for that treatment.
+// barCount unconditionally, see EnvelopeSignal.h); they now carry their own
+// default-mode (totalBarCount) siblings too, added once a follow-up review
+// named them for the same treatment as the OscillatorSignal cases above.
 
 TEST_CASE("OscillatorSignal 8-beat cycle completes across two bars (was bounded to 4/8)", "[signal][oscillator]")
 {
@@ -331,6 +331,31 @@ TEST_CASE("EnvelopeSignal completes a full cycle over 8 beats (2 bars)", "[signa
     nearEnd.beatInBar = 3;
     nearEnd.barCount = 1;
     REQUIRE(env.getValue(nearEnd) < 0.1f); // ramping back down toward 0
+
+    // S168 default-mode sibling: same fold, same numbers, but via a
+    // default-settings envelope reading totalBarCount instead of barCount
+    // (the switch is a pure re-point -- the math it feeds is identical
+    // either way).
+    EnvelopeSignal envDefault("test", 8.0f);
+    REQUIRE_FALSE(envDefault.getResetPhaseOnStructural());
+
+    FeatureSnapshot startTbc;
+    startTbc.beatPhase = 0.0f;
+    startTbc.beatInBar = 0;
+    startTbc.totalBarCount = 0;
+    REQUIRE_THAT(envDefault.getValue(startTbc), WithinAbs(0.0f, 0.01f));
+
+    FeatureSnapshot peakTbc;
+    peakTbc.beatPhase = 0.0f;
+    peakTbc.beatInBar = 0;
+    peakTbc.totalBarCount = 1;
+    REQUIRE_THAT(envDefault.getValue(peakTbc), WithinAbs(1.0f, 0.01f));
+
+    FeatureSnapshot nearEndTbc;
+    nearEndTbc.beatPhase = 0.99f;
+    nearEndTbc.beatInBar = 3;
+    nearEndTbc.totalBarCount = 1;
+    REQUIRE(envDefault.getValue(nearEndTbc) < 0.1f); // ramping back down toward 0
 }
 
 TEST_CASE("EnvelopeSignal 16-beat option (SignalInspector's longest envelope duration) completes across 4 bars", "[signal][envelope]")
@@ -363,6 +388,32 @@ TEST_CASE("EnvelopeSignal 16-beat option (SignalInspector's longest envelope dur
     nearEnd.beatInBar = 3;
     nearEnd.barCount = 3;
     REQUIRE(env.getValue(nearEnd) < 0.1f); // ramped back down toward 0
+
+    // S168 default-mode sibling: same fold, same numbers, but via a
+    // default-settings envelope reading totalBarCount instead of barCount.
+    EnvelopeSignal envDefault("test", 16.0f);
+    REQUIRE_FALSE(envDefault.getResetPhaseOnStructural());
+
+    FeatureSnapshot startTbc;
+    startTbc.beatPhase = 0.0f;
+    startTbc.beatInBar = 0;
+    startTbc.totalBarCount = 0;
+    REQUIRE_THAT(envDefault.getValue(startTbc), WithinAbs(0.0f, 0.01f));
+
+    // Peak (control point position 0.5) requires totalBeatPhase=8, i.e.
+    // totalBarCount=2 -- unreachable if the default path still read barCount
+    // (which stays 0 in this snapshot).
+    FeatureSnapshot peakTbc;
+    peakTbc.beatPhase = 0.0f;
+    peakTbc.beatInBar = 0;
+    peakTbc.totalBarCount = 2;
+    REQUIRE_THAT(envDefault.getValue(peakTbc), WithinAbs(1.0f, 0.01f));
+
+    FeatureSnapshot nearEndTbc;
+    nearEndTbc.beatPhase = 0.99f;
+    nearEndTbc.beatInBar = 3;
+    nearEndTbc.totalBarCount = 3;
+    REQUIRE(envDefault.getValue(nearEndTbc) < 0.1f); // ramped back down toward 0
 }
 
 TEST_CASE("EnvelopeSignal default duration (4.0, the boundary case) is unchanged across bars", "[signal][envelope]")
@@ -383,6 +434,29 @@ TEST_CASE("EnvelopeSignal default duration (4.0, the boundary case) is unchanged
         s.barCount = bc;
         INFO("barCount=" << bc);
         REQUIRE_THAT(env.getValue(s), WithinAbs(expected, 0.0005f));
+    }
+
+    // S168 default-mode sibling: this is a no-op guard, not a discriminator
+    // -- at beatDuration_=4.0 either counter (barCount or totalBarCount)
+    // contributes a whole number of cycles per unit, so cyclePhase is
+    // identical either way. Kept for symmetry with the other two siblings
+    // and to catch a future divergence in the fold math itself.
+    const uint32_t totalBarCounts[] = {0, 1, 2, 5, 10};
+    FeatureSnapshot baselineTbc;
+    baselineTbc.beatPhase = 0.6f;
+    baselineTbc.beatInBar = 1;
+    baselineTbc.totalBarCount = 0;
+
+    EnvelopeSignal envDefault("test"); // default beatDuration_ = 4.0f
+    REQUIRE_FALSE(envDefault.getResetPhaseOnStructural());
+    float expectedTbc = envDefault.getValue(baselineTbc);
+
+    for (uint32_t tbc : totalBarCounts)
+    {
+        FeatureSnapshot s = baselineTbc;
+        s.totalBarCount = tbc;
+        INFO("totalBarCount=" << tbc);
+        REQUIRE_THAT(envDefault.getValue(s), WithinAbs(expectedTbc, 0.0005f));
     }
 }
 
