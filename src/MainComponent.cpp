@@ -5250,6 +5250,10 @@ void MainComponent::applyClipPlaying(int layerIndex, int column, const std::stri
     if (!clip) return;
 
     if (action == "play") { clip->reverse = false; clip->playing = true; }
+    // "resume" is "play" without the reverse reset -- used by LayerTransport's
+    // pad pause/play toggle (s-rta-0924 step3 fix), which must not flip a
+    // reversed clip forward the way TopBar's Play button intentionally does.
+    else if (action == "resume") { clip->playing = true; }
     else if (action == "pause") { clip->playing = false; }
     else if (action == "stop") { clip->playing = false; clip->playheadPosition = clip->inPoint; }
     else if (action == "reverse") { clip->reverse = !clip->reverse; }
@@ -6593,8 +6597,10 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     {
                         auto* clip = layer->getActiveClip();
                         if (clip)
+                            // "resume" (not "play") on the pause->play leg: a live
+                            // pad toggle must not force a reversed clip forward.
                             applyClipPlaying(resolvedLayer, layer->activeClipColumn,
-                                             clip->playing ? "pause" : "play", Origin::Human);
+                                             clip->playing ? "pause" : "resume", Origin::Human);
                     }
                 }
             }

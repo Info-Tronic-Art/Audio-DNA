@@ -48,6 +48,19 @@ target_link_libraries(test_clip_replace_media_retire PRIVATE Catch2::Catch2WithM
 apply_sanitizers(test_clip_replace_media_retire)
 catch_discover_tests(test_clip_replace_media_retire)
 
+# --- test_layer_transport_reverse (s-rta-0924 step3 S3-B follow-up: the
+# LayerTransport binding's pause->play toggle must not reset clip->reverse
+# the way TopBar's Play button intentionally does). Headless: mirrors
+# MainComponent::applyClipPlaying's action switch and the LayerTransport
+# binding's toggle decision, same reason and approach as
+# test_clip_replace_media_retire above -- MainComponent.cpp is not linked
+# into any ctest target here.
+add_executable(test_layer_transport_reverse test_layer_transport_reverse.cpp)
+target_include_directories(test_layer_transport_reverse PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_transport_reverse PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_layer_transport_reverse)
+catch_discover_tests(test_layer_transport_reverse)
+
 # --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
 # composition-tier oracle endpoints in src/test/TestServer.cpp — see the
 # file header for exact scope). Headless: bare Composition + EffectLibrary,
