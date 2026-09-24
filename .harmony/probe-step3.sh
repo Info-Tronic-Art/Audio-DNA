@@ -205,6 +205,7 @@ if [ "$R13_OK" != "1" ]; then
 else
 
 # --- 5. arm with deterministic audio (file mode) + onset markers (T2) -----
+N_ASSETS_BEFORE="$(ls -1 "$AUDIO_DIR" 2>/dev/null | grep -c '\.adna-audio$')"
 TAKE_NAME="step3gate1"
 curl -s --max-time 6 -X POST "$A/api/perf/record" -H 'Content-Type: application/json' \
   -d "{\"name\":\"$TAKE_NAME\",\"audio\":true,\"audioFile\":\"$CLICK_WAV\",\"onsetMarkers\":true}" \
@@ -290,9 +291,15 @@ OP_N_GESTURES="$(take_field "$TAKE_FOLDER" "sum(1 for lane in d.get('lanes',[]) 
 OP_GRIP="$(take_field "$TAKE_FOLDER" "next((g.get('grip','NA') for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity' for g in lane.get('gestures',[])), 'NA')")"
 OP_N_BREAKPOINTS="$(take_field "$TAKE_FOLDER" "next((len(g.get('curve',[])) for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity' for g in lane.get('gestures',[])), 0)")"
 [ "$OP_LANE_KIND" = "continuous" ] && ok "layer/scalar:opacity lane kind == continuous" || no "layer/scalar:opacity lane kind == $OP_LANE_KIND (expected continuous)"
-[ "$OP_N_GESTURES" = "1" ] && ok "layer/scalar:opacity lane has exactly 1 gesture" || no "layer/scalar:opacity lane has $OP_N_GESTURES gestures (expected 1)"
+# s-rta-0924 (Harmony, diagnosis-verified): the recipe sends 3 REST writes 1 s
+# apart; each is a Decaying grip that idles out after gripHoldMs (250 ms), so
+# the take correctly holds 3 gestures of 2 breakpoints (a flat plateau), values
+# 0.4 / 0.7 / 0.2 in order.
+OP_VALUES="$(take_field "$TAKE_FOLDER" "' '.join('%.1f' % g['curve'][0]['y'] for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity' for g in lane.get('gestures',[]) if g.get('curve'))")"
+[ "$OP_N_GESTURES" = "3" ] && ok "layer/scalar:opacity lane has 3 gestures (one per REST write)" || no "layer/scalar:opacity lane has $OP_N_GESTURES gestures (expected 3)"
+[ "$OP_VALUES" = "0.4 0.7 0.2" ] && ok "layer/scalar:opacity gesture values in order: $OP_VALUES" || no "layer/scalar:opacity gesture values: '$OP_VALUES' (expected '0.4 0.7 0.2')"
 [ "$OP_GRIP" = "decaying" ] && ok "layer/scalar:opacity gesture grip == decaying" || no "layer/scalar:opacity gesture grip == $OP_GRIP (expected decaying)"
-awk -v x="$OP_N_BREAKPOINTS" 'BEGIN{exit !(x+0>=3)}' 2>/dev/null && ok "layer/scalar:opacity gesture has >=3 breakpoints ($OP_N_BREAKPOINTS)" || no "layer/scalar:opacity gesture has $OP_N_BREAKPOINTS breakpoints, expected >=3"
+[ "$OP_N_BREAKPOINTS" = "2" ] && ok "layer/scalar:opacity first gesture has 2 breakpoints (touch + idle end)" || no "layer/scalar:opacity first gesture has $OP_N_BREAKPOINTS breakpoints, expected 2"
 
 N_ACTIVECLIP="$(take_field "$TAKE_FOLDER" "sum(1 for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='activeClip' for p in lane.get('points',[]))")"
 awk -v x="$N_ACTIVECLIP" 'BEGIN{exit !(x+0>=4)}' 2>/dev/null && ok "layer/activeClip lane has >=4 points ($N_ACTIVECLIP)" || no "layer/activeClip lane has $N_ACTIVECLIP points, expected >=4"
@@ -492,8 +499,11 @@ if [ -f "$GATE2_FOLDER/take.json" ]; then
     [ "$G2_FIRST" = "0" ] && ok "overdub take firstSample==0 (v2 5.2)" || no "overdub take firstSample==$G2_FIRST (expected 0)"
     G2_ID="$(take_field "$GATE2_FOLDER" "d['audio']['segments'][0]['id']")"
     [ "$G2_ID" = "$ASSET" ] && ok "overdub take references the SAME asset id ($ASSET)" || no "overdub take references $G2_ID, expected the original asset $ASSET"
+    # s-rta-0924 (Harmony): count the DELTA vs before arm -- earlier runs'
+    # assets legitimately stay in the shared store (Ruling 28: never delete).
     N_ASSETS="$(ls -1 "$AUDIO_DIR" 2>/dev/null | grep -c '\.adna-audio$')"
-    [ "$N_ASSETS" = "1" ] && ok "Audio/ still has exactly one asset after overdub ($N_ASSETS)" || no "Audio/ has $N_ASSETS assets after overdub (expected 1 -- overdub must not create a new one)"
+    N_NEW=$((N_ASSETS - N_ASSETS_BEFORE))
+    [ "$N_NEW" = "1" ] && ok "Audio/ gained exactly one asset this run, overdub added none ($N_ASSETS_BEFORE -> $N_ASSETS)" || no "Audio/ gained $N_NEW assets this run ($N_ASSETS_BEFORE -> $N_ASSETS; expected 1 -- overdub must not create a new one)"
 else
     no "overdub take.json missing at $GATE2_FOLDER"
 fi
