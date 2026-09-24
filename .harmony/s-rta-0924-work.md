@@ -57,3 +57,17 @@
 - Gate against the worktree build SKIPPED T2 + Output-window rows (no .venv in worktree) -> 58/0 was NOT a pass; re-ran from main.
 - LIVE GATE run 8 (main, Harmony): 63 PASS / 0 FAIL. Onset coverage 100.8% (134 markers / 133 clicks; was 87%), dupes 0, mean 32.55 ms, drift -0.21 ms (stderr 2.27 -> WARN), p95 jitter 11.45 ms (up from ~5.5: multi-onset ticks share the tick stamp; within 15).
 - Other onsetDetected consumers with the same always-latest loss (not fixed): render uniforms CompositorEngine.cpp:1575, EffectChain.cpp:340, ProceduralSource.cpp:175 (60 fps -> onset flashes can miss beats), GET /api/features (ApiServer.cpp:649). Could use onsetCount.
+
+## s-rta-0924b (2026-09-24, secondary) — WORK INDEX
+Boris: "use workflows". Workflow 1 (plan+critique) launched: (A) onset render-path fix via onsetCount delta,
+(B) STEP3_LONG=1 opt-in 10-min drift run, (C) Step 4 Record panel UI plan. Reports → .harmony/.reports/s-rta-0924b/.
+Next: Harmony rules on plans → Workflow 2 build+review (worktrees) → Harmony live gate → merge.
+Workflow 1 DONE (6 agents). Plans + critics in .harmony/.reports/s-rta-0924b/. All APPROVE-WITH-AMENDMENTS.
+HARMONY RULINGS (binding on builders):
+- onset: plan approved. Critic MAJOR fixed by: test-mode onsetCount mirror computed in ONE place under
+  TestServer's existing lock (injectSnapshot), ApiServer path funnels there; no second unlocked baseline.
+- drift: approved as planned + critic MINORs.
+- step4: approved. Critic MAJOR 1: stop-play during overdub must also stop the audio transport and clear
+  overdub state (fix in RecorderHost/MainComponent, add a test). MAJOR 2: DROP the new "Saved:" success
+  notify (no undisclosed behaviour change). Boris-call defaults = plan §5 defaults.
+Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix round → Harmony gate + merge.
