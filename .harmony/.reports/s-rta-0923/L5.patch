@@ -1,0 +1,78 @@
+diff --git a/src/ui/RecordPanel.cpp b/src/ui/RecordPanel.cpp
+index 99ec0a8..3500573 100644
+--- a/src/ui/RecordPanel.cpp
++++ b/src/ui/RecordPanel.cpp
+@@ -5,6 +5,9 @@ RecordPanel::RecordPanel()
+     // Record button
+     addAndMakeVisible(recordBtn_);
+     recordBtn_.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff442222));
++    recordBtn_.setComponentID("record");
++    recordBtn_.setEnabled(false);
++    recordBtn_.setTooltip("Recording is coming in a later build. Nothing is captured yet.");
+     recordBtn_.onClick = [this] {
+         recording_ = true;
+         recordBtn_.setEnabled(false);
+@@ -16,7 +19,9 @@ RecordPanel::RecordPanel()
+ 
+     // Stop button
+     addAndMakeVisible(stopBtn_);
++    stopBtn_.setComponentID("stop");
+     stopBtn_.setEnabled(false);
++    stopBtn_.setTooltip("Recording is coming in a later build.");
+     stopBtn_.onClick = [this] {
+         recording_ = false;
+         recordBtn_.setEnabled(true);
+@@ -28,15 +33,25 @@ RecordPanel::RecordPanel()
+ 
+     // Play button
+     addAndMakeVisible(playBtn_);
++    playBtn_.setComponentID("play");
++    playBtn_.setEnabled(false);
++    playBtn_.setTooltip("Playback of a recorded performance is coming in a later build.");
+     playBtn_.onClick = [this] {
+         if (onPlayRecording) onPlayRecording();
+     };
+ 
+-    // Save/Load: dead until step 3/4 wires this panel against
+-    // PerformanceRecorder/Take (see the header comment) -- the buttons
+-    // stay visible (G25's already-dead UI) rather than disappearing.
++    // Save/Load: disabled with tooltips until step 3/4 wires this panel
++    // against PerformanceRecorder/Take (see the header comment) -- the
++    // buttons stay visible (G25's already-dead UI) rather than disappearing.
+     addAndMakeVisible(saveBtn_);
++    saveBtn_.setComponentID("save");
++    saveBtn_.setEnabled(false);
++    saveBtn_.setTooltip("Saving a recorded performance is coming in a later build.");
++
+     addAndMakeVisible(loadBtn_);
++    loadBtn_.setComponentID("load");
++    loadBtn_.setEnabled(false);
++    loadBtn_.setTooltip("Loading a recorded performance is coming in a later build.");
+ 
+     // Format selector
+     addAndMakeVisible(formatSelector_);
+@@ -47,7 +62,7 @@ RecordPanel::RecordPanel()
+ 
+     // Status
+     addAndMakeVisible(statusLabel_);
+-    statusLabel_.setText("Ready", juce::dontSendNotification);
++    statusLabel_.setText("Performance recorder coming in a later build", juce::dontSendNotification);
+     statusLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+     statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+ 
+diff --git a/src/ui/RecordPanel.h b/src/ui/RecordPanel.h
+index e16fdb6..89035b5 100644
+--- a/src/ui/RecordPanel.h
++++ b/src/ui/RecordPanel.h
+@@ -5,8 +5,9 @@
+ // RecordPanel: settings recording controls (start/stop, playback).
+ // s168 step 1 (recorder core): SessionRecorder is deleted (see
+ // src/recording/{Take,Program,Player,PerformanceRecorder}.h) -- this panel
+-// is left as dead UI (already noted, G25) until step 3/4 wires it against
+-// the new PerformanceRecorder/Player classes.
++// is disabled with tooltips until spec steps 3/4 wire it; nothing is
++// captured or played; MainComponent's TooltipWindow (MainComponent.cpp:471)
++// shows the tooltips.
+ class RecordPanel : public juce::Component
+ {
+ public:

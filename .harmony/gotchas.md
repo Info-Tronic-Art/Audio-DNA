@@ -427,3 +427,10 @@ new file. s168 lost 8 files (two builder reports, four work packets, a recon and
 written for Boris) to exactly this and only caught it by running `git show --stat` afterwards.
 **Fix:** use `git add -f` for any NEW path under `.harmony/`, and **always `git show --stat HEAD`
 after a `.harmony/` commit** and read the file list. Do not trust the commit's exit code.
+
+### 2026-09-23 — setEnabled(false) does NOT dim a button in this app's LookAndFeel
+Source: s-rta-0923 lane L5 live gate — Record panel buttons disabled in code, screenshot showed them at full brightness (Record still solid red)
+Trigger: disabling any TextButton to signal "not available yet" (honest-interim pattern, spec D14)
+Rule: A disabled button here is visually identical to an enabled one — dim it explicitly (e.g. setAlpha) or the change is invisible to the user; ALWAYS verify a disabled state from a live screenshot, never from the code. AX note: disabled JUCE buttons may not appear in the accessibility tree walk (Play/Stop were absent), so AX cannot confirm them either.
+Scope: repo
+Promoted: no
