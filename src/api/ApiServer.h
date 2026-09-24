@@ -68,6 +68,14 @@ public:
     // /api/inject_features relays the built snapshot to the TestServer-held
     // Writer through this callback (wired by MainComponent in test mode).
     std::function<void(const FeatureSnapshot&)> onInjectFeatures;
+    // s-rta-0923 lane 3 (plan section 3.6, sites #9/#10): the message-thread
+    // write these two endpoints used to do inline is now routed through
+    // MainComponent::manualWrite so a layer-opacity / clip-effect-param REST
+    // write participates in the D8 grip chain like every other writer. The
+    // inline write is REMOVED from ApiServer.cpp; these callbacks are the
+    // only thing the two handlers do now.
+    std::function<void(int layer, float opacity)> onSetLayerOpacity;
+    std::function<void(int layer, int column, int fxIndex, int paramIndex, const std::string& paramName, float value)> onSetClipEffectParam;
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;

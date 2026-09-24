@@ -24,6 +24,11 @@
 #include "signal/SignalRegistry.h"
 #include "routing/MacroBank.h"
 #include "model/Composition.h"
+#include "model/ControlPath.h"
+#include "connect/ConnectionEngine.h"
+#include "connect/ConnClock.h"
+#include "connect/ManualWrite.h"
+#include "recording/Lane.h"
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
@@ -87,6 +92,29 @@ public:
 
     // Menu bar model — accessible for MainWindow to set on the native title bar
     juce::MenuBarModel* getMenuBarModel() { return menuBarModel_.get(); }
+
+    // s-rta-0923 lane 3 (plan section 3.1/3.4; R8: this lane owns
+    // manualWrite, the recorder only hooks it later). The funnel every
+    // non-widget manual writer goes through — OSC/MIDI/REST sites (section
+    // 3.6) and, later, the recorder's Player::Sink. Widgets grip the bound
+    // ParamConnection directly (plan section 4.2, Lane C4) and do not pass
+    // here. GripKind is `ParamConnection::Grip::Kind`; Origin is
+    // `recording/Lane.h`'s Origin (included above).
+    using GripKind = ParamConnection::Grip::Kind;
+    bool manualWrite(const ControlPath& path, float valueNorm, GripKind kind, Origin origin);
+    void manualRelease(const ControlPath& path, Origin origin);
+    // Critic finding #4 (s-rta-0923-lane3-plan.md amendment 4): a touch-only
+    // seam (opens/refreshes the grip with no value write) for step 3's
+    // `Sink::touch` — a recorded gesture's grip must open BEFORE its first
+    // value arrives. Wraps manualTouchCore exactly like manualWrite wraps
+    // manualWriteCore.
+    bool manualTouch(const ControlPath& path, GripKind kind, Origin origin);
+    // STEP-3 HOOK SEAM (recorder): called AFTER the core decided.
+    // `accepted == false` means refused (a lower rank tried to touch/write
+    // over a higher one — see ManualWrite.h's Hand ranks).
+    std::function<void(const ControlPath&, float valueNorm, GripKind, Origin, bool accepted)> onManualWrite;
+    std::function<void(const ControlPath&, GripKind, Origin, bool accepted)> onManualTouch;
+    std::function<void(const ControlPath&, Origin)> onManualRelease;
 
 private:
     void openImage();
@@ -336,6 +364,14 @@ private:
     UndoService undoService_;
     SignalRegistry signalRegistry_;
     MacroBank globalMacroBank_{MacroBank::Scope::Global};
+    // s-rta-0923 lane 3 (plan section 4.1 piece 1): the ONE evaluator for
+    // every ParamConnection, ticked once per tickFeaturePipeline() call
+    // (after globalMacroBank_.updateValues, before inspectorPanel_->
+    // tickModulation()). lastConnTick_ is the previous tick's connNow(); 0.0
+    // means "no previous tick yet" (first tick falls back to 1/kMappingTickHz
+    // as dt, matching the timer's nominal period).
+    ConnectionEngine connectionEngine_;
+    double lastConnTick_ = 0.0;
     LinkSync linkSync_;
     std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
     bool tooltipsEnabled_ = true;

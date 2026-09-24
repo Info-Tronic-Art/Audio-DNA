@@ -8,6 +8,7 @@
 #include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
 #include "core/CompositionLoad.h"
+#include <algorithm>
 
 static uint32_t s_nextClipId = 1000;
 
@@ -59,6 +60,112 @@ namespace
     {
         return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
                    .getChildFile("Audio-DNA").getChildFile("milkdrop_userdata.json");
+    }
+
+    // s-rta-0923 lane 3 (plan section 3.4): ControlPath builders for
+    // manualWrite's 11 external writer sites (plan section 3.6). POSITIONAL
+    // fields only, per ControlPath's own contract (D2's name resolution is
+    // Program::compile's job, not this lane's) — but the names ARE filled
+    // from the live model at call time so a take recorded through this
+    // funnel is re-bindable later (D2).
+    ControlPath compScalarPath(const juce::String& key)
+    {
+        ControlPath p;
+        p.scope = ControlPath::Scope::Comp;
+        p.control = "scalar";
+        p.scalar = key.toStdString();
+        return p;
+    }
+
+    ControlPath layerScalarPath(const Composition& comp, int deckIdx, int layerIdx, const juce::String& key)
+    {
+        ControlPath p;
+        p.scope = ControlPath::Scope::Layer;
+        p.deck = deckIdx;
+        p.layer = layerIdx;
+        p.control = "scalar";
+        p.scalar = key.toStdString();
+        if (deckIdx >= 0 && deckIdx < static_cast<int>(comp.decks.size()))
+        {
+            auto& deck = comp.decks[static_cast<size_t>(deckIdx)];
+            p.deckName = deck.name;
+            if (layerIdx >= 0 && layerIdx < static_cast<int>(deck.layers.size()))
+            {
+                auto& layer = deck.layers[static_cast<size_t>(layerIdx)];
+                p.layerId = layer.id;
+                p.layerName = layer.name;
+            }
+        }
+        return p;
+    }
+
+    ControlPath clipScalarPath(const Composition& comp, int deckIdx, int layerIdx, int col, const juce::String& key)
+    {
+        ControlPath p = layerScalarPath(comp, deckIdx, layerIdx, key);
+        p.scope = ControlPath::Scope::Clip;
+        p.col = col;
+        if (deckIdx >= 0 && deckIdx < static_cast<int>(comp.decks.size()))
+        {
+            auto& deck = comp.decks[static_cast<size_t>(deckIdx)];
+            if (layerIdx >= 0 && layerIdx < static_cast<int>(deck.layers.size()))
+            {
+                auto& layer = deck.layers[static_cast<size_t>(layerIdx)];
+                if (col >= 0 && col < static_cast<int>(layer.clips.size()) && layer.clips[static_cast<size_t>(col)].has_value())
+                    p.clipName = layer.clips[static_cast<size_t>(col)]->name;
+            }
+        }
+        return p;
+    }
+
+    // paramKey is passed in (not derived here) — the only caller (ApiServer's
+    // set_param clip branch, plan section 3.6 site #10) already resolved it
+    // from EffectLibrary while matching the param by name; this function has
+    // no EffectLibrary access of its own and must not re-derive a lossy
+    // stand-in (an index string) for the D2 name-resolution field.
+    ControlPath clipParamPath(const Composition& comp, int deckIdx, int layerIdx, int col, int fxIdx,
+                              int paramIdx, const juce::String& paramKey)
+    {
+        ControlPath p = clipScalarPath(comp, deckIdx, layerIdx, col, "");
+        p.control = "param";
+        p.scalar.clear();
+        p.fx = fxIdx;
+        p.param = paramIdx;
+        p.paramKey = paramKey.toStdString();
+        if (deckIdx >= 0 && deckIdx < static_cast<int>(comp.decks.size()))
+        {
+            auto& deck = comp.decks[static_cast<size_t>(deckIdx)];
+            if (layerIdx >= 0 && layerIdx < static_cast<int>(deck.layers.size()))
+            {
+                auto& layer = deck.layers[static_cast<size_t>(layerIdx)];
+                if (col >= 0 && col < static_cast<int>(layer.clips.size()) && layer.clips[static_cast<size_t>(col)].has_value())
+                {
+                    auto& clip = *layer.clips[static_cast<size_t>(col)];
+                    if (fxIdx >= 0 && fxIdx < static_cast<int>(clip.effects.size()))
+                        p.fxName = clip.effects[static_cast<size_t>(fxIdx)].effectName;
+                }
+            }
+        }
+        return p;
+    }
+
+    ControlPath macroPath(int i)
+    {
+        ControlPath p;
+        p.scope = ControlPath::Scope::Macro;
+        p.control = "macro";
+        p.macroScope = 0;
+        p.macro = i;
+        return p;
+    }
+
+    // s167 D6a: OSC/MIDI/REST writes are all treated as the human hand
+    // (Decaying rank — no release event) at the funnel; only widget drags
+    // (Lane C4, gripHeld()/release() directly on the bound ParamConnection)
+    // are Held.
+    Hand handFor(Origin o, ParamConnection::Grip::Kind k)
+    {
+        if (o == Origin::Human) return k == ParamConnection::Grip::Kind::Held ? Hand::HumanHeld : Hand::HumanDecaying;
+        return Hand::Lane;   // Replay, Routine, Preamble, Engine
     }
 }
 
@@ -1813,6 +1920,24 @@ MainComponent::MainComponent(bool testMode, int testPort)
             tracker->setManualBPM(bpm);
         }
     };
+    // s-rta-0923 lane 3 (plan section 3.6, site #9): the inline
+    // `lay->opacity = opacity;` write was removed from
+    // ApiServer::handleSetLayerOpacity; this callback is now the only place
+    // that write happens, routed through manualWrite.
+    apiServer_->onSetLayerOpacity = [this](int layerIdx, float opacity) {
+        manualWrite(layerScalarPath(composition_, composition_.activeDeckIndex, layerIdx, "opacity"),
+                   opacity, GripKind::Decaying, Origin::Human);
+    };
+    // s-rta-0923 lane 3 (plan section 3.6, site #10): the inline
+    // `fx.paramValues[pi] = value;` write was removed from
+    // ApiServer::handleSetParam's clip branch; this callback is now the only
+    // place that write happens, routed through manualWrite.
+    apiServer_->onSetClipEffectParam = [this](int layerIdx, int column, int fxIndex, int paramIndex,
+                                              const std::string& paramName, float value) {
+        manualWrite(clipParamPath(composition_, composition_.activeDeckIndex, layerIdx, column, fxIndex,
+                                  paramIndex, juce::String(paramName)),
+                   value, GripKind::Decaying, Origin::Human);
+    };
 #if AUDIODNA_TEST_SERVER
     // R4: test-mode inject_features on the production port relays through
     // the TestServer-held Writer (the only writer in test mode).
@@ -1833,12 +1958,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         juce::MessageManager::callAsync([this, deckIdx]() { handleDeckSwitch(deckIdx); });
     };
     oscHandler_.onSetMaster = [this](float level) {
-        composition_.masterOpacity = level;
+        // s-rta-0923 lane 3 (plan section 3.6, site #1): routed through the
+        // manualWrite funnel (Decaying rank — OSC has no release event).
+        manualWrite(compScalarPath("opacity"), level, GripKind::Decaying, Origin::Human);
     };
     oscHandler_.onSetLayerOpacity = [this](int layerIdx, float opacity) {
-        if (auto* deck = composition_.getActiveDeck())
-            if (auto* layer = deck->getLayer(layerIdx))
-                layer->opacity = opacity;
+        // s-rta-0923 lane 3 (plan section 3.6, site #2).
+        manualWrite(layerScalarPath(composition_, composition_.activeDeckIndex, layerIdx, "opacity"),
+                   opacity, GripKind::Decaying, Origin::Human);
     };
     oscHandler_.onSetLayerBypass = [this](int layerIdx, bool bypass) {
         if (auto* deck = composition_.getActiveDeck())
@@ -1864,9 +1991,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
     oscHandler_.onSetMacro = [this](int macroIdx, float value) {
-        // Same path as the AdjustMacro MIDI binding (global dashboard-link bank).
+        // s-rta-0923 lane 3 (plan section 3.6, site #3). Same path as the
+        // AdjustMacro MIDI binding (global dashboard-link bank), now routed
+        // through manualWrite.
         if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
-            globalMacroBank_.getMacro(macroIdx).manualValue = value;
+            manualWrite(macroPath(macroIdx), value, GripKind::Decaying, Origin::Human);
     };
     oscHandler_.onSetEffectParam = [this](const juce::String& effectName,
                                           const juce::String& paramName, float value) {
@@ -3052,6 +3181,36 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
     }
 }
 
+// s-rta-0923 lane 3 (plan section 3.4): manualWrite/manualRelease/manualTouch
+// are the thin MainComponent wrapper over the headless core in
+// src/connect/ManualWrite.h (Lane C1 implements the core bodies; this
+// wrapper's only job is Origin+GripKind -> Hand and the recorder's hook
+// seam — R8, this lane owns manualWrite, the recorder only hooks it later).
+bool MainComponent::manualWrite(const ControlPath& p, float v, GripKind k, Origin o)
+{
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+    auto ref = resolveControl(composition_, globalMacroBank_, p);
+    bool ok = ref.has_value() && manualWriteCore(*ref, v, handFor(o, k), k, connNow(), composition_.gripHoldMs);
+    if (onManualWrite) onManualWrite(p, v, k, o, ok);
+    return ok;
+}
+
+void MainComponent::manualRelease(const ControlPath& p, Origin o)
+{
+    if (auto ref = resolveControl(composition_, globalMacroBank_, p))
+        manualReleaseCore(*ref, handFor(o, GripKind::Held));
+    if (onManualRelease) onManualRelease(p, o);
+}
+
+bool MainComponent::manualTouch(const ControlPath& p, GripKind k, Origin o)
+{
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+    auto ref = resolveControl(composition_, globalMacroBank_, p);
+    bool ok = ref.has_value() && manualTouchCore(*ref, handFor(o, k), k, connNow(), composition_.gripHoldMs);
+    if (onManualTouch) onManualTouch(p, k, o, ok);
+    return ok;
+}
+
 void MainComponent::tickFeaturePipeline()
 {
     const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
@@ -3074,6 +3233,25 @@ void MainComponent::tickFeaturePipeline()
     // tickModulation()'s getMacroValue() reads this tick's value rather than
     // the previous one.
     globalMacroBank_.updateValues(signalRegistry_);
+
+    // S-RTA-0923 LANE 3: the ONE evaluator for every ParamConnection (s166
+    // spec section 4.2/4.3). Macros were updated just above (they are
+    // sources); the recorder's Player::advanceTo (step 3) MUST be inserted
+    // BETWEEN updateValues and this call (ConnectionEngine.cpp's own
+    // ORDERING FACT — see the COLLISION NOTICE in the lane 3 plan section 5,
+    // C3). tickModulation() (below) is the pre-existing effect/source-param
+    // path (retired later by the effect-param lane, plan section 11) and
+    // coexists safely: the engine below publishes only into scalarLive
+    // twins; tickModulation() still writes the old fields directly.
+    const double now = connNow();
+    const float dt = (lastConnTick_ > 0.0)
+                        ? std::clamp(static_cast<float>(now - lastConnTick_), 0.0f, 0.05f)
+                        : 1.0f / static_cast<float>(kMappingTickHz);
+    lastConnTick_ = now;
+    ConnectionEngine::Context ctx{ signalRegistry_, globalMacroBank_, snap, dt, now,
+                                   composition_.gripHoldMs, composition_.handBackGlideMs };
+    connectionEngine_.tick(composition_, ctx);
+
     if (inspectorPanel_) inspectorPanel_->tickModulation();
 }
 
@@ -5702,19 +5880,12 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         {
             if (value > 0.0f)
             {
-                // Apply MIDI velocity to clip opacity if enabled
+                // Apply MIDI velocity to clip opacity if enabled. s-rta-0923
+                // lane 3 (plan section 3.6, site #7).
                 if (binding.velocityToOpacity && binding.inputType == Binding::InputType::MidiNote)
                 {
-                    if (auto* deck = composition_.getActiveDeck())
-                    {
-                        auto* layer = deck->getLayer(resolvedLayer);
-                        if (layer)
-                        {
-                            auto* clip = layer->getClipAt(resolvedColumn);
-                            if (clip)
-                                clip->clipOpacity = value; // velocity already normalized 0-1
-                        }
-                    }
+                    manualWrite(clipScalarPath(composition_, composition_.activeDeckIndex, resolvedLayer, resolvedColumn, "opacity"),
+                               value, GripKind::Decaying, Origin::Human); // velocity already normalized 0-1
                 }
                 handleClipTrigger(resolvedLayer, resolvedColumn);
             }
@@ -5739,16 +5910,18 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         {
             if (value > 0.0f)
             {
-                // Apply velocity to all clips in the column if enabled
+                // Apply velocity to all clips in the column if enabled.
+                // s-rta-0923 lane 3 (plan section 3.6, site #8).
                 if (binding.velocityToOpacity && binding.inputType == Binding::InputType::MidiNote)
                 {
                     if (auto* deck = composition_.getActiveDeck())
                     {
-                        for (auto& layer : deck->layers)
+                        for (int li = 0; li < static_cast<int>(deck->layers.size()); ++li)
                         {
-                            auto* clip = layer.getClipAt(resolvedColumn);
-                            if (clip)
-                                clip->clipOpacity = value;
+                            auto& layer = deck->layers[static_cast<size_t>(li)];
+                            if (layer.getClipAt(resolvedColumn))
+                                manualWrite(clipScalarPath(composition_, composition_.activeDeckIndex, li, resolvedColumn, "opacity"),
+                                           value, GripKind::Decaying, Origin::Human);
                         }
                     }
                 }
@@ -5873,17 +6046,15 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             break;
 
         case Binding::Action::MasterOpacity:
-            composition_.masterOpacity = value;
+            // s-rta-0923 lane 3 (plan section 3.6, site #4).
+            manualWrite(compScalarPath("opacity"), value, GripKind::Decaying, Origin::Human);
             break;
 
         case Binding::Action::AdjustLayerOpacity:
         {
-            if (auto* deck = composition_.getActiveDeck())
-            {
-                auto* layer = deck->getLayer(resolvedLayer);
-                if (layer)
-                    layer->opacity = value;
-            }
+            // s-rta-0923 lane 3 (plan section 3.6, site #5).
+            manualWrite(layerScalarPath(composition_, composition_.activeDeckIndex, resolvedLayer, "opacity"),
+                       value, GripKind::Decaying, Origin::Human);
             break;
         }
 
@@ -5932,9 +6103,9 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
 
         case Binding::Action::AdjustMacro:
         {
-            // CC value → macro knob
+            // CC value → macro knob. s-rta-0923 lane 3 (plan section 3.6, site #6).
             if (binding.targetMacroIndex >= 0 && binding.targetMacroIndex < MacroBank::kNumMacros)
-                globalMacroBank_.getMacro(binding.targetMacroIndex).manualValue = value;
+                manualWrite(macroPath(binding.targetMacroIndex), value, GripKind::Decaying, Origin::Human);
             break;
         }
 

@@ -11,10 +11,39 @@
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
 #include "binding/BindingManager.h"
+#include "connect/ScalarParams.h"
 #include <juce_core/juce_core.h>
 #include <algorithm>
 #include <iostream>
 #include <limits>
+
+namespace
+{
+// s-rta-0923 lane 3 (plan section 4.1 item 4 / section 3.6 #9-#10): the
+// production oracle C5 reads. Adds "live" (every ScalarDef key -> owner.eff(s),
+// the atomic twin's effective value falling back to the plain manual field —
+// same eff() every renderer read (C2) and every widget (C4) uses) and
+// "connected" (the subset of those keys whose ParamConnection isConnected())
+// to `obj`. One template shared by Composition/Layer/Clip since all three
+// expose the identical eff(ScalarEnum)/scalarConns<N> shape.
+template <typename Owner, typename ScalarEnum, std::size_t N>
+void addLiveBlock(juce::DynamicObject& obj, const Owner& owner,
+                  const std::array<ParamConnection, N>& conns,
+                  const std::array<ScalarDef, N>& defs)
+{
+    auto* liveObj = new juce::DynamicObject();
+    juce::Array<juce::var> connectedArr;
+    for (std::size_t i = 0; i < N; ++i)
+    {
+        auto s = static_cast<ScalarEnum>(i);
+        liveObj->setProperty(juce::String(defs[i].key), static_cast<double>(owner.eff(s)));
+        if (conns[i].isConnected())
+            connectedArr.add(juce::String(defs[i].key));
+    }
+    obj.setProperty("live", juce::var(liveObj));
+    obj.setProperty("connected", connectedArr);
+}
+} // namespace
 
 ApiServer::ApiServer(Renderer& renderer,
                      const FeatureBus& featureBus,
@@ -267,6 +296,10 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
     obj->setProperty("activeDeck", composition_.activeDeckIndex);
     obj->setProperty("numDecks", static_cast<int>(composition_.decks.size()));
     obj->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
+    // s-rta-0923 lane 3: the production oracle (plan section 4.1 item 4;
+    // C5's probe-lane3.sh reads d['live']['positionX'] etc). Absent on the
+    // pre-change binary — that absence IS C5's fail-first gate.
+    addLiveBlock<Composition, CompScalar>(*obj, composition_, composition_.scalarConns, compScalarDefs());
 
     // Deck details
     juce::Array<juce::var> deckArray;
@@ -292,6 +325,7 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
             layerObj->setProperty("bypassed", layer.bypassed);
             layerObj->setProperty("activeClipColumn", layer.activeClipColumn);
             layerObj->setProperty("blendMode", static_cast<int>(layer.blendMode));
+            addLiveBlock<Layer, LayerScalar>(*layerObj, layer, layer.scalarConns, layerScalarDefs());
 
             juce::Array<juce::var> clipArray;
             for (size_t ci = 0; ci < layer.clips.size(); ++ci)
@@ -306,6 +340,7 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
                     clipObj->setProperty("playing", clip.playing);
                     clipObj->setProperty("mediaType", static_cast<int>(clip.mediaType));
                     clipObj->setProperty("sourceType", juce::String(clip.sourceType));
+                    addLiveBlock<Clip, ClipScalar>(*clipObj, clip, clip.scalarConns, clipScalarDefs());
                     clipArray.add(juce::var(clipObj));
                 }
             }
@@ -408,6 +443,12 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
         // reconfigure, anything that stop()s/restarts ApiServer while the
         // app keeps running) would reopen a UAF across all 10 sites at once,
         // since quitMessagePosted would not yet be set to protect them.
+        // s-rta-0923 lane 3 (plan section 3.6, site #10): keep the name->index
+        // resolution here (it needs renderer_.getEffectLibrary(), which this
+        // lambda already captures via `this`); the inline
+        // `fx.paramValues[pi] = value;` write is REMOVED — resolution ends
+        // by firing onSetClipEffectParam, which MainComponent routes through
+        // manualWrite (Decaying rank, Origin::Human).
         juce::MessageManager::callAsync([this, layer, column, effectName, paramName, value]() {
             auto* deck = composition_.getActiveDeck();
             if (!deck)
@@ -419,8 +460,9 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
             if (!clip)
                 return;
 
-            for (auto& fx : clip->effects)
+            for (size_t fi = 0; fi < clip->effects.size(); ++fi)
             {
+                auto& fx = clip->effects[fi];
                 if (fx.effectName == effectName.toStdString())
                 {
                     // Look up param index by name from EffectLibrary
@@ -432,8 +474,9 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
                         {
                             if (def->params[pi].name == paramName.toStdString())
                             {
-                                if (pi < fx.paramValues.size())
-                                    fx.paramValues[pi] = value;
+                                if (pi < fx.paramValues.size() && onSetClipEffectParam)
+                                    onSetClipEffectParam(layer, column, static_cast<int>(fi),
+                                                         static_cast<int>(pi), paramName.toStdString(), value);
                                 return;
                             }
                         }
@@ -486,20 +529,18 @@ void ApiServer::handleSetLayerOpacity(const httplib::Request& req, httplib::Resp
     // Layer state lives on the composition model, otherwise mutated only on
     // the message thread — marshal the write there too (same callAsync/
     // fire-and-forget shape as trigger_clip/trigger_column/switch_deck/
-    // set_bpm; mirrors oscHandler_.onSetLayerOpacity's identical lookup+write,
-    // which is already message-thread-only). Deck/layer validation moves to
-    // the message thread and can no longer be reported back synchronously —
-    // response is unconditional 'ok' once the request itself is well-formed,
-    // matching those sibling endpoints.
+    // set_bpm). s-rta-0923 lane 3 (plan section 3.6, site #9): the inline
+    // `lay->opacity = opacity;` write is REMOVED — this endpoint now only
+    // fires onSetLayerOpacity, which MainComponent routes through
+    // manualWrite (Decaying rank, Origin::Human) so a REST write joins the
+    // same D8 grip chain as every other writer. Deck/layer validation still
+    // happens on the message thread (inside the callback) and can no longer
+    // be reported back synchronously — response is unconditional 'ok' once
+    // the request itself is well-formed, matching the sibling endpoints.
     // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this, layer, opacity]() {
-        auto* deck = composition_.getActiveDeck();
-        if (!deck)
-            return;
-        auto* lay = deck->getLayer(layer);
-        if (!lay)
-            return;
-        lay->opacity = opacity;
+        if (onSetLayerOpacity)
+            onSetLayerOpacity(layer, opacity);
     });
 
     res.set_content(jsonOk(), "application/json");

@@ -1,4 +1,5 @@
 #include "ui/LayerStrip.h"
+#include "connect/ConnClock.h"
 
 // ID scheme for V dropdown: 1-100 = MixMode, 101+ = KeyingMode
 static constexpr int kKeyingIdOffset = 101;
@@ -421,6 +422,17 @@ LayerStrip::LayerStrip()
     opacitySlider_.onValueChange = [this] {
         if (layer_)
             layer_->opacity = static_cast<float>(opacitySlider_.getValue());
+    };
+    // s-rta-0923 lane 3 (plan section 3.6, site #11): the drag start/end grip
+    // for this widget's LayerScalar::Opacity connection — a Held grip (this
+    // widget has a real release event), gripped directly on the model like
+    // the inspectors (plan section 4.2), no ControlPath (this is a widget
+    // grip, not a manualWrite funnel writer).
+    opacitySlider_.onDragStart = [this] {
+        if (layer_) layer_->scalarConns[static_cast<size_t>(LayerScalar::Opacity)].gripHeld();
+    };
+    opacitySlider_.onDragEnd = [this] {
+        if (layer_) layer_->scalarConns[static_cast<size_t>(LayerScalar::Opacity)].release(connNow());
     };
 
     // V dropdown = keying types + mix modes combined
