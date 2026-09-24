@@ -36,9 +36,12 @@ class AudioTap;   // N13: forward-declared -- RecorderHost.cpp includes recordin
 // (Sink::touch, PerformanceRecorder::touch, Gesture::grip); MainComponent's
 // own `GripKind` (ParamConnection::Grip::Kind) is a different enum with a
 // third (None) value and would only shadow confusingly if duplicated here.
-// A5 -- ArmOptions carries `analysisRate`/`gripHoldMs`; Status carries
-// `deviceRate`/`rateMismatch`/`humanRefused`, published by tick(). A7 --
-// AudioTap is forward-declared, not included.
+// A5/R13-C -- ArmOptions carries `gripHoldMs` (`analysisRate` is a deprecated
+// no-op, kept only so MainComponent.cpp's pre-lane-D `armOpts.analysisRate =
+// ...` call keeps compiling -- arm()/tick() never read it); Status carries
+// `deviceRate`/`rateChangedSinceArm`/`humanRefused` (`rateMismatch` is a
+// deprecated mirror of `rateChangedSinceArm`, kept for the same reason),
+// published by tick(). A7 -- AudioTap is forward-declared, not included.
 class RecorderHost
 {
 public:
@@ -91,9 +94,14 @@ public:
         bool onsetMarkers = false;             // T2 enabler: take.markers point per snap.onsetDetected (origin Engine)
         std::optional<std::string> overdubAssetId;   // 5.2: record a FRESH take against a stored asset; NO tap; clock = asset frame
 
-        // A5 (critic B5, R13 is LIVE): the analysis pipeline's fixed sample
-        // rate (AnalysisThread::kSampleRate, 48000.0) -- MainComponent
-        // passes it so arm() can compare against `deviceRate` and warn.
+        // DEPRECATED (R13-C): retired. The analysis thread now resamples the
+        // device stream to its fixed internal rate regardless of the device
+        // rate (AnalysisResampler, R13 lane A), so comparing deviceRate
+        // against an "analysis rate" no longer means anything. This field is
+        // kept ONLY so MainComponent.cpp's existing `armOpts.analysisRate =
+        // ...` call (removed by lane D) keeps compiling -- arm() never reads
+        // it. See `deviceRate` above / `Status::rateChangedSinceArm` below
+        // for the rate hazard that survives R13.
         double analysisRate = 48000.0;
         // A5/N7: composition_.gripHoldMs -- the synthesized end of a
         // Decaying gesture with no release event uses THIS, not a hard
@@ -191,9 +199,20 @@ public:
         int skipped = 0, continuousUnavailable = 0, refusedByHand = 0;
         std::string audioStatus;   // AudioStore::Status name + reason
 
-        // A5 (R13 is LIVE): published by tick() from the `deviceRate` argument it already
+        // A5/R13-C: published by tick() from the `deviceRate` argument it already
         // receives (critic N3: never read the device directly off the HTTP thread).
         double deviceRate = 0.0;
+        // R13-C: true when the device rate has changed since arm() (compared against
+        // `armedDeviceRate_`, not a fixed "analysis rate" -- the analysis thread now
+        // resamples to its fixed internal rate regardless, AnalysisResampler/R13 lane A).
+        // This is the only rate hazard that survives R13: sample stamps recorded before
+        // and after the change are in different domains, so a take spanning the change
+        // is mixed-domain past that point. "rateMismatch" ("device != 48 kHz, beat clock
+        // unreliable") is RETIRED -- the beat clock is correct at any device rate now.
+        bool rateChangedSinceArm = false;
+        // DEPRECATED (R13-C): mirrors `rateChangedSinceArm` (same value, not the old
+        // "device != 48000" meaning). Kept ONLY so MainComponent.cpp's existing
+        // `s.rateMismatch` read (renamed by lane D) keeps compiling.
         bool rateMismatch = false;
         // N12: count of Human writes MainComponent's funnel refused (a Held grip already
         // holds the control) -- the first diagnostic the funnel has ever had.
@@ -240,7 +259,6 @@ private:
     std::string appVersion_;
     std::string armRecordedAt_;
     float armedGripHoldMs_ = 250.0f;
-    double armedAnalysisRate_ = 48000.0;
     double armedDeviceRate_ = 0.0;
     int armedDeviceChannels_ = 0;
     double lastCheckpointT_ = 0.0;
@@ -292,7 +310,12 @@ private:
 
     // Status bookkeeping (N3: tick() is the only writer; status() the only, mutex-guarded, reader)
     double lastDeviceRate_ = 0.0;
-    bool rateMismatch_ = false;
+    // R13-C: current-vs-armed comparison (see Status::rateChangedSinceArm); can flip back to
+    // false if the device recovers to the armed rate. rateChangeNotified_ is separate so a
+    // flapping rate still notifies exactly ONCE per arm, even if rateChangedSinceArm_ itself
+    // toggles back and forth.
+    bool rateChangedSinceArm_ = false;
+    bool rateChangeNotified_ = false;
     int skippedCount_ = 0;
     int continuousUnavailableCount_ = 0;
 

@@ -251,7 +251,11 @@ private:
     // Core audio pipeline
     RingBuffer<float> ringBuffer_{16384};
     AudioEngine audioEngine_{ringBuffer_};
-    AnalysisThread analysisThread_{ringBuffer_};
+    // R13 lane D: the analysis thread reads the device rate from
+    // audioEngine_'s cell (member order above puts audioEngine_ before
+    // analysisThread_, so the reference is valid at construction) and
+    // resamples to its fixed internal 48 kHz (AnalysisResampler, lane A).
+    AnalysisThread analysisThread_{ringBuffer_, &audioEngine_.sourceSampleRateCell()};
 
     // Controls
     juce::TextButton openImageButton_{"Open Image"};

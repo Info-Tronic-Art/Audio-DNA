@@ -163,7 +163,6 @@ TEST_CASE("RecorderHost arm -- provisional take.json exists before the first tic
     opts.deviceRate = 48000.0;
     opts.deviceChannels = 2;
     opts.appVersion = "test";
-    opts.analysisRate = 48000.0;
     opts.gripHoldMs = 250.0f;
 
     const auto armRes = host.arm(comp, tap, opts);
@@ -1183,6 +1182,120 @@ TEST_CASE("RecorderHost onset marker -- a new arm resets the dedupe state", "[ho
     REQUIRE(host.arm(comp, dummyTap, opts).ok);
     host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
     CHECK(host.status().markers == 1);
+
+    host.disarm(comp, dummyTap);
+}
+
+// === 21: [host][r13] a non-48 kHz device that never changes never reports a rate change ===
+//
+// R13-C (plan .harmony/.reports/s-rta-0924/r13-plan.md 3.7): `rateMismatch` ("device != 48000 ->
+// beat clock unreliable") is RETIRED -- the analysis thread now resamples to its fixed internal
+// rate regardless of device rate (AnalysisResampler, R13 lane A). Fail-first against the UNFIXED
+// code: arming at 44100 Hz used to call dispatch.notify("device rate 44100 Hz != analysis rate
+// 48000 Hz: beat clock unreliable (R13)") unconditionally at arm() -- a device that simply runs at
+// a non-48 kHz rate and never changes should notify ZERO times and read rateChangedSinceArm == false
+// throughout.
+
+TEST_CASE("RecorderHost r13 -- a device armed at 44100 Hz that never changes rate never reports a change", "[host][r13]")
+{
+    TempDir storeRoot("r13_stable_store");
+    TempDir takeFolder("r13_stable_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap tap;
+    tap.prepare(44100.0, 2, 512);
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = true;
+    opts.audioMode = "input";
+    opts.deviceRate = 44100.0;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+
+    REQUIRE(host.arm(comp, tap, opts).ok);
+    CHECK(host.status().rateChangedSinceArm == false);
+    CHECK(host.status().lastError.empty());
+    CHECK(fake.notices.empty());   // fail-first: RED on unfixed code (arm-time "beat clock unreliable (R13)")
+
+    uint64_t delivered = 0;
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    pushCleanBlocks(tap, 44100.0, 512, 5, delivered, hostTimeNs);
+
+    host.tick(makeSnap(), 0.0, delivered, tap, std::nullopt, 44100.0);
+    host.tick(makeSnap(), 0.1, delivered, tap, std::nullopt, 44100.0);
+    host.tick(makeSnap(), 0.2, delivered, tap, std::nullopt, 44100.0);
+
+    const auto st = host.status();
+    CHECK(st.rateChangedSinceArm == false);
+    CHECK(st.lastError.empty());
+    CHECK(fake.notices.empty());
+
+    const auto stopRes = host.disarm(comp, tap);
+    CHECK(stopRes.ok);
+
+    LoadStats stats;
+    auto loaded = Take::load(takeFolder.dir, stats);
+    REQUIRE(loaded.has_value());
+    REQUIRE(loaded->audio.segments.size() == 1);
+    CHECK(loaded->audio.segments[0].rate == 44100.0);
+}
+
+// === 22: [host][r13] a mid-take rate change with NO tap (audio == false) still reports the hazard ===
+//
+// R13-C 3.7 case (ii): the audio tap's own self-stop path (tick()'s tapWasStarted_ branch) can only
+// fire when a tap exists -- this covers the audio == false case that path cannot see: a device rate
+// change mid-take is still a hazard for the beat clock's sample domain even with no audio captured.
+
+TEST_CASE("RecorderHost r13 -- a mid-take device rate change (no audio) reports rateChangedSinceArm exactly once", "[host][r13]")
+{
+    TempDir storeRoot("r13_change_store");
+    TempDir takeFolder("r13_change_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;   // opts.audio = false below -- never started, never pushed to.
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.deviceRate = 48000.0;
+    opts.appVersion = "test";
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+    CHECK(host.status().rateChangedSinceArm == false);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().rateChangedSinceArm == false);
+    CHECK(host.status().lastError.empty());
+    CHECK(fake.notices.empty());
+
+    // Device rate changes mid-take (e.g. Bluetooth HFP flip) -- no tap to self-stop, but the hazard
+    // is real: sample stamps before/after this tick are in different domains.
+    host.tick(makeSnap(), 0.1, 0, dummyTap, std::nullopt, 16000.0);
+
+    auto st = host.status();
+    CHECK(st.rateChangedSinceArm == true);
+    CHECK_FALSE(st.lastError.empty());
+    REQUIRE(fake.notices.size() == 1);
+    CHECK(fake.notices[0].find("48000") != std::string::npos);
+    CHECK(fake.notices[0].find("16000") != std::string::npos);
+
+    // Three further ticks at the SAME changed rate -- exactly ONE notify total (edge-triggered).
+    host.tick(makeSnap(), 0.2, 0, dummyTap, std::nullopt, 16000.0);
+    host.tick(makeSnap(), 0.3, 0, dummyTap, std::nullopt, 16000.0);
+    host.tick(makeSnap(), 0.4, 0, dummyTap, std::nullopt, 16000.0);
+
+    st = host.status();
+    CHECK(st.rateChangedSinceArm == true);
+    CHECK(fake.notices.size() == 1);
 
     host.disarm(comp, dummyTap);
 }

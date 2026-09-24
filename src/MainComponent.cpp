@@ -541,28 +541,15 @@ MainComponent::MainComponent(bool testMode, int testPort)
         fileLabel_.setText("No audio device found", juce::dontSendNotification);
     else
     {
-        // Sample-rate guard: the analysis pipeline (LUFS K-weighting + all frequency
-        // math) hardcodes AnalysisThread::kSampleRate (48 kHz) with no resampling, so a
-        // device at another rate silently yields wrong features. We do NOT attempt
-        // SR-independence here — warn only. This ctor runs on the message thread, so the
-        // async alert is non-blocking and safe (no modal on the audio thread).
+        // R13: the analysis thread resamples the device stream to its fixed
+        // internal rate (AnalysisThread::kSampleRate, 48 kHz) via
+        // AnalysisResampler, so a non-48 kHz device is no longer a warning
+        // case (nor a modal) -- just an informational log line.
         const double actualSr = audioEngine_.getCurrentSampleRate();
         const int expectedSr = AnalysisThread::kSampleRate;
         if (actualSr > 0.0 && static_cast<int>(actualSr) != expectedSr)
-        {
-            std::cerr << "[Audio] WARNING: device sample rate is " << static_cast<int>(actualSr)
-                      << " Hz but the analysis pipeline assumes " << expectedSr
-                      << " Hz — audio features (LUFS, frequency, key, BPM) will be inaccurate."
-                      << std::endl;
-            if (!testMode_)
-                juce::AlertWindow::showMessageBoxAsync(
-                    juce::MessageBoxIconType::WarningIcon,
-                    "Unsupported Sample Rate",
-                    "Your audio device is running at " + juce::String(static_cast<int>(actualSr))
-                        + " Hz, but Audio-DNA's analysis is tuned for " + juce::String(expectedSr)
-                        + " Hz. Audio-reactive features may be inaccurate — set your output "
-                          "device to " + juce::String(expectedSr) + " Hz for correct results.");
-        }
+            std::cerr << "[Audio] device " << static_cast<int>(actualSr)
+                      << " Hz -> analysis resamples to " << expectedSr << " Hz" << std::endl;
     }
 
     // Initialize effect library
@@ -2060,7 +2047,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
         armOpts.onsetMarkers = opts.onsetMarkers;
         if (opts.overdubAssetId.isNotEmpty())
             armOpts.overdubAssetId = opts.overdubAssetId.toStdString();
-        armOpts.analysisRate = static_cast<double>(AnalysisThread::kSampleRate);
         armOpts.gripHoldMs = composition_.gripHoldMs;
 
         auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
@@ -2153,7 +2139,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
         obj->setProperty("refusedByHand", s.refusedByHand);
         obj->setProperty("audioStatus", juce::String(s.audioStatus));
         obj->setProperty("deviceRate", s.deviceRate);
-        obj->setProperty("rateMismatch", s.rateMismatch);
+        // R13-D: rateChangedSinceArm replaces rateMismatch as the published
+        // JSON key (RecorderHost::Status still carries the deprecated
+        // rateMismatch mirror for other pre-lane-D callers, but this
+        // endpoint now publishes only the current name). sourceSampleRate
+        // mirrors deviceRate here -- onPerfStatus reads ONLY the mutex-
+        // guarded Status copy (critic A5(b)/N3), and the analysis thread
+        // always resamples to its own fixed internal 48 kHz, so deviceRate
+        // IS the "source" rate at the recorder/provenance level.
+        obj->setProperty("rateChangedSinceArm", s.rateChangedSinceArm);
+        obj->setProperty("sourceSampleRate", s.deviceRate);
         obj->setProperty("humanRefused", s.humanRefused);
         return juce::var(obj);
     };

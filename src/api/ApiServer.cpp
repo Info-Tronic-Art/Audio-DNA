@@ -656,6 +656,13 @@ void ApiServer::handleGetFeatures(const httplib::Request&, httplib::Response& re
     obj->setProperty("genreConfidence", static_cast<double>(snap.genreConfidence));
     obj->setProperty("energyState", static_cast<int>(snap.energyState));
 
+    // R13 (lane D): provenance -- the device rate the analysis was actually
+    // fed from (analysis itself always runs at the fixed internal 48 kHz;
+    // AnalysisResampler bridges the two) and which bandEnergies bits are
+    // meaningful at that source rate (0x7F = all valid).
+    obj->setProperty("sourceSampleRate", static_cast<double>(snap.sourceSampleRate));
+    obj->setProperty("bandValidMask", static_cast<int>(snap.bandValidMask));
+
     juce::Array<juce::var> bands;
     for (int i = 0; i < 7; ++i)
         bands.add(static_cast<double>(snap.bandEnergies[i]));
@@ -1191,11 +1198,11 @@ void ApiServer::handlePerfRecord(const httplib::Request& req, httplib::Response&
     opts.onsetMarkers = static_cast<bool>(json.getProperty("onsetMarkers", false));
     opts.overdubAssetId = json.getProperty("overdubAssetId", "").toString();
 
-    // Arm-time validation (device rate, store/tap failures, R13 mismatch) runs
-    // on the message thread inside RecorderHost::arm and can no longer be
-    // reported back synchronously -- same trade-off already made for
+    // Arm-time validation (device rate, store/tap failures) runs on the
+    // message thread inside RecorderHost::arm and can no longer be reported
+    // back synchronously -- same trade-off already made for
     // set_param/set_layer_opacity/set_effect. Refusals surface through
-    // /api/perf/status (lastError/rateMismatch), not this response.
+    // /api/perf/status (lastError/rateChangedSinceArm), not this response.
     // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this, opts]() {
         onPerfRecord(opts);
@@ -1315,8 +1322,9 @@ void ApiServer::handlePerfStatus(const httplib::Request&, httplib::Response& res
     // Synchronous -- critic A5(b)/N3: this handler reads nothing but
     // RecorderHost::status() (mutex-guarded copy, safe from any thread).
     // MainComponent's onPerfStatus assignment is the one place deviceRate,
-    // rateMismatch and humanRefused get read -- from RecorderHost::Status,
-    // published by tick() -- never from audioEngine_.getCurrentSampleRate()/
-    // getCurrentAudioDevice() on this thread.
+    // rateChangedSinceArm and humanRefused get read -- from RecorderHost::
+    // Status, published by tick() -- never from
+    // audioEngine_.getCurrentSampleRate()/getCurrentAudioDevice() on this
+    // thread.
     res.set_content(juce::JSON::toString(onPerfStatus()).toStdString(), "application/json");
 }
