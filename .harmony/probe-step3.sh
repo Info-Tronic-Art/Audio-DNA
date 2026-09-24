@@ -102,6 +102,13 @@ PASS=0; FAIL=0
 ok(){ echo "PASS  $1"; PASS=$((PASS+1)); }
 no(){ echo "FAIL  $1"; FAIL=$((FAIL+1)); }
 skip(){ echo "SKIP  $1"; }
+# s-rta-0924 (Harmony): JSON numbers may serialize as floats ("48000.0") --
+# normnum prints an integral value without ".0" so string compares are sound.
+normnum(){ python3 -c 'import sys
+v=sys.argv[1]
+try:
+    f=float(v); print(int(f) if f==int(f) else f)
+except Exception: print(v)' "$1"; }
 
 # --- helpers -----------------------------------------------------------
 # jpath NAME PYEXPR: evaluate PYEXPR against the parsed JSON `d` returned by
@@ -177,9 +184,9 @@ sleep 1
 # analysis-thread ctor warning is grepped from stderr, not stdout (the
 # warning is a std::cerr line per MainComponent.cpp :547-560 (critic T33
 # region) / AnalysisThread's own log).
-DEV_RATE="$(perf_field "d.get('deviceRate','NA')")"
+DEV_RATE="$(perf_field "d.get('deviceRate','NA')")"; DEV_RATE="$(normnum "$DEV_RATE")"
 RATE_MISMATCH="$(perf_field "d.get('rateMismatch','NA')")"
-if [ "$DEV_RATE" = "48000" ] && [ "$RATE_MISMATCH" = "False" -o "$RATE_MISMATCH" = "false" ]; then
+if [ "$DEV_RATE" = "48000" ] && { [ "$RATE_MISMATCH" = "False" ] || [ "$RATE_MISMATCH" = "false" ]; }; then
     ok "R13 precondition: deviceRate=48000, rateMismatch=false"
 else
     no "R13 precondition FAILED: deviceRate=$DEV_RATE rateMismatch=$RATE_MISMATCH -- REFUSING to arm (a non-48kHz device makes the beat/bpm lane unreliable, HANDOFF :2633)"
@@ -260,9 +267,9 @@ ASSET_DIR="$AUDIO_DIR/$ASSET.adna-audio"
 TAKE_FILES="$(ls -1 "$TAKE_FOLDER" 2>/dev/null | wc -l | tr -d ' ')"
 [ "$TAKE_FILES" = "1" ] && ok "take folder has exactly one file (take.json only, Ruling 28)" || no "take folder has $TAKE_FILES files, expected 1 (take.json only)"
 
-VERSION="$(take_field "$TAKE_FOLDER" "d.get('version','NA')")"
+VERSION="$(take_field "$TAKE_FOLDER" "d.get('version','NA')")"; VERSION="$(normnum "$VERSION")"
 [ "$VERSION" = "3" ] && ok "take.json version == 3" || no "take.json version == $VERSION (expected 3)"
-SEG_RATE="$(take_field "$TAKE_FOLDER" "d['audio']['segments'][0]['rate']")"
+SEG_RATE="$(take_field "$TAKE_FOLDER" "d['audio']['segments'][0]['rate']")"; SEG_RATE="$(normnum "$SEG_RATE")"
 [ "$SEG_RATE" = "48000" ] && ok "audio.segments[0].rate == 48000" || no "audio.segments[0].rate == $SEG_RATE"
 SEG_FRAMES="$(take_field "$TAKE_FOLDER" "d['audio']['segments'][0]['frames']")"
 awk -v x="$SEG_FRAMES" 'BEGIN{exit !(x+0>0)}' 2>/dev/null && ok "audio.segments[0].frames > 0 ($SEG_FRAMES)" || no "audio.segments[0].frames not >0 ($SEG_FRAMES)"
@@ -289,9 +296,9 @@ awk -v x="$OP_N_BREAKPOINTS" 'BEGIN{exit !(x+0>=3)}' 2>/dev/null && ok "layer/sc
 
 N_ACTIVECLIP="$(take_field "$TAKE_FOLDER" "sum(1 for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='activeClip' for p in lane.get('points',[]))")"
 awk -v x="$N_ACTIVECLIP" 'BEGIN{exit !(x+0>=4)}' 2>/dev/null && ok "layer/activeClip lane has >=4 points ($N_ACTIVECLIP)" || no "layer/activeClip lane has $N_ACTIVECLIP points, expected >=4"
-TEMPO_V="$(take_field "$TAKE_FOLDER" "next((p['v'] for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='tempo' for p in lane.get('points',[])), 'NA')")"
+TEMPO_V="$(take_field "$TAKE_FOLDER" "next((p['v'] for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='tempo' for p in lane.get('points',[])), 'NA')")"; TEMPO_V="$(normnum "$TEMPO_V")"
 [ "$TEMPO_V" = "12800" ] && ok "comp/tempo point v == 12800 (centi-BPM for 128, plan R-8 unit)" || no "comp/tempo point v == $TEMPO_V (expected 12800)"
-CHK0="$(take_field "$TAKE_FOLDER" "d.get('checkpoint0',{}).get('activeDeckIndex','NA')")"
+CHK0="$(take_field "$TAKE_FOLDER" "d.get('checkpoint0',{}).get('activeDeckIndex','NA')")"; CHK0="$(normnum "$CHK0")"
 [ "$CHK0" = "0" ] && ok "checkpoint0.activeDeckIndex == 0" || no "checkpoint0.activeDeckIndex == $CHK0"
 CHKEND="$(take_field "$TAKE_FOLDER" "'yes' if d.get('checkpointEnd') else 'no'")"
 [ "$CHKEND" = "yes" ] && ok "checkpointEnd present" || no "checkpointEnd missing"
@@ -366,7 +373,7 @@ curl -s --max-time 6 -X POST "$A/api/perf/load" -H 'Content-Type: application/js
 sleep 1
 AUDIOSTATUS="$(perf_field "d.get('audioStatus','NA')")"
 [ "$AUDIOSTATUS" = "Resolved" ] && ok "perf/load: audioStatus == Resolved" || no "perf/load: audioStatus == $AUDIOSTATUS (expected Resolved)"
-UNRES="$(perf_field "d.get('unresolved','NA')")"
+UNRES="$(perf_field "d.get('unresolved','NA')")"; UNRES="$(normnum "$UNRES")"
 [ "$UNRES" = "0" ] && ok "perf/load: unresolved == 0" || no "perf/load: unresolved == $UNRES"
 
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
