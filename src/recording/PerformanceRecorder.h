@@ -56,6 +56,21 @@ public:
 
     bool isRecording() const { return recording_; }
 
+    // s-rta-0924 step 3 (S3-A, plan section 3.2 / critic A2): the host
+    // needs a checkpoint0 setter (checkpoint capture from a live
+    // Composition is step 3's job, see start()'s comment above), a
+    // read-only view of the in-progress document for periodic saves
+    // (v2 5.6 #1), and a way to tell whether a continuous write's key
+    // already has a gesture open -- MainComponent's manualWrite path is a
+    // single touch+write call with no preceding touch() of its own
+    // (critic B2), so the host's onHumanWrite() must open the gesture
+    // itself when this returns false, or PerformanceRecorder::set's
+    // "stray set() without a preceding touch() -- ignored" rule (above)
+    // would silently drop every OSC/MIDI/REST continuous capture.
+    void setCheckpoint0(PerfState s) { take_.checkpoint0 = std::move(s); }
+    const Take& current() const { return take_; }
+    bool hasOpenGesture(const ControlPath& k) const { return openGestures_.count(k) != 0; }
+
 private:
     RecorderClock* clock_ = nullptr;
     Take take_;

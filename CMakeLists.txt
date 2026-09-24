@@ -250,6 +250,10 @@ target_sources(AudioDNA PRIVATE
     src/recording/AudioTap.cpp
     src/recording/AudioStore.h
     src/recording/AudioStore.cpp
+    src/recording/RecorderHost.h
+    src/recording/RecorderHost.cpp
+    src/recording/PerfStateCapture.h
+    src/recording/PerfStateCapture.cpp
     src/recording/VideoRecorder.h
     src/recording/VideoRecorder.cpp
 
