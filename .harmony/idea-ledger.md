@@ -215,3 +215,21 @@ status-note:
 artifact:
 history:     NEW(2026-09-24)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-09-24-RealTimeAudio-1790225827192095082
+raw:         secondary-close-gate-verify.sh check 3 matches the session log by FILENAME prefix $(date +%F) at close time, so a session that starts before midnight and closes after it (s-rta-0923: 2026-09-23 21:10 -> 2026-09-24 01:00) is BLOCKED even though its log exists, named for its start date. Worked around by renaming the log to the close date.
+context:     
+why:         
+intent:      Accept a log dated today OR the session's start date (or any log modified since the session's boot), so midnight-spanning sessions are not forced to misdate their log.
+target:      harmony-system
+constraints: 
+related:     
+priority:    LOW
+repo:        RealTimeAudio     session: s-rta-0923     date: 2026-09-24
+status:      NEW
+status-changed: 2026-09-24
+status-note:
+artifact:
+history:     NEW(2026-09-24)
+--- /IDEA ---

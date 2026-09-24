@@ -128,5 +128,5 @@ why-routed:  idea-ledger.md and session logs are RTA repo content; the project s
 source-idea: 
 routed-by:   harmony-95977     date: 2026-09-23
 status:      DONE
-status-note: s-rta-0923: prose sections moved VERBATIM to .harmony/notebook.md (loss check: 507/507 non-blank lines present in new homes); Harmony-aimed lessons re-filed as canonical IDEA records; ledger now holds only --- IDEA --- records. Session log written: .harmony/sessions/2026-09-23-s-rta-0923-secondary.md.
+status-note: s-rta-0923: prose sections moved VERBATIM to .harmony/notebook.md (loss check: 507/507 non-blank lines present in new homes); Harmony-aimed lessons re-filed as canonical IDEA records; ledger now holds only --- IDEA --- records. Session log written: .harmony/sessions/2026-09-24-s-rta-0923-secondary.md.
 --- /ROUTED-ITEM ---
