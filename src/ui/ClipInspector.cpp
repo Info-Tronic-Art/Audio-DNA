@@ -757,8 +757,24 @@ void ClipInspector::setClip(Clip* clip, EffectScope scope)
         effectStackView_.setEffects(nullptr, EffectScope::none());
         sourceParamControls_.clear();
     }
+    bindScalarControls();
     resized();
     repaint();
+}
+
+void ClipInspector::bindScalarControls()
+{
+    auto bind = [this](UniversalParamControl& c, ClipScalar s) {
+        if (clip_) c.bindConnection(&clip_->scalarConns[static_cast<size_t>(s)],
+                                     &clip_->scalarLive[static_cast<size_t>(s)]);
+        else c.bindConnection(nullptr, nullptr);
+    };
+    bind(clipOpacityControl_, ClipScalar::Opacity);
+    bind(posXControl_, ClipScalar::PosX);
+    bind(posYControl_, ClipScalar::PosY);
+    bind(scaleControl_, ClipScalar::Scale);
+    bind(rotationControl_, ClipScalar::Rotation);
+    bind(anchorControl_, ClipScalar::AnchorX);
 }
 
 void ClipInspector::buildSourceParamControls()
@@ -1239,7 +1255,17 @@ void ClipInspector::syncFromClip()
     }
 
     // Video
-    clipOpacityControl_.setParamValue(clip_->clipOpacity);
+    // Thumb follows the signal (s-rta-0923 lane 3 plan section 4.2) -- see
+    // CompositionInspector::syncFromComposition for the full rationale.
+    auto syncScalar = [this](UniversalParamControl& ctrl, ClipScalar s, float todayFormula) {
+        const auto& def = clipScalarDefs()[static_cast<size_t>(s)];
+        bool connected = clip_->scalarConns[static_cast<size_t>(s)].isConnected();
+        float eff = clip_->eff(s);
+        ctrl.setParamValue(connected ? def.toNorm(eff) : todayFormula);
+        ctrl.setSourceValue(def.toNorm(eff));
+    };
+
+    syncScalar(clipOpacityControl_, ClipScalar::Opacity, clip_->clipOpacity);
     clipWidthSlider_.setValue(clip_->clipWidth, juce::dontSendNotification);
     clipHeightSlider_.setValue(clip_->clipHeight, juce::dontSendNotification);
     channelRBtn_.setToggleState(clip_->channelR, juce::dontSendNotification);
@@ -1248,11 +1274,11 @@ void ClipInspector::syncFromClip()
     channelABtn_.setToggleState(clip_->channelA, juce::dontSendNotification);
 
     // Transform
-    posXControl_.setParamValue(clip_->positionX / 3840.0f + 0.5f);
-    posYControl_.setParamValue(clip_->positionY / 2160.0f + 0.5f);
-    scaleControl_.setParamValue(std::log2(std::max(0.01f, clip_->scale)) / 2.0f + 0.5f);
-    rotationControl_.setParamValue(clip_->rotation / 720.0f + 0.5f);
-    anchorControl_.setParamValue(clip_->anchorX / 3840.0f + 0.5f);
+    syncScalar(posXControl_, ClipScalar::PosX, clip_->positionX / 3840.0f + 0.5f);
+    syncScalar(posYControl_, ClipScalar::PosY, clip_->positionY / 2160.0f + 0.5f);
+    syncScalar(scaleControl_, ClipScalar::Scale, std::log2(std::max(0.01f, clip_->scale)) / 2.0f + 0.5f);
+    syncScalar(rotationControl_, ClipScalar::Rotation, clip_->rotation / 720.0f + 0.5f);
+    syncScalar(anchorControl_, ClipScalar::AnchorX, clip_->anchorX / 3840.0f + 0.5f);
 
     updateTransportHighlights();
 }

@@ -40,9 +40,6 @@ struct Composition
     float masterOpacity = 1.0f;
     float masterSpeed = 1.0f;       // Global speed multiplier
 
-    // === Video (Composition-level) ===
-    float compOpacity = 1.0f;       // Composition video opacity
-
     // === CrossFader ===
     float crossfaderPhase = 0.5f;   // [0,1] A↔B
     enum class CrossfaderBlendMode : uint8_t { Alpha, Add, Multiply };
@@ -62,10 +59,11 @@ struct Composition
 
     // === Connections (s167-l2) ===
     // One ParamConnection + LiveValue twin per CompScalar. Opacity targets
-    // masterOpacity, not compOpacity -- an owner amendment received during
-    // this lane rules Composition opacity is ONE knob (final = masterOpacity
-    // * layerOpacity * clipOpacity); compOpacity is not separately
-    // connectable here (see ScalarParams.h's CompScalar comment).
+    // masterOpacity -- an owner amendment received during this lane rules
+    // Composition opacity is ONE knob (final = masterOpacity * layerOpacity
+    // * clipOpacity); the model's old separate per-composition opacity
+    // field merged into masterOpacity and was removed (s-rta-0923 lane 3
+    // plan section 4.6; see ScalarParams.h's CompScalar comment).
     // eff()/manualRef() are the only places that name which struct field
     // backs each CompScalar.
     std::array<ParamConnection, static_cast<size_t>(CompScalar::Count)> scalarConns;
@@ -223,7 +221,6 @@ struct Composition
 
         // Composition master + video
         obj->setProperty("masterSpeed", static_cast<double>(masterSpeed));
-        obj->setProperty("compOpacity", static_cast<double>(compOpacity));
 
         // Crossfader
         obj->setProperty("crossfaderPhase", static_cast<double>(crossfaderPhase));
@@ -342,8 +339,11 @@ struct Composition
             // Composition master + video (guarded for backward compatibility with old presets)
             if (obj->hasProperty("masterSpeed"))
                 masterSpeed = static_cast<float>(static_cast<double>(obj->getProperty("masterSpeed")));
-            if (obj->hasProperty("compOpacity"))
-                compOpacity = static_cast<float>(static_cast<double>(obj->getProperty("compOpacity")));
+            // The old separate per-composition opacity key (pre-lane-3
+            // presets) is a known, deliberately unrecognized key now --
+            // s-rta-0923 lane 3 plan section 4.6: it merged into
+            // masterOpacity (ruling 11). hasProperty-guarded loads simply
+            // ignore unrecognized keys, so old files still load.
 
             // Crossfader
             if (obj->hasProperty("crossfaderPhase"))
@@ -517,7 +517,7 @@ inline float& manualRef(Composition& c, CompScalar s)
 {
     switch (s)
     {
-        case CompScalar::Opacity:  return c.masterOpacity;   // NOT compOpacity -- see the CompScalar comment
+        case CompScalar::Opacity:  return c.masterOpacity;   // see the CompScalar comment above
         case CompScalar::Speed:    return c.masterSpeed;
         case CompScalar::PosX:     return c.compPositionX;
         case CompScalar::PosY:     return c.compPositionY;

@@ -183,6 +183,9 @@ private:
     void populateDropdowns();
     void syncFromClip();
     void updateTransportHighlights();
+    // s-rta-0923 lane 3 plan section 4.2: bind the 6 scalar controls to
+    // clip_->scalarConns/scalarLive (null-safe when clip_ is nullptr).
+    void bindScalarControls();
 
     static constexpr int kSectionHeaderHeight = 20;
     static constexpr int kSectionGap = 8;

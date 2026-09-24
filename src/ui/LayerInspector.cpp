@@ -744,8 +744,25 @@ void LayerInspector::setLayer(Layer* layer, EffectScope scope)
     }
     else
         effectStackView_.setEffects(nullptr, EffectScope::none());
+    bindScalarControls();
     resized();
     repaint();
+}
+
+void LayerInspector::bindScalarControls()
+{
+    auto bind = [this](UniversalParamControl& c, LayerScalar s) {
+        if (layer_) c.bindConnection(&layer_->scalarConns[static_cast<size_t>(s)],
+                                      &layer_->scalarLive[static_cast<size_t>(s)]);
+        else c.bindConnection(nullptr, nullptr);
+    };
+    bind(masterControl_, LayerScalar::Opacity);
+    bind(opacityControl_, LayerScalar::Opacity);
+    bind(posXControl_, LayerScalar::PosX);
+    bind(posYControl_, LayerScalar::PosY);
+    bind(scaleControl_, LayerScalar::Scale);
+    bind(rotationControl_, LayerScalar::Rotation);
+    bind(anchorControl_, LayerScalar::AnchorX);
 }
 
 void LayerInspector::setEffectLibrary(EffectLibrary* lib) { effectStackView_.setEffectLibrary(lib); }
@@ -889,10 +906,20 @@ void LayerInspector::syncFromLayer()
             apBeatCountSelector_.setSelectedId(durToSel[idx], juce::dontSendNotification);
     }
 
-    masterControl_.setParamValue(layer_->opacity);
+    // Thumb follows the signal (s-rta-0923 lane 3 plan section 4.2) -- see
+    // CompositionInspector::syncFromComposition for the full rationale.
+    auto syncScalar = [this](UniversalParamControl& ctrl, LayerScalar s, float todayFormula) {
+        const auto& def = layerScalarDefs()[static_cast<size_t>(s)];
+        bool connected = layer_->scalarConns[static_cast<size_t>(s)].isConnected();
+        float eff = layer_->eff(s);
+        ctrl.setParamValue(connected ? def.toNorm(eff) : todayFormula);
+        ctrl.setSourceValue(def.toNorm(eff));
+    };
+
+    syncScalar(masterControl_, LayerScalar::Opacity, layer_->opacity);
     persistentToggle_.setToggleState(layer_->persistent, juce::dontSendNotification);
     ignoreColumnToggle_.setToggleState(layer_->ignoreColumnTrigger, juce::dontSendNotification);
-    opacityControl_.setParamValue(layer_->opacity);
+    syncScalar(opacityControl_, LayerScalar::Opacity, layer_->opacity);
     blendModeSelector_.setSelectedId(static_cast<int>(layer_->blendMode) + 1, juce::dontSendNotification);
     widthSlider_.setValue(layer_->layerWidth, juce::dontSendNotification);
     heightSlider_.setValue(layer_->layerHeight, juce::dontSendNotification);
@@ -913,11 +940,11 @@ void LayerInspector::syncFromLayer()
     rotSpeedSlider_.setValue(static_cast<double>(layer_->rotationSpeed), juce::dontSendNotification);
     scale3DSlider_.setValue(static_cast<double>(layer_->scale3D), juce::dontSendNotification);
 
-    posXControl_.setParamValue(layer_->positionX / 3840.0f + 0.5f);
-    posYControl_.setParamValue(layer_->positionY / 2160.0f + 0.5f);
-    scaleControl_.setParamValue(std::log2(std::max(0.01f, layer_->layerScale)) / 2.0f + 0.5f);
-    rotationControl_.setParamValue(layer_->layerRotation / 720.0f + 0.5f);
-    anchorControl_.setParamValue(layer_->layerAnchorX / 3840.0f + 0.5f);
+    syncScalar(posXControl_, LayerScalar::PosX, layer_->positionX / 3840.0f + 0.5f);
+    syncScalar(posYControl_, LayerScalar::PosY, layer_->positionY / 2160.0f + 0.5f);
+    syncScalar(scaleControl_, LayerScalar::Scale, std::log2(std::max(0.01f, layer_->layerScale)) / 2.0f + 0.5f);
+    syncScalar(rotationControl_, LayerScalar::Rotation, layer_->layerRotation / 720.0f + 0.5f);
+    syncScalar(anchorControl_, LayerScalar::AnchorX, layer_->layerAnchorX / 3840.0f + 0.5f);
 
     // --- Feedback ---
     feedbackEnableBtn_.setToggleState(layer_->feedback.enabled, juce::dontSendNotification);

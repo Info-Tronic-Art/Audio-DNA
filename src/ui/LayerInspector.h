@@ -149,6 +149,11 @@ private:
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);
     void syncFromLayer();
+    // s-rta-0923 lane 3 plan section 4.2: bind the 7 scalar controls to
+    // layer_->scalarConns/scalarLive (null-safe when layer_ is nullptr).
+    // masterControl_ and opacityControl_ share the same LayerScalar::Opacity
+    // connection (they already share the field, LayerInspector.cpp).
+    void bindScalarControls();
     void updateAutopilotButtons();
     void populateBlendModes();
     void populateKeyingModes();

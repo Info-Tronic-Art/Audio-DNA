@@ -124,6 +124,11 @@ private:
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);
     void syncFromComposition();
+    // s-rta-0923 lane 3 plan section 4.2: bind the 8 scalar controls to
+    // composition_->scalarConns/scalarLive (null-safe when composition_ is
+    // nullptr). Ruling 11: masterControl_ and opacityControl_ share the
+    // same CompScalar::Opacity connection (one master).
+    void bindScalarControls();
 
     static constexpr int kSectionHeaderHeight = 18;
     static constexpr int kSectionGap = 4;

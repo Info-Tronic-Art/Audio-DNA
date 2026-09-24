@@ -1022,12 +1022,17 @@ void TestServer::handleRemoveMapping(const httplib::Request& req, httplib::Respo
 
 // === S166-L8: Composition-Tier Oracle ===
 //
-// Gives the composition tier (Composition::globalEffects + the four
-// render-dead scalars: masterOpacity, masterSpeed, compOpacity,
-// Clip::clipOpacity) a surface a caller can drive and read back, since
-// today no ctest target links CompositorEngine.cpp/Renderer.cpp (headless
-// GL is unavailable in this rig) and no UI path outside a human eyeballing
-// the screen can reach it either.
+// Gives the composition tier (Composition::globalEffects + masterOpacity,
+// masterSpeed, Clip::clipOpacity) a surface a caller can drive and read
+// back, since today no ctest target links CompositorEngine.cpp/Renderer.cpp
+// (headless GL is unavailable in this rig) and no UI path outside a human
+// eyeballing the screen can reach it either. (s-rta-0923 lane 3: this
+// comment previously called all four scalars "render-dead" -- stale even
+// before this lane; masterOpacity/masterSpeed/clipOpacity are already
+// render-consumed, see Renderer.cpp:706, Renderer.cpp:415/1241,
+// CompositorEngine.cpp:492/604/1239. The fourth, a separate per-composition
+// opacity field, was the only genuinely render-dead one and has been
+// removed -- it merged into masterOpacity, plan section 4.6.)
 
 void TestServer::handleAddGlobalEffect(const httplib::Request& req, httplib::Response& res)
 {
@@ -1318,15 +1323,13 @@ void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib
         return;
     }
 
-    // Plain-float writes, no fence: NONE of these three fields have a
-    // renderer consumer today (S166-L8 packet §2) — masterOpacity/
-    // masterSpeed/compOpacity are otherwise set only from the message
-    // thread (MainComponent.cpp/CompositionInspector.cpp) and read back
-    // nowhere on the GL thread, so there is no live race to guard against
-    // yet. When the lane that wires them into the renderer lands, this
-    // write should get the same per-field treatment as
-    // handleSetGlobalEffectBypass above — not before, since there is
-    // nothing to race against today.
+    // Plain-float writes, no fence: masterOpacity/masterSpeed are otherwise
+    // set only from the message thread (MainComponent.cpp/
+    // CompositionInspector.cpp) and read back nowhere on the GL thread, so
+    // there is no live race to guard against yet. When the lane that wires
+    // them into the renderer lands, this write should get the same
+    // per-field treatment as handleSetGlobalEffectBypass above — not
+    // before, since there is nothing to race against today.
     bool any = false;
     if (obj->hasProperty("masterOpacity"))
     {
@@ -1338,16 +1341,11 @@ void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib
         composition_.masterSpeed = static_cast<float>(static_cast<double>(obj->getProperty("masterSpeed")));
         any = true;
     }
-    if (obj->hasProperty("compOpacity"))
-    {
-        composition_.compOpacity = static_cast<float>(static_cast<double>(obj->getProperty("compOpacity")));
-        any = true;
-    }
 
     if (!any)
     {
         res.status = 400;
-        res.set_content(jsonError("No known field provided (expected masterOpacity, masterSpeed, and/or compOpacity)"),
+        res.set_content(jsonError("No known field provided (expected masterOpacity and/or masterSpeed)"),
                         "application/json");
         return;
     }
@@ -1356,7 +1354,6 @@ void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib
     result->setProperty("ok", true);
     result->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
     result->setProperty("masterSpeed", static_cast<double>(composition_.masterSpeed));
-    result->setProperty("compOpacity", static_cast<double>(composition_.compOpacity));
     res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
 }
 
@@ -1365,7 +1362,6 @@ void TestServer::handleGetCompositionParams(const httplib::Request&, httplib::Re
     auto* obj = new juce::DynamicObject();
     obj->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
     obj->setProperty("masterSpeed", static_cast<double>(composition_.masterSpeed));
-    obj->setProperty("compOpacity", static_cast<double>(composition_.compOpacity));
 
     // Per-clip clipOpacity readback — mirrors ApiServer::handleComposition's
     // decks -> layers -> clips nesting (ApiServer.cpp ~260-315), scoped to

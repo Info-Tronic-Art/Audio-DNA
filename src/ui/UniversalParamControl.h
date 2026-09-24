@@ -3,6 +3,8 @@
 #include "ui/LookAndFeel.h"
 #include "signal/SignalRegistry.h"
 #include "routing/MacroBank.h"
+#include "connect/ParamConnection.h"
+#include "connect/LiveValue.h"
 #include <functional>
 
 // UniversalParamControl: the standard parameter widget used everywhere in the Inspector.
@@ -45,6 +47,7 @@ class UniversalParamControl : public juce::Component
 {
 public:
     UniversalParamControl();
+    ~UniversalParamControl();
 
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -96,8 +99,15 @@ public:
     // Set the signal registry for source picker dropdown
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
 
+    // Bind this widget to the model's connection for the parameter it
+    // edits (s-rta-0923 lane 3 plan section 4.2). nullptr,nullptr = unbind.
+    // Bound widgets: the picker writes *conn_ (via ConnPicker), the slider
+    // grips on drag, +/-/right-click touch a release-less grip, and the
+    // range/invert controls write conn_->shape directly.
+    void bindConnection(ParamConnection* conn, LiveValue* live);
+
     // Check if this parameter has any source connected (not Manual)
-    bool isConnected() const { return sourceMode_ != SourceMode::Manual; }
+    bool isConnected() const { return conn_ ? conn_->isConnected() : sourceMode_ != SourceMode::Manual; }
 
 private:
     void showSourcePicker();
@@ -137,6 +147,10 @@ private:
     juce::Label rangeLabel_;
 
     SignalRegistry* signalRegistry_ = nullptr;
+
+    // Connection binding (s-rta-0923 lane 3 plan section 4.2). Not owned.
+    ParamConnection* conn_ = nullptr;
+    LiveValue* live_ = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(UniversalParamControl)
 };

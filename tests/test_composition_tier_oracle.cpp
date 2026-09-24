@@ -9,8 +9,10 @@
 // no EffectDef, a known one round-trips its declared defaults, add/remove
 // obey vector semantics and reject an out-of-range index without mutating
 // anything, a bypass write touches only its own slot, and the plain scalar
-// fields (masterOpacity/masterSpeed/compOpacity/clipOpacity) read back
-// whatever was last written.
+// fields (masterOpacity/masterSpeed/clipOpacity) read back whatever was
+// last written. (s-rta-0923 lane 3 plan section 4.6: the model's old
+// separate per-composition opacity field merged into masterOpacity and was
+// removed -- see git history for its former coverage here.)
 //
 // It does NOT execute TestServer.cpp's own handler bodies (JSON parsing/
 // dispatch, or the GL-thread fence in handleAddGlobalEffect/
@@ -132,22 +134,21 @@ TEST_CASE("composition-tier oracle: remove-by-index rejects out-of-range and lea
     CHECK(comp.globalEffects[0].effectName == "b");
 }
 
-TEST_CASE("composition-tier oracle: the four render-dead scalars round-trip", "[composition-tier-oracle]")
+TEST_CASE("composition-tier oracle: the three remaining scalars round-trip", "[composition-tier-oracle]")
 {
-    // masterOpacity/masterSpeed/compOpacity/clipOpacity: no renderer
-    // consumer exists yet (S166-L8 packet), so this proves only that the
+    // masterOpacity/masterSpeed/clipOpacity: this proves only that the
     // model-layer fields hold whatever was last written — exactly what
     // handleSetCompositionParams/handleGetCompositionParams and
-    // handleSetClipOpacity read back over HTTP.
+    // handleSetClipOpacity read back over HTTP. (a separate per-composition
+    // opacity field was the fourth field this case covered; it merged into
+    // masterOpacity and was removed, s-rta-0923 lane 3 plan section 4.6.)
     Composition comp;
     comp.initDefault();
 
     comp.masterOpacity = 0.42f;
     comp.masterSpeed = 2.5f;
-    comp.compOpacity = 0.13f;
     CHECK(comp.masterOpacity == 0.42f);
     CHECK(comp.masterSpeed == 2.5f);
-    CHECK(comp.compOpacity == 0.13f);
 
     Clip clip;
     clip.clipOpacity = 0.77f;

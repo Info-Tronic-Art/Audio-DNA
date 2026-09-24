@@ -373,7 +373,6 @@ TEST_CASE("Composition full field serialization roundtrip", "[composition][seria
 
     // Master + video
     comp.masterSpeed = 1.5f;
-    comp.compOpacity = 0.7f;
 
     // Crossfader
     comp.crossfaderPhase = 0.25f;
@@ -434,7 +433,6 @@ TEST_CASE("Composition full field serialization roundtrip", "[composition][seria
     loaded.fromVar(parsed);
 
     REQUIRE_THAT(loaded.masterSpeed, WithinAbs(1.5f, 0.001f));
-    REQUIRE_THAT(loaded.compOpacity, WithinAbs(0.7f, 0.001f));
     REQUIRE_THAT(loaded.crossfaderPhase, WithinAbs(0.25f, 0.001f));
     REQUIRE(loaded.crossfaderBlendMode == Composition::CrossfaderBlendMode::Multiply);
     REQUIRE(loaded.crossfaderBehaviour == Composition::CrossfaderBehaviour::Smooth);
@@ -548,7 +546,6 @@ TEST_CASE("Backward compatibility: old-format presets load with struct defaults"
         REQUIRE(comp.name == "old_comp");
         REQUIRE_THAT(comp.masterOpacity, WithinAbs(0.9f, 0.001f));
         REQUIRE_THAT(comp.masterSpeed, WithinAbs(1.0f, 0.001f));
-        REQUIRE_THAT(comp.compOpacity, WithinAbs(1.0f, 0.001f));
         REQUIRE_THAT(comp.crossfaderPhase, WithinAbs(0.5f, 0.001f));
         REQUIRE(comp.crossfaderBlendMode == Composition::CrossfaderBlendMode::Alpha);
         REQUIRE(comp.crossfaderBehaviour == Composition::CrossfaderBehaviour::Cut);

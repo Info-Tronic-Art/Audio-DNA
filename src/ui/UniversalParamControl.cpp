@@ -1,4 +1,7 @@
 #include "ui/UniversalParamControl.h"
+#include "connect/ConnPicker.h"
+#include "connect/ManualWrite.h"
+#include "connect/ConnClock.h"
 
 UniversalParamControl::UniversalParamControl()
 {
@@ -17,6 +20,11 @@ UniversalParamControl::UniversalParamControl()
         updateValueDisplay();
         if (onValueChanged) onValueChanged(currentValue_);
     };
+    // Held grip (s-rta-0923 lane 3 plan section 4.2): a dragged slider is
+    // the most deliberate hand (Ruling A) -- grips on mouse-down, releases
+    // (starting the hand-back glide) on mouse-up. No-op when unbound.
+    valueSlider_.onDragStart = [this] { if (conn_) conn_->gripHeld(); };
+    valueSlider_.onDragEnd = [this] { if (conn_) conn_->release(connNow()); };
     addAndMakeVisible(valueSlider_);
 
     // Decrement / increment buttons
@@ -28,6 +36,8 @@ UniversalParamControl::UniversalParamControl()
         float newVal = juce::jlimit(0.0f, 1.0f, currentValue_ - 0.01f);
         setParamValue(newVal);
         if (onValueChanged) onValueChanged(currentValue_);
+        // A release-less write (s-rta-0923 lane 3 plan section 4.2).
+        if (conn_) conn_->gripTouch(connNow());
     };
     addAndMakeVisible(decrementBtn_);
 
@@ -39,6 +49,8 @@ UniversalParamControl::UniversalParamControl()
         float newVal = juce::jlimit(0.0f, 1.0f, currentValue_ + 0.01f);
         setParamValue(newVal);
         if (onValueChanged) onValueChanged(currentValue_);
+        // A release-less write (s-rta-0923 lane 3 plan section 4.2).
+        if (conn_) conn_->gripTouch(connNow());
     };
     addAndMakeVisible(incrementBtn_);
 
@@ -55,6 +67,7 @@ UniversalParamControl::UniversalParamControl()
                             juce::Colour(AudioDNALookAndFeel::kTextPrimary));
     invertToggle_.onStateChange = [this] {
         inverted_ = invertToggle_.getToggleState();
+        if (conn_) conn_->shape.inverted = inverted_;
         if (onInvertChanged) onInvertChanged(inverted_);
     };
     addChildComponent(invertToggle_);
@@ -77,10 +90,12 @@ UniversalParamControl::UniversalParamControl()
 
     rangeMinSlider_.onValueChange = [this] {
         outputMin_ = static_cast<float>(rangeMinSlider_.getValue());
+        if (conn_) conn_->shape.outMin = outputMin_;
         if (onRangeChanged) onRangeChanged(outputMin_, outputMax_);
     };
     rangeMaxSlider_.onValueChange = [this] {
         outputMax_ = static_cast<float>(rangeMaxSlider_.getValue());
+        if (conn_) conn_->shape.outMax = outputMax_;
         if (onRangeChanged) onRangeChanged(outputMin_, outputMax_);
     };
     addChildComponent(rangeMinSlider_);
@@ -91,6 +106,36 @@ UniversalParamControl::UniversalParamControl()
     rangeLabel_.setColour(juce::Label::textColourId,
                           juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     addChildComponent(rangeLabel_);
+}
+
+UniversalParamControl::~UniversalParamControl()
+{
+    // R-C mitigation (s-rta-0923 lane 3 plan section 9): a widget destroyed
+    // mid-drag must not leave that parameter's signal frozen forever.
+    if (conn_ && conn_->grip.kind != ParamConnection::Grip::Kind::None)
+        conn_->release(connNow());
+}
+
+void UniversalParamControl::bindConnection(ParamConnection* conn, LiveValue* live)
+{
+    if (conn_ && conn_->grip.kind != ParamConnection::Grip::Kind::None)
+        conn_->release(connNow());   // don't leave a held/decaying grip behind on rebind/unbind
+
+    conn_ = conn;
+    live_ = live;
+
+    if (conn_)
+    {
+        sourceName_ = juce::String(describeSource(conn_->source));
+        sourceBtn_.setButtonText(sourceName_.isEmpty() ? juce::String("Manual") : sourceName_);
+        outputMin_ = conn_->shape.outMin;
+        outputMax_ = conn_->shape.outMax;
+        rangeMinSlider_.setValue(static_cast<double>(outputMin_), juce::dontSendNotification);
+        rangeMaxSlider_.setValue(static_cast<double>(outputMax_), juce::dontSendNotification);
+        inverted_ = conn_->shape.inverted;
+        invertToggle_.setToggleState(inverted_, juce::dontSendNotification);
+    }
+    repaint();
 }
 
 void UniversalParamControl::drawSignalTriangle(juce::Graphics& g,
@@ -251,6 +296,8 @@ void UniversalParamControl::mouseDown(const juce::MouseEvent& event)
         setParamValue(defaultValue_);
         valueSlider_.setValue(static_cast<double>(defaultValue_), juce::sendNotificationSync);
         if (onValueChanged) onValueChanged(defaultValue_);
+        // A release-less write (s-rta-0923 lane 3 plan section 4.2).
+        if (conn_) conn_->gripTouch(connNow());
         return;
     }
 
@@ -461,23 +508,40 @@ void UniversalParamControl::handleSourcePickerResult(int result)
 {
     if (result == 0) return; // dismissed
 
+    // Bound widgets (s-rta-0923 lane 3 plan section 4.2/4.3): translate the
+    // same menu id into a PickerChoice for ConnPicker::sourceFromPicker,
+    // applied to *conn_ below. Built in parallel with the existing
+    // sourceMode_/sourceName_ logic (unchanged, still drives unbound/effect
+    // rows) so the two never disagree about which menu id means what.
+    // haveChoice stays false (and *conn_ untouched) on a result id whose
+    // signal-registry lookup failed -- must not be conflated with an
+    // explicit "Manual" pick (result == 1), which DOES disconnect.
+    PickerChoice choice;
+    bool haveChoice = false;
+
     if (result == 1)
     {
         sourceMode_ = SourceMode::Manual;
         sourceName_ = {};
         sourceBtn_.setButtonText("Manual");
+        choice.kind = PickerChoice::Kind::Manual;
+        haveChoice = true;
     }
     else if (result == 2)
     {
         sourceMode_ = SourceMode::ClipPosition;
         sourceName_ = "Clip Position";
         sourceBtn_.setButtonText("Clip Position");
+        choice.kind = PickerChoice::Kind::ClipPosition;
+        haveChoice = true;
     }
     else if (result == 3)
     {
         sourceMode_ = SourceMode::Timeline;
         sourceName_ = "Timeline";
         sourceBtn_.setButtonText("Timeline");
+        choice.kind = PickerChoice::Kind::Timeline;
+        haveChoice = true;
     }
     else if (result >= 100 && result < 200)
     {
@@ -489,15 +553,21 @@ void UniversalParamControl::handleSourcePickerResult(int result)
                 sourceMode_ = SourceMode::Signal;
                 sourceName_ = juce::String(sig->getName());
                 sourceBtn_.setButtonText(sourceName_);
+                choice.kind = PickerChoice::Kind::Signal;
+                choice.signalName = sourceName_.toStdString();
+                haveChoice = true;
             }
         }
     }
-    else if (result >= 200 && result < 206)
+    else if (result >= 200 && result < 200 + MacroBank::kNumMacros)
     {
         int macroIdx = result - 200;
         sourceMode_ = SourceMode::Macro;
         sourceName_ = "Macro " + juce::String(macroIdx + 1);
         sourceBtn_.setButtonText(sourceName_);
+        choice.kind = PickerChoice::Kind::Macro;
+        choice.macroIdx = macroIdx;
+        haveChoice = true;
     }
     else if (result >= 300 && result < 324)
     {
@@ -514,6 +584,10 @@ void UniversalParamControl::handleSourcePickerResult(int result)
         sourceMode_ = SourceMode::BPMSync;
         sourceName_ = juce::String(shapes[shapeIdx]) + " " + juce::String(divisions[divIdx]);
         sourceBtn_.setButtonText(sourceName_);
+        choice.kind = PickerChoice::Kind::BpmSync;
+        choice.shapeIdx = shapeIdx;
+        choice.divIdx = divIdx;
+        haveChoice = true;
     }
     else if (result >= 400 && result < 500)
     {
@@ -525,6 +599,11 @@ void UniversalParamControl::handleSourcePickerResult(int result)
                 sourceMode_ = SourceMode::Oscillator;
                 sourceName_ = juce::String(sig->getName());
                 sourceBtn_.setButtonText(sourceName_);
+                // Oscillator submenu entries are registry-backed signals --
+                // they become Kind::Signal, same as Audio (plan section 4.3).
+                choice.kind = PickerChoice::Kind::Signal;
+                choice.signalName = sourceName_.toStdString();
+                haveChoice = true;
             }
         }
     }
@@ -538,8 +617,31 @@ void UniversalParamControl::handleSourcePickerResult(int result)
                 sourceMode_ = SourceMode::Envelope;
                 sourceName_ = juce::String(sig->getName());
                 sourceBtn_.setButtonText(sourceName_);
+                // Envelope submenu entries are registry-backed signals --
+                // they become Kind::Signal too (Kind::Envelope is reserved
+                // for the Timeline entry, plan section 4.3).
+                choice.kind = PickerChoice::Kind::Signal;
+                choice.signalName = sourceName_.toStdString();
+                haveChoice = true;
             }
         }
+    }
+
+    if (conn_ && haveChoice)
+    {
+        if (choice.kind == PickerChoice::Kind::Manual)
+        {
+            disconnect(*conn_, live_);
+        }
+        else
+        {
+            conn_->source = sourceFromPicker(choice);
+            conn_->shape.outMin = outputMin_;
+            conn_->shape.outMax = outputMax_;
+            conn_->shape.inverted = inverted_;
+        }
+        sourceName_ = juce::String(describeSource(conn_->source));
+        sourceBtn_.setButtonText(sourceName_.isEmpty() ? juce::String("Manual") : sourceName_);
     }
 
     if (onSourceChanged) onSourceChanged(sourceMode_, sourceName_);

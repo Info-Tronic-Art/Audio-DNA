@@ -149,10 +149,14 @@ CompositionInspector::CompositionInspector()
     addAndMakeVisible(speedControl_);
 
     // --- Video Opacity ---
+    // s-rta-0923 lane 3 plan section 4.6: this second knob binds to the
+    // SAME CompScalar::Opacity connection as masterControl_ (ruling 11: one
+    // master opacity) -- writes masterOpacity, not the model's old separate
+    // per-composition opacity field (deleted in the follow-up commit).
     opacityControl_.setParamName("Opacity");
     opacityControl_.setParamValue(1.0f);
     opacityControl_.onValueChanged = [this](float val) {
-        if (composition_) composition_->compOpacity = val;
+        if (composition_) composition_->masterOpacity = val;
     };
     opacityControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
     addAndMakeVisible(opacityControl_);
@@ -394,8 +398,26 @@ void CompositionInspector::setComposition(Composition* comp)
     {
         effectStackView_.setEffects(nullptr, EffectScope::none());
     }
+    bindScalarControls();
     resized();
     repaint();
+}
+
+void CompositionInspector::bindScalarControls()
+{
+    auto bind = [this](UniversalParamControl& c, CompScalar s) {
+        if (composition_) c.bindConnection(&composition_->scalarConns[static_cast<size_t>(s)],
+                                            &composition_->scalarLive[static_cast<size_t>(s)]);
+        else c.bindConnection(nullptr, nullptr);
+    };
+    bind(masterControl_, CompScalar::Opacity);
+    bind(opacityControl_, CompScalar::Opacity);   // ruling 11: one master
+    bind(speedControl_, CompScalar::Speed);
+    bind(posXControl_, CompScalar::PosX);
+    bind(posYControl_, CompScalar::PosY);
+    bind(scaleControl_, CompScalar::Scale);
+    bind(rotationControl_, CompScalar::Rotation);
+    bind(anchorControl_, CompScalar::AnchorX);
 }
 
 void CompositionInspector::rebuildEffectStack()
@@ -506,9 +528,27 @@ void CompositionInspector::syncFromComposition()
 {
     if (!composition_) return;
 
-    masterControl_.setParamValue(composition_->masterOpacity);
-    speedControl_.setParamValue(composition_->masterSpeed / 4.0f); // [0,4] → [0,1]
-    opacityControl_.setParamValue(composition_->compOpacity);
+    // Thumb follows the signal (s-rta-0923 lane 3 plan section 4.2): a
+    // connected control shows eff() normalized through its ScalarDef;
+    // during a Held grip eff() == manual (the engine publishes NaN while
+    // gripped), so the thumb never fights the hand, and it visibly glides
+    // back after release (D14). setParamValue is dontSendNotification, so
+    // this never writes back to the model.
+    auto syncScalar = [this](UniversalParamControl& ctrl, CompScalar s, float todayFormula) {
+        const auto& def = compScalarDefs()[static_cast<size_t>(s)];
+        bool connected = composition_->scalarConns[static_cast<size_t>(s)].isConnected();
+        float eff = composition_->eff(s);
+        ctrl.setParamValue(connected ? def.toNorm(eff) : todayFormula);
+        ctrl.setSourceValue(def.toNorm(eff));
+    };
+
+    // Ruling 11: opacityControl_ is the twin knob bound to the same
+    // CompScalar::Opacity connection as masterControl_ -- reads
+    // masterOpacity, not the model's old separate per-composition opacity
+    // field (deleted in the follow-up commit).
+    syncScalar(masterControl_, CompScalar::Opacity, composition_->masterOpacity);
+    syncScalar(opacityControl_, CompScalar::Opacity, composition_->masterOpacity);
+    syncScalar(speedControl_, CompScalar::Speed, composition_->masterSpeed / 4.0f); // [0,4] → [0,1]
 
     // Autopilot direction buttons
     auto dir = composition_->autopilotDirection;
@@ -537,11 +577,11 @@ void CompositionInspector::syncFromComposition()
     effectRandomToggle_.setToggleState(composition_->perTypeAutopilot.effectRandomize, juce::dontSendNotification);
 
     // Transform
-    posXControl_.setParamValue(composition_->compPositionX / 3840.0f + 0.5f);
-    posYControl_.setParamValue(composition_->compPositionY / 2160.0f + 0.5f);
-    scaleControl_.setParamValue(composition_->compScale / 2.0f);
-    rotationControl_.setParamValue(composition_->compRotation / 720.0f + 0.5f);
-    anchorControl_.setParamValue(composition_->compAnchorX / 3840.0f + 0.5f);
+    syncScalar(posXControl_, CompScalar::PosX, composition_->compPositionX / 3840.0f + 0.5f);
+    syncScalar(posYControl_, CompScalar::PosY, composition_->compPositionY / 2160.0f + 0.5f);
+    syncScalar(scaleControl_, CompScalar::Scale, composition_->compScale / 2.0f);
+    syncScalar(rotationControl_, CompScalar::Rotation, composition_->compRotation / 720.0f + 0.5f);
+    syncScalar(anchorControl_, CompScalar::AnchorX, composition_->compAnchorX / 3840.0f + 0.5f);
 
     // Resolution
     if (composition_->outputWidth == 1920) resolutionSelector_.setSelectedId(1, juce::dontSendNotification);
