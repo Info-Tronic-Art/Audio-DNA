@@ -913,3 +913,162 @@ TEST_CASE("RecorderHost onHumanWrite -- with no prior touch opens the gesture", 
     REQUIRE(loaded->lanes.at(key).gestures.size() == 1);   // NOT empty/zero -- the amendment's whole point
     CHECK(loaded->lanes.at(key).gestures[0].curve.pts.size() >= 2);
 }
+
+// === 16: [host][selfstop] a tick before the first push is never misread as a self-stop ===
+//
+// Fail-first against the unfixed code: arm() used to seed `tapWasRunningLastTick_ = true`
+// immediately after tap.start() -- but tap.start() only ARMS the tap; AudioTap::running_ flips true
+// inside push(), on the audio thread's NEXT callback, not synchronously with start(). RecorderHost::
+// tick() runs from an independent 120 Hz message-thread timer, so a tick landing between arm() and
+// the first push() saw `tapWasRunningLastTick_ == true` but `tap.isRunning() == false` and fired a
+// false-positive "audio tap self-stopped mid-take" notify on nearly every arm.
+
+TEST_CASE("RecorderHost selfstop -- a tick before the first push is never misread as a self-stop", "[host][selfstop]")
+{
+    TempDir storeRoot("selfstop_prepush_store");
+    TempDir takeFolder("selfstop_prepush_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap tap;
+    tap.prepare(48000.0, 2, 512);
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = true;
+    opts.audioMode = "input";
+    opts.deviceRate = 48000.0;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+
+    REQUIRE(host.arm(comp, tap, opts).ok);
+    REQUIRE_FALSE(tap.isRunning());   // armed, not yet running -- the exact window the bug misread
+
+    // Tick BEFORE any push() call -- the 120 Hz message-thread timer can and does land here.
+    host.tick(makeSnap(), 0.0, 0, tap, std::nullopt, 48000.0);
+
+    const auto st = host.status();
+    CHECK(st.lastError.empty());
+    for (const auto& n : fake.notices)
+        CHECK(n.find("self-stopped") == std::string::npos);
+
+    host.disarm(comp, tap);
+}
+
+// === 17: [host][selfstop] a genuine running-to-stopped transition is reported exactly once ===
+
+TEST_CASE("RecorderHost selfstop -- a genuine running-to-stopped transition is reported exactly once", "[host][selfstop]")
+{
+    TempDir storeRoot("selfstop_once_store");
+    TempDir takeFolder("selfstop_once_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap tap;
+    tap.prepare(48000.0, 2, 512);
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = true;
+    opts.audioMode = "input";
+    opts.deviceRate = 48000.0;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+
+    REQUIRE(host.arm(comp, tap, opts).ok);
+
+    uint64_t delivered = 0;
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    pushCleanBlocks(tap, 48000.0, 512, 5, delivered, hostTimeNs);
+    REQUIRE(tap.isRunning());
+
+    host.tick(makeSnap(), 0.1, delivered, tap, std::nullopt, 48000.0);   // observes it running -- no fire
+    CHECK(host.status().lastError.empty());
+
+    tap.prepare(44100.0, 2, 512);   // rate change mid-take -> genuine self-stop (AudioTap's own contract)
+    REQUIRE_FALSE(tap.isRunning());
+
+    host.tick(makeSnap(), 0.2, delivered, tap, std::nullopt, 44100.0);   // observes the self-stop -- fires once
+
+    const auto st = host.status();
+    CHECK_FALSE(st.lastError.empty());
+
+    int selfStopNotices = 0;
+    for (const auto& n : fake.notices)
+        if (n.find("self-stopped") != std::string::npos)
+            ++selfStopNotices;
+    CHECK(selfStopNotices == 1);
+
+    host.disarm(comp, tap);
+}
+
+// === 18: [host][selfstop] after a reported self-stop, a recovered tap re-arms the edge ===
+
+TEST_CASE("RecorderHost selfstop -- after a reported self-stop, a recovered tap reports a genuine second stop (re-armed edge)", "[host][selfstop]")
+{
+    TempDir storeRoot("selfstop_rearm_store");
+    TempDir takeFolder("selfstop_rearm_take");
+    TempDir recoverDir("selfstop_rearm_recover");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap tap;
+    tap.prepare(48000.0, 2, 512);
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = true;
+    opts.audioMode = "input";
+    opts.deviceRate = 48000.0;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+
+    REQUIRE(host.arm(comp, tap, opts).ok);
+
+    uint64_t delivered = 0;
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    pushCleanBlocks(tap, 48000.0, 512, 5, delivered, hostTimeNs);
+    host.tick(makeSnap(), 0.1, delivered, tap, std::nullopt, 48000.0);   // running -- no fire
+
+    tap.prepare(44100.0, 2, 512);   // first genuine self-stop
+    REQUIRE_FALSE(tap.isRunning());
+    host.tick(makeSnap(), 0.2, delivered, tap, std::nullopt, 44100.0);
+
+    auto countSelfStops = [&]
+    {
+        int n = 0;
+        for (const auto& s : fake.notices)
+            if (s.find("self-stopped") != std::string::npos)
+                ++n;
+        return n;
+    };
+    REQUIRE(countSelfStops() == 1);
+    REQUIRE_FALSE(host.status().lastError.empty());
+
+    // Recovery: the tap starts running again (e.g. the device came back) -- re-arm the SAME tap
+    // object into a fresh file, the only way a real AudioTap goes from stopped back to running.
+    REQUIRE(tap.start(recoverDir.dir.getChildFile("recovered.wav")));
+    pushCleanBlocks(tap, 44100.0, 512, 5, delivered, hostTimeNs);
+    REQUIRE(tap.isRunning());
+    host.tick(makeSnap(), 0.3, delivered, tap, std::nullopt, 44100.0);   // observes recovery -- no new fire
+    CHECK(countSelfStops() == 1);
+
+    // A second genuine stop after recovery.
+    tap.prepare(22050.0, 2, 512);
+    REQUIRE_FALSE(tap.isRunning());
+    host.tick(makeSnap(), 0.4, delivered, tap, std::nullopt, 22050.0);
+
+    CHECK(countSelfStops() == 2);   // re-armed -- the second genuine stop is reported, not swallowed
+    CHECK_FALSE(host.status().lastError.empty());
+
+    host.disarm(comp, tap);
+}
