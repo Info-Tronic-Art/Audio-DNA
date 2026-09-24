@@ -172,6 +172,14 @@ public:
     };
     PlayResult play(PlayMode mode, const Composition& comp);   // compile + Player::start(0)
     void stopPlay();                                           // Player::stop(sink) -> every touch released (R9)
+    // s-rta-0924b step 4 (Harmony ruling 1): "Stop Playback" as the app means it. An overdub take's
+    // clock IS the replayed audio's transport (5.2), so an overdub cannot outlive the replay: when one
+    // is recording, it is stopped first (disarm -- finalize + save, exactly as Stop Recording would),
+    // THEN the replay stops. Afterwards overdub is false, so MainComponent's transport stop is no
+    // longer refused (R-A8). A plain (non-overdub) recording is left running. `overdubStopped` is
+    // set only when an overdub take was ended here; `overdub` is that disarm's result.
+    struct StopPlaybackResult { bool overdubStopped = false; StopResult overdub; };
+    StopPlaybackResult stopPlayback(const Composition& comp, AudioTap& tap);
     bool isPlaying() const;
     // Repair (5.4 Incomplete): store.finalize(id, *CaptureFacts::fromAudioRef(loaded.audio, app))
     std::string repairLoadedAudio(const std::string& appVersion);
@@ -204,6 +212,18 @@ public:
         // N12: count of Human writes MainComponent's funnel refused (a Held grip already
         // holds the control) -- the first diagnostic the funnel has ever had.
         int humanRefused = 0;
+
+        // s-rta-0924b step 4 (Lane S4-A): facts the Record panel / REST status need that the host
+        // alone knows. Additive (D12 "ADD, never REDEFINE"); published by load() as well as tick().
+        std::string loadedTakeFolder;      // "" when no take is loaded
+        std::string loadedRecordedAt;      // Take::Meta::recordedAt of the loaded take
+        double      loadedDuration = 0.0;  // Take::Meta::duration (seconds)
+        int         loadedLanes = 0;
+        std::string loadedAssetId;         // AudioStore::Resolution::asset.id when Resolved/ResolvedUnverified, else ""
+        std::string audioReason;           // AudioStore::Resolution::reason ("" when Resolved/NoAudio)
+        // Playback position in SECONDS regardless of DriveClock (Wall: as-is; Sample: relative to the
+        // asset's firstSample, divided by the asset rate) -- position/length stay in the drive-clock domain.
+        double positionSeconds = 0.0, lengthSeconds = 0.0;
     };
     Status status() const;
 
@@ -308,6 +328,7 @@ private:
 
     // Loaded take (playback, 5.4)
     std::optional<Take> loadedTake_;
+    juce::File loadedTakeFolder_;                        // s-rta-0924b S4-A: set by a successful load()
     LoadStats loadStats_;
     AudioStore::Resolution loadedAudio_;
 

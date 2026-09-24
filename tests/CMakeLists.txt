@@ -1124,3 +1124,30 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_analysis_resampler)
 catch_discover_tests(test_analysis_resampler)
+
+# --- test_record_panel_model (s-rta-0924b step 4, Lane S4-M: the Record panel's
+# click-through matrix). Header-only src/ui/RecordPanelModel.h is a pure function
+# RecorderHost::Status -> RecordPanelView; its include chain (RecorderHost.h and
+# the recording/ headers it pulls in) is juce_core-only, so this target links
+# juce_core alone -- NEVER juce_gui_basics (no display context under ctest).
+add_executable(test_record_panel_model test_record_panel_model.cpp)
+target_include_directories(test_record_panel_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_record_panel_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_record_panel_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_record_panel_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_record_panel_model)
+catch_discover_tests(test_record_panel_model)

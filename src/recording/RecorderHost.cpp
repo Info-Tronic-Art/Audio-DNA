@@ -660,6 +660,15 @@ void RecorderHost::stopPlay()
     publishStatus();
 }
 
+RecorderHost::StopPlaybackResult RecorderHost::stopPlayback(const Composition& comp, AudioTap& tap)
+{
+    RECORDER_HOST_ASSERT_MESSAGE_THREAD();
+    StopPlaybackResult res;
+    (void) comp; (void) tap;   // FAIL-FIRST STUB (s-rta-0924b step 4): implemented in the next commit
+    stopPlay();
+    return res;
+}
+
 std::string RecorderHost::repairLoadedAudio(const std::string& appVersion)
 {
     RECORDER_HOST_ASSERT_MESSAGE_THREAD();
