@@ -29,3 +29,4 @@ that important"; "keep working till you hit 50% ctx then eos". Running log: .har
 | slip | packet | self-stop diag agent attached lldb → Touch ID dialog → Escape hit another Harmony terminal; my packet didn't forbid it (gotcha filed) |
 | shipped | f95c216 | retired RecorderHost rate shims, onset cap/wrap tests, probe FAILs (not SKIPs) without .venv — reviewer APPROVE |
 | gate | final | main after all merges: build rc 0, ctest 408/408, probe-step3 63 PASS / 0 FAIL, no Audio-DNA process, screen looked at |
+| slip | handoff | index-span rewrite deleted 212 historical lines (RIG MECHANICS); restored verbatim, loss check 0 missing |
