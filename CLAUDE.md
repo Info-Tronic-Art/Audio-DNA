@@ -251,6 +251,7 @@ AudioDNA/
 │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
 │   ├── recording/
 │   │   ├── SessionRecorder.h/cpp        # [P12] Event recording — PARTIAL: only clip-triggers captured; playback DEAD (advancePlayback never called)
+│   │   ├── AudioStore.h/cpp          ✅ # [Ruling 28] Shared audio store (~/Documents/Audio-DNA/Audio/<id>.adna-audio/) -- take format v3 references it by id; see "Audio Store" below
 │   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
 │   ├── api/
 │   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 22 endpoints — all functional; /api/set_bpm wired Wave 0; CORS, always-on)
@@ -1125,6 +1126,10 @@ Composition-level automation that sets different beat timings per layer type:
 **Ableton Link**: Optional (`-DAUDIODNA_BUILD_LINK=ON`). `LinkSync` class wraps `ableton::Link`, updates cached BPM/phase via atomics. When enabled, overrides BPM tracker with Link's tempo via manual mode. **NOTE**: `AUDIODNA_BUILD_LINK` defaults OFF (`CMakeLists.txt`), so in a default build `AUDIODNA_HAS_LINK` is undefined and every `LinkSync` method compiles to a no-op.
 
 **Key-up routing**: `MainComponent::keyStateChanged()` polls all momentary-bound keys and fires release actions. MIDI note-off already routed through `BindingManager::processMidiNoteOff()`.
+
+### Audio Store (Ruling 28)
+
+`AudioStore` (`src/recording/AudioStore.h/cpp`) is the shared audio store recorded audio lives in, not the take folder: `~/Documents/Audio-DNA/Audio/<id>.adna-audio/{audio.wav, audio.json}`, id-keyed, sidecar written LAST (its presence is the "complete" flag). Take format v3's `AudioRef::Segment` references an asset by `{id, fingerprint, firstSample, frames, rate, channels}` — `file` is read-only legacy (pre-v3 in-folder audio). Content identity is `fp1` (a cheap deterministic head+tail+length SHA-256, `AudioStore::fingerprint`), recomputed at every `resolve()`. `AudioTap` re-patches the WAV header every 10s of audio (`AudioTap::kHeaderFlushSeconds`) so a crashed show is readable up to the last flush. Nothing is deleted automatically except a failed arm's own just-minted, never-finalized asset (`AudioStore::abandonAsset`, one narrow exception). Wiring record→store→take into `RecordPanel`/`MainComponent` is NOT built yet (step 3, still owed).
 
 ### Output & Integration System (P22)
 

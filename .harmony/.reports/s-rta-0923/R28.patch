@@ -1,0 +1,2366 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 657060a..8ba8342 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -251,6 +251,7 @@ AudioDNA/
+ │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
+ │   ├── recording/
+ │   │   ├── SessionRecorder.h/cpp        # [P12] Event recording — PARTIAL: only clip-triggers captured; playback DEAD (advancePlayback never called)
++│   │   ├── AudioStore.h/cpp          ✅ # [Ruling 28] Shared audio store (~/Documents/Audio-DNA/Audio/<id>.adna-audio/) -- take format v3 references it by id; see "Audio Store" below
+ │   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
+ │   ├── api/
+ │   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 22 endpoints — all functional; /api/set_bpm wired Wave 0; CORS, always-on)
+@@ -1126,6 +1127,10 @@ Composition-level automation that sets different beat timings per layer type:
+ 
+ **Key-up routing**: `MainComponent::keyStateChanged()` polls all momentary-bound keys and fires release actions. MIDI note-off already routed through `BindingManager::processMidiNoteOff()`.
+ 
++### Audio Store (Ruling 28)
++
++`AudioStore` (`src/recording/AudioStore.h/cpp`) is the shared audio store recorded audio lives in, not the take folder: `~/Documents/Audio-DNA/Audio/<id>.adna-audio/{audio.wav, audio.json}`, id-keyed, sidecar written LAST (its presence is the "complete" flag). Take format v3's `AudioRef::Segment` references an asset by `{id, fingerprint, firstSample, frames, rate, channels}` — `file` is read-only legacy (pre-v3 in-folder audio). Content identity is `fp1` (a cheap deterministic head+tail+length SHA-256, `AudioStore::fingerprint`), recomputed at every `resolve()`. `AudioTap` re-patches the WAV header every 10s of audio (`AudioTap::kHeaderFlushSeconds`) so a crashed show is readable up to the last flush. Nothing is deleted automatically except a failed arm's own just-minted, never-finalized asset (`AudioStore::abandonAsset`, one narrow exception). Wiring record→store→take into `RecordPanel`/`MainComponent` is NOT built yet (step 3, still owed).
++
+ ### Output & Integration System (P22)
+ 
+ **Production REST API** (`ApiServer`, port 7070, always-on): 22 endpoints for external control (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread). cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state. All GL mutations go through existing thread-safe APIs.
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9c5b036..c4dc306 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -243,6 +243,8 @@ target_sources(AudioDNA PRIVATE
+     src/recording/PerformanceRecorder.cpp
+     src/recording/AudioTap.h
+     src/recording/AudioTap.cpp
++    src/recording/AudioStore.h
++    src/recording/AudioStore.cpp
+     src/recording/VideoRecorder.h
+     src/recording/VideoRecorder.cpp
+ 
+@@ -536,6 +538,7 @@ set(AUDIODNA_LIBS
+     juce::juce_gui_extra
+     juce::juce_opengl
+     juce::juce_osc
++    juce::juce_cryptography
+     Aubio::Aubio
+     FFmpeg::FFmpeg
+ )
+diff --git a/src/recording/AudioStore.cpp b/src/recording/AudioStore.cpp
+new file mode 100644
+index 0000000..831b313
+--- /dev/null
++++ b/src/recording/AudioStore.cpp
+@@ -0,0 +1,603 @@
++#include "recording/AudioStore.h"
++#include <juce_audio_formats/juce_audio_formats.h>
++#include <juce_cryptography/juce_cryptography.h>
++#include <algorithm>
++#include <memory>
++#include <set>
++
++// === AudioAsset (sidecar format v1, spec 2.1) ===
++
++juce::var AudioAsset::toVar() const
++{
++    auto* obj = new juce::DynamicObject();
++    obj->setProperty("format", juce::String("audiodna-audio"));
++    obj->setProperty("version", kSidecarVersion);
++    obj->setProperty("id", juce::String(id));
++    obj->setProperty("fingerprint", juce::String(fingerprint));
++    obj->setProperty("frames", static_cast<juce::int64>(frames));
++    obj->setProperty("rate", rate);
++    obj->setProperty("channels", channels);
++    obj->setProperty("bits", bits);
++    obj->setProperty("recordedAt", juce::String(recordedAt));
++    obj->setProperty("app", juce::String(app));
++    obj->setProperty("mode", juce::String(mode));
++    obj->setProperty("gapDetection", gapDetection);
++
++    juce::Array<juce::var> gapArr;
++    for (const auto& [frame, n] : gaps)
++    {
++        auto* g = new juce::DynamicObject();
++        g->setProperty("frame", static_cast<juce::int64>(frame));
++        g->setProperty("n", static_cast<int>(n));
++        gapArr.add(juce::var(g));
++    }
++    obj->setProperty("gaps", gapArr);
++
++    obj->setProperty("unreliableFrom",
++        unreliableFrom.has_value() ? juce::var(static_cast<juce::int64>(*unreliableFrom)) : juce::var());
++
++    return juce::var(obj);
++}
++
++std::optional<AudioAsset> AudioAsset::fromVar(const juce::var& v)
++{
++    auto* obj = v.getDynamicObject();
++    if (obj == nullptr)
++        return std::nullopt;
++    if (obj->getProperty("format").toString() != "audiodna-audio")
++        return std::nullopt;
++
++    AudioAsset a;
++    a.id = obj->getProperty("id").toString().toStdString();
++    if (a.id.empty())
++        return std::nullopt;
++
++    a.fingerprint = obj->getProperty("fingerprint").toString().toStdString();
++    a.frames = static_cast<uint64_t>(static_cast<juce::int64>(obj->getProperty("frames")));
++    a.rate = static_cast<double>(obj->getProperty("rate"));
++    a.channels = static_cast<int>(obj->getProperty("channels"));
++    a.bits = obj->hasProperty("bits") ? static_cast<int>(obj->getProperty("bits")) : 16;
++    a.recordedAt = obj->getProperty("recordedAt").toString().toStdString();
++    a.app = obj->getProperty("app").toString().toStdString();
++    a.mode = obj->getProperty("mode").toString().toStdString();
++    a.gapDetection = static_cast<bool>(obj->getProperty("gapDetection"));
++
++    if (auto* gapArr = obj->getProperty("gaps").getArray())
++    {
++        for (const auto& gv : *gapArr)
++        {
++            if (auto* gObj = gv.getDynamicObject())
++            {
++                a.gaps.emplace_back(
++                    static_cast<uint64_t>(static_cast<juce::int64>(gObj->getProperty("frame"))),
++                    static_cast<uint32_t>(static_cast<int>(gObj->getProperty("n"))));
++            }
++        }
++    }
++
++    if (obj->hasProperty("unreliableFrom") && !obj->getProperty("unreliableFrom").isVoid())
++        a.unreliableFrom = static_cast<uint64_t>(static_cast<juce::int64>(obj->getProperty("unreliableFrom")));
++
++    return a;
++}
++
++// === AudioStore ===
++
++AudioStore::AudioStore(juce::File root) : root_(std::move(root)) {}
++
++juce::File AudioStore::defaultRoot()
++{
++    return juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
++        .getChildFile("Audio-DNA").getChildFile("Audio");
++}
++
++juce::File AudioStore::assetFolder(const std::string& id) const
++{
++    return root_.getChildFile(juce::String(id) + kAssetSuffix);
++}
++
++juce::File AudioStore::wavFile(const std::string& id) const
++{
++    return assetFolder(id).getChildFile("audio.wav");
++}
++
++juce::File AudioStore::sidecarFile(const std::string& id) const
++{
++    return assetFolder(id).getChildFile("audio.json");
++}
++
++std::optional<std::string> AudioStore::beginAsset()
++{
++    if (!root_.exists() && !root_.createDirectory())
++        return std::nullopt;
++
++    // D-A1: re-mint up to 3 times if the folder already exists (bounded --
++    // Uuid's entropy is <= 48 bits, adequate for a per-user store of
++    // hundreds of assets, but a collision is not impossible).
++    for (int attempt = 0; attempt < 3; ++attempt)
++    {
++        const std::string id = juce::Uuid().toString().toStdString();
++        juce::File folder = assetFolder(id);
++        if (folder.exists())
++            continue;
++        if (!folder.createDirectory())
++            continue;
++        activeAssetId_ = id;
++        return id;
++    }
++    return std::nullopt;
++}
++
++std::optional<std::string> AudioStore::activeAssetId() const
++{
++    return activeAssetId_;
++}
++
++bool AudioStore::abandonAsset(const std::string& id)
++{
++    // D-A13: refuse unless this instance minted `id` (still active) AND it
++    // was never finalized (no sidecar).
++    if (!activeAssetId_.has_value() || *activeAssetId_ != id)
++        return false;
++    if (sidecarFile(id).existsAsFile())
++        return false;
++
++    const bool ok = assetFolder(id).deleteRecursively();
++    activeAssetId_.reset();
++    return ok;
++}
++
++std::optional<AudioStore::CaptureFacts> AudioStore::CaptureFacts::fromAudioRef(const AudioRef& ref, std::string app)
++{
++    if (ref.segments.size() != 1)
++        return std::nullopt;
++
++    const auto& seg = ref.segments[0];
++    CaptureFacts facts;
++    facts.mode = ref.mode;
++    facts.gapDetection = ref.gapDetection;
++    facts.firstSample = seg.firstSample;
++    facts.framesWritten = seg.frames;
++    facts.rate = seg.rate;
++    facts.channels = seg.channels;
++    facts.gapsInTakeClock = ref.gaps;
++    facts.unreliableFromInTakeClock = ref.unreliableFrom;
++    facts.app = std::move(app);
++    return facts;
++}
++
++namespace
++{
++    // D-A9: sample (take-clock) -> asset-frame, saturating at 0 if the
++    // stamp somehow predates firstSample.
++    uint64_t toAssetFrame(uint64_t sample, uint64_t firstSample)
++    {
++        return sample >= firstSample ? sample - firstSample : 0;
++    }
++}
++
++AudioStore::FinalizeResult AudioStore::finalize(const std::string& id, const CaptureFacts& facts)
++{
++    FinalizeResult result;
++    AudioAsset asset;
++    asset.id = id;
++    asset.recordedAt = juce::Time::getCurrentTime().toISO8601(true).toStdString();
++    asset.app = facts.app;
++    asset.mode = facts.mode;
++    asset.gapDetection = facts.gapDetection;
++
++    for (const auto& [sample, n] : facts.gapsInTakeClock)
++        asset.gaps.emplace_back(toAssetFrame(sample, facts.firstSample), n);
++    if (facts.unreliableFromInTakeClock.has_value())
++        asset.unreliableFrom = toAssetFrame(*facts.unreliableFromInTakeClock, facts.firstSample);
++
++    const juce::File wav = wavFile(id);
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav), true));
++
++    if (reader != nullptr)
++    {
++        result.wavReadable = true;
++        asset.frames = static_cast<uint64_t>(reader->lengthInSamples);
++        asset.rate = reader->sampleRate;
++        asset.channels = static_cast<int>(reader->numChannels);
++        asset.bits = static_cast<int>(reader->bitsPerSample);
++
++        // The `:453`/`:467` "give up rather than spin" branches inside
++        // AudioTap::stopInternal leave frames unwritten without setting
++        // unreliableFrom -- catch it here, one rule for every such path
++        // (spec 4.1, "Tradeoffs considered").
++        if (asset.frames < facts.framesWritten)
++        {
++            const uint64_t truncatedAt = asset.frames;
++            asset.unreliableFrom = asset.unreliableFrom.has_value()
++                ? std::min(*asset.unreliableFrom, truncatedAt) : truncatedAt;
++            result.error = "asset " + id + ": truncated (header " + std::to_string(asset.frames)
++                + " frames < framesWritten " + std::to_string(facts.framesWritten) + ")";
++        }
++
++        if (const auto fp = fingerprint(wav); fp.has_value())
++        {
++            asset.fingerprint = *fp;
++        }
++        else
++        {
++            if (!result.error.empty()) result.error += "; ";
++            result.error += "asset " + id + ": wav could not be fingerprinted (floating-point or open failure)";
++        }
++    }
++    else
++    {
++        // D-A11: the take ALWAYS carries the reference -- build the asset
++        // from the capture facts, fingerprint "" (never written to a
++        // sidecar).
++        result.wavReadable = false;
++        asset.fingerprint.clear();
++        asset.frames = facts.framesWritten;
++        asset.rate = facts.rate;
++        asset.channels = facts.channels;
++        asset.bits = 16;
++        result.error = "asset " + id + ": wav unreadable";
++    }
++
++    // D-A3/D-A11: NEVER write a sidecar with an empty fingerprint.
++    if (!asset.fingerprint.empty())
++    {
++        const bool wrote = sidecarFile(id).replaceWithText(juce::JSON::toString(asset.toVar()));
++        result.sidecarWritten = wrote;
++        if (!wrote)
++        {
++            if (!result.error.empty()) result.error += "; ";
++            result.error += "asset " + id + ": sidecar not written";
++        }
++    }
++    else
++    {
++        result.sidecarWritten = false;
++    }
++
++    result.asset = asset;
++
++    if (activeAssetId_.has_value() && *activeAssetId_ == id)
++        activeAssetId_.reset();
++
++    return result;
++}
++
++std::optional<AudioAsset> AudioStore::find(const std::string& id) const
++{
++    const juce::File sidecar = sidecarFile(id);
++    if (!sidecar.existsAsFile())
++        return std::nullopt;
++
++    auto asset = AudioAsset::fromVar(juce::JSON::parse(sidecar.loadFileAsString()));
++    if (!asset.has_value() || asset->id != id)
++        return std::nullopt;
++    return asset;
++}
++
++bool AudioStore::isIncomplete(const std::string& id) const
++{
++    if (activeAssetId_.has_value() && *activeAssetId_ == id)
++        return false;
++    return wavFile(id).existsAsFile() && !sidecarFile(id).existsAsFile();
++}
++
++namespace
++{
++    // Strips kAssetSuffix off a folder name; empty if it doesn't match.
++    std::string idFromAssetFolderName(const juce::File& dir)
++    {
++        const std::string name = dir.getFileName().toStdString();
++        const std::string suffix = AudioStore::kAssetSuffix;
++        if (name.size() <= suffix.size())
++            return {};
++        if (name.compare(name.size() - suffix.size(), suffix.size(), suffix) != 0)
++            return {};
++        return name.substr(0, name.size() - suffix.size());
++    }
++}
++
++std::vector<std::string> AudioStore::listAssetIds() const
++{
++    std::vector<std::string> out;
++    if (!root_.exists())
++        return out;
++    for (const auto& dir : root_.findChildFiles(juce::File::findDirectories, false, juce::String("*") + kAssetSuffix))
++    {
++        const auto id = idFromAssetFolderName(dir);
++        if (!id.empty() && find(id).has_value())
++            out.push_back(id);
++    }
++    return out;
++}
++
++std::vector<std::string> AudioStore::listIncompleteAssetIds() const
++{
++    std::vector<std::string> out;
++    if (!root_.exists())
++        return out;
++    for (const auto& dir : root_.findChildFiles(juce::File::findDirectories, false, juce::String("*") + kAssetSuffix))
++    {
++        const auto id = idFromAssetFolderName(dir);
++        if (!id.empty() && isIncomplete(id))
++            out.push_back(id);
++    }
++    return out;
++}
++
++AudioStore::Resolution AudioStore::resolve(const AudioRef& ref) const
++{
++    Resolution res;
++
++    // (1)
++    if (ref.segments.empty())
++    {
++        if (ref.mode.empty())
++        {
++            res.status = Status::NoAudio;
++            return res;
++        }
++        res.status = Status::Mismatch;
++        res.reason = "audio mode '" + ref.mode + "' but no segment -- malformed take";
++        return res;
++    }
++
++    // (2)
++    if (ref.segments.size() > 1)
++    {
++        res.status = Status::MultiSegment;
++        res.reason = "multi-segment audio is not built; re-record";
++        return res;
++    }
++
++    const auto& seg = ref.segments[0];
++
++    // (3)
++    if (seg.id.empty())
++    {
++        if (!seg.file.empty())
++        {
++            res.status = Status::Legacy;
++            res.reason = "recorded in-folder by a pre-v3 build; re-record";
++        }
++        else
++        {
++            res.status = Status::Mismatch;
++            res.reason = "no id";
++        }
++        return res;
++    }
++
++    // (4)
++    const juce::File folder = assetFolder(seg.id);
++    const juce::File wav = wavFile(seg.id);
++    if (!folder.exists() || !wav.existsAsFile())
++    {
++        res.status = Status::Missing;
++        res.reason = "asset " + seg.id + " not found under " + root_.getFullPathName().toStdString();
++        return res;
++    }
++
++    const juce::File sidecar = sidecarFile(seg.id);
++    if (!sidecar.existsAsFile())
++    {
++        res.status = Status::Incomplete;
++        res.reason = "asset " + seg.id + " has no sidecar -- repair from this take: "
++            "finalize(id, CaptureFacts::fromAudioRef)";
++        return res;
++    }
++
++    const auto sidecarAsset = AudioAsset::fromVar(juce::JSON::parse(sidecar.loadFileAsString()));
++    if (!sidecarAsset.has_value() || sidecarAsset->id != seg.id)
++    {
++        res.status = Status::Mismatch;
++        res.reason = "asset " + seg.id + ": sidecar is unparseable, or its id does not match the folder";
++        return res;
++    }
++
++    // (5)
++    if (sidecarAsset->frames != seg.frames || sidecarAsset->rate != seg.rate || sidecarAsset->channels != seg.channels)
++    {
++        res.status = Status::Mismatch;
++        res.reason = "asset " + seg.id + ": sidecar {frames=" + std::to_string(sidecarAsset->frames)
++            + ", rate=" + std::to_string(sidecarAsset->rate) + ", channels=" + std::to_string(sidecarAsset->channels)
++            + "} != take segment {frames=" + std::to_string(seg.frames) + ", rate=" + std::to_string(seg.rate)
++            + ", channels=" + std::to_string(seg.channels) + "}";
++        return res;
++    }
++
++    // (6)
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav), true));
++    if (reader == nullptr)
++    {
++        res.status = Status::Mismatch;
++        res.reason = "asset " + seg.id + ": wav could not be opened for verification";
++        return res;
++    }
++    if (static_cast<uint64_t>(reader->lengthInSamples) != sidecarAsset->frames
++        || reader->sampleRate != sidecarAsset->rate
++        || static_cast<int>(reader->numChannels) != sidecarAsset->channels
++        || static_cast<int>(reader->bitsPerSample) != sidecarAsset->bits)
++    {
++        res.status = Status::Mismatch;
++        res.reason = "asset " + seg.id + ": wav header does not match its own sidecar";
++        return res;
++    }
++
++    // (7)
++    if (seg.fingerprint.empty())
++    {
++        res.status = Status::ResolvedUnverified;
++        res.reason = "this take was saved before its audio was fingerprinted; the store's is "
++            + sidecarAsset->fingerprint + "; verified by length/rate/channels only";
++        res.wav = wav;
++        res.asset = *sidecarAsset;
++        res.firstSample = seg.firstSample;
++        return res;
++    }
++
++    const auto liveFp = fingerprint(wav);
++    if (!liveFp.has_value() || *liveFp != seg.fingerprint)
++    {
++        res.status = Status::Mismatch;
++        res.reason = "asset " + seg.id + ": content differs from what this take was recorded against";
++        return res;
++    }
++    if (*liveFp != sidecarAsset->fingerprint)
++    {
++        res.status = Status::Mismatch;
++        res.reason = "asset " + seg.id + ": the store's sidecar disagrees with its own file";
++        return res;
++    }
++
++    // (8)
++    res.status = Status::Resolved;
++    res.wav = wav;
++    res.asset = *sidecarAsset;
++    res.firstSample = seg.firstSample;
++    return res;
++}
++
++AudioRef AudioStore::referencing(const AudioAsset& asset, uint64_t firstSample)
++{
++    AudioRef ref;
++    ref.mode = asset.mode;
++    ref.gapDetection = asset.gapDetection;
++
++    AudioRef::Segment seg;
++    seg.id = asset.id;
++    seg.fingerprint = asset.fingerprint;
++    seg.firstSample = firstSample;
++    seg.frames = asset.frames;
++    seg.rate = asset.rate;
++    seg.channels = asset.channels;
++    ref.segments.push_back(seg);
++
++    for (const auto& [frame, n] : asset.gaps)
++        ref.gaps.emplace_back(frame + firstSample, n);
++    if (asset.unreliableFrom.has_value())
++        ref.unreliableFrom = *asset.unreliableFrom + firstSample;
++
++    return ref;
++}
++
++std::optional<std::string> AudioStore::fingerprint(const juce::File& wav)
++{
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav), true));
++    if (reader == nullptr)
++        return std::nullopt;
++    if (reader->usesFloatingPointData)
++        return std::nullopt;
++
++    const uint64_t N = static_cast<uint64_t>(reader->lengthInSamples);
++    const int R = juce::roundToInt(reader->sampleRate);
++    const int C = static_cast<int>(reader->numChannels);
++    const int B = static_cast<int>(reader->bitsPerSample);
++    const uint64_t W = kFingerprintWindowFrames;
++
++    const juce::String header = "adna-fp1|frames=" + juce::String(static_cast<juce::int64>(N))
++        + "|rate=" + juce::String(R) + "|channels=" + juce::String(C) + "|bits=" + juce::String(B) + "|";
++
++    juce::MemoryBlock bytes;
++    bytes.append(header.toRawUTF8(), header.getNumBytesAsUTF8());
++
++    auto appendWindow = [&](uint64_t start, uint64_t count)
++    {
++        if (count == 0 || C <= 0)
++            return;
++        std::vector<std::vector<int>> chans(static_cast<size_t>(C), std::vector<int>(static_cast<size_t>(count), 0));
++        std::vector<int*> ptrs(static_cast<size_t>(C));
++        for (int c = 0; c < C; ++c)
++            ptrs[static_cast<size_t>(c)] = chans[static_cast<size_t>(c)].data();
++        reader->read(ptrs.data(), C, static_cast<juce::int64>(start), static_cast<int>(count), false);
++
++        for (uint64_t f = 0; f < count; ++f)
++        {
++            for (int c = 0; c < C; ++c)
++            {
++                const int32_t sample = chans[static_cast<size_t>(c)][static_cast<size_t>(f)];
++                const int16_t v = static_cast<int16_t>(sample >> 16);
++                const uint16_t uv = static_cast<uint16_t>(v);
++                const uint8_t le[2] = { static_cast<uint8_t>(uv & 0xFF), static_cast<uint8_t>((uv >> 8) & 0xFF) };
++                bytes.append(le, 2);
++            }
++        }
++    };
++
++    if (N <= W * 2)
++        appendWindow(0, N);
++    else
++    {
++        appendWindow(0, W);
++        appendWindow(N - W, W);
++    }
++
++    return std::string("fp1:") + juce::SHA256(bytes.getData(), bytes.getSize()).toHexString().toStdString();
++}
++
++AudioStore::ReferenceScan AudioStore::scanTakes(const juce::File& takesRoot)
++{
++    ReferenceScan scan;
++    scan.roots.push_back(takesRoot);
++
++    std::set<std::string> ids;
++    for (const auto& dir : takesRoot.findChildFiles(juce::File::findDirectories, true, "*.adna-take"))
++    {
++        const juce::File target = dir.getChildFile("take.json");
++        if (!target.existsAsFile())
++        {
++            scan.unreadableTakes.push_back(target);
++            continue;
++        }
++
++        // Keep `parsed` ALIVE for the rest of this iteration -- it owns the
++        // reference-counted DynamicObject chain below; a raw pointer taken
++        // from a temporary var (e.g. JSON::parse(...).getDynamicObject())
++        // would dangle the instant this statement ends.
++        const juce::var parsed = juce::JSON::parse(target.loadFileAsString());
++        auto* obj = parsed.getDynamicObject();
++        if (obj == nullptr)
++        {
++            scan.unreadableTakes.push_back(target);
++            continue;
++        }
++
++        auto* audioObj = obj->getProperty("audio").getDynamicObject();
++        auto* segArr = audioObj != nullptr ? audioObj->getProperty("segments").getArray() : nullptr;
++        if (segArr != nullptr)
++        {
++            for (const auto& sv : *segArr)
++            {
++                if (auto* sObj = sv.getDynamicObject())
++                {
++                    const auto id = sObj->getProperty("id").toString().toStdString();
++                    if (!id.empty())
++                        ids.insert(id);
++                }
++            }
++        }
++    }
++
++    scan.referencedIds.assign(ids.begin(), ids.end());
++    return scan;
++}
++
++std::optional<std::vector<std::string>> AudioStore::unreferencedAssetIds(const juce::File& takesRoot) const
++{
++    const auto scan = scanTakes(takesRoot);
++    if (!scan.unreadableTakes.empty())
++        return std::nullopt;
++
++    const std::set<std::string> referenced(scan.referencedIds.begin(), scan.referencedIds.end());
++    std::vector<std::string> out;
++    for (const auto& id : listAssetIds())
++        if (referenced.count(id) == 0)
++            out.push_back(id);
++    return out;
++}
+diff --git a/src/recording/AudioStore.h b/src/recording/AudioStore.h
+new file mode 100644
+index 0000000..194b4a8
+--- /dev/null
++++ b/src/recording/AudioStore.h
+@@ -0,0 +1,146 @@
++#pragma once
++#include "recording/Take.h"
++#include <juce_core/juce_core.h>
++#include <optional>
++#include <string>
++#include <utility>
++#include <vector>
++
++// AudioStore.h -- s-rta-0923 Ruling 28: the shared audio store. Recorded
++// audio is the ANCHOR; many takes reference one asset. Layout:
++//   ~/Documents/Audio-DNA/Audio/<id>.adna-audio/{audio.wav, audio.json}
++// The sidecar (audio.json) is written LAST -- its presence is the
++// "complete" flag; an incomplete asset (a crashed show) is repairable
++// FROM ANY TAKE that references it (CaptureFacts::fromAudioRef). Nothing
++// is deleted by code except this instance's own just-minted,
++// never-finalized asset on a failed arm (abandonAsset, D-A13).
++// Message-thread only -- blocking file I/O is fine there (same posture as
++// AudioTap::start/stop).
++
++// AudioAsset -- the sidecar. Everything a take needs to reference the audio
++// and everything a FRESH take against it copies (ruling 28 / ruling 16).
++struct AudioAsset
++{
++    std::string id;                 // 32 lowercase hex == folder stem
++    std::string fingerprint;        // "fp1:" + 64 hex; "" ONLY in a finalize() result whose wav was unreadable (never in a sidecar)
++    uint64_t frames = 0;
++    double rate = 0.0;
++    int channels = 0;
++    int bits = 16;
++    std::string recordedAt;         // Time::toISO8601(true) -- local offset (spec 2.1)
++    std::string app;
++    std::string mode;               // how the AUDIO was captured: "input" | "file"
++    bool gapDetection = false;
++    std::vector<std::pair<uint64_t, uint32_t>> gaps;   // ASSET-FRAME domain
++    std::optional<uint64_t> unreliableFrom;             // asset-frame domain; may == frames (capture ended early)
++
++    static constexpr int kSidecarVersion = 1;
++    juce::var toVar() const;
++    static std::optional<AudioAsset> fromVar(const juce::var& v);   // nullopt: not an object / wrong format / no id
++};
++
++// AudioStore -- ruling 28's shared audio store. Message-thread only.
++class AudioStore
++{
++public:
++    explicit AudioStore(juce::File root);
++    static juce::File defaultRoot();                         // ~/Documents/Audio-DNA/Audio
++    const juce::File& root() const { return root_; }
++
++    static constexpr const char* kAssetSuffix = ".adna-audio";
++    juce::File assetFolder(const std::string& id) const;      // <root>/<id>.adna-audio
++    juce::File wavFile(const std::string& id) const;          // <folder>/audio.wav  -- hand THIS to AudioTap::start()
++    juce::File sidecarFile(const std::string& id) const;      // <folder>/audio.json
++
++    // --- recording a new asset (sequence in spec 5.1) ---
++    // Mints an id (re-minting up to 3 times if the folder already exists)
++    // and CREATES the folder so the asset exists as a unit from the first
++    // instant. Records it as the active asset (see activeAssetId/
++    // abandonAsset). nullopt if the root or the folder cannot be created.
++    std::optional<std::string> beginAsset();
++    std::optional<std::string> activeAssetId() const;         // set by beginAsset(), cleared by finalize()/abandonAsset()
++
++    // The ONE delete in this class (spec 7, D-A13): removes the folder of
++    // the asset THIS instance minted and never finalized (a failed arm --
++    // AudioTap::start may have left a 0-byte audio.wav). Refuses (false,
++    // nothing touched) unless id == activeAssetId() AND no sidecar exists.
++    bool abandonAsset(const std::string& id);
++
++    struct CaptureFacts
++    {
++        std::string mode;                                    // "input" | "file"
++        bool gapDetection = false;                            // AudioTap::gapDetectionSupported()
++        uint64_t firstSample = 0;                             // AudioTap::firstSample()
++        uint64_t framesWritten = 0;                           // AudioTap::framesWritten() -- truncation check + stub when the wav is unreadable
++        double rate = 0.0;                                    // device rate/channels at AudioTap::start() time (used ONLY when the wav is unreadable)
++        int channels = 0;
++        std::vector<std::pair<uint64_t, uint32_t>> gapsInTakeClock;   // drained via AudioTap::popGap EVERY TICK (spec 5.1), take-clock domain
++        std::optional<uint64_t> unreliableFromInTakeClock;    // AudioTap::unreliableFrom(), or firstSample+framesWritten if the tap self-stopped (spec 5.1)
++        std::string app;
++
++        // Repair path (D-A3/D-A11): the take is the sidecar's backup.
++        // Requires ref.segments.size() == 1; copies mode/gapDetection/gaps/
++        // unreliableFrom and seg.{firstSample, frames->framesWritten,
++        // rate, channels}.
++        static std::optional<CaptureFacts> fromAudioRef(const AudioRef& ref, std::string app);
++    };
++
++    struct FinalizeResult
++    {
++        AudioAsset asset;            // ALWAYS filled (D-A11): from the WAV header when readable, else from `facts` with fingerprint ""
++        bool wavReadable = false;
++        bool sidecarWritten = false;
++        std::string error;           // "" on full success; otherwise names the id and what failed
++    };
++    // Reads the finished WAV header, computes fp1, converts gaps/
++    // unreliableFrom to the asset-frame domain (saturating: frame = sample
++    // - firstSample, 0 if sample < firstSample), then -- if the header's
++    // lengthInSamples < facts.framesWritten (a truncation) -- sets
++    // asset.unreliableFrom = min(existing, lengthInSamples) and notes it in
++    // `error`. Writes the sidecar LAST via File::replaceWithText. Clears
++    // the active id. NEVER writes a sidecar with an empty fingerprint.
++    FinalizeResult finalize(const std::string& id, const CaptureFacts& facts);
++
++    // --- lookup ---
++    std::optional<AudioAsset> find(const std::string& id) const;    // "complete" == sidecar parses AND sidecar.id == id (== folder stem)
++    bool isIncomplete(const std::string& id) const;                 // audio.wav exists, audio.json does not, and id != activeAssetId()
++    std::vector<std::string> listAssetIds() const;                  // complete only (definition above)
++    std::vector<std::string> listIncompleteAssetIds() const;        // excludes activeAssetId() (the one being recorded right now)
++
++    // --- resolution for a take (never silent) ---
++    enum class Status { NoAudio, Resolved, ResolvedUnverified, Missing, Incomplete, Mismatch, Legacy, MultiSegment };
++    struct Resolution
++    {
++        Status status = Status::NoAudio;
++        std::string reason;          // human-readable, names the id, the root searched, and what differed; "" for NoAudio/Resolved
++        juce::File wav;              // valid when Resolved or ResolvedUnverified
++        AudioAsset asset;            // valid when Resolved or ResolvedUnverified
++        uint64_t firstSample = 0;    // the take's segment firstSample (assetFrame = sample - firstSample)
++    };
++    Resolution resolve(const AudioRef& ref) const;
++
++    // --- referencing (a fresh take against an existing asset; ruling 16/28) ---
++    // firstSample: the take-clock value at asset frame 0 (0 when the take's
++    // clock IS the asset frame counter -- the overdub case, spec 5.2).
++    static AudioRef referencing(const AudioAsset& asset, uint64_t firstSample);
++
++    // --- fp1 (spec 3) ---
++    static constexpr uint32_t kFingerprintWindowFrames = 262144;
++    static std::optional<std::string> fingerprint(const juce::File& wav);   // "fp1:<hex>"; nullopt if unreadable or floating-point
++
++    // --- GC: QUERY ONLY (spec 7). ---
++    struct ReferenceScan
++    {
++        std::vector<juce::File> roots;               // what was scanned -- every verdict is relative to these (finding 9)
++        std::vector<std::string> referencedIds;      // union over every readable take under `roots`
++        std::vector<juce::File> unreadableTakes;     // take.json missing/unparseable -- if non-empty, no orphan verdict is valid
++    };
++    static ReferenceScan scanTakes(const juce::File& takesRoot);   // recursive "*.adna-take" search; parses take.json, reads ONLY "audio.segments[].id"
++    // Complete assets referenced by no readable take under takesRoot. nullopt (refuses a verdict) if scan.unreadableTakes is non-empty.
++    // Any text derived from this MUST read "not referenced by any take under <roots>".
++    std::optional<std::vector<std::string>> unreferencedAssetIds(const juce::File& takesRoot) const;
++
++private:
++    juce::File root_;
++    std::optional<std::string> activeAssetId_;
++};
+diff --git a/src/recording/AudioTap.cpp b/src/recording/AudioTap.cpp
+index d8ac1db..f92616e 100644
+--- a/src/recording/AudioTap.cpp
++++ b/src/recording/AudioTap.cpp
+@@ -125,6 +125,10 @@ bool AudioTap::start(const juce::File& wavFile)
+     // frames*channels (confirmed against JUCE's own Buffer ctor).
+     threadedWriter_ = std::make_unique<juce::AudioFormatWriter::ThreadedWriter>(
+         writer, flushThread_, static_cast<int>(rate_ * 8.0));
++    // D-A10: re-patch the WAV header every kHeaderFlushSeconds of audio so a
++    // crashed show is readable up to the last flush, not just up to the
++    // (never-reached-on-a-crash) writer destructor.
++    threadedWriter_->setFlushInterval(static_cast<int>(rate_ * kHeaderFlushSeconds));
+     activeWriter_.store(threadedWriter_.get(), std::memory_order_relaxed);
+ 
+     hasUnreliableFrom_.store(false, std::memory_order_relaxed);
+diff --git a/src/recording/AudioTap.h b/src/recording/AudioTap.h
+index 0e1af7c..85ab9d7 100644
+--- a/src/recording/AudioTap.h
++++ b/src/recording/AudioTap.h
+@@ -131,6 +131,16 @@ public:
+     static int64_t freeSpaceBytes(const juce::File& folder);
+     static constexpr int64_t kMinFreeBytes = 2LL * 1024 * 1024 * 1024;   // R15: 2 GB
+ 
++    // D-A10: how often the WAV header is re-patched with the frame count
++    // written so far, so a crashed show's file is readable up to the last
++    // flush instead of only in the (never-reached, on a crash) writer
++    // destructor. Runs on the writer's own TimeSliceThread inside
++    // writePendingData -- NEVER the audio thread (push() never blocks on
++    // disk I/O). Bounded loss on a process crash: <= kHeaderFlushSeconds of
++    // audio not yet counted, plus whatever still sat in the 8s writer FIFO
++    // (typically < 2s) -- about 12s typical, 18s worst case.
++    static constexpr double kHeaderFlushSeconds = 10.0;
++
+ #if defined(AUDIODNA_AUDIOTAP_TEST_HOOKS)
+     // TEST ONLY -- compiled in only when the test target defines
+     // AUDIODNA_AUDIOTAP_TEST_HOOKS (never the AudioDNA app; see
+diff --git a/src/recording/Take.cpp b/src/recording/Take.cpp
+index bd2f081..5b08506 100644
+--- a/src/recording/Take.cpp
++++ b/src/recording/Take.cpp
+@@ -7,12 +7,21 @@
+ juce::var AudioRef::Segment::toVar() const
+ {
+     auto* obj = new juce::DynamicObject();
+-    obj->setProperty("file", juce::String(file));
++    // D-A4: the take keeps the v2 `audio` SHAPE and ADDS `id` + `fingerprint`
++    // per segment; `file` is legacy v2, emitted only when non-empty (never
++    // set by v3 code, see the struct comment); `sha1Head` is dropped (never
++    // written by shipped code, D-A4).
++    if (!id.empty())
++    {
++        obj->setProperty("id", juce::String(id));
++        obj->setProperty("fingerprint", juce::String(fingerprint));
++    }
++    if (!file.empty())
++        obj->setProperty("file", juce::String(file));
+     obj->setProperty("firstSample", static_cast<juce::int64>(firstSample));
+     obj->setProperty("frames", static_cast<juce::int64>(frames));
+     obj->setProperty("rate", rate);
+     obj->setProperty("channels", channels);
+-    obj->setProperty("sha1Head", juce::String(sha1Head));
+     return juce::var(obj);
+ }
+ 
+@@ -21,12 +30,15 @@ AudioRef::Segment AudioRef::Segment::fromVar(const juce::var& v)
+     Segment s;
+     if (auto* obj = v.getDynamicObject())
+     {
++        if (obj->hasProperty("id"))
++            s.id = obj->getProperty("id").toString().toStdString();
++        if (obj->hasProperty("fingerprint"))
++            s.fingerprint = obj->getProperty("fingerprint").toString().toStdString();
+         s.file = obj->getProperty("file").toString().toStdString();
+         s.firstSample = static_cast<uint64_t>(static_cast<juce::int64>(obj->getProperty("firstSample")));
+         s.frames = static_cast<uint64_t>(static_cast<juce::int64>(obj->getProperty("frames")));
+         s.rate = static_cast<double>(obj->getProperty("rate"));
+         s.channels = static_cast<int>(obj->getProperty("channels"));
+-        s.sha1Head = obj->getProperty("sha1Head").toString().toStdString();
+     }
+     return s;
+ }
+@@ -226,6 +238,14 @@ std::optional<Take> Take::fromVar(const juce::var& root, LoadStats& stats)
+ 
+     take.meta = Meta::fromVar(obj->getProperty("meta"));
+     take.audio = AudioRef::fromVar(obj->getProperty("audio"));
++    for (const auto& seg : take.audio.segments)
++    {
++        if (seg.id.empty() && !seg.file.empty())
++        {
++            stats.legacyInFolderAudio = true;
++            break;
++        }
++    }
+     take.tempo = TempoMap::fromVar(obj->getProperty("tempoMap"));
+     take.checkpoint0 = PerfState::fromVar(obj->getProperty("checkpoint0"));
+     take.checkpointEnd = PerfState::fromVar(obj->getProperty("checkpointEnd"));
+@@ -320,11 +340,10 @@ std::optional<Take> Take::fromV1Var(const juce::var& root, LoadStats& stats)
+ 
+         const double t = static_cast<double>(e->getProperty("t"));
+         const auto type = static_cast<V1Type>(static_cast<int>(e->getProperty("type")));
+-        const uint64_t seq = take.nextSeq++;
+ 
+         ControlPath key;
+         DiscretePoint p;
+-        p.s = { seq, t, 0 };
++        p.s = { 0, t, 0 };   // seq minted below, AFTER the switch (L1: a dropped event mints no seq)
+         p.beat = 0.0;   // wallOnly: no tempo/phase data in a v1 file
+         p.bpm = 0.0f;
+         p.origin = Origin::Human;
+@@ -372,11 +391,26 @@ std::optional<Take> Take::fromV1Var(const juce::var& root, LoadStats& stats)
+                 break;
+ 
+             case V1Type::TransportChange:
++            {
++                // Faithful (D12 rule 5): v2's `audio` control is action-valued
++                // play/pause/stop (PerfState::audioAction, PerfState.h:74;
++                // spec D3) and those carry no value -- the legacy value*1000
++                // scaling produced an int the v2 dispatcher would misread.
++                // v1 "speed"/"reverse" (the audio player's rate/direction)
++                // have no v2 control: counted in stats.v1Dropped, never
++                // emitted as an `audio` point.
++                const auto action = e->getProperty("action").toString().toStdString();
++                if (action != "play" && action != "pause" && action != "stop")
++                {
++                    stats.v1Dropped["TransportChange:" + (action.empty() ? std::string("<empty>") : action)]++;
++                    continue;
++                }
+                 key.scope = ControlPath::Scope::Comp;
+                 key.control = "audio";
+-                p.action = e->getProperty("action").toString().toStdString();
+-                p.v = static_cast<int>(static_cast<double>(e->getProperty("value")) * 1000.0);
++                p.action = action;
++                p.v = 0;
+                 break;
++            }
+ 
+             case V1Type::EffectToggle:
+                 key.scope = ControlPath::Scope::Clip;
+@@ -392,6 +426,8 @@ std::optional<Take> Take::fromV1Var(const juce::var& root, LoadStats& stats)
+                 break;
+         }
+ 
++        p.s.seq = take.nextSeq++;   // L1: minted AFTER the switch -- a dropped event (continue, above) never reaches here
++
+         auto& lane = take.lanes[key];
+         lane.key = key;
+         lane.kind = Lane::Kind::Discrete;
+diff --git a/src/recording/Take.h b/src/recording/Take.h
+index 4f9f079..f7fc705 100644
+--- a/src/recording/Take.h
++++ b/src/recording/Take.h
+@@ -11,20 +11,23 @@
+ #include <optional>
+ #include <span>
+ 
+-// AudioRef -- D10.4's take.json "audio" section. The tap itself
+-// (src/recording/AudioTap.*) is step 2; this packet only needs the shape
+-// so Take round-trips it (empty/default here is a legitimate, un-recorded
+-// take -- "mode" stays empty, `segments` stays empty).
++// AudioRef -- D10.4's take.json "audio" section. Ruling 28 (s-rta-0923):
++// audio lives in the shared AudioStore (src/recording/AudioStore.*), keyed
++// by `id`; a segment's `file` field is read-only legacy (pre-v3, in-folder
++// audio -- never set by v3 code, only round-tripped when read from an old
++// take). "mode" stays empty / `segments` stays empty for a legitimate,
++// un-recorded take.
+ struct AudioRef
+ {
+     struct Segment
+     {
+-        std::string file;
++        std::string id;             // 32 lowercase hex == the AudioStore asset folder stem; "" for legacy (pre-v3) segments
++        std::string fingerprint;    // "fp1:" + 64 hex; "" means ResolvedUnverified (AudioStore::resolve, D-A12)
++        std::string file;           // legacy v2 in-folder path (e.g. "audio.wav"); read-only, never set by v3 code
+         uint64_t firstSample = 0;
+         uint64_t frames = 0;
+         double rate = 0.0;
+         int channels = 0;
+-        std::string sha1Head;
+ 
+         juce::var toVar() const;
+         static Segment fromVar(const juce::var& v);
+@@ -64,6 +67,15 @@ struct LoadStats
+     int unknownKindLanes = 0;
+     std::vector<std::string> unknownKindNames;
+     bool wasV1 = false;
++
++    // R28: a v3 reader saw a legacy (pre-v3) in-folder audio segment
++    // (`id` empty, `file` non-empty) -- resolves as AudioStore::Status::Legacy.
++    bool legacyInFolderAudio = false;
++
++    // L1 (review fix a): v1 events with no v2 equivalent, counted and named
++    // (D12: never silently dropped). Key "<EventType>:<detail>", e.g.
++    // "TransportChange:speed".
++    std::map<std::string, int> v1Dropped;
+ };
+ 
+ // Take -- s167 D5: the DOCUMENT. A value type; lanes are the on-disk form
+@@ -80,8 +92,8 @@ struct Take
+     Meta meta;
+     uint64_t nextSeq = 1;
+ 
+-    static constexpr int kFormatVersion = 2;
+-    static constexpr int kMinReader = 2;
++    static constexpr int kFormatVersion = 3;
++    static constexpr int kMinReader = 3;
+ 
+     // Extra top-level sections this reader does not know (D12 rule 3):
+     // kept opaque, re-saved verbatim, never interpreted.
+@@ -119,5 +131,10 @@ private:
+     // v2 Take. "No real v1 files exist beyond clip-trigger-only sessions"
+     // (the July spec) -- ClipTrigger/ColumnTrigger get a faithful
+     // conversion; the other five event types get a best-effort one.
++    // TransportChange (L1, review fix a) is faithful ONLY for play/pause/
++    // stop (v2's Comp/"audio" control is action-valued, carries no value);
++    // "speed"/"reverse" have no v2 equivalent and are dropped, counted in
++    // LoadStats::v1Dropped (D12: never silently dropped), never emitted as
++    // an `audio` point.
+     static std::optional<Take> fromV1Var(const juce::var& root, LoadStats& stats);
+ };
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 2146f3f..2a3e9c8 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -671,3 +671,85 @@ if(APPLE AND AUDIODNA_BUILD_SYPHON)
+              COMMAND syphon-check "Audio-DNA-Negative-Check-Nonexistent-App-9f3a" 0.5)
+     set_tests_properties(syphon_check_negative PROPERTIES WILL_FAIL TRUE)
+ endif()
++
++# --- test_audio_store (Lane R28, s-rta-0923 Ruling 28: the shared audio
++# store -- AudioStore/AudioAsset/fp1/resolve/GC-query, headless. Links the
++# same Take-without-model list test_audio_tap_sync links: AudioTap.cpp
++# (drives it directly via prepare/start/push/stop for the store-integration
++# cases) + Take.cpp/TempoMap.cpp/PerfState.cpp. AUDIODNA_AUDIOTAP_TEST_HOOKS
++# is NOT needed here (no forced-write-failure cases).
++add_executable(test_audio_store
++    test_audio_store.cpp
++    ${SRC_DIR}/recording/AudioStore.cpp
++    ${SRC_DIR}/recording/AudioTap.cpp
++    ${SRC_DIR}/recording/Take.cpp
++    ${SRC_DIR}/recording/TempoMap.cpp
++    ${SRC_DIR}/recording/PerfState.cpp
++)
++target_include_directories(test_audio_store PRIVATE ${SRC_DIR})
++target_link_libraries(test_audio_store PRIVATE
++    Catch2::Catch2WithMain
++    juce::juce_core
++    juce::juce_events
++    juce::juce_audio_basics
++    juce::juce_audio_devices
++    juce::juce_audio_formats
++    juce::juce_cryptography
++)
++target_compile_definitions(test_audio_store PRIVATE
++    _USE_MATH_DEFINES
++    JUCE_WEB_BROWSER=0
++    JUCE_USE_CURL=0
++    JUCE_DISPLAY_SPLASH_SCREEN=0
++    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
++)
++if(NOT MSVC)
++    target_compile_options(test_audio_store PRIVATE
++        -Wno-old-style-cast
++        -Wno-conversion
++        -Wno-sign-conversion
++    )
++endif()
++apply_sanitizers(test_audio_store)
++catch_discover_tests(test_audio_store)
++
++# --- test_take_v1_transport (Lane R28, review-fix L1: the v1 TransportChange
++# bridge -- play/pause/stop faithful, speed/reverse dropped+counted. Links
++# test_take's list minus Player/RecorderClock/PerformanceRecorder (this
++# target only needs Take::fromV1Var + Program::compile's dispatch, not the
++# live playback classes).
++add_executable(test_take_v1_transport
++    test_take_v1_transport.cpp
++    ${SRC_DIR}/model/Clip.cpp
++    ${SRC_DIR}/model/Layer.cpp
++    ${SRC_DIR}/connect/ConnSerialization.cpp
++    ${SRC_DIR}/effects/EffectLibrary.cpp
++    ${SRC_DIR}/effects/Effect.cpp
++    ${SRC_DIR}/recording/TempoMap.cpp
++    ${SRC_DIR}/recording/PerfState.cpp
++    ${SRC_DIR}/recording/Take.cpp
++    ${SRC_DIR}/recording/Program.cpp
++)
++target_include_directories(test_take_v1_transport PRIVATE ${SRC_DIR})
++target_link_libraries(test_take_v1_transport PRIVATE
++    Catch2::Catch2WithMain
++    juce::juce_core
++    juce::juce_events
++    juce::juce_graphics
++)
++target_compile_definitions(test_take_v1_transport PRIVATE
++    _USE_MATH_DEFINES
++    JUCE_WEB_BROWSER=0
++    JUCE_USE_CURL=0
++    JUCE_DISPLAY_SPLASH_SCREEN=0
++    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
++)
++if(NOT MSVC)
++    target_compile_options(test_take_v1_transport PRIVATE
++        -Wno-old-style-cast
++        -Wno-conversion
++        -Wno-sign-conversion
++    )
++endif()
++apply_sanitizers(test_take_v1_transport)
++catch_discover_tests(test_take_v1_transport)
+diff --git a/tests/fixtures/take_v1_transport.json b/tests/fixtures/take_v1_transport.json
+new file mode 100644
+index 0000000..0586b22
+--- /dev/null
++++ b/tests/fixtures/take_v1_transport.json
+@@ -0,0 +1,11 @@
++{
++    "version": 1,
++    "events": [
++        { "t": 0.5, "type": 1, "layer": 0, "column": 2 },
++        { "t": 1.0, "type": 4, "action": "play",    "value": 0.0 },
++        { "t": 2.5, "type": 4, "action": "speed",   "value": 1.5 },
++        { "t": 3.0, "type": 4, "action": "pause",   "value": 0.0 },
++        { "t": 3.5, "type": 4, "action": "reverse", "value": 1.0 },
++        { "t": 4.0, "type": 4, "action": "stop",    "value": 0.0 }
++    ]
++}
+diff --git a/tests/fixtures/take_v2_legacy_audio.json b/tests/fixtures/take_v2_legacy_audio.json
+new file mode 100644
+index 0000000..cd80b02
+--- /dev/null
++++ b/tests/fixtures/take_v2_legacy_audio.json
+@@ -0,0 +1,19 @@
++{
++    "format": "audiodna-take",
++    "version": 2,
++    "minReader": 2,
++    "features": ["lanes", "tempoMap", "checkpoint0", "audio"],
++    "meta": { "recordedAt": "2026-09-01T00:00:00Z", "app": "0.1.0", "duration": 10.0, "durationBeats": 20.0 },
++    "audio": { "segments": [ { "file": "audio.wav", "firstSample": 3584, "frames": 480000, "rate": 48000, "channels": 2, "sha1Head": "" } ], "mode": "input", "gapDetection": true, "gaps": [], "unreliableFrom": null },
++    "tempoMap": [ { "t": 0.0, "beat": 0.0, "sample": 0, "bpm": 120.0, "why": "start" } ],
++    "checkpoint0": { "activeDeckIndex": 0, "quantizeMode": 0, "bpm": 120.0, "audioAction": "", "decks": [] },
++    "checkpointEnd": { "activeDeckIndex": 0, "quantizeMode": 0, "bpm": 120.0, "audioAction": "", "decks": [] },
++    "markers": [],
++    "lanes": [
++        {
++            "key": { "scope": "layer", "deck": { "i": 0, "rel": true, "name": "" }, "layer": { "i": 0, "id": 0, "name": "Layer 1" }, "control": "activeClip" },
++            "kind": "discrete",
++            "points": [ { "seq": 1, "t": 0.5, "sample": 0, "beat": 1.0, "bpm": 120.0, "origin": "human", "v": 3 } ]
++        }
++    ]
++}
+diff --git a/tests/fixtures/take_v3_audio.json b/tests/fixtures/take_v3_audio.json
+new file mode 100644
+index 0000000..b32af38
+--- /dev/null
++++ b/tests/fixtures/take_v3_audio.json
+@@ -0,0 +1,20 @@
++{
++    "format": "audiodna-take", "version": 3, "minReader": 3,
++    "features": ["lanes", "tempoMap", "checkpoint0", "audio"],
++    "meta": { "recordedAt": "2026-09-23T00:00:00Z", "app": "0.1.0", "duration": 10.0, "durationBeats": 21.3 },
++    "audio": {
++        "segments": [ { "id": "0123456789abcdef0123456789abcdef",
++                        "fingerprint": "fp1:0000000000000000000000000000000000000000000000000000000000000000",
++                        "firstSample": 3584, "frames": 480000, "rate": 48000, "channels": 2 } ],
++        "mode": "input", "gapDetection": true, "gaps": [ { "sample": 100000, "n": 1024 } ], "unreliableFrom": null
++    },
++    "tempoMap": [ { "t": 0.0, "beat": 0.0, "sample": 3584, "bpm": 128.0, "why": "start" } ],
++    "checkpoint0": { "activeDeckIndex": 0, "quantizeMode": 0, "bpm": 128.0, "audioAction": "", "decks": [] },
++    "checkpointEnd": { "activeDeckIndex": 0, "quantizeMode": 0, "bpm": 128.0, "audioAction": "", "decks": [] },
++    "markers": [],
++    "lanes": [
++        { "key": { "scope": "layer", "deck": { "i": 0, "rel": true, "name": "" }, "layer": { "i": 0, "id": 0, "name": "Layer 1" }, "control": "activeClip" },
++          "kind": "discrete",
++          "points": [ { "seq": 1, "t": 0.5, "sample": 27584, "beat": 1.07, "bpm": 128.0, "origin": "human", "v": 3 } ] }
++    ]
++}
+diff --git a/tests/test_audio_store.cpp b/tests/test_audio_store.cpp
+new file mode 100644
+index 0000000..97fcdf9
+--- /dev/null
++++ b/tests/test_audio_store.cpp
+@@ -0,0 +1,962 @@
++// test_audio_store -- s-rta-0923 Lane R28: AudioStore, the shared audio
++// store (take format v3). All headless (ctest); temp dirs under
++// juce::File::tempDirectory, RAII-deleted. Own tiny helpers -- the
++// FakeAudioIODevice/TempFolder helpers in test_audio_tap_sync.cpp are in an
++// anonymous namespace and are NOT shared. AudioTap is driven DIRECTLY via
++// prepare/start/push/stop (all public) with this file's own `delivered`
++// counter -- CombinedCallback's counter identity is already proven
++// elsewhere and is not re-proven here.
++#include <catch2/catch_test_macros.hpp>
++#include <catch2/catch_approx.hpp>
++#include "recording/AudioStore.h"
++#include "recording/AudioTap.h"
++#include "recording/Take.h"
++#include <juce_audio_formats/juce_audio_formats.h>
++#include <juce_cryptography/juce_cryptography.h>
++#include <algorithm>
++#include <functional>
++#include <memory>
++#include <string>
++#include <vector>
++
++using Catch::Approx;
++
++namespace
++{
++    struct TempDir
++    {
++        juce::File dir;
++        explicit TempDir(const juce::String& tag)
++            : dir(juce::File::getSpecialLocation(juce::File::tempDirectory)
++                      .getChildFile("audiodna_store_test_" + tag + "_"
++                                    + juce::String(juce::Random::getSystemRandom().nextInt64())))
++        {
++            dir.createDirectory();
++        }
++        ~TempDir() { dir.deleteRecursively(); }
++    };
++
++    // Writes a synthetic 16-bit PCM WAV via AudioFormatWriter::write(const
++    // int**) with v << 16 (spec section 3 step 3's >>16 recovery, VERIFIED
++    // against juce_AudioDataConverters.h -- see AudioStore.cpp's
++    // fingerprint()).
++    void writeSynthWav(const juce::File& path, double rate, int channels, uint64_t frames,
++                        const std::function<int16_t(uint64_t frame, int channel)>& gen)
++    {
++        // FileOutputStream APPENDS at the end of an already-existing file
++        // (it does not truncate) -- delete first so re-writing the same
++        // path (the resolve()-verdict test's "replace the WAV" cases)
++        // actually overwrites rather than leaving the OLD header+data
++        // untouched at offset 0 with new bytes appended after it.
++        path.deleteFile();
++        juce::WavAudioFormat format;
++        auto* stream = new juce::FileOutputStream(path);
++        std::unique_ptr<juce::AudioFormatWriter> writer(
++            format.createWriterFor(stream, rate, static_cast<unsigned int>(channels), 16, {}, 0));
++        REQUIRE(writer != nullptr);
++
++        std::vector<std::vector<int>> chans(static_cast<size_t>(channels));
++        std::vector<const int*> ptrs(static_cast<size_t>(channels));
++        for (int c = 0; c < channels; ++c)
++        {
++            chans[static_cast<size_t>(c)].resize(static_cast<size_t>(frames));
++            for (uint64_t f = 0; f < frames; ++f)
++                chans[static_cast<size_t>(c)][static_cast<size_t>(f)] = static_cast<int>(gen(f, c)) << 16;
++            ptrs[static_cast<size_t>(c)] = chans[static_cast<size_t>(c)].data();
++        }
++        REQUIRE(writer->write(ptrs.data(), static_cast<int>(frames)));
++        writer.reset();   // flush + finalize the header
++    }
++
++    // Hand-computed fp1 (spec section 3), independent of AudioStore's own
++    // fingerprint() implementation -- built directly from the generator
++    // function used to write the file, not by re-reading it.
++    std::string handFp1(uint64_t N, int R, int C, int B,
++                         const std::function<int16_t(uint64_t frame, int channel)>& gen)
++    {
++        const juce::String header = "adna-fp1|frames=" + juce::String(static_cast<juce::int64>(N))
++            + "|rate=" + juce::String(R) + "|channels=" + juce::String(C) + "|bits=" + juce::String(B) + "|";
++        juce::MemoryBlock bytes;
++        bytes.append(header.toRawUTF8(), header.getNumBytesAsUTF8());
++
++        constexpr uint64_t W = AudioStore::kFingerprintWindowFrames;
++        auto appendWindow = [&](uint64_t start, uint64_t count)
++        {
++            for (uint64_t f = 0; f < count; ++f)
++                for (int c = 0; c < C; ++c)
++                {
++                    const int16_t v = gen(start + f, c);
++                    const uint16_t uv = static_cast<uint16_t>(v);
++                    const uint8_t le[2] = { static_cast<uint8_t>(uv & 0xFF), static_cast<uint8_t>((uv >> 8) & 0xFF) };
++                    bytes.append(le, 2);
++                }
++        };
++        if (N <= W * 2)
++            appendWindow(0, N);
++        else
++        {
++            appendWindow(0, W);
++            appendWindow(N - W, W);
++        }
++        return std::string("fp1:") + juce::SHA256(bytes.getData(), bytes.getSize()).toHexString().toStdString();
++    }
++}
++
++// === 1: [format] version constants are 3/3 ===
++
++TEST_CASE("Take format version constants are 3/3", "[format]")
++{
++    REQUIRE(Take::kFormatVersion == 3);
++    REQUIRE(Take::kMinReader == 3);
++
++    Take take;
++    const juce::var v = take.toVar();   // keep alive -- obj points into it
++    auto* obj = v.getDynamicObject();
++    REQUIRE(obj != nullptr);
++    REQUIRE(static_cast<int>(obj->getProperty("version")) == 3);
++}
++
++// === 2: [format] v1 and v2 fixtures still load under a v3 reader ===
++
++TEST_CASE("v1 and v2 fixtures still load under a v3 reader", "[format]")
++{
++    {
++        juce::File fixture = juce::File(TEST_FIXTURES_DIR).getChildFile("take_v1.json");
++        REQUIRE(fixture.existsAsFile());
++        LoadStats stats;
++        auto take = Take::load(fixture, stats);
++        REQUIRE(take.has_value());
++        REQUIRE_FALSE(stats.refused);
++        REQUIRE(stats.wasV1);
++
++        ControlPath layer0;
++        layer0.scope = ControlPath::Scope::Layer;
++        layer0.deckRelative = true;
++        layer0.layer = 0;
++        layer0.control = "activeClip";
++        REQUIRE(take->lanes.count(layer0) == 1);
++        REQUIRE(take->lanes.at(layer0).points.size() == 2);
++    }
++    {
++        juce::File fixture = juce::File(TEST_FIXTURES_DIR).getChildFile("take_v2_future.json");
++        REQUIRE(fixture.existsAsFile());
++        LoadStats stats;
++        auto take = Take::load(fixture, stats);
++        REQUIRE(take.has_value());
++        REQUIRE_FALSE(stats.refused);
++        REQUIRE(std::find(stats.unknownFeatures.begin(), stats.unknownFeatures.end(), "quantumFlux")
++                != stats.unknownFeatures.end());
++    }
++}
++
++// === 3: [format] v3 fixture loads; resolve against an EMPTY store is Missing and names the id ===
++
++TEST_CASE("v3 fixture loads; resolve against an empty store is Missing and names the id", "[format]")
++{
++    juce::File fixture = juce::File(TEST_FIXTURES_DIR).getChildFile("take_v3_audio.json");
++    REQUIRE(fixture.existsAsFile());
++
++    LoadStats stats;
++    auto take = Take::load(fixture, stats);
++    REQUIRE(take.has_value());
++    REQUIRE_FALSE(stats.refused);
++    REQUIRE_FALSE(stats.legacyInFolderAudio);
++    REQUIRE(take->audio.segments.size() == 1);
++    REQUIRE(take->audio.segments[0].id == "0123456789abcdef0123456789abcdef");
++
++    TempDir emptyStore("empty3");
++    AudioStore store(emptyStore.dir);
++    auto res = store.resolve(take->audio);
++    REQUIRE(res.status == AudioStore::Status::Missing);
++    REQUIRE(res.reason.find("0123456789abcdef0123456789abcdef") != std::string::npos);
++    REQUIRE(res.reason.find(emptyStore.dir.getFullPathName().toStdString()) != std::string::npos);
++}
++
++// === 4: [format] legacy v2 in-folder audio is flagged, round-trips, and resolves as Legacy ===
++
++TEST_CASE("legacy v2 in-folder audio is flagged, round-trips, and resolves as Legacy", "[format]")
++{
++    juce::File fixture = juce::File(TEST_FIXTURES_DIR).getChildFile("take_v2_legacy_audio.json");
++    REQUIRE(fixture.existsAsFile());
++
++    LoadStats stats;
++    auto take = Take::load(fixture, stats);
++    REQUIRE(take.has_value());
++    REQUIRE_FALSE(stats.refused);
++    REQUIRE(stats.legacyInFolderAudio);
++    REQUIRE(take->audio.segments.size() == 1);
++    REQUIRE(take->audio.segments[0].id.empty());
++    REQUIRE(take->audio.segments[0].file == "audio.wav");
++
++    // Keep the round-tripped var ALIVE across statements (its internal
++    // DynamicObjects are reference-counted and owned only by this var --
++    // navigating a temporary's chain and stashing a raw pointer past the
++    // full expression would dangle).
++    const juce::var roundTripped = take->toVar();
++    auto* segObj = roundTripped.getDynamicObject()->getProperty("audio").getDynamicObject()
++                       ->getProperty("segments").getArray()->getReference(0).getDynamicObject();
++    REQUIRE(segObj != nullptr);
++    REQUIRE(segObj->getProperty("file").toString() == "audio.wav");
++    REQUIRE_FALSE(segObj->hasProperty("id"));
++    REQUIRE_FALSE(segObj->hasProperty("sha1Head"));
++
++    TempDir emptyStore("legacy4");
++    AudioStore store(emptyStore.dir);
++    auto res = store.resolve(take->audio);
++    REQUIRE(res.status == AudioStore::Status::Legacy);
++}
++
++// === 5: [store] beginAsset creates the folder and sets the active id; finalize on a
++//        synthetic 16-bit WAV writes the sidecar last ===
++
++TEST_CASE("beginAsset creates the folder and sets the active id; finalize writes the sidecar last", "[store]")
++{
++    TempDir root("finalize5");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    REQUIRE(store.assetFolder(*id).isDirectory());
++    REQUIRE(store.activeAssetId() == id);
++
++    constexpr double rate = 48000.0;
++    constexpr int channels = 2;
++    constexpr uint64_t frames = 144000;   // 3 s @ 48 kHz
++    auto gen = [](uint64_t f, int c) -> int16_t { return static_cast<int16_t>(((f * 3 + c * 7) % 2000) - 1000); };
++    writeSynthWav(store.wavFile(*id), rate, channels, frames, gen);
++
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input";
++    facts.gapDetection = true;
++    facts.firstSample = 0;
++    facts.framesWritten = frames;
++    facts.rate = rate;
++    facts.channels = channels;
++    facts.gapsInTakeClock = { { 1000, 64 } };   // take-clock == asset-frame here (firstSample 0)
++    facts.app = "0.1.0";
++
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.wavReadable);
++    REQUIRE(fin.sidecarWritten);
++    REQUIRE(fin.error.empty());
++    REQUIRE(fin.asset.gaps.size() == 1);
++    REQUIRE(fin.asset.gaps[0].first == 1000);
++    REQUIRE(fin.asset.gaps[0].second == 64);
++
++    REQUIRE_FALSE(store.activeAssetId().has_value());
++
++    auto found = store.find(*id);
++    REQUIRE(found.has_value());
++    REQUIRE(found->frames == frames);
++    REQUIRE(found->rate == Approx(rate));
++    REQUIRE(found->channels == channels);
++    REQUIRE(found->bits == 16);
++
++    REQUIRE_FALSE(store.isIncomplete(*id));
++    store.sidecarFile(*id).deleteFile();
++    REQUIRE(store.isIncomplete(*id));
++}
++
++// === 6: [store] fp1 is deterministic and specified ===
++
++TEST_CASE("fp1 is deterministic and specified", "[store]")
++{
++    TempDir root("fp1test6");
++
++    SECTION("144,000-frame stereo file -- one window")
++    {
++        auto gen = [](uint64_t f, int c) -> int16_t { return static_cast<int16_t>(((f * 11 + c * 5) % 4000) - 2000); };
++        const juce::File wav = root.dir.getChildFile("stereo.wav");
++        writeSynthWav(wav, 48000.0, 2, 144000, gen);
++
++        const auto fp = AudioStore::fingerprint(wav);
++        REQUIRE(fp.has_value());
++        REQUIRE(*fp == handFp1(144000, 48000, 2, 16, gen));
++
++        const auto fp2 = AudioStore::fingerprint(wav);
++        REQUIRE(fp2 == fp);   // deterministic
++    }
++
++    SECTION("600,000-frame mono file -- two windows")
++    {
++        auto gen = [](uint64_t f, int /*c*/) -> int16_t { return static_cast<int16_t>((f % 3000) - 1500); };
++        const juce::File wav = root.dir.getChildFile("mono.wav");
++        writeSynthWav(wav, 48000.0, 1, 600000, gen);
++
++        const auto fp = AudioStore::fingerprint(wav);
++        REQUIRE(fp.has_value());
++        REQUIRE(*fp == handFp1(600000, 48000, 1, 16, gen));
++    }
++
++    SECTION("a 32-bit float WAV -> nullopt")
++    {
++        const juce::File wav = root.dir.getChildFile("float.wav");
++        juce::WavAudioFormat format;
++        auto* stream = new juce::FileOutputStream(wav);
++        std::unique_ptr<juce::AudioFormatWriter> writer(
++            format.createWriterFor(stream, 48000.0, 1u, 32, {}, 0));
++        REQUIRE(writer != nullptr);
++        std::vector<float> ch(100, 0.25f);
++        const float* ptrs[1] = { ch.data() };
++        REQUIRE(writer->writeFromFloatArrays(ptrs, 1, 100));
++        writer.reset();
++
++        REQUIRE_FALSE(AudioStore::fingerprint(wav).has_value());
++    }
++}
++
++// === 7: [store] resolve verdicts ===
++
++TEST_CASE("resolve verdicts", "[store]")
++{
++    TempDir root("resolve7");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    constexpr double rate = 48000.0;
++    constexpr uint64_t frames = 48000;
++    auto gen = [](uint64_t f, int c) -> int16_t { return static_cast<int16_t>(((f + c) % 1000) - 500); };
++    writeSynthWav(store.wavFile(*id), rate, 2, frames, gen);
++
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input"; facts.gapDetection = false; facts.firstSample = 0;
++    facts.framesWritten = frames; facts.rate = rate; facts.channels = 2; facts.app = "0.1.0";
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.wavReadable);
++    REQUIRE(fin.sidecarWritten);
++
++    AudioRef ref = AudioStore::referencing(fin.asset, 0);
++
++    SECTION("Resolved on the finalized asset")
++    {
++        auto res = store.resolve(ref);
++        REQUIRE(res.status == AudioStore::Status::Resolved);
++    }
++
++    SECTION("Mismatch after replacing the WAV with an equal-length file of different content")
++    {
++        auto gen2 = [](uint64_t f, int c) -> int16_t { return static_cast<int16_t>(((f + c + 1) % 1000) - 500); };
++        writeSynthWav(store.wavFile(*id), rate, 2, frames, gen2);
++        auto res = store.resolve(ref);
++        REQUIRE(res.status == AudioStore::Status::Mismatch);
++    }
++
++    SECTION("Mismatch after replacing it with a shorter one (frames differ, before fp1)")
++    {
++        writeSynthWav(store.wavFile(*id), rate, 2, frames / 2, gen);
++        auto res = store.resolve(ref);
++        REQUIRE(res.status == AudioStore::Status::Mismatch);
++    }
++
++    SECTION("Missing after deleting the folder")
++    {
++        store.assetFolder(*id).deleteRecursively();
++        auto res = store.resolve(ref);
++        REQUIRE(res.status == AudioStore::Status::Missing);
++    }
++
++    SECTION("Incomplete after deleting only the sidecar (reason names the repair)")
++    {
++        store.sidecarFile(*id).deleteFile();
++        auto res = store.resolve(ref);
++        REQUIRE(res.status == AudioStore::Status::Incomplete);
++        REQUIRE(res.reason.find("repair") != std::string::npos);
++    }
++
++    SECTION("MultiSegment with two segments")
++    {
++        AudioRef two = ref;
++        two.segments.push_back(ref.segments[0]);
++        auto res = store.resolve(two);
++        REQUIRE(res.status == AudioStore::Status::MultiSegment);
++    }
++
++    SECTION("NoAudio for a default AudioRef")
++    {
++        AudioRef empty;
++        auto res = store.resolve(empty);
++        REQUIRE(res.status == AudioStore::Status::NoAudio);
++    }
++
++    SECTION("Mismatch for mode == 'input' with no segments (no crash -- B2's deref)")
++    {
++        AudioRef modeOnly;
++        modeOnly.mode = "input";
++        auto res = store.resolve(modeOnly);
++        REQUIRE(res.status == AudioStore::Status::Mismatch);
++    }
++
++    SECTION("ResolvedUnverified for the v3 reference with fingerprint = \"\" against the complete asset")
++    {
++        AudioRef unverified = ref;
++        unverified.segments[0].fingerprint.clear();
++        auto res = store.resolve(unverified);
++        REQUIRE(res.status == AudioStore::Status::ResolvedUnverified);
++        REQUIRE(res.reason.find(fin.asset.fingerprint) != std::string::npos);
++    }
++}
++
++// === 8: [store] finalize with an unreadable wav still yields a complete reference ===
++
++TEST_CASE("finalize with an unreadable wav still yields a complete reference", "[store]")
++{
++    TempDir root("unreadable8");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    // No wav written at all.
++
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input"; facts.gapDetection = true;
++    facts.firstSample = 512; facts.framesWritten = 2560;
++    facts.rate = 48000.0; facts.channels = 2; facts.app = "0.1.0";
++
++    auto fin = store.finalize(*id, facts);
++    REQUIRE_FALSE(fin.wavReadable);
++    REQUIRE_FALSE(fin.sidecarWritten);
++    REQUIRE_FALSE(fin.error.empty());
++    REQUIRE(fin.asset.id == *id);
++    REQUIRE(fin.asset.fingerprint.empty());
++    REQUIRE(fin.asset.frames == 2560);
++
++    AudioRef ref = AudioStore::referencing(fin.asset, 512);
++    REQUIRE(ref.segments.size() == 1);
++    REQUIRE(ref.segments[0].id == *id);
++    REQUIRE(ref.segments[0].frames == 2560);
++
++    REQUIRE_FALSE(store.sidecarFile(*id).existsAsFile());
++}
++
++// === 9: [store] truncation: header shorter than framesWritten sets unreliableFrom ===
++
++TEST_CASE("truncation: header shorter than framesWritten sets unreliableFrom", "[store]")
++{
++    TempDir root("truncation9");
++    AudioStore store(root.dir);
++
++    auto writeAndFinalize = [&](const std::optional<uint64_t>& unreliableFromInTakeClock) -> AudioStore::FinalizeResult
++    {
++        auto id = store.beginAsset();
++        REQUIRE(id.has_value());
++        auto gen = [](uint64_t f, int) -> int16_t { return static_cast<int16_t>(f % 100); };
++        writeSynthWav(store.wavFile(*id), 48000.0, 1, 1000, gen);
++
++        AudioStore::CaptureFacts facts;
++        facts.mode = "input"; facts.gapDetection = false;
++        facts.firstSample = 0; facts.framesWritten = 1500;
++        facts.rate = 48000.0; facts.channels = 1; facts.app = "0.1.0";
++        facts.unreliableFromInTakeClock = unreliableFromInTakeClock;
++        return store.finalize(*id, facts);
++    };
++
++    SECTION("no prior unreliableFrom -- truncation point wins")
++    {
++        auto fin = writeAndFinalize(std::nullopt);
++        REQUIRE(fin.sidecarWritten);
++        REQUIRE(fin.asset.unreliableFrom.has_value());
++        REQUIRE(*fin.asset.unreliableFrom == 1000);
++        REQUIRE(fin.error.find("truncat") != std::string::npos);
++    }
++
++    SECTION("prior unreliableFrom at 400 -- min wins")
++    {
++        auto fin = writeAndFinalize(400);   // firstSample 0, so asset-frame == 400
++        REQUIRE(fin.sidecarWritten);
++        REQUIRE(fin.asset.unreliableFrom.has_value());
++        REQUIRE(*fin.asset.unreliableFrom == 400);
++    }
++}
++
++// === 10: [store] repair from the take rebuilds the sidecar ===
++
++TEST_CASE("repair from the take rebuilds the sidecar", "[store]")
++{
++    TempDir root("repair10");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    auto gen = [](uint64_t f, int c) -> int16_t { return static_cast<int16_t>(((f * 7 + c) % 500) - 250); };
++    writeSynthWav(store.wavFile(*id), 48000.0, 2, 48000, gen);
++
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input"; facts.gapDetection = true;
++    facts.firstSample = 3584; facts.framesWritten = 48000;
++    facts.rate = 48000.0; facts.channels = 2; facts.app = "0.1.0";
++    facts.gapsInTakeClock = { { 3584 + 1000, 64 } };
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.wavReadable);
++    REQUIRE(fin.sidecarWritten);
++    const std::string originalFingerprint = fin.asset.fingerprint;
++
++    Take take;
++    take.audio = AudioStore::referencing(fin.asset, 3584);
++
++    store.sidecarFile(*id).deleteFile();
++    REQUIRE(store.isIncomplete(*id));
++
++    auto repairedFacts = AudioStore::CaptureFacts::fromAudioRef(take.audio, "0.1.0");
++    REQUIRE(repairedFacts.has_value());
++    auto repairedFin = store.finalize(*id, *repairedFacts);
++    REQUIRE(repairedFin.sidecarWritten);
++
++    auto found = store.find(*id);
++    REQUIRE(found.has_value());
++    REQUIRE(found->fingerprint == originalFingerprint);
++    REQUIRE(found->gaps.size() == 1);
++    REQUIRE(found->gaps[0].first == 1000);
++
++    auto res = store.resolve(take.audio);
++    REQUIRE(res.status == AudioStore::Status::Resolved);
++}
++
++// === 11: [store] active asset is excluded from the incomplete list; abandonAsset is narrow ===
++
++TEST_CASE("active asset is excluded from the incomplete list; abandonAsset is narrow", "[store]")
++{
++    TempDir root("abandon11");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    store.wavFile(*id).create();   // 0-byte audio.wav, as a failed arm would leave
++
++    const auto incompleteAfterBegin = store.listIncompleteAssetIds();
++    REQUIRE(std::find(incompleteAfterBegin.begin(), incompleteAfterBegin.end(), *id) == incompleteAfterBegin.end());
++    REQUIRE_FALSE(store.isIncomplete(*id));
++
++    REQUIRE(store.abandonAsset(*id));
++    REQUIRE_FALSE(store.assetFolder(*id).exists());
++    REQUIRE_FALSE(store.activeAssetId().has_value());
++
++    REQUIRE_FALSE(store.abandonAsset(*id));   // second call -- no longer active
++
++    // A complete asset -- abandonAsset refuses.
++    auto id2 = store.beginAsset();
++    REQUIRE(id2.has_value());
++    auto gen = [](uint64_t f, int) -> int16_t { return static_cast<int16_t>(f % 50); };
++    writeSynthWav(store.wavFile(*id2), 48000.0, 1, 4800, gen);
++    AudioStore::CaptureFacts facts2;
++    facts2.mode = "input"; facts2.firstSample = 0; facts2.framesWritten = 4800;
++    facts2.rate = 48000.0; facts2.channels = 1; facts2.app = "0.1.0";
++    auto fin2 = store.finalize(*id2, facts2);
++    REQUIRE(fin2.sidecarWritten);
++    REQUIRE_FALSE(store.abandonAsset(*id2));
++    REQUIRE(store.assetFolder(*id2).exists());
++
++    // A non-active incomplete id -- abandonAsset refuses (this instance
++    // never minted it as active; activeAssetId_ is empty here).
++    auto id3 = store.beginAsset();
++    REQUIRE(id3.has_value());
++    store.wavFile(*id3).create();
++    // Mint a NEW active asset so id3 is no longer the active one.
++    auto id4 = store.beginAsset();
++    REQUIRE(id4.has_value());
++    REQUIRE_FALSE(store.abandonAsset(*id3));
++    REQUIRE(store.assetFolder(*id3).exists());
++}
++
++// === 12: [store] fork shares one asset ===
++
++TEST_CASE("fork shares one asset", "[store]")
++{
++    TempDir root("fork12");
++    TempDir takesA("takesA12"), takesB("takesB12");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    auto gen = [](uint64_t f, int c) -> int16_t { return static_cast<int16_t>(((f + c * 3) % 700) - 350); };
++    writeSynthWav(store.wavFile(*id), 48000.0, 2, 48000, gen);
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input"; facts.firstSample = 0; facts.framesWritten = 48000;
++    facts.rate = 48000.0; facts.channels = 2; facts.app = "0.1.0";
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.sidecarWritten);
++
++    Take a;
++    a.audio = AudioStore::referencing(fin.asset, 0);
++    a.save(takesA.dir);
++
++    Take b = a;
++    b.save(takesB.dir);
++
++    LoadStats sa, sb;
++    auto loadedA = Take::load(takesA.dir, sa);
++    auto loadedB = Take::load(takesB.dir, sb);
++    REQUIRE(loadedA.has_value());
++    REQUIRE(loadedB.has_value());
++
++    auto resA = store.resolve(loadedA->audio);
++    auto resB = store.resolve(loadedB->audio);
++    REQUIRE(resA.status == AudioStore::Status::Resolved);
++    REQUIRE(resB.status == AudioStore::Status::Resolved);
++    REQUIRE(resA.wav == resB.wav);
++
++    REQUIRE(store.listAssetIds().size() == 1);
++    REQUIRE_FALSE(takesA.dir.getChildFile("audio.wav").existsAsFile());
++    REQUIRE_FALSE(takesB.dir.getChildFile("audio.wav").existsAsFile());
++}
++
++// === 13: [store] referencing round-trips the domain ===
++
++TEST_CASE("referencing round-trips the domain", "[store]")
++{
++    AudioAsset asset;
++    asset.id = "abcdef0123456789abcdef0123456789";
++    asset.fingerprint = "fp1:deadbeef";
++    asset.frames = 48000;
++    asset.rate = 48000.0;
++    asset.channels = 2;
++    asset.gaps = { { 1000, 64 } };
++    asset.unreliableFrom = 2000;
++
++    constexpr uint64_t firstSample = 3584;
++    AudioRef ref = AudioStore::referencing(asset, firstSample);
++    REQUIRE(ref.gaps.size() == 1);
++    REQUIRE(ref.gaps[0].first == 1000 + firstSample);
++    REQUIRE(ref.unreliableFrom.has_value());
++    REQUIRE(*ref.unreliableFrom == 2000 + firstSample);
++
++    auto facts = AudioStore::CaptureFacts::fromAudioRef(ref, "0.1.0");
++    REQUIRE(facts.has_value());
++    REQUIRE(facts->gapsInTakeClock.size() == 1);
++    REQUIRE(facts->gapsInTakeClock[0].first == 1000 + firstSample);
++    REQUIRE(facts->unreliableFromInTakeClock.has_value());
++    REQUIRE(*facts->unreliableFromInTakeClock == 2000 + firstSample);
++    // Inverts exactly: (sample - firstSample) recovers the sidecar's frame.
++    REQUIRE(facts->gapsInTakeClock[0].first - facts->firstSample == 1000);
++    REQUIRE(*facts->unreliableFromInTakeClock - facts->firstSample == 2000);
++}
++
++// === 14: [gc] scanTakes + unreferencedAssetIds ===
++
++TEST_CASE("scanTakes + unreferencedAssetIds", "[gc]")
++{
++    TempDir root("gc14");
++    TempDir takesRoot("gctakes14");
++    AudioStore store(root.dir);
++
++    auto makeAsset = [&](const std::string& tag) -> std::string
++    {
++        auto id = store.beginAsset();
++        REQUIRE(id.has_value());
++        auto gen = [](uint64_t f, int) -> int16_t { return static_cast<int16_t>(f % 40); };
++        writeSynthWav(store.wavFile(*id), 48000.0, 1, 4800, gen);
++        AudioStore::CaptureFacts facts;
++        facts.mode = "input"; facts.firstSample = 0; facts.framesWritten = 4800;
++        facts.rate = 48000.0; facts.channels = 1; facts.app = tag;
++        auto fin = store.finalize(*id, facts);
++        REQUIRE(fin.sidecarWritten);
++        return *id;
++    };
++
++    const std::string idX = makeAsset("X");
++    const std::string idY = makeAsset("Y");
++
++    // Z: incomplete (no sidecar).
++    auto idZOpt = store.beginAsset();
++    REQUIRE(idZOpt.has_value());
++    store.wavFile(*idZOpt).create();
++    const std::string idZ = *idZOpt;
++    // Mint a fresh active id so Z is no longer "active" for isIncomplete's purposes.
++    store.beginAsset();
++
++    // A real take referencing X.
++    juce::File takeXDir = takesRoot.dir.getChildFile("takeX.adna-take");
++    takeXDir.createDirectory();
++    {
++        AudioAsset assetX;
++        assetX.id = idX;
++        AudioRef refX = AudioStore::referencing(*store.find(idX), 0);
++        Take t; t.audio = refX; t.save(takeXDir);
++    }
++
++    // A garbage take.json.
++    juce::File garbageDir = takesRoot.dir.getChildFile("garbage.adna-take");
++    garbageDir.createDirectory();
++    garbageDir.getChildFile("take.json").replaceWithText("{ not valid json");
++
++    auto scan1 = AudioStore::scanTakes(takesRoot.dir);
++    REQUIRE(scan1.unreadableTakes.size() == 1);
++    REQUIRE(scan1.roots.size() == 1);
++    REQUIRE(scan1.roots[0] == takesRoot.dir);
++
++    auto verdict1 = store.unreferencedAssetIds(takesRoot.dir);
++    REQUIRE_FALSE(verdict1.has_value());
++
++    garbageDir.deleteRecursively();
++
++    auto verdict2 = store.unreferencedAssetIds(takesRoot.dir);
++    REQUIRE(verdict2.has_value());
++    REQUIRE(verdict2->size() == 1);
++    REQUIRE((*verdict2)[0] == idY);
++
++    const auto incompleteIds = store.listIncompleteAssetIds();
++    REQUIRE(std::find(incompleteIds.begin(), incompleteIds.end(), idZ) != incompleteIds.end());
++    const auto completeIds = store.listAssetIds();
++    REQUIRE(std::find(completeIds.begin(), completeIds.end(), idZ) == completeIds.end());
++}
++
++// === 15: [audiotap][store] a live recording lands in the store, not in the take folder ===
++
++TEST_CASE("a live recording lands in the store, not in the take folder", "[audiotap][store]")
++{
++    TempDir root("live15");
++    TempDir takesDir("livetakes15");
++    AudioStore store(root.dir);
++
++    constexpr double rate = 48000.0;
++    constexpr int blockSize = 512;
++
++    AudioTap tap;
++    tap.prepare(rate, 2, blockSize);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    REQUIRE(tap.start(store.wavFile(*id)));
++
++    uint64_t delivered = 0;
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    const uint64_t deltaNs = static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
++    std::vector<float> inL(blockSize, 0.1f), inR(blockSize, 0.1f);
++    const float* ch[2] = { inL.data(), inR.data() };
++
++    for (int b = 0; b < 10; ++b)
++    {
++        hostTimeNs += deltaNs;
++        juce::AudioIODeviceCallbackContext ctx;
++        ctx.hostTimeNs = &hostTimeNs;
++        const uint32_t gap = tap.push(ch, 2, blockSize, delivered, ctx);
++        delivered += static_cast<uint64_t>(blockSize) + gap;
++
++        std::pair<uint64_t, uint32_t> g;
++        while (tap.popGap(g)) { /* drained every tick, spec 5.1 */ }
++    }
++
++    tap.stop();
++
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input";
++    facts.gapDetection = tap.gapDetectionSupported();
++    facts.firstSample = tap.firstSample();
++    facts.framesWritten = tap.framesWritten();
++    facts.rate = rate;
++    facts.channels = 2;
++    facts.app = "0.1.0";
++
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.asset.frames == tap.framesWritten());
++    REQUIRE(fin.error.empty());
++
++    Take take;
++    take.audio = AudioStore::referencing(fin.asset, tap.firstSample());
++    take.save(takesDir.dir);
++
++    REQUIRE_FALSE(takesDir.dir.getChildFile("audio.wav").existsAsFile());
++
++    LoadStats stats;
++    auto loaded = Take::load(takesDir.dir, stats);
++    REQUIRE(loaded.has_value());
++    REQUIRE_FALSE(stats.refused);
++
++    auto res = store.resolve(loaded->audio);
++    REQUIRE(res.status == AudioStore::Status::Resolved);
++    REQUIRE(res.wav == store.wavFile(*id));
++    REQUIRE(res.firstSample == tap.firstSample());
++    REQUIRE(loaded->audio.segments.size() == 1);
++    REQUIRE(loaded->audio.segments[0].id == *id);
++    REQUIRE(loaded->audio.segments[0].file.empty());
++    REQUIRE(loaded->audio.gapDetection == tap.gapDetectionSupported());
++}
++
++// === 16: [audiotap][store] more than 63 gaps survive only when drained per tick ===
++
++TEST_CASE("more than 63 gaps survive only when drained per tick", "[audiotap][store]")
++{
++    constexpr double rate = 48000.0;
++    constexpr int blockSize = 512;
++    constexpr int kBlocks = 80;
++
++    struct RunResult
++    {
++        std::string id;
++        std::vector<std::pair<uint64_t, uint32_t>> gaps;
++        uint64_t firstSample = 0;
++        uint64_t framesWritten = 0;
++    };
++
++    auto runOnce = [&](AudioStore& store, bool drainPerTick) -> RunResult
++    {
++        auto id = store.beginAsset();
++        REQUIRE(id.has_value());
++        AudioTap tap;
++        tap.prepare(rate, 2, blockSize);
++        REQUIRE(tap.start(store.wavFile(*id)));
++
++        uint64_t delivered = 0;
++        uint64_t hostTimeNs = 1'000'000'000ULL;
++        std::vector<float> inL(blockSize, 0.0f), inR(blockSize, 0.0f);
++        const float* ch[2] = { inL.data(), inR.data() };
++        std::vector<std::pair<uint64_t, uint32_t>> gaps;
++
++        // Warm-up push at normal (1x) timing -- establishes push()'s
++        // haveLastHostTime_ baseline, exactly as T1's own harness has many
++        // ordinary blocks before its one gap block. Without this, the
++        // FIRST call in the loop below can never register a gap (no prior
++        // hostTimeNs to compare against), undercounting by one.
++        {
++            hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
++            juce::AudioIODeviceCallbackContext ctx;
++            ctx.hostTimeNs = &hostTimeNs;
++            const uint32_t gap = tap.push(ch, 2, blockSize, delivered, ctx);
++            delivered += static_cast<uint64_t>(blockSize) + gap;
++        }
++
++        for (int b = 0; b < kBlocks; ++b)
++        {
++            // A 3-block hostTimeNs jump for 1 delivered block's worth of
++            // samples -- a 2*blockSize gap every push (matches T1's own
++            // drop pattern, test_audio_tap_sync.cpp's kDropBlock).
++            const uint64_t deltaNs = static_cast<uint64_t>((3.0 * blockSize / rate) * 1.0e9);
++            hostTimeNs += deltaNs;
++            juce::AudioIODeviceCallbackContext ctx;
++            ctx.hostTimeNs = &hostTimeNs;
++            const uint32_t gap = tap.push(ch, 2, blockSize, delivered, ctx);
++            delivered += static_cast<uint64_t>(blockSize) + gap;
++
++            if (drainPerTick)
++            {
++                std::pair<uint64_t, uint32_t> g;
++                while (tap.popGap(g)) gaps.push_back(g);
++            }
++        }
++
++        tap.stop();
++
++        if (!drainPerTick)
++        {
++            std::pair<uint64_t, uint32_t> g;
++            while (tap.popGap(g)) gaps.push_back(g);
++        }
++
++        return { *id, gaps, tap.firstSample(), tap.framesWritten() };
++    };
++
++    TempDir rootA("gapsA16"), rootB("gapsB16");
++    AudioStore storeA(rootA.dir), storeB(rootB.dir);
++
++    const auto resultA = runOnce(storeA, true);
++    REQUIRE(resultA.gaps.size() == 80);
++
++    AudioStore::CaptureFacts factsA;
++    factsA.mode = "input"; factsA.gapDetection = true;
++    factsA.firstSample = resultA.firstSample; factsA.framesWritten = resultA.framesWritten;
++    factsA.rate = rate; factsA.channels = 2; factsA.app = "0.1.0";
++    factsA.gapsInTakeClock = resultA.gaps;
++    auto finA = storeA.finalize(resultA.id, factsA);
++    REQUIRE(finA.sidecarWritten);
++
++    auto foundA = storeA.find(resultA.id);
++    REQUIRE(foundA.has_value());
++    REQUIRE(foundA->gaps.size() == 80);
++    for (size_t i = 0; i < foundA->gaps.size(); ++i)
++        REQUIRE(foundA->gaps[i].first == resultA.gaps[i].first - resultA.firstSample);
++
++    const auto resultB = runOnce(storeB, false);
++    REQUIRE(resultB.gaps.size() == 63);
++}
++
++// === 17: [audiotap][store] moving the asset folder makes resolve refuse ===
++
++TEST_CASE("moving the asset folder makes resolve refuse", "[audiotap][store]")
++{
++    TempDir root("move17");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++    auto gen = [](uint64_t f, int) -> int16_t { return static_cast<int16_t>(f % 60); };
++    writeSynthWav(store.wavFile(*id), 48000.0, 1, 4800, gen);
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input"; facts.firstSample = 0; facts.framesWritten = 4800;
++    facts.rate = 48000.0; facts.channels = 1; facts.app = "0.1.0";
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.sidecarWritten);
++
++    AudioRef ref = AudioStore::referencing(fin.asset, 0);
++    REQUIRE(store.resolve(ref).status == AudioStore::Status::Resolved);
++
++    const juce::File original = store.assetFolder(*id);
++    const juce::File renamed = root.dir.getChildFile("renamed.adna-audio");
++    REQUIRE(original.moveFileTo(renamed));
++
++    REQUIRE(store.resolve(ref).status == AudioStore::Status::Missing);
++
++    REQUIRE(renamed.moveFileTo(original));
++    REQUIRE(store.resolve(ref).status == AudioStore::Status::Resolved);
++}
++
++// === 18: [audiotap][store] a self-stopped tap is recorded as audio ending early ===
++
++TEST_CASE("a self-stopped tap is recorded as audio ending early", "[audiotap][store]")
++{
++    TempDir root("selfstop18");
++    AudioStore store(root.dir);
++
++    auto id = store.beginAsset();
++    REQUIRE(id.has_value());
++
++    AudioTap tap;
++    tap.prepare(48000.0, 2, 512);
++    REQUIRE(tap.start(store.wavFile(*id)));
++
++    uint64_t delivered = 0;
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    std::vector<float> inL(512, 0.2f), inR(512, 0.2f);
++    const float* ch[2] = { inL.data(), inR.data() };
++    for (int b = 0; b < 5; ++b)
++    {
++        hostTimeNs += static_cast<uint64_t>((512.0 / 48000.0) * 1.0e9);
++        juce::AudioIODeviceCallbackContext ctx;
++        ctx.hostTimeNs = &hostTimeNs;
++        const uint32_t gap = tap.push(ch, 2, 512, delivered, ctx);
++        delivered += 512 + gap;
++    }
++
++    const uint64_t firstSample = tap.firstSample();
++    REQUIRE(tap.framesWritten() == 2560);
++
++    tap.prepare(44100.0, 2, 512);   // rate change mid-take -> stopInternal (self-stop)
++    REQUIRE_FALSE(tap.isRunning());
++    REQUIRE(tap.framesWritten() == 2560);
++
++    AudioStore::CaptureFacts facts;
++    facts.mode = "input";
++    facts.gapDetection = tap.gapDetectionSupported();
++    facts.firstSample = firstSample;
++    facts.framesWritten = tap.framesWritten();
++    facts.rate = 48000.0; facts.channels = 2; facts.app = "0.1.0";
++
++    const bool endedEarly = true;   // isRunning() was false before stop(), per spec 5.1
++    if (endedEarly)
++        facts.unreliableFromInTakeClock = firstSample + tap.framesWritten();
++
++    REQUIRE(*facts.unreliableFromInTakeClock == firstSample + 2560);
++
++    tap.stop();   // no-op -- already stopped
++
++    auto fin = store.finalize(*id, facts);
++    REQUIRE(fin.sidecarWritten);
++    REQUIRE(fin.asset.unreliableFrom.has_value());
++    REQUIRE(*fin.asset.unreliableFrom == 2560);
++
++    AudioRef ref = AudioStore::referencing(fin.asset, firstSample);
++    REQUIRE(ref.unreliableFrom.has_value());
++    REQUIRE(*ref.unreliableFrom == firstSample + 2560);
++
++    auto res = store.resolve(ref);
++    REQUIRE(res.status == AudioStore::Status::Resolved);
++}
+diff --git a/tests/test_audio_tap_sync.cpp b/tests/test_audio_tap_sync.cpp
+index 3f22e87..a9e2d7e 100644
+--- a/tests/test_audio_tap_sync.cpp
++++ b/tests/test_audio_tap_sync.cpp
+@@ -340,7 +340,16 @@ TEST_CASE("AudioTap R14 -- hostTimeNs null disables gap detection, and the take
+             == combined.getDeliveredSamples() - combined.tap().firstSample());
+ }
+ 
+-TEST_CASE("AudioTap + Take -- .adna-take folder save/load completion", "[audiotap][take]")
++// ============================================================================
++// R28 D-A10: v1's premise "the WAV is readable up to the last flush" was
++// false -- ThreadedWriter only flushes when samplesPerFlush > 0 (default 0),
++// and AudioTap never called setFlushInterval. This replaces the old
++// ".adna-take folder save/load completion" case above (its assertion that
++// audio.wav sits INSIDE the take folder is the inverse of ruling 28's shared
++// store -- nothing else in this file references Segment::file after step 1).
++// ============================================================================
++
++TEST_CASE("AudioTap header flush -- the WAV header is patched while recording, so a crashed show is readable up to the last flush", "[audiotap][flush]")
+ {
+     RingBuffer<float> ring(8192);
+     AudioCallback analysis(ring);
+@@ -353,66 +362,54 @@ TEST_CASE("AudioTap + Take -- .adna-take folder save/load completion", "[audiota
+     FakeAudioIODevice device(rate, blockSize, 2);
+     combined.audioDeviceAboutToStart(&device);
+ 
+-    TempFolder folder("takefolder");
+-    REQUIRE(combined.tap().start(folder.dir.getChildFile("audio.wav")));
++    TempWavFile wav("flush");
++    REQUIRE(combined.tap().start(wav.file));
+ 
+-    for (int b = 0; b < 10; ++b)
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    for (int b = 0; b < 4; ++b)
+     {
+-        std::vector<float> inL(blockSize, 0.2f), inR(blockSize, 0.2f);
++        std::vector<float> inL(blockSize, 0.25f), inR(blockSize, 0.25f);
+         std::vector<float> outL(static_cast<size_t>(blockSize), 0.0f), outR(static_cast<size_t>(blockSize), 0.0f);
+         const float* inPtrs[2] = { inL.data(), inR.data() };
+         float* outPtrs[2] = { outL.data(), outR.data() };
+ 
+-        uint64_t hostTimeNs = static_cast<uint64_t>(b) * static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
++        hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
+         juce::AudioIODeviceCallbackContext ctx;
+         ctx.hostTimeNs = &hostTimeNs;
+         combined.audioDeviceIOCallbackWithContext(inPtrs, 2, outPtrs, 2, blockSize, ctx);
+     }
+ 
+-    const uint64_t firstSample = combined.tap().firstSample();
+-    const uint64_t frames = combined.tap().framesWritten();
+-    const bool gapDetection = combined.tap().gapDetectionSupported();
++    // D-A10: setFlushInterval's counter starts at 0, so the FIRST drain on
++    // the writer's TimeSliceThread already flushes -- poll a FRESH reader
++    // each iteration (a torn read mid-flush returns null; keep polling)
++    // until the header on disk reports a non-zero length. Fails on
++    // pre-change code: the header stays 0 until the ThreadedWriter's
++    // destructor, which stop() below is the first thing to reach.
++    juce::WavAudioFormat format;
++    int64_t flushedLength = 0;
++    bool sawFlush = false;
++    const auto deadline = juce::Time::getMillisecondCounter() + 5000;
++    while (juce::Time::getMillisecondCounter() < deadline)
++    {
++        std::unique_ptr<juce::AudioFormatReader> pollReader(
++            format.createReaderFor(new juce::FileInputStream(wav.file), true));
++        if (pollReader != nullptr && pollReader->lengthInSamples > 0)
++        {
++            flushedLength = pollReader->lengthInSamples;
++            sawFlush = true;
++            break;
++        }
++        std::this_thread::sleep_for(std::chrono::milliseconds(10));
++    }
++    REQUIRE(sawFlush);
++    REQUIRE(static_cast<uint64_t>(flushedLength) <= combined.tap().framesWritten());
++
+     combined.tap().stop();
+ 
+-    // Take::save/load already take a directory as the real contract (Lane
+-    // A, s168 step 1) -- this proves it end to end against a REAL AudioTap
+-    // output, not synthetic data: audio.wav sits beside take.json, and the
+-    // AudioRef round-trips through both.
+-    Take take;
+-    take.audio.mode = "input";
+-    take.audio.gapDetection = gapDetection;
+-    AudioRef::Segment seg;
+-    seg.file = "audio.wav";
+-    seg.firstSample = firstSample;
+-    seg.frames = frames;
+-    seg.rate = rate;
+-    seg.channels = 2;
+-    take.audio.segments.push_back(seg);
+-
+-    REQUIRE(take.save(folder.dir));
+-    REQUIRE(folder.dir.getChildFile("audio.wav").existsAsFile());
+-    REQUIRE(folder.dir.getChildFile("take.json").existsAsFile());
+-
+-    LoadStats stats;
+-    auto loaded = Take::load(folder.dir, stats);
+-    REQUIRE(loaded.has_value());
+-    REQUIRE_FALSE(stats.refused);
+-    REQUIRE(loaded->audio.mode == "input");
+-    REQUIRE(loaded->audio.gapDetection == gapDetection);
+-    REQUIRE(loaded->audio.segments.size() == 1);
+-    REQUIRE(loaded->audio.segments[0].file == "audio.wav");
+-    REQUIRE(loaded->audio.segments[0].firstSample == firstSample);
+-    REQUIRE(loaded->audio.segments[0].frames == frames);
+-    REQUIRE(loaded->audio.segments[0].rate == Approx(rate));
+-    REQUIRE(loaded->audio.segments[0].channels == 2);
+-
+-    // The arithmetic identity (success criteria), proven against the real
+-    // file this round-trip now points at.
+-    juce::WavAudioFormat format;
+-    std::unique_ptr<juce::AudioFormatReader> reader(
+-        format.createReaderFor(new juce::FileInputStream(folder.dir.getChildFile(loaded->audio.segments[0].file)), true));
+-    REQUIRE(reader != nullptr);
+-    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == frames);
++    std::unique_ptr<juce::AudioFormatReader> finalReader(
++        format.createReaderFor(new juce::FileInputStream(wav.file), true));
++    REQUIRE(finalReader != nullptr);
++    REQUIRE(static_cast<uint64_t>(finalReader->lengthInSamples) == combined.tap().framesWritten());
+ }
+ 
+ // ============================================================================
+diff --git a/tests/test_take_v1_transport.cpp b/tests/test_take_v1_transport.cpp
+new file mode 100644
+index 0000000..1891b20
+--- /dev/null
++++ b/tests/test_take_v1_transport.cpp
+@@ -0,0 +1,86 @@
++// test_take_v1_transport -- s-rta-0923 Lane R28, review-fix L1: the v1
++// TransportChange bridge. play/pause/stop are faithful (v2's Comp/"audio"
++// control is action-valued and carries no value); speed/reverse have no v2
++// equivalent and are dropped, counted in LoadStats::v1Dropped (D12: never
++// silently dropped), never emitted as an `audio` point.
++#include <catch2/catch_test_macros.hpp>
++#include "model/Composition.h"
++#include "recording/Take.h"
++#include "recording/Program.h"
++#include <algorithm>
++
++TEST_CASE("v1 TransportChange bridges play/pause/stop faithfully and counts speed/reverse as dropped", "[take][v1][transport]")
++{
++    juce::File fixture = juce::File(TEST_FIXTURES_DIR).getChildFile("take_v1_transport.json");
++    REQUIRE(fixture.existsAsFile());
++
++    LoadStats stats;
++    auto take = Take::load(fixture, stats);
++    REQUIRE(take.has_value());
++    REQUIRE_FALSE(stats.refused);
++    REQUIRE(stats.wasV1);
++
++    ControlPath audioKey;
++    audioKey.scope = ControlPath::Scope::Comp;
++    audioKey.control = "audio";
++    REQUIRE(take->lanes.count(audioKey) == 1);
++
++    const auto& audioLane = take->lanes.at(audioKey);
++    REQUIRE(audioLane.points.size() == 3);
++
++    REQUIRE(audioLane.points[0].action == "play");
++    REQUIRE(audioLane.points[0].s.t == 1.0);
++    REQUIRE(audioLane.points[0].v == 0);
++
++    REQUIRE(audioLane.points[1].action == "pause");
++    REQUIRE(audioLane.points[1].s.t == 3.0);
++    REQUIRE(audioLane.points[1].v == 0);
++
++    REQUIRE(audioLane.points[2].action == "stop");
++    REQUIRE(audioLane.points[2].s.t == 4.0);
++    REQUIRE(audioLane.points[2].v == 0);
++
++    REQUIRE(stats.v1Dropped.size() == 2);
++    REQUIRE(stats.v1Dropped.count("TransportChange:speed") == 1);
++    REQUIRE(stats.v1Dropped.at("TransportChange:speed") == 1);
++    REQUIRE(stats.v1Dropped.count("TransportChange:reverse") == 1);
++    REQUIRE(stats.v1Dropped.at("TransportChange:reverse") == 1);
++
++    // 1 ClipTrigger + 3 faithful TransportChange points = 4 seqs minted;
++    // the 2 dropped events mint none (L1: seq minted AFTER the switch).
++    REQUIRE(take->nextSeq == 5);
++}
++
++TEST_CASE("compile of a bridged v1 take dispatches only faithful audio points", "[take][v1][transport]")
++{
++    juce::File fixture = juce::File(TEST_FIXTURES_DIR).getChildFile("take_v1_transport.json");
++    REQUIRE(fixture.existsAsFile());
++
++    LoadStats stats;
++    auto take = Take::load(fixture, stats);
++    REQUIRE(take.has_value());
++
++    Composition comp;
++    comp.initDefault();
++
++    auto program = compile(*take, comp, DriveClock::Wall);
++    REQUIRE(program->discrete.size() == 4);
++
++    int audioPoints = 0;
++    for (const auto& fired : program->discrete)
++    {
++        if (fired.key.control != "audio") continue;
++        ++audioPoints;
++        REQUIRE(fired.p.v == 0);
++        REQUIRE((fired.p.action == "play" || fired.p.action == "pause" || fired.p.action == "stop"));
++        REQUIRE(fired.p.action != "speed");
++        REQUIRE(fired.p.action != "reverse");
++    }
++    REQUIRE(audioPoints == 3);
++
++    REQUIRE(program->report.unresolved.empty());
++    REQUIRE(program->report.resolvedCount == 1);
++    // The v1 activeClip lane is deck-relative with an empty layerName
++    // against Composition::initDefault()'s named "Layer 1" -> PositionOnly.
++    REQUIRE(program->report.reboundByPosition.size() == 1);
++}

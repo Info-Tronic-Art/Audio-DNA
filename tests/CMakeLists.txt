@@ -758,3 +758,85 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_recorder_double_touch)
 catch_discover_tests(test_recorder_double_touch)
+
+# --- test_audio_store (Lane R28, s-rta-0923 Ruling 28: the shared audio
+# store -- AudioStore/AudioAsset/fp1/resolve/GC-query, headless. Links the
+# same Take-without-model list test_audio_tap_sync links: AudioTap.cpp
+# (drives it directly via prepare/start/push/stop for the store-integration
+# cases) + Take.cpp/TempoMap.cpp/PerfState.cpp. AUDIODNA_AUDIOTAP_TEST_HOOKS
+# is NOT needed here (no forced-write-failure cases).
+add_executable(test_audio_store
+    test_audio_store.cpp
+    ${SRC_DIR}/recording/AudioStore.cpp
+    ${SRC_DIR}/recording/AudioTap.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+)
+target_include_directories(test_audio_store PRIVATE ${SRC_DIR})
+target_link_libraries(test_audio_store PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_cryptography
+)
+target_compile_definitions(test_audio_store PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_audio_store PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_audio_store)
+catch_discover_tests(test_audio_store)
+
+# --- test_take_v1_transport (Lane R28, review-fix L1: the v1 TransportChange
+# bridge -- play/pause/stop faithful, speed/reverse dropped+counted. Links
+# test_take's list minus Player/RecorderClock/PerformanceRecorder (this
+# target only needs Take::fromV1Var + Program::compile's dispatch, not the
+# live playback classes).
+add_executable(test_take_v1_transport
+    test_take_v1_transport.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+)
+target_include_directories(test_take_v1_transport PRIVATE ${SRC_DIR})
+target_link_libraries(test_take_v1_transport PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_take_v1_transport PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_take_v1_transport PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_take_v1_transport)
+catch_discover_tests(test_take_v1_transport)

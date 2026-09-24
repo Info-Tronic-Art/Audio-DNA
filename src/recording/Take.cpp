@@ -7,12 +7,21 @@
 juce::var AudioRef::Segment::toVar() const
 {
     auto* obj = new juce::DynamicObject();
-    obj->setProperty("file", juce::String(file));
+    // D-A4: the take keeps the v2 `audio` SHAPE and ADDS `id` + `fingerprint`
+    // per segment; `file` is legacy v2, emitted only when non-empty (never
+    // set by v3 code, see the struct comment); `sha1Head` is dropped (never
+    // written by shipped code, D-A4).
+    if (!id.empty())
+    {
+        obj->setProperty("id", juce::String(id));
+        obj->setProperty("fingerprint", juce::String(fingerprint));
+    }
+    if (!file.empty())
+        obj->setProperty("file", juce::String(file));
     obj->setProperty("firstSample", static_cast<juce::int64>(firstSample));
     obj->setProperty("frames", static_cast<juce::int64>(frames));
     obj->setProperty("rate", rate);
     obj->setProperty("channels", channels);
-    obj->setProperty("sha1Head", juce::String(sha1Head));
     return juce::var(obj);
 }
 
@@ -21,12 +30,15 @@ AudioRef::Segment AudioRef::Segment::fromVar(const juce::var& v)
     Segment s;
     if (auto* obj = v.getDynamicObject())
     {
+        if (obj->hasProperty("id"))
+            s.id = obj->getProperty("id").toString().toStdString();
+        if (obj->hasProperty("fingerprint"))
+            s.fingerprint = obj->getProperty("fingerprint").toString().toStdString();
         s.file = obj->getProperty("file").toString().toStdString();
         s.firstSample = static_cast<uint64_t>(static_cast<juce::int64>(obj->getProperty("firstSample")));
         s.frames = static_cast<uint64_t>(static_cast<juce::int64>(obj->getProperty("frames")));
         s.rate = static_cast<double>(obj->getProperty("rate"));
         s.channels = static_cast<int>(obj->getProperty("channels"));
-        s.sha1Head = obj->getProperty("sha1Head").toString().toStdString();
     }
     return s;
 }
@@ -226,6 +238,14 @@ std::optional<Take> Take::fromVar(const juce::var& root, LoadStats& stats)
 
     take.meta = Meta::fromVar(obj->getProperty("meta"));
     take.audio = AudioRef::fromVar(obj->getProperty("audio"));
+    for (const auto& seg : take.audio.segments)
+    {
+        if (seg.id.empty() && !seg.file.empty())
+        {
+            stats.legacyInFolderAudio = true;
+            break;
+        }
+    }
     take.tempo = TempoMap::fromVar(obj->getProperty("tempoMap"));
     take.checkpoint0 = PerfState::fromVar(obj->getProperty("checkpoint0"));
     take.checkpointEnd = PerfState::fromVar(obj->getProperty("checkpointEnd"));
@@ -320,11 +340,10 @@ std::optional<Take> Take::fromV1Var(const juce::var& root, LoadStats& stats)
 
         const double t = static_cast<double>(e->getProperty("t"));
         const auto type = static_cast<V1Type>(static_cast<int>(e->getProperty("type")));
-        const uint64_t seq = take.nextSeq++;
 
         ControlPath key;
         DiscretePoint p;
-        p.s = { seq, t, 0 };
+        p.s = { 0, t, 0 };   // seq minted below, AFTER the switch (L1: a dropped event mints no seq)
         p.beat = 0.0;   // wallOnly: no tempo/phase data in a v1 file
         p.bpm = 0.0f;
         p.origin = Origin::Human;
@@ -372,11 +391,26 @@ std::optional<Take> Take::fromV1Var(const juce::var& root, LoadStats& stats)
                 break;
 
             case V1Type::TransportChange:
+            {
+                // Faithful (D12 rule 5): v2's `audio` control is action-valued
+                // play/pause/stop (PerfState::audioAction, PerfState.h:74;
+                // spec D3) and those carry no value -- the legacy value*1000
+                // scaling produced an int the v2 dispatcher would misread.
+                // v1 "speed"/"reverse" (the audio player's rate/direction)
+                // have no v2 control: counted in stats.v1Dropped, never
+                // emitted as an `audio` point.
+                const auto action = e->getProperty("action").toString().toStdString();
+                if (action != "play" && action != "pause" && action != "stop")
+                {
+                    stats.v1Dropped["TransportChange:" + (action.empty() ? std::string("<empty>") : action)]++;
+                    continue;
+                }
                 key.scope = ControlPath::Scope::Comp;
                 key.control = "audio";
-                p.action = e->getProperty("action").toString().toStdString();
-                p.v = static_cast<int>(static_cast<double>(e->getProperty("value")) * 1000.0);
+                p.action = action;
+                p.v = 0;
                 break;
+            }
 
             case V1Type::EffectToggle:
                 key.scope = ControlPath::Scope::Clip;
@@ -391,6 +425,8 @@ std::optional<Take> Take::fromV1Var(const juce::var& root, LoadStats& stats)
                 p.v = static_cast<int>(e->getProperty("cuepointIndex"));
                 break;
         }
+
+        p.s.seq = take.nextSeq++;   // L1: minted AFTER the switch -- a dropped event (continue, above) never reaches here
 
         auto& lane = take.lanes[key];
         lane.key = key;

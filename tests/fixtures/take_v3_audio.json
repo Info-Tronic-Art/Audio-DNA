@@ -1,0 +1,20 @@
+{
+    "format": "audiodna-take", "version": 3, "minReader": 3,
+    "features": ["lanes", "tempoMap", "checkpoint0", "audio"],
+    "meta": { "recordedAt": "2026-09-23T00:00:00Z", "app": "0.1.0", "duration": 10.0, "durationBeats": 21.3 },
+    "audio": {
+        "segments": [ { "id": "0123456789abcdef0123456789abcdef",
+                        "fingerprint": "fp1:0000000000000000000000000000000000000000000000000000000000000000",
+                        "firstSample": 3584, "frames": 480000, "rate": 48000, "channels": 2 } ],
+        "mode": "input", "gapDetection": true, "gaps": [ { "sample": 100000, "n": 1024 } ], "unreliableFrom": null
+    },
+    "tempoMap": [ { "t": 0.0, "beat": 0.0, "sample": 3584, "bpm": 128.0, "why": "start" } ],
+    "checkpoint0": { "activeDeckIndex": 0, "quantizeMode": 0, "bpm": 128.0, "audioAction": "", "decks": [] },
+    "checkpointEnd": { "activeDeckIndex": 0, "quantizeMode": 0, "bpm": 128.0, "audioAction": "", "decks": [] },
+    "markers": [],
+    "lanes": [
+        { "key": { "scope": "layer", "deck": { "i": 0, "rel": true, "name": "" }, "layer": { "i": 0, "id": 0, "name": "Layer 1" }, "control": "activeClip" },
+          "kind": "discrete",
+          "points": [ { "seq": 1, "t": 0.5, "sample": 27584, "beat": 1.07, "bpm": 128.0, "origin": "human", "v": 3 } ] }
+    ]
+}

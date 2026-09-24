@@ -125,6 +125,10 @@ bool AudioTap::start(const juce::File& wavFile)
     // frames*channels (confirmed against JUCE's own Buffer ctor).
     threadedWriter_ = std::make_unique<juce::AudioFormatWriter::ThreadedWriter>(
         writer, flushThread_, static_cast<int>(rate_ * 8.0));
+    // D-A10: re-patch the WAV header every kHeaderFlushSeconds of audio so a
+    // crashed show is readable up to the last flush, not just up to the
+    // (never-reached-on-a-crash) writer destructor.
+    threadedWriter_->setFlushInterval(static_cast<int>(rate_ * kHeaderFlushSeconds));
     activeWriter_.store(threadedWriter_.get(), std::memory_order_relaxed);
 
     hasUnreliableFrom_.store(false, std::memory_order_relaxed);

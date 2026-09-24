@@ -340,7 +340,16 @@ TEST_CASE("AudioTap R14 -- hostTimeNs null disables gap detection, and the take 
             == combined.getDeliveredSamples() - combined.tap().firstSample());
 }
 
-TEST_CASE("AudioTap + Take -- .adna-take folder save/load completion", "[audiotap][take]")
+// ============================================================================
+// R28 D-A10: v1's premise "the WAV is readable up to the last flush" was
+// false -- ThreadedWriter only flushes when samplesPerFlush > 0 (default 0),
+// and AudioTap never called setFlushInterval. This replaces the old
+// ".adna-take folder save/load completion" case above (its assertion that
+// audio.wav sits INSIDE the take folder is the inverse of ruling 28's shared
+// store -- nothing else in this file references Segment::file after step 1).
+// ============================================================================
+
+TEST_CASE("AudioTap header flush -- the WAV header is patched while recording, so a crashed show is readable up to the last flush", "[audiotap][flush]")
 {
     RingBuffer<float> ring(8192);
     AudioCallback analysis(ring);
@@ -353,66 +362,54 @@ TEST_CASE("AudioTap + Take -- .adna-take folder save/load completion", "[audiota
     FakeAudioIODevice device(rate, blockSize, 2);
     combined.audioDeviceAboutToStart(&device);
 
-    TempFolder folder("takefolder");
-    REQUIRE(combined.tap().start(folder.dir.getChildFile("audio.wav")));
+    TempWavFile wav("flush");
+    REQUIRE(combined.tap().start(wav.file));
 
-    for (int b = 0; b < 10; ++b)
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    for (int b = 0; b < 4; ++b)
     {
-        std::vector<float> inL(blockSize, 0.2f), inR(blockSize, 0.2f);
+        std::vector<float> inL(blockSize, 0.25f), inR(blockSize, 0.25f);
         std::vector<float> outL(static_cast<size_t>(blockSize), 0.0f), outR(static_cast<size_t>(blockSize), 0.0f);
         const float* inPtrs[2] = { inL.data(), inR.data() };
         float* outPtrs[2] = { outL.data(), outR.data() };
 
-        uint64_t hostTimeNs = static_cast<uint64_t>(b) * static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
+        hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
         juce::AudioIODeviceCallbackContext ctx;
         ctx.hostTimeNs = &hostTimeNs;
         combined.audioDeviceIOCallbackWithContext(inPtrs, 2, outPtrs, 2, blockSize, ctx);
     }
 
-    const uint64_t firstSample = combined.tap().firstSample();
-    const uint64_t frames = combined.tap().framesWritten();
-    const bool gapDetection = combined.tap().gapDetectionSupported();
+    // D-A10: setFlushInterval's counter starts at 0, so the FIRST drain on
+    // the writer's TimeSliceThread already flushes -- poll a FRESH reader
+    // each iteration (a torn read mid-flush returns null; keep polling)
+    // until the header on disk reports a non-zero length. Fails on
+    // pre-change code: the header stays 0 until the ThreadedWriter's
+    // destructor, which stop() below is the first thing to reach.
+    juce::WavAudioFormat format;
+    int64_t flushedLength = 0;
+    bool sawFlush = false;
+    const auto deadline = juce::Time::getMillisecondCounter() + 5000;
+    while (juce::Time::getMillisecondCounter() < deadline)
+    {
+        std::unique_ptr<juce::AudioFormatReader> pollReader(
+            format.createReaderFor(new juce::FileInputStream(wav.file), true));
+        if (pollReader != nullptr && pollReader->lengthInSamples > 0)
+        {
+            flushedLength = pollReader->lengthInSamples;
+            sawFlush = true;
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    REQUIRE(sawFlush);
+    REQUIRE(static_cast<uint64_t>(flushedLength) <= combined.tap().framesWritten());
+
     combined.tap().stop();
 
-    // Take::save/load already take a directory as the real contract (Lane
-    // A, s168 step 1) -- this proves it end to end against a REAL AudioTap
-    // output, not synthetic data: audio.wav sits beside take.json, and the
-    // AudioRef round-trips through both.
-    Take take;
-    take.audio.mode = "input";
-    take.audio.gapDetection = gapDetection;
-    AudioRef::Segment seg;
-    seg.file = "audio.wav";
-    seg.firstSample = firstSample;
-    seg.frames = frames;
-    seg.rate = rate;
-    seg.channels = 2;
-    take.audio.segments.push_back(seg);
-
-    REQUIRE(take.save(folder.dir));
-    REQUIRE(folder.dir.getChildFile("audio.wav").existsAsFile());
-    REQUIRE(folder.dir.getChildFile("take.json").existsAsFile());
-
-    LoadStats stats;
-    auto loaded = Take::load(folder.dir, stats);
-    REQUIRE(loaded.has_value());
-    REQUIRE_FALSE(stats.refused);
-    REQUIRE(loaded->audio.mode == "input");
-    REQUIRE(loaded->audio.gapDetection == gapDetection);
-    REQUIRE(loaded->audio.segments.size() == 1);
-    REQUIRE(loaded->audio.segments[0].file == "audio.wav");
-    REQUIRE(loaded->audio.segments[0].firstSample == firstSample);
-    REQUIRE(loaded->audio.segments[0].frames == frames);
-    REQUIRE(loaded->audio.segments[0].rate == Approx(rate));
-    REQUIRE(loaded->audio.segments[0].channels == 2);
-
-    // The arithmetic identity (success criteria), proven against the real
-    // file this round-trip now points at.
-    juce::WavAudioFormat format;
-    std::unique_ptr<juce::AudioFormatReader> reader(
-        format.createReaderFor(new juce::FileInputStream(folder.dir.getChildFile(loaded->audio.segments[0].file)), true));
-    REQUIRE(reader != nullptr);
-    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == frames);
+    std::unique_ptr<juce::AudioFormatReader> finalReader(
+        format.createReaderFor(new juce::FileInputStream(wav.file), true));
+    REQUIRE(finalReader != nullptr);
+    REQUIRE(static_cast<uint64_t>(finalReader->lengthInSamples) == combined.tap().framesWritten());
 }
 
 // ============================================================================

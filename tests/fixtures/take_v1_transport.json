@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "events": [
+        { "t": 0.5, "type": 1, "layer": 0, "column": 2 },
+        { "t": 1.0, "type": 4, "action": "play",    "value": 0.0 },
+        { "t": 2.5, "type": 4, "action": "speed",   "value": 1.5 },
+        { "t": 3.0, "type": 4, "action": "pause",   "value": 0.0 },
+        { "t": 3.5, "type": 4, "action": "reverse", "value": 1.0 },
+        { "t": 4.0, "type": 4, "action": "stop",    "value": 0.0 }
+    ]
+}

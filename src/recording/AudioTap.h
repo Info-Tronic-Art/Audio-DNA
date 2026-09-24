@@ -131,6 +131,16 @@ public:
     static int64_t freeSpaceBytes(const juce::File& folder);
     static constexpr int64_t kMinFreeBytes = 2LL * 1024 * 1024 * 1024;   // R15: 2 GB
 
+    // D-A10: how often the WAV header is re-patched with the frame count
+    // written so far, so a crashed show's file is readable up to the last
+    // flush instead of only in the (never-reached, on a crash) writer
+    // destructor. Runs on the writer's own TimeSliceThread inside
+    // writePendingData -- NEVER the audio thread (push() never blocks on
+    // disk I/O). Bounded loss on a process crash: <= kHeaderFlushSeconds of
+    // audio not yet counted, plus whatever still sat in the 8s writer FIFO
+    // (typically < 2s) -- about 12s typical, 18s worst case.
+    static constexpr double kHeaderFlushSeconds = 10.0;
+
 #if defined(AUDIODNA_AUDIOTAP_TEST_HOOKS)
     // TEST ONLY -- compiled in only when the test target defines
     // AUDIODNA_AUDIOTAP_TEST_HOOKS (never the AudioDNA app; see

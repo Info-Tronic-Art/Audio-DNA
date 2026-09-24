@@ -243,6 +243,8 @@ target_sources(AudioDNA PRIVATE
     src/recording/PerformanceRecorder.cpp
     src/recording/AudioTap.h
     src/recording/AudioTap.cpp
+    src/recording/AudioStore.h
+    src/recording/AudioStore.cpp
     src/recording/VideoRecorder.h
     src/recording/VideoRecorder.cpp
 
@@ -536,6 +538,7 @@ set(AUDIODNA_LIBS
     juce::juce_gui_extra
     juce::juce_opengl
     juce::juce_osc
+    juce::juce_cryptography
     Aubio::Aubio
     FFmpeg::FFmpeg
 )

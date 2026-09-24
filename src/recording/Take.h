@@ -11,20 +11,23 @@
 #include <optional>
 #include <span>
 
-// AudioRef -- D10.4's take.json "audio" section. The tap itself
-// (src/recording/AudioTap.*) is step 2; this packet only needs the shape
-// so Take round-trips it (empty/default here is a legitimate, un-recorded
-// take -- "mode" stays empty, `segments` stays empty).
+// AudioRef -- D10.4's take.json "audio" section. Ruling 28 (s-rta-0923):
+// audio lives in the shared AudioStore (src/recording/AudioStore.*), keyed
+// by `id`; a segment's `file` field is read-only legacy (pre-v3, in-folder
+// audio -- never set by v3 code, only round-tripped when read from an old
+// take). "mode" stays empty / `segments` stays empty for a legitimate,
+// un-recorded take.
 struct AudioRef
 {
     struct Segment
     {
-        std::string file;
+        std::string id;             // 32 lowercase hex == the AudioStore asset folder stem; "" for legacy (pre-v3) segments
+        std::string fingerprint;    // "fp1:" + 64 hex; "" means ResolvedUnverified (AudioStore::resolve, D-A12)
+        std::string file;           // legacy v2 in-folder path (e.g. "audio.wav"); read-only, never set by v3 code
         uint64_t firstSample = 0;
         uint64_t frames = 0;
         double rate = 0.0;
         int channels = 0;
-        std::string sha1Head;
 
         juce::var toVar() const;
         static Segment fromVar(const juce::var& v);
@@ -64,6 +67,15 @@ struct LoadStats
     int unknownKindLanes = 0;
     std::vector<std::string> unknownKindNames;
     bool wasV1 = false;
+
+    // R28: a v3 reader saw a legacy (pre-v3) in-folder audio segment
+    // (`id` empty, `file` non-empty) -- resolves as AudioStore::Status::Legacy.
+    bool legacyInFolderAudio = false;
+
+    // L1 (review fix a): v1 events with no v2 equivalent, counted and named
+    // (D12: never silently dropped). Key "<EventType>:<detail>", e.g.
+    // "TransportChange:speed".
+    std::map<std::string, int> v1Dropped;
 };
 
 // Take -- s167 D5: the DOCUMENT. A value type; lanes are the on-disk form
@@ -80,8 +92,8 @@ struct Take
     Meta meta;
     uint64_t nextSeq = 1;
 
-    static constexpr int kFormatVersion = 2;
-    static constexpr int kMinReader = 2;
+    static constexpr int kFormatVersion = 3;
+    static constexpr int kMinReader = 3;
 
     // Extra top-level sections this reader does not know (D12 rule 3):
     // kept opaque, re-saved verbatim, never interpreted.
@@ -119,5 +131,10 @@ private:
     // v2 Take. "No real v1 files exist beyond clip-trigger-only sessions"
     // (the July spec) -- ClipTrigger/ColumnTrigger get a faithful
     // conversion; the other five event types get a best-effort one.
+    // TransportChange (L1, review fix a) is faithful ONLY for play/pause/
+    // stop (v2's Comp/"audio" control is action-valued, carries no value);
+    // "speed"/"reverse" have no v2 equivalent and are dropped, counted in
+    // LoadStats::v1Dropped (D12: never silently dropped), never emitted as
+    // an `audio` point.
     static std::optional<Take> fromV1Var(const juce::var& root, LoadStats& stats);
 };
