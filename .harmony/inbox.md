@@ -130,3 +130,14 @@ routed-by:   harmony-95977     date: 2026-09-23
 status:      DONE
 status-note: s-rta-0923: prose sections moved VERBATIM to .harmony/notebook.md (loss check: 507/507 non-blank lines present in new homes); Harmony-aimed lessons re-filed as canonical IDEA records; ledger now holds only --- IDEA --- records. Session log written: .harmony/sessions/2026-09-24-s-rta-0923-secondary.md.
 --- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-24-RealTimeAudio-17902484309157426959
+raw:         s230 G5 live proof for the report-path fix (Harmony 93e969b1): run the two architect dispatches in ~/Harmony_Main/memory/.reports/s230/g5-relay-packet.md (+ probe to .harmony/.reports/, − negcontrol to .harmony/specs/), report both outcomes up, then remove the empty stray <repo>/memory/.reports/ dir.
+origin:      
+why-routed:  Fable ruling §4 G5: sandbox rc alone does not close this family; L3 harness delivery on CC 2.1.280 unproven
+source-idea: 
+routed-by:   harmony-18791     date: 2026-09-24
+status:      DONE
+status-note: s-rta-0924: (+) PASS, (-) INCONCLUSIVE for the hook (architect self-refused; hook never reached); reviewer Bash-bypass of MINIMAL write BLOCK found; stray memory/ removed. Reported up: memory/.pending s-rta-0924-g5-relay-result.md.
+--- /ROUTED-ITEM ---
