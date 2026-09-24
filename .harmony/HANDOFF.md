@@ -3,254 +3,67 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0923 (2026-09-23/24). The newest
-dated section is at the END of this file ("# >>> SESSION s-rta-0923"); read it first, then the
-SCREEN-SAFETY LAW section. Everything between is history — older blocks lose to the end sections.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0924 (2026-09-24). The newest dated
+section is at the END of this file ("# >>> SESSION s-rta-0924"); read it first, then the SCREEN-SAFETY
+LAW section. Everything between is history — older blocks lose to the end sections.
+
+STATE: spec step 3 (the performance recorder wired into the running app) is BUILT and live-proven —
+`.harmony/probe-step3.sh` 63 PASS / 0 FAIL on main. R13 (non-48 kHz devices) is BUILT: the analysis
+thread resamples to 48 kHz (bypass at 48 kHz). Composition-position black screen FIXED. ctest 408.
 
 START HERE, in order:
-1. FIX the composition-position bug (small, root-caused, pre-existing): Renderer.cpp ~2078 feeds
-   Composition Position X/Y (and Anchor X/Y) in PIXELS into u_comp_position, which the
-   comp_transform shader (EmbeddedShaders.h ~97/121) treats as -1..1 — any non-zero composition
-   position renders SOLID BLACK. Normalize by half the canvas; add a render test; the Lane 3 live
-   gate `.harmony/probe-lane3.sh` COMP check is the reproducer (currently FAILS on purpose).
-2. SPEC STEP 3 — the recorder wiring in the app (LONG TASK, begin at session start). Plan:
-   `.harmony/specs/s-rta-0923-step3-plan.md`. RULED: Lane 3's src/connect/ManualWrite is THE
-   manual-write funnel (R8) — step 3's "ManualWriter"/S3-M lane is SUPERSEDED; hook
-   onManualTouch/onManualWrite/onManualRelease (MainComponent) instead. Critic first, then lanes.
-3. Owed to Boris: the Bluetooth-headset crash re-test (needs his soundcore P31i connected), and
-   his calls listed in the end section.
+1. Boris's open calls (end section, "STILL OPEN FOR BORIS") — deliver ONE at a time, plain words.
+2. Onset loss in the render path (proven class, not yet fixed): render uniforms read the one-hop
+   onsetDetected from an always-latest snapshot at 60 fps (CompositorEngine.cpp ~1575, EffectChain.cpp
+   ~340, ProceduralSource.cpp ~175) and GET /api/features (ApiServer.cpp ~649) — onset-reactive visuals
+   can miss beats. FeatureSnapshot::onsetCount (monotonic) now exists: make those consumers act on its
+   delta. Plan → critic → builder → reviewer → live check (Eyes / render_frame over a click train).
+3. T2 drift proof needs a LONG take: probe-step3's drift row WARNs (stderr ~2.2 ms on a 65 s take);
+   spec D10.3 measures minute 10 vs minute 0. Add an opt-in 10-minute run (STEP3_LONG=1).
+4. Step 4 of the recorder spec (Record panel UI) is next on the roadmap — read the spec before planning.
 
-Rig rules that cost runs this session: fail-first probes in a SCRATCH build dir, never the gate
-dir; never embed "MacOS/Audio-DNA" in a watcher (pgrep -f self-match); disabled buttons do not
-dim in this LookAndFeel; `git add -f` under .harmony/ and check `git show --stat HEAD`.
-COUNTS: run them — ctest was 357/357 on a clean forced rebuild at close; unpushed 0.
-
-## (HISTORICAL, 2026-08-04d — superseded by the block above and the end sections) THE PLAN EXISTED
-
-**`.harmony/essentials-plan-2026-08-04d.md` — 11 sequenced lanes, Fable-architect authored over
-three rounds, chaired and attacked by Harmony, Boris's rulings folded in.** Session 2026-08-04d
-was a RECON + PLANNING session: **zero source changed, zero commits to `src/`.** Do not re-plan.
-Do not re-derive the surface map. Execute.
-
-Supporting evidence, all written this session:
-- `.harmony/surface-audit-2026-08-04d.md` — the FIRST systematic surface-by-surface sweep of the
-  app. 30 surfaces classified WIRED / PARTIAL / DEAD. Every prior defect in this repo was found
-  by accident; this is the map that replaces accident.
-- `.harmony/milkdrop-autoload-rootcause.md` — a VERIFIED regression with a named commit.
-- `.harmony/.work-packets/milkdrop-autoload-fix.md` — **BUILD-READY. Dispatch a builder at it.**
-
-**FIRST ACTION: build L0-MD (MilkDrop autoload).** Boris was asked for the go and instead chose
-to close the session, so it is UNAPPROVED — re-ask, then dispatch. It is small, root-caused, and
-restores a feature that has been dead on every launch since Jul 30.
-
-**TWO RULINGS STILL OPEN — ask early, they gate lanes:** (1) the honesty batch (hide/remove Record
-tab, Timing placeholder, Comp-Inspector dead blocks, dead param-source trio) and (2) the rack
-(`EffectsRackPanel`) — Harmony AND the architect both recommend DELETE with curve-shaping
-consciously parked. Recommend yes to both; both reversible in git.
-
-**BEFORE ANYTHING ELSE — read the "SCREEN-SAFETY LAW" section and obey it.** Audio-DNA's
-output window is a REAL FULLSCREEN WINDOW ON BORIS'S ACTUAL MONITORS. Never end a session
-with it open. Never `pkill` the app while it is open. Verify the SCREEN with
-`screencapture -x` and LOOK AT THE IMAGE before saying safe-to-close.
-
-**COUNTS: RUN THEM, NEVER INHERIT THEM.** `git rev-list --count origin/main..HEAD`. **118 at
-close of 2026-08-04d — INCLUDING the docs commit that carries this file.** Nothing is pushed.
-Do NOT push.
-
-**WHY THIS NUMBER KEEPS BEING WRONG — the mechanism, finally named.** It has been wrong in at
-least five consecutive handoffs, and the cause is not carelessness: **you run the count, write it
-into the handoff, and then COMMIT the handoff — which increments it by one.** The number is stale
-the instant it is written. Fix: **state the count AFTER committing the handoff and say explicitly
-that it includes that commit** (amend the file, then `git commit --amend`, which adds no further
-commit). This session did exactly that. If you write a count that does not mention the docs
-commit, it is already wrong.
-
-**INHERITED FACTS IN THIS REPO HAVE A BAD TRACK RECORD** — six broke in one prior session,
-including a prescribed fix that was ALREADY IMPLEMENTED. Line numbers drift constantly:
-**RE-GREP BY ANCHOR TEXT, never trust an offset.** Two errors were generated by session
-2026-08-04c itself and are documented with retractions — read them, the mechanism repeats:
-(1) it asserted a hidden output window leaves a live GL context burning GPU (FALSE — JUCE
-detaches on hide); (2) it relayed "the threshold change has zero testable surface" (partly
-false). Both were INFERENCES presented as VERIFIED. **Verifying the parts of a chain you can
-see is not verifying the chain.**
-
-**DO NOT REOPEN:** the black overlay (fixed `5a580c8`), the preset silent-retarget (fixed
-`57aa436`), the multi-image "bug" (NOT a bug — a documented image-sequence feature).
-
-METHOD NOTES THAT KEEP PAYING:
-- Ask Boris 2-3 cheap diagnostic questions BEFORE reading source on a user-reported bug.
-- Make a prediction he can FALSIFY before he answers.
-- Check whether an inherited prescribed fix is ALREADY IMPLEMENTED before building it.
-- Let him deviate from the test script — his deviation found both defects this session.
-- Label relayed subagent claims by EVIDENCE CLASS, not confidence in the agent.
-- Delegate recon and source work; run the behavioral gate yourself. The party that builds
-  never verifies. Idle-without-report from a subagent is an auto-nudge trigger (8/8).
-- Fast agent completion is NOT a quality signal — that read was made and was wrong.
-- Commit a finished lane BEFORE dispatching another builder into the same file.
-- A council can kill its own design; that is the system working, not a failure.
-- Use fable max effort for architecture and planning. Plan before doing any task.
-
-RIG: `tests/visual/test_output_window_level.py` (attach: `AUDIODNA_NO_SPAWN=1`) ·
-`tests/visual/ax_press.py` for in-window controls, osascript for MENUS only · app needs
-`--test-mode` or 8080 never binds (7070 binds anyway = FALSE GREEN) · health
-`http://[::1]:8080/api/health`, `::1` ONLY · python with Quartz is `.venv/bin/python`, NOT
-system python3 · **`~/projects/RealTimeAudio copy` is a STALE DUPLICATE REPO (HEAD f128bdc,
-Jul 11) — confirm you are in the real one.**
-
-## START HERE
-
-1. **BORIS FEEDBACK FIRST (if any waiting).** Two lists may return:
-   (A) the Syphon live-check list from 2026-08-02a (frame content in Simple Client/VDMX,
-   eager-announce taste, runtime-default-OFF taste, loopback veto / remote-control question);
-   (B) the 7-item GESTURE replay list — **now 5 sessions old and still unprocessed.**
-   It kept getting lost because each handoff *referenced* the previous revision instead of
-   carrying it. It is carried VERBATIM below so that stops happening.
-   PASS → close rows with dated notes; FAIL/odd → receiver-verify on disk BEFORE any fix dispatch.
-
-   **THE 7-ITEM GESTURE REPLAY LIST (verbatim, from 2026-07-30):**
-   - a. Drag an effect onto a layer's CHANNEL STRIP (single + multi-select) → lands in
-     that layer's FX stack, ONE Cmd+Z restores.
-   - b. Finder-drop 2 videos + 1 image together → all three land, ONE Cmd+Z removes all.
-   - c. Cmd+X with a cell selected (clears) / with nothing selected (clean no-op).
-   - d. Click a PLAYING video cell → visibly restarts from in-point.
-   - e. Header-drag "Energetic (9)" → cell reads "MilkDrop Playlist (9)"; the 3 playlist
-     knobs (cycle/timing/blend) now actually change what lands.
-   - f. Autopilot over a SOURCE cell → advances off it (was frozen forever).
-   - g. Genre auto-switch to an empty deck → preview goes blank (no ghost clip).
-
-2. ~~**START HERE: OUTPUTWINDOW ARC C3 IMPLEMENTATION**~~ — **DONE. DO NOT REBUILD IT.**
-   C3 SHIPPED as `c51aff7` (+ `e76ca9f`), fully gated, both halves. The arc is COMPLETE
-   (C1 `88af683` / C2 `fcad6d0` / C3 `c51aff7`). Everything from here to the end of item 2
-   is PRESERVED FOR ITS SCOPE AND CONSTRAINT DETAIL ONLY — treat it as a record of what was
-   built, NOT as work to do. **Your actual next priorities are in `NEXT PRIORITIES` inside
-   the ADDENDUM at the end of this file.** In short: (a) close the two gate gaps — W7(iii)
-   EMA parity and the TSan 2-context drive, both unrun and both recorded with risk reads;
-   (b) the preset/binding silent-retarget fix (design written, one commit, possibly already
-   biting Boris's saved presets); (c) Boris rulings — audio-reactivity scope and the 7-item
-   gesture list above; (d) the A1 routing/signal follow-up.
-
-   HISTORICAL SCOPE RECORD (what C3 was, for reference when reading the diff):
-
-   **The work packet is already written: `.harmony/.work-packets/c3-mapping-tick.md`**
-   (local-only; `.work-packets/` is gitignored by convention). It contains corrected line
-   numbers, the finalised A4 ruling with full reasoning, the A6 ordering constraint, the
-   out-of-scope list, and complete test-rig mechanics. **Dispatch a builder against it.**
-   Do NOT re-litigate the design (3-seat blind council, chair-adjudicated). Do NOT re-derive
-   A4 (settled by two independent seats, one adversarial). If the packet is missing,
-   everything in it is reproduced here plus `.harmony/specs/outputwindow-arc-design.md`.
-
-   Scope: **W5** (kMappingTickHz=120 named constant, message-thread juce::Timer as sole
-   processFrame caller, `tickFeaturePipeline()` seam, delete the GL-thread call at
-   **Renderer.cpp:242**, timer unconditional/no attach gating) + **A4** (**DELETE** the
-   clearAll at **Renderer.cpp:1538**; also update the now-misleading comment at
-   Renderer.cpp:1537) + **A6** (confinement jasserts in processFrame/addMapping/
-   removeMapping/clearAll) + two comment fixes (OutputWindow.cpp KNOWN-RESIDUAL block;
-   MappingEngine.cpp:169-196 review minor 1).
-
-   **A6 HARD ORDERING CONSTRAINT:** must land WITH or AFTER W5+A4, never before — the only
-   two offenders (Renderer.cpp:242, :1538) are deleted by those changes, so an A6-first
-   ordering fires the assert on startup. Unit tests are safe: `tests/test_mapping_engine.cpp`
-   has no JUCE init, but the first `MessageManager::getInstance()` sets messageThreadId to
-   the calling thread, so the single-threaded test self-identifies as the message thread.
-
-   Then the **full-tier gate**: ctest (baseline 193/193) · probe states 1-4 ALL PASS (the
-   "after" half of the fail-first pair) · EMA parity per W7(iii) · TSan drive with 2 GL
-   contexts (bar: no NEW finding classes beyond the documented deferred list, design A2) ·
-   independent Reviewer on source. The builder NEVER self-verifies; Harmony runs the
-   behavioral half because she did not build.
-
-## WHAT LANDED THIS SESSION (commit 0cc2b5a)
-
-**GATE STEP 1 COMPLETE — states 3 and 4 captured FAILING** against verified pre-C3 code
-(HEAD 82a74c1; provenance proven: no src/ or tests/ file newer than the binary, both trees
-clean at HEAD). Full methodology in `.harmony/ow-freeze-before.log`.
-- State 3 (`signalbar`): FAILED — `param Perspective Tilt.tilt_x FROZEN at 0.5 for 500ms
-  after rms->1.0 — mapping tick is not running in this attach state`.
-- State 4 (`signalbar_output`): FAILED identically **while the output window rendered at
-  full rate** (`[OutputRenderer] ... (frame 301)`). This is the decisive case: it isolates
-  the freeze to the PREVIEW context (the call at Renderer.cpp:242) and refutes any "some
-  other GL thread keeps it alive" explanation.
-
-**`tests/visual/ax_press.py` — the manual operator step is retired.** Drives JUCE buttons
-by AX title through the Accessibility C API. This matters because states 3-4 must run
-AGAIN after C3 and on every future regression; a permanently manual gate step is a gate
-that quietly stops being run. Raises on ambiguity rather than guessing (verified live: `>`
-matches 4 buttons → refuses). Glyphs verified from source: SignalBar.cpp:23 grow=`▼`,
-:24 shrink=`▲`.
-
-**A4 FORK RESOLVED — design premise falsified, prescribed remedy rejected.** The design
-said "delete if the no-op proof holds; if falsified, callAsync marshal instead." The proof
-IS falsified: TestServer is constructed and listening inside the MainComponent ctor
-(MainComponent.cpp:1581-1590), before window show and before first GL attach, so mappings
-CAN exist pre-attach — our own W7(ii) probe is in that class. But callAsync is WORSE: it
-preserves the same wipe and adds a window where mappings installed between attach and
-callback are destroyed. An adversarial redteam seat, briefed to break the deletion ruling
-on its most dangerous failure mode (index-based retargeting), FAILED:
-- Targets ARE index-based (`targetEffectId`, MappingTypes.h:127-128) — the feared mode is
-  structurally possible but unreachable here.
-- `initEffectChain` only populates an EMPTY chain (guard at Renderer.cpp:1507-1508), and
-  EffectChain is APPEND-ONLY (EffectChain.h:77-82/136-139) — nothing shifts under an index.
-- A dangling index is a SAFE per-tick no-op, re-validated every frame
-  (MappingEngine.cpp:161-165, EffectChain.cpp:29-35).
-- TestServer resolves targets BY NAME and errors on an empty chain (TestServer.cpp:917-942),
-  so it cannot create a mis-targeted mapping pre-attach.
-- Deletion additionally removes a GL-thread write to message-thread-owned state, a race
-  window, and an ownership violation (TestServer.cpp:950-952 states the ownership rule).
-**=> A4 IS FINAL: DELETE.**
-
-**Three inherited errors corrected** (now in `.harmony/gotchas.md`, 25 entries) — see RIG
-MECHANICS below for the working commands.
-
-## RIG MECHANICS (verified this session — use verbatim)
-
-```
-open --stdout /tmp/adna-out.log --stderr /tmp/adna-err.log \
-  build/AudioDNA_artefacts/Release/Audio-DNA.app --args --test-mode
-curl -s "http://[::1]:8080/api/health"          # NOT 127.0.0.1, NOT /api/status
-# DETACH ORACLE (200 in <0.05s = attached; ~5s then 500 = detached):
-curl -s -m 12 -w "%{http_code} %{time_total}" -X POST \
-  "http://[::1]:8080/api/render_frame" -d '{"output_path":"/tmp/x.png"}'
-# SignalBar drive (no human needed):
-.venv/bin/python tests/visual/ax_press.py "▼"    # expand  -> preview DETACHES
-.venv/bin/python tests/visual/ax_press.py "▲"    # collapse -> preview REATTACHES
-# output window: MENUS work via AppleScript (in-window controls do NOT):
-osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click \
-  menu item "Fullscreen: 1728x1117 (main)" of menu 1 of menu bar item "Output" of menu bar 1'
-# ...and close it via Output > "Disabled" (Cmd+F / Escape get swallowed).
-# the 4 probe states:
-cd tests/visual && AUDIODNA_NO_SPAWN=1 \
-  OW_PROBE_STATE=<preview|preview_output|signalbar|signalbar_output> \
-  ../../.venv/bin/python -m pytest test_mapping_tick.py -v -s
-```
-**Three traps that cost this session time:**
-- `--test-mode` is REQUIRED or 8080 never binds — **while 7070 still does**, so a "server
-  is up" check against 7070 is a FALSE GREEN.
-- TestServer binds `::1` ONLY. `127.0.0.1` returns empty and is indistinguishable from a
-  dead server. Health route on 8080 is `/api/health`, NOT `/api/status`.
-- **`fps` is an INVALID detach oracle.** Stored only inside `renderOpenGL()`
-  (Renderer.cpp:181), so on detach it FREEZES at its last value — measured **106.18 with
-  the context provably dead**. Same defect in `/api/status` frameTimeMs. A startup reading
-  of ~2.4e-06 is not a detach either: `fpsTimer_` inits to 0.0 and JUCE's counter is
-  ms-since-boot, so the first frame computes 1/uptime (1/2.403e-06 = 4.82 days).
-- AppleScript CANNOT reach JUCE's nested AX elements (`entire contents` does not recurse
-  into AXGroups) — use ax_press.py for in-window controls, osascript for MENUS only. Do
-  not conclude "no AX tree" from an empty AppleScript enumeration; that misdiagnosis cost
-  a prior session.
+Rig rules that cost runs: fail-first in a SCRATCH build dir or the lane worktree, never ./build; run
+probe-step3.sh from the MAIN checkout (worktrees have no .venv — the probe now FAILS loudly there);
+never embed "MacOS/Audio-DNA" in a watcher (pgrep -f self-match); live-app agents: NO debugger attach,
+NO GUI input, stop on any unexpected dialog (gotchas.md); `git add -f` under .harmony/ and check
+`git show --stat HEAD`; read-only REPORT_FILE paths go under <repo>/.harmony/.reports/.
+COUNTS: run them — ctest 408/408 at close; unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0923 -->
-BUILD: Audio-DNA live VJ app. Arc: the performance recorder (Ruling 28 — record a show once, redo
-the knob work against it) + making every inspector control actually connect to audio/tempo.
-SHIPPED: shared audio store + take format v3 · long takes stay in time, scrub-back works · four
-carried recorder review fixes · AudioTap mono-device overread fixed · Julia Set shader renders
-again · honest Record panel · Lane 3: the 21 inspector controls connect end to end (live-proven).
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0924 -->
+BUILD: Audio-DNA live VJ app. Arc: the performance recorder (record a show once, redo the knob work
+against it) + honest audio analysis on any device.
+SHIPPED: composition position no longer blacks out the screen · recorder wired into the app (record /
+stop / load / replay / overdub over REST, 63-check live gate green) · layer pad play/pause keeps a
+reversed clip reversed · false "tap stopped" warning fixed · onset markers exact (no duplicates, no
+losses) · 16 kHz / 44.1 kHz devices: analysis resamples to 48 kHz, missing bands marked absent.
 IN-FLIGHT: none. Tree clean, everything pushed.
-NEXT: (1) composition-position black-screen bug · (2) spec step 3 recorder wiring (long, start of
-session) · (3) Bluetooth crash re-test with Boris's headset · (4) Boris's product calls.
-BLOCKERS: none technical. Headset re-test needs Boris.
-YOU ARE HERE: recorder core + audio store + connection engine all built and proven headless and
-live; next is wiring the recorder into the running app.
+NEXT: (1) Boris's calls · (2) onset-reactive visuals miss beats (render path) · (3) 10-minute drift
+proof · (4) recorder spec step 4 — the Record panel UI.
+BLOCKERS: none technical.
+YOU ARE HERE: the recorder records and replays inside the running app, proven live; nothing records
+from the UI yet (step 4).
+
+## LOOSE-ENDS LEDGER — s-rta-0924 (CURRENT)
+
+1. [OPEN, real] Onset loss in render uniforms + GET /api/features (see START HERE 2).
+2. [OPEN] T2 drift claim unproven at the spec's 10-minute scale (START HERE 3); p95 jitter rose to
+   ~11 ms after the count fix (several onsets in one 120 Hz tick share its stamp) — within 15 ms.
+3. [OPEN, low] RecorderHost onset baseline: a real onset in the first ~8 ms after arm is not marked
+   (documented in RecorderHost.h; a capture-at-arm hook would close it).
+4. [OPEN, low] A tap that arms but never starts is silent (framesWritten stays 0; no stall detector).
+5. [OPEN] Bluetooth-headset startup crashes (s-rta-0923) — Boris: "another time, not important".
+6. [OPEN, product note] Sparse material with TRUE digital silence between hits can lose aubio onsets
+   (confirming hop gated at -inf dB). Real audio fine; fixture now has a -50 dBFS floor.
+7. [OPEN, low] test_layer_transport_reverse mirrors MainComponent logic (cannot link MainComponent) —
+   Boris should press a pad on a reversed clip once.
+8. [UP-CHANNEL, filed] 3 Harmony defects sent to the primary via .pending: report-fence mismatch
+   (reviewer vs dispatch gate), Harmony_Main battery lock blocking foreign builders/reports, reviewers
+   editing src via Bash despite the MINIMAL write BLOCK (+ G5 relay result: (+) PASS, (-) inconclusive).
+9. WARN fable-usage-audit: LAW11-LOG-GAP — 5 architect (Fable) dispatches, 0 DISPATCH_LOG rows (a foreign-repo secondary cannot write Harmony_Main DISPATCH_LOG); all 5 plans on disk and used.
+10. Held for Boris (s-rta-0923 #6): .claude/settings.local.json disables clangd-rta and graphify-rta.
+11. .harmony/.harmony-version and AGENTS.md were modified/untracked at boot — not this session's; left.
 
 ## LOOSE-ENDS LEDGER
 
@@ -2664,3 +2477,70 @@ The app was launched many times this session, always production mode or foregrou
 
 ## COUNTS — run them, never inherit them
 ctest 357/357 (clean forced rebuild). Unpushed 0 at the last push (the close commit adds one).
+
+# >>> SESSION s-rta-0924 (2026-09-24, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+The recorder now works inside the running app and is proven live end to end; the composition-position
+black screen is fixed; audio analysis is correct on 16 kHz / 44.1 kHz devices (resampled to 48 kHz).
+
+## WHAT SHIPPED (all merged to main and pushed; every source lane reviewed by an agent that did not build it)
+- `ef84a55` composition Position/Anchor: pixels → the shader's -1..1 (px/1920, px/1080). probe-lane3 12/0.
+- Step 3 (plan amended by critic, A1-A8): `/api/perf/*` REST (a2c5b50), RecorderHost + PerfStateCapture
+  (c737d3d), MainComponent wiring through the shipped onManual* funnel (b5931e8), gate assets (57ffe74, ae2eb17).
+- Follow-ups found by the live gate: pad play/pause keeps reverse (0f4ff08); false "tap self-stopped" at
+  every arm (33295d2); duplicate onset markers (7fe16b5); LOST onset pulses → monotonic
+  FeatureSnapshot::onsetCount + per-delta markers (db72d56); cleanup of retired fields + cap/wrap tests +
+  probe fails loudly without .venv (f95c216).
+- R13: plan (546b66c) + critic; spectral gating + bandValidMask/sourceSampleRate (c69d23a); analysis
+  resampler (7db6dc6); rateChangedSinceArm replaces rateMismatch (008dbc1); resampler LIVE in the app,
+  48 kHz warning retired, docs (1e0f893).
+- Probe/fixture fixes: numeric compares, replay loops, opacity expectations, asset delta, click noise floor
+  + headroom, T2 pairing on the click grid with drift standard error.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every one)
+- ctest 357 at boot → 408/408 after the last merge (run after every merge).
+- probe-step3.sh on main: 63 PASS / 0 FAIL — arm, take v3, audio store, 4 triggers + tempo + opacity
+  captured, replay WithAudio (0,1,2,3,2 and opacity 0.4/0.7/0.2) and WallClock, overdub safety, onset
+  coverage 100.8%, dupes 0, mean lag 32.6 ms, drift -0.21 ms, R13 rows (sourceSampleRate 48000 ==
+  deviceRate, bandValidMask 127, rate unchanged), 0 Output windows.
+- Every root cause instrumented: onset silence gate (offline harness 10/10 with floor, 0 without);
+  onset pulse loss (offline 241/240 vs app 115/133 → 100.8% after fix); self-stop race (4/4 repro).
+
+## NOT VERIFIED
+- R13 on a real 16 kHz / 44.1 kHz device — headless tests only (BPM 120±3 locked after resampling).
+- Onset-reactive VISUALS still use the one-hop flag (START HERE 2).
+- Pad play/pause on a reversed clip — mirror test only.
+
+## STILL OPEN FOR BORIS (his calls, not technical)
+1. Replaying a take does not first restore the look at record start (by spec: that is the future
+   routines "preamble"). Should whole-take replay reset to the starting state?
+2. On a 16 kHz headset the top band ("Air", 6-20 kHz) cannot be measured — show "n/a" in the meters,
+   or leave it reading zero (built: zero + a hidden validity flag)?
+3. File playback through a low-rate OUTPUT device caps the analysis to that device's range — acceptable?
+4-8. Carried from s-rta-0923: deleting stored audio; audio store location; naming a recording; Manual
+   Resync oscillator re-align; the Composition inspector's second Opacity knob.
+
+## WHAT ONLY BORIS CAN CHECK
+- Record from the app over REST once and play it back — does replay feel right against the music?
+- Press a layer pad to pause/play a clip running in reverse — it should stay reversed.
+- With a Bluetooth headset (16 kHz), does BPM read the track tempo and the "Air" meter sit flat?
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. My live-app diagnosis packet did not forbid debugger attach or GUI input; the agent's lldb attach
+   raised Touch ID and its Escape hit another Harmony terminal. Rule now in gotchas.md.
+2. I first ran the gate against a worktree build without .venv and nearly read "58/0" as a pass;
+   caught by comparing row counts. Probe now FAILs on a missing dependency.
+3. I accepted an agent's "fixed" for the opacity rows before reading the file; the next gate run showed
+   them unchanged.
+4. My first REPORT_FILE path for an architect used memory/.reports in a foreign repo (blocked);
+   MINIMAL sessions use <repo>/.harmony/.reports/.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every app launch this session was production mode via `open`; the Output window was never opened
+(probe checks the full window list: 0 "Audio-DNA Output" windows). At close pgrep shows no Audio-DNA
+process; screencapture taken and LOOKED AT — terminals only, no app window, no black overlay, no dialog.
+
+## COUNTS — run them, never inherit them
+ctest 408/408. Unpushed 0 at the final push.
+
