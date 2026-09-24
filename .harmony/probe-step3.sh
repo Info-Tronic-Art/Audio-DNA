@@ -368,6 +368,35 @@ else
 fi
 
 # --- 10. load + replay (WithAudio then WallClock) --------------------------
+# s-rta-0924 (Harmony, diagnosis-driven fix): a live-instrumented run showed
+# the OLD `[ "$LAST" = "3" ] && break` loops break on the FIRST
+# activeClipColumn==3 -- but the take continues past that point (a
+# trigger_column 2 at take-clock t=28.61s, plus 3 decaying opacity gestures
+# at t=23.74/25.97/28.13s), so OP_MAX/OP_LAST froze at the pre-play leftover
+# and the real tail of the take (the second column-3->2 transition, the
+# 0.4/0.7/0.2 opacity glide) was never observed. Fix: poll at <=250ms for
+# the take's full length (perf/status position/length; length+2s budget if
+# length is unavailable), NEVER break early on reaching column 3. Replay
+# does NOT apply checkpoint0 (spec s167 D4/D14), so the first poll after
+# play always shows the pre-play leftover state -- the sequence check drops
+# that leading value and expects the recorded sequence 0,1,2,3,2 (4 clip
+# triggers then the trigger_column(2) later in the take).
+comp_col_op(){ jget "$A/api/composition" "'%s|%s' % (d['decks'][0]['layers'][0]['activeClipColumn'], d['decks'][0]['layers'][0]['opacity'])"; }
+EXPECTED_SEQ=(0 1 2 3 2)
+# macOS ships bash 3.2 as /bin/bash (no `local -n` namerefs, added in 4.3) --
+# take the raw sequence as positional args, not by array-variable name.
+seq_matches_expected(){ # $@ = the raw (leftover-included) activeClipColumn sequence
+    local -a _raw=("$@")
+    local -a _observed=()
+    [ "${#_raw[@]}" -ge 1 ] && _observed=("${_raw[@]:1}")
+    [ "${#_observed[@]}" -eq "${#EXPECTED_SEQ[@]}" ] || return 1
+    local idx
+    for idx in "${!EXPECTED_SEQ[@]}"; do
+        [ "${_observed[$idx]}" = "${EXPECTED_SEQ[$idx]}" ] || return 1
+    done
+    return 0
+}
+
 curl -s --max-time 6 -X POST "$A/api/perf/load" -H 'Content-Type: application/json' \
   -d "{\"folder\":\"$TAKE_FOLDER\"}" >/dev/null
 sleep 1
@@ -376,29 +405,40 @@ AUDIOSTATUS="$(perf_field "d.get('audioStatus','NA')")"
 UNRES="$(perf_field "d.get('unresolved','NA')")"; UNRES="$(normnum "$UNRES")"
 [ "$UNRES" = "0" ] && ok "perf/load: unresolved == 0" || no "perf/load: unresolved == $UNRES"
 
+TAKE_LEN="$(perf_field "d.get('length','NA')")"; TAKE_LEN="$(normnum "$TAKE_LEN")"
+REPLAY_BUDGET="$(awk -v l="$TAKE_LEN" 'BEGIN{ if (l=="NA" || l+0<=0) print 45; else print l+2 }')"
+
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
-SEEN="0 -1 -1 -1 -1"; LAST=-1; ORDER_OK=1
-OP_MAX="0"; OP_LAST=""
-for i in $(seq 1 30); do
-    v="$(comp_active_col)"
+LAST="__UNSET__"; RAW_SEQ=()
+OP_LAST=""; OP_SEEN_04=0; OP_SEEN_07=0
+START_T=$(date +%s)
+while :; do
+    CO="$(comp_col_op)"
+    v="${CO%%|*}"; OP_LAST="${CO#*|}"
+    ELAPSED=$(( $(date +%s) - START_T ))
     if [ "$v" != "$LAST" ]; then
-        echo "  replay(withAudio): t~${i}s activeClipColumn=$v"
-        if [ "$LAST" != "-1" ] && [ "$v" -lt "$LAST" ] 2>/dev/null; then ORDER_OK=0; fi
+        echo "  replay(withAudio): t~${ELAPSED}s activeClipColumn=$v"
+        RAW_SEQ+=("$v")
         LAST="$v"
     fi
     # Replay-shape sample for the continuous opacity row (critic MAJOR fix,
     # not an exact-timing check -- plan section 4's "on replay layer 0
     # opacity follows 0.4->0.7->0.2 smoothly" bullet): opacity should visit
-    # something near the 0.7 peak on its way through the glide, not just
+    # values near each of the 3 recorded gestures (0.05 tolerance), not just
     # jump straight to the final 0.2.
-    OP_LAST="$(jget "$A/api/composition" "d['decks'][0]['layers'][0]['opacity']")"
-    OP_MAX="$(awk -v x="$OP_LAST" -v m="$OP_MAX" 'BEGIN{ xv=(x=="NA")?-1:x+0; mv=m+0; print (xv>mv)?xv:mv }')"
-    [ "$LAST" = "3" ] && break
-    sleep 1
+    awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.35 && x+0<=0.45)}' 2>/dev/null && OP_SEEN_04=1
+    awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.65 && x+0<=0.75)}' 2>/dev/null && OP_SEEN_07=1
+    POS="$(perf_field "d.get('position','NA')")"
+    awk -v p="$POS" -v l="$TAKE_LEN" 'BEGIN{exit !(p!="NA" && l!="NA" && l+0>0 && p+0>=l+0-0.25)}' 2>/dev/null && break
+    awk -v e="$ELAPSED" -v b="$REPLAY_BUDGET" 'BEGIN{exit !(e+0>=b+0)}' 2>/dev/null && break
+    sleep 0.25
 done
-[ "$LAST" = "3" ] && [ "$ORDER_OK" = "1" ] && ok "replay(withAudio): activeClipColumn reached 3, non-decreasing" || no "replay(withAudio): activeClipColumn sequence wrong (last=$LAST order_ok=$ORDER_OK)"
-awk -v x="$OP_MAX" 'BEGIN{exit !(x+0>=0.55)}' 2>/dev/null && ok "replay(withAudio): layer 0 opacity glide reached near the 0.7 peak (max observed=$OP_MAX)" || no "replay(withAudio): layer 0 opacity glide never reached near 0.7 (max observed=$OP_MAX) -- may be jumping instead of gliding"
-awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.1 && x+0<=0.3)}' 2>/dev/null && ok "replay(withAudio): layer 0 opacity settled near the final 0.2 (last observed=$OP_LAST)" || no "replay(withAudio): layer 0 opacity did not settle near 0.2 (last observed=$OP_LAST)"
+seq_matches_expected "${RAW_SEQ[@]}" \
+  && ok "replay(withAudio): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=${RAW_SEQ[*]})" \
+  || no "replay(withAudio): activeClipColumn sequence wrong (raw=${RAW_SEQ[*]}, expected leftover then 0 1 2 3 2)"
+[ "$OP_SEEN_04" = "1" ] && ok "replay(withAudio): layer 0 opacity visited near 0.4 (tolerance 0.05)" || no "replay(withAudio): layer 0 opacity never visited near 0.4"
+[ "$OP_SEEN_07" = "1" ] && ok "replay(withAudio): layer 0 opacity visited near 0.7 (tolerance 0.05)" || no "replay(withAudio): layer 0 opacity never visited near 0.7"
+awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.15 && x+0<=0.25)}' 2>/dev/null && ok "replay(withAudio): layer 0 opacity settled near the final 0.2 (last observed=$OP_LAST)" || no "replay(withAudio): layer 0 opacity did not settle near 0.2 (last observed=$OP_LAST)"
 BPM_REPLAY="$(jget "$A/api/bpm" "d.get('bpm','NA')")"
 awk -v x="$BPM_REPLAY" 'BEGIN{exit !(x+0>=127.5 && x+0<=128.5)}' 2>/dev/null && ok "replay(withAudio): bpm reached 128 after the tempo point ($BPM_REPLAY)" || no "replay(withAudio): bpm=$BPM_REPLAY (expected ~128)"
 SKIPPED="$(perf_field "d.get('skipped','NA')")"
@@ -409,14 +449,24 @@ PLAYING1="$(perf_field "d.get('playing','NA')")"
 [ "$PLAYING1" = "False" -o "$PLAYING1" = "false" ] && ok "perf/stop_play: playing==false" || no "perf/stop_play: playing==$PLAYING1"
 
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":false}' >/dev/null
-LAST=-1
-for i in $(seq 1 30); do
+LAST="__UNSET__"; RAW_SEQ2=()
+START_T=$(date +%s)
+while :; do
     v="$(comp_active_col)"
-    [ "$v" != "$LAST" ] && { echo "  replay(wallClock): t~${i}s activeClipColumn=$v"; LAST="$v"; }
-    [ "$LAST" = "3" ] && break
-    sleep 1
+    ELAPSED=$(( $(date +%s) - START_T ))
+    if [ "$v" != "$LAST" ]; then
+        echo "  replay(wallClock): t~${ELAPSED}s activeClipColumn=$v"
+        RAW_SEQ2+=("$v")
+        LAST="$v"
+    fi
+    POS="$(perf_field "d.get('position','NA')")"
+    awk -v p="$POS" -v l="$TAKE_LEN" 'BEGIN{exit !(p!="NA" && l!="NA" && l+0>0 && p+0>=l+0-0.25)}' 2>/dev/null && break
+    awk -v e="$ELAPSED" -v b="$REPLAY_BUDGET" 'BEGIN{exit !(e+0>=b+0)}' 2>/dev/null && break
+    sleep 0.25
 done
-[ "$LAST" = "3" ] && ok "replay(wallClock): activeClipColumn reached 3" || no "replay(wallClock): activeClipColumn stalled at $LAST"
+seq_matches_expected "${RAW_SEQ2[@]}" \
+  && ok "replay(wallClock): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=${RAW_SEQ2[*]})" \
+  || no "replay(wallClock): activeClipColumn sequence wrong (raw=${RAW_SEQ2[*]}, expected leftover then 0 1 2 3 2)"
 SKIPPED2="$(perf_field "d.get('skipped','NA')")"
 [ "$SKIPPED2" = "0" ] && ok "replay(wallClock): status.skipped==0 (audio points fire on wall-clock replay)" || no "replay(wallClock): status.skipped==$SKIPPED2 (expected 0)"
 curl -s --max-time 6 -X POST "$A/api/perf/stop_play" >/dev/null
