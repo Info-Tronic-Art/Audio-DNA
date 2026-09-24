@@ -1,0 +1,85 @@
+=================================================================
+==60820==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x61a00000f590 at pc 0x000101391a1c bp 0x00016f8bab70 sp 0x00016f8bab68
+WRITE of size 4 at 0x61a00000f590 thread T19
+    #0 0x101391a18 in juce::CoreAudioClasses::CoreAudioInternal::audioCallback(AudioTimeStamp const*, AudioTimeStamp const*, AudioBufferList const*, AudioBufferList*) juce_CoreAudio_mac.cpp:795
+    #1 0x101390cb4 in juce::CoreAudioClasses::CoreAudioInternal::audioIOProc(unsigned int, AudioTimeStamp const*, AudioBufferList const*, AudioTimeStamp const*, AudioBufferList*, AudioTimeStamp const*, void*) juce_CoreAudio_mac.cpp:1146
+    #2 0x192c48f70 in HALC_ProxyIOContext::IOWorkLoop()+0x2d70 (CoreAudio:arm64e+0x1f4f70)
+    #3 0x192c45ae8 in invocation function for block in HALC_ProxyIOContext::HALC_ProxyIOContext(unsigned int, unsigned int)+0xa8 (CoreAudio:arm64e+0x1f1ae8)
+    #4 0x192df0084 in HALC_IOThread::Entry(void*)+0x54 (CoreAudio:arm64e+0x39c084)
+    #5 0x107529858 in asan_thread_start(void*)+0x40 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x51858)
+    #6 0x18fd57bc4 in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6bc4)
+    #7 0x18fd52b7c in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1b7c)
+
+0x61a00000f590 is located 0 bytes after 1296-byte region [0x61a00000f080,0x61a00000f590)
+allocated by thread T0 here:
+    #0 0x10752cfd0 in calloc+0x9c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x54fd0)
+    #1 0x10138ab9c in juce::CoreAudioClasses::CoreAudioInternal::allocateTempBuffers() juce_CoreAudio_mac.cpp:361
+    #2 0x1013884d4 in juce::CoreAudioClasses::CoreAudioInternal::updateDetailsFromDevice(juce::BigInteger const&, juce::BigInteger const&) juce_CoreAudio_mac.cpp:512
+    #3 0x1013872fc in juce::CoreAudioClasses::CoreAudioInternal::reopen(juce::BigInteger const&, juce::BigInteger const&, double, int) juce_CoreAudio_mac.cpp:673
+    #4 0x1013813e4 in juce::CoreAudioClasses::CoreAudioIODevice::open(juce::BigInteger const&, juce::BigInteger const&, double, int) juce_CoreAudio_mac.cpp:1307
+    #5 0x101383464 in juce::CoreAudioClasses::AudioIODeviceCombiner::open(juce::BigInteger const&, juce::BigInteger const&, double, int) juce_CoreAudio_mac.cpp:1559
+    #6 0x101366590 in juce::AudioDeviceManager::setAudioDeviceSetup(juce::AudioDeviceManager::AudioDeviceSetup const&, bool) juce_AudioDeviceManager.cpp:808
+    #7 0x100bf1d4c in AudioEngine::setSourceMode(AudioEngine::SourceMode) AudioEngine.cpp:110
+    #8 0x100acb4ec in MainComponent::MainComponent(bool, int) MainComponent.cpp:261
+    #9 0x100ac7cd8 in AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:48
+    #10 0x100ac74ec in AudioDNAApplication::initialise(juce::String const&) Main.cpp:26
+    #11 0x1013a66d0 in juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312
+    #12 0x1016bab40 in juce::JUCEApplication::initialiseApp() juce_Application.cpp:97
+    #13 0x1013a60a4 in juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271
+    #14 0x1013a5f1c in juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255
+    #15 0x18f9b6b94  (<unknown module>)
+
+Thread T19 created by T0 here:
+    #0 0x1075241c8 in pthread_create+0x5c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4c1c8)
+    #1 0x192dbb628 in HALB_IOThread::DispatchPThread(void* (*)(void*), void*)+0x3a0 (CoreAudio:arm64e+0x367628)
+    #2 0x192dbc0d0 in HALB_IOThread::StartAndWaitForState(unsigned int)+0x36c (CoreAudio:arm64e+0x3680d0)
+    #3 0x192c4dd48 in HALC_ProxyIOContext::_StartIO(HALC_ProxyIOContext::StartIO_RetryMethod)+0x9c (CoreAudio:arm64e+0x1f9d48)
+    #4 0x192c4d8a4 in HALC_ProxyIOContext::StartIOProc(int (*)(unsigned int, AudioTimeStamp const*, AudioBufferList const*, AudioTimeStamp const*, AudioBufferList*, AudioTimeStamp const*, void*))+0xd0 (CoreAudio:arm64e+0x1f98a4)
+    #5 0x192c09f40 in HAL_HardwarePlugIn_DeviceStart(AudioHardwarePlugInInterface**, unsigned int, int (*)(unsigned int, AudioTimeStamp const*, AudioBufferList const*, AudioTimeStamp const*, AudioBufferList*, AudioTimeStamp const*, void*))+0x2d0 (CoreAudio:arm64e+0x1b5f40)
+    #6 0x192cdf380 in AudioDeviceStart_mac_imp+0xec (CoreAudio:arm64e+0x28b380)
+    #7 0x101390758 in juce::CoreAudioClasses::CoreAudioInternal::start(juce::AudioIODeviceCallback*) juce_CoreAudio_mac.cpp:704
+    #8 0x101384a78 in juce::CoreAudioClasses::AudioIODeviceCombiner::start(juce::AudioIODeviceCallback*) juce_CoreAudio_mac.cpp:1682
+    #9 0x101366640 in juce::AudioDeviceManager::setAudioDeviceSetup(juce::AudioDeviceManager::AudioDeviceSetup const&, bool) juce_AudioDeviceManager.cpp:817
+    #10 0x100bf1d4c in AudioEngine::setSourceMode(AudioEngine::SourceMode) AudioEngine.cpp:110
+    #11 0x100acb4ec in MainComponent::MainComponent(bool, int) MainComponent.cpp:261
+    #12 0x100ac7cd8 in AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:48
+    #13 0x100ac74ec in AudioDNAApplication::initialise(juce::String const&) Main.cpp:26
+    #14 0x1013a66d0 in juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312
+    #15 0x1016bab40 in juce::JUCEApplication::initialiseApp() juce_Application.cpp:97
+    #16 0x1013a60a4 in juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271
+    #17 0x1013a5f1c in juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255
+    #18 0x18f9b6b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow juce_CoreAudio_mac.cpp:795 in juce::CoreAudioClasses::CoreAudioInternal::audioCallback(AudioTimeStamp const*, AudioTimeStamp const*, AudioBufferList const*, AudioBufferList*)
+Shadow bytes around the buggy address:
+  0x61a00000f300: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f380: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f400: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f480: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f500: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x61a00000f580: 00 00[fa]fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x61a00000f600: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x61a00000f680: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f700: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f780: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x61a00000f800: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==60820==ABORTING

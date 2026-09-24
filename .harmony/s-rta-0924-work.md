@@ -71,3 +71,11 @@ HARMONY RULINGS (binding on builders):
   overdub state (fix in RecorderHost/MainComponent, add a test). MAJOR 2: DROP the new "Saved:" success
   notify (no undisclosed behaviour change). Boris-call defaults = plan §5 defaults.
 Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix round → Harmony gate + merge.
+- 12:48 LIVE GATE: merged main (0f34480) SIGABRT at launch, malloc free-list corruption, soundcore P31i default @16k = s-rta-0923 open crash signature. Dialog dismissed (Ignore), screen verified clean. Running missing experiment: ASan build of merged main, headset connected.
+- 12:58 ROOT-CAUSE LOCATED (ASan, merged main, soundcore P31i @16 kHz default): heap-buffer-overflow WRITE in JUCE 8.0.4
+  CoreAudioInternal::audioCallback juce_CoreAudio_mac.cpp:795 (input copy loop, `bufferSize` samples/channel) past a
+  1296-byte tempBuffers block allocated by allocateTempBuffers():361 (bufferSize+4 per channel) during
+  AudioEngine::setSourceMode (AudioEngine.cpp:110) → setAudioDeviceSetup. Zero app frames on the writing thread.
+  = the s-rta-0923 open Bluetooth startup crash (malloc free-list corruption). Log: .reports/s-rta-0924b/asan-bt-startup-crash.log
+  Live gate BLOCKED while the headset is default. Next: diagnose mechanism (bufferSize vs channel mismatch) + JUCE fix history.
+- 13:0x BORIS RULING: never Bluetooth audio (binding-decisions.md). Headset gone; default input = MacBook Pro Microphone. Resuming live gate.
