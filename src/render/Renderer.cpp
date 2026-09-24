@@ -2076,14 +2076,21 @@ void Renderer::applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float
     auto l = loc("u_texture");
     if (l >= 0) glUniform1i(l, 0);
     l = loc("u_comp_position");
-    if (l >= 0) glUniform2f(l, posX, posY);
+    // Units fix: posX/posY are pixel offsets (posX3840/posY2160 space,
+    // reference 3840x2160 canvas) but u_comp_position is applied by the
+    // shader as `uv -= u_comp_position * 0.5` -- normalize to that
+    // half-canvas-shift convention (ScalarMath::posPxToCompUniformX/Y,
+    // ScalarParams.h) so a non-zero position no longer renders solid black.
+    if (l >= 0) glUniform2f(l, ScalarMath::posPxToCompUniformX(posX), ScalarMath::posPxToCompUniformY(posY));
     l = loc("u_comp_scale");
     if (l >= 0) glUniform1f(l, scale);
     l = loc("u_comp_rotation");
     // Convert degrees to radians
     if (l >= 0) glUniform1f(l, rotation * 3.14159265f / 180.0f);
     l = loc("u_comp_anchor");
-    if (l >= 0) glUniform2f(l, anchorX, anchorY);
+    // Same units fix as u_comp_position above -- u_comp_anchor is applied
+    // with the same `* 0.5` convention (EmbeddedShaders.h compTransform).
+    if (l >= 0) glUniform2f(l, ScalarMath::posPxToCompUniformX(anchorX), ScalarMath::posPxToCompUniformY(anchorY));
 
     glDisable(GL_BLEND);
     quad_.draw();

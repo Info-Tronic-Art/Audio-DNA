@@ -258,23 +258,16 @@ sleep 1
 curl -s --max-time 6 -X POST "$A/api/trigger_clip" -H 'Content-Type: application/json' -d '{"layer":0,"column":0}' >/dev/null
 sleep 1
 R comp_a.png; sleep 1; R comp_b.png
-# 2026-09-24 diagnosis: this oracle is SOUND -- it is finding a real product
-# bug, not a probe defect. /api/composition's live.positionX genuinely
-# oscillates (~-380..+330, matching the fixture's min 0.4/max 0.6 ->
-# (v-0.5)*3840 px range) while this runs, so the eff()/engine-tick chain IS
-# live end to end. But comp_a.png/comp_b.png both come back solid black
-# (mean/max/min == 0.0) -- Renderer::applyCompTransform (Renderer.cpp
-# ~2078-2079) feeds composition_->eff(CompScalar::PosX/PosY), which is in
-# PIXEL units (ScalarMath::posX3840/posY2160, +-1920/+-1080 range), straight
-# into the comp_transform shader's u_comp_position uniform, whose own
-# comment (EmbeddedShaders.h:97) documents it as "Normalized offset (-1 to
-# 1)". Any non-tiny posX/posY pushes every sampled uv.x/uv.y outside [0,1],
-# hitting the shader's black-outside-bounds branch -- so the composition
-# transform renders solid black whenever it is non-default, which is nearly
-# always while this fixture's sine runs. Root cause is a units mismatch
-# between the C++ writer and the shader's documented contract; NOT touched
-# here per the diagnosis task's DO NOT TOUCH src/ constraint. Left FAILING
-# on purpose -- fixing the probe would hide a real defect.
+# 2026-09-24 diagnosis: this oracle found a REAL product bug -- composition
+# PosX/PosY/AnchorX/AnchorY (pixel units, ScalarMath::posX3840/posY2160) were
+# fed raw into comp_transform's -1..1 uniforms -> solid black whenever
+# non-zero. FIXED s-rta-0924 (ScalarMath::posPxToCompUniformX/Y, px/1920 and
+# px/1080, used in Renderer::applyCompTransform). This check is now the
+# RENDER-LEVEL REGRESSION GUARD for that call site: the unit test
+# (tests/test_comp_transform_units.cpp) pins only the pure conversion and
+# would stay green if Renderer.cpp reverted to raw pixels; this check would
+# not (identical black frames). Post-fix evidence: comp_a/comp_b non-black
+# with a black edge band that moves right->left (a real horizontal shift).
 [ "$(H comp_a.png)" != "$(H comp_b.png)" ] \
     && ok "COMP: render_frame differs 1.0s apart (positionX sine, 4 beats @ 120bpm = 2s/cycle)" \
     || no "COMP: render_frame did NOT change -- the composition scalar 'positionX' connection is not reaching the renderer"

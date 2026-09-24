@@ -53,6 +53,27 @@ namespace ScalarMath
     inline float normLinScale2(float m) { return m / 2.0f; }
     inline float speed4(float v) { return v * 4.0f; }
     inline float normSpeed4(float m) { return m / 4.0f; }
+
+    // Units fix (comp-transform black-screen bug): Composition PosX/PosY/
+    // AnchorX/AnchorY live in the posX3840/posY2160 pixel space above (a
+    // 3840x2160 reference canvas, range approx +/-1920 / +/-1080), but the
+    // comp_transform shader's u_comp_position/u_comp_anchor uniforms
+    // (EmbeddedShaders.h, compTransform) are applied as
+    // `uv -= u_comp_position * 0.5` -- i.e. a uniform value of 1.0 shifts the
+    // sampled UV by 0.5 (half the canvas, in normalized [0,1] UV space).
+    // Feeding the raw pixel value straight into that uniform (e.g. 200px)
+    // pushed the sample far outside [0,1] and the shader samples black
+    // outside bounds, so ANY non-zero pixel offset rendered solid black.
+    // Correct normalization: divide the pixel offset by HALF the reference
+    // canvas dimension (1920 for X, 1080 for Y) so a uniform of 1.0
+    // reproduces the shader's own half-canvas-shift convention. Because the
+    // result is a dimensionless fraction of the reference canvas, applying
+    // it to the actual (possibly different-resolution) render target's UV
+    // space still shifts the image by the proportional fraction of the
+    // real output -- the two "state which you chose" options in the work
+    // packet collapse to the same formula.
+    inline float posPxToCompUniformX(float px) { return px / 1920.0f; }
+    inline float posPxToCompUniformY(float px) { return px / 1080.0f; }
 }
 
 inline const std::array<ScalarDef, static_cast<size_t>(ClipScalar::Count)>& clipScalarDefs()

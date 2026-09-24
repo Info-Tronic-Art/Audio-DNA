@@ -932,6 +932,38 @@ endif()
 apply_sanitizers(test_manual_write)
 catch_discover_tests(test_manual_write)
 
+# --- test_comp_transform_units (comp-transform units fix: the composition
+# position/anchor pixel-space values -- ScalarMath::posX3840/posY2160,
+# range approx +/-1920/+/-1080 on a 3840x2160 reference canvas -- must be
+# normalized to the comp_transform shader's u_comp_position/u_comp_anchor
+# uniform convention before Renderer::applyCompTransform uploads them, or
+# ANY non-zero composition position renders solid black. Headless: pins
+# ScalarMath::posPxToCompUniformX/Y (ScalarParams.h) directly, no
+# OpenGL/Renderer needed -- same minimal style as test_smoother, plus
+# juce_core because ScalarParams.h -> ParamConnection.h -> AutomationCurve.h
+# needs juce::var/juce::DynamicObject.
+add_executable(test_comp_transform_units test_comp_transform_units.cpp)
+target_include_directories(test_comp_transform_units PRIVATE ${SRC_DIR})
+target_link_libraries(test_comp_transform_units PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_comp_transform_units PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_comp_transform_units PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_comp_transform_units)
+catch_discover_tests(test_comp_transform_units)
+
 # --- test_conn_picker (s-rta-0923 lane 3, Lane C0 scaffold: the picker ->
 # ConnSource translation, headless -- .harmony/specs/s-rta-0923-lane3-plan.md
 # sections 4.3/5. Shaped exactly like test_connection above: same source
