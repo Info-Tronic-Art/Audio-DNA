@@ -141,7 +141,7 @@ Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wav
 | # | Method | Path | Action |
 |---|---|---|---|
 | 1 | GET | /api/health | ok, version 0.1.0, fps, effects_count |
-| 2 | GET | /api/status | fps, frameTime, masterLevel, activeDeck, bpm/phase/genre/energy |
+| 2 | GET | /api/status | fps, frameTime, masterLevel, activeDeck, renderOnsetPulses, bpm/phase/genre/energy |
 | 3 | GET | /api/composition | full deck→layer→clip tree |
 | 4 | POST | /api/trigger_clip | onTriggerClip(layer, column) |
 | 5 | POST | /api/trigger_column | onTriggerColumn(column) |
@@ -151,7 +151,7 @@ Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wav
 | 9 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
 | 10 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount |
 | 11 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
-| 12 | GET | /api/features | full FeatureSnapshot dump |
+| 12 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
 | 13 | POST | /api/inject_features | write FeatureBus (test/automation) |
 | 14 | POST | /api/load_image | loadImage() + 100ms GL sleep |
 | 15 | POST | /api/load_source | setActiveSource() |

@@ -123,8 +123,23 @@ Supported fields: rms, peak, rmsDB, lufs, dynamicRange, transientDensity,
 spectralCentroid, spectralFlux, spectralFlatness, spectralRolloff,
 bpm, beatPhase, barPhase, phrasePhase, barCount, structuralState,
 dominantPitch, pitchConfidence, detectedKey, keyIsMajor,
-harmonicChangeDetection, onsetDetected, onsetStrength, beatInBar,
+harmonicChangeDetection, onsetDetected, onsetStrength, onsetCount, beatInBar,
 downbeatDetected, bandEnergies[7], chromagram[12], mfccs[13].
+
+**onsetCount mirror** (onset render-path fix): the injected snapshot's
+`onsetCount` mirrors AnalysisThread (one increment per published onset hop):
+an explicit `onsetCount` is used verbatim; otherwise it is the previously
+injected count + 1 if THIS request set `onsetDetected: true`, else carried
+unchanged. `/api/reset` publishes count 0 (consumers re-baseline, no pulse).
+The count is resolved in one place, under the TestServer's inject lock, for
+both this route and the production port's test-mode relay. Consequence: an
+injected `onsetDetected: true` is a ONE-frame render pulse
+(`u_onsetDetected`), no longer sticky on every frame until the next inject —
+do not PSNR-diff an injected onset on a stateful source (Gravity Well, Fluid
+Dynamics); use the counter below. `GET /api/state` reports
+`onset_pulse_frames` (frames on which the render pulse fired);
+`GET /api/features` on port 7070 reports `onsetCount` (diff it between your
+own polls — `onsetDetected` there is the latest hop's rate-dependent flag).
 
 ### POST /api/render_frame
 
