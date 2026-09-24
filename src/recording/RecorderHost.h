@@ -36,12 +36,12 @@ class AudioTap;   // N13: forward-declared -- RecorderHost.cpp includes recordin
 // (Sink::touch, PerformanceRecorder::touch, Gesture::grip); MainComponent's
 // own `GripKind` (ParamConnection::Grip::Kind) is a different enum with a
 // third (None) value and would only shadow confusingly if duplicated here.
-// A5/R13-C -- ArmOptions carries `gripHoldMs` (`analysisRate` is a deprecated
-// no-op, kept only so MainComponent.cpp's pre-lane-D `armOpts.analysisRate =
-// ...` call keeps compiling -- arm()/tick() never read it); Status carries
-// `deviceRate`/`rateChangedSinceArm`/`humanRefused` (`rateMismatch` is a
-// deprecated mirror of `rateChangedSinceArm`, kept for the same reason),
-// published by tick(). A7 -- AudioTap is forward-declared, not included.
+// A5/R13-C -- ArmOptions carries `gripHoldMs`; Status carries
+// `deviceRate`/`rateChangedSinceArm`/`humanRefused`, published by tick().
+// (The deprecated `analysisRate`/`rateMismatch` shims that existed only to
+// keep MainComponent.cpp's pre-lane-D call sites compiling were removed
+// once lane D removed those call sites -- s-rta-0924 cleanup lane.)
+// A7 -- AudioTap is forward-declared, not included.
 class RecorderHost
 {
 public:
@@ -94,15 +94,6 @@ public:
         bool onsetMarkers = false;             // T2 enabler: take.markers point per snap.onsetDetected (origin Engine)
         std::optional<std::string> overdubAssetId;   // 5.2: record a FRESH take against a stored asset; NO tap; clock = asset frame
 
-        // DEPRECATED (R13-C): retired. The analysis thread now resamples the
-        // device stream to its fixed internal rate regardless of the device
-        // rate (AnalysisResampler, R13 lane A), so comparing deviceRate
-        // against an "analysis rate" no longer means anything. This field is
-        // kept ONLY so MainComponent.cpp's existing `armOpts.analysisRate =
-        // ...` call (removed by lane D) keeps compiling -- arm() never reads
-        // it. See `deviceRate` above / `Status::rateChangedSinceArm` below
-        // for the rate hazard that survives R13.
-        double analysisRate = 48000.0;
         // A5/N7: composition_.gripHoldMs -- the synthesized end of a
         // Decaying gesture with no release event uses THIS, not a hard
         // constant, so it matches the engine's own expiry
@@ -210,10 +201,6 @@ public:
         // is mixed-domain past that point. "rateMismatch" ("device != 48 kHz, beat clock
         // unreliable") is RETIRED -- the beat clock is correct at any device rate now.
         bool rateChangedSinceArm = false;
-        // DEPRECATED (R13-C): mirrors `rateChangedSinceArm` (same value, not the old
-        // "device != 48000" meaning). Kept ONLY so MainComponent.cpp's existing
-        // `s.rateMismatch` read (renamed by lane D) keeps compiling.
-        bool rateMismatch = false;
         // N12: count of Human writes MainComponent's funnel refused (a Held grip already
         // holds the control) -- the first diagnostic the funnel has ever had.
         int humanRefused = 0;
@@ -297,6 +284,20 @@ private:
     // markers stamps all n with that tick's clock time (marker()'s existing tick-time "late point"
     // semantics, spec D10.3 T1); the probe's grid pairing tolerates this. Reset wherever per-take
     // state resets (arm() / markers_ clear).
+    //
+    // KNOWN LIMITATION (reviewer finding, s-rta-0924 cleanup lane): the baseline-establishing
+    // snapshot -- the first one tick() observes after arm() -- always emits zero markers by
+    // design (see above), even if THAT SAME snapshot's onsetDetected/onsetCount already reflects
+    // a real onset that happened between arm() and this first tick. In practice this is a window
+    // of at most ~one tick (~8 ms at the real ~120 Hz tick cadence) right at arm time, so a genuine
+    // onset landing in that narrow window is silently un-marked -- not lost from the take overall
+    // (the audio itself is still captured), just missing its T2 marker. A strictly-better rule
+    // would establish the baseline from the FeatureSnapshot captured at arm() time itself (a
+    // `dispatch.captureFeatureSnapshot`-style hook mirroring `dispatch.capturePerfState`, called
+    // once inside arm() before recording_ flips true) rather than from whatever tick() happens to
+    // see first -- that closes the window to zero by construction instead of ~one tick. Not
+    // implemented here: it is a new Dispatch hook (contract change) for a window this narrow, out
+    // of this lane's scope.
     std::optional<uint32_t> onsetCountBaseline_;
 
     // Continuous-gesture idle tracking for the synthesized Decaying end (N7): last wall-clock write
