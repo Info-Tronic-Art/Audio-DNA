@@ -412,7 +412,10 @@ void Renderer::renderOpenGL()
     // render_frame's byte-identical-repeat guarantee would break, since
     // every real GL frame would still tick scaledTime_ forward even while
     // `time` itself stays pinned for the capture.
-    float masterSpeedVal = (composition_ != nullptr) ? composition_->masterSpeed : 1.0f;
+    // S-RTA-0923 LANE 3 C2: eff() twin read (atomic relaxed load + manual
+    // fallback, GL-thread-safe) so a connection driving Composition ▸ Speed
+    // actually renders.
+    float masterSpeedVal = (composition_ != nullptr) ? composition_->eff(CompScalar::Speed) : 1.0f;
     if (overrideT >= 0.0f)
         scaledTime_ = static_cast<double>(overrideT) * static_cast<double>(masterSpeedVal);
     else
@@ -703,7 +706,10 @@ void Renderer::renderOpenGL()
     // also dims what leaves the app, not just the on-screen preview.
     if (composition_ != nullptr)
     {
-        float masterOpacityVal = composition_->masterOpacity;
+        // S-RTA-0923 LANE 3 C2: eff() twin read (see the comment on the
+        // masterSpeedVal read above); unconditional per the S167-L4b comment
+        // above this block, unchanged.
+        float masterOpacityVal = composition_->eff(CompScalar::Opacity);
         glEnable(GL_BLEND);
         glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
         glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
@@ -1238,7 +1244,9 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
     // S167-L4b: composition-wide speed multiplier, folded in below via
     // effectiveClipSpeed() only for non-BPM-synced clips -- BPM-synced
     // transport stays tempo-locked, unaffected by masterSpeed.
-    const float masterSpeedVal = (composition_ != nullptr) ? composition_->masterSpeed : 1.0f;
+    // S-RTA-0923 LANE 3 C2: eff() twin read (see Renderer::renderOpenGL's
+    // masterSpeedVal comment).
+    const float masterSpeedVal = (composition_ != nullptr) ? composition_->eff(CompScalar::Speed) : 1.0f;
 
     if (clip->mediaType == Clip::MediaType::Video)
     {
@@ -2018,12 +2026,15 @@ void Renderer::applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float
     if (!composition_) return;
 
     // Check if any transform is non-default
-    float posX = composition_->compPositionX;
-    float posY = composition_->compPositionY;
-    float scale = composition_->compScale;
-    float rotation = composition_->compRotation;
-    float anchorX = composition_->compAnchorX;
-    float anchorY = composition_->compAnchorY;
+    // S-RTA-0923 LANE 3 C2: eff() twin read (see Renderer::renderOpenGL's
+    // masterSpeedVal comment) -- a connection driving any of these correctly
+    // trips the isDefault early-return below (R-E, s-rta-0923-lane3-plan.md).
+    float posX = composition_->eff(CompScalar::PosX);
+    float posY = composition_->eff(CompScalar::PosY);
+    float scale = composition_->eff(CompScalar::Scale);
+    float rotation = composition_->eff(CompScalar::Rotation);
+    float anchorX = composition_->eff(CompScalar::AnchorX);
+    float anchorY = composition_->eff(CompScalar::AnchorY);
 
     bool isDefault = (std::abs(posX) < 0.001f && std::abs(posY) < 0.001f &&
                       std::abs(scale - 1.0f) < 0.001f && std::abs(rotation) < 0.01f);

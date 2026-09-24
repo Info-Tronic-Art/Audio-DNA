@@ -439,10 +439,23 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
                                               int w, int h)
 {
     constexpr float eps = 0.001f;
-    bool needsTransform = (std::abs(clip.positionX) > eps ||
-                           std::abs(clip.positionY) > eps ||
-                           std::abs(clip.scale - 1.0f) > eps ||
-                           std::abs(clip.rotation) > eps);
+    // S-RTA-0923 LANE 3 C2: read through the connection twin (LiveValue,
+    // atomic relaxed load) with fallback to the raw manual field -- so a
+    // connected scalar (e.g. an LFO driving Position X) actually renders.
+    // Read once into locals; GL-thread-safe (LiveValue::effective is a
+    // relaxed atomic load, same crossing the raw floats already used).
+    const float effPositionX = clip.eff(ClipScalar::PosX);
+    const float effPositionY = clip.eff(ClipScalar::PosY);
+    const float effScale     = clip.eff(ClipScalar::Scale);
+    const float effRotation  = clip.eff(ClipScalar::Rotation);
+    const float effAnchorX   = clip.eff(ClipScalar::AnchorX);
+    const float effAnchorY   = clip.eff(ClipScalar::AnchorY);
+    const float effClipOpacity = clip.eff(ClipScalar::Opacity);
+
+    bool needsTransform = (std::abs(effPositionX) > eps ||
+                           std::abs(effPositionY) > eps ||
+                           std::abs(effScale - 1.0f) > eps ||
+                           std::abs(effRotation) > eps);
 
     GLuint transformedTex = srcTex;
 
@@ -465,14 +478,14 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
             glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
             // Normalize position: pixels → normalized UV offset
             glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_translate"),
-                        clip.positionX / static_cast<float>(w),
-                        clip.positionY / static_cast<float>(h));
+                        effPositionX / static_cast<float>(w),
+                        effPositionY / static_cast<float>(h));
             glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_anchor"),
-                        0.5f + clip.anchorX, 0.5f + clip.anchorY);
+                        0.5f + effAnchorX, 0.5f + effAnchorY);
             glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_scale"),
-                        clip.scale);
+                        effScale);
             glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
-                        clip.rotation * 3.14159265f / 180.0f);
+                        effRotation * 3.14159265f / 180.0f);
 
             quad.draw();
 
@@ -489,7 +502,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     // crossfade. Targets effectFBO_B_/effectTex_B_ -- distinct from
     // effectFBO_A_ used above, so this pass never reads and writes the same
     // texture whether or not a positional transform ran first.
-    return applyClipOpacity(clip.clipOpacity, transformedTex, effectFBO_B_, effectTex_B_,
+    return applyClipOpacity(effClipOpacity, transformedTex, effectFBO_B_, effectTex_B_,
                             shaderMgr, quad, w, h);
 }
 
@@ -545,12 +558,20 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
                                                ShaderManager& shaderMgr, FullscreenQuad& quad,
                                                int w, int h)
 {
+    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
+    const float effPositionX    = layer.eff(LayerScalar::PosX);
+    const float effPositionY    = layer.eff(LayerScalar::PosY);
+    const float effLayerScale   = layer.eff(LayerScalar::Scale);
+    const float effLayerRotation = layer.eff(LayerScalar::Rotation);
+    const float effLayerAnchorX = layer.eff(LayerScalar::AnchorX);
+    const float effLayerAnchorY = layer.eff(LayerScalar::AnchorY);
+
     // Skip transform if all values are at defaults
     constexpr float eps = 0.001f;
-    bool needsTransform = (std::abs(layer.positionX) > eps ||
-                           std::abs(layer.positionY) > eps ||
-                           std::abs(layer.layerScale - 1.0f) > eps ||
-                           std::abs(layer.layerRotation) > eps);
+    bool needsTransform = (std::abs(effPositionX) > eps ||
+                           std::abs(effPositionY) > eps ||
+                           std::abs(effLayerScale - 1.0f) > eps ||
+                           std::abs(effLayerRotation) > eps);
     if (!needsTransform)
         return srcTex;
 
@@ -571,13 +592,13 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
     glBindTexture(GL_TEXTURE_2D, srcTex);
     glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
     glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_translate"),
-                layer.positionX, layer.positionY);
+                effPositionX, effPositionY);
     glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_anchor"),
-                layer.layerAnchorX, layer.layerAnchorY);
+                effLayerAnchorX, effLayerAnchorY);
     glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_scale"),
-                layer.layerScale);
+                effLayerScale);
     glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
-                layer.layerRotation);
+                effLayerRotation);
 
     quad.draw();
 
@@ -601,7 +622,8 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
     // opacity multiply (see combinedOpacity()'s comment), so a clip pinned
     // below 1.0 dilutes the FX-Only blend even further than layer.opacity
     // alone would.
-    float effOpacity = combinedOpacity(layer.opacity, clip.clipOpacity);
+    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
+    float effOpacity = combinedOpacity(layer.eff(LayerScalar::Opacity), clip.eff(ClipScalar::Opacity));
 
     if (result != accumulatorTex_)
     {
@@ -865,7 +887,10 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
                     glClear(GL_COLOR_BUFFER_BIT);
 
-                    if (layer.opacity < 0.999f)
+                    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
+                    const float effLayerOpacity = layer.eff(LayerScalar::Opacity);
+
+                    if (effLayerOpacity < 0.999f)
                     {
                         // Use alpha blending to apply opacity over black
                         glEnable(GL_BLEND);
@@ -884,7 +909,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                         glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
                         auto opLoc = glGetUniformLocation(prog->getProgramID(), "u_opacity");
                         if (opLoc >= 0)
-                            glUniform1f(opLoc, layer.opacity);
+                            glUniform1f(opLoc, effLayerOpacity);
                     }
                     glActiveTexture(GL_TEXTURE0);
                     glBindTexture(GL_TEXTURE_2D, clipTex);
@@ -1061,7 +1086,8 @@ void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuin
 
     auto loc = [&](const char* name) { return glGetUniformLocation(prog->getProgramID(), name); };
     glUniform1i(loc("u_texture"), 0);
-    glUniform1f(loc("u_opacity"), layer.opacity);
+    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
+    glUniform1f(loc("u_opacity"), layer.eff(LayerScalar::Opacity));
     glUniform1f(loc("u_threshold"), layer.keyThreshold);
     glUniform1f(loc("u_softness"), layer.keySoftness);
     glUniform3f(loc("u_chroma_key_color"), layer.chromaKeyR, layer.chromaKeyG, layer.chromaKeyB);
@@ -1236,7 +1262,8 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
     // function returns (feedback/layer-effects/layer-transform/keying all
     // come later in compositeDeck's per-layer sequence), so they're free
     // here as scratch.
-    prevTex = applyClipOpacity(prevClip->clipOpacity, prevTex, scratchFBO_, scratchTex_,
+    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
+    prevTex = applyClipOpacity(prevClip->eff(ClipScalar::Opacity), prevTex, scratchFBO_, scratchTex_,
                                shaderMgr, quad, w, h);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
