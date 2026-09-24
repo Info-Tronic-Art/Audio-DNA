@@ -77,6 +77,37 @@ public:
     std::function<void(int layer, float opacity)> onSetLayerOpacity;
     std::function<void(int layer, int column, int fxIndex, int paramIndex, const std::string& paramName, float value)> onSetClipEffectParam;
 
+    // s-rta-0923 step 3 (Lane S3-C, plan section 3.4 pulled forward from build-order
+    // row 5, amended per s-rta-0924 critic A5): the ONLY production-mode trigger
+    // surface the recorder can be verified through (RecordPanel is step 4's file).
+    // MainComponent (Lane S3-B) assigns these against RecorderHost. Every callback
+    // here is marshalled to the message thread the same way as every other model
+    // write in this file (see handleSetParam's clip-effect branch note) EXCEPT
+    // onPerfStatus, which MUST be synchronous and MUST read nothing but
+    // RecorderHost::status()'s mutex-guarded copy — never
+    // audioEngine_.getCurrentSampleRate()/getCurrentAudioDevice() directly (critic
+    // A5(b)/N3: the message thread may be mid-restart of the audio device). The
+    // returned juce::var is a fully-built status object (deviceRate, rateMismatch,
+    // humanRefused, and the rest of RecorderHost::Status) — this file only
+    // serializes it, never shapes it. Any callback left unassigned (recorder not
+    // yet wired) answers 503 {"ok":false,"error":...} — never a crash, never a
+    // silent 200.
+    struct PerfRecordOpts
+    {
+        juce::String name;
+        bool audio = true;
+        juce::String audioFile;
+        bool onsetMarkers = false;
+        juce::String overdubAssetId;
+    };
+    std::function<void(const PerfRecordOpts&)> onPerfRecord;
+    std::function<void()> onPerfStop;
+    std::function<void(juce::File takeFolder)> onPerfLoad;
+    std::function<void(bool withAudio)> onPerfPlay;
+    std::function<void()> onPerfStopPlay;
+    std::function<void()> onPerfRepair;
+    std::function<juce::var()> onPerfStatus;   // synchronous; see comment above
+
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
 
@@ -109,6 +140,15 @@ private:
     void handleState(const httplib::Request& req, httplib::Response& res);
     void handleGetSyphon(const httplib::Request& req, httplib::Response& res);
     void handleSetSyphon(const httplib::Request& req, httplib::Response& res);
+
+    // s-rta-0923 step 3 (Lane S3-C) -- /api/perf/*
+    void handlePerfRecord(const httplib::Request& req, httplib::Response& res);
+    void handlePerfStop(const httplib::Request& req, httplib::Response& res);
+    void handlePerfLoad(const httplib::Request& req, httplib::Response& res);
+    void handlePerfPlay(const httplib::Request& req, httplib::Response& res);
+    void handlePerfStopPlay(const httplib::Request& req, httplib::Response& res);
+    void handlePerfRepair(const httplib::Request& req, httplib::Response& res);
+    void handlePerfStatus(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();

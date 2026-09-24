@@ -251,6 +251,17 @@ void ApiServer::setupRoutes()
     // Syphon output (P22.1) status / toggle
     server_.Get("/api/syphon", [this](const httplib::Request& req, httplib::Response& res) { handleGetSyphon(req, res); });
     server_.Post("/api/set_syphon", [this](const httplib::Request& req, httplib::Response& res) { handleSetSyphon(req, res); });
+
+    // s-rta-0923 step 3 (Lane S3-C): performance recorder lifecycle. Pulled
+    // forward from build-order row 5 -- the only production-mode arm/stop/play
+    // surface that does not touch RecordPanel (step 4's file).
+    server_.Post("/api/perf/record", [this](const httplib::Request& req, httplib::Response& res) { handlePerfRecord(req, res); });
+    server_.Post("/api/perf/stop", [this](const httplib::Request& req, httplib::Response& res) { handlePerfStop(req, res); });
+    server_.Post("/api/perf/load", [this](const httplib::Request& req, httplib::Response& res) { handlePerfLoad(req, res); });
+    server_.Post("/api/perf/play", [this](const httplib::Request& req, httplib::Response& res) { handlePerfPlay(req, res); });
+    server_.Post("/api/perf/stop_play", [this](const httplib::Request& req, httplib::Response& res) { handlePerfStopPlay(req, res); });
+    server_.Post("/api/perf/repair", [this](const httplib::Request& req, httplib::Response& res) { handlePerfRepair(req, res); });
+    server_.Get("/api/perf/status", [this](const httplib::Request& req, httplib::Response& res) { handlePerfStatus(req, res); });
 }
 
 // --- Endpoint handlers ---
@@ -1148,4 +1159,164 @@ void ApiServer::handleSetSyphon(const httplib::Request& req, httplib::Response& 
     renderer_.setSyphonEnabled(enabled);
 
     res.set_content(jsonOk(), "application/json");
+}
+
+// --- s-rta-0923 step 3 (Lane S3-C): /api/perf/* ---
+//
+// Same callAsync marshal shape as every other model write in this file (see
+// handleSetParam's clip-effect branch note for the `this`-capture safety
+// argument, which applies identically here) with one addition: every
+// unassigned callback below answers 503 before touching the request body, so
+// a build where MainComponent has not yet wired RecorderHost answers cleanly
+// instead of silently no-op'ing 200 like the pre-existing endpoints do.
+// onPerfStatus is the one exception to the marshal pattern -- it is called
+// synchronously, off whatever thread the request landed on, because
+// RecorderHost::status() is a mutex-guarded copy safe from any thread (same
+// posture as handleGetBpm/handleGetFeatures reading FeatureBus::read()).
+
+void ApiServer::handlePerfRecord(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onPerfRecord)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    PerfRecordOpts opts;
+    opts.name = json.getProperty("name", "").toString();
+    opts.audio = static_cast<bool>(json.getProperty("audio", true));
+    opts.audioFile = json.getProperty("audioFile", "").toString();
+    opts.onsetMarkers = static_cast<bool>(json.getProperty("onsetMarkers", false));
+    opts.overdubAssetId = json.getProperty("overdubAssetId", "").toString();
+
+    // Arm-time validation (device rate, store/tap failures, R13 mismatch) runs
+    // on the message thread inside RecorderHost::arm and can no longer be
+    // reported back synchronously -- same trade-off already made for
+    // set_param/set_layer_opacity/set_effect. Refusals surface through
+    // /api/perf/status (lastError/rateMismatch), not this response.
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, opts]() {
+        onPerfRecord(opts);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handlePerfStop(const httplib::Request&, httplib::Response& res)
+{
+    if (!onPerfStop)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this]() {
+        onPerfStop();
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handlePerfLoad(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onPerfLoad)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    juce::String folder = json.getProperty("folder", "").toString();
+
+    if (folder.isEmpty())
+    {
+        res.set_content(jsonError("Missing 'folder'"), "application/json");
+        return;
+    }
+
+    juce::File takeFolder(folder);
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, takeFolder]() {
+        onPerfLoad(takeFolder);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handlePerfPlay(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onPerfPlay)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    bool withAudio = static_cast<bool>(json.getProperty("withAudio", false));
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, withAudio]() {
+        onPerfPlay(withAudio);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handlePerfStopPlay(const httplib::Request&, httplib::Response& res)
+{
+    if (!onPerfStopPlay)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this]() {
+        onPerfStopPlay();
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handlePerfRepair(const httplib::Request&, httplib::Response& res)
+{
+    if (!onPerfRepair)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this]() {
+        onPerfRepair();
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handlePerfStatus(const httplib::Request&, httplib::Response& res)
+{
+    if (!onPerfStatus)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Recorder unavailable"), "application/json");
+        return;
+    }
+
+    // Synchronous -- critic A5(b)/N3: this handler reads nothing but
+    // RecorderHost::status() (mutex-guarded copy, safe from any thread).
+    // MainComponent's onPerfStatus assignment is the one place deviceRate,
+    // rateMismatch and humanRefused get read -- from RecorderHost::Status,
+    // published by tick() -- never from audioEngine_.getCurrentSampleRate()/
+    // getCurrentAudioDevice() on this thread.
+    res.set_content(juce::JSON::toString(onPerfStatus()).toStdString(), "application/json");
 }
