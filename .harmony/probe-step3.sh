@@ -73,10 +73,18 @@
 #     held/resume pattern) is NOT reproduced here for record+replay of a
 #     continuous lane -- s167's synthesized-Decaying-end window is
 #     `comp.gripHoldMs` (critic N7), not a hardcoded constant, so a portable
-#     timing oracle needs to read that value first; this gate instead checks
-#     the STRUCTURAL claim (one gesture, grip "decaying", >=3 breakpoints)
-#     per critic N6's corrected wording, leaving exact-timing verification
-#     to Boris's MIDI-grip-feel check (plan section 5, only-Boris item 3).
+#     timing oracle needs to read that value first; leaving EXACT-TIMING
+#     verification to Boris's MIDI-grip-feel check (plan section 5,
+#     only-Boris item 3). Two things this gate DOES check now (independent
+#     review fix, this session): (1) the STRUCTURAL claim on take.json's
+#     layer/scalar:opacity lane -- exactly one gesture, grip "decaying",
+#     >=3 breakpoints (`curve` is the flat breakpoint array per
+#     AutomationCurve::toVar, src/model/ControlPath.h + Lane.h schema,
+#     re-derived from source, not the plan's prose); (2) a replay-shape
+#     check -- during withAudio replay this gate samples layer 0 opacity
+#     over the glide window and asserts it visits an intermediate value
+#     near the 0.7 peak before settling near the final 0.2, i.e. it
+#     glides rather than jumps -- NOT an exact-timing check.
 #   * The crash-readability row (plan section 4, "optional, destructive")
 #     is included but gated behind STEP3_RUN_CRASH_TEST=1 (unset by
 #     default) since it `kill -9`s the running app.
@@ -207,6 +215,7 @@ awk -v x="$FRAMES1" 'BEGIN{exit !(x+0>0)}' 2>/dev/null && ok "perf/status: frame
 
 TAKE_FOLDER="$TAKES_DIR/$TAKE_NAME.adna-take"
 [ -f "$TAKE_FOLDER/take.json" ] && ok "provisional take.json exists at arm+2s (v2 5.6 #1)" || no "no provisional take.json at $TAKE_FOLDER/take.json"
+MTIME_ARM="$(stat -f %m "$TAKE_FOLDER/take.json" 2>/dev/null || echo 0)"
 
 # --- 6. perform over REST (each a Human-origin capture) --------------------
 for c in 0 1 2 3; do
@@ -233,8 +242,7 @@ awk -v x="$OP_NOW" 'BEGIN{exit !(x+0>=0.15 && x+0<=0.25)}' 2>/dev/null && ok "se
 
 sleep 40   # cross the RecorderHost::kCheckpointSeconds=60s periodic-save boundary (arm was ~t=0)
 MTIME_NOW="$(stat -f %m "$TAKE_FOLDER/take.json" 2>/dev/null || echo 0)"
-MTIME_START="$(stat -f %B "$APPBUNDLE" 2>/dev/null || echo 0)"
-[ "$MTIME_NOW" -gt 0 ] && ok "take.json mtime readable after the 60s periodic-save boundary ($MTIME_NOW)" || no "take.json unreadable after periodic-save boundary"
+[ "$MTIME_NOW" -gt "$MTIME_ARM" ] 2>/dev/null && ok "take.json mtime advanced past the arm-time write ($MTIME_ARM -> $MTIME_NOW, periodic-save fired)" || no "take.json mtime did NOT advance past the arm-time write (arm=$MTIME_ARM now=$MTIME_NOW) -- periodic-save may not have fired"
 
 # --- 7. stop -----------------------------------------------------------
 curl -s --max-time 6 -X POST "$A/api/perf/stop" >/dev/null
@@ -264,9 +272,24 @@ GAPD_TAKE="$(take_field "$TAKE_FOLDER" "type(d['audio'].get('gapDetection')).__n
 [ "$GAPD_TAKE" = "bool" ] && ok "take.json audio.gapDetection is a boolean" || no "take.json audio.gapDetection is not a boolean ($GAPD_TAKE)"
 MODE="$(take_field "$TAKE_FOLDER" "d['audio'].get('mode','NA')")"
 [ "$MODE" = "file" ] && ok "take.json audio.mode == file" || no "take.json audio.mode == $MODE (expected file)"
-N_ACTIVECLIP="$(take_field "$TAKE_FOLDER" "sum(1 for lane in d.get('lanes',[]) for g in lane.get('gestures',[]) for p in g.get('points',[]) if lane.get('key',{}).get('control')=='activeClip')")"
+
+# Continuous row structural check (plan section 4 "Continuous rows" bullet,
+# critic MAJOR fix): layer/scalar:opacity lane -- one gesture, grip
+# "decaying", >=3 breakpoints. `curve` is a flat breakpoint array
+# (AutomationCurve::toVar returns the array directly, not an object --
+# src/model/ControlPath.h + Lane.h/AutomationCurve.h schema).
+OP_LANE_KIND="$(take_field "$TAKE_FOLDER" "next((lane.get('kind','NA') for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity'), 'NA')")"
+OP_N_GESTURES="$(take_field "$TAKE_FOLDER" "sum(1 for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity' for g in lane.get('gestures',[]))")"
+OP_GRIP="$(take_field "$TAKE_FOLDER" "next((g.get('grip','NA') for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity' for g in lane.get('gestures',[])), 'NA')")"
+OP_N_BREAKPOINTS="$(take_field "$TAKE_FOLDER" "next((len(g.get('curve',[])) for lane in d.get('lanes',[]) if lane.get('key',{}).get('scope')=='layer' and lane.get('key',{}).get('control')=='scalar' and lane.get('key',{}).get('scalar')=='opacity' for g in lane.get('gestures',[])), 0)")"
+[ "$OP_LANE_KIND" = "continuous" ] && ok "layer/scalar:opacity lane kind == continuous" || no "layer/scalar:opacity lane kind == $OP_LANE_KIND (expected continuous)"
+[ "$OP_N_GESTURES" = "1" ] && ok "layer/scalar:opacity lane has exactly 1 gesture" || no "layer/scalar:opacity lane has $OP_N_GESTURES gestures (expected 1)"
+[ "$OP_GRIP" = "decaying" ] && ok "layer/scalar:opacity gesture grip == decaying" || no "layer/scalar:opacity gesture grip == $OP_GRIP (expected decaying)"
+awk -v x="$OP_N_BREAKPOINTS" 'BEGIN{exit !(x+0>=3)}' 2>/dev/null && ok "layer/scalar:opacity gesture has >=3 breakpoints ($OP_N_BREAKPOINTS)" || no "layer/scalar:opacity gesture has $OP_N_BREAKPOINTS breakpoints, expected >=3"
+
+N_ACTIVECLIP="$(take_field "$TAKE_FOLDER" "sum(1 for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='activeClip' for p in lane.get('points',[]))")"
 awk -v x="$N_ACTIVECLIP" 'BEGIN{exit !(x+0>=4)}' 2>/dev/null && ok "layer/activeClip lane has >=4 points ($N_ACTIVECLIP)" || no "layer/activeClip lane has $N_ACTIVECLIP points, expected >=4"
-TEMPO_V="$(take_field "$TAKE_FOLDER" "next((p['v'] for lane in d.get('lanes',[]) for g in lane.get('gestures',[]) for p in g.get('points',[]) if lane.get('key',{}).get('control')=='tempo'), 'NA')")"
+TEMPO_V="$(take_field "$TAKE_FOLDER" "next((p['v'] for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='tempo' for p in lane.get('points',[])), 'NA')")"
 [ "$TEMPO_V" = "12800" ] && ok "comp/tempo point v == 12800 (centi-BPM for 128, plan R-8 unit)" || no "comp/tempo point v == $TEMPO_V (expected 12800)"
 CHK0="$(take_field "$TAKE_FOLDER" "d.get('checkpoint0',{}).get('activeDeckIndex','NA')")"
 [ "$CHK0" = "0" ] && ok "checkpoint0.activeDeckIndex == 0" || no "checkpoint0.activeDeckIndex == $CHK0"
@@ -348,6 +371,7 @@ UNRES="$(perf_field "d.get('unresolved','NA')")"
 
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
 SEEN="0 -1 -1 -1 -1"; LAST=-1; ORDER_OK=1
+OP_MAX="0"; OP_LAST=""
 for i in $(seq 1 30); do
     v="$(comp_active_col)"
     if [ "$v" != "$LAST" ]; then
@@ -355,10 +379,19 @@ for i in $(seq 1 30); do
         if [ "$LAST" != "-1" ] && [ "$v" -lt "$LAST" ] 2>/dev/null; then ORDER_OK=0; fi
         LAST="$v"
     fi
+    # Replay-shape sample for the continuous opacity row (critic MAJOR fix,
+    # not an exact-timing check -- plan section 4's "on replay layer 0
+    # opacity follows 0.4->0.7->0.2 smoothly" bullet): opacity should visit
+    # something near the 0.7 peak on its way through the glide, not just
+    # jump straight to the final 0.2.
+    OP_LAST="$(jget "$A/api/composition" "d['decks'][0]['layers'][0]['opacity']")"
+    OP_MAX="$(awk -v x="$OP_LAST" -v m="$OP_MAX" 'BEGIN{ xv=(x=="NA")?-1:x+0; mv=m+0; print (xv>mv)?xv:mv }')"
     [ "$LAST" = "3" ] && break
     sleep 1
 done
 [ "$LAST" = "3" ] && [ "$ORDER_OK" = "1" ] && ok "replay(withAudio): activeClipColumn reached 3, non-decreasing" || no "replay(withAudio): activeClipColumn sequence wrong (last=$LAST order_ok=$ORDER_OK)"
+awk -v x="$OP_MAX" 'BEGIN{exit !(x+0>=0.55)}' 2>/dev/null && ok "replay(withAudio): layer 0 opacity glide reached near the 0.7 peak (max observed=$OP_MAX)" || no "replay(withAudio): layer 0 opacity glide never reached near 0.7 (max observed=$OP_MAX) -- may be jumping instead of gliding"
+awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.1 && x+0<=0.3)}' 2>/dev/null && ok "replay(withAudio): layer 0 opacity settled near the final 0.2 (last observed=$OP_LAST)" || no "replay(withAudio): layer 0 opacity did not settle near 0.2 (last observed=$OP_LAST)"
 BPM_REPLAY="$(jget "$A/api/bpm" "d.get('bpm','NA')")"
 awk -v x="$BPM_REPLAY" 'BEGIN{exit !(x+0>=127.5 && x+0<=128.5)}' 2>/dev/null && ok "replay(withAudio): bpm reached 128 after the tempo point ($BPM_REPLAY)" || no "replay(withAudio): bpm=$BPM_REPLAY (expected ~128)"
 SKIPPED="$(perf_field "d.get('skipped','NA')")"
@@ -396,7 +429,7 @@ curl -s --max-time 6 -X POST "$A/api/perf/stop" >/dev/null
 sleep 3
 GATE2_FOLDER="$TAKES_DIR/step3gate2.adna-take"
 if [ -f "$GATE2_FOLDER/take.json" ]; then
-    G2_ACTIVECLIP="$(take_field "$GATE2_FOLDER" "sum(1 for lane in d.get('lanes',[]) for g in lane.get('gestures',[]) for p in g.get('points',[]) if lane.get('key',{}).get('control')=='activeClip')")"
+    G2_ACTIVECLIP="$(take_field "$GATE2_FOLDER" "sum(1 for lane in d.get('lanes',[]) if lane.get('key',{}).get('control')=='activeClip' for p in lane.get('points',[]))")"
     [ "$G2_ACTIVECLIP" = "1" ] && ok "overdub take has exactly 1 activeClip point (only the REST trigger sent during overdub, not the replay)" || no "overdub take has $G2_ACTIVECLIP activeClip points (expected 1 -- replay must not self-record, R5)"
     G2_FIRST="$(take_field "$GATE2_FOLDER" "d['audio']['segments'][0]['firstSample']")"
     [ "$G2_FIRST" = "0" ] && ok "overdub take firstSample==0 (v2 5.2)" || no "overdub take firstSample==$G2_FIRST (expected 0)"
