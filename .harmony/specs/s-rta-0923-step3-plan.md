@@ -1,5 +1,14 @@
 # s-rta-0923 — Spec STEP 3: MainComponent wiring of the recorder — PLAN
 
+> **AMENDED s-rta-0924 — READ FIRST.** Critic verdict BUILDABLE-WITH-FIXES:
+> `.harmony/.reports/s-rta-0924/step3-critic.md`. Its AMENDMENTS A1-A8 and REVISED LANE TABLE are BINDING and
+> OVERRIDE this plan wherever they conflict (Harmony adopted all 8, 2026-09-24). Headline: Lane S3-M / §3.5
+> `ManualWriter` is DELETED — the recorder hooks MainComponent's shipped `onManualWrite/onManualTouch/
+> onManualRelease` and fills `Dispatch::continuous` with `Origin::Replay` wrappers (A1); `onHumanWrite` opens a
+> gesture (A2); tick placement per A3; probe fixture + R13 rate oracle per A5/A6. Lanes: S3-A, S3-B, S3-C,
+> S3-G, S3-D. The comp-position builder's tests/CMakeLists.txt edit has LANDED (ef84a55) — S3-A may append.
+
+
 Author: Architect (Fable), 2026-09-23, secondary lane for RealTimeAudio. Read-only pass over
 `/Users/boriskarpman/projects/RealTimeAudio` @ HEAD `d434e0e` (main). Working tree at read time carried
 STAGED, UNCOMMITTED work from two in-flight lanes (`git diff --cached --stat`, VERIFIED): H1
