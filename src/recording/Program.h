@@ -67,7 +67,8 @@ struct CompileReport
     std::vector<Issue> unresolved;
     std::vector<Issue> reboundByPosition;
     std::vector<Issue> reboundByName;
-    std::vector<Issue> invalid;
+    std::vector<Issue> invalid;   // gestures whose x had to be reconstructed
+                                   // from the tempo map -- no parallel stamps
     std::map<std::string, int> unknown;          // e.g. "kind:temporal-blend" -> count
     std::vector<std::string> missingRoutines;     // reserved (D9, LATER); always empty in row 1
     int resolvedCount = 0;
@@ -99,5 +100,10 @@ struct Program
 // only (bounds-checked) -- name-fallback search via EffectLibrary is not
 // implemented this step (see the report's DEVIATIONS). Scope::Routine
 // always reports unresolved (routines are D9, LATER).
+//
+// Continuous breakpoints: each one's x comes from its own gesture's
+// parallel Stamp (Lane.h Gesture::stamps, D1/D7) via the same per-clock
+// pick discrete points use -- the take's TempoMap is only the reported
+// fallback (CompileReport::invalid) for a gesture with no parallel stamps.
 std::shared_ptr<const Program> compile(const Take& take, const Composition& comp,
                                         DriveClock clock, std::optional<Range> range = {});

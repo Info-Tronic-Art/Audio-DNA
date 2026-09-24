@@ -167,10 +167,12 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
     };
 
     // A gesture's curve is stored beat-native (D7); the compiled Program
-    // is FOR ONE DRIVE CLOCK (D5), so continuous curves are converted once
-    // here via the take's own TempoMap -- Player then just evaluates
-    // curve.eval(pos) with pos already in the program's domain, no
-    // per-tick tempo lookups.
+    // is FOR ONE DRIVE CLOCK (D5). Each breakpoint's x normally comes from
+    // its own parallel Stamp via `pickAt` above (exact per-point t/sample,
+    // D1) -- this tempo-map conversion is only the FALLBACK path for a
+    // gesture with no parallel stamps (see the `exact` check below), so
+    // Player still just evaluates curve.eval(pos) with pos already in the
+    // program's domain, no per-tick tempo lookups.
     auto convertBeatX = [&](double beatX) -> double
     {
         switch (clock)
@@ -217,16 +219,27 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
             for (auto& cl : program->continuous)
                 if (cl.key == key) { target = &cl; break; }
 
+            int stampMismatches = 0;
             for (const auto& g : lane.gestures)
             {
                 if (g.curve.pts.empty()) continue;
 
+                // D1/D7: every breakpoint carries its own exact {t,sample}
+                // reading (Lane.h Gesture::stamps, size == pts.size(),
+                // enforced by PerformanceRecorder::set/release). Use it. The
+                // tempo map is a FALLBACK for a gesture with no parallel
+                // stamps (hand-built, or an edited take whose editor dropped
+                // them) -- reported, never silent.
+                const bool exact = g.stamps.size() == g.curve.pts.size();
+                if (!exact) ++stampMismatches;
+
                 ContLane::G cg;
                 cg.grip = g.grip;
-                for (const auto& bp : g.curve.pts)
+                for (size_t i = 0; i < g.curve.pts.size(); ++i)
                 {
-                    Breakpoint converted = bp;
-                    converted.x = convertBeatX(bp.x);
+                    Breakpoint converted = g.curve.pts[i];
+                    converted.x = exact ? pickAt(g.stamps[i], g.curve.pts[i].x)
+                                        : convertBeatX(g.curve.pts[i].x);
                     cg.curve.pts.push_back(converted);
                 }
                 cg.x0 = cg.curve.pts.front().x;
@@ -241,6 +254,9 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
                 }
                 target->gestures.push_back(std::move(cg));
             }
+            if (stampMismatches > 0)
+                program->report.invalid.push_back({ key, std::to_string(stampMismatches)
+                    + " gesture(s) without parallel stamps: x reconstructed from the tempo map (inexact)" });
         }
     }
 

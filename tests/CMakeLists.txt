@@ -671,3 +671,44 @@ if(APPLE AND AUDIODNA_BUILD_SYPHON)
              COMMAND syphon-check "Audio-DNA-Negative-Check-Nonexistent-App-9f3a" 0.5)
     set_tests_properties(syphon_check_negative PROPERTIES WILL_FAIL TRUE)
 endif()
+
+# --- test_program_stamps (s-rta-0923 lane L2: Program::compile must take
+# each continuous breakpoint's x from its own gesture's parallel Stamp, not
+# reconstruct it from the take's sparse TempoMap). Same headless link set as
+# test_take above -- Composition/Clip/Layer/EffectLibrary/Effect are
+# juce_core-only, no OpenGL/ShaderManager needed. A separate executable (not
+# appended to test_take.cpp) because this lane does not own that file.
+add_executable(test_program_stamps
+    test_program_stamps.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+)
+target_include_directories(test_program_stamps PRIVATE ${SRC_DIR})
+target_link_libraries(test_program_stamps PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_program_stamps PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_program_stamps PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_program_stamps)
+catch_discover_tests(test_program_stamps)
