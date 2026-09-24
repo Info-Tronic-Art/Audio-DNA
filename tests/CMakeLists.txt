@@ -124,6 +124,7 @@ catch_discover_tests(test_oscillator_bar_fold)
 # feature extraction produces expected values. Requires JUCE (FFT) and Aubio.
 add_executable(test_integration_pipeline
     test_integration_pipeline.cpp
+    ${SRC_DIR}/analysis/AnalysisResampler.cpp
     ${SRC_DIR}/analysis/FFTProcessor.cpp
     ${SRC_DIR}/analysis/SpectralFeatures.cpp
     ${SRC_DIR}/analysis/OnsetDetector.cpp
@@ -1073,3 +1074,40 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_recorder_host)
 catch_discover_tests(test_recorder_host)
+
+# --- test_analysis_resampler (R13 lane A: AnalysisResampler -- T1 device-rate
+# resampling fidelity/anti-alias/rate-switch cases, plus T1.6 the
+# AudioCallback rate-cell wiring via a FakeAudioIODevice copied from
+# test_audio_tap_sync.cpp). Headless: no real device.
+add_executable(test_analysis_resampler
+    test_analysis_resampler.cpp
+    ${SRC_DIR}/analysis/AnalysisResampler.cpp
+    ${SRC_DIR}/analysis/FFTProcessor.cpp
+    ${SRC_DIR}/audio/AudioCallback.cpp
+)
+target_include_directories(test_analysis_resampler PRIVATE ${SRC_DIR})
+target_link_libraries(test_analysis_resampler PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_dsp
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_audio_utils
+)
+target_compile_definitions(test_analysis_resampler PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_analysis_resampler PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_analysis_resampler)
+catch_discover_tests(test_analysis_resampler)
