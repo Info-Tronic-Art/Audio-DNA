@@ -880,3 +880,104 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_bt_device_shapes)
 catch_discover_tests(test_bt_device_shapes)
+
+# --- test_manual_write (s-rta-0923 lane 3, Lane C0 scaffold: the manualWrite
+# funnel core, headless -- .harmony/specs/s-rta-0923-lane3-plan.md sections
+# 3.2/5. Shaped exactly like test_connection above: same source list +
+# ManualWrite.cpp. Every case in this file is written NOW against Lane C0's
+# stub (src/connect/ManualWrite.cpp returns nullopt/false/no-op for every
+# function) and is expected to FAIL until Lane C1 implements it for real --
+# that failure is the fail-first evidence for C1's work. Case (i) is a PIN
+# (round-trips Composition::scalarConns through toVar/fromVar; passes on
+# HEAD already, does not touch ManualWrite at all).
+add_executable(test_manual_write
+    test_manual_write.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnectionShaper.cpp
+    ${SRC_DIR}/connect/ConnectionEngine.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_manual_write PRIVATE ${SRC_DIR})
+target_link_libraries(test_manual_write PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+    juce::juce_opengl
+)
+target_compile_definitions(test_manual_write PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_manual_write PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_manual_write)
+catch_discover_tests(test_manual_write)
+
+# --- test_conn_picker (s-rta-0923 lane 3, Lane C0 scaffold: the picker ->
+# ConnSource translation, headless -- .harmony/specs/s-rta-0923-lane3-plan.md
+# sections 4.3/5. Shaped exactly like test_connection above: same source
+# list + ConnPicker.cpp. Every case here is written NOW against Lane C0's
+# stub (src/connect/ConnPicker.cpp: sourceFromPicker returns ConnSource{},
+# describeSource returns "") and is expected to FAIL until Lane C4 implements
+# it for real, EXCEPT the two pins that pass on the stub by construction
+# (Manual -> Kind::None, describeSource(None) == "").
+add_executable(test_conn_picker
+    test_conn_picker.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnectionShaper.cpp
+    ${SRC_DIR}/connect/ConnectionEngine.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_conn_picker PRIVATE ${SRC_DIR})
+target_link_libraries(test_conn_picker PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+    juce::juce_opengl
+)
+target_compile_definitions(test_conn_picker PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_conn_picker PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_conn_picker)
+catch_discover_tests(test_conn_picker)

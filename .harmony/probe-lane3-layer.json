@@ -1,0 +1,26 @@
+{
+  "name": "probe-lane3-layer",
+  "activeDeckIndex": 0,
+  "masterOpacity": 1.0,
+  "decks": [
+    {
+      "name": "A",
+      "id": 0,
+      "numColumns": 2,
+      "layers": [
+        {
+          "name": "L1", "id": 0, "opacity": 1.0, "visible": true, "blendMode": 1,
+          "clips": [ { "name": "gw", "id": 1, "mediaType": 4, "sourceType": "gravity_well" } ],
+          "conns": {
+            "opacity": {
+              "src": { "kind": "lfo", "shape": "square", "cycleBeats": 1.0, "phase": 0.0, "pulseWidth": 0.5 },
+              "shape": { "min": 0.0, "max": 1.0, "invert": false, "playback": "forward", "loop": true,
+                         "curve": "Linear", "inMin": 0.0, "inMax": 1.0, "smoothMs": 0.0 },
+              "enabled": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

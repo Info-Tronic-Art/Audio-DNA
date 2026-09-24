@@ -111,6 +111,17 @@ struct ParamConnection
         enum class Kind : uint8_t { None, Held, Decaying };
         Kind kind = Kind::None;
         double lastTouch = 0.0;   // engine time, seconds -- Decaying's refresh stamp
+
+        // s-rta-0923 lane 3 (critic amendment #3): the D8 deliberateness rank
+        // that currently holds this grip -- a `Hand` value (src/connect/
+        // ManualWrite.h), 0 = None. Declared here (scaffold, C0) so C1's core
+        // and C0's fail-first tests both compile against it; gripHeld()/
+        // gripTouch()/release() below are given the behavioural hunk that
+        // sets/clears it in C1, not here. The copy ctor below does not list
+        // `grip` in its init list, so a copied connection's rank resets to 0
+        // along with kind/lastTouch (s166 spec section 2.3: "undo/redo and
+        // preset load clear all grips").
+        uint8_t rank = 0;
     } grip;
 
     // Runtime state; lives INSIDE the connection (never a parallel vector,

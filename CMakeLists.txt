@@ -185,6 +185,11 @@ target_sources(AudioDNA PRIVATE
     src/connect/ConnectionEngine.cpp
     src/connect/ConnSerialization.h
     src/connect/ConnSerialization.cpp
+    src/connect/ManualWrite.h
+    src/connect/ManualWrite.cpp
+    src/connect/ConnPicker.h
+    src/connect/ConnPicker.cpp
+    src/connect/ConnClock.h
 
     # Signal (v2)
     src/signal/Signal.h
