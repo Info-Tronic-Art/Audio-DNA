@@ -167,13 +167,26 @@ struct ParamConnection
     ParamConnection(ParamConnection&&) = default;
     ParamConnection& operator=(ParamConnection&&) = default;
 
-    void gripHeld() { grip.kind = Grip::Kind::Held; }   // slider mouse-down / touch-begin -- always wins
+    // s-rta-0923 lane 3 (Lane C1, critic amendment #3 + non-blocking #6): the
+    // widget-direct human path (LayerStrip drag, UniversalParamControl drag/
+    // +-/right-click). These set/clear `grip.rank` to the D8 Hand values
+    // (src/connect/ManualWrite.h) -- HumanHeld == 3, HumanDecaying == 2 --
+    // duplicated here as bare ints (ManualWrite.h includes THIS header, so
+    // the reverse include would be circular). gripTouch()'s displacement
+    // rule now matches the D8 table exactly: a Held grip only refuses a
+    // Decaying touch if its rank is ALREADY HumanDecaying or higher (a
+    // Lane-rank Held gesture, rank 1, must still yield to a human's +/-/
+    // right-click) -- test_connection's "Decaying does not displace Held"
+    // still passes unchanged: that test's Held grip is set via gripHeld(),
+    // which is rank 3, so `grip.rank >= 2` is true there too.
+    void gripHeld() { grip.kind = Grip::Kind::Held; grip.rank = 3; }   // slider mouse-down / touch-begin -- always wins
     void gripTouch(double now)                          // a release-less write (MIDI/OSC/HTTP/velocity)
     {
-        if (grip.kind == Grip::Kind::Held)
-            return;   // a Held grip is not displaced by a Decaying one
+        if (grip.kind == Grip::Kind::Held && grip.rank >= 2)
+            return;   // a Held grip at HumanDecaying rank or higher is not displaced by a Decaying touch
         grip.kind = Grip::Kind::Decaying;
         grip.lastTouch = now;
+        grip.rank = 2;
     }
-    void release(double /*now*/) { grip.kind = Grip::Kind::None; }   // slider mouse-up, or Decaying expiry
+    void release(double /*now*/) { grip.kind = Grip::Kind::None; grip.rank = 0; }   // slider mouse-up, or Decaying expiry
 };

@@ -351,6 +351,60 @@ TEST_CASE("manualWriteCore + ConnectionEngine::tick: a HumanHeld grip leaves the
 }
 
 // ============================================================================
+// (h') critic amendment #1 (BLOCKING), the true fail-first case for the
+// defect (h) alone cannot discriminate: (h)'s twin starts at its
+// default-constructed NaN, so an unfixed ConnectionEngine.cpp (which SKIPS
+// the store while gripped, "if (!std::isnan(y)) store(...)") still LEAVES
+// the twin at NaN by accident. Here the twin is ticked 3x FIRST so it holds
+// a REAL published value, THEN gripped -- only a fixed tick() clears it.
+// ============================================================================
+
+TEST_CASE("ConnectionEngine::tick: a Held grip clears an ALREADY-published twin to NaN (critic finding #1)", "[manualwrite][engine][critic1]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap;
+    snap.clear();
+
+    Composition comp;
+    comp.initDefault();
+    comp.gripHoldMs = 250.0f;
+    comp.handBackGlideMs = 100.0f;
+
+    auto& conn = comp.scalarConns[static_cast<size_t>(CompScalar::Opacity)];
+    conn.source.kind = ConnSource::Kind::Lfo;
+    conn.source.lfo.cycleBeats = 4.0f;
+
+    const auto& def = compScalarDefs()[static_cast<size_t>(CompScalar::Opacity)];
+    ControlRef r{ &conn, &comp.masterOpacity, &comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)],
+                  def.toModel, def.toNorm };
+
+    ConnectionEngine engine;
+
+    // Tick 3x, ungripped, so the twin holds a REAL published value first.
+    for (int i = 0; i < 3; ++i)
+    {
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0 + i * 0.016, comp.gripHoldMs, comp.handBackGlideMs };
+        engine.tick(comp, ctx);
+    }
+    REQUIRE_FALSE(std::isnan(comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load()));
+
+    REQUIRE(manualWriteCore(r, 0.5f, Hand::HumanHeld, ParamConnection::Grip::Kind::Held, 1.05, comp.gripHoldMs) == true);
+
+    ConnectionEngine::Context ctxGripped{ sig, bank, snap, 0.016f, 1.06, comp.gripHoldMs, comp.handBackGlideMs };
+    engine.tick(comp, ctxGripped);
+    REQUIRE(std::isnan(comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load()));
+    REQUIRE(comp.eff(CompScalar::Opacity) == Approx(comp.masterOpacity).margin(0.001f));
+
+    manualReleaseCore(r, Hand::HumanHeld);
+    ConnectionEngine::Context ctxAfter{ sig, bank, snap, 0.016f, 1.06, comp.gripHoldMs, comp.handBackGlideMs };
+    engine.tick(comp, ctxAfter);
+    float first = comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load();
+    REQUIRE_FALSE(std::isnan(first));
+    REQUIRE(first == Approx(def.toNorm(comp.masterOpacity)).margin(0.05f));
+}
+
+// ============================================================================
 // (i) [PIN] Composition::scalarConns round-trips through toVar/fromVar with
 // the grip cleared. Does not touch ManualWrite; passes on HEAD already.
 // ============================================================================

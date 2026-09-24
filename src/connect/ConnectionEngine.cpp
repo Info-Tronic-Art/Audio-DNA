@@ -185,6 +185,16 @@ namespace
     // ScalarEnum) is found by ordinary overload resolution (Clip.h/Layer.h/
     // model/Composition.h each declare their own overload) -- "the only
     // place that names the fields" per the s166 spec's own comment on it.
+    // s-rta-0923 lane 3 (Lane C1, critic amendment #1, BLOCKING): a
+    // connected+enabled connection ALWAYS stores this tick, publishing NaN
+    // straight through when gripped/disabled-mid-evaluate -- the previous
+    // "if (!std::isnan(y)) store(...)" pattern SKIPPED the store while
+    // gripped, leaving the twin frozen at its last published value, so
+    // LiveValue::effective() kept reading the stale signal instead of
+    // falling back to the manual field the human hand was actively writing
+    // (the twin must read NaN, not "whatever it last was"). A
+    // connected-but-disabled (bypassed) connection also now clears its twin
+    // to NaN every tick, instead of freezing at its last value forever.
     template <typename Owner, typename ScalarEnum, size_t N>
     void tickScalars(Owner& owner, std::array<ParamConnection, N>& conns,
                      std::array<LiveValue, N>& live, const std::array<ScalarDef, N>& defs,
@@ -193,13 +203,17 @@ namespace
         for (size_t i = 0; i < N; ++i)
         {
             ParamConnection& c = conns[i];
-            if (!c.isConnected() || !c.enabled)
+            if (!c.isConnected())
                 continue;
+            if (!c.enabled)
+            {
+                live[i].v.store(kNan, std::memory_order_relaxed);
+                continue;
+            }
             ScalarEnum s = static_cast<ScalarEnum>(i);
             float manualNorm = defs[i].toNorm(manualRef(owner, s));
             float y = ConnectionEngine::evaluate(c, manualNorm, ctx, clock);
-            if (!std::isnan(y))
-                live[i].v.store(defs[i].toModel(y), std::memory_order_relaxed);
+            live[i].v.store(std::isnan(y) ? kNan : defs[i].toModel(y), std::memory_order_relaxed);
         }
     }
 
@@ -218,18 +232,28 @@ namespace
             for (size_t i = 0; i < fx.paramConns.size(); ++i)
             {
                 ParamConnection& c = fx.paramConns[i];
-                if (!c.isConnected() || !c.enabled)
+                if (!c.isConnected())
                     continue;
+                if (!c.enabled)
+                {
+                    fx.paramLive[i].v.store(kNan, std::memory_order_relaxed);
+                    continue;
+                }
                 float y = ConnectionEngine::evaluate(c, fx.paramValues[i], ctx, clock);
-                if (!std::isnan(y))
-                    fx.paramLive[i].v.store(y, std::memory_order_relaxed);
+                fx.paramLive[i].v.store(std::isnan(y) ? kNan : y, std::memory_order_relaxed);
             }
 
-            if (fx.dryWetConn.isConnected() && fx.dryWetConn.enabled)
+            if (fx.dryWetConn.isConnected())
             {
-                float y = ConnectionEngine::evaluate(fx.dryWetConn, fx.dryWet, ctx, clock);
-                if (!std::isnan(y))
-                    fx.dryWetLive.v.store(y, std::memory_order_relaxed);
+                if (!fx.dryWetConn.enabled)
+                {
+                    fx.dryWetLive.v.store(kNan, std::memory_order_relaxed);
+                }
+                else
+                {
+                    float y = ConnectionEngine::evaluate(fx.dryWetConn, fx.dryWet, ctx, clock);
+                    fx.dryWetLive.v.store(std::isnan(y) ? kNan : y, std::memory_order_relaxed);
+                }
             }
         }
     }
@@ -253,14 +277,25 @@ void ConnectionEngine::tick(Composition& comp, const Context& ctx)
     // `comp`): the owner's multi-bank amendment means this engine must not
     // assume a single global bank lives on the Composition -- see the
     // s167-l2 report.
+    // Critic amendment #1 (BLOCKING): macros have no LiveValue twin --
+    // currentValue is read directly, not through LiveValue::effective() --
+    // so the equivalent "always store, NaN falls back to manual" fix is to
+    // always assign currentValue every tick, falling back to manualValue
+    // instead of storing NaN when disabled/gripped (same visible effect: a
+    // gripped/bypassed macro reflects the hand immediately instead of
+    // freezing at its last computed signal value).
     for (int i = 0; i < MacroBank::kNumMacros; ++i)
     {
         MacroBank::Macro& macro = ctx.macros.getMacro(i);
-        if (!macro.conn.isConnected() || !macro.conn.enabled)
+        if (!macro.conn.isConnected())
             continue;
+        if (!macro.conn.enabled)
+        {
+            macro.currentValue = macro.manualValue;
+            continue;
+        }
         float y = evaluate(macro.conn, macro.manualValue, ctx, nullptr);
-        if (!std::isnan(y))
-            macro.currentValue = y;
+        macro.currentValue = std::isnan(y) ? macro.manualValue : y;
     }
 
     tickScalars<Composition, CompScalar>(comp, comp.scalarConns, comp.scalarLive, compScalarDefs(),
