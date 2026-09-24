@@ -72,6 +72,61 @@ origin:      memory/session-handoff.md:111 MUST-2(c)
 why-routed:  config/mcp-catalogue.md is a GENERATED render (scripts/mcp-catalogue.sh --render) and --check asserts every disk server is catalogued. Deleting the row from the render while ~/projects/RealTimeAudio/.mcp.json still declares codegraph-rta creates an awareness gap that hygiene.sh flags as WARN (scripts/hygiene.sh:6329). The removal must happen at the SOURCE, which is your .mcp.json — a foreign repo the primary must not commit to. Handing it to its owner, not deferring it a fifth time.
 source-idea: idea-2026-09-04-harmony2-17885803531987214855
 routed-by:   harmony-21985     date: 2026-09-06
-status:      SENT
-status-note:
+status:      DONE
+status-note: s-rta-0923: codegraph-rta block deleted from .mcp.json; codegraph entry removed from .harmony/knowledge-tools.yml; graphify re-probed 7254N/11265E/373C (graph had been a 0-node file since 2026-09-07). Primary may now re-render mcp-catalogue.
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-10-RealTimeAudio-17890807759054610371
+raw:         Decide the disposition of this repo's graphify git hooks (.git/hooks/post-commit + post-checkout, installed by 'graphify hook install'). Context: a prior primary-seat session let these rebuild the code graph on RTA commits and one wrote a 0-node graph over the void. They are project-local tooling — Harmony's primary no longer touches this repo (see charter). Options: (a) keep + fix the empty-graph failure mode, (b) 'graphify hook uninstall' to remove them. Related tool bugs already filed as Harmony candidates: graphify-commit-hook-writes-empty-graph, graphify-staleness-blind-to-missing-outputs.
+origin:      memory/session-handoff.md MUST-1(a)
+why-routed:  git hooks live in the RTA project repo; graphify is a project-local tool integration, not a Harmony daemon — the owning session decides
+source-idea: 
+routed-by:   harmony-98613     date: 2026-09-10
+status:      DONE
+status-note: s-rta-0923: KEEP (a). The hook runs `graphify update` which refuses to overwrite a graph with fewer nodes unless --force; the 0-node graph came from the Harmony launchd wrapper deleting graph.json BEFORE extracting (void, so no guard applies) — that wrapper defect is Harmony-side, filed up-channel. Hook behaviour re-checked on this session's first commit (see HANDOFF).
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-10-RealTimeAudio-1789082994142806700
+raw:         Deregister the stale MCP server 'codegraph-rta' from this repo's .mcp.json. It is TODO-purpose / long-lived and never differentiated from graphify-rta (the two overlap on symbol/reference scope; graphify-rta + clangd-rta cover C++ symbol/impact analysis authoritatively per knowledge-tools.md). Once removed from .mcp.json, a future Harmony primary re-renders config/mcp-catalogue.md and the entry drops automatically. Verify: 'codegraph-rta' no longer appears in ~/projects/RealTimeAudio/.mcp.json.
+origin:      memory/session-handoff.md MUST-1(c)
+why-routed:  the server is registered in RTA's own .mcp.json (a project repo file) — deregistering it is a project-repo action; the primary only maintains Harmony's catalogue, which reflects disk truth
+source-idea: 
+routed-by:   harmony-98613     date: 2026-09-10
+status:      DONE
+status-note: s-rta-0923: duplicate of the 2026-09-06 item — codegraph-rta no longer in .mcp.json (grep -c = 0).
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-11-RealTimeAudio-17891312102907024262
+raw:         One repo's gitignore hides the unclean-close mechanism from itself: ~/projects/RealTimeAudio/.gitignore:62 ignores .harmony/, suppressing UNCLEAN-CLOSE-STAMP-*.md in this repo only (Clean Copy and t shirt 2 do not suppress it). Pre-existing since 2026-05-18. Also self-contradictory: the repo both ignores .harmony/ AND force-tracks ~20 files inside it. Decide deliberately whether .harmony/ artifacts are tracked; either way the stamp pattern should be visible.
+origin:      memory/system-upgrade-candidates.md:7320 (rta-gitignore-hides-unclean-close-stamp)
+why-routed:  project-config fix scoped to the RealTimeAudio repo's own .gitignore; routed s174 backlog reduction
+source-idea: 
+routed-by:   harmony-4288     date: 2026-09-11
+status:      DONE
+status-note: s-rta-0923: .gitignore `.harmony/` -> `.harmony/*` + `!.harmony/UNCLEAN-CLOSE-STAMP-*.md`. Proven: a probe stamp file shows as ?? in git status; other new .harmony files stay ignored; force-tracked files unaffected. Tracking policy kept as-is (ignore + force-track deliberate artifacts).
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-23-RealTimeAudio-1790207563485530421
+raw:         Re-enable the knowledge-tool MCP servers this repo's own rulings say to KEEP. .claude/settings.local.json (mtime 2026-07-29) lists graphify-rta, codegraph-rta AND clangd-rta under disabledMcpjsonServers, so none load — yet the 2026-09-04 ruling (this inbox, s-rta-0904 DONE record) makes clangd-rta the SOLE authority for C3/blast-radius impact and keeps graphify-rta. Do this together with the codegraph-rta removal items already SENT above: drop codegraph-rta from .mcp.json + knowledge-tools.yml, then remove clangd-rta and graphify-rta from disabledMcpjsonServers. If Boris disabled them deliberately (settings.local.json is user-local), ask him before re-enabling.
+origin:      s228 audit wf_285b0069-cb3 gap G3 (confirmed 2/2 verifiers)
+why-routed:  settings.local.json + .mcp.json are RTA repo config; the project session owns them (s172 charter)
+source-idea: 
+routed-by:   harmony-95977     date: 2026-09-23
+status:      TAKEN
+status-note: s-rta-0923: codegraph-rta dropped from .mcp.json, knowledge-tools.yml and the disabled list. Re-enabling clangd-rta + graphify-rta is HELD for Boris — settings.local.json is user-local and may be deliberate; asked in the close.
+--- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-23-RealTimeAudio-1790207563487422669
+raw:         Stop using .harmony/idea-ledger.md as a notebook. It holds 3 canonical --- IDEA --- records (all delivered to Harmony) plus ~17 '### ' / 10 '## ' prose sections from s-rta-0904, s166, s167, s168 (rig facts, product defects, retractions, method notes). Prose sections NEVER transport to the Harmony primary. Triage each: project findings/defects -> .harmony/notebook.md or gotchas.md (or a fix task); anything genuinely aimed at changing HARMONY (method/process lessons) -> re-file via ~/Harmony_Main/scripts/idea-capture.sh so it reaches the primary. From Harmony s228 on, the secondary close gate WARNs on any off-schema heading in this file. Also: the eos-secondary close requires a session log in THIS repo (.harmony/sessions/ or memory/sessions/) — sessions s-rta-0904..s168 (Sep 4-7) wrote none; the close gate was wrongly counting Harmony's own logs and is being fixed in s228, so the next close without an RTA session log will BLOCK.
+origin:      s228 audit wf_285b0069-cb3 gaps G12/G14 + follow-up M1/M2
+why-routed:  idea-ledger.md and session logs are RTA repo content; the project session triages them (s172 charter)
+source-idea: 
+routed-by:   harmony-95977     date: 2026-09-23
+status:      TAKEN
+status-note: s-rta-0923: triage lane dispatched; session log will be written to .harmony/sessions/ at close.
 --- /ROUTED-ITEM ---

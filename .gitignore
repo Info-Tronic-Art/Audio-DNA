@@ -59,7 +59,9 @@ desktop.ini
 __pycache__/
 
 # === Harmony normalization ===
-.harmony/
+# .harmony/* (not .harmony/) so the negation below can re-include; force-tracked files stay tracked
+.harmony/*
+!.harmony/UNCLEAN-CLOSE-STAMP-*.md
 graphify-out/
 
 # === Misc ===
