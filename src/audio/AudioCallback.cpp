@@ -47,6 +47,7 @@ void AudioCallback::audioDeviceIOCallbackWithContext(
 void AudioCallback::audioDeviceAboutToStart(juce::AudioIODevice* device)
 {
     monoBuffer_.resize(static_cast<size_t>(device->getCurrentBufferSizeSamples()), 0.0f);
+    sampleRate_.store(device->getCurrentSampleRate(), std::memory_order_release);
 }
 
 void AudioCallback::audioDeviceStopped()

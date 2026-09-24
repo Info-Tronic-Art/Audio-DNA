@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include "AnalysisResampler.h"
 #include "FeatureSnapshot.h"
 #include "audio/RingBuffer.h"
 #include "features/FeatureBus.h"
@@ -44,9 +45,14 @@ class AnalysisThread : public juce::Thread
 public:
     static constexpr int kBlockSize = 2048;
     static constexpr int kHopSize = 512;
+    // Internal analysis rate — the device stream is resampled to this
+    // (AnalysisResampler); the device rate is FeatureSnapshot::sourceSampleRate.
     static constexpr int kSampleRate = 48000;
 
-    explicit AnalysisThread(RingBuffer<float>& ringBuffer);
+    // `sourceRateCell` is the device rate cell (AudioEngine::sourceSampleRateCell()),
+    // read by the analysis thread to drive the resampler. nullptr => permanent
+    // bypass (headless / unknown source, e.g. tests or --test-mode).
+    explicit AnalysisThread(RingBuffer<float>& ringBuffer, const std::atomic<double>* sourceRateCell = nullptr);
     ~AnalysisThread() override;
 
     void run() override;
@@ -80,6 +86,13 @@ public:
 
 private:
     RingBuffer<float>& ringBuffer_;
+
+    // R13: device-rate resampling. sourceRateCell_ is read once per loop
+    // iteration; lastSourceRate_ starts at -1 so the very first iteration
+    // always configures the resampler (even for an unchanged 0/48000 rate).
+    const std::atomic<double>* sourceRateCell_ = nullptr;
+    AnalysisResampler resampler_;
+    double lastSourceRate_ = -1.0;
 
     // Analysis state
     std::array<float, kBlockSize> analysisBuffer_{};

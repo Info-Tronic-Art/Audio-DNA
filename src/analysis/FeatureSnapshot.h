@@ -84,6 +84,15 @@ struct alignas(64) FeatureSnapshot
     float resonancePeak = 0.0f;            // [0, 1] — spectral kurtosis (sharp peaks vs flat)
     float reeseBass = 0.0f;               // [0, 1] — bass spectral spread (reese/wobble detection)
 
+    // R13 provenance. sourceSampleRate = the device rate the analysis was fed
+    // from (Hz; 0 = unknown/no device/test mode). Analysis itself always runs at
+    // AnalysisThread::kSampleRate (48 kHz): the device stream is resampled to it.
+    // bandValidMask: bit b set when bandEnergies[b] is meaningful at this source
+    // rate; bands mostly above the source Nyquist read 0 and have the bit clear
+    // (16 kHz Bluetooth HFP: bit 6 / Brilliance ("Air") is clear -> 0x3F).
+    float   sourceSampleRate = 0.0f;
+    uint8_t bandValidMask    = 0x7F;
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
@@ -94,5 +103,6 @@ struct alignas(64) FeatureSnapshot
         swingRatio = 0.5f;  // 0.5 = straight timing
         detectedGenre = 6;  // struct default (Pop/Electronic)
         energyState = 1;    // struct default (medium)
+        bandValidMask = 0x7F;
     }
 };

@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include "analysis/AnalysisResampler.h"
 #include "analysis/FFTProcessor.h"
 #include "analysis/SpectralFeatures.h"
 #include "analysis/OnsetDetector.h"
@@ -15,6 +16,7 @@
 #include "audio/RingBuffer.h"
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 using Catch::Approx;
@@ -129,8 +131,9 @@ struct PipelineRunner
 
         // 5. BPM tracking + beat phase
         bpm.process(hopData);
-        snap.bpm       = bpm.bpm();
-        snap.beatPhase = bpm.beatPhase();
+        snap.bpm           = bpm.bpm();
+        snap.beatPhase     = bpm.beatPhase();
+        snap.trackerState  = bpm.trackerState();  // R13 T2.3: lock-state assertions
 
         // 6. MFCC
         mfcc.process(mag);
@@ -518,4 +521,149 @@ TEST_CASE("Integration: pipeline publishes to FeatureBus", "[integration]")
     REQUIRE(rs.spectralCentroid > 390.0f);
     REQUIRE(rs.spectralCentroid < 490.0f);
     REQUIRE(rs.rms > 0.5f);
+}
+
+// =============================================================================
+// R13 T2 -- rate invariance: generate at the SOURCE rate, run through
+// AnalysisResampler, feed the resulting 48kHz hops to PipelineRunner. This
+// mirrors what AnalysisThread does for a non-48kHz device.
+// =============================================================================
+
+static std::vector<float> generateSineAtRate(float freqHz, float amplitude, size_t numSamples, double rate)
+{
+    std::vector<float> out(numSamples);
+    for (size_t i = 0; i < numSamples; ++i)
+        out[i] = amplitude * std::sin(2.0f * kPI * freqHz * static_cast<float>(i) / static_cast<float>(rate));
+    return out;
+}
+
+// Deterministic LCG -- reproducible noise bursts without relying on global RNG state.
+static float r13LcgNoise(uint32_t& state)
+{
+    state = state * 1664525u + 1013904223u;
+    return (static_cast<float>(state) / 4294967295.0f) * 2.0f - 1.0f;
+}
+
+// A periodic click train: decaying noise bursts at `bpmVal`, burst duration
+// `burstMs`, peak level `dBFS`, for `durationSec` seconds, at `rate` Hz.
+static std::vector<float> generateClickTrain(float bpmVal, float burstMs, float dBFS,
+                                              float durationSec, double rate)
+{
+    const size_t totalSamples = static_cast<size_t>(static_cast<double>(durationSec) * rate);
+    const double beatPeriod = 60.0 / static_cast<double>(bpmVal);
+    const double burstSec = static_cast<double>(burstMs) / 1000.0;
+    const float amplitude = std::pow(10.0f, dBFS / 20.0f);
+
+    std::vector<float> out(totalSamples, 0.0f);
+    uint32_t rngState = 12345u;
+
+    for (size_t i = 0; i < totalSamples; ++i)
+    {
+        double tInBeat = std::fmod(static_cast<double>(i) / rate, beatPeriod);
+        if (tInBeat < burstSec)
+        {
+            float envelope = static_cast<float>(std::exp(-tInBeat / (burstSec / 3.0)));
+            out[i] = amplitude * envelope * r13LcgNoise(rngState);
+        }
+    }
+    return out;
+}
+
+// Run `signal` (generated at `sourceRate` Hz) through AnalysisResampler then
+// the pipeline, mirroring what AnalysisThread does with a non-48kHz device.
+// At `sourceRate == 48000` the resampler is bypass — bit-identical to the
+// unresampled path (T1.1) — so this doubles as the 48kHz control case.
+static FeatureSnapshot runPipelineResampled(const std::vector<float>& signal, double sourceRate,
+                                              PipelineRunner& runner)
+{
+    AnalysisResampler resampler;
+    resampler.setSourceRate(sourceRate);
+    runner.spectral.setInputBandwidthHz(resampler.inputBandwidthHz());
+
+    RingBuffer<float> ring(1 << 16);
+    FeatureSnapshot lastSnap;
+    lastSnap.clear();
+
+    std::array<float, kHopSize> hopOut{};
+    size_t offset = 0;
+    const size_t pushChunk = 8192;
+
+    auto drain = [&]() {
+        while (resampler.pullHop(ring, hopOut.data(), kHopSize))
+        {
+            FeatureSnapshot snap;
+            if (runner.processHop(hopOut.data(), snap))
+                lastSnap = snap;
+        }
+    };
+
+    while (offset < signal.size())
+    {
+        size_t chunk = std::min(pushChunk, signal.size() - offset);
+        size_t pushed = ring.push(signal.data() + offset, chunk);
+        offset += pushed;
+        drain();
+    }
+    drain();
+
+    return lastSnap;
+}
+
+TEST_CASE("R13 T2.1: spectral centroid rate-invariant after resampling", "[integration][r13]")
+{
+    for (double rate : { 16000.0, 44100.0, 48000.0 })
+    {
+        auto signal = generateSineAtRate(1000.0f, 0.9f, static_cast<size_t>(rate * 1.0), rate);
+        PipelineRunner runner;
+        FeatureSnapshot snap = runPipelineResampled(signal, rate, runner);
+        INFO("source rate = " << rate);
+        REQUIRE(snap.spectralCentroid > 975.0f);
+        REQUIRE(snap.spectralCentroid < 1025.0f);
+    }
+}
+
+TEST_CASE("R13 T2.2: LUFS rate-invariant after resampling", "[integration][r13]")
+{
+    auto signal16 = generateSineAtRate(1000.0f, 0.1f, 16000, 16000.0);
+    auto signal48 = generateSineAtRate(1000.0f, 0.1f, 48000, 48000.0);
+
+    PipelineRunner runner16;
+    FeatureSnapshot snap16 = runPipelineResampled(signal16, 16000.0, runner16);
+
+    PipelineRunner runner48;
+    FeatureSnapshot snap48 = runPipelineResampled(signal48, 48000.0, runner48);
+
+    INFO("lufs16=" << snap16.lufs << " lufs48=" << snap48.lufs);
+    REQUIRE(std::fabs(snap16.lufs - snap48.lufs) <= 0.5f);
+}
+
+TEST_CASE("R13 T2.3: BPM rate-invariant after resampling", "[integration][r13][slow]")
+{
+    for (double rate : { 44100.0, 48000.0, 16000.0 })
+    {
+        auto signal = generateClickTrain(120.0f, 20.0f, -6.0f, 15.0f, rate);
+        PipelineRunner runner;
+        FeatureSnapshot snap = runPipelineResampled(signal, rate, runner);
+        INFO("source rate = " << rate << " bpm=" << snap.bpm << " trackerState=" << static_cast<int>(snap.trackerState));
+        REQUIRE(snap.bpm > 117.0f);
+        REQUIRE(snap.bpm < 123.0f);
+        REQUIRE(snap.trackerState == BPMTracker::STATE_LOCKED);
+    }
+}
+
+TEST_CASE("R13 T2.4: bandValidMask/bandEnergies rate-invariant", "[integration][r13]")
+{
+    {
+        auto signal = generateSineAtRate(1000.0f, 0.9f, 16000, 16000.0);
+        PipelineRunner runner;
+        FeatureSnapshot snap = runPipelineResampled(signal, 16000.0, runner);
+        REQUIRE(runner.spectral.bandValidMask() == 0x3F);
+        REQUIRE(snap.bandEnergies[6] == 0.0f);
+    }
+    {
+        auto signal = generateSineAtRate(1000.0f, 0.9f, 48000, 48000.0);
+        PipelineRunner runner;
+        FeatureSnapshot snap = runPipelineResampled(signal, 48000.0, runner);
+        REQUIRE(runner.spectral.bandValidMask() == 0x7F);
+    }
 }

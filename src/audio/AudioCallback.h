@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_audio_devices/juce_audio_devices.h>
+#include <atomic>
 #include "RingBuffer.h"
 
 // Sits in the real-time audio callback. Mono-downmixes and pushes samples
@@ -20,7 +21,16 @@ public:
     void audioDeviceAboutToStart(juce::AudioIODevice* device) override;
     void audioDeviceStopped() override;
 
+    // R13: the device sample rate, release-stored in audioDeviceAboutToStart
+    // (message thread, callback quiesced) and acquire-loaded by the analysis
+    // thread's resampler. 0.0 = no device / not started yet.
+    const std::atomic<double>& sampleRateCell() const noexcept { return sampleRate_; }
+
 private:
     RingBuffer<float>& ringBuffer_;
     std::vector<float> monoBuffer_;  // pre-allocated in audioDeviceAboutToStart
+    std::atomic<double> sampleRate_{0.0};
 };
+
+static_assert(std::atomic<double>::is_always_lock_free,
+              "AudioCallback's rate cell must be lock-free — read from the analysis thread");

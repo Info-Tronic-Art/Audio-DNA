@@ -15,9 +15,15 @@
 #include <cmath>
 #include <algorithm>
 
-AnalysisThread::AnalysisThread(RingBuffer<float>& ringBuffer)
+// R13: AnalysisResampler's fixed-size staging assumes its output hop matches
+// AnalysisThread's hop size (they're fed straight into the same hopBuffer).
+static_assert(AnalysisResampler::kMaxOutputHop == AnalysisThread::kHopSize,
+              "AnalysisResampler's output hop must match AnalysisThread::kHopSize");
+
+AnalysisThread::AnalysisThread(RingBuffer<float>& ringBuffer, const std::atomic<double>* sourceRateCell)
     : juce::Thread("AnalysisThread"),
-      ringBuffer_(ringBuffer)
+      ringBuffer_(ringBuffer),
+      sourceRateCell_(sourceRateCell)
 {
     // Pre-allocate all analysis modules
     fftProcessor_       = std::make_unique<FFTProcessor>();
@@ -62,17 +68,30 @@ void AnalysisThread::run()
 
     while (!threadShouldExit())
     {
-        auto available = ringBuffer_.availableToRead();
+        // R13: pick up a device-rate change (sourceRateCell_ == nullptr means
+        // permanent bypass — headless/unknown source). lastSourceRate_ starts
+        // at -1 so the first iteration always configures, even for rate 0.
+        const double rate = sourceRateCell_ ? sourceRateCell_->load(std::memory_order_acquire) : 0.0;
+        if (rate != lastSourceRate_)
+        {
+            lastSourceRate_ = rate;
+            resampler_.setSourceRate(rate);
+            spectralFeatures_->setInputBandwidthHz(resampler_.inputBandwidthHz());
+            std::cerr << "[Analysis] source rate " << static_cast<int>(rate) << " Hz -> "
+                      << (resampler_.isBypass() ? "48 kHz path (no resampling)" : "resampling to 48000 Hz")
+                      << ", bandwidth " << static_cast<int>(resampler_.inputBandwidthHz()) << " Hz\n";
+        }
 
-        if (available < static_cast<size_t>(kHopSize))
+        auto resampleStart = std::chrono::high_resolution_clock::now();
+        if (!resampler_.pullHop(ringBuffer_, hopBuffer.data(), kHopSize))
         {
             sleep(1);
             continue;
         }
+        stageTimesUs_[13] += std::chrono::duration<double, std::micro>(
+            std::chrono::high_resolution_clock::now() - resampleStart).count();
 
-        auto read = ringBuffer_.pop(hopBuffer.data(), kHopSize);
-        if (read == 0)
-            continue;
+        const size_t read = kHopSize;
 
         // Shift analysis buffer left by hop, append new samples
         if (samplesInBuffer_ >= kBlockSize)
@@ -307,6 +326,10 @@ void AnalysisThread::run()
         snap->wallClockSeconds = static_cast<double>(totalSamplesProcessed_)
                                  / static_cast<double>(kSampleRate);
 
+        // --- R13 provenance ---
+        snap->sourceSampleRate = static_cast<float>(resampler_.sourceRate());
+        snap->bandValidMask    = spectralFeatures_->bandValidMask();
+
         // === PUBLISH ===
         featureBusWriter_.publishWrite();
 
@@ -325,11 +348,11 @@ void AnalysisThread::run()
             static const char* stageNames[] = {
                 "RMS/Peak", "FFT", "Spectral", "Onset", "BPM",
                 "MFCC", "Chroma", "Key", "Pitch", "Loudness",
-                "Structural", "Genre", "Advanced"
+                "Structural", "Genre", "Advanced", "Resample"
             };
             double total = 0.0;
             std::cerr << "[Analysis Profile] Per-stage avg (us) over " << kProfileInterval << " hops:" << std::endl;
-            for (int s = 0; s < 13; ++s)
+            for (int s = 0; s < 14; ++s)
             {
                 double avg = stageTimesUs_[static_cast<size_t>(s)] / kProfileInterval;
                 total += avg;

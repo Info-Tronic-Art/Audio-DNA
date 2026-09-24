@@ -2,6 +2,7 @@
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include <atomic>
 #include "AudioCallback.h"
 #include "CombinedCallback.h"
 #include "RingBuffer.h"
@@ -36,6 +37,11 @@ public:
 
     // Actual sample rate of the running output device, or 0.0 if none.
     double getCurrentSampleRate() const;
+
+    // R13: the device rate cell (release-stored by AudioCallback on
+    // audioDeviceAboutToStart), read (acquire) by the analysis thread's
+    // resampler. 0.0 = no device / not started yet.
+    const std::atomic<double>& sourceSampleRateCell() const noexcept { return audioCallback_.sampleRateCell(); }
 
     // Audio source mode
     enum class SourceMode { File, MicInput };
