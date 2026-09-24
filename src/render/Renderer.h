@@ -9,6 +9,7 @@
 #include "mapping/MappingEngine.h"
 #include "effects/EffectLibrary.h"
 #include "features/FeatureBus.h"
+#include "features/OnsetPulse.h"
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
 #include "render/CompositorEngine.h"
@@ -304,6 +305,17 @@ private:
     // GL-thread-owned, no atomic needed.
     double lastFrameTimestampMs_ = -1.0;
 
+    // Onset render-path fix: this GL thread's consumer of FeatureSnapshot::onsetCount and the
+    // frame's snapshot copy carrying the derived pulse (frameSnap_.onsetDetected). Read once
+    // per renderOpenGL() BEFORE any early return; every uploader this frame (CompositorEngine,
+    // EffectChain, each ProceduralSource via renderSource) reads frameSnap_, never the bus.
+    // GL-thread-owned, no atomic needed.
+    OnsetPulse      onsetPulse_;
+    FeatureSnapshot frameSnap_{};
+    // Diagnostic: frames on which the pulse fired (live oracle: after a click train this
+    // delta == /api/features onsetCount delta). Written on the GL thread, read by HTTP threads.
+    std::atomic<uint32_t> onsetPulseFrames_{0};
+
     // FPS tracking
     std::atomic<float> currentFps_{0.0f};
     int frameCount_ = 0;
@@ -315,6 +327,8 @@ private:
 
 public:
     float getFps() const { return currentFps_.load(std::memory_order_relaxed); }
+    // Onset render-path fix: frames on which the render-frame onset pulse fired (see onsetPulse_).
+    uint32_t getOnsetPulseFrames() const { return onsetPulseFrames_.load(std::memory_order_relaxed); }
 
     // Set a fixed render resolution. Pass (0,0) to follow component size.
     void setLockedResolution(int w, int h)

@@ -52,6 +52,7 @@ void OutputRenderer::newOpenGLContextCreated()
     quad_.init();
     initShaders();
     startTime_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+    onsetPulse_.reset();  // onset render-path fix: a new context starts looking afresh
 
     // Re-queue the image if we had one loaded before context recreation
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
@@ -91,6 +92,17 @@ void OutputRenderer::renderOpenGL()
 
     juce::OpenGLHelpers::clear(juce::Colours::black);
 
+    // W2 (outputwindow-arc): this renderer reads the bus ITSELF each frame
+    // and passes the coherent copy into render() — the EffectChain's shared
+    // parked snapshot is gone, so audio uniforms on this context can never
+    // freeze or tear against the main renderer's refresh cadence. The
+    // post-S2 seqlock bus is multi-reader-safe from any thread.
+    // Onset render-path fix: read BEFORE the no-image early return so idle frames keep the
+    // pulse baseline current; onsetDetected becomes this context's per-frame pulse (at least
+    // one onset since its previous frame), derived from the monotonic onsetCount delta.
+    FeatureSnapshot snap = featureBus_.read();
+    snap.onsetDetected = onsetPulse_.consume(snap.onsetCount) > 0u;
+
     if (!texMgr_.hasImage())
     {
         static int noImageCount = 0;
@@ -98,13 +110,6 @@ void OutputRenderer::renderOpenGL()
             std::cerr << "[OutputRenderer] No image loaded yet (frame " << noImageCount << ")" << std::endl;
         return;
     }
-
-    // W2 (outputwindow-arc): this renderer reads the bus ITSELF each frame
-    // and passes the coherent copy into render() — the EffectChain's shared
-    // parked snapshot is gone, so audio uniforms on this context can never
-    // freeze or tear against the main renderer's refresh cadence. The
-    // post-S2 seqlock bus is multi-reader-safe from any thread.
-    const FeatureSnapshot snap = featureBus_.read();
 
     // mappingEngine_.processFrame() is intentionally NOT called here (or on
     // any GL thread): it races when called from more than one thread

@@ -3,6 +3,7 @@
 #include "analysis/AnalysisThread.h"
 #include "features/FeatureBus.h"
 #include "analysis/FeatureSnapshot.h"
+#include "features/OnsetPulse.h"
 
 // Left panel showing all audio feature values updating in real-time.
 // Reads from the FeatureBus to display comprehensive audio analysis.
@@ -24,6 +25,10 @@ private:
 
     // Onset flash animation
     float onsetFlash_ = 0.0f;
+    // Onset render-path fix: this 30 Hz message-thread reader's own onsetCount consumer, so
+    // the flash fires for every onset instead of only those whose one-hop bool it happened
+    // to catch (~1 in 3 at 30 Hz).
+    OnsetPulse onsetPulse_;
 
     // Downbeat flash animation
     float downbeatFlash_ = 0.0f;

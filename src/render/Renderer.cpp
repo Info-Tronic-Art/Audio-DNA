@@ -108,6 +108,10 @@ void Renderer::newOpenGLContextCreated()
     quad_.init();
     initShaders();
 
+    // Onset render-path fix: a (re-)attached context starts looking afresh -- no stale-delta
+    // flash for onsets that happened while it was detached.
+    onsetPulse_.reset();
+
     // W7(iv) outputwindow-arc: one-shot per-context program-ID log. Compare
     // against the [OutputRenderer] lines when the output window opens —
     // overlapping ID sets confirm (disjoint sets refute) scout R1's INFERRED
@@ -215,6 +219,19 @@ void Renderer::renderOpenGL()
     Deck* deck = activeDeck_.load(std::memory_order_acquire);
     bool deckActive = (deck != nullptr);
 
+    // Read latest audio features (R5: coherent caller-owned value copy).
+    // Onset render-path fix: read the bus FIRST (before the early return below) so idle
+    // frames keep the pulse baseline current, then derive this frame's pulse from the
+    // monotonic onsetCount delta. frameSnap_.onsetDetected now means "at least one onset
+    // since this context's previous frame" -- loss-free below the analysis rate,
+    // duplicate-free above it -- and is the ONE snapshot every uploader sees this frame
+    // (see Renderer.h).
+    frameSnap_ = featureBus_.read();
+    frameSnap_.onsetDetected = onsetPulse_.consume(frameSnap_.onsetCount) > 0u;
+    if (frameSnap_.onsetDetected)
+        onsetPulseFrames_.fetch_add(1u, std::memory_order_relaxed);
+    const FeatureSnapshot& snap = frameSnap_;
+
     // Check if we have anything to render
     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
     {
@@ -226,9 +243,6 @@ void Renderer::renderOpenGL()
         processPendingCapture(cw2, ch2, 0, 0, cw2, ch2);
         return; // Nothing to render yet
     }
-
-    // Read latest audio features (R5: coherent caller-owned value copy)
-    const FeatureSnapshot snap = featureBus_.read();
 
     // S166-L1: SignalRegistry::evaluateAll() moved OFF this GL callback — it
     // is now confined to the message thread (MainComponent::tickFeaturePipeline,
@@ -1106,8 +1120,10 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
         }
     }
 
-    // Get latest audio snapshot for audio-reactive sources
-    const FeatureSnapshot snap = featureBus_.read();
+    // Audio snapshot for audio-reactive sources: the frame's pulse-bearing copy, not a fresh
+    // read (onset render-path fix). A fresh read here could see a DIFFERENT hop than the
+    // frame's other uploaders, and each source clip would consume/miss the pulse on its own.
+    const FeatureSnapshot& snap = frameSnap_;
 
     return source->render(shaderMgr_, quad_, time, width, height, snap);
 }

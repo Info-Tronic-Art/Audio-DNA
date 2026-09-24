@@ -41,7 +41,7 @@ TestServer::~TestServer()
     stop();
 }
 
-void TestServer::injectSnapshot(const FeatureSnapshot& snap)
+void TestServer::injectSnapshot(const FeatureSnapshot& snap, const InjectedOnsetCount& onsetIntent)
 {
     // Several HTTP threads (this server's pool + the ApiServer relay) can
     // land here concurrently; the mutex keeps the single Writer's
@@ -53,6 +53,12 @@ void TestServer::injectSnapshot(const FeatureSnapshot& snap)
     if (staging == nullptr)
         return;
     *staging = snap;
+    // Onset render-path fix: mirror AnalysisThread's one-increment-per-onset-
+    // hop bookkeeping. Resolved under the lock against the count the previous
+    // inject actually published, so two concurrent injects land on +2, never
+    // both on +1 (no caller-side baseline read).
+    staging->onsetCount = onsetIntent.resolve(lastInjectedOnsetCount_);
+    lastInjectedOnsetCount_ = staging->onsetCount;
     featureBusWriter_.publishWrite();
 }
 
@@ -512,7 +518,19 @@ void TestServer::handleInjectFeatures(const httplib::Request& req, httplib::Resp
     snap->resonancePeak = get("resonancePeak");
     snap->reeseBass = get("reeseBass");
 
-    injectSnapshot(injected);
+    // Onset render-path fix: intent only; the count is resolved under
+    // injectSnapshot's lock. The cleared snapshot's onsetDetected is true
+    // only if THIS request set it, so a bump is never a carried-over phantom.
+    InjectedOnsetCount onsetIntent;
+    if (obj->hasProperty("onsetCount"))
+    {
+        onsetIntent.hasExplicit = true;
+        onsetIntent.explicitCount = static_cast<uint32_t>(
+            std::max(0, static_cast<int>(obj->getProperty("onsetCount"))));
+    }
+    onsetIntent.bump = snap->onsetDetected;
+
+    injectSnapshot(injected, onsetIntent);
 
     res.set_content(jsonOk(), "application/json");
 }
@@ -575,6 +593,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
     obj->setProperty("frame_time_ms", static_cast<double>(renderer_.getFrameTimeMs()));
     obj->setProperty("master_level", static_cast<double>(renderer_.getMasterLevel()));
+    // Onset render-path fix: frames on which the render-frame onset pulse fired.
+    obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
 
     // Effects state
     juce::Array<juce::var> effectsArr;
@@ -640,7 +660,9 @@ void TestServer::handleReset(const httplib::Request&, httplib::Response& res)
     // Clear injected features
     FeatureSnapshot cleared;
     cleared.clear();
-    injectSnapshot(cleared);
+    // Onset render-path fix: the count restarts at 0 -- every consumer's
+    // OnsetPulse sees a backwards jump and re-baselines without a pulse.
+    injectSnapshot(cleared, InjectedOnsetCount::zero());
 
     // Give GL thread a frame to process
     juce::Thread::sleep(50);

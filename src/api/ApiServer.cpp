@@ -1,6 +1,7 @@
 #include "api/ApiServer.h"
 #include "render/Renderer.h"
 #include "features/FeatureBus.h"
+#include "features/OnsetPulse.h"
 #include "effects/EffectChain.h"
 #include "effects/Effect.h"
 #include "effects/EffectLibrary.h"
@@ -285,6 +286,10 @@ void ApiServer::handleStatus(const httplib::Request&, httplib::Response& res)
     obj->setProperty("frameTimeMs", static_cast<double>(renderer_.getFrameTimeMs()));
     obj->setProperty("masterLevel", static_cast<double>(renderer_.getMasterLevel()));
     obj->setProperty("activeDeck", composition_.activeDeckIndex);
+    // Onset render-path fix: frames on which the main Renderer's onset pulse
+    // fired. Live oracle: after a click train its delta must EQUAL the
+    // /api/features onsetCount delta (one pulse frame per onset at any fps).
+    obj->setProperty("renderOnsetPulses", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
 
     // BPM info from feature bus (R5: caller-owned value copy)
     const FeatureSnapshot snap = featureBus_.read();
@@ -646,7 +651,15 @@ void ApiServer::handleGetFeatures(const httplib::Request&, httplib::Response& re
     obj->setProperty("spectralFlatness", static_cast<double>(snap.spectralFlatness));
     obj->setProperty("bpm", static_cast<double>(snap.bpm));
     obj->setProperty("beatPhase", static_cast<double>(snap.beatPhase));
+    // onsetDetected is the latest analysis hop's one-hop flag -- rate-
+    // dependent for a poller (missed below ~93.75 Hz, repeated above). A
+    // client that must count onsets diffs onsetCount (unsigned 32-bit,
+    // monotonic for the process lifetime) between its own polls: HTTP polls
+    // carry no client identity, so this stateless counter is the only
+    // multi-client-correct semantic (onset render-path fix). int64 so the
+    // value never reads negative.
     obj->setProperty("onsetDetected", snap.onsetDetected);
+    obj->setProperty("onsetCount", static_cast<juce::int64>(snap.onsetCount));
     obj->setProperty("onsetStrength", static_cast<double>(snap.onsetStrength));
     obj->setProperty("dominantPitch", static_cast<double>(snap.dominantPitch));
     obj->setProperty("structuralState", static_cast<int>(snap.structuralState));
@@ -711,6 +724,19 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
     if (json.hasProperty("onsetDetected")) snap.onsetDetected = static_cast<bool>(json["onsetDetected"]);
+    // Onset render-path fix: the request's onset INTENT only -- the count
+    // itself is resolved under TestServer::injectSnapshot's lock (never from
+    // this unlocked bus read), so concurrent injects cannot lose a bump.
+    // Bump only when THIS request explicitly set onsetDetected:true, so an
+    // onsetDetected=true carried over from an earlier inject is no phantom.
+    InjectedOnsetCount onsetIntent;
+    if (json.hasProperty("onsetCount"))
+    {
+        onsetIntent.hasExplicit = true;
+        onsetIntent.explicitCount = static_cast<uint32_t>(std::clamp(static_cast<int>(json["onsetCount"]), 0,
+                                                                     std::numeric_limits<int>::max()));
+    }
+    onsetIntent.bump = json.hasProperty("onsetDetected") && snap.onsetDetected;
     // R6 (featurebus-thread-safety-design.md): clamp to the enum's real range
     // (FeatureSnapshot.h) so even the test-mode injection path can't store
     // nonsense values — 0=normal, 1=buildup, 2=drop, 3=breakdown.
@@ -743,7 +769,7 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
         res.set_content(jsonError("Feature injection unavailable (no test-mode writer)"), "application/json");
         return;
     }
-    onInjectFeatures(snap);
+    onInjectFeatures(snap, onsetIntent);
     res.set_content(jsonOk(), "application/json");
 }
 

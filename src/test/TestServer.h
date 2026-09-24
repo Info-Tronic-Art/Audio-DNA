@@ -8,6 +8,7 @@
 #include <mutex>
 #include <string>
 #include "features/FeatureBus.h"
+#include "features/OnsetPulse.h"
 
 // Forward declarations
 class Renderer;
@@ -49,7 +50,11 @@ public:
     // (R4). Serialized internally: httplib runs a thread pool, and the
     // ApiServer's test-mode /api/inject_features relays here too, so
     // several HTTP threads can inject concurrently.
-    void injectSnapshot(const FeatureSnapshot& snap);
+    // Onset render-path fix: the published onsetCount is resolved HERE, under
+    // injectMutex_, from lastInjectedOnsetCount_ and the caller's intent --
+    // the ONE place both inject routes (this server's and the ApiServer
+    // relay) compute it. snap.onsetCount as passed in is ignored.
+    void injectSnapshot(const FeatureSnapshot& snap, const InjectedOnsetCount& onsetIntent);
 
     // Start the HTTP server on a background thread.
     void start();
@@ -111,6 +116,10 @@ private:
     Renderer& renderer_;
     FeatureBus::Writer featureBusWriter_;
     std::mutex injectMutex_;  // serializes injectSnapshot across HTTP threads
+    // Onset render-path fix: the onsetCount of the last published injected
+    // snapshot. Read AND written only inside injectSnapshot, under
+    // injectMutex_ -- plain member, the mutex is its only synchronization.
+    uint32_t lastInjectedOnsetCount_ = 0;
     Composition& composition_;
     EffectChain& effectChain_;
     SourceRegistry& sourceRegistry_;

@@ -15,6 +15,7 @@ AudioReadoutPanel::AudioReadoutPanel(const AnalysisThread& /* analysisThread */,
 void AudioReadoutPanel::timerCallback()
 {
     const FeatureSnapshot snap = featureBus_.read();
+    const uint32_t onsets = onsetPulse_.consume(snap.onsetCount);  // onset render-path fix
 
     hasData_ = true;
     constexpr float a = 0.3f;
@@ -49,7 +50,7 @@ void AudioReadoutPanel::timerCallback()
         displayBands_[i] += a * (snap.bandEnergies[i] - displayBands_[i]);
 
     // Discrete values
-    displaySnap_.onsetDetected  = snap.onsetDetected;
+    displaySnap_.onsetDetected  = (onsets > 0u);
     displaySnap_.onsetStrength  = snap.onsetStrength;
     displaySnap_.detectedKey    = snap.detectedKey;
     displaySnap_.keyIsMajor     = snap.keyIsMajor;
@@ -61,7 +62,7 @@ void AudioReadoutPanel::timerCallback()
     displaySnap_.energyState     = snap.energyState;
 
     // Onset flash: spike on onset, fast decay
-    if (snap.onsetDetected)
+    if (onsets > 0u)
         onsetFlash_ = 1.0f;
     else
         onsetFlash_ *= 0.85f;
