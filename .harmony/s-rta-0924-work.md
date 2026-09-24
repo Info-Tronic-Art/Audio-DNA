@@ -79,3 +79,16 @@ Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix ro
   = the s-rta-0923 open Bluetooth startup crash (malloc free-list corruption). Log: .reports/s-rta-0924b/asan-bt-startup-crash.log
   Live gate BLOCKED while the headset is default. Next: diagnose mechanism (bufferSize vs channel mismatch) + JUCE fix history.
 - 13:0x BORIS RULING: never Bluetooth audio (binding-decisions.md). Headset gone; default input = MacBook Pro Microphone. Resuming live gate.
+- BT crash diagnosis DONE (bt-crash-mechanism.md / -juce-history.md / -fix-plan.md): JUCE reopen() "bodge" sets
+  bufferSize=requested (512) after allocating temp buffers for the device-reported size (320) → callback copies 512
+  into 324-float block. Upstream fix f6df3e3 in JUCE 8.0.8. NOT Bluetooth-specific in mechanism: ANY device that
+  refuses the requested buffer size (incl. a wired USB interface whose in/out defaults differ) can trigger it.
+  → Backlog: JUCE 8.0.4→8.0.8 bump, audit OpenGLFrameBuffer::readPixels RowOrder (8.0.9, n/a at 8.0.8) and
+  AudioTransportSource::hasStreamFinished (8.0.5) call sites; gate = ctest + probes; ASan repro needs a mismatched device.
+- LIVE GATE (Harmony, built-in mic, merged main 0f34480+docs): probe-step3 63/0; probe-onset-render 13/0 (60 clicks →
+  60 onsets → 60 render pulses @80 fps); STEP3_LONG=1 75/0. FINDING (not a gate fail): 10-min slope drift -1.44 ms
+  (stderr 0.59, ~2.4σ ≈ 2.4 ppm), window drift -2.00 ms (stderr 0.83) — point estimate exceeds the spec's 1 ms, passes
+  only via the 2·stderr allowance. Likely a real small linear drift, far below the ±80 ms perception window.
+  Established: same sign both oracles, 0 dupes, 100% matched. Not ruled out: device clock vs 48k stamp ppm.
+  Cheapest discriminator: STEP3_LONG_MINUTES=20 — linear drift doubles to ~-2.9 ms; noise would not.
+- Step 4 live drive DONE (screens in .reports/s-rta-0924b/step4-visual/). Ruling 1 live-verified. Own findings: length 0:00, clock origin 0:15, REST jargon notices, truncated placeholder. Critic panel + fix lane workflow w8p93f3g8 running. Pushing gated merge.
