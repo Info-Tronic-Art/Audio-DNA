@@ -656,6 +656,13 @@ void ApiServer::handleGetFeatures(const httplib::Request&, httplib::Response& re
     obj->setProperty("genreConfidence", static_cast<double>(snap.genreConfidence));
     obj->setProperty("energyState", static_cast<int>(snap.energyState));
 
+    // R13 (lane D): provenance -- the device rate the analysis was actually
+    // fed from (analysis itself always runs at the fixed internal 48 kHz;
+    // AnalysisResampler bridges the two) and which bandEnergies bits are
+    // meaningful at that source rate (0x7F = all valid).
+    obj->setProperty("sourceSampleRate", static_cast<double>(snap.sourceSampleRate));
+    obj->setProperty("bandValidMask", static_cast<int>(snap.bandValidMask));
+
     juce::Array<juce::var> bands;
     for (int i = 0; i < 7; ++i)
         bands.add(static_cast<double>(snap.bandEnergies[i]));

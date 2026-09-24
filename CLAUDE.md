@@ -25,7 +25,7 @@ The core concept: audio analysis + visual effects + a mapping system + a keyboar
 Runs every 2.67ms (128 samples @ 48kHz). Receives samples from JUCE's `AudioIODeviceCallback`, mono-downmixes them, and pushes into the SPSC ring buffer. This is the sacred thread — it must NEVER allocate heap memory, acquire mutexes, make system calls, or do any DSP. Just `memcpy` to ring buffer and return. Budget: <100μs. Communicates forward to the analysis thread via the SPSC ring buffer.
 
 **Analysis Thread (App-managed, ABOVE-NORMAL priority)**
-Runs every ~10.7ms (512-sample hop @ 48kHz). Pulls samples from the ring buffer, maintains a 2048-sample overlap window, runs FFT, and extracts all audio features in a fixed pipeline order. Pre-allocates all buffers and Aubio objects at startup — zero allocation in steady state. Budget: <2ms per hop (5x headroom). Publishes a complete `FeatureSnapshot` to the Feature Bus via atomic triple-buffer swap.
+Runs every ~10.7ms (512-sample hop @ 48kHz). Pulls device-rate samples from the ring buffer and resamples them to the fixed internal 48 kHz (`AnalysisResampler`, R13) before anything else — a bit-identical bypass when the device already runs at 48 kHz. Maintains a 2048-sample overlap window, runs FFT, and extracts all audio features in a fixed pipeline order. Pre-allocates all buffers and Aubio objects at startup — zero allocation in steady state, including at a device rate change (the resampler reconfigures a fixed-size interpolator in O(1), no aubio object is ever re-created). Budget: <2ms per hop (5x headroom). Publishes a complete `FeatureSnapshot` to the Feature Bus via atomic triple-buffer swap.
 
 **Render Thread (OpenGL, NORMAL priority, VSync)**
 Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple buffer (lock-free atomic read). Runs all active mappings (source → curve → scale → target), uploads uniforms to GPU, and renders the effect chain on a fullscreen quad with the loaded image texture. Uses ping-pong FBOs for multi-effect chains. Budget: <8ms for full chain. Communicates display values back to UI via `juce::MessageManager::callAsync()`.
@@ -79,6 +79,8 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 | `formantPresence` | `float` | [0, 1] | Vocal formant energy concentration (300-3000 Hz) |
 | `resonancePeak` | `float` | [0, 1] | Spectral kurtosis (sharp resonance peaks) |
 | `reeseBass` | `float` | [0, 1] | Bass spectral spread (reese/wobble detection) |
+| `sourceSampleRate` | `float` | Hz, 0=unknown | R13 provenance: the DEVICE rate analysis was actually fed from (0 in test mode/no device). Analysis itself always runs at the fixed internal `AnalysisThread::kSampleRate` (48 kHz) — `AnalysisResampler` bridges the two |
+| `bandValidMask` | `uint8_t` | bitmask, bit b = `bandEnergies[b]` | R13: bit set when that band is meaningful at the source rate; bands mostly above the device Nyquist read 0 with the bit clear (e.g. 16 kHz Bluetooth HFP clears bit 6, Brilliance) |
 
 **Mapping** — Routes any audio feature to any effect parameter:
 
@@ -138,6 +140,7 @@ All data flows forward. No backward dependencies on the hot path.
 | 1. Audio buffer delivery | OS delivers 128 samples @ 48kHz | 2.67ms (period) |
 | 2. Ring buffer push | `memcpy` into SPSC | ~50ns |
 | 3. Hop accumulation | Wait for 512 samples (1 hop) | 10.7ms (hop period) |
+| 3b. Resample to 48 kHz (R13, non-48 kHz devices only) | `AnalysisResampler`: 5-tap Lagrange interpolation + anti-alias biquads when upsampling; bypass (0µs) when the device is already 48 kHz | ~20-60μs/hop |
 | 4. Window + FFT | Hann window, 2048-pt FFT | ~20μs |
 | 5. Feature extraction | All spectral + temporal features | ~100μs |
 | 6. Feature bus publish | Atomic triple-buffer swap | ~10ns |
@@ -390,6 +393,8 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 ### Analysis Pipeline Order (each step depends on prior results)
 
 ```
+0.  Resample to 48 kHz (R13, AnalysisResampler): bypass when the device is
+    already 48 kHz -- runs BEFORE stage 1, not one of the 14 numbered stages
 1.  Raw time-domain: RMS, peak (over the 2048-sample block)
 2.  FFT → magnitude spectrum (2048-pt, Hann window)
 3.  From magnitude: centroid, flux, flatness, rolloff, 7-band energies
@@ -405,7 +410,7 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 14. Advanced analysis: sidechain pump, swing ratio, formant presence, resonance peak, reese bass (P25)
 ```
 
-14 numbered compute stages in code (13 have profiled timing slots). Stage 5 folds BPM stabilization, downbeat, and phrase tracking together; HCDF is computed inside the Chroma stage (7); Key detection (8) runs before Pitch (9).
+14 numbered compute stages in code (13 have profiled timing slots). Stage 5 folds BPM stabilization, downbeat, and phrase tracking together; HCDF is computed inside the Chroma stage (7); Key detection (8) runs before Pitch (9). R13's Resample step is a 14th profiled slot appended to the profile block (`[Analysis Profile]` names it "Resample") but is NOT one of the 14 numbered pipeline stages above — it runs once per hop before stage 1, reads 0µs on a 48 kHz device (bypass), and ~20-60µs/hop otherwise.
 
 ---
 
@@ -867,7 +872,7 @@ P1 (BPM lock) ──→ P2 (downbeat) ──→ P3 (architecture) ──→ P4 (
 ### Debugging Audio Issues
 
 1. Check the SPSC ring buffer fill level first — if it's consistently full or empty, the producer/consumer balance is wrong
-2. Check sample rate assumptions — the system assumes 48kHz; mismatches cause pitch/timing errors
+2. R13: the ANALYSIS domain is always 48 kHz; the DEVICE/recorder domain is the device's own rate — never assume either is the other. `AnalysisResampler` bridges device rate → 48 kHz on the analysis thread (bypass when the device already is 48 kHz); the recorder/take/audio-store path stays entirely in the device domain (`FeatureSnapshot::sourceSampleRate` and `RecorderHost::Status::deviceRate`/`rateChangedSinceArm` publish which domain you are looking at)
 3. Check thread priority — if analysis can't keep up, features lag behind audio
 
 ### Debugging Visual Issues
@@ -1091,6 +1096,8 @@ These bugs were discovered and fixed. Future phases MUST avoid reintroducing the
 
 28. **Eyes render_frame doesn't apply effect chain**: The test server's `render_frame` endpoint captures the raw image/source output but does NOT apply the global effect chain from `EffectChain::render()`. Effects set via `set_effect` API are registered in state but not rendered in captures. To verify effect rendering, use the live app or test effects via explicit param comparison (set params, verify state readback). This is a known test infrastructure limitation.
 
+29. **Two rate domains, never assume they are the same (R13)**: The ANALYSIS domain is always the fixed internal 48 kHz (`AnalysisThread::kSampleRate`) — `AnalysisResampler` bridges any device rate to it on the analysis thread, bypassing (bit-identical) when the device already is 48 kHz. The DEVICE/RECORDER domain is the device's own rate: the ring buffer carries raw device-rate samples, `AudioTap`/`RecorderHost` write take audio in device-domain sample stamps, and `RecorderHost::Status::deviceRate`/`rateChangedSinceArm` describe THAT domain, not the analysis one. `FeatureSnapshot::sourceSampleRate` publishes which device rate analysis was actually fed from (0 = unknown/test mode); `bandValidMask` marks which `bandEnergies[]` bits are meaningful at that rate — a band mostly above the device Nyquist reads exactly 0 with its bit clear, never normalised garbage. Never compare a device-domain sample count against the 48 kHz analysis cadence (or vice versa) without going through these provenance fields first.
+
 ### Layer Router System (P20)
 
 The Layer Router source (`layer_router`) lets one layer use another layer's rendered output as its input texture. This enables feedback loops, picture-in-picture, and cross-layer effects.
@@ -1129,7 +1136,9 @@ Composition-level automation that sets different beat timings per layer type:
 
 ### Audio Store (Ruling 28)
 
-`AudioStore` (`src/recording/AudioStore.h/cpp`) is the shared audio store recorded audio lives in, not the take folder: `~/Documents/Audio-DNA/Audio/<id>.adna-audio/{audio.wav, audio.json}`, id-keyed, sidecar written LAST (its presence is the "complete" flag). Take format v3's `AudioRef::Segment` references an asset by `{id, fingerprint, firstSample, frames, rate, channels}` — `file` is read-only legacy (pre-v3 in-folder audio). Content identity is `fp1` (a cheap deterministic head+tail+length SHA-256, `AudioStore::fingerprint`), recomputed at every `resolve()`. `AudioTap` re-patches the WAV header every 10s of audio (`AudioTap::kHeaderFlushSeconds`) so a crashed show is readable up to the last flush. Nothing is deleted automatically except a failed arm's own just-minted, never-finalized asset (`AudioStore::abandonAsset`, one narrow exception). Wiring record→store→take into `RecordPanel`/`MainComponent` is NOT built yet (step 3, still owed).
+`AudioStore` (`src/recording/AudioStore.h/cpp`) is the shared audio store recorded audio lives in, not the take folder: `~/Documents/Audio-DNA/Audio/<id>.adna-audio/{audio.wav, audio.json}`, id-keyed, sidecar written LAST (its presence is the "complete" flag). Take format v3's `AudioRef::Segment` references an asset by `{id, fingerprint, firstSample, frames, rate, channels}` — `file` is read-only legacy (pre-v3 in-folder audio). Content identity is `fp1` (a cheap deterministic head+tail+length SHA-256, `AudioStore::fingerprint`), recomputed at every `resolve()`. `AudioTap` re-patches the WAV header every 10s of audio (`AudioTap::kHeaderFlushSeconds`) so a crashed show is readable up to the last flush. Nothing is deleted automatically except a failed arm's own just-minted, never-finalized asset (`AudioStore::abandonAsset`, one narrow exception).
+
+**Step 3 (record→store→take wiring): LIVE.** `MainComponent` owns a `RecorderHost` (`recorderHost_`) that drives the whole lifecycle; the production REST API exposes it as `/api/perf/record` (arm, file-mode or live input, optional onset markers), `/api/perf/stop`, `/api/perf/load`, `/api/perf/play` (`withAudio`: true replays audio points through the transport, false is silent wall-clock replay), `/api/perf/stop_play`, `/api/perf/repair` (crash recovery — re-derives a truncated/incomplete asset's frame count), and `/api/perf/status` (recording/playing/overdub state, take folder, asset id, take-clock `t`/`beat`/`sample`, `deviceRate`, `rateChangedSinceArm`, `sourceSampleRate`, lane/gesture/marker counts, `lastError`, `humanRefused`). Onset markers (`onsetMarkers: true` at arm) tag `take.json`'s `markers[]` with `action: "onset"` on every tick where the analysis snapshot's `onsetDetected` is true, deduped per onset event (not per 120 Hz tick) since `FeatureBus::read()` is always-latest and analysis publishes at only ~93.75 Hz. `rateChangedSinceArm` (R13-C, replacing the retired `rateMismatch`/"device != 48 kHz" meaning) is the one rate hazard that survives R13's resampler: it is true only if the DEVICE rate itself changed since arm (sample stamps before/after such a change are in different domains) — a device that never changes rate, even a non-48 kHz one, never sets it, because the analysis thread now resamples to its own fixed 48 kHz regardless of what the device is doing.
 
 ### Output & Integration System (P22)
 
