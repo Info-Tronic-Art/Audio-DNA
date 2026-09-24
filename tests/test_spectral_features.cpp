@@ -191,3 +191,97 @@ TEST_CASE("SpectralFeatures silent input", "[spectral]")
     REQUIRE(sf.flux() == Approx(0.0f));
     REQUIRE(sf.flatness() == Approx(0.0f));
 }
+
+// --- R13: input-bandwidth gating (T3) ---
+
+TEST_CASE("SpectralFeatures T3.1 — bandwidth -> bandValidMask", "[spectral][r13]")
+{
+    SpectralFeatures sf(kNumBins, kSampleRate, kFFTSize);
+
+    sf.setInputBandwidthHz(24000.0f);
+    REQUIRE(sf.bandValidMask() == 0x7F);
+
+    sf.setInputBandwidthHz(16000.0f);
+    REQUIRE(sf.bandValidMask() == 0x7F);
+
+    sf.setInputBandwidthHz(11025.0f);
+    REQUIRE(sf.bandValidMask() == 0x3F);
+
+    sf.setInputBandwidthHz(8000.0f);
+    REQUIRE(sf.bandValidMask() == 0x3F);
+
+    sf.setInputBandwidthHz(4000.0f);
+    REQUIRE(sf.bandValidMask() == 0x1F);
+}
+
+TEST_CASE("SpectralFeatures T3.2 — residue-only mode is gated, not normalized as garbage", "[spectral][r13]")
+{
+    SpectralFeatures sf(kNumBins, kSampleRate, kFFTSize);
+
+    // Pin the residue-only mode: real content below 6 kHz (bins 1..255),
+    // a true-zero gap 6-8 kHz (bins 256..341, models the resampler's
+    // anti-alias filter), and a tiny 1e-4 residue above the device Nyquist
+    // (bins 342..1024, models image/interpolation residue). Bandwidth 8000
+    // Hz gates the residue out of every spectral statistic and marks
+    // Brilliance (band 6) invalid instead of normalizing the residue to 1.0.
+    std::vector<float> mag(kNumBins, 0.0f);
+    for (int k = 1; k <= 255; ++k)
+        mag[static_cast<size_t>(k)] = 1.0f;
+    for (int k = 256; k <= 341; ++k)
+        mag[static_cast<size_t>(k)] = 0.0f;
+    for (int k = 342; k <= 1024; ++k)
+        mag[static_cast<size_t>(k)] = 1e-4f;
+
+    sf.setInputBandwidthHz(8000.0f);
+    sf.process(mag.data());
+
+    // Fail-first on old code: Brilliance == 1.0 (its own 1e-4 residue
+    // normalized by its own running max).
+    REQUIRE(sf.bandEnergies()[6] == 0.0f);
+    REQUIRE((sf.bandValidMask() & 0x40) == 0);
+
+    // Fail-first on old code: flatness ~= 1e-5 (the 1e-4 residue bins
+    // dominate the log-domain mean).
+    REQUIRE(sf.flatness() > 0.9f);
+
+    // Centroid is the mean of the in-band bin frequencies (k=1..255), not a
+    // hardcoded 4 kHz. Fail-first on old code: pulled toward Nyquist by the
+    // residue bins.
+    double sumFreq = 0.0;
+    for (int k = 1; k <= 255; ++k)
+        sumFreq += static_cast<double>(k) * kSampleRate / kFFTSize;
+    float expectedCentroid = static_cast<float>(sumFreq / 255.0);
+    float binWidth = kSampleRate / kFFTSize;
+    REQUIRE(sf.centroid() == Approx(expectedCentroid).margin(binWidth));
+}
+
+TEST_CASE("SpectralFeatures T3.3 — truncated-but-valid band reports 0 above the bandwidth", "[spectral][r13]")
+{
+    SpectralFeatures sf(kNumBins, kSampleRate, kFFTSize);
+
+    // Bandwidth 16000 Hz -> Brilliance (band 6) is valid but truncated to
+    // ~6-16 kHz. Energy only at 18 kHz (above the truncated range) must
+    // report Brilliance == 0 after truncation.
+    sf.setInputBandwidthHz(16000.0f);
+    REQUIRE((sf.bandValidMask() & 0x40) != 0);
+
+    auto mag = sineMagnitudeSpectrum(18000.0f, 10.0f);
+    sf.process(mag.data());
+
+    REQUIRE(sf.bandEnergies()[6] == 0.0f);
+}
+
+TEST_CASE("SpectralFeatures T3.4 — default behaviour unchanged without setInputBandwidthHz", "[spectral][r13]")
+{
+    // Every existing case in this file passes untouched when
+    // setInputBandwidthHz() is never called — default bandwidth is the
+    // full Nyquist, binLimit_ == numBins_, bandValidMask() == 0x7F.
+    SpectralFeatures sf(kNumBins, kSampleRate, kFFTSize);
+    REQUIRE(sf.inputBandwidthHz() == Approx(kSampleRate / 2.0f));
+    REQUIRE(sf.bandValidMask() == 0x7F);
+
+    auto mag = sineMagnitudeSpectrum(440.0f);
+    sf.process(mag.data());
+    float binWidth = kSampleRate / kFFTSize;
+    REQUIRE(sf.centroid() == Approx(440.0f).margin(binWidth));
+}
