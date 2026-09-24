@@ -262,6 +262,13 @@ private:
     uint64_t markerSeq_ = 1;
     uint64_t nextGroupId_ = 1;
 
+    // Onset-marker dedupe: the FeatureSnapshot::timestamp of the most recent snapshot that produced
+    // an onset marker. FeatureBus::read() is always-latest and analysis publishes slower than the
+    // 120 Hz tick, so two consecutive ticks can read the SAME snapshot with onsetDetected still true
+    // -- this de-dupes marker() to one call per onset EVENT (unique snapshot), not per tick. Reset
+    // wherever per-take state resets (arm() / markers_ clear).
+    std::optional<uint64_t> lastOnsetMarkerSnapshot_;
+
     // Continuous-gesture idle tracking for the synthesized Decaying end (N7): last wall-clock write
     // time + grip per key currently open on the recorder side; only "decaying" entries expire here
     // (a Held grip has no timeout -- it stays held until an explicit release).
