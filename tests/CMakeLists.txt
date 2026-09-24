@@ -1013,3 +1013,63 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_conn_picker)
 catch_discover_tests(test_conn_picker)
+
+# --- test_recorder_host (s-rta-0923 step 3 / s-rta-0924 Lane S3-A: RecorderHost's
+# arm -> tick -> disarm lifecycle, provisional/periodic Take::save, the R14
+# gapDetection glue, discrete/continuous capture+replay through a fake Dispatch,
+# the overdub asset-frame clock, a mid-take self-stop, and PerfStateCapture's
+# round trip -- headless. Drives AudioTap DIRECTLY (prepare/start/push/stop),
+# test_audio_store's own idiom -- not the CombinedCallback/FakeAudioIODevice
+# harness test_audio_tap_sync.cpp needs (that proves AudioTap's OWN
+# sample-alignment contract; RecorderHost's contract is calling AudioTap
+# correctly, not AudioTap's internals), so AudioCallback.cpp/RingBuffer.h are
+# NOT linked here. Source list otherwise mirrors test_take's (model/effects,
+# for Program::compile's param-slot resolution and PerfStateCapture's
+# non-default-effect-param check) plus AudioStore.cpp/AudioTap.cpp
+# (test_audio_store's own list) and the two new S3-A sources.
+add_executable(test_recorder_host
+    test_recorder_host.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+    ${SRC_DIR}/recording/Player.cpp
+    ${SRC_DIR}/recording/RecorderClock.cpp
+    ${SRC_DIR}/recording/PerformanceRecorder.cpp
+    ${SRC_DIR}/recording/AudioTap.cpp
+    ${SRC_DIR}/recording/AudioStore.cpp
+    ${SRC_DIR}/recording/RecorderHost.cpp
+    ${SRC_DIR}/recording/PerfStateCapture.cpp
+)
+target_include_directories(test_recorder_host PRIVATE ${SRC_DIR})
+target_link_libraries(test_recorder_host PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_cryptography
+)
+target_compile_definitions(test_recorder_host PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_recorder_host PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_recorder_host)
+catch_discover_tests(test_recorder_host)
