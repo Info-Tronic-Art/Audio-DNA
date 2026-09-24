@@ -16,6 +16,11 @@ namespace
         return sample >= firstSample ? sample - firstSample : 0;
     }
 
+    // R13 onset-pulse-loss fix: bound on markers emitted from a single tick's onsetCount delta
+    // (see RecorderHost.h's onsetCountBaseline_ comment) -- at the real ~93.75 Hz analysis / 120 Hz
+    // tick cadence, delta is 0 or 1 essentially always; this only guards a pathological tick stall.
+    constexpr uint32_t kMaxOnsetMarkersPerTick = 8;
+
     const char* audioStatusName(AudioStore::Status s)
     {
         switch (s)
@@ -159,7 +164,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     tapWasRunningLastTick_ = false;
     gaps_.clear();
     markers_.clear();
-    lastOnsetMarkerSnapshot_.reset();
+    onsetCountBaseline_.reset();
     lastWriteWall_.clear();
     humanRefused_ = 0;
     skippedCount_ = 0;
@@ -340,7 +345,7 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
     lastCheckpointT_ = 0.0;
     gaps_.clear();
     markers_.clear();
-    lastOnsetMarkerSnapshot_.reset();
+    onsetCountBaseline_.reset();
     lastWriteWall_.clear();
 
     publishStatus();
@@ -418,13 +423,30 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
             liveFramesWritten_ = tap.framesWritten();
         }
 
-        // T2 dedupe: one marker per onset EVENT (unique snapshot), not per tick -- see
-        // lastOnsetMarkerSnapshot_'s comment in the header.
-        if (onsetMarkers_ && snap.onsetDetected
-            && (!lastOnsetMarkerSnapshot_.has_value() || *lastOnsetMarkerSnapshot_ != snap.timestamp))
+        // T2, R13 onset-pulse-loss fix: one marker per onset EVENT, tracked via the monotonic
+        // FeatureSnapshot::onsetCount delta rather than onsetDetected/timestamp -- see
+        // onsetCountBaseline_'s comment in the header for the full design.
+        if (onsetMarkers_)
         {
-            marker("onset");
-            lastOnsetMarkerSnapshot_ = snap.timestamp;
+            if (!onsetCountBaseline_.has_value())
+            {
+                // First snapshot observed after arm -- establishes the baseline. Never emits for
+                // onsets that happened before this arm.
+                onsetCountBaseline_ = snap.onsetCount;
+            }
+            else
+            {
+                const uint32_t delta = snap.onsetCount - *onsetCountBaseline_;  // unsigned, wrap-safe
+                if (delta > 0)
+                {
+                    const uint32_t n = std::min(delta, kMaxOnsetMarkersPerTick);
+                    for (uint32_t i = 0; i < n; ++i)
+                        marker("onset");
+                    onsetCountBaseline_ = *onsetCountBaseline_ + n;   // advance by n only -- any
+                                                                       // excess (delta > n) is picked
+                                                                       // up on a later tick, never lost
+                }
+            }
         }
 
         synthesizeIdleDecayingEnds(wallNow);

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -93,6 +94,21 @@ struct alignas(64) FeatureSnapshot
     float   sourceSampleRate = 0.0f;
     uint8_t bandValidMask    = 0x7F;
 
+    // Onset pulse-loss fix: onsetDetected/onsetStrength above are a ONE-HOP PULSE -- consumers
+    // read FeatureBus::read() (always-latest triple/seqlock buffer), so a hop published while a
+    // consumer wasn't looking is lost, timestamp bookkeeping or not (proven: the app's own
+    // OnsetDetector config replayed offline over a click train detects ~all clicks, but the live
+    // app's RecorderHost missed ~13% via its 120 Hz tick reading a slower, always-latest bus).
+    // onsetCount is a monotonic count of onsets detected since AnalysisThread started, incremented
+    // once per hop where onsetDetected is true and published in EVERY snapshot (not just the hop
+    // the onset happened on). A consumer recovers exactly how many onsets it missed by comparing
+    // consecutive counts (delta = new - old, unsigned subtraction so it stays correct across a
+    // wrap) instead of ever needing to catch the pulse itself. Never reset mid-stream in
+    // production -- clear() (below) only runs once, before AnalysisThread's first publish
+    // (FeatureBus's constructor) or in test-mode-only harnesses (TestServer.cpp) that replace the
+    // writer entirely; see RecorderHost::tick()'s onsetCountBaseline_ for the reference consumer.
+    uint32_t onsetCount = 0;
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
@@ -106,3 +122,16 @@ struct alignas(64) FeatureSnapshot
         bandValidMask = 0x7F;
     }
 };
+
+// Layout proof (R13 onset-pulse-loss fix): onsetCount was added into the struct's existing tail
+// padding (alignas(64) rounds sizeof up to a multiple of 64; 313 bytes of real fields left 7 bytes
+// of padding before this change) so sizeof(FeatureSnapshot) stays exactly 320 -- FeatureBus.h's own
+// static_assert(sizeof(FeatureSnapshot) == 320, ...) would fail to compile otherwise, since its
+// seqlock payload word count (kSnapshotWords * sizeof(uint32_t)) is derived from this exact size.
+static_assert(offsetof(FeatureSnapshot, onsetCount) == 316,
+              "onsetCount must land in the struct's existing tail padding (alignof-4 after "
+              "bandValidMask at offset 312+1=313, rounded up to 316) without moving any other "
+              "field's offset -- if this fails, a field was inserted/resized somewhere above and "
+              "the layout needs re-auditing, not just re-numbering this constant");
+static_assert(sizeof(FeatureSnapshot) == 320,
+              "adding onsetCount must not change the overall FeatureSnapshot size");

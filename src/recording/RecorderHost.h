@@ -280,12 +280,24 @@ private:
     uint64_t markerSeq_ = 1;
     uint64_t nextGroupId_ = 1;
 
-    // Onset-marker dedupe: the FeatureSnapshot::timestamp of the most recent snapshot that produced
-    // an onset marker. FeatureBus::read() is always-latest and analysis publishes slower than the
-    // 120 Hz tick, so two consecutive ticks can read the SAME snapshot with onsetDetected still true
-    // -- this de-dupes marker() to one call per onset EVENT (unique snapshot), not per tick. Reset
-    // wherever per-take state resets (arm() / markers_ clear).
-    std::optional<uint64_t> lastOnsetMarkerSnapshot_;
+    // Onset-marker dedupe (R13 onset-pulse-loss fix). FeatureSnapshot::onsetCount is a monotonic
+    // per-hop counter (AnalysisThread increments it once per detected onset, independent of the
+    // 120 Hz tick or FeatureBus::read()'s always-latest semantics) -- comparing consecutive counts,
+    // not FeatureSnapshot::timestamp, means a hop published while no tick was looking is never
+    // silently lost (the defect the old timestamp dedupe had: onsets between two reads of the same
+    // snapshot were invisible; onsets published and then overwritten before any tick read them were
+    // ALSO invisible, which the timestamp scheme could never detect at all). onsetCountBaseline_
+    // starts unset; the FIRST snapshot observed after arm establishes the baseline with zero markers
+    // emitted for it (never emit for onsets that happened before arm -- AnalysisThread's counter is
+    // a process-lifetime value, unrelated to per-take state). Each tick with onsetMarkers_ enabled
+    // emits min(delta, kMaxOnsetMarkersPerTick) markers, where delta = snap.onsetCount -
+    // *onsetCountBaseline_ (unsigned subtraction -- stays correct across a wrap past 2^32), and
+    // advances the baseline by exactly the number emitted (not to snap.onsetCount) -- so a tick that
+    // hits the cap loses nothing; the excess is picked up on a later tick. A tick that emits n>1
+    // markers stamps all n with that tick's clock time (marker()'s existing tick-time "late point"
+    // semantics, spec D10.3 T1); the probe's grid pairing tolerates this. Reset wherever per-take
+    // state resets (arm() / markers_ clear).
+    std::optional<uint32_t> onsetCountBaseline_;
 
     // Continuous-gesture idle tracking for the synthesized Decaying end (N7): last wall-clock write
     // time + grip per key currently open on the recorder side; only "decaying" entries expire here

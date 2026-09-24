@@ -67,6 +67,11 @@ struct PipelineRunner
     float hopsPerSecond = static_cast<float>(kSampleRate) / static_cast<float>(kHopSize);
     uint64_t totalSamples = 0;
 
+    // R13 onset-pulse-loss fix: mirrors AnalysisThread's totalOnsetCount_ -- a monotonic count of
+    // onsets detected since this PipelineRunner started, distinct from `onsetCount` above (the
+    // sliding-window transient-density counter, which can decrease as old onsets leave the window).
+    uint32_t totalOnsetCount = 0;
+
     PipelineRunner()
     {
         onsetHistory.fill(false);
@@ -128,6 +133,9 @@ struct PipelineRunner
         onset.process(hopData);
         snap.onsetDetected = onset.onsetDetected();
         snap.onsetStrength = onset.onsetStrength();
+        if (snap.onsetDetected)
+            ++totalOnsetCount;
+        snap.onsetCount = totalOnsetCount;
 
         // 5. BPM tracking + beat phase
         bpm.process(hopData);
@@ -666,4 +674,77 @@ TEST_CASE("R13 T2.4: bandValidMask/bandEnergies rate-invariant", "[integration][
         FeatureSnapshot snap = runPipelineResampled(signal, 48000.0, runner);
         REQUIRE(runner.spectral.bandValidMask() == 0x7F);
     }
+}
+
+// =============================================================================
+// Onset pulse-loss defect fix: FeatureSnapshot::onsetCount is a monotonic per-hop
+// counter, incremented once per detected onset, so a consumer reading FeatureBus's
+// always-latest snapshot at an unsynchronised/slower cadence than analysis can
+// recover exactly which onsets it missed (delta between consecutive counts) instead
+// of relying on ever observing the one-hop onsetDetected pulse itself.
+// =============================================================================
+
+// generateClickTrain (above) uses true digital silence (0.0f) between bursts --
+// aubio's onset detector needs SOME signal energy to compute a meaningful spectral-
+// flux threshold against, and true silence is known to suppress detection (an
+// artifact of the algorithm, not a bug in this codebase). Add a continuous, low
+// (-50 dBFS) noise floor under the whole signal so the click train exercises a
+// realistic detection scenario rather than digital silence.
+static std::vector<float> generateClickTrainWithNoiseFloor(float bpmVal, float burstMs, float dBFS,
+                                                             float floorDBFS, float durationSec, double rate)
+{
+    std::vector<float> out = generateClickTrain(bpmVal, burstMs, dBFS, durationSec, rate);
+    const float floorAmp = std::pow(10.0f, floorDBFS / 20.0f);
+    uint32_t rngState = 987654321u;  // independent LCG stream from generateClickTrain's own noise
+    for (float& s : out)
+        s += floorAmp * r13LcgNoise(rngState);
+    return out;
+}
+
+TEST_CASE("Onset count: FeatureSnapshot::onsetCount increments exactly once per detected onset "
+          "over a click train with a -50 dBFS noise floor", "[integration][onsetcount]")
+{
+    constexpr float bpmVal      = 120.0f;
+    constexpr float burstMs     = 20.0f;
+    constexpr float dBFS        = -6.0f;
+    constexpr float floorDBFS   = -50.0f;
+    constexpr float durationSec = 10.0f;   // 120 BPM over 10s = 20 beats/bursts
+
+    auto signal = generateClickTrainWithNoiseFloor(bpmVal, burstMs, dBFS, floorDBFS, durationSec,
+                                                     static_cast<double>(kSampleRate));
+
+    PipelineRunner runner;
+    uint32_t lastOnsetCount = 0;
+    int detectedOnsets = 0;
+    int countIncrements = 0;
+
+    size_t offset = 0;
+    while (offset + kHopSize <= signal.size())
+    {
+        FeatureSnapshot snap;
+        if (runner.processHop(signal.data() + offset, snap))
+        {
+            if (snap.onsetDetected)
+                ++detectedOnsets;
+
+            // Monotonic: never decreases hop-to-hop.
+            REQUIRE(snap.onsetCount >= lastOnsetCount);
+
+            if (snap.onsetCount != lastOnsetCount)
+            {
+                // Exactly one increment per detected onset -- never more, never fewer.
+                CHECK(snap.onsetCount == lastOnsetCount + 1);
+                ++countIncrements;
+            }
+            lastOnsetCount = snap.onsetCount;
+        }
+        offset += kHopSize;
+    }
+
+    // Sanity: the click train must actually produce onsets, or the equality checks above are
+    // vacuous. R13 T2.3 (above) proves this same burst shape reliably locks BPM from onset timing
+    // at 120 BPM over 15s, so a nonzero, plausible count here is expected, not a coincidence.
+    REQUIRE(detectedOnsets > 5);
+    REQUIRE(countIncrements == detectedOnsets);
+    REQUIRE(lastOnsetCount == static_cast<uint32_t>(detectedOnsets));
 }
