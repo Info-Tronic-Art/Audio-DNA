@@ -96,6 +96,11 @@ APPBUNDLE="$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app"
 A='http://127.0.0.1:7070'
 FIXTURE="$ROOT/.harmony/probe-step3.json"
 CLICK_WAV="${STEP3_CLICK_WAV:-/tmp/click_48k.wav}"
+# s-rta-0924: single source of truth for the click grid spacing -- passed
+# explicitly to gen-click-wav.py at generation time (step 0 below) AND to
+# the T2 alignment python (section 9) so the two never hardcode 24000
+# independently and drift apart.
+CLICK_INTERVAL="${STEP3_CLICK_INTERVAL:-24000}"
 TAKES_DIR="$HOME/Documents/Audio-DNA/Takes"
 AUDIO_DIR="$HOME/Documents/Audio-DNA/Audio"
 PASS=0; FAIL=0
@@ -147,7 +152,7 @@ except Exception as e:
 }
 
 # --- 0. click-track WAV --------------------------------------------------
-python3 "$ROOT/.harmony/gen-click-wav.py" "$CLICK_WAV" >/dev/null \
+python3 "$ROOT/.harmony/gen-click-wav.py" "$CLICK_WAV" --interval "$CLICK_INTERVAL" >/dev/null \
   && ok "click-track WAV generated at $CLICK_WAV" \
   || { no "click-track WAV generation FAILED"; }
 
@@ -312,15 +317,28 @@ CHKEND="$(take_field "$TAKE_FOLDER" "'yes' if d.get('checkpointEnd') else 'no'")
 DEV_RATE_TAKE="$(take_field "$TAKE_FOLDER" "d.get('rateMismatch', d.get('deviceRate','NA'))")"
 echo "(informational) take-level rate fields: $DEV_RATE_TAKE"
 
-# --- 9. T2 alignment: locate impulses in the captured take audio, compare
-#        against take.markers[] (onsetMarkers:true). Best-effort via
-#        $ROOT/.venv (numpy) -- SKIP if unavailable, mirroring
-#        probe-lane3.sh's PIL-unavailable pattern. --------------------------
+# --- 9. T2 alignment: pair take.markers[] (onsetMarkers:true) against the
+#        click grid (interval=$CLICK_INTERVAL, the SAME value gen-click-wav.py
+#        was invoked with in step 0), not against the raw-peak detector.
+#        Best-effort via $ROOT/.venv (numpy) -- SKIP if unavailable, mirroring
+#        probe-lane3.sh's PIL-unavailable pattern.
+#        s-rta-0924 (Harmony, diagnosis-driven fix): RecorderHost::tick fires
+#        marker("onset") on every 120 Hz tick where snap.onsetDetected is
+#        true, but FeatureBus::read() is always-latest and analysis
+#        publishes at only ~93.75 Hz -- so two consecutive 120 Hz ticks read
+#        the same snapshot ~14% of the time, producing duplicate markers at
+#        the same `sample`. Dedupe on 'sample' BEFORE pairing. The burst
+#        ONSET lands exactly on the grid by construction (gen-click-wav.py
+#        header), so pairing each deduped marker to the nearest multiple of
+#        the interval (not to the raw-peak detector's threshold-crossing
+#        estimate) is the correct oracle; the raw-peak detector is kept only
+#        as an informational cross-check below. --------------------------
 if [ -x "$ROOT/.venv/bin/python" ]; then
-    ALIGN="$("$ROOT/.venv/bin/python" - "$ASSET_DIR/audio.wav" "$TAKE_FOLDER/take.json" <<'PYEOF'
+    ALIGN="$("$ROOT/.venv/bin/python" - "$ASSET_DIR/audio.wav" "$TAKE_FOLDER/take.json" "$CLICK_INTERVAL" <<'PYEOF'
 import sys, json, wave
 import numpy as np
-wav_path, take_path = sys.argv[1], sys.argv[2]
+wav_path, take_path, interval_str = sys.argv[1], sys.argv[2], sys.argv[3]
+interval = int(interval_str)
 try:
     with wave.open(wav_path, 'rb') as w:
         rate = w.getframerate()
@@ -330,31 +348,71 @@ try:
     samples = np.frombuffer(raw, dtype=np.int16).reshape(-1, ch)[:, 0].astype(np.float64)
     thresh = 0.5 * 30000
     impulses = np.where(samples >= thresh)[0]
-    # collapse consecutive hits into one impulse index each
+    # collapse consecutive hits into one impulse index each (cross-check only)
     peaks = []
     last = -10
     for idx in impulses:
         if idx - last > 100:
             peaks.append(int(idx))
         last = idx
+
     with open(take_path) as f:
         d = json.load(f)
-    firstSample = d['audio']['segments'][0].get('firstSample', 0)
-    markers = [m for m in d.get('markers', []) if m.get('action') == 'onset']
-    if not peaks or not markers:
-        print("NA(no peaks or no onset markers)")
+    seg = d['audio']['segments'][0]
+    firstSample = seg.get('firstSample', 0)
+    seg_frames = seg.get('frames', n)
+    raw_markers = [m for m in d.get('markers', []) if m.get('action') == 'onset']
+
+    # Dedupe on 'sample' (see header note above).
+    seen = set()
+    markers = []
+    n_dupes = 0
+    for m in raw_markers:
+        s = m['sample']
+        if s in seen:
+            n_dupes += 1
+            continue
+        seen.add(s)
+        markers.append(m)
+
+    if not markers:
+        print("NA(no onset markers)")
     else:
-        offsets = []
+        matched = []  # (marker_t_s, offset_ms)
+        n_spurious = 0
         for m in markers:
             assetFrame = m['sample'] - firstSample
-            # nearest peak
-            nearest = min(peaks, key=lambda p: abs(p - assetFrame))
-            offsets.append((assetFrame - nearest) * 1000.0 / rate)
-        mean_off = sum(offsets) / len(offsets)
-        drift = offsets[-1] - offsets[0] if len(offsets) > 1 else 0.0
-        srt = sorted(abs(o) for o in offsets)
-        p95 = srt[int(0.95 * (len(srt) - 1))] if srt else 0.0
-        print(f"mean_offset_ms={mean_off:.2f} drift_ms={drift:.2f} p95_jitter_ms={p95:.2f} n_markers={len(markers)} n_peaks={len(peaks)}")
+            grid_point = round(assetFrame / interval) * interval
+            d_frames = assetFrame - grid_point
+            if abs(d_frames) > interval / 2:
+                n_spurious += 1
+                continue
+            matched.append((assetFrame / rate, d_frames * 1000.0 / rate))
+
+        n_grid_in_range = len(range(0, seg_frames, interval))
+
+        if not matched:
+            print("NA(no markers matched a grid point, n_spurious=%d)" % n_spurious)
+        else:
+            offsets = [o for _, o in matched]
+            ts = [t for t, _ in matched]
+            mean_off = sum(offsets) / len(offsets)
+            if len(matched) > 1:
+                # least-squares slope of offset(ms) vs marker time(s), times
+                # the take duration -- total drift over the take.
+                slope, _intercept = np.polyfit(ts, offsets, 1)
+                take_duration_s = seg_frames / rate
+                drift_ms = float(slope * take_duration_s)
+            else:
+                drift_ms = 0.0
+            srt = sorted(abs(o - mean_off) for o in offsets)
+            p95 = srt[int(0.95 * (len(srt) - 1))] if srt else 0.0
+            pct_matched = 100.0 * len(matched) / n_grid_in_range if n_grid_in_range else 0.0
+            print(f"mean_offset_ms={mean_off:.2f} drift_ms={drift_ms:.2f} "
+                  f"p95_jitter_ms={p95:.2f} n_markers_raw={len(raw_markers)} "
+                  f"n_dupes={n_dupes} n_matched={len(matched)} "
+                  f"n_spurious={n_spurious} n_grid_in_range={n_grid_in_range} "
+                  f"pct_matched={pct_matched:.1f} n_peaks={len(peaks)}")
 except Exception as e:
     print(f"NA({e})")
 PYEOF
@@ -363,10 +421,28 @@ PYEOF
     if echo "$ALIGN" | grep -q '^mean_offset_ms='; then
         MEAN_MS="$(echo "$ALIGN" | sed -n 's/.*mean_offset_ms=\([0-9.-]*\).*/\1/p')"
         DRIFT_MS="$(echo "$ALIGN" | sed -n 's/.*drift_ms=\([0-9.-]*\).*/\1/p')"
+        P95_MS="$(echo "$ALIGN" | sed -n 's/.*p95_jitter_ms=\([0-9.-]*\).*/\1/p')"
+        PCT_MATCHED="$(echo "$ALIGN" | sed -n 's/.*pct_matched=\([0-9.-]*\).*/\1/p')"
+        N_DUPES="$(echo "$ALIGN" | sed -n 's/.*n_dupes=\([0-9]*\).*/\1/p')"
+        N_SPURIOUS="$(echo "$ALIGN" | sed -n 's/.*n_spurious=\([0-9]*\).*/\1/p')"
+        N_PEAKS="$(echo "$ALIGN" | sed -n 's/.*n_peaks=\([0-9]*\).*/\1/p')"
+        # Bounds per D10.3 (as amended, this diagnosis): drift <=1ms AND
+        # p95 jitter <=15ms AND mean within [0,60]ms (latency lag expected).
         awk -v x="$DRIFT_MS" 'BEGIN{exit !(x<=1.0 && x>=-1.0)}' 2>/dev/null \
           && ok "T2 alignment: drift within +-1ms over the take ($ALIGN)" \
           || no "T2 alignment: drift exceeds +-1ms ($ALIGN)"
-        echo "(informational) T2 mean offset ${MEAN_MS}ms (expect ~20-30ms per D10.3: hop + tick + ring depth)"
+        awk -v x="$P95_MS" 'BEGIN{exit !(x<=15.0)}' 2>/dev/null \
+          && ok "T2 alignment: p95 jitter <=15ms ($P95_MS ms)" \
+          || no "T2 alignment: p95 jitter exceeds 15ms ($P95_MS ms)"
+        awk -v x="$MEAN_MS" 'BEGIN{exit !(x>=0.0 && x<=60.0)}' 2>/dev/null \
+          && ok "T2 alignment: mean offset within [0,60]ms ($MEAN_MS ms, latency lag expected per D10.3)" \
+          || no "T2 alignment: mean offset outside [0,60]ms ($MEAN_MS ms)"
+        awk -v x="$PCT_MATCHED" 'BEGIN{exit !(x>=90.0)}' 2>/dev/null \
+          && ok "T2 alignment: matched markers cover >=90% of grid clicks in the asset's frame range ($PCT_MATCHED%)" \
+          || no "T2 alignment: matched markers cover only $PCT_MATCHED% of grid clicks (expected >=90%)"
+        echo "(informational) T2 duplicate onset markers this take: $N_DUPES (deduped before matching -- a RecorderHost product fix for the duplicate-marker source is landing separately)"
+        echo "(informational) T2 spurious (off-grid, >interval/2) markers rejected: $N_SPURIOUS"
+        echo "(informational) T2 raw-peak-detector cross-check: found $N_PEAKS burst peaks directly in the audio (best-effort threshold detector, not the pairing oracle)"
     else
         no "T2 alignment could not be computed ($ALIGN)"
     fi

@@ -34,10 +34,22 @@ Usage: gen-click-wav.py [output.wav] [--duration-s N] [--rate N]
 Defaults match the plan exactly for the click grid: 120s, 48000 Hz, stereo,
 a burst onset every 24000 frames, amplitude 30000 (comfortably below int16
 full scale to avoid any downstream clipping in the tap's re-encode). Burst
-shape defaults: 5ms total, 0.5ms linear attack, 1kHz tone + noise (70/30
+shape defaults: 5ms total, 0.5ms linear attack, 1kHz tone + noise (85/15
 mix), exponential decay (k=5.0, so the tail is down to exp(-5)~=0.7% of
 peak by the end of the burst). `--seed` keeps the noise component
 deterministic across runs (default 0).
+
+s-rta-0924 (Harmony, probe-step3.sh section 9 diagnosis): with the prior
+70/30 tone/noise mix, the deterministic (tone-only, no-noise) component's
+peak sample only reaches ~16140 against probe-step3.sh's 15000
+half-full-scale detection threshold (~7.6% headroom) -- because the 1kHz
+tone's phase at the envelope's near-peak sample (k~35, just past the 0.5ms
+attack) is well off its own crest, not because the envelope itself is low.
+Mixed with the random noise component, that thin margin let ~18% of bursts'
+peak sample dip under threshold. 85/15 raises the deterministic-only peak
+to ~19599 (~30.7% headroom, comfortably over the required >=25%) without
+touching the burst onset position (still exactly on the grid) or the -50
+dBFS inter-burst noise floor (still required for aubio onsets to fire).
 """
 import argparse
 import math
@@ -57,8 +69,8 @@ def main() -> int:
     p.add_argument("--burst-ms", type=float, default=5.0)
     p.add_argument("--attack-ms", type=float, default=0.5)
     p.add_argument("--freq-hz", type=float, default=1000.0)
-    p.add_argument("--tone-mix", type=float, default=0.7)
-    p.add_argument("--noise-mix", type=float, default=0.3)
+    p.add_argument("--tone-mix", type=float, default=0.85)
+    p.add_argument("--noise-mix", type=float, default=0.15)
     p.add_argument("--decay-k", type=float, default=5.0)
     p.add_argument("--seed", type=int, default=0)
     # s-rta-0924: a continuous noise floor between bursts. aubio's onset
