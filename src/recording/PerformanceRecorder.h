@@ -38,7 +38,11 @@ public:
     // coalesces to <= 1 point / 50 ms per lane, begin and end always exact
     // (D3); release() closes it. A stray set()/release() without a
     // preceding touch() is ignored (defensive; row 1 assumption, disclosed
-    // in the report).
+    // in the report). A second touch() on a key whose gesture is still
+    // open closes that gesture EXACTLY at the current stamp (as release()
+    // would) before opening the new one -- captured breakpoints are never
+    // discarded; a grip change (held -> decaying) records as two adjacent
+    // gestures.
     void touch(const ControlPath& key, std::string grip);
     void set(const ControlPath& key, float v);
     void release(const ControlPath& key);
@@ -60,6 +64,16 @@ private:
 
     struct OpenGesture { Gesture g; double lastCoalesceT = 0.0; };
     std::map<ControlPath, OpenGesture> openGestures_;
+
+    // Shared exact-end helper (addendum 4a): appends the exact end
+    // breakpoint (pts.back().y at stamp.beat, stamp {nextSeq++, stamp.t,
+    // stamp.sample}) if `og.g.curve.pts` is non-empty, then moves `og.g`
+    // into `take_.lanes[key]` (kind Continuous). Does NOT erase from
+    // `openGestures_` -- callers do, since touch()'s close-and-reopen
+    // needs the entry gone before it inserts the new one, while stop()
+    // clears the whole map afterward. Used by release(), stop(), and
+    // touch()'s double-touch close.
+    void finishGesture(const ControlPath& key, OpenGesture& og, const ClockStamp& stamp);
 
     static constexpr double kCoalesceWindowSeconds = 0.050;   // July section 2.3 / D3
 };

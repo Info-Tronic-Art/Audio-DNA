@@ -47,6 +47,17 @@ void PerformanceRecorder::touch(const ControlPath& key, std::string grip)
     if (!recording_ || clock_ == nullptr) return;
 
     const auto stamp = clock_->now();
+
+    // A second touch() on a key whose gesture is still open closes that
+    // gesture EXACTLY at the current stamp (as release() would) before
+    // opening the new one -- captured breakpoints are never discarded; a
+    // grip change (held -> decaying) records as two adjacent gestures.
+    if (auto it = openGestures_.find(key); it != openGestures_.end())
+    {
+        finishGesture(key, it->second, stamp);
+        openGestures_.erase(it);
+    }
+
     OpenGesture og;
     og.g.grip = std::move(grip);
     og.g.origin = Origin::Human;
@@ -107,13 +118,19 @@ void PerformanceRecorder::release(const ControlPath& key)
     if (it == openGestures_.end())
         return;
 
-    const auto stamp = clock_->now();
-    auto& og = it->second;
-
     // The release point is EXACT regardless of the coalescing window
-    // (D3) -- always appended as its own breakpoint, never merged into a
-    // coalesced one. Skipped only if touch() was followed by no set() at
-    // all (nothing to be exact ABOUT -- a touch-and-let-go with no move).
+    // (D3) -- shared exact-end logic with stop()'s flush and touch()'s
+    // double-touch close (see finishGesture()).
+    finishGesture(key, it->second, clock_->now());
+    openGestures_.erase(it);
+}
+
+void PerformanceRecorder::finishGesture(const ControlPath& key, OpenGesture& og, const ClockStamp& stamp)
+{
+    // Always appended as its own exact breakpoint, never merged into a
+    // coalesced one. Skipped only if the gesture was followed by no
+    // set() at all (nothing to be exact ABOUT -- a touch-and-let-go with
+    // no move, or a touch() immediately re-touched with no move).
     if (!og.g.curve.pts.empty())
     {
         const float endValue = og.g.curve.pts.back().y;
@@ -125,8 +142,6 @@ void PerformanceRecorder::release(const ControlPath& key)
     lane.key = key;
     lane.kind = Lane::Kind::Continuous;
     lane.gestures.push_back(std::move(og.g));
-
-    openGestures_.erase(it);
 }
 
 Take PerformanceRecorder::stop(const Composition& comp)
@@ -135,20 +150,12 @@ Take PerformanceRecorder::stop(const Composition& comp)
     (void) comp;   // checkpointEnd capture from a live Composition is step 3's job (see header)
 
     // Mirrors Player::stop's "let go of its hands" (R9): no lane is left
-    // mid-touch in the saved take.
+    // mid-touch in the saved take. Shares the exact-end logic with
+    // release() and touch()'s double-touch close via finishGesture().
     for (auto& [key, og] : openGestures_)
     {
-        if (!og.g.curve.pts.empty())
-        {
-            const auto stamp = clock_ != nullptr ? clock_->now() : ClockStamp{};
-            const float endValue = og.g.curve.pts.back().y;
-            og.g.curve.pts.push_back({ stamp.beat, endValue, Breakpoint::Interp::Linear });
-            og.g.stamps.push_back({ take_.nextSeq++, stamp.t, stamp.sample });
-        }
-        auto& lane = take_.lanes[key];
-        lane.key = key;
-        lane.kind = Lane::Kind::Continuous;
-        lane.gestures.push_back(std::move(og.g));
+        const auto stamp = clock_ != nullptr ? clock_->now() : ClockStamp{};
+        finishGesture(key, og, stamp);
     }
     openGestures_.clear();
 
