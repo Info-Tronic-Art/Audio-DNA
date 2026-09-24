@@ -1,0 +1,489 @@
+diff --git a/src/recording/AudioTap.cpp b/src/recording/AudioTap.cpp
+index d8ac1db..9a10c74 100644
+--- a/src/recording/AudioTap.cpp
++++ b/src/recording/AudioTap.cpp
+@@ -236,11 +236,32 @@ void AudioTap::writeFrames(const float* const* ch, int chans, int numSamples)
+     // (ch == nullptr, chans == 0, s168 review's "listened == nullptr"
+     // case, CombinedCallback.h) -- the loop below is simply empty when
+     // chans == 0, so ch is never dereferenced.
+-    for (int c = 0; c < chans; ++c)
+-        scratchChannelPtrs_[static_cast<size_t>(c)] = ch[c];
+-    for (int c = chans; c < channels_; ++c)
+-        scratchChannelPtrs_[static_cast<size_t>(c)] = silenceChannelPtrs_[0];
+-    writeBlockRetrying(scratchChannelPtrs_.data(), numSamples);
++    //
++    // H1FIX: the padding channels point into silenceChannelPtrs_, which is
++    // only ever sized to maxBlock_ per channel (prepare()). Unlike
++    // writeSilenceFrames() (below), this path used to hand the FULL,
++    // unchunked numSamples to writeBlockRetrying -- if a block's numSamples
++    // ever exceeded the last-prepared maxBlock_ while chans < channels_
++    // (e.g. a BT/HFP block larger than the device's last-announced buffer
++    // size), the eventual read of silenceChannelPtrs_[0] ran past its
++    // maxBlock_-sized allocation (heap-buffer-overflow READ, reproduced by
++    // tests/test_bt_device_shapes.cpp). Chunk to maxBlock_ here, exactly as
++    // writeSilenceFrames() already does, so no downstream call (tryRealWrite
++    // or spillIntoPending) ever sees more than maxBlock_ samples of the
++    // silence buffer. The real channels' offset advances in lockstep so
++    // sample order and content are unaffected; framesWritten_ above already
++    // accounts for the full numSamples once, not per chunk.
++    int offset = 0;
++    while (offset < numSamples)
++    {
++        const int chunk = std::min(numSamples - offset, maxBlock_);
++        for (int c = 0; c < chans; ++c)
++            scratchChannelPtrs_[static_cast<size_t>(c)] = ch[c] + offset;
++        for (int c = chans; c < channels_; ++c)
++            scratchChannelPtrs_[static_cast<size_t>(c)] = silenceChannelPtrs_[0];
++        writeBlockRetrying(scratchChannelPtrs_.data(), chunk);
++        offset += chunk;
++    }
+ }
+ 
+ void AudioTap::writeSilenceFrames(uint32_t numFrames)
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 2146f3f..061bf7b 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -671,3 +671,43 @@ if(APPLE AND AUDIODNA_BUILD_SYPHON)
+              COMMAND syphon-check "Audio-DNA-Negative-Check-Nonexistent-App-9f3a" 0.5)
+     set_tests_properties(syphon_check_negative PROPERTIES WILL_FAIL TRUE)
+ endif()
++
++# --- test_bt_device_shapes (LANE H1 diagnostic, s-rta-0923: heap-corruption
++# hypothesis H1 -- the s168 AudioTap fan-out under Bluetooth-headset-shaped
++# device callbacks: 1 input channel, 16000 Hz, odd/variable block sizes, a
++# device restart with a sample-rate change mid-stream). Drives
++# CombinedCallback directly with the same FakeAudioIODevice pattern
++# test_audio_tap_sync.cpp uses -- no real device, headless, deterministic.
++# Links only AudioCallback.cpp and AudioTap.cpp (the fan-out under test);
++# Take/TempoMap/PerfState are not touched by this diagnostic, unlike
++# test_audio_tap_sync's folder-save/load case.
++add_executable(test_bt_device_shapes
++    test_bt_device_shapes.cpp
++    ${SRC_DIR}/audio/AudioCallback.cpp
++    ${SRC_DIR}/recording/AudioTap.cpp
++)
++target_include_directories(test_bt_device_shapes PRIVATE ${SRC_DIR})
++target_link_libraries(test_bt_device_shapes PRIVATE
++    Catch2::Catch2WithMain
++    juce::juce_core
++    juce::juce_events
++    juce::juce_audio_basics
++    juce::juce_audio_devices
++    juce::juce_audio_formats
++    juce::juce_audio_utils
++)
++target_compile_definitions(test_bt_device_shapes PRIVATE
++    _USE_MATH_DEFINES
++    JUCE_WEB_BROWSER=0
++    JUCE_USE_CURL=0
++    JUCE_DISPLAY_SPLASH_SCREEN=0
++)
++if(NOT MSVC)
++    target_compile_options(test_bt_device_shapes PRIVATE
++        -Wno-old-style-cast
++        -Wno-conversion
++        -Wno-sign-conversion
++    )
++endif()
++apply_sanitizers(test_bt_device_shapes)
++catch_discover_tests(test_bt_device_shapes)
+diff --git a/tests/test_bt_device_shapes.cpp b/tests/test_bt_device_shapes.cpp
+new file mode 100644
+index 0000000..e290f80
+--- /dev/null
++++ b/tests/test_bt_device_shapes.cpp
+@@ -0,0 +1,393 @@
++// test_bt_device_shapes -- LANE H1 diagnostic (s-rta-0923). Hypothesis H1:
++// the s168 audio-thread fan-out (AudioTap + the device callback path:
++// AudioCallback, AudioTap, CombinedCallback) corrupts the heap when the
++// device is a Bluetooth headset: 1 input channel, 16000 Hz, odd/variable
++// block sizes, and a device restart with a sample-rate change mid-stream
++// (48000 -> 16000). See .harmony/.reports/s-rta-0923-startup-crash-diagnosis.md
++// for the two original crash signatures (a JUCE/CoreAudio-internal SIGSEGV
++// with zero app-code frames -- H2 -- and two malloc free-list-checksum
++// SIGABRTs discovered at unrelated allocator call sites -- H1's signature).
++//
++// This file drives the REAL callback objects the app actually wires
++// together for mic-mode analysis+recording -- CombinedCallback, which owns
++// one AudioCallback and one AudioTap -- exactly as MainComponent/AudioEngine
++// does (CombinedCallback.h's audioDeviceIOCallbackWithContext is the single
++// production entry point for every audio block in mic mode). No fix is
++// applied here regardless of what is found; this lane reports only (see the
++// LANE H1 work packet: "Do NOT fix production code even if you find the
++// bug -- report it; Harmony dispatches the fix").
++//
++// READ-SIDE HEAP-OVERFLOW HYPOTHESIS THIS FILE TARGETS (source-derived, not
++// yet proven under ASan before this file existed):
++// AudioTap::prepare(rate, channels, maxBlockSize) sizes silenceStorage_ to
++// [channels_][maxBlock_] (AudioTap.cpp). AudioTap::writeFrames() -- the
++// path push() always takes for REAL data -- pads missing trailing channels
++// via scratchChannelPtrs_[c] = silenceChannelPtrs_[0] whenever chans <
++// channels_ (AudioTap.cpp:239-243), then calls
++// writeBlockRetrying(scratchChannelPtrs_.data(), numSamples) WITHOUT
++// chunking to maxBlock_ (unlike writeSilenceFrames(), which does chunk to
++// maxBlock_, AudioTap.cpp:246-258). If a block's numSamples ever exceeds
++// the maxBlock_ that was last given to prepare() WHILE chans < channels_
++// (e.g. a mono Bluetooth mic block arriving into a tap still configured
++// for 2 channels, or a variable/growing HFP block size arriving without an
++// intervening audioDeviceAboutToStart -- the exact CoreAudio-driver
++// behaviour Crash A's stack (AudioIODeviceCombiner::restartAsync()) points
++// at), then writeBlockRetrying's eventual read of
++// silenceChannelPtrs_[0][0 .. numSamples) reads past the maxBlock_-sized
++// silenceStorage_[0] allocation -- a heap-buffer-overflow READ. This is
++// distinct from (and does not by itself prove) the WRITE-side heap
++// corruption the free_list_checksum_botch signature implies; see this
++// lane's report for the discrimination.
++#include <catch2/catch_test_macros.hpp>
++#include "audio/CombinedCallback.h"
++#include "audio/AudioCallback.h"
++#include "audio/RingBuffer.h"
++#include "recording/AudioTap.h"
++#include <juce_audio_formats/juce_audio_formats.h>
++#include <algorithm>
++#include <cstdint>
++#include <memory>
++#include <vector>
++
++namespace
++{
++    // Same minimal AudioIODevice fake as test_audio_tap_sync.cpp
++    // (CombinedCallback::audioDeviceAboutToStart only ever reads
++    // getCurrentSampleRate/getCurrentBufferSizeSamples/getActiveOutputChannels
++    // from it -- see CombinedCallback.h). Duplicated locally rather than
++    // shared: this file is a standalone diagnostic target, not a shared
++    // header the app or other tests depend on.
++    class FakeAudioIODevice : public juce::AudioIODevice
++    {
++    public:
++        FakeAudioIODevice(double rate, int bufferSize, int channels)
++            : juce::AudioIODevice("FakeBtDevice", "Fake"),
++              rate_(rate), bufferSize_(bufferSize), channels_(channels)
++        {}
++
++        juce::StringArray getOutputChannelNames() override { return {}; }
++        juce::StringArray getInputChannelNames() override { return {}; }
++        juce::Array<double> getAvailableSampleRates() override { return { rate_ }; }
++        juce::Array<int> getAvailableBufferSizes() override { return { bufferSize_ }; }
++        int getDefaultBufferSize() override { return bufferSize_; }
++        juce::String open(const juce::BigInteger&, const juce::BigInteger&, double, int) override { return {}; }
++        void close() override {}
++        bool isOpen() override { return true; }
++        void start(juce::AudioIODeviceCallback*) override {}
++        void stop() override {}
++        bool isPlaying() override { return false; }
++        juce::String getLastError() override { return {}; }
++        int getCurrentBufferSizeSamples() override { return bufferSize_; }
++        double getCurrentSampleRate() override { return rate_; }
++        int getCurrentBitDepth() override { return 16; }
++        juce::BigInteger getActiveOutputChannels() const override
++        {
++            juce::BigInteger b; b.setRange(0, channels_, true); return b;
++        }
++        juce::BigInteger getActiveInputChannels() const override
++        {
++            juce::BigInteger b; b.setRange(0, channels_, true); return b;
++        }
++        int getOutputLatencyInSamples() override { return 0; }
++        int getInputLatencyInSamples() override { return 0; }
++
++    private:
++        double rate_;
++        int bufferSize_;
++        int channels_;
++    };
++
++    struct TempWavFile
++    {
++        juce::File file;
++        explicit TempWavFile(const juce::String& tag)
++            : file(juce::File::getSpecialLocation(juce::File::tempDirectory)
++                       .getChildFile("audiodna_bt_" + tag + "_"
++                                     + juce::String(juce::Random::getSystemRandom().nextInt64()) + ".wav"))
++        {}
++        ~TempWavFile() { file.deleteFile(); }
++    };
++
++    // Fires one audioDeviceIOCallbackWithContext block through `combined` in
++    // mic mode (useInputForAnalysis must already be set by the caller).
++    // `numInputChannels` of 0 means "no analyzable buffer this callback"
++    // (BT device with no input opened yet / dropped mid-negotiation) --
++    // passed with a null inputChannelData pointer, exactly CombinedCallback's
++    // own documented null-input case. `numInputChannels` of 1 means a mono
++    // BT mic block (HFP profile is mono); the input buffer itself is always
++    // allocated to the block's own numSamples (this test does not itself
++    // under-allocate the SOURCE the OS would hand JUCE -- the bug under
++    // test, if real, is internal to AudioTap's own scratch/silence buffers,
++    // not a malformed input from the caller).
++    void pushBlock(CombinedCallback& combined, int numInputChannels, int numSamples,
++                   uint64_t& hostTimeNs, double rate)
++    {
++        hostTimeNs += static_cast<uint64_t>((static_cast<double>(numSamples) / rate) * 1.0e9);
++        juce::AudioIODeviceCallbackContext ctx;
++        ctx.hostTimeNs = &hostTimeNs;
++
++        std::vector<float> outL(static_cast<size_t>(numSamples), 0.0f);
++        std::vector<float> outR(static_cast<size_t>(numSamples), 0.0f);
++        float* outPtrs[2] = { outL.data(), outR.data() };
++
++        if (numInputChannels <= 0)
++        {
++            combined.audioDeviceIOCallbackWithContext(nullptr, 0, outPtrs, 2, numSamples, ctx);
++            return;
++        }
++
++        // Mono BT mic block: exactly numInputChannels channels, each with
++        // numSamples real, non-zero samples (a silent buffer could mask a
++        // read of adjacent stale-but-zeroed heap; a non-zero signal makes a
++        // garbage read visible in principle, and ASan does not care about
++        // content either way -- it instruments the access itself).
++        std::vector<std::vector<float>> inStorage(static_cast<size_t>(numInputChannels),
++                                                    std::vector<float>(static_cast<size_t>(numSamples), 0.42f));
++        std::vector<const float*> inPtrs(static_cast<size_t>(numInputChannels));
++        for (int c = 0; c < numInputChannels; ++c)
++            inPtrs[static_cast<size_t>(c)] = inStorage[static_cast<size_t>(c)].data();
++
++        combined.audioDeviceIOCallbackWithContext(inPtrs.data(), numInputChannels, outPtrs, 2, numSamples, ctx);
++    }
++
++    // The block-size sweep the LANE H1 packet specifies: 1..4096 including
++    // non-power-of-two sizes, spanning well below and well above a small
++    // prepared maxBlock_ (the scenario that exercises writeFrames'
++    // unchunked pad-with-silence path, AudioTap.cpp:219-244).
++    std::vector<int> blockSizeSweep()
++    {
++        return { 1, 2, 3, 7, 17, 63, 64, 65, 100, 127, 128, 129, 255, 256, 257,
++                 511, 513, 1000, 1023, 1024, 1025, 2047, 2049, 3333, 4095, 4096 };
++    }
++}
++
++// ============================================================================
++// H1 core probe: a tap prepared for 2 channels at a SMALL maxBlock_ (as if
++// the device opened symmetric stereo in/out with a small initial buffer --
++// AudioEngine's own initialiseWithDefaultDevices(2, 2)), then fed a sweep of
++// mono (chans=1 < channels_=2) blocks, many of them larger than the
++// prepared maxBlock_, WITHOUT any intervening audioDeviceAboutToStart --
++// i.e. exactly a CoreAudio driver handing JUCE a differently-shaped block
++// mid-stream without a device-restart notification, which is the class of
++// behaviour Crash A's stack (deviceListenerProc -> restartAsync()) points
++// at as live in this exact app.
++// ============================================================================
++TEST_CASE("BT shapes: mono (chans=1) blocks larger than the prepared maxBlock_ against a 2-channel tap", "[h1][audiotap][heap]")
++{
++    RingBuffer<float> ring(16384);
++    AudioCallback analysis(ring);
++    juce::AudioSourcePlayer player;
++    CombinedCallback combined(player, analysis);
++    combined.useInputForAnalysis.store(true);
++
++    constexpr double rate = 16000.0;   // the BT HFP rate named in the hypothesis
++    constexpr int initialBlockSize = 64;   // deliberately small maxBlock_
++    FakeAudioIODevice device(rate, initialBlockSize, 2);   // 2 channels: symmetric-open assumption (CombinedCallback.h:150-153)
++    combined.audioDeviceAboutToStart(&device);
++
++    TempWavFile wav("h1core");
++    REQUIRE(combined.tap().start(wav.file));
++
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    uint64_t mirrorDelivered = 0;
++
++    for (int numSamples : blockSizeSweep())
++    {
++        pushBlock(combined, /*numInputChannels=*/1, numSamples, hostTimeNs, rate);
++        mirrorDelivered += static_cast<uint64_t>(numSamples);
++        REQUIRE(combined.getDeliveredSamples() == mirrorDelivered);
++    }
++
++    combined.tap().stop();
++
++    // If the process survived (no ASan abort), the frame-count invariant
++    // must still hold -- this is the ordinary functional check; it says
++    // nothing about whether an OOB READ happened along the way (ASan is the
++    // instrument for that, not this assertion).
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav.file), true));
++    REQUIRE(reader != nullptr);
++    const uint64_t firstSample = combined.tap().firstSample();
++    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == combined.getDeliveredSamples() - firstSample);
++}
++
++// ============================================================================
++// Same shape sweep, but with numInputChannels == 0 / inputChannelData ==
++// nullptr every block (BT input never opens, or drops mid-negotiation) --
++// CombinedCallback's own "listened == nullptr" case, which AudioTap turns
++// into a chans == 0 < channels_ pad-with-silence call (AudioTap.cpp:234-238
++// comment: "chans == 0 always lands here too"). Same unchunked
++// writeBlockRetrying(scratchChannelPtrs_.data(), numSamples) call as the
++// chans==1 case above, so the same OOB-read opportunity applies whenever
++// numSamples exceeds the prepared maxBlock_.
++// ============================================================================
++TEST_CASE("BT shapes: null-input (chans=0) blocks larger than the prepared maxBlock_", "[h1][audiotap][heap][nullinput]")
++{
++    RingBuffer<float> ring(16384);
++    AudioCallback analysis(ring);
++    juce::AudioSourcePlayer player;
++    CombinedCallback combined(player, analysis);
++    combined.useInputForAnalysis.store(true);
++
++    constexpr double rate = 16000.0;
++    constexpr int initialBlockSize = 64;
++    FakeAudioIODevice device(rate, initialBlockSize, 2);
++    combined.audioDeviceAboutToStart(&device);
++
++    TempWavFile wav("h1null");
++    REQUIRE(combined.tap().start(wav.file));
++
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    uint64_t mirrorDelivered = 0;
++
++    for (int numSamples : blockSizeSweep())
++    {
++        pushBlock(combined, /*numInputChannels=*/0, numSamples, hostTimeNs, rate);
++        mirrorDelivered += static_cast<uint64_t>(numSamples);
++        REQUIRE(combined.getDeliveredSamples() == mirrorDelivered);
++    }
++
++    combined.tap().stop();
++
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav.file), true));
++    REQUIRE(reader != nullptr);
++    const uint64_t firstSample = combined.tap().firstSample();
++    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == combined.getDeliveredSamples() - firstSample);
++}
++
++// ============================================================================
++// The literal H1 trigger condition from the handoff: a device restart WITH
++// a sample-rate change mid-stream (48000 -> 16000), landing on a BT-shaped
++// device (1 channel, small/odd block), immediately followed by a block-size
++// sweep on the NEW device WITHOUT a further audioDeviceAboutToStart (a
++// second, faster shape drift than the one that triggered the restart --
++// plausible during a live HFP renegotiation storm). A genuine rate/channel
++// change stops any in-flight take (AudioTap::prepare()'s own documented
++// contract, AudioTap.cpp:54-65), so this test re-arms recording after the
++// restart to keep the tap RECORDING for the post-restart sweep, per the
++// LANE H1 packet's explicit requirement ("with the tap RECORDING").
++// ============================================================================
++TEST_CASE("BT shapes: device restart 48000/2ch -> 16000/1ch mid-stream, then a block-size sweep while recording", "[h1][audiotap][heap][restart]")
++{
++    RingBuffer<float> ring(16384);
++    AudioCallback analysis(ring);
++    juce::AudioSourcePlayer player;
++    CombinedCallback combined(player, analysis);
++    combined.useInputForAnalysis.store(true);
++
++    constexpr double preRate = 48000.0;
++    constexpr int preBlockSize = 128;
++    FakeAudioIODevice preDevice(preRate, preBlockSize, 2);
++    combined.audioDeviceAboutToStart(&preDevice);
++
++    TempWavFile wav("h1restart");
++    REQUIRE(combined.tap().start(wav.file));
++
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    uint64_t mirrorDelivered = 0;
++
++    // A few normal pre-restart blocks (stereo, matches preDevice) -- proves
++    // the take is genuinely running before the restart, not merely armed.
++    for (int i = 0; i < 5; ++i)
++    {
++        pushBlock(combined, /*numInputChannels=*/2, preBlockSize, hostTimeNs, preRate);
++        mirrorDelivered += static_cast<uint64_t>(preBlockSize);
++    }
++    REQUIRE(combined.getDeliveredSamples() == mirrorDelivered);
++    REQUIRE(combined.tap().framesWritten() == mirrorDelivered - combined.tap().firstSample());
++
++    // The restart: rate AND channel count both change (48000/2ch ->
++    // 16000/1ch), matching the handoff's named trigger condition exactly.
++    combined.audioDeviceStopped();
++    constexpr double postRate = 16000.0;
++    constexpr int postBlockSize = 96;   // a small odd-ish initial HFP block
++    FakeAudioIODevice postDevice(postRate, postBlockSize, 1);
++    combined.audioDeviceAboutToStart(&postDevice);   // AudioTap::prepare() sees rateOrChannelsChanged -> stopInternal()
++
++    REQUIRE_FALSE(combined.tap().isRunning());   // confirms the rate/channel change really did stop the prior take
++
++    // Re-arm for the post-restart segment, exactly as a real recorder would
++    // (D10.1's "audio-2.wav" multi-segment case is Take-level and out of
++    // scope here -- this tap-level test only needs a fresh, running take).
++    TempWavFile wav2("h1restart_post");
++    REQUIRE(combined.tap().start(wav2.file));
++
++    uint64_t mirrorDelivered2 = 0;
++    hostTimeNs += 1'000'000ULL;   // arbitrary continuation, not itself under test
++
++    // Immediately hit the new (smaller, mono) tap with the full block-size
++    // sweep, mono input every time (chans=1 == channels_=1 here, the
++    // MATCHED case) interleaved with null-input blocks (chans=0 < channels_=1,
++    // the mismatched/padding case) -- both variants, at every block size.
++    for (int numSamples : blockSizeSweep())
++    {
++        pushBlock(combined, /*numInputChannels=*/1, numSamples, hostTimeNs, postRate);
++        mirrorDelivered2 += static_cast<uint64_t>(numSamples);
++        pushBlock(combined, /*numInputChannels=*/0, numSamples, hostTimeNs, postRate);
++        mirrorDelivered2 += static_cast<uint64_t>(numSamples);
++    }
++
++    combined.tap().stop();
++
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav2.file), true));
++    REQUIRE(reader != nullptr);
++    const uint64_t firstSample2 = combined.tap().firstSample();
++    REQUIRE(combined.tap().framesWritten() == mirrorDelivered2);
++    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == combined.tap().framesWritten());
++    juce::ignoreUnused(firstSample2);
++}
++
++// ============================================================================
++// Randomized shape driver: numInputChannels in {0, 1, 2}, block sizes drawn
++// from the sweep in random order (Catch2 GENERATE + the suite's own
++// --order rand at the CASE level covers case ordering; this covers the
++// PER-CALLBACK shape ordering within a single run, which --order rand alone
++// does not reach), all against a small initial maxBlock_ so the
++// larger-than-prepared condition is common, not rare.
++// ============================================================================
++TEST_CASE("BT shapes: randomized channel-count/block-size sequence against a small prepared maxBlock_", "[h1][audiotap][heap][random]")
++{
++    RingBuffer<float> ring(16384);
++    AudioCallback analysis(ring);
++    juce::AudioSourcePlayer player;
++    CombinedCallback combined(player, analysis);
++    combined.useInputForAnalysis.store(true);
++
++    constexpr double rate = 16000.0;
++    constexpr int initialBlockSize = 32;   // smaller than almost every sweep entry
++    FakeAudioIODevice device(rate, initialBlockSize, 2);
++    combined.audioDeviceAboutToStart(&device);
++
++    TempWavFile wav("h1random");
++    REQUIRE(combined.tap().start(wav.file));
++
++    uint64_t hostTimeNs = 1'000'000'000ULL;
++    uint64_t mirrorDelivered = 0;
++
++    juce::Random rng(12345);   // fixed seed: deterministic across runs, still exercises many (chans, size) pairs
++    const auto sizes = blockSizeSweep();
++    const int channelChoices[3] = { 0, 1, 2 };
++
++    for (int iter = 0; iter < 120; ++iter)
++    {
++        const int chans = channelChoices[rng.nextInt(3)];
++        const int numSamples = sizes[static_cast<size_t>(rng.nextInt(static_cast<int>(sizes.size())))];
++        pushBlock(combined, chans, numSamples, hostTimeNs, rate);
++        mirrorDelivered += static_cast<uint64_t>(numSamples);
++        REQUIRE(combined.getDeliveredSamples() == mirrorDelivered);
++    }
++
++    combined.tap().stop();
++
++    juce::WavAudioFormat format;
++    std::unique_ptr<juce::AudioFormatReader> reader(
++        format.createReaderFor(new juce::FileInputStream(wav.file), true));
++    REQUIRE(reader != nullptr);
++    const uint64_t firstSample = combined.tap().firstSample();
++    REQUIRE(static_cast<uint64_t>(reader->lengthInSamples) == combined.getDeliveredSamples() - firstSample);
++}

@@ -240,11 +240,32 @@ void AudioTap::writeFrames(const float* const* ch, int chans, int numSamples)
     // (ch == nullptr, chans == 0, s168 review's "listened == nullptr"
     // case, CombinedCallback.h) -- the loop below is simply empty when
     // chans == 0, so ch is never dereferenced.
-    for (int c = 0; c < chans; ++c)
-        scratchChannelPtrs_[static_cast<size_t>(c)] = ch[c];
-    for (int c = chans; c < channels_; ++c)
-        scratchChannelPtrs_[static_cast<size_t>(c)] = silenceChannelPtrs_[0];
-    writeBlockRetrying(scratchChannelPtrs_.data(), numSamples);
+    //
+    // H1FIX: the padding channels point into silenceChannelPtrs_, which is
+    // only ever sized to maxBlock_ per channel (prepare()). Unlike
+    // writeSilenceFrames() (below), this path used to hand the FULL,
+    // unchunked numSamples to writeBlockRetrying -- if a block's numSamples
+    // ever exceeded the last-prepared maxBlock_ while chans < channels_
+    // (e.g. a BT/HFP block larger than the device's last-announced buffer
+    // size), the eventual read of silenceChannelPtrs_[0] ran past its
+    // maxBlock_-sized allocation (heap-buffer-overflow READ, reproduced by
+    // tests/test_bt_device_shapes.cpp). Chunk to maxBlock_ here, exactly as
+    // writeSilenceFrames() already does, so no downstream call (tryRealWrite
+    // or spillIntoPending) ever sees more than maxBlock_ samples of the
+    // silence buffer. The real channels' offset advances in lockstep so
+    // sample order and content are unaffected; framesWritten_ above already
+    // accounts for the full numSamples once, not per chunk.
+    int offset = 0;
+    while (offset < numSamples)
+    {
+        const int chunk = std::min(numSamples - offset, maxBlock_);
+        for (int c = 0; c < chans; ++c)
+            scratchChannelPtrs_[static_cast<size_t>(c)] = ch[c] + offset;
+        for (int c = chans; c < channels_; ++c)
+            scratchChannelPtrs_[static_cast<size_t>(c)] = silenceChannelPtrs_[0];
+        writeBlockRetrying(scratchChannelPtrs_.data(), chunk);
+        offset += chunk;
+    }
 }
 
 void AudioTap::writeSilenceFrames(uint32_t numFrames)

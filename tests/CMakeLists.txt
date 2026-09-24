@@ -840,3 +840,43 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_take_v1_transport)
 catch_discover_tests(test_take_v1_transport)
+
+# --- test_bt_device_shapes (LANE H1 diagnostic, s-rta-0923: heap-corruption
+# hypothesis H1 -- the s168 AudioTap fan-out under Bluetooth-headset-shaped
+# device callbacks: 1 input channel, 16000 Hz, odd/variable block sizes, a
+# device restart with a sample-rate change mid-stream). Drives
+# CombinedCallback directly with the same FakeAudioIODevice pattern
+# test_audio_tap_sync.cpp uses -- no real device, headless, deterministic.
+# Links only AudioCallback.cpp and AudioTap.cpp (the fan-out under test);
+# Take/TempoMap/PerfState are not touched by this diagnostic, unlike
+# test_audio_tap_sync's folder-save/load case.
+add_executable(test_bt_device_shapes
+    test_bt_device_shapes.cpp
+    ${SRC_DIR}/audio/AudioCallback.cpp
+    ${SRC_DIR}/recording/AudioTap.cpp
+)
+target_include_directories(test_bt_device_shapes PRIVATE ${SRC_DIR})
+target_link_libraries(test_bt_device_shapes PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_audio_utils
+)
+target_compile_definitions(test_bt_device_shapes PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_bt_device_shapes PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_bt_device_shapes)
+catch_discover_tests(test_bt_device_shapes)
