@@ -1191,11 +1191,11 @@ void ApiServer::handlePerfRecord(const httplib::Request& req, httplib::Response&
     opts.onsetMarkers = static_cast<bool>(json.getProperty("onsetMarkers", false));
     opts.overdubAssetId = json.getProperty("overdubAssetId", "").toString();
 
-    // Arm-time validation (device rate, store/tap failures, R13 mismatch) runs
-    // on the message thread inside RecorderHost::arm and can no longer be
-    // reported back synchronously -- same trade-off already made for
+    // Arm-time validation (device rate, store/tap failures) runs on the
+    // message thread inside RecorderHost::arm and can no longer be reported
+    // back synchronously -- same trade-off already made for
     // set_param/set_layer_opacity/set_effect. Refusals surface through
-    // /api/perf/status (lastError/rateMismatch), not this response.
+    // /api/perf/status (lastError/rateChangedSinceArm), not this response.
     // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this, opts]() {
         onPerfRecord(opts);
@@ -1315,8 +1315,9 @@ void ApiServer::handlePerfStatus(const httplib::Request&, httplib::Response& res
     // Synchronous -- critic A5(b)/N3: this handler reads nothing but
     // RecorderHost::status() (mutex-guarded copy, safe from any thread).
     // MainComponent's onPerfStatus assignment is the one place deviceRate,
-    // rateMismatch and humanRefused get read -- from RecorderHost::Status,
-    // published by tick() -- never from audioEngine_.getCurrentSampleRate()/
-    // getCurrentAudioDevice() on this thread.
+    // rateChangedSinceArm and humanRefused get read -- from RecorderHost::
+    // Status, published by tick() -- never from
+    // audioEngine_.getCurrentSampleRate()/getCurrentAudioDevice() on this
+    // thread.
     res.set_content(juce::JSON::toString(onPerfStatus()).toStdString(), "application/json");
 }

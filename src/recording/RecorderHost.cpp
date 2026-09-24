@@ -146,7 +146,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     }
 
     armedGripHoldMs_ = opts.gripHoldMs > 0.0f ? opts.gripHoldMs : 250.0f;
-    armedAnalysisRate_ = opts.analysisRate > 0.0 ? opts.analysisRate : 48000.0;
+    // R13-C: opts.analysisRate is a deprecated no-op (see ArmOptions::analysisRate) -- never read.
     armedDeviceRate_ = opts.deviceRate;
     armedDeviceChannels_ = opts.deviceChannels;
     audioMode_ = opts.audioMode;
@@ -167,17 +167,13 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     lastError_.clear();
     armRecordedAt_ = juce::Time::getCurrentTime().toISO8601(true).toStdString();
 
-    // A5(a) / critic B5: arm-time rate-mismatch check -- runs regardless of the audio branch below,
-    // since deviceRate/analysisRate matter even with audio == false (the beat clock still runs off
-    // whatever device is open).
-    const bool rateMismatch = opts.deviceRate > 0.0
-        && std::abs(opts.deviceRate - armedAnalysisRate_) > 0.5;
-    rateMismatch_ = rateMismatch;
+    // R13-C: rateChangedSinceArm always starts false at arm -- see tick()'s comment for the
+    // ongoing comparison (deviceRate vs armedDeviceRate_, not vs a fixed "analysis rate": the
+    // analysis thread resamples to its fixed internal rate regardless of device rate now,
+    // AnalysisResampler/R13 lane A, so "rateMismatch" ("beat clock unreliable") is retired).
+    rateChangedSinceArm_ = false;
+    rateChangeNotified_ = false;
     lastDeviceRate_ = opts.deviceRate;
-    if (rateMismatch && dispatch.notify)
-        dispatch.notify("device rate " + std::to_string(static_cast<int>(std::lround(opts.deviceRate)))
-                         + " Hz != analysis rate " + std::to_string(static_cast<int>(std::lround(armedAnalysisRate_)))
-                         + " Hz: beat clock unreliable (R13)");
 
     if (opts.overdubAssetId.has_value())
     {
@@ -357,7 +353,28 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
     RECORDER_HOST_ASSERT_MESSAGE_THREAD();
 
     lastDeviceRate_ = deviceRate;
-    rateMismatch_ = deviceRate > 0.0 && std::abs(deviceRate - armedAnalysisRate_) > 0.5;
+
+    // R13-C: a Status fact, current every tick (recording or not) -- true whenever the device
+    // rate no longer matches the rate armed with. The analysis thread resamples to its fixed
+    // internal rate regardless of device rate now (AnalysisResampler, R13 lane A), so this is
+    // no longer about beat-clock correctness -- it is the only rate hazard that survives R13:
+    // sample stamps before/after a mid-take change are in different domains. rateChangeNotified_
+    // is separate from rateChangedSinceArm_ so a flapping rate (change -> back to the armed rate
+    // -> change again) still notifies exactly ONCE per arm, even though rateChangedSinceArm_
+    // itself can flip back to false if the device recovers to the armed rate.
+    rateChangedSinceArm_ = deviceRate > 0.0 && armedDeviceRate_ > 0.0
+        && std::abs(deviceRate - armedDeviceRate_) > 0.5;
+
+    if (recording_ && rateChangedSinceArm_ && !rateChangeNotified_)
+    {
+        lastError_ = "device sample rate changed mid-take: "
+                     + std::to_string(static_cast<int>(std::lround(armedDeviceRate_))) + " -> "
+                     + std::to_string(static_cast<int>(std::lround(deviceRate)))
+                     + " Hz; sample stamps after this point are mixed-domain (audio tap stopped if it was running)";
+        rateChangeNotified_ = true;
+        if (dispatch.notify)
+            dispatch.notify(lastError_);
+    }
 
     // (1) sample domain for the clock: normally the absolute delivered-sample counter; while
     // overdubbing, the asset-frame conversion (5.2 formula) so the recorded lane's `sample` stamps
@@ -699,7 +716,8 @@ void RecorderHost::publishStatus()
     s.continuousUnavailable = continuousUnavailableCount_;
     s.refusedByHand = 0;   // reserved: not distinguished from continuousUnavailable in this lane
     s.deviceRate = lastDeviceRate_;
-    s.rateMismatch = rateMismatch_;
+    s.rateChangedSinceArm = rateChangedSinceArm_;
+    s.rateMismatch = rateChangedSinceArm_;   // DEPRECATED mirror -- see Status::rateMismatch comment
     s.humanRefused = humanRefused_;
 
     std::lock_guard<std::mutex> lock(statusMutex_);
