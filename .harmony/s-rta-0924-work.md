@@ -21,3 +21,5 @@
   (d) markers=0 -> T2 alignment NA; onset markers not recorded? suspect.
   (e) checkpoint0.bpm=0.0 at arm (no tempo yet) -> note.
   -> diagnosis agent dispatched (live app, no src edits).
+- RULING (Harmony): LayerTransport play must NOT reset clip->reverse (a pad pause/play on a reversed clip flipping it forward is a live-performance regression). TopBar Play keeps resetting reverse. Fold into the post-diagnosis fix round (applyClipPlaying gets a 'resume' variant that leaves reverse alone).
+- R13 plan DONE (.harmony/.reports/s-rta-0924/r13-plan.md): resample to 48k on analysis thread, bypass at 48k, band gating + bandValidMask, rateMismatch retires -> rateChangedSinceArm. Now: workflow critic -> lane B -> lane A (same worktree). Lanes C (RecorderHost) + D (MainComponent/probe) WAIT for step-3 fix-round merge.
