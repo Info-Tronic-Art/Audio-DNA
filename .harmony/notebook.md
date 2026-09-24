@@ -1272,3 +1272,10 @@ isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by 
 - **[SHOULD] `Player::Override::Latch` is accepted and stored but not wired into dispatch.**
   An unimplemented mode that is silently accepted risks quiet wrong behaviour instead of a loud
   failure. Either wire it or make setting it a hard error until it exists.
+
+## s-rta-0923 learnings (lane-B home; mirrored from the session log)
+- Fail-first probes: never revert/restore a source file inside the gate build dir and trust the next incremental build. Make can leave a dependent object (test_take.cpp.o) compiled against the reverted header — a silent class-layout (ODR) mismatch that manufactured a deterministic false FAIL (286201 anchors). Use a scratch -B dir, or clean-rebuild the target after restoring.
+- Disabled buttons: this app's LookAndFeel draws disabled buttons at full brightness. Dim explicitly (setAlpha) and verify from a live screenshot. Disabled JUCE buttons may be missing from the accessibility tree; tooltips still show on them (TooltipWindow has no enabled check).
+- Merging parallel lanes that each append to tests/CMakeLists.txt: a single conflict region resolves as ours+theirs; MULTIPLE hunks interleave targets' lines. Rebuild the file as HEAD plus the lane's appended block, then check for duplicate add_executable names.
+- graphify: `graphify update .` is code-only, needs no LLM and rebuilt this repo in 10 s. The post-commit hook is safe while a graph exists; it writes a 0-node graph only when graph.json was already deleted.
+- Startup crashes with Bluetooth headsets: capture the .ips files (one JSON header line + JSON body) and read the faulting thread with python before theorising; three crashes held two different signatures.

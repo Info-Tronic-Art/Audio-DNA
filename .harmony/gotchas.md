@@ -434,3 +434,10 @@ Trigger: disabling any TextButton to signal "not available yet" (honest-interim 
 Rule: A disabled button here is visually identical to an enabled one — dim it explicitly (e.g. setAlpha) or the change is invisible to the user; ALWAYS verify a disabled state from a live screenshot, never from the code. AX note: disabled JUCE buttons may not appear in the accessibility tree walk (Play/Stop were absent), so AX cannot confirm them either.
 Scope: repo
 Promoted: no
+
+### 2026-09-24 — a watcher loop containing "MacOS/Audio-DNA" makes every `pgrep -f MacOS/Audio-DNA` true
+Source: s-rta-0923 Lane 3 live gate — Harmony's own wait loops (`until ! pgrep -f "MacOS/Audio-DNA"`) were matched by the probe's refuse check twice
+Trigger: writing any waiting/monitor command, or any gate that uses `pgrep -f` on the app path
+Rule: never put the app path literally in a watcher's own command line; match the process name exactly (`pgrep -x Audio-DNA`) or track a pid. A pgrep hit is not proof the app runs until `ps -p <pid> -o comm=` says so.
+Scope: repo
+Promoted: no

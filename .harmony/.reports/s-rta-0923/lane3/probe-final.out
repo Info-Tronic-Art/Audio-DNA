@@ -1,0 +1,14 @@
+PASS  load_composition accepted the layer fixture
+PASS  deck is live: a clip is triggered and active
+PASS  layers[0].connected contains 'opacity'
+PASS  ORACLE A: live.opacity toggles 0<->1 on the 1-beat Square Lfo (1.0 1.0 0.0 0.0 0.0 1.0 1.0 0.0 0.0 0.0 1.0 1.0 1.0 0.0 0.0 0.0 1.0 1.0 1.0 0.0)
+PASS  ORACLE B: render_frame pixels differ hi/lo (hiLum=9.5359 loLum=0.0000)
+PASS  GRIP: set_layer_opacity holds ~0.5 (checked 2 samples in the 50-200ms window) then the signal resumes (74.7ms=0.5 164.0ms=0.5 250.2ms=0.5 337.5ms=0.21173819899559 424.5ms=1.0 509.4ms=1.0 602.5ms=1.0 696.9ms=0.0 785.4ms=0.0 874.0ms=0.0 962.1ms=1.0 1049.8ms=1.0 1139.0ms=1.0 1227.3ms=0.0 1315.9ms=0.0 1404.6ms=0.0)
+PASS  load_composition accepted the clip fixture
+PASS  CLIP: render_frame differs 0.5s apart (scale sine, 2 beats @ 120bpm = 1s/cycle)
+PASS  load_composition accepted the comp fixture
+FAIL  COMP: render_frame did NOT change -- the composition scalar 'positionX' connection is not reaching the renderer
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+PASS  app terminated, no process remains
+
+11 PASS / 1 FAIL   (artifacts in /tmp/audiodna-lane3-final)
