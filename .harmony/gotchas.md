@@ -441,3 +441,10 @@ Trigger: writing any waiting/monitor command, or any gate that uses `pgrep -f` o
 Rule: never put the app path literally in a watcher's own command line; match the process name exactly (`pgrep -x Audio-DNA`) or track a pid. A pgrep hit is not proof the app runs until `ps -p <pid> -o comm=` says so.
 Scope: repo
 Promoted: no
+
+## Live-app diagnosis agents must never attach a debugger or send GUI input outside the app
+Source: s-rta-0924 self-stop diagnosis — the agent tried `lldb` attach on the running app, which raised a macOS "Developer Tools Access" / Touch ID dialog; while dismissing it the agent sent an Escape keystroke that landed in an UNRELATED Harmony terminal session on Boris's screen and interrupted its in-flight command. Harmony's dispatch packet did not forbid either — the defect is in the packet, not only the agent.
+Trigger: dispatching ANY agent that drives the live Audio-DNA app (diagnosis, gate, probe).
+Rule: every live-app packet states, next to the SCREEN-SAFETY LAW: (1) NO debugger attach (lldb/dtrace/Instruments) — they raise TCC/Touch-ID dialogs on Boris's machine; instrument via REST, stderr, logs, or a scratch build instead; (2) NO synthetic keystrokes/clicks/osascript UI input except the app's own documented menu/quit commands targeted at process "Audio-DNA"; (3) if an unexpected system dialog appears, STOP and report it — never try to dismiss it. Boris's screen is shared with his other sessions.
+Scope: universal (any Harmony agent driving a GUI app on Boris's machine)
+Promoted: no
