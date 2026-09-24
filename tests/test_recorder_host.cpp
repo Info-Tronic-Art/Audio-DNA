@@ -60,6 +60,17 @@ namespace
         return s;
     }
 
+    // s167 D10.3 onset-marker dedupe: a snapshot with onsetDetected set, stamped with the given
+    // FeatureBus timestamp -- two ticks reading the SAME timestamp simulate FeatureBus::read()'s
+    // always-latest semantics returning the same published snapshot twice.
+    FeatureSnapshot makeOnsetSnap(uint64_t timestamp, float bpm = 120.0f, float phase = 0.0f)
+    {
+        FeatureSnapshot s = makeSnap(bpm, phase);
+        s.onsetDetected = true;
+        s.timestamp = timestamp;
+        return s;
+    }
+
     struct TempDir
     {
         juce::File dir;
@@ -1071,4 +1082,107 @@ TEST_CASE("RecorderHost selfstop -- after a reported self-stop, a recovered tap 
     CHECK_FALSE(host.status().lastError.empty());
 
     host.disarm(comp, tap);
+}
+
+// === 19: [host][onsetmarker] one onset marker per onset EVENT, not per tick (s167 D10.3 dedupe) ===
+//
+// Diagnosis (step3gate1, 156 markers vs 108 detected onsets): 22 markers were DUPLICATES -- tick()
+// fired marker("onset") on every 120 Hz tick where snap.onsetDetected was true, but FeatureBus::read()
+// is always-latest and analysis publishes slower (~93.75 Hz), so two consecutive ticks read the SAME
+// published snapshot ~14% of the time. Fix: dedupe on FeatureSnapshot::timestamp.
+
+TEST_CASE("RecorderHost onset marker -- two ticks reading the SAME onset snapshot produce exactly one marker", "[host][onsetmarker]")
+{
+    TempDir storeRoot("onsetmarker_dedupe_store");
+    TempDir takeFolder("onsetmarker_dedupe_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;   // 5.5: no audio needed for this test
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    opts.onsetMarkers = true;   // T2 enabler
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    // Two ticks reading the SAME published FeatureSnapshot (same `timestamp`) -- the always-latest
+    // FeatureBus::read() scenario that produced the 22 duplicate markers in step3gate1.
+    const FeatureSnapshot snap = makeOnsetSnap(1000);
+    host.tick(snap, 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(snap, 0.01, 0, dummyTap, std::nullopt, 48000.0);
+
+    CHECK(host.status().markers == 1);
+
+    host.disarm(comp, dummyTap);
+}
+
+TEST_CASE("RecorderHost onset marker -- a new onset snapshot (different timestamp) produces a second marker", "[host][onsetmarker]")
+{
+    TempDir storeRoot("onsetmarker_newevent_store");
+    TempDir takeFolder("onsetmarker_newevent_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    opts.onsetMarkers = true;
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(makeOnsetSnap(1000), 0.01, 0, dummyTap, std::nullopt, 48000.0);   // same snapshot -- no new marker
+    CHECK(host.status().markers == 1);
+
+    host.tick(makeOnsetSnap(2000), 0.02, 0, dummyTap, std::nullopt, 48000.0);   // a genuinely new onset event
+    CHECK(host.status().markers == 2);
+
+    host.disarm(comp, dummyTap);
+}
+
+TEST_CASE("RecorderHost onset marker -- a new arm resets the dedupe state", "[host][onsetmarker]")
+{
+    TempDir storeRoot("onsetmarker_rearm_store");
+    TempDir takeFolder1("onsetmarker_rearm_take1");
+    TempDir takeFolder2("onsetmarker_rearm_take2");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder1.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    opts.onsetMarkers = true;
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+    host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().markers == 1);
+    host.disarm(comp, dummyTap);
+
+    // Re-arm into a fresh take, then feed the SAME timestamp (1000) that the previous take already
+    // marked -- without a reset, the stale lastOnsetMarkerSnapshot_ would swallow this take's very
+    // first onset.
+    opts.takeFolder = takeFolder2.dir;
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+    host.tick(makeOnsetSnap(1000), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().markers == 1);
+
+    host.disarm(comp, dummyTap);
 }

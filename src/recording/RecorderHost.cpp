@@ -159,6 +159,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     tapWasRunningLastTick_ = false;
     gaps_.clear();
     markers_.clear();
+    lastOnsetMarkerSnapshot_.reset();
     lastWriteWall_.clear();
     humanRefused_ = 0;
     skippedCount_ = 0;
@@ -343,6 +344,7 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
     lastCheckpointT_ = 0.0;
     gaps_.clear();
     markers_.clear();
+    lastOnsetMarkerSnapshot_.reset();
     lastWriteWall_.clear();
 
     publishStatus();
@@ -399,8 +401,14 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
             liveFramesWritten_ = tap.framesWritten();
         }
 
-        if (onsetMarkers_ && snap.onsetDetected)
+        // T2 dedupe: one marker per onset EVENT (unique snapshot), not per tick -- see
+        // lastOnsetMarkerSnapshot_'s comment in the header.
+        if (onsetMarkers_ && snap.onsetDetected
+            && (!lastOnsetMarkerSnapshot_.has_value() || *lastOnsetMarkerSnapshot_ != snap.timestamp))
+        {
             marker("onset");
+            lastOnsetMarkerSnapshot_ = snap.timestamp;
+        }
 
         synthesizeIdleDecayingEnds(wallNow);
 
