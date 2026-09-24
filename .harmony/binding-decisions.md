@@ -468,7 +468,9 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 ## 2026-09-24 (s-rta-0924b) — BORIS RULING, SPOKEN DIRECTLY
 - **NO BLUETOOTH AUDIO, EVER.** Boris verbatim: "we will never use bluetooth audio for any reason. it is slow
   and bad. never use it again." Consequences: never test, gate, tune or design for Bluetooth input/output;
-  the rig's audio is the built-in (or wired) device. The JUCE 8.0.4 CoreAudio temp-buffer overflow that
+  the rig's audio is the built-in (or wired) device.
+  Boris follow-up verbatim: "we will only use hard wired sound input or the onboard mic" — supported inputs are
+  EXACTLY: a hard-wired input or the MacBook's onboard mic. The JUCE 8.0.4 CoreAudio temp-buffer overflow that
   crashes startup on a Bluetooth HFP headset (ASan: .harmony/.reports/s-rta-0924b/asan-bt-startup-crash.log)
   is therefore NOT a product priority; any fix is at most a guard that keeps the app off Bluetooth devices.
   Open calls that only existed for Bluetooth (16 kHz "Air" meter n/a; low-rate output device) are MOOT.
