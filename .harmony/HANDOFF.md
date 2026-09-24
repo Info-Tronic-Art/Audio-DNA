@@ -2,13 +2,30 @@
 
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
-You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). Read `.harmony/HANDOFF.md`. **This top section is CURRENT as of
-session 2026-08-04d** — the long historical sections below it are preserved for scope detail
-and are OLDER than this block. Where they disagree with this block or with the dated sections
-at the END of the file, THIS BLOCK AND THE END SECTIONS WIN.
+You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0923 (2026-09-23/24). The newest
+dated section is at the END of this file ("# >>> SESSION s-rta-0923"); read it first, then the
+SCREEN-SAFETY LAW section. Everything between is history — older blocks lose to the end sections.
 
-## >>> START HERE, 2026-08-04d: THE PLAN EXISTS. READ IT BEFORE ANYTHING ELSE. <<<
+START HERE, in order:
+1. FIX the composition-position bug (small, root-caused, pre-existing): Renderer.cpp ~2078 feeds
+   Composition Position X/Y (and Anchor X/Y) in PIXELS into u_comp_position, which the
+   comp_transform shader (EmbeddedShaders.h ~97/121) treats as -1..1 — any non-zero composition
+   position renders SOLID BLACK. Normalize by half the canvas; add a render test; the Lane 3 live
+   gate `.harmony/probe-lane3.sh` COMP check is the reproducer (currently FAILS on purpose).
+2. SPEC STEP 3 — the recorder wiring in the app (LONG TASK, begin at session start). Plan:
+   `.harmony/specs/s-rta-0923-step3-plan.md`. RULED: Lane 3's src/connect/ManualWrite is THE
+   manual-write funnel (R8) — step 3's "ManualWriter"/S3-M lane is SUPERSEDED; hook
+   onManualTouch/onManualWrite/onManualRelease (MainComponent) instead. Critic first, then lanes.
+3. Owed to Boris: the Bluetooth-headset crash re-test (needs his soundcore P31i connected), and
+   his calls listed in the end section.
+
+Rig rules that cost runs this session: fail-first probes in a SCRATCH build dir, never the gate
+dir; never embed "MacOS/Audio-DNA" in a watcher (pgrep -f self-match); disabled buttons do not
+dim in this LookAndFeel; `git add -f` under .harmony/ and check `git show --stat HEAD`.
+COUNTS: run them — ctest was 357/357 on a clean forced rebuild at close; unpushed 0.
+
+## (HISTORICAL, 2026-08-04d — superseded by the block above and the end sections) THE PLAN EXISTED
 
 **`.harmony/essentials-plan-2026-08-04d.md` — 11 sequenced lanes, Fable-architect authored over
 three rounds, chaired and attacked by Harmony, Boris's rulings folded in.** Session 2026-08-04d
@@ -222,26 +239,18 @@ cd tests/visual && AUDIODNA_NO_SPAWN=1 \
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Audio-DNA — live audio-reactive VJ app. Current arc: closing correctness debt in the
-deck/clip surface and preset persistence after the OutputWindow arc (C1-C3) completed.
-
-SHIPPED: `57aa436` preset dual-key targeting (silent retarget + positional param values, first
-ever PresetManager test coverage) · `7d3a203` SEQ badge + sequence threshold 3+ + content-lock
-bypass fix · the 7-item gesture replay list CLOSED 7/7 after 6 sessions unprocessed.
-
-IN-FLIGHT: none. Working tree clean in src/ and tests/. No agents running.
-
-NEXT: (1) Boris LOOKS at the SEQ badge — it is human-unverified · (2) fold the 5 open review
-minors, starting with extracting the triplicated threshold constant · (3) output-state lane —
-design is done (arch-outputstate B-lite), packet needs the design folded in before a builder ·
-(4) the dead MilkDrop folder picker · (5) genre auto-switch ruling.
-
-BLOCKERS: none. Nothing is waiting on a decision to proceed.
-
-YOU ARE HERE: post-OutputWindow-arc, working correctness debt found by putting Boris's hands
-on the running app for the first time in 6 sessions. Two lanes shipped and gated this session;
-the next lane (output-state) is designed but deliberately not built.
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0923 -->
+BUILD: Audio-DNA live VJ app. Arc: the performance recorder (Ruling 28 — record a show once, redo
+the knob work against it) + making every inspector control actually connect to audio/tempo.
+SHIPPED: shared audio store + take format v3 · long takes stay in time, scrub-back works · four
+carried recorder review fixes · AudioTap mono-device overread fixed · Julia Set shader renders
+again · honest Record panel · Lane 3: the 21 inspector controls connect end to end (live-proven).
+IN-FLIGHT: none. Tree clean, everything pushed.
+NEXT: (1) composition-position black-screen bug · (2) spec step 3 recorder wiring (long, start of
+session) · (3) Bluetooth crash re-test with Boris's headset · (4) Boris's product calls.
+BLOCKERS: none technical. Headset re-test needs Boris.
+YOU ARE HERE: recorder core + audio store + connection engine all built and proven headless and
+live; next is wiring the recorder into the running app.
 
 ## LOOSE-ENDS LEDGER
 
@@ -2587,3 +2596,71 @@ force-tracked — self-contradictory, and it means a GENUINE unclean-close stamp
 (the other repos show them). Pre-existing since 2026-05-18, filed as candidate
 `rta-gitignore-hides-unclean-close-stamp`. Also: 685 files under `graphify-out/` were untracked by s170
 (`0094774`); the s171 audit confirmed all of them are generated output, no source or config.
+
+---
+
+# >>> SESSION s-rta-0923 (2026-09-23 → 09-24, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+Boot validations all passed; the audio store Boris ruled for (Ruling 28) exists; every carried recorder
+review fix landed; the 21 inspector controls now connect end to end and were proven in the live app; a
+pre-existing bug renders the whole output black whenever the composition position is non-zero.
+
+## WHAT SHIPPED (all committed and pushed; every lane reviewed by an agent that did not build it)
+- `e3504be` inbox drain + config: codegraph-rta removed, UNCLEAN-CLOSE stamps visible to git, idea-ledger prose moved losslessly (507/507 lines), specs.
+- `8454e07` Julia Set shader compiles again (duplicate `diveRate` since e3b0b35, March). Live app: 0 shader failures.
+- `4898e41` EnvelopeSignal default-mode siblings · `c923435` Program::compile uses exact stamps (review fix b) · `601ad4d` double touch keeps the open gesture.
+- `87b0ea2` periodic tempo anchors every 32 beats (review fix c — 40-min drift test), Player backwards seek re-fires events, Latch refuses loudly.
+- `33bdc67` **Ruling 28**: shared AudioStore (`~/Documents/Audio-DNA/Audio/<id>.adna-audio/`), take format v3 referencing audio by id + fingerprint + offset, WAV header flushed every 10 s so a crash mid-show leaves readable audio, v1 TransportChange fixed (review fix a). Spec + critic + amended spec: `.harmony/specs/s-rta-0923-ruling28-*`.
+- `9257537` AudioTap out-of-bounds read on mono/short-channel devices (found by a new headless ASan test with Bluetooth-headset shapes).
+- `dd646de` Record panel honest interim (review fix d): disabled, visibly dimmed, whole-word tooltips; 4-seat critic panel folded; screenshots in `.harmony/.reports/s-rta-0923/l5-visual/`.
+- `9da23b7..7b1071f` + probe commit — **Lane 3 connection binding**: `src/connect/ManualWrite` (THE manual-write funnel, R8), engine tick in the app, 11 OSC/MIDI/REST writer sites through the funnel, renderer reads live values, the 21 inspector controls bound. Plan `.harmony/specs/s-rta-0923-lane3-plan.md`; critic found 5 blocking flaws, all folded. Reports: `.harmony/.reports/s-rta-0923/lane3/`.
+
+## VERIFICATION — PROVEN, AND HOW
+- Boot VALIDATION rows 1-4 PASS (rows 2-3 commands were wrong — fixed in VALIDATION.md). Row 4: totalBarCount live in production mode, 2→8 bars in 10 s at 154.9 BPM.
+- ctest 306 at boot → **357/357 on a clean forced rebuild** at close. Harmony re-proved fail-first herself for L3, E (after correcting her own false alarm — see errors), and the AudioTap fix under ASan.
+- Lane 3 live gate `bash .harmony/probe-lane3.sh`: **11 PASS / 1 FAIL**. Layer opacity follows a 1-beat square LFO and the rendered pixels follow; clip scalar live; hand-grip holds 250 ms then glides back 120 ms. The 1 FAIL is the composition-position bug below.
+- Code graph rebuilt from 0 nodes to 7254 (`graphify update .`, 10 s); post-commit hook proven safe while a graph exists.
+
+## NOT VERIFIED
+- The 21 controls' on-screen behaviour (thumb follows the live value, drag grips) was not driven by hand or screenshot — only the API/render oracles. Boris should wiggle a connected slider.
+- The startup crashes with the Bluetooth headset (below) were NOT reproduced once it disconnected; cause unknown.
+- Step 3 (recorder in the running app) is unbuilt: nothing records from the app yet, by design.
+
+## LOOSE-ENDS LEDGER
+1. **[BUG, next session #1]** Composition Position/Anchor X/Y: pixels fed into a -1..1 shader uniform → solid black output whenever non-zero (Renderer.cpp ~2078, EmbeddedShaders.h ~97/121). Pre-existing; Lane 3 made it reachable by a connection.
+2. **[OPEN — crash]** 3 app startup crashes at 21:17-21:19 with the soundcore P31i Bluetooth headset as default in+out at 16 kHz: 1× SIGSEGV inside JUCE `AudioIODeviceCombiner::restartAsync` (zero app frames), 2× malloc free-list corruption. 0/9 crashes on built-in audio (pre-s168 baseline, ASan HEAD, Release HEAD). RULED OUT: the AudioTap overread (tap idle at startup). NEXT TEST: headset connected, launch baseline + ASan build 3× each. Baseline crashes too → JUCE 8.0.4 (consider an upgrade); ASan report → our code. Report: `.harmony/.reports/s-rta-0923-startup-crash-diagnosis.md`.
+3. **[LIVE R13]** The mic reported 16000 Hz tonight (Bluetooth HFP); analysis assumes 48 kHz, so features are wrong on that device. R13 is no longer latent.
+4. **[STEP 3]** deferred as the long task — see the top birth prompt for the funnel ruling.
+5. `manualWrite` refusals are silent (a MIDI knob moved while the UI slider is held does nothing, no log) — by D8 design, but zero diagnostic visibility.
+6. `manualRelease` has no caller yet (step 3 will be the first).
+7. CombinedCallback.h comment about clamping is stale (reviewer note).
+8. Settings: `.claude/settings.local.json` still disables clangd-rta and graphify-rta — held for Boris (user-local, may be deliberate).
+9. WARN fable-usage-audit: 7 architect dispatches have no rows in Harmony_Main's DISPATCH_LOG — a foreign-repo secondary cannot write it; the plans themselves are on disk and were all used.
+10. Hermes-floor note: none of the above is a Harmony system defect except the three up-channel ideas filed this session (reviewer verdicts land in `<repo>/memory/`; architects cannot write `<repo>/.harmony/specs`; kernel vs eos-secondary disagree on lane-B learnings).
+
+## STILL OPEN FOR BORIS (his calls, not technical)
+1. Deleting stored audio: never (Finder only), or an explicit "Clean up unused audio" list? Built: never deletes.
+2. Audio store location: fixed `~/Documents/Audio-DNA/Audio` (~2.8 GB per 4-hour night, shared), or choosable (tour SSD)?
+3. Name an audio at record time ("Friday Berlin main set"), or is date + takes enough?
+4. Manual Resync — should oscillator shapes re-align to the new downbeat, or keep flowing? (s168 addendum 1, still unasked.)
+5. Composition inspector's second "Opacity" knob now also drives master opacity — remove it now or at the UI rewrite? Recommend: at the rewrite.
+6. Re-enable the clangd/graphify MCP servers for this repo?
+
+## WHAT ONLY BORIS CAN CHECK
+- Connect a slider to a tempo oscillator in the inspector and watch it move and grip under his hand.
+- The Record panel now reads as "not available yet" — does it read right to him?
+- The Bluetooth crash re-test (his headset) and the T2 hardware sync run on his real interface.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. I ran a revert/restore fail-first probe in the gate build dir, got a deterministic FAIL, and filed it as a near-miss against lane E. It was my probe: a stale object compiled against the reverted header. A builder reproduced it on demand. Corrected in the log; the rule is now in notebook.md.
+2. My own wait loops contained "MacOS/Audio-DNA" and self-matched the probe's `pgrep -f` check twice. Repo gotcha filed.
+3. An `L5.*` wildcard committed an 8044-line build log (removed next commit; stays in history).
+4. As a foreign-repo lane I wrote 2 learning rows to Harmony_Main's event log; they belong in notebook.md (copied there).
+5. My first merged-CMake resolution interleaved two test targets (multi-hunk conflict); caught by inspection before building, rebuilt the file properly.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+The app was launched many times this session, always production mode or foreground timeout, main window only. **The Output window was never opened.** At close: `pgrep` shows no Audio-DNA process; the screen was captured with `screencapture -x` and LOOKED AT after the last live run — no app window, no black overlay, no dialog.
+
+## COUNTS — run them, never inherit them
+ctest 357/357 (clean forced rebuild). Unpushed 0 at the last push (the close commit adds one).

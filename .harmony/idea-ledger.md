@@ -161,3 +161,57 @@ status-note:
 artifact:
 history:     NEW(2026-09-23)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-09-24-RealTimeAudio-17902256343085514525
+raw:         Reviewer (and one builder-diagnosis) agents dispatched from a FOREIGN-repo secondary write their verdict files to <cwd>/memory/.reports/ — i.e. they create a stray memory/ directory inside the project repo (happened 3 times in RealTimeAudio s-rta-0923: reviewer-R28, reviewer-s-rta-0923-L2, reviewer-lane3-c2). The reviewer spec's persist path is Harmony_Main-relative but resolves against the project cwd.
+context:     
+why:         
+intent:      Make the reviewer/builder persist path profile-aware: in a MINIMAL/foreign boot write to <repo>/.harmony/.reports/ (the kernel's own rule for project artifacts).
+target:      harmony-system
+constraints: 
+related:     
+priority:    MEDIUM
+repo:        RealTimeAudio     session: s-rta-0923     date: 2026-09-24
+status:      NEW
+status-changed: 2026-09-24
+status-note:
+artifact:
+history:     NEW(2026-09-24)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-09-24-RealTimeAudio-17902256343087121794
+raw:         The PreToolUse write-guard refuses read-only architect agents writing into a foreign repo's .harmony/specs/ (s159 ADJ ruling: read-only agents may write only memory/.reports, memory/wip, /tmp). In a project repo the architect's natural output home is <repo>/.harmony/specs/; every architect this session had to write to /tmp and Harmony copied the files over by hand (4 times).
+context:     
+why:         
+intent:      Allow read-only architect/critic agents to write <repo>/.harmony/specs/ and <repo>/.harmony/.reports/ when the session is a MINIMAL foreign-repo boot.
+target:      harmony-system
+constraints: 
+related:     
+priority:    LOW
+repo:        RealTimeAudio     session: s-rta-0923     date: 2026-09-24
+status:      NEW
+status-changed: 2026-09-24
+status-note:
+artifact:
+history:     NEW(2026-09-24)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-09-24-RealTimeAudio-17902256343088729062
+raw:         Doctrine disagreement for foreign-repo (lane B) secondaries: the kernel's Write-Immediately section says 'secondary -> memory/.pending/ or log-event append' for learnings, while eos-secondary Step 3 says a FOREIGN-repo secondary must NOT write Harmony_Main's event log and records learnings in its own .harmony/notebook.md. Following the kernel, s-rta-0923 wrote 2 learning rows to Harmony_Main's event log from a foreign repo.
+context:     
+why:         
+intent:      Make the kernel line lane-aware (co-session: log-event; foreign repo: own notebook.md) so the two texts agree.
+target:      harmony-system
+constraints: 
+related:     
+priority:    LOW
+repo:        RealTimeAudio     session: s-rta-0923     date: 2026-09-24
+status:      NEW
+status-changed: 2026-09-24
+status-note:
+artifact:
+history:     NEW(2026-09-24)
+--- /IDEA ---
