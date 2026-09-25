@@ -292,6 +292,9 @@ void TopBar::updateBpmDisplay()
                       juce::dontSendNotification);
 }
 
+// s-rta-0925 link: RED-commit stub (tests/test_master_opacity_link.cpp).
+void TopBar::syncMasterFromComposition() {}
+
 void TopBar::setFps(float fps) { currentFps_ = fps; }
 void TopBar::setDspLoad(float percent) { currentDspLoad_ = percent; }
 

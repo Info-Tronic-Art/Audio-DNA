@@ -36,7 +36,16 @@ public:
     // Access audio controls
     juce::ComboBox& getAudioSourceSelector() { return audioSourceSelector_; }
     juce::Slider& getInputGainSlider() { return inputGainSlider_; }
-    juce::Slider& getMasterLevelSlider() { return masterLevelSlider_; }
+    // Test seam (tests/test_master_opacity_link.cpp); production wiring
+    // lives in TopBar.cpp.
+    ResettableSlider& getMasterLevelSlider() { return masterLevelSlider_; }
+
+    // s-rta-0925 link: RED-commit stub (tests/test_master_opacity_link.cpp).
+    // Pull the fader from the model -- manual field when not connected,
+    // toNorm(eff()) when a signal drives it (same rule as
+    // CompositionInspector::syncFromComposition). Skipped mid-drag. Called
+    // from timerCallback (15 Hz) and directly by tests.
+    void syncMasterFromComposition();
 
     // Access display selector
     juce::ComboBox& getDisplaySelector() { return displaySelector_; }
@@ -93,6 +102,7 @@ private:
     // === Master Level ===
     juce::Label masterLabel_{"", "Master:"};
     ResettableSlider masterLevelSlider_;
+    bool masterDragging_ = false;   // s-rta-0925 link: sync skips while dragging
 
     // === Output ===
     juce::Label outputLabel_{"", "Output:"};
