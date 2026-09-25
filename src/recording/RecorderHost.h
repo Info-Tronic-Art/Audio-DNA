@@ -226,6 +226,13 @@ public:
         // in seconds -- with audio, the audio's length; otherwise the recorded duration -- never less than
         // the last compiled event. position/length stay in the drive-clock domain.
         double positionSeconds = 0.0, lengthSeconds = 0.0;
+
+        // s-rta-0924b: AudioStore::finalize's verdict for the LAST stop ("" = clean), per take
+        // (cleared at arm). `finalizeErrors` counts every stop whose finalize reported a problem
+        // since this host was created and is NEVER reset -- a probe compares it before/after any
+        // number of record/stop cycles with no read window to miss. Additive (D12).
+        std::string lastFinalizeError;
+        int finalizeErrors = 0;
     };
     Status status() const;
 
@@ -273,6 +280,8 @@ private:
     double lastCheckpointT_ = 0.0;
     std::optional<AudioAsset> overdubAsset_;
     std::string lastError_;
+    std::string lastFinalizeError_;   // s-rta-0924b: Status::lastFinalizeError (cleared at arm)
+    int finalizeErrors_ = 0;          // s-rta-0924b: Status::finalizeErrors (never reset)
 
     // Gaps accumulated (take-clock/absolute-sample domain, per AudioTap::popGap /
     // CombinedCallback's `deliveredBefore`) since arm(); drained into the finalized ref at disarm().

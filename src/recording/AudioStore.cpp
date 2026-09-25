@@ -207,7 +207,11 @@ AudioStore::FinalizeResult AudioStore::finalize(const std::string& id, const Cap
         // The `:453`/`:467` "give up rather than spin" branches inside
         // AudioTap::stopInternal leave frames unwritten without setting
         // unreliableFrom -- catch it here, one rule for every such path
-        // (spec 4.1, "Tradeoffs considered").
+        // (spec 4.1, "Tradeoffs considered"). This rule also caught the
+        // s-rta-0924b stop-window bug (a device block counted into
+        // framesWritten but spilled after stopInternal's drain had already
+        // run -- "header N < framesWritten N+512"); stopInternal now closes
+        // push()'s gate before the drains, which closes that window.
         if (asset.frames < facts.framesWritten)
         {
             const uint64_t truncatedAt = asset.frames;
