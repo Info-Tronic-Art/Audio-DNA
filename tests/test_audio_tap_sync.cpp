@@ -684,3 +684,136 @@ TEST_CASE("AudioTap::stop() waits out an in-flight push() before destroying the 
     stopThread.join();
     REQUIRE(stopReturned.load(std::memory_order_acquire));
 }
+
+// ============================================================================
+// s-rta-0924b: one device block lost at stop ("truncated (header N frames <
+// framesWritten N+512)"). Pre-fix, stopInternal() cleared push()'s only gate
+// (running_) LAST, after the busy-wait and the pending drain: a push() that
+// started inside that window still counted its block into framesWritten_,
+// found the writer already nulled, spilled into pendingStorage_ -- and the
+// drain that could have rescued it had already run. Deterministic: stop() is
+// held on a background thread at the test-only pause point right before the
+// writer teardown (after the drains), and THIS thread plays the audio thread
+// by calling push() once inside that window. Oracle == AudioStore::finalize's
+// truncation rule (AudioStore.cpp): the WAV header must equal framesWritten().
+// ============================================================================
+
+namespace
+{
+    // Direct-tap block pusher shared by the two s-rta-0924b cases below (no
+    // CombinedCallback: these cases are about AudioTap's own stop ordering).
+    struct DirectTapPusher
+    {
+        AudioTap& tap;
+        double rate;
+        int blockSize;
+        std::vector<float> inL, inR;
+        uint64_t delivered = 0;
+        uint64_t hostTimeNs = 1'000'000'000ULL;
+
+        DirectTapPusher(AudioTap& t, double r, int bs)
+            : tap(t), rate(r), blockSize(bs),
+              inL(static_cast<size_t>(bs), 0.25f), inR(static_cast<size_t>(bs), 0.25f) {}
+
+        uint32_t pushOne()
+        {
+            const float* ch[2] = { inL.data(), inR.data() };
+            hostTimeNs += static_cast<uint64_t>((static_cast<double>(blockSize) / rate) * 1.0e9);
+            juce::AudioIODeviceCallbackContext ctx;
+            ctx.hostTimeNs = &hostTimeNs;
+            const uint32_t gap = tap.push(ch, 2, blockSize, delivered, ctx);
+            delivered += static_cast<uint64_t>(blockSize) + gap;
+            return gap;
+        }
+    };
+
+    uint64_t wavLengthInSamples(const juce::File& f)
+    {
+        juce::WavAudioFormat format;
+        std::unique_ptr<juce::AudioFormatReader> reader(
+            format.createReaderFor(new juce::FileInputStream(f), true));
+        return reader != nullptr ? static_cast<uint64_t>(reader->lengthInSamples) : UINT64_MAX;
+    }
+}
+
+TEST_CASE("AudioTap::stop() -- a push() landing after the busy-wait, before the writer teardown, is not counted (s-rta-0924b truncation)", "[audiotap][concurrency][truncation]")
+{
+    constexpr double rate = 48000.0;
+    constexpr int blockSize = 512;
+    AudioTap tap;
+    tap.prepare(rate, 2, blockSize);
+    TempWavFile wav("stopwindow");
+    REQUIRE(tap.start(wav.file));
+
+    DirectTapPusher p(tap, rate, blockSize);
+    for (int b = 0; b < 10; ++b) REQUIRE(p.pushOne() == 0);
+    REQUIRE(tap.isRunning());
+    REQUIRE(tap.framesWritten() == 10 * blockSize);
+
+    tap.debugArmStopPauseBeforeWriterTeardown();
+    std::thread stopThread([&]() { tap.stop(); });
+    REQUIRE(tap.debugWaitUntilStopPaused());          // stop() is inside the window now
+
+    const uint64_t countedBefore = tap.framesWritten();
+    CHECK(p.pushOne() == 0);                           // the device callback that lands in the window
+    const uint64_t countedInWindow = tap.framesWritten() - countedBefore;
+
+    tap.debugReleasePausedStop();
+    stopThread.join();
+    REQUIRE_FALSE(tap.isRunning());
+
+    const uint64_t wavFrames = wavLengthInSamples(wav.file);
+    REQUIRE(wavFrames != UINT64_MAX);
+    // THE oracle (fails pre-fix as 5120 == 5632): what finalize compares.
+    CHECK(wavFrames == tap.framesWritten());
+    // And the reason: the in-window block was never counted (pre-fix: 512).
+    CHECK(countedInWindow == 0);
+    CHECK(wavFrames == 10 * blockSize);
+}
+
+// Critic amendment (finalize-truncation-critic.md BLOCKER): a push() that is
+// ALREADY in flight (busy == true, parked BEFORE its armed_/running_ checks)
+// when stop() begins must still be counted AND written -- stop() must not
+// close the gate under it. Guards against the "close the gate at the very top
+// of stopInternal()" ordering, which would drop this block with no counter
+// disagreeing (framesWritten == WAV, both short one block). Green on the
+// pre-fix code by design (pre-fix closed the gate last); this is a regression
+// guard for the fix's ordering, not a fail-first for the truncation.
+TEST_CASE("AudioTap::stop() -- a push() already in flight when stop() begins is counted and written (s-rta-0924b critic)", "[audiotap][concurrency][truncation]")
+{
+    constexpr double rate = 48000.0;
+    constexpr int blockSize = 512;
+    AudioTap tap;
+    tap.prepare(rate, 2, blockSize);
+    TempWavFile wav("inflightatstop");
+    REQUIRE(tap.start(wav.file));
+
+    DirectTapPusher p(tap, rate, blockSize);
+    for (int b = 0; b < 10; ++b) REQUIRE(p.pushOne() == 0);
+    REQUIRE(tap.framesWritten() == 10 * blockSize);
+
+    tap.debugArmPushBlockForTest();
+    std::thread pushThread([&]() { p.pushOne(); });
+    REQUIRE(tap.debugWaitUntilPushBlocked());          // busy == true, before the running_ check
+
+    std::atomic<bool> stopReturned{ false };
+    std::thread stopThread([&]()
+    {
+        tap.stop();
+        stopReturned.store(true, std::memory_order_release);
+    });
+    // Give stop() ample time to run everything it runs before it must wait for
+    // the in-flight push (the gate stores, if a broken ordering puts them first).
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    REQUIRE_FALSE(stopReturned.load(std::memory_order_acquire));
+
+    tap.debugReleaseBlockedPush();
+    pushThread.join();
+    stopThread.join();
+    REQUIRE_FALSE(tap.isRunning());
+
+    const uint64_t wavFrames = wavLengthInSamples(wav.file);
+    REQUIRE(wavFrames != UINT64_MAX);
+    CHECK(tap.framesWritten() == 11 * blockSize);      // the in-flight block was counted...
+    CHECK(wavFrames == tap.framesWritten());           // ...and reached the WAV
+}

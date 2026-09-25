@@ -5251,6 +5251,8 @@ juce::var MainComponent::perfStatusVar() const
     obj->setProperty("audioMode", juce::String(s.audioMode));
     obj->setProperty("playMode", juce::String(s.playMode));
     obj->setProperty("lastError", juce::String(s.lastError));
+    obj->setProperty("lastFinalizeError", juce::String(s.lastFinalizeError));   // s-rta-0924b
+    obj->setProperty("finalizeErrors", s.finalizeErrors);                        // s-rta-0924b (never reset)
     obj->setProperty("t", s.t);
     obj->setProperty("beat", s.beat);
     obj->setProperty("sample", static_cast<juce::int64>(s.sample));

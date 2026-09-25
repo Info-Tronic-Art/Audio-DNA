@@ -187,7 +187,9 @@ uint32_t AudioTap::push(const float* const* ch, int chans, int numSamples,
         haveLastHostTime_ = false;
     }
 
-    if (!running_.load(std::memory_order_relaxed))
+    // seq_cst, not relaxed (s-rta-0924b): pairs with stopInternal()'s seq_cst gate stores + busy
+    // load (store-buffering pattern -- see stopInternal()'s comment).
+    if (!running_.load(std::memory_order_seq_cst))
         return 0;   // called every block regardless of recording state (D10's "second fan-out"); no-op when idle
 
     uint32_t gapFrames = 0;
@@ -466,6 +468,36 @@ void AudioTap::stopInternal()
     while (audioThreadBusy_.load(std::memory_order_seq_cst))
         std::this_thread::yield();
 
+    // s-rta-0924b finalize-truncation fix: close push()'s gate HERE, then wait again, and only
+    // then drain. Pre-fix the gate (running_) was cleared LAST, after the drains and the writer
+    // teardown below: a push() starting in that window still counted its block into
+    // framesWritten_, found activeWriter_ null, spilled into pendingStorage_ AFTER the drain had
+    // already run -- and the WAV ended one block short of framesWritten_ ("truncated (header N
+    // frames < framesWritten N+512)", AudioStore::finalize).
+    //
+    // Why AFTER the wait above and not at the top of this function
+    // (finalize-truncation-critic.md): a push() already in flight when stop() begins (busy, but
+    // not yet at its running_ check) must decide on the OLD value -- it is counted and its block
+    // lands in the writer's FIFO or pendingStorage_, which the drains below write. Closing the gate
+    // before that wait would let such a push read running_ == false and drop a delivered block
+    // with no counter disagreeing.
+    //
+    // Why the second wait: a push() that started between the wait above and these stores may
+    // still have read running_ == true -- it counts and spills; waiting it out makes that spill
+    // visible to the drains below (busy flag seq_cst store/load, happens-before). Any push() whose
+    // running_ load comes after these stores returns 0 without touching framesWritten_,
+    // pendingFrames_ or silenceDebtFrames_. seq_cst on the stores here and on push()'s busy store +
+    // running_ load: a store-buffering (Dekker) pattern, "both threads read stale" is excluded
+    // only when all four are seq_cst. After the second wait every counted block is in the writer's
+    // FIFO or in pendingStorage_, and the drains run with exclusive access to the
+    // audio-thread-only fields. The take ends at the last block whose running_ check preceded
+    // these stores; a later callback's block is after the stop point and is not recorded
+    // (CombinedCallback's deliveredSamples_ still advances for it, framesWritten_ does not).
+    armed_.store(false, std::memory_order_seq_cst);
+    running_.store(false, std::memory_order_seq_cst);
+    while (audioThreadBusy_.load(std::memory_order_seq_cst))
+        std::this_thread::yield();
+
     if (threadedWriter_)
     {
         // Flush our own still-pending (retried) frames first -- synchronous
@@ -492,9 +524,26 @@ void AudioTap::stopInternal()
                 break;   // still stalled -- give up rather than spin forever; droppedFrames_ already says why
         }
 
+#if defined(AUDIODNA_AUDIOTAP_TEST_HOOKS)
+        // TEST ONLY -- see debugArmStopPauseBeforeWriterTeardown() in AudioTap.h. Deliberately
+        // AFTER both drains and BEFORE the teardown: a push() landing here is one the drains can
+        // no longer rescue (s-rta-0924b finalize truncation).
+        if (debugPauseStopForTest_.exchange(false, std::memory_order_acq_rel))
+        {
+            debugStopIsPausedForTest_.store(true, std::memory_order_release);
+            while (!debugReleaseStopForTest_.load(std::memory_order_acquire))
+                std::this_thread::yield();
+            debugStopIsPausedForTest_.store(false, std::memory_order_relaxed);
+            debugReleaseStopForTest_.store(false, std::memory_order_relaxed);
+        }
+#endif
+
         threadedWriter_.reset();   // destructor flushes to disk (blocking, message thread -- fine)
     }
 
+    // Still load-bearing after the early gate stores above: a push() that won armed_.exchange()
+    // just before them can store running_ = true after them; it is in flight and waited out
+    // above, so these stores (which run after both waits) are the ones that end that state.
     armed_.store(false, std::memory_order_relaxed);
     running_.store(false, std::memory_order_relaxed);
 }

@@ -1791,3 +1791,75 @@ TEST_CASE("RecorderHost clock -- t restarts at every arm; a wall-clock replay is
         host.stopPlay();
     }
 }
+
+// === s-rta-0924b: a finalize problem at stop reaches status() (REST /api/perf/status) ===
+// Pre-fix, disarm() kept AudioStore::finalize's error in a local: /api/perf/status's lastError
+// stayed "" after a "truncated (header N frames < framesWritten N+512)" stop, so no probe could
+// see it. The truncation itself is forced deterministically with AudioTap's test-only phantom
+// counter hook (the exact EFFECT of the s-rta-0924b stop-window bug: a block counted, never written).
+
+TEST_CASE("RecorderHost disarm -- a finalize problem (truncated asset) reaches status(): lastError, lastFinalizeError, finalizeErrors; the take still references the audio", "[host][stop][finalize]")
+{
+    TempDir storeRoot("fin_store");
+    TempDir takeFolder("fin_take");
+    TempDir takeFolder2("fin_take2");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    constexpr double rate = 48000.0;
+    constexpr int blockSize = 512;
+    AudioTap tap;
+    tap.prepare(rate, 2, blockSize);
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = true;
+    opts.audioMode = "input";
+    opts.deviceRate = rate;
+    opts.deviceChannels = 2;
+    opts.appVersion = "test";
+    REQUIRE(host.arm(comp, tap, opts).ok);
+
+    uint64_t delivered = 0;
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    host.tick(makeSnap(), 0.0, delivered, tap, std::nullopt, rate);
+    pushCleanBlocks(tap, rate, blockSize, 10, delivered, hostTimeNs);
+    host.tick(makeSnap(), 0.2, delivered, tap, std::nullopt, rate);
+    CHECK(host.status().lastError.empty());
+    CHECK(host.status().finalizeErrors == 0);
+
+    tap.debugAddPhantomFramesForTest(512);   // a block counted but never written -- the s-rta-0924b effect
+    const auto stopRes = host.disarm(comp, tap);
+    CHECK(stopRes.ok);                                            // D-A11: finalize problems never fail the stop
+    REQUIRE(stopRes.error.find("truncated (header 5120 frames < framesWritten 5632)") != std::string::npos);
+    const auto after = host.status();
+    CHECK_FALSE(after.recording);
+    CHECK(after.lastError == stopRes.error);                      // RED pre-fix: empty
+    CHECK(after.lastFinalizeError == stopRes.error);
+    CHECK(after.finalizeErrors == 1);
+
+    LoadStats stats;
+    auto loaded = Take::load(takeFolder.dir, stats);
+    REQUIRE(loaded.has_value());
+    REQUIRE(loaded->audio.segments.size() == 1);
+    CHECK(loaded->audio.segments[0].frames == 5120);              // the header, not the counter
+    REQUIRE(loaded->audio.unreliableFrom.has_value());
+    CHECK(*loaded->audio.unreliableFrom == tap.firstSample() + 5120);
+    CHECK(store.resolve(loaded->audio).status == AudioStore::Status::Resolved);   // still plays
+
+    // Per take vs cumulative: the next arm clears lastFinalizeError/lastError, never the counter.
+    opts.takeFolder = takeFolder2.dir;
+    REQUIRE(host.arm(comp, tap, opts).ok);
+    host.tick(makeSnap(), 0.0, delivered, tap, std::nullopt, rate);   // arm() itself does not publish status; the tick does
+    CHECK(host.status().recording);
+    CHECK(host.status().lastFinalizeError.empty());
+    CHECK(host.status().lastError.empty());
+    CHECK(host.status().finalizeErrors == 1);
+    pushCleanBlocks(tap, rate, blockSize, 2, delivered, hostTimeNs);
+    CHECK(host.disarm(comp, tap).error.empty());
+    CHECK(host.status().lastFinalizeError.empty());
+    CHECK(host.status().finalizeErrors == 1);
+}

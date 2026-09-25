@@ -169,6 +169,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     skippedCount_ = 0;
     continuousUnavailableCount_ = 0;
     lastError_.clear();
+    lastFinalizeError_.clear();   // s-rta-0924b: per take; finalizeErrors_ is never reset
     armRecordedAt_ = juce::Time::getCurrentTime().toISO8601(true).toStdString();
 
     // R13-C: rateChangedSinceArm always starts false at arm -- see tick()'s comment for the
@@ -306,6 +307,10 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
         if (!fin.error.empty())
         {
             finalizeError = fin.error;
+            // s-rta-0924b: pre-fix this stayed local, so /api/perf/status never showed it.
+            lastError_ = fin.error;
+            lastFinalizeError_ = fin.error;
+            ++finalizeErrors_;
             if (dispatch.notify)
                 dispatch.notify(fin.error);
         }
@@ -325,8 +330,12 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
         take.checkpointEnd = dispatch.capturePerfState();
 
     const bool saved = take.save(takeFolder_);
-    if (!saved && dispatch.notify)
-        dispatch.notify("could not save take.json at stop");
+    if (!saved)
+    {
+        lastError_ = "could not save take.json at stop";   // s-rta-0924b O1: same REST-visibility gap
+        if (dispatch.notify)
+            dispatch.notify(lastError_);
+    }
 
     res.ok = saved;                 // D-A11: `error` names finalize/save problems but NEVER blanks the reference
     res.error = finalizeError;
@@ -717,6 +726,8 @@ void RecorderHost::publishStatus()
     s.audioMode = audioMode_;
     s.playMode = playing_ ? (playMode_ == PlayMode::WithAudio ? "withAudio" : "wallClock") : "";
     s.lastError = lastError_;
+    s.lastFinalizeError = lastFinalizeError_;
+    s.finalizeErrors = finalizeErrors_;
 
     if (recording_)
     {

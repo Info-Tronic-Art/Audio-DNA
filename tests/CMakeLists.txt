@@ -1084,6 +1084,9 @@ target_compile_definitions(test_recorder_host PRIVATE
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
     TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    # s-rta-0924b: AudioTap's test-only hooks (debugAddPhantomFramesForTest) -- this target
+    # compiles its OWN AudioTap.cpp object, so the define never reaches the app.
+    AUDIODNA_AUDIOTAP_TEST_HOOKS=1
 )
 if(NOT MSVC)
     target_compile_options(test_recorder_host PRIVATE

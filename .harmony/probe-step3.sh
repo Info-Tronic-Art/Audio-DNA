@@ -300,6 +300,12 @@ REC2="$(perf_field "d.get('recording','NA')")"
 [ "$REC2" = "False" -o "$REC2" = "false" ] && ok "perf/status: recording=false after stop" || no "perf/status: still recording after stop ($REC2)"
 LASTERR="$(perf_field "d.get('lastError','NA')")"
 [ -z "$LASTERR" -o "$LASTERR" = "" ] && ok "perf/status: lastError empty" || no "perf/status: lastError=$LASTERR"
+# s-rta-0924b finalize truncation: AudioStore::finalize's verdict for this stop. "NA(...)" when
+# the key is absent -> red, so a build without the status field cannot pass this row vacuously
+# (pre-fix, lastError above stayed "" even on a truncated stop -- it was never assigned).
+FIN_ERR="$(perf_field "d.get('lastFinalizeError','NA')")"
+[ "$FIN_ERR" = "" ] && ok "perf/status: lastFinalizeError empty after stop (audio.wav header frames == tap framesWritten; no block lost at stop)" \
+  || no "perf/status: lastFinalizeError='$FIN_ERR' (s-rta-0924b finalize truncation, or field missing)"
 RATE_CHANGED="$(perf_field "d.get('rateChangedSinceArm','NA')")"
 [ "$RATE_CHANGED" = "False" -o "$RATE_CHANGED" = "false" ] \
   && ok "R13: rateChangedSinceArm == false after the take (no device-rate change mid-take)" \
@@ -322,6 +328,12 @@ SEG_RATE="$(take_field "$TAKE_FOLDER" "d['audio']['segments'][0]['rate']")"; SEG
 [ "$SEG_RATE" = "$DEV_RATE" ] && ok "audio.segments[0].rate == $DEV_RATE (device rate at arm)" || no "audio.segments[0].rate == $SEG_RATE (expected $DEV_RATE, the device rate read at arm)"
 SEG_FRAMES="$(take_field "$TAKE_FOLDER" "d['audio']['segments'][0]['frames']")"
 awk -v x="$SEG_FRAMES" 'BEGIN{exit !(x+0>0)}' 2>/dev/null && ok "audio.segments[0].frames > 0 ($SEG_FRAMES)" || no "audio.segments[0].frames not >0 ($SEG_FRAMES)"
+# s-rta-0924b disk oracle (independent of the status field): finalize marks a truncated asset
+# unreliable from the header's frame count, and the take's segment frames must equal the WAV's.
+UNREL="$(take_field "$TAKE_FOLDER" "d['audio'].get('unreliableFrom')")"
+[ "$UNREL" = "None" ] && ok "take.json audio.unreliableFrom is null (no truncation, no overrun)" || no "take.json audio.unreliableFrom=$UNREL (finalize marked the audio unreliable)"
+WAVN="$(python3 -c "import wave; w=wave.open('$ASSET_DIR/audio.wav','rb'); print(w.getnframes())" 2>/dev/null || echo NA)"
+[ "$WAVN" = "$SEG_FRAMES" ] && ok "audio.wav frame count == take segment frames ($WAVN)" || no "audio.wav frames $WAVN != take segment frames $SEG_FRAMES"
 FP="$(take_field "$TAKE_FOLDER" "d['audio']['segments'][0]['fingerprint']")"
 echo "$FP" | grep -q '^fp1:' && ok "audio.segments[0].fingerprint carries the fp1: prefix" || no "audio.segments[0].fingerprint ($FP) missing the fp1: prefix"
 GAPD_TAKE="$(take_field "$TAKE_FOLDER" "type(d['audio'].get('gapDetection')).__name__")"
@@ -796,6 +808,9 @@ print("%s|%s|t=%s markers=%s framesWritten=%s" % (d.get("recording","NA"), le, d
     sleep 3
     LERR="$(perf_field "d.get('lastError','NA')")"
     [ -z "$LERR" ] && ok "LONG: lastError empty after stop (no tap self-stop, no rate change, no save failure)" || no "LONG: lastError=$LERR"
+    FIN_ERR="$(perf_field "d.get('lastFinalizeError','NA')")"
+    [ "$FIN_ERR" = "" ] && ok "LONG: perf/status lastFinalizeError empty after stop (no block lost at stop, s-rta-0924b)" \
+      || no "LONG: perf/status lastFinalizeError='$FIN_ERR' (s-rta-0924b finalize truncation, or field missing)"
     LRATE="$(perf_field "d.get('rateChangedSinceArm','NA')")"
     [ "$LRATE" = "False" -o "$LRATE" = "false" ] \
       && ok "LONG: rateChangedSinceArm == false across ${LONG_MINUTES} minutes" \
@@ -890,6 +905,15 @@ with wave.open('$ASSET3_DIR/audio.wav','rb') as w:
 else
     skip "crash-readability row (set STEP3_RUN_CRASH_TEST=1 to run it -- destructive, kill -9)"
 fi
+
+# --- 12b. run-level finalize check (s-rta-0924b) -- BEFORE the quit below: the app must still
+# answer. finalizeErrors is never reset within one app process; if section 12 ran, the app was
+# relaunched (kill -9), so this counts only that second process's stops, and the stderr grep
+# covers the first process's log (/tmp/adna-step3-err.log).
+FIN_COUNT="$(perf_field "d.get('finalizeErrors','NA')")"; FIN_COUNT="$(normnum "$FIN_COUNT")"
+[ "$FIN_COUNT" = "0" ] && ok "no stop in this run reported a finalize problem (perf/status finalizeErrors == 0)" || no "perf/status finalizeErrors == $FIN_COUNT (some stop in this run truncated or failed to finalize)"
+TRUNC_LOG="$(grep -c 'truncated (header' /tmp/adna-step3-err.log 2>/dev/null)"; TRUNC_LOG="${TRUNC_LOG:-0}"
+[ "$TRUNC_LOG" = "0" ] && ok "stderr: no '[Recorder] asset ...: truncated' line this run" || no "stderr: $TRUNC_LOG truncated-asset line(s) in /tmp/adna-step3-err.log"
 
 # --- 13. teardown (SCREEN-SAFETY LAW) --------------------------------------
 # Graceful quit FIRST (~MainComponent runs recorderHost_.shutdown before the

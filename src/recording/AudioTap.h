@@ -95,12 +95,18 @@ public:
                   uint64_t deliveredBefore,
                   const juce::AudioIODeviceCallbackContext& context);
 
-    // Message thread. Synchronously waits out any push() call already in
-    // flight on the audio thread (see audioThreadBusy_ below), drains any
+    // Message thread. Order (s-rta-0924b): null the writer -> wait out any
+    // push() call already in flight on the audio thread (see
+    // audioThreadBusy_ below; it completes on the OLD gate and is counted)
+    // -> close push()'s gate (armed_/running_ false, seq_cst) -> wait again
+    // (a push that slipped in before the gate closed) -> drain any
     // still-pending (retried) frames and any still-outstanding silence
-    // debt (D10.1's FIFO-overrun bullet) into the real writer, then
-    // destroys it (ThreadedWriter's destructor blocks until its own FIFO
-    // is flushed to disk -- fine here, off the audio thread) and disarms.
+    // debt (D10.1's FIFO-overrun bullet) into the real writer -> destroy it
+    // (ThreadedWriter's destructor blocks until its own FIFO is flushed to
+    // disk -- fine here, off the audio thread). Any push() whose gate check
+    // comes after the gate closes returns 0 without counting, so the WAV
+    // always ends exactly at framesWritten(). isRunning() turns false
+    // mid-stop(), not at its end.
     void stop();
 
     uint64_t firstSample() const noexcept { return firstSample_.load(std::memory_order_relaxed); }
@@ -175,6 +181,30 @@ public:
         }
         return false;
     }
+
+    // TEST ONLY -- pauses the NEXT stop()/stopInternal() after its pending/silence-debt drains
+    // and immediately BEFORE threadedWriter_.reset(): the part of the stop window a device
+    // callback can land in after the drains already decided nothing was pending
+    // (s-rta-0924b finalize truncation). The test thread plays the audio thread and calls
+    // push() while stop() is paused on another thread.
+    void debugArmStopPauseBeforeWriterTeardown() { debugPauseStopForTest_.store(true, std::memory_order_release); }
+    void debugReleasePausedStop()                { debugReleaseStopForTest_.store(true, std::memory_order_release); }
+    bool debugWaitUntilStopPaused(int maxSpins = 2'000'000)
+    {
+        for (int i = 0; i < maxSpins; ++i)
+        {
+            if (debugStopIsPausedForTest_.load(std::memory_order_acquire))
+                return true;
+            std::this_thread::yield();
+        }
+        return false;
+    }
+
+    // TEST ONLY -- adds `n` to framesWritten_ with no write: the exact EFFECT of a block counted
+    // at writeFrames() that never reached the WAV (s-rta-0924b). Lets RecorderHost tests force
+    // AudioStore::finalize's truncation verdict deterministically, independent of the
+    // stopInternal() ordering fix.
+    void debugAddPhantomFramesForTest(uint32_t n) { framesWritten_.fetch_add(n, std::memory_order_relaxed); }
 #endif
 
 private:
@@ -267,6 +297,12 @@ private:
     std::atomic<bool> debugBlockPushForTest_{ false };
     std::atomic<bool> debugPushIsBlockedForTest_{ false };
     std::atomic<bool> debugReleasePushForTest_{ false };
+
+    // TEST ONLY -- see debugArmStopPauseBeforeWriterTeardown()/debugReleasePausedStop()/
+    // debugWaitUntilStopPaused() above.
+    std::atomic<bool> debugPauseStopForTest_{ false };
+    std::atomic<bool> debugStopIsPausedForTest_{ false };
+    std::atomic<bool> debugReleaseStopForTest_{ false };
 #endif
 
     juce::AbstractFifo gapFifo_{ 64 };
