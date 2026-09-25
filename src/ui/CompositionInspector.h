@@ -16,7 +16,6 @@
 //   [Dashboard]               8 link knobs
 //   [Autopilot]               Direction (◀◀ OFF ▶▶ ⤮), Duration, Clip Loops, Loop, Master Layer
 //   [Composition]             ▶ Master slider (with signal triangle), Speed slider
-//   [Video]                   ▶ Opacity slider
 //   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
 //   [Global Effects]          Effect stack
 //   [Output Settings]         Resolution dropdown
@@ -98,9 +97,6 @@ private:
     UniversalParamControl masterControl_;
     UniversalParamControl speedControl_;
 
-    // --- Video ---
-    UniversalParamControl opacityControl_;
-
     // --- Transform ---
     UniversalParamControl posXControl_;
     UniversalParamControl posYControl_;
@@ -126,8 +122,7 @@ private:
     void syncFromComposition();
     // s-rta-0923 lane 3 plan section 4.2: bind the 8 scalar controls to
     // composition_->scalarConns/scalarLive (null-safe when composition_ is
-    // nullptr). Ruling 11: masterControl_ and opacityControl_ share the
-    // same CompScalar::Opacity connection (one master).
+    // nullptr).
     void bindScalarControls();
 
     static constexpr int kSectionHeaderHeight = 18;
