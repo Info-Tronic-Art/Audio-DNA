@@ -1310,3 +1310,26 @@ isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by 
   RED (5005 ms ×3) where the critic's informal rig ran green.
 - **Residue discriminators pay off fast** — the 5 s "stop lag" and the 1.4 ms "drift" were each settled by one cheap
   targeted run (pre-fix build rerun; 20-min take) instead of being carried forward as unknowns.
+
+## 2026-09-25 — Headless JUCE-widget ctest link closure cascades through virtual dispatch
+**Files:** tests/CMakeLists.txt, src/ui/UniversalParamControl.cpp, src/ui/TopBar.cpp
+**Note:** A headless ctest target that links a real UI .cpp (UniversalParamControl.cpp,
+TopBar.cpp) pulls in far more than its direct includes suggest, because macOS ld64
+resolves symbols per translation unit, not per used-function: any `.cpp` you link
+compiles ALL its member functions into object code, and if a class has a virtual
+method overridden in a header (e.g. `AudioSignal::getValue` in `signal/AudioSignal.h`,
+`override`d, header-only), its vtable forces that method's *own* unresolved calls to
+resolve too, even though your test never calls it. Concretely: UniversalParamControl.cpp
+needs SignalRegistry.cpp -> (vtable pull) AudioSignal::getValue -> MappingEngine::
+extractSource -> needs MappingEngine.cpp -> its (unrelated to your test) processFrame()
+needs EffectChain::getEffect -> needs EffectChain.cpp -> needs ShaderManager.cpp/
+TextureManager.cpp/FullscreenQuad.cpp/LUTLoader.cpp + `juce::juce_opengl` linked (real
+`juce::gl::*` GL function symbols, not just headers) for the OpenGL-calling member
+functions in the same .cpp, even though the test never constructs a GL context. Iterate
+by linking one .cpp per named undefined symbol (never MainComponent.cpp/Renderer.cpp);
+the chain bottoms out in ~10 files for this repo's UI/model/effects layer. Once resolved,
+the linker's own dead-code elimination (subsections-via-symbols) DOES let the actually
+unreached GL calls sit unexecuted at runtime — the test still runs headless and fast.
+**Valid while:** SignalRegistry's default-signal construction still instantiates
+AudioSignal (virtual getValue), and EffectChain/ShaderManager/TextureManager/
+FullscreenQuad/LUTLoader still live in the same shape.
