@@ -124,3 +124,8 @@ Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix ro
   POSTs: no lag either (0.02 s) — the stop reorder was never involved. USER IMPACT: any REST client sending bodyless
   POSTs (Stream Deck/Companion-style HTTP buttons, curl) gets a 5 s delay on every trigger. Probes using bodyless POSTs
   have skewed timings. Fix workflow launched.
+- bodyless-POST plan: bump cpp-httplib v0.18.3→v0.57.1 (upstream fix first in v0.28.0; zstd auto-detect pinned OFF). Harmony accepts (syntax-checked both servers vs 0.57.1; B patch = fallback). Gate: ctest + TestServer build + all 3 probes + bodyless curl timings.
+- LIVE GATE httplib v0.57.1 (merged 33eb717): bodyless POST perf/stop 0.0005 s (was 5.006), snapshot 0.042 s,
+  Content-Length:0 / bodied controls fast, CORS header intact, link set unchanged (no zstd). ctest 445/445;
+  probe-step3 69/0; onset 13/0 (60==60); finalize loop 40/0. Test snapshot file deleted from ~/Documents.
+- Launched STEP3_LONG=1 STEP3_LONG_MINUTES=20 to discriminate drift (linear → ~-2.9 ms).
