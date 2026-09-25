@@ -201,6 +201,11 @@ pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance
 python3 -m json.tool "$FIXTURE" >/dev/null 2>&1 && ok "fixture $FIXTURE is valid JSON" || no "fixture $FIXTURE is NOT valid JSON"
 
 # --- 2. launch (production, NO --test-mode -- T4) -------------------------
+# `open` APPENDS to --stdout/--stderr logs -- truncate both before launch so
+# every grep below (section 4, section 12b) reads only this run, not stale
+# lines left over from a prior run's process (probe-finalize-loop.sh pattern).
+: > /tmp/adna-step3-out.log
+: > /tmp/adna-step3-err.log
 open --stdout /tmp/adna-step3-out.log --stderr /tmp/adna-step3-err.log "$APPBUNDLE"
 for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (production launch needs the mic-permission prompt clicked once -- screencapture -x and LOOK before concluding)"; exit 1; }
@@ -878,6 +883,8 @@ if [ "${STEP3_RUN_CRASH_TEST:-0}" = "1" ]; then
     KPID="$(pgrep -f 'MacOS/Audio-DN[A]' | head -1)"
     [ -n "$KPID" ] && kill -9 "$KPID" 2>/dev/null
     for _ in $(seq 1 20); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
+    : > /tmp/adna-step3-out2.log
+    : > /tmp/adna-step3-err2.log
     open --stdout /tmp/adna-step3-out2.log --stderr /tmp/adna-step3-err2.log "$APPBUNDLE"
     for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
     GATE3_FOLDER="$TAKES_DIR/step3gate3.adna-take"
