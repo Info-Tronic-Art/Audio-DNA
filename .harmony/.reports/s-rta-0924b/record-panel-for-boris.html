@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Audio-DNA — Record panel (Step 4)</title>
+<style>
+body{font:16px/1.5 -apple-system,system-ui,sans-serif;background:#15151c;color:#e8e8ee;max-width:1200px;margin:32px auto;padding:0 24px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:19px;margin:36px 0 10px;color:#9fd8ff}
+.sub{color:#9a9aab;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+figure{margin:0;background:#1e1e28;border-radius:8px;padding:10px}
+figure img{width:100%;border-radius:4px;display:block}
+figcaption{font-size:14px;color:#c9c9d6;margin-top:8px}
+li{margin:6px 0}.rec{color:#8f8fa3;font-size:14px}
+.box{background:#1e1e28;border-left:4px solid #6fd0ff;padding:12px 16px;border-radius:6px}
+</style></head><body>
+<h1>Record panel — what it looks like now</h1>
+<div class="sub">Browser › Record tab. Screenshots of the running app (built-in mic), after the design review and fixes. 25 Sep 2026.</div>
+
+<div class="box">Every state below was driven live and checked by me; five design critics reviewed it and their fixes are in.
+Nothing here needs you to act — the list at the bottom is only what a screenshot can't tell me.</div>
+
+<h2>The states</h2>
+<div class="grid">
+<figure><img src="step4-visual/after-fix/crop-idle-nothing-loaded.png"><figcaption>1. Nothing loaded — Record Take is the only main action.</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-recording.png"><figcaption>2. Recording — red Stop Recording, clock counts from 0:00.</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-idle-after-stop.png"><figcaption>3. After Stop — the take saved itself.</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-loaded-audio-ready.png"><figcaption>4. Take loaded — its length and whether its audio is ready.</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-playing-with-audio.png"><figcaption>5. Playing with the take's audio — green Stop Playback; live input paused (yellow note).</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-overdub.png"><figcaption>6. Record Over — redo your moves over the take's audio. Stop Playback is dimmed on purpose.</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-after-stopplay-during-overdub.png"><figcaption>7. Stopped during Record Over — everything stops, input back to Mic.</figcaption></figure>
+<figure><img src="step4-visual/after-fix/crop-notice-no-take-loaded.png"><figcaption>8. Refusals are plain sentences.</figcaption></figure>
+</div>
+<p class="rec">The "Saved: s4gate, but its audio had a problem…" line in shots 3–7 was a real bug (a sliver of audio lost at Stop, about 1 take in 20). It's fixed and proven since these were taken: 40 record/stop cycles, 0 losses.</p>
+
+<h2>What only you can check</h2>
+<ul>
+<li>Open Browser › Record, record 20–30 seconds over music, Stop, Load it, Play with audio: does the replay feel in time with the music?</li>
+<li>Does the panel read clearly from where you stand when performing (size, red/green)?</li>
+<li>Press a layer pad to pause/play a clip running in reverse — it should stay reversed.</li>
+</ul>
+
+<h2>Your calls — each already has a default, nothing waits on them</h2>
+<ol>
+<li><b>Button name:</b> "Record Over" or "Overdub"? <span class="rec">[Default: Record Over]</span></li>
+<li><b>Replay start:</b> should replaying a whole take first snap back to how things looked when you pressed Record? <span class="rec">[My recommendation: yes]</span></li>
+<li><b>End of replay:</b> should a replay stop by itself at the end of the take and give you the live input back? <span class="rec">[Default: later step]</span></li>
+<li><b>Stop Recording during Record Over:</b> keep the replay running, or stop everything? <span class="rec">[Default: keep running]</span></li>
+<li><b>Stop Recording colour:</b> black text on red (passes contrast), or a darker red with light text? <span class="rec">[Default: black text]</span></li>
+</ol>
+</body></html>

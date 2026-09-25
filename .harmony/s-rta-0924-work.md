@@ -112,3 +112,15 @@ Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix ro
 - LIVE GATE trunc (Harmony): probe-finalize-loop 40 cycles 0 truncations (8/0); probe-step3 69/0 after 6ec7344
   (probe now truncates its `open` logs — `open --stderr` APPENDS; 3 stale Sep-24 lines had false-FAILed the new row;
   proven by planting a fake truncated line before the run → row PASS). ctest 441/441.
+- HARMONY DECISION: JUCE 8.0.4→8.0.8 bump DEFERRED WITH TRIGGER. Its only fail-first proof needs a device that refuses
+  the requested buffer size; the rig is now built-in mic only (Boris ruling, no Bluetooth), where the bug cannot fire
+  (48 kHz, accepts 512). Whole-framework upgrade = regression risk with no provable benefit today.
+  TRIGGER: before ANY wired USB/audio interface is used with the app, do bt-crash-fix-plan.md Option A (8.0.8) and gate
+  it on that interface (ASan launch ×N + ctest + probes). Plan + fallback patch already written.
+- Chasing 5-s stop residue: scratch worktree at ba66ee7 → build → stop-latency script.
+- RESIDUE CLOSED (root cause proven): the "5 s stop lag" was NOT the recorder. A bodyless `curl -X POST /api/perf/stop`
+  takes 5.006 s; the same with `-d '{}'` takes 0.0007 s (take duration 7.01 vs 2.03). cpp-httplib 0.18.3 waits for a body
+  on a POST with no Content-Length until its 5 s read timeout, THEN runs the handler. Pre-fix build ba66ee7 with bodied
+  POSTs: no lag either (0.02 s) — the stop reorder was never involved. USER IMPACT: any REST client sending bodyless
+  POSTs (Stream Deck/Companion-style HTTP buttons, curl) gets a 5 s delay on every trigger. Probes using bodyless POSTs
+  have skewed timings. Fix workflow launched.
