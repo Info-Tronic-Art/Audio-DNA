@@ -45,10 +45,15 @@ if(AUDIODNA_BUILD_LINK)
 endif()
 
 # --- cpp-httplib (HTTP server: production API + test server) ---
+# v0.57.1 (2026-09-21). Bodyless POST (no Content-Length / Transfer-Encoding)
+# stalled CPPHTTPLIB_SERVER_READ_TIMEOUT (5 s) on 0.18.3; fixed upstream in
+# v0.28.0 (yhirose/cpp-httplib#2279, commit 337fbb07). Pinned to the current
+# release. zstd auto-detect OFF: keep the link set identical (no new dylib).
+set(HTTPLIB_USE_ZSTD_IF_AVAILABLE OFF CACHE BOOL "cpp-httplib: no zstd" FORCE)
 FetchContent_Declare(
     httplib
     GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-    GIT_TAG        v0.18.3
+    GIT_TAG        v0.57.1
     GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(httplib)
