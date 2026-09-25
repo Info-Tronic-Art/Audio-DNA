@@ -1301,3 +1301,12 @@ isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by 
 - **Workflow gotcha:** a fix-round trigger `/BLOCKER|MAJOR|\bFAIL\b/` on reviewer prose fires on "fail-first" and verdict boilerplate — key on a structured verdict field instead (cost: 2 no-op fix rounds + re-reviews).
 
 ## 2026-09-25 AudioTap stop ordering + RecorderHost status publish timing | (1) AudioTap::stopInternal must close push()'s gate (armed_/running_) AFTER the first busy-wait and BEFORE a second busy-wait + the drains: gate-last leaks a counted-but-unwritten block ("truncated header N < framesWritten N+512"); gate-at-top silently drops a push already in flight at stop() entry (test_audio_tap_sync "[truncation]" cases pin both). (2) RecorderHost::arm() does NOT publishStatus(); status() is stale until the next tick() -- tests that read status() right after arm() must tick first. (3) bash: `$(grep -c pat f || echo 0)` yields "0\n0" on no match (grep -c prints 0 AND exits 1) -- use `X=$(grep -c pat f); X=${X:-0}`. | discovered: src/recording/AudioTap.cpp stopInternal, src/recording/RecorderHost.cpp arm(), .harmony/probe-finalize-loop.sh
+- **Capture the app window, never the screen, while Boris works** — `screencapture -x -o -l <CGWindowID>` (Quartz
+  CGWindowListCopyWindowInfo, owner "Audio-DNA", layer 0) + `open -g`. Works behind other windows. (gotchas.md)
+- **`open --stdout/--stderr` appends** — clear the file first or greps read older runs. (gotchas.md)
+- **A "stall" measured with curl may be the client's framing** — bodyless `curl -X POST` hit httplib's 5 s body read;
+  always time the same request with `-d '{}'` / `Content-Length: 0` as the discriminating control.
+- **Critic says "test won't go RED" → run it in the real target before ruling.** Builder + reviewer both reproduced
+  RED (5005 ms ×3) where the critic's informal rig ran green.
+- **Residue discriminators pay off fast** — the 5 s "stop lag" and the 1.4 ms "drift" were each settled by one cheap
+  targeted run (pre-fix build rerun; 20-min take) instead of being carried forward as unknowns.

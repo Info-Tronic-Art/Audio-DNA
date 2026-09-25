@@ -3,49 +3,70 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0924 (2026-09-24). The newest dated
-section is at the END of this file ("# >>> SESSION s-rta-0924"); read it first, then the SCREEN-SAFETY
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0924b (2026-09-25). The newest dated
+section is at the END of this file ("# >>> SESSION s-rta-0924b"); read it first, then the SCREEN-SAFETY
 LAW section. Everything between is history — older blocks lose to the end sections.
 
-STATE: spec step 3 (the performance recorder wired into the running app) is BUILT and live-proven —
-`.harmony/probe-step3.sh` 63 PASS / 0 FAIL on main. R13 (non-48 kHz devices) is BUILT: the analysis
-thread resamples to 48 kHz (bypass at 48 kHz). Composition-position black screen FIXED. ctest 408.
+STATE: the performance recorder is usable from the UI — Browser › Record panel (step 4) BUILT, critic-
+panelled, fixed and live-verified. Onset-reactive visuals no longer miss or double beats. Recorder clock,
+stop-time audio loss and the 5 s REST stall on bodyless POSTs all FIXED. ctest 445. Gates on main:
+probe-step3 69/0, probe-onset-render 13/0, probe-finalize-loop 40/0, STEP3_LONG 20 min 82/0.
+BORIS RULING (binding): NO Bluetooth audio ever — only hard-wired input or the onboard mic.
 
 START HERE, in order:
-1. Boris's open calls (end section, "STILL OPEN FOR BORIS") — deliver ONE at a time, plain words.
-2. Onset loss in the render path (proven class, not yet fixed): render uniforms read the one-hop
-   onsetDetected from an always-latest snapshot at 60 fps (CompositorEngine.cpp ~1575, EffectChain.cpp
-   ~340, ProceduralSource.cpp ~175) and GET /api/features (ApiServer.cpp ~649) — onset-reactive visuals
-   can miss beats. FeatureSnapshot::onsetCount (monotonic) now exists: make those consumers act on its
-   delta. Plan → critic → builder → reviewer → live check (Eyes / render_frame over a click train).
-3. T2 drift proof needs a LONG take: probe-step3's drift row WARNs (stderr ~2.2 ms on a 65 s take);
-   spec D10.3 measures minute 10 vs minute 0. Add an opt-in 10-minute run (STEP3_LONG=1).
-4. Step 4 of the recorder spec (Record panel UI) is next on the roadmap — read the spec before planning.
+1. Boris's open calls (end section, "STILL OPEN FOR BORIS") — deliver ONE at a time, plain words. He has
+   a page: .harmony/.reports/s-rta-0924b/record-panel-for-boris.html (open it for him if he asks).
+2. Next roadmap step of the recorder spec (.harmony/specs/s167-performance-log-and-routines.md §5 Build
+   order, D14) after step 4 — read the spec and plan it (architect → critic → build → review → live gate).
+3. Step 4 deferred polish (fix-plan §2, .harmony/.reports/s-rta-0924b/step4-visual/fix-plan.md): stale
+   notice persists into later states; "Comp/Decks" tab clipped (BrowserPanel.cpp:74); disabled-reason captions.
+4. downbeatDetected has the same one-hop pulse class as onsets (TopBar.cpp:232) — apply OnsetPulse pattern.
 
-Rig rules that cost runs: fail-first in a SCRATCH build dir or the lane worktree, never ./build; run
-probe-step3.sh from the MAIN checkout (worktrees have no .venv — the probe now FAILS loudly there);
-never embed "MacOS/Audio-DNA" in a watcher (pgrep -f self-match); live-app agents: NO debugger attach,
-NO GUI input, stop on any unexpected dialog (gotchas.md); `git add -f` under .harmony/ and check
-`git show --stat HEAD`; read-only REPORT_FILE paths go under <repo>/.harmony/.reports/.
-COUNTS: run them — ctest 408/408 at close; unpushed 0.
+Rig rules that cost runs: fail-first in a SCRATCH build dir or a lane worktree (reuse main's
+build/_deps via -DFETCHCONTENT_SOURCE_DIR_<NAME>), never ./build; run probes from the MAIN checkout (.venv);
+launch the app with `open -g` and capture ONLY its window (screencapture -l <CGWindowID>) — Boris works on
+this Mac; never embed "MacOS/Audio-DNA" in a watcher (use 'MacOS/Audio-DN[A]'); live-app agents: NO
+debugger, NO GUI input; `open --stderr` APPENDS (clear logs first); send REST POSTs with a body in
+scripts anyway; `git add -f` under .harmony/ and check `git show --stat HEAD`; REPORT_FILE paths under
+<repo>/.harmony/.reports/. Workflow fix-loops must key on a structured verdict, not regex on prose.
+COUNTS: run them — ctest 445/445 at close; unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0924 -->
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0924b -->
 BUILD: Audio-DNA live VJ app. Arc: the performance recorder (record a show once, redo the knob work
-against it) + honest audio analysis on any device.
-SHIPPED: composition position no longer blacks out the screen · recorder wired into the app (record /
-stop / load / replay / overdub over REST, 63-check live gate green) · layer pad play/pause keeps a
-reversed clip reversed · false "tap stopped" warning fixed · onset markers exact (no duplicates, no
-losses) · 16 kHz / 44.1 kHz devices: analysis resamples to 48 kHz, missing bands marked absent.
+against it) — now usable from the Record panel.
+SHIPPED: Record panel (step 4) · onset visuals exact (no missed/double beats) · recorder clock starts at
+Record (replay no longer delayed) · real playback length · no audio lost at Stop · REST commands no longer
+stall 5 s · 10/20-minute timing proof (no drift) · Bluetooth crash root-caused (JUCE bug; Bluetooth ruled out).
 IN-FLIGHT: none. Tree clean, everything pushed.
-NEXT: (1) Boris's calls · (2) onset-reactive visuals miss beats (render path) · (3) 10-minute drift
-proof · (4) recorder spec step 4 — the Record panel UI.
-BLOCKERS: none technical.
-YOU ARE HERE: the recorder records and replays inside the running app, proven live; nothing records
-from the UI yet (step 4).
+NEXT: (1) Boris's calls (page ready) · (2) plan the next recorder step · (3) Record panel polish ·
+(4) downbeat pulse same fix as onsets.
+BLOCKERS: none.
+YOU ARE HERE: you can record, stop, load, replay and record over a take from the app's Record tab; all
+proven live.
 
-## LOOSE-ENDS LEDGER — s-rta-0924 (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0924b (CURRENT)
+
+1. [TRIGGERED-DEFERRAL] JUCE 8.0.4 → 8.0.8 (buffer-size overflow, upstream f6df3e3): do it BEFORE any wired
+   audio interface is used — plan + fallback patch: .harmony/.reports/s-rta-0924b/bt-crash-fix-plan.md.
+2. [OPEN, low] downbeatDetected one-hop pulse (TopBar.cpp:232) — same class as the onset fix.
+3. [OPEN, low] Record panel: a cyan notice stays visible into later states ("No take is loaded…" while
+   recording); Comp/Decks tab text clipped; disabled buttons give no on-screen reason; replay never stops
+   itself at the end (Boris call B5).
+4. [OPEN, low] Takes recorded BEFORE 45667cb keep app-uptime-offset timestamps/durations (probe/test takes
+   only as far as known).
+5. [OPEN, low] test_layer_transport_reverse mirrors MainComponent logic — Boris should press a pad on a
+   reversed clip once (carried).
+6. [OPEN, low] RecorderHost: a real onset in the first ~8 ms after arm is not marked; a tap that arms but
+   never starts is silent (carried from s-rta-0924).
+7. WARN fable-usage-audit: LAW11-LOG-GAP — 8 architect (Fable) dispatches, 0 DISPATCH_LOG rows (a
+   foreign-repo secondary cannot write Harmony_Main DISPATCH_LOG); all 8 plans on disk and followed.
+8. Held for Boris (s-rta-0923 #6): .claude/settings.local.json disables clangd-rta and graphify-rta (carried).
+9. .harmony/.harmony-version (harness stamp) and AGENTS.md (untracked Codex copy of CLAUDE.md) were
+   dirty at boot — not this session's; left untouched.
+
+## (HISTORICAL, s-rta-0924 — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0924
 
 1. [OPEN, real] Onset loss in render uniforms + GET /api/features (see START HERE 2).
 2. [OPEN] T2 drift claim unproven at the spec's 10-minute scale (START HERE 3); p95 jitter rose to
@@ -2759,3 +2780,62 @@ process; screencapture taken and LOOKED AT — terminals only, no app window, no
 ## COUNTS — run them, never inherit them
 ctest 408/408. Unpushed 0 at the final push.
 
+# >>> SESSION s-rta-0924b (2026-09-24 12:05 → 2026-09-25, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+The Record panel works from the app and is live-verified; beat-reactive visuals are exact; three hidden
+recorder/API bugs found by the live gate were fixed; Bluetooth audio is ruled out for good.
+
+## WHAT SHIPPED (merged + pushed; every source lane reviewed by an agent that did not build it)
+- Onset render fix 4532779 (OnsetPulse on onsetCount deltas; one bus read per frame).
+- STEP3_LONG opt-in long drift take bffa2d9.
+- Step 4 Record panel 28477dc 5eb2b47 b0e3249 0205ca7; critic-panel fixes 45667cb (+ probe pin 1b7caaf).
+- Stop-window audio loss + finalize errors in status 7e9ca8b; probe log reset 6ec7344.
+- cpp-httplib v0.57.1 8bf2558 (bodyless POST 5 s stall gone).
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every one, built-in mic)
+- ctest 408 → 445/445 after the last merge.
+- probe-step3 69/0 (incl. wall-clock replay pin: RED 2 vs 14 s on the pre-fix build, GREEN 2 vs 2).
+- probe-onset-render 13/0: 60 clicks → 60 onsets → 60 render pulses.
+- probe-finalize-loop 40 cycles: pre-fix stderr 2/40 truncations → post-fix 0/40.
+- STEP3_LONG 10 min 75/0, 20 min 82/0: drift +0.28 ms (stderr 0.46) — no linear drift.
+- Bodyless POST perf/stop 5.006 s → 0.0005 s; CORS intact; link set unchanged.
+- Record panel: 10 states driven over REST, window-only screenshots after fixes
+  (.harmony/.reports/s-rta-0924b/step4-visual/after-fix/); 5-seat critic panel before.
+
+## NOT VERIFIED
+- Record panel driven by real mouse clicks (driven over REST + AX tab press only) — Boris's Tier 4.
+- JUCE buffer-size bug on a wired interface (none on the rig) — deferred with trigger.
+
+## STILL OPEN FOR BORIS (his calls, not technical; defaults are live)
+1. Replaying a whole take: snap back first to the look at Record? [recommend yes]
+2. Button name "Record Over" or "Overdub"? [Record Over]
+3. Should a replay stop by itself at the end and give the live input back? [later step]
+4. Stop Recording during Record Over: keep the replay running or stop everything? [keep running]
+5. Stop Recording colour: black text on red, or darker red with light text? [black text]
+6-10. Carried: deleting stored audio; audio store location; naming a recording; Manual Resync oscillator
+   re-align; the Composition inspector's second Opacity knob.
+(Moot by the no-Bluetooth ruling: the 16 kHz "Air" meter question and the low-rate output device question.)
+
+## WHAT ONLY BORIS CAN CHECK
+- Browser › Record: record 20-30 s over music, Stop, Load, Play with audio — does replay feel in time?
+- Does the panel read clearly at performance distance?
+- Press a layer pad on a reversed clip — it should stay reversed.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. A full-screen screencapture while Boris worked grabbed his private documents instead of the app;
+   deleted immediately, never committed. Habit landed: window-only capture + `open -g` (gotchas.md).
+2. My workflow fix-round trigger regexed reviewer prose for "FAIL" and matched "fail-first" → two no-op fix
+   rounds. Habit: branch on a structured verdict field.
+3. I pkilled the ASan run at a fixed 20 s and cut its report; rerun waiting for self-exit.
+4. I first attributed the "5 s stop lag" to the pre-fix stop ordering; a pre-fix rebuild disproved it
+   and the real cause (bodyless POST) was found. Habit: build the discriminator before naming the cause.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch this session was production mode; Output window never opened (probes: 0 Output windows).
+After the first crash dialog (Bluetooth, 12:48 on 09-24) was dismissed, a screenshot confirmed it gone. At
+close pgrep shows no Audio-DNA process; a full-screen capture was taken and LOOKED AT (terminals only, no
+app window, no overlay, no dialog) and then deleted.
+
+## COUNTS — run them, never inherit them
+ctest 445/445. Unpushed 0 at the final push.

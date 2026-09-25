@@ -129,3 +129,7 @@ Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix ro
   Content-Length:0 / bodied controls fast, CORS header intact, link set unchanged (no zstd). ctest 445/445;
   probe-step3 69/0; onset 13/0 (60==60); finalize loop 40/0. Test snapshot file deleted from ~/Documents.
 - Launched STEP3_LONG=1 STEP3_LONG_MINUTES=20 to discriminate drift (linear → ~-2.9 ms).
+- DRIFT RESIDUE CLOSED: STEP3_LONG_MINUTES=20 on final build → 82/0; slope drift +0.28 ms (stderr 0.46, 1.6 ppm bound),
+  window drift -0.35 ms (stderr 0.98). Linear-drift prediction (-2.9 ms) REFUTED → the 10-min -1.44 ms was noise.
+  Caveat: the 10-min run was on the pre-F1 build (clock origin bug); cannot separate noise from that change — both point
+  the same way (no drift today, within the spec's 1 ms).
