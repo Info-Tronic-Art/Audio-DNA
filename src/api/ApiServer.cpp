@@ -284,7 +284,9 @@ void ApiServer::handleStatus(const httplib::Request&, httplib::Response& res)
     obj->setProperty("ok", true);
     obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
     obj->setProperty("frameTimeMs", static_cast<double>(renderer_.getFrameTimeMs()));
-    obj->setProperty("masterLevel", static_cast<double>(renderer_.getMasterLevel()));
+    // s-rta-0925: masterLevel is now the one master (composition_.eff() --
+    // the fader is a widget-grip view of the same CompScalar::Opacity).
+    obj->setProperty("masterLevel", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     obj->setProperty("activeDeck", composition_.activeDeckIndex);
     // Onset render-path fix: frames on which the main Renderer's onset pulse
     // fired. Live oracle: after a click train its delta must EQUAL the
@@ -1133,7 +1135,8 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("ok", true);
     obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
     obj->setProperty("frame_time_ms", static_cast<double>(renderer_.getFrameTimeMs()));
-    obj->setProperty("master_level", static_cast<double>(renderer_.getMasterLevel()));
+    // s-rta-0925: master_level is now the one master (composition_.eff()).
+    obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
 
     // Effects state
     juce::Array<juce::var> effectsArr;

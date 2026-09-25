@@ -1,4 +1,5 @@
 #include "TopBar.h"
+#include "connect/ConnClock.h"
 #include <cmath>
 
 TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
@@ -200,6 +201,27 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     masterLevelSlider_.setDefaultValue(1.0);
     masterLevelSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     masterLevelSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    // s-rta-0925 link: this fader is a SHORTCUT to the Composition tab's
+    // "Master" knob -- a second widget-grip view of CompScalar::Opacity, the
+    // exact LayerStrip::opacitySlider_ pattern (LayerStrip.cpp): value write
+    // on change, Held grip for the duration of the drag (a real release
+    // exists), Decaying touch on a right-click reset. The old
+    // Renderer::masterLevel_ this fader used to drive (a second, compounding
+    // multiply) is gone.
+    masterLevelSlider_.onValueChange = [this] {
+        composition_.masterOpacity = static_cast<float>(masterLevelSlider_.getValue());
+    };
+    masterLevelSlider_.onDragStart = [this] {
+        masterDragging_ = true;
+        composition_.scalarConns[static_cast<size_t>(CompScalar::Opacity)].gripHeld();
+    };
+    masterLevelSlider_.onDragEnd = [this] {
+        masterDragging_ = false;
+        composition_.scalarConns[static_cast<size_t>(CompScalar::Opacity)].release(connNow());
+    };
+    masterLevelSlider_.onResetToDefault = [this] {
+        composition_.scalarConns[static_cast<size_t>(CompScalar::Opacity)].gripTouch(connNow());
+    };
 
     // Output
     addAndMakeVisible(outputLabel_);
@@ -237,6 +259,8 @@ void TopBar::timerCallback()
     // Repaint the beat wheel and bar/phrase area
     if (!beatWheelBounds_.isEmpty())
         repaint(beatWheelBounds_.getUnion(barPhraseBounds_).expanded(2));
+
+    syncMasterFromComposition();
 }
 
 void TopBar::updateBpmDisplay()
@@ -292,8 +316,20 @@ void TopBar::updateBpmDisplay()
                       juce::dontSendNotification);
 }
 
-// s-rta-0925 link: RED-commit stub (tests/test_master_opacity_link.cpp).
-void TopBar::syncMasterFromComposition() {}
+// s-rta-0925 link: pull the fader from the model -- manual field when not
+// connected, toNorm(eff()) when a signal drives it (same rule as
+// CompositionInspector::syncFromComposition). Skipped mid-drag so the thumb
+// never fights the hand.
+void TopBar::syncMasterFromComposition()
+{
+    if (masterDragging_) return;
+    const auto s = static_cast<size_t>(CompScalar::Opacity);
+    const auto& def = compScalarDefs()[s];
+    const bool connected = composition_.scalarConns[s].isConnected();
+    const float shown = connected ? def.toNorm(composition_.eff(CompScalar::Opacity))
+                                  : composition_.masterOpacity;
+    masterLevelSlider_.setValue(static_cast<double>(shown), juce::dontSendNotification);
+}
 
 void TopBar::setFps(float fps) { currentFps_ = fps; }
 void TopBar::setDspLoad(float percent) { currentDspLoad_ = percent; }

@@ -269,8 +269,6 @@ private:
     int slideshowBeats_ = 8;         // Beats per image
     int slideshowBeatCounter_ = 0;
     float lastSlideshowBeatPhase_ = 0.0f;
-    juce::Label masterLevelLabel_;
-    juce::Slider masterLevelSlider_;
     juce::Label audioSourceLabel_;
     juce::TextButton savePresetButton_{"Save"};
     juce::TextButton loadPresetButton_{"Load"};

@@ -53,7 +53,7 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
-| TopBar (`TopBar.h:12`) | Always visible (top, 34px) | Audio-source combo (Mic/File); input-gain slider; **Play/Pause/Stop (WIRED Wave 1-D — global transport over the active deck's layers' active clips; Stop = pause + rewind to in-point; TopBar.cpp:31-33 → MainComponent.cpp:533)**; Tap-tempo; Resync; manual-BPM toggle + BPM edit; 5 multiplier buttons (/4 /2 x1 x2 x4); Quantize combo; Fade slider; Master slider; Output-display combo; beat wheel + bar/phrase + FPS/DSP readouts | yes |
+| TopBar (`TopBar.h:12`) | Always visible (top, 34px) | Audio-source combo (Mic/File); input-gain slider; **Play/Pause/Stop (WIRED Wave 1-D — global transport over the active deck's layers' active clips; Stop = pause + rewind to in-point; TopBar.cpp:31-33 → MainComponent.cpp:533)**; Tap-tempo; Resync; manual-BPM toggle + BPM edit; 5 multiplier buttons (/4 /2 x1 x2 x4); Quantize combo; Fade slider; Master slider (= composition master opacity; two-way linked with the Composition tab's Master knob, s-rta-0925); Output-display combo; beat wheel + bar/phrase + FPS/DSP readouts | yes |
 | SignalBar (`SignalBar.h:15`) | Always visible (3 size modes) | `[+]` add-signal popup; shrink/grow buttons; N SignalStrip children (click = select for Signal inspector; display-only meter) | yes |
 | DeckView (`DeckView.h:15`) | Main content grid (scrollable) | Column-trigger buttons (click = trigger column); deck-tab buttons (switch deck); hosts LayerStrip + ClipCell | yes |
 | LayerStrip (`LayerStrip.h:23`) | Per-layer header in DeckView | Clear/Bypass/Solo; transport `< || > >|`; Speed/Keying/Opacity sliders; Blend+keying combo (13 keying + ~55 mix modes); Fade-speed slider + transition-mode combo; name-click select; clip-bar drag = scrub. Right-click: none | yes |
@@ -141,7 +141,7 @@ Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wav
 | # | Method | Path | Action |
 |---|---|---|---|
 | 1 | GET | /api/health | ok, version 0.1.0, fps, effects_count |
-| 2 | GET | /api/status | fps, frameTime, masterLevel, activeDeck, renderOnsetPulses, bpm/phase/genre/energy |
+| 2 | GET | /api/status | fps, frameTime, masterLevel (= composition master opacity eff(), s-rta-0925), activeDeck, renderOnsetPulses, bpm/phase/genre/energy |
 | 3 | GET | /api/composition | full deck→layer→clip tree |
 | 4 | POST | /api/trigger_clip | onTriggerClip(layer, column) |
 | 5 | POST | /api/trigger_column | onTriggerColumn(column) |
@@ -161,7 +161,7 @@ Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wav
 | 19 | POST | /api/render_frame | captureFrame() to path |
 | 20 | POST | /api/reset | clear image + source + disable all effects |
 | 21 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
-| 22 | GET | /api/state | fps, frame_time, master_level, effects[], decks |
+| 22 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
 
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 17 endpoints) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
