@@ -210,6 +210,13 @@ TEST_CASE("RecordPanelModel row 6 -- armed (audio requested, no frames yet)", "[
 
     const auto late = deriveRecordPanelView(recordingStatus(true, 0, 2.5), inputs());
     CHECK(late.warningText == "No audio is arriving. Check the input source.");
+
+    SECTION("armed while a wall-clock replay runs (REST-only row 12 during the 0-frame window)")
+    {
+        auto a = recordingStatus(true, 0, 1.0);
+        playing(a, false);
+        CHECK(deriveRecordPanelView(a, inputs()).statusText == "Armed, waiting for audio..." + kDash + "playing 0:12");
+    }
 }
 
 TEST_CASE("RecordPanelModel row 7 -- recording (plain)", "[recordpanel][model]")
@@ -304,6 +311,12 @@ TEST_CASE("RecordPanelModel row 9 -- playing with audio", "[recordpanel][model]"
     CHECK(v.nameEnabled);
     CHECK(v.statusTone == RecordPanelView::Tone::Playing);
     CHECK(v.warningText == "Replaying with the take's audio. Live input is paused until Stop Playback.");
+    // Fix plan F5: say what Record Over will do BEFORE it is pressed; a fresh notice still wins.
+    CHECK(v.noticeText == "Record Over starts a new take on top of this audio; the loaded take is kept.");
+    auto in = inputs();
+    in.notice = "x";
+    in.noticeAtSeconds = 100.0;
+    CHECK(deriveRecordPanelView(s, in).noticeText == "x");
 }
 
 TEST_CASE("RecordPanelModel row 10 -- overdub recording while playing", "[recordpanel][model]")
@@ -334,6 +347,10 @@ TEST_CASE("RecordPanelModel row 10 -- overdub recording while playing", "[record
     CHECK(v.statusText == "Recording over show 0:05" + kDot + "1 lane" + kDot + "2 moves"
                           + kDash + "Playing 0:12 / 0:45" + kDot + "unresolved: 2");
     CHECK(v.statusTone == RecordPanelView::Tone::Recording);
+    // Fix plan F6: Stop Recording here saves the overdub but leaves the replay running -- say so.
+    CHECK(v.record.tooltip == "Stops this take. It is saved automatically. The replay keeps playing.");
+    // Fix plan F5: already recording, so no Record Over hint.
+    CHECK(v.noticeText.isEmpty());
 }
 
 TEST_CASE("RecordPanelModel row 11 -- overdub recording, no playback (REST-only)", "[recordpanel][model]")

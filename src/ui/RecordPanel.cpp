@@ -175,7 +175,8 @@ void RecordPanel::applyButton(juce::TextButton& button, const RecordPanelView::B
     {
         case RecordPanelView::Tone::Recording:
             button.setColour(juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kMeterRed));
-            button.setColour(juce::TextButton::textColourOffId, juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+            // Fix plan F8: black on kMeterRed is 5.5:1 (WCAG AA); kTextPrimary on it was 2.9:1.
+            button.setColour(juce::TextButton::textColourOffId, juce::Colours::black);
             break;
         case RecordPanelView::Tone::Playing:
             button.setColour(juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kMeterGreen));
@@ -255,12 +256,17 @@ void RecordPanel::resized()
 
     area.removeFromTop(kRowSpacing);
 
-    // Row C: name + the two switches (switches keep their width; the name stretches).
+    // Row C: the take name -- its placeholder is a whole sentence, so it gets the width (fix plan F4).
     auto rowC = area.removeFromTop(kControlHeight);
-    playWithAudioToggle_.setBounds(rowC.removeFromRight(130));
-    recordAudioToggle_.setBounds(rowC.removeFromRight(110));
-    rowC.removeFromRight(4);
-    nameEditor_.setBounds(rowC.reduced(1, 2));
+    nameEditor_.setBounds(rowC.removeFromLeft(std::min(rowC.getWidth(), 260)).reduced(1, 2));
+
+    area.removeFromTop(kRowSpacing);
+
+    // Row C2: the two switches.
+    auto rowC2 = area.removeFromTop(kControlHeight);
+    recordAudioToggle_.setBounds(rowC2.removeFromLeft(130));
+    rowC2.removeFromLeft(6);
+    playWithAudioToggle_.setBounds(rowC2.removeFromLeft(150));
 
     area.removeFromTop(kRowSpacing);
 

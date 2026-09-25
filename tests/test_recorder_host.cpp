@@ -1602,6 +1602,37 @@ TEST_CASE("RecorderHost status seconds -- positionSeconds/lengthSeconds in both 
         CHECK(st.lengthSeconds == Approx(1.0));
         host.stopPlay();
     }
+
+    // s-rta-0924b step-4 fix plan F2: the length is the take's real length, not the last compiled
+    // event -- an audio-only take (no lanes) used to read "Playing 0:02 / 0:00".
+    SECTION("WithAudio -- an audio-only take (no lanes) is as long as its audio")
+    {
+        TempDir folder("seconds_audio_only");
+        Take take;
+        take.audio = AudioStore::referencing(asset, 96000);   // 10 240 frames @ 48 kHz = 0.2133 s
+        REQUIRE(take.save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+        REQUIRE(host.play(RecorderHost::PlayMode::WithAudio, comp).ok);
+        host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(4800), 48000.0);
+        const auto st = host.status();
+        CHECK(st.positionSeconds == Approx(0.1));
+        CHECK(st.lengthSeconds == Approx(10240.0 / 48000.0));
+        host.stopPlay();
+    }
+
+    SECTION("WallClock -- a take with no lanes is as long as its recorded duration")
+    {
+        TempDir folder("seconds_wall_only");
+        Take take;
+        take.meta.duration = 7.5;
+        REQUIRE(take.save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+        const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+        host.tick(makeSnap(), w0 + 0.5, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK(host.status().lengthSeconds == Approx(7.5));
+        host.stopPlay();
+    }
 }
 
 TEST_CASE("RecorderHost stopPlayback -- Stop Playback during an overdub ends the overdub too (ruling 1)", "[host][overdub][stopplayback]")
@@ -1692,5 +1723,71 @@ TEST_CASE("RecorderHost stopPlayback -- Stop Playback during an overdub ends the
         CHECK_FALSE(res.overdubStopped);
         CHECK_FALSE(host.isRecording());
         CHECK_FALSE(host.isPlaying());
+    }
+}
+
+// s-rta-0924b step-4 fix plan F1: the take clock restarts at every arm. RecorderHost used to own one
+// RecorderClock for its whole life and tick it from app start, so `t` was app uptime: the panel read
+// "Recording 0:15" one second after Record, the saved meta.duration and every point's `t` stamp were
+// inflated, and a wall-clock replay fired every event as late as the app was old at arm.
+TEST_CASE("RecorderHost clock -- t restarts at every arm; a wall-clock replay is not delayed by the app's uptime", "[host][clock]")
+{
+    TempDir storeRoot("clock_store");
+    TempDir takeFolder("clock_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;   // 5.5 -- no tap; the clock is the subject
+    opts.appVersion = "test";
+
+    // The app has been ticking for 100 s before the performer presses Record.
+    for (int i = 0; i <= 100; ++i)
+        host.tick(makeSnap(), static_cast<double>(i), 0, dummyTap, std::nullopt, 48000.0);
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+    host.tick(makeSnap(), 100.0, 0, dummyTap, std::nullopt, 48000.0);   // first tick after arm
+    CHECK(host.status().t == Approx(0.0));
+
+    host.tick(makeSnap(), 100.5, 0, dummyTap, std::nullopt, 48000.0);
+    const ControlPath key = layerKey(0, "activeClip");
+    DiscretePoint p; p.origin = Origin::Human; p.v = 1;
+    host.capture(key, std::move(p));
+
+    const auto stop = host.disarm(comp, dummyTap);
+    REQUIRE(stop.ok);
+    CHECK(stop.duration == Approx(0.5));
+
+    LoadStats stats;
+    auto saved = Take::load(takeFolder.dir, stats);
+    REQUIRE(saved.has_value());
+    REQUIRE(saved->lanes.count(key) == 1);
+    CHECK(saved->lanes.at(key).points[0].s.t == Approx(0.5));
+    CHECK(saved->meta.duration == Approx(0.5));
+
+    SECTION("a second take restarts at 0 too -- the first-tick latch must not survive a take")
+    {
+        TempDir second("clock_take2");
+        opts.takeFolder = second.dir;
+        host.tick(makeSnap(), 150.0, 0, dummyTap, std::nullopt, 48000.0);   // idle ticks between takes
+        REQUIRE(host.arm(comp, dummyTap, opts).ok);
+        host.tick(makeSnap(), 200.0, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK(host.status().t == Approx(0.0));
+        host.disarm(comp, dummyTap);
+    }
+
+    SECTION("wall-clock replay fires the point 0.5 s after Play, not 100.5 s after")
+    {
+        REQUIRE(host.load(takeFolder.dir).ok);
+        const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+        host.tick(makeSnap(), w0 + 0.6, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK(fake.fired.size() == 1);
+        host.stopPlay();
     }
 }
