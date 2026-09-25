@@ -229,7 +229,6 @@ void TopBar::timerCallback()
     displaySnap_.beatInBar = snap.beatInBar;
     displaySnap_.barPhase = snap.barPhase;
     displaySnap_.beatPhase = snap.beatPhase;
-    displaySnap_.downbeatDetected = snap.downbeatDetected;
     displaySnap_.phrasePhase = snap.phrasePhase;
     displaySnap_.barCount = snap.barCount;
 

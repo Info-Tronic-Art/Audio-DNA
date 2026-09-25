@@ -44,7 +44,13 @@ struct alignas(64) FeatureSnapshot
     // Metrical hierarchy (downbeat detection)
     uint8_t beatInBar = 0;             // 0-3 (0 = downbeat) — which beat in the bar
     float   barPhase = 0.0f;           // [0, 1) over 4 beats — bar-level sawtooth
-    bool    downbeatDetected = false;  // true on the hop where beat 1 lands
+    // LEVEL, not a pulse (s-rta-0925): BPMTracker assigns this = (beatCounter_ == 0) only at a beat
+    // event and never clears it per hop, so it reads true for the WHOLE first beat of the bar (one
+    // beat period, 300 ms at 200 BPM .. 1 s at 60 BPM) and false for beats 2-4. No 15-120 Hz reader
+    // can miss it and re-reading it is not duplication. "New bar" is its rising edge, which
+    // totalBarCount below counts exactly (BPMTracker::updatePhrase) -- a consumer slower than a
+    // beat, or wanting one pulse per bar at any cadence, diffs totalBarCount (OnsetPulse) instead.
+    bool    downbeatDetected = false;
 
     // Phrase tracking
     uint16_t barCount = 0;             // bars since last phrase reset
