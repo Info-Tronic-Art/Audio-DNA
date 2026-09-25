@@ -605,6 +605,7 @@ REPLAY_BUDGET="$(awk -v l="$TAKE_LEN" 'BEGIN{ if (l=="NA" || l+0<=0) print 45; e
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
 LAST="__UNSET__"; RAW_SEQ=()
 OP_LAST=""; OP_SEEN_04=0; OP_SEEN_07=0
+WITHAUDIO_FIRST_CHANGE_T=""
 START_T=$(date +%s)
 while :; do
     CO="$(comp_col_op)"
@@ -614,6 +615,11 @@ while :; do
         echo "  replay(withAudio): t~${ELAPSED}s activeClipColumn=$v"
         RAW_SEQ+=("$v")
         LAST="$v"
+        # Probe pin (fix-plan.md F1 "Probe pin"): pin the FIRST post-leftover
+        # activeClipColumn change (RAW_SEQ[1] -- RAW_SEQ[0] is the pre-play
+        # leftover state, always the first value observed) at its ELAPSED
+        # time, seconds since THIS loop's own /api/perf/play call above.
+        [ "${#RAW_SEQ[@]}" -eq 2 ] && [ -z "$WITHAUDIO_FIRST_CHANGE_T" ] && WITHAUDIO_FIRST_CHANGE_T="$ELAPSED"
     fi
     # Replay-shape sample for the continuous opacity row (critic MAJOR fix,
     # not an exact-timing check -- plan section 4's "on replay layer 0
@@ -644,6 +650,7 @@ PLAYING1="$(perf_field "d.get('playing','NA')")"
 
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":false}' >/dev/null
 LAST="__UNSET__"; RAW_SEQ2=()
+WALLCLOCK_FIRST_CHANGE_T=""
 START_T=$(date +%s)
 while :; do
     v="$(comp_active_col)"
@@ -652,6 +659,12 @@ while :; do
         echo "  replay(wallClock): t~${ELAPSED}s activeClipColumn=$v"
         RAW_SEQ2+=("$v")
         LAST="$v"
+        # Probe pin (fix-plan.md F1 "Probe pin"): pin the FIRST post-leftover
+        # activeClipColumn change (RAW_SEQ2[1]) at its ELAPSED time, seconds
+        # since THIS loop's own /api/perf/play call above -- the SAME
+        # convention as WITHAUDIO_FIRST_CHANGE_T, so the two are comparable
+        # take-relative timestamps regardless of app uptime.
+        [ "${#RAW_SEQ2[@]}" -eq 2 ] && [ -z "$WALLCLOCK_FIRST_CHANGE_T" ] && WALLCLOCK_FIRST_CHANGE_T="$ELAPSED"
     fi
     POS="$(perf_field "d.get('position','NA')")"
     awk -v p="$POS" -v l="$TAKE_LEN" 'BEGIN{exit !(p!="NA" && l!="NA" && l+0>0 && p+0>=l+0-0.25)}' 2>/dev/null && break
@@ -661,6 +674,22 @@ done
 seq_matches_expected "${RAW_SEQ2[@]}" \
   && ok "replay(wallClock): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=${RAW_SEQ2[*]})" \
   || no "replay(wallClock): activeClipColumn sequence wrong (raw=${RAW_SEQ2[*]}, expected leftover then 0 1 2 3 2)"
+# Probe pin (fix-plan.md F1 "Probe pin", gate section 4 item 2 "the new
+# wall-clock timing pin"): the FIRST post-leftover activeClipColumn change
+# must land within 1.5s of the same point in the OTHER replay loop, both
+# measured in ELAPSED seconds since EACH loop's own /api/perf/play call (not
+# wall-clock app-uptime). Pre-fix, RecorderHost's clock_ never restarts per
+# take (fix-plan.md F1) so a wall-clock replay fires every event as late as
+# the app was old when Record was pressed -- this pin is RED before the fix
+# (observed ~14s vs ~2s) and GREEN after it (RecorderHost's clock_ = RecorderClock{} at arm()).
+if [ -n "$WITHAUDIO_FIRST_CHANGE_T" ] && [ -n "$WALLCLOCK_FIRST_CHANGE_T" ]; then
+    PIN_DIFF="$(awk -v a="$WITHAUDIO_FIRST_CHANGE_T" -v b="$WALLCLOCK_FIRST_CHANGE_T" 'BEGIN{d=a-b; if(d<0)d=-d; printf "%.1f", d}')"
+    awk -v x="$PIN_DIFF" 'BEGIN{exit !(x<=1.5)}' 2>/dev/null \
+      && ok "probe pin: first post-leftover activeClipColumn change lands within 1.5s across replay modes (withAudio=${WITHAUDIO_FIRST_CHANGE_T}s wallClock=${WALLCLOCK_FIRST_CHANGE_T}s diff=${PIN_DIFF}s)" \
+      || no "probe pin: first post-leftover activeClipColumn change diverges across replay modes by >1.5s (withAudio=${WITHAUDIO_FIRST_CHANGE_T}s wallClock=${WALLCLOCK_FIRST_CHANGE_T}s diff=${PIN_DIFF}s -- the recorder's per-take clock must restart at arm, fix-plan.md F1)"
+else
+    no "probe pin: first post-leftover activeClipColumn change was not observed in one or both replay loops (withAudio=${WITHAUDIO_FIRST_CHANGE_T:-NA}s wallClock=${WALLCLOCK_FIRST_CHANGE_T:-NA}s)"
+fi
 SKIPPED2="$(perf_field "d.get('skipped','NA')")"
 [ "$SKIPPED2" = "0" ] && ok "replay(wallClock): status.skipped==0 (audio points fire on wall-clock replay)" || no "replay(wallClock): status.skipped==$SKIPPED2 (expected 0)"
 curl -s --max-time 6 -X POST "$A/api/perf/stop_play" >/dev/null

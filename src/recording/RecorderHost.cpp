@@ -185,7 +185,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
         auto found = store_.find(*opts.overdubAssetId);
         if (!found.has_value())
         {
-            res.error = "overdub asset not found: " + *opts.overdubAssetId;
+            res.error = "the stored audio for this take was not found";   // fix plan F3: plain words (the id is in the take)
             return res;
         }
         overdubAsset_ = *found;
@@ -199,13 +199,13 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
         auto id = store_.beginAsset();
         if (!id.has_value())
         {
-            res.error = "could not begin audio asset (store root unwritable?)";
+            res.error = "the audio folder could not be written (Documents/Audio-DNA/Audio)";   // fix plan F3
             return res;
         }
         if (!tap.start(store_.wavFile(*id)))
         {
             store_.abandonAsset(*id);
-            res.error = "AudioTap failed to start (disk / free-space?)";
+            res.error = "audio recording could not start; the disk needs at least 2 GB free";   // fix plan F3 (AudioTap::kMinFreeBytes)
             return res;
         }
         tapWasStarted_ = true;
@@ -229,6 +229,11 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
         assetId_.clear();
     }
 
+    // s-rta-0924b step-4 fix plan F1: one clock per take (RecorderClock.h "One instance per take being
+    // recorded"): the first tick after this arm is t = 0 and writes the "start" anchor at that tick's
+    // sample. The recorder takes the clock BY REFERENCE at start(), so re-creating it in place here
+    // keeps the same address. Keep this reset together with the recording_-gated clock_.tick() in tick().
+    clock_ = RecorderClock{};
     recorder_.start(comp, clock_, takeFolder_);
     recording_ = true;
     lastCheckpointT_ = 0.0;
@@ -389,11 +394,15 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
         sampleForClock = static_cast<uint64_t>(std::llround(
             static_cast<double>(*transportFrames) * overdubAsset_->rate / deviceRate));
     }
-    clock_.tick(snap, wallNow, sampleForClock);
 
     // (2) recording-side bookkeeping.
     if (recording_)
     {
+        // Fix plan F1: the clock ticks only while a take records -- arm() re-creates it, so the first
+        // tick here is the take's t = 0. Nothing reads the clock while idle (publishStatus, marker,
+        // capture and disarm all require recording_), and an idle clock would only grow its TempoMap.
+        clock_.tick(snap, wallNow, sampleForClock);
+
         if (tapWasStarted_)
         {
             // Rising-to-falling edge on the tap's OWN observed running state (never seeded true at
@@ -757,13 +766,19 @@ void RecorderHost::publishStatus()
             {
                 const double first = static_cast<double>(playFirstSample_);
                 s.positionSeconds = std::max(0.0, s.position - first) / playAssetRate_;
-                s.lengthSeconds = std::max(0.0, s.length - first) / playAssetRate_;
+                // Fix plan F2: the replay ends where the audio ends -- the asset's length IS the length,
+                // never less than the last compiled event (an audio-only take has no events, so
+                // `length` alone read 0: "Playing 0:02 / 0:00").
+                s.lengthSeconds = std::max(std::max(0.0, s.length - first),
+                                           static_cast<double>(loadedAudio_.asset.frames)) / playAssetRate_;
             }
         }
         else
         {
             s.positionSeconds = s.position;
-            s.lengthSeconds = s.length;
+            // Fix plan F2: wall clock -- the recorded duration (arm -> stop), never less than the last
+            // compiled event (a provisionally saved take, duration 0, still shows its last event).
+            s.lengthSeconds = std::max(s.length, loadedTake_ ? loadedTake_->meta.duration : 0.0);
         }
     }
 

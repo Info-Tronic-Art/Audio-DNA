@@ -221,8 +221,10 @@ public:
         int         loadedLanes = 0;
         std::string loadedAssetId;         // AudioStore::Resolution::asset.id when Resolved/ResolvedUnverified, else ""
         std::string audioReason;           // AudioStore::Resolution::reason ("" when Resolved/NoAudio)
-        // Playback position in SECONDS regardless of DriveClock (Wall: as-is; Sample: relative to the
-        // asset's firstSample, divided by the asset rate) -- position/length stay in the drive-clock domain.
+        // positionSeconds: the playback position in SECONDS regardless of DriveClock (Wall: as-is; Sample:
+        // relative to the asset's firstSample, divided by the asset rate). lengthSeconds: the take's length
+        // in seconds -- with audio, the audio's length; otherwise the recorded duration -- never less than
+        // the last compiled event. position/length stay in the drive-clock domain.
         double positionSeconds = 0.0, lengthSeconds = 0.0;
     };
     Status status() const;

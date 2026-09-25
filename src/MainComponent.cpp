@@ -5075,7 +5075,7 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
 {
     if (recorderHost_.isRecording())
     {
-        const std::string msg = "perf/record refused: already recording";
+        const std::string msg = "A take is already recording.";
         if (recorderHost_.dispatch.notify)
             recorderHost_.dispatch.notify(msg);
         return msg;
@@ -5114,7 +5114,7 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
     auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
     if (!result.ok)
     {
-        const std::string msg = "perf/record failed: " + result.error;
+        const std::string msg = "Could not start the take: " + result.error;
         if (recorderHost_.dispatch.notify)
             recorderHost_.dispatch.notify(msg);
         return msg;
@@ -5129,10 +5129,21 @@ std::string MainComponent::perfStop()
     auto result = recorderHost_.disarm(composition_, audioEngine_.getAudioTap());
     if (!result.ok)
     {
-        const std::string msg = "perf/stop: " + result.error;
+        const std::string msg = result.error == "not recording"
+            ? std::string("Nothing is recording.")
+            : "Could not stop the take: " + result.error;
         if (recorderHost_.dispatch.notify)
             recorderHost_.dispatch.notify(msg);
         return msg;
+    }
+    // s-rta-0924b step-4 fix plan F3 (plan 4.5 B1 #6): say where the take went. A finalize problem
+    // the host already notified is kept in the same line, so "Saved" never hides it.
+    if (recorderHost_.dispatch.notify)
+    {
+        std::string saved = "Saved: " + result.takeFolder.getFileNameWithoutExtension().toStdString();
+        if (!result.error.empty())
+            saved += ", but its audio had a problem: " + result.error;
+        recorderHost_.dispatch.notify(saved);
     }
     return {};
 }
@@ -5142,7 +5153,7 @@ std::string MainComponent::perfLoad(const juce::File& takeFolder)
     auto result = recorderHost_.load(takeFolder);
     if (!result.ok)
     {
-        const std::string msg = "perf/load failed: " + result.error;
+        const std::string msg = "Could not load the take: " + result.error;
         if (recorderHost_.dispatch.notify)
             recorderHost_.dispatch.notify(msg);
         return msg;
@@ -5156,7 +5167,9 @@ std::string MainComponent::perfPlay(bool withAudio)
     auto result = recorderHost_.play(mode, composition_);
     if (!result.ok)
     {
-        const std::string msg = "perf/play failed: " + result.error;
+        const std::string msg = result.error == "no take loaded"
+            ? std::string("No take is loaded. Use Load Take... first.")
+            : "Could not play: " + result.error;
         if (recorderHost_.dispatch.notify)
             recorderHost_.dispatch.notify(msg);
         return msg;
@@ -5189,8 +5202,9 @@ std::string MainComponent::perfStopPlay()
     if (stopped.overdubStopped)
     {
         const std::string note = stopped.overdub.ok
-            ? std::string("perf/stop_play: the recording over the take was stopped too (its clock is the replayed audio)")
-            : "perf/stop_play: stopping the recording over the take failed: " + stopped.overdub.error;
+            ? "Stopped the playback and the take recorded over it. Saved: "
+                  + stopped.overdub.takeFolder.getFileNameWithoutExtension().toStdString()
+            : "Stopped the playback, but the take recorded over it could not be saved: " + stopped.overdub.error;
         if (!stopped.overdub.ok)
             msg = note;
         if (recorderHost_.dispatch.notify)
@@ -5216,7 +5230,7 @@ std::string MainComponent::perfRepair()
             : "0.1.0");
     if (!err.empty())
     {
-        const std::string msg = "perf/repair: " + err;
+        const std::string msg = "Could not repair the audio: " + err;
         if (recorderHost_.dispatch.notify)
             recorderHost_.dispatch.notify(msg);
         return msg;

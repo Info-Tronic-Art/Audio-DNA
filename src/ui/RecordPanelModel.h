@@ -117,7 +117,12 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
 
     // ---- Record: "Record Take" <-> "Stop Recording"; "Record Over" while replaying with audio ----
     if (recording)
-        v.record = { "Stop Recording", true, "Stops this take. It is saved automatically.", Tone::Recording };
+        // Fix plan F6: during an overdub with a replay (row 10) Stop Recording saves the take but leaves
+        // the replay running -- the tooltip says so.
+        v.record = { "Stop Recording", true,
+                     (overdub && playing) ? "Stops this take. It is saved automatically. The replay keeps playing."
+                                          : "Stops this take. It is saved automatically.",
+                     Tone::Recording };
     else if (withAudio)
     {
         v.record = { "Record Over", true,
@@ -175,7 +180,11 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
     {
         v.statusTone = Tone::Recording;
         if (armed)
+        {
             v.statusText = "Armed, waiting for audio...";
+            if (playing)   // fix plan F7: the mirror of the plain-recording branch below
+                v.statusText << dash() << "playing " << formatClock(s.positionSeconds);
+        }
         else if (overdub)
         {
             const juce::String over = (loaded && s.loadedAssetId == s.assetId) ? takeName(s.loadedTakeFolder)
@@ -221,9 +230,12 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
     else if (playing && s.continuousUnavailable > 0)
         v.warningText = count(s.continuousUnavailable, "knob move", "knob moves") + " could not be replayed.";
 
-    // ---- notice line ----
+    // ---- notice line: a refusal/notify for kNoticeSeconds; otherwise, while a take replays with its
+    // audio, say what the relabelled Record button will do BEFORE it is pressed (fix plan F5).
     if (in.notice.isNotEmpty() && in.noticeAtSeconds >= 0.0 && in.nowSeconds - in.noticeAtSeconds <= kNoticeSeconds)
         v.noticeText = in.notice;
+    else if (withAudio && !recording)
+        v.noticeText = "Record Over starts a new take on top of this audio; the loaded take is kept.";
 
     return v;
 }
