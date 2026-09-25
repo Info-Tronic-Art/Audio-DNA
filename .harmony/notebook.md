@@ -1310,3 +1310,8 @@ isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by 
   RED (5005 ms ×3) where the critic's informal rig ran green.
 - **Residue discriminators pay off fast** — the 5 s "stop lag" and the 1.4 ms "drift" were each settled by one cheap
   targeted run (pre-fix build rerun; 20-min take) instead of being carried forward as unknowns.
+
+## 2026-09-25 s-rta-0925 -- RecordPanelModel.h: new struct types must precede RecordPanelInputs, not follow kArmedWarnSeconds
+**Files:** src/ui/RecordPanelModel.h
+**Note:** plan-step4polish.md section 1.1 said to add `RecordPanelNoticeKey`/`noticeKeyOf()` "after kArmedWarnSeconds (line 39)" but also said to add a `RecordPanelNoticeKey noticeKey;` member to `RecordPanelInputs` (defined at lines 15-22, well before kArmedWarnSeconds). A struct member needs a complete type at the point of use, so the struct/free-function pair has to be defined BEFORE `RecordPanelInputs`, not after `RecordPanelView`/kArmedWarnSeconds as the plan's prose literally said. Caught immediately by the RED-stub compile (would have been a hard compile error either way); fixed by moving the new struct+function block to just above `RecordPanelInputs`.
+**Valid while:** src/ui/RecordPanelModel.h keeps this struct-before-use ordering; a future refactor that reorders the file should re-check this.
