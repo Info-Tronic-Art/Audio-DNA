@@ -102,3 +102,13 @@ Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix ro
   (one block lost at stop). /api/perf/status lastError does NOT carry it (status read 0.5 s after stop was empty) →
   probe cannot see it. Pre-existing (surfaced by F3's new Saved notice). Minor: stale cyan notice ("No take is loaded…")
   persists into later recording states. Diagnosis+fix workflow launched.
+- lane/trunc merged (0777ce5), ctest 441. Loop fail-first on pre-fix build: stderr oracle 2/40 truncations (the loop's
+  status oracle reads NA on pre-fix builds and counts every cycle — a pre-fix-only artifact, not a real 40/40).
+- RESIDUE (open, filed): on the PRE-trunc-fix build every take ran ~5 s past the stop request (loop: framesWritten 2 s
+  before stop, take+audio 7.0 s; re-shoot: 0:06 on screen → 11.4 s asset). On the FIXED build: stop effective in 0.02 s,
+  duration == audio (2.13/2.13, 2.07/2.08, 2.05/2.07). ESTABLISHED: gone after the stopInternal reorder. NOT ESTABLISHED:
+  why the old ordering deferred the stop ~5 s. Cheapest discriminator: build ba66ee7 in a scratch dir, run the same
+  3-cycle stop-latency script (POST stop → poll recording false), expect ~5 s.
+- LIVE GATE trunc (Harmony): probe-finalize-loop 40 cycles 0 truncations (8/0); probe-step3 69/0 after 6ec7344
+  (probe now truncates its `open` logs — `open --stderr` APPENDS; 3 stale Sep-24 lines had false-FAILed the new row;
+  proven by planting a fake truncated line before the run → row PASS). ctest 441/441.

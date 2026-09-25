@@ -458,3 +458,8 @@ Images were deleted unviewed-beyond-the-sheet; nothing was committed.
 `CGWindowListCopyWindowInfo`, owner "Audio-DNA", layer 0). Works while the window is behind others. Launch with
 `open -g` so the app never steals focus from Boris. Full-screen captures only for the screen-safety EOS check
 (overlay/dialog detection), never saved into the repo. Never crop by fixed screen coordinates.
+
+## `open --stdout/--stderr` APPENDS — clear the log before launch or greps read old runs (s-rta-0924b)
+**Trigger:** any probe that launches the app with `open --stderr <file>` and later greps that file.
+**Rule:** `: > <file>` immediately before `open`. probe-step3's new truncation row false-FAILed on 3 lines left by
+Sep-24 runs until 6ec7344. Prove the reset by planting a matching line before the run.
