@@ -38,6 +38,12 @@ public:
         juce::Slider::mouseDown(e);
     }
 
+    // s-rta-0925 rclick: RED-commit stubs (tests/test_right_click_reset.cpp).
+    // Never fired / no-op / always false until the GREEN commit.
+    std::function<void()> onResetToDefault;
+    void resetToDefault() {}
+    static bool childRightClickResets(const juce::MouseEvent&, const juce::Component&) { return false; }
+
 private:
     double defaultVal_ = 0.0;
     bool hasDefault_ = false;
