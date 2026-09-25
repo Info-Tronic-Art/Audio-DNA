@@ -1161,3 +1161,25 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_record_panel_model)
 catch_discover_tests(test_record_panel_model)
+
+# --- test_httplib_bodyless_post (s-rta-0924b: a POST with no Content-Length /
+# Transfer-Encoding must not stall for CPPHTTPLIB_SERVER_READ_TIMEOUT_SECOND).
+# Headless: httplib::Server on an ephemeral loopback port + raw POSIX-socket
+# client (httplib::Client always sends Content-Length, so it cannot repro).
+# Links httplib::httplib only -- no JUCE. POSIX sockets -> skipped on Windows.
+if(NOT WIN32)
+    add_executable(test_httplib_bodyless_post test_httplib_bodyless_post.cpp)
+    target_link_libraries(test_httplib_bodyless_post PRIVATE
+        Catch2::Catch2WithMain
+        httplib::httplib
+    )
+    if(NOT MSVC)
+        target_compile_options(test_httplib_bodyless_post PRIVATE
+            -Wno-old-style-cast
+            -Wno-conversion
+            -Wno-sign-conversion
+        )
+    endif()
+    apply_sanitizers(test_httplib_bodyless_post)
+    catch_discover_tests(test_httplib_bodyless_post PROPERTIES TIMEOUT 60)
+endif()
