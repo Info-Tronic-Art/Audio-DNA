@@ -173,6 +173,15 @@ TEST_CASE("RecorderHost arm -- provisional take.json exists before the first tic
     REQUIRE_FALSE(armRes.assetId.empty());
     CHECK(host.isRecording());
 
+    // s-rta-0925 (D5): arm publishes synchronously -- status() says recording before any tick has run.
+    {
+        const auto st = host.status();
+        CHECK(st.recording);
+        CHECK(st.takeFolder == takeFolder.dir.getFullPathName().toStdString());
+        CHECK(st.assetId == armRes.assetId);
+        CHECK(st.framesWritten == 0);
+    }
+
     LoadStats stats;
     auto loaded = Take::load(takeFolder.dir, stats);
     REQUIRE(loaded.has_value());

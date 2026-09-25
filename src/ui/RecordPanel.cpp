@@ -91,7 +91,6 @@ RecordPanel::RecordPanel()
     nameEditor_.setComponentID("takeName");
     nameEditor_.setTextToShowWhenEmpty("Name (blank = date and time)",
                                        juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    nameEditor_.setTooltip("The name of the next take. Leave it blank to name it by date and time.");
 
     // Format: D14 -- the future render item is shown greyed with a tooltip, not hidden.
     addAndMakeVisible(formatSelector_);
@@ -133,10 +132,17 @@ void RecordPanel::setTakesRoot(const juce::File& root)
     takesRootLabel_.setTooltip(root.getFullPathName());
 }
 
-void RecordPanel::setNotice(const std::string& text)
+void RecordPanel::setNotice(const std::string& text, const RecorderHost::Status& raisedIn)
 {
     notice_ = juce::String(text);
     noticeAt_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+    noticeKey_ = noticeKeyOf(raisedIn);
+}
+
+void RecordPanel::forgetNotice()
+{
+    notice_.clear();
+    noticeAt_ = -1.0;
 }
 
 void RecordPanel::refresh(const RecorderHost::Status& status, double nowSeconds)
@@ -149,20 +155,20 @@ void RecordPanel::visibilityChanged()
 {
     // A tab switch shows the current state at once, not up to 250 ms later.
     if (isVisible())
-        applyView(juce::Time::getMillisecondCounterHiRes() / 1000.0);
+        refresh(onStatus ? onStatus() : lastStatus_, juce::Time::getMillisecondCounterHiRes() / 1000.0);
 }
 
 void RecordPanel::runAction(const std::function<std::string()>& action)
 {
-    // Clear the old notice first: anything the funnel notifies DURING the
-    // action (via the app's notify fan-out) survives; a returned
-    // refusal replaces it.
-    notice_.clear();
-    noticeAt_ = -1.0;
+    // Clear the old notice first: anything the funnel notifies DURING the action (via the app's notify fan-out)
+    // survives; a returned refusal replaces it.
+    forgetNotice();
     const auto result = action();
+    // Fix plan D5: the funnel has returned and the host published the post-action status -- show it now.
+    const auto fresh = onStatus ? onStatus() : lastStatus_;
     if (!result.empty())
-        setNotice(result);
-    applyView(juce::Time::getMillisecondCounterHiRes() / 1000.0);
+        setNotice(result, fresh);
+    refresh(fresh, juce::Time::getMillisecondCounterHiRes() / 1000.0);
 }
 
 void RecordPanel::applyButton(juce::TextButton& button, const RecordPanelView::Button& spec)
@@ -199,8 +205,14 @@ void RecordPanel::applyView(double nowSeconds)
     in.playWithAudio = playWithAudioPref_;
     in.notice = notice_;
     in.noticeAtSeconds = noticeAt_;
+    in.noticeKey = noticeKey_;
     lastView_ = deriveRecordPanelView(lastStatus_, in);
     const auto& v = lastView_;
+
+    // The model stopped showing the stored notice (expired, or its situation is over): forget it, so a return to
+    // the same situation within kNoticeSeconds cannot bring it back.
+    if (notice_.isNotEmpty() && !v.noticeLive)
+        forgetNotice();
 
     applyButton(recordBtn_, v.record);
     applyButton(playBtn_, v.play);
@@ -219,6 +231,7 @@ void RecordPanel::applyView(double nowSeconds)
 
     nameEditor_.setEnabled(v.nameEnabled);
     nameEditor_.setAlpha(v.nameEnabled ? 1.0f : kDisabledAlpha);
+    nameEditor_.setTooltip(v.nameTooltip);
 
     statusLabel_.setText(v.statusText, juce::dontSendNotification);
     statusLabel_.setColour(juce::Label::textColourId,

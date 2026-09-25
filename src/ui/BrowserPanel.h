@@ -60,6 +60,7 @@ private:
     MilkDropBrowser milkDropBrowser_;
 
     static constexpr int kTabBarHeight = 26;
+    static constexpr int kTabTextPadding = 8;   // px each side of a tab label (D2)
 
     void updateTabButtonColors();
     void showActiveTab();

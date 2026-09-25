@@ -255,6 +255,14 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     res.assetId = assetId_;
     res.takeFolder = takeFolder_;
 
+    // s-rta-0925 (step-4 polish D5): publish the armed state NOW, not at the next 120 Hz tick. The Record panel
+    // reads status() the moment the funnel returns (its button must flip to "Stop Recording" at once), and any
+    // notice raised from here on -- the provisional-save failure just below, or anything the funnel says -- is
+    // keyed to the RECORDING situation (RecordPanelModel.h RecordPanelNoticeKey), so the next refresh keeps it.
+    // Same rule as load()'s publish. clock_ is fresh (t = 0 until the first tick) and liveFramesWritten_ is 0,
+    // so the panel reads "Armed, waiting for audio...".
+    publishStatus();
+
     if (!provisional.save(takeFolder_) && dispatch.notify)
         dispatch.notify("could not write provisional take.json");
 
@@ -712,6 +720,7 @@ std::string RecorderHost::repairLoadedAudio(const std::string& appVersion)
     const std::string id = loadedTake_->audio.segments[0].id;
     const auto fin = store_.finalize(id, *facts);
     loadedAudio_ = store_.resolve(loadedTake_->audio);
+    publishStatus();   // s-rta-0925 D5: the re-resolved audioStatus reaches the panel and REST at once (mirror of load())
     return fin.error;
 }
 

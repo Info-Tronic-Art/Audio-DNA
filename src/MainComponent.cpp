@@ -1596,6 +1596,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     {
         auto& rp = browserPanel_->getRecordPanel();
         rp.setTakesRoot(takesRoot());
+        rp.onStatus   = [this] { return recorderHost_.status(); };
         rp.onRecord = [this](const RecordPanel::RecordRequest& r) {
             ApiServer::PerfRecordOpts o;
             o.name = r.name;
@@ -2013,8 +2014,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::cerr << "[Recorder] " << msg << std::endl;
         // s-rta-0924b S4-B: the Record panel shows it as its notice line (stored
         // only; applied at the panel's 4 Hz refresh). Message thread only (G10).
+        // s-rta-0925: setNotice also stores the situation it was raised in: status() is read AFTER the event
+        // (the host publishes synchronously at every transition, and the funnel notifies after the host call
+        // returns).
         if (browserPanel_)
-            browserPanel_->getRecordPanel().setNotice(msg);
+            browserPanel_->getRecordPanel().setNotice(msg, recorderHost_.status());
     };
 
     // Continuous capture: the recorder HOOKS the funnel's own accept/refuse
