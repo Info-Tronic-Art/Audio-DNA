@@ -216,7 +216,10 @@ private:
     // Per-hop output
     uint8_t beatInBar_ = 0;           // 0-3 (0 = downbeat)
     float   barPhase_ = 0.0f;         // [0, 1) over 4 beats
-    bool    downbeatDetected_ = false; // true on the hop where beat 1 lands
+    // LEVEL: (beatCounter_ == 0), assigned at beat events only (scoreBeat / advancePredictedBeat /
+    // initial lock), never cleared per hop -- held for the whole first beat; updatePhrase() edge-detects
+    // it into barCount_/totalBarCount_. NOT "true on the hop where beat 1 lands".
+    bool    downbeatDetected_ = false;
 
     // Cached spectral features for scoring (set by feedDownbeatFeatures)
     float cachedBassEnergy_ = 0.0f;

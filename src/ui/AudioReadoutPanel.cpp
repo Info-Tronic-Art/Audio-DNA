@@ -40,7 +40,6 @@ void AudioReadoutPanel::timerCallback()
     // Metrical hierarchy — discrete values, no smoothing
     displaySnap_.beatInBar        = snap.beatInBar;
     displaySnap_.barPhase         = snap.barPhase;  // no smoothing — sawtooth
-    displaySnap_.downbeatDetected = snap.downbeatDetected;
     displaySnap_.dominantPitch   += a * (snap.dominantPitch   - displaySnap_.dominantPitch);
     displaySnap_.pitchConfidence += a * (snap.pitchConfidence - displaySnap_.pitchConfidence);
     displaySnap_.harmonicChangeDetection += a * (snap.harmonicChangeDetection - displaySnap_.harmonicChangeDetection);

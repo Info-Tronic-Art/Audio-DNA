@@ -1,9 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "analysis/BPMTracker.h"
+#include "features/OnsetPulse.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -37,6 +40,175 @@ static void feedNonBeatHops(BPMTracker& tracker, float bpm, int hops)
         tracker.processRawBPM(bpm, 0.3f, false);
         tracker.feedDownbeatFeatures(0.1f, 0.05f, 0.02f);
     }
+}
+
+// ============================================================================
+// Downbeat LEVEL semantics + reader-cadence model (s-rta-0925, roadmap item 4)
+// ============================================================================
+// downbeatDetected is NOT a one-hop pulse: BPMTracker assigns downbeatDetected_ = (beatCounter_ == 0)
+// only at a beat event (scoreBeat / advancePredictedBeat / initial lock) and never clears it per hop,
+// so it is HELD for the whole first beat of the bar (300 ms at 200 BPM .. 1 s at 60 BPM). updatePhrase()
+// rising-edge-detects it and advances totalBarCount exactly once per bar. Pinned here:
+//   * a reader at any UI/render cadence (15 Hz .. 120 Hz) never misses a downbeat: it sees the level on
+//     many consecutive reads and its rising edge exactly once per bar;
+//   * a reader slower than one beat (a sluggish REST poller) DOES lose rising edges; the totalBarCount
+//     delta (OnsetPulse -- the generic monotonic-counter consumer of the onset render-path fix) sees
+//     every bar exactly once at ANY cadence. Live twin: .harmony/probe-downbeat-level.sh.
+namespace
+{
+constexpr double kHopSec = 512.0 / 48000.0;   // AnalysisThread::kHopSize / kSampleRate
+
+struct CadenceReader
+{
+    double     periodSec;
+    double     nextRead   = 0.0;
+    bool       prevLevel  = false;   // what a LEVEL consumer must keep to see "new bar"
+    int        readsTrue  = 0;       // reads on which downbeatDetected was true
+    int        edges      = 0;       // rising edges seen: level && !prevLevel
+    int        pulseReads = 0;       // reads on which the totalBarCount delta was > 0
+    uint32_t   deltaSum   = 0;       // sum of totalBarCount deltas
+    OnsetPulse barPulse;             // generic monotonic-counter delta, here on totalBarCount
+
+    void prime(bool level, uint32_t count)          // the reader was already looking before bar 0
+    {
+        prevLevel = level;
+        (void) barPulse.consume(count);             // baseline only
+        nextRead = periodSec;
+    }
+    void catchUp(double tPub, bool level, uint32_t count)   // always-latest bus: read the latest
+    {
+        while (nextRead <= tPub)
+        {
+            readsTrue += level ? 1 : 0;
+            if (level && !prevLevel) ++edges;
+            prevLevel = level;
+            const uint32_t d = barPulse.consume(count);
+            deltaSum += d;
+            if (d > 0u) ++pulseReads;
+            nextRead += periodSec;
+        }
+    }
+};
+
+struct HopTruth { int hopsTrue = 0; int hopEdges = 0; bool prevLevel = false; double tPub = 0.0; };
+
+template <size_t N>
+void publishHop(const BPMTracker& t, HopTruth& truth, CadenceReader (&readers)[N])
+{
+    const bool     level = t.downbeatDetected();
+    const uint32_t count = t.totalBarCount();
+    truth.hopsTrue += level ? 1 : 0;
+    if (level && !truth.prevLevel) ++truth.hopEdges;
+    truth.prevLevel = level;
+    truth.tPub += kHopSec;
+    for (auto& r : readers) r.catchUp(truth.tPub, level, count);
+}
+
+// GREEN contract shared by both regimes. readers[0] = 60 Hz, [1] = 120 Hz, [2] = 0.9 s poller.
+template <size_t N>
+void requireLevelContract(const HopTruth& truth, const CadenceReader (&readers)[N],
+                          uint32_t barsAdvanced, int kBars, int hopsPerBeatLo, int hopsPerBeatHi)
+{
+    INFO("barsAdvanced=" << barsAdvanced << " hopsTrue=" << truth.hopsTrue << " hopEdges=" << truth.hopEdges
+         << " | 60Hz true=" << readers[0].readsTrue << " edges=" << readers[0].edges << " pulse=" << readers[0].pulseReads
+         << " | 120Hz true=" << readers[1].readsTrue << " edges=" << readers[1].edges << " pulse=" << readers[1].pulseReads
+         << " | 0.9s true=" << readers[2].readsTrue << " edges=" << readers[2].edges << " pulse=" << readers[2].pulseReads
+         << " delta=" << readers[2].deltaSum);
+    // Hop-level truth: one bar per 4 beats; the level held for the whole first beat.
+    REQUIRE(barsAdvanced == static_cast<uint32_t>(kBars));
+    REQUIRE(truth.hopEdges == kBars);
+    REQUIRE(truth.hopsTrue >= kBars * hopsPerBeatLo);
+    REQUIRE(truth.hopsTrue <= kBars * hopsPerBeatHi);
+    // UI/render cadence: the level is seen on many reads per bar (a level, not a pulse), its rising
+    // edge exactly once per bar (no loss, no duplication), and the counter agrees.
+    for (int i = 0; i < 2; ++i)
+    {
+        REQUIRE(readers[i].readsTrue > 10 * kBars);
+        REQUIRE(readers[i].edges == kBars);
+        REQUIRE(readers[i].pulseReads == kBars);
+        REQUIRE(readers[i].deltaSum == static_cast<uint32_t>(kBars));
+    }
+    // Slower than one beat (0.9 s > 0.5 s): rising-edge detection on the level LOSES bars (about half
+    // on this grid); the totalBarCount delta still sees every bar exactly once.
+    REQUIRE(readers[2].edges < kBars);
+    REQUIRE(readers[2].pulseReads == kBars);
+    REQUIRE(readers[2].deltaSum == static_cast<uint32_t>(kBars));
+}
+} // namespace
+
+TEST_CASE("Downbeat level (real onsets): held for the whole first beat, totalBarCount once per bar; "
+          "60/120 Hz readers lose nothing, a 0.9 s poller needs the counter",
+          "[downbeat][level][cadence]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    lockBPM(tracker, 120.0f);
+    for (int bar = 0; bar < 8; ++bar)                 // lock the downbeat (compressed spacing, as above)
+        for (int beat = 0; beat < 4; ++beat)
+        {
+            feedBeatWithFeatures(tracker, 120.0f, beat == 0);
+            feedNonBeatHops(tracker, 120.0f, 3);
+        }
+    REQUIRE(tracker.downbeatLocked());
+    REQUIRE_FALSE(tracker.downbeatDetected());       // the lock phase ended on beat 4 (index 3)
+
+    constexpr int kBars = 16;
+    constexpr int kHopsPerBeat = 47;                  // lround(48000*60 / (120*512)): real-time spacing
+    const uint32_t bars0 = tracker.totalBarCount();
+
+    CadenceReader readers[] = { { 1.0 / 60.0 }, { 1.0 / 120.0 }, { 0.9 } };
+    HopTruth truth;
+    truth.prevLevel = tracker.downbeatDetected();
+    for (auto& r : readers) r.prime(tracker.downbeatDetected(), tracker.totalBarCount());
+
+    for (int bar = 0; bar < kBars; ++bar)
+        for (int beat = 0; beat < 4; ++beat)
+        {
+            feedBeatWithFeatures(tracker, 120.0f, beat == 0);   // the beat hop (conf 1.0)
+            publishHop(tracker, truth, readers);
+            for (int h = 1; h < kHopsPerBeat; ++h)              // 46 non-beat hops
+            {
+                feedNonBeatHops(tracker, 120.0f, 1);
+                publishHop(tracker, truth, readers);
+            }
+        }
+
+    // --- RED-first evidence (task's premise -- a one-hop pulse -- against the real tracker,
+    // scratch build, `./test_downbeat_detector "[cadence]"`, s-rta-0925):
+    //   752 (0x2f0) == 16                          -> FAILED (hopsTrue != hopEdges: level, not pulse)
+    //   481 (0x1e1) < 16                            -> FAILED (60 Hz reader sees far more than 16 true reads)
+    //   16 < 16                                     -> FAILED (0 loss at 60 Hz)
+    //   960 (0x3c0) > 16 && 960 < 32                -> FAILED (no ~1.26x duplication at 120 Hz)
+    // The premise is refuted by the real tracker; the GREEN contract below is what ships.
+    requireLevelContract(truth, readers, tracker.totalBarCount() - bars0, kBars,
+                         kHopsPerBeat - 1, kHopsPerBeat + 1);   // exact is 16*47 = 752
+}
+
+TEST_CASE("Downbeat level (manual BPM, predicted beats): the same level + counter contract with no "
+          "onsets -- the regime /api/set_bpm puts the tracker in",
+          "[downbeat][level][cadence][manual]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualMode(true);
+    tracker.setManualBPM(120.0f);                     // lockedBPM_ = 120, phase_ = 0, beatCounter_ = 0
+    REQUIRE(tracker.isManualMode());
+
+    constexpr int kBars = 16;
+    constexpr int kHops = 3060;   // 65 phase wraps at 46.875 hops/beat; downbeats at wraps 4,8,..,64
+                                  // (beatCounter_ 0->1->2->3->0), the 16th level window ~hops [3000,3047)
+    const uint32_t bars0 = tracker.totalBarCount();
+    CadenceReader readers[] = { { 1.0 / 60.0 }, { 1.0 / 120.0 }, { 0.9 } };
+    HopTruth truth;
+    truth.prevLevel = tracker.downbeatDetected();
+    for (auto& r : readers) r.prime(tracker.downbeatDetected(), tracker.totalBarCount());
+
+    for (int h = 0; h < kHops; ++h)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);        // manual branch: predicted wrap drives beats
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f);  // per hop, as AnalysisThread: updatePhrase -> totalBarCount
+        publishHop(tracker, truth, readers);
+    }
+
+    requireLevelContract(truth, readers, tracker.totalBarCount() - bars0, kBars, 46, 48);
 }
 
 // ============================================================================

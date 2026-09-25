@@ -149,7 +149,7 @@ Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wav
 | 7 | POST | /api/set_layer_opacity | active-deck layer opacity |
 | 8 | POST | /api/switch_deck | onSwitchDeck(deck) |
 | 9 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
-| 10 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount |
+| 10 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, downbeatDetected (level) |
 | 11 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
 | 12 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
 | 13 | POST | /api/inject_features | write FeatureBus (test/automation) |

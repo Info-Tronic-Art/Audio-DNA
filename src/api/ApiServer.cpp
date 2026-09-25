@@ -605,6 +605,11 @@ void ApiServer::handleGetBpm(const httplib::Request&, httplib::Response& res)
     obj->setProperty("phrasePhase", static_cast<double>(snap.phrasePhase));
     obj->setProperty("beatInBar", static_cast<int>(snap.beatInBar));
     obj->setProperty("barCount", static_cast<int>(snap.barCount));
+    // s-rta-0925: the downbeat LEVEL (held for the whole first beat -- see
+    // FeatureSnapshot::downbeatDetected), read in the SAME snapshot as
+    // totalBarCount below so a poller can compare its own rising-edge count
+    // with the counter delta from one coherent read (probe-downbeat-level.sh).
+    obj->setProperty("downbeatDetected", snap.downbeatDetected);
     // S168: additive twin of barCount -- never rewound by a structural
     // reset. Needed so a live sweep can prove the ConnectionShaper/
     // OscillatorSignal/EnvelopeSignal monotonic-fold fix through the app,
