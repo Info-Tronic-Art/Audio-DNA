@@ -406,6 +406,7 @@ void CompositionInspector::setComposition(Composition* comp)
 void CompositionInspector::bindScalarControls()
 {
     auto bind = [this](UniversalParamControl& c, CompScalar s) {
+        c.setDefaultValue(compScalarDefs()[static_cast<size_t>(s)].defaultNorm);   // s-rta-0925: opacity 1.0, speed 0.25 (=1.0x), transforms 0.5
         if (composition_) c.bindConnection(&composition_->scalarConns[static_cast<size_t>(s)],
                                             &composition_->scalarLive[static_cast<size_t>(s)]);
         else c.bindConnection(nullptr, nullptr);

@@ -19,32 +19,60 @@
 //   [Invert] checkbox
 //   [Range] min/max sliders
 //   If source drives value: mini meter visualization
-// Slider that resets to default on right-click
+// Slider that resets to default on right-click -- on its own thumb/track AND
+// on the text box of an IncDecButtons/TextBox slider (s-rta-0925 rclick).
+// JUCE delivers a child's mouse-down to the child, not to us, so a nested
+// mouse listener relays it (juce_Component.cpp: MouseListenerList::
+// sendMouseEvent walks the parent chain for listeners registered with
+// wantsEventsForAllNestedChildComponents=true).
 class ResettableSlider : public juce::Slider
 {
 public:
-    using juce::Slider::Slider;
+    ResettableSlider() { addMouseListener(&childRelay_, true); }
+    ~ResettableSlider() override { removeMouseListener(&childRelay_); }
 
     void setDefaultValue(double val) { defaultVal_ = val; hasDefault_ = true; }
 
+    // Fired after every right-click reset (thumb or text-box path), AFTER
+    // the value notification. Owners use it to touch the parameter's
+    // connection grip so a reset is visible on a signal-driven parameter.
+    std::function<void()> onResetToDefault;
+
+    void resetToDefault()
+    {
+        if (!hasDefault_) return;
+        setValue(defaultVal_, juce::sendNotificationSync);   // no notification if already at default (JUCE)
+        if (onResetToDefault) onResetToDefault();
+    }
+
     void mouseDown(const juce::MouseEvent& e) override
     {
-        if (e.mods.isRightButtonDown())
-        {
-            if (hasDefault_)
-                setValue(defaultVal_, juce::sendNotificationSync);
-            return;
-        }
+        if (e.mods.isRightButtonDown()) { resetToDefault(); return; }
         juce::Slider::mouseDown(e);
     }
 
-    // s-rta-0925 rclick: RED-commit stubs (tests/test_right_click_reset.cpp).
-    // Never fired / no-op / always false until the GREEN commit.
-    std::function<void()> onResetToDefault;
-    void resetToDefault() {}
-    static bool childRightClickResets(const juce::MouseEvent&, const juce::Component&) { return false; }
+    // Decision for a mouse-down relayed from a NESTED child. Never for a
+    // juce::Button child: Button::mouseUp fires its click on any mouse
+    // button, so a reset there would be followed by a +/- step. Never for
+    // the slider itself: that path is mouseDown() above (no double reset).
+    static bool childRightClickResets(const juce::MouseEvent& e, const juce::Component& owner)
+    {
+        return e.eventComponent != &owner
+            && e.mods.isRightButtonDown()
+            && dynamic_cast<const juce::Button*>(e.eventComponent) == nullptr;
+    }
 
 private:
+    struct ChildRelay final : public juce::MouseListener
+    {
+        explicit ChildRelay(ResettableSlider& s) : owner(s) {}
+        void mouseDown(const juce::MouseEvent& e) override
+        {
+            if (childRightClickResets(e, owner)) owner.resetToDefault();
+        }
+        ResettableSlider& owner;
+    };
+    ChildRelay childRelay_{*this};
     double defaultVal_ = 0.0;
     bool hasDefault_ = false;
 };

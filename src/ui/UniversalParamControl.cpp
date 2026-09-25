@@ -25,6 +25,12 @@ UniversalParamControl::UniversalParamControl()
     // (starting the hand-back glide) on mouse-up. No-op when unbound.
     valueSlider_.onDragStart = [this] { if (conn_) conn_->gripHeld(); };
     valueSlider_.onDragEnd = [this] { if (conn_) conn_->release(connNow()); };
+    // s-rta-0925 rclick: never a dead right-click -- armed with the class
+    // default until the owner calls setDefaultValue() with the real one;
+    // and a reset on the thumb path touches the bound connection exactly
+    // like +/- do below.
+    valueSlider_.setDefaultValue(static_cast<double>(defaultValue_));
+    valueSlider_.onResetToDefault = [this] { if (conn_) conn_->gripTouch(connNow()); };
     addAndMakeVisible(valueSlider_);
 
     // Decrement / increment buttons
@@ -290,14 +296,12 @@ void UniversalParamControl::resized()
 
 void UniversalParamControl::mouseDown(const juce::MouseEvent& event)
 {
-    // Right-click anywhere → reset to default value
+    // Right-click anywhere → reset to default value. One path with the
+    // thumb right-click: slider value notification -> onValueChanged; then
+    // onResetToDefault -> conn_->gripTouch (s-rta-0925).
     if (event.mods.isRightButtonDown())
     {
-        setParamValue(defaultValue_);
-        valueSlider_.setValue(static_cast<double>(defaultValue_), juce::sendNotificationSync);
-        if (onValueChanged) onValueChanged(defaultValue_);
-        // A release-less write (s-rta-0923 lane 3 plan section 4.2).
-        if (conn_) conn_->gripTouch(connNow());
+        valueSlider_.resetToDefault();
         return;
     }
 
