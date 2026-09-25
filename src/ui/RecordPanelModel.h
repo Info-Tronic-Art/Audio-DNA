@@ -12,6 +12,31 @@
 // outlive the UI rewrite (ruling 5). Every state is derived from Status, never from panel memory,
 // so a shadow "am I recording" bool (the old G25 class) cannot exist.
 
+// ---- the situation a notice belongs to (s-rta-0925 step-4 polish, fix-plan section 2 "stale notice") ----
+// A notice is advice about the recorder's situation when it was raised ("No take is loaded...", "Saved: x").
+// It is shown while that situation lasts and dropped when it changes -- whichever comes first with the
+// kNoticeSeconds expiry. The key holds exactly the Status fields whose change is a row change in the
+// click-through matrix (rows 1-2 vs 3-5: loadedTakeFolder; rows 6-12: recording/playing/overdub/playMode), and
+// ONLY fields the host publishes synchronously inside the transition that writes them (RecorderHost::disarm,
+// load, play, stopPlay, stopPlayback -- and arm, since this lane). INVARIANT for future host edits: a write to
+// any of these fields must be followed by publishStatus() in the same function, or a notice raised inside that
+// transition is keyed to the OLD situation and silently dropped at the next refresh.
+// Deliberately NOT in the key: takeFolder (a refused arm has already overwritten it before refusing, and the
+// next tick publishes it AFTER the refusal notice -- it would erase "Could not start the take" within 250 ms),
+// audioStatus (repair re-resolves it with no transition of its own), framesWritten (armed -> recording is the
+// same take), t / position / every counter (they change every tick).
+struct RecordPanelNoticeKey
+{
+    bool recording = false, playing = false, overdub = false;
+    std::string playMode, loadedTakeFolder;
+    bool operator==(const RecordPanelNoticeKey&) const = default;
+};
+
+inline RecordPanelNoticeKey noticeKeyOf(const RecorderHost::Status& s)
+{
+    return { s.recording, s.playing, s.overdub, s.playMode, s.loadedTakeFolder };
+}
+
 struct RecordPanelInputs
 {
     double nowSeconds = 0.0;          // wall clock (Time::getMillisecondCounterHiRes()/1000)
@@ -19,6 +44,8 @@ struct RecordPanelInputs
     bool   playWithAudio = true;      // user-owned preference; forced off by the model when audio is not ready
     juce::String notice;              // last refusal/notify text
     double noticeAtSeconds = -1.0;    // when it was set (-1 = never); expires after kNoticeSeconds
+    RecordPanelNoticeKey noticeKey;   // the situation the notice was raised in:
+                                      // noticeKeyOf(status) read AFTER the event that produced it
 };
 
 struct RecordPanelView
@@ -27,11 +54,13 @@ struct RecordPanelView
     struct Button { juce::String text; bool enabled = false; juce::String tooltip; Tone tone = Tone::Neutral; };
     Button record, play, load, reveal, repair;
     bool recordAudioEnabled = true, playWithAudioEnabled = false, playWithAudioValue = false, nameEnabled = true;
-    juce::String recordAudioTooltip, playWithAudioTooltip;
+    juce::String recordAudioTooltip, playWithAudioTooltip, nameTooltip;
     bool recordSendsOverdub = false;  // what pressing Record would request right now
     juce::String statusText; Tone statusTone = Tone::Neutral;
     juce::String warningText;         // "" when none
     juce::String noticeText;          // "" when none/expired
+    bool noticeLive = false;          // the stored notice is shown this frame; false = expired or its
+                                       // situation is over -- the panel forgets it
     juce::String revealFolder;        // "" => Show in Finder disabled
 };
 
@@ -164,16 +193,22 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
                            : "Only needed when a loaded take's audio was cut off, for example by a crash.",
                  Tone::Neutral };
 
-    // ---- toggles and name ----
+    // ---- toggles and name: a locked control says why in its tooltip (s-rta-0925 D1, the tooltip version --
+    // JUCE shows tooltips on disabled components; the on-screen caption stays deferred, fix-plan D1) ----
     v.recordAudioEnabled = !recording && !withAudio;
-    v.recordAudioTooltip = withAudio ? "Recording over a take always uses that take's audio."
-                                     : "Records the sound the app is listening to, alongside the timelines.";
+    v.recordAudioTooltip = recording  ? "Locked while a take is recording."
+                         : withAudio  ? "Recording over a take always uses that take's audio."
+                                      : "Records the sound the app is listening to, alongside the timelines.";
     v.playWithAudioEnabled = idle && loaded && audioReady;
     v.playWithAudioValue = playing ? withAudio : (v.playWithAudioEnabled && in.playWithAudio);
-    v.playWithAudioTooltip = (loaded && !audioReady && !playing)
-        ? "This take's audio is not available, so it replays without audio."
-        : "Replays the take's own audio instead of the live input.";
+    if (recording)                       v.playWithAudioTooltip = "Stop the recording first.";
+    else if (playing)                    v.playWithAudioTooltip = "Locked while the take replays.";
+    else if (loaded && !audioReady)      v.playWithAudioTooltip = "This take's audio is not available, so it replays without audio.";
+    else if (!loaded)                    v.playWithAudioTooltip = "Load a take first.";
+    else                                 v.playWithAudioTooltip = "Replays the take's own audio instead of the live input.";
     v.nameEnabled = !recording;
+    v.nameTooltip = recording ? "Locked while a take is recording. It names the next take."
+                              : "The name of the next take. Leave it blank to name it by date and time.";
 
     // ---- status line ----
     if (recording)
@@ -230,9 +265,14 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
     else if (playing && s.continuousUnavailable > 0)
         v.warningText = count(s.continuousUnavailable, "knob move", "knob moves") + " could not be replayed.";
 
-    // ---- notice line: a refusal/notify for kNoticeSeconds; otherwise, while a take replays with its
+    // ---- notice line: a refusal/notify for kNoticeSeconds AND only while the recorder is still in the
+    // situation it was raised in (s-rta-0925: "No take is loaded" must not outlive the Load or the Record that
+    // answered it; "Saved: x" must not survive into the next take); otherwise, while a take replays with its
     // audio, say what the relabelled Record button will do BEFORE it is pressed (fix plan F5).
-    if (in.notice.isNotEmpty() && in.noticeAtSeconds >= 0.0 && in.nowSeconds - in.noticeAtSeconds <= kNoticeSeconds)
+    v.noticeLive = in.notice.isNotEmpty() && in.noticeAtSeconds >= 0.0
+                && in.nowSeconds - in.noticeAtSeconds <= kNoticeSeconds
+                && noticeKeyOf(s) == in.noticeKey;
+    if (v.noticeLive)
         v.noticeText = in.notice;
     else if (withAudio && !recording)
         v.noticeText = "Record Over starts a new take on top of this audio; the loaded take is kept.";

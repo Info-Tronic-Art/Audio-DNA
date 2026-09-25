@@ -12,7 +12,8 @@
 // ~4 Hz. The panel never talks to the recorder itself: each action is a
 // std::function the app wires to its perf* funnel (the SAME functions
 // the /api/perf/* REST endpoints call) and returns "" on success or the
-// refusal text, which the panel shows as a notice. No modal dialog anywhere
+// refusal text, which the panel shows as a notice for kNoticeSeconds or
+// until the recorder's situation changes. No modal dialog anywhere
 // (spec R10): Load uses FileChooser::launchAsync, which does not block the
 // message loop.
 class RecordPanel : public juce::Component
@@ -36,13 +37,20 @@ public:
     std::function<std::string(const juce::File& takeFolder)> onLoad;
     std::function<std::string()> onRepair;
 
+    // The recorder's current published status (RecorderHost::status()). Read right after an action returns, so
+    // a pressed button shows its new label at once instead of at the next 4 Hz refresh (fix plan D5), and on a
+    // tab switch. Message thread; every host transition publishes synchronously, so the read is post-action.
+    std::function<RecorderHost::Status()> onStatus;
+
     // The fixed takes folder: the Load dialog's starting folder and the caption.
     void setTakesRoot(const juce::File& root);
 
     // Stores a one-line notice (refusal or recorder notify) with the current
-    // time; applied at the next refresh(), so a burst of notifications never
-    // repaints faster than the 4 Hz refresh.
-    void setNotice(const std::string& text);
+    // time and the recorder situation it was raised in -- `raisedIn` is
+    // status() read AFTER the event that produced the text (the funnel notifies after the host call returns;
+    // the host publishes synchronously at every transition). Shown until it expires or that situation changes;
+    // applied at the next refresh(), so a burst of notifications never repaints faster than the 4 Hz refresh.
+    void setNotice(const std::string& text, const RecorderHost::Status& raisedIn);
 
     // Model -> widgets. Called at ~4 Hz by the app.
     void refresh(const RecorderHost::Status& status, double nowSeconds);
@@ -50,6 +58,7 @@ public:
 private:
     void applyView(double nowSeconds);
     void runAction(const std::function<std::string()>& action);
+    void forgetNotice();
     static void applyButton(juce::TextButton& button, const RecordPanelView::Button& spec);
 
     juce::TextButton recordBtn_{"Record Take"};
@@ -77,6 +86,7 @@ private:
     bool playWithAudioPref_ = true;   // the user's own choice; the model may force the shown value off
     juce::String notice_;
     double noticeAt_ = -1.0;
+    RecordPanelNoticeKey noticeKey_;
 
     static constexpr int kLabelHeight = 14;
     static constexpr int kControlHeight = 28;

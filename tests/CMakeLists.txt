@@ -1183,3 +1183,12 @@ if(NOT WIN32)
     apply_sanitizers(test_httplib_bodyless_post)
     catch_discover_tests(test_httplib_bodyless_post PROPERTIES TIMEOUT 60)
 endif()
+
+# --- test_tab_bar_layout (s-rta-0925 step-4 polish D2: the Browser's tab widths
+# follow the measured label widths so "Comp/Decks" is never clipped). Pure
+# function in src/ui/TabBarLayout.h -- no JUCE; the caller measures the labels.
+add_executable(test_tab_bar_layout test_tab_bar_layout.cpp)
+target_include_directories(test_tab_bar_layout PRIVATE ${SRC_DIR})
+target_link_libraries(test_tab_bar_layout PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_tab_bar_layout)
+catch_discover_tests(test_tab_bar_layout)

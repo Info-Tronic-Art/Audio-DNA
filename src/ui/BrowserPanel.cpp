@@ -1,4 +1,7 @@
 #include "ui/BrowserPanel.h"
+#include "ui/TabBarLayout.h"
+#include <iterator>
+#include <vector>
 
 BrowserPanel::BrowserPanel()
 {
@@ -65,15 +68,17 @@ void BrowserPanel::resized()
 {
     auto area = getLocalBounds();
 
-    // Tab bar
+    // Tab bar -- D2: each tab is at least its label plus padding, never clipped (TabBarLayout.h); the rest is shared.
     auto tabBar = area.removeFromTop(kTabBarHeight);
-    int tabWidth = tabBar.getWidth() / 6;
-    filesTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
-    fxTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
-    sourcesTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
-    compDecksTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
-    recordTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
-    milkDropTabBtn_.setBounds(tabBar);
+    juce::TextButton* tabs[] = { &filesTabBtn_, &fxTabBtn_, &sourcesTabBtn_,
+                                 &compDecksTabBtn_, &recordTabBtn_, &milkDropTabBtn_ };
+    const juce::Font tabFont(juce::FontOptions(14.0f));   // the font drawButtonText draws with (LookAndFeel.cpp:83)
+    std::vector<int> labelWidths;
+    for (auto* b : tabs)
+        labelWidths.push_back(juce::GlyphArrangement::getStringWidthInt(tabFont, b->getButtonText()));
+    const auto widths = tabWidthsFor(labelWidths, kTabTextPadding, tabBar.getWidth());
+    for (size_t i = 0; i < std::size(tabs); ++i)
+        tabs[i]->setBounds(tabBar.removeFromLeft(widths[i]));
 
     // Content area
     filesBrowser_.setBounds(area);

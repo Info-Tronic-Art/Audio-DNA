@@ -316,7 +316,15 @@ TEST_CASE("RecordPanelModel row 9 -- playing with audio", "[recordpanel][model]"
     auto in = inputs();
     in.notice = "x";
     in.noticeAtSeconds = 100.0;
+    in.noticeKey = noticeKeyOf(s);
     CHECK(deriveRecordPanelView(s, in).noticeText == "x");
+
+    // s-rta-0925: a notice raised BEFORE Play (idle situation) is over once the take replays -- the hint shows.
+    RecordPanelInputs before = inputs();
+    before.notice = "x";
+    before.noticeAtSeconds = 100.0;
+    CHECK(deriveRecordPanelView(s, before).noticeText == "Record Over starts a new take on top of this audio; the loaded take is kept.");
+    CHECK_FALSE(deriveRecordPanelView(s, before).noticeLive);
 }
 
 TEST_CASE("RecordPanelModel row 10 -- overdub recording while playing", "[recordpanel][model]")
@@ -433,6 +441,74 @@ TEST_CASE("RecordPanelModel notice -- shown for kNoticeSeconds, then expires", "
     CHECK(deriveRecordPanelView(RecorderHost::Status{}, in).noticeText.isEmpty());
 }
 
+TEST_CASE("RecordPanelModel notice -- shown only while the recorder is still in the situation it was raised in", "[recordpanel][model][notice]")
+{
+    auto in = inputs(100.0);
+    in.notice = "No take is loaded. Use Load Take... first.";
+    in.noticeAtSeconds = 99.0;
+    in.noticeKey = noticeKeyOf(RecorderHost::Status{});          // raised idle, nothing loaded (row 1)
+
+    SECTION("still idle: shown and live")
+    {
+        const auto v = deriveRecordPanelView(RecorderHost::Status{}, in);
+        CHECK(v.noticeText == in.notice);
+        CHECK(v.noticeLive);
+    }
+    SECTION("a refused arm changed takeFolder but not the situation: still shown")
+    {
+        RecorderHost::Status s;
+        s.takeFolder = kLastTake;
+        CHECK(deriveRecordPanelView(s, in).noticeLive);
+    }
+    SECTION("recording started (REST, no panel click): gone, and the panel is told to forget it")
+    {
+        const auto v = deriveRecordPanelView(recordingStatus(true, 0, 0.2), in);
+        CHECK(v.noticeText.isEmpty());
+        CHECK_FALSE(v.noticeLive);
+    }
+    SECTION("a take was loaded: the advice is answered, gone")
+    {
+        CHECK_FALSE(deriveRecordPanelView(loadedStatus("Resolved"), in).noticeLive);
+    }
+    SECTION("raised while recording: survives every tick (t, frames, counts) but not the stop")
+    {
+        in.notice = "could not write provisional take.json";
+        in.noticeKey = noticeKeyOf(recordingStatus(true, 0, 0.1));   // armed, keyed after arm's publish
+        auto later = recordingStatus(true, 48000, 3.0);
+        later.points = 9;
+        later.gaps = 1;
+        CHECK(deriveRecordPanelView(later, in).noticeLive);
+        RecorderHost::Status stopped;
+        stopped.takeFolder = later.takeFolder;
+        CHECK_FALSE(deriveRecordPanelView(stopped, in).noticeLive);
+    }
+    SECTION("'Saved' raised after the stop stays while idle and goes when the next take starts")
+    {
+        RecorderHost::Status idle;
+        idle.takeFolder = kLastTake;
+        in.notice = "Saved: last";
+        in.noticeKey = noticeKeyOf(idle);
+        CHECK(deriveRecordPanelView(idle, in).noticeLive);
+        CHECK_FALSE(deriveRecordPanelView(recordingStatus(true, 0, 0.0), in).noticeLive);
+    }
+    SECTION("raised while replaying: the position moves on, still shown; Stop Playback ends it")
+    {
+        auto p = loadedStatus("Resolved");
+        playing(p, false);
+        in.notice = "handleClipTrigger: deck unresolved";
+        in.noticeKey = noticeKeyOf(p);
+        p.positionSeconds = 30.0;
+        p.unresolved = 5;
+        CHECK(deriveRecordPanelView(p, in).noticeLive);
+        CHECK_FALSE(deriveRecordPanelView(loadedStatus("Resolved"), in).noticeLive);
+    }
+    SECTION("expiry still applies in the same situation")
+    {
+        in.nowSeconds = 99.0 + kNoticeSeconds + 0.5;
+        CHECK_FALSE(deriveRecordPanelView(RecorderHost::Status{}, in).noticeLive);
+    }
+}
+
 TEST_CASE("RecordPanelModel play with audio is forced off whenever the audio is not ready", "[recordpanel][model]")
 {
     auto in = inputs();
@@ -487,4 +563,25 @@ TEST_CASE("RecordPanelModel warning precedence -- lastError beats every other wa
     RecorderHost::Status idle;
     idle.lastError = "device sample rate changed mid-take: 48000 -> 44100 Hz";
     CHECK(deriveRecordPanelView(idle, inputs()).warningText.isEmpty());
+}
+
+TEST_CASE("RecordPanelModel disabled reasons -- a locked switch or name field says why (D1, tooltip version)", "[recordpanel][model]")
+{
+    const auto rec = deriveRecordPanelView(recordingStatus(true, 4800, 4.2), inputs());       // row 7
+    CHECK(rec.recordAudioTooltip == "Locked while a take is recording.");
+    CHECK(rec.playWithAudioTooltip == "Stop the recording first.");
+    CHECK(rec.nameTooltip == "Locked while a take is recording. It names the next take.");
+
+    const auto idle = deriveRecordPanelView(RecorderHost::Status{}, inputs());                  // row 1
+    CHECK(idle.playWithAudioTooltip == "Load a take first.");
+    CHECK(idle.recordAudioTooltip == "Records the sound the app is listening to, alongside the timelines.");
+    CHECK(idle.nameTooltip == "The name of the next take. Leave it blank to name it by date and time.");
+
+    auto wall = loadedStatus("Missing"); playing(wall, false);                                  // row 8
+    CHECK(deriveRecordPanelView(wall, inputs()).playWithAudioTooltip == "Locked while the take replays.");
+
+    CHECK(deriveRecordPanelView(loadedStatus("Incomplete"), inputs()).playWithAudioTooltip     // row 4, unchanged
+          == "This take's audio is not available, so it replays without audio.");
+    CHECK(deriveRecordPanelView(loadedStatus("Resolved"), inputs()).playWithAudioTooltip       // row 3, unchanged
+          == "Replays the take's own audio instead of the live input.");
 }
