@@ -92,3 +92,13 @@ Workflow 2: 3 builder lanes in worktrees → independent reviewer → one fix ro
   Established: same sign both oracles, 0 dupes, 100% matched. Not ruled out: device clock vs 48k stamp ppm.
   Cheapest discriminator: STEP3_LONG_MINUTES=20 — linear drift doubles to ~-2.9 ms; noise would not.
 - Step 4 live drive DONE (screens in .reports/s-rta-0924b/step4-visual/). Ruling 1 live-verified. Own findings: length 0:00, clock origin 0:15, REST jargon notices, truncated placeholder. Critic panel + fix lane workflow w8p93f3g8 running. Pushing gated merge.
+- 09-25: critic panel done (5 seats: 4 PASS-WITH-FIXES, logic-source FAIL). KEY: RecorderClock origin latches at app launch, never reset at arm → take t/beat stamps offset by app uptime (not display-only). Fix workflow resumed (w8jc5tu40) after network outage killed consolidate/build/review. Merged worktrees removed.
+- Harmony ruling: fix-plan F3 re-adds a 'Saved' notice at Stop — accepted (now disclosed + critic-requested, supersedes earlier drop).
+- s4fix lane 45667cb: review PASS, ctest 438. Worse F1 consequence: wall-clock replay delayed by app uptime (14s vs 2s). Probe pin builder dispatched (same branch). Next: pin RED on ./build (pre-fix) → merge → rebuild → ctest → probe GREEN → delete s4gate/s4over → re-shoot 10 states.
+- 13:30 re-shoot #1 VOID: full-screen capture grabbed Boris's private windows (he was working). Deleted. Gotcha filed. Redo window-only + open -g.
+- 13:35 RE-SHOOT #2 (window-only, open -g): F1-F8 all visible and correct (clock 0:01/0:06, Playing 0:02/0:11, plain
+  notices, full placeholder, Recording over 0:00). NEW FINDING: intermittent audio finalize defect — "truncated (header N
+  frames < framesWritten N+512)": 1/20 record/stop cycles (flake8) + 1 in re-shoot; ALWAYS exactly 512 frames short
+  (one block lost at stop). /api/perf/status lastError does NOT carry it (status read 0.5 s after stop was empty) →
+  probe cannot see it. Pre-existing (surfaced by F3's new Saved notice). Minor: stale cyan notice ("No take is loaded…")
+  persists into later recording states. Diagnosis+fix workflow launched.

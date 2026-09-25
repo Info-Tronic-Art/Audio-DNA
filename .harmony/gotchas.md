@@ -448,3 +448,13 @@ Trigger: dispatching ANY agent that drives the live Audio-DNA app (diagnosis, ga
 Rule: every live-app packet states, next to the SCREEN-SAFETY LAW: (1) NO debugger attach (lldb/dtrace/Instruments) — they raise TCC/Touch-ID dialogs on Boris's machine; instrument via REST, stderr, logs, or a scratch build instead; (2) NO synthetic keystrokes/clicks/osascript UI input except the app's own documented menu/quit commands targeted at process "Audio-DNA"; (3) if an unexpected system dialog appears, STOP and report it — never try to dismiss it. Boris's screen is shared with his other sessions.
 Scope: universal (any Harmony agent driving a GUI app on Boris's machine)
 Promoted: no
+
+## Full-screen screencapture while Boris is using the Mac captures HIS private windows (s-rta-0924b, 2026-09-25)
+**Trigger:** any automated screenshot of the app (visual gates, re-shoots, state crops).
+**What happened:** Harmony's re-shoot used `screencapture -x` (whole screen) + fixed crop coordinates while Boris
+was working; the app was not frontmost, so every "Record panel" crop held his contract PDFs / Finder instead.
+Images were deleted unviewed-beyond-the-sheet; nothing was committed.
+**Rule:** capture the APP WINDOW ONLY — `screencapture -x -o -l <CGWindowID>` (get the id from Quartz
+`CGWindowListCopyWindowInfo`, owner "Audio-DNA", layer 0). Works while the window is behind others. Launch with
+`open -g` so the app never steals focus from Boris. Full-screen captures only for the screen-safety EOS check
+(overlay/dialog detection), never saved into the repo. Never crop by fixed screen coordinates.
