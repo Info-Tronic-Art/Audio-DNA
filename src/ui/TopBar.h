@@ -40,11 +40,11 @@ public:
     // lives in TopBar.cpp.
     ResettableSlider& getMasterLevelSlider() { return masterLevelSlider_; }
 
-    // s-rta-0925 link: RED-commit stub (tests/test_master_opacity_link.cpp).
-    // Pull the fader from the model -- manual field when not connected,
-    // toNorm(eff()) when a signal drives it (same rule as
+    // s-rta-0925 link: pull the fader from the model -- manual field when
+    // not connected, toNorm(eff()) when a signal drives it (same rule as
     // CompositionInspector::syncFromComposition). Skipped mid-drag. Called
-    // from timerCallback (15 Hz) and directly by tests.
+    // from timerCallback (15 Hz) and directly by tests
+    // (tests/test_master_opacity_link.cpp).
     void syncMasterFromComposition();
 
     // Access display selector
