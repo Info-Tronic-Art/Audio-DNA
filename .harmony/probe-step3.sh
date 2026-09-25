@@ -206,7 +206,7 @@ python3 -m json.tool "$FIXTURE" >/dev/null 2>&1 && ok "fixture $FIXTURE is valid
 # lines left over from a prior run's process (probe-finalize-loop.sh pattern).
 : > /tmp/adna-step3-out.log
 : > /tmp/adna-step3-err.log
-open --stdout /tmp/adna-step3-out.log --stderr /tmp/adna-step3-err.log "$APPBUNDLE"
+open -g --stdout /tmp/adna-step3-out.log --stderr /tmp/adna-step3-err.log "$APPBUNDLE"
 for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (production launch needs the mic-permission prompt clicked once -- screencapture -x and LOOK before concluding)"; exit 1; }
 PID="$(pgrep -f 'MacOS/Audio-DN[A]' | head -1)"
@@ -961,9 +961,7 @@ fi
 
 # Final screen state, for the handoff (plan section 4 Teardown paragraph:
 # "state the screen state in the handoff").
-screencapture -x /tmp/step3-eos.png 2>/dev/null \
-  && echo "screenshot: /tmp/step3-eos.png (read it before concluding -- no black overlay, no dialog expected)" \
-  || echo "screencapture failed (no display attached / headless run)"
+echo "no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness"
 
 echo; echo "$PASS PASS / $FAIL FAIL   (artifacts in $OUT; take folders under $TAKES_DIR; asset under $AUDIO_DIR)"
 [ "$FAIL" -eq 0 ] || exit 1

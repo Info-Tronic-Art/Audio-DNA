@@ -1315,3 +1315,10 @@ isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by 
 **Files:** src/ui/RecordPanelModel.h
 **Note:** plan-step4polish.md section 1.1 said to add `RecordPanelNoticeKey`/`noticeKeyOf()` "after kArmedWarnSeconds (line 39)" but also said to add a `RecordPanelNoticeKey noticeKey;` member to `RecordPanelInputs` (defined at lines 15-22, well before kArmedWarnSeconds). A struct member needs a complete type at the point of use, so the struct/free-function pair has to be defined BEFORE `RecordPanelInputs`, not after `RecordPanelView`/kArmedWarnSeconds as the plan's prose literally said. Caught immediately by the RED-stub compile (would have been a hard compile error either way); fixed by moving the new struct+function block to just above `RecordPanelInputs`.
 **Valid while:** src/ui/RecordPanelModel.h keeps this struct-before-use ordering; a future refactor that reorders the file should re-check this.
+
+## s-rta-0925 — the privacy habit had not landed in the probes
+- s-rta-0924b recorded "window-only capture + open -g" as the habit after a full-screen grab caught Boris's
+  private documents, but probe-step3/probe-onset-render (and the new probe-downbeat-level) still did `open`
+  (focus steal) and a full-screen `screencapture -x` at exit. Fixed in all three: `open -g`, no full-screen
+  capture (the Quartz window-list checks are the screen witness). Habit: when a lesson is about a SCRIPT's
+  behaviour, grep every script for the pattern the same turn — a gotcha row alone does not change scripts.

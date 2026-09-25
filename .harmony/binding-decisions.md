@@ -474,3 +474,61 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   crashes startup on a Bluetooth HFP headset (ASan: .harmony/.reports/s-rta-0924b/asan-bt-startup-crash.log)
   is therefore NOT a product priority; any fix is at most a guard that keeps the app off Bluetooth devices.
   Open calls that only existed for Bluetooth (16 kHz "Air" meter n/a; low-rate output device) are MOOT.
+
+## 2026-09-25 (s-rta-0925) — Replay snaps back first (open call 1)
+- Boris: "yes" — replaying a whole take FIRST restores the look at the moment Record was pressed (clips, deck,
+  settings), then plays the moves. Replay must look the same as the original performance every time.
+  Implementation status: TO VERIFY against code (roadmap lane s-rta-0925); if not built, it is a build item.
+
+## 2026-09-25 (s-rta-0925) — Button name "Record Over" (open call 2)
+- Boris: "record over" — the overdub button is labelled "Record Over" (current default; no change needed).
+
+## 2026-09-25 (s-rta-0925) — End of replay: hold, don't stop (open call 3)
+- Boris verbatim: "It should keep playing at with the current parameters at the end. If there is no audio input,
+  then it should play according to the parameters."
+- Read as: replay does NOT stop or hand back at the take's end. The last recorded state (clips, deck, parameter
+  values) stays in place and the visuals keep running from it. If live audio is coming in, they react to it; if
+  there is no audio input, they run on the parameters alone (oscillators, manual BPM, set values). [interpretation
+  restated to Boris for confirmation 2026-09-25]
+- Implementation status: TO VERIFY (today: with-audio replay sits at audio end; wall-clock replay keeps counting —
+  fix-plan D6). Build item for the playback-end lane.
+
+## 2026-09-25 (s-rta-0925) — Stop Recording during Record Over keeps the replay (open call 4)
+- Boris: "keep playing" — Stop Recording ends only the new recording; the replay underneath keeps playing.
+  Matches current behaviour (RecordPanelModel.h:123 caption). No change needed.
+- Call 3 reading was restated to Boris; he answered call 4 without objecting (not an explicit confirm).
+
+## 2026-09-25 (s-rta-0925) — Stop Recording: black text on red (open call 5)
+- Boris: "go with rec" — black text on bright red (AA contrast). Already live; no change.
+
+## 2026-09-25 (s-rta-0925) — Stored audio is never deleted by the app (open call 6)
+- Boris: "never delete" — the app never deletes stored audio; cleanup is Finder-only. Live today; no change.
+  (Sole existing exception stays: AudioStore::abandonAsset for a failed arm's own never-finalized asset.)
+
+## 2026-09-25 (s-rta-0925) — Audio store location stays fixed (open call 7)
+- Boris: "go with rec" — fixed ~/Documents/Audio-DNA/Audio for now; a choosable location (tour SSD) is not
+  requested. Live today; no change.
+
+## 2026-09-25 (s-rta-0925) — Optional name at Record time (open call 8)
+- Boris: "Optional name at Record time" — a name box before Record; empty = date + take number.
+- Code signs it is already built: RecordPanelModel.h:65-68 "The take's name as the user typed it: the folder
+  name"; nameEnabled gated off while recording (:176). TO VERIFY live: type a name, record, check the take
+  folder name and the "Last take:" status line; and empty-name fallback.
+
+## 2026-09-25 (s-rta-0925) — Manual Resync re-aligns oscillators (open call 9)
+- Boris: "go with rec" — a MANUAL Resync (BPMTracker::resetPhrase) re-aligns tempo-oscillator shapes to the new
+  downbeat (a small visible jump is accepted). Automatic resets keep flowing (unchanged). NOT built today
+  (HANDOFF s168 addendum 1: Resync does not rewind the monotonic counter). Build item.
+
+## 2026-09-25 (s-rta-0925) — Master opacity: one knob; top-right fader linked; new Master Signal slider (open call 10 + new)
+- Boris (after seeing the app): "remove the video slider keep master" — delete the Composition inspector Video-section
+  "Opacity" twin (CompositionInspector.cpp:156, bound to masterOpacity :414). Keep "Master" (:135).
+- Top-right master fader is a SHORTCUT to the Composition "Master" knob — both must be linked (same value, each
+  follows the other). Verify two-way sync; fix if not.
+- NEW (Boris): a slider top right, next to master opacity, for "master audio AND all signals including oscillators,
+  etc. This is taking the gain slider and adding the other signals." = one Master Signal level that scales every
+  modulation signal (audio features + oscillators + envelopes + ...). Design lane; exact semantics restated to Boris.
+- BUG (Boris): right-click on a slider does not reset to default. Fix or plan to fix.
+- Boris (follow-up): "go with your recs" — input Gain stays the pre-analysis input level (may move to Preferences);
+  the new Master Signal slider is purely post-analysis reaction depth (visual reactivity), never touching detection.
+- Boris: right-click reset fails on ALL sliders in the Composition tab (scope evidence for the rclick lane).

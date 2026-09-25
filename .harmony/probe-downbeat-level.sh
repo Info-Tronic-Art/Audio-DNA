@@ -52,7 +52,7 @@ isint(){ echo "$1" | grep -Eq '^-?[0-9]+$'; }
 pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set DOWNBEAT_BUILD_DIR to override)"; exit 64; }
 : > "$OUT/adna-out.log"; : > "$OUT/adna-err.log"      # open --stdout/--stderr APPEND: clear first
-open --stdout "$OUT/adna-out.log" --stderr "$OUT/adna-err.log" "$APPBUNDLE"
+open -g --stdout "$OUT/adna-out.log" --stderr "$OUT/adna-err.log" "$APPBUNDLE"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (TCC mic prompt? screencapture -x and LOOK)"; exit 1; }
 PID="$(pgrep -f 'MacOS/Audio-DN[A]' | head -1)"
@@ -151,8 +151,6 @@ print(len([w for w in wl if 'Audio-DNA' in str(w.get('kCGWindowOwnerName',''))
 else
     no "Output-window check: $VENV_PY (pyobjc/Quartz) unavailable -- set DOWNBEAT_VENV_PY to the main checkout's .venv/bin/python"
 fi
-screencapture -x "$OUT/downbeat-level-eos.png" 2>/dev/null \
-  && echo "screenshot: $OUT/downbeat-level-eos.png (read it before concluding -- no dialog expected)" \
-  || echo "screencapture failed (no display attached / headless run)"
+echo "no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness"
 echo; echo "$PASS PASS / $FAIL FAIL   (artifacts in $OUT)"
 [ "$FAIL" -eq 0 ] || exit 1
