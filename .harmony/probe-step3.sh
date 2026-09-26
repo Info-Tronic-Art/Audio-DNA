@@ -724,8 +724,26 @@ perturb_and_check_snapback "withAudio"
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
 START_T=$(date +%s)
 check_snapback_restored "withAudio"
-# s-rta-0925 (10E): read BEFORE the loop -- must be "file" while the take's audio drives the replay.
-SRC1="$(perf_field "d.get('inputSource','NA')")"
+# s-rta-0926 (step3row discriminator, probe-timing fix): a single read right after Play used to be
+# safe because check_snapback_restored's own poll loop (up to 1.5s) covered the gap -- but that loop
+# exits the moment activeClipColumn/opacity match checkpoint0, and MainComponent::perfPlay() restores
+# those SYNCHRONOUSLY inside RecorderHost::play() (Player::firePreamble), before the withAudio branch
+# even calls audioEngine_.loadFile()/setSourceMode(File) -- so the snap-back match (and this read) can
+# land well before the file-mode switch actually happens. Measured live (3 trials, same build/HEAD,
+# .venv python discriminator against the already-recorded step3gate1.adna-take, no src/ changes):
+# inputSource flips from "input" to "file" reliably at 221/230/233 ms after the play POST returns, and
+# never reverts on its own -- a real timing artifact, not a real bug (ESTABLISHED unchanged: no
+# audio/recorder code changed since 54cbbb2). Poll for the switch instead of reading once, bounded at
+# 1000ms (>4x the observed max) so this row still FAILS if the source genuinely never switches.
+SRC1="NA"
+SRC1_ELAPSED_MS=0
+while :; do
+    SRC1="$(perf_field "d.get('inputSource','NA')")"
+    [ "$SRC1" = "file" ] && break
+    [ "$SRC1_ELAPSED_MS" -ge 1000 ] && break
+    sleep 0.05
+    SRC1_ELAPSED_MS=$((SRC1_ELAPSED_MS+50))
+done
 LAST="__UNSET__"; RAW_SEQ=()
 OP_LAST=""; OP_SEEN_04=0; OP_SEEN_07=0
 WITHAUDIO_FIRST_CHANGE_T=""
