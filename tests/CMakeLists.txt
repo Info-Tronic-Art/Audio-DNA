@@ -1185,13 +1185,24 @@ if(NOT WIN32)
 endif()
 
 # --- test_tab_bar_layout (s-rta-0925 step-4 polish D2: the Browser's tab widths
-# follow the measured label widths so "Comp/Decks" is never clipped). Pure
-# function in src/ui/TabBarLayout.h -- no JUCE; the caller measures the labels.
+# follow the measured label widths so the longest tab label is never clipped,
+# e.g. "Compositions"). Pure function in src/ui/TabBarLayout.h -- no JUCE; the
+# caller measures the labels.
 add_executable(test_tab_bar_layout test_tab_bar_layout.cpp)
 target_include_directories(test_tab_bar_layout PRIVATE ${SRC_DIR})
 target_link_libraries(test_tab_bar_layout PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_tab_bar_layout)
 catch_discover_tests(test_tab_bar_layout)
+
+# --- test_per_type_autopilot_layout (s-rta-0925 visualfix: the Composition
+# Inspector's Per-Type Autopilot enable-checkbox row and its Opaque cycle row
+# used to land at the same y). Pure function in
+# src/ui/PerTypeAutopilotLayout.h -- no JUCE.
+add_executable(test_per_type_autopilot_layout test_per_type_autopilot_layout.cpp)
+target_include_directories(test_per_type_autopilot_layout PRIVATE ${SRC_DIR})
+target_link_libraries(test_per_type_autopilot_layout PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_per_type_autopilot_layout)
+catch_discover_tests(test_per_type_autopilot_layout)
 
 # --- test_right_click_reset (s-rta-0925 rclick: ResettableSlider right-click reset
 # on the thumb AND on the IncDec text box; UniversalParamControl arms its inner
