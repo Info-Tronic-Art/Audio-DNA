@@ -29,6 +29,9 @@
 #      device rate, so this gate no longer refuses to arm on a non-48kHz
 #      device. It machine-checks the R13 provenance fields instead
 #      (sourceSampleRate, bandValidMask, rateChangedSinceArm).
+#   5. End of replay (Boris ruling 2026-09-25 "hold, don't stop", s-rta-0925): a replay holds at the
+#      take's real end -- `playing` stays true, `finished` true, position pinned, the clock stopped;
+#      a with-audio replay gives the live input back (`/api/audio/source`, `inputSource`).
 #
 # RIG FACTS (do not re-derive -- .harmony/gotchas.md, .harmony/VALIDATION.md,
 # probe-lane3.sh's own header, all re-confirmed by the critic this session):
@@ -667,6 +670,20 @@ AUDIOSTATUS="$(perf_field "d.get('audioStatus','NA')")"
 UNRES="$(perf_field "d.get('unresolved','NA')")"; UNRES="$(normnum "$UNRES")"
 [ "$UNRES" = "0" ] && ok "perf/load: unresolved == 0" || no "perf/load: unresolved == $UNRES"
 
+# s-rta-0925 end-of-replay (Boris ruling "hold, don't stop"): the gate must prove the input comes BACK at
+# the end, so it must first be somewhere other than where the replay puts it. Section 5 armed in file
+# mode; go to the live input now (the rig's built-in/wired input -- never Bluetooth,
+# binding-decisions.md 2026-09-24). Pre-fix binary: 404 (endpoint absent) -> this row and every
+# `finished`/`inputSource` row below are the fail-first RED; nothing else in this section changes on
+# that binary.
+curl -s --max-time 6 -X POST "$A/api/audio/source" -H 'Content-Type: application/json' -d '{"mode":"input"}' \
+  | grep -q '"ok":[[:space:]]*true' && ok "end: /api/audio/source input accepted" || no "end: /api/audio/source refused or absent"
+sleep 1.5   # the device may reopen with input channels enabled
+SRC0="$(perf_field "d.get('inputSource','NA')")"
+[ "$SRC0" = "input" ] && ok "end: inputSource == input before Play" || no "end: inputSource == $SRC0 before Play (expected input)"
+is_true(){ [ "$1" = "True" ] || [ "$1" = "true" ]; }
+LAST_EXPECTED="${EXPECTED_SEQ[4]}"
+
 TAKE_LEN="$(perf_field "d.get('length','NA')")"; TAKE_LEN="$(normnum "$TAKE_LEN")"
 REPLAY_BUDGET="$(awk -v l="$TAKE_LEN" 'BEGIN{ if (l=="NA" || l+0<=0) print 45; else print l+2 }')"
 
@@ -674,6 +691,8 @@ perturb_and_check_snapback "withAudio"
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
 START_T=$(date +%s)
 check_snapback_restored "withAudio"
+# s-rta-0925 (10E): read BEFORE the loop -- must be "file" while the take's audio drives the replay.
+SRC1="$(perf_field "d.get('inputSource','NA')")"
 LAST="__UNSET__"; RAW_SEQ=()
 OP_LAST=""; OP_SEEN_04=0; OP_SEEN_07=0
 WITHAUDIO_FIRST_CHANGE_T=""
@@ -698,11 +717,28 @@ while :; do
     # jump straight to the final 0.2.
     awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.35 && x+0<=0.45)}' 2>/dev/null && OP_SEEN_04=1
     awk -v x="$OP_LAST" 'BEGIN{exit !(x!="NA" && x+0>=0.65 && x+0<=0.75)}' 2>/dev/null && OP_SEEN_07=1
+    FIN="$(perf_field "d.get('finished','NA')")"; is_true "$FIN" && break   # s-rta-0925: the take's real end; pre-fix: NA -> budget
     POS="$(perf_field "d.get('position','NA')")"
     awk -v p="$POS" -v l="$TAKE_LEN" 'BEGIN{exit !(p!="NA" && l!="NA" && l+0>0 && p+0>=l+0-0.25)}' 2>/dev/null && break
     awk -v e="$ELAPSED" -v b="$REPLAY_BUDGET" 'BEGIN{exit !(e+0>=b+0)}' 2>/dev/null && break
     sleep 0.25
 done
+# --- 10E. end of replay: hold, don't stop (Boris ruling 2026-09-25) ---
+FIN="$(perf_field "d.get('finished','NA')")"; is_true "$FIN" && ok "end(withAudio): finished == true" || no "end(withAudio): finished == $FIN"
+PL="$(perf_field "d.get('playing','NA')")"; is_true "$PL" && ok "end(withAudio): playing stays true (hold, not stop)" || no "end(withAudio): playing == $PL at the end"
+POS1="$(perf_field "d.get('positionSeconds','NA')")"; LEN1="$(perf_field "d.get('lengthSeconds','NA')")"
+sleep 1
+POS2="$(perf_field "d.get('positionSeconds','NA')")"
+awk -v p="$POS1" -v l="$LEN1" 'BEGIN{exit !(p!="NA" && l!="NA" && l+0>0 && p-l<=0.05 && l-p<=0.05)}' \
+  && ok "end(withAudio): positionSeconds == lengthSeconds ($POS1 / $LEN1)" || no "end(withAudio): positionSeconds $POS1 != lengthSeconds $LEN1"
+awk -v a="$POS1" -v b="$POS2" 'BEGIN{exit !(a!="NA" && b!="NA" && a-b<=0.001 && b-a<=0.001)}' \
+  && ok "end(withAudio): the clock stopped ($POS1 -> $POS2 over 1 s)" || no "end(withAudio): the clock keeps counting ($POS1 -> $POS2 over 1 s)"
+SRC2="$(perf_field "d.get('inputSource','NA')")"
+[ "$SRC1" = "file" ] && ok "end(withAudio): inputSource == file while the take's audio drives the replay" || no "end(withAudio): inputSource == $SRC1 during replay (expected file)"
+[ "$SRC2" = "input" ] && ok "end(withAudio): inputSource back to input at the end" || no "end(withAudio): inputSource == $SRC2 at the end (expected input)"
+COL_END="$(comp_active_col)"; CO_END="$(comp_col_op)"; OP_END="${CO_END#*|}"
+[ "$COL_END" = "$LAST_EXPECTED" ] && ok "end(withAudio): last look held (activeClipColumn == $COL_END)" || no "end(withAudio): activeClipColumn $COL_END != last recorded $LAST_EXPECTED"
+awk -v x="$OP_END" 'BEGIN{exit !(x!="NA" && x+0>=0.15 && x+0<=0.25)}' && ok "end(withAudio): layer 0 opacity still near 0.2 (held, nothing reset)" || no "end(withAudio): layer 0 opacity $OP_END at the end (expected ~0.2)"
 seq_matches_expected "${RAW_SEQ[@]}" \
   && ok "replay(withAudio): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=${RAW_SEQ[*]})" \
   || no "replay(withAudio): activeClipColumn sequence wrong (raw=${RAW_SEQ[*]}, expected leftover then 0 1 2 3 2)"
@@ -738,11 +774,19 @@ while :; do
         # take-relative timestamps regardless of app uptime.
         [ "${#RAW_SEQ2[@]}" -eq 2 ] && [ -z "$WALLCLOCK_FIRST_CHANGE_T" ] && WALLCLOCK_FIRST_CHANGE_T="$ELAPSED"
     fi
+    FIN="$(perf_field "d.get('finished','NA')")"; is_true "$FIN" && break   # s-rta-0925: the take's real end; pre-fix: NA -> budget
     POS="$(perf_field "d.get('position','NA')")"
     awk -v p="$POS" -v l="$TAKE_LEN" 'BEGIN{exit !(p!="NA" && l!="NA" && l+0>0 && p+0>=l+0-0.25)}' 2>/dev/null && break
     awk -v e="$ELAPSED" -v b="$REPLAY_BUDGET" 'BEGIN{exit !(e+0>=b+0)}' 2>/dev/null && break
     sleep 0.25
 done
+# --- 10E. end of replay: hold, don't stop (Boris ruling 2026-09-25) -- wall-clock mirror ---
+FIN="$(perf_field "d.get('finished','NA')")"; is_true "$FIN" && ok "end(wallClock): finished == true" || no "end(wallClock): finished == $FIN"
+PL="$(perf_field "d.get('playing','NA')")"; is_true "$PL" && ok "end(wallClock): playing stays true (hold, not stop)" || no "end(wallClock): playing == $PL at the end"
+COL_END2="$(comp_active_col)"
+[ "$COL_END2" = "$LAST_EXPECTED" ] && ok "end(wallClock): last look held (activeClipColumn == $COL_END2)" || no "end(wallClock): activeClipColumn $COL_END2 != last recorded $LAST_EXPECTED"
+SRC3="$(perf_field "d.get('inputSource','NA')")"
+[ "$SRC3" = "input" ] && ok "end(wallClock): inputSource still input (wall-clock never touches it)" || no "end(wallClock): inputSource == $SRC3 (expected input, unchanged)"
 seq_matches_expected "${RAW_SEQ2[@]}" \
   && ok "replay(wallClock): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=${RAW_SEQ2[*]})" \
   || no "replay(wallClock): activeClipColumn sequence wrong (raw=${RAW_SEQ2[*]}, expected leftover then 0 1 2 3 2)"
@@ -766,6 +810,40 @@ SKIPPED2="$(perf_field "d.get('skipped','NA')")"
 [ "$SKIPPED2" = "0" ] && ok "replay(wallClock): status.skipped==0 (audio points fire on wall-clock replay)" || no "replay(wallClock): status.skipped==$SKIPPED2 (expected 0)"
 curl -s --max-time 6 -X POST "$A/api/perf/stop_play" >/dev/null
 sleep 1
+
+# --- 10F. end-of-replay + an overdub already recording when the audio ends (Boris ruling 2026-09-25,
+# RISKS #6): the overdub is ended automatically (finalize + save), exactly as Stop Recording would --
+# never a frozen-clock take. OFF by default (~35s extra replay); STEP3_END_OVERDUB=1 to run it.
+if [ "${STEP3_END_OVERDUB:-0}" = "1" ]; then
+    curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
+    END_OVERDUB_BUDGET=60
+    for i in $(seq 1 240); do
+        POS_EO="$(perf_field "d.get('positionSeconds','NA')")"; LEN_EO="$(perf_field "d.get('lengthSeconds','NA')")"
+        awk -v p="$POS_EO" -v l="$LEN_EO" 'BEGIN{exit !(p!="NA" && l!="NA" && p+0>=l+0-4)}' 2>/dev/null && break
+        sleep 0.25
+    done
+    curl -s --max-time 6 -X POST "$A/api/perf/record" -H 'Content-Type: application/json' \
+      -d "{\"name\":\"step3gate1end\",\"overdubAssetId\":\"$ASSET\"}" >/dev/null
+    sleep 0.5
+    REC_EO="$(perf_field "d.get('recording','NA')")"; OD_EO="$(perf_field "d.get('overdub','NA')")"
+    is_true "$REC_EO" && is_true "$OD_EO" && ok "end-overdub: recording && overdub true right after arm" \
+      || no "end-overdub: recording=$REC_EO overdub=$OD_EO right after arm (expected both true)"
+    FIN_EO=""
+    for i in $(seq 1 40); do
+        FIN_EO="$(perf_field "d.get('finished','NA')")"; is_true "$FIN_EO" && break
+        sleep 0.25
+    done
+    is_true "$FIN_EO" && ok "end-overdub: finished == true" || no "end-overdub: finished == $FIN_EO (budget 10s)"
+    REC_EO2="$(perf_field "d.get('recording','NA')")"; OD_EO2="$(perf_field "d.get('overdub','NA')")"; PL_EO="$(perf_field "d.get('playing','NA')")"
+    { ! is_true "$REC_EO2"; } && ok "end-overdub: recording == false (auto-ended at the audio's end)" || no "end-overdub: recording == $REC_EO2 (expected false)"
+    { ! is_true "$OD_EO2"; } && ok "end-overdub: overdub == false" || no "end-overdub: overdub == $OD_EO2 (expected false)"
+    is_true "$PL_EO" && ok "end-overdub: playing stays true (hold, not stop)" || no "end-overdub: playing == $PL_EO (expected true)"
+    [ -f "$TAKES_DIR/step3gate1end.adna-take/take.json" ] && ok "end-overdub: take.json saved" || no "end-overdub: take.json missing"
+    curl -s --max-time 6 -X POST "$A/api/perf/stop_play" >/dev/null
+    sleep 1
+else
+    echo "  (skipping 10F end-overdub row -- set STEP3_END_OVERDUB=1 to run it, ~35s extra)"
+fi
 
 # --- 11. overdub safety (R5) ---------------------------------------------
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
