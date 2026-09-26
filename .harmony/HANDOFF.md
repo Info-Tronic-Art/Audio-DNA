@@ -3,50 +3,79 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0924b (2026-09-25). The newest dated
-section is at the END of this file ("# >>> SESSION s-rta-0924b"); read it first, then the SCREEN-SAFETY
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0925 (2026-09-25 → 09-26). The newest dated
+section is at the END of this file ("# >>> SESSION s-rta-0925"); read it first, then the SCREEN-SAFETY
 LAW section. Everything between is history — older blocks lose to the end sections.
 
-STATE: the performance recorder is usable from the UI — Browser › Record panel (step 4) BUILT, critic-
-panelled, fixed and live-verified. Onset-reactive visuals no longer miss or double beats. Recorder clock,
-stop-time audio loss and the 5 s REST stall on bodyless POSTs all FIXED. ctest 445. Gates on main:
-probe-step3 69/0, probe-onset-render 13/0, probe-finalize-loop 40/0, STEP3_LONG 20 min 82/0.
-BORIS RULING (binding): NO Bluetooth audio ever — only hard-wired input or the onboard mic.
+STATE: recorder replay now snaps back to the look at Record, holds the last look at the end, and hands the
+input back to live; manual Resync re-aligns oscillators; one master fader (top right = Composition Master);
+NEW Master Signal fader (post-analysis signal depth; Gain untouched). All 10 of Boris's open calls ANSWERED
+(.harmony/binding-decisions.md 2026-09-25). ctest 539/539; everything pushed.
+RIG FACTS (binding): NO Bluetooth audio. NO Xcode (Boris removed it) — build with Command Line Tools only.
 
 START HERE, in order:
-1. Boris's open calls (end section, "STILL OPEN FOR BORIS") — deliver ONE at a time, plain words. He has
-   a page: .harmony/.reports/s-rta-0924b/record-panel-for-boris.html (open it for him if he asks).
-2. Next roadmap step of the recorder spec (.harmony/specs/s167-performance-log-and-routines.md §5 Build
-   order, D14) after step 4 — read the spec and plan it (architect → critic → build → review → live gate).
-3. Step 4 deferred polish (fix-plan §2, .harmony/.reports/s-rta-0924b/step4-visual/fix-plan.md): stale
-   notice persists into later states; "Comp/Decks" tab clipped (BrowserPanel.cpp:74); disabled-reason captions.
-4. downbeatDetected has the same one-hop pulse class as onsets (TopBar.cpp:232) — apply OnsetPulse pattern.
+1. OPEN BUG (pre-existing, user-visible): a clip with ONE clip effect + a LAYER effect at opacity 1 renders
+   BLANK. Live check: .harmony/probe-effects-parity.sh (RED now, 2/3 FAIL). The ms-white2 fix (applyClipEffects
+   writeFBO chosen away from inputTex) did NOT fix it live — diagnosis-2's mechanism is incomplete
+   (.harmony/.reports/s-rta-0925/ms-white-diagnosis-2.md). Diagnose definitively live (pixel-decoded), fix, gate.
+2. probe-step3 row "end(withAudio): inputSource == file during replay" FAILS 2/2 since the render merges
+   (92/1); no audio/recorder code changed since it passed (ESTABLISHED). Cheapest test: poll inputSource for
+   1 s after /api/perf/play. Probably probe timing; prove it.
+3. Recorder spec step 7 docs (.harmony/.reports/s-rta-0925/plan-roadmap.md §4): APP-INVENTORY + CLAUDE.md
+   counts — DERIVE by command (REST paths: code has 28 non-perf /api paths vs doc 24).
+4. Polish: "Deck Load" button clipped to "Deck Loa"; "No clip selected" overlaps the Clip-tab dashboard knobs;
+   critic panel on the new Master Signal fader (window-only shot).
+5. Next roadmap: L-R Routines slice 1 (plan-roadmap.md §1; Boris's product calls already answered).
 
-Rig rules that cost runs: fail-first in a SCRATCH build dir or a lane worktree (reuse main's
-build/_deps via -DFETCHCONTENT_SOURCE_DIR_<NAME>), never ./build; run probes from the MAIN checkout (.venv);
-launch the app with `open -g` and capture ONLY its window (screencapture -l <CGWindowID>) — Boris works on
-this Mac; never embed "MacOS/Audio-DNA" in a watcher (use 'MacOS/Audio-DN[A]'); live-app agents: NO
-debugger, NO GUI input; `open --stderr` APPENDS (clear logs first); send REST POSTs with a body in
-scripts anyway; `git add -f` under .harmony/ and check `git show --stat HEAD`; REPORT_FILE paths under
-<repo>/.harmony/.reports/. Workflow fix-loops must key on a structured verdict, not regex on prose.
-COUNTS: run them — ctest 445/445 at close; unpushed 0.
+Rig rules that cost runs (all hit this session): BEFORE a batch of worktree lanes run df -h
+/System/Volumes/Data (need 8 GB/lane + 20 GB headroom; max 3 build lanes); remove each worktree the turn it
+merges; builders delete their scratch build. Packets: "NEVER run lldb/debugserver/gdb on ANY binary" (Touch
+ID dialog), agents NEVER full-screen screencapture (Quartz window list only), fence each lane's files and name
+what it must NOT fix. Render gates DECODE PIXELS (never PNG md5) and assert non-blank; LOOK at one frame
+before accepting. Every new probe: run it on the pre-change build first (RED), then GREEN. After a merge that
+touches CMakeLists run `cmake -S . -B build` before building. Launch the app only with `open -g`; watchers use
+'MacOS/Audio-DN[A]'; `git add -f` under .harmony/. Reviews said PASS three times on live-broken work this
+session — the live gate is the verdict.
+COUNTS: run them — ctest 539/539 at close; unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0924b -->
-BUILD: Audio-DNA live VJ app. Arc: the performance recorder (record a show once, redo the knob work
-against it) — now usable from the Record panel.
-SHIPPED: Record panel (step 4) · onset visuals exact (no missed/double beats) · recorder clock starts at
-Record (replay no longer delayed) · real playback length · no audio lost at Stop · REST commands no longer
-stall 5 s · 10/20-minute timing proof (no drift) · Bluetooth crash root-caused (JUCE bug; Bluetooth ruled out).
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0925 -->
+BUILD: Audio-DNA live VJ app. Arc: the performance recorder + control surface cleanup.
+SHIPPED: replay snaps back to the Record-time look · replay end holds the last look, input back to live ·
+manual Resync re-aligns oscillators · one master fader · duplicate Opacity knob gone · right-click resets the
+Composition sliders · Master Signal fader (scales only signals; Gain stays) · Record panel polish + "Compositions"
+tab · Per-Type row overlap fixed · resized+effect clips no longer render blank · bar-start signal documented as a
+beat-long level · flaky thumbnail test fixed · all 10 Boris calls answered.
 IN-FLIGHT: none. Tree clean, everything pushed.
-NEXT: (1) Boris's calls (page ready) · (2) plan the next recorder step · (3) Record panel polish ·
-(4) downbeat pulse same fix as onsets.
+NEXT: (1) clip-effect + layer-effect blank frame (open, pre-existing) · (2) prove the inputSource probe row ·
+(3) step-7 docs · (4) Deck Load / No-clip-selected / fader critic · (5) Routines slice 1.
 BLOCKERS: none.
-YOU ARE HERE: you can record, stop, load, replay and record over a take from the app's Record tab; all
-proven live.
+YOU ARE HERE: record → replay (snap-back, hold at end) works live; control surface has one master + a signal
+depth fader; one pre-existing rendering bug left to kill.
 
-## LOOSE-ENDS LEDGER — s-rta-0924b (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0925 (CURRENT)
+
+1. [OPEN, HIGH] clip effect + layer effect at opacity 1 → blank frame (probe-effects-parity.sh RED). Fix attempt
+   ms-white2 did not work live. Pre-existing.
+2. [OPEN] probe-step3 "inputSource == file during replay" 92/1 — inferred probe timing (no audio code changed).
+3. [OPEN] My 11:49 all-zero B1 frames (after the first blank-frame fix) never reproduced in 3+ reruns — unexplained;
+   inferred first-launch-after-link condition. If a probe-mastersignal run ever shows a blank B1 again, keep the app
+   and pixel-dump it.
+4. [OPEN, low] step-7 docs; REST/OSC count drift (code 28 non-perf /api paths vs doc 24).
+5. [OPEN, low] "Deck Loa" clipped button; "No clip selected" overlaps Clip-tab knobs; Master Signal fader not yet
+   critic-panelled or seen by Boris; TopBar width at 1728 pt only verified headless.
+6. [OPEN, low] Master Signal: no Composition-inspector Signal knob (picker-connect UI); checkpoint0 does not capture
+   masterSignal/masterOpacity (replay snap-back won't restore them).
+7. [BEHAVIOUR CHANGE, told Boris] recording over a replay whose audio ends → that recording saves and stops there.
+8. [OPEN, low] Tier-1 effects pytest not run after the render changes (Eyes render_frame skips the effect chain).
+9. WARN fable-usage-audit: LAW11-LOG-GAP — Fable architect dispatches with no DISPATCH_LOG rows (a foreign-repo
+   secondary cannot write Harmony_Main DISPATCH_LOG); 7 Fable plans on disk, all followed (critic-passed, built).
+10. Carried: JUCE 8.0.8 bump before any wired interface; pre-45667cb takes' timestamps; reversed-clip pad check;
+    first-8 ms onset marking; settings.local.json disables clangd-rta/graphify-rta (Boris).
+11. .harmony/.harmony-version and AGENTS.md dirty/untracked at boot — not this session's; left untouched.
+
+## (HISTORICAL, s-rta-0924b — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0924b
 
 1. [TRIGGERED-DEFERRAL] JUCE 8.0.4 → 8.0.8 (buffer-size overflow, upstream f6df3e3): do it BEFORE any wired
    audio interface is used — plan + fallback patch: .harmony/.reports/s-rta-0924b/bt-crash-fix-plan.md.
@@ -2839,3 +2868,43 @@ app window, no overlay, no dialog) and then deleted.
 
 ## COUNTS — run them, never inherit them
 ctest 445/445. Unpushed 0 at the final push.
+
+---
+
+# >>> SESSION s-rta-0925 (2026-09-25 18:23 → 2026-09-26, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+All ten of Boris's calls answered and the buildable ones built: replay snaps back and holds at its end, Resync
+re-aligns oscillators, one master fader, a new Master Signal fader, plus a pre-existing blank-frame render bug found
+(half fixed). Session log: .harmony/sessions/2026-09-26-s-rta-0925-secondary.md; running log .harmony/s-rta-0925-work.md.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every one; each new probe RED on the pre-change build first)
+ctest 539/539 · probe-mastersignal 22/0 ×3 (pixel oracle) · probe-resync 16/0 · probe-onset-render 13/0 ·
+probe-downbeat-level 14/0 · probe-step3 92/1 (open row) · probe-effects-parity RED (open bug) · OSC master link
+0.3 → both controls 0.30 · window-only critic panel on Record states + Composition tab.
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK
+- Drag the new Master Signal fader (top right) to 0 with a connected knob: the knob should sit still, beat effects
+  keep pulsing; does the fader read clearly next to Master?
+- Right-click any Composition-tab slider: it snaps back to its default.
+- Play a take to its end: it should hold the last look and the Record panel should say it finished.
+- Press Resync mid-song: oscillator-driven knobs jump into step with the new downbeat.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. Packets said "no debugger" next to "the app"; a builder ran lldb on a unit test → Touch ID dialog on Boris's screen.
+2. A shooter took a full-screen "safety" capture (the gotcha allowed it); caught Boris's terminals, deleted.
+3. I ran ~10 worktree lanes without checking disk; the disk hit 0 bytes and Bash itself was blocked until Boris
+   freed space.
+4. Two parallel lanes fixed the same right-click bug — I did not fence their scope.
+5. I accepted a render gate that compared PNG file hashes; it passed on blank frames until I looked at one.
+6. I built once on a tree with an unresolved merge conflict (a .md file); no harm, but resolve before building.
+All six have rules in .harmony/gotchas.md / notebook.md.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was production mode via `open -g`, main window only; the Output window was never opened (probe
+Quartz checks: 0 Output windows). At close pgrep shows no Audio-DNA process and the on-screen window list shows no
+SecurityAgent / Audio-DNA window. No full-screen capture was taken at close (privacy rule; Quartz list is the witness).
+
+## COUNTS — run them, never inherit them
+ctest 539/539. Unpushed 0 before the close commit.
+
