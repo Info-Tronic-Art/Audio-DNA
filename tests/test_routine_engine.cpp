@@ -654,8 +654,10 @@ TEST_CASE("RoutineEngine: two routines ending in one tick are both released and 
     Rig rig;
     const ControlPath op0 = opacityKey(0);
     const ControlPath op1 = opacityKey(1);
+    const ControlPath clipKey = layerKey(0, "activeClip");
     Routine a = makeRoutine("A", 4.0, Clip::BeatSnapMode::Bar, false);
     a.lanes[op0] = continuousLane(op0, { gesture(1.0, 0.3f, 8.0, 0.3f) });   // still held at the end
+    a.lanes[clipKey] = discreteLane(clipKey, { point(1, 3.875, 4) });        // inside the skipped span
     Routine b = makeRoutine("B", 4.0, Clip::BeatSnapMode::Bar, false);
     b.lanes[op1] = continuousLane(op1, { gesture(1.0, 0.7f, 8.0, 0.7f) });
     addToBank(rig.comp, a, 0);
@@ -669,17 +671,28 @@ TEST_CASE("RoutineEngine: two routines ending in one tick are both released and 
     CHECK(rig.fd.count(Ev::Release, op0) == 0);
     CHECK(rig.fd.count(Ev::Release, op1) == 0);
 
+    CHECK(rig.fd.firedLanePoints(clipKey, 4) == 0);
     rig.runTo(8.125, 0.375);                              // ONE tick: pos 3.75 -> 4.125 for both
     CHECK(rig.slot(0).state == "idle");
     CHECK(rig.slot(1).state == "idle");
     CHECK(rig.fd.count(Ev::Release, op0) == 1);
     CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    CHECK(rig.fd.firedLanePoints(clipKey, 4) == 1);      // the point just before the end still fired
 
     const size_t logSize = rig.fd.log.size();
     rig.runTo(12.0);
     CHECK(rig.fd.log.size() == logSize);
     CHECK(rig.slot(0).skipped == 0);
     CHECK(rig.slot(1).skipped == 0);
+
+    // Both were removed from the engine, not just hidden: pad 1 fires as a NEW run (pending, then
+    // running on the next bar), never mistaken for a restart of the finished one.
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.slot(0).state == "pending");
+    rig.runTo(16.0);
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.slot(0).restarts == 0);
+    CHECK(rig.eng.status().fires == 3);
 }
 
 // === carried concern (b): the save refusal for an unmetered stretch says why, in whole words ===

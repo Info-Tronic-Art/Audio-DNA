@@ -850,7 +850,7 @@ catch_discover_tests(test_routine)
 # plan-routines-s1-final.md 6.1 cases 7-12 and 15): RoutineEngine's scheduler,
 # loop/once/stop/restart, D9 stacking, barCount parity, post-loop compaction,
 # Binding::Action::TriggerRoutine's round trip. The test_routine link set +
-# Player/RecorderClock/BindingManager (+ RoutineEngine.cpp from step 2 on).
+# Player/RecorderClock/BindingManager + RoutineEngine.cpp.
 add_executable(test_routine_engine
     test_routine_engine.cpp
     ${SRC_DIR}/model/Clip.cpp
@@ -867,6 +867,7 @@ add_executable(test_routine_engine
     ${SRC_DIR}/recording/Player.cpp
     ${SRC_DIR}/recording/RecorderClock.cpp
     ${SRC_DIR}/binding/BindingManager.cpp
+    ${SRC_DIR}/recording/RoutineEngine.cpp
 )
 target_include_directories(test_routine_engine PRIVATE ${SRC_DIR})
 target_link_libraries(test_routine_engine PRIVATE
