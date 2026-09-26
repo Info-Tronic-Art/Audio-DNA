@@ -2,8 +2,9 @@
 # probe-crossfade.sh -- s-rta-0926 xfade lane. Live witness for the clip-to-clip crossfade bug (a Dissolve
 # between two clips that BOTH have clip effects held the outgoing clip for the whole transition, then
 # hard-cut) and for the rest of its bug class: a texture held by the compositor while a later pass writes
-# the same FBO (10 cases: 6 crossfades a-f, 4 single-state g-j). Cases, fixtures and thresholds:
-# .harmony/probe-crossfade.json + the docstring of
+# the same FBO (10 cases: 6 crossfades a-f, 4 single-state g-j). s-rta-0926b render lane added crossfades
+# k-l (R3: the OUTGOING clip must keep its transform and its opacity-before-effects order). Cases, fixtures
+# and thresholds: .harmony/probe-crossfade.json + the docstring of
 # .harmony/probe-crossfade.py (which does the REST calls and decodes every PNG with PIL+numpy).
 #
 # Screen-safe: open -g (never plain open / foreground exec), no screen capture, no Output window, no
