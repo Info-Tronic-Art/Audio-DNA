@@ -1331,6 +1331,64 @@ endif()
 apply_sanitizers(test_record_panel_model)
 catch_discover_tests(test_record_panel_model)
 
+# --- test_routine_bank_model (s-rta-0926 lane 3, plan-routines-s1-final.md section 5.4/6.1 case
+# 14: the Routines pad row's click-through matrix). Header-only src/ui/RoutineBankModel.h is a
+# pure function RoutineEngine::Status -> RoutineBankView; its include chain (RoutineEngine.h and
+# the recording/ headers it pulls in) is juce_core-only, so this target links juce_core alone --
+# NEVER juce_gui_basics (no display context under ctest), same posture as test_record_panel_model.
+add_executable(test_routine_bank_model test_routine_bank_model.cpp)
+target_include_directories(test_routine_bank_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_routine_bank_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_routine_bank_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_routine_bank_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_routine_bank_model)
+catch_discover_tests(test_routine_bank_model)
+
+# --- tool_routine_strip_snapshot (s-rta-0926 lane 3 SHOTS, plan-routines-s1-final.md section 7
+# LANE 3): a ctest-EXCLUDED headless snapshot tool -- deliberately never registered with
+# catch_discover_tests, so `ctest` never runs it and it never adds file I/O to the normal suite.
+# Renders RecordPanel, with the app's own AudioDNALookAndFeel, into PNGs for the Routines strip's
+# three pad states via juce::Component::createComponentSnapshot -- no window, no peer, same
+# headless posture as test_right_click_reset's ScopedJuceInitialiser_GUI idiom. No Catch2: this is
+# a manual tool with its own main(), run by hand (not by ctest):
+#   ./tool_routine_strip_snapshot <output-directory>
+add_executable(tool_routine_strip_snapshot
+    tool_routine_strip_snapshot.cpp
+    ${SRC_DIR}/ui/RecordPanel.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+)
+target_include_directories(tool_routine_strip_snapshot PRIVATE ${SRC_DIR})
+target_link_libraries(tool_routine_strip_snapshot PRIVATE
+    juce::juce_gui_basics
+)
+target_compile_definitions(tool_routine_strip_snapshot PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(tool_routine_strip_snapshot PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+
 # --- test_httplib_bodyless_post (s-rta-0924b: a POST with no Content-Length /
 # Transfer-Encoding must not stall for CPPHTTPLIB_SERVER_READ_TIMEOUT_SECOND).
 # Headless: httplib::Server on an ephemeral loopback port + raw POSIX-socket

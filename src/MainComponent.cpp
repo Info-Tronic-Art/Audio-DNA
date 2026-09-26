@@ -1614,6 +1614,19 @@ MainComponent::MainComponent(bool testMode, int testPort)
         rp.onStopPlay = [this] { return perfStopPlay(); };
         rp.onLoad     = [this](const juce::File& f) { return perfLoad(f); };
         rp.onRepair   = [this] { return perfRepair(); };
+
+        // Routines strip (s-rta-0926 lane 3): the SAME funnel /api/routine/* uses.
+        rp.onFireRoutine  = [this](int slot) { return perfRoutineFire(slot); };
+        rp.onStopRoutine  = [this](int slot) { return perfRoutineStop(slot, false); };
+        rp.onSaveRoutine  = [this](const juce::String& name, int fromBar, int toBar) {
+            ApiServer::RoutineSaveOpts o;
+            o.name = name;
+            o.useBars = true;
+            o.fromBar = fromBar;
+            o.toBar = toBar;
+            return perfRoutineSave(o);
+        };
+        rp.onRoutineStatus = [this] { return routineEngine_.status(); };
     }
     browserPanel_->getSourcesBrowser().onSourceActivated = [this](const juce::String& sourceId) {
         auto* deck = composition_.getActiveDeck();
