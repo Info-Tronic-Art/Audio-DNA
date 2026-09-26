@@ -1359,3 +1359,10 @@ unreached GL calls sit unexecuted at runtime — the test still runs headless an
 **Valid while:** SignalRegistry's default-signal construction still instantiates
 AudioSignal (virtual getValue), and EffectChain/ShaderManager/TextureManager/
 FullscreenQuad/LUTLoader still live in the same shape.
+
+## s-rta-0925 — two lanes fixed the same bug (my packet did not fence scope)
+- Wave 2's opacity lane also fixed the right-click bug (Boris's report sat in the same conversation; the
+  opacity plan pulled it in), while the rclick lane fixed it separately -> overlapping edits to
+  UniversalParamControl.{h,cpp}. Resolved by merging opacity and a reconcile lane (lane/0925-rclick2).
+  Habit: every parallel lane packet names what it must NOT fix and which lane owns it ("right-click reset
+  is lane rclick's — do not touch ResettableSlider/UniversalParamControl reset paths").
