@@ -199,14 +199,16 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
     // never read.
     clock_.tick(snap, wallNow, 0);
     const double beat = clock_.now().beat;
-    const double wholeBeat = std::floor(beat);
 
-    // Step 2: edges, then the trackers.
+    // Step 2: edges, then the trackers. The Beat edge is the TRACKER's beat -- its beatPhase
+    // sawtooth wrap, the rule a Beat-quantized clip uses (Autopilot.cpp) -- never a whole beat of
+    // clock_, whose zero sits wherever the tracker was when the clock started or re-locked
+    // (s-rta-0926 routine-grid).
     const bool barEdge = haveTicked_ && snap.totalBarCount != lastTotalBar_;
-    const bool beatEdge = haveTicked_ && wholeBeat != lastWholeBeat_;
+    const bool beatEdge = haveTicked_ && snap.beatPhase < lastBeatPhase_ - 0.5f;
     lastTotalBar_ = snap.totalBarCount;
     lastBarCount_ = snap.barCount;
-    lastWholeBeat_ = wholeBeat;
+    lastBeatPhase_ = snap.beatPhase;
     haveTicked_ = true;
     beatAvailable_ = beatAvailable;
 

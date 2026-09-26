@@ -134,7 +134,7 @@ private:
     bool haveTicked_ = false;
     uint32_t lastTotalBar_ = 0;
     uint16_t lastBarCount_ = 0;
-    double lastWholeBeat_ = 0.0;
+    float lastBeatPhase_ = 0.0f;     // the tracker's beatPhase last tick (Beat edge = its wrap)
     bool beatAvailable_ = false;
     int fires_ = 0;
     std::string lastError_;

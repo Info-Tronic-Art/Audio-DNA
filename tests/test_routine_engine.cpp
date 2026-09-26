@@ -579,6 +579,27 @@ TEST_CASE("RoutineEngine: quantize Off and Beat; 2 Bar and 4 Bar parity comes fr
         CHECK(rig.slot(0).state == "running");
     }
 
+    // s-rta-0926 routine-grid: the Beat edge is the tracker's beat (its beatPhase wrap -- the same
+    // rule a Beat-quantized clip uses, Autopilot.cpp), never a whole beat of the engine's own
+    // integrated clock, whose zero sits wherever the tracker happened to be when it first locked.
+    SECTION("Beat starts on the tracker's beat when the tracker locked mid-beat")
+    {
+        Rig rig;
+        addToBank(rig.comp, routine(Clip::BeatSnapMode::Beat), 0);
+        FeatureSnapshot unmetered = rig.snap();   // the app starts with no tempo
+        unmetered.bpm = 0.0f;
+        unmetered.beatPhase = 0.0f;
+        rig.eng.tick(unmetered, 0.0, rig.comp, rig.forced, false);
+        rig.beat = 0.8125;                        // the tracker locks 0.8125 into a beat
+        rig.tick();
+        rig.runTo(2.5);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.9375);
+        CHECK(rig.slot(0).state == "pending");
+        rig.runTo(3.0);
+        CHECK(rig.slot(0).state == "running");
+    }
+
     SECTION("2 Bar: an edge where totalBarCount is even but barCount is odd does NOT start")
     {
         Rig rig;
@@ -716,4 +737,91 @@ TEST_CASE("RoutineEngine::saveRefusalText: an unmetered slice is refused in whol
     const std::string other = RoutineEngine::saveRefusalText("the end of the range must come after its start");
     CHECK(other.find("the end of the range must come after its start") != std::string::npos);
     CHECK(other.rfind("Could not save the routine", 0) == 0);
+}
+
+// === s-rta-0926 routine-grid: a move keeps its place -- in the take, in the cut, on the grid ===
+//
+// The gate take: Record pressed 0.84 of the way through beat 4 of a bar (meta.startBeatInBar 3.84),
+// one move 0.6 s later (120 BPM: 1.2 beats after Record = 1.04 beats into bar 1). Driven through the
+// REAL RecorderClock (seeded mid-beat, which every earlier test avoided) so the take's beat stamps
+// are what the app writes. Cut from Record the move is 1.2 routine beats in (0.6 s after the bar the
+// routine starts on -- the probe's grid); cut on bar lines it keeps its place in the bar (1.04).
+TEST_CASE("Routine: a move keeps its place in the bar when Record fell late in a bar", "[routine][engine][bargrid]")
+{
+    EffectLibrary lib;
+    lib.registerDefaults();
+
+    auto tracker = [](double phase) {
+        FeatureSnapshot s;
+        s.clear();
+        s.bpm = 120.0f;
+        s.trackerState = 2;
+        s.beatPhase = static_cast<float>(phase);
+        return s;
+    };
+    RecorderClock clock;
+    double phase = 0.84, wall = 0.0;
+    clock.tick(tracker(phase), wall, 0);
+    for (int i = 0; i < 72; ++i)   // 0.6 s at 120 Hz
+    {
+        wall += 1.0 / 120.0;
+        phase = std::fmod(phase + 1.0 / 60.0, 1.0);
+        clock.tick(tracker(phase), wall, 0);
+    }
+    const ClockStamp moveAt = clock.now();
+
+    const ControlPath playKey = layerKey(0, "activeClip");   // deck-relative, as a routine lane is keyed
+    ControlPath recorded = playKey;
+    recorded.deckRelative = false;                            // as the take records it
+
+    Take take;
+    take.meta.startBeatInBar = 3.84;
+    take.tempo = clock.tempo();
+    DiscretePoint p;
+    p.s = { 1, moveAt.t, 0 };
+    p.beat = moveAt.beat;
+    p.bpm = 120.0f;
+    p.v = 1;
+    take.lanes[recorded] = discreteLane(recorded, { p });
+
+    auto cut = [&](double fromBeat, double toBeat) {
+        SliceRequest req;
+        req.fromBeat = fromBeat;
+        req.toBeat = toBeat;
+        req.name = "Cut";
+        SliceResult res = sliceRoutine(take, req, lib);
+        REQUIRE(res.error.empty());
+        REQUIRE(res.routine.has_value());
+        return *res.routine;
+    };
+    auto moveBeat = [&](const Routine& r) {
+        auto it = r.lanes.find(playKey);
+        REQUIRE(it != r.lanes.end());
+        REQUIRE(it->second.points.size() == 1);
+        return it->second.points[0].beat;
+    };
+
+    // Cut from Record (the probe's "fromBeat 0"): 1.2 routine beats = +0.6 s at 120 BPM.
+    CHECK(moveBeat(cut(0.0, 16.0)) == Approx(1.2).margin(1e-3));
+
+    // Cut on bar lines (bars 1 to 4): the move is 1.04 beats into its bar, as it was recorded.
+    CHECK(takeBeatOfBar(take, 1) == Approx(0.16).margin(1e-9));
+    Routine onBars = cut(takeBeatOfBar(take, 1), takeBeatOfBar(take, 5));
+    CHECK(moveBeat(onBars) == Approx(1.04).margin(1e-3));
+
+    // ... and the engine plays it 1.04 beats after the downbeat it starts on (Rig: 1/16-beat ticks,
+    // the routine starts on the bar at beat 4, so the move fires on the tick at 5.0625, not before).
+    Rig rig;
+    onBars.uuid = "bars";
+    onBars.quantize = Clip::BeatSnapMode::Bar;
+    addToBank(rig.comp, onBars, 0);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.0);
+    CHECK(rig.slot(0).state == "running");
+    rig.runTo(5.0);
+    CHECK(rig.fd.firedLanePoints(playKey, 1) == 0);
+    rig.runTo(5.0625);
+    CHECK(rig.fd.firedLanePoints(playKey, 1) == 1);
 }
