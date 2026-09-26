@@ -1,0 +1,11 @@
+{
+  "name": "v12-perclip-odd-plus-layereffect", "activeDeckIndex": 0, "masterOpacity": 1.0,
+  "decks": [ { "name": "A", "id": 0, "numColumns": 1, "layers": [
+    { "name": "L1", "id": 0, "opacity": 1.0, "visible": true, "blendMode": 1,
+      "layerEffects": [ { "name": "Saturation", "enabled": true, "bypassed": false, "dryWet": 1.0, "params": [0.8] } ],
+      "clips": [ { "name": "img", "id": 1, "mediaType": 1, "mediaFile": "/Users/boriskarpman/projects/RealTimeAudio/media/P16_01_baseline.png",
+        "effects": [ { "name": "Hue Shift", "enabled": true, "bypassed": false, "dryWet": 1.0, "params": [0.5] } ]
+      } ]
+    }
+  ] } ]
+}
