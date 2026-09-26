@@ -71,10 +71,21 @@ void MacroPanel::refresh()
 {
     if (!macroBank_) return;
 
-    // Update macro values from signal sources
-    if (signalRegistry_)
-        macroBank_->updateValues(*signalRegistry_);
-
+    // s-rta-0925 mastersignal Step 0 (folds critic-plan-mastersignal.md
+    // finding F1, BLOCKING): DISPLAY-ONLY, matching the L9 precedent already
+    // established for EffectStackView/ClipInspector::tickModulation(). This
+    // used to also RECOMPUTE macro.currentValue via
+    // macroBank_->updateValues(*signalRegistry_) -- a second, independent
+    // writer of the SAME field the 120Hz MainComponent::tickFeaturePipeline
+    // tick already keeps current, reached from this ~10Hz Inspector-refresh
+    // timer (MainComponent.cpp) whenever any Inspector tab is open (i.e.
+    // essentially always). Harmless today (both call sites compute the exact
+    // same value from the exact same signal), but Step 1's Master Signal
+    // depth scaling can only be threaded through the ONE authoritative
+    // writer -- a second un-hoisted writer here would re-snap a
+    // depth-scaled macro back to full signal strength ~10x/sec, reopening
+    // the double-application-class bug this whole connection engine exists
+    // to close. refresh() only needs to READ currentValue for display.
     for (int i = 0; i < MacroBank::kNumMacros; ++i)
     {
         auto& macro = macroBank_->getMacro(i);

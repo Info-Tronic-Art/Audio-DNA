@@ -141,6 +141,19 @@ public:
     // range/invert controls write conn_->shape directly.
     void bindConnection(ParamConnection* conn, LiveValue* live);
 
+    // Drops the binding WITHOUT dereferencing conn_/live_ (s-rta-0925
+    // mastersignal Step 0). For owners about to destroy or reallocate the
+    // bound ParamConnection/LiveValue element (row rebuild, vector erase) --
+    // bindConnection(nullptr, nullptr) and the destructor both dereference
+    // the OLD conn_ to release an active grip, which is a use-after-free if
+    // the element is already gone. Call this FIRST, then let the structural
+    // edit happen, then rebuild fresh bindings.
+    void forgetConnection() { conn_ = nullptr; live_ = nullptr; }
+
+    // Test seam (s-rta-0925 mastersignal Step 0): which connection this
+    // widget is currently bound to, or nullptr.
+    const ParamConnection* boundConnection() const { return conn_; }
+
     // Check if this parameter has any source connected (not Manual)
     bool isConnected() const { return conn_ ? conn_->isConnected() : sourceMode_ != SourceMode::Manual; }
 

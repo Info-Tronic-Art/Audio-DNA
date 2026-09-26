@@ -41,7 +41,8 @@ struct Binding
         GlobalStop,
         MasterOpacity,      // Continuous control of master opacity
         Snapshot,           // P22.7: Take a PNG screenshot
-        ToggleRecording     // P22.6: Start/stop video recording
+        ToggleRecording,    // P22.6: Start/stop video recording
+        MasterSignal        // s-rta-0925 mastersignal Step 1: continuous control of Master Signal depth
     };
     Action action = Action::TriggerClip;
 

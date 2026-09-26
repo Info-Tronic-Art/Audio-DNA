@@ -1032,7 +1032,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     const auto* def = effectLibrary_.getEffectDef(fxName);
                     if (def)
                         for (const auto& p : def->params)
-                            slot.paramValues.push_back(p.defaultValue);
+                            slot.addParam(p.defaultValue);
                     existingClip->effects.push_back(slot);
                 }
             });
@@ -1076,7 +1076,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     const auto* def = effectLibrary_.getEffectDef(fxNames[fi]);
                     if (def)
                         for (const auto& p : def->params)
-                            slot.paramValues.push_back(p.defaultValue);
+                            slot.addParam(p.defaultValue);
                     newClip.effects.push_back(slot);
 
                     deck->setClip(layerIdx, targetCol, newClip);
@@ -1147,7 +1147,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 Clip::EffectSlot slot;
                 slot.effectName = trimmed.toStdString();
                 for (const auto& p : def->params)
-                    slot.paramValues.push_back(p.defaultValue);
+                    slot.addParam(p.defaultValue);
 
                 layer->layerEffects.push_back(slot);
                 ++addedCount;
@@ -1524,6 +1524,15 @@ MainComponent::MainComponent(bool testMode, int testPort)
     inspectorPanel_->getClipInspector().onSourceParamsChanged = [this](Clip* clip) {
         if (clip && clip->mediaType == Clip::MediaType::Source)
             previewPanel_.getRenderer().updateActiveSourceParams(clip->sourceParams);
+    };
+    // s-rta-0925 mastersignal Step 0: fired by ConnectionEngine::tick (120Hz,
+    // message thread) right after a clip's sourceParams live twins publish --
+    // keeps the standalone-source path's COPY (Renderer::activeSourceParams_,
+    // taken at select time) current for connected source params even when no
+    // Inspector tab is open to drive onSourceParamsChanged above.
+    connectionEngine_.onSourceParamsPublished = [this](const Clip* clip) {
+        if (clip)
+            previewPanel_.getRenderer().updateActiveSourceParamsFor(clip->sourceType, clip->sourceParams);
     };
 
     // Cuepoint jump: seek video/image sequence to the cuepoint position
@@ -1911,6 +1920,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         manualWrite(layerScalarPath(composition_, composition_.activeDeckIndex, layerIdx, "opacity"),
                    opacity, GripKind::Decaying, Origin::Human);
     };
+    // s-rta-0925 mastersignal Step 1: same shape as onSetLayerOpacity above.
+    apiServer_->onSetMasterSignal = [this](float depth) {
+        manualWrite(compScalarPath("signal"), depth, GripKind::Decaying, Origin::Human);
+    };
     // s-rta-0923 lane 3 (plan section 3.6, site #10): the inline
     // `fx.paramValues[pi] = value;` write was removed from
     // ApiServer::handleSetParam's clip branch; this callback is now the only
@@ -2065,6 +2078,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // s-rta-0923 lane 3 (plan section 3.6, site #1): routed through the
         // manualWrite funnel (Decaying rank — OSC has no release event).
         manualWrite(compScalarPath("opacity"), level, GripKind::Decaying, Origin::Human);
+    };
+    oscHandler_.onSetMasterSignal = [this](float depth) {
+        // s-rta-0925 mastersignal Step 1: same funnel shape as onSetMaster.
+        manualWrite(compScalarPath("signal"), depth, GripKind::Decaying, Origin::Human);
     };
     oscHandler_.onSetLayerOpacity = [this](int layerIdx, float opacity) {
         // s-rta-0923 lane 3 (plan section 3.6, site #2).
@@ -3323,7 +3340,17 @@ void MainComponent::tickFeaturePipeline()
     // SignalRegistry::evaluateAll.
     signalRegistry_.evaluateAll(snap);
 
-    previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain());
+    // Master Signal (s-rta-0925 mastersignal Step 1): ONE read per tick,
+    // hoisted ABOVE all three consumers below (v1 MappingEngine, MacroBank,
+    // ConnectionEngine::Context) -- folds critic-plan-mastersignal.md's
+    // BLOCKING ordering finding. When CompScalar::Signal is itself
+    // connected this is the PREVIOUS tick's twin (~8ms lag at 120Hz,
+    // accepted) -- its own connection is evaluated at full depth
+    // regardless (ConnectionEngine.cpp's fullDepthIndex exemption), so it
+    // can still reach 0 one tick later.
+    const float signalDepth = composition_.eff(CompScalar::Signal);
+
+    previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain(), signalDepth);
 
     // L9 (modulation-freeze fix, 2026-09-05): drive the shared global
     // MacroBank and every Inspector's signal/macro-driven effect-param
@@ -3333,7 +3360,7 @@ void MainComponent::tickFeaturePipeline()
     // EffectStackView::tickModulation(). MacroBank updates first so
     // tickModulation()'s getMacroValue() reads this tick's value rather than
     // the previous one.
-    globalMacroBank_.updateValues(signalRegistry_);
+    globalMacroBank_.updateValues(signalRegistry_, signalDepth);
 
     // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B1, critic A3): the
     // recorder's clock tick + Player::advanceTo run BEFORE the connection
@@ -3366,7 +3393,7 @@ void MainComponent::tickFeaturePipeline()
                         : 1.0f / static_cast<float>(kMappingTickHz);
     lastConnTick_ = now;
     ConnectionEngine::Context ctx{ signalRegistry_, globalMacroBank_, snap, dt, now,
-                                   composition_.gripHoldMs, composition_.handBackGlideMs };
+                                   composition_.gripHoldMs, composition_.handBackGlideMs, signalDepth };
     connectionEngine_.tick(composition_, ctx);
 
     if (inspectorPanel_) inspectorPanel_->tickModulation();
@@ -6503,6 +6530,9 @@ void MainComponent::buildBindableTargets(std::vector<BindingOverlay::BindableTar
     gx += gw + gap;
     targets.push_back({ { gx, topY, gw, gh }, "Master Opacity",
                          Binding::Action::MasterOpacity, 0, 0, 0, 0, 0 });
+    gx += gw + gap;
+    targets.push_back({ { gx, topY, gw, gh }, "Master Signal",
+                         Binding::Action::MasterSignal, 0, 0, 0, 0, 0 });
 
     // Column triggers
     int colStartX = 240; // Approximate: after layer strip area
@@ -6777,6 +6807,11 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         case Binding::Action::MasterOpacity:
             // s-rta-0923 lane 3 (plan section 3.6, site #4).
             manualWrite(compScalarPath("opacity"), value, GripKind::Decaying, Origin::Human);
+            break;
+
+        case Binding::Action::MasterSignal:
+            // s-rta-0925 mastersignal Step 1: same funnel shape as MasterOpacity.
+            manualWrite(compScalarPath("signal"), value, GripKind::Decaying, Origin::Human);
             break;
 
         case Binding::Action::AdjustLayerOpacity:

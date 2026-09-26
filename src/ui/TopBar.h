@@ -39,6 +39,9 @@ public:
     // Test seam (tests/test_master_opacity_link.cpp); production wiring
     // lives in TopBar.cpp.
     ResettableSlider& getMasterLevelSlider() { return masterLevelSlider_; }
+    // Test seam (tests/test_master_signal_link.cpp); production wiring
+    // lives in TopBar.cpp. Master Signal (s-rta-0925 mastersignal Step 1).
+    ResettableSlider& getMasterSignalSlider() { return masterSignalSlider_; }
 
     // s-rta-0925 link: pull the fader from the model -- manual field when
     // not connected, toNorm(eff()) when a signal drives it (same rule as
@@ -46,6 +49,15 @@ public:
     // from timerCallback (15 Hz) and directly by tests
     // (tests/test_master_opacity_link.cpp).
     void syncMasterFromComposition();
+    // Same rule, for the Signal fader / CompScalar::Signal (tests/
+    // test_master_signal_link.cpp).
+    void syncMasterSignalFromComposition();
+
+    // Layout test seams (tests/test_master_signal_link.cpp): confirm the
+    // "Signal:" label sits to the right of the existing Fade slider (no
+    // overlap with the widget immediately to its left in the bar).
+    juce::Rectangle<int> masterSignalLabelBoundsForTest() const { return masterSignalLabel_.getBounds(); }
+    juce::Rectangle<int> fadeSliderBoundsForTest() const { return fadeSlider_.getBounds(); }
 
     // Access display selector
     juce::ComboBox& getDisplaySelector() { return displaySelector_; }
@@ -98,6 +110,14 @@ private:
     // === Fade Section ===
     juce::Label fadeLabel_{"", "Fade:"};
     ResettableSlider fadeSlider_;
+
+    // === Master Signal (s-rta-0925 mastersignal Step 1) ===
+    // Sits immediately left of Master: a second widget-grip view of
+    // CompScalar::Signal / Composition::masterSignal, built exactly like
+    // Master's own fader below.
+    juce::Label masterSignalLabel_{"", "Signal:"};
+    ResettableSlider masterSignalSlider_;
+    bool signalDragging_ = false;   // sync skips while dragging
 
     // === Master Level ===
     juce::Label masterLabel_{"", "Master:"};

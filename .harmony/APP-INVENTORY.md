@@ -26,8 +26,8 @@ menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle adde
 **15 transitions** (+1 deck transition) · **243 embedded shaders** · **108 sources**
 / 19 categories / 759 params (108 GUI-selectable) · **30 audio features** / 14-stage
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
-(Global bank only) · **22 REST endpoints** (all functional) ·
-**11 OSC patterns** (subsystem LIVE — port 8000, 11/11 wired, Wave 1-B 2026-07-17) · 19 binding actions · 6 feedback presets ·
+(Global bank only) · **23 REST endpoints** (all functional) ·
+**12 OSC patterns** (subsystem LIVE — port 8000, 12/12 wired, Wave 1-B 2026-07-17; `/audiodna/signal` added s-rta-0925 mastersignal Step 1) · 20 binding actions · 6 feedback presets ·
 **188 unit tests** (all PASS; 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30 AM: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard; 182 → 188 on 2026-07-30 PM2: +4 test_autopilot.cpp [FIRST autopilot coverage] + 2 test_renderer_source_confinement; 188 → 189 on 2026-08-02: +1 syphon_check_negative).
 
 **2026-07-30 PM2 SURFACE DELTA (13-item queue session — reconcile rows below when next doing a full §3 pass):** LayerStrip = NEW FX-drop-target (layer-scope stack, one undo entry) · Clip menu items now selection-gated (grayed w/o selection) · Cmd+X = second shortcut on Clip>Clear · mixed image+video Finder drop lands BOTH (one composite undo) · MilkDrop group-header drag = whole-section playlist drop (any mode); the 3 Playlist-mode controls (cycle/timing/blend) are now REAL (were decorative) · click-on-playing-cell RESTARTS video/imageseq from in-point (sources still no-op — Boris ruling pending) · genre auto-switch now reconciles preview via handleDeckSwitch · autopilot advances off Source/Image cells (was frozen) · ApiServer: 6 endpoints marshalled to message thread, ok:true-always semantics; sanitizer build variants exist (ADNA_SANITIZE); §8 candidates CLEARED this session: dead startDrag() decl removed, ReinspectTarget path removed (B8).
@@ -136,7 +136,7 @@ Source: lane-1-audio-analysis.md §2-4.
 
 ### REST API — production server (`src/api/ApiServer.cpp`, port 7070, always-on, CORS)
 
-Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wave 0).
+Source: lane-6-io-api.md. 23 endpoints; all functional (`/api/set_bpm` wired Wave 0).
 
 | # | Method | Path | Action |
 |---|---|---|---|
@@ -147,36 +147,38 @@ Source: lane-6-io-api.md. 22 endpoints; all functional (`/api/set_bpm` wired Wav
 | 5 | POST | /api/trigger_column | onTriggerColumn(column) |
 | 6 | POST | /api/set_param | set clip-effect or global-chain param |
 | 7 | POST | /api/set_layer_opacity | active-deck layer opacity |
-| 8 | POST | /api/switch_deck | onSwitchDeck(deck) |
-| 9 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
-| 10 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, downbeatDetected (level) |
-| 11 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
-| 12 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
-| 13 | POST | /api/inject_features | write FeatureBus (test/automation) |
-| 14 | POST | /api/load_image | loadImage() + 100ms GL sleep |
-| 15 | POST | /api/load_source | setActiveSource() |
-| 16 | POST | /api/set_effect | enable/disable + params on global-chain effect |
-| 17 | GET | /api/effects | list global-chain effects |
-| 18 | GET | /api/sources | list registered source ids |
-| 19 | POST | /api/render_frame | captureFrame() to path |
-| 20 | POST | /api/reset | clear image + source + disable all effects |
-| 21 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
-| 22 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
+| 8 | POST | /api/set_master_signal | Master Signal depth (s-rta-0925 mastersignal Step 1), via manualWrite(compScalarPath("signal")) |
+| 9 | POST | /api/switch_deck | onSwitchDeck(deck) |
+| 10 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
+| 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, downbeatDetected (level) |
+| 12 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
+| 13 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
+| 14 | POST | /api/inject_features | write FeatureBus (test/automation) |
+| 15 | POST | /api/load_image | loadImage() + 100ms GL sleep |
+| 16 | POST | /api/load_source | setActiveSource() |
+| 17 | POST | /api/set_effect | enable/disable + params on global-chain effect |
+| 18 | GET | /api/effects | list global-chain effects |
+| 19 | GET | /api/sources | list registered source ids |
+| 20 | POST | /api/render_frame | captureFrame() to path |
+| 21 | POST | /api/reset | clear image + source + disable all effects |
+| 22 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
+| 23 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
 
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 17 endpoints) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
-### OSC input (`src/osc/OscHandler.cpp`) — 11 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
+### OSC input (`src/osc/OscHandler.cpp`) — 12 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 
 `startListening(8000)` is called unconditionally at startup (`MainComponent.cpp:1207-1211`,
-like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 11/11
+like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 12/12
 callbacks are now wired (`MainComponent.cpp:1132-1204`), each routing through the same
 handler as the equivalent REST/UI/MIDI path (clip/deck/snapshot → same as REST; bpm →
 manual-override tracker; layer opacity/bypass/solo/mute → active-deck layer fields; macro →
-global dashboard-link bank; effect param → global effect-chain). Delivery is on the message
+global dashboard-link bank; effect param → global effect-chain; signal → Master Signal depth,
+s-rta-0925 mastersignal Step 1). Delivery is on the message
 thread (`MessageLoopCallback`). Patterns:
 `/audiodna/clip/{layer}/{column}`, `/layer/{n}/opacity|bypass|solo|mute`, `/deck/{n}`,
-`/master`, `/bpm`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`.
+`/master`, `/signal`, `/bpm`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`.
 Port is hardcoded (no preferences UI configures it yet — matches absence of a settings store).
 
 ### Persistence (JSON via juce::var) — **COMPLETE** for model entities (Wave 1-C, 2026-07-17; was LOSSY, lane-4 F5)
@@ -209,7 +211,7 @@ Source: lanes 2 + 4.
   instantiated → 8 live macros, not 24** (`MainComponent.h:207`). Signals: AudioSignal,
   OscillatorSignal (5 shapes, BPM-locked), EnvelopeSignal (control-point, BPM-locked),
   ClipPositionSignal. (ChainedSignal removed Wave 0 — see §8.)
-- **Binding / MIDI** — `BindingManager`: **19 actions**, InputType Keyboard/MidiNote/MidiCC,
+- **Binding / MIDI** — `BindingManager`: **20 actions**, InputType Keyboard/MidiNote/MidiCC,
   3 target modes (ByPosition/ThisItem/Selected), Toggle/Momentary, Absolute/Relative CC,
   MIDI-learn capture, JSON presets. `MidiHandler` (all inputs, hot-plug).
   `MidiOutputHandler` (Launchpad/APC pad feedback, 5 pad states, change-diffed).
@@ -265,7 +267,7 @@ Source: lane-5 §3.
 | NDI output / input | REMOVED 2026-07-17 (Wave 0) — NdiOutput.h + NdiInput.h deleted (were stubs) | — |
 | Undo / redo | BUILD-COMPLETE 2026-07-19→25 (Undo v1 steps 1-9; commits 7c8d286/7921572/daa9361/6d2def4/7f87094/316a2bf/d90e953/4ee2dac/0a1c882) — ALL structural edits: clip cells, composites/column ops, layer ops (GL-fenced), deck ops (fence fixes latent renderer re-point), effect stacks ×3 scopes, clip/column TRIGGERS with same-layer merge (REST/OSC/MIDI undoable; autopilot never); Cmd+Z + dynamic menu live; tests 170. Remaining: Boris-assisted manual e2e run (.harmony/undo-v1-manual-e2e.md; TCC Allow first); known cosmetics: expanded-FX-row collapse + deck-tab highlight on undo (pre-existing refresh path, follow-up awaiting ratification); accepted risk-#5 family: playing not restored, first-trigger auto-play skip after undo | src/core/ClipCommands.h; DeckCommands.h; EffectCommands.h; EffectScope.h; TriggerCommands.h; UndoService.h/.cpp; MediaReconnect.h; .harmony/undo-v1-ledger.md; .harmony/undo-v1-manual-e2e.md |
 | Session playback | DEAD — `advancePlayback()` never called; capture = clip triggers only (6/7 record* unused) | SessionRecorder.cpp; MainComponent.cpp:2472; RecordPanel.cpp:38 |
-| OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 11/11 callbacks wired (port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:1132-1211 |
+| OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 12/12 callbacks wired (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:1132-1211 |
 | ISF import | PHANTOM — converted GLSL never compiled/queued; effect registers + shows but never renders; "Import Successful" dialog misleads | MainComponent.cpp:2426-2454 |
 | ISFShaderLoader::registerISFEffect | REMOVED 2026-07-17 (Wave 0) — dead no-op stub deleted (registerDynamic is the real path, kept) | — |
 | Shader hot-reload | INERT — all shipped shaders compiled from embedded strings; `reloadAll()` skips file-less programs | ShaderManager.cpp:115-116 |

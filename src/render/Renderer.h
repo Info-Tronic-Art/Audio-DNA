@@ -65,6 +65,15 @@ public:
     // Update the active source's parameters. Thread-safe.
     void updateActiveSourceParams(const std::vector<Clip::SourceParam>& params);
 
+    // s-rta-0925 mastersignal Step 0: re-publish a clip's sourceParams into
+    // the standalone-source copy after ConnectionEngine::tick publishes a new
+    // source-param twin, but ONLY when that clip's type still matches the
+    // active standalone source -- the standalone-source path renders a COPY
+    // taken at select time (setActiveSource), so without this the copy would
+    // never see live-connected source-param updates. Thread-safe.
+    void updateActiveSourceParamsFor(const std::string& sourceType,
+                                     const std::vector<Clip::SourceParam>& params);
+
     // Queue a camera frame for upload on the GL thread. Thread-safe.
     void queueCameraFrame(const juce::Image& frame);
 

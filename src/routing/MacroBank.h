@@ -2,6 +2,7 @@
 #include "routing/Route.h"
 #include "signal/SignalRegistry.h"
 #include "connect/ParamConnection.h"
+#include "features/SignalDepth.h"
 #include <array>
 #include <vector>
 #include <string>
@@ -70,8 +71,15 @@ public:
 
     // Update all macro values from signal registry.
     // For manual macros, currentValue = manualValue.
-    // For signal-driven macros, currentValue = signal value.
-    void updateValues(const SignalRegistry& signals)
+    // For signal-driven macros, currentValue = applyDepth(manualValue,
+    // signal value, signalDepth) -- Master Signal (s-rta-0925 mastersignal
+    // Step 1): at signalDepth < 1 a signal-driven macro sits partway toward
+    // its manual value, at 0 it sits exactly there (D3: the ONE store this
+    // macro's currentValue gets each tick -- see the sole caller,
+    // MainComponent::tickFeaturePipeline, and the critic-plan-mastersignal.
+    // md finding F1 note in MacroPanel::refresh(), which used to be a
+    // SECOND, un-hoisted writer of this same field).
+    void updateValues(const SignalRegistry& signals, float signalDepth = 1.0f)
     {
         for (auto& macro : macros_)
         {
@@ -81,7 +89,9 @@ public:
             }
             else
             {
-                macro.currentValue = signals.getCachedValue(macro.sourceSignalId);
+                macro.currentValue = applyDepth(macro.manualValue,
+                                                signals.getCachedValue(macro.sourceSignalId),
+                                                signalDepth);
             }
         }
     }

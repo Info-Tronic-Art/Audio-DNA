@@ -41,6 +41,11 @@ public:
         double now = 0.0;               // engine time, seconds
         float gripHoldMs = 250.0f;      // Decaying grip expiry (owner D15)
         float handBackGlideMs = 120.0f; // hand-back glide duration; 0 = snap (owner D14)
+        // Master Signal (s-rta-0925 mastersignal Step 1). LAST field, given
+        // a default, so every pre-existing 7-value aggregate init of this
+        // struct (tests included) stays valid unchanged; 1.0 = today's
+        // behaviour (full signal reach).
+        float signalDepth = 1.0f;
     };
 
     // Walks macros -> comp.scalarConns -> comp.globalEffects -> per deck:

@@ -1244,6 +1244,14 @@ target_link_libraries(test_per_type_autopilot_layout PRIVATE Catch2::Catch2WithM
 apply_sanitizers(test_per_type_autopilot_layout)
 catch_discover_tests(test_per_type_autopilot_layout)
 
+# --- test_signal_depth (s-rta-0925 mastersignal Step 1: SignalDepth.h's
+# applyDepth -- pure function, no JUCE.
+add_executable(test_signal_depth test_signal_depth.cpp)
+target_include_directories(test_signal_depth PRIVATE ${SRC_DIR})
+target_link_libraries(test_signal_depth PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_signal_depth)
+catch_discover_tests(test_signal_depth)
+
 # --- test_right_click_reset (s-rta-0925 rclick: ResettableSlider right-click reset
 # on the thumb AND on the IncDec text box; UniversalParamControl arms its inner
 # slider by default and a reset touches the bound connection). Headless JUCE
@@ -1337,6 +1345,48 @@ endif()
 apply_sanitizers(test_master_opacity_link)
 catch_discover_tests(test_master_opacity_link)
 
+# --- test_master_signal_link (s-rta-0925 mastersignal Step 1: the TopBar
+# Signal fader is a second widget-grip view of Composition::masterSignal /
+# CompScalar::Signal, built exactly like the Master fader above -- same
+# source list, same link-closure rationale).
+add_executable(test_master_signal_link
+    test_master_signal_link.cpp
+    ${SRC_DIR}/ui/TopBar.cpp
+    ${SRC_DIR}/features/FeatureBus.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+)
+target_include_directories(test_master_signal_link PRIVATE ${SRC_DIR})
+target_link_libraries(test_master_signal_link PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_master_signal_link PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_master_signal_link PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_master_signal_link)
+catch_discover_tests(test_master_signal_link)
+
 # --- test_resettable_slider (s-rta-0925 rclick2: reconciles lane/0925-rclick's
 # never-merged ResettableSlider test cases onto main's actual design, landed via
 # the opacity lane). Header-only class (src/ui/UniversalParamControl.h) -- no
@@ -1365,3 +1415,51 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_resettable_slider)
 catch_discover_tests(test_resettable_slider)
+
+# --- test_effect_stack_binding (s-rta-0925 mastersignal Step 0: EffectStackView
+# rows bind to the model's ParamConnection/LiveValue twins; tickModulation()
+# becomes display-only; forget-before-rebuild avoids a UAF when the backing
+# effects vector is cleared/reallocated). Same headless-JUCE-widgets harness as
+# test_right_click_reset above -- link closure grows the same way (Universal
+# ParamControl.cpp pulls in the mapping/effects/render chain transitively),
+# plus EffectStackView.cpp/EffectLibrary.cpp for the view under test.
+add_executable(test_effect_stack_binding
+    test_effect_stack_binding.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_effect_stack_binding PRIVATE ${SRC_DIR})
+target_link_libraries(test_effect_stack_binding PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_effect_stack_binding PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_effect_stack_binding PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_effect_stack_binding)
+catch_discover_tests(test_effect_stack_binding)

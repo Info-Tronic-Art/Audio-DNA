@@ -190,6 +190,38 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
         composition_.globalTransitionSpeed = static_cast<float>(fadeSlider_.getValue());
     };
 
+    // Master Signal (s-rta-0925 mastersignal Step 1) -- built exactly like
+    // the Master fader immediately below it: direct model write on change,
+    // Held grip for the duration of a drag, Decaying touch on right-click
+    // reset.
+    addAndMakeVisible(masterSignalLabel_);
+    masterSignalLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+    masterSignalLabel_.setColour(juce::Label::textColourId,
+                                 juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    addAndMakeVisible(masterSignalSlider_);
+    masterSignalSlider_.setRange(0.0, 1.0, 0.01);
+    masterSignalSlider_.setValue(1.0, juce::dontSendNotification);
+    masterSignalSlider_.setDefaultValue(1.0);
+    masterSignalSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    masterSignalSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    masterSignalSlider_.setTooltip("Master Signal: how strongly audio, oscillators and every other "
+                                   "signal move the controls they are connected to. 100% = full; "
+                                   "0% = everything sits at its hand-set value.");
+    masterSignalSlider_.onValueChange = [this] {
+        composition_.masterSignal = static_cast<float>(masterSignalSlider_.getValue());
+    };
+    masterSignalSlider_.onDragStart = [this] {
+        signalDragging_ = true;
+        composition_.scalarConns[static_cast<size_t>(CompScalar::Signal)].gripHeld();
+    };
+    masterSignalSlider_.onDragEnd = [this] {
+        signalDragging_ = false;
+        composition_.scalarConns[static_cast<size_t>(CompScalar::Signal)].release(connNow());
+    };
+    masterSignalSlider_.onResetToDefault = [this] {
+        composition_.scalarConns[static_cast<size_t>(CompScalar::Signal)].gripTouch(connNow());
+    };
+
     // Master level
     addAndMakeVisible(masterLabel_);
     masterLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
@@ -260,6 +292,7 @@ void TopBar::timerCallback()
         repaint(beatWheelBounds_.getUnion(barPhraseBounds_).expanded(2));
 
     syncMasterFromComposition();
+    syncMasterSignalFromComposition();
 }
 
 void TopBar::updateBpmDisplay()
@@ -328,6 +361,17 @@ void TopBar::syncMasterFromComposition()
     const float shown = connected ? def.toNorm(composition_.eff(CompScalar::Opacity))
                                   : composition_.masterOpacity;
     masterLevelSlider_.setValue(static_cast<double>(shown), juce::dontSendNotification);
+}
+
+void TopBar::syncMasterSignalFromComposition()
+{
+    if (signalDragging_) return;
+    const auto s = static_cast<size_t>(CompScalar::Signal);
+    const auto& def = compScalarDefs()[s];
+    const bool connected = composition_.scalarConns[s].isConnected();
+    const float shown = connected ? def.toNorm(composition_.eff(CompScalar::Signal))
+                                  : composition_.masterSignal;
+    masterSignalSlider_.setValue(static_cast<double>(shown), juce::dontSendNotification);
 }
 
 void TopBar::setFps(float fps) { currentFps_ = fps; }
@@ -568,4 +612,8 @@ void TopBar::resized()
 
     masterLevelSlider_.setBounds(rightSection.removeFromRight(70));
     masterLabel_.setBounds(rightSection.removeFromRight(42));
+
+    rightSection.removeFromRight(4);
+    masterSignalSlider_.setBounds(rightSection.removeFromRight(70));
+    masterSignalLabel_.setBounds(rightSection.removeFromRight(42));
 }

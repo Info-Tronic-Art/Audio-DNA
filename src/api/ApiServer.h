@@ -81,6 +81,10 @@ public:
     // only thing the two handlers do now.
     std::function<void(int layer, float opacity)> onSetLayerOpacity;
     std::function<void(int layer, int column, int fxIndex, int paramIndex, const std::string& paramName, float value)> onSetClipEffectParam;
+    // s-rta-0925 mastersignal Step 1: same shape as onSetLayerOpacity above --
+    // handleSetMasterSignal only parses/validates the request; the actual
+    // write is routed through MainComponent::manualWrite.
+    std::function<void(float depth)> onSetMasterSignal;
 
     // s-rta-0923 step 3 (Lane S3-C, plan section 3.4 pulled forward from build-order
     // row 5, amended per s-rta-0924 critic A5): the ONLY production-mode trigger
@@ -127,6 +131,7 @@ private:
     void handleTriggerColumn(const httplib::Request& req, httplib::Response& res);
     void handleSetParam(const httplib::Request& req, httplib::Response& res);
     void handleSetLayerOpacity(const httplib::Request& req, httplib::Response& res);
+    void handleSetMasterSignal(const httplib::Request& req, httplib::Response& res);
     void handleSwitchDeck(const httplib::Request& req, httplib::Response& res);
     void handleSnapshot(const httplib::Request& req, httplib::Response& res);
     void handleGetBpm(const httplib::Request& req, httplib::Response& res);

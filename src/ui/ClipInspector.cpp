@@ -755,6 +755,9 @@ void ClipInspector::setClip(Clip* clip, EffectScope scope)
     else
     {
         effectStackView_.setEffects(nullptr, EffectScope::none());
+        // s-rta-0925 mastersignal Step 0: forget bindings before the clear --
+        // see buildSourceParamControls()'s comment on why (UAF avoidance).
+        for (auto& pc : sourceParamControls_) pc->forgetConnection();
         sourceParamControls_.clear();
     }
     bindScalarControls();
@@ -779,7 +782,18 @@ void ClipInspector::bindScalarControls()
 
 void ClipInspector::buildSourceParamControls()
 {
-    for (auto& pc : sourceParamControls_) removeChildComponent(pc.get());
+    // s-rta-0925 mastersignal Step 0: forget bindings BEFORE clearing --
+    // sourceParamControls_[i] is bound to clip_->sourceParams[i].conn/.live,
+    // elements owned by the Clip this rebuild may be re-pointing away from
+    // (or whose vector is about to be replaced entirely). bindConnection's
+    // implicit unbind and ~UniversalParamControl both dereference the OLD
+    // conn_ to release an active grip -- a use-after-free once that Clip/
+    // vector is gone. forgetConnection() drops the pointer without touching it.
+    for (auto& pc : sourceParamControls_)
+    {
+        pc->forgetConnection();
+        removeChildComponent(pc.get());
+    }
     sourceParamControls_.clear();
     lastPushedSourceParam_.clear();
 
@@ -798,6 +812,11 @@ void ClipInspector::buildSourceParamControls()
         pc->setParamValue(sp.value);
         pc->setDefaultValue(sp.defaultValue);
         pc->setSignalRegistry(signalRegistry_);
+        // s-rta-0925 mastersignal Step 0: bind to this source param's own
+        // connection/live twin so tickModulation() below can display-sync the
+        // engine-published value, and the picker/grip/range controls write
+        // into the model's real connection instead of nothing.
+        pc->bindConnection(&sp.conn, &sp.live);
 
         auto idx = i;
         pc->onValueChanged = [this, idx](float val) {
@@ -841,10 +860,17 @@ void ClipInspector::tickModulation()
 
     if (!clip_) return;
 
-    // Drive source params from connected signals and macros. This was the
-    // packet's undercount (L9 rescope instance 4): a second, independent
-    // compute+write loop living in this same function, reading clip_->
-    // sourceParams every GL frame via CompositorEngine's sourceRenderFn_.
+    // s-rta-0925 mastersignal Step 0: DISPLAY-ONLY. The compute+write used to
+    // happen here, a second independent loop reading clip_->sourceParams
+    // every GL frame via CompositorEngine's sourceRenderFn_ (L9 rescope
+    // instance 4) -- it read through UniversalParamControl's own SourceMode/
+    // getSourceName lookup, bypassing ConnectionShaper entirely (RANGE/
+    // INVERT ignored) and every source kind it didn't special-case (BPM
+    // Sync, Clip Position). ConnectionEngine::tick (via each control's bound
+    // sp.conn/sp.live, ahead of this call in tickFeaturePipeline) is now the
+    // ONLY writer of sourceParams[i].live; this just pushes the effective
+    // value to the display and re-publishes the renderer's copy so a
+    // standalone-source render doesn't freeze on a slow-moving connection.
     if (clip_->mediaType != Clip::MediaType::Source) return;
 
     for (size_t i = 0; i < sourceParamControls_.size() && i < clip_->sourceParams.size(); ++i)
@@ -852,81 +878,38 @@ void ClipInspector::tickModulation()
         auto& pc = *sourceParamControls_[i];
         if (!pc.isConnected()) continue;
 
-        auto mode = pc.getSourceMode();
-        auto sourceName = pc.getSourceName();
-        float val = 0.0f;
-        bool found = false;
+        const auto& sp = clip_->sourceParams[i];
+        const float v = sp.live.effective(sp.value);
 
-        if ((mode == UniversalParamControl::SourceMode::Signal
-            || mode == UniversalParamControl::SourceMode::Oscillator
-            || mode == UniversalParamControl::SourceMode::Envelope)
-            && signalRegistry_)
+        // Cost trap (L9): diff against the LAST VALUE ACTUALLY PUSHED
+        // (lastPushedSourceParam_[i]), not the raw field -- a slow modulator
+        // must not be suppressed forever by a per-tick epsilon check.
+        // lastPushedSourceParam_ starts nullopt (set in
+        // buildSourceParamControls()) so the first tick after a rebuild
+        // always pushes, regardless of what value it computes.
+        bool changed = i >= lastPushedSourceParam_.size()
+            || !lastPushedSourceParam_[i].has_value()
+            || std::abs(v - *lastPushedSourceParam_[i]) > kModulationChangeEpsilon;
+
+        if (changed)
         {
-            for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
+            // pc.isVisible() is always true here (these controls are always
+            // addAndMakeVisible()'d, unlike EffectStackView's collapsible
+            // rows) -- kept for same-shape reasoning, costs nothing as a
+            // no-op. onSourceParamsChanged() must fire whenever `changed`,
+            // regardless of visibility: it feeds the renderer, not the
+            // display.
+            if (pc.isVisible())
             {
-                auto* sig = signalRegistry_->getSignalAt(s);
-                if (sig && juce::String(sig->getName()) == sourceName)
-                {
-                    val = signalRegistry_->getCachedValue(sig->getId());
-                    found = true;
-                    break;
-                }
+                pc.setSourceValue(v);
+                pc.setParamValue(v);
             }
-        }
-        else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
-        {
-            int macroIdx = -1;
-            if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
-                macroIdx = sourceName.getTrailingIntValue() - 1;
-            if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
-            {
-                val = macroBank_->getMacroValue(macroIdx);
-                found = true;
-            }
-        }
 
-        if (found)
-        {
-            // Render-critical write: unconditional, every tick, regardless of
-            // the push gate below — CompositorEngine's sourceRenderFn_ reads
-            // this every GL frame and must never see it suppressed.
-            clip_->sourceParams[i].value = val;
+            if (onSourceParamsChanged)
+                onSourceParamsChanged(clip_);
 
-            // Cost trap (L9), CORRECTED (fix-round, blocking review finding):
-            // diff against the LAST VALUE ACTUALLY PUSHED
-            // (lastPushedSourceParam_[i]), not against
-            // clip_->sourceParams[i].value — that field was just overwritten
-            // above on this same tick, so comparing against it measured
-            // PER-TICK delta, and — because onSourceParamsChanged below feeds
-            // Renderer::updateActiveSourceParams, the standalone-source
-            // render path live whenever no deck is compositing — a
-            // slow-moving connected Source param would silently freeze that
-            // RENDER OUTPUT, not just the UI display. That was the actual
-            // blocking defect: the freeze bug re-created inside its own fix.
-            // lastPushedSourceParam_ starts nullopt (set in
-            // buildSourceParamControls()) so the first tick after a rebuild
-            // always pushes, regardless of what value it computes.
-            bool changed = i >= lastPushedSourceParam_.size()
-                || !lastPushedSourceParam_[i].has_value()
-                || std::abs(val - *lastPushedSourceParam_[i]) > kModulationChangeEpsilon;
-
-            if (changed)
-            {
-                // pc.isVisible() is always true here (these controls are
-                // always addAndMakeVisible()'d, unlike EffectStackView's
-                // collapsible rows) — kept for same-shape reasoning, costs
-                // nothing as a no-op. onSourceParamsChanged() must fire
-                // whenever `changed`, regardless of visibility: it feeds the
-                // renderer, not the display.
-                if (pc.isVisible())
-                    pc.setSourceValue(val);
-
-                if (onSourceParamsChanged)
-                    onSourceParamsChanged(clip_);
-
-                if (i < lastPushedSourceParam_.size())
-                    lastPushedSourceParam_[i] = val;
-            }
+            if (i < lastPushedSourceParam_.size())
+                lastPushedSourceParam_[i] = v;
         }
     }
 }
@@ -940,10 +923,16 @@ void ClipInspector::refresh()
         macroPanel_.refresh();
 
         // Display-sync only — the compute+write now lives in tickModulation().
+        // sp.live.effective(sp.value) (s-rta-0925 mastersignal Step 0): shows
+        // the engine-published value for a connected param, the manual value
+        // otherwise.
         if (clip_->mediaType == Clip::MediaType::Source)
         {
             for (size_t i = 0; i < sourceParamControls_.size() && i < clip_->sourceParams.size(); ++i)
-                sourceParamControls_[i]->setParamValue(clip_->sourceParams[i].value);
+            {
+                const auto& sp = clip_->sourceParams[i];
+                sourceParamControls_[i]->setParamValue(sp.live.effective(sp.value));
+            }
         }
     }
     repaint();

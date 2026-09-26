@@ -136,6 +136,16 @@ void EffectStackView::setEffects(std::vector<Clip::EffectSlot>* effects, EffectS
 
 void EffectStackView::tickModulation()
 {
+    // s-rta-0925 mastersignal Step 0: DISPLAY-ONLY. The model write used to
+    // happen here (assigning signalValue straight into the slot's param
+    // vector), reading through UniversalParamControl's own SourceMode/
+    // getSourceName lookup and
+    // bypassing ConnectionShaper (RANGE/INVERT/curve ignored) and every
+    // source kind tickModulation() didn't special-case (BPM Sync, Clip
+    // Position). The engine (ConnectionEngine::tick, via each row's bound
+    // fx.paramConns[p]/fx.dryWetConn) is now the ONLY writer of
+    // paramValues/dryWet's live twins; this just pushes fx.effParam(p)/
+    // fx.effDryWet() to the display when a row is bound.
     if (!effects_) return;
 
     for (size_t i = 0; i < rows_.size(); ++i)
@@ -145,90 +155,31 @@ void EffectStackView::tickModulation()
 
         auto& fx = (*effects_)[static_cast<size_t>(row.effectIndex)];
 
-        // Apply signal-driven modulation to connected params
+        if (row.dryWetControl && row.dryWetControl->isConnected())
+            row.dryWetControl->setParamValue(fx.effDryWet());
+
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
         {
             auto& pc = *row.paramControls[p];
-
-            // If a signal source is connected, drive the param value from it
             if (!pc.isConnected()) continue;
 
-            auto mode = pc.getSourceMode();
-            auto sourceName = pc.getSourceName();
-            float signalValue = 0.0f;
-            bool found = false;
+            const float v = fx.effParam(p);
 
-            if ((mode == UniversalParamControl::SourceMode::Signal
-                || mode == UniversalParamControl::SourceMode::Oscillator
-                || mode == UniversalParamControl::SourceMode::Envelope)
-                && signalRegistry_)
+            // Cost trap (L9): diff against the LAST VALUE ACTUALLY PUSHED to
+            // the display (row.lastPushedValue[p]) so a slow modulator isn't
+            // suppressed forever by a per-tick epsilon check. lastPushedValue
+            // starts nullopt (set in rebuildRows()) so the first tick after a
+            // rebuild always pushes, regardless of what value it computes.
+            bool changed = p >= row.lastPushedValue.size()
+                || !row.lastPushedValue[p].has_value()
+                || std::abs(v - *row.lastPushedValue[p]) > kModulationChangeEpsilon;
+
+            if (changed && pc.isVisible())
             {
-                for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
-                {
-                    auto* sig = signalRegistry_->getSignalAt(s);
-                    if (sig && juce::String(sig->getName()) == sourceName)
-                    {
-                        signalValue = signalRegistry_->getCachedValue(sig->getId());
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
-            {
-                // Parse "Macro N" or "Link N" to get the index
-                int macroIdx = -1;
-                if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
-                {
-                    macroIdx = sourceName.getTrailingIntValue() - 1;
-                }
-                if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
-                {
-                    signalValue = macroBank_->getMacroValue(macroIdx);
-                    found = true;
-                }
-            }
-
-            if (found)
-            {
-                // Render-critical write: unconditional, every tick, regardless
-                // of the display gate below — CompositorEngine reads this
-                // every GL frame and must never see it suppressed.
-                fx.paramValues[p] = signalValue;
-
-                // Cost trap (L9), CORRECTED (fix-round, blocking review
-                // finding): diff against the LAST VALUE ACTUALLY PUSHED to
-                // the display (row.lastPushedValue[p]), not against
-                // fx.paramValues[p] — that field was just overwritten above
-                // on this same tick, so comparing against it measured
-                // PER-TICK delta: a slow modulator (e.g. a ~60s-period LFO)
-                // moves less than kModulationChangeEpsilon in any single
-                // 120Hz tick, so the old guard suppressed the display update
-                // forever. lastPushedValue starts as nullopt (set in
-                // rebuildRows()) so the first tick after a rebuild always
-                // pushes, regardless of what value it computes.
-                bool changed = p >= row.lastPushedValue.size()
-                    || !row.lastPushedValue[p].has_value()
-                    || std::abs(signalValue - *row.lastPushedValue[p]) > kModulationChangeEpsilon;
-
-                // setSourceValue() repaints unconditionally, so only pay for
-                // it when the displayed value actually moved AND the row is
-                // expanded (collapsed rows have their paramControls hidden
-                // via setVisible(false), see resized()). A background
-                // Inspector tab's own hidden viewport is a separate,
-                // higher-up ancestor visibility that JUCE's repaint()/
-                // internalRepaint() walk already short-circuits at for free
-                // — no extra guard needed for that case here.
-                if (changed && pc.isVisible())
-                {
-                    pc.setSourceValue(signalValue);
-                    if (p < row.lastPushedValue.size())
-                        row.lastPushedValue[p] = signalValue;
-                }
-
-                // Notify renderer
-                if (onParamChanged)
-                    onParamChanged(row.effectIndex, static_cast<int>(p), signalValue);
+                pc.setSourceValue(v);
+                pc.setParamValue(v);
+                if (p < row.lastPushedValue.size())
+                    row.lastPushedValue[p] = v;
             }
         }
     }
@@ -251,14 +202,17 @@ void EffectStackView::refresh()
         row.bypassBtn.setColour(juce::TextButton::buttonColourId,
             fx.bypassed ? juce::Colour(0xff6a3a3a) : juce::Colour(0xff333333));
 
-        // Update dry/wet control
+        // Update dry/wet control -- fx.effDryWet() (s-rta-0925 mastersignal
+        // Step 0) so a connected dry/wet displays its engine-published value,
+        // not the raw manual field.
         if (row.dryWetControl)
-            row.dryWetControl->setParamValue(fx.dryWet);
+            row.dryWetControl->setParamValue(fx.effDryWet());
 
-        // Always update the display from the current param value (including
-        // whatever tickModulation() just applied)
+        // Always update the display from the current effective param value
+        // (fx.effParam(p) -- includes whatever tickModulation() just applied
+        // for connected params, and the manual value otherwise).
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
-            row.paramControls[p]->setParamValue(fx.paramValues[p]);
+            row.paramControls[p]->setParamValue(fx.effParam(p));
     }
 
     repaint();
@@ -281,11 +235,41 @@ int EffectStackView::getPreferredHeight() const
     return std::max(h, 20);
 }
 
+UniversalParamControl* EffectStackView::paramControlForTest(int effectIndex, int paramIndex) const
+{
+    for (auto& row : rows_)
+        if (row->effectIndex == effectIndex)
+            return (paramIndex >= 0 && paramIndex < static_cast<int>(row->paramControls.size()))
+                ? row->paramControls[static_cast<size_t>(paramIndex)].get()
+                : nullptr;
+    return nullptr;
+}
+
+UniversalParamControl* EffectStackView::dryWetControlForTest(int effectIndex) const
+{
+    for (auto& row : rows_)
+        if (row->effectIndex == effectIndex)
+            return row->dryWetControl.get();
+    return nullptr;
+}
+
 void EffectStackView::rebuildRows()
 {
-    // Remove all children first
+    // Remove all children first. forgetConnection() FIRST (s-rta-0925
+    // mastersignal Step 0): the bound ParamConnection/LiveValue elements live
+    // INSIDE the EffectSlot vector this rebuild is about to re-walk (and
+    // whose backing effects_ may have just been erased/reallocated by the
+    // caller, e.g. the delete button's erase()) -- bindConnection(nullptr,
+    // nullptr) and ~UniversalParamControl both dereference the OLD conn_ to
+    // release an active grip, which is a use-after-free once that element is
+    // gone. forgetConnection() drops the pointer without touching it.
     for (auto& row : rows_)
     {
+        if (row->dryWetControl)
+            row->dryWetControl->forgetConnection();
+        for (auto& pc : row->paramControls)
+            pc->forgetConnection();
+
         removeChildComponent(&row->bypassBtn);
         removeChildComponent(&row->deleteBtn);
         if (row->dryWetControl)
@@ -379,6 +363,10 @@ void EffectStackView::rebuildRows()
                 if (auto* parent = getParentComponent())
                     parent->resized();
             };
+            // s-rta-0925 mastersignal Step 0: bind to the slot's own
+            // connection (element lives inside *effects_, sized 1:1 by
+            // construction -- no resizeParams call needed here).
+            dwc->bindConnection(&fx.dryWetConn, &fx.dryWetLive);
 
             addChildComponent(dwc.get());
             row->dryWetControl = std::move(dwc);
@@ -427,6 +415,14 @@ void EffectStackView::rebuildRows()
                 if (auto* parent = getParentComponent())
                     parent->resized();
             };
+            // s-rta-0925 mastersignal Step 0: bind to this param's own
+            // connection/live twin (parallel arrays sized 1:1 with
+            // paramValues by construction via EffectSlot::addParam -- no
+            // resizeParams call here, an unfenced message-thread reallocation
+            // would race the GL thread's effParam() read).
+            if (static_cast<size_t>(p) < fx.paramConns.size())
+                pc->bindConnection(&fx.paramConns[static_cast<size_t>(p)],
+                                   &fx.paramLive[static_cast<size_t>(p)]);
 
             addChildComponent(pc.get());
             row->paramControls.push_back(std::move(pc));
@@ -522,7 +518,7 @@ void EffectStackView::itemDropped(const SourceDetails& details)
             Clip::EffectSlot slot;
             slot.effectName = trimmed.toStdString();
             for (const auto& p : def->params)
-                slot.paramValues.push_back(p.defaultValue);
+                slot.addParam(p.defaultValue);
 
             effects_->push_back(slot);
             anyAdded = true;

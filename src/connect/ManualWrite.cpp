@@ -11,7 +11,7 @@
 namespace
 {
     // Find the index of `key` in a scalar-family's descriptor table (linear
-    // scan; N is at most 8 -- ScalarParams.h -- so this is cheap and never
+    // scan; N is at most 9 -- ScalarParams.h -- so this is cheap and never
     // hot-path: only fires on picker/inspector edits, not per render frame).
     template <size_t N>
     int findScalarIndex(const std::array<ScalarDef, N>& defs, const std::string& key)

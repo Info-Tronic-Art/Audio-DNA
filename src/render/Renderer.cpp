@@ -100,6 +100,15 @@ void Renderer::updateActiveSourceParams(const std::vector<Clip::SourceParam>& pa
     activeSourceParams_ = params;
 }
 
+void Renderer::updateActiveSourceParamsFor(const std::string& sourceType,
+                                            const std::vector<Clip::SourceParam>& params)
+{
+    std::lock_guard<std::mutex> lock(activeSourceMutex_);
+    if (!hasActiveSource_ || activeSourceType_ != sourceType)
+        return;
+    activeSourceParams_ = params;
+}
+
 void Renderer::newOpenGLContextCreated()
 {
     std::cerr << "[Renderer] GL context created. Version: "
@@ -1031,7 +1040,7 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
             {
                 if (cp.uniformName == "u_src_layer")
                 {
-                    layerParam = cp.value;
+                    layerParam = cp.live.effective(cp.value);
                     break;
                 }
             }
@@ -1067,7 +1076,7 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
             {
                 if (source->getParam(i).uniformName == cp.uniformName)
                 {
-                    source->setParamValue(i, cp.value);
+                    source->setParamValue(i, cp.live.effective(cp.value));
                     break;
                 }
             }

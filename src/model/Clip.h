@@ -84,10 +84,30 @@ struct Clip
             paramLive.resize(n);
         }
 
+        // s-rta-0925 mastersignal Step 0: the ONLY way to append a param.
+        // Keeps paramValues/paramConns/paramLive in lock-step at push time so
+        // tickEffectVector's lazy resizeParams() (ConnectionEngine.cpp) stays
+        // a production no-op -- it never reallocates paramLive out from under
+        // the GL thread's effParam() read (R-A hazard, plan-mastersignal.md
+        // section 1.1).
+        void addParam(float v)
+        {
+            paramValues.push_back(v);
+            paramConns.emplace_back();
+            paramLive.emplace_back();
+        }
+
         // Renderer read sites (s166 spec section 3.1): replaces raw
         // paramValues[p] / dryWet reads so a connected param renders its
         // engine-published value with zero renderer-side math.
-        float effParam(size_t i) const { return paramLive[i].effective(paramValues[i]); }
+        // Self-guarding (s-rta-0925 mastersignal Step 0): paramLive can be
+        // shorter than paramValues for a slot loaded/built before addParam()
+        // existed everywhere -- fall back to the manual value instead of
+        // indexing past the end of paramLive.
+        float effParam(size_t i) const
+        {
+            return i < paramLive.size() ? paramLive[i].effective(paramValues[i]) : paramValues[i];
+        }
         float effDryWet() const { return dryWetLive.effective(dryWet); }
     };
     std::vector<EffectSlot> effects;

@@ -18,6 +18,7 @@ struct Composition;
 //   /audiodna/layer/{n}/mute            — toggle layer mute (float 0/1)
 //   /audiodna/deck/{n}                  — switch to deck (float 0/1)
 //   /audiodna/master                    — master opacity (float 0-1)
+//   /audiodna/signal                    — Master Signal depth (float 0-1, s-rta-0925 mastersignal Step 1)
 //   /audiodna/bpm                       — set manual BPM (float)
 //   /audiodna/snapshot                  — take snapshot (any value)
 //   /audiodna/effect/{name}/{param}     — set effect parameter (float 0-1)
@@ -47,6 +48,7 @@ public:
     std::function<void(int layer, bool mute)> onSetLayerMute;
     std::function<void(int deckIndex)> onSwitchDeck;
     std::function<void(float level)> onSetMaster;
+    std::function<void(float depth)> onSetMasterSignal;   // s-rta-0925 mastersignal Step 1
     std::function<void(float bpm)> onSetBpm;
     std::function<void()> onSnapshot;
     std::function<void(const juce::String& effectName, const juce::String& paramName, float value)> onSetEffectParam;

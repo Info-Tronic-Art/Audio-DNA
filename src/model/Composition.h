@@ -39,6 +39,16 @@ struct Composition
     // === Composition Master ===
     float masterOpacity = 1.0f;
     float masterSpeed = 1.0f;       // Global speed multiplier
+    // Master Signal depth (s-rta-0925 mastersignal Step 1): 1 = every
+    // signal->parameter connection moves the controls it drives fully;
+    // 0 = every one of those controls sits at its hand value. Backs
+    // CompScalar::Signal; scaled in via SignalDepth.h::applyDepth at the
+    // one point where a signal enters each chain (ConnectionEngine::
+    // evaluate for non-Macro sources, MacroBank::updateValues, v1
+    // MappingEngine::processFrame) -- never on any GL thread (Boris Q2:
+    // effects/sources reading the beat clock or audio uniforms directly
+    // keep pulsing at 0%).
+    float masterSignal = 1.0f;
 
     // === CrossFader ===
     float crossfaderPhase = 0.5f;   // [0,1] A↔B
@@ -154,6 +164,7 @@ struct Composition
         activeDeckIndex = 0;
         globalEffects.clear();
         masterOpacity = 1.0f;
+        masterSignal = 1.0f;
         globalTransitionSpeed = 0.3f;
         bpmMultiplier = 1;
         quantizeMode = QuantizeMode::Off;
@@ -221,6 +232,7 @@ struct Composition
 
         // Composition master + video
         obj->setProperty("masterSpeed", static_cast<double>(masterSpeed));
+        obj->setProperty("masterSignal", static_cast<double>(masterSignal));
 
         // Crossfader
         obj->setProperty("crossfaderPhase", static_cast<double>(crossfaderPhase));
@@ -339,6 +351,12 @@ struct Composition
             // Composition master + video (guarded for backward compatibility with old presets)
             if (obj->hasProperty("masterSpeed"))
                 masterSpeed = static_cast<float>(static_cast<double>(obj->getProperty("masterSpeed")));
+            // Guarded the same way (not masterOpacity's unguarded read at
+            // masterOpacity's assignment above): an old composition without
+            // this key must load 1.0 (Boris Q3), which the field's own
+            // default already gives -- this line simply doesn't touch it.
+            if (obj->hasProperty("masterSignal"))
+                masterSignal = static_cast<float>(static_cast<double>(obj->getProperty("masterSignal")));
             // The old separate per-composition opacity key (pre-lane-3
             // presets) is a known, deliberately unrecognized key now --
             // s-rta-0923 lane 3 plan section 4.6: it merged into
@@ -525,6 +543,7 @@ inline float& manualRef(Composition& c, CompScalar s)
         case CompScalar::Rotation: return c.compRotation;
         case CompScalar::AnchorX:  return c.compAnchorX;
         case CompScalar::AnchorY:  return c.compAnchorY;
+        case CompScalar::Signal:   return c.masterSignal;
         case CompScalar::Count:    break;
     }
     static float dummy = 0.0f;   // unreachable for a valid enumerator
