@@ -488,3 +488,10 @@ checking `git status -uno` is clean or saving its diff to .harmony/.reports/) an
 concurrent build lanes at 3. (4) Scratch builds are the bulk: builders delete their scratch build dir before
 returning unless Harmony asks to keep it. (5) If Bash is blocked by a full disk, stop every running workflow
 (TaskStop) and give Boris a copy-paste cleanup command limited to MERGED worktrees.
+
+## 2026-09-26 (s-rta-0926) — critics judged the wrong code (packet named no branch)
+**What happened:** a 3-critic visual panel on a worktree lane's fix got two FAIL verdicts built on SOURCE read from
+`main` and from a DIFFERENT lane's worktree (the fix was only on its own unmerged branch); the shots showed the fix.
+**Rule:** every critic / reviewer packet PINS the artifact under review: absolute worktree path + branch + commit sha,
+plus "judge the SHOTS; if you read source, read ONLY that worktree at that commit (git -C <wt> show <sha>:<file>)".
+A verdict that cites a different HEAD than the pinned one is void — re-run that seat.

@@ -1492,3 +1492,25 @@ hand-written functions with no shared layout model.
   playing VIDEO clip; images/sources unaffected. (b) Unmetered refusal is strict: a take recorded before the tracker
   locked starts with a bpm-0 anchor at beat 0, so slicing from bar 1 is refused. (c) a synthesized restore entry for a
   never-named clip has an empty clipName -> compile report says "rebound by position" (noise, still fires).
+
+## s-rta-0926 wave 2 — xfade + fader (merged 0ecd7a7, 1908413)
+- xfade: ONE rule now owns the compositor scratch pool: src/render/ScratchPool.h pickEffectTarget(readTex, holdTex) never
+  returns the texture a pass reads nor one its caller still holds; a third pool texture (effectTex_C_) guarantees a free
+  target; with nothing held it is exactly the old A/B ping-pong. Replaces 4fca2c5's writeFBO line and the Screen Split
+  special case. Harmony RED on f43b72a: probe-crossfade 9 FAIL (a/e/f 0.00 vs 155.93/108.13/170.00, g 9.81, j 113.95).
+  Sweep (xfade-report.md): 6 more instances fixed (same-source-type shared FBO, dry/wet<1 mid-chain, Transparent layer
+  transform keying, self-routed Layer Router, clip/layer chain temporal key, A->B->A temporal save skip).
+  OPEN (inferred, not fixed): outgoing clip's temporal/ring state shares the incoming chain's key during a crossfade
+  (needs a per-clip temporal-history ruling: memory of 480-frame rings); persistent layers' temporal/ring/feedback keys
+  collide across decks (layer ids are per deck); src/effects/EffectChain.cpp mid-chain dry/wet has the same feedback
+  shape (global chain, single-image mode); applyTransition ignores the outgoing clip's transform;
+  compositePersistentLayers skips transform/feedback/layer effects; getOrCreateTemporalBuffer creates its FBO mid-pass
+  (one pass draws into FBO 0 on the creation frame). forceCopy in applyClipTransform now redundant (kept).
+  tests/test_compositor_opacity_alias.cpp + test_compositor_effects_parity.cpp mirror the REMOVED writeFBO logic — they
+  pass but no longer describe the code (retire or rewrite against ScratchPool.h).
+- fader: "Master Signal:" label, 1.00 readouts (no % — critic SHOULD), magenta accent = colour-only differentiation
+  (critic SHOULD: add a non-colour cue); the 1280-width test is structural only.
+- MY PACKET DEFECT: two fader critics FAILed on SOURCE they read from main / the other lane's worktree, not the shots or
+  the branch under review — my critic prompt named no branch/commit. HABIT (landed in .harmony/gotchas.md): every critic
+  and reviewer packet pins the artifact: worktree path + branch + commit, and "judge the shots; if you read source,
+  read ONLY <worktree> at <commit>".

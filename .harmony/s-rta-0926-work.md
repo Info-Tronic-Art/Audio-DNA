@@ -29,3 +29,10 @@ look at one decoded frame per probe.
   (lane 1a touched compile/replay + take meta only; T2 is the capture/onset path). OPEN until the DISCRIMINATOR runs:
   probe-step3 on the SAME binary with no builds running; p95 <= 15 -> load; > 15 -> real, bisect f43b72a vs e1ed9cc.
   All 92 other rows PASS incl. every replay/snap-back row (the refactor's surface). 1b launched on this basis.
+- wave2 merged: xfade 0ecd7a7 (reviewer PASS_WITH_NITS), fader 1908413 (critics: 2 FAIL verdicts VOID - they read main /
+  the xfade worktree; visual PASS; reviewer FAIL on 0-4 px label margin at 1728 pt). Harmony RED first on f43b72a:
+  probe-crossfade 9 FAIL. build/ 1908413 (cmake -S . -B build): ctest 556/556; test_master_signal_link 14/14.
+  Harmony gates: probe-crossfade 27/0 GREEN (mid frames looked at: real blend); probe-effects-parity (hardened) 39/0;
+  probe-mastersignal 22/0; window-only shot: "Master Signal:" full + 1.00 readouts + magenta vs cyan at 1728 pt
+  (reviewer's margin concern closed at the default size; narrower windows = follow-up).
+- inbox routed item (primary s234): split CLAUDE.md <= 25 KB -> workflow wjx9xqbu6 (no-loss proof + fresh-reader test).
