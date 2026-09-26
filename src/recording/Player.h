@@ -65,6 +65,16 @@ public:
     // `advanceTo`, exactly as `start()` does.
     void seek(double pos, Sink& sink);
 
+    // s-rta-0925 (D4/D9): fires every preamble entry exactly once per call, in Program order --
+    // discrete via sink.fire(), continuous via touch("held") -> set(v) -> release (release only
+    // when BOTH touch and set were accepted; a refused touch skips set() entirely, mirroring
+    // advanceTo's own `displaced` rule -- a refused touch/set leaves the human's grip alone).
+    // Never called by advanceTo/seek/swap; the owner calls it right after start(0). Carries no
+    // cursor state of its own, so a routine's loop restart (a fresh start(0) + firePreamble) always
+    // re-fires the whole preamble (D9). Returns the number of refused entries (discrete fire()
+    // refusals + continuous touch/set refusals).
+    int firePreamble(Sink& sink);
+
     // Releases every gesture this Player still holds (D5/R9: "a stopped
     // routine lets go of its hands") and stops firing discrete points.
     void stop(Sink& sink);

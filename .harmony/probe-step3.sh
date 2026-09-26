@@ -587,25 +587,76 @@ fi
 # and the real tail of the take (the second column-3->2 transition, the
 # 0.4/0.7/0.2 opacity glide) was never observed. Fix: poll at <=250ms for
 # the take's full length (perf/status position/length; length+2s budget if
-# length is unavailable), NEVER break early on reaching column 3. Replay
-# does NOT apply checkpoint0 (spec s167 D4/D14), so the first poll after
-# play always shows the pre-play leftover state -- the sequence check drops
-# that leading value and expects the recorded sequence 0,1,2,3,2 (4 clip
-# triggers then the trigger_column(2) later in the take).
+# length is unavailable), NEVER break early on reaching column 3.
+#
+# s-rta-0925 (D4 preamble, Boris ruling 2026-09-25) fail-first pin: Play now
+# restores checkpoint 0 FIRST ("the look from when Record was pressed"),
+# before the recorded lane's own first point plays. Pre-fix, this whole
+# section's snap-back checks below FAIL (the pre-play perturbation survives
+# Play unchanged -- RecorderHost::play() never applied checkpoint0, exactly
+# the gap ".harmony/binding-decisions.md" ruled on); Harmony runs this gate
+# once on the pre-fix build to observe that RED, then again after the fix to
+# see it PASS. Because the restore itself races the poll loop below, the
+# raw activeClipColumn sequence may now start with the PERTURBED column
+# and/or the RESTORED column (checkpoint0's own activeClipColumn, layer 0's
+# is -1 in this recipe -- nothing is triggered before section 5) before the
+# recorded sequence 0,1,2,3,2 (4 clip triggers then the trigger_column(2)
+# later in the take) begins -- the sequence check drops those leading
+# values, not just one.
 comp_col_op(){ jget "$A/api/composition" "'%s|%s' % (d['decks'][0]['layers'][0]['activeClipColumn'], d['decks'][0]['layers'][0]['opacity'])"; }
 EXPECTED_SEQ=(0 1 2 3 2)
+PERTURB_COL=3
+CHK_COL="$(take_field "$TAKE_FOLDER" "next(l['activeClipColumn'] for dk in d['checkpoint0']['decks'] if dk['i']==0 for l in dk['layers'] if l['i']==0)")"; CHK_COL="$(normnum "$CHK_COL")"
+CHK_OP="$(take_field "$TAKE_FOLDER" "next(l['opacity'] for dk in d['checkpoint0']['decks'] if dk['i']==0 for l in dk['layers'] if l['i']==0)")"
 # macOS ships bash 3.2 as /bin/bash (no `local -n` namerefs, added in 4.3) --
 # take the raw sequence as positional args, not by array-variable name.
 seq_matches_expected(){ # $@ = the raw (leftover-included) activeClipColumn sequence
     local -a _raw=("$@")
     local -a _observed=()
-    [ "${#_raw[@]}" -ge 1 ] && _observed=("${_raw[@]:1}")
+    # Drop LEADING elements while they are the pre-play perturbation column
+    # or the restored checkpoint0 column (only when that differs from the
+    # recorded sequence's own first value -- R10: never drops a genuine
+    # leader that happens to equal EXPECTED_SEQ[0]). Either order/count of
+    # the two leaders is accepted -- the first poll may land before or after
+    # the callAsync-marshalled restore.
+    local idx=0
+    while [ "$idx" -lt "${#_raw[@]}" ]; do
+        local val="${_raw[$idx]}"
+        if [ "$val" = "$PERTURB_COL" ] || { [ "$val" = "$CHK_COL" ] && [ "$CHK_COL" != "${EXPECTED_SEQ[0]}" ]; }; then
+            idx=$((idx+1))
+            continue
+        fi
+        break
+    done
+    _observed=("${_raw[@]:$idx}")
     [ "${#_observed[@]}" -eq "${#EXPECTED_SEQ[@]}" ] || return 1
-    local idx
-    for idx in "${!EXPECTED_SEQ[@]}"; do
-        [ "${_observed[$idx]}" = "${EXPECTED_SEQ[$idx]}" ] || return 1
+    local i
+    for i in "${!EXPECTED_SEQ[@]}"; do
+        [ "${_observed[$i]}" = "${EXPECTED_SEQ[$i]}" ] || return 1
     done
     return 0
+}
+# Perturb the look, require the pre-play landing, then Play, then poll (<=1.5s)
+# for the snap-back to checkpoint0's own (col, opacity) -- run once per replay
+# mode ($1 = "withAudio" | "wallClock", for the ok/no labels only).
+perturb_and_check_snapback(){
+    curl -s --max-time 6 -X POST "$A/api/trigger_clip" -H 'Content-Type: application/json' -d "{\"layer\":0,\"column\":$PERTURB_COL}" >/dev/null
+    curl -s --max-time 6 -X POST "$A/api/set_layer_opacity" -H 'Content-Type: application/json' -d '{"layer":0,"opacity":0.9}' >/dev/null
+    sleep 1   # > gripHoldMs: the REST write's Decaying grip must have expired, or the lane-rank restore is (correctly) refused
+    [ "$(comp_active_col)" = "$PERTURB_COL" ] && ok "snap-back($1): pre-play perturbation landed (col $PERTURB_COL, opacity 0.9)" || no "snap-back($1): perturbation did not land"
+}
+check_snapback_restored(){ # $1 = "withAudio" | "wallClock"
+    local restored="" c="" o=""
+    for i in $(seq 1 15); do
+        local co; co="$(comp_col_op)"; c="${co%%|*}"; o="${co#*|}"
+        if [ "$c" = "$CHK_COL" ] && awk -v x="$o" -v y="$CHK_OP" 'BEGIN{exit !(x-y<=0.05 && y-x<=0.05)}'; then restored="$i"; break; fi
+        sleep 0.1
+    done
+    [ -n "$restored" ] && ok "snap-back($1): layer 0 restored to checkpoint0 (col=$CHK_COL, opacity=$CHK_OP) within ${restored}00 ms of Play" || no "snap-back($1): layer 0 NOT restored within 1.5 s (col=$c opacity=$o; expected $CHK_COL/$CHK_OP)"
+    local pu pr pf
+    pu="$(perf_field "d.get('preambleUnresolved','NA')")"; [ "$(normnum "$pu")" = "0" ] && ok "snap-back($1): preambleUnresolved == 0" || no "snap-back($1): preambleUnresolved == $pu"
+    pr="$(perf_field "d.get('preambleRefused','NA')")";   [ "$(normnum "$pr")" = "0" ] && ok "snap-back($1): preambleRefused == 0"   || no "snap-back($1): preambleRefused == $pr"
+    pf="$(perf_field "d.get('preambleFired','NA')")"; awk -v x="$pf" 'BEGIN{exit !(x+0>=8)}' && ok "snap-back($1): preambleFired >= 8 ($pf)" || no "snap-back($1): preambleFired == $pf (expected >= 8: deck, quantize, 5 flags, activeClip)"
 }
 
 curl -s --max-time 6 -X POST "$A/api/perf/load" -H 'Content-Type: application/json' \
@@ -619,11 +670,13 @@ UNRES="$(perf_field "d.get('unresolved','NA')")"; UNRES="$(normnum "$UNRES")"
 TAKE_LEN="$(perf_field "d.get('length','NA')")"; TAKE_LEN="$(normnum "$TAKE_LEN")"
 REPLAY_BUDGET="$(awk -v l="$TAKE_LEN" 'BEGIN{ if (l=="NA" || l+0<=0) print 45; else print l+2 }')"
 
+perturb_and_check_snapback "withAudio"
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
+START_T=$(date +%s)
+check_snapback_restored "withAudio"
 LAST="__UNSET__"; RAW_SEQ=()
 OP_LAST=""; OP_SEEN_04=0; OP_SEEN_07=0
 WITHAUDIO_FIRST_CHANGE_T=""
-START_T=$(date +%s)
 while :; do
     CO="$(comp_col_op)"
     v="${CO%%|*}"; OP_LAST="${CO#*|}"
@@ -665,10 +718,12 @@ sleep 1
 PLAYING1="$(perf_field "d.get('playing','NA')")"
 [ "$PLAYING1" = "False" -o "$PLAYING1" = "false" ] && ok "perf/stop_play: playing==false" || no "perf/stop_play: playing==$PLAYING1"
 
+perturb_and_check_snapback "wallClock"
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":false}' >/dev/null
+START_T=$(date +%s)
+check_snapback_restored "wallClock"
 LAST="__UNSET__"; RAW_SEQ2=()
 WALLCLOCK_FIRST_CHANGE_T=""
-START_T=$(date +%s)
 while :; do
     v="$(comp_active_col)"
     ELAPSED=$(( $(date +%s) - START_T ))

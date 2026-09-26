@@ -65,13 +65,18 @@ struct RecorderHost::HostSink : Sink
             ++host.skippedCount_;
             return false;
         }
+        // s-rta-0925: a Preamble-origin Fired that is refused is counted by RecorderHost::play()'s
+        // own preambleRefused_ (via Player::firePreamble's return value), never here -- double-
+        // counting it as `skipped` too would corrupt the probe's `skipped == 1` pin for the
+        // arm-time audio point (plan section 3.4).
+        const bool isPreamble = f.p.origin == Origin::Preamble;
         if (!host.dispatch.fire)
         {
-            ++host.skippedCount_;
+            if (!isPreamble) ++host.skippedCount_;
             return false;
         }
         const bool ok = host.dispatch.fire(f);
-        if (!ok)
+        if (!ok && !isPreamble)
             ++host.skippedCount_;
         return ok;
     }
@@ -656,6 +661,8 @@ RecorderHost::PlayResult RecorderHost::play(PlayMode mode, const Composition& co
     playAssetRate_ = 0.0;
     skippedCount_ = 0;
     continuousUnavailableCount_ = 0;
+    preambleRefused_ = 0;
+    preambleFired_ = 0;
 
     if (mode == PlayMode::WithAudio)
     {
@@ -667,6 +674,12 @@ RecorderHost::PlayResult RecorderHost::play(PlayMode mode, const Composition& co
     }
 
     player_->start(0.0);
+    // s-rta-0925 (Boris ruling 2026-09-25): restore checkpoint 0 BEFORE the first lane point plays
+    // -- Player::firePreamble fires every preamble entry once, through the SAME sink every ordinary
+    // replay point uses. Deliberately BEFORE `playing_ = true`: a preamble entry that re-enters the
+    // host (however indirectly) must not observe a "replay already running" state.
+    preambleRefused_ = player_->firePreamble(*sink_);
+    preambleFired_ = program_->report.preambleCount - preambleRefused_;
     playing_ = true;
 
     res.ok = true;
@@ -775,7 +788,13 @@ void RecorderHost::publishStatus()
             s.reboundByPosition = static_cast<int>(rep.reboundByPosition.size());
             s.reboundByName = static_cast<int>(rep.reboundByName.size());
             s.invalid = static_cast<int>(rep.invalid.size());
+            // s-rta-0925 (D4 preamble, plan section 3.4): zero when not playing (the whole
+            // `if (playing_ && player_)` block is skipped then), never a stale value from a prior play.
+            s.preambleCount = rep.preambleCount;
+            s.preambleUnresolved = static_cast<int>(rep.preambleUnresolved.size());
         }
+        s.preambleFired = preambleFired_;
+        s.preambleRefused = preambleRefused_;
 
         // s-rta-0924b S4-A: the same position in seconds. Wall is seconds already; Sample is the
         // absolute take-clock sample (playFirstSample_ + transport frames), so subtract the asset's

@@ -436,7 +436,14 @@ private:
     // callers compile unchanged; RecorderHost's Dispatch::fire is the only
     // caller that ever passes Origin::Replay (+ a specific deckIndex from the
     // compiled Fired's ResolvedTarget).
-    void handleClipTrigger(int layerIndex, int column, Origin origin = Origin::Human, int deckIndex = -1);
+    // s-rta-0925 (D4 preamble, plan section 3.5): `immediate` bypasses the
+    // beat-snap/quantize queue entirely (Layer::triggerClipImmediate directly,
+    // or clearActiveClip() for an empty cell) -- the checkpoint-0 restore is
+    // not a performance trigger, it is putting the model back the way it was.
+    // Defaulted false so every existing (performance-trigger) caller is
+    // unaffected; only dispatch.fire's Preamble branch passes true.
+    void handleClipTrigger(int layerIndex, int column, Origin origin = Origin::Human, int deckIndex = -1,
+                           bool immediate = false);
     void handleColumnTrigger(int column, Origin origin = Origin::Human, int deckIndex = -1);
     // A1 fix (2026-07-30): re-sync the previewPanel_ renderer's global fallback
     // state (activeSourceType_ / loaded image) to whichever layer still owns
@@ -467,13 +474,23 @@ private:
     // the SAME mutation code every other origin uses. Each captures (via
     // recorderHost_.capture) only when origin != Origin::Replay (belt and
     // braces -- the host filters on this too, RecorderHost.h's capture() doc).
-    void applyClearActiveClip(int layerIndex, Origin origin);
+    // s-rta-0925 (D4 preamble, plan section 3.5 item 3): each gains a trailing
+    // `int deckIndex = -1` (the SAME pattern as handleClipTrigger's B2 fix) --
+    // -1 means "the active deck" (every existing caller); a Replay/Preamble
+    // dispatch passes the Fired's resolved target deck explicitly, which may
+    // not be the active one. `deckForDispatch` resolves it and issues the
+    // existing "deck unresolved" notice for a non-Human origin that fails to
+    // resolve; each handler's capture key uses the RESOLVED index instead of
+    // composition_.activeDeckIndex, and any UI refresh stays gated to the
+    // active deck exactly as handleClipTrigger's own refresh is.
+    Deck* deckForDispatch(int deckIndex, const char* who, Origin origin);
+    void applyClearActiveClip(int layerIndex, Origin origin, int deckIndex = -1);
     void applyTempoCommand(const std::string& action, float bpm, Origin origin);
     void applyAudioTransport(const std::string& action, Origin origin);
-    void applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin);
-    void applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin);
+    void applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin, int deckIndex = -1);
+    void applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin, int deckIndex = -1);
     void applyClipPlaying(int layerIndex, int column, const std::string& action, Origin origin,
-                          uint64_t group = 0);
+                          uint64_t group = 0, int deckIndex = -1);
 
     // s-rta-0924b step 4 (Lane S4-B): ONE funnel for REST (/api/perf/*) and the
     // Record panel. Each returns "" on success, else the refusal/failure text --

@@ -748,3 +748,76 @@ TEST_CASE("Player::setOverride refuses Latch loudly; Touch remains the mode", "[
     REQUIRE(player.overrideMode() == Player::Override::Touch);
     REQUIRE(player.setOverride(Player::Override::Touch));
 }
+
+// === s-rta-0925: Player::firePreamble (D4/D9) ===
+
+TEST_CASE("Player::firePreamble fires discrete then continuous exactly once per call", "[player][preamble]")
+{
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+
+    const ControlPath deckKey = [] { ControlPath k; k.scope = ControlPath::Scope::Comp; k.control = "activeDeck"; return k; }();
+    const ControlPath quantizeKey = [] { ControlPath k; k.scope = ControlPath::Scope::Comp; k.control = "quantize"; return k; }();
+    DiscretePoint p1; p1.v = 0; p1.origin = Origin::Preamble;
+    DiscretePoint p2; p2.v = 2; p2.origin = Origin::Preamble;
+    prog->preamble.push_back(Fired{ 0.0, 0, deckKey, {}, p1 });
+    prog->preamble.push_back(Fired{ 0.0, 0, quantizeKey, {}, p2 });
+
+    const ControlPath opacityKey = [] { ControlPath k = layerKey(0, "scalar"); k.scalar = "opacity"; return k; }();
+    prog->preambleContinuous.push_back(PreambleSet{ opacityKey, {}, 0.5f });
+
+    FakeSink sink;
+    Player player(prog);
+    player.start(0.0);
+
+    const int refused = player.firePreamble(sink);
+    CHECK(refused == 0);
+
+    REQUIRE(sink.fired.size() == 2);
+    CHECK(sink.fired[0].key.control == "activeDeck");
+    CHECK(sink.fired[1].key.control == "quantize");
+    REQUIRE(sink.touches.size() == 1);
+    CHECK(sink.touches[0].first == opacityKey);
+    CHECK(sink.touches[0].second == "held");
+    REQUIRE(sink.sets.size() == 1);
+    CHECK(sink.sets[0].first == opacityKey);
+    CHECK(sink.sets[0].second == Approx(0.5f));
+    REQUIRE(sink.releases.size() == 1);
+    CHECK(sink.releases[0] == opacityKey);
+
+    // advanceTo never touches the preamble -- it lives in a separate field from discrete/continuous.
+    player.advanceTo(10.0, sink);
+    CHECK(sink.fired.size() == 2);
+    CHECK(sink.touches.size() == 1);
+    CHECK(sink.sets.size() == 1);
+    CHECK(sink.releases.size() == 1);
+
+    // A routine's loop restart (D9): a fresh start(0) + firePreamble re-fires everything, since
+    // firePreamble carries no cursor state of its own.
+    player.start(0.0);
+    player.firePreamble(sink);
+    CHECK(sink.fired.size() == 4);
+    CHECK(sink.touches.size() == 2);
+    CHECK(sink.sets.size() == 2);
+    CHECK(sink.releases.size() == 2);
+}
+
+TEST_CASE("Player::firePreamble: a refused set() counts as refused and never releases that key", "[player][preamble]")
+{
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+
+    const ControlPath opacityKey = [] { ControlPath k = layerKey(0, "scalar"); k.scalar = "opacity"; return k; }();
+    prog->preambleContinuous.push_back(PreambleSet{ opacityKey, {}, 0.5f });
+
+    FakeSink sink;
+    sink.refuseNextSet = true;
+    Player player(prog);
+    player.start(0.0);
+
+    const int refused = player.firePreamble(sink);
+    CHECK(refused == 1);
+    REQUIRE(sink.touches.size() == 1);
+    REQUIRE(sink.sets.size() == 1);
+    CHECK(sink.releases.empty());
+}

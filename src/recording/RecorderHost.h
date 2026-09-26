@@ -233,6 +233,15 @@ public:
         // number of record/stop cycles with no read window to miss. Additive (D12).
         std::string lastFinalizeError;
         int finalizeErrors = 0;
+
+        // s-rta-0925 (D4 preamble, "replay restore" -- Boris ruling 2026-09-25): checkpoint 0's
+        // restore, fired at the start of play(). All four are 0 while not playing (published only
+        // inside the `playing_ && player_` block in publishStatus()). `preambleCount` = discrete +
+        // continuous entries the compiled Program actually emits; `preambleFired` = accepted,
+        // `preambleRefused` = a human grip held the control at that instant (D8, counted, never
+        // silent); `preambleUnresolved` = a deck/layer/clip/effect slot from checkpoint 0 that no
+        // longer exists in the live model (also counted, never silently dropped).
+        int preambleCount = 0, preambleFired = 0, preambleRefused = 0, preambleUnresolved = 0;
     };
     Status status() const;
 
@@ -363,6 +372,10 @@ private:
     bool rateChangeNotified_ = false;
     int skippedCount_ = 0;
     int continuousUnavailableCount_ = 0;
+    // s-rta-0925: reset at the top of play(), set once right after Player::firePreamble() runs
+    // (see play()'s own comment) -- never touched by tick()/advanceTo().
+    int preambleRefused_ = 0;
+    int preambleFired_ = 0;
 
     mutable std::mutex statusMutex_;
     Status published_;

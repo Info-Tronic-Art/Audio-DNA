@@ -81,6 +81,27 @@ void Player::seek(double pos, Sink& sink)
     pos_ = pos;
 }
 
+int Player::firePreamble(Sink& sink)
+{
+    int refused = 0;
+
+    for (const auto& f : prog_->preamble)
+        if (!sink.fire(f))
+            ++refused;
+
+    for (const auto& ps : prog_->preambleContinuous)
+    {
+        const bool touched = sink.touch(ps.key, "held");
+        const bool set = touched && sink.set(ps.key, ps.v);
+        if (touched && set)
+            sink.release(ps.key);
+        else
+            ++refused;
+    }
+
+    return refused;
+}
+
 void Player::advanceTo(double pos, Sink& sink)
 {
     if (!running_) return;
