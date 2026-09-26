@@ -32,6 +32,7 @@
 // s-rta-0923/0924 step 3 (Lane S3-B): the recorder host this component
 // wires the tick, choke points and REST surface into (recorderHost_ below).
 #include "recording/RecorderHost.h"
+#include "recording/RoutineEngine.h"
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
@@ -492,6 +493,8 @@ private:
     void applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin, int deckIndex = -1);
     void applyClipPlaying(int layerIndex, int column, const std::string& action, Origin origin,
                           uint64_t group = 0, int deckIndex = -1);
+    // s-rta-0926: records a trigger's first-activation auto-play as a `playing` point (capture only).
+    void captureAutoPlay(int deckIndex, int layerIndex, int column, Origin origin, uint64_t group);
 
     // s-rta-0924b step 4 (Lane S4-B): ONE funnel for REST (/api/perf/*) and the
     // Record panel. Each returns "" on success, else the refusal/failure text --
@@ -518,6 +521,17 @@ private:
     // thread in tickFeaturePipeline (one write site, self-healing whatever moved the mode), read on the HTTP thread.
     // The one additive exception to perfStatusVar's "reads ONLY recorderHost_.status()" rule; never a device read.
     std::atomic<int> inputSourceMirror_{ 0 };   // 0 = input (MicInput), 1 = file
+
+    // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 4-5): ONE funnel for REST
+    // (/api/routine/*), OSC (/audiodna/routine/{slot}) and bindings (TriggerRoutine). Each returns
+    // "" on success, else the refusal text -- the same text goes to /api/routine/status lastError
+    // and through routineEngine_.dispatch.notify. All message thread.
+    std::string perfRoutineSave(const ApiServer::RoutineSaveOpts& opts);
+    std::string perfRoutineFire(int slot);
+    std::string perfRoutineStop(int slot, bool all);
+    std::string perfRoutineSet(const ApiServer::RoutineSetOpts& opts);
+    std::string perfRoutineRemove(int slot);
+    juce::var   routineStatusVar() const;              // /api/routine/status; reads ONLY routineEngine_.status()
 
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
     void setTooltipsEnabled(bool enabled);
@@ -559,6 +573,10 @@ private:
     // FIRST, before audioEngine_ and composition_ -- both still needed by
     // the shutdown() call in ~MainComponent().
     RecorderHost recorderHost_{ AudioStore(AudioStore::defaultRoot()) };
+    // s-rta-0926 routines slice 1: runs fired routines (one Player each) on its own beat clock.
+    // Declared AFTER recorderHost_ so it is destroyed FIRST; ~MainComponent() calls stopAll()
+    // before recorderHost_.shutdown() so every routine grip is released while the model is live.
+    RoutineEngine routineEngine_;
     // The recorder's checkpoint capture (PerfState.audioAction) needs the
     // last transport action; applyAudioTransport is its only writer.
     std::string lastAudioAction_ = "stop";

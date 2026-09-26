@@ -194,6 +194,7 @@ bool BindingOverlay::keyPressed(const juce::KeyPress& key, juce::Component* /*or
         b.targetDeckIndex = target.deckIndex;
         b.targetEffectIndex = target.effectIndex;
         b.targetMacroIndex = target.macroIndex;
+        b.targetRoutineSlot = target.routineSlot;
 
         bindingManager_.addBinding(b);
 
@@ -287,6 +288,9 @@ const Binding* BindingOverlay::findExistingBinding(const BindableTarget& target)
                     break;
                 case Binding::Action::SwitchDeck:
                     matches = (b->targetDeckIndex == target.deckIndex);
+                    break;
+                case Binding::Action::TriggerRoutine:
+                    matches = (b->targetRoutineSlot == target.routineSlot);
                     break;
                 default:
                     matches = true; // Global actions (TapTempo, etc.)
