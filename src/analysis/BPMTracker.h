@@ -14,7 +14,8 @@
 //   5. Hysteresis lock (2-second persistence required to change)
 //
 // Beat phase is driven by the locked BPM as a free-running sawtooth,
-// with hard resets on high-confidence beat detections from aubio.
+// with hard resets on high-confidence beat detections from aubio -- AUTO
+// mode only: in manual mode (and held silence) detected beats never move it.
 //
 // Downbeat detection (Phase 2):
 //   On each beat, a downbeat score is computed from bass energy + spectral flux
@@ -140,7 +141,8 @@ public:
     void setManualBPM(float bpm);
 
     // Manual mode: freeze the stabilization pipeline, use manually-set BPM.
-    // Beat phase still runs from the locked BPM value.
+    // Beat phase still runs from the locked BPM value; detected beats never
+    // reset it (only requestResync() or setManualBPM() realign it).
     void setManualMode(bool enabled);
     bool isManualMode() const { return manualMode_; }
 

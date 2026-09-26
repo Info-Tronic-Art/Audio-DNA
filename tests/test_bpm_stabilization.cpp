@@ -833,3 +833,167 @@ TEST_CASE("Silence-exit hysteresis: a real onset arriving while still officially
     // (downbeatLocked_ is already true) and advance it to 1.
     REQUIRE(tracker.beatInBar() == 0);
 }
+
+// ============================================================================
+// s-rta-0926 manual-bpm: in Manual BPM mode (TopBar "Manual" / set_bpm / OSC
+// bpm / Link) the beat phase free-runs from the manual BPM. A detected beat
+// (aubio's beat flag at confidence >= kBeatResetConfidence) must never move
+// it -- the room playing something rhythmic at another tempo used to reset
+// the phase to 0 on every detected beat, so at a foreign tempo faster than
+// the manual one the phase never wrapped and bars stretched (live: 11-13 s
+// bars at manual 120 BPM). The only manual realignments are Resync
+// (requestResync) and Tap / a new set_bpm (setManualBPM). AUTO mode keeps its
+// hard reset on high-confidence beats ("Beat phase resets to 0 on
+// high-confidence beat", above).
+// ============================================================================
+
+namespace
+{
+    // Per-hop increment of the free-running phase at `bpm` (48 kHz, 512-sample hop).
+    constexpr float manualPhaseInc(float bpm) { return 512.0f * bpm / (48000.0f * 60.0f); }
+
+    // Feeds ONE manual-mode hop the way AnalysisThread does while the room plays
+    // something rhythmic at `foreignBpm`: aubio keeps reporting a raw BPM at full
+    // confidence and raises its beat flag once per foreign beat period. Returns
+    // whether this hop carried a detected beat.
+    struct ForeignBeatFeeder
+    {
+        float foreignBpm;
+        float acc = 0.0f;
+        bool hop(BPMTracker& tracker)
+        {
+            acc += manualPhaseInc(foreignBpm);
+            const bool beat = (acc >= 1.0f);
+            if (beat) acc -= 1.0f;
+            tracker.processRawBPM(foreignBpm, 1.0f, beat);
+            tracker.feedDownbeatFeatures(beat ? 1.0f : 0.0f, beat ? 1.0f : 0.0f, 0.0f, 0);
+            return beat;
+        }
+    };
+
+    // True when the phase moved by anything other than one free-running step
+    // (modulo the wrap) -- i.e. something reset or nudged it this hop.
+    bool phaseJumped(float prev, float now, float inc)
+    {
+        float step = now - prev;
+        if (step < 0.0f) step += 1.0f;
+        return std::fabs(step - inc) > 1e-4f;
+    }
+}
+
+TEST_CASE("Manual mode: detected beats at another tempo never move the beat phase",
+          "[bpm][manual][phase][s-rta-0926]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    const float inc = manualPhaseInc(120.0f);
+    ForeignBeatFeeder room{ 142.0f };
+
+    // ~20.3 s: 40 manual beats == 10 bars at 120 BPM; ~48 foreign beats at 142.
+    constexpr int kHops = 1900;
+    int foreignBeats = 0, jumps = 0, firstJumpHop = -1;
+    std::vector<int> barHops;
+    uint32_t bars = tracker.totalBarCount();
+    float prev = tracker.beatPhase();
+    for (int h = 0; h < kHops; ++h)
+    {
+        if (room.hop(tracker)) ++foreignBeats;
+        const float now = tracker.beatPhase();
+        if (phaseJumped(prev, now, inc)) { ++jumps; if (firstJumpHop < 0) firstJumpHop = h; }
+        prev = now;
+        if (tracker.totalBarCount() != bars) { bars = tracker.totalBarCount(); barHops.push_back(h); }
+    }
+
+    INFO("foreign beats fed " << foreignBeats << ", phase jumps " << jumps
+         << " (first at hop " << firstJumpHop << "), bars " << barHops.size());
+    REQUIRE(foreignBeats >= 40);                              // non-vacuous: the room really was beating
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 1e-3));      // the manual tempo holds
+    REQUIRE(jumps == 0);                                      // RED pre-fix: one reset per foreign beat
+    REQUIRE(barHops.size() == 10);                            // RED pre-fix: bars stall (phase never wraps)
+    for (size_t i = 1; i < barHops.size(); ++i)
+    {
+        INFO("bar " << i << " took " << (barHops[i] - barHops[i - 1]) << " hops (187.5 = 2.000 s)");
+        REQUIRE(barHops[i] - barHops[i - 1] >= 187);
+        REQUIRE(barHops[i] - barHops[i - 1] <= 188);
+    }
+}
+
+TEST_CASE("Manual mode with detected beats at another tempo: Resync realigns once, then free-runs",
+          "[bpm][manual][resync][s-rta-0926]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    const float inc = manualPhaseInc(120.0f);
+    ForeignBeatFeeder room{ 142.0f };
+
+    // Mid-bar, a couple of bars in, with the room beating the whole time.
+    bool found = false;
+    for (int i = 0; i < 1000 && !found; ++i)
+    {
+        room.hop(tracker);
+        found = (tracker.totalBarCount() >= 2 && tracker.beatInBar() != 0);
+    }
+    REQUIRE(found);   // RED pre-fix: bars stall, totalBarCount never reaches 2
+    REQUIRE(tracker.beatPhase() > 0.0f);
+
+    tracker.requestResync();
+    room.hop(tracker);   // ONE hop: its published state IS the new downbeat
+
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(0.0, 1e-4));
+    REQUIRE(tracker.beatInBar() == 0);
+    REQUIRE(tracker.barCount() == 0);
+    REQUIRE(tracker.downbeatDetected());
+    const uint32_t origin = tracker.resyncBarOrigin();
+    REQUIRE(origin == tracker.totalBarCount());
+
+    // After the single realignment the phase free-runs again despite the room,
+    // and exactly one bar (187.5 hops) later the next bar lands.
+    int jumps = 0, hop = 0;
+    bool nextBar = false;
+    float prev = tracker.beatPhase();
+    for (; hop < 400 && !nextBar; ++hop)
+    {
+        room.hop(tracker);
+        const float now = tracker.beatPhase();
+        if (phaseJumped(prev, now, inc)) ++jumps;
+        prev = now;
+        nextBar = (tracker.totalBarCount() == origin + 1);
+    }
+    INFO("next bar after the Resync at hop " << hop << ", phase jumps " << jumps);
+    REQUIRE(nextBar);
+    REQUIRE(jumps == 0);
+    REQUIRE(hop >= 186);
+    REQUIRE(hop <= 190);
+    REQUIRE(tracker.beatInBar() == 0);
+    REQUIRE(tracker.barCount() == 1);
+    REQUIRE(tracker.resyncBarOrigin() == origin);
+}
+
+TEST_CASE("Tap still realigns in manual mode; leaving manual mode restores the AUTO beat reset",
+          "[bpm][manual][phase][s-rta-0926][regression]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+    ForeignBeatFeeder room{ 142.0f };
+
+    for (int i = 0; i < 20; ++i) room.hop(tracker);
+    // Tap / a new set_bpm (setManualBPM) is a deliberate realignment: phase to 0.
+    REQUIRE(tracker.beatPhase() > 0.0f);
+    tracker.setManualBPM(120.0f);
+    REQUIRE(tracker.beatPhase() == 0.0f);
+
+    // Back to AUTO: a high-confidence detected beat hard-resets the phase again,
+    // exactly as before (AUTO behaviour unchanged).
+    tracker.setManualMode(false);
+    REQUIRE_FALSE(tracker.isManualMode());
+    for (int i = 0; i < 20; ++i)
+        tracker.processRawBPM(120.0f, 0.3f, false);   // low confidence: no reset, phase runs
+    REQUIRE(tracker.beatPhase() > 0.0f);
+    tracker.processRawBPM(120.0f, 1.0f, true);
+    REQUIRE(tracker.beatPhase() == 0.0f);
+}
