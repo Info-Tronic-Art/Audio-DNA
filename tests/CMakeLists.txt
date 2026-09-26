@@ -75,6 +75,23 @@ target_link_libraries(test_compositor_opacity_alias PRIVATE Catch2::Catch2WithMa
 apply_sanitizers(test_compositor_opacity_alias)
 catch_discover_tests(test_compositor_opacity_alias)
 
+# --- test_compositor_effects_parity (s-rta-0925 ms-white2: a SEPARATE
+# instance of the same GL FBO/texture feedback-loop aliasing class as
+# test_compositor_opacity_alias above -- applyClipEffects' ping-pong always
+# started its first write at effectFBO_A_/effectTex_A_ regardless of its own
+# inputTex, so a second back-to-back applyClipEffects call (per-clip effects
+# then per-layer effects in compositeDeck) aliased whenever the first call's
+# output happened to land on effectTex_A_ (odd enabled-effect count).
+# Headless: mirrors the ping-pong texture-handle decision chain across two
+# chained applyClipEffects calls, same reason and approach as
+# test_compositor_opacity_alias above -- CompositorEngine.cpp issues real GL
+# calls and is not linked into any ctest target here.
+add_executable(test_compositor_effects_parity test_compositor_effects_parity.cpp)
+target_include_directories(test_compositor_effects_parity PRIVATE ${SRC_DIR})
+target_link_libraries(test_compositor_effects_parity PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_compositor_effects_parity)
+catch_discover_tests(test_compositor_effects_parity)
+
 # --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
 # composition-tier oracle endpoints in src/test/TestServer.cpp — see the
 # file header for exact scope). Headless: bare Composition + EffectLibrary,
