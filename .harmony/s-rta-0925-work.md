@@ -26,3 +26,5 @@ Reports: .harmony/.reports/s-rta-0925/
 - Master Signal Q2 ANSWERED: keep pulsing; control scales signals only.
 - Master Signal Q3 ANSWERED: save with composition. All 3 answered -> build (prereq: effect/source-param twin slice).
 - Gates on merged main (6d55fc9, CLT-only rebuild): ctest 475/475, probe-step3 69/0, reshoot: Per-Type row fixed + 'Compositions' tab full (reshoot/comp-crop.png, composition.png). Found (pre-existing, next polish): 'Deck Loa' button clipped in the top row; 'No clip selected' text overlaps Clip-tab dashboard knobs.
+- FLAKY (to chase): ctest 'ThumbnailCache treats a changed mtime as a miss' failed 1 of 3 full -j8 runs after replay-restore merge; 5/5 alone. Unrelated area. Hypotheses: shared temp path across parallel tests, or mtime granularity. Discriminator: grep test file for temp paths; run full suite -j8 x10 counting.
+- replay-restore MERGED LOCAL 85afb70 (NOT pushed): ctest 483/483 (flaky thumbnail test aside); probe-step3 pre-fix RED 71/8, post 77/2: layer0 not restored within 1.5 s though preambleFired=8. Diagnosis lane wx31iq27m (lane/0925-rr-fix). Push HELD until probe green.
