@@ -1366,3 +1366,19 @@ FullscreenQuad/LUTLoader still live in the same shape.
   UniversalParamControl.{h,cpp}. Resolved by merging opacity and a reconcile lane (lane/0925-rclick2).
   Habit: every parallel lane packet names what it must NOT fix and which lane owns it ("right-click reset
   is lane rclick's — do not touch ResettableSlider/UniversalParamControl reset paths").
+
+## s-rta-0925 rclick2 — juce_gui_basics ctest target: function-local-static ScopedJuceInitialiser_GUI corrupts the heap at exit
+**Files:** tests/test_resettable_slider.cpp, tests/test_right_click_reset.cpp, tests/CMakeLists.txt
+**Note:** A `catch_discover_tests()`-registered ctest target that links `juce::juce_gui_basics` and lazily inits
+`juce::ScopedJuceInitialiser_GUI` as a function-local static (`static juce::ScopedJuceInitialiser_GUI g;` inside a
+helper, torn down via atexit/`__cxa_finalize` after `main()` returns) aborts with
+`BUG_IN_CLIENT_OF_LIBMALLOC_POINTER_BEING_FREED_WAS_NOT_ALLOCATED` inside `juce::DeletedAtShutdown::deleteAll()` when
+ctest runs a SINGLE `TEST_CASE` alone in its own process (exactly how `catch_discover_tests()` invokes things) — even
+a bare, unstyled `juce::Slider` reproduces it, so it is a JUCE static-teardown ordering hazard, not a defect in the
+Slider subclass under test. This repo's actual fix (already in `test_right_click_reset.cpp`, reused unmodified for
+`test_resettable_slider.cpp`): skip the atexit path entirely by constructing `juce::ScopedJuceInitialiser_GUI gui;`
+as a LOCAL stack variable INSIDE EACH `TEST_CASE` — deterministic teardown before the `TEST_CASE` returns, never via
+atexit — which needs no custom `main()` and links plain `Catch2::Catch2WithMain` like the rest of the suite (an
+equally valid, but not identical, fix to the never-merged lane/0925-rclick branch's alternative: a custom `main()`
+wrapping `Catch::Session().run()` in one file-scope local `ScopedJuceInitialiser_GUI`, linking `Catch2::Catch2`).
+**Valid while:** this JUCE version (8.0.4) / macOS libmalloc combination; re-check if either changes materially.

@@ -1285,3 +1285,32 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_master_opacity_link)
 catch_discover_tests(test_master_opacity_link)
+
+# --- test_resettable_slider (s-rta-0925 rclick2: reconciles lane/0925-rclick's
+# never-merged ResettableSlider test cases onto main's actual design, landed via
+# the opacity lane). Header-only class (src/ui/UniversalParamControl.h) -- no
+# src/*.cpp is linked. Same per-TEST_CASE juce::ScopedJuceInitialiser_GUI local
+# variable pattern as test_right_click_reset above (never a function-local
+# static -- see .harmony/notebook.md's ScopedJuceInitialiser_GUI heap-corruption
+# entry); links Catch2::Catch2WithMain like the rest of the suite.
+add_executable(test_resettable_slider test_resettable_slider.cpp)
+target_include_directories(test_resettable_slider PRIVATE ${SRC_DIR})
+target_link_libraries(test_resettable_slider PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_resettable_slider PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_resettable_slider PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_resettable_slider)
+catch_discover_tests(test_resettable_slider)

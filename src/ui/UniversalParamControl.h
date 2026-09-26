@@ -32,6 +32,7 @@ public:
     ~ResettableSlider() override { removeMouseListener(&childRelay_); }
 
     void setDefaultValue(double val) { defaultVal_ = val; hasDefault_ = true; }
+    bool hasDefaultValue() const { return hasDefault_; }
 
     // Fired after every right-click reset (thumb or text-box path), AFTER
     // the value notification. Owners use it to touch the parameter's
