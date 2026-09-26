@@ -5,6 +5,7 @@
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
 #include "render/FeedbackProcessor.h"
+#include "render/LayerStateKey.h"
 #include "effects/EffectLibrary.h"
 #include "effects/Effect.h"
 #include "analysis/FeatureSnapshot.h"
@@ -183,30 +184,18 @@ public:
 
 private:
 
-    // S166: reserved layerId passed to applyClipEffects() for the Global
-    // Effects call (see applyGlobalEffects() above), so its temporal buffer
-    // (layerTemporalBuffers_ below) and screen-split ring buffer
-    // (layerRingBuffers_ below) never alias a real layer's. Real layer ids
-    // are assigned sequentially starting at 0 (Deck.h) — including 0 itself,
-    // the bottom layer — so 0 is NOT a safe "no real layer" sentinel; the
-    // max uint32_t value is.
-    static constexpr uint32_t kGlobalEffectsLayerId = 0xFFFFFFFFu;
+    // Per-frame GL state below (feedback processors, temporal buffers, frame
+    // rings) is keyed by a LayerStateKey (render/LayerStateKey.h): deck id +
+    // layer id (+ which chain), or LayerStateKey::kGlobalEffects for the
+    // composition's Global Effects chain (S166: never a real layer's key).
+    // s-rta-0926b R2: keying by layer id alone shared that state between
+    // layers of different decks (a persistent layer vs the active deck).
 
-    // s-rta-0926 xfade class sweep: the id passed to applyClipEffects keys the
-    // chain's temporal buffer (u_prev_frame) and Screen Split / Frame Stutter
-    // ring. A layer's clip chain and its layer chain both passed layer.id, so
-    // each chain's "previous frame" was the OTHER chain's output (measured on
-    // e1ed9cc: clip [Freeze 0.5] + layer [Invert, Freeze 0.5] rendered flat
-    // 50% grey instead of the inverted image). The layer chain keys its state
-    // with this bit set; real layer ids never reach it, and the one id that
-    // has it set already (kGlobalEffectsLayerId) would need layer id 0x7FFFFFFF.
-    static constexpr uint32_t kLayerChainStateBit = 0x80000000u;
-
-    // Per-layer feedback processors (keyed by layer ID)
-    std::unordered_map<uint32_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;
+    // Per-layer feedback processors (key: LayerStateKey::clipChain)
+    std::unordered_map<uint64_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;
 
     // Get or create a feedback processor for a layer
-    FeedbackProcessor& getOrCreateFeedbackProcessor(uint32_t layerId);
+    FeedbackProcessor& getOrCreateFeedbackProcessor(uint64_t stateKey);
 
     // Per-layer temporal FBOs for time effects (u_prev_frame)
     // Each layer that uses temporal effects gets its own persistent prev-frame buffer.
@@ -216,10 +205,12 @@ private:
         int width = 0;
         int height = 0;
     };
-    std::unordered_map<uint32_t, TemporalBuffer> layerTemporalBuffers_;
+    std::unordered_map<uint64_t, TemporalBuffer> layerTemporalBuffers_;
 
-    // Get or create a temporal buffer for a layer, resized if needed
-    TemporalBuffer& getOrCreateTemporalBuffer(uint32_t layerId, int w, int h);
+    // Get or create a temporal buffer for a chain, resized if needed. Creates
+    // GL objects and leaves framebuffer 0 bound: call it BEFORE a pass binds
+    // its target (s-rta-0926b R5).
+    TemporalBuffer& getOrCreateTemporalBuffer(uint64_t stateKey, int w, int h);
 
     // Save a texture into a temporal buffer (passthrough copy)
     void saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
@@ -238,9 +229,9 @@ private:
         int frameCount = 0;
         bool initialized = false;
     };
-    std::unordered_map<uint32_t, FrameRingBuffer> layerRingBuffers_;
+    std::unordered_map<uint64_t, FrameRingBuffer> layerRingBuffers_;
 
-    FrameRingBuffer& getOrCreateRingBuffer(uint32_t layerId, int w, int h);
+    FrameRingBuffer& getOrCreateRingBuffer(uint64_t stateKey, int w, int h);
     void pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
                          ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
     GLuint getFrameFromRing(const FrameRingBuffer& ring, int framesAgo) const;
@@ -250,7 +241,7 @@ private:
     // Renders into dstFBO/dstTex (a pool target picked by the caller).
     GLuint applyScreenSplit(GLuint clipTex, const Clip::EffectSlot& slot,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
-                            uint32_t layerId, int w, int h,
+                            uint64_t stateKey, int w, int h,
                             GLuint dstFBO, GLuint dstTex);
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
@@ -305,13 +296,14 @@ private:
 
     // Apply an effect chain to a texture, returns result texture ID.
     // Renders into the effect scratch pool (pickEffectTarget per pass).
-    // layerId: used to key per-layer temporal buffers for time effects (u_prev_frame).
+    // stateKey (LayerStateKey): keys the chain's temporal buffer (u_prev_frame)
+    // and Screen Split / Frame Stutter ring.
     // holdTex: a texture the CALLER still needs after this call returns (e.g.
     // applyTransition's incoming-clip result); no pass of this chain writes it.
     GLuint applyClipEffects(const std::vector<Clip::EffectSlot>& effects, GLuint inputTex,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
                             float time, int w, int h,
-                            uint32_t layerId = 0, GLuint holdTex = 0);
+                            uint64_t stateKey, GLuint holdTex = 0);
 
     // Apply layer transform (translate/scale/rotate) to a texture
     GLuint applyLayerTransform(const Layer& layer, GLuint srcTex,
@@ -329,7 +321,7 @@ private:
                                    int w, int h);
 
     // Apply FX Only layer: run clip effects on the accumulator
-    void applyFXOnlyLayer(const Clip& clip, const Layer& layer,
+    void applyFXOnlyLayer(const Clip& clip, const Layer& layer, uint64_t stateKey,
                           ShaderManager& shaderMgr,
                           FullscreenQuad& quad, float time, int w, int h);
 
@@ -345,7 +337,9 @@ private:
     // Returns the blended texture. The outgoing clip gets the same per-clip
     // stages as the active clip (transform + opacity, then effects); newClipTex
     // is HELD across all of them (holdTex=newClipTex).
-    GLuint applyTransition(Layer& layer, GLuint newClipTex, float time,
+    // stateKey: the layer's clip-chain key (the outgoing chain shares it --
+    // s-rta-0926b open fork R1).
+    GLuint applyTransition(Layer& layer, uint64_t stateKey, GLuint newClipTex, float time,
                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
 
