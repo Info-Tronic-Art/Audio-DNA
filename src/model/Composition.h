@@ -1,5 +1,6 @@
 #pragma once
 #include "model/Deck.h"
+#include "model/Routine.h"
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
@@ -35,6 +36,18 @@ struct Composition
 
     // === Global Effects (post-composite chain) ===
     std::vector<Clip::EffectSlot> globalEffects;
+
+    // === Routines (s-rta-0926 routines slice 1, plan-routines-s1-final.md 3.1-3.2) ===
+    // Composition-owned routines (D9 "inside the thing it belongs to") and the
+    // pad bank that fires them. The bank references a routine by uuid; a
+    // routine no slot references is erased by the slot helpers below.
+    static constexpr int kRoutineBankSize = 8;   // matches MacroBank::kNumMacros
+    std::vector<Routine> routines;
+    std::vector<RoutineSlot> routineBank;
+    // Set by fromVar when a bank entry had to be dropped (its routine is not in
+    // the file, its slot is out of range or taken twice) -- the app shows it
+    // once; never silent. Not serialized.
+    std::string routineLoadNote;
 
     // === Composition Master ===
     float masterOpacity = 1.0f;
@@ -163,6 +176,9 @@ struct Composition
         decks.push_back(std::move(deck));
         activeDeckIndex = 0;
         globalEffects.clear();
+        routines.clear();
+        routineBank.clear();
+        routineLoadNote.clear();
         masterOpacity = 1.0f;
         masterSignal = 1.0f;
         globalTransitionSpeed = 0.3f;
@@ -214,6 +230,72 @@ struct Composition
         deck.id = nextDeckId_++;
         decks.push_back(std::move(deck));
         return static_cast<int>(decks.size()) - 1;
+    }
+
+    // === Routine bank ===
+    const Routine* routineInSlot(int slot) const
+    {
+        for (const auto& s : routineBank)
+            if (s.slot == slot)
+                for (const auto& r : routines)
+                    if (r.uuid == s.uuid)
+                        return &r;
+        return nullptr;
+    }
+
+    Routine* routineInSlot(int slot)
+    {
+        return const_cast<Routine*>(static_cast<const Composition&>(*this).routineInSlot(slot));
+    }
+
+    // -1 when every pad is taken.
+    int firstFreeRoutineSlot() const
+    {
+        for (int slot = 0; slot < kRoutineBankSize; ++slot)
+            if (std::none_of(routineBank.begin(), routineBank.end(),
+                             [slot](const RoutineSlot& s) { return s.slot == slot; }))
+                return slot;
+        return -1;
+    }
+
+    // Puts routine `uuid` (already in `routines`) on `slot`, replacing any occupant; the
+    // replaced routine is erased unless another slot still references it.
+    bool assignRoutineSlot(int slot, const std::string& uuid)
+    {
+        if (slot < 0 || slot >= kRoutineBankSize)
+            return false;
+        if (std::none_of(routines.begin(), routines.end(),
+                         [&](const Routine& r) { return r.uuid == uuid; }))
+            return false;
+
+        std::string replaced;
+        auto it = std::find_if(routineBank.begin(), routineBank.end(),
+                               [slot](const RoutineSlot& s) { return s.slot == slot; });
+        if (it != routineBank.end())
+        {
+            replaced = it->uuid;
+            it->uuid = uuid;
+        }
+        else
+        {
+            routineBank.push_back(RoutineSlot{ slot, uuid });
+        }
+        if (!replaced.empty() && replaced != uuid)
+            eraseRoutineIfUnreferenced(replaced);
+        return true;
+    }
+
+    // Frees `slot`; its routine is erased unless another slot still references it.
+    bool removeRoutineSlot(int slot)
+    {
+        auto it = std::find_if(routineBank.begin(), routineBank.end(),
+                               [slot](const RoutineSlot& s) { return s.slot == slot; });
+        if (it == routineBank.end())
+            return false;
+        const std::string uuid = it->uuid;
+        routineBank.erase(it);
+        eraseRoutineIfUnreferenced(uuid);
+        return true;
     }
 
     // === Serialization ===
@@ -330,6 +412,21 @@ struct Composition
         connectObj->setProperty("gripHoldMs", static_cast<double>(gripHoldMs));
         connectObj->setProperty("handBackGlideMs", static_cast<double>(handBackGlideMs));
         obj->setProperty("connect", juce::var(connectObj));
+
+        // Routines (s-rta-0926): both keys ALWAYS written (an empty array is fine).
+        juce::Array<juce::var> routineArray;
+        for (const auto& r : routines)
+            routineArray.add(r.toVar());
+        obj->setProperty("routines", routineArray);
+        juce::Array<juce::var> bankArray;
+        for (const auto& s : routineBank)
+        {
+            auto* slotObj = new juce::DynamicObject();
+            slotObj->setProperty("slot", s.slot);
+            slotObj->setProperty("uuid", juce::String(s.uuid));
+            bankArray.add(juce::var(slotObj));
+        }
+        obj->setProperty("routineBank", bankArray);
 
         return juce::var(obj);
     }
@@ -506,6 +603,42 @@ struct Composition
                 if (connectObj->hasProperty("handBackGlideMs"))
                     handBackGlideMs = static_cast<float>(static_cast<double>(connectObj->getProperty("handBackGlideMs")));
             }
+
+            // Routines (s-rta-0926): cleared first, then read guarded -- a file saved before
+            // routines existed loads with none. A bank entry whose routine is not in the file
+            // (or whose slot is out of range / already taken) is dropped and counted into
+            // routineLoadNote, never silently.
+            routines.clear();
+            routineBank.clear();
+            routineLoadNote.clear();
+            if (auto* routineArray = obj->getProperty("routines").getArray())
+                for (const auto& rv : *routineArray)
+                    routines.push_back(Routine::fromVar(rv));
+            int droppedSlots = 0;
+            if (auto* bankArray = obj->getProperty("routineBank").getArray())
+            {
+                for (const auto& sv : *bankArray)
+                {
+                    auto* slotObj = sv.getDynamicObject();
+                    if (!slotObj) { ++droppedSlots; continue; }
+                    RoutineSlot s;
+                    s.slot = static_cast<int>(slotObj->getProperty("slot"));
+                    s.uuid = slotObj->getProperty("uuid").toString().toStdString();
+                    const bool slotOk = s.slot >= 0 && s.slot < kRoutineBankSize
+                        && std::none_of(routineBank.begin(), routineBank.end(),
+                                        [&](const RoutineSlot& o) { return o.slot == s.slot; });
+                    const bool routineOk = std::any_of(routines.begin(), routines.end(),
+                                                       [&](const Routine& r) { return r.uuid == s.uuid; });
+                    if (slotOk && routineOk)
+                        routineBank.push_back(std::move(s));
+                    else
+                        ++droppedSlots;
+                }
+            }
+            if (droppedSlots > 0)
+                routineLoadNote = std::to_string(droppedSlots)
+                    + (droppedSlots == 1 ? " routine pad was" : " routine pads were")
+                    + " left empty: the routine it pointed at is not in this file";
         }
     }
 
@@ -529,6 +662,16 @@ struct Composition
 
 private:
     uint32_t nextDeckId_ = 100;
+
+    void eraseRoutineIfUnreferenced(const std::string& uuid)
+    {
+        if (std::any_of(routineBank.begin(), routineBank.end(),
+                        [&](const RoutineSlot& s) { return s.uuid == uuid; }))
+            return;
+        routines.erase(std::remove_if(routines.begin(), routines.end(),
+                                      [&](const Routine& r) { return r.uuid == uuid; }),
+                       routines.end());
+    }
 };
 
 inline float& manualRef(Composition& c, CompScalar s)
