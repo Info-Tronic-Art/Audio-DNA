@@ -14,11 +14,11 @@ namespace
 }
 
 float ConnectionShaper::beatsNow(float beatPhase, uint8_t beatInBar, uint16_t barCount,
-                                  uint32_t totalBarCount, bool resetPhaseOnStructural)
+                                  uint32_t monotonicBars, bool resetPhaseOnStructural)
 {
     float barsElapsed = resetPhaseOnStructural
         ? static_cast<float>(barCount)
-        : static_cast<float>(totalBarCount);
+        : static_cast<float>(monotonicBars);
     return beatPhase + static_cast<float>(beatInBar) + 4.0f * barsElapsed;
 }
 

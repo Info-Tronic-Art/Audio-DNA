@@ -15,7 +15,7 @@
 // Mechanism:
 //   - seq_: generation counter. Odd = a publish is in progress; each
 //     publish advances it by 2.
-//   - words_: the 320-byte snapshot payload as 80 atomic uint32 words.
+//   - words_: the 384-byte snapshot payload as 96 atomic uint32 words.
 //     Atomic words make concurrent payload access defined behavior — the
 //     bus is TSan-clean with ZERO suppressions (std::atomic_ref is
 //     unavailable on this toolchain; the atomic-word array is the
@@ -124,9 +124,9 @@ private:
     // wedged writer (killed mid-publish) degrades to the fallback instead
     // of hanging a render thread.
     static constexpr int kOddSeqSpinLimit = 1024;
-    static constexpr size_t kSnapshotWords = 80;
+    static constexpr size_t kSnapshotWords = 96;
 
-    static_assert(sizeof(FeatureSnapshot) == 320,
+    static_assert(sizeof(FeatureSnapshot) == 384,
                   "FeatureSnapshot size changed — resize kSnapshotWords so the "
                   "seqlock payload keeps covering the whole struct");
     static_assert(kSnapshotWords * sizeof(uint32_t) == sizeof(FeatureSnapshot),

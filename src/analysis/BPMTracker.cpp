@@ -315,6 +315,16 @@ void BPMTracker::feedDownbeatFeatures(float bassEnergy, float spectralFlux, floa
 
     // Update phrase tracking
     updatePhrase(structuralState);
+
+    // s-rta-0925 manual Resync: applied AFTER updatePhrase so (a) a bar edge landing on this very hop
+    // is counted first and the origin captures the incremented value, and (b) an onset scored earlier
+    // in this hop cannot leave beatInBar at 1 in the snapshot that is supposed to be the downbeat.
+    const uint32_t requested = resyncRequests_.load(std::memory_order_relaxed);
+    if (requested != resyncRequestsApplied_)
+    {
+        resyncRequestsApplied_ = requested;
+        applyResync();
+    }
 }
 
 void BPMTracker::scoreBeat()
@@ -495,6 +505,8 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
         {
             barCount_ = 0; // totalBarCount_ intentionally NOT touched -- S168, see its
                             // declaration: this counter must never jump backward.
+            // AUTOMATIC reset: barCount_ only. Never resyncBarOrigin_ (that is applyResync's,
+            // manual only, s-rta-0925) and never totalBarCount_ (S168).
         }
     }
     prevStructuralState_ = structuralState;
@@ -510,13 +522,23 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
         phrasePhase_ = 0.0f;
 }
 
-void BPMTracker::resetPhrase()
+void BPMTracker::requestResync()
 {
-    barCount_ = 0;
+    resyncRequests_.fetch_add(1, std::memory_order_relaxed);   // the counter change IS the message; nothing else
+}                                                              // is published from the requesting thread
+
+void BPMTracker::applyResync()   // analysis thread only -- called last in feedDownbeatFeatures()
+{
+    phase_ = 0.0f;                     // this instant is the onset of beat 1
+    beatCounter_ = 0;
+    beatInBar_ = 0;
+    barPhase_ = 0.0f;
+    downbeatDetected_ = true;          // LEVEL contract (beatCounter_ == 0) holds for the whole first beat
+    prevDownbeatDetected_ = true;      // the Resync IS this bar's start: consume the edge HERE so the next hop's
+                                       // updatePhrase() does not mint a phantom bar (barCount 1 / a 4-beat jump)
+    barCount_ = 0;                     // phrase restarts (what resetPhrase() always did)
     phrasePhase_ = 0.0f;
-    prevDownbeatDetected_ = false;
-    // totalBarCount_ intentionally NOT reset here (S168): monotonic for the
-    // life of the tracker, including across a manual Resync.
+    resyncBarOrigin_ = totalBarCount_; // MANUAL only. totalBarCount_ is deliberately not rewound (S168).
 }
 
 void BPMTracker::setManualBPM(float bpm)

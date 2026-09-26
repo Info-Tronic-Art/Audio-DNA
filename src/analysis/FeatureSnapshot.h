@@ -115,6 +115,24 @@ struct alignas(64) FeatureSnapshot
     // writer entirely; see RecorderHost::tick()'s onsetCountBaseline_ for the reference consumer.
     uint32_t onsetCount = 0;
 
+    // s-rta-0925 (Boris ruling 2026-09-25): totalBarCount at the moment of the most recent MANUAL
+    // Resync (TopBar Resync / bound key or pad / REST /api/resync / OSC /audiodna/resync / take
+    // replay). 0 until the first one. Written only by BPMTracker::applyResync on the analysis
+    // thread. AUTOMATIC phrase resets (BPMTracker::updatePhrase's drop-entry / breakdown-exit
+    // branch, the no-lock branch) never touch it, so a detected drop still moves nothing (ruling
+    // 25). Tempo-synced shapes fold across barsSinceResync() below, NOT across totalBarCount, so a
+    // Resync restarts every 8/16/32-beat shape at the new downbeat while totalBarCount itself
+    // stays monotonic (S168) for every counter-diffing consumer.
+    uint32_t resyncBarOrigin = 0;
+
+    // Bars elapsed since the last manual Resync (== totalBarCount before the first one). The one
+    // fold input for OscillatorSignal / EnvelopeSignal / ConnectionShaper::beatsNow. Guarded so a
+    // contradictory injected snapshot (origin > count) reads 0 bars, never a wrapped ~4e9.
+    uint32_t barsSinceResync() const noexcept
+    {
+        return totalBarCount >= resyncBarOrigin ? totalBarCount - resyncBarOrigin : 0u;
+    }
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
@@ -131,13 +149,21 @@ struct alignas(64) FeatureSnapshot
 
 // Layout proof (R13 onset-pulse-loss fix): onsetCount was added into the struct's existing tail
 // padding (alignas(64) rounds sizeof up to a multiple of 64; 313 bytes of real fields left 7 bytes
-// of padding before this change) so sizeof(FeatureSnapshot) stays exactly 320 -- FeatureBus.h's own
-// static_assert(sizeof(FeatureSnapshot) == 320, ...) would fail to compile otherwise, since its
-// seqlock payload word count (kSnapshotWords * sizeof(uint32_t)) is derived from this exact size.
+// of padding before this change) so sizeof(FeatureSnapshot) stayed exactly 320 -- FeatureBus.h's
+// own static_assert(sizeof(FeatureSnapshot) == 320, ...) would have failed to compile otherwise,
+// since its seqlock payload word count (kSnapshotWords * sizeof(uint32_t)) is derived from this
+// exact size. onsetCount landed exactly on the 320-byte tier boundary (offset 316 + 4 bytes ==
+// 320), so it left no more tail padding: s-rta-0925's resyncBarOrigin (4 more bytes, offset 320)
+// opens a NEW 64-byte tier -- alignas(64) rounds sizeof up from 324 to 384, not up to 320 again.
 static_assert(offsetof(FeatureSnapshot, onsetCount) == 316,
               "onsetCount must land in the struct's existing tail padding (alignof-4 after "
               "bandValidMask at offset 312+1=313, rounded up to 316) without moving any other "
               "field's offset -- if this fails, a field was inserted/resized somewhere above and "
               "the layout needs re-auditing, not just re-numbering this constant");
-static_assert(sizeof(FeatureSnapshot) == 320,
-              "adding onsetCount must not change the overall FeatureSnapshot size");
+static_assert(offsetof(FeatureSnapshot, resyncBarOrigin) == 320,
+              "resyncBarOrigin must immediately follow onsetCount (offset 316 + 4 bytes) -- if "
+              "this fails, a field was inserted/resized somewhere above and the layout needs "
+              "re-auditing, not just re-numbering this constant");
+static_assert(sizeof(FeatureSnapshot) == 384,
+              "resyncBarOrigin opened a new 64-byte tier (alignas 64); the next fields are free "
+              "up to offset 384 -- FeatureBus::kSnapshotWords must be 96");

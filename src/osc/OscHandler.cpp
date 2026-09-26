@@ -158,6 +158,14 @@ void OscHandler::oscMessageReceived(const juce::OSCMessage& message)
         return;
     }
 
+    // /audiodna/resync (s-rta-0925): manual Resync, trigger semantics like /audiodna/snapshot -- any value fires it.
+    if (address == "/audiodna/resync")
+    {
+        if (onResync)
+            onResync();
+        return;
+    }
+
     // /audiodna/snapshot
     if (address == "/audiodna/snapshot")
     {

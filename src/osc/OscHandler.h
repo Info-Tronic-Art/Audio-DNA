@@ -20,6 +20,7 @@ struct Composition;
 //   /audiodna/master                    — master opacity (float 0-1)
 //   /audiodna/signal                    — Master Signal depth (float 0-1, s-rta-0925 mastersignal Step 1)
 //   /audiodna/bpm                       — set manual BPM (float)
+//   /audiodna/resync                    — manual Resync (any value)
 //   /audiodna/snapshot                  — take snapshot (any value)
 //   /audiodna/effect/{name}/{param}     — set effect parameter (float 0-1)
 //   /audiodna/macro/{n}                 — set macro value (float 0-1)
@@ -50,6 +51,7 @@ public:
     std::function<void(float level)> onSetMaster;
     std::function<void(float depth)> onSetMasterSignal;   // s-rta-0925 mastersignal Step 1
     std::function<void(float bpm)> onSetBpm;
+    std::function<void()> onResync;   // s-rta-0925: manual Resync
     std::function<void()> onSnapshot;
     std::function<void(const juce::String& effectName, const juce::String& paramName, float value)> onSetEffectParam;
     std::function<void(int macroIndex, float value)> onSetMacro;

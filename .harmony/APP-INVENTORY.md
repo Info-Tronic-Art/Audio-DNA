@@ -136,7 +136,7 @@ Source: lane-1-audio-analysis.md §2-4.
 
 ### REST API — production server (`src/api/ApiServer.cpp`, port 7070, always-on, CORS)
 
-Source: lane-6-io-api.md. 23 endpoints; all functional (`/api/set_bpm` wired Wave 0).
+Source: lane-6-io-api.md. 24 endpoints; all functional (`/api/set_bpm` wired Wave 0; `/api/resync` added s-rta-0925 -- manual Resync via `requestResync()`, message thread -> analysis thread).
 
 | # | Method | Path | Action |
 |---|---|---|---|

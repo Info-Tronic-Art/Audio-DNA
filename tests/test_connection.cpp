@@ -288,6 +288,109 @@ TEST_CASE("ConnectionEngine::evaluate: default Lfo phase is monotonic across a s
 }
 
 // ============================================================================
+// s-rta-0925 (Boris ruling 2026-09-25, call 9): a MANUAL Resync restarts a
+// default (resetPhaseOnStructural = false) Lfo/Envelope(Beats) connection at
+// the new downbeat via ConnectionShaper::beatsNow's already-wired
+// barsSinceResync() input (ConnectionEngine.cpp passes
+// ctx.snap.barsSinceResync() instead of ctx.snap.totalBarCount, s-rta-0925).
+// Mirrors test_oscillator_bar_fold.cpp's snapshots A/B/C exactly (same
+// numbers, same rationale) at the level ConnectionEngine::evaluate is
+// actually hit by every enabled connection at runtime.
+// ============================================================================
+
+TEST_CASE("ConnectionEngine::evaluate: a manual Resync restarts a default Lfo at the new downbeat", "[connection][lfo][resync][s-rta-0925]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+
+    ParamConnection conn;
+    conn.source.kind = ConnSource::Kind::Lfo;
+    conn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;   // raw == phase, easiest to check exactly
+    conn.source.lfo.cycleBeats = 16.0f;
+    REQUIRE_FALSE(conn.shape.resetPhaseOnStructural);   // default
+
+    // Snapshot A/B/C from test_oscillator_bar_fold.cpp's matching TEST_CASE:
+    // A = pre-Resync mid-cycle, B = the Resync hop itself, C = one bar later.
+    FeatureSnapshot a = bareSnapshot();
+    a.beatPhase = 0.5f; a.beatInBar = 2; a.totalBarCount = 5; a.resyncBarOrigin = 0;
+
+    FeatureSnapshot b = bareSnapshot();
+    b.beatPhase = 0.0f; b.beatInBar = 0; b.barCount = 0; b.totalBarCount = 5; b.resyncBarOrigin = 5;
+
+    FeatureSnapshot c = bareSnapshot();
+    c.beatPhase = 0.0f; c.beatInBar = 0; c.totalBarCount = 6; c.resyncBarOrigin = 5;
+
+    auto evalAt = [&](const FeatureSnapshot& snap, double now)
+    {
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, now, 250.0f, 120.0f };
+        return ConnectionEngine::evaluate(conn, 0.0f, ctx, nullptr);
+    };
+
+    REQUIRE(evalAt(a, 1.0) == Approx(0.40625f).margin(1e-3f));
+    REQUIRE(evalAt(b, 2.0) == Approx(0.0f).margin(1e-3f));      // RED pre-fix: reads 0.25 (raw totalBarCount)
+    REQUIRE(evalAt(c, 3.0) == Approx(0.25f).margin(1e-3f));     // RED pre-fix: reads 0.5
+
+    // The S168 monotonic case above (line 216) never sets an origin (defaults
+    // to 0), so it must stay green throughout -- unaffected by this fix.
+}
+
+TEST_CASE("loop=false: a manual Resync retriggers a held one-shot from the new downbeat", "[connection][lfo][once][resync]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+
+    ParamConnection conn;
+    conn.source.kind = ConnSource::Kind::Lfo;
+    conn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+    conn.source.lfo.cycleBeats = 4.0f;
+    conn.shape.loop = false;
+
+    // First-ever evaluate at (beatPhase .5, beatInBar 1, totalBarCount 0): bn = 1.5,
+    // rawCycles = 1.5/4 = 0.375 -- pins the "once" start there (state.onceStartBeats
+    // := rawCycles), so THIS call's own elapsed is 0 by construction -- same
+    // established precedent as the sibling "loop=false holds..." test above
+    // (its first call also reads exactly its own pin point, value 0.0).
+    FeatureSnapshot s1 = bareSnapshot();
+    s1.beatPhase = 0.5f; s1.beatInBar = 1; s1.totalBarCount = 0;
+    ConnectionEngine::Context ctx1{ sig, bank, s1, 0.016f, 1.0, 250.0f, 120.0f };
+    REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx1, nullptr) == Approx(0.0f).margin(0.01f));
+
+    // (beatPhase 0, beatInBar 0, totalBarCount 2): bn = 8, rawCycles = 2.0 --
+    // well past the pinned start (0.375) -- held at (existing behaviour) ~1.0.
+    FeatureSnapshot s2 = bareSnapshot();
+    s2.beatPhase = 0.0f; s2.beatInBar = 0; s2.totalBarCount = 2;
+    ConnectionEngine::Context ctx2{ sig, bank, s2, 0.016f, 2.0, 250.0f, 120.0f };
+    REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx2, nullptr) == Approx(1.0f).margin(0.01f));
+
+    // RESYNC snapshot: (beatPhase 0, beatInBar 0, totalBarCount 2, origin 2) --
+    // bn via barsSinceResync() = 0, rawCycles = 0.0, which is BEFORE the
+    // pinned onceStartBeats (0.375) -- gateOnce must re-pin here (s3.5) so the
+    // one-shot retriggers from the new downbeat instead of reading a wrapped
+    // negative-elapsed value.
+    FeatureSnapshot s3 = bareSnapshot();
+    s3.beatPhase = 0.0f; s3.beatInBar = 0; s3.totalBarCount = 2; s3.resyncBarOrigin = 2;
+    ConnectionEngine::Context ctx3{ sig, bank, s3, 0.016f, 3.0, 250.0f, 120.0f };
+    // RED on C0 (fold still reads raw totalBarCount, ignoring resyncBarOrigin
+    // entirely -- rawCycles stays 2.0, still past the OLD pin -- held ~1.0);
+    // RED on a C1 that added the barsSinceResync fold but skipped the gateOnce
+    // re-pin: elapsed = 0.0 - 0.375 = -0.375, frac(-0.375) = 0.625 (a wrapped
+    // negative-elapsed value, not a clean retrigger).
+    REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx3, nullptr) == Approx(0.0f).margin(0.01f));
+
+    // One beat later: climbing again from the new downbeat.
+    FeatureSnapshot s4 = bareSnapshot();
+    s4.beatPhase = 0.0f; s4.beatInBar = 2; s4.totalBarCount = 2; s4.resyncBarOrigin = 2;
+    ConnectionEngine::Context ctx4{ sig, bank, s4, 0.016f, 4.0, 250.0f, 120.0f };
+    REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx4, nullptr) == Approx(0.5f).margin(0.01f));
+
+    // Well past the new one-shot's cycle: held again at ~1.0.
+    FeatureSnapshot s5 = bareSnapshot();
+    s5.beatPhase = 0.0f; s5.beatInBar = 0; s5.totalBarCount = 4; s5.resyncBarOrigin = 2;
+    ConnectionEngine::Context ctx5{ sig, bank, s5, 0.016f, 5.0, 250.0f, 120.0f };
+    REQUIRE(ConnectionEngine::evaluate(conn, 0.0f, ctx5, nullptr) == Approx(1.0f).margin(0.01f));
+}
+
+// ============================================================================
 // Each Playback transform.
 // ============================================================================
 

@@ -1912,6 +1912,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // Same path as the TopBar manual-BPM toggle+edit (manual override).
         applyTempoCommand("link", bpm, Origin::Human);
     };
+    apiServer_->onResync = [this] {
+        // s-rta-0925: same path as the TopBar Resync button.
+        applyTempoCommand("resync", 0.0f, Origin::Human);
+    };
     // s-rta-0923 lane 3 (plan section 3.6, site #9): the inline
     // `lay->opacity = opacity;` write was removed from
     // ApiServer::handleSetLayerOpacity; this callback is now the only place
@@ -2109,6 +2113,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     oscHandler_.onSetBpm = [this](float bpm) {
         // Same manual-override path as apiServer_->onSetBpm / the TopBar manual-BPM toggle.
         applyTempoCommand("link", bpm, Origin::Human);
+    };
+    oscHandler_.onResync = [this] {
+        // s-rta-0925: same path as apiServer_->onResync / the TopBar Resync button.
+        applyTempoCommand("resync", 0.0f, Origin::Human);
     };
     oscHandler_.onSetMacro = [this](int macroIdx, float value) {
         // s-rta-0923 lane 3 (plan section 3.6, site #3). Same path as the
@@ -5044,9 +5052,10 @@ void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deck
 // Dispatch table (critic N10) -- a MOVE of each site's existing body, not a
 // behaviour change: "tap" calls the tracker's BPM setter only (TopBar's own
 // prior behaviour); "manual" turns manual mode on and applies the BPM if
-// positive; "auto" turns manual mode off; "resync" resets the beat/phrase
-// counters; "link" (also REST/OSC set_bpm) turns manual mode on and applies
-// the BPM.
+// positive; "auto" turns manual mode off; "resync" requests a Resync that the
+// analysis thread applies (s-rta-0925: BPMTracker::requestResync(), no longer
+// a direct message-thread write into the tracker); "link" (also REST/OSC
+// set_bpm) turns manual mode on and applies the BPM.
 void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin)
 {
     auto* tracker = analysisThread_.getBpmTracker();
@@ -5070,11 +5079,7 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
     {
         beatCounter_ = 0;
         lastBeatPhase_ = 0.0f;
-        if (tracker)
-        {
-            tracker->resetBeatPhase();
-            tracker->resetPhrase();
-        }
+        if (tracker) tracker->requestResync();
     }
     else if (action == "link")
     {

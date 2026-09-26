@@ -56,8 +56,10 @@ namespace
             state.onceStartBeats = -1.0;
             return rawCycles;
         }
-        if (state.onceStartBeats < 0.0)
+        if (state.onceStartBeats < 0.0 || rawCycles < static_cast<float>(state.onceStartBeats))
             state.onceStartBeats = static_cast<double>(rawCycles);
+            // first evaluation, OR the beat clock moved to before the pin -- only a manual Resync does that by more
+            // than an aubio beat correction (< 1 beat): retrigger from the new downbeat (s-rta-0925, ruling call 9).
 
         float elapsed = rawCycles - static_cast<float>(state.onceStartBeats);
         float maxCycles = (pb == ConnShape::Playback::PingPong) ? 2.0f : 1.0f;
@@ -93,8 +95,11 @@ float ConnectionEngine::evaluate(ParamConnection& c, float manualNorm, const Con
     }
 
     float raw = 0.0f;
+    // s-rta-0925: barsSinceResync() (never raw totalBarCount) so a manual Resync restarts
+    // an Lfo/Envelope(Beats) connection at the new downbeat; automatic resets still don't
+    // touch it (ruling 25).
     float bn = ConnectionShaper::beatsNow(ctx.snap.beatPhase, ctx.snap.beatInBar, ctx.snap.barCount,
-                                          ctx.snap.totalBarCount, c.shape.resetPhaseOnStructural);
+                                          ctx.snap.barsSinceResync(), c.shape.resetPhaseOnStructural);
 
     switch (c.source.kind)
     {

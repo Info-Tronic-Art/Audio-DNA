@@ -519,6 +519,12 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - Boris: "go with rec" — a MANUAL Resync (BPMTracker::resetPhrase) re-aligns tempo-oscillator shapes to the new
   downbeat (a small visible jump is accepted). Automatic resets keep flowing (unchanged). NOT built today
   (HANDOFF s168 addendum 1: Resync does not rewind the monotonic counter). Build item.
+- BUILT s-rta-0925 lane resync 9802458: plan-resync.md. `FeatureSnapshot::resyncBarOrigin` +
+  `barsSinceResync()`; `BPMTracker::requestResync()`/`applyResync()` (analysis-thread-only, replacing the
+  message-thread `resetPhrase()`/`resetBeatPhase()` write pair -- also fixes a pre-existing phantom-bar edge
+  and a downbeat-level-contract break neither prior implementation had noticed); `POST /api/resync` +
+  OSC `/audiodna/resync`; `gateOnce()` re-pins a `loop=false` one-shot on a manual Resync. ctest 493/493
+  (484 + 9 new). Live probe `.harmony/probe-resync.sh` written, not yet run by Harmony.
 
 ## 2026-09-25 (s-rta-0925) — Master opacity: one knob; top-right fader linked; new Master Signal slider (open call 10 + new)
 - Boris (after seeing the app): "remove the video slider keep master" — delete the Composition inspector Video-section

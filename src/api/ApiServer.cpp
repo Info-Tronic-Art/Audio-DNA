@@ -199,6 +199,11 @@ void ApiServer::setupRoutes()
         handleSetBpm(req, res);
     });
 
+    // s-rta-0925: manual Resync, same funnel as the TopBar button.
+    server_.Post("/api/resync", [this](const httplib::Request& req, httplib::Response& res) {
+        handleResync(req, res);
+    });
+
     // Audio features
     server_.Get("/api/features", [this](const httplib::Request& req, httplib::Response& res) {
         handleGetFeatures(req, res);
@@ -651,6 +656,9 @@ void ApiServer::handleGetBpm(const httplib::Request&, httplib::Response& res)
     // OscillatorSignal/EnvelopeSignal monotonic-fold fix through the app,
     // not just in a unit test.
     obj->setProperty("totalBarCount", static_cast<int>(snap.totalBarCount));
+    // s-rta-0925: totalBarCount at the last MANUAL Resync (0 until the first one) -- read in the
+    // same coherent snapshot so a poller can compute barsSinceResync() itself.
+    obj->setProperty("resyncBarOrigin", static_cast<int>(snap.resyncBarOrigin));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
@@ -671,6 +679,22 @@ void ApiServer::handleSetBpm(const httplib::Request& req, httplib::Response& res
     {
         juce::MessageManager::callAsync([this, bpm]() {
             onSetBpm(bpm);
+        });
+    }
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleResync(const httplib::Request&, httplib::Response& res)
+{
+    // s-rta-0925: bodyless POST -- no body parsing needed (pitfall 31, httplib v0.57.1
+    // answers an unframed body immediately; no CPPHTTPLIB_SERVER_READ_TIMEOUT stall).
+    // Marshal to the message thread — same manual-Resync path the TopBar button uses.
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    if (onResync)
+    {
+        juce::MessageManager::callAsync([this]() {
+            onResync();
         });
     }
 
@@ -761,6 +785,11 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("totalBarCount"))
         snap.totalBarCount = static_cast<uint32_t>(std::clamp(static_cast<int>(json["totalBarCount"]), 0,
                                                                 std::numeric_limits<int>::max()));
+    // s-rta-0925: same clamp precedent as totalBarCount above -- needed so a live sweep can drive
+    // barsSinceResync() directly through the OscillatorSignal/EnvelopeSignal/ConnectionShaper fold.
+    if (json.hasProperty("resyncBarOrigin"))
+        snap.resyncBarOrigin = static_cast<uint32_t>(std::clamp(static_cast<int>(json["resyncBarOrigin"]), 0,
+                                                                  std::numeric_limits<int>::max()));
     if (json.hasProperty("spectralCentroid")) snap.spectralCentroid = static_cast<float>(static_cast<double>(json["spectralCentroid"]));
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
