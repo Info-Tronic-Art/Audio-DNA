@@ -2540,16 +2540,21 @@ void MainComponent::resized()
     row1.removeFromLeft(2);
     fastSaveButton_.setBounds(row1.removeFromLeft(50));
     row1.removeFromLeft(2);
-    deckSaveButton_.setBounds(row1.removeFromLeft(60));
-    row1.removeFromLeft(2);
     {
-        // Size from the measured label width so the whole word shows (UI Text Rules: never abbreviate) --
-        // a fixed 60px clipped "Deck Load" to "Deck Loa". Same measured-width convention as BrowserPanel.cpp's
-        // TabBarLayout.h use: measure with the font drawButtonText draws with (LookAndFeel.cpp:83), pad 8px each
-        // side (matches BrowserPanel's kTabTextPadding), and never shrink below the previous 60px minimum.
+        // Size both Deck Save and Deck Load from their measured label width so the whole word always
+        // shows (UI Text Rules: never abbreviate) -- a fixed 60px clipped "Deck Load" to "Deck Loa".
+        // Same measured-width convention as BrowserPanel.cpp's TabBarLayout.h use: measure with the
+        // font drawButtonText draws with (LookAndFeel.cpp:83), pad 8px each side (matches BrowserPanel's
+        // kTabTextPadding), and never shrink below the previous 60px minimum. One helper for both
+        // buttons (review-polish-r1.md nit: Deck Save was still hardcoded at 60px while Deck Load was
+        // already measured).
         const juce::Font btnFont(juce::FontOptions(14.0f));
-        const int labelWidth = juce::GlyphArrangement::getStringWidthInt(btnFont, deckLoadButton_.getButtonText());
-        deckLoadButton_.setBounds(row1.removeFromLeft(juce::jmax(60, labelWidth + 2 * 8)));
+        auto measuredButtonWidth = [&btnFont](const juce::TextButton& button) {
+            return juce::jmax(60, juce::GlyphArrangement::getStringWidthInt(btnFont, button.getButtonText()) + 2 * 8);
+        };
+        deckSaveButton_.setBounds(row1.removeFromLeft(measuredButtonWidth(deckSaveButton_)));
+        row1.removeFromLeft(2);
+        deckLoadButton_.setBounds(row1.removeFromLeft(measuredButtonWidth(deckLoadButton_)));
     }
     fileLabel_.setBounds(row1);
 

@@ -3,6 +3,7 @@
 #include "effects/EffectLibrary.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <set>
 #include <tuple>
 
@@ -441,6 +442,18 @@ SliceResult sliceRoutine(const Take& take, const SliceRequest& req, const Effect
 
 double takeBeatOfBar(const Take& take, int bar)
 {
+    // s-rta-0926 cleanup lane: bar is 1-based (the header comment above
+    // says so), but nothing enforced it -- a caller passing 0 or a negative
+    // bar (e.g. an unclamped "From bar" editor, review-routine-strip-r1.md)
+    // silently computed a negative beat via (bar - 1) * kBeatsPerBar. Refuse
+    // instead: treat it as bar 1 and say so, in whole words, rather than
+    // handing back a beat that can never occur in the take.
+    if (bar < 1)
+    {
+        std::cerr << "[RoutineSlice] takeBeatOfBar refused an invalid bar number ("
+                   << bar << "); bars are counted from 1. Using bar 1 instead." << std::endl;
+        bar = 1;
+    }
     const double start = take.meta.startBeatInBar >= 0.0 ? take.meta.startBeatInBar : 0.0;
     return (bar - 1) * kBeatsPerBar + std::fmod(kBeatsPerBar - start, kBeatsPerBar);
 }

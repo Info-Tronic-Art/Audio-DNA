@@ -64,11 +64,14 @@ catch_discover_tests(test_layer_transport_reverse)
 # --- test_compositor_opacity_alias (s-rta-0925 ms-white: GL FBO/texture
 # feedback-loop hazard -- applyClipTransform's needsTransform branch handed
 # effectTex_A_ back verbatim through applyClipOpacity's identity-opacity
-# no-op, aliasing applyClipEffects' first write target). Headless: mirrors
-# the texture-handle decision chain across applyClipTransform/
-# applyClipOpacity/applyClipEffects, same reason and approach as
-# test_layer_transport_reverse above -- CompositorEngine.cpp issues real GL
-# calls and is not linked into any ctest target here.
+# no-op, aliasing applyClipEffects' first write target. s-rta-0926 xfade
+# replaced the hardcoded effectTex_A_/B_ targets with ScratchPool.h's pick()
+# via CompositorEngine::pickEffectTarget). Headless: mirrors the
+# transform->opacity texture-handle hand-off, driving the REAL pick()
+# function for target selection (not a re-derived index formula), same
+# reason and approach as test_layer_transport_reverse above --
+# CompositorEngine.cpp issues real GL calls and is not linked into any ctest
+# target here.
 add_executable(test_compositor_opacity_alias test_compositor_opacity_alias.cpp)
 target_include_directories(test_compositor_opacity_alias PRIVATE ${SRC_DIR})
 target_link_libraries(test_compositor_opacity_alias PRIVATE Catch2::Catch2WithMain)
@@ -82,8 +85,11 @@ catch_discover_tests(test_compositor_opacity_alias)
 # inputTex, so a second back-to-back applyClipEffects call (per-clip effects
 # then per-layer effects in compositeDeck) aliased whenever the first call's
 # output happened to land on effectTex_A_ (odd enabled-effect count).
-# Headless: mirrors the ping-pong texture-handle decision chain across two
-# chained applyClipEffects calls, same reason and approach as
+# s-rta-0926 xfade replaced the whole hardcoded-starting-index concept with
+# a per-PASS pick() (ScratchPool.h via CompositorEngine::pickEffectTarget),
+# parity-independent by construction. Headless: drives the REAL pick()
+# function through the same two-chained-call sequence, across odd/even/zero
+# per-clip effect counts, same reason and approach as
 # test_compositor_opacity_alias above -- CompositorEngine.cpp issues real GL
 # calls and is not linked into any ctest target here.
 add_executable(test_compositor_effects_parity test_compositor_effects_parity.cpp)

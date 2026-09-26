@@ -7,6 +7,12 @@
 # clip+layer frame must equal the same effects run as one clip chain). Rows/thresholds: the docstring of
 # .harmony/probe-effects-parity.py. Pixel-decoded (never file hashes).
 #
+# s-rta-0926 cleanup lane: added a G1 row for the GLOBAL, single-image EffectChain
+# (src/effects/EffectChain.cpp) via /api/load_image + /api/set_effect_chain -- V1/V5/V6 above never touch
+# that code path. Runs first, before any load_composition. See the .py docstring's G1 section, including
+# PARITY-DOCUMENTS-GAP: /api/set_effect_chain has no dryWet field today, so the mid-chain dry/wet fix's
+# own numeric assertion can't be driven live without an API change (out of this lane's fence).
+#
 # Screen-safe: open -g (never plain open / foreground exec), no screen capture, no Output window, no synthetic
 # input; graceful quit, pkill only if still running after 30 s. REFUSES if Audio-DNA is already running.
 # The caller holds /tmp/audiodna-live.lock.
