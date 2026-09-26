@@ -61,6 +61,20 @@ target_link_libraries(test_layer_transport_reverse PRIVATE Catch2::Catch2WithMai
 apply_sanitizers(test_layer_transport_reverse)
 catch_discover_tests(test_layer_transport_reverse)
 
+# --- test_compositor_opacity_alias (s-rta-0925 ms-white: GL FBO/texture
+# feedback-loop hazard -- applyClipTransform's needsTransform branch handed
+# effectTex_A_ back verbatim through applyClipOpacity's identity-opacity
+# no-op, aliasing applyClipEffects' first write target). Headless: mirrors
+# the texture-handle decision chain across applyClipTransform/
+# applyClipOpacity/applyClipEffects, same reason and approach as
+# test_layer_transport_reverse above -- CompositorEngine.cpp issues real GL
+# calls and is not linked into any ctest target here.
+add_executable(test_compositor_opacity_alias test_compositor_opacity_alias.cpp)
+target_include_directories(test_compositor_opacity_alias PRIVATE ${SRC_DIR})
+target_link_libraries(test_compositor_opacity_alias PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_compositor_opacity_alias)
+catch_discover_tests(test_compositor_opacity_alias)
+
 # --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
 # composition-tier oracle endpoints in src/test/TestServer.cpp — see the
 # file header for exact scope). Headless: bare Composition + EffectLibrary,

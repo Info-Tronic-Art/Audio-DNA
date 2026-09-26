@@ -247,9 +247,21 @@ private:
     // (returns srcTex unchanged, no GL call) at the default 1.0 opacity,
     // matching this file's other needsTransform-style early-outs. dstFBO/
     // dstTex let each caller pick a scratch buffer that won't alias srcTex.
+    // s-rta-0925 ms-white FIX: the no-op early-return is only safe when
+    // srcTex is NOT about to be reused as a write target by the caller's
+    // next stage. applyClipTransform's needsTransform branch renders into
+    // effectFBO_A_/effectTex_A_ as scratch, and applyClipEffects' ping-pong
+    // always starts its first write at effectFBO_A_ -- so at the default
+    // 1.0 opacity the early return used to hand back effectTex_A_ verbatim,
+    // which applyClipEffects then bound as BOTH the sampled input and the
+    // render target of the same FBO (a read/write-same-texture feedback
+    // loop, UB per the GL spec -- resolved to a fully transparent frame on
+    // the Metal-backed macOS GL driver). forceCopy lets a caller that knows
+    // its srcTex may alias an upcoming write target suppress the no-op and
+    // always render into dstFBO/dstTex instead.
     GLuint applyClipOpacity(float opacity, GLuint srcTex, GLuint dstFBO, GLuint dstTex,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
-                            int w, int h);
+                            int w, int h, bool forceCopy = false);
 
     // S167-L4b: pure opacity product for the FX-Only constant-alpha blend.
     // Owner's ruling (2026-09-05): master/layer/clip opacity multiply, so a
