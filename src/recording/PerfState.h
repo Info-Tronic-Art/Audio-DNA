@@ -19,6 +19,19 @@
 // round-trip.
 struct PerfState
 {
+    // s-rta-0925 (plan section 3.2): the ONE source of truth for the
+    // slot/param -> int key encoding used by BOTH PerfStateCapture (writing
+    // `effectParams`) and Program::compile's preamble synthesis (reading it
+    // back to resolve an effect slot/param). Previously private to
+    // PerfStateCapture.cpp; moved here so a second reader never re-derives
+    // it independently. `slotIndex * kFxParamKeyStride + paramIndex` --
+    // kFxParamKeyStride leaves ample headroom under any registered effect's
+    // largest param list (well under 100 params/effect).
+    static constexpr int kFxParamKeyStride = 100;
+    static int fxParamKey(int slot, int param) { return slot * kFxParamKeyStride + param; }
+    static int fxParamSlot(int key)  { return key / kFxParamKeyStride; }
+    static int fxParamIndex(int key) { return key % kFxParamKeyStride; }
+
     // Only NON-DEFAULT clip state is worth keeping (D4): effect manual
     // values, scalars, playing/playhead. Keyed by column within the owning
     // LayerRuntime.

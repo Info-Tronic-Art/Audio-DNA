@@ -1,6 +1,8 @@
 #include "recording/Program.h"
 #include "model/Composition.h"
+#include "connect/ScalarParams.h"
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -147,6 +149,265 @@ namespace
 
         return { overall, target, "" };
     }
+
+    // ==== s-rta-0925 plan section 3.2: D4's preamble ("restore checkpoint 0, then play") ====
+
+    ControlPath compControlPath(const std::string& control)
+    {
+        ControlPath p;
+        p.scope = ControlPath::Scope::Comp;
+        p.control = control;
+        return p;
+    }
+
+    // A Missing outcome is reported by the CALLER (it needs a specific reason, e.g. "layer not
+    // found" vs "clip not found") -- this only folds a non-Missing, non-exact outcome into the
+    // existing rebind buckets, tagged so a reader can tell a preamble rebind from a lane rebind.
+    void addPreambleRebind(Program& out, LevelOutcome outcome, const ControlPath& key, const std::string& what)
+    {
+        if (outcome == LevelOutcome::PositionOnly)
+            out.report.reboundByPosition.push_back({ key, "preamble: " + what + " rebound by position" });
+        else if (outcome == LevelOutcome::NameOnly)
+            out.report.reboundByName.push_back({ key, "preamble: " + what + " rebound by name" });
+    }
+
+    // One deck+layer, resolved ONCE (D2 tri-state) so every row emitted under it shares a single
+    // rebind/unresolved Issue rather than one per row (plan section 3.2's emission-order table).
+    struct ResolvedLayerCtx
+    {
+        ControlPath layerKey;   // scope=Layer; positional deck/layer + the names captured at record time
+        ResolvedTarget target;  // .deck / .layer filled; .col/.fx/.param stay -1
+        const Layer* layer = nullptr;
+        const PerfState::LayerRuntime* rt = nullptr;
+    };
+
+    std::vector<ResolvedLayerCtx> resolvePreambleLayers(const PerfState& cp0, const Composition& comp, Program& out)
+    {
+        std::vector<ResolvedLayerCtx> ctxs;
+        for (const auto& [deckIdx, deckRT] : cp0.decks)
+        {
+            ControlPath deckProbe;
+            deckProbe.scope = ControlPath::Scope::Layer;
+            deckProbe.deck = deckIdx;
+            deckProbe.deckName = deckRT.deck;
+            auto deckR = resolveDeck(comp, deckProbe);
+            if (deckR.outcome == LevelOutcome::Missing)
+            {
+                out.report.preambleUnresolved.push_back({ deckProbe, "deck not found" });
+                continue;
+            }
+            const Deck& deck = comp.decks[static_cast<size_t>(deckR.index)];
+
+            for (const auto& [layerIdx, layerRT] : deckRT.layers)
+            {
+                ControlPath layerKey;
+                layerKey.scope = ControlPath::Scope::Layer;
+                layerKey.deck = deckIdx;
+                layerKey.deckName = deckRT.deck;
+                layerKey.layer = layerIdx;
+                layerKey.layerName = layerRT.layer;
+
+                auto layerR = resolveLayer(deck, layerKey);
+                const LevelOutcome overall = combine(deckR.outcome, layerR.outcome);
+                if (layerR.outcome == LevelOutcome::Missing)
+                {
+                    out.report.preambleUnresolved.push_back({ layerKey, "layer not found" });
+                    continue;
+                }
+                addPreambleRebind(out, overall, layerKey, "layer");
+
+                ResolvedTarget target;
+                target.deck = deckR.index;
+                target.layer = layerR.index;
+                ctxs.push_back(ResolvedLayerCtx{ layerKey, target,
+                    &deck.layers[static_cast<size_t>(layerR.index)], &layerRT });
+            }
+        }
+        return ctxs;
+    }
+
+    void buildPreamble(const PerfState& cp0, const Composition& comp, Program& out)
+    {
+        // R9: a v1/checkpoint-less take (PerfState never captured -- activeDeckIndex still at its
+        // struct default and no decks at all) synthesizes NO preamble entries -- behaves exactly as
+        // today. A real arm() always calls capturePerfState() (RecorderHost::arm), so this only
+        // happens for a legacy/hand-built take with no checkpoint0 section.
+        if (cp0.decks.empty() && cp0.activeDeckIndex < 0)
+            return;
+
+        // Row 1: comp/activeDeck.
+        {
+            const ControlPath key = compControlPath("activeDeck");
+            const bool valid = cp0.activeDeckIndex >= 0 && cp0.activeDeckIndex < static_cast<int>(comp.decks.size());
+            if (valid)
+            {
+                DiscretePoint p; p.v = cp0.activeDeckIndex; p.origin = Origin::Preamble;
+                out.preamble.push_back(Fired{ 0.0, 0, key, ResolvedTarget{}, std::move(p) });
+                out.report.preambleCount++;
+            }
+            else
+            {
+                out.report.preambleUnresolved.push_back({ key, "deck index out of range" });
+            }
+        }
+
+        // Row 2: comp/quantize -- Comp scope is always addressable (resolveKey never fails it).
+        {
+            DiscretePoint p; p.v = cp0.quantizeMode; p.origin = Origin::Preamble;
+            out.preamble.push_back(Fired{ 0.0, 0, compControlPath("quantize"), ResolvedTarget{}, std::move(p) });
+            out.report.preambleCount++;
+        }
+
+        // Pass A (rows 3-6): resolve every deck/layer ONCE, then emit flags/opacity/layer-fx/activeClip.
+        std::vector<ResolvedLayerCtx> ctxs = resolvePreambleLayers(cp0, comp, out);
+        for (auto& ctx : ctxs)
+        {
+            const auto& rt = *ctx.rt;
+            auto controlKey = [&](const std::string& control)
+            { ControlPath k = ctx.layerKey; k.control = control; return k; };
+
+            auto emitFlag = [&](const std::string& name, bool value)
+            {
+                DiscretePoint p; p.v = value ? 1 : 0; p.origin = Origin::Preamble;
+                out.preamble.push_back(Fired{ 0.0, 0, controlKey(name), ctx.target, std::move(p) });
+                out.report.preambleCount++;
+            };
+            emitFlag("visible", rt.visible);
+            emitFlag("bypass", rt.bypassed);
+            emitFlag("solo", rt.solo);
+            emitFlag("mute", rt.muted);
+            emitFlag("autopilot", rt.autopilotEnabled);
+
+            {
+                // LayerRuntime::opacity is always captured (not gated on non-default, unlike
+                // ClipRuntime) -- skip a default-valued restore here rather than spam a no-op write.
+                const auto& def = layerScalarDefs()[static_cast<size_t>(LayerScalar::Opacity)];
+                const float norm = def.toNorm(rt.opacity);
+                if (std::abs(norm - def.defaultNorm) > 1e-4f)
+                {
+                    ControlPath k = controlKey("scalar"); k.scalar = "opacity";
+                    out.preambleContinuous.push_back(PreambleSet{ k, ctx.target, norm });
+                    out.report.preambleCount++;
+                }
+            }
+
+            for (const auto& [fxKey, value] : rt.effectParams)
+            {
+                const int slot = PerfState::fxParamSlot(fxKey);
+                const int param = PerfState::fxParamIndex(fxKey);
+                // Plan section 3.2 row 5: "no name in PerfState" -- index-only bounds check, never
+                // the tri-state name-fallback resolveFx() runs for a recorded lane's fx.
+                if (slot < 0 || slot >= static_cast<int>(ctx.layer->layerEffects.size()))
+                {
+                    ControlPath k = controlKey("param"); k.fx = slot; k.param = param;
+                    out.report.preambleUnresolved.push_back({ k, "effect slot not found" });
+                    continue;
+                }
+                ControlPath k = controlKey("param"); k.fx = slot; k.param = param;
+                ResolvedTarget t = ctx.target; t.fx = slot; t.param = param;
+                out.preambleContinuous.push_back(PreambleSet{ k, t, value });
+                out.report.preambleCount++;
+            }
+
+            {
+                const int col = rt.activeClipColumn;
+                const int numCols = static_cast<int>(ctx.layer->clips.size());
+                if (col >= numCols)
+                {
+                    out.report.preambleUnresolved.push_back({ controlKey("activeClip"), "clip index out of range" });
+                }
+                else
+                {
+                    DiscretePoint p; p.v = col; p.origin = Origin::Preamble;
+                    out.preamble.push_back(Fired{ 0.0, 0, controlKey("activeClip"), ctx.target, std::move(p) });
+                    out.report.preambleCount++;
+                }
+            }
+        }
+
+        // Pass B (rows 7-8): per captured clip, then the active column's play/pause -- run as a
+        // SEPARATE pass over every layer (not interleaved with pass A) so every layer's trigger
+        // (row 6) precedes every layer's play/pause (row 8): R4 -- Layer::triggerClipImmediate
+        // auto-plays a never-triggered clip, so the trigger must land first or the recorded
+        // play/pause state would be immediately overridden by the auto-play.
+        for (auto& ctx : ctxs)
+        {
+            const auto& rt = *ctx.rt;
+
+            for (const auto& [col, clipRT] : rt.clips)
+            {
+                ControlPath colProbe; colProbe.col = col; colProbe.clipName = clipRT.clip;
+                auto colR = resolveCol(*ctx.layer, colProbe);
+                if (colR.outcome == LevelOutcome::Missing)
+                {
+                    ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
+                    k.col = col; k.clipName = clipRT.clip;
+                    out.report.preambleUnresolved.push_back({ k, "clip not found" });
+                    continue;
+                }
+                {
+                    ControlPath rebindKey = ctx.layerKey; rebindKey.scope = ControlPath::Scope::Clip;
+                    rebindKey.col = colR.index; rebindKey.clipName = clipRT.clip;
+                    addPreambleRebind(out, colR.outcome, rebindKey, "clip");
+                }
+
+                ResolvedTarget clipTarget = ctx.target; clipTarget.col = colR.index;
+                const Clip& liveClip = ctx.layer->clips[static_cast<size_t>(colR.index)].value();
+                auto clipControlKey = [&](const std::string& control)
+                {
+                    ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
+                    k.col = colR.index; k.clipName = clipRT.clip; k.control = control; return k;
+                };
+
+                for (const auto& [fxKey, value] : clipRT.effectParams)
+                {
+                    const int slot = PerfState::fxParamSlot(fxKey);
+                    const int param = PerfState::fxParamIndex(fxKey);
+                    if (slot < 0 || slot >= static_cast<int>(liveClip.effects.size()))
+                    {
+                        ControlPath k = clipControlKey("param"); k.fx = slot; k.param = param;
+                        out.report.preambleUnresolved.push_back({ k, "effect slot not found" });
+                        continue;
+                    }
+                    ControlPath k = clipControlKey("param"); k.fx = slot; k.param = param;
+                    ResolvedTarget t = clipTarget; t.fx = slot; t.param = param;
+                    out.preambleContinuous.push_back(PreambleSet{ k, t, value });
+                    out.report.preambleCount++;
+                }
+
+                for (const auto& [scalarKey, value] : clipRT.scalars)
+                {
+                    ControlPath k = clipControlKey("scalar"); k.scalar = scalarKey;
+                    out.preambleContinuous.push_back(PreambleSet{ k, clipTarget, value });
+                    out.report.preambleCount++;
+                }
+            }
+
+            if (rt.activeClipColumn >= 0)
+            {
+                const auto it = rt.clips.find(rt.activeClipColumn);
+                ControlPath colProbe; colProbe.col = rt.activeClipColumn;
+                if (it != rt.clips.end()) colProbe.clipName = it->second.clip;
+                auto colR = resolveCol(*ctx.layer, colProbe);
+                if (colR.outcome != LevelOutcome::Missing)
+                {
+                    // D4 table row 8: "a clip that was playing is always non-default" (PerfStateCapture
+                    // only stores a ClipRuntime for a clip that differs from default), so the ABSENCE
+                    // of a ClipRuntime for the active column means it was paused -- never assume playing.
+                    const bool playing = it != rt.clips.end() && it->second.playing;
+                    ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
+                    k.col = colR.index; k.clipName = colProbe.clipName; k.control = "playing";
+                    ResolvedTarget t = ctx.target; t.col = colR.index;
+                    DiscretePoint p; p.action = playing ? "resume" : "pause"; p.origin = Origin::Preamble;
+                    out.preamble.push_back(Fired{ 0.0, 0, k, t, std::move(p) });
+                    out.report.preambleCount++;
+                }
+                // Missing: the active column no longer resolves at all -- already reported above if it
+                // was ALSO a captured (non-default) clip; if it was never captured (a paused default
+                // clip whose column has since been deleted), silently skip rather than double-report.
+            }
+        }
+    }
 }
 
 std::shared_ptr<const Program> compile(const Take& take, const Composition& comp,
@@ -154,6 +415,12 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
 {
     auto program = std::make_shared<Program>();
     program->clock = clock;
+
+    // s-rta-0925 (D4): checkpoint0 -> the preamble, fired at Play before the lane loop below runs.
+    // Unconditional on `range` -- a routine's slice preamble is LATER (D9); row 1's range support
+    // (Program.h's own comment) is a simple clip filter with no preamble synthesis of its own, so
+    // this always uses the WHOLE checkpoint regardless.
+    buildPreamble(take.checkpoint0, comp, *program);
 
     auto pickAt = [&](const Stamp& s, double beat) -> double
     {

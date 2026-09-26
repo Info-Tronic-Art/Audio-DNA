@@ -1944,13 +1944,21 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // SAME choke points the human path uses (Origin::Replay).
     recorderHost_.dispatch.fire = [this](const Fired& f) -> bool {
         const auto& control = f.key.control;
+        // s-rta-0925 (D4 preamble): a checkpoint-0 restore entry (Program::compile's buildPreamble)
+        // carries Origin::Preamble on the point itself, but every handler below is still called with
+        // the literal Origin::Replay -- so capture()'s `origin != Origin::Replay` gate and undo's
+        // `origin == Origin::Human` gate stay exactly as they are; nothing from a preamble is ever
+        // recorded or undoable, by construction, with no new gate to add anywhere. `immediate` is
+        // the ONE thing that differs: it bypasses handleClipTrigger's beat-snap/quantize queue,
+        // because a restore is not a performance trigger.
+        const bool immediate = (f.p.origin == Origin::Preamble);
         if (control == "activeClip")
         {
             if (f.target.layer < 0) return false;
             if (f.p.v < 0)
-                applyClearActiveClip(f.target.layer, Origin::Replay);
+                applyClearActiveClip(f.target.layer, Origin::Replay, f.target.deck);
             else
-                handleClipTrigger(f.target.layer, f.p.v, Origin::Replay, f.target.deck);
+                handleClipTrigger(f.target.layer, f.p.v, Origin::Replay, f.target.deck, immediate);
             return true;
         }
         if (control == "activeDeck")
@@ -1973,19 +1981,19 @@ MainComponent::MainComponent(bool testMode, int testPort)
              control == "bypass" || control == "autopilot"))
         {
             if (f.target.layer < 0) return false;
-            applyLayerFlag(f.target.layer, control, f.p.v != 0, Origin::Replay);
+            applyLayerFlag(f.target.layer, control, f.p.v != 0, Origin::Replay, f.target.deck);
             return true;
         }
         if (control == "bypass" && f.key.scope == ControlPath::Scope::Clip && f.target.fx >= 0)
         {
             if (f.target.layer < 0 || f.target.col < 0) return false;
-            applyEffectBypass(f.target.layer, f.target.col, f.target.fx, f.p.v != 0, Origin::Replay);
+            applyEffectBypass(f.target.layer, f.target.col, f.target.fx, f.p.v != 0, Origin::Replay, f.target.deck);
             return true;
         }
         if (control == "playing")
         {
             if (f.target.layer < 0 || f.target.col < 0) return false;
-            applyClipPlaying(f.target.layer, f.target.col, f.p.action, Origin::Replay);
+            applyClipPlaying(f.target.layer, f.target.col, f.p.action, Origin::Replay, 0, f.target.deck);
             return true;
         }
         if (control == "quantize")
@@ -4079,7 +4087,7 @@ void MainComponent::handleImportISF()
 
 // === v2: Deck View Handlers ===
 
-void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin, int deckIndex)
+void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin, int deckIndex, bool immediate)
 {
     // s-rta-0923/0924 step 3 (plan section 3.3 B2): deckIndex < 0 means "the
     // active deck" (every pre-existing caller); a Replay dispatch passes the
@@ -4117,12 +4125,26 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     // already-playing cell is this same column == layer->activeClipColumn case.
     const bool wasRetrigger = (column == layer->activeClipColumn);
 
-    // L5 Quantize: the global Quantize control forces a beat-snap granularity
-    // on this one trigger (queues it) unless it's Off or the tracker isn't
-    // locked yet — see quantizeModeToForcedSnap above.
-    const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
-    const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
-    layer->triggerClip(column, forcedSnap);
+    if (immediate)
+    {
+        // s-rta-0925 (D4 preamble): the checkpoint-0 restore bypasses beat-snap/quantize entirely --
+        // it is putting the model back the way it was at Record, not a performance trigger. Mirrors
+        // Layer::triggerClip's own empty-cell branch (Layer.h:215-221) since triggerClipImmediate
+        // alone would leave activeClipColumn pointing at an empty cell.
+        if (layer->getClipAt(column))
+            layer->triggerClipImmediate(column);
+        else
+            layer->clearActiveClip();
+    }
+    else
+    {
+        // L5 Quantize: the global Quantize control forces a beat-snap granularity
+        // on this one trigger (queues it) unless it's Off or the tracker isn't
+        // locked yet — see quantizeModeToForcedSnap above.
+        const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
+        const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
+        layer->triggerClip(column, forcedSnap);
+    }
 
     const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
     std::optional<bool> playAfter;
@@ -4955,20 +4977,39 @@ void MainComponent::handleDeckSwitch(int deckIndex, Origin origin)
 // captures a point only when origin != Origin::Replay (the host's own
 // capture() filters on this too -- belt and braces, plan text).
 
-void MainComponent::applyClearActiveClip(int layerIndex, Origin origin)
+// s-rta-0925 (D4 preamble, plan section 3.5 item 3): shared deck resolution for the four
+// dispatch-table handlers below -- the SAME B2 pattern handleClipTrigger already uses
+// (MainComponent.cpp:4090-4100).
+Deck* MainComponent::deckForDispatch(int deckIndex, const char* who, Origin origin)
 {
-    auto* deck = composition_.getActiveDeck();
+    Deck* deck = nullptr;
+    if (deckIndex < 0)
+        deck = composition_.getActiveDeck();
+    else if (deckIndex < static_cast<int>(composition_.decks.size()))
+        deck = &composition_.decks[static_cast<size_t>(deckIndex)];
+    if (!deck && origin != Origin::Human && recorderHost_.dispatch.notify)
+        recorderHost_.dispatch.notify(std::string(who) + ": deck unresolved");
+    return deck;
+}
+
+void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deckIndex)
+{
+    auto* deck = deckForDispatch(deckIndex, "applyClearActiveClip", origin);
     if (!deck) return;
     auto* layer = deck->getLayer(layerIndex);
     if (!layer || layer->activeClipColumn < 0) return;
 
     layer->clearActiveClip();
-    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-    if (deckView_) deckView_->refresh();
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    if (resolvedDeckIndex == composition_.activeDeckIndex)
+    {
+        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+        if (deckView_) deckView_->refresh();
+    }
 
     if (origin != Origin::Replay)
     {
-        ControlPath key = layerScalarPath(composition_, composition_.activeDeckIndex, layerIndex, "");
+        ControlPath key = layerScalarPath(composition_, resolvedDeckIndex, layerIndex, "");
         key.control = "activeClip";
         key.scalar.clear();
         DiscretePoint p;
@@ -5187,6 +5228,23 @@ std::string MainComponent::perfPlay(bool withAudio)
             applyAudioTransport("play", Origin::Human);
         }
     }
+
+    // s-rta-0925 (D4 preamble, Boris ruling 2026-09-25): one plain notice -- Play restores the
+    // checkpoint-0 look before playing the recorded moves (F3: whole words, no jargon, never a modal).
+    if (recorderHost_.dispatch.notify)
+    {
+        const auto st = recorderHost_.status();
+        const juce::File takeFolder(st.loadedTakeFolder);
+        std::string msg = "Playing " + takeFolder.getFileNameWithoutExtension().toStdString()
+            + ": the look from when Record was pressed is restored first.";
+        if (st.preambleUnresolved > 0)
+            msg += ", but " + std::to_string(st.preambleUnresolved)
+                 + " settings could not be restored (a layer, deck or clip no longer exists)";
+        if (st.preambleRefused > 0)
+            msg += ", and " + std::to_string(st.preambleRefused)
+                 + " controls you are holding were left alone";
+        recorderHost_.dispatch.notify(msg);
+    }
     return {};
 }
 
@@ -5296,6 +5354,12 @@ juce::var MainComponent::perfStatusVar() const
     obj->setProperty("audioReason", juce::String(s.audioReason));
     obj->setProperty("positionSeconds", s.positionSeconds);
     obj->setProperty("lengthSeconds", s.lengthSeconds);
+    // s-rta-0925 (D4 preamble): the checkpoint-0 restore fired at Play -- all four are 0 while not
+    // playing (RecorderHost::publishStatus only fills them inside its `playing_ && player_` block).
+    obj->setProperty("preambleCount", s.preambleCount);
+    obj->setProperty("preambleFired", s.preambleFired);
+    obj->setProperty("preambleRefused", s.preambleRefused);
+    obj->setProperty("preambleUnresolved", s.preambleUnresolved);
     return juce::var(obj);
 }
 
@@ -5340,9 +5404,9 @@ void MainComponent::applyAudioTransport(const std::string& action, Origin origin
     recorderHost_.capture(key, std::move(p));
 }
 
-void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin)
+void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin, int deckIndex)
 {
-    auto* deck = composition_.getActiveDeck();
+    auto* deck = deckForDispatch(deckIndex, "applyLayerFlag", origin);
     if (!deck) return;
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
@@ -5354,10 +5418,11 @@ void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool
     else if (flag == "autopilot") layer->autopilotEnabled = value;
     else return;
 
-    if (deckView_) deckView_->refresh();
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
-    ControlPath key = layerScalarPath(composition_, composition_.activeDeckIndex, layerIndex, "");
+    ControlPath key = layerScalarPath(composition_, resolvedDeckIndex, layerIndex, "");
     key.control = flag;
     key.scalar.clear();
     DiscretePoint p;
@@ -5366,9 +5431,9 @@ void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool
     recorderHost_.capture(key, std::move(p));
 }
 
-void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin)
+void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin, int deckIndex)
 {
-    auto* deck = composition_.getActiveDeck();
+    auto* deck = deckForDispatch(deckIndex, "applyEffectBypass", origin);
     if (!deck) return;
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
@@ -5378,8 +5443,10 @@ void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, b
     auto& slot = clip->effects[static_cast<size_t>(fxIndex)];
     slot.bypassed = value;
 
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+
     if (origin == Origin::Replay) return;
-    ControlPath key = clipScalarPath(composition_, composition_.activeDeckIndex, layerIndex, column, "");
+    ControlPath key = clipScalarPath(composition_, resolvedDeckIndex, layerIndex, column, "");
     key.fx = fxIndex;
     key.fxName = slot.effectName;
     key.control = "bypass";
@@ -5391,9 +5458,9 @@ void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, b
 }
 
 void MainComponent::applyClipPlaying(int layerIndex, int column, const std::string& action, Origin origin,
-                                     uint64_t group)
+                                     uint64_t group, int deckIndex)
 {
-    auto* deck = composition_.getActiveDeck();
+    auto* deck = deckForDispatch(deckIndex, "applyClipPlaying", origin);
     if (!deck) return;
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
@@ -5410,10 +5477,11 @@ void MainComponent::applyClipPlaying(int layerIndex, int column, const std::stri
     else if (action == "reverse") { clip->reverse = !clip->reverse; }
     else return;
 
-    if (deckView_) deckView_->refresh();
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
-    ControlPath key = clipScalarPath(composition_, composition_.activeDeckIndex, layerIndex, column, "");
+    ControlPath key = clipScalarPath(composition_, resolvedDeckIndex, layerIndex, column, "");
     key.control = "playing";
     key.scalar.clear();
     DiscretePoint p;

@@ -22,14 +22,10 @@ namespace
     }
 
     // "Manual values that differ from the library default" (plan section
-    // 3.2). Key encoding: `slotIndex * 100 + paramIndex` -- PerfState.h's
-    // own field comment ("fx slot index -> manual value") undersells the
-    // multi-param reality (an effect slot can carry several params, up to
-    // EffectLibrary's largest param list, well under 100); *100 leaves
-    // ample headroom with no collisions across any registered effect. This
-    // encoding is PerfStateCapture's own, private to how it fills the map --
-    // PerfState.h is not touched by this lane and this map's `int` key type
-    // does not change.
+    // 3.2). Key encoding is PerfState::fxParamKey (s-rta-0925: moved out of
+    // this file into PerfState.h so Program::compile's preamble synthesis
+    // shares the SAME encoding when reading this map back, rather than
+    // re-deriving it independently).
     std::map<int, float> nonDefaultEffectParams(const std::vector<Clip::EffectSlot>& effects)
     {
         std::map<int, float> out;
@@ -43,7 +39,7 @@ namespace
             for (size_t p = 0; p < paramCount; ++p)
             {
                 if (std::abs(slot.paramValues[p] - def->params[p].defaultValue) > 1e-4f)
-                    out[static_cast<int>(slotIdx * 100 + p)] = slot.paramValues[p];
+                    out[PerfState::fxParamKey(static_cast<int>(slotIdx), static_cast<int>(p))] = slot.paramValues[p];
             }
         }
         return out;

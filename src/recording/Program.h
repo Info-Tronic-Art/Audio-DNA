@@ -53,6 +53,17 @@ struct ContLane
     std::vector<G> gestures;
 };
 
+// s-rta-0925 (plan section 3.2): a continuous restore entry (D4 preamble
+// for a continuous control) -- fired as touch("held") -> set(v) -> release
+// at Player::firePreamble, never by advanceTo. `v` is NORMALISED [0,1],
+// exactly what Sink::set takes.
+struct PreambleSet
+{
+    ControlPath key;
+    ResolvedTarget target;
+    float v = 0.0f;
+};
+
 struct Issue
 {
     ControlPath key;
@@ -72,6 +83,17 @@ struct CompileReport
     std::map<std::string, int> unknown;          // e.g. "kind:temporal-blend" -> count
     std::vector<std::string> missingRoutines;     // reserved (D9, LATER); always empty in row 1
     int resolvedCount = 0;
+
+    // s-rta-0925 (D4 preamble, plan section 3.2): a deck/layer/clip/effect
+    // slot the checkpoint0 preamble could not resolve at all (Missing, D2) --
+    // counted and named, never silently dropped, same policy as `unresolved`
+    // above but kept SEPARATE because the preamble is not a recorded lane
+    // and Boris's ruling requires it be said in one plain notice line
+    // (RecorderHost::Status::preambleUnresolved). A rebind (position/name)
+    // for a preamble entry is folded into the existing `reboundByPosition`/
+    // `reboundByName` buckets above, tagged with a "preamble: " reason.
+    std::vector<Issue> preambleUnresolved;
+    int preambleCount = 0;   // discrete + continuous preamble entries actually emitted
 };
 
 struct Program
@@ -79,7 +101,8 @@ struct Program
     DriveClock clock = DriveClock::Wall;
     double length = 0.0;
     bool loop = false;
-    std::vector<Fired> preamble;
+    std::vector<Fired> preamble;               // s-rta-0925: D4's discrete preamble entries, at=0/seq=0
+    std::vector<PreambleSet> preambleContinuous;   // s-rta-0925: D4's continuous preamble entries
     std::vector<Fired> discrete;    // k-way merged, ordered by (at, seq) -- D3
     std::vector<ContLane> continuous;
     CompileReport report;
