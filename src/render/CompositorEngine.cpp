@@ -783,6 +783,73 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 
 // === Deck/Layer-based compositing ===
 
+void CompositorEngine::advanceCrossfade(Layer& layer, float dt)
+{
+    // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
+    // `speed` here is actually a DURATION in seconds (transitionSpeed
+    // is a misleading name inherited from the model -- see its slider
+    // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
+    // seconds UI), so step = dt / duration is the frame-rate-
+    // independent progress increment: cumulative progress after real
+    // elapsed time T is T / duration, completing exactly at T ==
+    // duration regardless of callback rate. Real dt (function param),
+    // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
+    // Not gated on timeOverride_/`time`, same reasoning as
+    // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
+    // is persistent per-layer state (like previousClipColumn) that
+    // already advances every real GL callback regardless of
+    // deterministic test-capture mode, so there is no
+    // render_frame byte-identical-repeat contract covering it to
+    // preserve here either -- only the rate was wrong.
+    if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
+    {
+        float speed = layer.transitionSpeed;
+        if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
+        float step = dt / speed;
+        layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
+        if (layer.crossfadeProgress >= 1.0f)
+            layer.previousClipColumn = -1; // transition complete
+    }
+}
+
+GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,
+                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                           float time, float dt, int width, int height)
+{
+    // s-rta-0926b R2: this layer's state (temporal buffers, frame rings,
+    // feedback) is keyed by deck AND layer id -- layer ids repeat across decks.
+    const uint64_t clipKey = LayerStateKey::clipChain(deckId, layer.id);
+
+    // Apply per-clip transform (position, scale, rotation) + clip opacity
+    clipTex = applyClipTransform(clip, clipTex, shaderMgr, quad, width, height);
+
+    // P13.5.1: Apply per-clip effects
+    clipTex = applyClipEffects(clip.effects, clipTex, shaderMgr, quad, time, width, height, clipKey);
+
+    // P14: Apply clip-to-clip transition if crossfading. S167-L4b
+    // DT-FIX: real measured dt (function param) -- see
+    // compositeDeck()'s header comment.
+    clipTex = applyTransition(layer, clipKey, clipTex, time, shaderMgr, quad, width, height, dt);
+
+    // P16: Apply feedback (Larsen loop) if enabled
+    if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
+    {
+        auto& fbProc = getOrCreateFeedbackProcessor(clipKey);
+        clipTex = fbProc.process(clipTex, layer.feedback, shaderMgr, quad, width, height);
+    }
+
+    // Apply per-layer effects (same mechanism as per-clip effects)
+    if (!layer.layerEffects.empty())
+    {
+        // Own temporal/ring state (LayerStateKey::layerChain): never the clip chain's.
+        clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height,
+                                   LayerStateKey::layerChain(deckId, layer.id));
+    }
+
+    // P13.5.5: Apply layer transform
+    return applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
+}
+
 GLuint CompositorEngine::compositeDeck(Deck& deck,
                                         ShaderManager& shaderMgr,
                                         FullscreenQuad& quad,
@@ -839,31 +906,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
-        // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
-        // `speed` here is actually a DURATION in seconds (transitionSpeed
-        // is a misleading name inherited from the model -- see its slider
-        // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
-        // seconds UI), so step = dt / duration is the frame-rate-
-        // independent progress increment: cumulative progress after real
-        // elapsed time T is T / duration, completing exactly at T ==
-        // duration regardless of callback rate. Real dt (function param),
-        // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
-        // Not gated on timeOverride_/`time`, same reasoning as
-        // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
-        // is persistent per-layer state (like previousClipColumn) that
-        // already advances every real GL callback regardless of
-        // deterministic test-capture mode, so there is no
-        // render_frame byte-identical-repeat contract covering it to
-        // preserve here either -- only the rate was wrong.
-        if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
-        {
-            float speed = layer.transitionSpeed;
-            if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
-            float step = dt / speed;
-            layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
-            if (layer.crossfadeProgress >= 1.0f)
-                layer.previousClipColumn = -1; // transition complete
-        }
+        advanceCrossfade(layer, dt);
 
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr)
@@ -903,37 +946,11 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     continue;
                 }
 
-                // Apply per-clip transform (position, scale, rotation)
-                clipTex = applyClipTransform(*clip, clipTex, shaderMgr, quad, width, height);
-
-                // s-rta-0926b R2: state keyed by deck AND layer id (layer ids repeat across decks).
-                const uint64_t clipKey = LayerStateKey::clipChain(deck.id, layer.id);
-
-                // P13.5.1: Apply per-clip effects
-                clipTex = applyClipEffects(clip->effects, clipTex, shaderMgr, quad, time, width, height, clipKey);
-
-                // P14: Apply clip-to-clip transition if crossfading. S167-L4b
-                // DT-FIX: real measured dt (function param) -- see
-                // compositeDeck()'s header comment.
-                clipTex = applyTransition(layer, clipKey, clipTex, time, shaderMgr, quad, width, height, dt);
-
-                // P16: Apply feedback (Larsen loop) if enabled
-                if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
-                {
-                    auto& fbProc = getOrCreateFeedbackProcessor(clipKey);
-                    clipTex = fbProc.process(clipTex, layer.feedback, shaderMgr, quad, width, height);
-                }
-
-                // Apply per-layer effects (same mechanism as per-clip effects)
-                if (!layer.layerEffects.empty())
-                {
-                    // Own temporal/ring state (LayerStateKey::layerChain): never the clip chain's.
-                    clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height,
-                                               LayerStateKey::layerChain(deck.id, layer.id));
-                }
-
-                // P13.5.5: Apply layer transform
-                clipTex = applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
+                // Clip transform + opacity, clip effects, transition, feedback,
+                // layer effects, layer transform (s-rta-0926b R4: shared with
+                // compositePersistentLayers).
+                clipTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+                                            time, dt, width, height);
 
                 // P20: Save layer output for Layer Router sources
                 saveLayerOutput(layer.id, clipTex, shaderMgr, quad, width, height);
@@ -1048,6 +1065,12 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         if (!layer.persistent || !layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
+        // s-rta-0926b R4: a persistent layer's crossfade keeps running while its
+        // deck is inactive, exactly as it would on the active deck (it used to
+        // freeze until the deck was active again, and the layer hard-cut to the
+        // incoming clip meanwhile).
+        advanceCrossfade(layer, dt);
+
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr)
             continue;
@@ -1077,10 +1100,16 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
 
         if (clipTex == 0) continue;
 
-        // Apply clip effects
-        GLuint processedTex = applyClipEffects(clip->effects, clipTex,
-                                                shaderMgr, quad, time, width, height,
-                                                LayerStateKey::clipChain(deck.id, layer.id));
+        // s-rta-0926b R4: the same per-layer stages as on the active deck
+        // (clip transform + opacity, clip effects, transition, feedback, layer
+        // effects, layer transform). It used to run only the clip effects.
+        // Still different from an active-deck layer, pending a ruling
+        // (.harmony/.reports/s-rta-0926b/render.md open_forks): an Opaque
+        // persistent layer blends over the active deck (the active-deck path
+        // clears the accumulator and applies layer opacity); no Layer Router
+        // output is saved; FX Only / Mask persistent layers are skipped above.
+        GLuint processedTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+                                                time, dt, width, height);
         if (processedTex == 0) processedTex = clipTex;
 
         // Keying for transparent layers

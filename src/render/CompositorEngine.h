@@ -87,6 +87,9 @@ public:
 
     // P21: Composite only persistent layers from a non-active deck onto the
     // existing accumulator. Call AFTER compositeDeck() for the active deck.
+    // s-rta-0926b R4: each persistent Opaque/Transparent layer gets the same
+    // per-layer stages as on the active deck (renderLayerStages); what still
+    // differs is listed at the definition.
     // dt: see compositeDeck()'s comment above -- same real measured delta,
     // same reason.
     void compositePersistentLayers(Deck& deck,
@@ -342,6 +345,22 @@ private:
     GLuint applyTransition(Layer& layer, uint64_t stateKey, GLuint newClipTex, float time,
                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
+
+    // P14 + S167-L4b DT-FIX: advance a layer's clip-to-clip crossfade by the
+    // real frame delta (see compositeDeck()'s header comment). Called once per
+    // frame for every visible layer that is composited, active deck or
+    // persistent (s-rta-0926b R4).
+    static void advanceCrossfade(Layer& layer, float dt);
+
+    // s-rta-0926b R4: every stage an Opaque/Transparent layer applies to its
+    // active clip's texture before compositing -- clip transform + opacity,
+    // clip effects, clip-to-clip transition, feedback, layer effects, layer
+    // transform. ONE function for the active deck (compositeDeck) and for
+    // persistent layers of other decks (compositePersistentLayers), so a
+    // persistent layer renders like the same layer would on the active deck.
+    GLuint renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,
+                             ShaderManager& shaderMgr, FullscreenQuad& quad,
+                             float time, float dt, int w, int h);
 
     // Map Layer::MixMode transition enum to shader name
     static juce::String getTransitionShaderName(Layer::MixMode mode);
