@@ -1479,3 +1479,16 @@ hand-written functions with no shared layout model.
 - InspectorPanel::resized() sets clipInspector_ to getPreferredHeight(); its no-clip branch returned 100 < name bar +
   MacroPanel + gap (146), so moving "No clip selected" below the Dashboard made it vanish (zero-height rect). Any change
   to the no-clip paint must also change getPreferredHeight(). Caught by a decoded pixel-brightness scan, not by eye.
+
+## s-rta-0926 routines-1a (merged f43b72a) — lessons + carried concerns for 1b
+- src/recording/Program.h (and so RecorderHost.h) must stay juce_core-only: test_record_panel_model links juce_core alone
+  via RecordPanelModel.h -> RecorderHost.h -> Program.h. Pulling model/Clip.h into that chain fails at LINK time
+  (undefined juce::Colour). Forward-declare model types in recording/ headers (RoutineEngine.h too).
+- catch_discover_tests: a Catch2 SECTION adds no ctest, a TEST_CASE adds one — plan ctest arithmetic assumes TEST_CASEs.
+- A cold worktree build-lane compiles the JUCE modules per test target: ~25 min at -j4; incremental after a
+  Composition.h change ~5 min.
+- CARRIED to 1b (decide there, with a test): (a) a clip first switched to DURING a take auto-plays at that trigger but the
+  auto-play is not a `playing` lane point, so a slice-start restore falls back to checkpoint 0 (paused) -> would pause a
+  playing VIDEO clip; images/sources unaffected. (b) Unmetered refusal is strict: a take recorded before the tracker
+  locked starts with a bpm-0 anchor at beat 0, so slicing from bar 1 is refused. (c) a synthesized restore entry for a
+  never-named clip has an empty clipName -> compile report says "rebound by position" (noise, still fires).

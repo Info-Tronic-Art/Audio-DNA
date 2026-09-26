@@ -22,3 +22,10 @@ look at one decoded frame per probe.
 - wave2 wde415p6u: xfade (opus, worktree) + fader (sonnet, worktree, critics, reviewer).
 - routines plan DONE (plan-routines-s1-final.md: 7 ACCEPT, 0 REJECT; lanes 1a -> Harmony gate -> 1b -> optional bank strip).
   Lane 1a launched w9c64dgcm (opus). 2 non-blocking Boris confirmations in plan section 10.
+- 14:0x Harmony behavioral gate polish on build/ e1ed9cc (window-only shot, looked at): 'Deck Load' full word; 'No clip selected' below the 8 Dashboard knobs, no overlap. PASS.
+- GATE 1a (build/ f43b72a, cmake -S . -B build + rebuild): ctest 546/546; probe-mastersignal 22/0; probe-step3 92/1 --
+  the FAIL is "T2 alignment: p95 jitter 18.37 ms > 15" (mean offset 42.97, was 10.84/33.16 at 13:38 on e1ed9cc).
+  Load average 24 on 10 cores during the run (3 clang at 99% from wave-2 lane builds). INFERRED: CPU contention
+  (lane 1a touched compile/replay + take meta only; T2 is the capture/onset path). OPEN until the DISCRIMINATOR runs:
+  probe-step3 on the SAME binary with no builds running; p95 <= 15 -> load; > 15 -> real, bisect f43b72a vs e1ed9cc.
+  All 92 other rows PASS incl. every replay/snap-back row (the refactor's surface). 1b launched on this basis.
