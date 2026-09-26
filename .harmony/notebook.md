@@ -1534,3 +1534,20 @@ hand-written functions with no shared layout model.
   stampless gestures) — pinned by ctest "Program::compile takes each breakpoint's x from its own stamp".
 - T2 bisect verdict ENVIRONMENTAL (gotchas.md 2026-09-26 entry). Worktree agents need the main .venv (probes look for
   $ROOT/.venv): symlink it for dev runs, remove before commit.
+
+## s-rta-0926 routine-grid (merged e5ceb98) — every take's beat stamps were late; manual-BPM phase resets on mic onsets
+- RecorderClock's first tick recorded lastPhase_ = beatPhase with beatOffset_ = 0 but reported beat 0, so from the
+  second tick beat = wholeBeats + phase: EVERY stamp in EVERY take was frac(beat phase at Record) beats late (up to ~1
+  beat). Invisible when Record fell near a beat line (builders' runs: startBeatInBar 0.07 -> 35 ms). Fix cb1c4f0:
+  beatOffset_ = -snap.beatPhase on the first tick (beat counts from Record, spec D1). Takes recorded before e5ceb98 keep
+  late stamps (no migration). Whole-take replay unaffected (constant offset; stamps relative). All clock tests seeded at
+  phase 0 — the mirror-shaped gap again: the RED test seeds 0.84/0.25/0.99.
+- RoutineEngine's Beat-quantize edge now = the tracker's beatPhase wrap (was floor(clock_.beat), which lands wherever the
+  phase was at lock).
+- OPEN (real product bug, not fixed): Manual BPM mode still hard-resets the beat phase when aubio reports a beat with
+  confidence >= 0.5 (BPMTracker.cpp:209 reached from the manual branch :77-82), contradicting "no real onset can be
+  trusted" (P24 comment). When the mic hears rhythmic sound at manual 120 BPM, the phase reset to ~0 every ~0.36 s and
+  bars stretched to 11-13 s. Makes every manual-BPM probe (probe-routines) flaky with room noise, and would make a
+  performer's manual tempo drift. Next session: decide + fix (likely: manual mode never phase-resets from detected beats).
+- Probe blind spots named by the lane: probe-routines has no D1 lint row (stamps vs tempo map within 0.05 beat), the
+  stack timing windows derive from the take's own ramp x (cancels a stamp offset), the loop row allows +9.0 s for +8.6.

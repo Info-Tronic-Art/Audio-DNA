@@ -42,3 +42,7 @@ look at one decoded frame per probe.
 - build/ ebbff22: ctest 565/565. Gates: probe-step3 94/0 (T2 p95 11.61, no other audio-out), probe-mastersignal 22/0,
   probe-routines 69/5 -- 5 grid timing rows +0.37..0.40 s late with meta.startBeatInBar 3.84 (builders' on-time runs had
   0.07). App-vs-probe undecided -> lane routine-grid (wmt3s3la5) + bank strip lane 3 + routines docs + step3 audio WARN.
+- routine-grid merged e5ceb98 (RecorderClock beat-from-Record + routine Beat edge; reviewer PASS), routine-strip merged
+  2bf1d56 (critics PASS r1 pinned, reviewer PASS), routine-docs 82793a7 (+ my fixes: probe-step3 audio WARN excludes
+  coreaudiod; ruling note mentions the strip). build/ 2bf1d56: ctest 573/573. Gates: probe-routines 74/0 x3
+  (startBeatInBar 3.47/3.45/3.80; ROUTINES_RECORD_PAUSE knob added), probe-step3 94/0 (T2 p95 10.84).

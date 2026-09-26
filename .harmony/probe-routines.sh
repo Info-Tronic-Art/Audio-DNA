@@ -74,7 +74,7 @@ rows(){
 # --- helpers (one python file: sampling + analysis; stdlib only) ------------
 RT="$OUT/rt.py"
 cat > "$RT" <<'PY'
-import json, sys, time, urllib.request, urllib.error
+import json, os, sys, time, urllib.request, urllib.error
 A = 'http://127.0.0.1:7070'
 
 def get(path, timeout=3):
@@ -176,6 +176,10 @@ elif cmd == 'wait':                       # wait SLOT STATE TIMEOUT -> epoch whe
 
 elif cmd == 'record':                     # record NAME: the whole take, on a precise schedule
     name = sys.argv[2]
+    # ROUTINES_RECORD_PAUSE (seconds, default 0): push Record later into the bar. The default schedule tends to land
+    # Record near the start of a bar; the s-rta-0926 stamp bug (RecorderClock, e5ceb98) only showed with
+    # startBeatInBar > ~2 -- Harmony's gate runs 1.8 as well as the default.
+    time.sleep(float(os.environ.get('ROUTINES_RECORD_PAUSE', '0') or 0))
     r = post('/api/perf/record', {'name': name, 'audio': False})
     T = time.time()
     print(('ok' if r.get('ok') else 'no') + ' record: /api/perf/record accepted (%s)' % json.dumps(r))
