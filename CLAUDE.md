@@ -235,7 +235,7 @@ AudioDNA/
 │   │   ├── Route.h + RoutingEngine.h/cpp # dial-range → threshold → gain → invert → smooth → ParamWriter
 │   │   └── MacroBank.h                    # Dashboard links (8 macros/scope) — only the Global bank is instantiated (8 live, not 24)
 │   ├── binding/                         # [v2] Keyboard + MIDI-learn bindings
-│   │   ├── Binding.h                     # 19 actions, 3 target modes, Toggle/Momentary, Abs/Rel CC
+│   │   ├── Binding.h                     # 20 actions, 3 target modes, Toggle/Momentary, Abs/Rel CC
 │   │   └── BindingManager.h/cpp          # id-keyed store, MIDI-learn capture, JSON presets
 │   ├── midi/
 │   │   ├── MidiHandler.h/cpp             # MIDI input, hot-plug → BindingManager (wired)
@@ -257,7 +257,7 @@ AudioDNA/
 │   │   ├── AudioStore.h/cpp          ✅ # [Ruling 28] Shared audio store (~/Documents/Audio-DNA/Audio/<id>.adna-audio/) -- take format v3 references it by id; see "Audio Store" below
 │   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
 │   ├── api/
-│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 22 endpoints — all functional; /api/set_bpm wired Wave 0; CORS, always-on)
+│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 23 endpoints — all functional; /api/set_bpm wired Wave 0; CORS, always-on)
 │   ├── osc/
 │   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 11/11 callbacks wired
 │   ├── output/
@@ -551,6 +551,12 @@ Each frame, the render thread:
 - **Edit**: Select source feature dropdown, curve type dropdown, adjust input/output range sliders, smoothing knob
 - **Save**: `PresetManager` serializes all effects + mappings to JSON
 - Multiple mappings can target the same parameter (values are summed)
+
+Master Signal (`Composition::masterSignal`, `CompScalar::Signal`, s-rta-0925) scales the reach of
+every signal→parameter connection at the one point where the signal enters
+(`ConnectionEngine::evaluate` for non-Macro sources; `MacroBank::updateValues`; v1
+`MappingEngine::processFrame`); 1.0 (default) = bit-identical to no fader at all, 0.0 = every
+connected control sits at its own hand value (a hand-turned macro keeps working at any depth).
 
 ---
 
@@ -1036,6 +1042,11 @@ Effect shaders and source shaders can access all 42+ audio features via uniforms
 
 **Important**: These uniforms are available in every shader but only consume GPU resources if the shader declares them. Unused uniforms are silently ignored by `glGetUniformLocation` returning -1.
 
+Master Signal does NOT scale these uniforms (Boris 2026-09-25 Q2): every effect/source that reads
+the beat clock or an audio uniform directly keeps pulsing at any Master Signal depth, including 0%.
+The fader only reaches signal→parameter connections (`ConnectionEngine`, `MacroBank`, v1
+`MappingEngine`), never a GL-thread uniform read.
+
 ### Common Pitfalls (from P14-P20 development)
 
 These bugs were discovered and fixed. Future phases MUST avoid reintroducing them:
@@ -1152,9 +1163,9 @@ Composition-level automation that sets different beat timings per layer type:
 
 ### Output & Integration System (P22)
 
-**Production REST API** (`ApiServer`, port 7070, always-on): 22 endpoints for external control (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread). cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state. All GL mutations go through existing thread-safe APIs.
+**Production REST API** (`ApiServer`, port 7070, always-on): 23 endpoints for external control (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread). cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/set_master_signal, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state. All GL mutations go through existing thread-safe APIs.
 
-**OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns (11): `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/bpm`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread. **LIVE 2026-07-17 (Wave 1-B)**: `OscHandler::startListening(8000)` is called unconditionally at startup (like ApiServer), so the receiver binds UDP port 8000, and all 11/11 pattern callbacks are wired in MainComponent — each routing through the same handler as the equivalent REST/UI/MIDI path. Port is hardcoded (no preferences UI configures it yet).
+**OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns (12): `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/signal`, `/audiodna/bpm`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread. **LIVE 2026-07-17 (Wave 1-B)**: `OscHandler::startListening(8000)` is called unconditionally at startup (like ApiServer), so the receiver binds UDP port 8000, and all 12/12 pattern callbacks are wired in MainComponent (`/audiodna/signal` added s-rta-0925 mastersignal Step 1) — each routing through the same handler as the equivalent REST/UI/MIDI path. Port is hardcoded (no preferences UI configures it yet).
 
 **MIDI Output** (`MidiOutputHandler`): Sends note-on/off to hardware controllers (Launchpad X/Mini MK3) for clip state feedback. 5 states: Empty(off), Loaded(velocity 5), Playing(velocity 60), Triggered(velocity 52), ActiveWithFx(velocity 62). Polls deck state ~6Hz from timerCallback. Note mapping: `(layer+1)*10 + (column+1)` for Launchpad grid layout.
 
