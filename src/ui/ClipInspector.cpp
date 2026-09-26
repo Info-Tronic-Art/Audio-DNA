@@ -428,7 +428,14 @@ void ClipInspector::paint(juce::Graphics& g)
     {
         g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         g.setFont(juce::Font(juce::FontOptions(12.0f)));
-        g.drawText("No clip selected", getLocalBounds(), juce::Justification::centred, false);
+        // macroPanel_ (the Dashboard) is the single Global MacroBank (CLAUDE.md: "only the Global dashboard/
+        // MacroBank is instantiated"), not clip-scoped -- resized() keeps it live and visible with no clip
+        // selected, so the empty-state message must not paint over it. Reserve the same top offset resized()
+        // uses once a clip IS selected (name bar + dashboard + gap) and draw the message below that, not over
+        // getLocalBounds(). getPreferredHeight()'s no-clip branch sizes this component to exactly that offset
+        // plus kEmptyStateHeight, so emptyArea below is never zero-height.
+        auto emptyArea = getLocalBounds().withTrimmedTop(kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap);
+        g.drawText("No clip selected", emptyArea, juce::Justification::centred, false);
         return;
     }
 
@@ -940,7 +947,13 @@ void ClipInspector::refresh()
 
 int ClipInspector::getPreferredHeight() const
 {
-    if (!clip_) return 100;
+    // Dashboard (macroPanel_) is always live, even with no clip selected (it's the single Global MacroBank,
+    // not clip-scoped -- resized() lays it out before the early `if (!clip_) return;`). The component's actual
+    // size comes from this preferred height (InspectorPanel::resized() -> clipInspector_.setSize(w, h)), so it
+    // must cover name bar + dashboard + a reserved row for the empty-state message -- a bare 100 here (smaller
+    // than name bar + dashboard alone) silently zeroed out paint()'s message area and the text stopped
+    // rendering entirely.
+    if (!clip_) return kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap + kEmptyStateHeight;
 
     int h = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
     int transportH = kTimelineHeight + 2 + kRowHeight + 2 + kRowHeight + kRowHeight; // timeline+2 + buttons+2 + speed + duration (mode in header)

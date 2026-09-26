@@ -193,6 +193,9 @@ private:
     static constexpr int kNameBarHeight = 28;
     static constexpr int kTimelineHeight = 36; // timeline bar with in/out markers + handles
     static constexpr int kInset = 6;           // left/right padding within sections
+    // Room reserved below the (always-live) Dashboard for the "No clip selected" message -- paired with
+    // getPreferredHeight()'s no-clip branch so the message's reserved area in paint() is never zero-height.
+    static constexpr int kEmptyStateHeight = 60;
 
     // L9 cost trap: tickModulation() now runs unconditionally at 120Hz
     // (previously ~10Hz and only while the Clip tab was active). Only push a
