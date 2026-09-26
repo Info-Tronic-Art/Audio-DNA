@@ -269,6 +269,17 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         if (def && def->temporal) { anyTemporal = true; break; }
     }
 
+    // s-rta-0926b render lane (R5): create/resize the temporal buffer HERE,
+    // before any pass binds its target. getOrCreateTemporalBuffer's createFBO
+    // rebinds GL_TEXTURE_2D on the active unit and leaves framebuffer 0 bound;
+    // called inside a pass (after the target FBO and u_texture were bound, as it
+    // used to be), the creation frame drew into framebuffer 0, sampled the new
+    // black buffer as u_texture, and the chain's result was only the target's
+    // glClear -- a fully transparent layer for one frame (measured: first Freeze
+    // frame on a fresh layer 0/663768 non-zero pixels instead of 0.5 x image).
+    // unordered_map element references stay valid across later insertions.
+    TemporalBuffer* tempBuf = anyTemporal ? &getOrCreateTemporalBuffer(layerId, w, h) : nullptr;
+
     GLuint currentInput = inputTex;
     // s-rta-0926 xfade: every pass below renders into pickEffectTarget(
     // currentInput, holdTex) -- never the texture it samples (the ms-white2 /
@@ -366,14 +377,14 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
             glUniform1i(texLoc, 0);
 
         // Bind temporal previous frame (unit 1) for time effects (u_prev_frame)
-        if (def->temporal)
+        // -- the buffer was created before this pass bound anything (R5 above).
+        if (def->temporal && tempBuf != nullptr)
         {
-            auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
             auto prevLoc = program->getUniformIDFromName("u_prev_frame");
             if (prevLoc >= 0)
             {
                 glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, tempBuf.tex);
+                glBindTexture(GL_TEXTURE_2D, tempBuf->tex);
                 glUniform1i(prevLoc, 1);
                 glActiveTexture(GL_TEXTURE0);
             }
@@ -451,11 +462,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
     // which is FALSE for an even-length chain that starts on a pool texture
     // (layer chain [Invert, Freeze] fed by a one-effect clip chain: A -> B -> A)
     // -- the save was skipped and that chain's u_prev_frame never advanced.
-    if (anyTemporal && renderedAny)
-    {
-        auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
-        saveToTemporalBuffer(tempBuf, currentInput, shaderMgr, quad, w, h);
-    }
+    if (tempBuf != nullptr && renderedAny)
+        saveToTemporalBuffer(*tempBuf, currentInput, shaderMgr, quad, w, h);
 
     return currentInput;
 }
