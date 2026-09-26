@@ -504,7 +504,7 @@ TopBar has a "Manual" toggle. When enabled:
 
 ### UI Patterns (Mandatory for all new UI)
 
-**ResettableSlider**: ALL sliders in the app MUST use `ResettableSlider` (defined in `UniversalParamControl.h`), not `juce::Slider`. This class overrides `mouseDown` to reset to default value on right-click. Every `ResettableSlider` MUST call `setDefaultValue(val)` at setup time. This applies to sliders in inspectors, top bar, layer strip, mapping editor, signal inspector, macro knobs — everywhere.
+**ResettableSlider**: ALL sliders in the app MUST use `ResettableSlider` (defined in `UniversalParamControl.h`), not `juce::Slider`. This class overrides `mouseDown` to reset to default value on right-click. Every `ResettableSlider` MUST call `setDefaultValue(val)` at setup time. This applies to sliders in inspectors, top bar, layer strip, mapping editor, signal inspector, macro knobs — everywhere. Right-click also resets from the text box of IncDecButtons/TextBox sliders (nested-child relay, s-rta-0925); `UniversalParamControl` arms its inner slider with 0.5 by default, so owners that skip `setDefaultValue()` get a 0.5 reset rather than a dead click — still call it with the real default.
 
 **Drag-drop targets**: Any inspector that displays an effect stack MUST implement `juce::DragAndDropTarget` with `isInterestedInDragSource`, `itemDragEnter` (set highlight + repaint), `itemDragExit` (clear highlight + repaint), `itemDropped` (forward to EffectStackView). The highlight is a cyan border + 15% alpha fill.
 

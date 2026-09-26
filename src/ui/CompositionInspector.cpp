@@ -148,19 +148,6 @@ CompositionInspector::CompositionInspector()
     speedControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
     addAndMakeVisible(speedControl_);
 
-    // --- Video Opacity ---
-    // s-rta-0923 lane 3 plan section 4.6: this second knob binds to the
-    // SAME CompScalar::Opacity connection as masterControl_ (ruling 11: one
-    // master opacity) -- writes masterOpacity, not the model's old separate
-    // per-composition opacity field (deleted in the follow-up commit).
-    opacityControl_.setParamName("Opacity");
-    opacityControl_.setParamValue(1.0f);
-    opacityControl_.onValueChanged = [this](float val) {
-        if (composition_) composition_->masterOpacity = val;
-    };
-    opacityControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
-    addAndMakeVisible(opacityControl_);
-
     // --- Transform ---
     auto setupTransformParam = [this](UniversalParamControl& pc, const juce::String& name, float defVal) {
         pc.setParamName(name);
@@ -253,9 +240,6 @@ void CompositionInspector::paint(juce::Graphics& g)
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Composition");
     y += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap;
-
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Video");
-    y += kSectionHeaderHeight + opacityControl_.getPreferredHeight() + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transform", true);
     int transformH = posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
@@ -356,11 +340,6 @@ void CompositionInspector::resized()
     speedControl_.setBounds(area.getX(), y, area.getWidth(), speedControl_.getPreferredHeight());
     y += speedControl_.getPreferredHeight() + kSectionGap;
 
-    // Video section
-    y += kSectionHeaderHeight;
-    opacityControl_.setBounds(area.getX(), y, area.getWidth(), opacityControl_.getPreferredHeight());
-    y += opacityControl_.getPreferredHeight() + kSectionGap;
-
     // Transform section
     y += kSectionHeaderHeight;
     posXControl_.setBounds(area.getX(), y, area.getWidth(), posXControl_.getPreferredHeight());
@@ -406,12 +385,12 @@ void CompositionInspector::setComposition(Composition* comp)
 void CompositionInspector::bindScalarControls()
 {
     auto bind = [this](UniversalParamControl& c, CompScalar s) {
+        c.setDefaultValue(compScalarDefs()[static_cast<size_t>(s)].defaultNorm);   // s-rta-0925: opacity 1.0, speed 0.25 (=1.0x), transforms 0.5
         if (composition_) c.bindConnection(&composition_->scalarConns[static_cast<size_t>(s)],
                                             &composition_->scalarLive[static_cast<size_t>(s)]);
         else c.bindConnection(nullptr, nullptr);
     };
     bind(masterControl_, CompScalar::Opacity);
-    bind(opacityControl_, CompScalar::Opacity);   // ruling 11: one master
     bind(speedControl_, CompScalar::Speed);
     bind(posXControl_, CompScalar::PosX);
     bind(posYControl_, CompScalar::PosY);
@@ -441,7 +420,6 @@ void CompositionInspector::setSignalRegistry(SignalRegistry* reg)
     effectStackView_.setSignalRegistry(reg);
     masterControl_.setSignalRegistry(reg);
     speedControl_.setSignalRegistry(reg);
-    opacityControl_.setSignalRegistry(reg);
     posXControl_.setSignalRegistry(reg);
     posYControl_.setSignalRegistry(reg);
     scaleControl_.setSignalRegistry(reg);
@@ -478,7 +456,6 @@ int CompositionInspector::getPreferredHeight() const
     h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Autopilot
     h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Per-Type Autopilot (P20)
     h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap; // Composition
-    h += kSectionHeaderHeight + opacityControl_.getPreferredHeight() + kSectionGap; // Video
     h += kSectionHeaderHeight; // Transform header
     h += posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
        + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
@@ -542,12 +519,7 @@ void CompositionInspector::syncFromComposition()
         ctrl.setSourceValue(def.toNorm(eff));
     };
 
-    // Ruling 11: opacityControl_ is the twin knob bound to the same
-    // CompScalar::Opacity connection as masterControl_ -- reads
-    // masterOpacity, not the model's old separate per-composition opacity
-    // field (deleted in the follow-up commit).
     syncScalar(masterControl_, CompScalar::Opacity, composition_->masterOpacity);
-    syncScalar(opacityControl_, CompScalar::Opacity, composition_->masterOpacity);
     syncScalar(speedControl_, CompScalar::Speed, composition_->masterSpeed / 4.0f); // [0,4] → [0,1]
 
     // Autopilot direction buttons

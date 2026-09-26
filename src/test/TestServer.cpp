@@ -592,7 +592,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     auto* obj = new juce::DynamicObject();
     obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
     obj->setProperty("frame_time_ms", static_cast<double>(renderer_.getFrameTimeMs()));
-    obj->setProperty("master_level", static_cast<double>(renderer_.getMasterLevel()));
+    // s-rta-0925: master_level is now the one master (composition_.eff()).
+    obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
     obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
 
@@ -654,8 +655,8 @@ void TestServer::handleReset(const httplib::Request&, httplib::Response& res)
     // Reset time override
     renderer_.setTimeOverride(-1.0f);
 
-    // Reset master level
-    renderer_.setMasterLevel(1.0f);
+    // Reset master opacity (s-rta-0925: the one master)
+    composition_.masterOpacity = 1.0f;
 
     // Clear injected features
     FeatureSnapshot cleared;
@@ -1345,13 +1346,9 @@ void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib
         return;
     }
 
-    // Plain-float writes, no fence: masterOpacity/masterSpeed are otherwise
-    // set only from the message thread (MainComponent.cpp/
-    // CompositionInspector.cpp) and read back nowhere on the GL thread, so
-    // there is no live race to guard against yet. When the lane that wires
-    // them into the renderer lands, this write should get the same
-    // per-field treatment as handleSetGlobalEffectBypass above — not
-    // before, since there is nothing to race against today.
+    // masterOpacity/masterSpeed are read on the GL thread through eff()
+    // (Renderer.cpp, S167-L4b block); this plain-float write matches every
+    // other message-thread writer of these fields.
     bool any = false;
     if (obj->hasProperty("masterOpacity"))
     {

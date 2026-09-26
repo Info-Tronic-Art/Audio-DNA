@@ -673,42 +673,11 @@ void Renderer::renderOpenGL()
         }
     }
 
-    // Apply master level (dim/blackout) using DST_COLOR blend to multiply
-    float level = masterLevel_.load(std::memory_order_relaxed);
-    if (level < 0.99f)
-    {
-        glEnable(GL_BLEND);
-        // DST = DST * SRC — drawing a constant-color quad multiplies the framebuffer
-        glBlendFunc(GL_ZERO, GL_SRC_COLOR);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
-        glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
-                   static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
-
-        // Use the brightness shader with the existing image texture as dummy
-        auto* prog = shaderMgr_.getProgram("passthrough");
-        if (prog)
-        {
-            prog->use();
-            // Bind any texture (required by passthrough shader)
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, sourceTexture);
-        }
-
-        // Set the constant blend color via glBlendColor
-        glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
-        glBlendColor(level, level, level, 1.0f);
-
-        quad_.draw();
-
-        glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glDisable(GL_BLEND);
-    }
-
     // S167-L4b: apply Composition::masterOpacity to the fully-composited
     // frame -- the owner's "ceiling" ruling (final = master * layer * clip)
     // for the composition-wide fader. Same dim-to-black technique as the
-    // masterLevel_ block just above (glBlendColor as a constant multiplier),
+    // former masterLevel_ block just above (removed s-rta-0925: it was a
+    // second, compounding multiply), glBlendColor as a constant multiplier,
     // not an alpha-channel bake, because this runs against defaultFBO -- the
     // actual output framebuffer -- where Syphon/recording/capture below read
     // RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"

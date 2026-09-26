@@ -1192,3 +1192,96 @@ target_include_directories(test_tab_bar_layout PRIVATE ${SRC_DIR})
 target_link_libraries(test_tab_bar_layout PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_tab_bar_layout)
 catch_discover_tests(test_tab_bar_layout)
+
+# --- test_right_click_reset (s-rta-0925 rclick: ResettableSlider right-click reset
+# on the thumb AND on the IncDec text box; UniversalParamControl arms its inner
+# slider by default and a reset touches the bound connection). Headless JUCE
+# widgets under ScopedJuceInitialiser_GUI -- no window, no peer; mouse events are
+# synthesised and delivered by calling mouseDown() directly.
+add_executable(test_right_click_reset
+    test_right_click_reset.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_right_click_reset PRIVATE ${SRC_DIR})
+target_link_libraries(test_right_click_reset PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_right_click_reset PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_right_click_reset PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_right_click_reset)
+catch_discover_tests(test_right_click_reset)
+
+# --- test_master_opacity_link (s-rta-0925 link: the TopBar master fader is a
+# second widget-grip view of Composition::masterOpacity / CompScalar::Opacity --
+# writes the model, grips Held on drag, follows the model / eff() on sync, and
+# a right-click reset touches the grip). Headless JUCE widgets, same harness as
+# test_right_click_reset; the timer read-back is exercised by calling
+# TopBar::syncMasterFromComposition() directly (no dispatch loop is run).
+# Link closure grew beyond the plan's original list (UniversalParamControl.cpp/
+# TopBar.cpp pull in the mapping/effects/render chain transitively via
+# SignalRegistry -> AudioSignal -> MappingEngine -> EffectChain -> ShaderManager/
+# TextureManager/FullscreenQuad/LUTLoader) -- each addition here is the ONE .cpp
+# that defines a symbol the linker named, never MainComponent.cpp/Renderer.cpp.
+add_executable(test_master_opacity_link
+    test_master_opacity_link.cpp
+    ${SRC_DIR}/ui/TopBar.cpp
+    ${SRC_DIR}/features/FeatureBus.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+)
+target_include_directories(test_master_opacity_link PRIVATE ${SRC_DIR})
+target_link_libraries(test_master_opacity_link PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_master_opacity_link PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_master_opacity_link PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_master_opacity_link)
+catch_discover_tests(test_master_opacity_link)

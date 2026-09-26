@@ -324,7 +324,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
   #endif
     setupLabel(audioSourceLabel_, "Audio Source");
     setupLabel(inputGainLabel_,   "Gain");
-    setupLabel(masterLevelLabel_, "Video Level");
     setupLabel(imageBeatLabel_,   "Beats per Image");
 
   #if AUDIODNA_HAS_CAMERA
@@ -520,17 +519,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
     addAndMakeVisible(imageBeatLabel_);
 
-    // Master video level slider
-    addAndMakeVisible(masterLevelSlider_);
-    masterLevelSlider_.setRange(0.0, 1.0, 0.01);
-    masterLevelSlider_.setValue(1.0, juce::dontSendNotification);
-    masterLevelSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    masterLevelSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
-    masterLevelSlider_.onValueChange = [this] {
-        previewPanel_.getRenderer().setMasterLevel(static_cast<float>(masterLevelSlider_.getValue()));
-    };
-    addAndMakeVisible(masterLevelLabel_);
-
     audioEngine_.onError = [this](const juce::String& msg) {
         juce::MessageManager::callAsync([this, msg] {
             fileLabel_.setText(msg, juce::dontSendNotification);
@@ -623,12 +611,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Wire TopBar gain slider
     topBar_->getInputGainSlider().onValueChange = [this] {
         audioEngine_.setInputGain(static_cast<float>(topBar_->getInputGainSlider().getValue()));
-    };
-
-    // Wire TopBar master level
-    topBar_->getMasterLevelSlider().onValueChange = [this] {
-        previewPanel_.getRenderer().setMasterLevel(
-            static_cast<float>(topBar_->getMasterLevelSlider().getValue()));
     };
 
     // Wire TopBar display selector
@@ -2428,8 +2410,6 @@ void MainComponent::resized()
     audioSourceSelector_.setVisible(false);
     inputGainLabel_.setVisible(false);
     inputGainSlider_.setVisible(false);
-    masterLevelSlider_.setVisible(false);
-    masterLevelLabel_.setVisible(false);
     displaySelector_.setVisible(false);
     outputLabel_.setVisible(false);
     fpsLabel_.setVisible(false);
@@ -3607,7 +3587,6 @@ void MainComponent::saveDeck()
         deck.viewportResolution = resolutionSelector_.getSelectedId();
         deck.outputDisplay = displaySelector_.getSelectedId();
         deck.inputGain = static_cast<float>(inputGainSlider_.getValue());
-        deck.masterVideoLevel = static_cast<float>(masterLevelSlider_.getValue());
         deck.showAudioPanel = true;
         deck.showFxPanel = true;
         deck.showWavePanel = true;
@@ -3700,10 +3679,9 @@ void MainComponent::loadDeck()
         if (deck.outputDisplay > 1)
             displaySelector_.setSelectedId(deck.outputDisplay, juce::sendNotificationSync);
 
-        // Restore input gain and master level
+        // Restore input gain
         if (deck.inputGain > 0.0f)
             inputGainSlider_.setValue(deck.inputGain, juce::sendNotificationSync);
-        masterLevelSlider_.setValue(deck.masterVideoLevel, juce::sendNotificationSync);
 
         // Panel visibility is no longer user-togglable (v2 layout)
         // Ignore saved panel states — kept for backward compat in deck files
