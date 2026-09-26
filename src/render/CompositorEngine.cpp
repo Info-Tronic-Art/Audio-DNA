@@ -472,7 +472,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
 
 GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
                                               ShaderManager& shaderMgr, FullscreenQuad& quad,
-                                              int w, int h)
+                                              int w, int h, GLuint holdTex)
 {
     constexpr float eps = 0.001f;
     // S-RTA-0923 LANE 3 C2: read through the connection twin (LiveValue,
@@ -500,8 +500,8 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
         auto* prog = shaderMgr.getProgram("layer_transform");
         if (prog != nullptr)
         {
-            // Pool target away from srcTex (nothing is held at this point).
-            const ScratchTarget xf = pickEffectTarget(srcTex, 0);
+            // Pool target away from srcTex and from anything the caller holds.
+            const ScratchTarget xf = pickEffectTarget(srcTex, holdTex);
             glBindFramebuffer(GL_FRAMEBUFFER, xf.fbo);
             glViewport(0, 0, w, h);
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -554,7 +554,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     // original (non-scratch) srcTex and the true no-op remains safe.
     // (s-rta-0926 xfade: applyClipEffects now picks its targets away from its
     // input itself, so this copy is belt-and-braces, kept unchanged.)
-    const ScratchTarget op = pickEffectTarget(transformedTex, 0);
+    const ScratchTarget op = pickEffectTarget(transformedTex, holdTex);
     return applyClipOpacity(effClipOpacity, transformedTex, op.fbo, op.tex,
                             shaderMgr, quad, w, h, /*forceCopy=*/needsTransform);
 }
@@ -1347,20 +1347,22 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
     if (prevTex == 0)
         return newClipTex;
 
-    // Apply previous clip's effects too -- never writing the held incoming result.
+    // s-rta-0926b render lane (R3): the outgoing clip goes through the SAME
+    // per-clip stages, in the same order, as it did while it was the active
+    // clip (compositeDeck: applyClipTransform = transform + clip opacity, then
+    // applyClipEffects). This used to run effects -> opacity with no transform:
+    // an outgoing clip with Position/Scale/Rotation snapped to identity for the
+    // whole crossfade (measured: every dissolve frame fit the UNSCALED clip,
+    // residual 0.09-0.13, vs 5.3-21.8 against the clip as it was shown), and an
+    // outgoing clip with opacity < 1 and a non-linear effect changed look at
+    // transition start (0.5 x invert(A) instead of invert(0.5 x A)). Neither
+    // pass writes the held incoming result.
+    prevTex = applyClipTransform(*prevClip, prevTex, shaderMgr, quad, w, h, /*holdTex=*/newClipTex);
+    // NOTE (s-rta-0926b open fork R1): this chain keys its temporal / ring state
+    // with the SAME key as the incoming clip's chain -- per-layer history,
+    // needs a design ruling (render.md, open_forks R1).
     prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, layer.id,
                                /*holdTex=*/newClipTex);
-
-    // S167-L4b: the outgoing clip keeps its OWN opacity through the
-    // crossfade too, not just the incoming one (baked above in
-    // applyClipTransform) -- same reasoning, see that function's comment.
-    // scratchFBO_/scratchTex_ aren't touched again until after this
-    // function returns (feedback/layer-effects/layer-transform/keying all
-    // come later in compositeDeck's per-layer sequence), so they're free
-    // here as scratch.
-    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
-    prevTex = applyClipOpacity(prevClip->eff(ClipScalar::Opacity), prevTex, scratchFBO_, scratchTex_,
-                               shaderMgr, quad, w, h);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
     juce::String shaderName = getTransitionShaderName(layer.transitionMode);

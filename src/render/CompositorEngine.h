@@ -260,10 +260,12 @@ private:
     // Used by audio-reactive effects (P18) that need chromagram, MFCCs, etc.
     void uploadAudioUniforms(juce::OpenGLShaderProgram* program) const;
 
-    // Apply per-clip transform (position/scale/rotation) to a texture
+    // Apply per-clip transform (position/scale/rotation) to a texture, then
+    // the clip's own opacity. holdTex: a texture the CALLER still needs after
+    // this call (applyTransition's incoming-clip result); no pass writes it.
     GLuint applyClipTransform(const Clip& clip, GLuint srcTex,
                                ShaderManager& shaderMgr, FullscreenQuad& quad,
-                               int w, int h);
+                               int w, int h, GLuint holdTex = 0);
 
     // S167-L4b, fix-needed(s167): bake a clip's per-clip opacity into a
     // texture via a single GL pass using the "clip_opacity_blend" program
@@ -340,8 +342,9 @@ private:
     GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt);
 
     // Apply transition shader: blend previous clip texture with new clip texture
-    // Returns the blended texture. newClipTex is HELD across the outgoing
-    // clip's render + effect chain, so that chain runs with holdTex=newClipTex.
+    // Returns the blended texture. The outgoing clip gets the same per-clip
+    // stages as the active clip (transform + opacity, then effects); newClipTex
+    // is HELD across all of them (holdTex=newClipTex).
     GLuint applyTransition(Layer& layer, GLuint newClipTex, float time,
                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
