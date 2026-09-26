@@ -42,7 +42,9 @@ struct Binding
         MasterOpacity,      // Continuous control of master opacity
         Snapshot,           // P22.7: Take a PNG screenshot
         ToggleRecording,    // P22.6: Start/stop video recording
-        MasterSignal        // s-rta-0925 mastersignal Step 1: continuous control of Master Signal depth
+        MasterSignal,       // s-rta-0925 mastersignal Step 1: continuous control of Master Signal depth
+        TriggerRoutine      // s-rta-0926 routines slice 1: fire (press) / stop (Momentary release) a routine pad
+                            // (targetRoutineSlot). APPEND ONLY: saved bindings store this enum as an int.
     };
     Action action = Action::TriggerClip;
 
@@ -85,6 +87,7 @@ struct Binding
     int targetDeckIndex = 0;
     int targetEffectIndex = 0;
     int targetMacroIndex = 0;
+    int targetRoutineSlot = 0;   // s-rta-0926: routine bank pad (0-7) for TriggerRoutine
 
     bool enabled = true;
 };

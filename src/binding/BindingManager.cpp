@@ -237,6 +237,7 @@ juce::var BindingManager::toVar() const
         obj->setProperty("targetDeckIndex", b.targetDeckIndex);
         obj->setProperty("targetEffectIndex", b.targetEffectIndex);
         obj->setProperty("targetMacroIndex", b.targetMacroIndex);
+        obj->setProperty("targetRoutineSlot", b.targetRoutineSlot);   // s-rta-0926 routines
         obj->setProperty("enabled", b.enabled);
         arr.add(juce::var(obj));
     }
@@ -281,6 +282,7 @@ void BindingManager::fromVar(const juce::var& v)
                     b.targetDeckIndex = static_cast<int>(obj->getProperty("targetDeckIndex"));
                     b.targetEffectIndex = static_cast<int>(obj->getProperty("targetEffectIndex"));
                     b.targetMacroIndex = static_cast<int>(obj->getProperty("targetMacroIndex"));
+                    b.targetRoutineSlot = static_cast<int>(obj->getProperty("targetRoutineSlot"));   // absent (older file) -> 0
                     b.enabled = static_cast<bool>(obj->getProperty("enabled"));
                     bindings_.push_back(b);
                 }
