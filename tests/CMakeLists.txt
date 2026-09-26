@@ -734,6 +734,46 @@ endif()
 apply_sanitizers(test_program_stamps)
 catch_discover_tests(test_program_stamps)
 
+# --- test_program_preamble (s-rta-0925: "replay restore" -- checkpoint 0
+# becomes the Program preamble, fired at Play). Same link set as
+# test_program_stamps above, plus PerfStateCapture.cpp (capturePerfState()
+# builds this test's checkpoint0 fixtures from a live Composition).
+add_executable(test_program_preamble
+    test_program_preamble.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/PerfStateCapture.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+)
+target_include_directories(test_program_preamble PRIVATE ${SRC_DIR})
+target_link_libraries(test_program_preamble PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_program_preamble PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_program_preamble PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_program_preamble)
+catch_discover_tests(test_program_preamble)
+
 # --- test_recorder_double_touch (s-rta-0923 lane L3, addendum 4a):
 # PerformanceRecorder::touch() must not silently discard an already-open
 # gesture on the same key. Standalone target (this lane's worktree did

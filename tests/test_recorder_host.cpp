@@ -593,6 +593,149 @@ TEST_CASE("RecorderHost replay -- the discrete sequence fires through Dispatch i
     }
 }
 
+// === 8b: [host][preamble] Play restores checkpoint 0 before the first lane point ===
+
+TEST_CASE("RecorderHost::play restores checkpoint 0 before the first lane point, in both modes, "
+          "and refusals are counted apart from skipped", "[host][preamble]")
+{
+    TempDir storeRoot("preamble_store");
+    AudioStore store(storeRoot.dir);
+
+    // A tiny, real, resolvable audio asset (test 8's own idiom) so WithAudio can run for real.
+    auto id = store.beginAsset();
+    REQUIRE(id.has_value());
+    AudioTap sourceTap;
+    sourceTap.prepare(48000.0, 2, 512);
+    REQUIRE(sourceTap.start(store.wavFile(*id)));
+    uint64_t delivered = 0;
+    uint64_t hostTimeNs = 1'000'000'000ULL;
+    pushCleanBlocks(sourceTap, 48000.0, 512, 40, delivered, hostTimeNs);
+    sourceTap.stop();
+
+    AudioStore::CaptureFacts facts;
+    facts.mode = "input";
+    facts.gapDetection = sourceTap.gapDetectionSupported();
+    facts.firstSample = sourceTap.firstSample();
+    facts.framesWritten = sourceTap.framesWritten();
+    facts.rate = 48000.0;
+    facts.channels = 2;
+    facts.app = "test";
+    const auto fin = store.finalize(*id, facts);
+    REQUIRE(fin.error.empty());
+
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+
+    // checkpoint0: layer 0's activeClipColumn=1 (discrete restore) and opacity=0.5 (continuous
+    // restore) -- deliberately DIFFERENT from the lane's own activeClip v=2, so the restore and the
+    // lane point are distinguishable.
+    PerfState cp0;
+    cp0.activeDeckIndex = 0;
+    PerfState::DeckRuntime deckRT; deckRT.deck = "Deck 1";
+    PerfState::LayerRuntime layerRT; layerRT.layer = "Layer 1";
+    layerRT.activeClipColumn = 1;
+    layerRT.opacity = 0.5f;
+    deckRT.layers[0] = layerRT;
+    cp0.decks[0] = deckRT;
+
+    const ControlPath clipKey = layerKey(0, "activeClip");
+
+    auto buildTake = [&](DriveClock clock)
+    {
+        Take take;
+        take.nextSeq = 1;
+        take.checkpoint0 = cp0;
+        DiscretePoint p; p.origin = Origin::Human; p.v = 2;
+        if (clock == DriveClock::Wall) { p.s.seq = 1; p.s.t = 0.5; }
+        else                           { p.s.seq = 1; p.s.sample = 24000; }   // 0.5s @ 48kHz
+        Lane lane; lane.key = clipKey; lane.kind = Lane::Kind::Discrete; lane.points = { p };
+        take.lanes[clipKey] = lane;
+        take.audio = AudioStore::referencing(fin.asset, 0);
+        return take;
+    };
+
+    SECTION("WallClock -- checkpoint0 fires before any tick, the lane point fires after")
+    {
+        TempDir folder("preamble_wall_take");
+        REQUIRE(buildTake(DriveClock::Wall).save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+
+        const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        const auto playRes = host.play(RecorderHost::PlayMode::WallClock, comp);
+        REQUIRE(playRes.ok);
+
+        // BEFORE any tick: every fired entry so far is the Preamble restore, not the lane point.
+        REQUIRE_FALSE(fake.fired.empty());
+        for (const auto& f : fake.fired)
+            CHECK(f.p.origin == Origin::Preamble);
+        CHECK(fake.fired.back().key.control == "activeClip");
+        CHECK(fake.fired.back().p.v == 1);   // checkpoint0's column, not the lane's 2
+        REQUIRE_FALSE(fake.touches.empty());
+        REQUIRE_FALSE(fake.sets.empty());
+        CHECK(fake.sets.back().second == Catch::Approx(0.5f));   // opacity restore
+
+        const auto st0 = host.status();
+        CHECK(st0.preambleFired == st0.preambleCount);
+        CHECK(st0.preambleRefused == 0);
+        CHECK(st0.skipped == 0);
+
+        AudioTap dummyTap;
+        host.tick(makeSnap(), w0 + 0.6, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK(fake.fired.back().p.v == 2);   // the lane's own point, now fired
+        CHECK(fake.fired.back().p.origin == Origin::Human);
+        host.stopPlay();
+    }
+
+    SECTION("WithAudio -- the same restore fires before the first transportFrames tick")
+    {
+        TempDir folder("preamble_audio_take");
+        REQUIRE(buildTake(DriveClock::Sample).save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+
+        const auto playRes = host.play(RecorderHost::PlayMode::WithAudio, comp);
+        REQUIRE(playRes.ok);
+
+        REQUIRE_FALSE(fake.fired.empty());
+        for (const auto& f : fake.fired)
+            CHECK(f.p.origin == Origin::Preamble);
+        CHECK(fake.fired.back().key.control == "activeClip");
+        CHECK(fake.fired.back().p.v == 1);
+
+        const auto st0 = host.status();
+        CHECK(st0.preambleFired == st0.preambleCount);
+        CHECK(st0.preambleRefused == 0);
+        CHECK(st0.skipped == 0);
+
+        AudioTap dummyTap;
+        host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(24000), 48000.0);
+        CHECK(fake.fired.back().p.v == 2);
+        host.stopPlay();
+    }
+
+    SECTION("a fully-refused discrete Dispatch counts every discrete preamble entry as refused, never as skipped")
+    {
+        // FakeDispatch::refuseFire only gates dispatch.fire (discrete); continuous.touch/set are
+        // wired to always accept -- this checkpoint0 has 8 discrete entries (activeDeck, quantize,
+        // 5 layer flags, activeClip) and 1 continuous one (opacity), so exactly 8 are refused.
+        fake.refuseFire = true;
+        TempDir folder("preamble_refuse_take");
+        REQUIRE(buildTake(DriveClock::Wall).save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+
+        const auto playRes = host.play(RecorderHost::PlayMode::WallClock, comp);
+        REQUIRE(playRes.ok);
+
+        const auto st = host.status();
+        REQUIRE(st.preambleCount == 9);
+        CHECK(st.preambleRefused == 8);
+        CHECK(st.preambleFired == 1);
+        CHECK(st.skipped == 0);   // the refusals are all Preamble-origin -- never counted as `skipped`
+        host.stopPlay();
+    }
+}
+
 // === 9: [host][overdub] arm against a stored asset uses firstSample 0 and the asset-frame clock ===
 
 TEST_CASE("RecorderHost overdub -- arm against a stored asset uses firstSample 0 and the asset-frame clock", "[host][overdub]")
@@ -1786,8 +1929,16 @@ TEST_CASE("RecorderHost clock -- t restarts at every arm; a wall-clock replay is
         REQUIRE(host.load(takeFolder.dir).ok);
         const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
         REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+        // s-rta-0925: Play now restores checkpoint 0 first (Preamble-origin, fired synchronously
+        // inside play() itself, before this tick) -- this test is about the RECORDED point's own
+        // timing, so isolate it from the restore by origin.
+        const size_t beforeTick = fake.fired.size();
+        for (const auto& f : fake.fired)
+            CHECK(f.p.origin == Origin::Preamble);
         host.tick(makeSnap(), w0 + 0.6, 0, dummyTap, std::nullopt, 48000.0);
-        CHECK(fake.fired.size() == 1);
+        CHECK(fake.fired.size() == beforeTick + 1);
+        CHECK(fake.fired.back().p.origin == Origin::Human);
+        CHECK(fake.fired.back().p.v == 1);
         host.stopPlay();
     }
 }
