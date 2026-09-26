@@ -24,6 +24,7 @@ struct Composition;
 //   /audiodna/snapshot                  — take snapshot (any value)
 //   /audiodna/effect/{name}/{param}     — set effect parameter (float 0-1)
 //   /audiodna/macro/{n}                 — set macro value (float 0-1)
+//   /audiodna/routine/{slot}            — fire routine pad {slot}, 0-based (float > 0; s-rta-0926)
 //
 // Uses JUCE's OSCReceiver with MessageLoopCallback for thread safety.
 class OscHandler : private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
@@ -55,6 +56,7 @@ public:
     std::function<void()> onSnapshot;
     std::function<void(const juce::String& effectName, const juce::String& paramName, float value)> onSetEffectParam;
     std::function<void(int macroIndex, float value)> onSetMacro;
+    std::function<void(int slot)> onTriggerRoutine;   // s-rta-0926 routines slice 1
 
     OscHandler(const OscHandler&) = delete;
     OscHandler& operator=(const OscHandler&) = delete;

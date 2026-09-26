@@ -230,6 +230,7 @@ void MidiLearnOverlay::handleIncomingMidiMessage(juce::MidiInput* /*source*/,
                 b.targetDeckIndex = target.deckIndex;
                 b.targetEffectIndex = target.effectIndex;
                 b.targetMacroIndex = target.macroIndex;
+                b.targetRoutineSlot = target.routineSlot;
 
                 bindingManager_.addBinding(b);
 
@@ -276,6 +277,7 @@ void MidiLearnOverlay::handleIncomingMidiMessage(juce::MidiInput* /*source*/,
                 b.targetDeckIndex = target.deckIndex;
                 b.targetEffectIndex = target.effectIndex;
                 b.targetMacroIndex = target.macroIndex;
+                b.targetRoutineSlot = target.routineSlot;
 
                 bindingManager_.addBinding(b);
 
@@ -333,6 +335,9 @@ const Binding* MidiLearnOverlay::findExistingMidiBinding(
                     break;
                 case Binding::Action::SwitchDeck:
                     matches = (b->targetDeckIndex == target.deckIndex);
+                    break;
+                case Binding::Action::TriggerRoutine:
+                    matches = (b->targetRoutineSlot == target.routineSlot);
                     break;
                 default:
                     matches = true;

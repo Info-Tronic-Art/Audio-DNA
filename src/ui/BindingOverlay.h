@@ -40,6 +40,7 @@ public:
         int deckIndex = 0;
         int effectIndex = 0;
         int macroIndex = 0;
+        int routineSlot = 0;          // s-rta-0926: TriggerRoutine's pad (0-7)
     };
     void setBindableTargets(const std::vector<BindableTarget>& targets);
 

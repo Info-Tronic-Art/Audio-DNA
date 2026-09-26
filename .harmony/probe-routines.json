@@ -1,0 +1,51 @@
+{
+  "name": "probe-routines",
+  "activeDeckIndex": 0,
+  "masterOpacity": 1.0,
+  "decks": [
+    {
+      "name": "A",
+      "id": 0,
+      "numColumns": 2,
+      "layers": [
+        {
+          "name": "L1", "id": 0, "opacity": 1.0, "visible": true, "blendMode": 1,
+          "clips": [
+            {
+              "name": "card", "id": 1, "mediaType": 1, "mediaFile": "@ROOT@/tests/fixtures/test_card.png",
+              "effects": [
+                { "name": "Brightness", "enabled": true, "bypassed": false, "dryWet": 1.0, "params": [0.5] }
+              ]
+            },
+            {
+              "name": "checks", "id": 2, "mediaType": 4, "sourceType": "checkerboard",
+              "sourceParams": [
+                { "name": "Columns", "uniform": "u_src_columns", "value": 0.3, "default": 0.3 },
+                { "name": "Rows", "uniform": "u_src_rows", "value": 0.3, "default": 0.3 },
+                { "name": "Color 1 Hue", "uniform": "u_src_c1_hue", "value": 0.6, "default": 0.0 },
+                { "name": "Color 2 Hue", "uniform": "u_src_c2_hue", "value": 0.0, "default": 0.0 }
+              ],
+              "effects": [
+                { "name": "Brightness", "enabled": true, "bypassed": false, "dryWet": 1.0, "params": [0.5] }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "L2", "id": 1, "opacity": 1.0, "visible": true, "blendMode": 1,
+          "clips": [
+            {
+              "name": "solid", "id": 3, "mediaType": 4, "sourceType": "solid_color",
+              "sourceParams": [
+                { "name": "Red", "uniform": "u_src_red", "value": 1.0, "default": 1.0 },
+                { "name": "Green", "uniform": "u_src_green", "value": 1.0, "default": 1.0 },
+                { "name": "Blue", "uniform": "u_src_blue", "value": 1.0, "default": 1.0 }
+              ]
+            },
+            null
+          ]
+        }
+      ]
+    }
+  ]
+}

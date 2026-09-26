@@ -9,6 +9,7 @@
 #include "core/MediaReconnect.h"
 #include "core/CompositionLoad.h"
 #include "recording/PerfStateCapture.h"
+#include "recording/RoutineSlice.h"
 #include <algorithm>
 
 static uint32_t s_nextClipId = 1000;
@@ -167,6 +168,15 @@ namespace
     {
         if (o == Origin::Human) return k == ParamConnection::Grip::Kind::Held ? Hand::HumanHeld : Hand::HumanDecaying;
         return Hand::Lane;   // Replay, Routine, Preamble, Engine
+    }
+
+    // s-rta-0926 (routines-1a carried concern (a)): a trigger that switches a layer to a clip that
+    // was never triggered and is paused auto-plays it when it lands (Layer::triggerClipImmediate's
+    // first-activation rule -- at once, or at the quantized drain). Read BEFORE the trigger.
+    bool triggerWillAutoPlay(Layer& layer, int column)
+    {
+        const Clip* clip = layer.getClipAt(column);
+        return clip != nullptr && column != layer.activeClipColumn && !clip->hasBeenTriggered && !clip->playing;
     }
 }
 
@@ -689,6 +699,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
     topBar_->onStop = [this] {
+        // s-rta-0926 routines (plan 4.3, ruling 5 "Stop means stop"): running and waiting routines
+        // stop too, letting go of every control they hold.
+        routineEngine_.stopAll();
         if (auto* deck = composition_.getActiveDeck())
         {
             const uint64_t group = recorderHost_.nextGroupId();
@@ -2031,6 +2044,20 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // play(), as tick()'s LAST statement, after publishStatus() -- status().finished is already true.
     recorderHost_.dispatch.replayFinished = [this] { onReplayFinished(); };
 
+    // s-rta-0926 routines slice 1 (plan 4.1): the routine engine drives the SAME seams a take replay
+    // does -- copies of the recorder's four dispatch lambdas (Origin::Replay: never captured into a
+    // take, never pushed onto undo, Hand::Lane so a human hand always wins, D8) plus its own notice
+    // line. Re-entrancy (plan 4.2): none of these lambdas names routineEngine_.
+    routineEngine_.dispatch.fire    = recorderHost_.dispatch.fire;
+    routineEngine_.dispatch.touch   = recorderHost_.dispatch.continuous.touch;
+    routineEngine_.dispatch.set     = recorderHost_.dispatch.continuous.set;
+    routineEngine_.dispatch.release = recorderHost_.dispatch.continuous.release;
+    routineEngine_.dispatch.notify  = [this](const std::string& msg) {
+        std::cerr << "[Routine] " << msg << std::endl;
+        if (browserPanel_)
+            browserPanel_->getRecordPanel().setNotice(msg, recorderHost_.status());
+    };
+
     // Continuous capture: the recorder HOOKS the funnel's own accept/refuse
     // notification (critic A1/A2/N12) -- Human writes only; Replay writes are
     // filtered here too (handFor already routed them to Hand::Lane above).
@@ -2065,6 +2092,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // mutex-guarded copy -- never audioEngine_.getCurrentSampleRate()/
     // getCurrentAudioDevice() on the HTTP thread.
     apiServer_->onPerfStatus   = [this]() -> juce::var { return perfStatusVar(); };
+
+    // s-rta-0926 routines slice 1 (plan 5.1): /api/routine/* -- the perfRoutine* funnel (shared with
+    // OSC and bindings); refusals land in /api/routine/status lastError. Status is synchronous and
+    // reads ONLY routineEngine_.status()'s mutex-guarded copy.
+    apiServer_->onRoutineSave   = [this](const ApiServer::RoutineSaveOpts& o) { perfRoutineSave(o); };
+    apiServer_->onRoutineFire   = [this](int slot) { perfRoutineFire(slot); };
+    apiServer_->onRoutineStop   = [this](int slot, bool all) { perfRoutineStop(slot, all); };
+    apiServer_->onRoutineSet    = [this](const ApiServer::RoutineSetOpts& o) { perfRoutineSet(o); };
+    apiServer_->onRoutineRemove = [this](int slot) { perfRoutineRemove(slot); };
+    apiServer_->onRoutineStatus = [this]() -> juce::var { return routineStatusVar(); };
 
 #if AUDIODNA_TEST_SERVER
     // R4: test-mode inject_features on the production port relays through
@@ -2124,6 +2161,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // through manualWrite.
         if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
             manualWrite(macroPath(macroIdx), value, GripKind::Decaying, Origin::Human);
+    };
+    oscHandler_.onTriggerRoutine = [this](int slot) {
+        // s-rta-0926 routines slice 1: same funnel as /api/routine/fire and the TriggerRoutine
+        // binding; callAsync like onTriggerClip, so a fire never runs inside the engine's tick.
+        juce::MessageManager::callAsync([this, slot]() { perfRoutineFire(slot); });
     };
     oscHandler_.onSetEffectParam = [this](const juce::String& effectName,
                                           const juce::String& paramName, float value) {
@@ -2259,6 +2301,8 @@ MainComponent::~MainComponent()
     // "HTTP servers stop first" invariant stays as-is (post-quit callAsync
     // is refused anyway -- ApiServer.cpp), and shutdown() still needs a live
     // audioEngine_ (getAudioTap()) and composition_, both intact here.
+    // s-rta-0926 routines: stop every routine first (its grips released while the model is live).
+    routineEngine_.stopAll();
     recorderHost_.shutdown(composition_, audioEngine_.getAudioTap());
 #if AUDIODNA_TEST_SERVER
     if (testServer_)
@@ -2811,6 +2855,10 @@ void MainComponent::refreshUiAfterModelSwap()
 
 void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
 {
+    // s-rta-0926 routines (plan R7): a running routine's Player holds coordinates into the OLD
+    // model -- stop every routine (releasing its grips on the old model) before it is replaced.
+    routineEngine_.stopAll();
+
     // Read OLD playable-clip ids while the old model is still live — reading
     // after `mutation` runs is too late, the ids it would report are gone.
     auto before = compload::playableClipIds(composition_);
@@ -3407,6 +3455,14 @@ void MainComponent::tickFeaturePipeline()
                            audioEngine_.getAudioTap(), transportFrames,
                            audioEngine_.getCurrentSampleRate());
     }
+
+    // s-rta-0926 routines slice 1 (plan 4.5): AFTER the replay (so a routine fired over a set
+    // replay writes last each tick -- R13, tick order) and BEFORE the connection engine below (so
+    // a routine gesture's grip is current when the engine decides what to publish). The global
+    // Quantize override is the clip trigger's own rule (quantizeModeToForcedSnap).
+    routineEngine_.tick(snap, now, composition_,
+                        static_cast<RoutineSnap>(quantizeModeToForcedSnap(composition_.quantizeMode, snap)),
+                        snap.trackerState == BPMTracker::STATE_LOCKED && snap.bpm > 0.0f);
 
     // S-RTA-0923 LANE 3: the ONE evaluator for every ParamConnection (s166
     // spec section 4.2/4.3). Macros were updated just above (they are
@@ -4162,6 +4218,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     // Retrigger-restart (2026-07-30, Boris's recorded expectation): clicking the
     // already-playing cell is this same column == layer->activeClipColumn case.
     const bool wasRetrigger = (column == layer->activeClipColumn);
+    const bool autoPlays = triggerWillAutoPlay(*layer, column);   // captured below (concern (a))
 
     if (immediate)
     {
@@ -4334,7 +4391,26 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         p.v = column;
         p.retrigger = wasRetrigger;
         recorderHost_.capture(key, std::move(p));
+        if (autoPlays)
+            captureAutoPlay(resolvedDeckIndex, layerIndex, column, origin, 0);
     }
+}
+
+// s-rta-0926 (routines-1a carried concern (a)): the trigger's auto-play as a `playing` point, right
+// after the activeClip point -- so a take (and a routine cut from it) knows the clip was playing.
+// "resume" sets playing only (the auto-play never touches reverse); replaying it on a clip that is
+// already playing is a no-op.
+void MainComponent::captureAutoPlay(int deckIndex, int layerIndex, int column, Origin origin, uint64_t group)
+{
+    ControlPath key = clipScalarPath(composition_, deckIndex, layerIndex, column, "");
+    key.control = "playing";
+    key.scalar.clear();
+    DiscretePoint p;
+    p.origin = origin;
+    p.action = "resume";
+    p.v = 1;
+    p.group = group;
+    recorderHost_.capture(key, std::move(p));
 }
 
 void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex)
@@ -4360,11 +4436,13 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     std::vector<LayerRuntimeSnapshot> before(static_cast<size_t>(numLayers));
     std::vector<std::optional<bool>> playBefore(static_cast<size_t>(numLayers));
     std::vector<bool> considered(static_cast<size_t>(numLayers), false);
+    std::vector<bool> autoPlays(static_cast<size_t>(numLayers), false);   // concern (a), see captureAutoPlay
     for (int l = 0; l < numLayers; ++l)
     {
         auto* layer = deck->getLayer(l);
         if (!layer || layer->ignoreColumnTrigger) continue;  // excluded, as triggerColumn does
         considered[static_cast<size_t>(l)] = true;
+        autoPlays[static_cast<size_t>(l)] = triggerWillAutoPlay(*layer, column);
         before[static_cast<size_t>(l)] = captureLayerRuntime(*layer);
         if (const Clip* tc = layer->getClipAt(column))
             playBefore[static_cast<size_t>(l)] = tc->playing;
@@ -4412,6 +4490,8 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             p.v = column;
             p.group = captureGroup;
             recorderHost_.capture(key, std::move(p));
+            if (autoPlays[static_cast<size_t>(l)])
+                captureAutoPlay(resolvedDeckIndex, l, column, origin, captureGroup);
         }
     }
     if (origin == Origin::Human)
@@ -5186,6 +5266,13 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
     if (opts.overdubAssetId.isNotEmpty())
         armOpts.overdubAssetId = opts.overdubAssetId.toStdString();
     armOpts.gripHoldMs = composition_.gripHoldMs;
+    // s-rta-0926 routines (plan 3.6): where in its bar Record was pressed, so "bars 33 to 40" of the
+    // take can be cut later. Only while the tracker is locked; otherwise the take says "unknown".
+    {
+        const FeatureSnapshot armSnap = analysisThread_.getFeatureBus().read();
+        if (armSnap.trackerState == BPMTracker::STATE_LOCKED)
+            armOpts.startBeatInBar = static_cast<double>(armSnap.beatInBar) + static_cast<double>(armSnap.beatPhase);
+    }
 
     auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
     if (!result.ok)
@@ -5432,6 +5519,237 @@ juce::var MainComponent::perfStatusVar() const
     // s-rta-0925: the additive exception to "reads ONLY recorderHost_.status()" -- inputSourceMirror_
     // is a relaxed atomic written once per tick on the message thread (MainComponent.h's own comment).
     obj->setProperty("inputSource", inputSourceMirror_.load(std::memory_order_relaxed) == 1 ? "file" : "input");
+    return juce::var(obj);
+}
+
+// === s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1-5.3): the routine funnel ===
+// REST, OSC and bindings all land here, on the message thread. Each returns "" or the refusal text;
+// a refusal also goes to /api/routine/status lastError and to the notice line.
+
+std::string MainComponent::perfRoutineSave(const ApiServer::RoutineSaveOpts& opts)
+{
+    auto refuse = [this](const std::string& msg) {
+        routineEngine_.setLastError(msg);
+        if (routineEngine_.dispatch.notify)
+            routineEngine_.dispatch.notify(msg);
+        return msg;
+    };
+
+    // The take: a named folder, else the one loaded with Load Take.
+    std::optional<Take> fromFolder;
+    const Take* take = nullptr;
+    std::string takeFolder;
+    if (opts.takeFolder.isNotEmpty())
+    {
+        LoadStats stats;
+        fromFolder = Take::load(juce::File(opts.takeFolder), stats);
+        if (!fromFolder)
+            return refuse("Could not read the take at " + opts.takeFolder.toStdString()
+                          + (stats.refusalReason.empty() ? std::string(".") : ": " + stats.refusalReason));
+        take = &*fromFolder;
+        takeFolder = opts.takeFolder.toStdString();
+    }
+    else
+    {
+        take = recorderHost_.loadedTake();
+        takeFolder = recorderHost_.status().loadedTakeFolder;
+    }
+    if (take == nullptr)
+        return refuse("No take is loaded. Use Load Take... first.");
+
+    // The range: take beats, or 1-based inclusive bars on the take's own bar grid.
+    const bool barsUnknown = opts.useBars && take->meta.startBeatInBar < 0.0;
+    SliceRequest req;
+    req.fromBeat = opts.useBars ? takeBeatOfBar(*take, opts.fromBar) : opts.fromBeat;
+    req.toBeat = opts.useBars ? takeBeatOfBar(*take, opts.toBar + 1) : opts.toBeat;
+    req.wholeBars = opts.wholeBars.value_or(true);
+    req.takeFolder = takeFolder;
+
+    // The pad: the one asked for (an occupied pad is replaced), else the first free one.
+    const int slot = opts.slot >= 0 ? opts.slot : composition_.firstFreeRoutineSlot();
+    if (opts.slot >= Composition::kRoutineBankSize)
+        return refuse("There is no routine pad " + std::to_string(opts.slot + 1) + "; the pads are 1 to "
+                      + std::to_string(Composition::kRoutineBankSize) + ".");
+    if (slot < 0)
+        return refuse("The routine bank is full. Remove a routine or choose a pad to replace.");
+    req.name = opts.name.isNotEmpty() ? opts.name.toStdString() : "Routine " + std::to_string(slot + 1);
+
+    SliceResult cut = sliceRoutine(*take, req, previewPanel_.getRenderer().getEffectLibrary());
+    if (!cut.error.empty() || !cut.routine)
+        return refuse(RoutineEngine::saveRefusalText(cut.error));
+
+    Routine routine = std::move(*cut.routine);
+    if (opts.loop)         routine.loop = *opts.loop;
+    if (opts.restoreState) routine.restoreState = *opts.restoreState;
+    if (opts.quantize.isNotEmpty())
+        routine.quantize = Routine::quantizeFromString(opts.quantize);
+
+    std::string replaced;
+    if (const Routine* old = composition_.routineInSlot(slot))
+    {
+        replaced = old->name;
+        routineEngine_.stop(slot);   // its Player holds the old routine's program
+    }
+    const std::string uuid = routine.uuid;
+    const std::string name = routine.name;
+    const int lanes = static_cast<int>(routine.lanes.size());
+    const int restores = static_cast<int>(routine.preamble.size());
+    composition_.routines.push_back(std::move(routine));
+    if (!composition_.assignRoutineSlot(slot, uuid))
+        return refuse("Could not put the routine on pad " + std::to_string(slot + 1) + ".");
+
+    RoutineEngine::Status::LastSaved saved;
+    saved.slot = slot;
+    saved.uuid = uuid;
+    saved.name = name;
+    saved.lanes = lanes;
+    saved.preambleEntries = restores;
+    saved.preambleUnknown = cut.preambleUnknown;
+    saved.dropped = cut.droppedLanes;
+    routineEngine_.setLastSaved(saved);
+
+    std::string msg = "Saved routine " + name + " to pad " + std::to_string(slot + 1) + ": "
+                    + std::to_string(lanes) + (lanes == 1 ? " timeline, " : " timelines, ")
+                    + std::to_string(restores) + (restores == 1 ? " restore" : " restores");
+    if (!cut.droppedLanes.empty())
+    {
+        msg += ", dropped: ";
+        for (size_t i = 0; i < cut.droppedLanes.size(); ++i)
+            msg += (i > 0 ? ", " : "") + cut.droppedLanes[i];
+    }
+    if (!replaced.empty())
+        msg += " (replaced " + replaced + ")";
+    if (barsUnknown)
+        msg += "; bars counted from the start of the take";
+    if (routineEngine_.dispatch.notify)
+        routineEngine_.dispatch.notify(msg);
+    return {};
+}
+
+std::string MainComponent::perfRoutineFire(int slot)
+{
+    const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+    return routineEngine_.fire(composition_, slot,
+                               static_cast<RoutineSnap>(quantizeModeToForcedSnap(composition_.quantizeMode, snap)),
+                               snap.trackerState == BPMTracker::STATE_LOCKED && snap.bpm > 0.0f);
+}
+
+std::string MainComponent::perfRoutineStop(int slot, bool all)
+{
+    if (all)
+        routineEngine_.stopAll();
+    else
+        routineEngine_.stop(slot);
+    return {};
+}
+
+std::string MainComponent::perfRoutineSet(const ApiServer::RoutineSetOpts& opts)
+{
+    Routine* routine = composition_.routineInSlot(opts.slot);
+    if (routine == nullptr)
+    {
+        const std::string msg = "Routine pad " + std::to_string(opts.slot + 1) + " is empty.";
+        routineEngine_.setLastError(msg);
+        if (routineEngine_.dispatch.notify)
+            routineEngine_.dispatch.notify(msg);
+        return msg;
+    }
+    // A running routine picks up loop / restore at its next end, quantize at its next (re)start,
+    // the name at once (the bank listing is re-read every tick).
+    if (opts.loop)         routine->loop = *opts.loop;
+    if (opts.restoreState) routine->restoreState = *opts.restoreState;
+    if (opts.quantize.isNotEmpty())
+        routine->quantize = Routine::quantizeFromString(opts.quantize);
+    if (opts.name.isNotEmpty())
+        routine->name = opts.name.toStdString();
+    if (routineEngine_.dispatch.notify)
+    {
+        const char* when = "on the next bar";
+        switch (routine->quantize)
+        {
+            case Clip::BeatSnapMode::Off:     when = "at once"; break;
+            case Clip::BeatSnapMode::Beat:    when = "on the next beat"; break;
+            case Clip::BeatSnapMode::Bar:     when = "on the next bar"; break;
+            case Clip::BeatSnapMode::TwoBar:  when = "on the next two-bar line"; break;
+            case Clip::BeatSnapMode::FourBar: when = "on the next four-bar line"; break;
+        }
+        routineEngine_.dispatch.notify("Routine " + routine->name + ": "
+                                       + (routine->loop ? "loops" : "plays once") + ", "
+                                       + (routine->restoreState ? "restores first" : "starts from now")
+                                       + ", starts " + when);
+    }
+    return {};
+}
+
+std::string MainComponent::perfRoutineRemove(int slot)
+{
+    routineEngine_.stop(slot);
+    if (!composition_.removeRoutineSlot(slot))
+    {
+        const std::string msg = "Routine pad " + std::to_string(slot + 1) + " is empty.";
+        routineEngine_.setLastError(msg);
+        if (routineEngine_.dispatch.notify)
+            routineEngine_.dispatch.notify(msg);
+        return msg;
+    }
+    if (routineEngine_.dispatch.notify)
+        routineEngine_.dispatch.notify("Removed the routine on pad " + std::to_string(slot + 1) + ".");
+    return {};
+}
+
+juce::var MainComponent::routineStatusVar() const
+{
+    const auto s = routineEngine_.status();
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("clockBeat", s.clockBeat);
+    obj->setProperty("beatAvailable", s.beatAvailable);
+    obj->setProperty("fires", s.fires);
+    obj->setProperty("lastError", juce::String(s.lastError));
+
+    auto* saved = new juce::DynamicObject();
+    saved->setProperty("slot", s.lastSaved.slot);
+    saved->setProperty("uuid", juce::String(s.lastSaved.uuid));
+    saved->setProperty("name", juce::String(s.lastSaved.name));
+    saved->setProperty("lanes", s.lastSaved.lanes);
+    saved->setProperty("preambleEntries", s.lastSaved.preambleEntries);
+    saved->setProperty("preambleUnknown", s.lastSaved.preambleUnknown);
+    juce::Array<juce::var> dropped;
+    for (const auto& d : s.lastSaved.dropped)
+        dropped.add(juce::String(d));
+    saved->setProperty("dropped", dropped);
+    obj->setProperty("lastSaved", juce::var(saved));
+
+    juce::Array<juce::var> bank;
+    for (const auto& sl : s.slots)
+    {
+        auto* p = new juce::DynamicObject();
+        p->setProperty("slot", sl.slot);
+        p->setProperty("uuid", juce::String(sl.uuid));
+        p->setProperty("name", juce::String(sl.name));
+        p->setProperty("lengthBeats", sl.lengthBeats);
+        p->setProperty("loop", sl.loop);
+        p->setProperty("restoreState", sl.restoreState);
+        p->setProperty("quantize", juce::String(sl.quantize));
+        p->setProperty("lanes", sl.lanes);
+        p->setProperty("preambleEntries", sl.preambleEntries);
+        p->setProperty("state", juce::String(sl.state));
+        p->setProperty("position", sl.position);
+        p->setProperty("cycle", sl.cycle);
+        p->setProperty("restarts", sl.restarts);
+        p->setProperty("startedTotalBar", static_cast<juce::int64>(sl.startedTotalBar));
+        p->setProperty("unresolved", sl.unresolved);
+        p->setProperty("reboundByPosition", sl.reboundByPosition);
+        p->setProperty("reboundByName", sl.reboundByName);
+        p->setProperty("preambleUnresolved", sl.preambleUnresolved);
+        p->setProperty("preambleCount", sl.preambleCount);
+        p->setProperty("preambleFired", sl.preambleFired);
+        p->setProperty("preambleRefused", sl.preambleRefused);
+        p->setProperty("skipped", sl.skipped);
+        p->setProperty("yielded", sl.yielded);
+        bank.add(juce::var(p));
+    }
+    obj->setProperty("bank", bank);
     return juce::var(obj);
 }
 
@@ -6597,9 +6915,20 @@ void MainComponent::buildBindableTargets(std::vector<BindingOverlay::BindableTar
     targets.push_back({ { gx, topY, gw, gh }, "Master Signal",
                          Binding::Action::MasterSignal, 0, 0, 0, 0, 0 });
 
+    // s-rta-0926 routines slice 1 (plan 5.3): one row of 8 routine pads under the global row.
+    int routineY = topY + gh + gap;
+    for (int slot = 0; slot < RoutineEngine::kBankSize; ++slot)
+    {
+        BindingOverlay::BindableTarget t{ { 20 + slot * (gw + gap), routineY, gw, gh },
+                                          "Routine " + juce::String(slot + 1),
+                                          Binding::Action::TriggerRoutine, 0, 0, 0, 0, 0 };
+        t.routineSlot = slot;
+        targets.push_back(t);
+    }
+
     // Column triggers
     int colStartX = 240; // Approximate: after layer strip area
-    int colY = topY + gh + 20;
+    int colY = routineY + gh + 20;
     int colW = 80;
     int colH = 24;
 
@@ -6864,7 +7193,19 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
 
         case Binding::Action::GlobalStop:
             if (value > 0.0f)
+            {
+                routineEngine_.stopAll();   // s-rta-0926: Stop also stops routines (plan 4.3)
                 applyAudioTransport("stop", Origin::Human);
+            }
+            break;
+
+        case Binding::Action::TriggerRoutine:
+            // s-rta-0926 routines slice 1 (plan 5.3): press fires (or restarts at the next boundary);
+            // a Momentary binding's release stops it -- hold-to-run.
+            if (value > 0.0f)
+                perfRoutineFire(binding.targetRoutineSlot);
+            else if (binding.triggerMode == Binding::TriggerMode::Momentary)
+                perfRoutineStop(binding.targetRoutineSlot, false);
             break;
 
         case Binding::Action::MasterOpacity:
