@@ -503,16 +503,29 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     // crossfade. Targets effectFBO_B_/effectTex_B_ -- distinct from
     // effectFBO_A_ used above, so this pass never reads and writes the same
     // texture whether or not a positional transform ran first.
+    //
+    // s-rta-0925 ms-white FIX: forceCopy=needsTransform. When a transform
+    // ran, transformedTex IS effectTex_A_ (this function's own scratch
+    // above) -- the caller of applyClipTransform (compositeDeck) feeds the
+    // returned texture straight into applyClipEffects, whose ping-pong
+    // ALWAYS writes its first enabled effect to effectFBO_A_. Left as a
+    // true no-op at the default 1.0 opacity, that handed effectTex_A_ back
+    // verbatim, so the very next effect pass sampled and rendered to the
+    // same texture in one draw call -- a GL feedback-loop hazard that
+    // rendered as a fully transparent ("white") frame on this Metal-backed
+    // driver. Forcing the copy through effectFBO_B_/effectTex_B_ here
+    // breaks the alias; when there was no transform, transformedTex is the
+    // original (non-scratch) srcTex and the true no-op remains safe.
     return applyClipOpacity(effClipOpacity, transformedTex, effectFBO_B_, effectTex_B_,
-                            shaderMgr, quad, w, h);
+                            shaderMgr, quad, w, h, /*forceCopy=*/needsTransform);
 }
 
 GLuint CompositorEngine::applyClipOpacity(float opacity, GLuint srcTex, GLuint dstFBO, GLuint dstTex,
                                            ShaderManager& shaderMgr, FullscreenQuad& quad,
-                                           int w, int h)
+                                           int w, int h, bool forceCopy)
 {
     constexpr float eps = 0.001f;
-    if (std::abs(opacity - 1.0f) <= eps)
+    if (!forceCopy && std::abs(opacity - 1.0f) <= eps)
         return srcTex; // true no-op -- no GL call issued
 
     // fix-needed(s167): this used to bake opacity into ALPHA via the shared
