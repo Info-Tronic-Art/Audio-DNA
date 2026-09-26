@@ -1,0 +1,57 @@
+{
+  "_doc": "Fixtures for .harmony/probe-crossfade.sh (s-rta-0926 xfade lane). @MEDIA@ is replaced at run time with the checkout's media/ dir. 'crossfade' cases: one layer, column 0 = OUT clip, column 1 = IN clip, Dissolve over transitionSpeed seconds; the probe renders IN-only and OUT-only references first, then triggers OUT -> IN and asserts every mid frame lies strictly between them. 'still' cases: single-state renders of the other sites in the same bug class (a texture held while a later pass writes the same FBO).",
+  "transitionSpeed": 4.0,
+  "crossfade": {
+    "a_both_effected": {
+      "why": "THE BUG: incoming clip fx land in effectTex_A_, the outgoing clip's fx chain (run inside applyTransition) overwrote effectTex_A_, dissolve sampled the outgoing clip on both inputs",
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Hue Shift", 0.5] ] },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [ ["Invert", 0.7] ] }
+    },
+    "b_only_incoming_effected": {
+      "why": "control: outgoing chain is empty, so nothing writes the scratch pair after the incoming fx",
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [ ["Invert", 0.7] ] }
+    },
+    "c_only_outgoing_effected": {
+      "why": "control: incoming texture is the image itself, never a scratch texture",
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Hue Shift", 0.5] ] },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [] }
+    },
+    "d_neither_effected": {
+      "why": "control: plain dissolve",
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [] }
+    },
+    "e_two_effects_each": {
+      "why": "class: the outgoing chain's second pass needs a scratch target that is neither its own input nor the held incoming result (the third pool slot)",
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Hue Shift", 0.5], ["Brightness", 0.6] ] },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [ ["Invert", 0.7], ["Saturation", 0.8] ] }
+    },
+    "f_same_source_type": {
+      "why": "class: both clips are the same procedural source type, which shares ONE output FBO; rendering the outgoing clip overwrote the incoming clip's texture",
+      "out": { "mediaType": 4, "sourceType": "solid_color", "sourceParams": [ ["Red", "u_src_red", 1.0], ["Green", "u_src_green", 0.0], ["Blue", "u_src_blue", 0.0] ], "effects": [] },
+      "in":  { "mediaType": 4, "sourceType": "solid_color", "sourceParams": [ ["Red", "u_src_red", 0.0], ["Green", "u_src_green", 0.0], ["Blue", "u_src_blue", 1.0] ], "effects": [] }
+    }
+  },
+  "still": {
+    "g_drywet_second_effect": {
+      "why": "class: dry/wet blend of a NON-first effect drew into the texture it sampled as u_original. Asserted as MIX == (1-w)*DRY + w*WET, all three rendered live",
+      "check": "mix", "weight": 0.5,
+      "dry":   { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Hue Shift", 0.5] ] },
+      "wet":   { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Hue Shift", 0.5], ["Invert", 0.7] ] },
+      "mixed": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Hue Shift", 0.5], ["Invert", 0.7, 0.5] ] }
+    },
+    "h_transparent_layer_transform": {
+      "why": "class: a Transparent layer with a layer transform keyed scratchTex_ (the transform's output) into scratchFBO_. Asserted equal (RGB) to the same layer as Opaque, whose path never keys",
+      "check": "equal", "minAlpha": 0.2,
+      "subject":   { "layer": { "type": 1, "layerScale": 0.5 }, "clip": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] } },
+      "reference": { "layer": { "type": 0, "layerScale": 0.5 }, "clip": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] } }
+    },
+    "i_layer_router_self": {
+      "why": "class: a Layer Router clip routed to its own layer handed saveLayerOutput its own output texture as the source (draw into the texture being sampled). Expected: the layer holds its previous output (the image)",
+      "check": "self_router",
+      "image":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] },
+      "router": { "mediaType": 4, "sourceType": "layer_router", "sourceParams": [ ["Source Layer", "u_src_layer", 0.0] ], "effects": [] }
+    }
+  }
+}

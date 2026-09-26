@@ -92,6 +92,17 @@ target_link_libraries(test_compositor_effects_parity PRIVATE Catch2::Catch2WithM
 apply_sanitizers(test_compositor_effects_parity)
 catch_discover_tests(test_compositor_effects_parity)
 
+# --- test_scratch_pool (s-rta-0926 xfade: the compositor's one rule for its
+# effect scratch pool -- a pass never renders into the texture it samples or a
+# texture its caller still holds). Tests the REAL picker (render/ScratchPool.h,
+# pure, no GL) that CompositorEngine::pickEffectTarget calls; the GL call sites
+# themselves are covered live by .harmony/probe-crossfade.sh.
+add_executable(test_scratch_pool test_scratch_pool.cpp)
+target_include_directories(test_scratch_pool PRIVATE ${SRC_DIR})
+target_link_libraries(test_scratch_pool PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_scratch_pool)
+catch_discover_tests(test_scratch_pool)
+
 # --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
 # composition-tier oracle endpoints in src/test/TestServer.cpp — see the
 # file header for exact scope). Headless: bare Composition + EffectLibrary,

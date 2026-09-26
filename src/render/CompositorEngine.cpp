@@ -1,5 +1,6 @@
 #include "CompositorEngine.h"
 #include "render/EmbeddedShaders.h"
+#include "render/ScratchPool.h"
 #include <iostream>
 #include <cmath>
 
@@ -13,6 +14,7 @@ void CompositorEngine::initGL(int width, int height)
     createFBO(scratchFBO_, scratchTex_, width, height);
     createFBO(effectFBO_A_, effectTex_A_, width, height);
     createFBO(effectFBO_B_, effectTex_B_, width, height);
+    createFBO(effectFBO_C_, effectTex_C_, width, height);
     createFBO(transitionFBO_, transitionTex_, width, height);
     createFBO(feedbackFBO_, feedbackTex_, width, height);
     feedbackReady_ = false;
@@ -25,6 +27,7 @@ void CompositorEngine::releaseGL()
     deleteFBO(scratchFBO_, scratchTex_);
     deleteFBO(effectFBO_A_, effectTex_A_);
     deleteFBO(effectFBO_B_, effectTex_B_);
+    deleteFBO(effectFBO_C_, effectTex_C_);
     deleteFBO(transitionFBO_, transitionTex_);
     deleteFBO(feedbackFBO_, feedbackTex_);
 
@@ -86,12 +89,14 @@ void CompositorEngine::resize(int width, int height)
     deleteFBO(scratchFBO_, scratchTex_);
     deleteFBO(effectFBO_A_, effectTex_A_);
     deleteFBO(effectFBO_B_, effectTex_B_);
+    deleteFBO(effectFBO_C_, effectTex_C_);
     deleteFBO(transitionFBO_, transitionTex_);
     deleteFBO(feedbackFBO_, feedbackTex_);
     createFBO(accumulatorFBO_, accumulatorTex_, width, height);
     createFBO(scratchFBO_, scratchTex_, width, height);
     createFBO(effectFBO_A_, effectTex_A_, width, height);
     createFBO(effectFBO_B_, effectTex_B_, width, height);
+    createFBO(effectFBO_C_, effectTex_C_, width, height);
     createFBO(transitionFBO_, transitionTex_, width, height);
     createFBO(feedbackFBO_, feedbackTex_, width, height);
 
@@ -127,6 +132,17 @@ void CompositorEngine::deleteFBO(GLuint& fbo, GLuint& tex)
     if (tex != 0) { glDeleteTextures(1, &tex); tex = 0; }
 }
 
+// s-rta-0926 xfade: the single rule for the effect scratch pool (ScratchPool.h).
+// Never returns readTex or holdTex; with three members at most two are
+// excluded, so the pick always succeeds (index 0 is a defensive fallback only).
+CompositorEngine::ScratchTarget CompositorEngine::pickEffectTarget(GLuint readTex, GLuint holdTex) const
+{
+    const GLuint texs[3] = { effectTex_A_, effectTex_B_, effectTex_C_ };
+    const GLuint fbos[3] = { effectFBO_A_, effectFBO_B_, effectFBO_C_ };
+    const int i = ScratchPool::pick(texs, readTex, holdTex);
+    return (i >= 0) ? ScratchTarget{ fbos[i], texs[i] } : ScratchTarget{ fbos[0], texs[0] };
+}
+
 // === Layer Router Support (P20) ===
 
 void CompositorEngine::ensureLayerOutputFBO(uint32_t layerId, int w, int h)
@@ -147,6 +163,13 @@ void CompositorEngine::saveLayerOutput(uint32_t layerId, GLuint srcTex,
                                         int w, int h)
 {
     ensureLayerOutputFBO(layerId, w, h);
+
+    // s-rta-0926 xfade class sweep: a Layer Router clip routed to its OWN
+    // layer hands back this layer's saved output as srcTex. The texture
+    // already holds exactly that content, and drawing it into its own FBO
+    // would sample the texture being rendered to (GL feedback loop, UB).
+    if (srcTex == layerOutputTexStorage_[layerId])
+        return;
 
     GLuint fbo = layerOutputFBOs_[layerId];
     auto* prog = shaderMgr.getProgram("passthrough");
@@ -232,7 +255,7 @@ GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile)
 GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& effects, GLuint inputTex,
                                             ShaderManager& shaderMgr, FullscreenQuad& quad,
                                             float time, int w, int h,
-                                            uint32_t layerId)
+                                            uint32_t layerId, GLuint holdTex)
 {
     if (effects.empty() || effectLibrary_ == nullptr)
         return inputTex;
@@ -247,15 +270,12 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
     }
 
     GLuint currentInput = inputTex;
-    // s-rta-0925 ms-white2: start the ping-pong on whichever FBO the input
-    // texture does NOT already alias. Hardcoding writeFBO=0 (effectFBO_A_)
-    // is safe only when inputTex != effectTex_A_; when a caller hands in a
-    // texture that IS effectTex_A_ (e.g. a prior applyClipEffects call with
-    // an odd number of enabled effects), starting at 0 again would sample
-    // and render into effectTex_A_ in the same draw call -- the same
-    // GL feedback-loop hazard 52cd76c fixed for applyClipTransform's
-    // hand-off, now generalized to every caller of applyClipEffects.
-    int writeFBO = (inputTex == effectTex_A_) ? 1 : 0; // 0 = effectFBO_A_, 1 = effectFBO_B_
+    // s-rta-0926 xfade: every pass below renders into pickEffectTarget(
+    // currentInput, holdTex) -- never the texture it samples (the ms-white2 /
+    // 4fca2c5 feedback loop, when a caller hands in a pool texture) and never
+    // the texture the caller still holds (the crossfade clobber: the outgoing
+    // clip's chain overwrote the incoming clip's result). With nothing held
+    // this is the same A/B ping-pong as before (external -> A -> B -> A ...).
 
     for (const auto& slot : effects)
     {
@@ -270,13 +290,11 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         // Screen Split is handled specially — uses frame ring buffer, not normal shader
         if (def->shaderName == "screen_split")
         {
-            GLuint splitResult = applyScreenSplit(currentInput, slot, shaderMgr, quad, layerId, w, h);
+            const ScratchTarget split = pickEffectTarget(currentInput, holdTex);
+            GLuint splitResult = applyScreenSplit(currentInput, slot, shaderMgr, quad, layerId, w, h,
+                                                  split.fbo, split.tex);
             if (splitResult != 0 && splitResult != currentInput)
-            {
                 currentInput = splitResult;
-                // effectFBO_A_ was used by applyScreenSplit, next write goes to B
-                writeFBO = 1;
-            }
             continue;
         }
 
@@ -321,9 +339,9 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         if (program == nullptr)
             continue;
 
-        GLuint targetFBO = (writeFBO == 0) ? effectFBO_A_ : effectFBO_B_;
+        const ScratchTarget target = pickEffectTarget(currentInput, holdTex);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, target.fbo);
         glViewport(0, 0, w, h);
         glClear(GL_COLOR_BUFFER_BIT);
         glDisable(GL_BLEND);
@@ -386,49 +404,35 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
 
         quad.draw();
 
-        GLuint effectedTex = (writeFBO == 0) ? effectTex_A_ : effectTex_B_;
-
-        // Apply dry/wet blend if < 1.0
+        // Apply dry/wet blend if < 1.0: mix(original, effected, dryWet), done
+        // IN PLACE on the target with fixed-function blending -- the target
+        // already holds the effected result (dst) and the pre-effect input is
+        // drawn over it (src): src*(1-w) + dst*w == mix(src, dst, w), the
+        // effect_dry_wet shader's formula. The old separate pass needed a
+        // THIRD texture (sample effected + original, write elsewhere) and,
+        // with only A/B, drew into the texture it sampled as u_original
+        // whenever the input was itself a pool texture (every non-first
+        // effect of a chain). Blending reads dst through the ROP, not a
+        // sampler: no feedback loop, no extra texture.
         const float dryWet = slot.effDryWet();
         if (dryWet < 0.999f)
         {
-            // Blend effected result with pre-effect input
-            int blendFBO = 1 - writeFBO;
-            GLuint blendTargetFBO = (blendFBO == 0) ? effectFBO_A_ : effectFBO_B_;
-
-            glBindFramebuffer(GL_FRAMEBUFFER, blendTargetFBO);
-            glViewport(0, 0, w, h);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glDisable(GL_BLEND);
-
-            auto* dwProg = shaderMgr.getProgram("effect_dry_wet");
-            if (dwProg)
+            if (auto* pt = shaderMgr.getProgram("passthrough"))
             {
-                dwProg->use();
-                // Unit 0 = effected result
+                glEnable(GL_BLEND);
+                glBlendEquation(GL_FUNC_ADD);
+                glBlendFunc(GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
+                glBlendColor(0.0f, 0.0f, 0.0f, dryWet);
+                pt->use();
                 glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, effectedTex);
-                glUniform1i(dwProg->getUniformIDFromName("u_texture"), 0);
-                // Unit 1 = original (pre-effect)
-                glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, currentInput);
-                glUniform1i(dwProg->getUniformIDFromName("u_original"), 1);
-                // Dry/wet amount
-                auto dwLoc = dwProg->getUniformIDFromName("u_drywet");
-                if (dwLoc >= 0) glUniform1f(dwLoc, dryWet);
-                glActiveTexture(GL_TEXTURE0);
-
+                glUniform1i(pt->getUniformIDFromName("u_texture"), 0);
                 quad.draw();
+                glDisable(GL_BLEND);
             }
+        }
 
-            currentInput = (blendFBO == 0) ? effectTex_A_ : effectTex_B_;
-            writeFBO = 1 - blendFBO;
-        }
-        else
-        {
-            currentInput = effectedTex;
-            writeFBO = 1 - writeFBO;
-        }
+        currentInput = target.tex;
     }
 
     // Save current output as previous frame for temporal effects next frame
@@ -473,8 +477,9 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
         auto* prog = shaderMgr.getProgram("layer_transform");
         if (prog != nullptr)
         {
-            // Use effectFBO_A_ as scratch (it's not in use yet at this point)
-            glBindFramebuffer(GL_FRAMEBUFFER, effectFBO_A_);
+            // Pool target away from srcTex (nothing is held at this point).
+            const ScratchTarget xf = pickEffectTarget(srcTex, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, xf.fbo);
             glViewport(0, 0, w, h);
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -498,7 +503,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
 
             quad.draw();
 
-            transformedTex = effectTex_A_;
+            transformedTex = xf.tex;
         }
     }
 
@@ -508,8 +513,8 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     // EmbeddedShaders.h (transition_dissolve, wipes, pushes, zoom, iris,
     // flip, cut, fade-to-black) take a per-input opacity uniform, so this is
     // the only place a clip pinned below 1.0 stays capped through a
-    // crossfade. Targets effectFBO_B_/effectTex_B_ -- distinct from
-    // effectFBO_A_ used above, so this pass never reads and writes the same
+    // crossfade. Its target is picked away from transformedTex (s-rta-0926
+    // xfade pool rule), so this pass never reads and writes the same
     // texture whether or not a positional transform ran first.
     //
     // s-rta-0925 ms-white FIX: forceCopy=needsTransform. When a transform
@@ -524,7 +529,10 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     // driver. Forcing the copy through effectFBO_B_/effectTex_B_ here
     // breaks the alias; when there was no transform, transformedTex is the
     // original (non-scratch) srcTex and the true no-op remains safe.
-    return applyClipOpacity(effClipOpacity, transformedTex, effectFBO_B_, effectTex_B_,
+    // (s-rta-0926 xfade: applyClipEffects now picks its targets away from its
+    // input itself, so this copy is belt-and-braces, kept unchanged.)
+    const ScratchTarget op = pickEffectTarget(transformedTex, 0);
+    return applyClipOpacity(effClipOpacity, transformedTex, op.fbo, op.tex,
                             shaderMgr, quad, w, h, /*forceCopy=*/needsTransform);
 }
 
@@ -601,8 +609,14 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
     if (prog == nullptr)
         return srcTex;
 
-    // Render transformed result into scratch FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, scratchFBO_);
+    // s-rta-0926 xfade class sweep: render into the effect pool, NOT
+    // scratchFBO_. A Transparent layer keys its texture INTO scratchFBO_
+    // right after this (compositeDeck), so returning scratchTex_ made the
+    // keying pass sample the texture it draws into (GL feedback loop, UB --
+    // measured harmless on this driver only because keying's glClear is
+    // deferred to the tile, not a guarantee). Nothing is held here.
+    const ScratchTarget lt = pickEffectTarget(srcTex, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, lt.fbo);
     glViewport(0, 0, w, h);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -624,7 +638,7 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
 
     quad.draw();
 
-    return scratchTex_;
+    return lt.tex;
 }
 
 // === FX Only layer (P13.5.2) ===
@@ -1270,12 +1284,47 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
     if (prevClip == nullptr)
         return newClipTex;
 
+    // s-rta-0926 xfade: newClipTex is HELD from here to the transition draw,
+    // across two passes that could overwrite it:
+    //  1. getClipTexture(prevClip): procedural sources are cached per source
+    //     TYPE (Renderer::getOrCreateSource), so when both clips are the same
+    //     type the outgoing render lands in the SAME output texture the
+    //     incoming clip is still using (both dissolve inputs showed the
+    //     outgoing clip). Only then -- incoming result still that shared
+    //     texture, i.e. no pool pass ran on it -- copy it into the pool first.
+    //     One full-frame copy, only while such a crossfade runs.
+    //  2. the outgoing clip's effect chain: runs with holdTex = newClipTex, so
+    //     no pass of it writes the incoming result (both clips effected: the
+    //     incoming result sat in effectTex_A_, the outgoing chain started at
+    //     effectFBO_A_ and overwrote it).
+    const Clip* newClip = layer.getActiveClip();
+    if (newClip != nullptr
+        && newClip->mediaType == Clip::MediaType::Source && prevClip->mediaType == Clip::MediaType::Source
+        && !newClip->sourceType.empty() && newClip->sourceType == prevClip->sourceType
+        && !isEffectPoolTexture(newClipTex))
+    {
+        if (auto* pt = shaderMgr.getProgram("passthrough"))
+        {
+            const ScratchTarget keep = pickEffectTarget(newClipTex, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, keep.fbo);
+            glViewport(0, 0, w, h);
+            glDisable(GL_BLEND);
+            pt->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, newClipTex);
+            glUniform1i(pt->getUniformIDFromName("u_texture"), 0);
+            quad.draw();
+            newClipTex = keep.tex;
+        }
+    }
+
     GLuint prevTex = getClipTexture(*prevClip, time, w, h, dt);
     if (prevTex == 0)
         return newClipTex;
 
-    // Apply previous clip's effects too
-    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, layer.id);
+    // Apply previous clip's effects too -- never writing the held incoming result.
+    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, layer.id,
+                               /*holdTex=*/newClipTex);
 
     // S167-L4b: the outgoing clip keeps its OWN opacity through the
     // crossfade too, not just the incoming one (baked above in
@@ -1486,7 +1535,8 @@ GLuint CompositorEngine::getFrameFromRing(const FrameRingBuffer& ring, int frame
 
 GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot& slot,
                                            ShaderManager& shaderMgr, FullscreenQuad& quad,
-                                           uint32_t layerId, int w, int h)
+                                           uint32_t layerId, int w, int h,
+                                           GLuint dstFBO, GLuint dstTex)
 {
     if (effectLibrary_ == nullptr) return clipTex;
 
@@ -1509,8 +1559,9 @@ GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot
     auto& ring = getOrCreateRingBuffer(layerId, w, h);
     pushFrameToRing(ring, clipTex, shaderMgr, quad, w, h);
 
-    // Render the grid into effectFBO_A_
-    glBindFramebuffer(GL_FRAMEBUFFER, effectFBO_A_);
+    // Render the grid into the caller's pool target (picked away from clipTex
+    // and from anything the caller holds -- s-rta-0926 xfade pool rule)
+    glBindFramebuffer(GL_FRAMEBUFFER, dstFBO);
     glViewport(0, 0, w, h);
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f); // dark gray background (grid lines)
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1571,7 +1622,7 @@ GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    return effectTex_A_;
+    return dstTex;
 }
 
 void CompositorEngine::uploadAudioUniforms(juce::OpenGLShaderProgram* program) const
