@@ -1514,3 +1514,23 @@ hand-written functions with no shared layout model.
   the branch under review — my critic prompt named no branch/commit. HABIT (landed in .harmony/gotchas.md): every critic
   and reviewer packet pins the artifact: worktree path + branch + commit, and "judge the shots; if you read source,
   read ONLY <worktree> at <commit>".
+
+## s-rta-0926 routines-1b — every live take has "tempoMap": [] (pre-existing recorder bug, found by the 1b probe)
+- RecorderHost never copies the RecorderClock's TempoMap into the Take: grep '\.tempo\s*=' src/ finds only
+  Take::fromVar; every take recorded this session has an empty tempoMap. sliceRoutine therefore refuses EVERY save of a
+  real take ("no beat grid"). Unit tests never saw it: 1a's slicer tests and 1b's engine tests build synthetic tempo
+  maps — a mirror-shaped gap again: the pure seam was tested, the wiring that feeds it was not.
+- HABIT: when a feature consumes a field produced by the live capture path, the live probe must assert that field is
+  NON-EMPTY on a real recording before anything downstream (probe-routines now has that row).
+- 1b dev evidence with a doctored take (steady 120 BPM tempoMap written into take.json): probe-routines 73/1 (the 1 =
+  the honest tempoMap row). Fix lane dispatched: copy clock tempo into the take at the save sites.
+- 1b also records a clip's auto-play on first trigger as a `playing` point (action resume) — concern (a) closed.
+
+## s-rta-0926 tempomap (merged ebbff22) + T2 bisect
+- RecorderHost::takeForSave(base, audio) now builds every saved Take (provisional/periodic/final) and copies
+  clock_.tempo(). The provisional save is still empty (clock has not ticked at arm): a crash before the first 60 s
+  periodic save leaves a take with no beat grid. Takes recorded before ebbff22 keep tempoMap [] (no migration).
+- Whole-take replay never reads the tempo map for live takes (every gesture has stamps; convertBeatX only runs for
+  stampless gestures) — pinned by ctest "Program::compile takes each breakpoint's x from its own stamp".
+- T2 bisect verdict ENVIRONMENTAL (gotchas.md 2026-09-26 entry). Worktree agents need the main .venv (probes look for
+  $ROOT/.venv): symlink it for dev runs, remove before commit.

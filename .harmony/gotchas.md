@@ -495,3 +495,23 @@ returning unless Harmony asks to keep it. (5) If Bash is blocked by a full disk,
 **Rule:** every critic / reviewer packet PINS the artifact under review: absolute worktree path + branch + commit sha,
 plus "judge the SHOTS; if you read source, read ONLY that worktree at that commit (git -C <wt> show <sha>:<file>)".
 A verdict that cites a different HEAD than the pinned one is void — re-run that seat.
+
+## 2026-09-26 (s-rta-0926) — worktree auto-clean deleted a lane's only report; lock release without owner check
+**What happened:** (1) a diagnosis lane (workflow isolation: 'worktree') wrote its report under its worktree's
+`.harmony/.reports/` (gitignored; the Write tool refuses main-checkout paths from a worktree agent). It committed no
+tracked change, so the harness auto-removed the worktree as "unchanged" and the report was gone; Harmony rebuilt it
+from the workflow return value. (2) The live-app lock (`mkdir /tmp/audiodna-live.lock`) was released with a bare
+`rm -rf`; one lane's teardown raced another lane's fresh acquire.
+**Rule:** (1) a worktree lane's report is either COMMITTED on its branch (`git add -f`) or returned IN FULL in the
+structured result — never only written to an ignored path. (2) Release the lock only if you own it:
+`[ "$(cut -d' ' -f1 /tmp/audiodna-live.lock/owner 2>/dev/null)" = "<me>" ] && rm -rf /tmp/audiodna-live.lock`,
+and re-read the owner file right after a successful mkdir.
+
+## 2026-09-26 (s-rta-0926) — probe-step3 T2 rows fail when another app plays through the same device
+**What happened:** T2 p95 jitter 16-20 ms and drift -9 ms FAILs looked like a code regression (1a merged between a
+PASS and the FAILs). A/B/A bisect (e1ed9cc vs 1908413, 3 alternating runs each) showed BOTH builds fail in the first
+three runs and BOTH pass in the last three; the failing runs coincided with Stremio holding a coreaudiod
+"audio-out BuiltInSpeakerDevice" assertion (`pmset -g assertions`). Machine load alone did not explain it (a load-5 run
+failed). Report: .harmony/.reports/s-rta-0926/t2-bisect.md.
+**Rule:** before reading a T2 FAIL as a regression, snapshot `pmset -g assertions | grep -i audio-out` and re-run when no
+other process holds the device; a code regression claim needs an A/B on the same conditions.

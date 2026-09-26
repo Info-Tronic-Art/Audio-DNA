@@ -233,3 +233,21 @@ status-note:
 artifact:
 history:     NEW(2026-09-24)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-09-26-RealTimeAudio-17904502332714714709
+raw:         REPLY to routed request down-2026-09-26-RealTimeAudio-17904459455602512214 (s234 boot-cost audit R1): RealTimeAudio CLAUDE.md split DONE in s-rta-0926 (bb0a7c0): 112,696 -> 24,114 bytes; 13 on-demand docs under docs/claude/ (no @-imports), trigger table + one-line-per-pitfall index; no-loss check 952 non-blank lines -> 941 verbatim + 11 declared edits, 0 missing; fresh-reader test 7/7 (Sacred Rules, kick-off phase N answerable from CLAUDE.md alone); completeness critic PASS. First-call token number: not measurable in this session (CLAUDE.md is loaded at boot) - measure at the next RTA boot with ctx-now.sh.
+context:     down-channel routed item in .harmony/inbox.md (status now DONE)
+why:         
+intent:      
+target:      harmony-system
+constraints: 
+related:     
+priority:    NORMAL
+repo:        RealTimeAudio     session: s-rta-0926     date: 2026-09-26
+status:      NEW
+status-changed: 2026-09-26
+status-note:
+artifact:
+history:     NEW(2026-09-26)
+--- /IDEA ---

@@ -36,3 +36,9 @@ look at one decoded frame per probe.
   probe-mastersignal 22/0; window-only shot: "Master Signal:" full + 1.00 readouts + magenta vs cyan at 1728 pt
   (reviewer's margin concern closed at the default size; narrower windows = follow-up).
 - inbox routed item (primary s234): split CLAUDE.md <= 25 KB -> workflow wjx9xqbu6 (no-loss proof + fresh-reader test).
+- 15:2x quiet step3 on 1908413 (load ~5): 91/2 (T2 p95 16.39, drift -9.29) -> load NOT the cause; A/B/A bisect e1ed9cc vs 1908413 launched (ws5wbpuzr) with the tempoMap fix lane. probe-routines RED on pre-1b build: see gate-routines/red.log.
+- 1b merged 58b14d7 (reviewer PASS); Harmony RED on pre-1b build: probe-routines 23/46. tempomap merged ebbff22 (reviewer PASS;
+  RecorderHost::takeForSave copies clock tempo). T2 bisect verdict ENVIRONMENTAL (t2-bisect.md; Stremio held the speaker).
+- build/ ebbff22: ctest 565/565. Gates: probe-step3 94/0 (T2 p95 11.61, no other audio-out), probe-mastersignal 22/0,
+  probe-routines 69/5 -- 5 grid timing rows +0.37..0.40 s late with meta.startBeatInBar 3.84 (builders' on-time runs had
+  0.07). App-vs-probe undecided -> lane routine-grid (wmt3s3la5) + bank strip lane 3 + routines docs + step3 audio WARN.
