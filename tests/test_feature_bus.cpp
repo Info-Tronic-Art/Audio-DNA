@@ -57,6 +57,26 @@ TEST_CASE("FeatureBus single write-read cycle", "[featurebus]")
     REQUIRE(latest.rms == Approx(0.75f));
 }
 
+// s-rta-0925: resyncBarOrigin (offset 320) opened a new 64-byte tier
+// (sizeof(FeatureSnapshot) 320 -> 384, kSnapshotWords 80 -> 96). This
+// roundtrip proves the 96-word seqlock payload actually covers the new
+// tier -- the static_asserts in FeatureSnapshot.h/FeatureBus.h are the
+// compile-time half of that guarantee, this is the runtime half.
+TEST_CASE("FeatureBus roundtrips resyncBarOrigin (the new 96-word payload tier)", "[featurebus][resync][s-rta-0925]")
+{
+    FeatureBus bus;
+    FeatureBus::Writer writer = bus.createWriter();
+    REQUIRE(writer.isValid());
+
+    FeatureSnapshot* ws = writer.acquireWrite();
+    REQUIRE(ws != nullptr);
+    ws->resyncBarOrigin = 0xDEADBEEF;
+    writer.publishWrite();
+
+    FeatureSnapshot out = bus.read();
+    REQUIRE(out.resyncBarOrigin == 0xDEADBEEFu);
+}
+
 TEST_CASE("FeatureBus read returns the last published snapshot repeatedly", "[featurebus]")
 {
     FeatureBus bus;

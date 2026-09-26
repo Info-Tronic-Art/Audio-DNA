@@ -129,6 +129,15 @@ public:
     // Reset phrase/bar counters (called on Resync)
     void resetPhrase();
 
+    // MANUAL Resync (s-rta-0925, Boris ruling 2026-09-25). Any thread may request; the analysis
+    // thread applies it at the END of its next feedDownbeatFeatures() hop, so that hop's published
+    // snapshot IS the new downbeat: beatPhase 0, beatInBar 0, barPhase 0, barCount 0, phrasePhase
+    // 0, downbeatDetected true (level), resyncBarOrigin == totalBarCount. totalBarCount is NOT
+    // rewound (S168). AUTOMATIC phrase resets (updatePhrase) never touch resyncBarOrigin. N
+    // requests between two hops apply once.
+    void requestResync();
+    uint32_t resyncBarOrigin() const { return resyncBarOrigin_; }   // analysis thread; published each hop
+
     // Override BPM from external tap tempo (bypasses stabilization pipeline).
     // Sets the locked BPM immediately and resets beat phase.
     void setManualBPM(float bpm);
@@ -239,6 +248,12 @@ private:
     int      phraseBars_ = kDefaultPhraseBars; // configurable phrase length
     bool     prevDownbeatDetected_ = false;    // edge detection for bar counting
     uint8_t  prevStructuralState_ = 0;         // for detecting structural transitions
+
+    // === s-rta-0925: MANUAL Resync (requestResync()/applyResync()) ===
+    std::atomic<uint32_t> resyncRequests_{0};   // bumped by requestResync() from any thread
+    uint32_t resyncRequestsApplied_ = 0;        // analysis thread only
+    uint32_t resyncBarOrigin_ = 0;              // analysis thread only; MANUAL Resync only
+    void applyResync();                         // analysis thread only
 
     // === P23: Smart BPM recovery ===
     bool  inSilence_ = false;

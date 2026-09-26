@@ -17,14 +17,15 @@ using Catch::Matchers::WithinAbs;
 // barCount resets only on rare structural-transition events (drop hit /
 // breakdown exit -- BPMTracker::updatePhrase, BPMTracker.cpp:408-450), NOT
 // on a fixed period, and it resets independently of beatInBar/beatPhase
-// (BPMTracker::resetPhrase, BPMTracker.cpp:452-457, touches only
-// barCount_/phrasePhase_/prevDownbeatDetected_). These tests pin both
+// (s-rta-0925: folded into BPMTracker::applyResync, the manual-Resync path --
+// of applyResync's fields, only barCount_/phrasePhase_/prevDownbeatDetected_
+// matter to this file's assertions). These tests pin both
 // halves of that trade-off: no artificial jump at a fixed "phrase" period,
 // but a real jump at an actual structural-reset event.
 //
 // S168: the structural-reset jump above is no longer the only option. A
 // second FeatureSnapshot field, totalBarCount, mirrors barCount's advance
-// but is NEVER rewound by a structural reset (or resetPhrase()/Resync).
+// but is NEVER rewound by a structural reset (or BPMTracker::applyResync's manual Resync).
 // OscillatorSignal::resetPhaseOnStructural_ (and EnvelopeSignal's own copy
 // of the same switch) picks which one feeds the fold; false (the new
 // default) reads totalBarCount -- phase only ever runs forward -- and true
@@ -497,7 +498,7 @@ TEST_CASE("Phrase-reset trade-off is pinned: no jump from a fixed period, a real
     REQUIRE(justAfter > justBefore); // kept climbing, no reset-induced drop
 
     // (2) An ACTUAL structural-transition phrase reset: barCount snaps to 0
-    // (BPMTracker::resetPhrase / the drop-entry branch in updatePhrase)
+    // (BPMTracker::applyResync's manual Resync / the drop-entry branch in updatePhrase)
     // while beatInBar/beatPhase continue undisturbed from wherever the beat
     // clock already was (those fields are owned by updateBeatPhase /
     // updateBarPhase, not touched by the phrase-reset paths). This DOES
@@ -646,4 +647,98 @@ TEST_CASE("S168: default oscillator phase is monotonic across a structural reset
     // then climbing again afterward.
     REQUIRE(l1 - l2 > 0.3f);  // a real, visible backward jump at the reset
     REQUIRE(l3 > l2);         // resumes climbing after the reset
+}
+
+// ============================================================================
+// s-rta-0925 (Boris ruling 2026-09-25, call 9): MANUAL Resync re-aligns
+// tempo-synced oscillators to the new downbeat. FeatureSnapshot::
+// resyncBarOrigin is totalBarCount at the moment of the last manual Resync
+// (0 until the first one, written only by BPMTracker::applyResync on the
+// analysis thread); barsSinceResync() = totalBarCount - resyncBarOrigin
+// (guarded to 0 if a contradictory snapshot has origin > count) is the ONE
+// new fold input for the default (resetPhaseOnStructural = false) path.
+// AUTOMATIC resets (drop/breakdown) still touch only barCount_, never
+// resyncBarOrigin_, so they keep moving nothing on this path (ruling 25,
+// unchanged). The legacy opt-in path (resetPhaseOnStructural = true)
+// already re-aligns on Resync because applyResync() zeroes barCount_, same
+// as resetPhrase() always did -- it never consults resyncBarOrigin at all.
+// ============================================================================
+
+TEST_CASE("FeatureSnapshot::barsSinceResync guards a contradictory origin and matches totalBarCount before the first Resync", "[featuresnapshot][resync][s-rta-0925]")
+{
+    FeatureSnapshot a;
+    a.totalBarCount = 7;
+    a.resyncBarOrigin = 5;
+    REQUIRE(a.barsSinceResync() == 7u - 5u);
+
+    FeatureSnapshot b;
+    b.totalBarCount = 5;
+    b.resyncBarOrigin = 9;   // contradictory (origin ahead of count) -- guard to 0, never wrap
+    REQUIRE(b.barsSinceResync() == 0u);
+
+    FeatureSnapshot c; // default snapshot: resyncBarOrigin == 0 (no Resync yet)
+    c.totalBarCount = 3;
+    REQUIRE(c.barsSinceResync() == c.totalBarCount);
+}
+
+TEST_CASE("Manual Resync origin re-aligns the default fold to the new downbeat; an automatic reset still moves nothing", "[signal][oscillator][resync][s-rta-0925]")
+{
+    OscillatorSignal osc("test", OscillatorSignal::WaveShape::SawUp, 16.0f); // 4-bar cycle
+    REQUIRE_FALSE(osc.getResetPhaseOnStructural()); // default mode
+
+    // A: pre-Resync, mid-cycle. Identical whether the fold reads totalBarCount
+    // directly or barsSinceResync() (origin 0) -- not a discriminator by itself.
+    FeatureSnapshot a;
+    a.beatPhase = 0.5f; a.beatInBar = 2; a.totalBarCount = 5; a.resyncBarOrigin = 0;
+    REQUIRE_THAT(osc.getValue(a), WithinAbs(0.40625f, 1e-4f)); // 22.5/16
+
+    // B: the Resync hop itself -- beat clock zeroed (as applyResync leaves it),
+    // origin snapped to totalBarCount. Default fold must read 0 bars elapsed.
+    FeatureSnapshot b;
+    b.beatPhase = 0.0f; b.beatInBar = 0; b.barCount = 0; b.totalBarCount = 5; b.resyncBarOrigin = 5;
+    REQUIRE_THAT(osc.getValue(b), WithinAbs(0.0f, 1e-4f)); // RED pre-fix: fold still reads raw totalBarCount (5) -> 0.25
+
+    // C: one bar later -- default fold now measures FROM the Resync, not from transport start.
+    FeatureSnapshot c;
+    c.beatPhase = 0.0f; c.beatInBar = 0; c.totalBarCount = 6; c.resyncBarOrigin = 5;
+    REQUIRE_THAT(osc.getValue(c), WithinAbs(0.25f, 1e-4f)); // RED pre-fix: reads 0.5 (raw totalBarCount = 6)
+
+    // D: an AUTOMATIC reset (barCount zeroed by a structural transition) must move
+    // nothing on the default path -- it doesn't even read barCount_. Same
+    // totalBarCount/origin as A -- must equal A exactly (S168/ruling 25 regression
+    // pin; passes both pre- and post-fix).
+    FeatureSnapshot d;
+    d.beatPhase = 0.5f; d.beatInBar = 2; d.barCount = 0; d.totalBarCount = 5; d.resyncBarOrigin = 0;
+    REQUIRE_THAT(osc.getValue(d), WithinAbs(osc.getValue(a), 1e-5f));
+
+    // Legacy opt-in (resetPhaseOnStructural = true): already re-aligns on Resync
+    // because applyResync() zeroes barCount_ -- resyncBarOrigin is irrelevant to
+    // this path entirely, with or without the fix.
+    OscillatorSignal legacyOsc("test", OscillatorSignal::WaveShape::SawUp, 16.0f);
+    legacyOsc.setResetPhaseOnStructural(true);
+    FeatureSnapshot bOrigin0 = b; bOrigin0.resyncBarOrigin = 0;
+    REQUIRE_THAT(legacyOsc.getValue(b), WithinAbs(0.0f, 1e-4f));
+    REQUIRE_THAT(legacyOsc.getValue(bOrigin0), WithinAbs(0.0f, 1e-4f));
+
+    // Sine at the same beatDuration -- a different waveform makes the same fold
+    // visible through a different value shape (0.5 = phase-0 midline, not
+    // SawUp's 0.0).
+    OscillatorSignal sineOsc("test", OscillatorSignal::WaveShape::Sine, 16.0f);
+    REQUIRE_THAT(sineOsc.getValue(b), WithinAbs(0.5f, 1e-4f)); // RED pre-fix: reads 1.0 (phase .25)
+
+    // EnvelopeSignal carries the exact same switch/fold (EnvelopeSignal.h).
+    EnvelopeSignal env("test", 16.0f); // default control points: (0,0)->(0.5,1)->(1,0)
+    REQUIRE_FALSE(env.getResetPhaseOnStructural());
+    REQUIRE_THAT(env.getValue(b), WithinAbs(0.0f, 1e-4f)); // RED pre-fix
+
+    FeatureSnapshot envPeak;
+    envPeak.beatPhase = 0.0f; envPeak.beatInBar = 0; envPeak.totalBarCount = 7; envPeak.resyncBarOrigin = 5;
+    REQUIRE_THAT(env.getValue(envPeak), WithinAbs(1.0f, 1e-4f)); // half cycle after the Resync -- RED pre-fix
+
+    // Guard: a contradictory injected snapshot (origin ahead of totalBarCount)
+    // must read 0 bars, never a wrapped ~4e9 (barsSinceResync()'s own guard,
+    // exercised here through the oscillator fold, not just the bare method).
+    FeatureSnapshot guard;
+    guard.beatPhase = 0.5f; guard.beatInBar = 2; guard.totalBarCount = 5; guard.resyncBarOrigin = 9;
+    REQUIRE_THAT(osc.getValue(guard), WithinAbs(0.15625f, 1e-4f)); // 2.5/16, 0 bars
 }

@@ -519,6 +519,11 @@ void BPMTracker::resetPhrase()
     // life of the tracker, including across a manual Resync.
 }
 
+void BPMTracker::requestResync()
+{
+    resyncRequests_.fetch_add(1, std::memory_order_relaxed);   // the counter change IS the message; nothing else
+}                                                              // is published from the requesting thread
+
 void BPMTracker::setManualBPM(float bpm)
 {
     if (bpm <= 0.0f) return;

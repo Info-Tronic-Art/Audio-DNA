@@ -589,6 +589,190 @@ TEST_CASE("Real audio: structural transition into drop zeroes barCount while tot
 }
 
 // ============================================================================
+// s-rta-0925 (Boris ruling 2026-09-25, call 9): MANUAL Resync. requestResync()
+// is a single relaxed atomic bump, callable from any thread; the analysis
+// thread applies it (applyResync()) at the END of its next
+// feedDownbeatFeatures() hop, AFTER updatePhrase() -- so a bar edge landing
+// on that same hop is counted first, and the origin captures the
+// post-increment totalBarCount(). The first three tests run in manual mode
+// (predicted-phase-wrap regime, no audio); the fourth uses feedRealOnsets to
+// exercise the real-onset regime and the automatic structural-reset branch.
+// ============================================================================
+
+TEST_CASE("requestResync is applied by the next analysis hop, not by the caller",
+          "[bpm][resync][s-rta-0925]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    // Run from cold until mid-bar (beatInBar != 0, so downbeatDetected() is
+    // false and beatPhase() > 0) with at least 2 bars elapsed.
+    uint16_t bc0 = 0; uint8_t bib0 = 0; float ph0 = 0.0f;
+    bool found = false;
+    for (int i = 0; i < 500 && !found; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+        if (tracker.totalBarCount() >= 2 && tracker.beatInBar() != 0)
+        {
+            bc0 = tracker.barCount(); bib0 = tracker.beatInBar(); ph0 = tracker.beatPhase();
+            found = true;
+        }
+    }
+    REQUIRE(found);
+    REQUIRE(ph0 > 0.0f);
+    REQUIRE_FALSE(tracker.downbeatDetected());
+    const uint32_t totalBarCountBefore = tracker.totalBarCount();
+
+    tracker.requestResync();
+
+    // The caller writes nothing -- state is untouched before the next hop.
+    REQUIRE(tracker.barCount() == bc0);
+    REQUIRE(tracker.beatInBar() == bib0);
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(ph0, 1e-6));
+    REQUIRE(tracker.resyncBarOrigin() == 0);   // no Resync applied to this tracker yet
+
+    // ONE hop: this hop's published state IS the new downbeat.
+    tracker.processRawBPM(0.0f, 0.0f, false);
+    tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(0.0, 1e-4));   // RED on C0: keeps free-running from ph0
+    REQUIRE(tracker.beatInBar() == 0);
+    REQUIRE_THAT(tracker.barPhase(), WithinAbs(0.0, 1e-4));
+    REQUIRE(tracker.barCount() == 0);
+    REQUIRE_THAT(tracker.phrasePhase(), WithinAbs(0.0, 1e-4));
+    REQUIRE(tracker.downbeatDetected());
+    REQUIRE(tracker.resyncBarOrigin() == totalBarCountBefore);
+    REQUIRE(tracker.totalBarCount() == totalBarCountBefore);   // S168: not rewound, no double-count this hop
+
+    // Three more hops: applied once, then free-running again.
+    for (int i = 0; i < 3; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    }
+    REQUIRE(tracker.beatPhase() > 0.0f);
+}
+
+TEST_CASE("no phantom bar when the Resync lands during the first beat",
+          "[bpm][resync][s-rta-0925]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    // Run from cold until JUST PAST the first bar wrap (~hop 188 at 120 BPM,
+    // 187.5 hops/bar): totalBarCount becomes 1, beatInBar wraps to 0,
+    // downbeatDetected() (the LEVEL) becomes true for the whole first beat.
+    int hop = 0;
+    for (; hop < 300; ++hop)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+        if (tracker.totalBarCount() == 1 && tracker.beatInBar() == 0)
+            break;
+    }
+    INFO("wrap landed at hop " << hop);
+    REQUIRE(hop >= 186);
+    REQUIRE(hop <= 190);
+    REQUIRE(tracker.downbeatDetected());
+
+    // The Resync lands WHILE downbeatDetected_ is already true (mid-beat-1) --
+    // this is the trap: an implementation that reuses resetPhrase()'s
+    // prevDownbeatDetected_ = false would mint a phantom rising edge on the
+    // very next hop (downbeatDetected_ still true, prevDownbeatDetected_
+    // wrongly false again).
+    tracker.requestResync();
+    tracker.processRawBPM(0.0f, 0.0f, false);
+    tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    REQUIRE(tracker.resyncBarOrigin() == 1);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    }
+    REQUIRE(tracker.totalBarCount() == 1);   // the resetPhrase()-reuse trap reads 2 here
+    REQUIRE(tracker.barCount() == 0);
+}
+
+TEST_CASE("one bar after a Resync: bars since resync == 1, the phrase restarted, the origin held",
+          "[bpm][resync][s-rta-0925]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+
+    bool found = false;
+    for (int i = 0; i < 500 && !found; ++i)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+        if (tracker.totalBarCount() >= 2 && tracker.beatInBar() != 0)
+            found = true;
+    }
+    REQUIRE(found);
+
+    tracker.requestResync();
+    tracker.processRawBPM(0.0f, 0.0f, false);
+    tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    const uint32_t origin = tracker.resyncBarOrigin();
+    REQUIRE(origin > 0);
+
+    int hop = 0; bool wrapped = false;
+    for (; hop < 200; ++hop)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+        if (tracker.totalBarCount() == origin + 1) { wrapped = true; break; }
+    }
+    REQUIRE(wrapped);
+    INFO("one bar after the Resync landed at hop " << hop);
+    REQUIRE(hop >= 186);
+    REQUIRE(hop <= 190);
+    REQUIRE(tracker.beatInBar() == 0);
+    REQUIRE(tracker.barCount() == 1);
+    REQUIRE(tracker.downbeatDetected());
+    REQUIRE_THAT(tracker.phrasePhase(), WithinAbs(1.0 / 8.0, 0.02));
+    REQUIRE(tracker.resyncBarOrigin() == origin);
+}
+
+TEST_CASE("automatic structural reset leaves resyncBarOrigin untouched (real onsets)",
+          "[bpm][resync][s-rta-0925][regression]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+
+    feedRealOnsets(tracker, 120.0f, 24, /*startBeatIndex=*/0, 48000, 512, /*structuralState=*/0);
+    REQUIRE(tracker.trackerState() == BPMTracker::STATE_LOCKED);
+    REQUIRE(tracker.downbeatLocked());
+
+    // Manual Resync request, applied on the next hop -- which lands inside
+    // this feedRealOnsets(1 beat) call. A real onset can still arrive
+    // (predictedBeatRegime_ is false throughout), so this exercises the
+    // real-audio path, not the predicted-phase-wrap regime the three tests
+    // above exercise in manual mode.
+    tracker.requestResync();
+    feedRealOnsets(tracker, 120.0f, 1, /*startBeatIndex=*/24, 48000, 512, /*structuralState=*/0);
+
+    REQUIRE(tracker.resyncBarOrigin() > 0);   // non-tautological: never set pre-fix, stays 0
+    REQUIRE(tracker.resyncBarOrigin() == tracker.totalBarCount());
+    const uint32_t origin = tracker.resyncBarOrigin();
+
+    feedRealOnsets(tracker, 120.0f, 8, /*startBeatIndex=*/25, 48000, 512, /*structuralState=*/0);
+    const uint32_t totalBarCountBeforeDrop = tracker.totalBarCount();
+
+    // The drop-entry branch in updatePhrase() must still fire on a REAL
+    // structural transition (ruling 25: automatic resets keep flowing,
+    // unchanged) -- and must not touch resyncBarOrigin_ either way.
+    feedRealOnsets(tracker, 120.0f, 1, /*startBeatIndex=*/33, 48000, 512, /*structuralState=*/2);
+
+    REQUIRE(tracker.barCount() == 0);
+    REQUIRE(tracker.totalBarCount() > totalBarCountBeforeDrop);
+    REQUIRE(tracker.resyncBarOrigin() == origin);
+}
+
+// ============================================================================
 // Coverage gap: predictedBeatRegime_ can be true (runPipeline's inSilence_
 // branch) on the very hop a real, high-confidence onset also arrives --
 // isSilent()'s own exit hysteresis takes several consecutive above-threshold
