@@ -571,6 +571,15 @@ TEST_CASE("takeBeatOfBar: bar 1 is the first full bar after Record; unknown grid
     CHECK(takeBeatOfBar(take, 1) == Approx(0.0));
 }
 
+TEST_CASE("takeBeatOfBar refuses bar < 1: treated as bar 1, never a negative beat", "[routine][slice]")
+{
+    Take take;
+    take.meta.startBeatInBar = 2.5;
+    const double bar1 = takeBeatOfBar(take, 1);
+    CHECK(takeBeatOfBar(take, 0) == Approx(bar1));
+    CHECK(takeBeatOfBar(take, -3) == Approx(bar1));
+}
+
 // === 6: compileRoutine -- Beat clock, routine length, unresolved counted, stampless is exact ===
 
 TEST_CASE("compileRoutine: Beat clock, routine length, missing targets counted, stampless gestures exact", "[routine][compile]")

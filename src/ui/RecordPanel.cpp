@@ -174,11 +174,13 @@ RecordPanel::RecordPanel()
     saveRoutineBtn_.setComponentID("saveRoutine");
     saveRoutineBtn_.setTooltip("Saves the chosen bars of the loaded take onto the first empty pad.");
     saveRoutineBtn_.onClick = [this] {
-        const int fromBar = fromBarEditor_.getText().getIntValue();
-        const int toBar = toBarEditor_.getText().getIntValue();
+        // review-routine-strip-r1.md: the raw editors accept blank/0 (and
+        // toBar < fromBar); clamp before onSaveRoutine ever sees them.
+        const auto range = clampRoutineBarRange(fromBarEditor_.getText().getIntValue(),
+                                                 toBarEditor_.getText().getIntValue());
         const auto name = routineNameEditor_.getText().trim();
-        runRoutineAction([this, name, fromBar, toBar] {
-            const auto result = onSaveRoutine ? onSaveRoutine(name, fromBar, toBar) : std::string();
+        runRoutineAction([this, name, range] {
+            const auto result = onSaveRoutine ? onSaveRoutine(name, range.fromBar, range.toBar) : std::string();
             if (result.empty())
                 routineNameEditor_.clear();   // saved: clear the name like the take name field does
             return result;
