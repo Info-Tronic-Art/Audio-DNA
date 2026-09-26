@@ -192,6 +192,16 @@ private:
     // max uint32_t value is.
     static constexpr uint32_t kGlobalEffectsLayerId = 0xFFFFFFFFu;
 
+    // s-rta-0926 xfade class sweep: the id passed to applyClipEffects keys the
+    // chain's temporal buffer (u_prev_frame) and Screen Split / Frame Stutter
+    // ring. A layer's clip chain and its layer chain both passed layer.id, so
+    // each chain's "previous frame" was the OTHER chain's output (measured on
+    // e1ed9cc: clip [Freeze 0.5] + layer [Invert, Freeze 0.5] rendered flat
+    // 50% grey instead of the inverted image). The layer chain keys its state
+    // with this bit set; real layer ids never reach it, and the one id that
+    // has it set already (kGlobalEffectsLayerId) would need layer id 0x7FFFFFFF.
+    static constexpr uint32_t kLayerChainStateBit = 0x80000000u;
+
     // Per-layer feedback processors (keyed by layer ID)
     std::unordered_map<uint32_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;
 

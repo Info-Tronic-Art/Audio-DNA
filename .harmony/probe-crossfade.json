@@ -52,6 +52,12 @@
       "check": "self_router",
       "image":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] },
       "router": { "mediaType": 4, "sourceType": "layer_router", "sourceParams": [ ["Source Layer", "u_src_layer", 0.0] ], "effects": [] }
+    },
+    "j_temporal_clip_vs_layer_chain": {
+      "why": "class: a layer's clip chain and layer chain shared ONE temporal buffer (u_prev_frame, keyed by layer id), so each chain's previous frame was the other chain's output. Clip [Freeze 0.5] + layer [Invert 1.0, Freeze 0.5] must settle on the inverted image, same as layer [Invert 1.0] alone (both Freezes converge on their own input)",
+      "check": "equal",
+      "subject":   { "layer": { "layerEffects": [ ["Invert", 1.0], ["Freeze", 0.5] ] }, "clip": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Freeze", 0.5] ] } },
+      "reference": { "layer": { "layerEffects": [ ["Invert", 1.0] ] }, "clip": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [] } }
     }
   }
 }

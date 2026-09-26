@@ -276,6 +276,10 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
     // the texture the caller still holds (the crossfade clobber: the outgoing
     // clip's chain overwrote the incoming clip's result). With nothing held
     // this is the same A/B ping-pong as before (external -> A -> B -> A ...).
+    // A chain that starts from a pool texture can END on that same texture
+    // (A -> B -> A), so "did this chain render?" is tracked explicitly below,
+    // never inferred from currentInput != inputTex.
+    bool renderedAny = false;
 
     for (const auto& slot : effects)
     {
@@ -294,7 +298,10 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
             GLuint splitResult = applyScreenSplit(currentInput, slot, shaderMgr, quad, layerId, w, h,
                                                   split.fbo, split.tex);
             if (splitResult != 0 && splitResult != currentInput)
+            {
                 currentInput = splitResult;
+                renderedAny = true;
+            }
             continue;
         }
 
@@ -331,7 +338,10 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
 
             GLuint delayedTex = getFrameFromRing(ring, framesAgo);
             if (delayedTex != 0)
+            {
                 currentInput = delayedTex;
+                renderedAny = true;
+            }
             continue;
         }
 
@@ -433,10 +443,15 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         }
 
         currentInput = target.tex;
+        renderedAny = true;
     }
 
-    // Save current output as previous frame for temporal effects next frame
-    if (anyTemporal && currentInput != inputTex)
+    // Save current output as previous frame for temporal effects next frame.
+    // s-rta-0926 xfade class sweep: this used to test currentInput != inputTex,
+    // which is FALSE for an even-length chain that starts on a pool texture
+    // (layer chain [Invert, Freeze] fed by a one-effect clip chain: A -> B -> A)
+    // -- the save was skipped and that chain's u_prev_frame never advanced.
+    if (anyTemporal && renderedAny)
     {
         auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
         saveToTemporalBuffer(tempBuf, currentInput, shaderMgr, quad, w, h);
@@ -900,7 +915,9 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 // Apply per-layer effects (same mechanism as per-clip effects)
                 if (!layer.layerEffects.empty())
                 {
-                    clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height, layer.id);
+                    // Own temporal/ring state (kLayerChainStateBit): never the clip chain's.
+                    clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height,
+                                               layer.id | kLayerChainStateBit);
                 }
 
                 // P13.5.5: Apply layer transform

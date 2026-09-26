@@ -25,15 +25,20 @@ CROSSFADE cases (one layer; column 0 = OUT, column 1 = IN; Dissolve over T = tra
   Calibration (xfade lane, s-rta-0926, both builds): noise measured 0.00 on every case (static images,
   solid colours), so FLOOR = 1.0. The RED frames on the unfixed build sit at d(f,A) = 0.00 exactly
   (the outgoing clip on both dissolve inputs), 1.0 below the floor; healthy mid frames sit at
-  p*d(A,B) >= ~4 for the first capture (p ~ 0.1, d(A,B) >= 40 on these fixtures).
+  p*d(A,B) >= 2.8 for the first capture (p ~ 0.1; d(A,B) is 29.4 .. 170.0 on these fixtures).
 
 STILL cases (other sites of the same bug class; transitionSpeed 0, so no crossfade):
-  mix          MIX == (1-w)*DRY + w*WET within 1.5 (8-bit rounding of three separate renders)
+  mix          MIX == (1-w)*DRY + w*WET within 1.5 (8-bit rounding of three separate renders);
+               measured 9.81 on the unfixed build, 0.05 on the fixed one
   equal        SUBJECT == REFERENCE within 1.5, SUBJECT non-blank (alpha>0 fraction >= the case's minAlpha:
-               a layer scaled to 0.5 covers 0.25 of the frame, so that case uses 0.2)
+               a layer scaled to 0.5 covers 0.25 of the frame, so that case uses 0.2). Case j measured on the
+               unfixed build: d = 113.95 (flat 50% grey), control (layer chain alone) 0.16
   self_router  every frame after switching to a self-routed Layer Router is non-blank and within 3.0 of
                the image frame it holds (the saved layer output is resampled once more)
   non-blank = alpha>0 fraction >= 0.5 and RGB std >= 3 (same rule as probe-effects-parity.sh).
+  Cases h and i were GL feedback loops (a draw sampling its own colour attachment -- undefined behaviour)
+  that happen to render correctly on this Metal-backed driver: they PASS on both builds and are kept as
+  regression guards; their pre-fix evidence is the FBO trace (FEEDBACK! flag), not these pixels.
 """
 import json, os, sys, time
 
@@ -64,18 +69,24 @@ def clip_json(spec, cid):
     if "sourceType" in spec:
         c["sourceType"] = spec["sourceType"]
         c["sourceParams"] = [{"name": n, "uniform": u, "value": v, "default": v} for n, u, v in spec["sourceParams"]]
-    for fx in spec["effects"]:
-        name, val = fx[0], fx[1]
-        dw = fx[2] if len(fx) > 2 else 1.0
-        c["effects"].append({"name": name, "enabled": True, "bypassed": False, "dryWet": dw, "params": [val]})
+    c["effects"] = [fx_json(fx) for fx in spec["effects"]]
     return c
+
+
+def fx_json(fx):
+    """Compact fixture effect [name, value(, dryWet)] -> composition JSON effect slot."""
+    return {"name": fx[0], "enabled": True, "bypassed": False, "dryWet": fx[2] if len(fx) > 2 else 1.0,
+            "params": [fx[1]]}
 
 
 def load(tag, clips, speed, layer_over=None):
     layer = {"name": "L1", "id": 0, "opacity": 1.0, "visible": True, "blendMode": 0, "type": 0,
              "transitionSpeed": speed, "layerEffects": [],
              "clips": [clip_json(s, i + 1) for i, s in enumerate(clips)]}
-    layer.update(layer_over or {})
+    over = dict(layer_over or {})
+    if "layerEffects" in over:
+        over["layerEffects"] = [fx_json(fx) for fx in over["layerEffects"]]
+    layer.update(over)
     comp = {"name": "xfade-" + tag, "activeDeckIndex": 0, "masterOpacity": 1.0,
             "decks": [{"name": "A", "id": 0, "numColumns": len(clips), "layers": [layer]}]}
     path = os.path.join(OUT, f"fx_{tag}.json")
