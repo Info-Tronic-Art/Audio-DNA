@@ -119,25 +119,36 @@ TEST_CASE("Program::compile builds the preamble from checkpoint0 in restore orde
     CHECK(p->preamble[i].key.layer == 0);
     CHECK(p->preamble[i].p.action == "resume");
 
-    // Continuous order: layer 0's opacity, then the captured clip's fx param, then its scalar --
-    // layers 1-2 have default opacity (skipped -- restoring a default is a no-op write).
-    REQUIRE(p->preambleContinuous.size() == 3);
+    // Continuous order: EVERY layer's opacity (0, 1, 2 -- s-rta-0925 rr-fix: a checkpoint opacity
+    // equal to the scalar default is NOT skipped; the live value at Play time may have since
+    // diverged from default), then the captured clip's fx param, then its scalar.
+    REQUIRE(p->preambleContinuous.size() == 5);
     CHECK(p->preambleContinuous[0].key.scope == ControlPath::Scope::Layer);
     CHECK(p->preambleContinuous[0].key.control == "scalar");
     CHECK(p->preambleContinuous[0].key.scalar == "opacity");
     CHECK(p->preambleContinuous[0].key.layer == 0);
     CHECK(p->preambleContinuous[0].v == Approx(0.5f));
 
-    CHECK(p->preambleContinuous[1].key.scope == ControlPath::Scope::Clip);
-    CHECK(p->preambleContinuous[1].key.control == "param");
-    CHECK(p->preambleContinuous[1].key.fx == 0);
-    CHECK(p->preambleContinuous[1].key.param == 1);
-    CHECK(p->preambleContinuous[1].v == Approx(slot.paramValues[1]));
+    CHECK(p->preambleContinuous[1].key.scope == ControlPath::Scope::Layer);
+    CHECK(p->preambleContinuous[1].key.scalar == "opacity");
+    CHECK(p->preambleContinuous[1].key.layer == 1);
+    CHECK(p->preambleContinuous[1].v == Approx(1.0f));
 
-    CHECK(p->preambleContinuous[2].key.scope == ControlPath::Scope::Clip);
-    CHECK(p->preambleContinuous[2].key.control == "scalar");
+    CHECK(p->preambleContinuous[2].key.scope == ControlPath::Scope::Layer);
     CHECK(p->preambleContinuous[2].key.scalar == "opacity");
-    CHECK(p->preambleContinuous[2].v == Approx(0.25f));
+    CHECK(p->preambleContinuous[2].key.layer == 2);
+    CHECK(p->preambleContinuous[2].v == Approx(1.0f));
+
+    CHECK(p->preambleContinuous[3].key.scope == ControlPath::Scope::Clip);
+    CHECK(p->preambleContinuous[3].key.control == "param");
+    CHECK(p->preambleContinuous[3].key.fx == 0);
+    CHECK(p->preambleContinuous[3].key.param == 1);
+    CHECK(p->preambleContinuous[3].v == Approx(slot.paramValues[1]));
+
+    CHECK(p->preambleContinuous[4].key.scope == ControlPath::Scope::Clip);
+    CHECK(p->preambleContinuous[4].key.control == "scalar");
+    CHECK(p->preambleContinuous[4].key.scalar == "opacity");
+    CHECK(p->preambleContinuous[4].v == Approx(0.25f));
 
     CHECK(p->report.preambleCount == static_cast<int>(p->preamble.size() + p->preambleContinuous.size()));
 }
@@ -296,4 +307,62 @@ TEST_CASE("Program::compile: the preamble never enters the discrete lane schedul
         CHECK(p->report.preambleUnresolved.empty());
         CHECK(p->report.preambleCount == 0);
     }
+}
+
+// === 6: a checkpoint opacity equal to the scalar default still restores (rr-fix) ===
+//
+// s-rta-0925 rr-fix: live-gate fixture. `.harmony/probe-step3.sh`'s snap-back section loads a take
+// (step3gate1.adna-take) whose checkpoint0 layer 0 is CLEAN -- activeClipColumn=-1, opacity=1.0 (the
+// LayerScalar::Opacity default) -- then perturbs the LIVE composition to column 3 / opacity 0.9
+// before pressing Play. Pre-fix, buildPreamble() skipped emitting a continuous restore for opacity
+// whenever the CHECKPOINT value equalled the scalar default, reasoning "restoring a default is a
+// no-op write" -- true only if the live value has not since diverged from default, which the
+// perturbation here does on purpose. The result: activeClipColumn correctly cleared to -1 (discrete,
+// never skipped), but opacity stayed stuck at the perturbed 0.9 forever, because no
+// touch/set/release ever ran for it. This test pins the checkpoint-equals-default case directly:
+// it does not need to simulate a live perturbation (Program::compile has no visibility into runtime
+// state anyway) -- the fix is simply "always emit the continuous entry captured opacity carries",
+// exactly like the five discrete flags immediately above it in emission order, so the CALLER
+// (Player::firePreamble -> Sink::touch/set/release) is always given the chance to correct whatever
+// the live value actually is at Play time.
+TEST_CASE("Program::compile: a layer opacity captured AT the scalar default still emits a continuous restore",
+          "[program][preamble][rr-fix]")
+{
+    Composition comp = makeComposition();
+    comp.activeDeckIndex = 0;
+
+    Layer& layer0 = comp.decks[0].layers[0];
+    layer0.activeClipColumn = -1;   // clean, matches the live-gate fixture exactly
+    layer0.opacity = 1.0f;          // == LayerScalar::Opacity's defaultNorm (ScalarParams.h)
+
+    Take take;
+    take.checkpoint0 = capturePerfState(comp, 120.0f, "");
+    REQUIRE(take.checkpoint0.decks.at(0).layers.at(0).opacity == Approx(1.0f));   // capture is unconditional
+
+    auto p = compile(take, comp, DriveClock::Wall);
+    REQUIRE(p->report.preambleUnresolved.empty());
+
+    bool foundOpacityRestore = false;
+    for (const auto& ps : p->preambleContinuous)
+    {
+        if (ps.key.scope == ControlPath::Scope::Layer && ps.key.layer == 0 && ps.key.scalar == "opacity")
+        {
+            foundOpacityRestore = true;
+            CHECK(ps.v == Approx(1.0f));
+        }
+    }
+    // RED pre-fix: buildPreamble's "skip if norm == defaultNorm" check silently drops this entry,
+    // so a perturbed-away-from-default live opacity is never corrected by Play.
+    CHECK(foundOpacityRestore);
+
+    // activeClip's -1 (clear) IS a discrete entry and was never gated on default -- confirms the
+    // bug is isolated to the continuous opacity path, not a general "checkpoint == default" skip.
+    bool foundActiveClipClear = false;
+    for (const auto& f : p->preamble)
+        if (f.key.control == "activeClip" && f.key.layer == 0)
+        {
+            foundActiveClipClear = true;
+            CHECK(f.p.v == -1);
+        }
+    CHECK(foundActiveClipClear);
 }
