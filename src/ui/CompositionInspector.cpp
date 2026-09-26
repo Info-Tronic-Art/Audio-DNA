@@ -1,4 +1,5 @@
 #include "ui/CompositionInspector.h"
+#include "ui/PerTypeAutopilotLayout.h"
 
 CompositionInspector::CompositionInspector()
 {
@@ -227,16 +228,19 @@ void CompositionInspector::paint(juce::Graphics& g)
     // P20: Per-Type Autopilot section
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Per-Type Autopilot");
     y += kSectionHeaderHeight;
-    // Paint labels for per-type cycle rows
-    int labelW = 80;
-    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    g.setFont(juce::Font(juce::FontOptions(11.0f)));
-    g.drawText("Opaque", 8, y, labelW, kRowHeight, juce::Justification::centredLeft);
-    y += kRowHeight;
-    g.drawText("Transparent", 8, y, labelW, kRowHeight, juce::Justification::centredLeft);
-    y += kRowHeight;
-    g.drawText("Effect", 8, y, labelW, kRowHeight, juce::Justification::centredLeft);
-    y += kRowHeight * 2 + kSectionGap;  // extra row for randomize toggles
+    // Paint labels for the Opaque/Transparent/Effect cycle rows. The enable-checkbox
+    // row (perTypeAutopilotRows.enableY) gets no label here -- it draws its own
+    // "Per-Type" text via the ToggleButton itself (see resized()).
+    {
+        const auto rows = perTypeAutopilotRowsFor(kRowHeight, kSectionGap);
+        int labelW = 80;
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        g.setFont(juce::Font(juce::FontOptions(11.0f)));
+        g.drawText("Opaque", 8, y + rows.opaqueY, labelW, kRowHeight, juce::Justification::centredLeft);
+        g.drawText("Transparent", 8, y + rows.transparentY, labelW, kRowHeight, juce::Justification::centredLeft);
+        g.drawText("Effect", 8, y + rows.effectY, labelW, kRowHeight, juce::Justification::centredLeft);
+        y += rows.totalHeight;
+    }
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Composition");
     y += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap;
@@ -307,31 +311,43 @@ void CompositionInspector::resized()
     // P20: Per-Type Autopilot section
     y += kSectionHeaderHeight;
 
-    // Per-Type enable toggle + Opaque cycle
     {
-        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        perTypeEnabledToggle_.setBounds(row.removeFromLeft(80));
-        opaqueCycleSlider_.setBounds(row);
-    }
-    y += kRowHeight;
+        const auto rows = perTypeAutopilotRowsFor(kRowHeight, kSectionGap);
+        int baseY = y;
 
-    // Transparent cycle + randomize
-    {
-        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        row.removeFromLeft(80); // label space
-        transparentCycleSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
-        transparentRandomToggle_.setBounds(row);
-    }
-    y += kRowHeight;
+        // Per-Type enable toggle -- its own row, so it never shares a y with the
+        // Opaque cycle row below (that collision was the bug: see
+        // PerTypeAutopilotLayout.h).
+        {
+            auto row = juce::Rectangle<int>(area.getX(), baseY + rows.enableY, area.getWidth(), kRowHeight);
+            perTypeEnabledToggle_.setBounds(row);
+        }
 
-    // Effect cycle + randomize
-    {
-        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        row.removeFromLeft(80); // label space
-        effectCycleSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
-        effectRandomToggle_.setBounds(row);
+        // Opaque cycle
+        {
+            auto row = juce::Rectangle<int>(area.getX(), baseY + rows.opaqueY, area.getWidth(), kRowHeight);
+            row.removeFromLeft(80); // label space
+            opaqueCycleSlider_.setBounds(row);
+        }
+
+        // Transparent cycle + randomize
+        {
+            auto row = juce::Rectangle<int>(area.getX(), baseY + rows.transparentY, area.getWidth(), kRowHeight);
+            row.removeFromLeft(80); // label space
+            transparentCycleSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
+            transparentRandomToggle_.setBounds(row);
+        }
+
+        // Effect cycle + randomize
+        {
+            auto row = juce::Rectangle<int>(area.getX(), baseY + rows.effectY, area.getWidth(), kRowHeight);
+            row.removeFromLeft(80); // label space
+            effectCycleSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
+            effectRandomToggle_.setBounds(row);
+        }
+
+        y += rows.totalHeight;
     }
-    y += kRowHeight * 2 + kSectionGap;
 
     // Composition section
     y += kSectionHeaderHeight;
@@ -454,7 +470,7 @@ int CompositionInspector::getPreferredHeight() const
     int h = kNameBarHeight;
     h += MacroPanel::kPreferredHeight + kSectionGap;
     h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Autopilot
-    h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Per-Type Autopilot (P20)
+    h += kSectionHeaderHeight + perTypeAutopilotRowsFor(kRowHeight, kSectionGap).totalHeight; // Per-Type Autopilot (P20)
     h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap; // Composition
     h += kSectionHeaderHeight; // Transform header
     h += posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()

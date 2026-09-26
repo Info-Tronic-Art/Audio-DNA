@@ -1382,3 +1382,22 @@ atexit — which needs no custom `main()` and links plain `Catch2::Catch2WithMai
 equally valid, but not identical, fix to the never-merged lane/0925-rclick branch's alternative: a custom `main()`
 wrapping `Catch::Session().run()` in one file-scope local `ScopedJuceInitialiser_GUI`, linking `Catch2::Catch2`).
 **Valid while:** this JUCE version (8.0.4) / macOS libmalloc combination; re-check if either changes materially.
+
+## 2026-09-25 — CompositionInspector's paint()/resized() row offsets were two independent hand-written
+sequences that had already drifted (pre-existing since P20's 9bc6d2c, not a regression from today's
+opacity/rclick lanes)
+**Files:** src/ui/CompositionInspector.cpp, src/ui/PerTypeAutopilotLayout.h (new), src/ui/BrowserPanel.h
+**Note:** The Per-Type Autopilot enable-checkbox row and the "Opaque" cycle-row label both computed their
+y as `y` right after the section header — resized() put the checkbox on that row, paint() drew "Opaque"
+text on the SAME row, so the checkbox and the label rendered on top of each other
+(critic-visual.md/critic-ux.md MUST, `.harmony/.reports/s-rta-0925/visual-gate/B_composition_inspector.png`).
+Root cause: CompositionInspector has 3 places (`paint()`, `resized()`, `getPreferredHeight()`) that each
+re-derive the same section's row math by hand, with no single source of truth -- easy to drift the moment
+a row is added/removed in only one of the three. Fixed by extracting the Per-Type Autopilot row offsets
+into a pure `perTypeAutopilotRowsFor(rowHeight, sectionGap)` (no JUCE types) that all three call sites now
+share; pinned by `tests/test_per_type_autopilot_layout.cpp`. The fix is height-neutral (same
+`kRowHeight*4 + kSectionGap` total) -- it only reassigns which row each control/label lands on. If another
+CompositionInspector section grows a similar 3-way-duplicated row-math bug, the same extract-to-pure-header
+pattern applies (see also `src/ui/TabBarLayout.h`, same session, same pattern for the Browser tab bar).
+**Valid while:** CompositionInspector keeps paint()/resized()/getPreferredHeight() as three separate
+hand-written functions with no shared layout model.

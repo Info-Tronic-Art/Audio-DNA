@@ -1,20 +1,21 @@
 // test_tab_bar_layout -- s-rta-0925 step-4 polish D2: the Browser's tab widths follow the measured label
-// widths so "Comp/Decks" is never clipped. Pure function in src/ui/TabBarLayout.h -- no JUCE.
+// widths so the longest tab label is never clipped. Pure function in src/ui/TabBarLayout.h -- no JUCE.
 #include <catch2/catch_test_macros.hpp>
 #include "ui/TabBarLayout.h"
 
-TEST_CASE("TabBarLayout -- the Browser's six tabs at the crop width: Comp/Decks gets its whole label", "[tabbarlayout]")
+TEST_CASE("TabBarLayout -- the Browser's six tabs at the crop width: Compositions gets its whole label", "[tabbarlayout]")
 {
-    // 14 px approximations for Files/FX/Sources/Comp/Decks/Record/MilkDrop (the arithmetic is the pin, not the
-    // font). Pre-fix rule: 428 / 6 = 71 < 94 -- the clip seen in every step-4 crop.
-    const std::vector<int> labelWidths = { 33, 18, 52, 78, 44, 58 };
+    // 14 px approximations for Files/FX/Sources/Compositions/Record/MilkDrop (the arithmetic is the pin,
+    // not the font; "Compositions" replaced the abbreviated "Comp/Decks" -- s-rta-0925 visual gate MUST,
+    // critic-ux.md). Pre-fix rule: 428 / 6 = 71 < 94 -- the clip seen in every step-4 crop.
+    const std::vector<int> labelWidths = { 33, 18, 52, 94, 44, 58 };
     const auto widths = tabWidthsFor(labelWidths, 8, 428);
-    const std::vector<int> expected = { 58, 42, 76, 102, 68, 82 };
+    const std::vector<int> expected = { 55, 40, 74, 115, 65, 79 };
     CHECK(widths == expected);
     int sum = 0;
     for (auto w : widths) sum += w;
     CHECK(sum == 428);
-    CHECK(widths[3] >= 78 + 16);
+    CHECK(widths[3] >= 94 + 16);
 }
 
 TEST_CASE("TabBarLayout -- exact sum and every minimum whenever the minimums fit", "[tabbarlayout]")

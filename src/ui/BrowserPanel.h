@@ -11,7 +11,7 @@
 #include "model/Composition.h"
 #include <memory>
 
-// BrowserPanel: 6-tab container for Files, FX, Sources, Comp/Decks, Record, MilkDrop.
+// BrowserPanel: 6-tab container for Files, FX, Sources, Compositions, Record, MilkDrop.
 // Lives in the right-bottom section of the main layout.
 class BrowserPanel : public juce::Component
 {
@@ -47,7 +47,11 @@ private:
     juce::TextButton filesTabBtn_{"Files"};
     juce::TextButton fxTabBtn_{"FX"};
     juce::TextButton sourcesTabBtn_{"Sources"};
-    juce::TextButton compDecksTabBtn_{"Comp/Decks"};
+    // CLAUDE.md UI Text Rules: whole words, no abbreviations -- was "Comp/Decks"
+    // (s-rta-0925 visual gate MUST, critic-ux.md). This tab hosts CompDecksBrowser's
+    // two sections, Compositions and Decks; "Compositions" is the shorter of the two
+    // accurate single-word choices and fits the measured tab widths (TabBarLayout.h).
+    juce::TextButton compDecksTabBtn_{"Compositions"};
     juce::TextButton recordTabBtn_{"Record"};
     juce::TextButton milkDropTabBtn_{"MilkDrop"};
 
