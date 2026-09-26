@@ -29,12 +29,17 @@ struct RecordPanelNoticeKey
 {
     bool recording = false, playing = false, overdub = false;
     std::string playMode, loadedTakeFolder;
+    // s-rta-0925 end-of-replay: LAST member so the aggregate stays positional (see noticeKeyOf's own
+    // callers -- only through this function, never a brace-init of the struct). A notice raised while
+    // playing is dropped at the finish (a row change: playing/!finished -> playing/finished); the
+    // finish notice survives until Stop Playback (playing flips) or kNoticeSeconds.
+    bool finished = false;
     bool operator==(const RecordPanelNoticeKey&) const = default;
 };
 
 inline RecordPanelNoticeKey noticeKeyOf(const RecorderHost::Status& s)
 {
-    return { s.recording, s.playing, s.overdub, s.playMode, s.loadedTakeFolder };
+    return { s.recording, s.playing, s.overdub, s.playMode, s.loadedTakeFolder, s.finished };
 }
 
 struct RecordPanelInputs
@@ -123,6 +128,13 @@ namespace recordpanel_detail
     {
         return dot() + count(s.lanes, "lane", "lanes") + dot() + count(s.points + s.gestures, "move", "moves");
     }
+
+    // s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop"): the take's real end has
+    // been reached; the last look stays exactly as it is (Stop Playback is the only exit).
+    inline juce::String finishedReadout(const RecorderHost::Status& s)
+    {
+        return "Finished " + takeName(s.loadedTakeFolder) + dash() + "holding the last look";
+    }
 }
 
 inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, const RecordPanelInputs& in)
@@ -134,7 +146,13 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
     const bool recording = s.recording;
     const bool overdub = s.overdub;
     const bool playing = s.playing;
-    const bool withAudio = playing && s.playMode == "withAudio";
+    // s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop"): `finished` is a
+    // sub-state of `playing` (the host keeps `playing` true at the end, section 1). `withAudio`
+    // excludes it: once finished, Record Over / the "Live input is paused" warning / the F5 hint
+    // all go away by derivation (the take's audio has stopped driving anything -- the input is
+    // already back, or on its way back).
+    const bool finished = playing && s.finished;
+    const bool withAudio = playing && !finished && s.playMode == "withAudio";
     const bool loaded = !s.loadedTakeFolder.empty();
     const bool audioRequested = recording && !s.assetId.empty() && !overdub;
     const bool armed = audioRequested && s.framesWritten == 0;
@@ -166,7 +184,10 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
     {
         // An overdub's clock is the replayed audio: the panel stops the recording first (row 10).
         const bool canStop = !(recording && overdub);
-        v.play = { "Stop Playback", canStop, canStop ? "Stops the replay." : "Stop the recording first.", Tone::Playing };
+        v.play = { "Stop Playback", canStop,
+                   !canStop ? "Stop the recording first."
+                            : (finished ? "Ends the replay. The look stays as it is." : "Stops the replay."),
+                   Tone::Playing };
     }
     else if (recording)
         v.play = { "Play Take", false, "Stop the recording first.", Tone::Neutral };
@@ -200,9 +221,11 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
                          : withAudio  ? "Recording over a take always uses that take's audio."
                                       : "Records the sound the app is listening to, alongside the timelines.";
     v.playWithAudioEnabled = idle && loaded && audioReady;
-    v.playWithAudioValue = playing ? withAudio : (v.playWithAudioEnabled && in.playWithAudio);
+    // s-rta-0925: keep showing the ACTUAL mode while finished -- `withAudio` above now excludes
+    // `finished`, so this reads playMode directly rather than through that predicate.
+    v.playWithAudioValue = playing ? (s.playMode == "withAudio") : (v.playWithAudioEnabled && in.playWithAudio);
     if (recording)                       v.playWithAudioTooltip = "Stop the recording first.";
-    else if (playing)                    v.playWithAudioTooltip = "Locked while the take replays.";
+    else if (playing)                    v.playWithAudioTooltip = finished ? "Stop the playback first." : "Locked while the take replays.";
     else if (loaded && !audioReady)      v.playWithAudioTooltip = "This take's audio is not available, so it replays without audio.";
     else if (!loaded)                    v.playWithAudioTooltip = "Load a take first.";
     else                                 v.playWithAudioTooltip = "Replays the take's own audio instead of the live input.";
@@ -218,7 +241,7 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
         {
             v.statusText = "Armed, waiting for audio...";
             if (playing)   // fix plan F7: the mirror of the plain-recording branch below
-                v.statusText << dash() << "playing " << formatClock(s.positionSeconds);
+                v.statusText << dash() << (finished ? "holding the last look" : "playing " + formatClock(s.positionSeconds));
         }
         else if (overdub)
         {
@@ -226,7 +249,7 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
                                                                               : juce::String("stored audio");
             v.statusText = "Recording over " + over + " " + formatClock(s.t) + recordingCounts(s);
             if (playing)
-                v.statusText << dash() << playingReadout(s);
+                v.statusText << dash() << (finished ? juce::String("holding the last look") : playingReadout(s));
         }
         else
         {
@@ -237,13 +260,13 @@ inline RecordPanelView deriveRecordPanelView(const RecorderHost::Status& s, cons
             if (s.gaps > 0)
                 v.statusText << dot() << count(s.gaps, "audio gap", "audio gaps");
             if (playing)
-                v.statusText << dash() << "playing " << formatClock(s.positionSeconds);
+                v.statusText << dash() << (finished ? "holding the last look" : "playing " + formatClock(s.positionSeconds));
         }
     }
     else if (playing)
     {
-        v.statusTone = Tone::Playing;
-        v.statusText = playingReadout(s);
+        if (finished) { v.statusTone = Tone::Neutral; v.statusText = finishedReadout(s); }
+        else          { v.statusTone = Tone::Playing; v.statusText = playingReadout(s); }
     }
     else if (loaded)
         v.statusText = "Loaded: " + takeName(s.loadedTakeFolder) + dash() + formatClock(s.loadedDuration)
