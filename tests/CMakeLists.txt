@@ -805,6 +805,46 @@ endif()
 apply_sanitizers(test_program_preamble)
 catch_discover_tests(test_program_preamble)
 
+# --- test_routine (s-rta-0926 routines slice 1, lane 1a --
+# plan-routines-s1-final.md 6.1 cases 1-6): the Routine model + its
+# composition serialization, sliceRoutine, takeBeatOfBar, compileRoutine.
+# Same link set as test_program_preamble above (+ RoutineSlice.cpp).
+add_executable(test_routine
+    test_routine.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/PerfStateCapture.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+)
+target_include_directories(test_routine PRIVATE ${SRC_DIR})
+target_link_libraries(test_routine PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_routine PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_routine PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_routine)
+catch_discover_tests(test_routine)
+
 # --- test_recorder_double_touch (s-rta-0923 lane L3, addendum 4a):
 # PerformanceRecorder::touch() must not silently discard an already-open
 # gesture on the same key. Standalone target (this lane's worktree did
