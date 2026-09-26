@@ -2023,6 +2023,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (browserPanel_)
             browserPanel_->getRecordPanel().setNotice(msg, recorderHost_.status());
     };
+    // s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop"): fired at most once per
+    // play(), as tick()'s LAST statement, after publishStatus() -- status().finished is already true.
+    recorderHost_.dispatch.replayFinished = [this] { onReplayFinished(); };
 
     // Continuous capture: the recorder HOOKS the funnel's own accept/refuse
     // notification (critic A1/A2/N12) -- Human writes only; Replay writes are
@@ -2049,6 +2052,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onPerfPlay     = [this](bool withAudio) { perfPlay(withAudio); };
     apiServer_->onPerfStopPlay = [this] { perfStopPlay(); };
     apiServer_->onPerfRepair   = [this] { perfRepair(); };
+    // s-rta-0925 (probe enabler, plan section 5): a dev/probe control for the live gate -- puts the
+    // app on the live input or (if loaded) the file transport, the same switch setAudioSourceModeSynced
+    // performs for the human/Stop Playback paths.
+    apiServer_->onAudioSource  = [this](const juce::String& mode) {
+        setAudioSourceModeSynced(mode == "file" ? AudioEngine::SourceMode::File : AudioEngine::SourceMode::MicInput); };
     // Synchronous (critic A5(b)/N3): reads ONLY recorderHost_.status()'s
     // mutex-guarded copy -- never audioEngine_.getCurrentSampleRate()/
     // getCurrentAudioDevice() on the HTTP thread.
@@ -3370,6 +3378,11 @@ void MainComponent::tickFeaturePipeline()
     // engine's ctx.now just below -- ONE clock for grips and recorder stamps
     // (ConnClock.h), not two unequal readings.
     const double now = connNow();
+    // s-rta-0925: mirror the audio source mode for /api/perf/status.inputSource (HTTP-thread read) --
+    // one message-thread write site, self-healing whatever moved the mode; never a device read off
+    // the HTTP thread (the same posture as every other perfStatusVar() field).
+    inputSourceMirror_.store(audioEngine_.getSourceMode() == AudioEngine::SourceMode::File ? 1 : 0,
+                              std::memory_order_relaxed);
     {
         std::optional<int64_t> transportFrames;
         if (recorderHost_.needsTransportFrames())
@@ -5279,14 +5292,45 @@ std::string MainComponent::perfStopPlay()
     }
 
     applyAudioTransport("stop", Origin::Human);
+    restoreInputAfterReplay();
+    return msg;
+}
 
-    // Go back to the input that was active before a play-with-audio -- never
-    // while a take is still recording (a mode change can restart the device
-    // and re-prepare the tap mid-take).
+// The input that was active before a play-with-audio comes back -- Stop Playback and the natural end
+// of the take (onReplayFinished) share this. Never while a take is still recording (a mode change can
+// restart the device and re-prepare the tap mid-take); the pending mode is dropped either way
+// (unchanged behaviour from perfStopPlay's original tail).
+void MainComponent::restoreInputAfterReplay()
+{
     if (sourceModeBeforeReplay_ && !recorderHost_.isRecording())
         setAudioSourceModeSynced(*sourceModeBeforeReplay_);
     sourceModeBeforeReplay_.reset();
-    return msg;
+}
+
+// s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop", binding-decisions.md). The
+// host has already pinned the replay at its end and stopped the Player; the look stays exactly as it
+// is. Nothing is reset here. Three app-level things:
+void MainComponent::onReplayFinished()
+{
+    const auto st = recorderHost_.status();   // published by the host BEFORE this callback: finished == true
+    // (1) A take recording over this audio: its clock IS the transport, which has just ended (5.2) --
+    //     end and save it exactly as Stop Recording would (Harmony ruling 1's reasoning), never let it
+    //     stamp against a frozen clock.
+    if (st.recording && st.overdub)
+        perfStop();
+    // (2) The input comes back. Only a with-audio replay set sourceModeBeforeReplay_; wall-clock never
+    //     touched the input.
+    const bool wasWithAudio = sourceModeBeforeReplay_.has_value();
+    restoreInputAfterReplay();
+    // (3) One plain notice (whole words, never a modal).
+    if (recorderHost_.dispatch.notify)
+    {
+        const std::string name = juce::File(st.loadedTakeFolder).getFileNameWithoutExtension().toStdString();
+        std::string msg = "Finished " + name + ": holding the last look.";
+        if (wasWithAudio && audioEngine_.getSourceMode() == AudioEngine::SourceMode::MicInput)
+            msg += " Listening to the live input again.";
+        recorderHost_.dispatch.notify(msg);
+    }
 }
 
 std::string MainComponent::perfRepair()
@@ -5369,6 +5413,12 @@ juce::var MainComponent::perfStatusVar() const
     obj->setProperty("preambleFired", s.preambleFired);
     obj->setProperty("preambleRefused", s.preambleRefused);
     obj->setProperty("preambleUnresolved", s.preambleUnresolved);
+    // s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop"): finished is 0 while not
+    // playing (RecorderHost::publishStatus only fills it inside its `playing_ && player_` block).
+    obj->setProperty("finished", s.finished);
+    // s-rta-0925: the additive exception to "reads ONLY recorderHost_.status()" -- inputSourceMirror_
+    // is a relaxed atomic written once per tick on the message thread (MainComponent.h's own comment).
+    obj->setProperty("inputSource", inputSourceMirror_.load(std::memory_order_relaxed) == 1 ? "file" : "input");
     return juce::var(obj);
 }
 

@@ -116,6 +116,9 @@ public:
     std::function<void()> onPerfStopPlay;
     std::function<void()> onPerfRepair;
     std::function<juce::var()> onPerfStatus;   // synchronous; see comment above
+    // s-rta-0925 (probe enabler, end-of-replay plan section 5): a dev/probe control -- puts the app on
+    // the live input or (if loaded) the file transport. Same marshal posture as every onPerf* callback.
+    std::function<void(const juce::String& mode)> onAudioSource;
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
@@ -159,6 +162,7 @@ private:
     void handlePerfStopPlay(const httplib::Request& req, httplib::Response& res);
     void handlePerfRepair(const httplib::Request& req, httplib::Response& res);
     void handlePerfStatus(const httplib::Request& req, httplib::Response& res);
+    void handleAudioSource(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();

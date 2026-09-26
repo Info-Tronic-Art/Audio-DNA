@@ -501,18 +501,47 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
     }
 
     // (3) playback.
+    bool finishedEdge = false;
     if (playing_ && player_ && sink_)
     {
         double pos;
         if (playMode_ == PlayMode::WithAudio && transportFrames.has_value())
-            pos = static_cast<double>(playFirstSample_) + static_cast<double>(*transportFrames);
+        {
+            // D10.2 #3: the transport's read position is in DEVICE samples (AudioTransportSource::
+            // getNextReadPosition scales by deviceRate/sourceRate) -- convert to asset frames exactly
+            // as the overdub path above does (5.2), so the end lands at the asset's real end on a
+            // device running at a rate other than the take's.
+            double frames = static_cast<double>(*transportFrames);
+            if (playAssetRate_ > 0.0 && deviceRate > 0.0)
+                frames = static_cast<double>(std::llround(frames * playAssetRate_ / deviceRate));
+            pos = static_cast<double>(playFirstSample_) + frames;
+        }
         else
             pos = wallNow - playStartWall_;
-        player_->advanceTo(pos, *sink_);
+
+        if (!finished_)
+        {
+            player_->advanceTo(pos, *sink_);   // a backwards pos is Player's own seek (T21) -- unchanged
+            if (pos >= playEndPos_)
+            {
+                // Boris ruling 2026-09-25: hold, don't stop. Every gesture has already closed at its own x1 (<= end), so
+                // this releases nothing; running_ -> false means NO later position -- including the rewind the app's own
+                // input restore causes (AudioEngine::stop -> setPosition(0)) -- can fire the take again. Nothing else here.
+                player_->stop(*sink_);
+                finished_ = true;
+                finishedEdge = true;
+            }
+        }
     }
 
     // (4) publish.
     publishStatus();
+
+    // (5) the end-of-replay edge, LAST: the host's state is final and published, so a handler that
+    // re-enters the host (perfStop -> disarm, or even stopPlay) sees exactly what any other
+    // message-thread caller would.
+    if (finishedEdge && dispatch.replayFinished)
+        dispatch.replayFinished();
 }
 
 void RecorderHost::synthesizeIdleDecayingEnds(double wallNow)
@@ -673,6 +702,16 @@ RecorderHost::PlayResult RecorderHost::play(PlayMode mode, const Composition& co
         playAssetRate_ = loadedAudio_.asset.rate;
     }
 
+    // s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop"): the take's end in the
+    // drive-clock domain, computed ONCE here -- exactly F2's lengthSeconds (publishStatus() below
+    // now derives lengthSeconds FROM this, one source of truth, no second formula).
+    finished_ = false;
+    playEndPos_ = (mode == PlayMode::WithAudio)
+        ? static_cast<double>(playFirstSample_)
+            + std::max(std::max(0.0, program_->length - static_cast<double>(playFirstSample_)),
+                       static_cast<double>(loadedAudio_.asset.frames))
+        : std::max(program_->length, loadedTake_->meta.duration);
+
     player_->start(0.0);
     // s-rta-0925 (Boris ruling 2026-09-25): restore checkpoint 0 BEFORE the first lane point plays
     // -- Player::firePreamble fires every preamble entry once, through the SAME sink every ordinary
@@ -695,6 +734,8 @@ void RecorderHost::stopPlay()
         return;
     player_->stop(*sink_);   // R9: every touch released
     playing_ = false;
+    finished_ = false;
+    playEndPos_ = 0.0;
     player_.reset();
     sink_.reset();
     program_.reset();
@@ -779,8 +820,12 @@ void RecorderHost::publishStatus()
 
     if (playing_ && player_)
     {
-        s.position = player_->position();
-        s.length = program_ ? program_->length : 0.0;
+        // s-rta-0925 end-of-replay: while finished, position is pinned at the take's end (the raw
+        // player position on the finishing tick can overshoot playEndPos_ by up to one hop) rather
+        // than re-read from the (now stopped) Player.
+        s.finished = finished_;
+        s.position = finished_ ? playEndPos_ : player_->position();
+        s.length = program_ ? program_->length : 0.0;      // unchanged: last compiled event (the probe reads it)
         if (program_)
         {
             const auto& rep = program_->report;
@@ -798,26 +843,23 @@ void RecorderHost::publishStatus()
 
         // s-rta-0924b S4-A: the same position in seconds. Wall is seconds already; Sample is the
         // absolute take-clock sample (playFirstSample_ + transport frames), so subtract the asset's
-        // firstSample and divide by the asset rate.
+        // firstSample and divide by the asset rate. s-rta-0925: lengthSeconds now derives from
+        // playEndPos_ -- F2's own quantity (the take's real end), computed once by play() -- rather
+        // than a second formula; equivalence: Wall max(length, duration); Sample playEndPos_-first ==
+        // max(max(0, length-first), frames), exactly F2's prior formulas.
         if (playMode_ == PlayMode::WithAudio)
         {
             if (playAssetRate_ > 0.0)
             {
                 const double first = static_cast<double>(playFirstSample_);
                 s.positionSeconds = std::max(0.0, s.position - first) / playAssetRate_;
-                // Fix plan F2: the replay ends where the audio ends -- the asset's length IS the length,
-                // never less than the last compiled event (an audio-only take has no events, so
-                // `length` alone read 0: "Playing 0:02 / 0:00").
-                s.lengthSeconds = std::max(std::max(0.0, s.length - first),
-                                           static_cast<double>(loadedAudio_.asset.frames)) / playAssetRate_;
+                s.lengthSeconds   = std::max(0.0, playEndPos_ - first) / playAssetRate_;
             }
         }
         else
         {
             s.positionSeconds = s.position;
-            // Fix plan F2: wall clock -- the recorded duration (arm -> stop), never less than the last
-            // compiled event (a provisionally saved take, duration 0, still shows its last event).
-            s.lengthSeconds = std::max(s.length, loadedTake_ ? loadedTake_->meta.duration : 0.0);
+            s.lengthSeconds   = playEndPos_;
         }
     }
 

@@ -740,6 +740,68 @@ TEST_CASE("Player: explicit forward seek skips discrete events; advanceTo alone 
     }
 }
 
+// s-rta-0925 (HANDOFF s168 addendum 2, plan section 7): the backwards-seek bug was already fixed in
+// 87b0ea2 -- these are REGRESSION PINS on Player::seek's existing contract, expected GREEN today, not
+// a RED-first fix. They cover two corners the three pre-existing [player][seek] tests above do not.
+
+TEST_CASE("Player: a backwards seek to exactly an event's `at` re-fires it in that same advanceTo", "[player][seek]")
+{
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+
+    const ControlPath markerKey = [] { ControlPath k; k.scope = ControlPath::Scope::Comp; k.control = "marker"; return k; }();
+    const std::vector<double> ats = { 1.0, 2.0, 3.0 };
+    for (size_t i = 0; i < ats.size(); ++i)
+    {
+        DiscretePoint p; p.s = { static_cast<uint64_t>(i + 1), ats[i], 0 }; p.v = static_cast<int>(i);
+        prog->discrete.push_back(Fired{ ats[i], p.s.seq, markerKey, {}, p });
+    }
+
+    FakeSink sink;
+    Player player(prog);
+    player.start(0.0);
+
+    player.advanceTo(2.2, sink);
+    REQUIRE(sink.fired.size() == 2);
+
+    player.advanceTo(2.0, sink);          // backwards, exactly onto event 2's `at`
+    REQUIRE(sink.fired.size() == 3);
+    REQUIRE(sink.fired[2].at == Approx(2.0));
+
+    player.advanceTo(2.0, sink);          // same pos again -- no new fire (not a decrease)
+    REQUIRE(sink.fired.size() == 3);
+}
+
+TEST_CASE("Player: a backwards seek out of a DISPLACED gesture releases nothing and re-touches on re-entry", "[player][seek]")
+{
+    ControlPath contKey = layerKey(0, "scalar"); contKey.scalar = "opacity";
+    ContLane cl; cl.key = contKey;
+    ContLane::G g; g.grip = "held";
+    g.curve.pts = { { 1.5, 0.0f, Breakpoint::Interp::Linear }, { 2.5, 1.0f, Breakpoint::Interp::Linear } };
+    g.x0 = 1.5; g.x1 = 2.5;
+    cl.gestures = { g };
+
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+    prog->continuous.push_back(cl);
+
+    FakeSink sink;
+    sink.refuseNextTouch = true;   // the touch that opens the gesture below is refused -> displaced
+    Player player(prog);
+    player.start(0.0);
+
+    player.advanceTo(2.0, sink);           // touches (refused -> displaced), sets NONE (displaced)
+    REQUIRE(sink.touches.size() == 1);
+    REQUIRE(sink.sets.empty());
+
+    player.advanceTo(1.0, sink);           // backwards, out of the gesture -- displaced means release is NEVER held
+    REQUIRE(sink.releases.empty());
+
+    player.advanceTo(2.0, sink);           // forward again, re-enters -- a fresh touch (this one accepted)
+    REQUIRE(sink.touches.size() == 2);
+    REQUIRE_FALSE(sink.sets.empty());
+}
+
 TEST_CASE("Player::setOverride refuses Latch loudly; Touch remains the mode", "[player][override]")
 {
     Player player(std::make_shared<Program>());

@@ -411,6 +411,76 @@ TEST_CASE("RecordPanelModel row 12 -- plain recording while playing (REST-only)"
     CHECK(v.statusText == "Recording 0:03 from live input" + kDot + "1 lane" + kDot + "1 move"
                           + kDash + "playing 0:12");
     CHECK(v.statusTone == RecordPanelView::Tone::Recording);
+
+    // R12b (s-rta-0925 end-of-replay): the replay running under this REST-only recording reached its
+    // own end -- the suffix reads "holding the last look" instead of "playing 0:12".
+    s.finished = true;
+    const auto vFinished = deriveRecordPanelView(s, inputs());
+    CHECK(vFinished.statusText == "Recording 0:03 from live input" + kDot + "1 lane" + kDot + "1 move"
+                                 + kDash + "holding the last look");
+}
+
+TEST_CASE("RecordPanelModel row 13 -- finished, wall clock", "[recordpanel][model]")
+{
+    auto s = loadedStatus("Missing");
+    playing(s, false);
+    s.finished = true;
+    s.positionSeconds = s.lengthSeconds = 45.6;
+    const auto v = deriveRecordPanelView(s, inputs());
+    CHECK(v.record.text == "Record Take");
+    CHECK(v.record.enabled);
+    CHECK_FALSE(v.recordSendsOverdub);
+    CHECK(v.play.text == "Stop Playback");
+    CHECK(v.play.enabled);
+    CHECK(v.play.tone == RecordPanelView::Tone::Playing);
+    CHECK(v.play.tooltip == "Ends the replay. The look stays as it is.");
+    CHECK_FALSE(v.load.enabled);
+    CHECK(v.recordAudioEnabled);
+    CHECK_FALSE(v.playWithAudioEnabled);
+    CHECK(v.playWithAudioTooltip == "Stop the playback first.");
+    CHECK(v.statusText == "Finished show" + kDash + "holding the last look");
+    CHECK(v.statusTone == RecordPanelView::Tone::Neutral);
+    CHECK(v.warningText.isEmpty());
+    CHECK(v.noticeText.isEmpty());
+}
+
+TEST_CASE("RecordPanelModel row 14 -- finished, with audio", "[recordpanel][model]")
+{
+    auto s = loadedStatus("Resolved");
+    playing(s, true);
+    s.finished = true;
+    const auto v = deriveRecordPanelView(s, inputs());
+    CHECK(v.record.text == "Record Take");   // NOT "Record Over" -- withAudio excludes finished
+    CHECK_FALSE(v.recordSendsOverdub);
+    CHECK(v.recordAudioEnabled);
+    CHECK(v.recordAudioTooltip == "Records the sound the app is listening to, alongside the timelines.");
+    CHECK(v.warningText.isEmpty());   // "Live input is paused..." goes -- withAudio excludes finished
+    CHECK(v.noticeText.isEmpty());
+    CHECK(v.playWithAudioValue);      // still shows the ACTUAL mode
+    CHECK(v.statusText == "Finished show" + kDash + "holding the last look");
+}
+
+TEST_CASE("RecordPanelModel notice -- a notice raised while playing is dropped at the finish; one "
+          "raised at the finish survives it, gone after Stop Playback", "[recordpanel][model][notice]")
+{
+    auto p = loadedStatus("Resolved");
+    playing(p, false);
+
+    auto in = inputs(100.0);
+    in.notice = "handleClipTrigger: deck unresolved";
+    in.noticeAtSeconds = 99.0;
+    in.noticeKey = noticeKeyOf(p);   // raised while playing, not yet finished
+
+    auto finishedStatus = p;
+    finishedStatus.finished = true;
+    CHECK_FALSE(deriveRecordPanelView(finishedStatus, in).noticeLive);
+
+    in.noticeKey = noticeKeyOf(finishedStatus);   // raised AT the finish
+    CHECK(deriveRecordPanelView(finishedStatus, in).noticeLive);
+
+    RecorderHost::Status stopped;   // Stop Playback: playing flips
+    stopped.loadedTakeFolder = p.loadedTakeFolder;
+    CHECK_FALSE(deriveRecordPanelView(stopped, in).noticeLive);
 }
 
 // ---- the rest of the contract ----

@@ -111,6 +111,11 @@ namespace
         std::vector<ControlPath> releases;
         std::vector<std::string> notices;
         bool refuseFire = false;
+        // s-rta-0925 end-of-replay: counts dispatch.replayFinished calls; finishedSeenInStatus
+        // pins the ORDERING FACT that publishStatus() has already run (so status().finished is
+        // true) by the time the callback fires (RecorderHost::tick()'s own comment).
+        int finishedCalls = 0;
+        bool finishedSeenInStatus = false;
 
         void wire(RecorderHost& host, const Composition* comp)
         {
@@ -122,6 +127,7 @@ namespace
             host.dispatch.continuous.release = [this](const ControlPath& k) { releases.push_back(k); };
             host.dispatch.capturePerfState = [comp]() { return comp ? capturePerfState(*comp, 120.0f, "") : PerfState{}; };
             host.dispatch.notify = [this](const std::string& s) { notices.push_back(s); };
+            host.dispatch.replayFinished = [this, &host] { ++finishedCalls; finishedSeenInStatus = host.status().finished; };
         }
     };
 
@@ -1785,6 +1791,234 @@ TEST_CASE("RecorderHost status seconds -- positionSeconds/lengthSeconds in both 
         CHECK(host.status().lengthSeconds == Approx(7.5));
         host.stopPlay();
     }
+}
+
+// =====================================================================================
+// s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop") -- Status::finished,
+// Dispatch::replayFinished, and the R13 device-domain rate conversion on the playback side.
+// =====================================================================================
+
+TEST_CASE("RecorderHost end of replay -- a wall-clock replay finishes at the take's end and holds: "
+          "finished, position pinned, one callback, nothing fires after", "[host][end]")
+{
+    TempDir storeRoot("end_wall_store");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    TempDir folder("end_wall_take");
+    Take take = makeTwoPointTake(DriveClock::Wall, 0.2, 0.5);
+    take.meta.duration = 2.0;
+    REQUIRE(take.save(folder.dir));
+    REQUIRE(host.load(folder.dir).ok);
+    const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+    REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+
+    host.tick(makeSnap(), w0 + 0.6, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(fake.fired.size() == 2);
+    CHECK_FALSE(host.status().finished);
+    CHECK(fake.finishedCalls == 0);
+
+    host.tick(makeSnap(), w0 + 1.9, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK_FALSE(host.status().finished);
+    CHECK(host.status().positionSeconds == Approx(1.9).margin(0.05));
+
+    host.tick(makeSnap(), w0 + 2.05, 0, dummyTap, std::nullopt, 48000.0);
+    {
+        const auto st = host.status();
+        CHECK(st.finished);
+        CHECK(st.playing);
+        CHECK(st.playMode == "wallClock");
+        CHECK(st.position == Approx(2.0));
+        CHECK(st.positionSeconds == Approx(2.0));
+        CHECK(st.lengthSeconds == Approx(2.0));
+    }
+    CHECK(fake.finishedCalls == 1);
+    CHECK(fake.finishedSeenInStatus);
+
+    host.tick(makeSnap(), w0 + 9.0, 0, dummyTap, std::nullopt, 48000.0);
+    CHECK(host.status().position == Approx(2.0));
+    CHECK(fake.finishedCalls == 1);
+    CHECK(fake.fired.size() == 2);
+
+    host.stopPlay();
+    {
+        const auto st = host.status();
+        CHECK_FALSE(st.finished);
+        CHECK_FALSE(st.playing);
+        CHECK(st.positionSeconds == 0.0);
+    }
+}
+
+TEST_CASE("RecorderHost end of replay -- the end is the take's length, not its last event", "[host][end]")
+{
+    TempDir storeRoot("end_length_store");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    SECTION("a take with events but a longer recorded duration finishes at the duration, not the last event")
+    {
+        TempDir folder("end_length_take");
+        Take take = makeTwoPointTake(DriveClock::Wall, 0.2, 0.5);
+        take.meta.duration = 7.5;
+        REQUIRE(take.save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+        const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+
+        host.tick(makeSnap(), w0 + 1.0, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK_FALSE(host.status().finished);
+
+        host.tick(makeSnap(), w0 + 7.6, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK(host.status().finished);
+        host.stopPlay();
+    }
+
+    SECTION("a take with nothing in it finishes at its first tick")
+    {
+        TempDir folder("end_empty_take");
+        Take take;   // no lanes, duration 0 -- playEndPos_ == 0 by definition (section 1)
+        REQUIRE(take.save(folder.dir));
+        REQUIRE(host.load(folder.dir).ok);
+        const double w0 = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+        REQUIRE(host.play(RecorderHost::PlayMode::WallClock, comp).ok);
+        host.tick(makeSnap(), w0 + 0.01, 0, dummyTap, std::nullopt, 48000.0);
+        CHECK(host.status().finished);
+        host.stopPlay();
+    }
+}
+
+TEST_CASE("RecorderHost end of replay -- a with-audio replay finishes when the transport reaches the "
+          "asset's end; a later rewind cannot re-fire it", "[host][end]")
+{
+    TempDir storeRoot("end_audio_store");
+    AudioStore store(storeRoot.dir);
+    const AudioAsset asset = makeFinalizedAsset(store, 48000.0, 20);   // 10240 frames
+
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    TempDir folder("end_audio_take");
+    Take take = makeTwoPointTake(DriveClock::Sample, 96000.0 + 4800.0, 96000.0 + 9600.0);
+    take.audio = AudioStore::referencing(asset, 96000);
+    REQUIRE(take.save(folder.dir));
+    REQUIRE(host.load(folder.dir).ok);
+    REQUIRE(host.play(RecorderHost::PlayMode::WithAudio, comp).ok);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(4800), 48000.0);
+    CHECK(fake.fired.size() == 1);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(9600), 48000.0);
+    CHECK(fake.fired.size() == 2);
+    CHECK_FALSE(host.status().finished);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(10240), 48000.0);
+    {
+        const auto st = host.status();
+        CHECK(st.finished);
+        CHECK(st.position == Approx(106240.0));
+        CHECK(st.positionSeconds == Approx(10240.0 / 48000.0));
+        CHECK(st.lengthSeconds == Approx(10240.0 / 48000.0));
+    }
+    CHECK(fake.finishedCalls == 1);
+
+    // What AudioEngine::stop() does when the finish handler restores the live input: a rewind to 0.
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(0), 48000.0);
+    CHECK(fake.fired.size() == 2);
+    CHECK(host.status().finished);
+    CHECK(host.status().position == Approx(106240.0));
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(9600), 48000.0);
+    CHECK(fake.fired.size() == 2);
+
+    host.stopPlay();
+    CHECK_FALSE(host.status().finished);
+}
+
+TEST_CASE("RecorderHost end of replay -- transport frames are device-domain: the end lands at the "
+          "asset's end on a device at another rate (R13)", "[host][end][r13]")
+{
+    TempDir storeRoot("end_r13_store");
+    AudioStore store(storeRoot.dir);
+    const AudioAsset asset = makeFinalizedAsset(store, 48000.0, 20);   // 10240 frames @ 48 kHz
+
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    TempDir folder("end_r13_take");
+    Take take;   // audio-only take -- no lanes needed
+    take.audio = AudioStore::referencing(asset, 96000);
+    REQUIRE(take.save(folder.dir));
+    REQUIRE(host.load(folder.dir).ok);
+    REQUIRE(host.play(RecorderHost::PlayMode::WithAudio, comp).ok);
+
+    constexpr double deviceRate = 44100.0;
+    // Device frames for asset frame f: f * 44100/48000. 4704 device frames -> 4704*48000/44100 = 5120.0
+    // asset frames exactly (225 792 000 / 44 100 = 5120).
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(4704), deviceRate);
+    CHECK(host.status().positionSeconds == Approx(5120.0 / 48000.0).margin(1e-3));
+    CHECK_FALSE(host.status().finished);
+
+    // 9408 device frames -> 9408*48000/44100 = 10240.0 exactly, the asset's end.
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(9408), deviceRate);
+    CHECK(host.status().finished);
+
+    host.stopPlay();
+}
+
+TEST_CASE("RecorderHost end of replay -- a backwards transport position mid-take re-seats and re-fires "
+          "on the re-pass (D10.2 scrub; HANDOFF s168 addendum 2 at the host seam)", "[host][seek]")
+{
+    TempDir storeRoot("end_seek_store");
+    AudioStore store(storeRoot.dir);
+    const AudioAsset asset = makeFinalizedAsset(store, 48000.0, 20);
+
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    TempDir folder("end_seek_take");
+    Take take;
+    DiscretePoint p1; p1.origin = Origin::Human; p1.v = 1; p1.s.seq = 1; p1.beat = 1.0;
+    p1.s.sample = 96000 + 4800;
+    const ControlPath key = layerKey(0, "activeClip");
+    Lane lane; lane.key = key; lane.kind = Lane::Kind::Discrete; lane.points = { p1 };
+    take.lanes[key] = lane;
+    take.nextSeq = 2;
+    take.audio = AudioStore::referencing(asset, 96000);
+    REQUIRE(take.save(folder.dir));
+    REQUIRE(host.load(folder.dir).ok);
+    REQUIRE(host.play(RecorderHost::PlayMode::WithAudio, comp).ok);
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(6000), 48000.0);
+    CHECK(fake.fired.size() == 1);
+
+    // A rewind before the end never marks finished (the take's own end is at asset frame 10240,
+    // pos 106240 -- 97000 is nowhere near it).
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(1000), 48000.0);
+    CHECK(fake.fired.size() == 1);
+    CHECK_FALSE(host.status().finished);
+    CHECK(host.status().position == Approx(97000.0));
+
+    host.tick(makeSnap(), 0.0, 0, dummyTap, std::optional<int64_t>(6000), 48000.0);
+    CHECK(fake.fired.size() == 2);
+
+    host.stopPlay();
 }
 
 TEST_CASE("RecorderHost stopPlayback -- Stop Playback during an overdub ends the overdub too (ruling 1)", "[host][overdub][stopplayback]")
