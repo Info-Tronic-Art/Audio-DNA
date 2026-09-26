@@ -26,9 +26,9 @@ menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle adde
 **15 transitions** (+1 deck transition) · **243 embedded shaders** · **108 sources**
 / 19 categories / 759 params (108 GUI-selectable) · **30 audio features** / 14-stage
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
-(Global bank only) · **35 registered REST routes** (all functional; 27 core control + 7 `/api/perf/*` + `POST /api/audio/source`; counted from `src/api/ApiServer.cpp`, s-rta-0926) ·
-**13 OSC patterns** (subsystem LIVE — port 8000, 13/13 wired, Wave 1-B 2026-07-17; `/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync) · 20 binding actions · 6 feedback presets ·
-**539 unit tests / 49 Catch2 targets** (ctest 539/539 at s-rta-0925 close, HANDOFF.md; targets counted from `tests/CMakeLists.txt` `add_executable`, s-rta-0926; historical delta chain below predates the recorder lanes and is not reconciled to 539 — re-derive, do not inherit: 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30 AM: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard; 182 → 188 on 2026-07-30 PM2: +4 test_autopilot.cpp [FIRST autopilot coverage] + 2 test_renderer_source_confinement; 188 → 189 on 2026-08-02: +1 syphon_check_negative).
+(Global bank only) · **41 registered REST routes** (all functional; 27 core control + 7 `/api/perf/*` + `POST /api/audio/source` + 6 `/api/routine/*` [s-rta-0926 routines slice 1]; counted from `src/api/ApiServer.cpp`, s-rta-0926) ·
+**14 OSC patterns** (subsystem LIVE — port 8000, 14/14 wired, Wave 1-B 2026-07-17 + `/audiodna/routine/{slot}` s-rta-0926; `/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync) · 21 binding actions (TriggerRoutine appended s-rta-0926) · 6 feedback presets ·
+**565 unit tests / 53 Catch2 targets** (ctest -N enumerates 565 registered tests, s-rta-0926; targets counted from `tests/CMakeLists.txt` `add_executable`, s-rta-0926; not executed by this pass, re-run `ctest` before inheriting a pass/fail claim; historical delta chain below predates the recorder lanes and is not reconciled — re-derive, do not inherit: 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30 AM: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard; 182 → 188 on 2026-07-30 PM2: +4 test_autopilot.cpp [FIRST autopilot coverage] + 2 test_renderer_source_confinement; 188 → 189 on 2026-08-02: +1 syphon_check_negative; 189 → 539 at s-rta-0925 close, HANDOFF.md; 539 → 565 across the s-rta-0926 wave incl. routines slice 1 [+14: test_routine.cpp cases 1-6/13, test_routine_engine.cpp cases 7-12/15]).
 
 **2026-07-30 PM2 SURFACE DELTA (13-item queue session — reconcile rows below when next doing a full §3 pass):** LayerStrip = NEW FX-drop-target (layer-scope stack, one undo entry) · Clip menu items now selection-gated (grayed w/o selection) · Cmd+X = second shortcut on Clip>Clear · mixed image+video Finder drop lands BOTH (one composite undo) · MilkDrop group-header drag = whole-section playlist drop (any mode); the 3 Playlist-mode controls (cycle/timing/blend) are now REAL (were decorative) · click-on-playing-cell RESTARTS video/imageseq from in-point (sources still no-op — Boris ruling pending) · genre auto-switch now reconciles preview via handleDeckSwitch · autopilot advances off Source/Image cells (was frozen) · ApiServer: 6 endpoints marshalled to message thread, ok:true-always semantics; sanitizer build variants exist (ADNA_SANITIZE); §8 candidates CLEARED this session: dead startDrag() decl removed, ReinspectTarget path removed (B8).
 
@@ -136,12 +136,13 @@ Source: lane-1-audio-analysis.md §2-4.
 
 ### REST API — production server (`src/api/ApiServer.cpp`, port 7070, always-on, CORS)
 
-Source: `src/api/ApiServer.cpp` (route registrations counted by command, s-rta-0926). **35 registered
+Source: `src/api/ApiServer.cpp` (route registrations counted by command, s-rta-0926). **41 registered
 routes total: 27 core control endpoints (rows 1-27) + 7 `/api/perf/*` (rows 28-34) + `POST
-/api/audio/source` (row 35)**; all functional (`/api/set_bpm` wired Wave 0; `/api/resync` added
-s-rta-0925 -- manual Resync via `requestResync()`, message thread -> analysis thread). Rows 28-35
-are the performance take recorder's REST surface (see "Audio Store / Step 3" in
-`docs/claude/recording.md` for the full field-level detail of each).
+/api/audio/source` (row 35) + 6 `/api/routine/*` (rows 36-41)**; all functional (`/api/set_bpm` wired
+Wave 0; `/api/resync` added s-rta-0925 -- manual Resync via `requestResync()`, message thread ->
+analysis thread). Rows 28-35 are the performance take recorder's REST surface (see "Audio Store /
+Step 3" in `docs/claude/recording.md` for the full field-level detail of each); rows 36-41 are the
+routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording.md`).
 
 | # | Method | Path | Action |
 |---|---|---|---|
@@ -180,28 +181,39 @@ are the performance take recorder's REST surface (see "Audio Store / Step 3" in
 | 33 | POST | /api/perf/repair | crash recovery — re-derives a truncated/incomplete asset's frame count |
 | 34 | GET | /api/perf/status | recording/playing/finished state, take-clock, `preambleCount/Fired/Refused/Unresolved`, `inputSource`, error counters |
 | 35 | POST | /api/audio/source | dev/probe control — switches the live app between the live input and the loaded file transport (s-rta-0925) |
+| 36 | POST | /api/routine/save | sliceRoutine() a piece of the loaded take into a named Routine, assigns a bank slot (s-rta-0926) |
+| 37 | POST | /api/routine/fire | queue the routine PENDING; RoutineEngine starts it on the next bar (its own quantize, or the global Quantize override) |
+| 38 | POST | /api/routine/stop | `{"slot":N}` or `{"all":true}` — stop() / stopAll(), releases every grip the routine holds |
+| 39 | POST | /api/routine/set | edit a saved routine's `loop`/`restoreState`/`quantize`/`name` (any subset) |
+| 40 | POST | /api/routine/remove | free a bank pad; erases the routine unless another pad still references it |
+| 41 | GET | /api/routine/status | clock beat, per-slot state (empty/idle/pending/running), lanes/preamble/stacking counters, lastSaved/lastError |
 
 The 7 `handlePerfRecord`/`handlePerfStop`/`handlePerfLoad`/`handlePerfPlay`/`handlePerfStopPlay`/
 `handlePerfRepair`/`handlePerfStatus` handlers return 503 "Recorder unavailable" when the
 callback is unwired; `handleAudioSource` returns 503 "Audio source unavailable" in the same case.
-Both mutate via `juce::MessageManager::callAsync` to the message thread.
+Both mutate via `juce::MessageManager::callAsync` to the message thread. The 5 mutating
+`handleRoutine*` handlers (rows 36-40) marshal the same way and return 503 "Routines unavailable"
+when unwired; `handleRoutineStatus` (row 41) is synchronous, reading only `RoutineEngine::status()`
+(a mutex-guarded copy, safe from any thread) -- never the composition's routine vectors.
 
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 17 endpoints) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
-### OSC input (`src/osc/OscHandler.cpp`) — 13 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
+### OSC input (`src/osc/OscHandler.cpp`) — 14 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 
 `startListening(8000)` is called unconditionally at startup (`MainComponent.cpp:1207-1211`,
-like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 13/13
+like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 14/14
 callbacks are now wired (`MainComponent.cpp:2083-2148`, s-rta-0926 re-derived), each routing through the same
 handler as the equivalent REST/UI/MIDI path (clip/deck/snapshot → same as REST; bpm →
 manual-override tracker; resync → `BPMTracker::requestResync()`, same funnel as the TopBar Resync
 button, s-rta-0925; layer opacity/bypass/solo/mute → active-deck layer fields; macro →
 global dashboard-link bank; effect param → global effect-chain; signal → Master Signal depth,
-s-rta-0925 mastersignal Step 1). Delivery is on the message
+s-rta-0925 mastersignal Step 1; routine → fire a bank pad, same funnel as `/api/routine/fire`,
+s-rta-0926 routines slice 1). Delivery is on the message
 thread (`MessageLoopCallback`). Patterns:
 `/audiodna/clip/{layer}/{column}`, `/layer/{n}/opacity|bypass|solo|mute`, `/deck/{n}`,
-`/master`, `/signal`, `/bpm`, `/resync`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`.
+`/master`, `/signal`, `/bpm`, `/resync`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`,
+`/routine/{slot}` (value > 0 fires; 0 ignored).
 Port is hardcoded (no preferences UI configures it yet — matches absence of a settings store).
 
 ### Persistence (JSON via juce::var) — **COMPLETE** for model entities (Wave 1-C, 2026-07-17; was LOSSY, lane-4 F5)
@@ -234,7 +246,7 @@ Source: lanes 2 + 4.
   instantiated → 8 live macros, not 24** (`MainComponent.h:207`). Signals: AudioSignal,
   OscillatorSignal (5 shapes, BPM-locked), EnvelopeSignal (control-point, BPM-locked),
   ClipPositionSignal. (ChainedSignal removed Wave 0 — see §8.)
-- **Binding / MIDI** — `BindingManager`: **20 actions**, InputType Keyboard/MidiNote/MidiCC,
+- **Binding / MIDI** — `BindingManager`: **21 actions** (TriggerRoutine appended s-rta-0926), InputType Keyboard/MidiNote/MidiCC,
   3 target modes (ByPosition/ThisItem/Selected), Toggle/Momentary, Absolute/Relative CC,
   MIDI-learn capture, JSON presets. `MidiHandler` (all inputs, hot-plug).
   `MidiOutputHandler` (Launchpad/APC pad feedback, 5 pad states, change-diffed).
@@ -295,7 +307,8 @@ Source: lane-5 §3.
 | NDI output / input | REMOVED 2026-07-17 (Wave 0) — NdiOutput.h + NdiInput.h deleted (were stubs) | — |
 | Undo / redo | BUILD-COMPLETE 2026-07-19→25 (Undo v1 steps 1-9; commits 7c8d286/7921572/daa9361/6d2def4/7f87094/316a2bf/d90e953/4ee2dac/0a1c882) — ALL structural edits: clip cells, composites/column ops, layer ops (GL-fenced), deck ops (fence fixes latent renderer re-point), effect stacks ×3 scopes, clip/column TRIGGERS with same-layer merge (REST/OSC/MIDI undoable; autopilot never); Cmd+Z + dynamic menu live; tests 170. Remaining: Boris-assisted manual e2e run (.harmony/undo-v1-manual-e2e.md; TCC Allow first); known cosmetics: expanded-FX-row collapse + deck-tab highlight on undo (pre-existing refresh path, follow-up awaiting ratification); accepted risk-#5 family: playing not restored, first-trigger auto-play skip after undo | src/core/ClipCommands.h; DeckCommands.h; EffectCommands.h; EffectScope.h; TriggerCommands.h; UndoService.h/.cpp; MediaReconnect.h; .harmony/undo-v1-ledger.md; .harmony/undo-v1-manual-e2e.md |
 | Performance recorder | LIVE (s168 core 3736f02; step 3 wiring s-rta-0924; Record panel s-rta-0924b; replay-restore preamble s-rta-0925) — replaces the removed `SessionRecorder` (section 8, removed s168, 3736f02) | src/recording/*; MainComponent.cpp:1945-2048, 5074-5300 |
-| OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 13/13 callbacks wired (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync; port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:2083-2148 |
+| Routines (slice 1) | LIVE (s-rta-0926, commits 58b14d7 + ebbff22) — save a piece of a loaded take as a named routine in an 8-slot bank; fire restores its preamble then plays its lanes on the next bar; loop/once, "Start from now", gesture-begin stacking arbitration for two routines on one control. Surfaces: 6 `/api/routine/*` REST routes, `/audiodna/routine/{slot}` OSC, `Binding::Action::TriggerRoutine` (8 whole-word overlay targets, no bank-strip UI yet — lane 3 not built, cut per plan). Deferred to slice 2+: no `routine` take lane / `via`-tagged capture, no lane editor UI, no per-slot re-target table, no import/export file, routine-vs-replay arbitration is tick order not gesture-begin order (R13, disclosed) | src/model/Routine.h; src/recording/RoutineSlice.{h,cpp}; src/recording/RoutineEngine.{h,cpp}; src/api/ApiServer.cpp:281-286,1520-1697; src/osc/OscHandler.cpp:177-190; src/binding/Binding.h; docs/claude/recording.md "Routines" |
+| OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 14/14 callbacks wired (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync; `/audiodna/routine/{slot}` added s-rta-0926 routines slice 1; port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:2083-2148 |
 | ISF import | PHANTOM — converted GLSL never compiled/queued; effect registers + shows but never renders; "Import Successful" dialog misleads | MainComponent.cpp:2426-2454 |
 | ISFShaderLoader::registerISFEffect | REMOVED 2026-07-17 (Wave 0) — dead no-op stub deleted (registerDynamic is the real path, kept) | — |
 | Shader hot-reload | INERT — all shipped shaders compiled from embedded strings; `reloadAll()` skips file-less programs | ShaderManager.cpp:115-116 |

@@ -189,7 +189,7 @@ AudioDNA/
 │   │   ├── Route.h + RoutingEngine.h/cpp # dial-range → threshold → gain → invert → smooth → ParamWriter
 │   │   └── MacroBank.h                    # Dashboard links (8 macros/scope) — only the Global bank is instantiated (8 live, not 24)
 │   ├── binding/                         # [v2] Keyboard + MIDI-learn bindings
-│   │   ├── Binding.h                     # 20 actions, 3 target modes, Toggle/Momentary, Abs/Rel CC
+│   │   ├── Binding.h                     # 21 actions (TriggerRoutine appended s-rta-0926 routines slice 1), 3 target modes, Toggle/Momentary, Abs/Rel CC
 │   │   └── BindingManager.h/cpp          # id-keyed store, MIDI-learn capture, JSON presets
 │   ├── midi/
 │   │   ├── MidiHandler.h/cpp             # MIDI input, hot-plug → BindingManager (wired)
@@ -214,15 +214,18 @@ AudioDNA/
 │   │   ├── Take.h/cpp + Lane.h + TempoMap.h + PerfState.h/PerfStateCapture.cpp ✅ # v3 take envelope (lanes/tempoMap/checkpoint0[+audio][+markers]), per-control lanes, tempo map, restore-point snapshot
 │   │   ├── Program.h/cpp + Player.h/cpp ✅ # Compile a Take into a schedule (incl. the D4 preamble) and play it back
 │   │   ├── RecorderHost.h/cpp        ✅ # Owns the whole record/replay lifecycle; backs RecordPanel + `/api/perf/*`
+│   │   ├── RoutineSlice.h/cpp        ✅ # [s-rta-0926 routines slice 1] sliceRoutine(): cuts a take's lanes into a Routine (rebase to beat 0, straddling breakpoints, preamble fallback chain)
+│   │   ├── RoutineEngine.h/cpp       ✅ # [s-rta-0926 routines slice 1] Runs each fired routine as its own Player on a shared beat clock; next-bar start, loop/once, gesture-begin stacking arbitration -- see "Routines" in docs/claude/recording.md
 │   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
 │   ├── model/
-│   │   └── ControlPath.h                # Deck/layer/clip/comp addressing shared by connections and recorded lanes
+│   │   ├── ControlPath.h                # Deck/layer/clip/comp addressing shared by connections and recorded lanes
+│   │   └── Routine.h                    # [s-rta-0926 routines slice 1] Composition-owned lane set + preamble + settings (loop/restoreState/quantize); Composition gains routines[]/routineBank[8]
 │   ├── connect/
 │   │   └── AutomationCurve.h            # Shared curve struct/evaluator: a hand-drawn Envelope (D6) and a recorded lane Gesture (D7) both store one
 │   ├── api/
-│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 35 registered routes -- all functional; 27 core + 7 `/api/perf/*` + `/api/audio/source`; /api/set_bpm wired Wave 0; CORS, always-on)
+│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 41 registered routes -- all functional; 27 core + 7 `/api/perf/*` + `/api/audio/source` + 6 `/api/routine/*` [s-rta-0926 routines slice 1]; /api/set_bpm wired Wave 0; CORS, always-on)
 │   ├── osc/
-│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 13/13 callbacks wired
+│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 14/14 callbacks wired (`/audiodna/routine/{slot}` added s-rta-0926 routines slice 1)
 │   ├── output/
 │   │   └── SyphonOutput.h/.mm       ✅ # [P22] macOS Syphon server — WIRED 2026-07-17 (Wave 1-A): publishes final composited frame each frame; no-op unless built -DAUDIODNA_BUILD_SYPHON=ON + Syphon.framework
 │   │                                    #   (SyphonInput.h/.mm, SpoutOutput.h, NdiOutput.h, NdiInput.h REMOVED 2026-07-17 (Wave 0) — were orphaned/no-op stubs)
@@ -242,6 +245,7 @@ AudioDNA/
 │   │   ├── FeedbackProcessor.h/cpp   ✅ # Per-layer Larsen feedback (6 presets)
 │   │   ├── LUTLoader.h/cpp           ✅ # Loads color LUT images (Color Grade effect)
 │   │   ├── EmbeddedShaders.h         ✅ # 135 effect + 15 transition + 93 source shaders (244 embedded strings)
+│   │   ├── ScratchPool.h             ✅ # [s-rta-0926 xfade] pickEffectTarget(readTex, holdTex): the one rule for CompositorEngine's shared effect scratch FBOs -- never render into a texture a pass samples or its caller still holds
 │   │   └── CompositorEngine.h/cpp    ✅ # [v2] Deck/layer compositing: clip FX → transition → layer FX → transform → keying → blend
 │   └── ui/                              # [v2] Performance UI (~37 panels — actual files on disk, grouped by area)
 │       ├── TopBar, SignalBar, SignalStrip           # Top chrome: tempo/transport + audio-feature meter strips
@@ -255,7 +259,7 @@ AudioDNA/
 │       ├── MenuBarModel, PreferencesDialog, PresetManager  # Menus, preferences, preset save/load
 │       └── LookAndFeel                              # Dark VJ theme
 ├── shaders/                             # REMOVED 2026-07-17 (Wave 0) — dir deleted; was 5 dead duplicate disk files (hue_shift/rgb_split/ripple/vignette .frag + passthrough.vert). All shipped shaders are embedded strings in src/render/EmbeddedShaders.h
-├── tests/                               # 49 Catch2 unit targets (539 tests, all pass -- ctest 539/539 s-rta-0925; run: `cd build && ctest`; counts derived, not inherited -- see tests/CMakeLists.txt)
+├── tests/                               # 53 Catch2 unit targets (565 tests registered -- `ctest -N` count, s-rta-0926 docs pass; NOT executed by this pass, see .harmony/VALIDATION.md; run: `cd build && ctest`; counts derived, not inherited -- see tests/CMakeLists.txt)
 │   ├── CMakeLists.txt
 │   ├── test_ring_buffer.cpp          ✅ # Lock-free SPSC ring buffer
 │   ├── test_spectral_features.cpp    ✅ # Centroid/flux/flatness/rolloff/bands
@@ -275,6 +279,8 @@ AudioDNA/
 │   ├── test_recorder_host.cpp        ✅ # [recorder] RecorderHost record/replay lifecycle, preamble restore
 │   ├── test_program_stamps.cpp       ✅ # [recorder] continuous breakpoint x from its own gesture's Stamp
 │   ├── test_program_preamble.cpp     ✅ # [recorder] checkpoint0 -> Program preamble compile order (s-rta-0925)
+│   ├── test_routine.cpp              ✅ # [recorder, s-rta-0926 routines slice 1] Routine model round-trip + sliceRoutine + compileRoutine (lane 1a)
+│   ├── test_routine_engine.cpp       ✅ # [recorder, s-rta-0926 routines slice 1] RoutineEngine scheduling, loop/stop, gesture-begin stacking, quantize parity, Binding round-trip (lane 1b)
 │   ├── test_take_v1_transport.cpp    ✅ # [recorder] removed-SessionRecorder-shape (v1) -> v2 bridge (D12 rule 5)
 │   ├── test_recorder_double_touch.cpp ✅ # [recorder] PerformanceRecorder::touch() double-open guard
 │   ├── test_record_panel_model.cpp   ✅ # [recorder] Record panel state machine

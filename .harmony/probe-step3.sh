@@ -253,6 +253,46 @@ else
     ok "R13: no analysis-rate-assumption warning on stderr (retired)"
 fi
 
+# --- 4b. environment: audio-device contention (s-rta-0926, .harmony/.reports/s-rta-0926/t2-bisect.md) --
+# Bisect verdict on two flaky T2 FAILs (drift + p95 jitter): environmental,
+# not a code regression -- a media player (Stremio) was actively holding a
+# coreaudiod audio-out assertion on the SAME CoreAudio device Audio-DNA uses
+# during exactly the worst runs, and both builds PASSed cleanly once that
+# assertion was gone. Snapshot `pmset -g assertions` right before the T2
+# recording below and WARN (never FAIL -- this is diagnostic, not a gate) if
+# any process OTHER than this run's own Audio-DNA (PID=$PID) holds an
+# audio-related power assertion, naming it, so a flaky T2 run self-diagnoses
+# instead of needing another bisect.
+AUDIO_ASSERTION_HOLDERS="$(pmset -g assertions 2>/dev/null | python3 -c "
+import re, sys
+mypid = '$PID'
+holder = None; holder_pid = None; hit = False; out = []
+def flush():
+    if holder is not None and hit and holder_pid != mypid:
+        out.append(holder.strip())
+for line in sys.stdin:
+    m = re.match(r'\s*pid (\d+)\(([^)]*)\):', line)
+    if m:
+        flush()
+        holder = line; holder_pid = m.group(1)
+        # coreaudiod holds audio assertions on behalf of EVERY playing client (incl. this run's own
+        # Audio-DNA) -- flagging it would WARN on every run; only a named third-party holder counts.
+        if m.group(2) in ('coreaudiod', 'Audio-DNA'):
+            holder = None; hit = False; continue
+        hit = 'audio' in line.lower()
+    elif holder is not None and 'audio' in line.lower():
+        hit = True
+flush()
+print('\n'.join(out))
+" 2>/dev/null)"
+if [ -n "$AUDIO_ASSERTION_HOLDERS" ]; then
+    while IFS= read -r ASSERTION_LINE; do
+        [ -n "$ASSERTION_LINE" ] && warn "environment: a process other than Audio-DNA holds an audio-related power assertion during this run ($ASSERTION_LINE) -- t2-bisect.md: this can degrade T2 drift/p95 jitter independent of any code change"
+    done <<< "$AUDIO_ASSERTION_HOLDERS"
+else
+    echo "(informational) environment: no non-Audio-DNA process holds an audio-related power assertion (pmset -g assertions)"
+fi
+
 # --- 5. arm with deterministic audio (file mode) + onset markers (T2) -----
 N_ASSETS_BEFORE="$(ls -1 "$AUDIO_DIR" 2>/dev/null | grep -c '\.adna-audio$')"
 TAKE_NAME="step3gate1"

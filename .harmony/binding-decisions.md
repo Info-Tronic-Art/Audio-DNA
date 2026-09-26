@@ -333,6 +333,8 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
     the audio is referenced, not copied. A take is cheap to fork.
 
 17. **ROUTINE CLIP HITS FIRE ON THE RECORDED LAYER.** Verbatim: "recorded".
+    BUILT s-rta-0926 (commit 58b14d7 + ebbff22), slice 1: a routine's `deckRelative` targets resolve
+    on the recorded layer at the ACTIVE deck at fire time (`Routine.h`, D2/D9).
 
 18. **OVERRIDE AND EDIT MODEL — his own words, and they match the spec's TOUCH + OVERWRITE.**
     Verbatim: "The knob will supersede whatever is happening, And will snap back to the recorded
@@ -359,6 +361,9 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
     layers and parameters at once, so putting it in a clip cell — which means "one clip on one
     layer" everywhere else in the app — would overload a cell's meaning. A separate bank keeps
     both concepts honest and is the more universal shape.
+    BUILT s-rta-0926 (commit 58b14d7 + ebbff22), slice 1: `Composition::routineBank` (8 slots,
+    `Composition::kRoutineBankSize`), fired via REST/OSC/binding pads and the Record-tab Routines strip
+    (8 pads + Save Routine row, lane 3), not a clip cell.
 
 21. **STILL OWED HIM: question 3 (routine once-vs-loop) was asked without context.** Verbatim:
     "what is this in reference to?" — a fair complaint about the question, not an answer. Re-put in
@@ -385,6 +390,9 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
     knob's source list — because it is not about one knob. A routine's individual continuous lane
     CAN be printed onto a knob, and at that moment it becomes an ordinary curve source. Flagged to
     Boris explicitly rather than silently resolved.
+    BUILT s-rta-0926 (commit 58b14d7 + ebbff22), slice 1: loop/once + quantize are live
+    per-routine settings; `direction` (reverse playback) stays DEFERRED to a later slice (`Player`
+    has no reverse clock — a decreasing position is a seek, not a direction flag).
 
 23. **>>> DRAW, DON'T DRAG. <<<** Verbatim: "If the knob recording doesn't change, there's nothing
     to record if I drag the feeder from 0 to 100 and park it at 100 the last thing you record is
@@ -428,10 +436,18 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
     routine first puts the layers and knobs it uses back the way they were at record time, then
     plays. Per the recommendation he accepted, a per-routine "start from now" switch remains,
     for routines meant to layer on top of whatever is live. Restore is the DEFAULT.
+    BUILT s-rta-0926 (commit 58b14d7 + ebbff22), slice 1: `restoreState` defaults true and fires
+    the routine's preamble through `Player::firePreamble` before its lanes play; `restoreState =
+    false` is the "Start from now" switch. Reading of "the state it was recorded in" = the state
+    at the SLICE'S OWN START, not the take's full checkpoint 0 — flagged to Boris as one open
+    question (plan section 10.1), not a design change.
 
 27. **A ROUTINE STARTS ON THE NEXT BAR.** Verbatim: "bar". Not the next beat. Per-routine
     override stays available, and the global Quantize setting overrides when it is on —
     consistent with how a quantized clip trigger already behaves.
+    BUILT s-rta-0926 (commit 58b14d7 + ebbff22), slice 1: default `quantize = Bar`; the global
+    Quantize setting overrides per-routine when it is on; "2 Bar"/"4 Bar" parity is read from
+    `barCount` (the same counter a quantized clip trigger uses), never `totalBarCount`.
 
 28. **>>> THE AUDIO IS THE ANCHOR, AND MANY TAKES SHARE ONE AUDIO. <<<** Verbatim: "2-4 hours.
     We need to be able to use the recorded audio (lets say from a first show of a tour) to go
