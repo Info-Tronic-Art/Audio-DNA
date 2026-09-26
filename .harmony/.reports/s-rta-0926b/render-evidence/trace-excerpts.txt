@@ -1,0 +1,116 @@
+# R5 (creation frame f629, key 77) -- pre-change code + render-trace.diff
+[FBOTRACE] f629 frame start: defaultFBO / pendingCapture / deckActive / t_ms 0 1 1 22926326
+[FBOTRACE] f629 clip change/trigger on layer 77 -> tracing 13 frames
+[FBOTRACE] f629 R2TRACE compositeDeck deckId/layerId 0 77 0 0
+[FBOTRACE] f629 compositeDeck layer/clipTex/accumTex/scratchTex 77 9 1 2
+[FBOTRACE] f629   crossfade x1000 / prevCol / feedback / nLayerFx 1000 0 0 0
+[FBOTRACE] f629 applyClipEffects enter inputTex/holdTex/texA/texB 9 0 3 4
+[FBOTRACE] f629 R5TRACE CREATE temporal buffer key=77 756x878 (drawFBO before=3) nBuffers=1
+[FBOTRACE] f629 R5TRACE after getOrCreateTemporalBuffer (mid-pass): drawFBO/targetFBO/unit0tex/currentInput 0 3 11 9
+[FBOTRACE] f629 R1TRACE u_prev_frame key/tex 77 11 0 0
+[FBOTRACE] f629 fx:time_freeze         drawFBO=0->tex0 status=0x8cd5 prog=638 u_texture@u0=tex11 u_prev_frame@u1=tex11 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=9
+[FBOTRACE] f629 R1TRACE temporalSave key/tex/src 77 11 3 0
+[FBOTRACE] f629 saveTemporal           drawFBO=9->tex11 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=3
+[FBOTRACE] f629 saveLayerOutput        drawFBO=8->tex10 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=3
+[FBOTRACE] f629 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=3
+[FBOTRACE] f629 updateFeedbackBuffer   drawFBO=7->tex7 status=0x8cd5 prog=2 u_texture@u0=tex1 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=1
+[FBOTRACE] f629 present: srcTex / compW / compH / vpW 1 756 878 756
+[FBOTRACE] f629 present:effectChain    drawFBO=0->tex0 status=0x8cd5 prog=2 u_texture@u0=tex1 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=1
+[FBOTRACE] f629 present:masterOpacity  drawFBO=0->tex0 status=0x8cd5 prog=2 u_texture@u0=tex1 errDraw=0x0 errRead=0x0 centre=(0,0,0,0) note=1
+[FBOTRACE] f629 CAPTURE readFBO=0 drawFBO=0 status=0x8cd5 preErr=0x0 readErr=0x0 rect=(0,0 756x878) mean=(0.0,0.0,0.0,0.0) nonzeroPx=0/663768
+[FBOTRACE] f630 fx:time_freeze         drawFBO=3->tex3 status=0x8cd5 prog=638 u_texture@u0=tex9 u_prev_frame@u1=tex11 errDraw=0x0 errRead=0x0 centre=(0,0,0,128) note=9
+[FBOTRACE] f630 CAPTURE readFBO=0 drawFBO=0 status=0x8cd5 preErr=0x0 readErr=0x0 rect=(0,0 756x878) mean=(17.0,1.0,12.4,128.0) nonzeroPx=663768/663768
+
+# R1 (both chains of one crossfade share key 0 / tex14)
+[FBOTRACE] f4490 R2TRACE compositeDeck deckId/layerId 0 0 0 0
+[FBOTRACE] f4490 compositeDeck layer/clipTex/accumTex/scratchTex 0 9 1 2
+[FBOTRACE] f4490   crossfade x1000 / prevCol / feedback / nLayerFx 2 1 0 0
+[FBOTRACE] f4490 applyClipEffects enter inputTex/holdTex/texA/texB 9 0 3 4
+[FBOTRACE] f4490 R5TRACE after getOrCreateTemporalBuffer (mid-pass): drawFBO/targetFBO/unit0tex/currentInput 3 3 9 9
+[FBOTRACE] f4490 R1TRACE u_prev_frame key/tex 0 14 0 0
+[FBOTRACE] f4490 fx:time_freeze         drawFBO=3->tex3 status=0x8cd5 prog=638 u_texture@u0=tex9 u_prev_frame@u1=tex14 errDraw=0x0 errRead=0x0 centre=(6,6,6,255) note=9
+[FBOTRACE] f4490 R1TRACE temporalSave key/tex/src 0 14 3 0
+[FBOTRACE] f4490 saveTemporal           drawFBO=11->tex14 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(6,6,6,255) note=3
+[FBOTRACE] f4490 R3TRACE outgoing clip scale x1000 / posX / rotation / opacity x1000 (applyClipTransform NOT called) 1000 0 0 1000
+[FBOTRACE] f4490 applyClipEffects enter inputTex/holdTex/texA/texB 13 3 3 4
+[FBOTRACE] f4490 R5TRACE after getOrCreateTemporalBuffer (mid-pass): drawFBO/targetFBO/unit0tex/currentInput 4 4 13 13
+[FBOTRACE] f4490 R1TRACE u_prev_frame key/tex 0 14 0 0
+[FBOTRACE] f4490 fx:time_freeze         drawFBO=4->tex4 status=0x8cd5 prog=638 u_texture@u0=tex13 u_prev_frame@u1=tex14 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=13
+[FBOTRACE] f4490 R1TRACE temporalSave key/tex/src 0 14 4 0
+[FBOTRACE] f4490 saveTemporal           drawFBO=11->tex14 status=0x8cd5 prog=2 u_texture@u0=tex4 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=4
+[FBOTRACE] f4490 transition             drawFBO=6->tex6 status=0x8cd5 prog=770 u_texture@u0=tex3 u_prevTexture@u1=tex4 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=4
+[FBOTRACE] f4490 saveLayerOutput        drawFBO=10->tex12 status=0x8cd5 prog=2 u_texture@u0=tex6 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=6
+[FBOTRACE] f4490 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex6 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=6
+
+# R2 temporal (deck0 layer0 + deck1 persistent layer0 share key 0 / tex14)
+[FBOTRACE] f7468 R2TRACE compositeDeck deckId/layerId 0 0 0 0
+[FBOTRACE] f7468 compositeDeck layer/clipTex/accumTex/scratchTex 0 9 1 2
+[FBOTRACE] f7468   crossfade x1000 / prevCol / feedback / nLayerFx 1000 -1 0 0
+[FBOTRACE] f7468 applyClipEffects enter inputTex/holdTex/texA/texB 9 0 3 4
+[FBOTRACE] f7468 R1TRACE u_prev_frame key/tex 0 14 0 0
+[FBOTRACE] f7468 fx:time_freeze         drawFBO=3->tex3 status=0x8cd5 prog=638 u_texture@u0=tex9 u_prev_frame@u1=tex14 errDraw=0x0 errRead=0x0 centre=(6,6,6,255) note=9
+[FBOTRACE] f7468 R1TRACE temporalSave key/tex/src 0 14 3 0
+[FBOTRACE] f7468 saveTemporal           drawFBO=11->tex14 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(6,6,6,255) note=3
+[FBOTRACE] f7468 saveLayerOutput        drawFBO=10->tex12 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(6,6,6,255) note=3
+[FBOTRACE] f7468 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(6,6,6,255) note=3
+[FBOTRACE] f7468 R2TRACE persistent deckId/layerId/clipTex/nClipFx 1 0 13 1
+[FBOTRACE] f7468 applyClipEffects enter inputTex/holdTex/texA/texB 13 0 3 4
+[FBOTRACE] f7468 R1TRACE u_prev_frame key/tex 0 14 0 0
+[FBOTRACE] f7468 fx:time_freeze         drawFBO=3->tex3 status=0x8cd5 prog=638 u_texture@u0=tex13 u_prev_frame@u1=tex14 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=13
+[FBOTRACE] f7468 R1TRACE temporalSave key/tex/src 0 14 3 0
+[FBOTRACE] f7468 saveTemporal           drawFBO=11->tex14 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=3
+[FBOTRACE] f7468 blendLayer             drawFBO=1->tex1 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(11,11,11,255) note=3
+[FBOTRACE] f7468 CAPTURE readFBO=0 drawFBO=0 status=0x8cd5 preErr=0x0 readErr=0x0 rect=(0,0 756x878) mean=(32.4,3.4,24.0,255.0) nonzeroPx=663768/663768
+
+# R2 ring (both push ring key 0 in one frame)
+[FBOTRACE] f8614 R2TRACE compositeDeck deckId/layerId 0 0 0 0
+[FBOTRACE] f8614 compositeDeck layer/clipTex/accumTex/scratchTex 0 9 1 2
+[FBOTRACE] f8614 applyClipEffects enter inputTex/holdTex/texA/texB 9 0 3 4
+[FBOTRACE] f8614 R2TRACE ringPush key/writeIndex/tex0/src 0 35 16 9
+[FBOTRACE] f8614 saveLayerOutput        drawFBO=10->tex12 status=0x8cd5 prog=2 u_texture@u0=tex50 errDraw=0x0 errRead=0x0 centre=(15,15,15,255) note=50
+[FBOTRACE] f8614 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex50 errDraw=0x0 errRead=0x0 centre=(15,15,15,255) note=50
+[FBOTRACE] f8614 R2TRACE persistent deckId/layerId/clipTex/nClipFx 1 0 13 1
+[FBOTRACE] f8614 applyClipEffects enter inputTex/holdTex/texA/texB 13 0 3 4
+[FBOTRACE] f8614 R2TRACE ringPush key/writeIndex/tex0/src 0 36 16 13
+[FBOTRACE] f8614 blendLayer             drawFBO=1->tex1 status=0x8cd5 prog=2 u_texture@u0=tex51 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=51
+
+# R3 (outgoing clip scale 0.5: transition samples the raw image tex9; no clipTransform draw)
+[FBOTRACE] f2830 R2TRACE compositeDeck deckId/layerId 0 0 0 0
+[FBOTRACE] f2830 compositeDeck layer/clipTex/accumTex/scratchTex 0 13 1 2
+[FBOTRACE] f2830   crossfade x1000 / prevCol / feedback / nLayerFx 4 0 0 0
+[FBOTRACE] f2830 R3TRACE outgoing clip scale x1000 / posX / rotation / opacity x1000 (applyClipTransform NOT called) 500 0 0 1000
+[FBOTRACE] f2830 transition             drawFBO=6->tex6 status=0x8cd5 prog=767 u_texture@u0=tex13 u_prevTexture@u1=tex9 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=9
+[FBOTRACE] f2830 saveLayerOutput        drawFBO=10->tex12 status=0x8cd5 prog=2 u_texture@u0=tex6 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=6
+[FBOTRACE] f2830 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex6 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=6
+# ...the same clip while ACTIVE:
+[FBOTRACE] f2164 clipTransform          drawFBO=3->tex3 status=0x8cd5 prog=323 u_texture@u0=tex9 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=9
+
+# R4a persistent layer with clip scale 0.5: no clipTransform draw
+[FBOTRACE] f10161 R2TRACE compositeDeck deckId/layerId 0 0 0 0
+[FBOTRACE] f10161 compositeDeck layer/clipTex/accumTex/scratchTex 0 9 1 2
+[FBOTRACE] f10161   crossfade x1000 / prevCol / feedback / nLayerFx 1000 -1 0 0
+[FBOTRACE] f10161 saveLayerOutput        drawFBO=10->tex12 status=0x8cd5 prog=2 u_texture@u0=tex9 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=9
+[FBOTRACE] f10161 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex9 errDraw=0x0 errRead=0x0 centre=(0,0,0,255) note=9
+[FBOTRACE] f10161 R2TRACE persistent deckId/layerId/clipTex/nClipFx 1 5 13 0
+[FBOTRACE] f10161 R4TRACE persistent skips: clipScale x1000/layerFx/layerScale x1000/feedback 500 0 1000 0
+[FBOTRACE] f10161 R4TRACE persistent transition: crossfade x1000/prevCol/activeCol 1000 -1 0 0
+[FBOTRACE] f10161 keying                 drawFBO=2->tex2 status=0x8cd5 prog=251 u_texture@u0=tex13 errDraw=0x0 errRead=0x0 centre=(15,15,15,255) note=13
+[FBOTRACE] f10161 blendLayer             drawFBO=1->tex1 status=0x8cd5 prog=2 u_texture@u0=tex2 errDraw=0x0 errRead=0x0 centre=(15,15,15,255) note=2
+[FBOTRACE] f10161 CAPTURE readFBO=0 drawFBO=0 status=0x8cd5 preErr=0x0 readErr=0x0 rect=(0,0 756x878) mean=(31.3,3.7,23.3,255.0) nonzeroPx=663768/663768
+
+# R4f persistent layer mid-transition: crossfade frozen at 0.031, IN drawn alone
+[FBOTRACE] f13919 R2TRACE compositeDeck deckId/layerId 0 0 0 0
+[FBOTRACE] f13919 compositeDeck layer/clipTex/accumTex/scratchTex 0 9 1 2
+[FBOTRACE] f13919   crossfade x1000 / prevCol / feedback / nLayerFx 1000 -1 0 0
+[FBOTRACE] f13919 applyClipEffects enter inputTex/holdTex/texA/texB 9 0 3 4
+[FBOTRACE] f13919 fx:invert              drawFBO=3->tex3 status=0x8cd5 prog=59 u_texture@u0=tex9 errDraw=0x0 errRead=0x0 centre=(255,255,255,255) note=9
+[FBOTRACE] f13919 saveLayerOutput        drawFBO=10->tex12 status=0x8cd5 prog=2 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(255,255,255,255) note=3
+[FBOTRACE] f13919 accumOpaque            drawFBO=1->tex1 status=0x8cd5 prog=5 u_texture@u0=tex3 errDraw=0x0 errRead=0x0 centre=(255,255,255,255) note=3
+[FBOTRACE] f13919 R2TRACE persistent deckId/layerId/clipTex/nClipFx 1 5 13 0
+[FBOTRACE] f13919 R4TRACE persistent skips: clipScale x1000/layerFx/layerScale x1000/feedback 1000 0 1000 0
+[FBOTRACE] f13919 R4TRACE persistent transition: crossfade x1000/prevCol/activeCol 31 0 1 0
+[FBOTRACE] f13919 keying                 drawFBO=2->tex2 status=0x8cd5 prog=251 u_texture@u0=tex13 errDraw=0x0 errRead=0x0 centre=(15,15,15,255) note=13
+[FBOTRACE] f13919 blendLayer             drawFBO=1->tex1 status=0x8cd5 prog=2 u_texture@u0=tex2 errDraw=0x0 errRead=0x0 centre=(15,15,15,255) note=2
+[FBOTRACE] f13919 CAPTURE readFBO=0 drawFBO=0 status=0x8cd5 preErr=0x0 readErr=0x0 rect=(0,0 756x878) mean=(31.3,3.7,23.3,255.0) nonzeroPx=663768/663768
+# traced frames with crossfade frozen at 31/1000:
+17

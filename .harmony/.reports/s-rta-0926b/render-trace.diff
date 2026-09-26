@@ -1,0 +1,415 @@
+diff --git a/src/render/CompositorEngine.cpp b/src/render/CompositorEngine.cpp
+index 44ecffe..603282b 100644
+--- a/src/render/CompositorEngine.cpp
++++ b/src/render/CompositorEngine.cpp
+@@ -1,6 +1,7 @@
+ #include "CompositorEngine.h"
+ #include "render/EmbeddedShaders.h"
+ #include "render/ScratchPool.h"
++#include "render/FboTrace.h"
+ #include <iostream>
+ #include <cmath>
+ 
+@@ -99,6 +100,9 @@ void CompositorEngine::resize(int width, int height)
+     createFBO(effectFBO_C_, effectTex_C_, width, height);
+     createFBO(transitionFBO_, transitionTex_, width, height);
+     createFBO(feedbackFBO_, feedbackTex_, width, height);
++    if (FboTrace::enabled())
++        std::fprintf(stderr, "[FBOTRACE] resize %dx%d accum=%u scratch=%u A=%u B=%u C=%u trans=%u fb=%u\n", width, height,
++                     accumulatorTex_, scratchTex_, effectTex_A_, effectTex_B_, effectTex_C_, transitionTex_, feedbackTex_);
+ 
+     // P20: Invalidate layer output FBOs (they'll be recreated at new size)
+     for (auto& [id, fbo] : layerOutputFBOs_)
+@@ -183,6 +187,7 @@ void CompositorEngine::saveLayerOutput(uint32_t layerId, GLuint srcTex,
+     glBindTexture(GL_TEXTURE_2D, srcTex);
+     glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+     quad.draw();
++    FboTrace::draw("saveLayerOutput", w, h, srcTex);
+ }
+ 
+ GLuint CompositorEngine::loadKeyImage(const juce::File& imageFile)
+@@ -276,6 +281,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
+     // the texture the caller still holds (the crossfade clobber: the outgoing
+     // clip's chain overwrote the incoming clip's result). With nothing held
+     // this is the same A/B ping-pong as before (external -> A -> B -> A ...).
++    FboTrace::msg("applyClipEffects enter inputTex/holdTex/texA/texB", static_cast<long>(inputTex), static_cast<long>(holdTex),
++                  static_cast<long>(effectTex_A_), static_cast<long>(effectTex_B_));
+     // A chain that starts from a pool texture can END on that same texture
+     // (A -> B -> A), so "did this chain render?" is tracked explicitly below,
+     // never inferred from currentInput != inputTex.
+@@ -312,6 +319,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
+             float stutterParam = (slot.paramValues.size() > 1) ? slot.effParam(1) : 0.0f;
+ 
+             auto& ring = getOrCreateRingBuffer(layerId, w, h);
++            FboTrace::msg("R2TRACE ringPush key/writeIndex/tex0/src", static_cast<long>(layerId), ring.writeIndex,
++                          static_cast<long>(ring.textures[0]), static_cast<long>(currentInput));
+             pushFrameToRing(ring, currentInput, shaderMgr, quad, w, h);
+ 
+             // depth: how far back to look. Map [0,1] to [1, 30] frames
+@@ -369,6 +378,15 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
+         if (def->temporal)
+         {
+             auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
++            if (FboTrace::active())
++            {
++                GLint dfb = 0, t0 = 0;
++                glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &dfb);
++                glGetIntegerv(GL_TEXTURE_BINDING_2D, &t0);
++                FboTrace::msg("R5TRACE after getOrCreateTemporalBuffer (mid-pass): drawFBO/targetFBO/unit0tex/currentInput",
++                              dfb, static_cast<long>(target.fbo), t0, static_cast<long>(currentInput));
++                FboTrace::msg("R1TRACE u_prev_frame key/tex", static_cast<long>(layerId), static_cast<long>(tempBuf.tex));
++            }
+             auto prevLoc = program->getUniformIDFromName("u_prev_frame");
+             if (prevLoc >= 0)
+             {
+@@ -413,6 +431,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
+         }
+ 
+         quad.draw();
++        FboTrace::draw(("fx:" + def->shaderName).toRawUTF8(), w, h, currentInput);
+ 
+         // Apply dry/wet blend if < 1.0: mix(original, effected, dryWet), done
+         // IN PLACE on the target with fixed-function blending -- the target
+@@ -439,6 +458,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
+                 glUniform1i(pt->getUniformIDFromName("u_texture"), 0);
+                 quad.draw();
+                 glDisable(GL_BLEND);
++                FboTrace::draw("fx:dry_wet(blend)", w, h, currentInput);
+             }
+         }
+ 
+@@ -454,6 +474,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
+     if (anyTemporal && renderedAny)
+     {
+         auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
++        FboTrace::msg("R1TRACE temporalSave key/tex/src", static_cast<long>(layerId), static_cast<long>(tempBuf.tex),
++                      static_cast<long>(currentInput));
+         saveToTemporalBuffer(tempBuf, currentInput, shaderMgr, quad, w, h);
+     }
+ 
+@@ -517,6 +539,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
+                         effRotation * 3.14159265f / 180.0f);
+ 
+             quad.draw();
++            FboTrace::draw("clipTransform", w, h, srcTex);
+ 
+             transformedTex = xf.tex;
+         }
+@@ -593,6 +616,7 @@ GLuint CompositorEngine::applyClipOpacity(float opacity, GLuint srcTex, GLuint d
+     glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_opacity"), opacity);
+ 
+     quad.draw();
++    FboTrace::draw("clipOpacity", w, h, srcTex);
+ 
+     return dstTex;
+ }
+@@ -652,6 +676,7 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
+                 effLayerRotation);
+ 
+     quad.draw();
++    FboTrace::draw("layerTransform", w, h, srcTex);
+ 
+     return lt.tex;
+ }
+@@ -860,6 +885,18 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+         const Clip* clip = layer.getActiveClip();
+         if (clip == nullptr)
+             continue;
++        if (FboTrace::enabled())
++        {
++            static const Clip* s_lastClip = nullptr;
++            static bool s_lastPlaying = false;
++            if (clip != s_lastClip || clip->playing != s_lastPlaying)
++            {
++                s_lastClip = clip; s_lastPlaying = clip->playing;
++                FboTrace::framesLeft().store(13);
++                std::fprintf(stderr, "[FBOTRACE] f%ld clip change/trigger on layer %u -> tracing 13 frames\n",
++                             FboTrace::frameNo().load(), layer.id);
++            }
++        }
+ 
+         // Handle layer types
+         switch (layer.type)
+@@ -894,6 +931,11 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+                     continue;
+                 }
+ 
++                FboTrace::msg("R2TRACE compositeDeck deckId/layerId", static_cast<long>(deck.id), static_cast<long>(layer.id));
++                FboTrace::msg("compositeDeck layer/clipTex/accumTex/scratchTex", static_cast<long>(layer.id),
++                              static_cast<long>(clipTex), static_cast<long>(accumulatorTex_), static_cast<long>(scratchTex_));
++                FboTrace::msg("  crossfade x1000 / prevCol / feedback / nLayerFx", static_cast<long>(layer.crossfadeProgress * 1000.0f),
++                              layer.previousClipColumn, layer.feedback.enabled ? 1 : 0, static_cast<long>(layer.layerEffects.size()));
+                 // Apply per-clip transform (position, scale, rotation)
+                 clipTex = applyClipTransform(*clip, clipTex, shaderMgr, quad, width, height);
+ 
+@@ -909,6 +951,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+                 if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
+                 {
+                     auto& fbProc = getOrCreateFeedbackProcessor(layer.id);
++                    FboTrace::msg("R2TRACE feedback key(layer.id)/deckId", static_cast<long>(layer.id), static_cast<long>(deck.id));
+                     clipTex = fbProc.process(clipTex, layer.feedback, shaderMgr, quad, width, height);
+                 }
+ 
+@@ -967,6 +1010,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+                     glActiveTexture(GL_TEXTURE0);
+                     glBindTexture(GL_TEXTURE_2D, clipTex);
+                     quad.draw();
++                    FboTrace::draw("accumOpaque", width, height, clipTex);
+                     glDisable(GL_BLEND);
+                 }
+                 break;
+@@ -1065,6 +1109,13 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
+         if (clipTex == 0) continue;
+ 
+         // Apply clip effects
++        FboTrace::msg("R2TRACE persistent deckId/layerId/clipTex/nClipFx", static_cast<long>(deck.id),
++                      static_cast<long>(layer.id), static_cast<long>(clipTex), static_cast<long>(clip->effects.size()));
++        FboTrace::msg("R4TRACE persistent skips: clipScale x1000/layerFx/layerScale x1000/feedback",
++                      static_cast<long>(clip->eff(ClipScalar::Scale) * 1000.0f), static_cast<long>(layer.layerEffects.size()),
++                      static_cast<long>(layer.eff(LayerScalar::Scale) * 1000.0f), layer.feedback.enabled ? 1 : 0);
++        FboTrace::msg("R4TRACE persistent transition: crossfade x1000/prevCol/activeCol", static_cast<long>(layer.crossfadeProgress * 1000.0f),
++                      layer.previousClipColumn, layer.activeClipColumn);
+         GLuint processedTex = applyClipEffects(clip->effects, clipTex,
+                                                 shaderMgr, quad, time, width, height,
+                                                 layer.id);
+@@ -1150,6 +1201,7 @@ void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuin
+     glActiveTexture(GL_TEXTURE0);
+     glBindTexture(GL_TEXTURE_2D, srcTex);
+     quad.draw();
++    FboTrace::draw("keying", w, h, srcTex);
+ }
+ 
+ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcTex,
+@@ -1237,6 +1289,7 @@ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcT
+             glDisable(GL_BLEND);
+             break;
+     }
++    FboTrace::draw("blendLayer", w, h, srcTex);
+ }
+ 
+ // === Phase 14: Clip texture helper ===
+@@ -1300,6 +1353,9 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float
+     Clip* prevClip = layer.getClipAt(layer.previousClipColumn);
+     if (prevClip == nullptr)
+         return newClipTex;
++    FboTrace::msg("R3TRACE outgoing clip scale x1000 / posX / rotation / opacity x1000 (applyClipTransform NOT called)",
++                  static_cast<long>(prevClip->eff(ClipScalar::Scale) * 1000.0f), static_cast<long>(prevClip->eff(ClipScalar::PosX)),
++                  static_cast<long>(prevClip->eff(ClipScalar::Rotation)), static_cast<long>(prevClip->eff(ClipScalar::Opacity) * 1000.0f));
+ 
+     // s-rta-0926 xfade: newClipTex is HELD from here to the transition draw,
+     // across two passes that could overwrite it:
+@@ -1332,6 +1388,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float
+             glUniform1i(pt->getUniformIDFromName("u_texture"), 0);
+             quad.draw();
+             newClipTex = keep.tex;
++            FboTrace::draw("xfade:keepIncoming", w, h, newClipTex);
+         }
+     }
+ 
+@@ -1386,6 +1443,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float
+     glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), layer.crossfadeProgress);
+ 
+     quad.draw();
++    FboTrace::draw("transition", w, h, prevTex);
+ 
+     // Reset active texture
+     glActiveTexture(GL_TEXTURE0);
+@@ -1414,6 +1472,7 @@ void CompositorEngine::updateFeedbackBuffer(ShaderManager& shaderMgr, Fullscreen
+     glActiveTexture(GL_TEXTURE0);
+     glBindTexture(GL_TEXTURE_2D, accumulatorTex_);
+     quad.draw();
++    FboTrace::draw("updateFeedbackBuffer", w, h, accumulatorTex_);
+ 
+     feedbackReady_ = true;
+ }
+@@ -1435,6 +1494,12 @@ CompositorEngine::TemporalBuffer& CompositorEngine::getOrCreateTemporalBuffer(ui
+     auto& buf = layerTemporalBuffers_[layerId];
+     if (buf.tex != 0 && buf.width == w && buf.height == h)
+         return buf;
++    if (FboTrace::enabled())
++    {
++        GLint dfb = 0; glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &dfb);
++        std::fprintf(stderr, "[FBOTRACE] f%ld R5TRACE CREATE temporal buffer key=%u %dx%d (drawFBO before=%d) nBuffers=%zu\n",
++                     FboTrace::frameNo().load(), layerId, w, h, dfb, layerTemporalBuffers_.size());
++    }
+ 
+     // Release old if size changed
+     if (buf.fbo != 0) { glDeleteFramebuffers(1, &buf.fbo); buf.fbo = 0; }
+@@ -1467,6 +1532,7 @@ void CompositorEngine::saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
+     glBindTexture(GL_TEXTURE_2D, srcTex);
+     glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+     quad.draw();
++    FboTrace::draw("saveTemporal", w, h, srcTex);
+     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+ }
+ 
+diff --git a/src/render/FboTrace.h b/src/render/FboTrace.h
+new file mode 100644
+index 0000000..bccdaa4
+--- /dev/null
++++ b/src/render/FboTrace.h
+@@ -0,0 +1,89 @@
++#pragma once
++// TEMPORARY s-rta-0926 parity-lane diagnostic (AUDIODNA_FBO_TRACE=1). Not for merge -- kept only as
++// .harmony/.reports/s-rta-0926/parity-trace.diff. Logs every compositor / present draw of a traced
++// frame: target FBO -> colour attachment, FBO status, every sampler the bound program samples and the
++// texture on its unit (FEEDBACK flag if it is the attachment), glGetError, and a centre 8x8 readback.
++#include <juce_opengl/juce_opengl.h>
++#include <cstdio>
++#include <cstdlib>
++#include <atomic>
++
++namespace FboTrace
++{
++using namespace juce::gl;
++
++inline bool enabled()
++{
++    static const bool on = std::getenv("AUDIODNA_FBO_TRACE") != nullptr;
++    return on;
++}
++
++// Frames still to trace (set on a clip change / pending capture); frame counter for log lines.
++inline std::atomic<int>& framesLeft() { static std::atomic<int> v { 0 }; return v; }
++inline std::atomic<long>& frameNo() { static std::atomic<long> v { 0 }; return v; }
++inline bool active() { return enabled() && framesLeft().load(std::memory_order_relaxed) > 0; }
++
++inline void centreMean(GLuint readFbo, int w, int h, float out[4], GLenum& err)
++{
++    GLint prevRead = 0;
++    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevRead);
++    glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo);
++    unsigned char px[8 * 8 * 4] = {};
++    glReadPixels(w / 2 - 4, h / 2 - 4, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, px);
++    err = glGetError();
++    for (int c = 0; c < 4; ++c) out[c] = 0.0f;
++    for (int i = 0; i < 64; ++i)
++        for (int c = 0; c < 4; ++c) out[c] += px[i * 4 + c] / 64.0f;
++    glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(prevRead));
++}
++
++// Call right AFTER a draw. Inspects the currently bound DRAW framebuffer and program.
++inline void draw(const char* stage, int w, int h, GLuint note = 0)
++{
++    if (!active()) return;
++    GLenum errDraw = glGetError();
++    GLint drawFbo = 0, prog = 0, activeUnit = 0;
++    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFbo);
++    glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
++    glGetIntegerv(GL_ACTIVE_TEXTURE, &activeUnit);
++    GLint attach = 0;
++    GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
++    if (drawFbo != 0)
++        glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
++                                              GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attach);
++    char samplers[512] = {};
++    int off = 0;
++    bool feedback = false;
++    if (prog != 0)
++    {
++        GLint n = 0;
++        glGetProgramiv(static_cast<GLuint>(prog), GL_ACTIVE_UNIFORMS, &n);
++        for (GLint i = 0; i < n && off < 440; ++i)
++        {
++            char name[64]; GLsizei len = 0; GLint size = 0; GLenum type = 0;
++            glGetActiveUniform(static_cast<GLuint>(prog), static_cast<GLuint>(i), sizeof(name), &len, &size, &type, name);
++            if (type != GL_SAMPLER_2D) continue;
++            GLint unit = -1;
++            glGetUniformiv(static_cast<GLuint>(prog), glGetUniformLocation(static_cast<GLuint>(prog), name), &unit);
++            GLint tex = 0;
++            glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(unit));
++            glGetIntegerv(GL_TEXTURE_BINDING_2D, &tex);
++            if (drawFbo != 0 && tex == attach) feedback = true;
++            off += std::snprintf(samplers + off, sizeof(samplers) - static_cast<size_t>(off),
++                                 " %s@u%d=tex%d", name, unit, tex);
++        }
++        glActiveTexture(static_cast<GLenum>(activeUnit));
++    }
++    float m[4]; GLenum errRead = 0;
++    centreMean(static_cast<GLuint>(drawFbo), w, h, m, errRead);
++    std::fprintf(stderr, "[FBOTRACE] f%ld %-22s drawFBO=%d->tex%d status=0x%x prog=%d%s%s errDraw=0x%x errRead=0x%x centre=(%.0f,%.0f,%.0f,%.0f) note=%u\n",
++                 frameNo().load(), stage, drawFbo, attach, status, prog, samplers,
++                 feedback ? " FEEDBACK!" : "", errDraw, errRead, m[0], m[1], m[2], m[3], note);
++}
++
++inline void msg(const char* text, long a = 0, long b = 0, long c = 0, long d = 0)
++{
++    if (!active()) return;
++    std::fprintf(stderr, "[FBOTRACE] f%ld %s %ld %ld %ld %ld\n", frameNo().load(), text, a, b, c, d);
++}
++} // namespace FboTrace
+diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
+index bbb227d..c9adf14 100644
+--- a/src/render/Renderer.cpp
++++ b/src/render/Renderer.cpp
+@@ -4,6 +4,7 @@
+ #include "analysis/AnalysisThread.h"
+ #include "recording/VideoRecorder.h"
+ #include "output/SyphonOutput.h"
++#include "render/FboTrace.h"
+ #include <iostream>
+ #include <chrono>
+ #include <string>
+@@ -241,6 +242,19 @@ void Renderer::renderOpenGL()
+         onsetPulseFrames_.fetch_add(1u, std::memory_order_relaxed);
+     const FeatureSnapshot& snap = frameSnap_;
+ 
++    if (FboTrace::enabled())
++    {
++        ++FboTrace::frameNo();
++        int fl = FboTrace::framesLeft().load();
++        fl = fl > 0 ? fl - 1 : 0;
++        if (pendingCapture_.load(std::memory_order_acquire) && fl < 1) fl = 1;
++        FboTrace::framesLeft().store(fl);
++        GLint fb = 0; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fb);
++        FboTrace::msg("frame start: defaultFBO / pendingCapture / deckActive / t_ms", fb,
++                      pendingCapture_.load() ? 1 : 0, activeDeck_.load() != nullptr ? 1 : 0,
++                      static_cast<long>(juce::Time::getMillisecondCounterHiRes()));
++    }
++
+     // Check if we have anything to render
+     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
+     {
+@@ -576,6 +590,9 @@ void Renderer::renderOpenGL()
+                         time, renderW, renderH,
+                         static_cast<GLuint>(defaultFBO),
+                         vpX, vpY, vpW, vpH);
++    FboTrace::msg("present: srcTex / compW / compH / vpW", static_cast<long>(sourceTexture),
++                  static_cast<long>(compW), static_cast<long>(compH), static_cast<long>(vpW));
++    FboTrace::draw("present:effectChain", static_cast<int>(compW), static_cast<int>(compH), sourceTexture);
+ 
+     // P25: Apply composition-level transform (position, scale, rotation)
+     applyCompTransform(static_cast<GLuint>(defaultFBO), vpX, vpY, vpW, vpH);
+@@ -719,6 +736,7 @@ void Renderer::renderOpenGL()
+         glBlendColor(masterOpacityVal, masterOpacityVal, masterOpacityVal, 1.0f);
+ 
+         quad_.draw();
++        FboTrace::draw("present:masterOpacity", static_cast<int>(compW), static_cast<int>(compH), sourceTexture);
+ 
+         glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+         glDisable(GL_BLEND);
+@@ -1912,7 +1930,24 @@ void Renderer::processPendingCapture(float renderW, float renderH,
+ 
+     // Read pixels from the current framebuffer (default FBO after render)
+     std::vector<uint8_t> pixels(static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4);
++    GLenum preErr = FboTrace::enabled() ? glGetError() : 0;
++    GLint rfb = 0, dfb = 0;
++    if (FboTrace::enabled()) { glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &rfb); glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &dfb); }
+     glReadPixels(readX, readY, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
++    if (FboTrace::enabled())
++    {
++        GLenum rdErr = glGetError();
++        double sum[4] = {0, 0, 0, 0}; size_t nz = 0;
++        for (size_t i = 0; i < pixels.size(); i += 4)
++        {
++            for (int c = 0; c < 4; ++c) sum[c] += pixels[i + static_cast<size_t>(c)];
++            if (pixels[i] | pixels[i + 1] | pixels[i + 2] | pixels[i + 3]) ++nz;
++        }
++        const double n = static_cast<double>(pixels.size() / 4);
++        std::fprintf(stderr, "[FBOTRACE] f%ld CAPTURE readFBO=%d drawFBO=%d status=0x%x preErr=0x%x readErr=0x%x rect=(%d,%d %dx%d) mean=(%.1f,%.1f,%.1f,%.1f) nonzeroPx=%zu/%zu\n",
++                     FboTrace::frameNo().load(), rfb, dfb, glCheckFramebufferStatus(GL_READ_FRAMEBUFFER), preErr, rdErr,
++                     readX, readY, readW, readH, sum[0] / n, sum[1] / n, sum[2] / n, sum[3] / n, nz, pixels.size() / 4);
++    }
+ 
+     // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left)
+     juce::Image img(juce::Image::ARGB, readW, readH, false);
