@@ -260,6 +260,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     recorder_.start(comp, clock_, takeFolder_);
     recording_ = true;
     lastCheckpointT_ = 0.0;
+    earlyTempoSaved_ = false;
 
     const PerfState checkpoint0 = dispatch.capturePerfState ? dispatch.capturePerfState() : PerfState{};
     recorder_.setCheckpoint0(checkpoint0);
@@ -493,7 +494,11 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
         synthesizeIdleDecayingEnds(wallNow);
 
         const auto now = clock_.now();
-        if (now.t - lastCheckpointT_ >= kCheckpointSeconds)
+        const bool periodicDue = now.t - lastCheckpointT_ >= kCheckpointSeconds;
+        // s-rta-0926b tempomap gap: fire once, independent of the periodic cadence, the first
+        // tick whose clock reports a metered tempo (bpm > 0) -- see earlyTempoSaved_'s comment.
+        const bool earlyTempoDue = !earlyTempoSaved_ && now.bpm > 0.0f;
+        if (periodicDue || earlyTempoDue)
         {
             // R-A3: recorder_.current() copied, plus audio/meta/checkpoint0 (checkpoint0 already
             // lives inside current() -- setCheckpoint0() wrote it straight into the recorder's
@@ -502,8 +507,11 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
             snapshot.meta.duration = now.t;
             snapshot.meta.durationBeats = now.beat;
             if (!snapshot.save(takeFolder_) && dispatch.notify)
-                dispatch.notify("periodic take save failed");
-            lastCheckpointT_ = now.t;
+                dispatch.notify(periodicDue ? "periodic take save failed" : "tempo take save failed");
+            if (periodicDue)
+                lastCheckpointT_ = now.t;
+            if (earlyTempoDue)
+                earlyTempoSaved_ = true;
         }
     }
 

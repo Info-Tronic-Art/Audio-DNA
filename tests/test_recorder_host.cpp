@@ -233,7 +233,11 @@ TEST_CASE("RecorderHost periodic -- a save lands every 60s of clock time and ref
     uint64_t delivered = 0;
     uint64_t hostTimeNs = 1'000'000'000ULL;
 
-    host.tick(makeSnap(), 0.0, delivered, tap, std::nullopt, rate);   // seeds t=0 -- no save yet
+    host.tick(makeSnap(), 0.0, delivered, tap, std::nullopt, rate);   // seeds t=0 -- no PERIODIC save
+                                                                       // yet (s-rta-0926b: this tick's
+                                                                       // bpm > 0 fires the one early-
+                                                                       // tempo save instead; overwritten
+                                                                       // below by the periodic save)
     pushCleanBlocks(tap, rate, blockSize, 5, delivered, hostTimeNs);
 
     host.tick(makeSnap(), 65.0, delivered, tap, std::nullopt, rate);   // crosses the 60s boundary
@@ -2365,4 +2369,128 @@ TEST_CASE("RecorderHost tempo map -- provisional, periodic and final take.json c
     CHECK(sawBpm);
     // The beat grid a routine is sliced on now answers: 128 BPM segment is metered.
     CHECK(saved->tempo.beatAt(saved->meta.duration) == Approx(saved->meta.durationBeats).margin(0.05));
+}
+
+// === s-rta-0926b tempomap gap: a take recovered after an early crash (before the first periodic
+// save at kCheckpointSeconds=60s, before disarm) must already carry a metered beat grid, as soon as
+// one exists -- Manual BPM (metered from the very first tick) and detected BPM (metered only once
+// the tracker locks) both. Pre-fix, RecorderHost::tick()'s only save trigger was the 60s periodic
+// boundary, so a crash inside that window recovered a take with tempo.a always empty and Routines
+// refused it ("no beat grid") even though the clock itself had already anchored "start". ===
+
+TEST_CASE("RecorderHost tempo map -- Manual BPM: an early crash (no periodic save, no disarm) still "
+          "recovers a metered beat grid that agrees with the final take", "[host][tempo][earlysave]")
+{
+    TempDir storeRoot("earlytempo_manual_store");
+    TempDir takeFolder("earlytempo_manual_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;   // 5.5 -- the clock/tempo map is the subject, not the audio
+    opts.appVersion = "test";
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    // Manual BPM: bpm is already set (non-zero) at the very first tick -- no tracker warm-up.
+    // Same "drive the host with realistic phase" idiom as the tempomap test above -- an arbitrary
+    // phase would fabricate a discontinuity the loader lint (D1, |beat - map.beatAt(t)| <= 0.05)
+    // would legitimately flag; this keeps every driven tick internally consistent.
+    constexpr float bpm = 120.0f;
+    constexpr double dt = 0.1;
+    double beats = 0.0;
+    double wall = 0.0;
+    auto step = [&]
+    {
+        beats += static_cast<double>(bpm) / 60.0 * dt;
+        const float phase = static_cast<float>(beats - std::floor(beats));
+        host.tick(makeSnap(bpm, phase), wall, static_cast<uint64_t>(wall * 48000.0),
+                  dummyTap, std::nullopt, 48000.0);
+        wall += dt;
+    };
+    for (int i = 0; i < 5; ++i) step();   // t=0 .. 0.4s -- nowhere near kCheckpointSeconds (60s)
+
+    // Simulate a crash right here: no periodic save is due and disarm() has not run -- the file on
+    // disk must already carry a metered beat grid (pre-fix: tempo.a was always empty here, and
+    // RoutineSlice::checkMetered would refuse every slice of it).
+    LoadStats stats;
+    auto crashed = Take::load(takeFolder.dir, stats);
+    REQUIRE(crashed.has_value());
+    REQUIRE_FALSE(crashed->tempo.a.empty());
+    CHECK(crashed->tempo.a.front().why == "start");
+    CHECK(crashed->tempo.a.front().bpm == Approx(bpm));
+    const double crashedBeatAt02 = crashed->tempo.beatAt(0.2);   // some beat inside the early save's window
+
+    // A gesture captured AFTER this point (the one-shot early save does not keep re-mirroring every
+    // tick -- that is still the periodic save's job) reaches the take only at the next real save.
+    const ControlPath key = layerKey(0, "activeClip");
+    DiscretePoint p; p.origin = Origin::Human; p.v = 1;
+    host.capture(key, std::move(p));
+
+    // Advance well past the point and disarm for real (the take's FINAL save).
+    for (int i = 0; i < 10; ++i) step();
+    REQUIRE(host.disarm(comp, dummyTap).ok);
+
+    auto final_ = Take::load(takeFolder.dir, stats);
+    REQUIRE(final_.has_value());
+    REQUIRE(final_->lanes.count(key) == 1);
+    REQUIRE(final_->lanes.at(key).points.size() == 1);
+    const double finalBeat = final_->lanes.at(key).points[0].beat;
+    const double finalT = final_->lanes.at(key).points[0].s.t;
+    CHECK(finalBeat > 0.0);
+    CHECK(final_->tempo.beatAt(finalT) == Approx(finalBeat).margin(0.05));   // D1 lint
+
+    // The beat grid itself did not move between the early save and the final save -- a routine
+    // sliced from the early-saved take lands on the same beats as one sliced from the final take
+    // (spec D1): same "start" anchor, and the SAME t->beat mapping over the range both maps cover.
+    CHECK(final_->tempo.a.front().why == "start");
+    CHECK(final_->tempo.a.front().bpm == Approx(crashed->tempo.a.front().bpm));
+    CHECK(final_->tempo.beatAt(0.2) == Approx(crashedBeatAt02).margin(1e-9));
+}
+
+TEST_CASE("RecorderHost tempo map -- detected BPM: no beat grid while the tracker is unlocked; one "
+          "appears the moment it locks, well before any periodic save", "[host][tempo][earlysave]")
+{
+    TempDir storeRoot("earlytempo_detected_store");
+    TempDir takeFolder("earlytempo_detected_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;
+    opts.appVersion = "test";
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    // The tracker has not locked yet -- a few unmetered ticks (bpm 0). The "start" anchor the
+    // clock writes on the very first tick (even at bpm 0) is real, but it does not describe a
+    // usable beat grid; RoutineSlice::checkMetered would still refuse it. Nothing was saved to
+    // disk for it either (this fix's trigger is METERED tempo, not merely a non-empty map).
+    host.tick(makeSnap(0.0f), 0.0, 0, dummyTap, std::nullopt, 48000.0);
+    host.tick(makeSnap(0.0f), 0.2, 9600, dummyTap, std::nullopt, 48000.0);
+
+    LoadStats stats;
+    auto stillUnmetered = Take::load(takeFolder.dir, stats);
+    REQUIRE(stillUnmetered.has_value());
+    CHECK(stillUnmetered->tempo.a.empty());   // provisional save at arm(): no tick had run yet
+
+    // The tracker locks at 120 BPM.
+    host.tick(makeSnap(120.0f, 0.0f), 0.4, 19200, dummyTap, std::nullopt, 48000.0);
+
+    auto locked = Take::load(takeFolder.dir, stats);
+    REQUIRE(locked.has_value());
+    REQUIRE_FALSE(locked->tempo.a.empty());
+    CHECK(locked->tempo.a.back().why == "lock");
+    CHECK(locked->tempo.a.back().bpm == Approx(120.0f));
+    CHECK(locked->meta.duration == Approx(0.4));   // far under kCheckpointSeconds (60s)
+
+    host.disarm(comp, dummyTap);
 }
