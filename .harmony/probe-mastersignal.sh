@@ -20,7 +20,9 @@
 #     both blend toward their manual/default value as Master Signal goes
 #     from 1 -> 0.5 -> 0 (ConnectionEngine::evaluate's applyDepth, plan
 #     section 2.2/2.3) -- checked two ways: the clip's live.scale value
-#     directly, and render_frame pixels (md5) actually changing on the GPU.
+#     directly, and render_frame pixels (decoded, mean-abs-diff -- s-rta-0925
+#     ms-white2 fix: never md5, see the pixel-oracle section below) actually
+#     changing on the GPU.
 #   B2 (ms-pulse): an effect that reads the beat clock directly (Beat
 #     Ripple, u_beatPhase) is NOT touched by Master Signal (Boris Q2: "this
 #     control is only for signals" -- plan D1) -- render_frame keeps
@@ -104,7 +106,73 @@ no(){ echo "FAIL  $1"; FAIL=$((FAIL+1)); }
 # --- helpers -----------------------------------------------------------
 R(){ curl -s --max-time 20 -X POST "$A/api/render_frame" -H 'Content-Type: application/json' \
        -d "{\"output_path\":\"$OUT/$1\"}" >/dev/null; }
-H(){ md5 -q "$OUT/$1"; }
+
+# --- pixel oracle (2026-09-26 md5-vs-pixel fix, .harmony/notebook.md) -----
+# A file md5/size "differ" check passes VACUOUSLY on two frames that are
+# both fully blank (0,0,0,0) -- the PNG encoder's own non-determinism can
+# make two byte-identical-content blank frames hash/size differently. Every
+# render_frame comparison below decodes ACTUAL PIXELS with the main
+# checkout's .venv python (PIL+numpy): each capture is first asserted
+# NON-BLANK (alpha>0 fraction >= 0.5 AND an RGB std-dev floor, so a mostly-
+# transparent-border-but-genuinely-rendered frame like B1@signal=1's partial
+# alpha still passes) BEFORE any identical/differ claim, and identical/differ
+# itself is a mean-absolute-pixel-difference threshold, never md5.
+PXPY="$ROOT/.venv/bin/python"
+NONBLANK_ALPHA_MIN="0.5"
+NONBLANK_STD_FLOOR="2.0"
+MAD_THRESHOLD="0.5"
+
+# pixel_stats FILE: prints "alpha_frac rgb_std" (space-separated); "NA NA" on
+# any decode failure -- fails closed, never lets an unreadable file coerce
+# into a numeric pass below.
+pixel_stats(){
+    "$PXPY" -c "
+try:
+    from PIL import Image
+    import numpy as np
+    im = Image.open('$1').convert('RGBA')
+    a = np.asarray(im, dtype=np.float64)
+    alpha_frac = float((a[:, :, 3] > 0).mean())
+    rgb_std = float(a[:, :, :3].std())
+    print(f'{alpha_frac:.6f} {rgb_std:.6f}')
+except Exception:
+    print('NA NA')
+"
+}
+
+# assert_nonblank FILE LABEL: ok/no on whether FILE decodes as genuinely
+# rendered content (not a blank/all-zero frame, and not undecodable).
+assert_nonblank(){
+    local f="$OUT/$1" stats af rs
+    stats="$(pixel_stats "$f")"
+    af="$(echo "$stats" | awk '{print $1}')"
+    rs="$(echo "$stats" | awk '{print $2}')"
+    if echo "$af" | grep -Eq '^[0-9]+(\.[0-9]+)?$' && echo "$rs" | grep -Eq '^[0-9]+(\.[0-9]+)?$' \
+       && awk -v a="$af" -v m="$NONBLANK_ALPHA_MIN" 'BEGIN{exit !(a>=m)}' \
+       && awk -v s="$rs" -v f="$NONBLANK_STD_FLOOR" 'BEGIN{exit !(s>f)}'; then
+        ok "$2: $1 decodes NON-BLANK (alpha_frac=$af rgb_std=$rs)"
+    else
+        no "$2: $1 decodes BLANK-OR-UNDECODABLE (alpha_frac=$af rgb_std=$rs) -- pixel oracle refuses to compare blank frames"
+    fi
+}
+
+# mean_abs_diff FILE1 FILE2: prints the mean absolute per-channel pixel
+# difference (RGBA, 0-255 scale) between two same-shape PNGs; "NA" on any
+# decode failure or shape mismatch.
+mean_abs_diff(){
+    "$PXPY" -c "
+try:
+    from PIL import Image
+    import numpy as np
+    a = np.asarray(Image.open('$1').convert('RGBA'), dtype=np.float64)
+    b = np.asarray(Image.open('$2').convert('RGBA'), dtype=np.float64)
+    print(f'{float(np.abs(a - b).mean()):.6f}' if a.shape == b.shape else 'NA')
+except Exception:
+    print('NA')
+"
+}
+mad_leq(){ echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || return 1; awk -v v="$1" -v t="$2" 'BEGIN{exit !(v<=t)}'; }
+mad_gt(){ echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$' || return 1; awk -v v="$1" -v t="$2" 'BEGIN{exit !(v>t)}'; }
 
 comp_json(){ curl -s --max-time 5 "$A/api/composition"; }
 status_json(){ curl -s --max-time 5 "$A/api/status"; }
@@ -176,6 +244,8 @@ sample_clip_scale(){
 # --- preconditions -------------------------------------------------------
 pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set MS_BUILD_DIR to override the build dir name)"; exit 64; }
+[ -x "$PXPY" ] || { echo "REFUSE: no python venv at $PXPY (needed for the PIL+numpy pixel oracle) -- python3 -m venv .venv && .venv/bin/pip install pillow numpy"; exit 64; }
+"$PXPY" -c "import PIL, numpy" >/dev/null 2>&1 || { echo "REFUSE: $PXPY lacks PIL and/or numpy -- .venv/bin/pip install pillow numpy"; exit 64; }
 
 # --- launch (production, `open -g` -- background, never raises the app) --
 : > /tmp/adna-mastersignal-out.log
@@ -290,9 +360,12 @@ else
     no "B1 @signal=0: live.scale did not sit at 1.0 (min=$MIN0 max=$MAX0; samples:$SAMP0)"
 fi
 R b1_lo_a.png; sleep 0.5; R b1_lo_b.png
-[ "$(H b1_lo_a.png)" = "$(H b1_lo_b.png)" ] \
-    && ok "B1 @signal=0: render_frame 0.5s apart md5-IDENTICAL (frozen at hand/default values)" \
-    || no "B1 @signal=0: render_frame 0.5s apart DIFFER (expected identical at signal=0)"
+assert_nonblank b1_lo_a.png "B1 @signal=0"
+assert_nonblank b1_lo_b.png "B1 @signal=0"
+MAD_B1LO="$(mean_abs_diff "$OUT/b1_lo_a.png" "$OUT/b1_lo_b.png")"
+mad_leq "$MAD_B1LO" "$MAD_THRESHOLD" \
+    && ok "B1 @signal=0: render_frame 0.5s apart pixel-IDENTICAL (mean_abs_diff=$MAD_B1LO <= $MAD_THRESHOLD; frozen at hand/default values)" \
+    || no "B1 @signal=0: render_frame 0.5s apart pixel-DIFFER (mean_abs_diff=$MAD_B1LO > $MAD_THRESHOLD; expected identical at signal=0)"
 
 # --- B1 @ signal=1: full swing on both connections -------------------------
 set_master_signal 1 >/dev/null
@@ -306,9 +379,12 @@ else
 fi
 SWING1="$(awk -v mn="$MIN1" -v mx="$MAX1" 'BEGIN{print mx-mn}')"
 R b1_hi_a.png; sleep 0.5; R b1_hi_b.png
-[ "$(H b1_hi_a.png)" != "$(H b1_hi_b.png)" ] \
-    && ok "B1 @signal=1: render_frame 0.5s apart DIFFER (signals driving both connections)" \
-    || no "B1 @signal=1: render_frame 0.5s apart md5-IDENTICAL (expected to differ at signal=1)"
+assert_nonblank b1_hi_a.png "B1 @signal=1"
+assert_nonblank b1_hi_b.png "B1 @signal=1"
+MAD_B1HI="$(mean_abs_diff "$OUT/b1_hi_a.png" "$OUT/b1_hi_b.png")"
+mad_gt "$MAD_B1HI" "$MAD_THRESHOLD" \
+    && ok "B1 @signal=1: render_frame 0.5s apart pixel-DIFFER (mean_abs_diff=$MAD_B1HI > $MAD_THRESHOLD; signals driving both connections)" \
+    || no "B1 @signal=1: render_frame 0.5s apart pixel-IDENTICAL (mean_abs_diff=$MAD_B1HI <= $MAD_THRESHOLD; expected to differ at signal=1)"
 
 # --- B1 @ signal=0.5: swing strictly smaller than at signal=1 --------------
 set_master_signal 0.5 >/dev/null
@@ -366,9 +442,12 @@ curl -s --max-time 6 -X POST "$A/api/set_bpm" -H 'Content-Type: application/json
 set_master_signal 0 >/dev/null
 sleep 0.3
 R b2_a.png; sleep 0.25; R b2_b.png
-[ "$(H b2_a.png)" != "$(H b2_b.png)" ] \
-    && ok "B2 @signal=0: render_frame 0.25s apart DIFFER (Beat Ripple keeps pulsing on the beat clock, unaffected by Master Signal)" \
-    || no "B2 @signal=0: render_frame 0.25s apart md5-IDENTICAL (Beat Ripple stopped moving -- Master Signal must not touch beat-clock-driven effects, Q2)"
+assert_nonblank b2_a.png "B2 @signal=0"
+assert_nonblank b2_b.png "B2 @signal=0"
+MAD_B2="$(mean_abs_diff "$OUT/b2_a.png" "$OUT/b2_b.png")"
+mad_gt "$MAD_B2" "$MAD_THRESHOLD" \
+    && ok "B2 @signal=0: render_frame 0.25s apart pixel-DIFFER (mean_abs_diff=$MAD_B2 > $MAD_THRESHOLD; Beat Ripple keeps pulsing on the beat clock, unaffected by Master Signal)" \
+    || no "B2 @signal=0: render_frame 0.25s apart pixel-IDENTICAL (mean_abs_diff=$MAD_B2 <= $MAD_THRESHOLD; Beat Ripple stopped moving -- Master Signal must not touch beat-clock-driven effects, Q2)"
 
 # ===========================================================================
 # B3 (OSC): /audiodna/signal 0.3 -> readable back from /api/composition

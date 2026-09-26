@@ -247,7 +247,15 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
     }
 
     GLuint currentInput = inputTex;
-    int writeFBO = 0; // 0 = effectFBO_A_, 1 = effectFBO_B_
+    // s-rta-0925 ms-white2: start the ping-pong on whichever FBO the input
+    // texture does NOT already alias. Hardcoding writeFBO=0 (effectFBO_A_)
+    // is safe only when inputTex != effectTex_A_; when a caller hands in a
+    // texture that IS effectTex_A_ (e.g. a prior applyClipEffects call with
+    // an odd number of enabled effects), starting at 0 again would sample
+    // and render into effectTex_A_ in the same draw call -- the same
+    // GL feedback-loop hazard 52cd76c fixed for applyClipTransform's
+    // hand-off, now generalized to every caller of applyClipEffects.
+    int writeFBO = (inputTex == effectTex_A_) ? 1 : 0; // 0 = effectFBO_A_, 1 = effectFBO_B_
 
     for (const auto& slot : effects)
     {
