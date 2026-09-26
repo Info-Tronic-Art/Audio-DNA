@@ -463,3 +463,16 @@ Images were deleted unviewed-beyond-the-sheet; nothing was committed.
 **Trigger:** any probe that launches the app with `open --stderr <file>` and later greps that file.
 **Rule:** `: > <file>` immediately before `open`. probe-step3's new truncation row false-FAILed on 3 lines left by
 Sep-24 runs until 6ec7344. Prove the reset by planting a matching line before the run.
+
+## 2026-09-25 (s-rta-0925) — screen checks: Quartz window list, not a full-screen grab; no debugger on ANY binary
+**What happened:** a dispatched shooter took a full-screen capture as its "screen-safety check" (line ~460 allowed it)
+and captured Boris's terminals; a dispatched builder ran `lldb --batch` on a UNIT-TEST binary and raised the macOS
+"Developer Tools Access" Touch ID dialog on Boris's screen.
+**Rule:** (1) DISPATCHED AGENTS never take a full-screen capture, for any reason. Dialog/overlay detection =
+the Quartz on-screen window list (`CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly)`): a
+SecurityAgent / UserNotificationCenter / CoreServicesUIAgent / Audio-DNA Output entry is the signal. Only
+Harmony, at EOS, may take one full-screen look, and deletes it. Supersedes the "full-screen only for the
+screen-safety EOS check" clause above for agents. (2) NEVER run lldb/debugserver/gdb on ANY binary (tests too)
+— debugserver asks SecurityAgent for Touch ID. Crash backtraces: `ctest --output-on-failure`, ASan, or
+`atos` on an .ips. If a SecurityAgent window appears: kill the debugger process tree, then tell Boris to
+press Cancel (never synthesize a click at it).

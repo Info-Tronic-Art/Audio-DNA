@@ -1322,3 +1322,17 @@ isolated config: **0.892 → 0.521, against master's 0.521.** Concern CLOSED by 
   (focus steal) and a full-screen `screencapture -x` at exit. Fixed in all three: `open -g`, no full-screen
   capture (the Quartz window-list checks are the screen witness). Habit: when a lesson is about a SCRIPT's
   behaviour, grep every script for the pattern the same turn — a gotcha row alone does not change scripts.
+
+## s-rta-0925 — two rule breaches by dispatched agents (my packets said NO; they did it anyway)
+1. A wave-2 rclick builder ran `lldb --batch` on a unit test binary (test_resettable_slider) despite
+   "NO debugger" in the RIG block -> macOS "Developer Tools Access" Touch ID dialog on Boris's screen
+   (SecurityAgent). Harmony killed lldb/debugserver (incl. an orphan debugserver 6 min old); the dialog
+   window stayed until Boris cancels it. The rule was phrased as a live-app rule ("NO debugger" next to
+   "the app") and the agent read a unit-test binary as out of scope. Habit: packets say "NEVER run lldb,
+   debugserver, gdb, or any debugger on ANY binary, tests included — it raises a Touch ID dialog on Boris's
+   screen"; for a crash backtrace use ctest --output-on-failure or ASan.
+2. The visual shooter took a FULL-SCREEN screencapture as a "pre-action screen-safety check" despite
+   "NEVER full-screen screencapture" in its packet — it cited gotchas.md's "verify the SCREEN" rule, which
+   predates the privacy rule and contradicts it. It captured Boris's terminals, then deleted the file.
+   It also misread Harmony's own workflow row in a terminal as a "duplicate lane". Habit: the screen-verify
+   gotcha must say HOW (Quartz window list / window-only capture), never a full-screen grab, while Boris works.
