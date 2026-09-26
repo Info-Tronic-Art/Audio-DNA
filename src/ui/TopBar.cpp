@@ -193,20 +193,33 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     // Master Signal (s-rta-0925 mastersignal Step 1) -- built exactly like
     // the Master fader immediately below it: direct model write on change,
     // Held grip for the duration of a drag, Decaying touch on right-click
-    // reset.
+    // reset. Label/readout/magenta accent: s-rta-0926 polish -- see the
+    // member comment in TopBar.h for why.
+    static const juce::String kMasterSignalTooltip =
+        "Master Signal: how strongly audio, oscillators, and every other signal "
+        "move the controls they are wired to. At 100%, connections behave exactly "
+        "as wired; at 0%, every connected control sits at its own hand-set value "
+        "instead, but beat-driven effects (Strobe, Pulse, and the like) keep "
+        "pulsing regardless.";
     addAndMakeVisible(masterSignalLabel_);
     masterSignalLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
     masterSignalLabel_.setColour(juce::Label::textColourId,
                                  juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    masterSignalLabel_.setTooltip(kMasterSignalTooltip);
     addAndMakeVisible(masterSignalSlider_);
     masterSignalSlider_.setRange(0.0, 1.0, 0.01);
     masterSignalSlider_.setValue(1.0, juce::dontSendNotification);
     masterSignalSlider_.setDefaultValue(1.0);
     masterSignalSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    masterSignalSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    masterSignalSlider_.setTooltip("Master Signal: how strongly audio, oscillators and every other "
-                                   "signal move the controls they are connected to. 100% = full; "
-                                   "0% = everything sits at its hand-set value.");
+    // 35 wide matches Fade's own readout (proven to fit "0.30" et al in this
+    // bar); a narrower box measured here clipped "1.00" to "1..." (s-rta-0926
+    // polish -- caught on a live-app screenshot, not by the headless test).
+    masterSignalSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
+    // Distinct accent so the fader can't be grabbed for Master by mistake --
+    // an existing theme colour (LookAndFeel.h), not a new palette entry.
+    masterSignalSlider_.setColour(juce::Slider::thumbColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kAccentMagenta));
+    masterSignalSlider_.setTooltip(kMasterSignalTooltip);
     masterSignalSlider_.onValueChange = [this] {
         composition_.masterSignal = static_cast<float>(masterSignalSlider_.getValue());
     };
@@ -223,16 +236,22 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     };
 
     // Master level
+    static const juce::String kMasterTooltip =
+        "Master: the output level of the whole composition.";
     addAndMakeVisible(masterLabel_);
     masterLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
     masterLabel_.setColour(juce::Label::textColourId,
                            juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    masterLabel_.setTooltip(kMasterTooltip);
     addAndMakeVisible(masterLevelSlider_);
     masterLevelSlider_.setRange(0.0, 1.0, 0.01);
     masterLevelSlider_.setValue(1.0, juce::dontSendNotification);
     masterLevelSlider_.setDefaultValue(1.0);
     masterLevelSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    masterLevelSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    // Numeric readout: s-rta-0926 polish, same TextBoxRight convention (and
+    // width) Fade already uses in this bar.
+    masterLevelSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
+    masterLevelSlider_.setTooltip(kMasterTooltip);
     // s-rta-0925 link: this fader is a SHORTCUT to the Composition tab's
     // "Master" knob -- a second widget-grip view of CompScalar::Opacity, the
     // exact LayerStrip::opacitySlider_ pattern (LayerStrip.cpp): value write
@@ -610,10 +629,19 @@ void TopBar::resized()
     outputLabel_.setBounds(rightSection.removeFromRight(42));
     rightSection.removeFromRight(4);
 
-    masterLevelSlider_.setBounds(rightSection.removeFromRight(70));
+    // 90 (was 70) so the 35-wide TextBoxRight readout added above has a
+    // real track left over instead of squeezing the thumb into nothing.
+    masterLevelSlider_.setBounds(rightSection.removeFromRight(90));
     masterLabel_.setBounds(rightSection.removeFromRight(42));
 
     rightSection.removeFromRight(4);
-    masterSignalSlider_.setBounds(rightSection.removeFromRight(70));
-    masterSignalLabel_.setBounds(rightSection.removeFromRight(42));
+    masterSignalSlider_.setBounds(rightSection.removeFromRight(90));
+    // "Master Signal:" is wider than the old "Signal:" -- size the label to
+    // its actual text instead of a guessed magic number, so it is never
+    // silently truncated (s-rta-0926 polish). GlyphArrangement, not the
+    // deprecated Font::getStringWidth (ClipCell.cpp/BrowserPanel.cpp already
+    // use this convention).
+    const int sigLabelW = juce::GlyphArrangement::getStringWidthInt(
+                               masterSignalLabel_.getFont(), masterSignalLabel_.getText()) + 6;
+    masterSignalLabel_.setBounds(rightSection.removeFromRight(sigLabelW));
 }

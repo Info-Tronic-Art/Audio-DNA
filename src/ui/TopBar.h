@@ -54,10 +54,14 @@ public:
     void syncMasterSignalFromComposition();
 
     // Layout test seams (tests/test_master_signal_link.cpp): confirm the
-    // "Signal:" label sits to the right of the existing Fade slider (no
-    // overlap with the widget immediately to its left in the bar).
+    // "Master Signal:" label sits to the right of the existing Fade slider
+    // (no overlap with the widget immediately to its left in the bar).
     juce::Rectangle<int> masterSignalLabelBoundsForTest() const { return masterSignalLabel_.getBounds(); }
     juce::Rectangle<int> fadeSliderBoundsForTest() const { return fadeSlider_.getBounds(); }
+    // s-rta-0926 polish: label text/bounds test seams for the whole-word-label
+    // + readout + width-budget checks in test_master_signal_link.cpp.
+    juce::String masterSignalLabelTextForTest() const { return masterSignalLabel_.getText(); }
+    juce::Rectangle<int> masterLabelBoundsForTest() const { return masterLabel_.getBounds(); }
 
     // Access display selector
     juce::ComboBox& getDisplaySelector() { return displaySelector_; }
@@ -111,11 +115,17 @@ private:
     juce::Label fadeLabel_{"", "Fade:"};
     ResettableSlider fadeSlider_;
 
-    // === Master Signal (s-rta-0925 mastersignal Step 1) ===
+    // === Master Signal (s-rta-0925 mastersignal Step 1; label/readout/accent
+    // polish s-rta-0926) ===
     // Sits immediately left of Master: a second widget-grip view of
     // CompScalar::Signal / Composition::masterSignal, built exactly like
-    // Master's own fader below.
-    juce::Label masterSignalLabel_{"", "Signal:"};
+    // Master's own fader below. Full "Master Signal:" label (CLAUDE.md,
+    // /api/set_master_signal, OSC /audiodna/signal all use the full name) so
+    // it never reads as an unrelated signal meter next to "Master:"; the
+    // magenta thumb/track accent (kAccentMagenta, an existing LookAndFeel.h
+    // theme colour) and the numeric readout keep it from being mistaken for
+    // the cyan/no-readout Master fader beside it.
+    juce::Label masterSignalLabel_{"", "Master Signal:"};
     ResettableSlider masterSignalSlider_;
     bool signalDragging_ = false;   // sync skips while dragging
 
