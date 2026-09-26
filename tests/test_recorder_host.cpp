@@ -2257,3 +2257,112 @@ TEST_CASE("RecorderHost disarm -- a finalize problem (truncated asset) reaches s
     CHECK(host.status().lastFinalizeError.empty());
     CHECK(host.status().finalizeErrors == 1);
 }
+
+// === s-rta-0926 tempomap: every save carries the clock's tempo map ===
+// Pre-fix, RecorderHost never copied RecorderClock::tempo() into the Take it saved: every live
+// take.json had "tempoMap": [], so RoutineSlice's checkMetered refused every slice of a real take
+// ("no beat grid"). The clock itself was fine -- it anchors at the first tick ("start", even at
+// bpm 0), on lock/unlock, on a BPM change > 0.05, on a phase reset and every 32 beats. This drives
+// the host and an independent reference RecorderClock with the SAME inputs and asserts each of the
+// three save sites (provisional at arm, periodic, disarm) writes the reference clock's anchors.
+
+namespace
+{
+    void checkSameAnchors(const std::vector<TempoAnchor>& got, const std::vector<TempoAnchor>& want)
+    {
+        REQUIRE(got.size() == want.size());
+        for (size_t i = 0; i < want.size(); ++i)
+        {
+            INFO("anchor " << i << " why=" << want[i].why);
+            CHECK(got[i].t == Approx(want[i].t).margin(1e-9));
+            CHECK(got[i].beat == Approx(want[i].beat).margin(1e-9));
+            CHECK(got[i].sample == want[i].sample);
+            CHECK(got[i].bpm == Approx(want[i].bpm).margin(1e-6));
+            CHECK(got[i].why == want[i].why);
+        }
+    }
+}
+
+TEST_CASE("RecorderHost tempo map -- provisional, periodic and final take.json carry the clock's anchors", "[host][tempo]")
+{
+    TempDir storeRoot("tempo_store");
+    TempDir takeFolder("tempo_take");
+    AudioStore store(storeRoot.dir);
+    RecorderHost host(store);
+    Composition comp = makeComposition();
+    FakeDispatch fake;
+    fake.wire(host, &comp);
+    AudioTap dummyTap;
+
+    RecorderHost::ArmOptions opts;
+    opts.takeFolder = takeFolder.dir;
+    opts.audio = false;   // 5.5 -- the clock/tempo map is the subject, not the audio
+    opts.appVersion = "test";
+
+    REQUIRE(host.arm(comp, dummyTap, opts).ok);
+
+    // Provisional save (arm): no tick yet, so the fresh clock has no anchor -- the saved map is its
+    // (empty) map. The first anchor ("start") is written by the first tick.
+    {
+        LoadStats stats;
+        auto provisional = Take::load(takeFolder.dir, stats);
+        REQUIRE(provisional.has_value());
+        CHECK(provisional->tempo.a.empty());
+    }
+
+    // Same inputs to the host and a reference clock: 2 s unmetered (tracker not yet locked), then
+    // 120 BPM, then 128 BPM -- anchors "start"(bpm 0), "lock", "periodic" x N, "bpm".
+    RecorderClock ref;
+    constexpr double dt = 0.1;
+    double beats = 0.0;
+    auto drive = [&](int k, float bpm)
+    {
+        if (bpm > 0.0f)
+            beats += static_cast<double>(bpm) / 60.0 * dt;
+        const float phase = static_cast<float>(beats - std::floor(beats));
+        const FeatureSnapshot snap = makeSnap(bpm, phase);
+        const double wall = 500.0 + k * dt;                 // app uptime offset: t must still start at 0
+        const uint64_t delivered = static_cast<uint64_t>(k) * 4800u;
+        host.tick(snap, wall, delivered, dummyTap, std::nullopt, 48000.0);
+        ref.tick(snap, wall, delivered);
+    };
+
+    int k = 0;
+    for (; k < 20; ++k)  drive(k, 0.0f);
+    for (; k < 606; ++k) drive(k, 120.0f);   // crosses kCheckpointSeconds (60 s of clock t)
+
+    // Periodic save: the anchors the reference clock had written by the save's own t.
+    {
+        LoadStats stats;
+        auto periodic = Take::load(takeFolder.dir, stats);
+        REQUIRE(periodic.has_value());
+        REQUIRE(periodic->meta.duration >= RecorderHost::kCheckpointSeconds - 1e-6);
+        std::vector<TempoAnchor> want;
+        for (const auto& a : ref.tempo().a)
+            if (a.t <= periodic->meta.duration + 1e-9)
+                want.push_back(a);
+        REQUIRE(want.size() >= 3);   // start + lock + at least one periodic
+        checkSameAnchors(periodic->tempo.a, want);
+        CHECK(periodic->tempo.a.front().why == "start");
+        CHECK(periodic->tempo.a.front().bpm == 0.0f);
+        CHECK(periodic->tempo.a[1].why == "lock");
+    }
+
+    for (; k < 706; ++k) drive(k, 128.0f);   // a real BPM change -> a "bpm" anchor
+
+    const auto stop = host.disarm(comp, dummyTap);
+    REQUIRE(stop.ok);
+
+    // Final save (disarm): the whole map, byte-for-byte the clock's.
+    LoadStats stats;
+    auto saved = Take::load(takeFolder.dir, stats);
+    REQUIRE(saved.has_value());
+    REQUIRE_FALSE(saved->tempo.a.empty());
+    checkSameAnchors(saved->tempo.a, ref.tempo().a);
+    bool sawBpm = false;
+    for (const auto& a : saved->tempo.a)
+        sawBpm = sawBpm || (a.why == "bpm" && a.bpm == Approx(128.0f));
+    CHECK(sawBpm);
+    // The beat grid a routine is sliced on now answers: 128 BPM segment is metered.
+    CHECK(saved->tempo.beatAt(saved->meta.duration) == Approx(saved->meta.durationBeats).margin(0.05));
+}

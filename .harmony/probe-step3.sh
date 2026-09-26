@@ -377,6 +377,16 @@ CHK0="$(take_field "$TAKE_FOLDER" "d.get('checkpoint0',{}).get('activeDeckIndex'
 [ "$CHK0" = "0" ] && ok "checkpoint0.activeDeckIndex == 0" || no "checkpoint0.activeDeckIndex == $CHK0"
 CHKEND="$(take_field "$TAKE_FOLDER" "'yes' if d.get('checkpointEnd') else 'no'")"
 [ "$CHKEND" = "yes" ] && ok "checkpointEnd present" || no "checkpointEnd missing"
+# s-rta-0926 tempomap: pre-fix every live take.json had "tempoMap": [] (RecorderHost never copied
+# RecorderClock's anchors into the saved Take), so sliceRoutine refused every real take ("no beat
+# grid"). This take is driven by the click track through the tracker, then switched to manual BPM
+# mid-take by set_bpm(128) (section 6) -- so the map must be non-empty, open with the clock's "start"
+# anchor, AND carry a 128 BPM anchor (the "bpm"/"lock" anchor the manual-BPM switch writes).
+TEMPO_MAP="$(take_field "$TAKE_FOLDER" "'%d|%s|%s' % (len(d.get('tempoMap',[])), (d.get('tempoMap') or [{}])[0].get('why','NA'), 'yes' if any(abs(float(a.get('bpm',0))-128.0)<0.5 for a in d.get('tempoMap',[])) else 'no')")"
+TM_N="${TEMPO_MAP%%|*}"; TM_REST="${TEMPO_MAP#*|}"
+[ "$TM_N" -gt 0 ] 2>/dev/null && [ "$TM_REST" = "start|yes" ] \
+  && ok "take.json tempoMap non-empty ($TM_N anchors), first anchor 'start', carries the set_bpm(128) anchor" \
+  || no "take.json tempoMap: '$TEMPO_MAP' (expected N|start|yes with N >= 1 -- empty = RecorderHost did not copy the clock's tempo map)"
 DEV_RATE_TAKE="$(take_field "$TAKE_FOLDER" "d.get('rateChangedSinceArm', d.get('deviceRate','NA'))")"
 echo "(informational) take-level rate fields: $DEV_RATE_TAKE"
 

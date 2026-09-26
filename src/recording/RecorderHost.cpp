@@ -150,6 +150,17 @@ AudioRef RecorderHost::liveAudioRef(AudioTap* tap) const
     return AudioStore::referencing(stub, firstSample);
 }
 
+Take RecorderHost::takeForSave(Take base, AudioRef audio) const
+{
+    base.markers = markers_;
+    base.audio = std::move(audio);   // R-A2: always via AudioStore::referencing (liveAudioRef / finalize)
+    base.tempo = clock_.tempo();
+    base.meta.recordedAt = armRecordedAt_;
+    base.meta.app = appVersion_;
+    base.meta.startBeatInBar = armedStartBeatInBar_;
+    return base;
+}
+
 RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap, const ArmOptions& opts)
 {
     RECORDER_HOST_ASSERT_MESSAGE_THREAD();
@@ -255,12 +266,9 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
 
     // R-A1 provisional save (5.6 #1). Built from a COPY of the in-progress Take (current() is
     // read-only) plus this arm's audio/meta -- the same shape every later periodic/final save writes.
-    Take provisional = recorder_.current();
-    provisional.markers = markers_;
-    provisional.audio = liveAudioRef(tapWasStarted_ ? &tap : nullptr);
-    provisional.meta.recordedAt = armRecordedAt_;
-    provisional.meta.app = appVersion_;
-    provisional.meta.startBeatInBar = armedStartBeatInBar_;
+    // The clock is fresh here (no tick yet), so its tempo map is still empty; the "start" anchor
+    // arrives with the first tick and reaches take.json at the next periodic save or at disarm.
+    const Take provisional = takeForSave(recorder_.current(), liveAudioRef(tapWasStarted_ ? &tap : nullptr));
 
     res.ok = true;   // audio is running (or intentionally not requested) -- arm succeeds even if the
                       // provisional save itself fails; that failure is surfaced, not fatal (R-A1).
@@ -338,14 +346,9 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
     }
     // else: 5.5, no audio -- finalRef stays default.
 
-    Take take = recorder_.stop(comp);
-    take.markers = markers_;
-    take.audio = finalRef;   // R-A2: every save writes it via AudioStore::referencing, never blank
-    take.meta.recordedAt = armRecordedAt_;
-    take.meta.app = appVersion_;
+    Take take = takeForSave(recorder_.stop(comp), finalRef);   // R-A2: finalRef via AudioStore::referencing, never blank
     take.meta.duration = clock_.now().t;
     take.meta.durationBeats = clock_.now().beat;
-    take.meta.startBeatInBar = armedStartBeatInBar_;
 
     if (dispatch.capturePerfState)
         take.checkpointEnd = dispatch.capturePerfState();
@@ -495,14 +498,9 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
             // R-A3: recorder_.current() copied, plus audio/meta/checkpoint0 (checkpoint0 already
             // lives inside current() -- setCheckpoint0() wrote it straight into the recorder's
             // in-progress take_ at arm time).
-            Take snapshot = recorder_.current();
-            snapshot.markers = markers_;
-            snapshot.audio = liveAudioRef(tapWasStarted_ ? &tap : nullptr);
-            snapshot.meta.recordedAt = armRecordedAt_;
-            snapshot.meta.app = appVersion_;
+            Take snapshot = takeForSave(recorder_.current(), liveAudioRef(tapWasStarted_ ? &tap : nullptr));
             snapshot.meta.duration = now.t;
             snapshot.meta.durationBeats = now.beat;
-            snapshot.meta.startBeatInBar = armedStartBeatInBar_;
             if (!snapshot.save(takeFolder_) && dispatch.notify)
                 dispatch.notify("periodic take save failed");
             lastCheckpointT_ = now.t;
