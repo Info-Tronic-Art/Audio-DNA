@@ -646,6 +646,37 @@ TEST_CASE("RecorderClock writes no periodic anchors while unmetered", "[recorder
     REQUIRE(clock.tempo().a.back().why == "unmetered");
 }
 
+// s-rta-0926 routine-grid: `beat` is "continuous beats since record start" (s167 D1). Every other
+// clock test seeds at beatPhase 0, which hid this: a clock seeded MID-beat (Record pressed 0.84 of
+// the way through a beat -- the gate take, meta.startBeatInBar 3.84) jumped by that phase on its
+// second tick, so every stamp read ~0.84 beats late and disagreed with the take's own "start"
+// anchor (t 0, beat 0) -- and every routine cut from it replayed ~0.42 s late at 120 BPM.
+TEST_CASE("RecorderClock: beat is 0 at Record and counts from there even when Record falls mid-beat", "[recorderclock]")
+{
+    for (const double seedPhase : { 0.84, 0.25, 0.99 })
+    {
+        RecorderClock clock;
+        double wall = 0.0;
+        uint64_t samples = 0;
+        double phase = seedPhase;
+        clock.tick(makeSnap(120.0f, static_cast<float>(phase)), wall, samples);
+        REQUIRE(clock.now().beat == 0.0);
+
+        for (int i = 0; i < 72; ++i)   // 0.6 s at 120 Hz, 120 BPM -> 1.2 beats
+        {
+            wall += 1.0 / 120.0;
+            samples += 400;
+            phase = std::fmod(phase + 1.0 / 60.0, 1.0);
+            clock.tick(makeSnap(120.0f, static_cast<float>(phase)), wall, samples);
+        }
+        INFO("seed phase " << seedPhase);
+        CHECK(clock.now().t == Approx(0.6));
+        CHECK(clock.now().beat == Approx(1.2).margin(1e-4));
+        // D1's loader lint: |beat - map.beatAt(t)| <= 0.05.
+        CHECK(std::fabs(clock.tempo().beatAt(clock.now().t) - clock.now().beat) < 0.05);
+    }
+}
+
 TEST_CASE("Player: a backwards advanceTo re-seats and events re-fire on re-pass", "[player][seek]")
 {
     auto prog = std::make_shared<Program>();

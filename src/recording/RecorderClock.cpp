@@ -17,7 +17,10 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
         lastPhase_ = snap.beatPhase;
         lastBpm_ = snap.bpm;
         wholeBeats_ = 0.0;
-        beatOffset_ = 0.0;
+        // `beat` counts from Record (D1 "beats since record start"), not from the tracker's last
+        // beat line: Record lands mid-beat, so cancel the seed phase or every stamp reads that
+        // phase late and disagrees with the "start" anchor below (s-rta-0926 routine-grid).
+        beatOffset_ = -static_cast<double>(snap.beatPhase);
 
         anchor(0.0, 0.0, deliveredSamples, snap.bpm, "start");
         current_ = { 0.0, 0.0, deliveredSamples, snap.bpm };
