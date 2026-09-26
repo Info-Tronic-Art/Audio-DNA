@@ -1551,3 +1551,29 @@ hand-written functions with no shared layout model.
   performer's manual tempo drift. Next session: decide + fix (likely: manual mode never phase-resets from detected beats).
 - Probe blind spots named by the lane: probe-routines has no D1 lint row (stamps vs tempo map within 0.05 beat), the
   stack timing windows derive from the take's own ramp x (cancels a stamp offset), the loop row allows +9.0 s for +8.6.
+
+## s-rta-0926b recorder -- the provisional save at arm() has no tempo; a crash before the first
+## periodic save (60s) recovers a take with an empty beat grid even after ebbff22/e5ceb98
+- ebbff22 made every SAVE SITE copy clock_.tempo(), but the provisional save at arm() runs BEFORE the
+  clock's first tick, so it is always empty by construction; the fix only reaches disk at the next
+  periodic save (kCheckpointSeconds=60s) or at disarm. A crash/kill in that window (very real: any take
+  under 60s that never reaches Stop) recovers a take with tempoMap [] and Routines refuses it.
+- Fix (RecorderHost.{h,cpp}): one extra, one-shot save inside tick() -- `earlyTempoSaved_`, reset at
+  arm() -- fires the SAME takeForSave()/save() path the periodic save already uses, the first tick
+  whose `clock_.now().bpm > 0` (Manual BPM: tick 1 itself; detected BPM: whichever tick the tracker
+  locks), independent of the 60s cadence. Message-thread only, no new mutex, no hot-path contact.
+- LIVE-VERIFIED (not just ctest): built build-lane, armed+recorded over REST with set_bpm(120) first,
+  read take.json at t~1.5s (well under 60s, before Stop) -- tempoMap has the "start" anchor (bpm 120)
+  on the fix build; tempoMap: [] on the read-only baseline app (/Users/boriskarpman/projects/
+  RealTimeAudio/build, built 18:12:35, i.e. AFTER ebbff22/e5ceb98 were merged into main -- the gap is
+  real on top of both prior fixes, not something either of them already closed).
+- DISK FACT (Documents/Audio-DNA/Takes, read-only census, s-rta-0926b): all 157 existing takes have
+  tempoMap [] -- 150 predate e5ceb98 (17:08:47), 141 predate ebbff22 (16:14:49), but 7 postdate BOTH
+  and are STILL empty (e.g. step3gate1/step3gate2, recordedAt 18:16-18:20, duration ~15s < 60s, i.e.
+  they were disarmed cleanly but never got a real save after the provisional one -- exactly this gap,
+  most likely run against a stale/different binary than the 18:12:35 main rebuild). All 157 are
+  dev/probe artifacts by name (finloop-*, probe-routines-*, step3gate*, s4gate, resid*, lat*, shot_*) --
+  no user performance take is at risk. No migration implemented (Harmony decision, open_forks
+  C-migration in .harmony/.reports/s-rta-0926b/recorder.md); recommendation was "no migration, keep
+  the existing clear refusal message" -- offline re-analysis risks fabricating a beat grid the
+  performer never actually played to.
