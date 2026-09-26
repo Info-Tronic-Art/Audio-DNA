@@ -41,3 +41,14 @@ Reports: .harmony/.reports/s-rta-0925/
 - Boris: work till 50% ctx then EOS (at 40% now). Plan: ms-white2 gate -> regression probes (onset, downbeat, Tier-1 effects visual) -> push -> EOS. Deferred to next session: step-7 docs (derive counts by command), Deck Loa clip, No-clip-selected overlap, fader critic panel.
 - ms-white diag2: first fix effective in 3 controlled reruns; my 11:49 all-zero frames did NOT reproduce (UNEXPLAINED -> gate new probe 3x for intermittency). Second aliasing instance found (clip->layer effects hand-off), being fixed.
 - regression on 05dbc4a: probe-onset-render 13/0, probe-downbeat-level 14/0. Tier-1 effects pytest deferred (Eyes render_frame skips effect chain per pitfall 28; deck-mode effect render covered by probe-mastersignal B1/B2).
+- OPEN (probe, not product -- inferred): probe-step3 row "end(withAudio): inputSource == file during replay" FAILS 2/2 on
+  main after the ms-white/ms-white2 merges (92/1), PASSED at 54cbbb2 (93/0). ESTABLISHED: only src/render/CompositorEngine.{cpp,h}
+  changed since 54cbbb2 (git diff --name-only) -- no audio/recorder code. SRC1 is read ONCE right after POST /api/perf/play +
+  check_snapback_restored (probe-step3.sh:728); the "back to input at the end" row still PASSES. RULED OUT: code regression in the
+  source switch. CHEAPEST DISCRIMINATOR: poll inputSource for up to 1 s after play (expect "file" within ~100 ms); if it never
+  becomes file, it is a real bug.
+- OPEN (product, real): clip-effects -> layer-effects blank frame (1 clip effect + 1 layer effect, opacity 1) STILL blank after
+  ms-white2's writeFBO fix (probe-effects-parity.sh: pre 2/3 FAIL, post 2/3 FAIL, frames all-zero). Diagnosis-2's mechanism is
+  incomplete. START HERE next session. Pre-existing bug (not introduced this session).
+- VERIFIED at close on main: ctest 539/539; probe-mastersignal 22/0 x3 (pixel oracle); probe-resync 16/0; probe-onset-render 13/0;
+  probe-downbeat-level 14/0; probe-step3 92/1 (above).
