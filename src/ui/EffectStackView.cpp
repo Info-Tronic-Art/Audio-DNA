@@ -136,15 +136,16 @@ void EffectStackView::setEffects(std::vector<Clip::EffectSlot>* effects, EffectS
 
 void EffectStackView::tickModulation()
 {
-    // s-rta-0925 mastersignal Step 0 (RED, S0-T5b): still writes the model
-    // (fx.paramValues[p] = signalValue) via UniversalParamControl's own
-    // SourceMode/getSourceName lookup -- bypasses ConnectionShaper (RANGE/
-    // INVERT/curve ignored) and every source kind this loop doesn't special-
-    // case (BPM Sync, Clip Position). The DISPLAY-ONLY rewrite (reading
-    // fx.effParam(p)/fx.effDryWet() from each row's bound connection) lands
-    // in the GREEN commit alongside rebuildRows()'s bindConnection() calls --
-    // without those, `pc.isConnected()` below is never true for a model-only
-    // (paramConns[p]) connection, so this loop's body doesn't even run for it.
+    // s-rta-0925 mastersignal Step 0: DISPLAY-ONLY. The model write used to
+    // happen here (assigning signalValue straight into the slot's param
+    // vector), reading through UniversalParamControl's own SourceMode/
+    // getSourceName lookup and
+    // bypassing ConnectionShaper (RANGE/INVERT/curve ignored) and every
+    // source kind tickModulation() didn't special-case (BPM Sync, Clip
+    // Position). The engine (ConnectionEngine::tick, via each row's bound
+    // fx.paramConns[p]/fx.dryWetConn) is now the ONLY writer of
+    // paramValues/dryWet's live twins; this just pushes fx.effParam(p)/
+    // fx.effDryWet() to the display when a row is bound.
     if (!effects_) return;
 
     for (size_t i = 0; i < rows_.size(); ++i)
@@ -154,64 +155,31 @@ void EffectStackView::tickModulation()
 
         auto& fx = (*effects_)[static_cast<size_t>(row.effectIndex)];
 
+        if (row.dryWetControl && row.dryWetControl->isConnected())
+            row.dryWetControl->setParamValue(fx.effDryWet());
+
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
         {
             auto& pc = *row.paramControls[p];
-
             if (!pc.isConnected()) continue;
 
-            auto mode = pc.getSourceMode();
-            auto sourceName = pc.getSourceName();
-            float signalValue = 0.0f;
-            bool found = false;
+            const float v = fx.effParam(p);
 
-            if ((mode == UniversalParamControl::SourceMode::Signal
-                || mode == UniversalParamControl::SourceMode::Oscillator
-                || mode == UniversalParamControl::SourceMode::Envelope)
-                && signalRegistry_)
+            // Cost trap (L9): diff against the LAST VALUE ACTUALLY PUSHED to
+            // the display (row.lastPushedValue[p]) so a slow modulator isn't
+            // suppressed forever by a per-tick epsilon check. lastPushedValue
+            // starts nullopt (set in rebuildRows()) so the first tick after a
+            // rebuild always pushes, regardless of what value it computes.
+            bool changed = p >= row.lastPushedValue.size()
+                || !row.lastPushedValue[p].has_value()
+                || std::abs(v - *row.lastPushedValue[p]) > kModulationChangeEpsilon;
+
+            if (changed && pc.isVisible())
             {
-                for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
-                {
-                    auto* sig = signalRegistry_->getSignalAt(s);
-                    if (sig && juce::String(sig->getName()) == sourceName)
-                    {
-                        signalValue = signalRegistry_->getCachedValue(sig->getId());
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
-            {
-                int macroIdx = -1;
-                if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
-                {
-                    macroIdx = sourceName.getTrailingIntValue() - 1;
-                }
-                if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
-                {
-                    signalValue = macroBank_->getMacroValue(macroIdx);
-                    found = true;
-                }
-            }
-
-            if (found)
-            {
-                fx.paramValues[p] = signalValue;
-
-                bool changed = p >= row.lastPushedValue.size()
-                    || !row.lastPushedValue[p].has_value()
-                    || std::abs(signalValue - *row.lastPushedValue[p]) > kModulationChangeEpsilon;
-
-                if (changed && pc.isVisible())
-                {
-                    pc.setSourceValue(signalValue);
-                    if (p < row.lastPushedValue.size())
-                        row.lastPushedValue[p] = signalValue;
-                }
-
-                if (onParamChanged)
-                    onParamChanged(row.effectIndex, static_cast<int>(p), signalValue);
+                pc.setSourceValue(v);
+                pc.setParamValue(v);
+                if (p < row.lastPushedValue.size())
+                    row.lastPushedValue[p] = v;
             }
         }
     }
@@ -395,9 +363,10 @@ void EffectStackView::rebuildRows()
                 if (auto* parent = getParentComponent())
                     parent->resized();
             };
-            // s-rta-0925 mastersignal Step 0 (RED, S0-T5a): the row is NOT
-            // bound to the slot's connection yet -- bindConnection() lands
-            // in the GREEN commit.
+            // s-rta-0925 mastersignal Step 0: bind to the slot's own
+            // connection (element lives inside *effects_, sized 1:1 by
+            // construction -- no resizeParams call needed here).
+            dwc->bindConnection(&fx.dryWetConn, &fx.dryWetLive);
 
             addChildComponent(dwc.get());
             row->dryWetControl = std::move(dwc);
@@ -446,11 +415,14 @@ void EffectStackView::rebuildRows()
                 if (auto* parent = getParentComponent())
                     parent->resized();
             };
-            // s-rta-0925 mastersignal Step 0 (RED, S0-T5a): the row is NOT
-            // bound to this param's connection/live twin yet -- bindConnection()
-            // lands in the GREEN commit (parallel arrays are already sized
-            // 1:1 with paramValues via EffectSlot::addParam, so the GREEN
-            // commit's bind is a pure addition here, no resizeParams needed).
+            // s-rta-0925 mastersignal Step 0: bind to this param's own
+            // connection/live twin (parallel arrays sized 1:1 with
+            // paramValues by construction via EffectSlot::addParam -- no
+            // resizeParams call here, an unfenced message-thread reallocation
+            // would race the GL thread's effParam() read).
+            if (static_cast<size_t>(p) < fx.paramConns.size())
+                pc->bindConnection(&fx.paramConns[static_cast<size_t>(p)],
+                                   &fx.paramLive[static_cast<size_t>(p)]);
 
             addChildComponent(pc.get());
             row->paramControls.push_back(std::move(pc));

@@ -275,8 +275,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         // Frame Stutter is handled specially — uses frame ring buffer
         if (def->shaderName == "frame_delay")
         {
-            float depthParam = (slot.paramValues.size() > 0) ? slot.paramValues[0] : 0.3f;
-            float stutterParam = (slot.paramValues.size() > 1) ? slot.paramValues[1] : 0.0f;
+            float depthParam = (slot.paramValues.size() > 0) ? slot.effParam(0) : 0.3f;
+            float stutterParam = (slot.paramValues.size() > 1) ? slot.effParam(1) : 0.0f;
 
             auto& ring = getOrCreateRingBuffer(layerId, w, h);
             pushFrameToRing(ring, currentInput, shaderMgr, quad, w, h);
@@ -373,7 +373,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         {
             auto loc = program->getUniformIDFromName(def->params[p].uniformName.c_str());
             if (loc >= 0)
-                glUniform1f(loc, slot.paramValues[p]);
+                glUniform1f(loc, slot.effParam(p));
         }
 
         quad.draw();
@@ -381,7 +381,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         GLuint effectedTex = (writeFBO == 0) ? effectTex_A_ : effectTex_B_;
 
         // Apply dry/wet blend if < 1.0
-        if (slot.dryWet < 0.999f)
+        const float dryWet = slot.effDryWet();
+        if (dryWet < 0.999f)
         {
             // Blend effected result with pre-effect input
             int blendFBO = 1 - writeFBO;
@@ -406,7 +407,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
                 glUniform1i(dwProg->getUniformIDFromName("u_original"), 1);
                 // Dry/wet amount
                 auto dwLoc = dwProg->getUniformIDFromName("u_drywet");
-                if (dwLoc >= 0) glUniform1f(dwLoc, slot.dryWet);
+                if (dwLoc >= 0) glUniform1f(dwLoc, dryWet);
                 glActiveTexture(GL_TEXTURE0);
 
                 quad.draw();
@@ -1472,10 +1473,10 @@ GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot
     if (def == nullptr) return clipTex;
 
     // Read params: columns, rows, delay, mode
-    float colsParam = (slot.paramValues.size() > 0) ? slot.paramValues[0] : 0.15f;
-    float rowsParam = (slot.paramValues.size() > 1) ? slot.paramValues[1] : 0.15f;
-    float delayParam = (slot.paramValues.size() > 2) ? slot.paramValues[2] : 0.5f;
-    float modeParam = (slot.paramValues.size() > 3) ? slot.paramValues[3] : 0.0f;
+    float colsParam = (slot.paramValues.size() > 0) ? slot.effParam(0) : 0.15f;
+    float rowsParam = (slot.paramValues.size() > 1) ? slot.effParam(1) : 0.15f;
+    float delayParam = (slot.paramValues.size() > 2) ? slot.effParam(2) : 0.5f;
+    float modeParam = (slot.paramValues.size() > 3) ? slot.effParam(3) : 0.0f;
 
     int cols = static_cast<int>(2.0f + colsParam * 6.0f); // 2-8
     int rows = static_cast<int>(2.0f + rowsParam * 6.0f); // 2-8

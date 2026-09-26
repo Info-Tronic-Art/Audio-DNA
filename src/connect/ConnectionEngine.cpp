@@ -324,24 +324,26 @@ void ConnectionEngine::tick(Composition& comp, const Context& ctx)
                                               clipScalarDefs(), ctx, nullptr);
                 tickEffectVector(clip.effects, ctx, nullptr);
 
-                // s-rta-0925 mastersignal Step 0 (RED, S0-T1/T2): skips the
-                // store on NaN (gripped/disabled), so the twin freezes at its
-                // last published value instead of clearing -- the always-
-                // store fix (critic-#1 class, matching tickScalars/
-                // tickEffectVector's rule) lands in the GREEN commit.
-                bool publishedAny = false;
+                // s-rta-0925 mastersignal Step 0 (critic-#1 class): always
+                // store, same rule as tickScalars/tickEffectVector above -- a
+                // gripped/disabled source-param connection must clear its
+                // twin to NaN every tick, not skip the store and freeze at
+                // its last published value.
+                bool anyDriven = false;
                 for (auto& sp : clip.sourceParams)
                 {
-                    if (!sp.conn.isConnected() || !sp.conn.enabled)
+                    if (!sp.conn.isConnected())
                         continue;
-                    float y = evaluate(sp.conn, sp.value, ctx, nullptr);
-                    if (!std::isnan(y))
+                    if (!sp.conn.enabled)
                     {
-                        sp.live.v.store(y, std::memory_order_relaxed);
-                        publishedAny = true;
+                        sp.live.v.store(kNan, std::memory_order_relaxed);
+                        continue;
                     }
+                    float y = evaluate(sp.conn, sp.value, ctx, nullptr);
+                    sp.live.v.store(std::isnan(y) ? kNan : y, std::memory_order_relaxed);
+                    anyDriven = true;
                 }
-                if (publishedAny && onSourceParamsPublished)
+                if (anyDriven && onSourceParamsPublished)
                     onSourceParamsPublished(&clip);
             }
         }

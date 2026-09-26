@@ -1032,7 +1032,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     const auto* def = effectLibrary_.getEffectDef(fxName);
                     if (def)
                         for (const auto& p : def->params)
-                            slot.paramValues.push_back(p.defaultValue);
+                            slot.addParam(p.defaultValue);
                     existingClip->effects.push_back(slot);
                 }
             });
@@ -1076,7 +1076,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     const auto* def = effectLibrary_.getEffectDef(fxNames[fi]);
                     if (def)
                         for (const auto& p : def->params)
-                            slot.paramValues.push_back(p.defaultValue);
+                            slot.addParam(p.defaultValue);
                     newClip.effects.push_back(slot);
 
                     deck->setClip(layerIdx, targetCol, newClip);
@@ -1147,7 +1147,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 Clip::EffectSlot slot;
                 slot.effectName = trimmed.toStdString();
                 for (const auto& p : def->params)
-                    slot.paramValues.push_back(p.defaultValue);
+                    slot.addParam(p.defaultValue);
 
                 layer->layerEffects.push_back(slot);
                 ++addedCount;
@@ -1524,6 +1524,15 @@ MainComponent::MainComponent(bool testMode, int testPort)
     inspectorPanel_->getClipInspector().onSourceParamsChanged = [this](Clip* clip) {
         if (clip && clip->mediaType == Clip::MediaType::Source)
             previewPanel_.getRenderer().updateActiveSourceParams(clip->sourceParams);
+    };
+    // s-rta-0925 mastersignal Step 0: fired by ConnectionEngine::tick (120Hz,
+    // message thread) right after a clip's sourceParams live twins publish --
+    // keeps the standalone-source path's COPY (Renderer::activeSourceParams_,
+    // taken at select time) current for connected source params even when no
+    // Inspector tab is open to drive onSourceParamsChanged above.
+    connectionEngine_.onSourceParamsPublished = [this](const Clip* clip) {
+        if (clip)
+            previewPanel_.getRenderer().updateActiveSourceParamsFor(clip->sourceType, clip->sourceParams);
     };
 
     // Cuepoint jump: seek video/image sequence to the cuepoint position

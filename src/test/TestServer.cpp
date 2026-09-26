@@ -1097,7 +1097,7 @@ void TestServer::handleAddGlobalEffect(const httplib::Request& req, httplib::Res
     // file's own handleSetEffect and ApiServer::handleSetParam's existing
     // convention for the same case.
     for (const auto& p : def->params)
-        slot.paramValues.push_back(p.defaultValue);
+        slot.addParam(p.defaultValue);
 
     int matchedParams = 0;
     if (obj->hasProperty("params"))
