@@ -669,7 +669,15 @@ shader-only content is typically pixel-identical across runs; across machines it
 
 ### D12. VERSIONING + MIGRATION — `version` + `minReader` + capability flags + opaque round-trip; ADD, never REDEFINE
 
-**Take envelope (v2):**
+**Shipped (s-rta-0926 re-derive):** the envelope below shows v2 as originally specified; what ships
+is `version 3 / minReader 3` (Ruling 28's shared audio store, `Take.h:95-96`). `features` written by
+`Take::toVar` is always `["lanes", "tempoMap", "checkpoint0"]`, plus `"audio"` when `audio.mode` is
+set and `"markers"` when any exist (`Take.cpp:150-165`). `"wallOnly"` is not written by the v3
+writer — it is a reader-side flag `Take::fromV1Var` pushes into `unknownFeatures` when bridging a
+legacy (pre-v2) file that has no beat/sample stamps, `t` only (`Take.cpp:145` `knownFeatures()`
+set; `Take.cpp:317-323` the v1→v2 bridge).
+
+**Take envelope (v2, as specified):**
 ```jsonc
 { "format": "audiodna-take", "version": 2, "minReader": 2,
   "features": ["lanes", "tempoMap", "checkpoint0", "audio", "markers"],

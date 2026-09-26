@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional — AUDIODNA_BUILD_LINK OFF by default, so a no-op unless built), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc — receiver started at startup on UDP 8000, all 11/11 callbacks wired; Wave 1-B), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional — wired to publish the final composited frame each frame, build-flag-gated: no-op unless built -DAUDIODNA_BUILD_SYPHON=ON with Syphon.framework; Wave 1-A. Input/Spout/NDI stubs removed Wave 0), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — registers + shows in the browser but the converted GLSL is never compiled, so imported effects don't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional — AUDIODNA_BUILD_LINK OFF by default, so a no-op unless built), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc — receiver started at startup on UDP 8000, all 13/13 callbacks wired; Wave 1-B), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional — wired to publish the final composited frame each frame, build-flag-gated: no-op unless built -DAUDIODNA_BUILD_SYPHON=ON with Syphon.framework; Wave 1-A. Input/Spout/NDI stubs removed Wave 0), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — registers + shows in the browser but the converted GLSL is never compiled, so imported effects don't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -252,14 +252,23 @@ AudioDNA/
 │   ├── media/
 │   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (H.264/H.265/ProRes/HAP Alpha; container per linked FFmpeg) → GL texture
 │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
-│   ├── recording/
-│   │   ├── SessionRecorder.h/cpp        # [P12] Event recording — PARTIAL: only clip-triggers captured; playback DEAD (advancePlayback never called)
+│   ├── recording/                      # SessionRecorder REMOVED (s168, 3736f02) -- replaced by the performance take recorder below
+│   │   ├── AudioTap.h/cpp            ✅ # Second fan-out in CombinedCallback; writes take audio, re-patches the WAV header every 10s (kHeaderFlushSeconds)
 │   │   ├── AudioStore.h/cpp          ✅ # [Ruling 28] Shared audio store (~/Documents/Audio-DNA/Audio/<id>.adna-audio/) -- take format v3 references it by id; see "Audio Store" below
+│   │   ├── RecorderClock.h/cpp       ✅ # Monotonic beat/sample/wall timebase shared by capture and replay
+│   │   ├── PerformanceRecorder.h/cpp ✅ # touch/set/release gesture capture -> Lane
+│   │   ├── Take.h/cpp + Lane.h + TempoMap.h + PerfState.h/PerfStateCapture.cpp ✅ # v3 take envelope (lanes/tempoMap/checkpoint0[+audio][+markers]), per-control lanes, tempo map, restore-point snapshot
+│   │   ├── Program.h/cpp + Player.h/cpp ✅ # Compile a Take into a schedule (incl. the D4 preamble) and play it back
+│   │   ├── RecorderHost.h/cpp        ✅ # Owns the whole record/replay lifecycle; backs RecordPanel + `/api/perf/*`
 │   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
+│   ├── model/
+│   │   └── ControlPath.h                # Deck/layer/clip/comp addressing shared by connections and recorded lanes
+│   ├── connect/
+│   │   └── AutomationCurve.h            # Shared curve struct/evaluator: a hand-drawn Envelope (D6) and a recorded lane Gesture (D7) both store one
 │   ├── api/
-│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 23 endpoints — all functional; /api/set_bpm wired Wave 0; CORS, always-on)
+│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 35 registered routes -- all functional; 27 core + 7 `/api/perf/*` + `/api/audio/source`; /api/set_bpm wired Wave 0; CORS, always-on)
 │   ├── osc/
-│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 11/11 callbacks wired
+│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 13/13 callbacks wired
 │   ├── output/
 │   │   └── SyphonOutput.h/.mm       ✅ # [P22] macOS Syphon server — WIRED 2026-07-17 (Wave 1-A): publishes final composited frame each frame; no-op unless built -DAUDIODNA_BUILD_SYPHON=ON + Syphon.framework
 │   │                                    #   (SyphonInput.h/.mm, SpoutOutput.h, NdiOutput.h, NdiInput.h REMOVED 2026-07-17 (Wave 0) — were orphaned/no-op stubs)
@@ -292,7 +301,7 @@ AudioDNA/
 │       ├── MenuBarModel, PreferencesDialog, PresetManager  # Menus, preferences, preset save/load
 │       └── LookAndFeel                              # Dark VJ theme
 ├── shaders/                             # REMOVED 2026-07-17 (Wave 0) — dir deleted; was 5 dead duplicate disk files (hue_shift/rgb_split/ripple/vignette .frag + passthrough.vert). All shipped shaders are embedded strings in src/render/EmbeddedShaders.h
-├── tests/                               # 12 Catch2 unit targets (114 tests, all pass; run: `cd build && ctest`)
+├── tests/                               # 49 Catch2 unit targets (539 tests, all pass -- ctest 539/539 s-rta-0925; run: `cd build && ctest`; counts derived, not inherited -- see tests/CMakeLists.txt)
 │   ├── CMakeLists.txt
 │   ├── test_ring_buffer.cpp          ✅ # Lock-free SPSC ring buffer
 │   ├── test_spectral_features.cpp    ✅ # Centroid/flux/flatness/rolloff/bands
@@ -306,6 +315,18 @@ AudioDNA/
 │   ├── test_routing_engine.cpp       ✅ # Signals + routing engine
 │   ├── test_compositor.cpp           ✅ # Deck/layer compositing + autopilot
 │   ├── test_waveform_snapshot.cpp   ✅ # Seqlock waveform snapshot (torn-read regression, Wave 1-D)
+│   ├── test_take.cpp                 ✅ # [recorder] Take v3 envelope + Program/Player schedule + playback
+│   ├── test_audio_tap_sync.cpp       ✅ # [recorder] AudioTap stop()/push() concurrency + T2 timing
+│   ├── test_audio_store.cpp          ✅ # [recorder] AudioStore fingerprint/resolve/abandon (Ruling 28)
+│   ├── test_recorder_host.cpp        ✅ # [recorder] RecorderHost record/replay lifecycle, preamble restore
+│   ├── test_program_stamps.cpp       ✅ # [recorder] continuous breakpoint x from its own gesture's Stamp
+│   ├── test_program_preamble.cpp     ✅ # [recorder] checkpoint0 -> Program preamble compile order (s-rta-0925)
+│   ├── test_take_v1_transport.cpp    ✅ # [recorder] removed-SessionRecorder-shape (v1) -> v2 bridge (D12 rule 5)
+│   ├── test_recorder_double_touch.cpp ✅ # [recorder] PerformanceRecorder::touch() double-open guard
+│   ├── test_record_panel_model.cpp   ✅ # [recorder] Record panel state machine
+│   ├── test_onset_pulse.cpp          ✅ # OnsetPulse monotonic-counter delta (render-side onset consumers)
+│   ├── test_bt_device_shapes.cpp     ✅ # Bluetooth-shaped device rate handling (no Bluetooth audio on the rig; shapes only)
+│   ├── test_httplib_bodyless_post.cpp ✅ # cpp-httplib bodyless-POST regression (>= v0.28.0)
 │   └── visual/                          # "Eyes" pytest harness (11 test_*.py) — needs running app + AUDIODNA_BUILD_TEST_SERVER build
 ├── resources/
 │   ├── default_image.png                # Fallback test image
@@ -1163,7 +1184,7 @@ Composition-level automation that sets different beat timings per layer type:
 
 ### Output & Integration System (P22)
 
-**Production REST API** (`ApiServer`, port 7070, always-on): 24 endpoints for external control (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread; `/api/resync` added s-rta-0925 — manual Resync via `BPMTracker::requestResync()`, message thread → analysis thread, same funnel as the TopBar Resync button). cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/set_master_signal, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/resync, /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state. All GL mutations go through existing thread-safe APIs.
+**Production REST API** (`ApiServer`, port 7070, always-on): 35 registered routes total (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread; `/api/resync` added s-rta-0925 — manual Resync via `BPMTracker::requestResync()`, message thread → analysis thread, same funnel as the TopBar Resync button). cpp-httplib on a background thread with CORS headers. 27 core control endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/set_master_signal, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/resync, /api/features, /api/inject_features (test-mode only — 404 in production), /api/load_image, /api/load_source, /api/load_composition, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state, /api/syphon, /api/set_syphon. Plus 7 `/api/perf/*` performance-recorder endpoints and `POST /api/audio/source` — both documented above in "Audio Store (Ruling 28)". All GL mutations go through existing thread-safe APIs.
 
 **OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns (13): `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/signal`, `/audiodna/bpm`, `/audiodna/resync`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread. **LIVE 2026-07-17 (Wave 1-B)**: `OscHandler::startListening(8000)` is called unconditionally at startup (like ApiServer), so the receiver binds UDP port 8000, and all 13/13 pattern callbacks are wired in MainComponent (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync) — each routing through the same handler as the equivalent REST/UI/MIDI path. Port is hardcoded (no preferences UI configures it yet).
 

@@ -26,9 +26,9 @@ menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle adde
 **15 transitions** (+1 deck transition) · **243 embedded shaders** · **108 sources**
 / 19 categories / 759 params (108 GUI-selectable) · **30 audio features** / 14-stage
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
-(Global bank only) · **23 REST endpoints** (all functional) ·
-**12 OSC patterns** (subsystem LIVE — port 8000, 12/12 wired, Wave 1-B 2026-07-17; `/audiodna/signal` added s-rta-0925 mastersignal Step 1) · 20 binding actions · 6 feedback presets ·
-**188 unit tests** (all PASS; 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30 AM: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard; 182 → 188 on 2026-07-30 PM2: +4 test_autopilot.cpp [FIRST autopilot coverage] + 2 test_renderer_source_confinement; 188 → 189 on 2026-08-02: +1 syphon_check_negative).
+(Global bank only) · **35 registered REST routes** (all functional; 27 core control + 7 `/api/perf/*` + `POST /api/audio/source`; counted from `src/api/ApiServer.cpp`, s-rta-0926) ·
+**13 OSC patterns** (subsystem LIVE — port 8000, 13/13 wired, Wave 1-B 2026-07-17; `/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync) · 20 binding actions · 6 feedback presets ·
+**539 unit tests / 49 Catch2 targets** (ctest 539/539 at s-rta-0925 close, HANDOFF.md; targets counted from `tests/CMakeLists.txt` `add_executable`, s-rta-0926; historical delta chain below predates the recorder lanes and is not reconciled to 539 — re-derive, do not inherit: 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30 AM: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard; 182 → 188 on 2026-07-30 PM2: +4 test_autopilot.cpp [FIRST autopilot coverage] + 2 test_renderer_source_confinement; 188 → 189 on 2026-08-02: +1 syphon_check_negative).
 
 **2026-07-30 PM2 SURFACE DELTA (13-item queue session — reconcile rows below when next doing a full §3 pass):** LayerStrip = NEW FX-drop-target (layer-scope stack, one undo entry) · Clip menu items now selection-gated (grayed w/o selection) · Cmd+X = second shortcut on Clip>Clear · mixed image+video Finder drop lands BOTH (one composite undo) · MilkDrop group-header drag = whole-section playlist drop (any mode); the 3 Playlist-mode controls (cycle/timing/blend) are now REAL (were decorative) · click-on-playing-cell RESTARTS video/imageseq from in-point (sources still no-op — Boris ruling pending) · genre auto-switch now reconciles preview via handleDeckSwitch · autopilot advances off Source/Image cells (was frozen) · ApiServer: 6 endpoints marshalled to message thread, ok:true-always semantics; sanitizer build variants exist (ADNA_SANITIZE); §8 candidates CLEARED this session: dead startDrag() decl removed, ReinspectTarget path removed (B8).
 
@@ -82,7 +82,7 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 | FX (`FXBrowser.cpp`) | Browser → FX | Search; 11 collapsible category headers; effect rows click / Cmd-Shift multi-select; drag `fx:name,name` to cell/stack | yes |
 | Sources (`SourcesBrowser.cpp`) | Browser → Sources | Search; 19 category headers; **109 hand-listed source rows** (registry NOT used, but the 6 previously-absent registered sources added Wave 0; Simulation/Routing/MilkDrop headers now populated); click/multi-select; drag `source:id,id` | yes |
 | Comp/Decks (`CompDecksBrowser.cpp`) | Browser → Comp/Decks | 2 collapsible sections; Save-Deck + right-click delete WORK; **Save-Composition + entry-click load are UNWIRED no-ops** (onCompositionLoad/onDeckLoad/onCompositionSave callbacks never assigned — reviewer-traced 2026-07-28; FUTURE-FENCE comment at declarations) | partial |
-| Record (`RecordPanel.cpp`) | Browser → Record | Record/Stop/Play/Save/Load/Output-Folder buttons; Format combo (JSON); status + event-count labels (**Play fires nothing — playback dead**) | partial |
+| Record (`RecordPanel.cpp`, model `RecordPanelModel.h`) | Browser → Record | Record / Record Over / Stop Recording / Load Take... / Play (with audio) / Stop Playback / Repair; name field; record-audio switch; notice line; 4 Hz refresh over `RecorderHost::Status` | yes (live-verified s-rta-0924b, 10 states over REST) |
 | MilkDrop (`MilkDropBrowser.cpp`) | Browser → MilkDrop | 4 sub-tabs (Curated/Favorites/Recent/All); search; Prev/Next/Random/Lock nav; 3 play-modes (Jukebox/VJ-Clip/Playlist); Jukebox play + pool/mode/timing combos + blend; Playlist cycle/timing + blend; preset rows click/multi-select/drag; right-click = favorite. **2026-07-30: 30 curated presets bundle into the .app + auto-populate at launch; preset manager survives GL detach (crash-#2 UAF fixed — SignalBar expand/collapse safe)** | yes (needs libprojectM) |
 
 ### Prefs tabs (`PreferencesDialog.cpp`)
@@ -136,7 +136,12 @@ Source: lane-1-audio-analysis.md §2-4.
 
 ### REST API — production server (`src/api/ApiServer.cpp`, port 7070, always-on, CORS)
 
-Source: lane-6-io-api.md. 24 endpoints; all functional (`/api/set_bpm` wired Wave 0; `/api/resync` added s-rta-0925 -- manual Resync via `requestResync()`, message thread -> analysis thread).
+Source: `src/api/ApiServer.cpp` (route registrations counted by command, s-rta-0926). **35 registered
+routes total: 27 core control endpoints (rows 1-27) + 7 `/api/perf/*` (rows 28-34) + `POST
+/api/audio/source` (row 35)**; all functional (`/api/set_bpm` wired Wave 0; `/api/resync` added
+s-rta-0925 -- manual Resync via `requestResync()`, message thread -> analysis thread). Rows 28-35
+are the performance take recorder's REST surface (see "Audio Store / Step 3" in CLAUDE.md for the
+full field-level detail of each).
 
 | # | Method | Path | Action |
 |---|---|---|---|
@@ -152,33 +157,51 @@ Source: lane-6-io-api.md. 24 endpoints; all functional (`/api/set_bpm` wired Wav
 | 10 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
 | 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, downbeatDetected (level) |
 | 12 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
-| 13 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
-| 14 | POST | /api/inject_features | write FeatureBus (test/automation) |
-| 15 | POST | /api/load_image | loadImage() + 100ms GL sleep |
-| 16 | POST | /api/load_source | setActiveSource() |
-| 17 | POST | /api/set_effect | enable/disable + params on global-chain effect |
-| 18 | GET | /api/effects | list global-chain effects |
-| 19 | GET | /api/sources | list registered source ids |
-| 20 | POST | /api/render_frame | captureFrame() to path |
-| 21 | POST | /api/reset | clear image + source + disable all effects |
-| 22 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
-| 23 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
+| 13 | POST | /api/resync | manual Resync via `BPMTracker::requestResync()` (s-rta-0925), same funnel as the TopBar Resync button |
+| 14 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
+| 15 | POST | /api/inject_features | write FeatureBus (test/automation) — registered only when `allowFeatureInjection_` (test mode); 404 in production |
+| 16 | POST | /api/load_image | loadImage() + 100ms GL sleep |
+| 17 | POST | /api/load_source | setActiveSource() |
+| 18 | POST | /api/load_composition | loadComposition() |
+| 19 | POST | /api/set_effect | enable/disable + params on global-chain effect |
+| 20 | GET | /api/effects | list global-chain effects |
+| 21 | GET | /api/sources | list registered source ids |
+| 22 | POST | /api/render_frame | captureFrame() to path |
+| 23 | POST | /api/reset | clear image + source + disable all effects |
+| 24 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
+| 25 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
+| 26 | GET | /api/syphon | Syphon output enabled/initialized status (P22.1) |
+| 27 | POST | /api/set_syphon | toggle Syphon output publishing |
+| 28 | POST | /api/perf/record | arm: name, audio, audioFile, onsetMarkers, overdubAssetId |
+| 29 | POST | /api/perf/stop | disarm + finalize the take |
+| 30 | POST | /api/perf/load | load a take folder |
+| 31 | POST | /api/perf/play | replay (`withAudio`: true replays audio points through the transport, false is silent wall-clock replay); restores checkpoint 0 first (s-rta-0925) |
+| 32 | POST | /api/perf/stop_play | stop replay; give the live input back |
+| 33 | POST | /api/perf/repair | crash recovery — re-derives a truncated/incomplete asset's frame count |
+| 34 | GET | /api/perf/status | recording/playing/finished state, take-clock, `preambleCount/Fired/Refused/Unresolved`, `inputSource`, error counters |
+| 35 | POST | /api/audio/source | dev/probe control — switches the live app between the live input and the loaded file transport (s-rta-0925) |
+
+The 7 `handlePerfRecord`/`handlePerfStop`/`handlePerfLoad`/`handlePerfPlay`/`handlePerfStopPlay`/
+`handlePerfRepair`/`handlePerfStatus` handlers return 503 "Recorder unavailable" when the
+callback is unwired; `handleAudioSource` returns 503 "Audio source unavailable" in the same case.
+Both mutate via `juce::MessageManager::callAsync` to the message thread.
 
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 17 endpoints) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
-### OSC input (`src/osc/OscHandler.cpp`) — 12 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
+### OSC input (`src/osc/OscHandler.cpp`) — 13 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 
 `startListening(8000)` is called unconditionally at startup (`MainComponent.cpp:1207-1211`,
-like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 12/12
-callbacks are now wired (`MainComponent.cpp:1132-1204`), each routing through the same
+like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 13/13
+callbacks are now wired (`MainComponent.cpp:2083-2148`, s-rta-0926 re-derived), each routing through the same
 handler as the equivalent REST/UI/MIDI path (clip/deck/snapshot → same as REST; bpm →
-manual-override tracker; layer opacity/bypass/solo/mute → active-deck layer fields; macro →
+manual-override tracker; resync → `BPMTracker::requestResync()`, same funnel as the TopBar Resync
+button, s-rta-0925; layer opacity/bypass/solo/mute → active-deck layer fields; macro →
 global dashboard-link bank; effect param → global effect-chain; signal → Master Signal depth,
 s-rta-0925 mastersignal Step 1). Delivery is on the message
 thread (`MessageLoopCallback`). Patterns:
 `/audiodna/clip/{layer}/{column}`, `/layer/{n}/opacity|bypass|solo|mute`, `/deck/{n}`,
-`/master`, `/signal`, `/bpm`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`.
+`/master`, `/signal`, `/bpm`, `/resync`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`.
 Port is hardcoded (no preferences UI configures it yet — matches absence of a settings store).
 
 ### Persistence (JSON via juce::var) — **COMPLETE** for model entities (Wave 1-C, 2026-07-17; was LOSSY, lane-4 F5)
@@ -224,8 +247,13 @@ Source: lanes 2 + 4.
   compiled + dedicated `transitionFBO_`; plus 1 separate `deck_transition` (cross-deck A/B).
 - **Recording / snapshot** — `VideoRecorder` (REAL: FFmpeg H.264/ProRes/MJPEG,
   triple-buffered GL readback, wired to Output menu, video-only no audio); PNG snapshot
-  (REAL, via REST/OSC/menu); `SessionRecorder` (**PARTIAL** — captures clip triggers only,
-  playback dead).
+  (REAL, via REST/OSC/menu); performance take recorder (`src/recording/`: `AudioTap` second
+  fan-out in `CombinedCallback`, `AudioStore` `~/Documents/Audio-DNA/Audio/<id>.adna-audio`,
+  `RecorderClock`, `PerformanceRecorder`, `Take` v3 / `Lane` / `TempoMap` / `PerfState`,
+  `Program` + `Player`, `RecorderHost`; takes at `~/Documents/Audio-DNA/Takes/<name>.adna-take/take.json`) —
+  **LIVE**, replaces the removed `SessionRecorder` (s168, 3736f02); gates: probe-step3 93/0
+  (s-rta-0926), probe-onset-render 13/0 (s-rta-0924b), probe-finalize-loop 40/0
+  (s-rta-0924b), STEP3_LONG 20 min 82/0, drift +0.28 ms (s-rta-0924b).
 - **Genre / energy intelligence** — `GenreDetector` (8 genres + 3-band energy, ~2s EMA +
   ~3s hysteresis internally); drives auto-preset/deck switch + structural scene triggering.
   (GenreSmoothing + MappingSuggester removed Wave 0 — see §8.)
@@ -266,8 +294,8 @@ Source: lane-5 §3.
 | Spout output | REMOVED 2026-07-17 (Wave 0) — SpoutOutput.h deleted (was header-only no-op) | — |
 | NDI output / input | REMOVED 2026-07-17 (Wave 0) — NdiOutput.h + NdiInput.h deleted (were stubs) | — |
 | Undo / redo | BUILD-COMPLETE 2026-07-19→25 (Undo v1 steps 1-9; commits 7c8d286/7921572/daa9361/6d2def4/7f87094/316a2bf/d90e953/4ee2dac/0a1c882) — ALL structural edits: clip cells, composites/column ops, layer ops (GL-fenced), deck ops (fence fixes latent renderer re-point), effect stacks ×3 scopes, clip/column TRIGGERS with same-layer merge (REST/OSC/MIDI undoable; autopilot never); Cmd+Z + dynamic menu live; tests 170. Remaining: Boris-assisted manual e2e run (.harmony/undo-v1-manual-e2e.md; TCC Allow first); known cosmetics: expanded-FX-row collapse + deck-tab highlight on undo (pre-existing refresh path, follow-up awaiting ratification); accepted risk-#5 family: playing not restored, first-trigger auto-play skip after undo | src/core/ClipCommands.h; DeckCommands.h; EffectCommands.h; EffectScope.h; TriggerCommands.h; UndoService.h/.cpp; MediaReconnect.h; .harmony/undo-v1-ledger.md; .harmony/undo-v1-manual-e2e.md |
-| Session playback | DEAD — `advancePlayback()` never called; capture = clip triggers only (6/7 record* unused) | SessionRecorder.cpp; MainComponent.cpp:2472; RecordPanel.cpp:38 |
-| OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 12/12 callbacks wired (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:1132-1211 |
+| Performance recorder | LIVE (s168 core 3736f02; step 3 wiring s-rta-0924; Record panel s-rta-0924b; replay-restore preamble s-rta-0925) — replaces the removed `SessionRecorder` (section 8, removed s168, 3736f02) | src/recording/*; MainComponent.cpp:1945-2048, 5074-5300 |
+| OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 13/13 callbacks wired (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync; port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:2083-2148 |
 | ISF import | PHANTOM — converted GLSL never compiled/queued; effect registers + shows but never renders; "Import Successful" dialog misleads | MainComponent.cpp:2426-2454 |
 | ISFShaderLoader::registerISFEffect | REMOVED 2026-07-17 (Wave 0) — dead no-op stub deleted (registerDynamic is the real path, kept) | — |
 | Shader hot-reload | INERT — all shipped shaders compiled from embedded strings; `reloadAll()` skips file-less programs | ShaderManager.cpp:115-116 |

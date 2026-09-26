@@ -851,5 +851,13 @@ procedural sources, no global effects. "Audio controls the video" reaches that s
 (i) v1 mappings loaded from a preset file and (ii) the audio uniforms hard-wired into some shaders.
 The composition reaches an audience only via the preview panel or Syphon. VERIFIED.
 
+### A5. D7 (s167) — the shared curve, re-derived (s-rta-0926)
+
+`ConnSource::Envelope::curve` IS `AutomationCurve` (`src/connect/AutomationCurve.h`,
+`ParamConnection.h:52-63`), the same struct/evaluator a recorded lane gesture stores
+(`src/recording/Lane.h:131-135`, `Gesture::curve`). A lane is a WRITER through `manualWrite`
+(`Hand::Lane`, `ManualWrite.h:24`), never a `ConnSource::Kind` (`ParamConnection.h:34` —
+`None, Signal, Macro, Lfo, Envelope, ClipPosition`; no `Lane` value) — see s167 D7/section 9.
+
 REPORT_FILE: memory/.reports/s166/arch-universal-connection.md
 STATUS: COMPLETE
