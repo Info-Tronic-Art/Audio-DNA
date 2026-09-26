@@ -74,7 +74,7 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     };
 
     addAndMakeVisible(resyncButton_);
-    resyncButton_.setTooltip("Reset the beat to now and restart tempo-synced oscillators from this downbeat");
+    resyncButton_.setTooltip("Reset beat phase to sync with the music");
     resyncButton_.onClick = [this]
     {
         if (onResync)
