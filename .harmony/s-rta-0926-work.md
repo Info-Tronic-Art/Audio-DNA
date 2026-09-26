@@ -46,3 +46,4 @@ look at one decoded frame per probe.
   2bf1d56 (critics PASS r1 pinned, reviewer PASS), routine-docs 82793a7 (+ my fixes: probe-step3 audio WARN excludes
   coreaudiod; ruling note mentions the strip). build/ 2bf1d56: ctest 573/573. Gates: probe-routines 74/0 x3
   (startBeatInBar 3.47/3.45/3.80; ROUTINES_RECORD_PAUSE knob added), probe-step3 94/0 (T2 p95 10.84).
+- 19:xx close: final gates on 6e8f120 all GREEN (ctest 580; manual-bpm 18/0, parity 46/0, resync 16/0, downbeat 14/0, routines 74/0 late-bar, step3 94/0); Deck Save/Load shot looked at. EOS.
