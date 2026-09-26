@@ -1,0 +1,23 @@
+deliverable sha256 before: 8c46a2a089b1ad58c6627413cb09f52cd8d92a032eac03ef5f53734dd43388ee
+36c36
+<         return (std::uint64_t{ deckId } << 32) | std::uint64_t{ layerId };
+---
+>         (void)deckId; return std::uint64_t{ layerId };
+=== mutation drop_deck:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_layer_state_key.cpp:34: FAILED:
+  REQUIRE( LayerStateKey::clipChain(a.id, a.layers[i].id) != LayerStateKey::clipChain(b.id, b.layers[i].id) )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_layer_state_key.cpp:55: FAILED:
+  REQUIRE( seen.insert(clip).second )
+with expansion:
+test cases:  3 |  1 passed | 2 failed
+42c42
+<         return clipChain(deckId, layerId | kLayerChainBit);
+---
+>         return clipChain(deckId, layerId);
+=== mutation drop_chain_bit:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_layer_state_key.cpp:52: FAILED:
+  REQUIRE( clip != lay )
+with expansion:
+test cases:  3 | 2 passed | 1 failed
+deliverable sha256 after:  8c46a2a089b1ad58c6627413cb09f52cd8d92a032eac03ef5f53734dd43388ee
