@@ -128,11 +128,27 @@ private:
     GLuint scratchFBO_ = 0;
     GLuint scratchTex_ = 0;
 
-    // Effect ping-pong FBOs for per-clip effect chains
+    // Effect scratch pool (per-clip/per-layer/global effect chains, clip
+    // transform/opacity, layer transform, Screen Split). Every write into it
+    // goes through pickEffectTarget() -- see ScratchPool.h for the rule. The
+    // third member (C) exists so a pass that samples one pool texture while
+    // its caller holds another (the transition's outgoing-clip chain) still
+    // has a free target.
     GLuint effectFBO_A_ = 0;
     GLuint effectTex_A_ = 0;
     GLuint effectFBO_B_ = 0;
     GLuint effectTex_B_ = 0;
+    GLuint effectFBO_C_ = 0;
+    GLuint effectTex_C_ = 0;
+
+    struct ScratchTarget { GLuint fbo; GLuint tex; };
+    // A pool target that is neither readTex (what the pass samples) nor
+    // holdTex (a texture the caller still needs afterwards; 0 = none).
+    ScratchTarget pickEffectTarget(GLuint readTex, GLuint holdTex) const;
+    bool isEffectPoolTexture(GLuint tex) const
+    {
+        return tex != 0 && (tex == effectTex_A_ || tex == effectTex_B_ || tex == effectTex_C_);
+    }
 
     // Transition FBO (P14) — separate from scratch to avoid keying conflicts
     GLuint transitionFBO_ = 0;
@@ -175,6 +191,16 @@ private:
     // the bottom layer — so 0 is NOT a safe "no real layer" sentinel; the
     // max uint32_t value is.
     static constexpr uint32_t kGlobalEffectsLayerId = 0xFFFFFFFFu;
+
+    // s-rta-0926 xfade class sweep: the id passed to applyClipEffects keys the
+    // chain's temporal buffer (u_prev_frame) and Screen Split / Frame Stutter
+    // ring. A layer's clip chain and its layer chain both passed layer.id, so
+    // each chain's "previous frame" was the OTHER chain's output (measured on
+    // e1ed9cc: clip [Freeze 0.5] + layer [Invert, Freeze 0.5] rendered flat
+    // 50% grey instead of the inverted image). The layer chain keys its state
+    // with this bit set; real layer ids never reach it, and the one id that
+    // has it set already (kGlobalEffectsLayerId) would need layer id 0x7FFFFFFF.
+    static constexpr uint32_t kLayerChainStateBit = 0x80000000u;
 
     // Per-layer feedback processors (keyed by layer ID)
     std::unordered_map<uint32_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;
@@ -221,9 +247,11 @@ private:
 
     // Screen Split: render a grid of delayed copies of the clip texture
     // Returns the composited grid texture, or 0 if not a screen split effect.
+    // Renders into dstFBO/dstTex (a pool target picked by the caller).
     GLuint applyScreenSplit(GLuint clipTex, const Clip::EffectSlot& slot,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
-                            uint32_t layerId, int w, int h);
+                            uint32_t layerId, int w, int h,
+                            GLuint dstFBO, GLuint dstTex);
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
@@ -274,12 +302,14 @@ private:
     }
 
     // Apply an effect chain to a texture, returns result texture ID.
-    // Uses effectFBO_A_/B_ for ping-pong rendering.
+    // Renders into the effect scratch pool (pickEffectTarget per pass).
     // layerId: used to key per-layer temporal buffers for time effects (u_prev_frame).
+    // holdTex: a texture the CALLER still needs after this call returns (e.g.
+    // applyTransition's incoming-clip result); no pass of this chain writes it.
     GLuint applyClipEffects(const std::vector<Clip::EffectSlot>& effects, GLuint inputTex,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
                             float time, int w, int h,
-                            uint32_t layerId = 0);
+                            uint32_t layerId = 0, GLuint holdTex = 0);
 
     // Apply layer transform (translate/scale/rotate) to a texture
     GLuint applyLayerTransform(const Layer& layer, GLuint srcTex,
@@ -310,7 +340,8 @@ private:
     GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt);
 
     // Apply transition shader: blend previous clip texture with new clip texture
-    // Returns the blended texture. Uses scratchFBO_ as intermediate.
+    // Returns the blended texture. newClipTex is HELD across the outgoing
+    // clip's render + effect chain, so that chain runs with holdTex=newClipTex.
     GLuint applyTransition(Layer& layer, GLuint newClipTex, float time,
                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
