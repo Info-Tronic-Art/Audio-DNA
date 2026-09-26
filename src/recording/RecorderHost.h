@@ -283,6 +283,13 @@ private:
     // (never hand-rolled) so every save shares ONE conversion path with the finalized ref disarm()
     // builds. `tap` is nullptr for the no-audio (5.5) branch; overdub ignores `tap` entirely (R-A6).
     AudioRef liveAudioRef(AudioTap* tap) const;
+    // s-rta-0926 tempomap: the ONE place a take about to be saved gets the facts the host owns --
+    // markers, the audio reference, the clock's tempo map, and the arm-time meta (recordedAt, app,
+    // startBeatInBar). Used by all three save sites (provisional at arm, periodic in tick, final at
+    // disarm); each site adds only what differs (duration/durationBeats, checkpointEnd). Pre-fix the
+    // tempo map was copied at none of them, so every live take.json had "tempoMap": [] and
+    // sliceRoutine refused every real take ("no beat grid").
+    Take takeForSave(Take base, AudioRef audio) const;
 
     AudioStore store_;
     RecorderClock clock_;
