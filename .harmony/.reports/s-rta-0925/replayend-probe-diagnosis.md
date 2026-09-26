@@ -154,32 +154,74 @@ wallClock), before their respective "10E" assertion blocks. The function:
    an infinite hang, not the primary policy.
 4. Polls `finished` every 0.25 s (same cadence as the shape loop) until true or the deadline passes.
 
-**Fail-first preserved, verified by re-reading the pre-fix RED log (`/tmp/rta0926-end-red.log`):**
-that log ALREADY shows `lengthSeconds` present (line 72: `positionSeconds ... != lengthSeconds
-61.813...`) -- the F2 `lengthSeconds` formula predates this lane (`plan-replayend.md`'s own citation:
-"F2's real length: RecorderHost.cpp:799-821"). So on the pre-fix binary the new wait phase's PRIMARY
-branch (bounded by `lengthSeconds`) still runs, waits out essentially the same ~61-66 s, and then
-`finished` -- which pre-fix code never sets at all (no `Status::finished` field existed before commit
-2bb521c) -- is STILL `NA`/false when the 10E assertions run. `end(withAudio)/(wallClock): finished ==
-true` and the rows that depend on it therefore still correctly FAIL on the pre-fix binary; nothing
-about this fix can make a pre-fix build pass.
+**Fail-first preserved on a pre-fix binary -- INFERRED from source, NOT verified by the pre-fix RED
+log (correction, fix round 1 -- `review-replayend-probe-r1.md` finding 2 is correct: the original
+wording here overclaimed).** The reasoning: pre-fix code never sets `Status::finished` at all (the
+field did not exist before commit `2bb521c`), so on a pre-fix binary the new wait phase's primary
+branch (bounded by `lengthSeconds`, which F2 already publishes pre-fix -- `RecorderHost.cpp:799-821`)
+waits out its bound and then reads `finished` as permanently `NA`/false, so the 10E assertions that
+depend on it still correctly FAIL. That is a sound INFERENCE from reading the pre-fix source, not a
+verification -- `/tmp/rta0926-end-red.log` does NOT establish it: that log was produced by the OLD
+(unfixed) probe script, contains none of `wait_for_replay_finish`'s own echo lines (the function did
+not exist yet when that log was captured), and reflects an even earlier product build state (9
+FAILs, `finished == NA` throughout, pre-`lane/replayend`-merge). Citing it as verification of the
+NEW function's behavior on a pre-fix binary was citing an artifact that never exercised that
+function. No fail-first re-proof run (new probe vs. an actual pre-`lane/replayend` build) has been
+made; this paragraph is corrected to an honest INFERRED label, not upgraded to VERIFIED.
 
 **No RecorderHost/MainComponent/ApiServer/test change.** `ctest` count is unaffected by this branch
 (probe-only); the 9 tests this lane's REAL fix added (`E1-E4`, `R13-R15`, `R12b`, per
 `plan-replayend.md` section 8) already exist on `main` from the `lane/replayend` merge and are not
 touched here.
 
+## FIX ROUND 1 (`review-replayend-probe-r1.md`, REQUEST_CHANGES) -- disposition
+
+Two findings, both correct:
+
+1. **No live run of the committed probe fix exists postdating `ed6c669`** -- both cited logs
+   (`/tmp/rta0926-step3.log` 11:21:47, `/tmp/rta0926-end-red.log` 11:16:24) predate the fix commit
+   (11:30:27) and contain none of `wait_for_replay_finish`'s own diagnostic echo lines. Correct;
+   the original "Fail-first preserved, verified by..." wording overclaimed.
+2. **The "verified by re-reading the pre-fix RED log" claim misattributed verification.** Correct;
+   fixed above -- that paragraph is now labeled INFERRED, not VERIFIED, and states plainly that the
+   RED log does not exercise the new function.
+
+**What this fix round adds:** `.harmony/test-wait-for-replay-finish.sh`, a headless unit test that
+extracts `wait_for_replay_finish`/`perf_field`/`perf_status`/`is_true` VERBATIM from
+`.harmony/probe-step3.sh` by line range (never retyped, so it tracks the live source) and exercises
+them against a synthetic local HTTP responder standing in for `/api/perf/status` -- a real child
+process (`python3 http.server`) and a real `curl` round-trip over `127.0.0.1`, not a shell-function
+stub. Run 2026-09-26 (log: `/tmp/rta0926-wait-unit-test.log`), postdating `ed6c669`: 6/6 PASS --
+the diagnostic echo (`wait_for_replay_finish(unit-test): lengthSeconds=3 elapsed=0s -- waiting up to
+8s more`) fires with correct numbers (the exact line class the reviewer found absent from both
+pre-fix logs), the function returns in 1s once the synthetic endpoint flips `finished` to true
+(well before its own 8s bound -- proves the poll loop, not just the timeout), the no-op path fires
+when `finished` is already true at entry, and the fixed-10s-fallback branch fires when
+`lengthSeconds` is unavailable.
+
+**What this does NOT close:** this proves `wait_for_replay_finish`'s OWN mechanism against synthetic
+data, not `RecorderHost`'s real end-of-replay behavior against a live rebuilt app. Producing that
+run requires launching `Audio-DNA.app`; this fix round's rig rules forbid launching the app, and per
+this project's own convention (every `probe-*.sh` header in this directory: "the party that builds
+never verifies") that live gate run is Harmony's to execute against `build-gate/`, not the
+Builder's. Finding 1's core ask -- a log postdating `ed6c669` showing the 5 previously-FAIL rows now
+PASS on the real app -- remains outstanding and is not claimed as done here.
+
 ## WHAT HARMONY SHOULD DO
 
-1. Rebuild/relaunch is NOT required for this fix -- it is a shell-script-only change to
-   `.harmony/probe-step3.sh`. Run `.harmony/probe-step3.sh` again against the SAME already-built
-   binary (main HEAD 6b1c9c2, or this branch merged in) and expect the previously-FAIL rows to now
-   PASS: `end(withAudio): finished == true`, `positionSeconds == lengthSeconds`, `the clock stopped`,
-   `inputSource back to input`, `end(wallClock): finished == true`. Expect the run to take roughly
+1. **Still required, per fix round 1's disposition above -- not yet done.** Rebuild/relaunch is NOT
+   required for this fix -- it is a shell-script-only change to `.harmony/probe-step3.sh`. Run
+   `.harmony/probe-step3.sh` again against the SAME already-built binary (main HEAD 6b1c9c2, or this
+   branch merged in) and confirm a log postdating `ed6c669` shows: the previously-FAIL rows now
+   PASS (`end(withAudio): finished == true`, `positionSeconds == lengthSeconds`, `the clock
+   stopped`, `inputSource back to input`, `end(wallClock): finished == true`), and
+   `wait_for_replay_finish`'s own echo lines present in the log. Expect the run to take roughly
    16-45 s longer per mode (the new wait phase actually watches the replay through to its real end)
-   -- not a flake, the intended behavior change.
-2. If Harmony wants the fail-first protocol re-proven end-to-end (not just re-derived from the RED
-   log above), run this updated probe once against a pre-`lane/replayend` build
+   -- not a flake, the intended behavior change. The headless unit test added in fix round 1
+   (`.harmony/test-wait-for-replay-finish.sh`) proves the function's own mechanism against synthetic
+   data; it is not a substitute for this live run against the real app.
+2. If Harmony wants the fail-first protocol re-proven end-to-end (not just inferred from source
+   above), run this updated probe once against a pre-`lane/replayend` build
    (`STEP3_BUILD_DIR` pointed at a build of `main` before commit `525a6fc`) and confirm the same 5
    rows are still RED there (expected, per the reasoning above), then against the current
    binary/HEAD and confirm all rows are GREEN.
@@ -187,5 +229,11 @@ touched here.
    THIS lane's change (none were touched) -- `lane/replayend`'s own review already covers that code
    (`.harmony/.reports/s-rta-0925/review-replayend-r1.md`).
 
-STATUS: DIAGNOSIS COMPLETE -- probe fix written and syntax-checked (`bash -n`); no C++/build changes
-made or required.
+STATUS: DIAGNOSIS + FIX ROUND 1 COMPLETE -- probe fix written and syntax-checked (`bash -n`); its own
+polling/echo mechanism proven via a headless unit test against a synthetic endpoint
+(`.harmony/test-wait-for-replay-finish.sh`, 6/6 PASS, log `/tmp/rta0926-wait-unit-test.log`,
+2026-09-26, postdating `ed6c669`); no C++/build changes made or required. UNVERIFIED and
+outstanding: a live run of `.harmony/probe-step3.sh` against the real rebuilt app showing the 5
+previously-FAIL rows now PASS -- blocked in this fix round by rig rules forbidding launching the
+app, and per this project's convention that live gate run is Harmony's to execute, not the
+Builder's.
