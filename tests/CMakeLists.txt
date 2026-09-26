@@ -821,6 +821,7 @@ add_executable(test_routine
     ${SRC_DIR}/recording/PerfStateCapture.cpp
     ${SRC_DIR}/recording/Take.cpp
     ${SRC_DIR}/recording/Program.cpp
+    ${SRC_DIR}/recording/RoutineSlice.cpp
 )
 target_include_directories(test_routine PRIVATE ${SRC_DIR})
 target_link_libraries(test_routine PRIVATE
