@@ -1428,3 +1428,11 @@ hand-written functions with no shared layout model.
 ## 2026-09-26 s-rta-0925 mastersignal Step 1 (Master Signal fader) | Files: src/features/SignalDepth.h (new), src/connect/{ScalarParams.h,ConnectionEngine.{h,cpp},ManualWrite.cpp}, src/model/Composition.h, src/routing/MacroBank.h, src/mapping/MappingEngine.{h,cpp}, src/MainComponent.cpp, src/ui/TopBar.{h,cpp}, src/api/ApiServer.{h,cpp}, src/osc/OscHandler.{h,cpp}, src/binding/Binding.h
 **Note:** Picked up a previous builder's uncommitted disk-full-interrupted work on this exact plan section (STEP 1) -- the diff already matched plan-mastersignal.md line-for-line, including the critic's F1 fold (verified already landed in the STEP 0 commit `d0bce08`, not re-touched here). Verified RED without reverting the whole tree: mutated only `SignalDepth.h::applyDepth` to `return driven;` (ignoring depth -- the exact pre-fix "no fader" behaviour), rebuilt the 5 affected ctest targets, confirmed RED in test_signal_depth/test_connection/test_mapping_engine, then restored the original text and diffed sha256 before/after to prove byte-identity rather than trusting the editor. This is much cheaper than reverting+reapplying the whole STEP 1 diff to get a RED data point, and avoids Iron Law #7's mutate-the-committed-deliverable trap since the restore was verified before any commit existed.
 **Valid while:** SignalDepth.h::applyDepth remains the single seam all three Master Signal consumers (ConnectionEngine::evaluate, MacroBank::updateValues, MappingEngine::processFrame) route through.
+
+## s-rta-0926 — a "frames differ" row passed on two all-zero frames (file-md5 is not a pixel check)
+- probe-mastersignal.sh B1 compared `md5 -q` of two render_frame PNGs. Both were fully transparent (every byte
+  0 after decode, verified with numpy) yet the row PASSED — the PNG files differ in bytes (metadata/encoder
+  state) while their pixels are identical. The gate went 16/0 over a still-broken render.
+- Habit: frame-change rows decode pixels (numpy mean/abs-diff) and every render row first asserts NON-BLANK
+  (alpha>0 fraction and RGB variance above a floor). Never compare image FILE hashes for a pixel claim. And
+  Harmony LOOKS at one gated frame before accepting any render-gate pass.
