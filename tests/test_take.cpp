@@ -134,6 +134,27 @@ TEST_CASE("Take JSON round-trip is lane-by-lane stable, seqs unchanged", "[take]
     REQUIRE(roundTripped->nextSeq == originalSeqs);   // stable -- never renumbered on load
 }
 
+// === (a2) s-rta-0926 routines (plan-routines-s1-final.md 3.6, test 13): Meta::startBeatInBar ===
+
+TEST_CASE("Take meta: startBeatInBar round-trips; absent reads as unknown (-1)", "[take][meta]")
+{
+    Take take;
+    take.meta.startBeatInBar = 2.5;
+    LoadStats stats;
+    auto roundTripped = Take::fromVar(take.toVar(), stats);
+    REQUIRE(roundTripped.has_value());
+    CHECK(roundTripped->meta.startBeatInBar == Approx(2.5));
+
+    // Unknown is never written, so a take recorded without a bar grid saves exactly as before.
+    Take legacy;
+    CHECK(legacy.meta.startBeatInBar == -1.0);
+    CHECK_FALSE(legacy.meta.toVar().getDynamicObject()->hasProperty("startBeatInBar"));
+    LoadStats legacyStats;
+    auto legacyBack = Take::fromVar(legacy.toVar(), legacyStats);
+    REQUIRE(legacyBack.has_value());
+    CHECK(legacyBack->meta.startBeatInBar == -1.0);
+}
+
 // === (b) v1 fixture loads to lanes with wallOnly and correct counts ===
 
 TEST_CASE("Take::load bridges a v1 (SessionRecorder) fixture to lanes, wallOnly", "[take][v1]")

@@ -50,6 +50,11 @@ struct Meta
     std::string app;
     double duration = 0.0;
     double durationBeats = 0.0;
+    // s-rta-0926 routines (plan-routines-s1-final.md 3.6): where in its bar the take started
+    // (beatInBar + beatPhase at Record, [0,4)), so "bars 33 to 40" can be turned into take beats
+    // (takeBeatOfBar, RoutineSlice.h). -1 = unknown (tracker not locked at Record, or a take
+    // recorded before this field existed) -- never written to take.json while unknown.
+    double startBeatInBar = -1.0;
 
     juce::var toVar() const;
     static Meta fromVar(const juce::var& v);

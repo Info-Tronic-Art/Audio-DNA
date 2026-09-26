@@ -413,6 +413,134 @@ namespace
     }
 }
 
+namespace
+{
+    // The lane loop shared by compile() (a whole take) and compileRoutine() (a routine's
+    // beat-native lanes): resolve every lane's key (D2), pick each point's `at` for `clock`, emit
+    // the discrete/continuous schedule, then order it (D3). Moved out of compile() unchanged
+    // (s-rta-0926 routines, plan-routines-s1-final.md 3.4) except the stamp rule below: on the Beat
+    // clock a stampless gesture is EXACT (curve x is already in beats), so it is no longer reported
+    // as `invalid` there -- reporting only, the converted x is bit-identical.
+    void compileLanes(const std::map<ControlPath, Lane>& lanes, const TempoMap& tempo, const Composition& comp,
+                      DriveClock clock, std::optional<Range> range, Program& program, double& maxAt)
+    {
+        auto pickAt = [&](const Stamp& s, double beat) -> double
+        {
+            switch (clock)
+            {
+                case DriveClock::Wall:   return s.t;
+                case DriveClock::Beat:   return beat;
+                case DriveClock::Sample: return static_cast<double>(s.sample);
+            }
+            return s.t;
+        };
+
+        // A gesture's curve is stored beat-native (D7); the compiled Program
+        // is FOR ONE DRIVE CLOCK (D5). Each breakpoint's x normally comes from
+        // its own parallel Stamp via `pickAt` above (exact per-point t/sample,
+        // D1) -- this tempo-map conversion is only the FALLBACK path for a
+        // gesture with no parallel stamps (see the `haveStamps` check below), so
+        // Player still just evaluates curve.eval(pos) with pos already in the
+        // program's domain, no per-tick tempo lookups.
+        auto convertBeatX = [&](double beatX) -> double
+        {
+            switch (clock)
+            {
+                case DriveClock::Beat:   return beatX;
+                case DriveClock::Wall:   return tempo.tAt(beatX);
+                case DriveClock::Sample: return static_cast<double>(tempo.sampleAt(tempo.tAt(beatX)));
+            }
+            return beatX;
+        };
+
+        for (const auto& [key, lane] : lanes)
+        {
+            if (lane.kind == Lane::Kind::Opaque)
+                continue;   // unparseable -- never dispatched, never silently misfires (D12 rule 3)
+
+            auto res = resolveKey(comp, key);
+            const Issue issue{ key, res.reason };
+            switch (res.outcome)
+            {
+                case LevelOutcome::ExactMatch:   program.report.resolvedCount++; break;
+                case LevelOutcome::PositionOnly: program.report.reboundByPosition.push_back(issue); break;
+                case LevelOutcome::NameOnly:     program.report.reboundByName.push_back(issue); break;
+                case LevelOutcome::Missing:      program.report.unresolved.push_back(issue); break;
+            }
+            if (res.outcome == LevelOutcome::Missing)
+                continue;   // compiled OUT, but already counted+listed above (D2 policy 3)
+
+            if (lane.kind == Lane::Kind::Discrete)
+            {
+                for (const auto& p : lane.points)
+                {
+                    const double at = pickAt(p.s, p.beat);
+                    if (range && (at < range->from || at >= range->to)) continue;
+                    maxAt = std::max(maxAt, at);
+                    program.discrete.push_back(Fired{ at, p.s.seq, key, res.target, p });
+                }
+            }
+            else
+            {
+                ContLane* target = nullptr;
+                for (auto& cl : program.continuous)
+                    if (cl.key == key) { target = &cl; break; }
+
+                int stampMismatches = 0;
+                for (const auto& g : lane.gestures)
+                {
+                    if (g.curve.pts.empty()) continue;
+
+                    // D1/D7: every breakpoint carries its own exact {t,sample}
+                    // reading (Lane.h Gesture::stamps, size == pts.size(),
+                    // enforced by PerformanceRecorder::set/release). Use it. The
+                    // tempo map is a FALLBACK for a gesture with no parallel
+                    // stamps (hand-built, or an edited take whose editor dropped
+                    // them) -- reported, never silent. On the Beat clock that
+                    // fallback IS exact (convertBeatX is the identity), so a
+                    // stampless gesture (every routine gesture) is not reported.
+                    const bool haveStamps = g.stamps.size() == g.curve.pts.size();
+                    if (!haveStamps && clock != DriveClock::Beat) ++stampMismatches;
+
+                    ContLane::G cg;
+                    cg.grip = g.grip;
+                    for (size_t i = 0; i < g.curve.pts.size(); ++i)
+                    {
+                        Breakpoint converted = g.curve.pts[i];
+                        converted.x = haveStamps ? pickAt(g.stamps[i], g.curve.pts[i].x)
+                                                 : convertBeatX(g.curve.pts[i].x);
+                        cg.curve.pts.push_back(converted);
+                    }
+                    cg.x0 = cg.curve.pts.front().x;
+                    cg.x1 = cg.curve.pts.back().x;
+                    if (range && (cg.x1 < range->from || cg.x0 >= range->to)) continue;
+                    maxAt = std::max(maxAt, cg.x1);
+
+                    if (!target)
+                    {
+                        program.continuous.push_back(ContLane{ key, res.target, {} });
+                        target = &program.continuous.back();
+                    }
+                    target->gestures.push_back(std::move(cg));
+                }
+                if (stampMismatches > 0)
+                    program.report.invalid.push_back({ key, std::to_string(stampMismatches)
+                        + " gesture(s) without parallel stamps: x reconstructed from the tempo map (inexact)" });
+            }
+        }
+
+        std::sort(program.discrete.begin(), program.discrete.end(),
+            [](const Fired& a, const Fired& b) {
+                if (a.at != b.at) return a.at < b.at;
+                return a.seq < b.seq;
+            });
+
+        for (auto& cl : program.continuous)
+            std::sort(cl.gestures.begin(), cl.gestures.end(),
+                [](const ContLane::G& a, const ContLane::G& b) { return a.x0 < b.x0; });
+    }
+}
+
 std::shared_ptr<const Program> compile(const Take& take, const Composition& comp,
                                         DriveClock clock, std::optional<Range> range)
 {
@@ -420,126 +548,58 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
     program->clock = clock;
 
     // s-rta-0925 (D4): checkpoint0 -> the preamble, fired at Play before the lane loop below runs.
-    // Unconditional on `range` -- a routine's slice preamble is LATER (D9); row 1's range support
-    // (Program.h's own comment) is a simple clip filter with no preamble synthesis of its own, so
-    // this always uses the WHOLE checkpoint regardless.
+    // Unconditional on `range` -- a routine's own restore list is compileRoutine's (below); row 1's
+    // range support (Program.h's own comment) is a simple clip filter with no preamble synthesis of
+    // its own, so this always uses the WHOLE checkpoint regardless.
     buildPreamble(take.checkpoint0, comp, *program);
 
-    auto pickAt = [&](const Stamp& s, double beat) -> double
-    {
-        switch (clock)
-        {
-            case DriveClock::Wall:   return s.t;
-            case DriveClock::Beat:   return beat;
-            case DriveClock::Sample: return static_cast<double>(s.sample);
-        }
-        return s.t;
-    };
-
-    // A gesture's curve is stored beat-native (D7); the compiled Program
-    // is FOR ONE DRIVE CLOCK (D5). Each breakpoint's x normally comes from
-    // its own parallel Stamp via `pickAt` above (exact per-point t/sample,
-    // D1) -- this tempo-map conversion is only the FALLBACK path for a
-    // gesture with no parallel stamps (see the `exact` check below), so
-    // Player still just evaluates curve.eval(pos) with pos already in the
-    // program's domain, no per-tick tempo lookups.
-    auto convertBeatX = [&](double beatX) -> double
-    {
-        switch (clock)
-        {
-            case DriveClock::Beat:   return beatX;
-            case DriveClock::Wall:   return take.tempo.tAt(beatX);
-            case DriveClock::Sample: return static_cast<double>(take.tempo.sampleAt(take.tempo.tAt(beatX)));
-        }
-        return beatX;
-    };
-
     double maxAt = 0.0;
+    compileLanes(take.lanes, take.tempo, comp, clock, range, *program, maxAt);
 
-    for (const auto& [key, lane] : take.lanes)
+    program->length = maxAt;
+    return program;
+}
+
+std::shared_ptr<const Program> compileRoutine(const Routine& routine, const Composition& comp)
+{
+    auto program = std::make_shared<Program>();
+    program->clock = DriveClock::Beat;
+    program->loop = routine.loop;
+
+    // The routine's explicit restore list (sliceRoutine), resolved once like any lane (D2): exact
+    // -> emitted; rebound by position/name -> emitted AND reported; missing -> counted in
+    // preambleUnresolved, never silently dropped. Compiled even when restoreState is false so the
+    // report stays honest -- whether it FIRES is the caller's decision.
+    for (const auto& entry : routine.preamble)
     {
-        if (lane.kind == Lane::Kind::Opaque)
-            continue;   // unparseable -- never dispatched, never silently misfires (D12 rule 3)
-
-        auto res = resolveKey(comp, key);
-        const Issue issue{ key, res.reason };
-        switch (res.outcome)
-        {
-            case LevelOutcome::ExactMatch:   program->report.resolvedCount++; break;
-            case LevelOutcome::PositionOnly: program->report.reboundByPosition.push_back(issue); break;
-            case LevelOutcome::NameOnly:     program->report.reboundByName.push_back(issue); break;
-            case LevelOutcome::Missing:      program->report.unresolved.push_back(issue); break;
-        }
+        auto res = resolveKey(comp, entry.key);
         if (res.outcome == LevelOutcome::Missing)
-            continue;   // compiled OUT, but already counted+listed above (D2 policy 3)
-
-        if (lane.kind == Lane::Kind::Discrete)
         {
-            for (const auto& p : lane.points)
-            {
-                const double at = pickAt(p.s, p.beat);
-                if (range && (at < range->from || at >= range->to)) continue;
-                maxAt = std::max(maxAt, at);
-                program->discrete.push_back(Fired{ at, p.s.seq, key, res.target, p });
-            }
+            program->report.preambleUnresolved.push_back({ entry.key, res.reason });
+            continue;
+        }
+        addPreambleRebind(*program, res.outcome, entry.key, "routine " + entry.key.control);
+
+        if (entry.continuous)
+        {
+            program->preambleContinuous.push_back(PreambleSet{ entry.key, res.target, entry.norm });
         }
         else
         {
-            ContLane* target = nullptr;
-            for (auto& cl : program->continuous)
-                if (cl.key == key) { target = &cl; break; }
-
-            int stampMismatches = 0;
-            for (const auto& g : lane.gestures)
-            {
-                if (g.curve.pts.empty()) continue;
-
-                // D1/D7: every breakpoint carries its own exact {t,sample}
-                // reading (Lane.h Gesture::stamps, size == pts.size(),
-                // enforced by PerformanceRecorder::set/release). Use it. The
-                // tempo map is a FALLBACK for a gesture with no parallel
-                // stamps (hand-built, or an edited take whose editor dropped
-                // them) -- reported, never silent.
-                const bool exact = g.stamps.size() == g.curve.pts.size();
-                if (!exact) ++stampMismatches;
-
-                ContLane::G cg;
-                cg.grip = g.grip;
-                for (size_t i = 0; i < g.curve.pts.size(); ++i)
-                {
-                    Breakpoint converted = g.curve.pts[i];
-                    converted.x = exact ? pickAt(g.stamps[i], g.curve.pts[i].x)
-                                        : convertBeatX(g.curve.pts[i].x);
-                    cg.curve.pts.push_back(converted);
-                }
-                cg.x0 = cg.curve.pts.front().x;
-                cg.x1 = cg.curve.pts.back().x;
-                if (range && (cg.x1 < range->from || cg.x0 >= range->to)) continue;
-                maxAt = std::max(maxAt, cg.x1);
-
-                if (!target)
-                {
-                    program->continuous.push_back(ContLane{ key, res.target, {} });
-                    target = &program->continuous.back();
-                }
-                target->gestures.push_back(std::move(cg));
-            }
-            if (stampMismatches > 0)
-                program->report.invalid.push_back({ key, std::to_string(stampMismatches)
-                    + " gesture(s) without parallel stamps: x reconstructed from the tempo map (inexact)" });
+            DiscretePoint p;
+            p.v = entry.v;
+            p.action = entry.action;
+            p.origin = Origin::Preamble;
+            program->preamble.push_back(Fired{ 0.0, 0, entry.key, res.target, std::move(p) });
         }
+        program->report.preambleCount++;
     }
 
-    std::sort(program->discrete.begin(), program->discrete.end(),
-        [](const Fired& a, const Fired& b) {
-            if (a.at != b.at) return a.at < b.at;
-            return a.seq < b.seq;
-        });
+    // A routine carries no tempo map: on the Beat clock pickAt reads p.beat and convertBeatX is the
+    // identity, so the empty map is never read.
+    double maxAt = 0.0;
+    compileLanes(routine.lanes, TempoMap{}, comp, DriveClock::Beat, std::nullopt, *program, maxAt);
 
-    for (auto& cl : program->continuous)
-        std::sort(cl.gestures.begin(), cl.gestures.end(),
-            [](const ContLane::G& a, const ContLane::G& b) { return a.x0 < b.x0; });
-
-    program->length = maxAt;
+    program->length = routine.lengthBeats;   // the routine's own end (whole bars), NOT maxAt
     return program;
 }

@@ -106,6 +106,11 @@ public:
         // constant, so it matches the engine's own expiry
         // (ConnectionEngine::Context::gripHoldMs).
         float gripHoldMs = 250.0f;
+
+        // s-rta-0926 routines (plan-routines-s1-final.md 3.6): where in its bar Record was pressed
+        // (snap.beatInBar + snap.beatPhase while the tracker is locked), written to take.json's
+        // meta at every save. -1 = unknown (not written).
+        double startBeatInBar = -1.0;
     };
     struct ArmResult { bool ok = false; std::string error; std::string assetId; juce::File takeFolder; };
     // Sequence (5.1): beginAsset -> tap.start(store.wavFile(id)) [refuse + abandonAsset on failure] ->
@@ -169,6 +174,9 @@ public:
     // ---- playback (5.4) ----
     struct LoadResult { bool ok = false; std::string error; LoadStats stats; AudioStore::Resolution audio; };
     LoadResult load(const juce::File& takeFolder);       // Take::load + store.resolve; refusal reasons verbatim (spec 6)
+    // s-rta-0926 routines: the take a successful load() holds (what a routine is sliced from);
+    // nullptr when none is loaded. Message thread only; valid until the next load().
+    const Take* loadedTake() const;
     enum class PlayMode { WallClock, WithAudio };
     struct PlayResult
     {
@@ -297,6 +305,7 @@ private:
     std::string appVersion_;
     std::string armRecordedAt_;
     float armedGripHoldMs_ = 250.0f;
+    double armedStartBeatInBar_ = -1.0;   // s-rta-0926: ArmOptions::startBeatInBar -> meta at every save
     double armedDeviceRate_ = 0.0;
     int armedDeviceChannels_ = 0;
     double lastCheckpointT_ = 0.0;

@@ -113,6 +113,11 @@ RecorderHost::~RecorderHost() = default;   // HostSink's complete definition is 
 
 bool RecorderHost::isRecording() const { RECORDER_HOST_ASSERT_MESSAGE_THREAD(); return recording_; }
 bool RecorderHost::isPlaying() const   { RECORDER_HOST_ASSERT_MESSAGE_THREAD(); return playing_; }
+const Take* RecorderHost::loadedTake() const
+{
+    RECORDER_HOST_ASSERT_MESSAGE_THREAD();
+    return loadedTake_ ? &*loadedTake_ : nullptr;
+}
 
 bool RecorderHost::needsTransportFrames() const
 {
@@ -156,6 +161,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     }
 
     armedGripHoldMs_ = opts.gripHoldMs > 0.0f ? opts.gripHoldMs : 250.0f;
+    armedStartBeatInBar_ = opts.startBeatInBar;
     armedDeviceRate_ = opts.deviceRate;
     armedDeviceChannels_ = opts.deviceChannels;
     audioMode_ = opts.audioMode;
@@ -254,6 +260,7 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     provisional.audio = liveAudioRef(tapWasStarted_ ? &tap : nullptr);
     provisional.meta.recordedAt = armRecordedAt_;
     provisional.meta.app = appVersion_;
+    provisional.meta.startBeatInBar = armedStartBeatInBar_;
 
     res.ok = true;   // audio is running (or intentionally not requested) -- arm succeeds even if the
                       // provisional save itself fails; that failure is surfaced, not fatal (R-A1).
@@ -338,6 +345,7 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
     take.meta.app = appVersion_;
     take.meta.duration = clock_.now().t;
     take.meta.durationBeats = clock_.now().beat;
+    take.meta.startBeatInBar = armedStartBeatInBar_;
 
     if (dispatch.capturePerfState)
         take.checkpointEnd = dispatch.capturePerfState();
@@ -494,6 +502,7 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
             snapshot.meta.app = appVersion_;
             snapshot.meta.duration = now.t;
             snapshot.meta.durationBeats = now.beat;
+            snapshot.meta.startBeatInBar = armedStartBeatInBar_;
             if (!snapshot.save(takeFolder_) && dispatch.notify)
                 dispatch.notify("periodic take save failed");
             lastCheckpointT_ = now.t;
