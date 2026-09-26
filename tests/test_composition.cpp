@@ -19,11 +19,23 @@ TEST_CASE("Composition default initialization", "[composition]")
     REQUIRE(comp.decks.size() == 1);
     REQUIRE(comp.activeDeckIndex == 0);
     REQUIRE(comp.masterOpacity == 1.0f);
+    REQUIRE(comp.masterSignal == 1.0f);
 
     auto* deck = comp.getActiveDeck();
     REQUIRE(deck != nullptr);
     REQUIRE(deck->getNumLayers() == 3);
     REQUIRE(deck->numColumns == 12);
+}
+
+TEST_CASE("Composition::initDefault resets masterSignal to 1.0 (s-rta-0925 mastersignal Step 1)",
+         "[composition]")
+{
+    Composition comp;
+    comp.initDefault();
+    comp.masterSignal = 0.2f;
+
+    comp.initDefault();
+    REQUIRE(comp.masterSignal == 1.0f);
 }
 
 TEST_CASE("Deck layer management", "[composition]")
@@ -373,6 +385,7 @@ TEST_CASE("Composition full field serialization roundtrip", "[composition][seria
 
     // Master + video
     comp.masterSpeed = 1.5f;
+    comp.masterSignal = 0.35f;   // s-rta-0925 mastersignal Step 1
 
     // Crossfader
     comp.crossfaderPhase = 0.25f;
@@ -433,6 +446,7 @@ TEST_CASE("Composition full field serialization roundtrip", "[composition][seria
     loaded.fromVar(parsed);
 
     REQUIRE_THAT(loaded.masterSpeed, WithinAbs(1.5f, 0.001f));
+    REQUIRE_THAT(loaded.masterSignal, WithinAbs(0.35f, 0.001f));
     REQUIRE_THAT(loaded.crossfaderPhase, WithinAbs(0.25f, 0.001f));
     REQUIRE(loaded.crossfaderBlendMode == Composition::CrossfaderBlendMode::Multiply);
     REQUIRE(loaded.crossfaderBehaviour == Composition::CrossfaderBehaviour::Smooth);
@@ -546,6 +560,9 @@ TEST_CASE("Backward compatibility: old-format presets load with struct defaults"
         REQUIRE(comp.name == "old_comp");
         REQUIRE_THAT(comp.masterOpacity, WithinAbs(0.9f, 0.001f));
         REQUIRE_THAT(comp.masterSpeed, WithinAbs(1.0f, 0.001f));
+        // masterSignal has no key in this old-format object -- must load
+        // 1.0 (Boris Q3: absent -> full signal reach), not 0.
+        REQUIRE_THAT(comp.masterSignal, WithinAbs(1.0f, 0.001f));
         REQUIRE_THAT(comp.crossfaderPhase, WithinAbs(0.5f, 0.001f));
         REQUIRE(comp.crossfaderBlendMode == Composition::CrossfaderBlendMode::Alpha);
         REQUIRE(comp.crossfaderBehaviour == Composition::CrossfaderBehaviour::Cut);

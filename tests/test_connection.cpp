@@ -14,6 +14,7 @@
 #include "routing/MacroBank.h"
 #include "signal/SignalRegistry.h"
 #include "analysis/FeatureSnapshot.h"
+#include "features/SignalDepth.h"
 #include <cmath>
 #include <limits>
 
@@ -837,4 +838,252 @@ TEST_CASE("EffectSlot::effParam returns the manual value when paramLive is short
     Clip::EffectSlot fx;
     fx.paramValues = { 0.3f };   // no addParam()/resizeParams() call -- paramLive stays empty
     REQUIRE(fx.effParam(0) == Approx(0.3f));
+}
+
+// ============================================================================
+// s-rta-0925 mastersignal Step 1 (S1-T2..T7): Master Signal depth is applied
+// exactly once per chain, at the point a signal enters (ConnectionEngine::
+// evaluate, non-Macro sources), AFTER shaping/smoothing/hand-back glide,
+// exempting Kind::Macro hops (D3 -- the macro's OWN connection, or
+// MacroBank::updateValues, already took the depth) and CompScalar::Signal's
+// own connection (self-feedback exemption).
+// ============================================================================
+
+TEST_CASE("evaluate: depth blends toward manualNorm after shaping, for every non-Macro kind",
+         "[connection][depth]")
+{
+    SignalRegistry sig;
+    sig.initDefaults();
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.rms = 0.8f;
+    snap.beatPhase = 0.5f; snap.beatInBar = 0; snap.barCount = 0; snap.totalBarCount = 0;   // bn = 0.5
+    sig.evaluateAll(snap);
+
+    const float manualNorm = 0.35f;
+
+    auto withShape = [](ParamConnection c) {
+        c.shape.outMin = 0.2f; c.shape.outMax = 0.8f; c.shape.inverted = true;
+        return c;
+    };
+
+    auto checkDepths = [&](ParamConnection base) {
+        ParamConnection c1 = base;
+        ConnectionEngine::Context ctx1{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 1.0f };
+        float full = ConnectionEngine::evaluate(c1, manualNorm, ctx1, nullptr);
+
+        ParamConnection c0 = base;
+        ConnectionEngine::Context ctx0{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.0f };
+        REQUIRE(ConnectionEngine::evaluate(c0, manualNorm, ctx0, nullptr) == Approx(manualNorm).margin(0.0001f));
+
+        ParamConnection cHalf = base;
+        ConnectionEngine::Context ctxHalf{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.5f };
+        float half = ConnectionEngine::evaluate(cHalf, manualNorm, ctxHalf, nullptr);
+        REQUIRE(half == Approx(manualNorm + 0.5f * (full - manualNorm)).margin(0.001f));
+    };
+
+    SECTION("Signal")
+    {
+        ParamConnection c;
+        c.source.kind = ConnSource::Kind::Signal;
+        c.source.signalName = "Volume";
+        checkDepths(withShape(c));
+    }
+
+    SECTION("Lfo")
+    {
+        ParamConnection c;
+        c.source.kind = ConnSource::Kind::Lfo;
+        c.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+        c.source.lfo.cycleBeats = 1.0f;
+        checkDepths(withShape(c));
+    }
+
+    SECTION("Envelope (Beats)")
+    {
+        ParamConnection c;
+        c.source.kind = ConnSource::Kind::Envelope;
+        c.source.env.clock = ConnSource::Envelope::Clock::Beats;
+        c.source.env.cycleBeats = 1.0f;
+        checkDepths(withShape(c));
+    }
+
+    SECTION("ClipPosition")
+    {
+        ParamConnection c;
+        c.source.kind = ConnSource::Kind::ClipPosition;
+        checkDepths(withShape(c));   // clock == nullptr -> position() reads as 0.0
+    }
+
+    SECTION("Macro: d=0 returns shape(macro.currentValue), NOT manualNorm (D3)")
+    {
+        bank.getMacro(0).currentValue = 0.9f;
+        ParamConnection raw;
+        raw.source.kind = ConnSource::Kind::Macro;
+        raw.source.macroIndex = 0;
+        ParamConnection c = withShape(raw);
+
+        ParamConnection c0 = c;
+        ConnectionEngine::Context ctx0{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.0f };
+        float y0 = ConnectionEngine::evaluate(c0, manualNorm, ctx0, nullptr);
+
+        ParamConnection c1 = c;
+        ConnectionEngine::Context ctx1{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 1.0f };
+        float y1 = ConnectionEngine::evaluate(c1, manualNorm, ctx1, nullptr);
+
+        REQUIRE(y0 == Approx(y1).margin(0.0001f));       // exempt -- same at every depth
+        REQUIRE(y0 != Approx(manualNorm).margin(0.01f)); // and NOT collapsed to the hand value
+    }
+}
+
+TEST_CASE("evaluate: depth is applied AFTER the hand-back glide", "[connection][depth]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.beatPhase = 0.0f; snap.beatInBar = 0; snap.barCount = 0;   // raw == 0
+
+    auto makeGripped = [&]() {
+        ParamConnection c;
+        c.source.kind = ConnSource::Kind::Lfo;
+        c.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+        c.source.lfo.cycleBeats = 4.0f;
+        c.gripHeld();
+        ConnectionEngine::Context ctxGrip{ sig, bank, snap, 0.016f, 1.0, 250.0f, 100.0f, 1.0f };
+        ConnectionEngine::evaluate(c, 0.3f, ctxGrip, nullptr);   // tracks handBackFrom = 0.3
+        c.release(1.0);
+        return c;
+    };
+
+    ParamConnection a = makeGripped();
+    ConnectionEngine::Context ctxA{ sig, bank, snap, 0.016f, 1.05, 250.0f, 100.0f, 1.0f };   // 50ms into a 100ms glide
+    float glided = ConnectionEngine::evaluate(a, 0.3f, ctxA, nullptr);
+
+    ParamConnection b = makeGripped();
+    ConnectionEngine::Context ctxB{ sig, bank, snap, 0.016f, 1.05, 250.0f, 100.0f, 0.5f };
+    float halfDepth = ConnectionEngine::evaluate(b, 0.3f, ctxB, nullptr);
+
+    REQUIRE(halfDepth == Approx(applyDepth(0.3f, glided, 0.5f)).margin(0.001f));
+}
+
+TEST_CASE("evaluate: a gripped connection returns NaN at every depth", "[connection][depth][pin]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    ParamConnection c;
+    c.source.kind = ConnSource::Kind::Lfo;
+    c.gripHeld();
+    for (float d : { 0.0f, 0.5f, 1.0f })
+    {
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, d };
+        REQUIRE(std::isnan(ConnectionEngine::evaluate(c, 0.3f, ctx, nullptr)));
+    }
+}
+
+TEST_CASE("ConnectionEngine::tick: CompScalar::Signal's own connection ticks at full depth while other scalars scale",
+         "[connection][engine][depth]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.beatPhase = 0.5f; snap.beatInBar = 0; snap.barCount = 0; snap.totalBarCount = 0;   // bn = 0.5
+
+    Composition comp;
+    comp.initDefault();
+    comp.masterOpacity = 1.0f;
+    comp.masterSignal = 1.0f;
+
+    auto makeLfo = [](ParamConnection& c) {
+        c.source.kind = ConnSource::Kind::Lfo;
+        c.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+        c.source.lfo.cycleBeats = 4.0f;   // phase = bn/4 = 0.125
+    };
+    makeLfo(comp.scalarConns[static_cast<size_t>(CompScalar::Opacity)]);
+    makeLfo(comp.scalarConns[static_cast<size_t>(CompScalar::Signal)]);
+
+    ConnectionEngine engine;
+    ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.0f };   // signalDepth == 0
+    engine.tick(comp, ctx);
+
+    float opacityTwin = comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load(std::memory_order_relaxed);
+    float signalTwin  = comp.scalarLive[static_cast<size_t>(CompScalar::Signal)].v.load(std::memory_order_relaxed);
+
+    REQUIRE(opacityTwin == Approx(1.0f).margin(0.0001f));   // depth 0 -> manual (masterOpacity)
+    REQUIRE(signalTwin == Approx(0.125f).margin(0.001f));   // exempt -> full depth, raw LFO phase
+}
+
+TEST_CASE("ConnectionEngine::tick: a macro chain applies Master Signal depth exactly once (D3)",
+         "[connection][engine][depth]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.beatPhase = 0.5f; snap.beatInBar = 0; snap.barCount = 0; snap.totalBarCount = 0;   // bn = 0.5
+
+    Composition comp;
+    comp.initDefault();
+    comp.masterOpacity = 1.0f;
+
+    bank.getMacro(0).conn.source.kind = ConnSource::Kind::Lfo;
+    bank.getMacro(0).conn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+    bank.getMacro(0).conn.source.lfo.cycleBeats = 4.0f;   // phase = 0.125
+    bank.getMacro(0).manualValue = 0.5f;
+
+    auto& opacityConn = comp.scalarConns[static_cast<size_t>(CompScalar::Opacity)];
+    opacityConn.source.kind = ConnSource::Kind::Macro;
+    opacityConn.source.macroIndex = 0;
+
+    ConnectionEngine engine;
+
+    SECTION("d=0: single application (macro sits at its manual value, exactly)")
+    {
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.0f };
+        engine.tick(comp, ctx);
+        REQUIRE(bank.getMacro(0).currentValue == Approx(0.5f).margin(0.001f));
+        float opacityTwin = comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load(std::memory_order_relaxed);
+        REQUIRE(opacityTwin == Approx(0.5f).margin(0.001f));
+    }
+
+    SECTION("d=0.5: single application (0.3125), not the critic's compounding (0.65625)")
+    {
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.5f };
+        engine.tick(comp, ctx);
+        REQUIRE(bank.getMacro(0).currentValue == Approx(0.3125f).margin(0.001f));
+        float opacityTwin = comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load(std::memory_order_relaxed);
+        REQUIRE(opacityTwin == Approx(0.3125f).margin(0.001f));
+    }
+
+    SECTION("Hand macro (no conn) at d=0: opacity twin follows the hand value at full strength")
+    {
+        bank.getMacro(0).conn.source.kind = ConnSource::Kind::None;   // isManual() == true
+        bank.getMacro(0).currentValue = 0.7f;   // as MacroBank::updateValues would have set it
+        ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 120.0f, 0.0f };
+        engine.tick(comp, ctx);
+        float opacityTwin = comp.scalarLive[static_cast<size_t>(CompScalar::Opacity)].v.load(std::memory_order_relaxed);
+        REQUIRE(opacityTwin == Approx(0.7f).margin(0.001f));
+    }
+}
+
+TEST_CASE("MacroBank::updateValues applies Master Signal depth to a signal-driven macro",
+         "[connection][macrobank][depth]")
+{
+    SignalRegistry sig;
+    sig.initDefaults();
+    FeatureSnapshot snap = bareSnapshot();
+    snap.rms = 0.8f;
+    sig.evaluateAll(snap);
+
+    auto* vol = sig.getSignalByName("Volume");
+    REQUIRE(vol != nullptr);
+
+    MacroBank bank;
+    bank.getMacro(0).sourceSignalId = vol->getId();
+    bank.getMacro(0).manualValue = 0.2f;
+
+    bank.updateValues(sig, 0.0f);
+    REQUIRE(bank.getMacro(0).currentValue == Approx(0.2f).margin(0.0001f));
+
+    bank.updateValues(sig, 1.0f);
+    REQUIRE(bank.getMacro(0).currentValue == Approx(sig.getCachedValue(vol->getId())).margin(0.0001f));
 }

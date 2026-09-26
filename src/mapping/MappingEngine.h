@@ -46,7 +46,11 @@ public:
     // outputwindow-arc-design.md): contributions are summed locally and
     // written back clamped, so a concurrent reader can never observe the
     // old reset-to-zero or a partial sum.
-    void processFrame(const FeatureSnapshot& snapshot, EffectChain& chain);
+    // signalDepth (s-rta-0925 mastersignal Step 1, default 1.0 = today's
+    // behaviour): this legacy v1 path has no user-set manual field distinct
+    // from the live value, so the anchor at depth < 1 is the shader's own
+    // EffectParam::defaultValue (see SignalDepth.h::applyDepth).
+    void processFrame(const FeatureSnapshot& snapshot, EffectChain& chain, float signalDepth = 1.0f);
 
     // Clear all mappings.
     void clearAll();

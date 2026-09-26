@@ -32,7 +32,10 @@ enum class LayerScalar : uint8_t { Opacity, PosX, PosY, Scale, Rotation, AnchorX
 // clipOpacity. compOpacity (the spec's D7 "two separate opacities" reading)
 // merges into masterOpacity and is therefore not a separately-connectable
 // scalar here. See the s167-l2 report FINDINGS for the full amendment text.
-enum class CompScalar : uint8_t { Opacity, Speed, PosX, PosY, Scale, Rotation, AnchorX, AnchorY, Count };
+// Signal appended (s-rta-0925 mastersignal Step 1) -- a pure append right
+// before Count, so no existing enumerator is renumbered; backs
+// Composition::masterSignal (Master Signal fader depth, 1.0 = full).
+enum class CompScalar : uint8_t { Opacity, Speed, PosX, PosY, Scale, Rotation, AnchorX, AnchorY, Signal, Count };
 
 namespace ScalarMath
 {
@@ -115,6 +118,7 @@ inline const std::array<ScalarDef, static_cast<size_t>(CompScalar::Count)>& comp
         { "rotation",  ScalarMath::rot720,     ScalarMath::normRot720,   0.5f },
         { "anchorX",   ScalarMath::posX3840,   ScalarMath::normPosX3840, 0.5f },
         { "anchorY",   ScalarMath::posY2160,   ScalarMath::normPosY2160, 0.5f },
+        { "signal",    ScalarMath::identity,   ScalarMath::identity,    1.0f },   // -> masterSignal
     } };
     return defs;
 }

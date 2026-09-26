@@ -1027,3 +1027,42 @@ TEST_CASE("Single-store step response matches the old pipeline tick-for-tick (EM
     REQUIRE(newCrossTick == 7);
     REQUIRE(oldCrossTick == 7);
 }
+
+// ============================================================================
+// s-rta-0925 mastersignal Step 1 (S1-T8): MappingEngine::processFrame's new
+// signalDepth parameter -- this legacy v1 path has no manual field distinct
+// from the live value, so the depth-0 anchor is EffectParam::defaultValue.
+// ============================================================================
+
+TEST_CASE("MappingEngine::processFrame anchors to EffectParam::defaultValue at Master Signal depth 0",
+         "[mapping][depth]")
+{
+    MappingEngine engine;
+    EffectChain chain;
+    auto effect = std::make_unique<Effect>("TestEffect", "test", "test_shader");
+    effect->addParam("p0", "u_test_p0", 0.42f);   // non-zero default -- the depth-0 anchor
+    chain.addEffect(std::move(effect));
+
+    Mapping m;
+    m.source = MappingSource::RMS;
+    m.targetEffectId = 0;
+    m.targetParamIndex = 0;
+    m.curve = MappingCurve::Linear;
+    m.inputMin = 0.0f; m.inputMax = 1.0f;
+    m.outputMin = 0.0f; m.outputMax = 1.0f;
+    m.smoothing = 1.0f;   // alpha=1 -- passthrough, no state carried between calls below
+    engine.addMapping(m);
+
+    auto snap = makeSnapshot();
+    snap.rms = 0.9f;
+
+    engine.processFrame(snap, chain, 0.0f);
+    REQUIRE(chain.getEffect(0)->getParam(0).value == Approx(0.42f).margin(0.001f));
+
+    engine.processFrame(snap, chain);   // 2-arg call defaults to depth 1.0 -- the old signature's behaviour
+    float atFull = chain.getEffect(0)->getParam(0).value;
+    REQUIRE(atFull == Approx(0.9f).margin(0.001f));
+
+    engine.processFrame(snap, chain, 1.0f);   // explicit depth 1.0 -- pins the >=1 guard bit-identical
+    REQUIRE(chain.getEffect(0)->getParam(0).value == Approx(atFull).margin(0.0001f));
+}

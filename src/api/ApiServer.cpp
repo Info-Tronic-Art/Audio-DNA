@@ -176,6 +176,10 @@ void ApiServer::setupRoutes()
         handleSetLayerOpacity(req, res);
     });
 
+    server_.Post("/api/set_master_signal", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetMasterSignal(req, res);
+    });
+
     // Deck switching
     server_.Post("/api/switch_deck", [this](const httplib::Request& req, httplib::Response& res) {
         handleSwitchDeck(req, res);
@@ -287,6 +291,8 @@ void ApiServer::handleStatus(const httplib::Request&, httplib::Response& res)
     // s-rta-0925: masterLevel is now the one master (composition_.eff() --
     // the fader is a widget-grip view of the same CompScalar::Opacity).
     obj->setProperty("masterLevel", static_cast<double>(composition_.eff(CompScalar::Opacity)));
+    // s-rta-0925 mastersignal Step 1: same pattern, for the Signal fader.
+    obj->setProperty("masterSignal", static_cast<double>(composition_.eff(CompScalar::Signal)));
     obj->setProperty("activeDeck", composition_.activeDeckIndex);
     // Onset render-path fix: frames on which the main Renderer's onset pulse
     // fired. Live oracle: after a click train its delta must EQUAL the
@@ -314,6 +320,9 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
     obj->setProperty("activeDeck", composition_.activeDeckIndex);
     obj->setProperty("numDecks", static_cast<int>(composition_.decks.size()));
     obj->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
+    // s-rta-0925 mastersignal Step 1: the raw field, next to masterOpacity;
+    // live.signal / connected come for free from addLiveBlock below.
+    obj->setProperty("masterSignal", static_cast<double>(composition_.masterSignal));
     // s-rta-0923 lane 3: the production oracle (plan section 4.1 item 4;
     // C5's probe-lane3.sh reads d['live']['positionX'] etc). Absent on the
     // pre-change binary — that absence IS C5's fail-first gate.
@@ -559,6 +568,28 @@ void ApiServer::handleSetLayerOpacity(const httplib::Request& req, httplib::Resp
     juce::MessageManager::callAsync([this, layer, opacity]() {
         if (onSetLayerOpacity)
             onSetLayerOpacity(layer, opacity);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleSetMasterSignal(const httplib::Request& req, httplib::Response& res)
+{
+    // s-rta-0925 mastersignal Step 1: same shape as handleSetLayerOpacity --
+    // this handler only parses/validates; the write itself is routed
+    // through MainComponent::manualWrite (Decaying rank, Origin::Human) so
+    // a REST write joins the same D8 grip chain as every other writer.
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("value"))
+    {
+        res.set_content(jsonError("Missing 'value'"), "application/json");
+        return;
+    }
+    float depth = static_cast<float>(static_cast<double>(json.getProperty("value", 1.0)));
+
+    juce::MessageManager::callAsync([this, depth]() {
+        if (onSetMasterSignal)
+            onSetMasterSignal(depth);
     });
 
     res.set_content(jsonOk(), "application/json");

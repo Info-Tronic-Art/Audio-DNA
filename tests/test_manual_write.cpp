@@ -99,6 +99,14 @@ TEST_CASE("resolveControl: every addressable control shape", "[manualwrite][reso
         REQUIRE(ref->conn == &comp.scalarConns[static_cast<size_t>(CompScalar::Opacity)]);
     }
 
+    SECTION("comp scalar 'signal' -> &comp.masterSignal + &comp.scalarConns[Signal] (s-rta-0925 mastersignal Step 1)")
+    {
+        auto ref = resolveControl(comp, bank, compScalar("signal"));
+        REQUIRE(ref.has_value());
+        REQUIRE(ref->manual == &comp.masterSignal);
+        REQUIRE(ref->conn == &comp.scalarConns[static_cast<size_t>(CompScalar::Signal)]);
+    }
+
     SECTION("layer (deck 0, layer 1) positionX -> &layer.positionX")
     {
         auto* layer = comp.decks[0].getLayer(1);
@@ -433,4 +441,35 @@ TEST_CASE("[pin] Composition scalarConns round-trip through toVar/fromVar with g
     REQUIRE(loadedConn.shape.outMin == Approx(0.1f).margin(0.001f));
     REQUIRE(loadedConn.shape.outMax == Approx(0.9f).margin(0.001f));
     REQUIRE(loadedConn.grip.kind == ParamConnection::Grip::Kind::None);
+}
+
+// ============================================================================
+// s-rta-0925 mastersignal Step 1 (S1-T10): the Master Signal control resolves
+// and writes/grips through the exact same funnel every other CompScalar
+// does -- no special-casing needed once ScalarParams.h carries the "signal"
+// entry (resolveControl/manualWriteCore are both generic over CompScalar).
+// ============================================================================
+
+TEST_CASE("manualWriteCore + resolveControl: Master Signal (CompScalar::Signal / masterSignal)",
+         "[manualwrite][depth]")
+{
+    Composition comp;
+    comp.initDefault();
+    MacroBank bank;
+
+    auto ref = resolveControl(comp, bank, compScalar("signal"));
+    REQUIRE(ref.has_value());
+    REQUIRE(ref->manual == &comp.masterSignal);
+    REQUIRE(ref->conn == &comp.scalarConns[static_cast<size_t>(CompScalar::Signal)]);
+
+    REQUIRE(manualWriteCore(*ref, 0.4f, Hand::HumanDecaying, ParamConnection::Grip::Kind::Decaying, 1.0, 250.0f) == true);
+    REQUIRE(comp.masterSignal == Approx(0.4f).margin(0.001f));
+
+    REQUIRE(manualWriteCore(*ref, 0.9f, Hand::HumanHeld, ParamConnection::Grip::Kind::Held, 1.0, 250.0f) == true);
+    REQUIRE(ref->conn->grip.rank == static_cast<uint8_t>(Hand::HumanHeld));
+    float afterSetup = comp.masterSignal;
+
+    bool ok = manualWriteCore(*ref, 0.1f, Hand::Lane, ParamConnection::Grip::Kind::Held, 1.0, 250.0f);
+    REQUIRE(ok == false);
+    REQUIRE(comp.masterSignal == Approx(afterSetup).margin(0.001f));
 }

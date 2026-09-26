@@ -1,5 +1,6 @@
 #include "MappingEngine.h"
 #include "mapping/CurveTransforms.h"
+#include "features/SignalDepth.h"
 #include <algorithm>
 #include <cmath>
 
@@ -141,7 +142,7 @@ float MappingEngine::applyCurve(MappingCurve curve, float x, int steppedN)
     return CurveTransforms::applyCurve(static_cast<int>(curve), x, steppedN);
 }
 
-void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& chain)
+void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& chain, float signalDepth)
 {
     // A6 (outputwindow-arc-design.md): confined to the message thread since
     // W5 (MainComponent's MappingTickTimer, kMappingTickHz) is the sole
@@ -238,8 +239,11 @@ void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& c
         }
 
         // 6. The single clamped store — the only write this param sees
-        // this tick.
-        effect->getParam(static_cast<int>(m.targetParamIndex)).value =
-            std::clamp(sum, 0.0f, 1.0f);
+        // this tick. Master Signal (s-rta-0925 mastersignal Step 1): this
+        // legacy path has no manual field distinct from the live value, so
+        // the depth-0 anchor is the shader's own default (EffectParam::
+        // defaultValue) -- still exactly one store.
+        auto& param = effect->getParam(static_cast<int>(m.targetParamIndex));
+        param.value = applyDepth(param.defaultValue, std::clamp(sum, 0.0f, 1.0f), signalDepth);
     }
 }

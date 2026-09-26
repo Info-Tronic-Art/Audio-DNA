@@ -6,6 +6,7 @@
 #include "signal/SignalRegistry.h"
 #include "signal/Signal.h"
 #include "analysis/FeatureSnapshot.h"
+#include "features/SignalDepth.h"
 #include <juce_events/juce_events.h>   // MessageManager (message-thread jassert, matches S166-L1 precedent)
 #include <cmath>
 #include <limits>
@@ -174,6 +175,19 @@ float ConnectionEngine::evaluate(ParamConnection& c, float manualNorm, const Con
         }
     }
 
+    // Master Signal (s-rta-0925 mastersignal Step 1): applied ONCE per
+    // chain, exactly at the point where a SIGNAL enters -- after shaping,
+    // smoothing and the hand-back glide, so the fader never re-shapes the
+    // EMA state or the glide's own trajectory. A Kind::Macro hop is exempt:
+    // the macro's own connection (evaluated through this same function,
+    // either via MacroBank::updateValues's signal branch or the tick()
+    // macro loop below) already took the depth, and a HAND-turned macro
+    // (Kind::None on its conn, so it never reaches here) must keep fanning
+    // out at every depth -- it is a hand, not a signal (critic-plan-
+    // mastersignal.md finding 2 / this plan's D3).
+    if (c.source.kind != ConnSource::Kind::Macro)
+        y = applyDepth(manualNorm, y, ctx.signalDepth);
+
     return y;
 }
 
@@ -195,11 +209,22 @@ namespace
     // (the twin must read NaN, not "whatever it last was"). A
     // connected-but-disabled (bypassed) connection also now clears its twin
     // to NaN every tick, instead of freezing at its last value forever.
+    // fullDepthIndex (s-rta-0925 mastersignal Step 1): the ONE self-feedback
+    // exemption -- a scalar that is ITSELF the Master Signal depth control
+    // (CompScalar::Signal) must be evaluated at full depth, never scaled by
+    // its own not-yet-updated value, or a Signal/Lfo/Envelope-driven Signal
+    // fader could never reach 0 (it would keep scaling itself toward its
+    // own manual value). SIZE_MAX (default) means no exemption. `full` is
+    // built ONCE before the loop, not per-iteration.
     template <typename Owner, typename ScalarEnum, size_t N>
     void tickScalars(Owner& owner, std::array<ParamConnection, N>& conns,
                      std::array<LiveValue, N>& live, const std::array<ScalarDef, N>& defs,
-                     const ConnectionEngine::Context& ctx, const ClipClock* clock)
+                     const ConnectionEngine::Context& ctx, const ClipClock* clock,
+                     size_t fullDepthIndex = SIZE_MAX)
     {
+        ConnectionEngine::Context full = ctx;
+        full.signalDepth = 1.0f;
+
         for (size_t i = 0; i < N; ++i)
         {
             ParamConnection& c = conns[i];
@@ -212,7 +237,7 @@ namespace
             }
             ScalarEnum s = static_cast<ScalarEnum>(i);
             float manualNorm = defs[i].toNorm(manualRef(owner, s));
-            float y = ConnectionEngine::evaluate(c, manualNorm, ctx, clock);
+            float y = ConnectionEngine::evaluate(c, manualNorm, i == fullDepthIndex ? full : ctx, clock);
             live[i].v.store(std::isnan(y) ? kNan : defs[i].toModel(y), std::memory_order_relaxed);
         }
     }
@@ -298,8 +323,12 @@ void ConnectionEngine::tick(Composition& comp, const Context& ctx)
         macro.currentValue = std::isnan(y) ? macro.manualValue : y;
     }
 
+    // CompScalar::Signal is the ONE exemption (s-rta-0925 mastersignal Step
+    // 1): a Signal fader driven by a macro/LFO must not feed back on itself
+    // -- it always ticks at full depth, while every OTHER Composition
+    // scalar in this same call is scaled by ctx.signalDepth.
     tickScalars<Composition, CompScalar>(comp, comp.scalarConns, comp.scalarLive, compScalarDefs(),
-                                         ctx, nullptr);
+                                         ctx, nullptr, static_cast<size_t>(CompScalar::Signal));
     tickEffectVector(comp.globalEffects, ctx, nullptr);
 
     for (auto& deck : comp.decks)

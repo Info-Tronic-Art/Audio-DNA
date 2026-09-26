@@ -142,6 +142,14 @@ void OscHandler::oscMessageReceived(const juce::OSCMessage& message)
         return;
     }
 
+    // /audiodna/signal (s-rta-0925 mastersignal Step 1)
+    if (address == "/audiodna/signal")
+    {
+        if (onSetMasterSignal)
+            onSetMasterSignal(value);
+        return;
+    }
+
     // /audiodna/bpm
     if (address == "/audiodna/bpm")
     {
