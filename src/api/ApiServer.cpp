@@ -195,6 +195,11 @@ void ApiServer::setupRoutes()
         handleSetBpm(req, res);
     });
 
+    // s-rta-0925: manual Resync, same funnel as the TopBar button.
+    server_.Post("/api/resync", [this](const httplib::Request& req, httplib::Response& res) {
+        handleResync(req, res);
+    });
+
     // Audio features
     server_.Get("/api/features", [this](const httplib::Request& req, httplib::Response& res) {
         handleGetFeatures(req, res);
@@ -640,6 +645,22 @@ void ApiServer::handleSetBpm(const httplib::Request& req, httplib::Response& res
     {
         juce::MessageManager::callAsync([this, bpm]() {
             onSetBpm(bpm);
+        });
+    }
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleResync(const httplib::Request&, httplib::Response& res)
+{
+    // s-rta-0925: bodyless POST -- no body parsing needed (pitfall 31, httplib v0.57.1
+    // answers an unframed body immediately; no CPPHTTPLIB_SERVER_READ_TIMEOUT stall).
+    // Marshal to the message thread — same manual-Resync path the TopBar button uses.
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    if (onResync)
+    {
+        juce::MessageManager::callAsync([this]() {
+            onResync();
         });
     }
 

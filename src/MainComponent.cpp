@@ -1903,6 +1903,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // Same path as the TopBar manual-BPM toggle+edit (manual override).
         applyTempoCommand("link", bpm, Origin::Human);
     };
+    apiServer_->onResync = [this] {
+        // s-rta-0925: same path as the TopBar Resync button.
+        applyTempoCommand("resync", 0.0f, Origin::Human);
+    };
     // s-rta-0923 lane 3 (plan section 3.6, site #9): the inline
     // `lay->opacity = opacity;` write was removed from
     // ApiServer::handleSetLayerOpacity; this callback is now the only place
@@ -2084,6 +2088,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     oscHandler_.onSetBpm = [this](float bpm) {
         // Same manual-override path as apiServer_->onSetBpm / the TopBar manual-BPM toggle.
         applyTempoCommand("link", bpm, Origin::Human);
+    };
+    oscHandler_.onResync = [this] {
+        // s-rta-0925: same path as apiServer_->onResync / the TopBar Resync button.
+        applyTempoCommand("resync", 0.0f, Origin::Human);
     };
     oscHandler_.onSetMacro = [this](int macroIdx, float value) {
         // s-rta-0923 lane 3 (plan section 3.6, site #3). Same path as the

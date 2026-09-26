@@ -65,6 +65,9 @@ public:
     std::function<void(juce::File)> onLoadComposition;
     std::function<void()> onSnapshot;
     std::function<void(float bpm)> onSetBpm;
+    // POST /api/resync (s-rta-0925): manual Resync, same funnel as the TopBar button /
+    // bound key or pad / take replay -- applyTempoCommand("resync", ...) -> requestResync().
+    std::function<void()> onResync;
     // R4: this server holds no FeatureBus writer — test-mode
     // /api/inject_features relays the built snapshot to the TestServer-held
     // Writer through this callback (wired by MainComponent in test mode).
@@ -131,6 +134,7 @@ private:
     void handleSnapshot(const httplib::Request& req, httplib::Response& res);
     void handleGetBpm(const httplib::Request& req, httplib::Response& res);
     void handleSetBpm(const httplib::Request& req, httplib::Response& res);
+    void handleResync(const httplib::Request& req, httplib::Response& res);
     void handleGetFeatures(const httplib::Request& req, httplib::Response& res);
     void handleInjectFeatures(const httplib::Request& req, httplib::Response& res);
     void handleLoadImage(const httplib::Request& req, httplib::Response& res);
