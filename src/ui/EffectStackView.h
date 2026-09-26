@@ -66,6 +66,11 @@ public:
     // Get preferred height for layout
     int getPreferredHeight() const;
 
+    // Test seams (s-rta-0925 mastersignal Step 0): the bound control for a
+    // given effect/param row, or nullptr if out of range / not built.
+    UniversalParamControl* paramControlForTest(int effectIndex, int paramIndex) const;
+    UniversalParamControl* dryWetControlForTest(int effectIndex) const;
+
     // DragAndDropTarget (for FX drops from browser)
     bool isInterestedInDragSource(const SourceDetails& details) override;
     void itemDragEnter(const SourceDetails& details) override;

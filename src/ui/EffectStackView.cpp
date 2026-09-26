@@ -136,6 +136,15 @@ void EffectStackView::setEffects(std::vector<Clip::EffectSlot>* effects, EffectS
 
 void EffectStackView::tickModulation()
 {
+    // s-rta-0925 mastersignal Step 0 (RED, S0-T5b): still writes the model
+    // (fx.paramValues[p] = signalValue) via UniversalParamControl's own
+    // SourceMode/getSourceName lookup -- bypasses ConnectionShaper (RANGE/
+    // INVERT/curve ignored) and every source kind this loop doesn't special-
+    // case (BPM Sync, Clip Position). The DISPLAY-ONLY rewrite (reading
+    // fx.effParam(p)/fx.effDryWet() from each row's bound connection) lands
+    // in the GREEN commit alongside rebuildRows()'s bindConnection() calls --
+    // without those, `pc.isConnected()` below is never true for a model-only
+    // (paramConns[p]) connection, so this loop's body doesn't even run for it.
     if (!effects_) return;
 
     for (size_t i = 0; i < rows_.size(); ++i)
@@ -145,12 +154,10 @@ void EffectStackView::tickModulation()
 
         auto& fx = (*effects_)[static_cast<size_t>(row.effectIndex)];
 
-        // Apply signal-driven modulation to connected params
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
         {
             auto& pc = *row.paramControls[p];
 
-            // If a signal source is connected, drive the param value from it
             if (!pc.isConnected()) continue;
 
             auto mode = pc.getSourceMode();
@@ -176,7 +183,6 @@ void EffectStackView::tickModulation()
             }
             else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
             {
-                // Parse "Macro N" or "Link N" to get the index
                 int macroIdx = -1;
                 if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
                 {
@@ -191,34 +197,12 @@ void EffectStackView::tickModulation()
 
             if (found)
             {
-                // Render-critical write: unconditional, every tick, regardless
-                // of the display gate below — CompositorEngine reads this
-                // every GL frame and must never see it suppressed.
                 fx.paramValues[p] = signalValue;
 
-                // Cost trap (L9), CORRECTED (fix-round, blocking review
-                // finding): diff against the LAST VALUE ACTUALLY PUSHED to
-                // the display (row.lastPushedValue[p]), not against
-                // fx.paramValues[p] — that field was just overwritten above
-                // on this same tick, so comparing against it measured
-                // PER-TICK delta: a slow modulator (e.g. a ~60s-period LFO)
-                // moves less than kModulationChangeEpsilon in any single
-                // 120Hz tick, so the old guard suppressed the display update
-                // forever. lastPushedValue starts as nullopt (set in
-                // rebuildRows()) so the first tick after a rebuild always
-                // pushes, regardless of what value it computes.
                 bool changed = p >= row.lastPushedValue.size()
                     || !row.lastPushedValue[p].has_value()
                     || std::abs(signalValue - *row.lastPushedValue[p]) > kModulationChangeEpsilon;
 
-                // setSourceValue() repaints unconditionally, so only pay for
-                // it when the displayed value actually moved AND the row is
-                // expanded (collapsed rows have their paramControls hidden
-                // via setVisible(false), see resized()). A background
-                // Inspector tab's own hidden viewport is a separate,
-                // higher-up ancestor visibility that JUCE's repaint()/
-                // internalRepaint() walk already short-circuits at for free
-                // — no extra guard needed for that case here.
                 if (changed && pc.isVisible())
                 {
                     pc.setSourceValue(signalValue);
@@ -226,7 +210,6 @@ void EffectStackView::tickModulation()
                         row.lastPushedValue[p] = signalValue;
                 }
 
-                // Notify renderer
                 if (onParamChanged)
                     onParamChanged(row.effectIndex, static_cast<int>(p), signalValue);
             }
@@ -251,14 +234,17 @@ void EffectStackView::refresh()
         row.bypassBtn.setColour(juce::TextButton::buttonColourId,
             fx.bypassed ? juce::Colour(0xff6a3a3a) : juce::Colour(0xff333333));
 
-        // Update dry/wet control
+        // Update dry/wet control -- fx.effDryWet() (s-rta-0925 mastersignal
+        // Step 0) so a connected dry/wet displays its engine-published value,
+        // not the raw manual field.
         if (row.dryWetControl)
-            row.dryWetControl->setParamValue(fx.dryWet);
+            row.dryWetControl->setParamValue(fx.effDryWet());
 
-        // Always update the display from the current param value (including
-        // whatever tickModulation() just applied)
+        // Always update the display from the current effective param value
+        // (fx.effParam(p) -- includes whatever tickModulation() just applied
+        // for connected params, and the manual value otherwise).
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
-            row.paramControls[p]->setParamValue(fx.paramValues[p]);
+            row.paramControls[p]->setParamValue(fx.effParam(p));
     }
 
     repaint();
@@ -281,11 +267,41 @@ int EffectStackView::getPreferredHeight() const
     return std::max(h, 20);
 }
 
+UniversalParamControl* EffectStackView::paramControlForTest(int effectIndex, int paramIndex) const
+{
+    for (auto& row : rows_)
+        if (row->effectIndex == effectIndex)
+            return (paramIndex >= 0 && paramIndex < static_cast<int>(row->paramControls.size()))
+                ? row->paramControls[static_cast<size_t>(paramIndex)].get()
+                : nullptr;
+    return nullptr;
+}
+
+UniversalParamControl* EffectStackView::dryWetControlForTest(int effectIndex) const
+{
+    for (auto& row : rows_)
+        if (row->effectIndex == effectIndex)
+            return row->dryWetControl.get();
+    return nullptr;
+}
+
 void EffectStackView::rebuildRows()
 {
-    // Remove all children first
+    // Remove all children first. forgetConnection() FIRST (s-rta-0925
+    // mastersignal Step 0): the bound ParamConnection/LiveValue elements live
+    // INSIDE the EffectSlot vector this rebuild is about to re-walk (and
+    // whose backing effects_ may have just been erased/reallocated by the
+    // caller, e.g. the delete button's erase()) -- bindConnection(nullptr,
+    // nullptr) and ~UniversalParamControl both dereference the OLD conn_ to
+    // release an active grip, which is a use-after-free once that element is
+    // gone. forgetConnection() drops the pointer without touching it.
     for (auto& row : rows_)
     {
+        if (row->dryWetControl)
+            row->dryWetControl->forgetConnection();
+        for (auto& pc : row->paramControls)
+            pc->forgetConnection();
+
         removeChildComponent(&row->bypassBtn);
         removeChildComponent(&row->deleteBtn);
         if (row->dryWetControl)
@@ -379,6 +395,9 @@ void EffectStackView::rebuildRows()
                 if (auto* parent = getParentComponent())
                     parent->resized();
             };
+            // s-rta-0925 mastersignal Step 0 (RED, S0-T5a): the row is NOT
+            // bound to the slot's connection yet -- bindConnection() lands
+            // in the GREEN commit.
 
             addChildComponent(dwc.get());
             row->dryWetControl = std::move(dwc);
@@ -427,6 +446,11 @@ void EffectStackView::rebuildRows()
                 if (auto* parent = getParentComponent())
                     parent->resized();
             };
+            // s-rta-0925 mastersignal Step 0 (RED, S0-T5a): the row is NOT
+            // bound to this param's connection/live twin yet -- bindConnection()
+            // lands in the GREEN commit (parallel arrays are already sized
+            // 1:1 with paramValues via EffectSlot::addParam, so the GREEN
+            // commit's bind is a pure addition here, no resizeParams needed).
 
             addChildComponent(pc.get());
             row->paramControls.push_back(std::move(pc));
@@ -522,7 +546,7 @@ void EffectStackView::itemDropped(const SourceDetails& details)
             Clip::EffectSlot slot;
             slot.effectName = trimmed.toStdString();
             for (const auto& p : def->params)
-                slot.paramValues.push_back(p.defaultValue);
+                slot.addParam(p.defaultValue);
 
             effects_->push_back(slot);
             anyAdded = true;

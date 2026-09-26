@@ -733,3 +733,108 @@ TEST_CASE("ConnectionEngine::tick publishes an effect param connection into para
 
     REQUIRE(comp.globalEffects[0].effParam(0) == Approx(0.0f).margin(0.01f));   // SawUp(phase 0) == 0
 }
+
+// ============================================================================
+// s-rta-0925 mastersignal Step 0 (S0-T1/T2): source-param twins always store,
+// mirroring the tickScalars/tickEffectVector rule -- a gripped or disabled
+// source-param connection must clear its twin to NaN every tick, never skip
+// the store and freeze at its last published value (critic-#1 class).
+// ============================================================================
+
+TEST_CASE("ConnectionEngine::tick: a gripped source-param connection publishes NaN, never a frozen last value",
+         "[connection][engine][sourceparam]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.beatPhase = 0.5f; snap.beatInBar = 0; snap.barCount = 0; snap.totalBarCount = 0;   // bn = 0.5
+
+    Composition comp;
+    comp.initDefault();
+    Clip clip;
+    Clip::SourceParam sp;
+    sp.value = 0.2f;
+    sp.conn.source.kind = ConnSource::Kind::Lfo;
+    sp.conn.source.lfo.shape = ConnSource::Lfo::Shape::SawUp;
+    sp.conn.source.lfo.cycleBeats = 1.0f;
+    clip.sourceParams.push_back(sp);
+    comp.decks[0].layers[0].clips[0] = clip;
+
+    auto liveOf = [&]() {
+        return comp.decks[0].layers[0].clips[0]->sourceParams[0].live.v.load(std::memory_order_relaxed);
+    };
+
+    ConnectionEngine engine;
+    ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 0.0f };
+    engine.tick(comp, ctx);
+    REQUIRE(liveOf() == Approx(0.5f).margin(0.01f));
+
+    comp.decks[0].layers[0].clips[0]->sourceParams[0].conn.gripHeld();
+    engine.tick(comp, ctx);
+    REQUIRE(std::isnan(liveOf()));
+
+    comp.decks[0].layers[0].clips[0]->sourceParams[0].conn.release(1.0);
+    engine.tick(comp, ctx);   // handBackGlideMs == 0 -> snaps back immediately
+    REQUIRE(!std::isnan(liveOf()));
+}
+
+TEST_CASE("ConnectionEngine::tick: a disabled source-param connection clears its twin to NaN",
+         "[connection][engine][sourceparam]")
+{
+    SignalRegistry sig;
+    MacroBank bank;
+    FeatureSnapshot snap = bareSnapshot();
+    snap.beatPhase = 0.5f; snap.beatInBar = 0; snap.barCount = 0; snap.totalBarCount = 0;
+
+    Composition comp;
+    comp.initDefault();
+    Clip clip;
+    Clip::SourceParam sp;
+    sp.value = 0.2f;
+    sp.conn.source.kind = ConnSource::Kind::Lfo;
+    sp.conn.source.lfo.cycleBeats = 1.0f;
+    clip.sourceParams.push_back(sp);
+    comp.decks[0].layers[0].clips[0] = clip;
+
+    auto liveOf = [&]() {
+        return comp.decks[0].layers[0].clips[0]->sourceParams[0].live.v.load(std::memory_order_relaxed);
+    };
+
+    ConnectionEngine engine;
+    ConnectionEngine::Context ctx{ sig, bank, snap, 0.016f, 1.0, 250.0f, 0.0f };
+    engine.tick(comp, ctx);
+    REQUIRE(!std::isnan(liveOf()));
+
+    comp.decks[0].layers[0].clips[0]->sourceParams[0].conn.enabled = false;
+    engine.tick(comp, ctx);
+    REQUIRE(std::isnan(liveOf()));
+}
+
+// ============================================================================
+// s-rta-0925 mastersignal Step 0 (S0-T3/T4): EffectSlot::addParam keeps the
+// three parallel arrays in lock-step; effParam(i) self-guards when paramLive
+// is shorter than paramValues (a slot built before addParam() existed
+// everywhere) instead of indexing past the end.
+// ============================================================================
+
+TEST_CASE("EffectSlot::addParam keeps paramValues/paramConns/paramLive in lock-step",
+         "[connection][effectslot]")
+{
+    Clip::EffectSlot fx;
+    fx.addParam(0.1f);
+    fx.addParam(0.5f);
+    fx.addParam(0.9f);
+
+    REQUIRE(fx.paramValues.size() == 3);
+    REQUIRE(fx.paramConns.size() == 3);
+    REQUIRE(fx.paramLive.size() == 3);
+    REQUIRE(fx.effParam(2) == Approx(0.9f));   // unconnected -> reads the manual value
+}
+
+TEST_CASE("EffectSlot::effParam returns the manual value when paramLive is shorter than paramValues",
+         "[connection][effectslot]")
+{
+    Clip::EffectSlot fx;
+    fx.paramValues = { 0.3f };   // no addParam()/resizeParams() call -- paramLive stays empty
+    REQUIRE(fx.effParam(0) == Approx(0.3f));
+}
