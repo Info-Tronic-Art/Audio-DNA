@@ -71,6 +71,13 @@ public:
 
         // One-line human-readable notices (status line / log). Never a modal.
         std::function<void(const std::string&)> notify;
+
+        // s-rta-0925 end-of-replay (Boris ruling 2026-09-25 "hold, don't stop"): called at most ONCE per play(), from
+        // tick(), as its LAST statement -- AFTER publishStatus(), so status().finished is already true when this runs and a
+        // notice raised inside the handler is keyed to the finished situation (RecordPanelModel.h's notice INVARIANT).
+        // Optional: empty in headless tests unless FakeDispatch counts it. The host resets NOTHING at the end; the app does
+        // the three app-level things (end a take recording over the audio, give the input back, one notice).
+        std::function<void()> replayFinished;
     };
     Dispatch dispatch;
 
@@ -136,8 +143,9 @@ public:
     // overdubbing (5.2 formula); (2) while recording: drain tap.popGap into facts (5.6 #2), onset
     // marker if armed and snap.onsetDetected, synthesize an exact end for any Decaying gesture idle
     // longer than the armed gripHoldMs (N7), periodic save every kCheckpointSeconds of clock t
-    // (5.6 #1); (3) while playing: pos = wall or (assetFrame + firstSample) per DriveClock;
-    // player.advanceTo(pos, sink) -- backward pos is Player's own seek (T21); (4) publish Status
+    // (5.6 #1); (3) while playing: pos = wall or first + asset-frame(transportFrames, 5.2 formula);
+    // player.advanceTo(pos) unless finished; pos >= playEndPos_ -> Player::stop, finished latched,
+    // published, then dispatch.replayFinished() (s-rta-0925 "hold, don't stop"); (4) publish Status
     // under the mutex.
     void tick(const FeatureSnapshot& snap, double wallNow, uint64_t deliveredSamples,
               AudioTap& tap, std::optional<int64_t> transportFrames, double deviceRate);
@@ -242,6 +250,11 @@ public:
         // silent); `preambleUnresolved` = a deck/layer/clip/effect slot from checkpoint 0 that no
         // longer exists in the live model (also counted, never silently dropped).
         int preambleCount = 0, preambleFired = 0, preambleRefused = 0, preambleUnresolved = 0;
+
+        // s-rta-0925 end-of-replay: true from the tick where the replay reached the take's end (lengthSeconds) until
+        // stopPlay()/play(). While true: `playing` stays true, `position`/`positionSeconds` are pinned at the end, no point
+        // fires again -- not even after a transport rewind (the Player is stopped). false while not playing.
+        bool finished = false;
     };
     Status status() const;
 
@@ -361,6 +374,11 @@ private:
     double playStartWall_ = 0.0;
     uint64_t playFirstSample_ = 0;
     double playAssetRate_ = 0.0;
+    // s-rta-0925 end-of-replay: the take's end in the drive-clock domain (F2's lengthSeconds before
+    // the seconds conversion), set once by play(); playEndPos_ is unused as garbage while finished_
+    // is false. finished_ is latched by tick(); cleared by play()/stopPlay().
+    double playEndPos_ = 0.0;
+    bool   finished_   = false;
 
     // Status bookkeeping (N3: tick() is the only writer; status() the only, mutex-guarded, reader)
     double lastDeviceRate_ = 0.0;
