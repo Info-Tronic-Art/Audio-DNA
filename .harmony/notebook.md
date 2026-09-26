@@ -1440,3 +1440,42 @@ hand-written functions with no shared layout model.
 ## 2026-09-26 s-rta-0925 ms-white2 (applyClipEffects self-aliasing ping-pong) | Files: src/render/CompositorEngine.cpp, tests/test_compositor_effects_parity.cpp (new)
 **Note:** `52cd76c`'s `forceCopy` fix only protected the `applyClipTransform` -> `applyClipEffects` hand-off. `applyClipEffects` itself hardcoded `int writeFBO = 0;`, so ANY caller handing it an `inputTex` that already equals `effectTex_A_` re-triggers the identical read/write-same-texture GL feedback-loop hazard. `compositeDeck()` calls `applyClipEffects` twice back-to-back (per-clip effects, then per-layer effects) with the first call's output as the second call's input -- when the clip has an ODD number of enabled per-clip effects, the first call's own ping-pong parity lands its output on `effectTex_A_`, and the second call (if the layer has any layer effects) aliases. Confirmed live: 1 per-clip effect + 1 layer effect -> blank; 2 (even) + same layer effect -> correct. Fixed by having `applyClipEffects` decide its OWN starting `writeFBO` from `inputTex`'s identity (`(inputTex == effectTex_A_) ? 1 : 0`) instead of a per-call-site `forceCopy` flag -- generalizes to every current/future caller. Any FUTURE caller of `applyClipEffects` (or any function following this same `int writeFBO = 0;` ping-pong convention against `effectFBO_A_/B_`) should be checked for the same data-dependent (effect-count-parity) aliasing hazard before assuming a single-call site fix covers it.
 **Valid while:** `applyClipEffects`'s ping-pong convention (start writeFBO, flip each enabled-effect iteration) is unchanged.
+
+## s-rta-0926 — the "open blank-frame bug" was a misread count (my error, s-rta-0925 close)
+- s-rta-0925 close recorded probe-effects-parity "post-fix 2/3 FAIL" and made it START HERE #1. The raw output was
+  "2 PASS / 3 FAIL" (fixture + app rows PASS, all 3 frames blank) in ONE run. s-rta-0926 parity lane: 0/104 V1 frames
+  blank over 12 launches (main build/ with 4fca2c5 + a same-source scratch build), 14-variant matrix all non-blank,
+  V1 vs single-chain reference mean abs diff 0.0; pre-fix control (writeFBO=0 restored) 12/12 blank with a trace line
+  'fx:saturation drawFBO=3->tex3 u_texture@u0=tex3 FEEDBACK!'. Harmony re-ran the probe herself: 5/0, frame looked at.
+- HABIT: before recording a probe tally as a finding, copy the probe's own summary line verbatim ("N PASS / M FAIL")
+  into the log; never paraphrase it as a fraction. Before chasing an "intermittent" RED, recover the raw output from the
+  session transcript (~/.claude/projects/<proj>/<session>.jsonl tool_result blocks).
+- UNEXPLAINED (still): two all-zero runs — 11:49 probe-mastersignal B1 and 16:28Z probe-effects-parity — both the FIRST
+  probe launch right after merge + build + ctest; every later launch of the same binary GREEN. RULED OUT (s-rta-0926
+  lane, live): first launch of a freshly linked binary (40 frames), the exact build->ctest->probe replay x3, full-core
+  CPU contention x3. CHEAPEST NEXT TEST: if a render probe ever shows all-zero again, keep the app up, re-apply
+  .harmony/.reports/s-rta-0926/parity-trace.diff (git apply --check passes on 51a34a1) in a scratch build and launch it
+  with `open -g --env AUDIODNA_FBO_TRACE=1` — the trace names the first draw that goes to zero.
+- Tools: `open -g --env VAR=val <App>` passes env vars through LaunchServices (macOS 15) — env-gated diagnostics fit the
+  screen-safety launch rule. Worktree-isolated agents: put multi-step live runs in a script file and `bash <file>`
+  (the worktree guard refuses inline compound commands).
+- Probe hygiene: a render probe must check render_frame's JSON response and delete old PNGs first — otherwise a failed
+  capture silently re-decodes the previous run's frames from a reused output dir (probe-effects-parity.sh does neither yet).
+
+## s-rta-0926 — crossfade between two effected clips never shows the incoming clip (VERIFIED live, parity lane §7)
+- applyTransition runs the OUTGOING clip's applyClipEffects starting at effectFBO_A_, overwriting the incoming clip's
+  effected texture (effectTex_A_) that compositeDeck produced; the transition then samples tex3 for both inputs.
+  6 s dissolve: |frame - outgoing ref| = 0.00 for 3.3 s, |frame - incoming ref| = 155.93, then a hard cut.
+  Evidence: .harmony/.reports/s-rta-0926/parity-diagnosis.md §7. Wave-2 fix lane.
+
+## s-rta-0926 — /api/perf/play withAudio is two-phase (probe-step3 "inputSource == file" row)
+- perfPlay (callAsync, HTTP 200 returns first) restores checkpoint 0 synchronously inside RecorderHost::play()
+  (Player::firePreamble) and only then loads the take audio + setSourceMode(File); inputSource flips to "file"
+  221/230/233 ms after the POST returns (3 trials) and never reverts on its own. The probe read it once right after the
+  snap-back poll matched (<100 ms) -> false FAIL. Probe now polls up to 1 s. Any consumer asking "has Play taken
+  effect" must treat restore and source switch as two separately-timed events.
+
+## s-rta-0926 — ClipInspector size comes from getPreferredHeight() (Viewport-sized)
+- InspectorPanel::resized() sets clipInspector_ to getPreferredHeight(); its no-clip branch returned 100 < name bar +
+  MacroPanel + gap (146), so moving "No clip selected" below the Dashboard made it vanish (zero-height rect). Any change
+  to the no-clip paint must also change getPreferredHeight(). Caught by a decoded pixel-brightness scan, not by eye.
