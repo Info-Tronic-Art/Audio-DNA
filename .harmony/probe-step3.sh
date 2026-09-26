@@ -687,6 +687,39 @@ LAST_EXPECTED="${EXPECTED_SEQ[4]}"
 TAKE_LEN="$(perf_field "d.get('length','NA')")"; TAKE_LEN="$(normnum "$TAKE_LEN")"
 REPLAY_BUDGET="$(awk -v l="$TAKE_LEN" 'BEGIN{ if (l=="NA" || l+0<=0) print 45; else print l+2 }')"
 
+# s-rta-0925 (replayend-probe fix, .harmony/.reports/s-rta-0925/replayend-probe-diagnosis.md): TAKE_LEN
+# above is read BEFORE perf/play, when `length` is not yet published (playing_ is false) -- it is
+# always NA here on a fresh load, so REPLAY_BUDGET always falls back to the fixed 45s. That budget is
+# NOT the take's real end for a WithAudio replay (the real end is the audio asset's length, F2/E2/E3 --
+# can legitimately run longer than 45s for a long recording) and the shape loop below correctly exits
+# on that budget without ever observing `finished`. Not a product bug: RecorderHost latches `finished`
+# only at the take's REAL end (playEndPos_), which this fixed budget was never big enough to reach.
+# Call this AFTER the shape loop, before the 10E assertions: wait explicitly for `finished`, bounded by
+# the REAL lengthSeconds -- now published, since we are playing -- plus a margin, never a small fixed
+# budget. Pre-fix binary: `finished` is permanently absent/NA -> this waits out its bound and the 10E
+# assertions still correctly FAIL (fail-first preserved).
+wait_for_replay_finish(){ # $1 = "withAudio" | "wallClock" (label only, for the echo)
+    local margin=5 fin len now remaining deadline
+    fin="$(perf_field "d.get('finished','NA')")"
+    is_true "$fin" && return 0
+    len="$(perf_field "d.get('lengthSeconds','NA')")"
+    now=$(date +%s)
+    if [ "$len" = "NA" ] || awk -v l="$len" 'BEGIN{exit !(l+0<=0)}' 2>/dev/null; then
+        echo "  wait_for_replay_finish($1): lengthSeconds unavailable -- bounding at a fixed 10s fallback"
+        deadline=$(( now + 10 ))
+    else
+        # lengthSeconds is take-clock seconds counted from THIS loop's own START_T, not wall time.
+        remaining="$(awk -v l="$len" -v e="$(( now - START_T ))" -v m="$margin" 'BEGIN{r=l+m-e; print (r>0?r:0)}')"
+        echo "  wait_for_replay_finish($1): lengthSeconds=$len elapsed=$(( now - START_T ))s -- waiting up to $(printf '%.0f' "$remaining")s more"
+        deadline=$(( now + $(printf '%.0f' "$remaining") ))
+    fi
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+        fin="$(perf_field "d.get('finished','NA')")"
+        is_true "$fin" && return 0
+        sleep 0.25
+    done
+}
+
 perturb_and_check_snapback "withAudio"
 curl -s --max-time 6 -X POST "$A/api/perf/play" -H 'Content-Type: application/json' -d '{"withAudio":true}' >/dev/null
 START_T=$(date +%s)
@@ -723,6 +756,7 @@ while :; do
     awk -v e="$ELAPSED" -v b="$REPLAY_BUDGET" 'BEGIN{exit !(e+0>=b+0)}' 2>/dev/null && break
     sleep 0.25
 done
+wait_for_replay_finish "withAudio"
 # --- 10E. end of replay: hold, don't stop (Boris ruling 2026-09-25) ---
 FIN="$(perf_field "d.get('finished','NA')")"; is_true "$FIN" && ok "end(withAudio): finished == true" || no "end(withAudio): finished == $FIN"
 PL="$(perf_field "d.get('playing','NA')")"; is_true "$PL" && ok "end(withAudio): playing stays true (hold, not stop)" || no "end(withAudio): playing == $PL at the end"
@@ -780,6 +814,7 @@ while :; do
     awk -v e="$ELAPSED" -v b="$REPLAY_BUDGET" 'BEGIN{exit !(e+0>=b+0)}' 2>/dev/null && break
     sleep 0.25
 done
+wait_for_replay_finish "wallClock"
 # --- 10E. end of replay: hold, don't stop (Boris ruling 2026-09-25) -- wall-clock mirror ---
 FIN="$(perf_field "d.get('finished','NA')")"; is_true "$FIN" && ok "end(wallClock): finished == true" || no "end(wallClock): finished == $FIN"
 PL="$(perf_field "d.get('playing','NA')")"; is_true "$PL" && ok "end(wallClock): playing stays true (hold, not stop)" || no "end(wallClock): playing == $PL at the end"
