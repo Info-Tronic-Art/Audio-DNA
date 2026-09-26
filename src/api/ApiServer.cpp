@@ -263,6 +263,9 @@ void ApiServer::setupRoutes()
     server_.Post("/api/perf/stop_play", [this](const httplib::Request& req, httplib::Response& res) { handlePerfStopPlay(req, res); });
     server_.Post("/api/perf/repair", [this](const httplib::Request& req, httplib::Response& res) { handlePerfRepair(req, res); });
     server_.Get("/api/perf/status", [this](const httplib::Request& req, httplib::Response& res) { handlePerfStatus(req, res); });
+    // s-rta-0925 (probe enabler, end-of-replay plan section 5): puts the app on the live input or (if
+    // loaded) the file transport -- a dev/probe control, documented in the inventory row.
+    server_.Post("/api/audio/source", [this](const httplib::Request& req, httplib::Response& res) { handleAudioSource(req, res); });
 }
 
 // --- Endpoint handlers ---
@@ -1361,4 +1364,33 @@ void ApiServer::handlePerfStatus(const httplib::Request&, httplib::Response& res
     // audioEngine_.getCurrentSampleRate()/getCurrentAudioDevice() on this
     // thread.
     res.set_content(juce::JSON::toString(onPerfStatus()).toStdString(), "application/json");
+}
+
+// s-rta-0925 (probe enabler, end-of-replay plan section 5): same posture as handlePerfPlay -- 503 when
+// unassigned, parse, marshal to the message thread. Switching to "file" with no file loaded leaves
+// the transport silent (a dev/probe control, not a production affordance).
+void ApiServer::handleAudioSource(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onAudioSource)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Audio source unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    juce::String mode = json.getProperty("mode", "").toString();
+    if (mode != "input" && mode != "file")
+    {
+        res.status = 400;
+        res.set_content(jsonError("mode must be \"input\" or \"file\""), "application/json");
+        return;
+    }
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, mode]() {
+        onAudioSource(mode);
+    });
+
+    res.set_content(jsonOk(), "application/json");
 }

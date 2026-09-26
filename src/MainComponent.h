@@ -42,6 +42,7 @@
 #include "core/EffectScope.h"
 #include "core/EffectCommands.h"
 #include "core/TriggerCommands.h"
+#include <atomic>
 #include <optional>
 #include <memory>
 #include <vector>
@@ -511,6 +512,12 @@ private:
     static juce::File takesRoot();                     // ~/Documents/Audio-DNA/Takes
     void setAudioSourceModeSynced(AudioEngine::SourceMode mode);   // engine + BOTH selectors (dontSendNotification)
     std::optional<AudioEngine::SourceMode> sourceModeBeforeReplay_; // set by perfPlay(withAudio), consumed by perfStopPlay
+    void onReplayFinished();            // Dispatch::replayFinished handler (s-rta-0925 end-of-replay)
+    void restoreInputAfterReplay();     // shared tail of perfStopPlay and onReplayFinished (one policy)
+    // s-rta-0925: the audio source mode as of the last tick, for /api/perf/status.inputSource -- written on the message
+    // thread in tickFeaturePipeline (one write site, self-healing whatever moved the mode), read on the HTTP thread.
+    // The one additive exception to perfStatusVar's "reads ONLY recorderHost_.status()" rule; never a device read.
+    std::atomic<int> inputSourceMirror_{ 0 };   // 0 = input (MicInput), 1 = file
 
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
     void setTooltipsEnabled(bool enabled);
