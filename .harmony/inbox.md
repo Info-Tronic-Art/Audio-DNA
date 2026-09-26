@@ -150,5 +150,5 @@ why-routed:  project-owned CLAUDE.md; only an RTA session edits it
 source-idea: 
 routed-by:   harmony-9119     date: 2026-09-26
 status:      DONE
-status-note: s-rta-0926: CLAUDE.md 112,696 -> ~24.1 KB; 13 on-demand docs under docs/claude/ (no @-imports), trigger table + one-line pitfall index; no-loss check 941 verbatim + 11 declared edits, 0 missing; fresh-reader 7/7; completeness critic PASS. First-call token number: measure at next RTA boot (ctx-now.sh).
+status-note: s-rta-0926: CLAUDE.md 112,696 -> ~24.1 KB; 13 on-demand docs under docs/claude/ (no @-imports), trigger table + one-line pitfall index; no-loss check 941 verbatim + 11 declared edits, 0 missing; fresh-reader 7/7; completeness critic PASS. First-call token number (s-rta-0926b boot, ctx-now.sh first call): 54,790 (<= 75,000 PASS; was 101,568). Replied up-channel: idea-ledger idea-2026-09-26-RealTimeAudio-1790462247885395697.
 --- /ROUTED-ITEM ---

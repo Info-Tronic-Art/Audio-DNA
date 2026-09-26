@@ -251,3 +251,21 @@ status-note:
 artifact:
 history:     NEW(2026-09-26)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-09-26-RealTimeAudio-1790462247885395697
+raw:         54790
+context:     Reply to Harmony s234 boot-cost audit (inbox.md item: split CLAUDE.md). First-call token number measured with ctx-now.sh as the FIRST tool call of RTA session s-rta-0926b (session a07fe8e4), after s-rta-0926 split CLAUDE.md 112,696 B -> ~24.1 KB. Reading: [CTX] 54,790 / 1,000,000 (5.5%). Includes the pasted birth prompt + the workflow-authoring skill body in the first user turn.
+why:         Acceptance was first call <= 75,000 tokens (was 101,568). PASS: 54,790, -46,778 tokens (-46%).
+intent:      
+target:      project:RealTimeAudio
+constraints: 
+related:     .harmony/inbox.md (CLAUDE.md split request), docs/claude/*.md
+priority:    HIGH
+repo:        RealTimeAudio     session: s-rta-0926b     date: 2026-09-26
+status:      NEW
+status-changed: 2026-09-26
+status-note:
+artifact:
+history:     NEW(2026-09-26)
+--- /IDEA ---
