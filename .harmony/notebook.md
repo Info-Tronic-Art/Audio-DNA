@@ -1401,3 +1401,18 @@ CompositionInspector section grows a similar 3-way-duplicated row-math bug, the 
 pattern applies (see also `src/ui/TabBarLayout.h`, same session, same pattern for the Browser tab bar).
 **Valid while:** CompositionInspector keeps paint()/resized()/getPreferredHeight() as three separate
 hand-written functions with no shared layout model.
+
+## s-rta-0925 — Xcode_16.app vanished mid-session (not by this session); build dir recovery
+- /Applications/Xcode_16.app was gone by ~20:32 (/Applications mtime). Scanned every Bash command of every
+  agent in this session's workflows: none touched Xcode or /Applications. Cause outside this session (Boris or
+  another process) — asked Boris. xcode-select -p = /Library/Developer/CommandLineTools.
+- Symptom: build/ reconfigure fails ("ProjectM::ProjectM includes non-existent path .../Xcode_16.app/...OpenGL.framework"),
+  then after un-caching OPENGL/ZLIB: libc++ "<cstddef> tried including <stddef.h>" because the cached compiler
+  identification (build/CMakeFiles/4.2.3/CMake*Compiler.cmake) still listed Xcode's implicit include dirs, so the
+  CLT SDK's usr/include (via ZLIB_INCLUDE_DIR) was no longer filtered as implicit.
+- Recovery (no system changes): `cmake -S . -B build -U 'OPENGL_*' -U 'ZLIB_*' -U 'juce_found_*' -U CMAKE_TAPI`,
+  then `rm -rf build/CMakeFiles/4.2.3` + reconfigure -> full rebuild against the CLT SDK (MacOSX26.2).
+  Backups: /tmp/rta0925-CMakeCache.bak, /tmp/rta0925-cmakefiles-bak/. Hand-editing CMakeCache.txt with grep -v
+  CORRUPTS it (drops entry lines but leaves their doc comments) — use -U.
+- Every worktree scratch build configured before 20:32 has the same stale cache.
+  - RESOLVED: Boris removed Xcode on purpose for disk space (binding-decisions.md 2026-09-25).

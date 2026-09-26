@@ -532,3 +532,15 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - Boris (follow-up): "go with your recs" — input Gain stays the pre-analysis input level (may move to Preferences);
   the new Master Signal slider is purely post-analysis reaction depth (visual reactivity), never touching detection.
 - Boris: right-click reset fails on ALL sliders in the Composition tab (scope evidence for the rclick lane).
+
+## 2026-09-25 (s-rta-0925) — No Xcode on the rig
+- Boris removed /Applications/Xcode_16.app on purpose (disk space). The project builds with the Command Line Tools
+  only (/Library/Developer/CommandLineTools, SDK MacOSX26.2). Do not reinstall Xcode or depend on it; any build dir
+  configured before 2026-09-25 20:32 needs the recovery in notebook.md (s-rta-0925 Xcode entry).
+
+## 2026-09-25 (s-rta-0925) — Master Signal Q1: Gain stays visible
+- Boris: "keep gain visible" — the input Gain slider stays in the top bar (left, next to Audio). Master Signal is a
+  NEW fader at the top right next to Master (design: .harmony/.reports/s-rta-0925/diag-mastersignal.md).
+- Master Signal Q2 — Boris: "keep pulsing, this control is only for signals" — at 0% only signal->parameter
+  connections stop moving controls; effects/sources that read the beat clock or audio uniforms directly keep pulsing.
+- Master Signal Q3 — Boris: "save it" — masterSignal persists with the composition (like Master); absent -> 1.0.

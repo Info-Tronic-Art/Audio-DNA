@@ -22,3 +22,7 @@ Reports: .harmony/.reports/s-rta-0925/
 - wave2: opacity lane MERGED bbac78a (also carried a right-click fix). build ok, ctest 466/466. rclick lane overlaps -> reconcile workflow wev64z8r7 (lane/0925-rclick2). Visual gate for step4polish + Composition tab still owed (shooter aborted: Touch ID dialog). Unpushed.
 - wave3 dispatched: visual-gate wxixldz40 (shots + OSC master link check + 3 critics), replay-restore build wbcxs7xg4 (fenced: no end-of-replay, no UI files). Master Signal build waits on Boris Q1-Q3 + prerequisite (effect/source param twins render-dead, diag-mastersignal §2).
 - visual gate wxixldz40: Record states PASS (logic critic), master link PROVEN (OSC 0.3 -> masterLevel=masterOpacity=0.30, both UI 0.30), Video Opacity gone. MUSTs: Per-Type Autopilot checkbox overlaps Opaque row label (I viewed B_composition_inspector.png: confirmed); 'Comp/Decks' abbreviation vs UI Text Rules. Fix lane wncj85lc1 (lane/0925-visualfix). Push held.
+- Master Signal Q1 ANSWERED: Gain stays visible. Q2 (beat-clock effects at 0%) and Q3 (persist) pending.
+- Master Signal Q2 ANSWERED: keep pulsing; control scales signals only.
+- Master Signal Q3 ANSWERED: save with composition. All 3 answered -> build (prereq: effect/source-param twin slice).
+- Gates on merged main (6d55fc9, CLT-only rebuild): ctest 475/475, probe-step3 69/0, reshoot: Per-Type row fixed + 'Compositions' tab full (reshoot/comp-crop.png, composition.png). Found (pre-existing, next polish): 'Deck Loa' button clipped in the top row; 'No clip selected' text overlaps Clip-tab dashboard knobs.
