@@ -9,6 +9,7 @@
 #include <optional>
 
 struct Composition;
+struct Routine;   // model/Routine.h pulls model/Clip.h (juce_graphics); this header stays juce_core-only
 
 // Program.h -- s167 D5: the COMPILED, IMMUTABLE schedule for one drive
 // clock. `Program::compile` is the ONLY place a ControlPath's coordinates
@@ -130,3 +131,11 @@ struct Program
 // fallback (CompileReport::invalid) for a gesture with no parallel stamps.
 std::shared_ptr<const Program> compile(const Take& take, const Composition& comp,
                                         DriveClock clock, std::optional<Range> range = {});
+
+// compileRoutine -- s-rta-0926 routines slice 1 (plan-routines-s1-final.md 3.4): a routine's
+// Program. Always DriveClock::Beat (x = beats since the fire boundary), `loop` from the routine,
+// `length` = Routine::lengthBeats (whole bars, not the last event). The restore list
+// (Routine::preamble) is resolved against `comp` like a lane (deck-relative keys resolve on the
+// ACTIVE deck, D2) into Program::preamble / preambleContinuous; lanes go through the same lane
+// loop compile() uses.
+std::shared_ptr<const Program> compileRoutine(const Routine& routine, const Composition& comp);
