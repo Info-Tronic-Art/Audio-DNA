@@ -110,6 +110,8 @@ juce::var Meta::toVar() const
     obj->setProperty("app", juce::String(app));
     obj->setProperty("duration", duration);
     obj->setProperty("durationBeats", durationBeats);
+    if (startBeatInBar >= 0.0)
+        obj->setProperty("startBeatInBar", startBeatInBar);
     return juce::var(obj);
 }
 
@@ -122,6 +124,8 @@ Meta Meta::fromVar(const juce::var& v)
         m.app = obj->getProperty("app").toString().toStdString();
         m.duration = static_cast<double>(obj->getProperty("duration"));
         m.durationBeats = static_cast<double>(obj->getProperty("durationBeats"));
+        if (obj->hasProperty("startBeatInBar"))
+            m.startBeatInBar = static_cast<double>(obj->getProperty("startBeatInBar"));
     }
     return m;
 }
