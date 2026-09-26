@@ -1,0 +1,25 @@
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index bde6aa8..8b0d319 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -1183,3 +1183,20 @@ if(NOT WIN32)
+     apply_sanitizers(test_httplib_bodyless_post)
+     catch_discover_tests(test_httplib_bodyless_post PROPERTIES TIMEOUT 60)
+ endif()
++
++# --- test_slider_rclick_reset (s-rta-0925: Boris/Tier-4 "right-click on a
++# slider does not reset to default"). Headless: mirrors ResettableSlider's
++# mouseDown() state machine (src/ui/UniversalParamControl.h:23-44) rather
++# than linking juce_gui_basics -- no display context under ctest, same
++# reason/approach as test_record_panel_model above and
++# test_layer_transport_reverse.cpp ("mirror the mechanism, not the
++# subsystem"). No JUCE dependency at all: pure Catch2, like test_ring_buffer.
++# NOTE: 4 of the 6 cases in this file are INTENTIONALLY RED -- they are the
++# reproducer proving the CompositionInspector.cpp Master/Speed/Opacity and
++# MilkDropBrowser plain-Slider defects are real (see
++# .harmony/.reports/s-rta-0925/diag-rclick.md). They will turn green once
++# the corresponding fix lands.
++add_executable(test_slider_rclick_reset test_slider_rclick_reset.cpp)
++target_link_libraries(test_slider_rclick_reset PRIVATE Catch2::Catch2WithMain)
++apply_sanitizers(test_slider_rclick_reset)
++catch_discover_tests(test_slider_rclick_reset)

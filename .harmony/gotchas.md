@@ -476,3 +476,15 @@ screen-safety EOS check" clause above for agents. (2) NEVER run lldb/debugserver
 — debugserver asks SecurityAgent for Touch ID. Crash backtraces: `ctest --output-on-failure`, ASan, or
 `atos` on an .ips. If a SecurityAgent window appears: kill the debugger process tree, then tell Boris to
 press Cancel (never synthesize a click at it).
+
+## 2026-09-26 (s-rta-0925) — worktree lanes filled Boris's disk (0 bytes free; every Bash call blocked)
+**What happened:** ~10 workflow `isolation: 'worktree'` lanes each checked out the FULL repo (design/ 1.4 GB +
+media) plus a fresh scratch build (1.7–5.4 GB each) and were never removed after merge. The disk hit 0 bytes; the
+secondary write-guard hook then failed closed on EVERY Bash call (it needs a temp file), so Harmony could not even
+run `df`; Boris had to clean up by hand.
+**Rule:** (1) BEFORE any batch of worktree lanes: `df -h /System/Volumes/Data` — need >= 8 GB free per lane plus
+20 GB headroom; else run fewer lanes. (2) The turn a lane MERGES: `git worktree remove --force <path>` (after
+checking `git status -uno` is clean or saving its diff to .harmony/.reports/) and `git worktree prune`. (3) Cap
+concurrent build lanes at 3. (4) Scratch builds are the bulk: builders delete their scratch build dir before
+returning unless Harmony asks to keep it. (5) If Bash is blocked by a full disk, stop every running workflow
+(TaskStop) and give Boris a copy-paste cleanup command limited to MERGED worktrees.
