@@ -15,3 +15,10 @@ Harmony gates after merge: rebuild build/, ctest, probe-effects-parity (new orac
 look at one decoded frame per probe.
 - 13:1x launched wave1 wp3pdyzz7 (wf_c26c7de7-792): A parity opus builder worktree -> reviewer (+1 fix round); B step3row sonnet (main tree, no commit); C docs7 sonnet (main tree, no commit); D polish sonnet worktree -> 3 critics (+1 fix round).
 - launched routines plan w7q00o6xb (wf_5c800da5-0a8): Fable plan -> 3 blind critics -> Fable ruling -> plan-routines-s1-final.md. Build waits for wave-1 merge.
+- wave1 DONE: parity = NOT reproducible on 4fca2c5 (0/104; misread "2 PASS / 3 FAIL"), crossfade clobber found (merged df52585);
+  step3row = probe timing, fixed 8e1906d, Harmony gate 93/0; docs7 0bf0ad3 (counts re-derived by Harmony: 35 routes, 7 perf,
+  OSC 13); polish merged e1ed9cc (reviewer PASS_WITH_NITS; critics PASS on both fixes, FAIL on Master Signal fader label).
+  build/ rebuilt at e1ed9cc: ctest 539/539.
+- wave2 wde415p6u: xfade (opus, worktree) + fader (sonnet, worktree, critics, reviewer).
+- routines plan DONE (plan-routines-s1-final.md: 7 ACCEPT, 0 REJECT; lanes 1a -> Harmony gate -> 1b -> optional bank strip).
+  Lane 1a launched w9c64dgcm (opus). 2 non-blocking Boris confirmations in plan section 10.
