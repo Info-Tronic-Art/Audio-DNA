@@ -74,10 +74,16 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     // Manual mode: skip stabilization pipeline, just run phase from locked BPM.
     // No real onset can be trusted while the operator has overridden the
     // tracker, so the predicted phase wrap drives beatInBar_/barCount_ (P24).
+    // s-rta-0926 manual-bpm: nor may a detected beat move the phase -- it
+    // free-runs from the manual BPM (as in held silence below). Passing the
+    // aubio beat through hard-reset the phase on every confident beat of
+    // whatever the room was playing, so the manual tempo followed the room and
+    // bars stalled. The only manual realignments are requestResync() and
+    // setManualBPM() (Tap / set_bpm).
     if (manualMode_.load(std::memory_order_relaxed))
     {
         predictedBeatRegime_ = true;
-        updatePhase(beat, conf);
+        updatePhase(false, 0.0f);
         return;
     }
 
