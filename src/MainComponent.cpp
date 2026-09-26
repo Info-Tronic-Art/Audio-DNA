@@ -5004,9 +5004,10 @@ void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deck
 // Dispatch table (critic N10) -- a MOVE of each site's existing body, not a
 // behaviour change: "tap" calls the tracker's BPM setter only (TopBar's own
 // prior behaviour); "manual" turns manual mode on and applies the BPM if
-// positive; "auto" turns manual mode off; "resync" resets the beat/phrase
-// counters; "link" (also REST/OSC set_bpm) turns manual mode on and applies
-// the BPM.
+// positive; "auto" turns manual mode off; "resync" requests a Resync that the
+// analysis thread applies (s-rta-0925: BPMTracker::requestResync(), no longer
+// a direct message-thread write into the tracker); "link" (also REST/OSC
+// set_bpm) turns manual mode on and applies the BPM.
 void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin)
 {
     auto* tracker = analysisThread_.getBpmTracker();
@@ -5030,11 +5031,7 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
     {
         beatCounter_ = 0;
         lastBeatPhase_ = 0.0f;
-        if (tracker)
-        {
-            tracker->resetBeatPhase();
-            tracker->resetPhrase();
-        }
+        if (tracker) tracker->requestResync();
     }
     else if (action == "link")
     {

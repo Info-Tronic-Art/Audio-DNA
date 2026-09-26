@@ -110,8 +110,8 @@ public:
     // --- Phrase tracking accessors ---
     uint16_t barCount()         const { return barCount_; }
     // S168: monotonic twin of barCount_ -- advances on the same newBar edge,
-    // never zeroed by a structural reset, resetPhrase(), or the no-lock
-    // branch of updatePhrase(). See totalBarCount_ for the full rationale.
+    // never zeroed by a structural reset, a manual Resync (applyResync), or
+    // the no-lock branch of updatePhrase(). See totalBarCount_ for the full rationale.
     uint32_t totalBarCount()    const { return totalBarCount_; }
     float    phrasePhase()      const { return phrasePhase_; }
     int      phraseBars()       const { return phraseBars_; }
@@ -125,9 +125,6 @@ public:
     // P23: Query silence state
     bool isSilent() const { return inSilence_; }
     float silenceDuration() const; // seconds
-
-    // Reset phrase/bar counters (called on Resync)
-    void resetPhrase();
 
     // MANUAL Resync (s-rta-0925, Boris ruling 2026-09-25). Any thread may request; the analysis
     // thread applies it at the END of its next feedDownbeatFeatures() hop, so that hop's published
@@ -147,7 +144,11 @@ public:
     void setManualMode(bool enabled);
     bool isManualMode() const { return manualMode_; }
 
-    // Reset beat phase to 0 (called on Resync)
+    // Reset beat phase to 0. s-rta-0925: no longer called from the manual-Resync
+    // path (superseded by requestResync()/applyResync(), which also fixes the
+    // phantom-bar/level-contract defects a bare beat-phase reset had) -- kept as
+    // a test-only utility (tests/test_bpm_stabilization.cpp pins beatInBar_ to a
+    // known value before a single-hop probe).
     void resetBeatPhase();
 
     // --- Testing support ---
@@ -239,7 +240,7 @@ private:
     uint16_t barCount_ = 0;            // bars since last phrase reset
     // S168: same newBar advance as barCount_, but intentionally NEVER
     // reset -- not on a structural transition (drop/breakdown), not on
-    // resetPhrase() (manual Resync), not on the no-lock early-return in
+    // a manual Resync (applyResync), not on the no-lock early-return in
     // updatePhrase(). Consumers that must never see a backward jump
     // (e.g. OscillatorSignal via FeatureSnapshot::totalBarCount) read this
     // instead of barCount_.

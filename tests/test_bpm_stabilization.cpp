@@ -759,13 +759,19 @@ TEST_CASE("automatic structural reset leaves resyncBarOrigin untouched (real ons
     REQUIRE(tracker.resyncBarOrigin() == tracker.totalBarCount());
     const uint32_t origin = tracker.resyncBarOrigin();
 
-    feedRealOnsets(tracker, 120.0f, 8, /*startBeatIndex=*/25, 48000, 512, /*structuralState=*/0);
+    feedRealOnsets(tracker, 120.0f, 8, /*startBeatIndex=*/25, 48000, 512, /*structuralState=*/0);   // 25..32
+    feedRealOnsets(tracker, 120.0f, 3, /*startBeatIndex=*/33, 48000, 512, /*structuralState=*/0);   // 33..35, filler (no downbeat in range)
     const uint32_t totalBarCountBeforeDrop = tracker.totalBarCount();
 
     // The drop-entry branch in updatePhrase() must still fire on a REAL
     // structural transition (ruling 25: automatic resets keep flowing,
-    // unchanged) -- and must not touch resyncBarOrigin_ either way.
-    feedRealOnsets(tracker, 120.0f, 1, /*startBeatIndex=*/33, 48000, 512, /*structuralState=*/2);
+    // unchanged) -- and must not touch resyncBarOrigin_ either way. Beat 36
+    // is deliberately a downbeat position (36 % kBeatsPerBar == 0) so this
+    // hop ALSO crosses a bar edge -- mirroring the existing sibling test's
+    // exact pattern ("Real audio: structural transition into drop zeroes
+    // barCount while totalBarCount keeps climbing", above) where the newBar
+    // and the drop coincide on the same hop.
+    feedRealOnsets(tracker, 120.0f, 1, /*startBeatIndex=*/36, 48000, 512, /*structuralState=*/2);
 
     REQUIRE(tracker.barCount() == 0);
     REQUIRE(tracker.totalBarCount() > totalBarCountBeforeDrop);

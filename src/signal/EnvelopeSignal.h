@@ -48,9 +48,13 @@ public:
         // comment previously claimed EnvelopeSignal "already received the
         // same fold-across-bars fix as OscillatorSignal" -- it had NOT; it
         // read barCount unconditionally with no switch at all until S168.
+        //
+        // s-rta-0925: bars since the last MANUAL Resync (== totalBarCount before the
+        // first one), so a Resync restarts this shape at the new downbeat; automatic
+        // resets still do not touch it (ruling 25).
         float barsElapsed = resetPhaseOnStructural_
             ? static_cast<float>(snapshot.barCount)
-            : static_cast<float>(snapshot.totalBarCount);
+            : static_cast<float>(snapshot.barsSinceResync());
         float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar)
                              + 4.0f * barsElapsed;
         float cyclePhase = std::fmod(totalBeatPhase / beatDuration_, 1.0f);
