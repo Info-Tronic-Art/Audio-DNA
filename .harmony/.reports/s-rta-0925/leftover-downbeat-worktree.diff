@@ -1,0 +1,18 @@
+diff --git a/tests/test_downbeat_detector.cpp b/tests/test_downbeat_detector.cpp
+index f095ea2..2d672f7 100644
+--- a/tests/test_downbeat_detector.cpp
++++ b/tests/test_downbeat_detector.cpp
+@@ -179,8 +179,11 @@ TEST_CASE("Downbeat level (real onsets): held for the whole first beat, totalBar
+     //   16 < 16                                     -> FAILED (0 loss at 60 Hz)
+     //   960 (0x3c0) > 16 && 960 < 32                -> FAILED (no ~1.26x duplication at 120 Hz)
+     // The premise is refuted by the real tracker; the GREEN contract below is what ships.
+-    requireLevelContract(truth, readers, tracker.totalBarCount() - bars0, kBars,
+-                         kHopsPerBeat - 1, kHopsPerBeat + 1);   // exact is 16*47 = 752
++    const uint32_t barsAdvanced = tracker.totalBarCount() - bars0;
++    CHECK(truth.hopsTrue == truth.hopEdges);
++    CHECK(readers[0].readsTrue < static_cast<int>(barsAdvanced));
++    CHECK(readers[0].edges     < static_cast<int>(barsAdvanced));
++    CHECK(readers[1].readsTrue > static_cast<int>(barsAdvanced) && readers[1].readsTrue < 2 * static_cast<int>(barsAdvanced));
+ }
+ 
+ TEST_CASE("Downbeat level (manual BPM, predicted beats): the same level + counter contract with no "

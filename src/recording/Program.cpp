@@ -280,15 +280,18 @@ namespace
 
             {
                 // LayerRuntime::opacity is always captured (not gated on non-default, unlike
-                // ClipRuntime) -- skip a default-valued restore here rather than spam a no-op write.
+                // ClipRuntime) and is ALWAYS emitted here too, even when it equals the scalar
+                // default -- s-rta-0925 rr-fix: a checkpoint value matching the default is NOT a
+                // no-op write in general, because the LIVE value at Play time may have since
+                // diverged from default (a human/REST perturbation between Record and Play). The
+                // live gate's own recipe hits exactly this: checkpoint opacity is 1.0 (the
+                // default), the probe perturbs it to 0.9, and a skip-if-default check here left it
+                // stuck at 0.9 forever (preambleFired counted the write as absent, not refused).
                 const auto& def = layerScalarDefs()[static_cast<size_t>(LayerScalar::Opacity)];
                 const float norm = def.toNorm(rt.opacity);
-                if (std::abs(norm - def.defaultNorm) > 1e-4f)
-                {
-                    ControlPath k = controlKey("scalar"); k.scalar = "opacity";
-                    out.preambleContinuous.push_back(PreambleSet{ k, ctx.target, norm });
-                    out.report.preambleCount++;
-                }
+                ControlPath k = controlKey("scalar"); k.scalar = "opacity";
+                out.preambleContinuous.push_back(PreambleSet{ k, ctx.target, norm });
+                out.report.preambleCount++;
             }
 
             for (const auto& [fxKey, value] : rt.effectParams)

@@ -544,3 +544,6 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - Master Signal Q2 — Boris: "keep pulsing, this control is only for signals" — at 0% only signal->parameter
   connections stop moving controls; effects/sources that read the beat clock or audio uniforms directly keep pulsing.
 - Master Signal Q3 — Boris: "save it" — masterSignal persists with the composition (like Master); absent -> 1.0.
+- Call 1 implementation: BUILT + live-verified 2026-09-25 (merges 85afb70 + rr-fix; probe-step3 79/0 incl. snap-back rows
+  in both replay modes). Not restored by design: tempo, audio transport, video playheads, per-slot effect bypass,
+  layer transform (plan-roadmap.md §3.1).
