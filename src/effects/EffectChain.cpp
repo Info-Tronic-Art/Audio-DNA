@@ -185,25 +185,43 @@ void EffectChain::render(GLuint inputTexture,
             applyDryWet(effectedTex, preEffectTexture, effect->getDryWet(),
                         shaderMgr, quad, defaultFBO, width, height);
         }
-        else if (needsDryWet)
-        {
-            // Mid-chain or temporal dry/wet: composite in FBO
-            GLuint effectedTex = texMgr.getFBOTexture(writeFBO);
-            int compositeFBO = 1 - writeFBO;
-
-            glBindFramebuffer(GL_FRAMEBUFFER, texMgr.getFBO(compositeFBO));
-            glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            applyDryWet(effectedTex, preEffectTexture, effect->getDryWet(),
-                        shaderMgr, quad, texMgr.getFBO(compositeFBO), width, height);
-
-            currentInput = texMgr.getFBOTexture(compositeFBO);
-            writeFBO = 1 - compositeFBO;
-        }
         else
         {
-            // Normal case: rendered to FBO (either mid-chain or last-with-temporal)
+            // Mid-chain dry/wet (or a temporal-chain's last effect, which
+            // also lands here since anyTemporal rules out the screen-composite
+            // branch above): the effect's "wet" result is already sitting in
+            // texMgr.getFBO(writeFBO), still bound as the framebuffer. Blend
+            // the pre-effect ("dry") texture over it IN PLACE with
+            // fixed-function blending -- same technique as
+            // CompositorEngine::applyClipEffects's dry/wet fix (s-rta-0926
+            // xfade class-sweep #6/#27). The old code instead composited
+            // into `1 - writeFBO`, which -- for any non-first effect fed
+            // from the 2-member pool -- is exactly the FBO holding
+            // preEffectTexture, so it sampled the very texture it was
+            // rendering into (an undefined GL feedback loop). Blending reads
+            // the destination through the ROP, not a sampler, so this needs
+            // no third texture and samples nothing it writes.
+            if (needsDryWet)
+            {
+                if (auto* pt = shaderMgr.getProgram("passthrough"))
+                {
+                    glEnable(GL_BLEND);
+                    glBlendEquation(GL_FUNC_ADD);
+                    glBlendFunc(GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
+                    glBlendColor(0.0f, 0.0f, 0.0f, effect->getDryWet());
+                    pt->use();
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, preEffectTexture);
+                    auto ptTexLoc = pt->getUniformIDFromName("u_texture");
+                    if (ptTexLoc >= 0)
+                        glUniform1i(ptTexLoc, 0);
+                    quad.draw();
+                    glDisable(GL_BLEND);
+                }
+            }
+
+            // Normal case: rendered to FBO (mid-chain, last-with-temporal, or
+            // the dry/wet blend above -- all leave the result in writeFBO).
             currentInput = texMgr.getFBOTexture(writeFBO);
             writeFBO = 1 - writeFBO; // ping-pong
         }
