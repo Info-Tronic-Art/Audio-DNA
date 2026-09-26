@@ -275,6 +275,15 @@ void ApiServer::setupRoutes()
     // s-rta-0925 (probe enabler, end-of-replay plan section 5): puts the app on the live input or (if
     // loaded) the file transport -- a dev/probe control, documented in the inventory row.
     server_.Post("/api/audio/source", [this](const httplib::Request& req, httplib::Response& res) { handleAudioSource(req, res); });
+
+    // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
+    // as a routine on a pad, fire / stop / edit / remove it, and read the bank back.
+    server_.Post("/api/routine/save", [this](const httplib::Request& req, httplib::Response& res) { handleRoutineSave(req, res); });
+    server_.Post("/api/routine/fire", [this](const httplib::Request& req, httplib::Response& res) { handleRoutineFire(req, res); });
+    server_.Post("/api/routine/stop", [this](const httplib::Request& req, httplib::Response& res) { handleRoutineStop(req, res); });
+    server_.Post("/api/routine/set", [this](const httplib::Request& req, httplib::Response& res) { handleRoutineSet(req, res); });
+    server_.Post("/api/routine/remove", [this](const httplib::Request& req, httplib::Response& res) { handleRoutineRemove(req, res); });
+    server_.Get("/api/routine/status", [this](const httplib::Request& req, httplib::Response& res) { handleRoutineStatus(req, res); });
 }
 
 // --- Endpoint handlers ---
@@ -376,6 +385,30 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
                     clipObj->setProperty("mediaType", static_cast<int>(clip.mediaType));
                     clipObj->setProperty("sourceType", juce::String(clip.sourceType));
                     addLiveBlock<Clip, ClipScalar>(*clipObj, clip, clip.scalarConns, clipScalarDefs());
+
+                    // s-rta-0926 routines (plan 5.1, additive): the clip's effect stack with each
+                    // parameter's EFFECTIVE value (effParam -- what the renderer reads), named from
+                    // the EffectLibrary def the same way handleSetParam resolves them.
+                    juce::Array<juce::var> fxArray;
+                    for (const auto& fx : clip.effects)
+                    {
+                        auto* fxObj = new juce::DynamicObject();
+                        fxObj->setProperty("name", juce::String(fx.effectName));
+                        fxObj->setProperty("bypassed", fx.bypassed);
+                        const auto* def = renderer_.getEffectLibrary().getEffectDef(juce::String(fx.effectName));
+                        juce::Array<juce::var> paramArray;
+                        for (size_t pi = 0; pi < fx.paramValues.size(); ++pi)
+                        {
+                            auto* pObj = new juce::DynamicObject();
+                            pObj->setProperty("name", (def != nullptr && pi < def->params.size())
+                                                          ? juce::String(def->params[pi].name) : juce::String());
+                            pObj->setProperty("value", static_cast<double>(fx.effParam(pi)));
+                            paramArray.add(juce::var(pObj));
+                        }
+                        fxObj->setProperty("params", paramArray);
+                        fxArray.add(juce::var(fxObj));
+                    }
+                    clipObj->setProperty("effects", fxArray);
                     clipArray.add(juce::var(clipObj));
                 }
             }
@@ -1453,4 +1486,213 @@ void ApiServer::handleAudioSource(const httplib::Request& req, httplib::Response
     });
 
     res.set_content(jsonOk(), "application/json");
+}
+
+// --- s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): /api/routine/* ---
+//
+// Same shape as /api/perf/* above: 503 when unwired, a malformed request is refused here (400, in
+// words), everything else is marshalled to the message thread and its outcome (or refusal) is read
+// back from /api/routine/status -- lastSaved after a save, lastError after any refusal.
+
+namespace
+{
+    // Reads an optional boolean key; absent -> std::nullopt (the funnel keeps the routine's value).
+    std::optional<bool> optionalBool(const juce::var& json, const char* key)
+    {
+        if (auto* obj = json.getDynamicObject())
+            if (obj->hasProperty(key))
+                return static_cast<bool>(obj->getProperty(key));
+        return std::nullopt;
+    }
+
+    bool hasKey(const juce::var& json, const char* key)
+    {
+        auto* obj = json.getDynamicObject();
+        return obj != nullptr && obj->hasProperty(key);
+    }
+
+    bool quantizeKnown(const juce::String& q)
+    {
+        return q.isEmpty() || q == "off" || q == "beat" || q == "bar" || q == "2bar" || q == "4bar";
+    }
+}
+
+void ApiServer::handleRoutineSave(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onRoutineSave)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Routines unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    RoutineSaveOpts opts;
+    opts.name = json.getProperty("name", "").toString();
+    if (hasKey(json, "fromBar") && hasKey(json, "toBar"))
+    {
+        opts.useBars = true;
+        opts.fromBar = static_cast<int>(json.getProperty("fromBar", 0));
+        opts.toBar = static_cast<int>(json.getProperty("toBar", 0));
+    }
+    else if (hasKey(json, "fromBeat") && hasKey(json, "toBeat"))
+    {
+        opts.fromBeat = static_cast<double>(json.getProperty("fromBeat", 0.0));
+        opts.toBeat = static_cast<double>(json.getProperty("toBeat", 0.0));
+    }
+    else
+    {
+        res.status = 400;
+        res.set_content(jsonError("Give fromBeat and toBeat, or fromBar and toBar."), "application/json");
+        return;
+    }
+    opts.slot = static_cast<int>(json.getProperty("slot", -1));
+    opts.loop = optionalBool(json, "loop");
+    opts.restoreState = optionalBool(json, "restoreState");
+    opts.wholeBars = optionalBool(json, "wholeBars");
+    opts.quantize = json.getProperty("quantize", "").toString();
+    opts.takeFolder = json.getProperty("takeFolder", "").toString();
+    if (!quantizeKnown(opts.quantize))
+    {
+        res.status = 400;
+        res.set_content(jsonError("quantize must be off, beat, bar, 2bar or 4bar."), "application/json");
+        return;
+    }
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, opts]() {
+        onRoutineSave(opts);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleRoutineFire(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onRoutineFire)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Routines unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!hasKey(json, "slot"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'slot'"), "application/json");
+        return;
+    }
+    const int slot = static_cast<int>(json.getProperty("slot", -1));
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, slot]() {
+        onRoutineFire(slot);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleRoutineStop(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onRoutineStop)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Routines unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const bool all = static_cast<bool>(json.getProperty("all", false));
+    if (!all && !hasKey(json, "slot"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Give 'slot', or 'all': true"), "application/json");
+        return;
+    }
+    const int slot = static_cast<int>(json.getProperty("slot", -1));
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, slot, all]() {
+        onRoutineStop(slot, all);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleRoutineSet(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onRoutineSet)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Routines unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!hasKey(json, "slot"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'slot'"), "application/json");
+        return;
+    }
+    RoutineSetOpts opts;
+    opts.slot = static_cast<int>(json.getProperty("slot", -1));
+    opts.loop = optionalBool(json, "loop");
+    opts.restoreState = optionalBool(json, "restoreState");
+    opts.quantize = json.getProperty("quantize", "").toString();
+    opts.name = json.getProperty("name", "").toString();
+    if (!quantizeKnown(opts.quantize))
+    {
+        res.status = 400;
+        res.set_content(jsonError("quantize must be off, beat, bar, 2bar or 4bar."), "application/json");
+        return;
+    }
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, opts]() {
+        onRoutineSet(opts);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleRoutineRemove(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onRoutineRemove)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Routines unavailable"), "application/json");
+        return;
+    }
+
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!hasKey(json, "slot"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'slot'"), "application/json");
+        return;
+    }
+    const int slot = static_cast<int>(json.getProperty("slot", -1));
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, slot]() {
+        onRoutineRemove(slot);
+    });
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleRoutineStatus(const httplib::Request&, httplib::Response& res)
+{
+    if (!onRoutineStatus)
+    {
+        res.status = 503;
+        res.set_content(jsonError("Routines unavailable"), "application/json");
+        return;
+    }
+
+    // Synchronous: MainComponent's onRoutineStatus reads nothing but RoutineEngine::status()
+    // (a mutex-guarded copy, safe from any thread) -- never the composition's routine vectors.
+    res.set_content(juce::JSON::toString(onRoutineStatus()).toStdString(), "application/json");
 }

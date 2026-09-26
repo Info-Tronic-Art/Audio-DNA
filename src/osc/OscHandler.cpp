@@ -174,6 +174,21 @@ void OscHandler::oscMessageReceived(const juce::OSCMessage& message)
         return;
     }
 
+    // /audiodna/routine/{slot} (s-rta-0926 routines slice 1): value > 0 fires routine pad {slot}
+    // (0-based, like /api/routine/fire); 0 is ignored (a pad release, not a stop).
+    if (address.startsWith("/audiodna/routine/"))
+    {
+        auto parts = juce::StringArray::fromTokens(address, "/", "");
+        // parts: "", "audiodna", "routine", "{slot}"
+        if (parts.size() >= 4)
+        {
+            int slot = parts[3].getIntValue();
+            if (value > 0.0f && onTriggerRoutine)
+                onTriggerRoutine(slot);
+        }
+        return;
+    }
+
     // /audiodna/macro/{n}
     if (address.startsWith("/audiodna/macro/"))
     {

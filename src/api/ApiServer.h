@@ -4,6 +4,7 @@
 #include <juce_core/juce_core.h>
 #include <thread>
 #include <atomic>
+#include <optional>
 #include <string>
 
 // Forward declarations
@@ -123,6 +124,35 @@ public:
     // the live input or (if loaded) the file transport. Same marshal posture as every onPerf* callback.
     std::function<void(const juce::String& mode)> onAudioSource;
 
+    // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): /api/routine/*. Same posture as
+    // /api/perf/*: every mutating route is marshalled to the message thread (callAsync) and answers
+    // 503 when unassigned; the outcome (or the refusal, in whole words) is read back from
+    // /api/routine/status (lastSaved / lastError), which is synchronous and reads ONLY
+    // RoutineEngine::status()'s mutex-guarded copy.
+    struct RoutineSaveOpts
+    {
+        juce::String name;
+        bool useBars = false;               // true: fromBar/toBar (1-based, inclusive); false: fromBeat/toBeat
+        double fromBeat = 0.0, toBeat = 0.0;
+        int fromBar = 0, toBar = 0;
+        int slot = -1;                      // -1 = first free pad
+        std::optional<bool> loop, restoreState, wholeBars;
+        juce::String quantize;              // "" = the routine default (bar)
+        juce::String takeFolder;            // "" = the loaded take
+    };
+    struct RoutineSetOpts
+    {
+        int slot = -1;
+        std::optional<bool> loop, restoreState;
+        juce::String quantize, name;        // "" = unchanged
+    };
+    std::function<void(const RoutineSaveOpts&)> onRoutineSave;
+    std::function<void(int slot)> onRoutineFire;
+    std::function<void(int slot, bool all)> onRoutineStop;
+    std::function<void(const RoutineSetOpts&)> onRoutineSet;
+    std::function<void(int slot)> onRoutineRemove;
+    std::function<juce::var()> onRoutineStatus;   // synchronous; see comment above
+
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
 
@@ -167,6 +197,14 @@ private:
     void handlePerfRepair(const httplib::Request& req, httplib::Response& res);
     void handlePerfStatus(const httplib::Request& req, httplib::Response& res);
     void handleAudioSource(const httplib::Request& req, httplib::Response& res);
+
+    // s-rta-0926 routines slice 1 -- /api/routine/*
+    void handleRoutineSave(const httplib::Request& req, httplib::Response& res);
+    void handleRoutineFire(const httplib::Request& req, httplib::Response& res);
+    void handleRoutineStop(const httplib::Request& req, httplib::Response& res);
+    void handleRoutineSet(const httplib::Request& req, httplib::Response& res);
+    void handleRoutineRemove(const httplib::Request& req, httplib::Response& res);
+    void handleRoutineStatus(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();
