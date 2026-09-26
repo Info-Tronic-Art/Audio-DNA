@@ -101,7 +101,7 @@
 - `src/ui/PresetManager.h/cpp` — JSON save/load of effects + mappings + deck
 - `src/ui/UniversalParamControl.h/cpp` — ResettableSlider (right-click reset) + param control + source picker
 - Hidden/dead v1 panels (compiled, never shown in v2): `EffectsRackPanel`, `AudioReadoutPanel`, `SpectrumDisplay`, `ProgrammingMode`
-- NOTE: no `KeyboardPanel`/`KeyEditor` files exist (CLAUDE.md source tree lists them — nonexistent)
+- NOTE: no `KeyboardPanel`/`KeyEditor` files exist (`docs/claude/architecture.md` source tree lists them — nonexistent)
 
 ## Build
 - `CMakeLists.txt` — Root build: JUCE via FetchContent, C++20

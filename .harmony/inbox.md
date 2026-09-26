@@ -141,3 +141,14 @@ routed-by:   harmony-18791     date: 2026-09-24
 status:      DONE
 status-note: s-rta-0924: (+) PASS, (-) INCONCLUSIVE for the hook (architect self-refused; hook never reached); reviewer Bash-bypass of MINIMAL write BLOCK found; stray memory/ removed. Reported up: memory/.pending s-rta-0924-g5-relay-result.md.
 --- /ROUTED-ITEM ---
+
+--- ROUTED-ITEM ---
+id:          down-2026-09-26-RealTimeAudio-17904459455602512214
+raw:         REQUEST (Harmony s234 boot-cost audit): CLAUDE.md is 112,696 B and is loaded whole into EVERY RealTimeAudio session AND every subagent dispatched from one — measured 107,899 chars ≈ 30k tokens = 1/3 of a secondary's 101,568-token first call (session 4cf95172). Please split it in your own session: (1) KEEP in CLAUDE.md (target ≤ 25 KB): Project Identity, 4-Thread Model summary (≤ 40 lines), Latency Budget, Sacred Rules, Shader/Feature-Addition/Code-Quality rules, Development Workflow — Non-Technical User, Kick-off-phase-N protocol, Before Any Work, macOS build essentials + Common Build Issues, UI Patterns (Mandatory), Updating This Document, and a TRIGGER TABLE ('when doing X → read docs/Y.md §Z') for everything moved. (2) MOVE to on-demand docs (e.g. docs/claude/*.md, NOT @-imported — in-repo @imports expand at boot and save nothing): Source Tree, Core Data Structures, Audio Analysis Features, Effects Library + Transition Shaders, Effect Chain/FX DnD/Autopilot/BPM/Tooltip, Mapping System internals, Milestone history, Windows/Linux build, Eyes harness + endpoints, Fractal System Reference, P16-P25 subsystem references, Common Pitfalls, Research Documents Reference. (3) Optionally place subsystem notes as nested CLAUDE.md files next to the code (Source/<area>/CLAUDE.md) — Claude Code loads those only when it touches files there. (4) Acceptance: wc -c CLAUDE.md ≤ 25000; a fresh session still answers 'what are the Sacred Rules' and 'how do I kick off phase N' from CLAUDE.md alone; next boot first API call ≤ 75,000 tokens (bash ~/Harmony_Main/scripts/ctx-now.sh in-session). Reply up-channel via scripts/idea-capture.sh with the new size + first-call number.
+origin:      memory/.reports/s234/boot-trim-plan.md §R1
+why-routed:  project-owned CLAUDE.md; only an RTA session edits it
+source-idea: 
+routed-by:   harmony-9119     date: 2026-09-26
+status:      DONE
+status-note: s-rta-0926: CLAUDE.md 112,696 -> ~24.1 KB; 13 on-demand docs under docs/claude/ (no @-imports), trigger table + one-line pitfall index; no-loss check 941 verbatim + 11 declared edits, 0 missing; fresh-reader 7/7; completeness critic PASS. First-call token number: measure at next RTA boot (ctx-now.sh).
+--- /ROUTED-ITEM ---

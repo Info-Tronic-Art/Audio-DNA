@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional — AUDIODNA_BUILD_LINK OFF by default, so a no-op unless built), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc — receiver started at startup on UDP 8000, all 13/13 callbacks wired; Wave 1-B), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional — wired to publish the final composited frame each frame, build-flag-gated: no-op unless built -DAUDIODNA_BUILD_SYPHON=ON with Syphon.framework; Wave 1-A. Input/Spout/NDI stubs removed Wave 0), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — registers + shows in the browser but the converted GLSL is never compiled, so imported effects don't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -32,106 +32,6 @@ Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple b
 
 **Message Thread (JUCE UI, NORMAL priority)**
 Runs on user events. Handles all UI interaction — sliders, buttons, file choosers, mapping editor. Writes configuration changes (effect enable/disable, parameter values, mapping settings) via `std::atomic<T>` config variables that the render and analysis threads read. Never blocks the other threads.
-
-### Core Data Structures
-
-**FeatureSnapshot** — The unit of transfer between Analysis and Render threads. Fixed-size POD, cache-line aligned (`alignas(64)`). Contains:
-
-| Field | Type | Range | Purpose |
-|-------|------|-------|---------|
-| `timestamp` | `uint64_t` | sample clock | Timing reference |
-| `wallClockSeconds` | `double` | seconds | Render interpolation |
-| `rms` | `float` | [0, 1] | Root mean square amplitude |
-| `peak` | `float` | [0, 1] | Peak amplitude |
-| `rmsDB` | `float` | [-100, 0] dBFS | RMS in decibels |
-| `lufs` | `float` | LUFS | Momentary loudness (ITU-R BS.1770) |
-| `dynamicRange` | `float` | ratio | Crest factor |
-| `transientDensity` | `float` | onsets/sec | Sliding window onset count |
-| `spectralCentroid` | `float` | Hz | Brightness indicator |
-| `spectralFlux` | `float` | normalized | Frame-to-frame spectral change |
-| `spectralFlatness` | `float` | [0, 1] | Tonal vs noisy (Wiener entropy) |
-| `spectralRolloff` | `float` | Hz | Frequency below 85% energy |
-| `onsetDetected` | `bool` | flag | Transient this frame |
-| `onsetStrength` | `float` | detection value | Onset detection function output |
-| `bpm` | `float` | BPM | Current tempo estimate |
-| `beatPhase` | `float` | [0, 1) | Sawtooth synced to beat |
-| `trackerState` | `uint8_t` | 0-2 | BPM lock state: 0=searching, 1=locking, 2=locked |
-| `beatInBar` | `uint8_t` | 0-3 | Which beat in the bar (0=downbeat) |
-| `barPhase` | `float` | [0, 1) | Bar-level sawtooth over 4 beats |
-| `downbeatDetected` | `bool` | level | Held true for the WHOLE first beat of the bar (assigned at beat events, never cleared per hop -- not a one-hop pulse); its rising edge is what totalBarCount counts |
-| `structuralState` | `uint8_t` | 0-3 | 0=normal, 1=buildup, 2=drop, 3=breakdown |
-| `bandEnergies[7]` | `float[7]` | normalized | Sub/Bass/LowMid/Mid/HighMid/Presence/Brilliance |
-| `chromagram[12]` | `float[12]` | normalized | C through B pitch classes |
-| `dominantPitch` | `float` | Hz | Detected fundamental frequency |
-| `pitchConfidence` | `float` | [0, 1] | Pitch reliability |
-| `detectedKey` | `int` | 0-11, -1 | Musical key (C=0), -1=unknown |
-| `keyIsMajor` | `bool` | flag | Major vs minor |
-| `mfccs[13]` | `float[13]` | coefficients | Timbral fingerprint |
-| `harmonicChangeDetection` | `float` | HCDF value | Harmonic change rate |
-| `barCount` | `uint16_t` | bars since reset | Bars since last phrase reset |
-| `phrasePhase` | `float` | [0, 1) | Sawtooth over N bars (configurable, default 8) |
-| `detectedGenre` | `uint8_t` | 0-7 | Genre classification (P23) |
-| `genreConfidence` | `float` | [0, 1] | How dominant the top genre is |
-| `energyState` | `uint8_t` | 0-2 | 0=low, 1=medium, 2=high energy |
-| `genreScores[8]` | `float[8]` | normalized | Smoothed scores for all 8 genres |
-| `sidechainPump` | `float` | [0, 1] | Bass/mid anti-correlation (sidechain compression) |
-| `swingRatio` | `float` | [0.5, ~0.67] | 0.5=straight, >0.5=swung timing |
-| `formantPresence` | `float` | [0, 1] | Vocal formant energy concentration (300-3000 Hz) |
-| `resonancePeak` | `float` | [0, 1] | Spectral kurtosis (sharp resonance peaks) |
-| `reeseBass` | `float` | [0, 1] | Bass spectral spread (reese/wobble detection) |
-| `sourceSampleRate` | `float` | Hz, 0=unknown | R13 provenance: the DEVICE rate analysis was actually fed from (0 in test mode/no device). Analysis itself always runs at the fixed internal `AnalysisThread::kSampleRate` (48 kHz) — `AnalysisResampler` bridges the two |
-| `bandValidMask` | `uint8_t` | bitmask, bit b = `bandEnergies[b]` | R13: bit set when that band is meaningful at the source rate; bands mostly above the device Nyquist read 0 with the bit clear (e.g. 16 kHz Bluetooth HFP clears bit 6, Brilliance) |
-
-**Mapping** — Routes any audio feature to any effect parameter:
-
-| Field | Type | Purpose |
-|-------|------|---------|
-| `source` | `Source` enum | Which audio feature (RMS, BeatPhase, BarPhase, PhrasePhase, BarCount, Bass, MFCC0, etc.) |
-| `targetEffectId` | `uint32_t` | Which effect in the chain |
-| `targetParamIndex` | `uint32_t` | Which parameter on that effect |
-| `curve` | `Curve` enum | Linear, Exponential, Logarithmic, SCurve, Stepped |
-| `inputMin/inputMax` | `float` | Source normalization range |
-| `outputMin/outputMax` | `float` | Target output range (default [0, 1]) |
-| `smoothing` | `float` | EMA alpha |
-| `enabled` | `bool` | Active flag |
-
-**Effect** — A named GLSL shader with typed parameters:
-
-| Field | Type | Purpose |
-|-------|------|---------|
-| `name` | `string` | Display name ("Ripple", "Hue Shift") |
-| `category` | `string` | "warp", "color", "glitch", "blur" |
-| `shaderProgram` | `GLuint` | Compiled shader handle |
-| `params` | `vector<EffectParam>` | Parameters with name, value, default (all [0, 1]) |
-| `enabled` | `bool` | Active in chain |
-| `order` | `int` | Position in effect chain |
-
-**Clip** — Media content + per-clip effects + transport, placed in a deck cell:
-
-| Field | Type | Purpose |
-|-------|------|---------|
-| `mediaType` | `MediaType` enum | None, Image, Video, Camera, Source, ImageSequence |
-| `inPoint` | `float` | [0,1] playback start position (draggable on timeline) |
-| `outPoint` | `float` | [0,1] playback end position (draggable on timeline) |
-| `speed` | `float` | Playback speed multiplier |
-| `transportMode` | `TransportMode` enum | Timeline or BPMSync |
-| `loopMode` | `LoopMode` enum | Loop, PingPong, OneShot |
-| `beatDivision` | `float` | BPM Sync: beats per playback cycle |
-| `videoBeats` | `float` | Content beats (for BPM speed calc) |
-| `beatSnap` | `bool` | Snap playhead to beat on trigger |
-| `cuepoints[8]` | `float[8]` | Normalized positions [0,1], up to 8 |
-| `playheadPosition` | `mutable double` | [0,1] runtime position (synced from player each frame) |
-
-### Lock-Free Communication Chain
-
-```
-Audio Callback ──SPSC Ring Buffer (16384 floats, ~341ms @ 48kHz)──▶ Analysis Thread
-Analysis Thread ──Triple-Buffer Atomic Swap (3× FeatureSnapshot)──▶ Render Thread
-UI Thread ──std::atomic<T> config variables──▶ Analysis/Render Threads
-Render Thread ──juce::MessageManager::callAsync()──▶ UI Thread
-```
-
-All data flows forward. No backward dependencies on the hot path.
 
 ### Latency Budget
 
@@ -154,489 +54,7 @@ All data flows forward. No backward dependencies on the hot path.
 
 ---
 
-## Technology Stack
-
-| Library | Version | License | What It Owns | Why Chosen Over Alternatives | Configured In |
-|---------|---------|---------|-------------|---------------------------|---------------|
-| **JUCE** | 8.0.4 | GPLv3 | Audio I/O, file playback (WAV/AIFF/FLAC/MP3/OGG), windowing, OpenGL context, UI widgets, message thread | Single framework for audio + UI + OpenGL. `AudioTransportSource` for file playback with background disk I/O. `AudioDeviceManager` for device enum/hot-plug across CoreAudio/WASAPI/ALSA/JACK. Alternatives: SDL2+ImGui (no audio file playback), Qt (poor RT audio). | `CMakeLists.txt` line 16-22, FetchContent |
-| **Aubio** | 0.4.9+ | GPLv3 | BPM tracking (`aubio_tempo`), onset detection (`aubio_onset`), pitch detection (`aubio_pitch`) | Battle-tested beat/onset algorithms that beat custom implementations. Small C footprint. Alternative: Essentia (AGPL, massive dependency tree including FFTW/TagLib/yaml-cpp). | `CMakeLists.txt` (to be added in M2) |
-| **juce::dsp::FFT** | (bundled) | GPLv3 | 2048-point FFT, magnitude spectrum (1025 bins) | Uses vDSP on macOS, IPP if available. No extra dependency. Adequate for 2048-pt. Alternatives: FFTW (GPL, overkill at 2048), KissFFT (slower). | JUCE module `juce_dsp` |
-| **OpenGL 4.1 Core** | 4.1 | — | All image effects rendering via GLSL fragment shaders | macOS caps at 4.1 (Apple deprecated GL). Sufficient for 2D image effects on fullscreen quads. No compute shaders (require 4.3). Alternatives: Vulkan (overkill for 2D), Metal (macOS-only). | JUCE module `juce_opengl` |
-| **GLSL 410** | 410 | — | All effect shaders (shipped set is embedded in `EmbeddedShaders.h`; hot-reload is inert — no disk shader files) | Matches OpenGL 4.1 target. | `src/render/EmbeddedShaders.h` (shaders/ dir removed Wave 0) |
-| **Catch2** | 3.x | BSL-1.0 | Unit/integration tests | Header-only, BDD-style, integrates with CMake/CTest. Test-only dependency. | `tests/CMakeLists.txt` (to be added in M2) |
-| **stb_image** | latest | Public domain | Fallback image loading for formats JUCE doesn't handle | Single header. JUCE handles PNG/JPEG/GIF natively. | `third_party/` (optional) |
-| **CMake** | 3.24+ | — | Build system | JUCE 7+ has first-class CMake support (`juce_add_gui_app`). Industry standard. Alternative: Projucer (deprecated). | `CMakeLists.txt` |
-
-| **FFmpeg** | 8.0 | LGPL/GPL | Video decode AND encode: MP4, MOV, QuickTime, AVI, MKV, WebM, M4V, HAP Alpha (libavformat, libavcodec, libavutil, libswscale). P22: Also used for real-time video recording (H.264/ProRes/MJPEG encoding). | Industry standard video codec. Supports all major codecs including H.264, H.265, ProRes, HAP Alpha. Alternative: GStreamer (heavier, less portable). | `cmake/FindFFmpeg.cmake`, `CMakeLists.txt` |
-
-| **cpp-httplib** | 0.57.1 | MIT | HTTP server for production REST API (port 7070) and Eyes test server (port 8080) | Single-header C++ HTTP library. Always linked (promoted from test-only in P22). | `CMakeLists.txt` FetchContent |
-| **juce_osc** | (bundled) | GPLv3 | OSC message receiving for external control (TouchOSC, Max/MSP, etc.) | JUCE built-in OSC module. | JUCE module `juce_osc` |
-| **Syphon** | latest | BSD | macOS inter-app GPU texture sharing (zero-copy via IOSurface). Optional. | Enables sending/receiving textures to/from MadMapper, VDMX, OBS. Requires Syphon.framework in /Library/Frameworks/. | `CMakeLists.txt`, `AUDIODNA_BUILD_SYPHON` option |
-
-**Total runtime dependencies: 4 (JUCE, Aubio, FFmpeg, cpp-httplib). Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib). FFmpeg is located via Homebrew on macOS.**
-
----
-
-## Source Tree
-
-```
-AudioDNA/
-├── CLAUDE.md                            ← YOU ARE HERE
-├── ARCHITECTURE_V2.md                   # Current v2 system design specification
-├── docs/archive/v1/ARCHITECTURE_V1.md  # [ARCHIVED] v1 keyboard launcher design
-├── docs/archive/v1/TASKPLAN_V1.md      # [ARCHIVED] v1 milestone plan
-├── CMakeLists.txt                       # Root build: JUCE via FetchContent, C++20
-├── cmake/
-│   ├── CompilerWarnings.cmake           # Per-compiler warning flags (-Wall -Wextra etc.)
-│   ├── FindAubio.cmake                  # [M2] Locate libaubio
-│   └── FindFFmpeg.cmake              ✅ # [P11] Locate FFmpeg (libavformat/libavcodec/libavutil/libswscale)
-├── src/
-│   ├── Main.cpp                         # JUCE app entry point (JUCEApplication subclass)
-│   ├── MainComponent.h/cpp              # Top-level component, owns all systems, layout
-│   ├── audio/
-│   │   ├── AudioEngine.h/cpp         ✅ # AudioDeviceManager + AudioTransportSource + file loading
-│   │   ├── AudioCallback.h/cpp       ✅ # RT callback → mono downmix → ring buffer push
-│   │   └── RingBuffer.h              ✅ # Lock-free SPSC, power-of-two, cache-line padded
-│   ├── analysis/
-│   │   ├── AnalysisThread.h/cpp      ✅ # Dedicated thread, reads ring buffer, runs feature pipeline
-│   │   ├── FeatureSnapshot.h         ✅ # POD struct, all analysis fields, alignas(64)
-│   │   ├── FFTProcessor.h/cpp        ✅ # juce::dsp::FFT wrapper, 2048-pt, Hann window
-│   │   ├── SpectralFeatures.h/cpp    ✅ # Centroid, flux, flatness, rolloff, 7-band energies
-│   │   ├── OnsetDetector.h/cpp       ✅ # Aubio onset wrapper
-│   │   ├── BPMTracker.h/cpp          ✅ # Aubio tempo wrapper
-│   │   ├── MFCCExtractor.h/cpp       ✅ # Mel filterbank (40 bands, 20-8kHz) + DCT → 13 coefficients
-│   │   ├── ChromaExtractor.h/cpp     ✅ # FFT bins → 12 pitch classes, HCDF
-│   │   ├── KeyDetector.h/cpp         ✅ # Krumhansl-Schmuckler: chroma × 24 key templates
-│   │   ├── LoudnessAnalyzer.h/cpp    ✅ # K-weighting biquads + 400ms window → LUFS
-│   │   ├── StructuralDetector.h/cpp  ✅ # Multi-scale EMA envelopes → state machine
-│   │   ├── PitchTracker.h/cpp        ✅ # Aubio yinfft pitch detection
-│   │   ├── GenreDetector.h/cpp       ✅ # [P23] 8-genre real-time classification from audio features
-│   │   ├── GenreSmoothing.h             # REMOVED 2026-07-17 (Wave 0) — was dead (never instantiated)
-│   │   └── AdvancedAudioAnalyzer.h/cpp ✅ # [P25] Sidechain pump, swing, formant, resonance, reese bass
-│   ├── features/
-│   │   ├── FeatureBus.h/cpp          ✅ # Triple-buffer atomic swap (3× FeatureSnapshot)
-│   │   └── Smoother.h               ✅ # EMA smoother (header-only; One-Euro variant removed Wave 0)
-│   ├── mapping/
-│   │   ├── MappingEngine.h/cpp          # [M4] Source→curve→scale→target routing (58 sources, 24 curves)
-│   │   ├── MappingTypes.h               # [M4] Mapping, Source, Curve enums
-│   │   ├── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step + 19 P24 easings (pure fns)
-│   │   └── MappingSuggester.h/cpp       # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated, no UI/API caller)
-│   ├── model/                           # [v2] Core data model
-│   │   ├── Clip.h/cpp                    # Media + per-clip effects/transport/transform/cuepoints/autopilot
-│   │   ├── Layer.h/cpp                   # Row of columns: type, opacity, blend/keying, layer effects, feedback
-│   │   ├── Deck.h                        # Grid of layers × columns; one active at a time
-│   │   ├── Composition.h                 # Top container: decks, master, crossfader, per-type/smart autopilot
-│   │   └── Autopilot.h/cpp               # Beat / end-of-video / per-type / smart-energy clip advancement
-│   ├── signal/                          # [v2] Signal system (feeds RoutingEngine)
-│   │   ├── Signal.h + AudioSignal/OscillatorSignal/EnvelopeSignal/ClipPositionSignal.h  # Concrete signal types
-│   │   ├── ChainedSignal.h/cpp           # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated); SignalRegistry wiring removed
-│   │   └── SignalRegistry.h/cpp          # 32 default signals (29 audio + 3 modulation), per-frame cache
-│   ├── routing/                         # [v2] Universal signal routing (wired into render loop)
-│   │   ├── Route.h + RoutingEngine.h/cpp # dial-range → threshold → gain → invert → smooth → ParamWriter
-│   │   └── MacroBank.h                    # Dashboard links (8 macros/scope) — only the Global bank is instantiated (8 live, not 24)
-│   ├── binding/                         # [v2] Keyboard + MIDI-learn bindings
-│   │   ├── Binding.h                     # 20 actions, 3 target modes, Toggle/Momentary, Abs/Rel CC
-│   │   └── BindingManager.h/cpp          # id-keyed store, MIDI-learn capture, JSON presets
-│   ├── midi/
-│   │   ├── MidiHandler.h/cpp             # MIDI input, hot-plug → BindingManager (wired)
-│   │   └── MidiOutputHandler.h/cpp       # Launchpad/APC pad-state feedback, change-diffed (wired)
-│   ├── sync/
-│   │   └── LinkSync.h/cpp                # Ableton Link wrapper — AUDIODNA_BUILD_LINK OFF by default → compiled no-op
-│   ├── core/                            # [v2] Undo/redo scaffold
-│   │   ├── Command.h                     # Abstract command base — DEAD: zero concrete subclasses
-│   │   └── UndoManager.h/cpp             # History stack — DEAD: perform() never called; undo/redo keys are no-ops
-│   ├── sources/                         # [P10+] Procedural sources
-│   │   ├── SourceRegistry.h/cpp          # 108 sources across 18 categories, 759 params (ground truth)
-│   │   ├── ProceduralSource.h/cpp        # Shader-backed source w/ ping-pong FBOs for stateful sims
-│   │   └── ProjectMSource + ProjectMPresetManager + PresetSelector.h/cpp  # MilkDrop (build-conditional on libprojectM-4)
-│   ├── media/
-│   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (H.264/H.265/ProRes/HAP Alpha; container per linked FFmpeg) → GL texture
-│   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
-│   ├── recording/                      # SessionRecorder REMOVED (s168, 3736f02) -- replaced by the performance take recorder below
-│   │   ├── AudioTap.h/cpp            ✅ # Second fan-out in CombinedCallback; writes take audio, re-patches the WAV header every 10s (kHeaderFlushSeconds)
-│   │   ├── AudioStore.h/cpp          ✅ # [Ruling 28] Shared audio store (~/Documents/Audio-DNA/Audio/<id>.adna-audio/) -- take format v3 references it by id; see "Audio Store" below
-│   │   ├── RecorderClock.h/cpp       ✅ # Monotonic beat/sample/wall timebase shared by capture and replay
-│   │   ├── PerformanceRecorder.h/cpp ✅ # touch/set/release gesture capture -> Lane
-│   │   ├── Take.h/cpp + Lane.h + TempoMap.h + PerfState.h/PerfStateCapture.cpp ✅ # v3 take envelope (lanes/tempoMap/checkpoint0[+audio][+markers]), per-control lanes, tempo map, restore-point snapshot
-│   │   ├── Program.h/cpp + Player.h/cpp ✅ # Compile a Take into a schedule (incl. the D4 preamble) and play it back
-│   │   ├── RecorderHost.h/cpp        ✅ # Owns the whole record/replay lifecycle; backs RecordPanel + `/api/perf/*`
-│   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
-│   ├── model/
-│   │   └── ControlPath.h                # Deck/layer/clip/comp addressing shared by connections and recorded lanes
-│   ├── connect/
-│   │   └── AutomationCurve.h            # Shared curve struct/evaluator: a hand-drawn Envelope (D6) and a recorded lane Gesture (D7) both store one
-│   ├── api/
-│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 35 registered routes -- all functional; 27 core + 7 `/api/perf/*` + `/api/audio/source`; /api/set_bpm wired Wave 0; CORS, always-on)
-│   ├── osc/
-│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 13/13 callbacks wired
-│   ├── output/
-│   │   └── SyphonOutput.h/.mm       ✅ # [P22] macOS Syphon server — WIRED 2026-07-17 (Wave 1-A): publishes final composited frame each frame; no-op unless built -DAUDIODNA_BUILD_SYPHON=ON + Syphon.framework
-│   │                                    #   (SyphonInput.h/.mm, SpoutOutput.h, NdiOutput.h, NdiInput.h REMOVED 2026-07-17 (Wave 0) — were orphaned/no-op stubs)
-│   ├── test/                           # Build-gated (AUDIODNA_BUILD_TEST_SERVER=ON)
-│   │   └── TestServer.h/cpp             # "Eyes" HTTP test server (port 8080, 17 endpoints) — OFF in default build
-│   ├── effects/
-│   │   ├── EffectLibrary.h/cpp          # [M4] Registry: 135 effects / 11 categories / 333 params
-│   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
-│   │   ├── EffectChain.h/cpp         ✅ # Ordered chain with ping-pong FBOs
-│   │   ├── UniformBridge.h/cpp          # REMOVED 2026-07-17 (Wave 0) — was dead (superseded by MappingEngine, no caller)
-│   │   └── ISFShaderLoader.h/cpp        # [P23] ISF parse/convert works, but MainComponent never compiles the GLSL → imported effects DON'T render
-│   ├── render/
-│   │   ├── Renderer.h/cpp            ✅ # OpenGLRenderer impl, GL 4.1 core, frame loop; compiles 275 embedded programs at startup
-│   │   ├── ShaderManager.h/cpp       ✅ # Compile/link; hot-reload only for file-compiled shaders → INERT (all shipped shaders are embedded)
-│   │   ├── TextureManager.h/cpp      ✅ # Image → GL_TEXTURE_2D, FBO textures
-│   │   ├── FullscreenQuad.h/cpp      ✅ # VAO/VBO for fullscreen triangle
-│   │   ├── FeedbackProcessor.h/cpp   ✅ # Per-layer Larsen feedback (6 presets)
-│   │   ├── LUTLoader.h/cpp           ✅ # Loads color LUT images (Color Grade effect)
-│   │   ├── EmbeddedShaders.h         ✅ # 135 effect + 15 transition + 93 source shaders (244 embedded strings)
-│   │   └── CompositorEngine.h/cpp    ✅ # [v2] Deck/layer compositing: clip FX → transition → layer FX → transform → keying → blend
-│   └── ui/                              # [v2] Performance UI (~37 panels — actual files on disk, grouped by area)
-│       ├── TopBar, SignalBar, SignalStrip           # Top chrome: tempo/transport + audio-feature meter strips
-│       ├── DeckView, LayerStrip, ClipCell           # Resolume-style layer × column deck grid
-│       ├── InspectorPanel + Clip/Layer/Composition/Signal Inspector  # 4-tab inspector
-│       ├── BrowserPanel + Files/FX/Sources/CompDecks/MilkDrop browsers + RecordPanel  # Browser tabs
-│       ├── PreviewPanel, OutputWindow               # Center preview + fullscreen/secondary-display output
-│       ├── EffectsRackPanel, EffectStackView, UniversalParamControl, Knob, MacroPanel, MappingEditor  # FX + param controls
-│       ├── BindingOverlay, MidiLearnOverlay           # Bind-mode + MIDI-learn overlays (ProgrammingMode removed Wave 0)
-│       ├── AudioReadoutPanel, WaveformDisplay, SpectrumDisplay, TimingWindow  # Audio readouts
-│       ├── MenuBarModel, PreferencesDialog, PresetManager  # Menus, preferences, preset save/load
-│       └── LookAndFeel                              # Dark VJ theme
-├── shaders/                             # REMOVED 2026-07-17 (Wave 0) — dir deleted; was 5 dead duplicate disk files (hue_shift/rgb_split/ripple/vignette .frag + passthrough.vert). All shipped shaders are embedded strings in src/render/EmbeddedShaders.h
-├── tests/                               # 49 Catch2 unit targets (539 tests, all pass -- ctest 539/539 s-rta-0925; run: `cd build && ctest`; counts derived, not inherited -- see tests/CMakeLists.txt)
-│   ├── CMakeLists.txt
-│   ├── test_ring_buffer.cpp          ✅ # Lock-free SPSC ring buffer
-│   ├── test_spectral_features.cpp    ✅ # Centroid/flux/flatness/rolloff/bands
-│   ├── test_feature_bus.cpp          ✅ # Triple-buffer atomic swap
-│   ├── test_smoother.cpp             ✅ # EMA smoother
-│   ├── test_integration_pipeline.cpp ✅ # Full analysis pipeline on synthetic audio
-│   ├── test_mapping_engine.cpp       ✅ # Source→curve→scale→target mapping
-│   ├── test_bpm_stabilization.cpp    ✅ # BPM lock/stabilization
-│   ├── test_downbeat_detector.cpp    ✅ # Downbeat detection
-│   ├── test_composition.cpp          ✅ # Data model + serialization roundtrip/back-compat (Wave 1-C)
-│   ├── test_routing_engine.cpp       ✅ # Signals + routing engine
-│   ├── test_compositor.cpp           ✅ # Deck/layer compositing + autopilot
-│   ├── test_waveform_snapshot.cpp   ✅ # Seqlock waveform snapshot (torn-read regression, Wave 1-D)
-│   ├── test_take.cpp                 ✅ # [recorder] Take v3 envelope + Program/Player schedule + playback
-│   ├── test_audio_tap_sync.cpp       ✅ # [recorder] AudioTap stop()/push() concurrency + T2 timing
-│   ├── test_audio_store.cpp          ✅ # [recorder] AudioStore fingerprint/resolve/abandon (Ruling 28)
-│   ├── test_recorder_host.cpp        ✅ # [recorder] RecorderHost record/replay lifecycle, preamble restore
-│   ├── test_program_stamps.cpp       ✅ # [recorder] continuous breakpoint x from its own gesture's Stamp
-│   ├── test_program_preamble.cpp     ✅ # [recorder] checkpoint0 -> Program preamble compile order (s-rta-0925)
-│   ├── test_take_v1_transport.cpp    ✅ # [recorder] removed-SessionRecorder-shape (v1) -> v2 bridge (D12 rule 5)
-│   ├── test_recorder_double_touch.cpp ✅ # [recorder] PerformanceRecorder::touch() double-open guard
-│   ├── test_record_panel_model.cpp   ✅ # [recorder] Record panel state machine
-│   ├── test_onset_pulse.cpp          ✅ # OnsetPulse monotonic-counter delta (render-side onset consumers)
-│   ├── test_bt_device_shapes.cpp     ✅ # Bluetooth-shaped device rate handling (no Bluetooth audio on the rig; shapes only)
-│   ├── test_httplib_bodyless_post.cpp ✅ # cpp-httplib bodyless-POST regression (>= v0.28.0)
-│   └── visual/                          # "Eyes" pytest harness (11 test_*.py) — needs running app + AUDIODNA_BUILD_TEST_SERVER build
-├── resources/
-│   ├── default_image.png                # Fallback test image
-│   └── presets/
-│       └── default_mappings.json        # Default mapping preset
-└── research/                            # 35 research documents (+ INDEX.md, read-only reference)
-    ├── INDEX.md                         # Research document index
-    ├── ARCH_*.md                        # Architecture deep-dives (pipeline, audio I/O, RT constraints)
-    ├── FEATURES_*.md                    # Audio feature algorithms (spectral, rhythm, pitch, etc.)
-    ├── LIB_*.md                         # Library evaluations (JUCE, Aubio, Essentia, FFT, etc.)
-    ├── VIDEO_*.md                       # OpenGL integration, VJ frameworks, visual mapping
-    ├── IMPL_*.md                        # Project setup, testing, calibration, prototype
-    └── REF_*.md                         # Math reference, latency numbers, genre presets
-```
-
-### UI Text Rules
-
-- **Always display whole words** in the UI — never use abbreviations. For example, "Inverted Luma is Alpha" not "Inv. Luma is Alpha", "Ignore Random" not "Ign. Rnd".
-- Labels, button text, dropdown items, and tooltips must all use complete words.
-
-### Naming Conventions
-
-- **Files**: `PascalCase.h/cpp` for classes, `snake_case.frag/vert` for shaders
-- **Classes**: `PascalCase` — `AnalysisThread`, `FeatureBus`, `MappingEngine`
-- **Methods**: `camelCase` — `processBlock()`, `publishSnapshot()`, `applyMapping()`
-- **Shader uniforms**: `u_[featureName]` — `u_rms`, `u_beatPhase`, `u_spectralCentroid`, `u_ripple_intensity`
-- **Global uniforms**: `u_time`, `u_resolution`
-- **Effect-specific uniforms**: `u_[effectName]_[paramName]` — `u_ripple_freq`, `u_hue_shift`
-
----
-
-## Audio Analysis Features
-
-All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis thread.
-
-### Amplitude & Dynamics
-
-| Feature | Algorithm | Output Range | FeatureSnapshot Field | Update Rate |
-|---------|-----------|-------------|----------------------|-------------|
-| RMS | Root mean square of 2048-sample window | [0, 1] | `rms` | Per hop |
-| Peak | Max absolute sample value | [0, 1] | `peak` | Per hop |
-| RMS dB | 20 * log10(rms) | [-100, 0] dBFS | `rmsDB` | Per hop |
-| LUFS | K-weighted RMS, 400ms window (ITU-R BS.1770) | LUFS scale | `lufs` | Per hop |
-| Dynamic Range | Crest factor (peak/RMS) | ratio | `dynamicRange` | Per hop |
-| Transient Density | Onset count in 2-second sliding window | onsets/sec | `transientDensity` | Per hop |
-
-### Spectral (from 2048-pt FFT → 1025 magnitude bins)
-
-| Feature | Algorithm | Output Range | FeatureSnapshot Field |
-|---------|-----------|-------------|----------------------|
-| Spectral Centroid | Weighted average frequency | Hz | `spectralCentroid` |
-| Spectral Flux | Half-wave rectified frame-to-frame magnitude diff | Normalized per-session | `spectralFlux` |
-| Spectral Flatness | Geometric mean / arithmetic mean of magnitudes | [0, 1] | `spectralFlatness` |
-| Spectral Rolloff | Frequency below 85% of total energy | Hz | `spectralRolloff` |
-| 7-Band Energies | Sum magnitudes per band (Sub 20-60, Bass 60-250, LowMid 250-500, Mid 500-2k, HighMid 2k-4k, Presence 4k-6k, Brilliance 6k-20k Hz) | Normalized | `bandEnergies[0..6]` |
-
-### Rhythm & Onset
-
-| Feature | Source Library | Output | FeatureSnapshot Field |
-|---------|---------------|--------|----------------------|
-| Onset Detection | Aubio `aubio_onset` (spectral flux method, adaptive threshold) | bool flag + strength | `onsetDetected`, `onsetStrength` |
-| BPM | Aubio `aubio_tempo` (autocorrelation of onset accumulator) | BPM float | `bpm` |
-| Beat Phase | Derived from BPM tracker | [0, 1) sawtooth | `beatPhase` |
-| Bar Phase | (beatInBar + beatPhase) / 4 | [0, 1) over 4 beats | `barPhase` |
-| Phrase Phase | Bar count mod N bars (default 8), resets on structural transitions | [0, 1) over N bars | `phrasePhase` |
-| Bar Count | Bars since last phrase reset | uint16 | `barCount` |
-
-### Pitch & Harmony
-
-| Feature | Algorithm | Output | FeatureSnapshot Field |
-|---------|-----------|--------|----------------------|
-| Chroma | FFT magnitude bins → 12 pitch classes (C–B), sum=1 | float[12] | `chromagram[0..11]` |
-| Dominant Pitch | YIN or `aubio_pitch` on time-domain signal | Hz | `dominantPitch` |
-| Pitch Confidence | YIN confidence measure | [0, 1] | `pitchConfidence` |
-| Key Detection | Krumhansl-Schmuckler: chroma × 24 key templates | key + mode | `detectedKey`, `keyIsMajor` |
-| MFCC | Mel filterbank (40 bands, 20-8kHz) → log → DCT-II → 13 coefficients | float[13] | `mfccs[0..12]` |
-| HCDF | Euclidean distance between consecutive chroma frames | float | `harmonicChangeDetection` |
-
-### Structural
-
-| Feature | Algorithm | Output | FeatureSnapshot Field |
-|---------|-----------|--------|----------------------|
-| Structural State | Multi-scale EMA envelopes (100ms/1s/4s/16s), short vs long comparison → state machine | 0=normal, 1=buildup, 2=drop, 3=breakdown | `structuralState` |
-
-### Analysis Pipeline Order (each step depends on prior results)
-
-```
-0.  Resample to 48 kHz (R13, AnalysisResampler): bypass when the device is
-    already 48 kHz -- runs BEFORE stage 1, not one of the 14 numbered stages
-1.  Raw time-domain: RMS, peak (over the 2048-sample block)
-2.  FFT → magnitude spectrum (2048-pt, Hann window)
-3.  From magnitude: centroid, flux, flatness, rolloff, 7-band energies
-4.  Onset detection: aubio "specflux" onset
-5.  BPM + downbeat + phrase: aubio tempo → stabilization → beat phase, beatInBar, barPhase, downbeat, bar count, phrase phase (downbeat and phrase tracking live INSIDE this stage; phrase resets on structural transitions)
-6.  MFCC: mel filterbank → log → DCT → 13 coefficients
-7.  Chroma + HCDF: magnitude bins → 12 pitch classes; HCDF = Euclidean distance to the previous chroma frame (computed INSIDE the Chroma stage)
-8.  Key detection: chroma profile → Krumhansl-Kessler correlation (runs BEFORE pitch)
-9.  Pitch: aubio "yinfft" on the time-domain hop
-10. LUFS: K-weighted RMS over 400ms window
-11-12. Transient density → Structural: onset count in a sliding window, then multi-scale EMA → buildup/drop/breakdown state machine
-13. Genre detection: multi-feature scoring → 8 genres + energy state (P23)
-14. Advanced analysis: sidechain pump, swing ratio, formant presence, resonance peak, reese bass (P25)
-```
-
-14 numbered compute stages in code (13 have profiled timing slots). Stage 5 folds BPM stabilization, downbeat, and phrase tracking together; HCDF is computed inside the Chroma stage (7); Key detection (8) runs before Pitch (9). R13's Resample step is a 14th profiled slot appended to the profile block (`[Analysis Profile]` names it "Resample") but is NOT one of the 14 numbered pipeline stages above — it runs once per hop before stage 1, reads 0µs on a 48 kHz device (bypass), and ~20-60µs/hop otherwise.
-
----
-
-## Effects Library
-
-135 effects across 11 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
-
-### Effect Categories (135 total)
-
-| Category | Count | Examples |
-|----------|-------|---------|
-| **3D / Depth** | 9 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers, Dot Field, Luminance Terrain, Voxel Matrix |
-| **Warp** | 27 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace, Quad Mirror, Flip, Warp Field, Slide Wrap, Tile Grid, Spot Zoom, Bendoscope, UV Remap, Liquid Morph, Infinite Zoom, Density Wave |
-| **Color** | 31 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key, Palette Remap, Color Grade, Pitch Chromatic Shift, Key Palette, Chroma Dissolve |
-| **Glitch** | 15 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Pixel Explosion, Color Flash, Fragment Burst, Signal Destroy, Rhythm Slice, Data Corruption, Glitch Sort |
-| **Pattern** | 19 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster, Brush Strokes, Bump Light, Monitor Wall, Topographic Lines |
-| **Animation** | 6 | Strobe, Pulse, Slit Scan, Point Zoom, Directional Feedback, Transient Flash |
-| **Audio** | 4 | Harmonic Displacement, Timbral Mosaic, Structural Morph, Beat Ripple |
-| **Time** | 6 | Echo (temporal trails with Add/Screen/Max/Blend operators), Posterize Time (frame rate reduction), Freeze (full-frame freeze), Screen Split (CCTV grid with per-cell delay via ring buffer), Frame Stutter (time-jump rewind via ring buffer), Channel Delay (per-RGB temporal offset) |
-| **Blend** | 5 | Double Exposure, Frosted Glass, Prism Refract, Rain on Glass, Hexagonalize |
-| **Composite** | 3 | Line Cloner, Radial Cloner, Cube Scatter |
-| **Blur/Post** | 10 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen, Edge Blur, Drop Shadow |
-
-### Transition Shaders (15 total)
-
-Clip-to-clip transitions driven by `layer.crossfadeProgress` (0→1). Selected via `layer.transitionMode`. Rendered by `CompositorEngine::applyTransition()` using a dedicated `transitionFBO_`.
-
-| Type | Transitions |
-|------|-------------|
-| **Standard** | Dissolve, Cut |
-| **Wipe** | Wipe Left/Right/Up/Down |
-| **Push** | Push Left/Right/Up/Down |
-| **Zoom** | Zoom In, Zoom Out |
-| **Other** | Iris Circle, Flip Horizontal, Fade to Black |
-
-### Effect Chain Architecture
-
-Effects can be applied at three independent levels — no layer type change is required:
-
-| Level | Data Location | How to Add |
-|-------|---------------|-----------|
-| **Per-clip** | `Clip::effects` (vector of `EffectSlot`) | Drag FX from browser onto a cell, or onto the clip inspector effect stack |
-| **Per-layer** | `Layer::layerEffects` | Drag FX onto the layer inspector effect stack |
-| **Global** | `effectChain_` in Renderer | Via the effects rack or composition inspector |
-
-Cells hold clips (images, image sequences, videos) AND procedural sources. FX are independent of media type and layer type.
-
-**Single-image mode**: Input image → FBO A (Effect 1) → FBO B (Effect 2) → FBO A (Effect 3) → ... → Screen. Ping-pong between two FBOs.
-
-**Deck compositing mode** (v2 rendering pipeline per layer):
-```
-Clip texture → Per-clip effects → Transition blend (if crossfading) → Per-layer effects → Layer transform → Keying (if Transparent) → Blend onto accumulator
-```
-FX Only layers apply their clip's effects to the composited accumulator. Mask layers use their content as a luminance alpha mask. Global effects (via `effectChain_` in Renderer) run on the final composited output after all layers.
-
-**Important**: `CompositorEngine::applyClipEffects()` resolves shader names via `EffectLibrary::getEffectDef(displayName)->shaderName`, NOT directly from `slot.effectName`. The `slot.effectName` stores the display name (e.g., "Ripple"), while shaders are compiled under snake_case keys (e.g., "ripple").
-
-### FX Drag-and-Drop
-
-Effects are dragged from the FX Browser and dropped onto:
-- **Deck cells** — adds the effect to the clip's per-clip effect chain (`Clip::effects`)
-- **ClipInspector** — drops anywhere on the inspector add to clip effects (cyan highlight on hover)
-- **LayerInspector** — drops anywhere on the inspector add to layer effects (cyan highlight on hover)
-- **EffectStackView** — drops directly onto the effect stack area
-
-Each effect row in EffectStackView has: [B] bypass button, effect name, [X] delete button. Effects can be expanded to show parameter sliders. Each slider supports right-click to reset to default value.
-
-MainComponent inherits `juce::DragAndDropContainer`. FXBrowser's FXListContent initiates drags via `startDragging("fx:effectName", ...)`. ClipCell, ClipInspector, LayerInspector, and EffectStackView all implement `juce::DragAndDropTarget`.
-
-### Autopilot System
-
-Autopilot auto-advances clips in a layer. Two trigger modes:
-- **On Beat** — advances after N beats (1/2/4/8/16/32), multiplied by the loops count
-- **End of Video** — advances when `clip->playheadPosition >= outPoint` (checked every frame, not just on beat crossings)
-
-The `Autopilot` class runs in `Renderer::renderOpenGL()` via `autopilot_.processFrame()`. When clips advance, `onAutopilotAdvanced_` fires async on the message thread to refresh the DeckView.
-
-Layer autopilot fields: `autopilotEnabled`, `autopilotEndOfVideo`, `autopilotLoops`, `defaultAutopilotAction`, `defaultAutopilotDuration`.
-
-### Manual BPM Mode
-
-TopBar has a "Manual" toggle. When enabled:
-- An editable BPM text field appears (type value, press Enter)
-- `BPMTracker::setManualMode(true)` freezes the stabilization pipeline
-- Beat phase still runs from the manually-set BPM
-- All beat-driven features (beatPhase, barPhase, phrasePhase, autopilot) work without audio
-
-### Tooltip System
-
-`juce::TooltipWindow` in MainComponent (600ms delay). Any component with `setTooltip()` shows tooltips on hover. Preferences → General has a "Show Tooltips" toggle. Comprehensive tooltip coverage is scheduled for P26 (final build phase).
-
-### UI Patterns (Mandatory for all new UI)
-
-**ResettableSlider**: ALL sliders in the app MUST use `ResettableSlider` (defined in `UniversalParamControl.h`), not `juce::Slider`. This class overrides `mouseDown` to reset to default value on right-click. Every `ResettableSlider` MUST call `setDefaultValue(val)` at setup time. This applies to sliders in inspectors, top bar, layer strip, mapping editor, signal inspector, macro knobs — everywhere. Right-click also resets from the text box of IncDecButtons/TextBox sliders (nested-child relay, s-rta-0925); `UniversalParamControl` arms its inner slider with 0.5 by default, so owners that skip `setDefaultValue()` get a 0.5 reset rather than a dead click — still call it with the real default.
-
-**Drag-drop targets**: Any inspector that displays an effect stack MUST implement `juce::DragAndDropTarget` with `isInterestedInDragSource`, `itemDragEnter` (set highlight + repaint), `itemDragExit` (clear highlight + repaint), `itemDropped` (forward to EffectStackView). The highlight is a cyan border + 15% alpha fill.
-
-**Effect display name vs shader key**: `Clip::EffectSlot::effectName` stores the human-readable display name (e.g., "Ripple"). Shaders are compiled under snake_case keys (e.g., "ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName` before calling `ShaderManager::getProgram()`. Never assume display name == shader key.
-
-**Transport state**: `Clip::playing` is `mutable` (render thread writes it for OneShot stop). Retriggering the same clip preserves its play/pause state. Switching to a different clip starts playing only on first activation (`hasBeenTriggered` flag). PingPong and OneShot loop modes require propagating player state back to clip model after `advanceFrame()`.
-
-**PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
-
----
-
-## The Mapping System
-
-### How Mappings Work
-
-```
-Audio Feature (source) → Normalize to [0,1] → Apply Curve → Scale to output range → Smooth → Effect Parameter (target)
-```
-
-1. **Extract**: Read source value from `FeatureSnapshot` (e.g., `snapshot.rms`)
-2. **Normalize**: `(raw - inputMin) / (inputMax - inputMin)` → [0, 1]
-3. **Curve**: Apply transform function:
-   - **Linear**: `y = x`
-   - **Exponential**: `y = x^2.0` (emphasizes peaks)
-   - **Logarithmic**: `y = log(1 + x * 9) / log(10)` (compresses peaks, lifts lows)
-   - **S-Curve**: `y = x² * (3 - 2x)` (smoothstep, de-emphasizes extremes)
-   - **Stepped**: `y = floor(x * N) / N` (quantized to N steps)
-4. **Scale**: `outputMin + curved * (outputMax - outputMin)`
-5. **Smooth**: EMA filter with per-mapping state (One-Euro variant removed from Smoother.h Wave 0)
-6. **Write**: Set on target effect's parameter slot
-
-### Render Thread Consumption
-
-Each frame, the render thread:
-1. Acquires latest `FeatureSnapshot` from triple buffer (atomic read, ~10ns)
-2. Iterates all active `Mapping` objects, running the pipeline above
-3. Writes computed values to each target `Effect`'s parameter slots
-4. `EffectChain::render` uploads each effect's parameters as `glUniform1f` calls
-5. Renders the effect chain (ping-pong FBOs)
-
-### User Creates/Edits/Saves Mappings
-
-- **Create**: Click "▼map" on any effect parameter → opens `MappingEditor`
-- **Edit**: Select source feature dropdown, curve type dropdown, adjust input/output range sliders, smoothing knob
-- **Save**: `PresetManager` serializes all effects + mappings to JSON
-- Multiple mappings can target the same parameter (values are summed)
-
-Master Signal (`Composition::masterSignal`, `CompScalar::Signal`, s-rta-0925) scales the reach of
-every signal→parameter connection at the one point where the signal enters
-(`ConnectionEngine::evaluate` for non-Macro sources; `MacroBank::updateValues`; v1
-`MappingEngine::processFrame`); 1.0 (default) = bit-identical to no fader at all, 0.0 = every
-connected control sits at its own hand value (a hand-turned macro keeps working at any depth).
-
----
-
-## Milestone Status
-
-| # | Milestone | Tasks | Status |
-|---|-----------|-------|--------|
-| **M1** | Window + Audio + Waveform | 10 tasks | **COMPLETE** |
-| **M2** | Full Audio Analysis Engine | 19 tasks | **COMPLETE** |
-| **M3** | OpenGL Image Rendering + First Effects | 10 tasks | **COMPLETE** |
-| **M4** | Mapping Engine + Full Effects Library | 9 tasks | **COMPLETE** |
-| **M5** | VJ-Style UI Polish + Presets | 11 tasks | **COMPLETE** |
-| **M6** | Quality, Performance, Cross-Platform | 8 tasks | **COMPLETE** |
-| **M7** | ~~Keyboard Launcher~~ | — | **SUPERSEDED by v2** |
-
-### Milestones 1–6: COMPLETE
-
-Core audio pipeline, full 14-stage analysis engine, OpenGL rendering with 135 GLSL effects + 15 transitions, mapping engine, VJ dark theme, presets, fullscreen output, camera input, CI/CD.
-
-### v2 Architecture Redesign (CURRENT)
-
-**M7 (keyboard launcher) has been superseded** by a comprehensive Resolume-class architecture redesign. The 4×10 keyboard grid is replaced by a flexible deck/layer/column system with universal signal routing, macros, and procedural sources.
-
-**Design documents**:
-
-- **`ARCHITECTURE_V2.md`** — Complete system design specification
-- **`TASKPLAN_V2.md`** — 12-phase implementation plan (P1-P12)
-
-**Key changes from v1**:
-
-- Deck (layers × columns) replaces keyboard grid
-- Signal Bar (mixer-strip audio features) replaces left audio readout
-- Universal per-parameter signal routing replaces MappingEditor popup
-- Dashboard system (8 link knobs per clip/layer/global) for parameter aggregation — NOTE: only the Global dashboard/MacroBank is instantiated (8 live macros; per-clip/per-layer dashboards not implemented)
-- Binding system (keyboard + MIDI learn) replaces fixed key mapping
-- Inspector (4 tabs: Clip/Layer/Composition/Signal) with Resolume-style sections
-- Per-parameter signal connect triangle (click → popup: Manual/Audio/BPM Sync/Oscillator/Envelope/Clip Position/Timeline/Macro)
-- Transform section (Position X/Y, Scale, Rotation, Anchor) at clip/layer/composition level
-- Video section (Opacity, Width, Height, Blend Mode, Alpha Type, RGBA channel toggles)
-- Transition section (Blend Mode, Duration) per layer
-- Browser (5 tabs: Files/FX/Sources/Comp-Decks/Record) replaces effects rack
-- BPM stabilization pipeline (range gate → confidence → octave → median → hysteresis)
-- Automatic downbeat detection (no commercial VJ does this from live audio)
-- Phrase tracking (bar count + phrasePhase over configurable N bars, resets on structural transitions)
-- Beat wheel indicator in TopBar (4-segment circle, bar/phrase readout next to BPM)
-- Clip timeline with draggable in/out points, beat division markers, playhead triangle
-- Session recording (timestamped event capture + JSON save/load) — PARTIAL: only clip triggers are captured (6/7 event types never called); playback is DEAD (advancePlayback never called). Save/load work.
-- Undo/redo scaffold (Command pattern) — NOT functional: zero concrete Command subclasses, perform() never called, so the undo/redo keys are permanent no-ops
-- 108 procedural sources across 18 registry categories (full per-category breakdown in the Key capabilities line above and in `.harmony/APP-INVENTORY.md`; SourceRegistry is ground truth)
-- Video playback via FFmpeg (MP4/MOV/AVI/MKV/WebM/HAP Alpha) with transport controls
-- Image sequence playback (multi-image drag-drop as video) with configurable FPS
-- BPM Sync transport mode for video/image sequences with beat division presets
-- Content Beats setting for exact beat-locked timing of authored content
-
-**See TASKPLAN_V2.md for current phase and task details.**
-
----
-
-## Build Instructions
+## Build Essentials
 
 ### Prerequisites (all platforms)
 
@@ -656,114 +74,14 @@ cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 
 Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew install ffmpeg`. JUCE is fetched automatically.
 
-### Windows
-
-```bash
-cmake -B build -G "Visual Studio 17 2022"
-cmake --build build --config Release
-build\AudioDNA_artefacts\Release\Audio-DNA.exe
-```
-
-Required: Visual Studio 2022 with C++ workload.
-
-### Linux
-
-```bash
-# Ubuntu/Debian — install JUCE dependencies
-sudo apt install libasound2-dev libcurl4-openssl-dev libfreetype6-dev \
-  libx11-dev libxcomposite-dev libxcursor-dev libxinerama-dev libxrandr-dev \
-  libxrender-dev libwebkit2gtk-4.0-dev libglu1-mesa-dev mesa-common-dev
-
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release -j$(nproc)
-./build/AudioDNA_artefacts/Release/Audio-DNA
-```
-
 ### Common Build Issues
 
 | Issue | Fix |
 |-------|-----|
 | `FetchContent` download fails | Check internet connection; JUCE repo is ~200MB |
 | macOS: "OpenGL deprecated" warnings | Expected — Apple deprecated GL but 4.1 still works. Suppress with `-Wno-deprecated` |
-| Linux: missing X11/ALSA headers | Install the `apt` packages listed above |
+| Linux: missing X11/ALSA headers | Install the `apt` packages listed in `docs/claude/build-other-platforms.md`'s Linux section |
 | Windows: long path errors | Enable long paths: `git config --system core.longpaths true` |
-
-### Adding Aubio (Milestone 2)
-
-Aubio will be added via system install or FetchContent. On macOS: `brew install aubio`. On Linux: `sudo apt install libaubio-dev`. The `FindAubio.cmake` module will locate it.
-
-### Visual Testing Harness (Eyes)
-
-Build with `-DAUDIODNA_BUILD_TEST_SERVER=ON` to embed an HTTP test API. Run with `--test-mode` to start the server. Python scripts send commands (load image, enable effects, inject audio features, capture frames) and compare rendered PNGs against golden references using PSNR/SSIM.
-
-See `tests/visual/TESTING.md` for the full API reference, Python client docs, and test authoring guide.
-
-```bash
-# Build with Eyes
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DAUDIODNA_BUILD_TEST_SERVER=ON
-cmake --build build --config Release -j$(sysctl -n hw.ncpu)
-
-# Run visual tests
-pip install -r tests/visual/requirements-test.txt
-cd tests/visual && pytest test_render_pipeline.py -v
-```
-
-#### Using Eyes for Task Verification
-
-**After any task that changes effects, sources, shaders, or the render pipeline**, use Eyes to verify everything still works before presenting to the user:
-
-1. **Launch the app in test mode** (if not already running):
-   ```bash
-   ./build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA --test-mode --test-port=8080 &
-   sleep 5
-   ```
-
-2. **Run the standard test suite**:
-   ```bash
-   source .venv/bin/activate
-   AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_render_pipeline.py -v
-   ```
-
-3. **Test specific things you changed** using the Python API:
-   ```python
-   import requests
-   BASE = "http://localhost:8080"
-   IMG = "/Users/boriskarpman/Documents/RealTimeAudio/tests/fixtures/test_card.png"
-
-   # Load image, enable effect, capture frame
-   requests.post(f"{BASE}/api/load_image", json={"filepath": IMG})
-   requests.post(f"{BASE}/api/set_effect", json={"name": "Ripple", "enabled": True, "params": {"intensity": 0.5}})
-   requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/test.png", "time": 1.0})
-   ```
-
-4. **Test all effects or sources in bulk** (sweep params 0.0→1.0, verify PSNR changes from baseline).
-
-5. **Kill the test app** when done: `pkill -f "Audio-DNA.*--test-mode"`
-
-#### Key Endpoints Quick Reference
-
-| Endpoint | What it does |
-|---|---|
-| `GET /api/health` | Check app is ready |
-| `POST /api/load_image` | `{"filepath": "..."}` |
-| `POST /api/set_effect` | `{"name": "...", "enabled": true, "params": {...}}` |
-| `POST /api/set_effect_chain` | `{"effects": [{"name": "...", "params": {...}}, ...]}` |
-| `POST /api/inject_features` | `{"rms": 0.8, "beatPhase": 0.5, ...}` |
-| `POST /api/render_frame` | `{"output_path": "...", "time": 1.0}` — deterministic capture |
-| `GET /api/state` | Full engine state (all effects, params, FPS) |
-| `POST /api/reset` | Clear everything for next test |
-
-#### Source Testing via Eyes
-
-To test procedural sources, use the deck/clip API to load a source into a cell, then capture a frame. Sources are set via `Renderer::setActiveSource()` which the test server exposes through clip loading. For direct source testing, use `POST /api/load_source`:
-
-```python
-# Test a procedural source
-requests.post(f"{BASE}/api/reset", json={})
-# Set active source directly on the renderer
-requests.post(f"{BASE}/api/load_source", json={"source_type": "perlin_noise"})
-requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/source_test.png", "time": 1.0})
-```
 
 ---
 
@@ -804,6 +122,20 @@ requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/source_test
 13. **Prefer extending existing systems over adding new ones**: The architecture has clear boundaries — work within them.
 
 14. **When this document says something, it overrides any default behavior**: If CLAUDE.md and a research doc disagree, CLAUDE.md wins (research docs are pre-decision references).
+
+---
+
+## UI Patterns (Mandatory for all new UI)
+
+**ResettableSlider**: ALL sliders in the app MUST use `ResettableSlider` (defined in `UniversalParamControl.h`), not `juce::Slider`. This class overrides `mouseDown` to reset to default value on right-click. Every `ResettableSlider` MUST call `setDefaultValue(val)` at setup time. This applies to sliders in inspectors, top bar, layer strip, mapping editor, signal inspector, macro knobs — everywhere. Right-click also resets from the text box of IncDecButtons/TextBox sliders (nested-child relay, s-rta-0925); `UniversalParamControl` arms its inner slider with 0.5 by default, so owners that skip `setDefaultValue()` get a 0.5 reset rather than a dead click — still call it with the real default.
+
+**Drag-drop targets**: Any inspector that displays an effect stack MUST implement `juce::DragAndDropTarget` with `isInterestedInDragSource`, `itemDragEnter` (set highlight + repaint), `itemDragExit` (clear highlight + repaint), `itemDropped` (forward to EffectStackView). The highlight is a cyan border + 15% alpha fill.
+
+**Effect display name vs shader key**: `Clip::EffectSlot::effectName` stores the human-readable display name (e.g., "Ripple"). Shaders are compiled under snake_case keys (e.g., "ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName` before calling `ShaderManager::getProgram()`. Never assume display name == shader key.
+
+**Transport state**: `Clip::playing` is `mutable` (render thread writes it for OneShot stop). Retriggering the same clip preserves its play/pause state. Switching to a different clip starts playing only on first activation (`hasBeenTriggered` flag). PingPong and OneShot loop modes require propagating player state back to clip model after `advanceFrame()`.
+
+**PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
 ---
 
@@ -865,7 +197,7 @@ When the user says **"kick off phase N"**, follow this exact sequence:
    - Update `CLAUDE.md`:
      - Effect/source counts if changed
      - Any new architectural patterns, rendering pipeline changes, or data model changes
-     - Add new entries to "Common Pitfalls" if bugs were discovered and fixed
+     - Add new entries to `docs/claude/pitfalls.md` (and its one-line index in CLAUDE.md) if bugs were discovered and fixed
      - Add new entries to "UI Patterns" if new interaction conventions were established
    - Update `research/UNIFIED_BUILD_PLAN.md`: mark phase COMPLETE with summary of what shipped
    - Update `PHASE_GUIDE.md`: mark phase COMPLETE
@@ -896,369 +228,73 @@ P1 (BPM lock) ──→ P2 (downbeat) ──→ P3 (architecture) ──→ P4 (
 - Note: `TASKPLAN_V2.md` is archived at `docs/archive/TASKPLAN_V2.md` — all phases P1-P25 are complete.
 - Read existing source files before modifying them
 
-### Debugging Audio Issues
-
-1. Check the SPSC ring buffer fill level first — if it's consistently full or empty, the producer/consumer balance is wrong
-2. R13: the ANALYSIS domain is always 48 kHz; the DEVICE/recorder domain is the device's own rate — never assume either is the other. `AnalysisResampler` bridges device rate → 48 kHz on the analysis thread (bypass when the device already is 48 kHz); the recorder/take/audio-store path stays entirely in the device domain (`FeatureSnapshot::sourceSampleRate` and `RecorderHost::Status::deviceRate`/`rateChangedSinceArm` publish which domain you are looking at)
-3. Check thread priority — if analysis can't keep up, features lag behind audio
-
-### Debugging Visual Issues
-
-1. Check shader uniform names match FeatureSnapshot field names exactly
-2. Check that the effect is registered in EffectLibrary and enabled in the chain
-3. Check FBO ping-pong: if effects look wrong when chained, the read/write FBOs may be swapped
-4. Use shader hot-reload to iterate without restarting the app (inert for the shipped set — those shaders are compiled from `EmbeddedShaders.h` strings, not files)
-
-### Threading Deep-Dives
-
-Before refactoring any threading code, read these research documents first:
-- `research/ARCH_realtime_constraints.md` — golden rules of RT audio
-- `research/ARCH_pipeline.md` — lock-free communication chain details
-
-### Adding Dependencies
-
-- Check `CMakeLists.txt` before adding any dependency
-- Prefer JUCE built-in functionality over new libraries
-- Any new runtime dependency must be justified against the "Why not X" column in the tech stack table above
-
-### Visual Shader Testing Protocol (MANDATORY for procedural sources)
-
-**NEVER ship a new procedural source shader to the app without browser-verified visual testing.**
-
-Complex shaders (raymarched 3D, torus, fractals) MUST be tested in-browser via Playwright before building the C++ app. The browser test loop is ~5 seconds vs ~30 seconds for a full rebuild — iterating in-browser is 6x faster and prevents shipping broken visuals.
-
-**Testing workflow:**
-1. Write the shader in `test_torus.html` (or `test_[name].html`) at project root
-2. Start HTTP server: `python3 -m http.server [port] &` (run_in_background)
-3. Navigate Playwright: `browser_navigate` to `http://localhost:[port]/test_[name].html`
-4. Wait 2s, take screenshot with `browser_take_screenshot`
-5. Compare screenshot against reference image — verify ALL of:
-   - Frame fill (source must fill the viewport, minimal background)
-   - Pattern matches reference (stripe density, curvature, convergence)
-   - No seam artifacts or visual glitches
-   - Correct centering (use `(gl_FragCoord.xy - 0.5*u_resolution) / u_resolution.y`)
-6. Iterate shader parameters until **98% visual parity** with reference
-7. ONLY THEN port to `EmbeddedShaders.h`, register, compile
-8. Clean up test files
-
-**98% parity requirement**: The shader must match the reference image in overall composition, stripe/pattern structure, and fill. Minor differences in exact stripe count or rotation angle are acceptable. Major differences in camera angle, pattern type, or visual artifacts are NOT acceptable.
-
-**Reference**: See `memory/3dSpiral.md` for verified torus parameters, camera setups, and stripe formulas.
-
-### Fractal System Reference
-
-All fractal sources, their parameters, design rules, and test infrastructure in one place. Refer here when refining any fractal.
-
-**Source code locations:**
-- Shader GLSL: `src/render/EmbeddedShaders.h` — search for `sourceJuliaSet`, `sourceMandelbrot`, `sourceMandelbulb`, etc.
-- Parameter registration: `src/sources/SourceRegistry.cpp` — search for `registerSource("mandelbrot"`, etc.
-- Browser listing: `src/ui/SourcesBrowser.cpp` — display names and categories
-- Shader compilation: `src/render/Renderer.cpp` — `compile("source_mandelbrot", ...)` calls
-- Right-click reset: `src/ui/ClipInspector.cpp` line ~769 — `setDefaultValue(sp.defaultValue)`
-
-**Test infrastructure:**
-- `tests/visual/test_fractals.py` — ~185 parametrized tests: every param on every fractal
-- `tests/visual/shader_preview.html` — Browser-based WebGL shader preview with sliders
-- `tests/visual/vj_controller.py` — `load_source()`, `update_source_params()`, `list_sources()`
-- Run tests: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -v`
-
-**2D Fractals (7 sources):**
-
-| Source ID | Name | Key Params | Notes |
-|-----------|------|------------|-------|
-| `kaleido_fractal` | Kaleidoscopic Fractal | Iterations, Fold Angle, Zoom, Rotation, Color Shift, Palette | Fold-based IFS |
-| `mandelbrot` | Mandelbrot / Julia | Dive Speed, Location (10 presets), Zoom, Center X/Y, Julia Mix, Max Iter, Power (2-4), Color Speed/Shift, Palette | Power > 4 goes black |
-| `julia_set` | Julia Set | Dive Speed (morphs c), Location (10 c-presets), C Real/Imag, Zoom, Iterations, Color Speed/Shift, Palette | Dive = c morphing, not just zoom |
-| `burning_ship` | Burning Ship | Dive Speed, Location (6 presets), Center X/Y, Zoom, Iterations, Color Speed/Shift, Palette | Center default (-0.75, -0.5) |
-| `newton_fractal` | Newton Fractal | Dive Speed, Power (3-8), Zoom, Damping, Color Shift, Palette | Dive targets root boundary |
-| `sierpinski` | Sierpinski | Dive Speed, Mode (triangle/carpet), Zoom, Iterations, Rotation, Color Shift, Palette | Triangle = modular arithmetic |
-| `apollonian` | Apollonian Gasket | Dive Speed, Zoom, Iterations, Rotation, Color Shift, Palette | Zoom direction: uv /= zoom |
-
-**3D Fractals (8 sources) — all share these controls:**
-
-| Param | Uniform | Range | Default | What it does |
-|-------|---------|-------|---------|-------------|
-| Zoom | `u_src_zoom` | Camera 5.0→0.3 | 0.3 | Far outside → inside fractal |
-| Speed | `u_src_speed` | -1→+1 rotation | 0.55 | Auto-rotate, 0.5=stopped |
-| Angle X/Y | `u_src_rotation_x/y` | 0-2pi | 0.55 | Camera orbit angle |
-| Cross Section | `u_src_slice` | z-plane pos | 0.5 | 0.5=off, else slices |
-| Slice Count | `u_src_slice_count` | 1-5 planes | 0.0 | Multi-slice |
-| Slice Distance | `u_src_slice_dist` | 0.1-0.9 spacing | 0.3 | Between slices |
-| Glow | `u_src_glow` | volumetric glow | 0.0 | Halo around surface |
-| Trail Distance | `u_src_trail_dist` | 0-5 edge copies | 0.0 | Discrete edge feedback |
-| Trail Fade | `u_src_trail_fade` | decay rate | 0.5 | 0=tight rings, 1=wide |
-| Feedback | `u_src_feedback` | interference rings | 0.0 | Edge echo modulation |
-| Color Shift | `u_src_color_shift` | hue offset | 0.0 | Palette phase |
-| Palette | `u_src_palette` | 8 cosine palettes | 0.6 | Fire/Ocean/Neon/Gray/Rainbow/Psyche/Ice/Sunset |
-
-| Source ID | Name | Extra Params |
-|-----------|------|-------------|
-| `mandelbulb` | Mandelbulb | Power (2-16 quadratic), Iterations, Detail |
-| `menger_sponge` | Menger Sponge | Iterations, Twist |
-| `kifs` | Kaleidoscopic IFS | Scale, Iterations, Fold Type, Offset |
-| `julia_set_3d` | Julia Set 3D | Location (6 quaternion presets), C Real/Imag, Iterations |
-| `burning_ship_3d` | Burning Ship 3D | Power (2-16) |
-| `newton_3d` | Newton 3D | Power, Damping, Height |
-| `sierpinski_tetra` | Sierpinski Tetrahedron | Iterations |
-| `apollonian_3d` | Apollonian 3D | Scale, Iterations |
-
-**Design rules (see Common Pitfalls 8-12 below for details):**
-1. Zoom: direct depth, no `fract()`, dive only adds to zoom rate
-2. Center/Location/Dive cleanly separated — dive never moves the center
-3. Power: Mandelbrot max 4, clamp smooth iteration count `max(si, 0.0)`
-4. All palettes use the `fracPalette(t, idx)` function (copy-pasted per shader)
-5. 3D normals via central differences (6 DE calls), trail via near-surface DE sampling
-
-**Verification system:** `tests/visual/SHADER_VERIFICATION.md` — 4-tier verification protocol (param sweep → range quality → browser preview → in-app). Run Tiers 1-2 before every commit. See also `tests/visual/test_range_quality.py` for tuning slider ranges.
-
-**Memory files:** `memory/project_v2_p15_5_fractal_overhaul.md`, `memory/feedback_fractal_zoom_design.md`, `memory/feedback_fractal_controls_separation.md`
-
-### Time Effects & Temporal Architecture (P16)
-
-**Temporal effects** (Echo, Posterize Time, Freeze, Frame Delay) use `u_prev_frame` — the previous frame's output stored in a per-layer temporal buffer. The `EffectDef::temporal = true` flag tells the system to bind and save previous frames.
-
-**Two render paths both support temporal**:
-- `EffectChain::render()` (global effects, single-image mode): has `prevFrameTexture_`/`prevFrameFBO_`. When temporal effects are active, the last effect always renders to FBO (never to screen), the frame is saved, then blitted to screen.
-- `CompositorEngine::applyClipEffects()` (per-clip/layer deck mode): uses `layerTemporalBuffers_` map keyed by layer ID. Binds `u_prev_frame` from the layer's buffer, saves output after chain completes.
-
-**Frame Ring Buffer** (`FrameRingBuffer` in CompositorEngine): stores 480 previous frames at 1/4 resolution for Screen Split and Frame Stutter effects. These effects are intercepted in `applyClipEffects()` before normal shader processing and rendered by the compositor directly — they don't use GLSL shaders at all. The ring buffer uses ~240MB VRAM at 1080p.
-
-**Feedback System** (`FeedbackProcessor`): per-layer Larsen feedback loop. Each layer with `feedback.enabled` gets its own FBO pair. Applied after clip effects, before layer effects in `compositeDeck()`. 6 presets: Zoom In, Spiral, Drift, Kaleidoscope, Echo, Stretch. UI in LayerInspector "Feedback" section.
-
-**Signal Routing**: `SignalRegistry::evaluateAll()` and `RoutingEngine::processFrame()` run every frame in `Renderer::renderOpenGL()`. Renderer holds a `SignalRegistry*` (owned by MainComponent) and a `RoutingEngine`. TestServer exposes 5 signal/routing REST endpoints.
-
-### Audio Uniform System (P18)
-
-Effect shaders and source shaders can access all 42+ audio features via uniforms. The uniform uploading is implemented in three places:
-
-- **`ProceduralSource::uploadUniforms()`** — for procedural sources. Uploads all basic + extended uniforms.
-- **`CompositorEngine::uploadAudioUniforms()`** — for per-clip/layer effects in deck mode. Called via `setLatestSnapshot()` before `compositeDeck()`.
-- **`EffectChain::uploadEffectUniforms()`** — for global effects in single-image mode. Called via `setLatestSnapshot()` before `render()`.
-
-**Available uniforms in all shaders** (effect and source):
-
-| Uniform | Type | Source |
-|---------|------|--------|
-| `u_rms` | float | RMS amplitude |
-| `u_bass`, `u_mid`, `u_high` | float | Band energies [1], [3], [5] |
-| `u_beatPhase`, `u_barPhase`, `u_phrasePhase` | float | Beat/bar/phrase sawtooths |
-| `u_spectralCentroid`, `u_spectralFlux` | float | Spectral features |
-| `u_onsetStrength`, `u_onsetDetected` | float | Onset. `u_onsetDetected` = 1.0 on exactly the first render frame (per GL context) that observes >= 1 new onset since that context's previous frame, else 0.0 — derived from the `onsetCount` delta (`OnsetPulse`), so never lost at any fps and never duplicated above the ~93.75 Hz analysis rate; >= 2 onsets in one frame (only under a > 50 ms stall) collapse into one pulse. `u_onsetStrength` is the LATEST hop's ODF (continuous) |
-| `u_dominantPitch`, `u_pitchConfidence` | float | Pitch detection |
-| `u_detectedKey`, `u_keyIsMajor` | float | Key detection (-1 to 11, 0/1) |
-| `u_structuralState` | float | 0=normal, 1=buildup, 2=drop, 3=breakdown |
-| `u_bpm` | float | Current BPM |
-| `u_hcdf` | float | Harmonic change detection function |
-| `u_bandEnergies[7]` | float array | All 7 frequency bands |
-| `u_chromagram[12]` | float array | 12 pitch classes (C through B) |
-| `u_mfccs[13]` | float array | 13 MFCC coefficients |
-| `u_genre` | float | Detected genre (0-7): House/Techno/DnB/HipHop/Ambient/Rock/Pop/Jazz |
-| `u_genreConfidence` | float | Genre classification confidence [0, 1] |
-| `u_energyState` | float | Overall energy level (0=low, 1=medium, 2=high) |
-| `u_sidechainPump` | float | Bass/mid anti-correlation [0, 1] (P25) |
-| `u_swingRatio` | float | Timing swing 0.5=straight, >0.5=swung (P25) |
-| `u_formantPresence` | float | Vocal formant energy [0, 1] (P25) |
-| `u_resonancePeak` | float | Spectral kurtosis [0, 1] (P25) |
-| `u_reeseBass` | float | Bass spectral spread [0, 1] (P25) |
-
-**Important**: These uniforms are available in every shader but only consume GPU resources if the shader declares them. Unused uniforms are silently ignored by `glGetUniformLocation` returning -1.
-
-Master Signal does NOT scale these uniforms (Boris 2026-09-25 Q2): every effect/source that reads
-the beat clock or an audio uniform directly keeps pulsing at any Master Signal depth, including 0%.
-The fader only reaches signal→parameter connections (`ConnectionEngine`, `MacroBank`, v1
-`MappingEngine`), never a GL-thread uniform read.
-
-### Common Pitfalls (from P14-P20 development)
-
-These bugs were discovered and fixed. Future phases MUST avoid reintroducing them:
-
-1. **Shader lookup mismatch**: `Clip::EffectSlot::effectName` stores the display name ("Ripple"), but shaders are compiled under snake_case keys ("ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName`. Never use `slot.effectName` directly as a shader key.
-
-2. **Loop mode race condition**: The render thread syncs `clip->playing` to the player every frame. If the player stops itself (OneShot boundary), the render thread immediately restarts it from `clip->playing == true`. Fix: after `advanceFrame()`, read the player's state BACK to the clip model (`clip->playing = player->isPlaying()`). For PingPong, don't override `setReverse()` every frame — PingPong manages direction internally.
-
-3. **FBO conflicts**: `scratchFBO_` is used by keying. `effectFBO_A_/B_` are used by per-clip and per-layer effects (ping-pong). Transitions need their own `transitionFBO_` to avoid overwriting scratch before keying runs.
-
-4. **Demo effects left enabled**: `initEffectChain()` must NOT enable any effects by default. Users build their own effect chains via the FX browser.
-
-5. **JUCE slider right-click**: `juce::Slider` eats right-click events before the parent component's `mouseDown` fires. Use `ResettableSlider` (custom subclass) which overrides `mouseDown` to handle right-click reset directly. Always call `setDefaultValue()` on creation.
-
-6. **Unicode button text**: JUCE's default button font at small sizes (26px buttons) may not render multi-byte Unicode glyphs. Use ASCII characters ("<", ">", "||") instead of Unicode arrows/symbols for small buttons.
-
-7. **Transport state on clip switch**: `triggerClipImmediate()` must NOT force `playing = true` when re-activating a previously-played clip. Use a `hasBeenTriggered` flag to distinguish first activation from returning to a prior clip.
-
-8. **Source param right-click reset**: `buildSourceParamControls()` in ClipInspector MUST call `pc->setDefaultValue(sp.defaultValue)` for every `UniversalParamControl` created from source params. Without this, right-click reset doesn't work on source sliders.
-
-9. **Fractal zoom design**: NEVER use `fract()` for zoom looping — it creates visible jump-cuts at the wrap point. Use direct `zoomExp = slider * range + time * diveRate`, clamped at max depth. For 2D fractals, max depth is limited by float precision (~`exp(-7)` for Mandelbrot). Dive speed = auto-zoom rate only, never changes the center target.
-
-10. **Fractal center vs location vs dive**: These three controls MUST be cleanly separated. Center X/Y always works when location=0. Location > 0 overrides center to a preset. Dive speed only controls zoom rate, never the center point. If dive changes the center, users see random jumping.
-
-11. **2D fractal power range**: Mandelbrot power > 4 makes the set too small — most of the screen is solid color at the same center. Limit power range to 2-4 for VJ use. Clamp smooth iteration count with `max(si, 0.0)` to prevent negative values at high power.
-
-12. **3D fractal zoom range**: Camera distance `mix(5.0, 0.3, zoom)` lets users go from far outside to inside the fractal. At zoom=1 the camera is at distance 0.3 — inside most fractals.
-
-13. **Temporal effects need TWO render paths**: Both `EffectChain::render()` (single-image mode) AND `CompositorEngine::applyClipEffects()` (deck mode) must bind `u_prev_frame` and save the frame after rendering. If you only fix one path, temporal effects silently fail in the other. Always test temporal effects in BOTH modes.
-
-14. **EffectChain temporal save requires FBO rendering**: When the last effect in the chain is temporal and renders directly to the screen framebuffer (defaultFBO), `currentInput` is never updated, so `savePreviousFrame()` is never called. Fix: when `anyTemporal` is true, always render the last effect to FBO first, save, then blit to screen.
-
-15. **Layer ID 0 is valid**: `Deck::initDefault()` assigns `layer.id = 0` to the first layer. Never use `layerId > 0` as a guard for temporal/ring buffer features — it silently disables them on the most commonly used layer.
-
-16. **Multi-select FX drag-drop**: `EffectStackView::itemDropped()` receives comma-separated names like `"fx:Echo,Ripple,Freeze"`. Must split on commas and add each effect individually, not look up the entire string as one effect name.
-
-17. **Effect parameter defaults must be noticeable**: When a user drags an effect onto a clip, the default parameter values should produce a clearly visible result. Defaults at 0.0 for the primary parameter (like trail length, freeze amount) make the effect invisible on first use — users think it's broken. Set defaults to mid-range or remap the slider so 0 still produces visible output.
-
-18. **Parameter range remapping for nonlinear perception**: Many temporal parameters (decay, frame rate) have a narrow useful range near one end. Echo decay 0-0.8 looks identical, only 0.85-0.99 is interesting. Fix: remap in the shader (`mix(0.82, 0.995, slider)`) so the full slider travel produces visible change. Same for Posterize Time fps (exponential: `60*pow(1/60, slider)`).
-
-19. **Effects that need frame history (Screen Split, Frame Stutter) can't use the normal shader pipeline**: They need access to a ring buffer of N past frames, not just one `u_prev_frame`. These effects are intercepted in `applyClipEffects()` before normal shader rendering and handled by the compositor directly using `applyScreenSplit()` or ring buffer lookups. They still register in EffectLibrary for FX browser visibility but set `temporal = false`.
-
-20. **Ring buffer VRAM budget**: Storing frames at full resolution is prohibitive (1080p × 4 bytes × 480 frames = 4GB). Store ring buffer frames at 1/4 resolution via `kRingDownscale = 4`. Each cell in Screen Split is already small, so the downscale is invisible.
-
-21. **Layer Router renders black without other layers**: The Layer Router source reads another layer's saved output from `layerOutputTextures_`. If the target layer hasn't rendered yet this frame (layers render bottom-to-top), the texture is from the previous frame. If no layer has ever rendered (first frame), it returns 0. This is by design — Layer Router on a lower layer reads the target's previous frame.
-
-22. **Stateful simulation sources need continuous frames**: Strange Attractor, Gravity Well, and Fluid Dynamics are ping-pong FBO sources that accumulate state over time. They appear black in single-frame test mode because they need many frames to develop visible output. Fluid Dynamics additionally needs audio injection (bass/mid/high/onset) to create dye. Test these sources with continuous animation or injected audio features.
-
-23. **Per-type autopilot must be explicitly enabled**: `PerTypeAutopilotConfig::perTypeEnabled` defaults to `false`. When disabled, the existing per-layer/per-clip autopilot settings take precedence. The per-type config only overrides beat counts and action (random vs sequential) for each layer type when enabled in the Composition Inspector.
-
-24. **httplib is always linked, not test-only**: In P22, cpp-httplib was promoted from conditional (`AUDIODNA_BUILD_TEST_SERVER`) to always-linked. Both `ApiServer` (port 7070) and `TestServer` (port 8080, conditional) use it. The `#include <httplib.h>` works everywhere now.
-
-25. **VideoRecorder triple-buffer has no mutex on GL thread**: The GL thread writes to pixel buffers via atomic index rotation. The encoder thread reads from a different buffer and wakes via condition variable. If the encoder can't keep up, frames are dropped (counted in `droppedFrames_`). Never add a mutex to `submitFrame()`.
-
-26. **Syphon uses `__has_include` for compile-time detection**: Even with `-DAUDIODNA_BUILD_SYPHON=ON`, if `<Syphon/Syphon.h>` isn't found, the Obj-C++ code compiles as a no-op stub. This prevents build failures when the framework isn't installed.
-
-27. **Effect defaults must be visible on first add**: Every effect's primary parameter default must produce a visible change when the effect is first dragged onto a clip. Defaults of 0.0 make effects invisible — users think the effect is broken. Set primary params to 0.3-0.7 depending on the effect. Exception: bidirectional effects (Saturation, Brightness, Exposure, Vibrance, Contrast, Color Shift, Shear, Fisheye, Barrel Distort) correctly use 0.5=neutral. Flip uses 0.0=normal (it's a toggle). This was audited and fixed across all 135 effects in the FX/Source Audit (2026-03-23).
-
-28. **Eyes render_frame doesn't apply effect chain**: The test server's `render_frame` endpoint captures the raw image/source output but does NOT apply the global effect chain from `EffectChain::render()`. Effects set via `set_effect` API are registered in state but not rendered in captures. To verify effect rendering, use the live app or test effects via explicit param comparison (set params, verify state readback). This is a known test infrastructure limitation.
-
-29. **Two rate domains, never assume they are the same (R13)**: The ANALYSIS domain is always the fixed internal 48 kHz (`AnalysisThread::kSampleRate`) — `AnalysisResampler` bridges any device rate to it on the analysis thread, bypassing (bit-identical) when the device already is 48 kHz. The DEVICE/RECORDER domain is the device's own rate: the ring buffer carries raw device-rate samples, `AudioTap`/`RecorderHost` write take audio in device-domain sample stamps, and `RecorderHost::Status::deviceRate`/`rateChangedSinceArm` describe THAT domain, not the analysis one. `FeatureSnapshot::sourceSampleRate` publishes which device rate analysis was actually fed from (0 = unknown/test mode); `bandValidMask` marks which `bandEnergies[]` bits are meaningful at that rate — a band mostly above the device Nyquist reads exactly 0 with its bit clear, never normalised garbage. Never compare a device-domain sample count against the 48 kHz analysis cadence (or vice versa) without going through these provenance fields first.
-
-30. **Render-side onset consumers must act on the `onsetCount` delta, never the one-hop `onsetDetected` bool**: FeatureBus is always-latest and analysis publishes at ~93.75 Hz, so a reader polling at its own cadence LOSES onsets below that rate (60 fps: ~40%) and DUPLICATES them above it (~118 fps rig: a second impulse into stateful sims). Use `OnsetPulse` (`src/features/OnsetPulse.h`) — ONE instance per bus-reader THREAD (main `Renderer`, `OutputRenderer`, `AudioReadoutPanel`), never per uploader: the main `Renderer` derives the pulse once per frame into `frameSnap_` (read BEFORE the nothing-to-render early return) and every uploader that frame (`CompositorEngine`, `EffectChain`, each `ProceduralSource` via `renderSource`) reads that copy — per-uploader state would race for the delta and starve every source clip after the first. REST pollers diff `/api/features.onsetCount`; `/api/status.renderOnsetPulses` (and `/api/state.onset_pulse_frames` in test mode) counts pulse frames — its delta equals the `onsetCount` delta. Test-mode injection resolves the injected `onsetCount` in ONE place, under `TestServer::injectSnapshot`'s lock (`InjectedOnsetCount`). `downbeatDetected` is NOT in this class -- it is a beat-long level (Pitfall 32).
-
-31. **Bodyless POST must be answered immediately**: cpp-httplib < v0.28.0 read an unframed request body (a POST with neither `Content-Length` nor `Transfer-Encoding`, e.g. a bare `curl -X POST`) until the 5 s server read timeout (`CPPHTTPLIB_SERVER_READ_TIMEOUT_SECOND`) before running the handler -- RFC 9112 §6.3 says such a request has a zero-length body. Fixed by bumping to v0.57.1 (upstream fix yhirose/cpp-httplib#2279, first released in v0.28.0). Guarded by `tests/test_httplib_bodyless_post.cpp`; do not downgrade below v0.28.0.
-
-32. **`downbeatDetected` is a beat-long LEVEL, not a pulse -- never read a true value as "a downbeat happened on this read"**: `BPMTracker` assigns `downbeatDetected_ = (beatCounter_ == 0)` only at beat events (`scoreBeat`, `advancePredictedBeat`, the initial lock) and never clears it per hop, so the flag is true for the whole first beat (300 ms-1 s) -- no 15-120 Hz reader can miss it and re-reading it is not duplication (s-rta-0925 lane re-derived this after three readers trusted the old "true on the hop where beat 1 lands" comment). "New bar" is its rising edge, which `BPMTracker::updatePhrase` already counts into `totalBarCount` (monotonic, never reset, published every hop, on `/api/bpm` next to the level). A consumer that wants one pulse per bar at ANY cadence -- including REST pollers slower than a beat, which DO lose rising edges -- diffs `totalBarCount` with `OnsetPulse` (a generic monotonic-counter delta), one instance per reader thread, exactly like `onsetCount`. Do not add a `downbeatCount` field: it would duplicate `totalBarCount`. Guards: `tests/test_downbeat_detector.cpp` `[level][cadence]`; live: `.harmony/probe-downbeat-level.sh`.
-
-33. **Effect/source-param rows are engine-driven: a UI tick never writes `paramValues`/`sourceParams[].value`**: `CompositorEngine`/`Renderer` read a connected effect/source param through `EffectSlot::effParam(i)`/`effDryWet()` and `SourceParam.live.effective(value)`, never the raw field, so a `ConnSource`-connected parameter renders its engine-published (`ConnectionEngine::tick`) value with RANGE/INVERT/curve honored. Append a param to an `EffectSlot` ONLY via `EffectSlot::addParam(v)` -- it keeps `paramValues`/`paramConns`/`paramLive` sized in lock-step so the lazy `resizeParams()` self-heal in `ConnectionEngine.cpp` stays a no-op; a bare `paramValues.push_back(v)` leaves `paramConns`/`paramLive` short, and `effParam()`'s self-guard (`i < paramLive.size()`) falls back to the manual value instead of indexing past the end, but the safety net is `addParam()`, not the guard. `EffectStackView`/`ClipInspector::tickModulation()` are DISPLAY-ONLY (push the effective value to the widget, gated on `pc.isVisible()` -- a cost-trap, not a correctness gate); they must never write back into the model. Before any structural edit that erases/reallocates the effects or sourceParams vector (row delete, rebuild, clip re-point), call `UniversalParamControl::forgetConnection()` on every bound control FIRST -- `bindConnection()`'s implicit unbind and `~UniversalParamControl()` both dereference the OLD connection to release an active grip, which is a use-after-free once that vector element is gone; `forgetConnection()` drops the pointer without touching it. (s-rta-0925 mastersignal Step 0.)
-
-34. **A JUCE `Component` is invisible by default (`componentFlags(0)` in its constructor), including one added via `addChildComponent()`**: only `addAndMakeVisible()` or an explicit `setVisible(true)` makes it visible. A headless widget test that checks a display-push gated on `isVisible()` must force the control visible itself (or drive the real expand/click path) -- it does NOT come visible "for free" just because the parent view was never given a size.
-
-### Layer Router System (P20)
-
-The Layer Router source (`layer_router`) lets one layer use another layer's rendered output as its input texture. This enables feedback loops, picture-in-picture, and cross-layer effects.
-
-**Architecture**:
-- `CompositorEngine::compositeDeck()` saves each layer's final clip texture (after effects, transform, before keying/blending) into `layerOutputTextures_` keyed by layer ID
-- When a clip has `sourceType == "layer_router"`, `Renderer::renderSource()` intercepts it, reads the `u_src_layer` param to determine which layer index to read, and returns the saved texture
-- The "Source Layer" param maps [0,1] to layer indices 0-9
-- Self-reference safety: if a layer routes to itself, it gets the previous frame's output (one frame delay). Circular references between two layers produce feedback effects.
-
-### Per-Type Autopilot (P20)
-
-Composition-level automation that sets different beat timings per layer type:
-- **Opaque layers**: cycle every N beats (default 16)
-- **Transparent layers**: cycle every N beats (default 8), optional randomization
-- **FX Only layers**: cycle every N beats (default 4), optional randomization
-- Config in `Composition::PerTypeAutopilotConfig`, UI in CompositionInspector "Per-Type Autopilot" section
-
-### Live Performance Controls (P21)
-
-**Binding System Extensions**:
-
-- `Binding::TriggerMode` — `Toggle` (default, press to toggle) or `Momentary` (held = active, release = deactivate)
-- `Binding::CCMode` — `Absolute` (0-127 → 0-1) or `Relative` (< 64 = decrement, > 64 = increment, for endless encoders)
-- `Binding::TargetMode` — `ByPosition` (survives reorder), `ThisItem` (follows clip by ID), `Selected` (current UI selection)
-- `Binding::velocityToOpacity` — maps MIDI velocity to clip opacity on trigger
-- New actions: `AdjustLayerOpacity`, `LayerTransport` (play/pause toggle), `ToggleEffectBypass`, `AdjustMacro`
-
-**Persistent Layers**: `Layer::persistent = true` keeps a layer rendering even when its deck is not active. `CompositorEngine::compositePersistentLayers()` composites persistent layers from non-active decks after the active deck's layers. `Renderer` holds a `Composition*` to iterate all decks.
-
-**Beat Snap Granularity**: `Clip::BeatSnapMode` enum (Off, Beat, Bar, TwoBar, FourBar). `Layer::processPendingTrigger(beatInBar, barCount)` now checks the snap granularity before firing queued triggers.
-
-**Ableton Link**: Optional (`-DAUDIODNA_BUILD_LINK=ON`). `LinkSync` class wraps `ableton::Link`, updates cached BPM/phase via atomics. When enabled, overrides BPM tracker with Link's tempo via manual mode. **NOTE**: `AUDIODNA_BUILD_LINK` defaults OFF (`CMakeLists.txt`), so in a default build `AUDIODNA_HAS_LINK` is undefined and every `LinkSync` method compiles to a no-op.
-
-**Key-up routing**: `MainComponent::keyStateChanged()` polls all momentary-bound keys and fires release actions. MIDI note-off already routed through `BindingManager::processMidiNoteOff()`.
-
-### Audio Store (Ruling 28)
-
-`AudioStore` (`src/recording/AudioStore.h/cpp`) is the shared audio store recorded audio lives in, not the take folder: `~/Documents/Audio-DNA/Audio/<id>.adna-audio/{audio.wav, audio.json}`, id-keyed, sidecar written LAST (its presence is the "complete" flag). Take format v3's `AudioRef::Segment` references an asset by `{id, fingerprint, firstSample, frames, rate, channels}` — `file` is read-only legacy (pre-v3 in-folder audio). Content identity is `fp1` (a cheap deterministic head+tail+length SHA-256, `AudioStore::fingerprint`), recomputed at every `resolve()`. `AudioTap` re-patches the WAV header every 10s of audio (`AudioTap::kHeaderFlushSeconds`) so a crashed show is readable up to the last flush. Nothing is deleted automatically except a failed arm's own just-minted, never-finalized asset (`AudioStore::abandonAsset`, one narrow exception).
-
-**Step 3 (record→store→take wiring): LIVE.** `MainComponent` owns a `RecorderHost` (`recorderHost_`) that drives the whole lifecycle; the production REST API exposes it as `/api/perf/record` (arm, file-mode or live input, optional onset markers), `/api/perf/stop`, `/api/perf/load`, `/api/perf/play` (`withAudio`: true replays audio points through the transport, false is silent wall-clock replay), `/api/perf/stop_play`, `/api/perf/repair` (crash recovery — re-derives a truncated/incomplete asset's frame count), and `/api/perf/status` (recording/playing/overdub state, take folder, asset id, take-clock `t`/`beat`/`sample`, `deviceRate`, `rateChangedSinceArm`, `sourceSampleRate`, lane/gesture/marker counts, `lastError`, `humanRefused`, `lastFinalizeError` (AudioStore::finalize's verdict for the last stop, "" = clean, cleared at arm), `finalizeErrors` (count of stops whose finalize reported a problem since app start, never reset) — s-rta-0924b; a finalize problem is also mirrored into `lastError`). Onset markers (`onsetMarkers: true` at arm) tag `take.json`'s `markers[]` with `action: "onset"` on every tick where the analysis snapshot's `onsetDetected` is true, deduped per onset event (not per 120 Hz tick) since `FeatureBus::read()` is always-latest and analysis publishes at only ~93.75 Hz. `rateChangedSinceArm` (R13-C, replacing the retired `rateMismatch`/"device != 48 kHz" meaning) is the one rate hazard that survives R13's resampler: it is true only if the DEVICE rate itself changed since arm (sample stamps before/after such a change are in different domains) — a device that never changes rate, even a non-48 kHz one, never sets it, because the analysis thread now resamples to its own fixed 48 kHz regardless of what the device is doing. **Replay restore (Boris ruling 2026-09-25, s-rta-0925):** `/api/perf/play` first restores checkpoint 0 — the look at Record time (active deck, quantize, every layer's flags/opacity/layer-effect values, active clip, each captured clip's effect values/scalars/play-pause) — before playing the recorded moves; NOT restored: video playheads, crossfade progress, pending quantized triggers, tempo, or the audio transport. `/api/perf/status` publishes `preambleCount`/`preambleFired`/`preambleRefused`/`preambleUnresolved` (all 0 while not playing) so a refused control (a human grip already held it) or a deck/layer/clip that no longer exists is counted, never silent. **End of replay (Boris ruling 2026-09-25, s-rta-0925):** the replay holds at the take's end — `playing` stays true, `finished` true, position pinned, the Player stopped; a with-audio replay gives the live input back; Stop Playback is the exit. `/api/perf/status` += `finished`, `inputSource` ("input"|"file"); `POST /api/audio/source` (`{"mode":"input"|"file"}`) is a dev/probe control that switches it.
-
-### Output & Integration System (P22)
-
-**Production REST API** (`ApiServer`, port 7070, always-on): 35 registered routes total (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread; `/api/resync` added s-rta-0925 — manual Resync via `BPMTracker::requestResync()`, message thread → analysis thread, same funnel as the TopBar Resync button). cpp-httplib on a background thread with CORS headers. 27 core control endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/set_master_signal, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/resync, /api/features, /api/inject_features (test-mode only — 404 in production), /api/load_image, /api/load_source, /api/load_composition, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state, /api/syphon, /api/set_syphon. Plus 7 `/api/perf/*` performance-recorder endpoints and `POST /api/audio/source` — both documented above in "Audio Store (Ruling 28)". All GL mutations go through existing thread-safe APIs.
-
-**OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns (13): `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/signal`, `/audiodna/bpm`, `/audiodna/resync`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread. **LIVE 2026-07-17 (Wave 1-B)**: `OscHandler::startListening(8000)` is called unconditionally at startup (like ApiServer), so the receiver binds UDP port 8000, and all 13/13 pattern callbacks are wired in MainComponent (`/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync) — each routing through the same handler as the equivalent REST/UI/MIDI path. Port is hardcoded (no preferences UI configures it yet).
-
-**MIDI Output** (`MidiOutputHandler`): Sends note-on/off to hardware controllers (Launchpad X/Mini MK3) for clip state feedback. 5 states: Empty(off), Loaded(velocity 5), Playing(velocity 60), Triggered(velocity 52), ActiveWithFx(velocity 62). Polls deck state ~6Hz from timerCallback. Note mapping: `(layer+1)*10 + (column+1)` for Launchpad grid layout.
-
-**Video Recording** (`VideoRecorder`): Real-time capture from GL framebuffer to H.264/ProRes/MJPEG via FFmpeg. Triple-buffered pixel readback (GL thread does `glReadPixels` into rotating CPU buffers, encoder thread picks up via condition variable). No mutex on GL thread hot path. Codec selection via `VideoRecorder::Config`. Menu: Output > Start/Stop Recording. Saves to ~/Documents/Audio-DNA/Recordings/.
-
-**Snapshot** (`Renderer::takeSnapshot()`): Saves timestamped PNG to ~/Documents/Audio-DNA/Snapshots/. Uses existing `captureFrame()` infrastructure. Bindable via `Binding::Action::Snapshot`. Also available via REST API (`POST /api/snapshot`).
-
-**Syphon Output** (`SyphonOutput`, macOS only, optional): Zero-copy GPU texture sharing via IOSurface. Obj-C++ wrapper around `SyphonServer`. Uses `__has_include(<Syphon/Syphon.h>)` for compile-time detection. Enable with `-DAUDIODNA_BUILD_SYPHON=ON` + install Syphon.framework to /Library/Frameworks/. **WIRED 2026-07-17 (Wave 1-A)**: `init()` runs on GL-context creation and the final composited frame is blit→published once per frame, gated on enabled + initialized; Output → "Syphon Output" menu toggle controls it (default OFF each boot, no persistence). Build-flag-gated — a runtime no-op unless built `-DAUDIODNA_BUILD_SYPHON=ON` with Syphon.framework installed. Post-publish, `publishSyphonFrame` re-binds `defaultFBO` so the subsequent `glReadPixels` capture path is unaffected.
-
-**Syphon Input / Spout / NDI**: REMOVED 2026-07-17 (Wave 0) — `SyphonInput` (.mm/.h, orphaned), `SpoutOutput.h` (Windows header-only no-op), `NdiOutput.h`/`NdiInput.h` (stubs) were all deleted.
-
-### Smart Audio Features (P23)
-
-**Genre Detection** (`GenreDetector`): Real-time 8-genre classification from audio features. Uses multi-feature scoring (BPM range, spectral profile, transient density, chromatic complexity) with ~2s EMA smoothing and ~3s hysteresis. Runs as stage 13 in the AnalysisThread pipeline. Zero allocation in steady state. Genres: House (0), Techno (1), DnB (2), Hip-Hop (3), Ambient (4), Rock (5), Pop/Electronic (6), Jazz/Other (7). Also tracks energy state (0=low, 1=medium, 2=high).
-
-**Auto-Preset Selection**: When `composition.autoPresetOnGenre` is enabled, genre changes fire `Renderer::onGenreChanged_` callback on the message thread. Can auto-switch decks via `composition.genreDeckAssignment[8]` (genre→deck index mapping).
-
-**AI Mapping Suggestions** — REMOVED 2026-07-17 (Wave 0): `MappingSuggester` (.cpp/.h) was a ghost (never instantiated, no UI or API caller) and has been deleted.
-
-**Smart Random Autopilot**: When `smartRandomEnabled` is active and autopilot action is PlayRandom, clips are selected based on structural state and energy level instead of pure random. Convention: lower column indices = calmer content, higher = more intense. Drop→intense clips, breakdown→calm clips.
-
-**Structural Scene Triggering**: `Renderer::onStructuralStateChanged_` fires on structural transitions (normal/buildup/drop/breakdown). Controlled by `composition.structuralSceneEnabled`.
-
-**ISF Shader Import** (`ISFShaderLoader`): Imports Interactive Shader Format (.isf/.fs) shaders from isf.video. Parses JSON metadata from comment blocks, extracts parameter definitions (float/bool/long), wraps GLSL with ISF compatibility defines (`TIME`, `RENDERSIZE`, `isf_FragNormCoord`, `IMG_NORM_PIXEL`), converts to GLSL 410. Registers as effects in EffectLibrary with "ISF" category. Menu: Audio-DNA > Import ISF Shader... **PHANTOM**: parse/convert/register work and the effect appears in the FX browser, but `MainComponent::handleImportISF()` never compiles or queues the converted GLSL for the GL thread (the compile step is a TODO no-op) — so imported ISF effects render nothing. The "Import Successful" dialog is misleading.
-
-**Per-Genre Smoothing** — REMOVED 2026-07-17 (Wave 0): `GenreSmoothing.h` was dead code (never instantiated, not wired into MappingEngine, self-refs only) and has been deleted; its One-Euro filter variant was also removed from `Smoother.h`.
-
-**Smart BPM Recovery**: `BPMTracker::feedSilenceDetection(rms)` detects silence (RMS < 0.005 for 300ms) and holds the last good BPM. Phase continues free-running during silence. Resumes after 100ms of audio above threshold. Prevents BPM jumping to 0 during DJ transitions or track endings.
-
-### Advanced Audio Analysis (P25)
-
-**AdvancedAudioAnalyzer** (`src/analysis/AdvancedAudioAnalyzer.h/cpp`): Computes 5 advanced spectral features per hop, added as stage 14 in the analysis pipeline. All buffers pre-allocated, zero allocation in steady state.
-
-| Feature | Algorithm | Output | Uniform | Use Case |
-|---------|-----------|--------|---------|----------|
-| **Sidechain Pump** | Pearson correlation of bass vs mid envelopes (64-hop window). Negative r = pumping. | [0, 1] | `u_sidechainPump` | Techno/house sidechain detection |
-| **Swing Ratio** | Inter-onset interval histogram. Consecutive pairs long/short ratio. | [0.5, ~0.67] | `u_swingRatio` | Hip-hop shuffle detection |
-| **Formant Presence** | Energy ratio in 300-3000 Hz vocal range vs total. Adaptive normalization. | [0, 1] | `u_formantPresence` | Vocal content detection |
-| **Resonance Peak** | Spectral kurtosis in 200-8000 Hz. High = sharp filter peaks. | [0, 1] | `u_resonancePeak` | Filter sweep/synth resonance |
-| **Reese Bass** | Spectral spread (weighted std dev) in 30-200 Hz. Wide = detuned/wobble. | [0, 1] | `u_reeseBass` | DnB reese bass detection |
-
-All 5 features are available as MappingSource enum values (`SidechainPump`, `SwingRatio`, `FormantPresence`, `ResonancePeak`, `ReeseBass`), as hidden signals in SignalRegistry, and as shader uniforms in all 3 render paths.
-
-### Composition-Level Transform (P25)
-
-The `comp_transform` shader applies position/scale/rotation to the entire final output. Applied after the effect chain renders, before the master level dim. Uses `glBlitFramebuffer` to copy the framebuffer, then renders the transform shader.
-
-Fields in `Composition`: `compPositionX/Y` (normalized offset), `compScale` (1.0=100%), `compRotation` (degrees), `compAnchorX/Y`. UI controls already exist in the CompositionInspector's Transform section.
-
-### Cross-Deck Transitions (P25)
-
-When `Composition::activeDeckIndex` changes, the Renderer saves the current frame as the "outgoing" deck texture and blends to the new deck over `Composition::globalTransitionSpeed` seconds. Three blend modes: Alpha (crossfade), Add (additive), Multiply. Uses `Composition::crossfaderBlendMode` for the blend mode.
-
-The `deck_transition` shader takes two textures (`u_textureA` = outgoing, `u_textureB` = incoming) and a progress uniform. Frame is saved to `prevDeckTexture_` on deck switch detection.
-
-### Updating This Document
+---
+
+### Common Pitfalls Index
+
+Full detail (verbatim) for every numbered pitfall lives in `docs/claude/pitfalls.md` --
+numbers are stable and cited elsewhere as "Pitfall N". Read the full entry before touching
+the named area; this index is triage-only.
+
+1. Shader lookup mismatch -- before resolving an effect display name to a shader key.
+2. Loop mode race condition -- before touching clip transport / play-state sync each frame.
+3. FBO conflicts -- before adding a new FBO to the render/compositor pipeline.
+4. Demo effects left enabled -- before touching `initEffectChain()`.
+5. JUCE slider right-click -- before adding any new slider (must be `ResettableSlider`).
+6. Unicode button text -- before adding button glyphs at small sizes.
+7. Transport state on clip switch -- before touching `triggerClipImmediate()` / `hasBeenTriggered`.
+8. Source param right-click reset -- before adding source param controls in ClipInspector.
+9. Fractal zoom design -- before touching any fractal zoom/dive shader.
+10. Fractal center vs location vs dive -- before wiring fractal center/location/dive controls.
+11. 2D fractal power range -- before changing Mandelbrot/Julia power range.
+12. 3D fractal zoom range -- before changing a 3D fractal's camera distance.
+13. Temporal effects need TWO render paths -- before touching `u_prev_frame` / temporal effects.
+14. EffectChain temporal save requires FBO rendering -- before touching `EffectChain::render()`'s last-effect path.
+15. Layer ID 0 is valid -- before guarding any layerId-based feature.
+16. Multi-select FX drag-drop -- before touching `EffectStackView::itemDropped()`.
+17. Effect parameter defaults must be noticeable -- before setting a new effect's default param values.
+18. Parameter range remapping for nonlinear perception -- before wiring a decay/fps-like parameter.
+19. Effects needing frame history -- before adding a Screen-Split/Frame-Stutter-style effect.
+20. Ring buffer VRAM budget -- before changing `FrameRingBuffer` resolution/depth.
+21. Layer Router renders black without other layers -- before debugging Layer Router output.
+22. Stateful simulation sources need continuous frames -- before testing ping-pong FBO sources in single-frame mode.
+23. Per-type autopilot must be explicitly enabled -- before touching `PerTypeAutopilotConfig`.
+24. httplib is always linked, not test-only -- before gating httplib behind a build flag.
+25. VideoRecorder triple-buffer has no mutex on GL thread -- before touching `VideoRecorder::submitFrame()`.
+26. Syphon uses `__has_include` for compile-time detection -- before changing Syphon build/detection logic.
+27. Effect defaults must be visible on first add -- before setting any new effect's primary param default.
+28. Eyes render_frame doesn't apply effect chain -- before relying on Eyes captures to verify effect rendering.
+29. Two rate domains, never assume they are the same (R13) -- before comparing device-rate and analysis-rate sample counts.
+30. Render-side onset consumers must act on the `onsetCount` delta -- before reading `onsetDetected` on the render side.
+31. Bodyless POST must be answered immediately -- before touching the cpp-httplib version/config.
+32. `downbeatDetected` is a beat-long LEVEL, not a pulse -- before reading `downbeatDetected` as an edge/pulse.
+33. Effect/source-param rows are engine-driven -- before writing to `paramValues`/`sourceParams[].value` directly.
+34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
+
+---
+
+## Updating This Document
 
 When you add a new feature, effect, or audio analysis capability, update the relevant section of this CLAUDE.md to reflect it. This document must always be the current truth.
 
 ---
 
-## Research Documents Reference
+## Trigger Table
 
-The `research/` directory contains 30 documents organized by prefix:
+When you are doing X, read the named doc (all under `docs/claude/`) before making changes --
+these are NOT @-imported, so they cost nothing at boot and are read on demand.
 
-| Prefix | Topic | Key Documents |
-|--------|-------|---------------|
-| `ARCH_` | Architecture deep-dives | `pipeline.md` (lock-free chain), `audio_io.md` (platform APIs), `realtime_constraints.md` (RT rules) |
-| `FEATURES_` | Audio feature algorithms | `spectral.md` (14 features), `rhythm_tempo.md` (onset/BPM), `pitch_harmonic.md` (YIN, chroma, key), `mfcc_mel.md`, `amplitude_dynamics.md`, `frequency_bands.md`, `transients_texture.md`, `structural.md`, `psychoacoustic.md` |
-| `LIB_` | Library evaluations | `juce.md`, `aubio.md`, `essentia.md` (rejected), `fft_comparison.md`, `rtaudio_miniaudio.md`, `rust_ecosystem.md` (rejected) |
-| `VIDEO_` | Visual rendering | `opengl_integration.md` (UBOs, FBOs, GLSL patterns), `feature_to_visual_mapping.md` (mapping theory), `vj_frameworks.md` (framework comparison) |
-| `IMPL_` | Implementation guides | `project_setup.md` (CMake/CI), `minimal_prototype.md` (380-line prototype), `testing_validation.md` (Catch2, test signals), `calibration_adaptation.md` (auto-tuning) |
-| `REF_` | Reference material | `math_reference.md` (DFT, biquads, window functions), `latency_numbers.md` (per-stage budgets), `genre_parameter_presets.md` (8 genre profiles), `resources_links.md` (papers, datasets) |
-
-These are read-only reference material. All decisions have been made and are reflected in ARCHITECTURE_V2.md and this CLAUDE.md.
+| When you are doing X | Read |
+|---|---|
+| Touching `FeatureSnapshot`/`Mapping`/`Effect`/`Clip` struct fields, the lock-free communication chain, the technology-stack table, the source tree/file layout, naming a new file/class/method/uniform (Naming Conventions), or debugging audio-thread/threading issues | `docs/claude/architecture.md` |
+| Adding/changing an audio analysis feature (amplitude, spectral, rhythm/onset, pitch/harmony, structural) or the 14-stage analysis pipeline order | `docs/claude/analysis.md` |
+| Adding/changing a GLSL effect, a transition shader, the effect-chain architecture, FX drag-and-drop, the Autopilot System, Manual BPM Mode, or the Tooltip System | `docs/claude/effects.md` |
+| Touching Mapping System internals (curve/scale/smooth pipeline, Master Signal), temporal/time effects (P16), the audio uniform system (P18), composition-level transform or cross-deck transitions (P25), or debugging visual/render issues | `docs/claude/rendering.md` |
+| Touching the Layer Router, Per-Type Autopilot, or Live Performance Controls (bindings, persistent layers, beat snap granularity, Ableton Link) (P20-P21) | `docs/claude/performance-controls.md` |
+| Touching the Audio Store or the performance take recorder (Ruling 28) | `docs/claude/recording.md` |
+| Touching the production REST API, OSC input, MIDI output, video recording, Syphon output, genre detection, ISF shader import, smart BPM recovery, or Advanced Audio Analysis (P22/P23/P25) | `docs/claude/integration.md` |
+| Running or debugging the Eyes visual test harness or its REST endpoints | `docs/claude/testing-eyes.md` |
+| Adding/tuning a procedural fractal source, or doing browser-based shader testing before porting a shader into `EmbeddedShaders.h` | `docs/claude/fractals.md` |
+| Hitting a bug that might already be a known pitfall (check the one-line index above first) | `docs/claude/pitfalls.md` |
+| Building on Windows/Linux, adding Aubio, or adding any new project dependency | `docs/claude/build-other-platforms.md` |
+| Needing milestone history, the v2 redesign rationale, or the `research/` document index | `docs/claude/history.md` |

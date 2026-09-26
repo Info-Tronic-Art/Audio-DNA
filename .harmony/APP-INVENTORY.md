@@ -140,8 +140,8 @@ Source: `src/api/ApiServer.cpp` (route registrations counted by command, s-rta-0
 routes total: 27 core control endpoints (rows 1-27) + 7 `/api/perf/*` (rows 28-34) + `POST
 /api/audio/source` (row 35)**; all functional (`/api/set_bpm` wired Wave 0; `/api/resync` added
 s-rta-0925 -- manual Resync via `requestResync()`, message thread -> analysis thread). Rows 28-35
-are the performance take recorder's REST surface (see "Audio Store / Step 3" in CLAUDE.md for the
-full field-level detail of each).
+are the performance take recorder's REST surface (see "Audio Store / Step 3" in
+`docs/claude/recording.md` for the full field-level detail of each).
 
 | # | Method | Path | Action |
 |---|---|---|---|

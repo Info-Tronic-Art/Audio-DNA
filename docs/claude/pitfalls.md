@@ -1,0 +1,79 @@
+# Common Pitfalls (full detail)
+
+> Moved from CLAUDE.md (claudemd-split). Numbers are stable and cited elsewhere as "Pitfall N" -- do not renumber. A one-line-per-pitfall index stays in CLAUDE.md for quick triage; this file has the full detail.
+
+---
+
+### Common Pitfalls (from P14-P20 development)
+
+These bugs were discovered and fixed. Future phases MUST avoid reintroducing them:
+
+1. **Shader lookup mismatch**: `Clip::EffectSlot::effectName` stores the display name ("Ripple"), but shaders are compiled under snake_case keys ("ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName`. Never use `slot.effectName` directly as a shader key.
+
+2. **Loop mode race condition**: The render thread syncs `clip->playing` to the player every frame. If the player stops itself (OneShot boundary), the render thread immediately restarts it from `clip->playing == true`. Fix: after `advanceFrame()`, read the player's state BACK to the clip model (`clip->playing = player->isPlaying()`). For PingPong, don't override `setReverse()` every frame — PingPong manages direction internally.
+
+3. **FBO conflicts**: `scratchFBO_` is used by keying. `effectFBO_A_/B_` are used by per-clip and per-layer effects (ping-pong). Transitions need their own `transitionFBO_` to avoid overwriting scratch before keying runs.
+
+4. **Demo effects left enabled**: `initEffectChain()` must NOT enable any effects by default. Users build their own effect chains via the FX browser.
+
+5. **JUCE slider right-click**: `juce::Slider` eats right-click events before the parent component's `mouseDown` fires. Use `ResettableSlider` (custom subclass) which overrides `mouseDown` to handle right-click reset directly. Always call `setDefaultValue()` on creation.
+
+6. **Unicode button text**: JUCE's default button font at small sizes (26px buttons) may not render multi-byte Unicode glyphs. Use ASCII characters ("<", ">", "||") instead of Unicode arrows/symbols for small buttons.
+
+7. **Transport state on clip switch**: `triggerClipImmediate()` must NOT force `playing = true` when re-activating a previously-played clip. Use a `hasBeenTriggered` flag to distinguish first activation from returning to a prior clip.
+
+8. **Source param right-click reset**: `buildSourceParamControls()` in ClipInspector MUST call `pc->setDefaultValue(sp.defaultValue)` for every `UniversalParamControl` created from source params. Without this, right-click reset doesn't work on source sliders.
+
+9. **Fractal zoom design**: NEVER use `fract()` for zoom looping — it creates visible jump-cuts at the wrap point. Use direct `zoomExp = slider * range + time * diveRate`, clamped at max depth. For 2D fractals, max depth is limited by float precision (~`exp(-7)` for Mandelbrot). Dive speed = auto-zoom rate only, never changes the center target.
+
+10. **Fractal center vs location vs dive**: These three controls MUST be cleanly separated. Center X/Y always works when location=0. Location > 0 overrides center to a preset. Dive speed only controls zoom rate, never the center point. If dive changes the center, users see random jumping.
+
+11. **2D fractal power range**: Mandelbrot power > 4 makes the set too small — most of the screen is solid color at the same center. Limit power range to 2-4 for VJ use. Clamp smooth iteration count with `max(si, 0.0)` to prevent negative values at high power.
+
+12. **3D fractal zoom range**: Camera distance `mix(5.0, 0.3, zoom)` lets users go from far outside to inside the fractal. At zoom=1 the camera is at distance 0.3 — inside most fractals.
+
+13. **Temporal effects need TWO render paths**: Both `EffectChain::render()` (single-image mode) AND `CompositorEngine::applyClipEffects()` (deck mode) must bind `u_prev_frame` and save the frame after rendering. If you only fix one path, temporal effects silently fail in the other. Always test temporal effects in BOTH modes.
+
+14. **EffectChain temporal save requires FBO rendering**: When the last effect in the chain is temporal and renders directly to the screen framebuffer (defaultFBO), `currentInput` is never updated, so `savePreviousFrame()` is never called. Fix: when `anyTemporal` is true, always render the last effect to FBO first, save, then blit to screen.
+
+15. **Layer ID 0 is valid**: `Deck::initDefault()` assigns `layer.id = 0` to the first layer. Never use `layerId > 0` as a guard for temporal/ring buffer features — it silently disables them on the most commonly used layer.
+
+16. **Multi-select FX drag-drop**: `EffectStackView::itemDropped()` receives comma-separated names like `"fx:Echo,Ripple,Freeze"`. Must split on commas and add each effect individually, not look up the entire string as one effect name.
+
+17. **Effect parameter defaults must be noticeable**: When a user drags an effect onto a clip, the default parameter values should produce a clearly visible result. Defaults at 0.0 for the primary parameter (like trail length, freeze amount) make the effect invisible on first use — users think it's broken. Set defaults to mid-range or remap the slider so 0 still produces visible output.
+
+18. **Parameter range remapping for nonlinear perception**: Many temporal parameters (decay, frame rate) have a narrow useful range near one end. Echo decay 0-0.8 looks identical, only 0.85-0.99 is interesting. Fix: remap in the shader (`mix(0.82, 0.995, slider)`) so the full slider travel produces visible change. Same for Posterize Time fps (exponential: `60*pow(1/60, slider)`).
+
+19. **Effects that need frame history (Screen Split, Frame Stutter) can't use the normal shader pipeline**: They need access to a ring buffer of N past frames, not just one `u_prev_frame`. These effects are intercepted in `applyClipEffects()` before normal shader rendering and handled by the compositor directly using `applyScreenSplit()` or ring buffer lookups. They still register in EffectLibrary for FX browser visibility but set `temporal = false`.
+
+20. **Ring buffer VRAM budget**: Storing frames at full resolution is prohibitive (1080p × 4 bytes × 480 frames = 4GB). Store ring buffer frames at 1/4 resolution via `kRingDownscale = 4`. Each cell in Screen Split is already small, so the downscale is invisible.
+
+21. **Layer Router renders black without other layers**: The Layer Router source reads another layer's saved output from `layerOutputTextures_`. If the target layer hasn't rendered yet this frame (layers render bottom-to-top), the texture is from the previous frame. If no layer has ever rendered (first frame), it returns 0. This is by design — Layer Router on a lower layer reads the target's previous frame.
+
+22. **Stateful simulation sources need continuous frames**: Strange Attractor, Gravity Well, and Fluid Dynamics are ping-pong FBO sources that accumulate state over time. They appear black in single-frame test mode because they need many frames to develop visible output. Fluid Dynamics additionally needs audio injection (bass/mid/high/onset) to create dye. Test these sources with continuous animation or injected audio features.
+
+23. **Per-type autopilot must be explicitly enabled**: `PerTypeAutopilotConfig::perTypeEnabled` defaults to `false`. When disabled, the existing per-layer/per-clip autopilot settings take precedence. The per-type config only overrides beat counts and action (random vs sequential) for each layer type when enabled in the Composition Inspector.
+
+24. **httplib is always linked, not test-only**: In P22, cpp-httplib was promoted from conditional (`AUDIODNA_BUILD_TEST_SERVER`) to always-linked. Both `ApiServer` (port 7070) and `TestServer` (port 8080, conditional) use it. The `#include <httplib.h>` works everywhere now.
+
+25. **VideoRecorder triple-buffer has no mutex on GL thread**: The GL thread writes to pixel buffers via atomic index rotation. The encoder thread reads from a different buffer and wakes via condition variable. If the encoder can't keep up, frames are dropped (counted in `droppedFrames_`). Never add a mutex to `submitFrame()`.
+
+26. **Syphon uses `__has_include` for compile-time detection**: Even with `-DAUDIODNA_BUILD_SYPHON=ON`, if `<Syphon/Syphon.h>` isn't found, the Obj-C++ code compiles as a no-op stub. This prevents build failures when the framework isn't installed.
+
+27. **Effect defaults must be visible on first add**: Every effect's primary parameter default must produce a visible change when the effect is first dragged onto a clip. Defaults of 0.0 make effects invisible — users think the effect is broken. Set primary params to 0.3-0.7 depending on the effect. Exception: bidirectional effects (Saturation, Brightness, Exposure, Vibrance, Contrast, Color Shift, Shear, Fisheye, Barrel Distort) correctly use 0.5=neutral. Flip uses 0.0=normal (it's a toggle). This was audited and fixed across all 135 effects in the FX/Source Audit (2026-03-23).
+
+28. **Eyes render_frame doesn't apply effect chain**: The test server's `render_frame` endpoint captures the raw image/source output but does NOT apply the global effect chain from `EffectChain::render()`. Effects set via `set_effect` API are registered in state but not rendered in captures. To verify effect rendering, use the live app or test effects via explicit param comparison (set params, verify state readback). This is a known test infrastructure limitation.
+
+29. **Two rate domains, never assume they are the same (R13)**: The ANALYSIS domain is always the fixed internal 48 kHz (`AnalysisThread::kSampleRate`) — `AnalysisResampler` bridges any device rate to it on the analysis thread, bypassing (bit-identical) when the device already is 48 kHz. The DEVICE/RECORDER domain is the device's own rate: the ring buffer carries raw device-rate samples, `AudioTap`/`RecorderHost` write take audio in device-domain sample stamps, and `RecorderHost::Status::deviceRate`/`rateChangedSinceArm` describe THAT domain, not the analysis one. `FeatureSnapshot::sourceSampleRate` publishes which device rate analysis was actually fed from (0 = unknown/test mode); `bandValidMask` marks which `bandEnergies[]` bits are meaningful at that rate — a band mostly above the device Nyquist reads exactly 0 with its bit clear, never normalised garbage. Never compare a device-domain sample count against the 48 kHz analysis cadence (or vice versa) without going through these provenance fields first.
+
+30. **Render-side onset consumers must act on the `onsetCount` delta, never the one-hop `onsetDetected` bool**: FeatureBus is always-latest and analysis publishes at ~93.75 Hz, so a reader polling at its own cadence LOSES onsets below that rate (60 fps: ~40%) and DUPLICATES them above it (~118 fps rig: a second impulse into stateful sims). Use `OnsetPulse` (`src/features/OnsetPulse.h`) — ONE instance per bus-reader THREAD (main `Renderer`, `OutputRenderer`, `AudioReadoutPanel`), never per uploader: the main `Renderer` derives the pulse once per frame into `frameSnap_` (read BEFORE the nothing-to-render early return) and every uploader that frame (`CompositorEngine`, `EffectChain`, each `ProceduralSource` via `renderSource`) reads that copy — per-uploader state would race for the delta and starve every source clip after the first. REST pollers diff `/api/features.onsetCount`; `/api/status.renderOnsetPulses` (and `/api/state.onset_pulse_frames` in test mode) counts pulse frames — its delta equals the `onsetCount` delta. Test-mode injection resolves the injected `onsetCount` in ONE place, under `TestServer::injectSnapshot`'s lock (`InjectedOnsetCount`). `downbeatDetected` is NOT in this class -- it is a beat-long level (Pitfall 32).
+
+31. **Bodyless POST must be answered immediately**: cpp-httplib < v0.28.0 read an unframed request body (a POST with neither `Content-Length` nor `Transfer-Encoding`, e.g. a bare `curl -X POST`) until the 5 s server read timeout (`CPPHTTPLIB_SERVER_READ_TIMEOUT_SECOND`) before running the handler -- RFC 9112 §6.3 says such a request has a zero-length body. Fixed by bumping to v0.57.1 (upstream fix yhirose/cpp-httplib#2279, first released in v0.28.0). Guarded by `tests/test_httplib_bodyless_post.cpp`; do not downgrade below v0.28.0.
+
+32. **`downbeatDetected` is a beat-long LEVEL, not a pulse -- never read a true value as "a downbeat happened on this read"**: `BPMTracker` assigns `downbeatDetected_ = (beatCounter_ == 0)` only at beat events (`scoreBeat`, `advancePredictedBeat`, the initial lock) and never clears it per hop, so the flag is true for the whole first beat (300 ms-1 s) -- no 15-120 Hz reader can miss it and re-reading it is not duplication (s-rta-0925 lane re-derived this after three readers trusted the old "true on the hop where beat 1 lands" comment). "New bar" is its rising edge, which `BPMTracker::updatePhrase` already counts into `totalBarCount` (monotonic, never reset, published every hop, on `/api/bpm` next to the level). A consumer that wants one pulse per bar at ANY cadence -- including REST pollers slower than a beat, which DO lose rising edges -- diffs `totalBarCount` with `OnsetPulse` (a generic monotonic-counter delta), one instance per reader thread, exactly like `onsetCount`. Do not add a `downbeatCount` field: it would duplicate `totalBarCount`. Guards: `tests/test_downbeat_detector.cpp` `[level][cadence]`; live: `.harmony/probe-downbeat-level.sh`.
+
+33. **Effect/source-param rows are engine-driven: a UI tick never writes `paramValues`/`sourceParams[].value`**: `CompositorEngine`/`Renderer` read a connected effect/source param through `EffectSlot::effParam(i)`/`effDryWet()` and `SourceParam.live.effective(value)`, never the raw field, so a `ConnSource`-connected parameter renders its engine-published (`ConnectionEngine::tick`) value with RANGE/INVERT/curve honored. Append a param to an `EffectSlot` ONLY via `EffectSlot::addParam(v)` -- it keeps `paramValues`/`paramConns`/`paramLive` sized in lock-step so the lazy `resizeParams()` self-heal in `ConnectionEngine.cpp` stays a no-op; a bare `paramValues.push_back(v)` leaves `paramConns`/`paramLive` short, and `effParam()`'s self-guard (`i < paramLive.size()`) falls back to the manual value instead of indexing past the end, but the safety net is `addParam()`, not the guard. `EffectStackView`/`ClipInspector::tickModulation()` are DISPLAY-ONLY (push the effective value to the widget, gated on `pc.isVisible()` -- a cost-trap, not a correctness gate); they must never write back into the model. Before any structural edit that erases/reallocates the effects or sourceParams vector (row delete, rebuild, clip re-point), call `UniversalParamControl::forgetConnection()` on every bound control FIRST -- `bindConnection()`'s implicit unbind and `~UniversalParamControl()` both dereference the OLD connection to release an active grip, which is a use-after-free once that vector element is gone; `forgetConnection()` drops the pointer without touching it. (s-rta-0925 mastersignal Step 0.)
+
+34. **A JUCE `Component` is invisible by default (`componentFlags(0)` in its constructor), including one added via `addChildComponent()`**: only `addAndMakeVisible()` or an explicit `setVisible(true)` makes it visible. A headless widget test that checks a display-push gated on `isVisible()` must force the control visible itself (or drive the real expand/click path) -- it does NOT come visible "for free" just because the parent view was never given a size.
+
+---
