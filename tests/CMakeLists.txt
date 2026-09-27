@@ -1408,6 +1408,32 @@ endif()
 apply_sanitizers(test_routine_bank_model)
 catch_discover_tests(test_routine_bank_model)
 
+# --- test_topbar_model (s-rta-0926b plan3-final.md section 3, ITEM B, B.4): the TopBar's
+# one-line bar readout. Header-only src/ui/TopBarModel.h is a pure function bool, uint16_t ->
+# juce::String; juce_core only -- NEVER juce_gui_basics (no display context under ctest), same
+# posture as test_routine_bank_model above.
+add_executable(test_topbar_model test_topbar_model.cpp)
+target_include_directories(test_topbar_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_topbar_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_topbar_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_topbar_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_topbar_model)
+catch_discover_tests(test_topbar_model)
+
 # --- tool_routine_strip_snapshot (s-rta-0926 lane 3 SHOTS, plan-routines-s1-final.md section 7
 # LANE 3): a ctest-EXCLUDED headless snapshot tool -- deliberately never registered with
 # catch_discover_tests, so `ctest` never runs it and it never adds file I/O to the normal suite.
