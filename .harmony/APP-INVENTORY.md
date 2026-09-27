@@ -201,6 +201,12 @@ when unwired; `handleRoutineStatus` (row 41) is synchronous, reading only `Routi
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 28 endpoints -- recounted s-rta-0927 from `server_.Get/Post` in `setupRoutes`, incl. outputs-c1's `set_output_tap` + `output_probe`) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
+TEST-ONLY build path on the production port (not a counted row): `POST /api/debug/stall_message_thread
+{"ms":1..2000}` (s-rta-0927 beat clock) sleeps the MESSAGE thread once for `ms` -- the deterministic stall
+`.harmony/probe-beatclock.sh` and `probe-routines.sh` row 7s use. Compiled only with
+`AUDIODNA_BUILD_TEST_SERVER=ON` (`#if AUDIODNA_TEST_SERVER`, `ApiServer.cpp`); needs no `--test-mode`;
+a build without the flag 404s it.
+
 ### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 
 `startListening(8000)` is called unconditionally at startup (`MainComponent.cpp:1207-1211`,
