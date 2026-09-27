@@ -21,6 +21,7 @@
 #include "model/Deck.h"
 #include "model/Autopilot.h"
 #include "model/AutopilotBank.h"
+#include "output/SharedFrameSet.h"
 #include <mutex>
 #include <future>
 #include <unordered_map>
@@ -272,10 +273,11 @@ private:
     TextureManager texMgr_;
     EffectChain effectChain_;
     // THIS renderer's per-GL-context EffectChain state (uniform location
-    // cache + temporal prevFrame FBO). effectChain_ is shared by reference
-    // with the OutputWindow's renderer, whose unshared context owns its own
-    // copy of this state — see EffectChainGLState in EffectChain.h.
-    // Released in openGLContextClosing().
+    // cache + temporal prevFrame FBO) — see EffectChainGLState in
+    // EffectChain.h. This renderer is the chain's only GL consumer since
+    // s-rta-0927 outputs-c1 (the output window presents the shared canvas
+    // frames instead of re-rendering the chain). Released in
+    // openGLContextClosing().
     EffectChainGLState effectChainGLState_;
     EffectLibrary effectLibrary_;  // Persistent library for compositor per-clip effects
     MappingEngine mappingEngine_;
@@ -352,6 +354,16 @@ public:
     int getLockedWidth() const { return static_cast<int>(static_cast<uint32_t>(lockedSize_.load(std::memory_order_relaxed) >> 32)); }
     int getLockedHeight() const { return static_cast<int>(static_cast<uint32_t>(lockedSize_.load(std::memory_order_relaxed))); }
 
+    // s-rta-0927 outputs-c1 (plan5 slice C1): the output tap. While at least one output window is live (or the
+    // TEST-ONLY tap is forced on), every frame's final canvas is copied once into the shared IOSurface frames that
+    // each output window presents (output::SharedFrameSet). Zero cost when no output is live. The frames outlive the
+    // GL context (app lifetime): outputs keep the last frame while the preview is hidden. Thread-safe setters.
+    output::SharedFrameSet& getSharedFrames() { return sharedFrames_; }
+    void setLiveOutputCount(int n) { liveOutputs_.store(n, std::memory_order_relaxed); }
+    int getLiveOutputCount() const { return liveOutputs_.load(std::memory_order_relaxed); }
+    void setOutputTapForced(bool on) { outputTapForced_.store(on, std::memory_order_relaxed); }   // TEST-ONLY (8080)
+    bool isOutputTapForced() const { return outputTapForced_.load(std::memory_order_relaxed); }
+
     // Render frame time tracking
     float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
     // s-rta-0926b R1: the longest single frame (same CPU-side measure as
@@ -402,6 +414,13 @@ private:
     int candW_ = 0, candH_ = 0, stableW_ = 0, stableH_ = 0;
     // Draw the canvas into the window framebuffer inside `present` (box-filter downsample).
     void presentCanvas(GLuint windowFBO, const RenderGeometry::Rect& present);
+
+    // s-rta-0927 outputs-c1: the output tap (see getSharedFrames()). publishToOutputs() runs once per frame on the GL
+    // thread, after the last pass that writes the canvas and before presentCanvas; it restores canvasFBO_.
+    output::SharedFrameSet sharedFrames_;
+    std::atomic<int> liveOutputs_{ 0 };
+    std::atomic<bool> outputTapForced_{ false };
+    void publishToOutputs(int canvasW, int canvasH);
 
     // A-opt: GL_TIME_ELAPSED queries, two alternated per frame (see getGpuTimeMs()).
     GLuint gpuQueries_[2] = { 0, 0 };

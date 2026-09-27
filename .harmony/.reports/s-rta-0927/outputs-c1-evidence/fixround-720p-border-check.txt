@@ -1,0 +1,6 @@
+fixture imageB P16_02_Screen_Split_2x2.png 756x878: corner (15, 15, 15), frac==(15,15,15) 0.132; margin left 13px (1.72% of 756), top 15px (1.71% of 878)
+f0_render_frame.png 1920x1080: corner (0, 0, 0), frac==(15,15,15) 0.000, margin left 0px (0.00% of 1920), top 0px (0.00% of 1080), d(capture, imageB stretched to 1920x1080) 29.431
+fB_render_frame.png 1920x1080: corner (15, 15, 15), frac==(15,15,15) 0.129, margin left 32px (1.67% of 1920), top 18px (1.67% of 1080), d(capture, imageB stretched to 1920x1080) 0.009
+probe_after_B.png 1920x1080: corner (15, 15, 15), frac==(15,15,15) 0.129, margin left 32px (1.67% of 1920), top 18px (1.67% of 1080), d(capture, imageB stretched to 1920x1080) 0.009
+f720_render_frame.png 1280x720: corner (15, 15, 15), frac==(15,15,15) 0.128, margin left 21px (1.64% of 1280), top 12px (1.67% of 720), d(capture, imageB stretched to 1280x720) 0.029
+probe_1920x1080_of_720p.png 1920x1080: corner (15, 15, 15), frac==(15,15,15) 0.123, margin left 31px (1.61% of 1920), top 17px (1.57% of 1080), d(capture, imageB stretched to 1920x1080) 0.066

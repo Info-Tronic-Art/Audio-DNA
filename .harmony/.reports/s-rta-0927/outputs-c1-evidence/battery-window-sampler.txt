@@ -1,0 +1,1 @@
+window sampler 10:27:18..10:48:27: 2493 samples, Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1

@@ -1,0 +1,8 @@
+== test_output_law (final source) against main:src/ui/OutputWindow.{h,cpp}
+output law: never takes the keyboard -- no toFront(true)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_output_law.cpp:71: FAILED:
+output law: never takes the keyboard -- no setWantsKeyboardFocus(true)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_output_law.cpp:71: FAILED:
+output law: the peer carries windowIgnoresKeyPresses
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_output_law.cpp:109: FAILED:
+test cases: 10 |  7 passed | 3 failed

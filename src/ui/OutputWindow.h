@@ -1,114 +1,58 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_opengl/juce_opengl.h>
-#include "render/FullscreenQuad.h"
-#include "render/ShaderManager.h"
-#include "render/TextureManager.h"
-#include "effects/EffectChain.h"
-#include "mapping/MappingEngine.h"
-#include "features/FeatureBus.h"
-#include "features/OnsetPulse.h"
+#include "output/SharedFrameSet.h"
+#include "output/OutputPresenter.h"
 
-struct Composition;
-
-// OutputRenderer: renders the same effect chain as the primary Renderer
-// but in its own OpenGL context (for the output window/display).
+// OutputWindow: a borderless window covering one display that shows the COMPOSITION -- the main
+// Renderer's canvas, copied once per frame into shared IOSurface frames (output::SharedFrameSet), which
+// this window's own GL context presents letter/pillar-boxed (output::presentSharedFrame). No shader, no
+// effect chain, no GL object shared with any other context (s-rta-0927 outputs-c1 = plan5 slice C1,
+// .harmony/.reports/s-rta-0926b/plan5-final.md 8.3).
 //
-// Shares FeatureBus, MappingEngine, and EffectChain with the primary
-// Renderer — only GL-state objects (shaders, textures, FBOs, quad) are
-// owned independently.
-class OutputRenderer : public juce::OpenGLRenderer
-{
-public:
-    // composition: read-only, for the picture's shape (s-rta-0926b plan4 S7); may be nullptr.
-    OutputRenderer(const FeatureBus& featureBus,
-                   MappingEngine& mappingEngine,
-                   EffectChain& effectChain,
-                   const Composition* composition = nullptr);
-
-    void newOpenGLContextCreated() override;
-    void renderOpenGL() override;
-    void openGLContextClosing() override;
-
-    void attachTo(juce::Component& component);
-    void detach();
-
-    // Queue an image load (thread-safe)
-    void loadImage(const juce::File& imageFile);
-
-    // Queue a camera frame (thread-safe)
-    void queueCameraFrame(const juce::Image& frame);
-
-    juce::OpenGLContext& getContext() { return glContext_; }
-
-private:
-    void initShaders();
-
-    juce::OpenGLContext glContext_;
-    const FeatureBus& featureBus_;  // read-only (R5); kept for the queued OutputWindow arc
-    MappingEngine& mappingEngine_;
-    EffectChain& effectChain_;
-    // plan4 S7: the image is letterboxed inside a composition-shaped rect (outputWidth/outputHeight,
-    // plain-int reads on this GL thread -- the house class). Not owned.
-    const Composition* composition_ = nullptr;
-
-    // Own GL state
-    FullscreenQuad quad_;
-    ShaderManager shaderMgr_{glContext_};
-    TextureManager texMgr_;
-    // This context's own EffectChain state (uniform location cache +
-    // temporal prevFrame FBO) — the shared EffectChain carries no per-context
-    // GL state anymore (EffectChainGLState, EffectChain.h). Released in
-    // openGLContextClosing().
-    EffectChainGLState effectChainGLState_;
-
-    // Onset render-path fix: this context's own consumer of FeatureSnapshot::onsetCount
-    // (see OnsetPulse.h) -- a separate bus reader from the main Renderer, so it keeps its own
-    // baseline. GL-thread-owned (this context's render thread), no atomic needed.
-    OnsetPulse onsetPulse_;
-
-    double startTime_ = 0.0;
-
-    std::mutex pendingImageMutex_;
-    juce::File pendingImageFile_;
-    bool hasPendingImage_ = false;
-
-    // Camera frame queue
-    std::mutex cameraFrameMutex_;
-    juce::Image pendingCameraFrame_;
-    bool hasPendingCameraFrame_ = false;
-
-    // Remember the last loaded image so we can reload on GL context recreation
-    juce::File lastImageFile_;
-};
-
-// OutputWindow: a borderless fullscreen window for the VJ output display.
-// Can be placed on any connected monitor.
+// The screen-safety law (asserted in source by tests/test_output_law.cpp):
+//   - NORMAL window level: never always-on-top (that is the black-overlay-on-every-Space bug), never kiosk,
+//     never native fullscreen;
+//   - it can NEVER become the key window (ComponentPeer::windowIgnoresKeyPresses): the keyboard never
+//     leaves the app, even while this window covers it -- there is no key handling here at all;
+//   - bounds are set before it is shown.
 class OutputWindow : public juce::DocumentWindow
 {
 public:
-    OutputWindow(const FeatureBus& featureBus,
-                 MappingEngine& mappingEngine,
-                 EffectChain& effectChain,
-                 const Composition* composition = nullptr);
+    explicit OutputWindow(output::SharedFrameSet& frames);
     ~OutputWindow() override;
+
+    // The window's peer is created with windowIgnoresKeyPresses (plus DocumentWindow's own flags).
+    int getDesktopWindowStyleFlags() const override;
 
     void closeButtonPressed() override;
     void resized() override;
 
-    // Move window to the specified display and go fullscreen
-    void goFullscreenOnDisplay(const juce::Displays::Display& display);
+    // Cover `display` (its totalArea) and show the window, without taking focus.
+    void openOnDisplay(const juce::Displays::Display& display);
 
-    // Load the same image as the preview
-    void loadImage(const juce::File& imageFile);
+    // Stop this window's GL rendering (the shutdown law); idempotent. The destructor calls it too.
+    void detachGL();
 
-    // Access the renderer (for camera frames)
-    OutputRenderer& getRenderer() { return renderer_; }
-
-    // Keyboard handling — Escape closes
-    bool keyPressed(const juce::KeyPress& key) override;
+    // Asked to close (by the OS or a future UI): the owner destroys the window.
+    std::function<void()> onCloseRequested;
 
 private:
+    // Presents the shared frames: ONE blit per refresh of this window's display (display-link paced).
+    class Presenter : public juce::OpenGLRenderer
+    {
+    public:
+        Presenter(output::SharedFrameSet& frames, juce::OpenGLContext& context) : frames_(frames), context_(context) {}
+        void newOpenGLContextCreated() override;
+        void renderOpenGL() override;
+        void openGLContextClosing() override;
+
+    private:
+        output::SharedFrameSet& frames_;
+        juce::OpenGLContext& context_;
+        output::PresenterGLState state_;
+    };
+
     // The GL rendering surface
     class OutputComponent : public juce::Component
     {
@@ -121,7 +65,8 @@ private:
     };
 
     OutputComponent outputComponent_;
-    OutputRenderer renderer_;
+    juce::OpenGLContext glContext_;
+    Presenter presenter_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputWindow)
 };

@@ -1,0 +1,19 @@
+Sun Sep 27 11:18:59 EDT 2026
+[100%] Linking CXX executable test_output_law
+[100%] Built target test_output_law
+sha256 OutputWindow.cpp: abf52bd237719fac
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_output_law.cpp:145: FAILED:
+  CHECK( body.find("getStyleFlags()") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_output_law.cpp:146: FAILED:
+  CHECK( body.find("windowIgnoresKeyPresses") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_output_law.cpp:147: FAILED:
+  CHECK( body.find("addToDesktop(") != std::string::npos )
+with expansion:
+test cases: 1 | 1 failed
+assertions: 7 | 4 passed | 3 failed
+test cases: 11 | 10 passed | 1 failed
+assertions: 39 | 36 passed | 3 failed
+
+Sun Sep 27 11:19:01 EDT 2026

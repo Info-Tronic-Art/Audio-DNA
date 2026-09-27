@@ -1,0 +1,13 @@
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectEffects::test_rms_affects_effects FAILED
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[Bass] FAILED
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[Beat Phase] FAILED
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[RMS] PASSED
+tests/visual/test_effects.py::TestAllEffectParams::test_all_params_have_effect FAILED
+tests/visual/test_effects.py::TestAllEffectsRender::test_all_effects_non_black FAILED
+tests/visual/test_effects.py::TestEffectNotDestructive::test_no_destructive_effects PASSED
+tests/visual/test_performance.py::TestEffectPerformance::test_effect_render_time PASSED
+tests/visual/test_performance.py::TestSourcePerformance::test_source_render_time PASSED
+tests/visual/test_sources.py::TestAllSourceParams::test_all_params_have_effect FAILED
+tests/visual/test_sources.py::TestAllSourcesRender::test_all_sources_non_black FAILED
+tests/visual/test_sources.py::TestSourceParamSweep::test_no_discontinuities PASSED
+tests/visual/test_time_sweep.py::TestSourcesAnimateOverTime::test_sources_change_over_time FAILED

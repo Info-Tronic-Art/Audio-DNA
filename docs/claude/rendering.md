@@ -125,6 +125,8 @@ The fader only reaches signal→parameter connections (`ConnectionEngine`, `Macr
 
 **Preview/Output panel never reshapes the picture**: the canvas is the composition's size and shape (Composition inspector > Output Settings resolution: 16:9 / portrait / square / 4:3 presets, and "Custom (W x H)" for any other size, so the dropdown never names a size the canvas is not); the lower-left panel shows it letter/pillar-boxed at any window size, never stretched to the panel. A window/panel resize reallocates nothing.
 
+**The output tap (s-rta-0927 outputs-c1, Pitfall 40)**: while an output window is live, `Renderer::publishToOutputs` copies the final canvas once per frame into `output::SharedFrameSet` (4 IOSurface-backed slots): after the canvas's last writer (the deck transition, which runs after master opacity) and before `presentCanvas`, and on the two early paths after the canvas clear (an empty app publishes black). A slot is offered to the outputs only once its fence has completed (+1 frame of latency). Each output window's own context blits the newest offered slot, letterboxed (`RenderGeometry::fitCanvas`), once per refresh of its display (`output::presentSharedFrame`, swap interval 0). Zero cost when no output is live; the cost with one shows in `frame_time_ms` / `gpu_time_ms`. The outputs show exactly the canvas the panel shows (and `render_frame` captures); they keep the last frame while the preview is hidden.
+
 ---
 
 ### Per-clip Fit Mode (s-rta-0926b plan-fitmode)

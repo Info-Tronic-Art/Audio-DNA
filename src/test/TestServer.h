@@ -9,6 +9,7 @@
 #include <string>
 #include "features/FeatureBus.h"
 #include "features/OnsetPulse.h"
+#include "output/OutputPresenter.h"
 
 // Forward declarations
 class Renderer;
@@ -109,6 +110,14 @@ private:
     void handleGetCompositionParams(const httplib::Request& req, httplib::Response& res);
     void handleSetClipOpacity(const httplib::Request& req, httplib::Response& res);
 
+    // s-rta-0927 outputs-c1 (plan5-final.md 10.2): the output frame path, offscreen -- NO window ever.
+    // set_output_tap forces the main renderer's output tap; output_probe presents the newest shared frame through a
+    // private CGL context (created lazily, destroyed by destroyOutputProbe() from stop()/the destructor) with the same
+    // presentSharedFrame() the Output window uses, and writes the PNG a display would show.
+    void handleSetOutputTap(const httplib::Request& req, httplib::Response& res);
+    void handleOutputProbe(const httplib::Request& req, httplib::Response& res);
+    void destroyOutputProbe();
+
     // JSON helpers
     std::string jsonOk();
     std::string jsonError(const std::string& message);
@@ -125,6 +134,12 @@ private:
     SourceRegistry& sourceRegistry_;
     SignalRegistry& signalRegistry_;
     RoutingEngine& routingEngine_;
+
+    // output_probe: one private GL context (a CGLContextObj; void* keeps Apple GL headers out of this header) and its
+    // presenter state, used by one HTTP thread at a time under probeMutex_ (HTTP threads only, never a GL frame path).
+    std::mutex probeMutex_;
+    void* probeContext_ = nullptr;
+    output::PresenterGLState probeState_;
 
     int port_;
     httplib::Server server_;

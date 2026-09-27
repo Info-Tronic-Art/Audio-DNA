@@ -1786,3 +1786,26 @@ hand-written functions with no shared layout model.
   the wrong key; a stub harness drove another lane's app).
 - Timing probes: after any change that makes captures slower (canvas-sized readback), expect edge flakes in rows whose
   windows end at the next scheduled event; give windows >= 0.1 s margin.
+
+## 2026-09-27 s-rta-0927 outputs-c1: the Output window is screen-safe to TEST without ever opening it
+**Files:** src/output/{SharedFrameSet.h,SharedFrameSet.cpp,SurfacePool.cpp,OutputPresenter.*}, src/ui/OutputWindow.*, src/test/TestServer.cpp, tests/test_{surface_pool,shared_frame_gl,output_law}.cpp, .harmony/probe-outputs.*
+**Note:**
+- The whole output frame path is testable with NO window: a private CGL context (`CGLChoosePixelFormat` GL4 core +
+  `CGLCreateContext(pf, nullptr, ...)`, no drawable, FBO only) works on any thread; `juce::gl::loadFunctions()` is
+  dlsym-based and needs no JUCE context. The ctest uses three such contexts on one thread; the app's 8080
+  `/api/output_probe` uses one on the HTTP thread (serialised by a mutex -- httplib's pool may run each request on a
+  different thread; `CGLSetCurrentContext(nullptr)` after every use).
+- A window LAW that cannot be exercised live goes into a source-reading ctest (`test_output_law`: comments/literals
+  stripped, whitespace removed, tokens + "setBounds before setVisible" per function). Prove each guard on a mutated COPY
+  compiled with `-DAUDIODNA_SRC_DIR=<scratch>` -- the binary reads the files at run time, so one build serves all mutants.
+- macOS `pgrep -x clang++` is an INVALID regex (error, empty stdout): a "wait until no compiler" loop built on it
+  never sees clang++. Use `pgrep -x 'clang\+\+'` (probe-outputs.py does; probe-canvas.py still has the bare form).
+- After outputs-c1, `MainComponent::currentImageFile_` has no reader (the plan assumed `deck.imageFile = ...`, but
+  plan6 01ad154 removed that): write-only, left in place.
+- Pitfall 40 is this lane's number. If a lane merged before it also added a Pitfall 40, renumber THIS lane's on merge:
+  the CLAUDE.md index line, `docs/claude/pitfalls.md`, and the "Pitfall 40" mentions in `docs/claude/integration.md` and
+  `docs/claude/rendering.md` (plan5 drift D15).
+- Probe fixture `media/P16_02_Screen_Split_2x2.png` (B in probe-outputs / probe-canvas) is ITSELF a 2x2 grid of four
+  copies on a (15,15,15) frame. A capture of B looks like a tiling bug with a grey border at every canvas size; compare
+  a B frame only with a B reference (a 720p B frame compared with the 1080p A frame read as a false Pitfall-37 MUST).
+- Valid while: these files exist and the Output window stays IOSurface-based.

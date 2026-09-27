@@ -252,7 +252,7 @@ AudioDNA/
 │       ├── DeckView, LayerStrip, ClipCell           # Resolume-style layer × column deck grid
 │       ├── InspectorPanel + Clip/Layer/Composition/Signal Inspector  # 4-tab inspector
 │       ├── BrowserPanel + Files/FX/Sources/CompDecks/MilkDrop browsers + RecordPanel  # Browser tabs
-│       ├── PreviewPanel, OutputWindow               # Center preview + fullscreen/secondary-display output
+│       ├── PreviewPanel, OutputWindow               # Center preview + the Output window (presents the shared canvas frames, never key)
 │       ├── EffectsRackPanel, EffectStackView, UniversalParamControl, Knob, MacroPanel, MappingEditor  # FX + param controls
 │       ├── BindingOverlay, MidiLearnOverlay           # Bind-mode + MIDI-learn overlays (ProgrammingMode removed Wave 0)
 │       ├── AudioReadoutPanel, WaveformDisplay, SpectrumDisplay, TimingWindow  # Audio readouts

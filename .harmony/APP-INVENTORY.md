@@ -46,7 +46,7 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 |---|---|---|---|
 | Main window (`Main.cpp:40`) | App launch; maximized to primary display, resizable 1280×720–3840×2160 | Hosts all main-window panels; global keyboard shortcuts; Finder file-drop target | yes |
 | Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state). Undo/Redo LIVE + dynamic (Undo v1 COMPLETE steps 1-9, 2026-07-19→25): "Undo <desc>"/"Redo <desc>" text, enable state tracks stacks, rebuilds via onHistoryChanged | yes |
-| OutputWindow (`src/ui/OutputWindow.h:69`) | Output menu → Fullscreen:display / TopBar output combo / Cmd+F | Borderless always-on-top render on a chosen display; Escape closes; no on-surface controls | yes |
+| OutputWindow (`src/ui/OutputWindow.h`) | Output menu → Fullscreen:display / TopBar output combo / Cmd+F | Borderless window at NORMAL level on a chosen display, never key (`windowIgnoresKeyPresses`); presents the composition canvas (shared IOSurface frames, letterboxed) -- s-rta-0927 outputs-c1; Escape (in the app) closes; no on-surface controls | yes |
 | PreferencesDialog (`PreferencesDialog.h:8`) | Audio-DNA menu → Preferences / About; modal, 3 tabs | See Prefs tab rows below | yes |
 
 ### Main-window panels (v2)
@@ -198,7 +198,7 @@ Both mutate via `juce::MessageManager::callAsync` to the message thread. The 5 m
 when unwired; `handleRoutineStatus` (row 41) is synchronous, reading only `RoutineEngine::status()`
 (a mutex-guarded copy, safe from any thread) -- never the composition's routine vectors.
 
-Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 17 endpoints) is gated by
+Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 28 endpoints -- recounted s-rta-0927 from `server_.Get/Post` in `setupRoutes`, incl. outputs-c1's `set_output_tap` + `output_probe`) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
 ### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
@@ -338,5 +338,5 @@ Source: lane-5 §3.
 | 48kHz hardcode | RESOLVED 2026-09-24 (s-rta-0924, R13) — the runtime guard/warning is deleted; the analysis thread now resamples any device rate to its fixed internal 48 kHz (`AnalysisResampler`, bit-identical bypass at 48 kHz); `SpectralFeatures` gates bands/stats to the device bandwidth (`bandValidMask`); `FeatureSnapshot::sourceSampleRate` publishes the device rate fed in. `kSampleRate=48000` + K-weighting coeffs still assume 48 kHz BY DESIGN — that is the fixed internal rate everything resamples to, not an unaddressed gap | AnalysisResampler.h/.cpp; AnalysisThread.h:49 (comment), :94 (resampler_); SpectralFeatures.h (setInputBandwidthHz/bandValidMask); FeatureSnapshot.h:93-94; MainComponent.h (analysisThread_ ctor); MainComponent.cpp (startup log line, no guard) |
 | Dual mapping engines | RISK — MappingEngine (resets-then-accumulates) and RoutingEngine both write the same params every frame; order undefined | Renderer.cpp:198, :210 |
 | Only Global MacroBank | GAP — 3-scope enum but only Global instantiated → 8 live macros, not 24 | MainComponent.h:207 |
-| OutputWindow shader table | DUP/LAG — OutputRenderer keeps a separate ~80-shader compile table that can lag the main Renderer's 275 | OutputWindow.cpp:157,164-210 |
+| OutputWindow shader table | RESOLVED (s-rta-0927 outputs-c1) — `OutputRenderer` and its ~80-shader table are deleted; the window compiles no programs and presents the main canvas | — |
 | Waveform snapshot torn read | FIXED 2026-07-17 (Wave 1-D) — replaced count-release + plain-memcpy with a seqlock (reader retries on version change → strictly torn-read-free; a plain double buffer was tried first but the torn-read stress test showed it still tears when the writer laps the reader). Threaded regression test added | AnalysisThread.cpp:337 (writer), :365 (reader); tests/test_waveform_snapshot.cpp |

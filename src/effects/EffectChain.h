@@ -12,13 +12,15 @@
 #include <mutex>
 
 // Per-GL-context render state for EffectChain (scout-outputwindow-glcrash.md
-// R1/R3; .harmony/specs/outputwindow-arc-design.md W1). The EffectChain is
+// R1/R3; .harmony/specs/outputwindow-arc-design.md W1). The EffectChain was
 // SHARED by reference between the main Renderer and the OutputWindow's
 // OutputRenderer, whose GL contexts are UNSHARED — GL object names and
-// program IDs from one context are meaningless in the other. Everything
-// per-context therefore lives here, owned by each renderer alongside the
-// ShaderManager/TextureManager/quad it already owns, and passed into
-// render() by reference:
+// program IDs from one context are meaningless in the other. Since s-rta-0927
+// outputs-c1 the main Renderer is the only consumer (the output window
+// presents the shared canvas frames); the split stays correct for any future
+// second context. Everything per-context lives here, owned by the renderer
+// alongside the ShaderManager/TextureManager/quad it already owns, and passed
+// into render() by reference:
 //   - uniformLocationCache: program-ID-keyed uniform locations. Program IDs
 //     are only unique within one context's share group, so a cache shared
 //     across contexts returns locations for the WRONG program (silent
@@ -141,11 +143,10 @@ private:
     // DEFERRED BOUNDARY (2026-07-30 review advisory; updated 2026-08-02 —
     // second GL thread): effectsMutex_ guards the CONTAINER only — it does
     // NOT guard the CONTENTS each Effect* points to. Effect::enabled_ and
-    // EffectParam::value (Effect.h) are read every frame on BOTH GL threads
-    // now — the main Renderer's (EffectChain::render(), uniform upload) and
-    // OutputWindow's second OpenGLContext, which shares this EffectChain by
-    // reference (ctor + attachTo, OutputWindow.cpp:11-27) and calls render()
-    // on its own GL thread (OutputWindow.cpp:151) — with zero synchronization
+    // EffectParam::value (Effect.h) are read every frame on the GL thread —
+    // the main Renderer's (EffectChain::render(), uniform upload); the
+    // OutputWindow's second reader was retired in s-rta-0927 outputs-c1 (it
+    // presents the shared canvas frames and never renders this chain) — with zero synchronization
     // against ANY writer: message-thread UI (EffectsRackPanel toggle/knob
     // callbacks), HTTP writes (ApiServer/TestServer set_param/
     // set_effect_chain, now marshalled to the message thread but still

@@ -1,0 +1,17 @@
+LOCK: acquired 10:56:59 (outputs-c1 11835 1790521019)
+pre-lock compilers: '' (10:56:59, load averages: 5.10 4.87 4.65)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/runs/outputs.R5vpVO
+      o_tap_cost: load avg 4.85 4.82 4.64
+REPORT o_tap_cost 1920x1080: tap off frame_time_ms 1.107 peak 9.00 gpu_time_ms 0.974 fps 103.6 | tap on frame_time_ms 1.534 peak 9.53 gpu_time_ms 1.285 fps 93.9 | delta cpu +0.427 ms gpu +0.311 ms (load avg 4.74 4.80 4.63)
+REPORT o_tap_cost 3840x2160: tap off frame_time_ms 1.409 peak 9.80 gpu_time_ms 5.446 fps 103.2 | tap on frame_time_ms 1.478 peak 8.84 gpu_time_ms 5.509 fps 112.1 | delta cpu +0.069 ms gpu +0.063 ms (load avg 4.44 4.73 4.61)
+PASS  o_no_window_opened: 116 Quartz samples over the run: Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1 (<= 1 = the main window); window names readable: ['Audio-DNA']
+
+PY 1 PASS / 0 FAIL
+PASS  no foreign render_frame / output_probe traffic during the run
+      main window (Quartz id 4355) -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/runs/outputs.R5vpVO/main-window.png
+PASS  app terminated
+PASS  after quit: 0 Audio-DNA windows in the FULL Quartz window list (no output window survives)
+
+PROBE-OUTPUTS GREEN
+LOCK: released 10:57:36

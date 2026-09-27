@@ -13,8 +13,13 @@
 #include "mapping/MappingEngine.h"
 #include "model/Clip.h"
 #include "effects/EffectLibrary.h"
+#include "output/OutputPresenter.h"
 #include <juce_core/juce_core.h>
+#if JUCE_MAC
+ #include <OpenGL/OpenGL.h>   // after juce_gl.h (via Renderer.h): the output probe's private CGL context
+#endif
 #include <iostream>
+#include <vector>
 
 TestServer::TestServer(Renderer& renderer,
                        FeatureBus::Writer featureBusWriter,
@@ -39,6 +44,7 @@ TestServer::TestServer(Renderer& renderer,
 TestServer::~TestServer()
 {
     stop();
+    destroyOutputProbe();
 }
 
 void TestServer::injectSnapshot(const FeatureSnapshot& snap, const InjectedOnsetCount& onsetIntent)
@@ -87,6 +93,9 @@ void TestServer::stop()
     if (serverThread_.joinable())
         serverThread_.join();
     running_.store(false, std::memory_order_relaxed);
+    // s-rta-0927 outputs-c1: no HTTP thread can use the probe context any more; it goes before the renderer's
+    // detach (MainComponent's shutdown law), and the shared frames it read outlive it.
+    destroyOutputProbe();
     std::cerr << "[Eyes] HTTP server stopped" << std::endl;
 }
 
@@ -221,6 +230,16 @@ void TestServer::setupRoutes()
 
     server_.Post("/api/set_clip_opacity", [this](const httplib::Request& req, httplib::Response& res) {
         handleSetClipOpacity(req, res);
+    });
+
+    // s-rta-0927 outputs-c1 (plan5-final.md 10.2): the output frame path, offscreen. Test mode only (this server);
+    // the production ApiServer (7070) never registers them. No route here ever opens a window.
+    server_.Post("/api/set_output_tap", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetOutputTap(req, res);
+    });
+
+    server_.Post("/api/output_probe", [this](const httplib::Request& req, httplib::Response& res) {
+        handleOutputProbe(req, res);
     });
 }
 
@@ -606,6 +625,20 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
     obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
+    // s-rta-0927 outputs-c1: the output frame path (additive). live = output windows open; tap = the TEST-ONLY
+    // forced tap; frame_* = the newest completed shared frame (gen 0 = nothing published). Same fields as ApiServer.
+    {
+        auto& frames = renderer_.getSharedFrames();
+        const output::FrontFrame front = frames.front();
+        auto* outputs = new juce::DynamicObject();
+        outputs->setProperty("live", renderer_.getLiveOutputCount());
+        outputs->setProperty("tap", renderer_.isOutputTapForced());
+        outputs->setProperty("frame_gen", static_cast<juce::int64>(front.gen));
+        outputs->setProperty("frame_serial", static_cast<juce::int64>(front.serial));
+        outputs->setProperty("canvas_w", frames.frontWidth());
+        outputs->setProperty("canvas_h", frames.frontHeight());
+        obj->setProperty("outputs", juce::var(outputs));
+    }
 
     // Effects state
     juce::Array<juce::var> effectsArr;
@@ -1568,6 +1601,173 @@ void TestServer::handleLoadMilkDropPreset(const httplib::Request& req, httplib::
     {
         res.set_content(jsonError("projectM not available"), "application/json");
     }
+}
+
+// ---- s-rta-0927 outputs-c1 (plan5 slice C1, plan5-final.md 10.2): the output frame path, offscreen ----
+// set_output_tap forces the main renderer's output tap on without any window (exactly as for a live output);
+// output_probe presents the newest shared frame through a PRIVATE CGL context -- no window, no drawable -- with the
+// same presentSharedFrame() the Output window uses, and writes what a display would show as a PNG. The probe runs on
+// an HTTP thread in its own context (a harder path than production, where both sides share JUCE's one GL thread).
+
+void TestServer::handleSetOutputTap(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    auto* obj = parsed.getDynamicObject();
+    if (obj == nullptr || !obj->hasProperty("enabled"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'enabled' field"), "application/json");
+        return;
+    }
+    const bool enabled = static_cast<bool>(obj->getProperty("enabled"));
+    renderer_.setOutputTapForced(enabled);
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("tap", enabled);
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
+
+void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    auto* obj = parsed.getDynamicObject();
+    if (obj == nullptr || !obj->hasProperty("output_path") || !obj->hasProperty("width") || !obj->hasProperty("height"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'width', 'height' or 'output_path'"), "application/json");
+        return;
+    }
+    const int w = static_cast<int>(obj->getProperty("width"));
+    const int h = static_cast<int>(obj->getProperty("height"));
+    const juce::File outFile(obj->getProperty("output_path").toString());
+    if (w <= 0 || h <= 0 || w > 8192 || h > 8192)
+    {
+        res.status = 400;
+        res.set_content(jsonError("width/height must be 1..8192"), "application/json");
+        return;
+    }
+
+#if JUCE_MAC
+    using namespace juce::gl;
+    std::lock_guard<std::mutex> lock(probeMutex_);   // one probe at a time: one private context, any HTTP thread
+    if (probeContext_ == nullptr)
+    {
+        CGLPixelFormatAttribute attrs[] = { kCGLPFAOpenGLProfile,
+                                            static_cast<CGLPixelFormatAttribute>(kCGLOGLPVersion_GL4_Core),
+                                            static_cast<CGLPixelFormatAttribute>(0) };
+        CGLPixelFormatObj pf = nullptr;
+        GLint n = 0;
+        CGLContextObj ctx = nullptr;
+        if (CGLChoosePixelFormat(attrs, &pf, &n) == kCGLNoError && pf != nullptr)
+        {
+            CGLCreateContext(pf, nullptr, &ctx);   // shares nothing with any other context
+            CGLReleasePixelFormat(pf);
+        }
+        if (ctx == nullptr)
+        {
+            res.status = 500;
+            res.set_content(jsonError("cannot create the probe's private GL context"), "application/json");
+            return;
+        }
+        probeContext_ = ctx;
+    }
+
+    CGLSetCurrentContext(static_cast<CGLContextObj>(probeContext_));
+    if (juce::gl::glBlitFramebuffer == nullptr)
+        juce::gl::loadFunctions();   // normally already loaded by the main context (dlsym-based, context-free)
+
+    GLuint tex = 0, fbo = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+
+    auto& frames = renderer_.getSharedFrames();
+    const bool presented = output::presentSharedFrame(frames, probeState_, fbo, w, h);
+    const output::FrontFrame front = frames.front();
+    std::vector<uint8_t> pixels(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
+    if (presented)
+    {
+        glFinish();
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+        glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &fbo);
+    glDeleteTextures(1, &tex);
+    const int canvasW = probeState_.w, canvasH = probeState_.h;
+    const uint32_t gen = probeState_.boundGen;
+    CGLSetCurrentContext(nullptr);
+
+    if (!presented)
+    {
+        res.status = 409;
+        res.set_content(jsonError("nothing published yet (no live output and the tap is off)"), "application/json");
+        return;
+    }
+
+    // What the display shows: the window blits with blending off, so displayed RGB = canvas RGB; alpha forced
+    // to 255. Vertical flip: GL rows are bottom-up.
+    juce::Image img(juce::Image::ARGB, w, h, false);
+    {
+        juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
+        for (int y = 0; y < h; ++y)
+        {
+            const auto* row = pixels.data() + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
+            for (int x = 0; x < w; ++x)
+                bmp.setPixelColour(x, y, juce::Colour(row[x * 4], row[x * 4 + 1], row[x * 4 + 2], static_cast<uint8_t>(255)));
+        }
+    }
+    outFile.getParentDirectory().createDirectory();
+    outFile.deleteFile();
+    bool ok = false;
+    {
+        juce::FileOutputStream fos(outFile);
+        if (fos.openedOk())
+            ok = juce::PNGImageFormat().writeImageToStream(img, fos);
+    }
+    if (!ok)
+    {
+        res.status = 500;
+        res.set_content(jsonError("cannot write " + outFile.getFullPathName().toStdString()), "application/json");
+        return;
+    }
+    std::cerr << "[Eyes] Output probe: " << outFile.getFullPathName() << " (" << w << "x" << h << ", gen " << gen
+              << " serial " << front.serial << ")" << std::endl;
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("path", outFile.getFullPathName());
+    result->setProperty("width", w);
+    result->setProperty("height", h);
+    result->setProperty("gen", static_cast<juce::int64>(gen));
+    result->setProperty("serial", static_cast<juce::int64>(front.serial));
+    result->setProperty("slot", front.slot);
+    result->setProperty("canvas_w", canvasW);
+    result->setProperty("canvas_h", canvasH);
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+#else
+    juce::ignoreUnused(w, h, outFile);
+    res.status = 501;
+    res.set_content(jsonError("output_probe is macOS-only"), "application/json");
+#endif
+}
+
+void TestServer::destroyOutputProbe()
+{
+#if JUCE_MAC
+    std::lock_guard<std::mutex> lock(probeMutex_);
+    if (probeContext_ == nullptr)
+        return;
+    CGLSetCurrentContext(static_cast<CGLContextObj>(probeContext_));
+    probeState_.release();
+    CGLSetCurrentContext(nullptr);
+    CGLDestroyContext(static_cast<CGLContextObj>(probeContext_));
+    probeContext_ = nullptr;
+#endif
 }
 
 #endif // AUDIODNA_TEST_SERVER

@@ -2048,3 +2048,63 @@ target_compile_definitions(test_canvas_size_combo PRIVATE
 )
 apply_sanitizers(test_canvas_size_combo)
 catch_discover_tests(test_canvas_size_combo)
+
+# --- s-rta-0927 outputs-c1 (plan5 slice C1, .harmony/.reports/s-rta-0926b/plan5-final.md 10.1): the output
+# frame path. macOS only (IOSurface), like syphon-check above.
+if(APPLE)
+    # test_surface_pool: the IOSurface half of output::SharedFrameSet, headless -- NO GL.
+    add_executable(test_surface_pool
+        test_surface_pool.cpp
+        ${SRC_DIR}/output/SurfacePool.cpp
+    )
+    target_include_directories(test_surface_pool PRIVATE ${SRC_DIR})
+    target_link_libraries(test_surface_pool PRIVATE
+        Catch2::Catch2WithMain
+        "-framework IOSurface"
+        "-framework CoreFoundation"
+    )
+    apply_sanitizers(test_surface_pool)
+    catch_discover_tests(test_surface_pool)
+
+    # test_shared_frame_gl: THE OFFSCREEN GATE -- the real publish/present path across three private CGL contexts
+    # (writer + two readers), no window. SKIPs loudly on a machine without a GL pixel format.
+    add_executable(test_shared_frame_gl
+        test_shared_frame_gl.cpp
+        ${SRC_DIR}/output/SurfacePool.cpp
+        ${SRC_DIR}/output/SharedFrameSet.cpp
+        ${SRC_DIR}/output/OutputPresenter.cpp
+    )
+    target_include_directories(test_shared_frame_gl PRIVATE ${SRC_DIR})
+    target_link_libraries(test_shared_frame_gl PRIVATE
+        Catch2::Catch2WithMain
+        juce::juce_core
+        juce::juce_opengl
+        "-framework OpenGL"
+        "-framework IOSurface"
+        "-framework CoreFoundation"
+    )
+    target_compile_definitions(test_shared_frame_gl PRIVATE
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+        GL_SILENCE_DEPRECATION
+    )
+    if(NOT MSVC)
+        target_compile_options(test_shared_frame_gl PRIVATE
+            -Wno-old-style-cast
+            -Wno-conversion
+            -Wno-sign-conversion
+        )
+    endif()
+    apply_sanitizers(test_shared_frame_gl)
+    catch_discover_tests(test_shared_frame_gl)
+endif()
+
+# --- test_output_law (s-rta-0927 outputs-c1, plan5-final.md 10.1): the output window's screen-safety law asserted in
+# its SOURCE (no gate may ever open the window): normal level, never key (windowIgnoresKeyPresses), bounds before
+# visible. Reads src/ui/OutputWindow.{h,cpp} at test time; comments and literals stripped.
+add_executable(test_output_law test_output_law.cpp)
+target_link_libraries(test_output_law PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_output_law PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_output_law)
+catch_discover_tests(test_output_law)

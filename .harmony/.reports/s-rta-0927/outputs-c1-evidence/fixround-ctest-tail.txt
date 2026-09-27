@@ -1,0 +1,5 @@
+ctest (serial, full) at 79b4410, 1385 lines of output
+
+100% tests passed, 0 tests failed out of 691
+
+Total Test time (real) =  13.31 sec

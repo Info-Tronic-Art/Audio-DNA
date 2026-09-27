@@ -358,7 +358,7 @@ private:
     juce::Label outputLabel_;
     juce::ComboBox displaySelector_;
     std::unique_ptr<OutputWindow> outputWindow_;
-    juce::File currentImageFile_;  // Track loaded image for output window
+    juce::File currentImageFile_;  // The loaded legacy image. No reader since s-rta-0927 outputs-c1 (the output window presents the canvas)
 
     // Audio source selector
     juce::ComboBox audioSourceSelector_;
