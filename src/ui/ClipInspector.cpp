@@ -407,8 +407,10 @@ ClipInspector::ClipInspector()
     rotationControl_.onValueChanged = [this](float v) { if (clip_) clip_->rotation = (v - 0.5f) * 720.0f; };
     anchorControl_.onValueChanged = [this](float v) { if (clip_) clip_->anchorX = (v - 0.5f) * 3840.0f; };
 
-    // s-rta-0926b plan-fitmode: how the picture meets the composition. A combo (like Alpha Type), so no
-    // right-click reset; a direct model write with no undo, like every other per-clip field here.
+    // s-rta-0926b plan-fitmode: how the picture meets the composition. A combo, so no right-click reset; a
+    // direct model write with no undo, like every other per-clip field here. Unlike Alpha Type's self-describing
+    // values, "Stretch / Bars / Crop" need a name, so the row keeps its "Fit" label (a deliberate choice, fix
+    // round), and a caption under it says what the selected mode does (so "Bars" never reads as a tempo bar).
     fitLabel_.setText("Fit", juce::dontSendNotification);
     fitLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextPrimary));
     fitLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
@@ -421,9 +423,15 @@ ClipInspector::ClipInspector()
                             "procedural sources -- they draw at the composition's size.");
     fitSelector_.onChange = [this] {
         if (clip_) clip_->fitMode = ClipFit::clampMode(fitSelector_.getSelectedId() - 1);
+        updateFitCaption();
     };
+    fitCaption_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    fitCaption_.setFont(juce::Font(juce::FontOptions(10.5f)));
+    fitCaption_.setInterceptsMouseClicks(false, false);
+    updateFitCaption();
     addAndMakeVisible(fitLabel_);
     addAndMakeVisible(fitSelector_);
+    addAndMakeVisible(fitCaption_);
 
     // --- Effects ---
     addAndMakeVisible(effectStackView_);
@@ -553,7 +561,7 @@ void ClipInspector::paint(juce::Graphics& g)
     y += kSectionHeaderHeight + clipOpacityControl_.getPreferredHeight() + kRowHeight * 4 + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transform", true);
-    int transformH = kRowHeight + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
+    int transformH = kRowHeight + kFitCaptionHeight + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
                    + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
                    + anchorControl_.getPreferredHeight();
     y += kSectionHeaderHeight + transformH + kSectionGap;
@@ -761,6 +769,8 @@ void ClipInspector::resized()
         fitLabel_.setBounds(row.removeFromLeft(34));
         fitSelector_.setBounds(row);
         y += kRowHeight;
+        fitCaption_.setBounds(area.getX() + 34, y, area.getWidth() - 34, kFitCaptionHeight);
+        y += kFitCaptionHeight;
     }
     posXControl_.setBounds(area.getX(), y, area.getWidth(), posXControl_.getPreferredHeight()); y += posXControl_.getPreferredHeight();
     posYControl_.setBounds(area.getX(), y, area.getWidth(), posYControl_.getPreferredHeight()); y += posYControl_.getPreferredHeight();
@@ -969,6 +979,21 @@ void ClipInspector::refresh()
     repaint();
 }
 
+void ClipInspector::updateFitCaption()
+{
+    // s-rta-0926b canvas fix round: what the selected Fit does, in words (the tooltip is hover-only).
+    juce::String text;
+    if (!fitSelector_.isEnabled())
+        text = "Sources draw at the composition's size.";
+    else switch (fitSelector_.getSelectedId())
+    {
+        case 2:  text = "Letterbox: keeps the picture's shape; the layer below shows beside it."; break;
+        case 3:  text = "Fills the frame at the picture's shape; the edges are cut."; break;
+        default: text = "Fills the frame; the picture's shape may change."; break;
+    }
+    fitCaption_.setText(text, juce::dontSendNotification);
+}
+
 int ClipInspector::getPreferredHeight() const
 {
     // Dashboard (macroPanel_) is always live, even with no clip selected (it's the single Global MacroBank,
@@ -1002,7 +1027,7 @@ int ClipInspector::getPreferredHeight() const
     }
 
     h += kSectionHeaderHeight + clipOpacityControl_.getPreferredHeight() + kRowHeight * 4 + kSectionGap; // Video
-    h += kSectionHeaderHeight + kRowHeight + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
+    h += kSectionHeaderHeight + kRowHeight + kFitCaptionHeight + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
        + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
        + anchorControl_.getPreferredHeight() + kSectionGap; // Transform
     h += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + 8; // Effects
@@ -1306,6 +1331,8 @@ void ClipInspector::syncFromClip()
                          || clip_->mediaType == Clip::MediaType::ImageSequence;
     fitSelector_.setEnabled(fitApplies);
     fitLabel_.setEnabled(fitApplies);
+    fitCaption_.setEnabled(fitApplies);
+    updateFitCaption();
     syncScalar(posXControl_, ClipScalar::PosX, clip_->positionX / 3840.0f + 0.5f);
     syncScalar(posYControl_, ClipScalar::PosY, clip_->positionY / 2160.0f + 0.5f);
     syncScalar(scaleControl_, ClipScalar::Scale, std::log2(std::max(0.01f, clip_->scale)) / 2.0f + 0.5f);
