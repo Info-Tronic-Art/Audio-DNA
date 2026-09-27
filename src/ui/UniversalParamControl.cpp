@@ -225,9 +225,10 @@ void UniversalParamControl::paint(juce::Graphics& g)
     // control (s-rta-0927), the word ROUTINE in the same slot (the engine publishes no signal value then).
     if ((isConnected() || routineHand) && !expanded_)
     {
-        // Draw tiny source label above the slider area
-        g.setColour(juce::Colour(routineHand ? AudioDNALookAndFeel::kRoutineCue
-                                             : AudioDNALookAndFeel::kAccentCyan).withAlpha(0.5f));
+        // Draw tiny source label above the slider area. ROUTINE is the cue at full strength (fix round 2: at 50 %
+        // alpha it read 4.5:1 on the inspector's #1a1a1a; full kRoutineCue is ~14:1, past the 7:1 AAA line).
+        g.setColour(routineHand ? juce::Colour(AudioDNALookAndFeel::kRoutineCue)
+                                : juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.5f));
         g.setFont(juce::Font(juce::FontOptions(8.0f)));
         auto hintBounds = getLocalBounds().toFloat();
         hintBounds = hintBounds.removeFromTop(10.0f);

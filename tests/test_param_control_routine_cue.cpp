@@ -5,6 +5,7 @@
 // Headless JUCE widgets under ScopedJuceInitialiser_GUI; the control is rendered with createComponentSnapshot and
 // its pixels decoded (the test_topbar_link_toggle method) -- cue vs no-cue, never a hard-coded pixel colour alone.
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/UniversalParamControl.h"
 #include "ui/LookAndFeel.h"
@@ -55,6 +56,52 @@ namespace
                     ++n;
             }
         return n;
+    }
+
+    // s-rta-0927 fix round 2 (graphic-design critic): WCAG relative luminance and the brightest pixel's contrast in
+    // `area` against `bg` -- the peak-sample method the critic measured the hint with (4.54:1 at 50 % alpha).
+    double relLum(juce::Colour c)
+    {
+        const auto ch = [](juce::uint8 v) {
+            const double s = v / 255.0;
+            return s <= 0.04045 ? s / 12.92 : std::pow((s + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * ch(c.getRed()) + 0.7152 * ch(c.getGreen()) + 0.0722 * ch(c.getBlue());
+    }
+    double peakContrast(const juce::Image& img, juce::Rectangle<int> area, juce::Colour bg, juce::Colour& peak)
+    {
+        double best = 0.0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                if (const auto c = img.getPixelAt(x, y); relLum(c) > best)
+                {
+                    best = relLum(c);
+                    peak = c;
+                }
+        return (best + 0.05) / (relLum(bg) + 0.05);
+    }
+    // The control's OWN paint() (the triangle, name, digits and hint -- no child slider or buttons, whose thumb in
+    // the cue colour would otherwise sit in the hint slot's pixels) on the Layer inspector's own background
+    // (LayerInspector::paint fills #1a1a1a), under a routine's (lane-rank) hand.
+    juce::Image paintOnPanel(ParamConnection& conn, LiveValue& live, juce::Colour bg)
+    {
+        UniversalParamControl c;
+        c.setParamName("Opacity");
+        c.setSize(260, 24);
+        c.setVisible(true);   // Pitfall 34
+        c.bindConnection(&conn, &live);
+        conn.grip.kind = ParamConnection::Grip::Kind::Held;
+        conn.grip.rank = static_cast<uint8_t>(Hand::Lane);
+        c.setParamValue(0.62f);
+        juce::Image out(juce::Image::ARGB, 260, 24, true);
+        {
+            juce::Graphics g(out);
+            g.fillAll(bg);
+            c.paint(g);
+        }
+        conn.grip.kind = ParamConnection::Grip::Kind::None;
+        conn.grip.rank = 0;
+        return out;
     }
 
     juce::Image render(ParamConnection& conn, LiveValue& live, uint8_t rank, ParamConnection::Grip::Kind kind)
@@ -113,4 +160,24 @@ TEST_CASE("UniversalParamControl: a routine's (lane-rank) hand paints the digits
         CHECK(cuePixels(laneDecay, digits) >= 10);
         CHECK(cuePixels(humanDecay, digits) == 0);
     }
+}
+
+TEST_CASE("UniversalParamControl: the ROUTINE hint reads at 7:1 or more on the Layer inspector's background", "[paramcontrol][routine][cue][contrast]")
+{
+    // s-rta-0927 fix round 2 (graphic-design critic SHOULD): the hint was the cue at 50 % alpha -- peak #6F8C37 on
+    // #1A1A1A, 4.54:1, the dimmest text in its cluster though it is the one word that says WHY the fader turned
+    // chartreuse. It is lifted to WCAG AAA (7:1) in the kRoutineCue family.
+    juce::ScopedJuceInitialiser_GUI gui;
+    ParamConnection conn;
+    LiveValue live;
+    const auto panel = juce::Colour(0xff1a1a1a);
+    const auto hint = juce::Rectangle<int>(UniversalParamControl::kTriangleSize + 72 + 36 + 46, 0, 260 - 168, 10);
+
+    const auto lane = paintOnPanel(conn, live, panel);
+    juce::Colour peak;
+    const double contrast = peakContrast(lane, hint, panel, peak);
+    INFO("ROUTINE hint peak #" << peak.toDisplayString(false) << " on #1A1A1A: " << contrast << ":1; hue "
+         << peak.getHue() * 360.0f << " deg, cue pixels " << cuePixels(lane, hint));
+    CHECK(contrast >= 7.0);
+    CHECK(cuePixels(lane, hint) > 5);   // still the routine cue's hue, not a grey or a new colour
 }
