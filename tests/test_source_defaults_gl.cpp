@@ -301,3 +301,17 @@ TEST_CASE("newton_3d draws a picture at its registered defaults and keeps it whi
         for (float t : { 0.0f, 1.13f, 30.0f, 45.0f })
             requireVisible(rig, "newton_3d", EmbeddedShaders::sourceNewton3D, w, h, t, ps);
 }
+
+// A4 -- Sierpinski's subdivision depth is capped by the canvas: on a canvas of height 2^(k-1) every pixel centre has a
+// 1 in binary digit k of both coordinates, so level k marked EVERY pixel a hole (256x256 at defaults, 1024x1024 at
+// Iterations 0.75 were solid black). 1920x1080 is not dyadic and must keep rendering.
+TEST_CASE("sierpinski draws a picture on power-of-two canvases", "[source-defaults][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("sierpinski");
+    requireVisible(rig, "sierpinski", EmbeddedShaders::sourceSierpinski, 256, 256, 1.13f, ps);
+    requireVisible(rig, "sierpinski", EmbeddedShaders::sourceSierpinski, 512, 512, 1.13f, ps);
+    requireVisible(rig, "sierpinski", EmbeddedShaders::sourceSierpinski, 1920, 1080, 1.13f, ps);
+    requireVisible(rig, "sierpinski iter 0.75", EmbeddedShaders::sourceSierpinski, 1024, 1024, 1.13f,
+                   with(ps, "u_src_iterations", 0.75f));
+}

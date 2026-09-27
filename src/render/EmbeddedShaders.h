@@ -6543,6 +6543,11 @@ inline const char* sourceSierpinski = R"(
         int zoomIter = int(zoomExp * 1.5);
         int maxIter = min(baseIter + zoomIter, 20);
         bool isCarpet = u_src_mode > 0.5;
+        // Triangle: never subdivide below one pixel (Pitfall 44). Pixel centres sit (2j+1)/(2H) apart in p, so on a
+        // canvas of height H = 2^(k-1) binary digit k is 1 in BOTH coordinates for every pixel and level k marked the
+        // whole frame a hole (256x256 at the default 9 levels rendered solid black). +0.001: log2 of an exact power of
+        // two must not floor one level low.
+        if (!isCarpet) maxIter = min(maxIter, int(log2(u_resolution.y * zoomPow) + 0.001));
         float val = 1.0;
         float iterFrac = 0.0;
         if (isCarpet) {
