@@ -133,4 +133,6 @@ When `Composition::activeDeckIndex` changes, the Renderer saves the current fram
 
 The `deck_transition` shader takes two textures (`u_textureA` = outgoing, `u_textureB` = incoming) and a progress uniform. Frame is saved to `prevDeckTexture_` on deck switch detection.
 
+**The outgoing picture is the canvas's PREVIOUS frame (s-rta-0926b plan4 F2)**: the switch is detected at the TOP of `Renderer::renderOpenGL` (the canvas block, before the canvas is cleared), where the canvas still holds the last frame that left the app -- that is blitted into `prevDeckFBO_`. It used to be detected after the new deck was composited, so the "outgoing" copy was the NEW deck's first frame and most deck transitions were cuts (a race decided: measured 2 of 3 switches were cuts on the pre-change app). The transition pass runs AFTER master opacity (both inputs are then final pictures), so it starts exactly on the frame that was on screen; a switch during a running transition starts from the blend that was showing. Live: `.harmony/probe-canvas.sh` row `f2_deck_transition`.
+
 ---

@@ -272,6 +272,42 @@ void Renderer::renderOpenGL()
     const RenderGeometry::Size canvas = RenderGeometry::resolveCanvas(
         static_cast<int>(static_cast<uint32_t>(lockPacked >> 32)), static_cast<int>(static_cast<uint32_t>(lockPacked)),
         stableW_, stableH_);
+
+    // P25: Detect a deck switch and start the cross-deck transition. s-rta-0926b plan4 F2: detected HERE, at the
+    // top of the frame, because only here does the canvas still hold the previous frame -- the outgoing deck's
+    // last picture, exactly what was on screen (mid-transition too). Detected after the composite (as it used to
+    // be), the "outgoing" copy was the NEW deck's first frame and every deck transition was a cut. Blitted
+    // (scaled if the canvas size changes this frame) into prevDeckFBO_ before ensureCanvasFBO / the clear (R5).
+    // activeDeckIndex is read after the acquire-load of activeDeck_ above: a frame that already renders the new
+    // deck always sees the new index.
+    if (composition_ != nullptr)
+    {
+        const int currentDeckIdx = composition_->activeDeckIndex;
+        if (currentDeckIdx != prevActiveDeckIndex_)
+        {
+            // globalTransitionSpeed is a DURATION in seconds (see its comment in Composition.h), same
+            // misleading-name pattern as Layer::transitionSpeed. S167-L4b DT-FIX: progress-per-SECOND
+            // (1.0 / duration), multiplied by the real measured dt each frame -- not a hardcoded assume-60fps
+            // progress-per-frame constant.
+            const float transSpeed = composition_->globalTransitionSpeed;
+            if (transSpeed > 0.001f && canvasTex_ != 0)
+            {
+                ensurePrevDeckFBO(canvas.w, canvas.h);
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDeckFBO_);
+                glBlitFramebuffer(0, 0, canvasW_, canvasH_, 0, 0, canvas.w, canvas.h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                deckTransitionProgress_ = 0.0f;
+                deckTransitionSpeed_ = 1.0f / transSpeed;
+            }
+            else
+            {
+                deckTransitionProgress_ = 1.0f;   // Instant cut
+            }
+            prevActiveDeckIndex_ = currentDeckIdx;
+        }
+    }
+
     ensureCanvasFBO(canvas.w, canvas.h);
     const float renderW = static_cast<float>(canvas.w);
     const float renderH = static_cast<float>(canvas.h);
@@ -623,7 +659,51 @@ void Renderer::renderOpenGL()
     // P25: Apply composition-level transform (position, scale, rotation)
     applyCompTransform(canvasFBO_, 0.0f, 0.0f, renderW, renderH);
 
-    // P25: Cross-deck transition blending
+    // S167-L4b: apply Composition::masterOpacity to the fully-composited
+    // frame -- the owner's "ceiling" ruling (final = master * layer * clip)
+    // for the composition-wide fader. Same dim-to-black technique as the
+    // former masterLevel_ block just above (removed s-rta-0925: it was a
+    // second, compounding multiply), glBlendColor as a constant multiplier,
+    // not an alpha-channel bake, because this runs against the canvas -- the
+    // actual output picture (plan4: it used to be the window framebuffer) --
+    // where Syphon/recording/capture below read RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"
+    // early-return -- masterOpacity was silently render-dead all session
+    // (.harmony/probe-deck-path.sh: accepted, echoed back, changed not one
+    // pixel) and a skip-when-default guard here is exactly the shape of bug
+    // that produced that. Runs BEFORE videoRecorder_->submitFrame,
+    // publishSyphonFrame, and processPendingCapture below, so Master Opacity
+    // also dims what leaves the app, not just the on-screen preview.
+    if (composition_ != nullptr)
+    {
+        // S-RTA-0923 LANE 3 C2: eff() twin read (see the comment on the
+        // masterSpeedVal read above); unconditional per the S167-L4b comment
+        // above this block, unchanged.
+        float masterOpacityVal = composition_->eff(CompScalar::Opacity);
+        glEnable(GL_BLEND);
+        glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
+        glViewport(0, 0, canvas.w, canvas.h);
+
+        auto* prog = shaderMgr_.getProgram("passthrough");
+        if (prog)
+        {
+            prog->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sourceTexture);
+        }
+
+        glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
+        glBlendColor(masterOpacityVal, masterOpacityVal, masterOpacityVal, 1.0f);
+
+        quad_.draw();
+
+        glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glDisable(GL_BLEND);
+    }
+
+    // P25: Cross-deck transition blending. s-rta-0926b plan4 F2: AFTER master opacity -- the outgoing picture
+    // (prevDeckFBO_, the canvas as it left the app, see the top of the frame) is already final, so the incoming
+    // one is made final first; blending the two final pictures starts exactly on the frame that was on screen
+    // (blending before master opacity would dim the outgoing picture twice).
     if (composition_ && deckTransitionProgress_ < 1.0f)
     {
         const int w = canvas.w;
@@ -675,88 +755,6 @@ void Renderer::renderOpenGL()
         deckTransitionProgress_ += deckTransitionSpeed_ * realDt;
         if (deckTransitionProgress_ >= 1.0f)
             deckTransitionProgress_ = 1.0f;
-    }
-
-    // P25: Detect deck switch and initiate transition
-    if (composition_)
-    {
-        int currentDeckIdx = composition_->activeDeckIndex;
-        if (currentDeckIdx != prevActiveDeckIndex_)
-        {
-            // Save the canvas as the "outgoing" deck texture
-            const int w = canvas.w;
-            const int h = canvas.h;
-            if (deckTransitionProgress_ >= 1.0f)
-            {
-                ensurePrevDeckFBO(w, h);
-                glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
-                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDeckFBO_);
-                glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-                glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
-            }
-
-            // Start transition based on composition's transition speed
-            float transSpeed = composition_->globalTransitionSpeed;
-            if (transSpeed > 0.001f)
-            {
-                deckTransitionProgress_ = 0.0f;
-                // globalTransitionSpeed is a DURATION in seconds (see its
-                // comment in Composition.h), same misleading-name pattern
-                // as Layer::transitionSpeed. S167-L4b DT-FIX: progress-per-
-                // SECOND (1.0 / duration), multiplied by the real measured
-                // dt each frame above -- not a hardcoded assume-60fps
-                // progress-per-frame constant.
-                deckTransitionSpeed_ = 1.0f / transSpeed;
-            }
-            else
-            {
-                // Instant cut
-                deckTransitionProgress_ = 1.0f;
-            }
-
-            prevActiveDeckIndex_ = currentDeckIdx;
-        }
-    }
-
-    // S167-L4b: apply Composition::masterOpacity to the fully-composited
-    // frame -- the owner's "ceiling" ruling (final = master * layer * clip)
-    // for the composition-wide fader. Same dim-to-black technique as the
-    // former masterLevel_ block just above (removed s-rta-0925: it was a
-    // second, compounding multiply), glBlendColor as a constant multiplier,
-    // not an alpha-channel bake, because this runs against the canvas -- the
-    // actual output picture (plan4: it used to be the window framebuffer) --
-    // where Syphon/recording/capture below read RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"
-    // early-return -- masterOpacity was silently render-dead all session
-    // (.harmony/probe-deck-path.sh: accepted, echoed back, changed not one
-    // pixel) and a skip-when-default guard here is exactly the shape of bug
-    // that produced that. Runs BEFORE videoRecorder_->submitFrame,
-    // publishSyphonFrame, and processPendingCapture below, so Master Opacity
-    // also dims what leaves the app, not just the on-screen preview.
-    if (composition_ != nullptr)
-    {
-        // S-RTA-0923 LANE 3 C2: eff() twin read (see the comment on the
-        // masterSpeedVal read above); unconditional per the S167-L4b comment
-        // above this block, unchanged.
-        float masterOpacityVal = composition_->eff(CompScalar::Opacity);
-        glEnable(GL_BLEND);
-        glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
-        glViewport(0, 0, canvas.w, canvas.h);
-
-        auto* prog = shaderMgr_.getProgram("passthrough");
-        if (prog)
-        {
-            prog->use();
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, sourceTexture);
-        }
-
-        glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
-        glBlendColor(masterOpacityVal, masterOpacityVal, masterOpacityVal, 1.0f);
-
-        quad_.draw();
-
-        glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glDisable(GL_BLEND);
     }
 
     // plan4 item 1: the panel shows the finished canvas, letter/pillar-boxed (inside the measured

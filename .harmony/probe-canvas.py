@@ -441,6 +441,53 @@ def perf(tag, size, gate):
         f"{mt:.2f} <= {cfg['maxFrameMs']}")
 
 
+def f2_deck_transition():
+    """F2 (plan4 section 7): the P25 cross-deck transition's OUTGOING picture. deck 0 L0 = A, deck 1 L0 = B,
+    globalTransitionSpeed T s (Alpha blend). After both decks were shown (refs = each deck settled), switch
+    deck 0 -> 1 three times; frames ~1.0 s and ~2.0 s into each switch must lie ON the A -> B line strictly
+    between the ends (least-squares p in (0.08, 0.92), residual <= tol) and p must rise; T + 1.5 s after the
+    switch the frame is B. A transition whose outgoing texture is the NEW deck's frame is a cut: p ~= 1.0."""
+    cfg = FIX["f2"]; T = float(cfg["T"]); tol = float(cfg["tol"])
+    if not load("f2", [deck(0, [layer(0, [clip(1, IMG_A)])]), deck(1, [layer(0, [clip(2, IMG_B)])])],
+                globalTransitionSpeed=T):
+        return
+    trig(0, 0); time.sleep(1.0)
+    switch(1); time.sleep(0.5); trig(0, 0); time.sleep(T + 1.5)
+    refB = cap("f2_refB")
+    switch(0); time.sleep(T + 1.5)
+    refA = cap("f2_refA")
+    if refA is None or refB is None:
+        no("f2_deck_transition: reference capture failed"); return
+    dab = d(refA, refB)
+    print(f"      f2: d(refA, refB)={dab:.2f} (deck frames {size_of(refA)})", flush=True)
+    if dab < 20:
+        no(f"f2_deck_transition: references not distinct (d(A,B)={dab:.2f} < 20)"); return
+    bad, trials = [], []
+    for k in range(int(cfg["trials"])):
+        switch(1); t0 = time.time(); ps = []
+        for j, at in enumerate(cfg["at"]):
+            time.sleep(max(0.0, float(at) - (time.time() - t0)))
+            ta = time.time(); f = cap(f"f2_t{k}_mid{j}"); tt = (ta + time.time()) / 2 - t0
+            if f is None:
+                bad.append(f"trial {k} frame {j} capture failed"); continue
+            p, res = fit_line(f, refA, refB); ps.append(p)
+            print(f"      f2 trial {k}: t={tt:.2f}s p={p:.2f} residual={res:.2f} d(f,A)={d(f, refA):.2f} "
+                  f"d(f,B)={d(f, refB):.2f}", flush=True)
+            if not (0.08 < p < 0.92 and res <= tol):
+                bad.append(f"trial {k} t={tt:.2f}s p={p:.2f} res={res:.2f}")
+        if len(ps) >= 2 and ps[-1] - ps[0] < 0.1:
+            bad.append(f"trial {k} p not rising {[round(x, 2) for x in ps]}")
+        trials.append([round(x, 2) for x in ps])
+        time.sleep(max(0.0, T + 1.5 - (time.time() - t0)))
+        fe = cap(f"f2_t{k}_end")
+        if fe is not None and d(fe, refB) > tol:
+            bad.append(f"trial {k} end d(f,B)={d(fe, refB):.2f}")
+        switch(0); time.sleep(T + 1.5)
+    (ok if not bad else no)(
+        f"f2_deck_transition: a deck switch with a {T:.0f} s transition shows the OUTGOING deck fading into the new "
+        f"one (p per trial {trials}; failures {bad[:4]})")
+
+
 def main():
     rows = [("c_default_shape", c_default_shape),
             ("c_4k_shape", c_4k_shape),
@@ -451,6 +498,7 @@ def main():
             ("c_capture_cost", c_capture_cost),
             ("c_perf_1080", lambda: perf("c_perf_1080", (1920, 1080), True)),
             ("c_perf_4k", lambda: perf("c_perf_4k", tuple(FIX["shape"]["fourK"]), False))]
+    rows.append(("f2_deck_transition", f2_deck_transition))
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)
