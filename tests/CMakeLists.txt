@@ -2318,3 +2318,12 @@ target_link_libraries(test_output_law PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_output_law PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_output_law)
 catch_discover_tests(test_output_law)
+
+# --- test_frame_ring (s-rta-0927 plan-renderperf C1): the pure index math of CompositorEngine's Screen Split /
+# Frame Stutter frame ring (src/render/FrameRing.h). Ring cells are created on first write, so a read must never
+# return a cell not written in the ring's current lifetime -- pinned here. Headless, no GL, no JUCE.
+add_executable(test_frame_ring test_frame_ring.cpp)
+target_include_directories(test_frame_ring PRIVATE ${SRC_DIR})
+target_link_libraries(test_frame_ring PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_frame_ring)
+catch_discover_tests(test_frame_ring)

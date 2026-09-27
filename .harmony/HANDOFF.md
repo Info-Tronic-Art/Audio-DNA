@@ -78,8 +78,10 @@ outputs on every display and the routines display in the layers.
    routine's first recorded move (+0.5 s). INFERRED: synchronous render_frame now reads back the 1920x1080 canvas (plan4 F4)
    and stalls the app longer. Test: x5 pre-canvas (b766720) vs x5 main + capture durations. Fix: windows end >= 0.1 s before
    the first move; async (PBO) capture.
-2. [OPEN] One-time hitch when a layer's first crossfade creates its spare frame ring: 34-52 ms at the 1080p canvas
-   (probe-render-state r1_counts bar 50 ms flaked once at 51.86). Fix: create the spare with the primary ring, or amortise.
+2. [FIXED s-rta-0927 renderperf C1] One-time hitch when a layer's first crossfade (or first Screen Split / Frame Stutter
+   use) created a 480-cell frame ring in one frame: option C (plan-renderperf.md), ring cells created on first write.
+   t2 peaks (1080p x3 + 4K): dc7adf9 32.7-47.7 ms -> 9.0-14.2 ms cold, 1.7-5.4 ms with both images pre-uploaded (the
+   cold residual is the image's first upload, loadKeyImage); r1_counts bar 50 -> 16.7 ms on first use AND first fade.
 3. [OPEN] tests/visual Tier-1 (test mode) is RED on main: ~167 failures that predate tonight (the canvas lane added none,
    fixed one). Needs its own investigation lane.
 4. [OPEN] Capture cost (plan4 F4): render_frame/snapshots do a synchronous glReadPixels + per-pixel loop; ~4x at 4K.

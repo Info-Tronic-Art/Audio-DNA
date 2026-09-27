@@ -2,6 +2,7 @@
 #include "render/EmbeddedShaders.h"
 #include "render/ScratchPool.h"
 #include "render/RenderGeometry.h"
+#include "render/FrameRing.h"
 #include "render/LayerClock.h"
 #include <iostream>
 #include <cmath>
@@ -78,6 +79,7 @@ void CompositorEngine::releaseGL()
     }
     layerRingBuffers_.clear();
     frameRingCount_.store(0, std::memory_order_relaxed);
+    frameRingCellCount_.store(0, std::memory_order_relaxed);
     crossfadeStart_.clear();
 
     glInitialized_ = false;
@@ -155,6 +157,7 @@ void CompositorEngine::rescaleHistory(int width, int height)
             if (ring.fbos[i] != 0) glDeleteFramebuffers(1, &ring.fbos[i]);
             if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
         }
+        frameRingCellCount_.fetch_sub(ring.allocatedCells, std::memory_order_relaxed);
         ring = FrameRingBuffer{};
         frameRingCount_.fetch_sub(1, std::memory_order_relaxed);
     }
@@ -1670,6 +1673,8 @@ void CompositorEngine::saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
 
 CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint64_t stateKey, int w, int h)
 {
+    // Initialises (or re-sizes) the ring's bookkeeping only: it creates NO GL object -- every cell is created on
+    // its first write in pushFrameToRing (s-rta-0927 plan-renderperf C1). A size change deletes the old cells.
     // plan4 1E: a ring cell is never stored wider than 480 px (kRingDownscale is the minimum).
     const int ds = RenderGeometry::ringDownscale(w);
     int rw = std::max(1, w / ds);
@@ -1688,24 +1693,19 @@ CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint6
             if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
         }
         frameRingCount_.fetch_sub(1, std::memory_order_relaxed);
+        frameRingCellCount_.fetch_sub(ring.allocatedCells, std::memory_order_relaxed);
+        ring.allocatedCells = 0;
     }
 
     ring.ringWidth = rw;
     ring.ringHeight = rh;
     ring.writeIndex = 0;
     ring.frameCount = 0;
-    ring.fbos.resize(static_cast<size_t>(kMaxRingFrames), 0);
-    ring.textures.resize(static_cast<size_t>(kMaxRingFrames), 0);
-
-    for (int i = 0; i < kMaxRingFrames; ++i)
-    {
-        createFBO(ring.fbos[static_cast<size_t>(i)],
-                  ring.textures[static_cast<size_t>(i)], rw, rh);
-        glBindFramebuffer(GL_FRAMEBUFFER, ring.fbos[static_cast<size_t>(i)]);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // assign, never resize: on a size-change re-init the vectors still hold the handles deleted just above, and
+    // pushFrameToRing creates a cell only where the handle is 0 -- a kept stale handle would be bound as a
+    // deleted FBO. Load-bearing (plan-renderperf C1, R2).
+    ring.fbos.assign(static_cast<size_t>(kMaxRingFrames), 0);
+    ring.textures.assign(static_cast<size_t>(kMaxRingFrames), 0);
 
     ring.initialized = true;
     frameRingCount_.fetch_add(1, std::memory_order_relaxed);
@@ -1767,6 +1767,14 @@ void CompositorEngine::pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
     if (!prog) return;
 
     auto idx = static_cast<size_t>(ring.writeIndex);
+    if (ring.textures[idx] == 0)   // plan-renderperf C1: a cell is created on its first write, never in bulk.
+    {                              // createFBO leaves framebuffer 0 bound and rebinds GL_TEXTURE_2D on the active
+        createFBO(ring.fbos[idx], ring.textures[idx], ring.ringWidth, ring.ringHeight);   // unit (R5) -- both are
+        ++ring.allocatedCells;                                                             // re-bound right below.
+        frameRingCellCount_.fetch_add(1, std::memory_order_relaxed);
+    }
+    // No clear: the passthrough draw below overwrites every byte of the cell (full viewport, blend off, no
+    // scissor), and no read can return this cell before this push completes (FrameRing::readIndex).
     glBindFramebuffer(GL_FRAMEBUFFER, ring.fbos[idx]);
     glViewport(0, 0, ring.ringWidth, ring.ringHeight);
     glDisable(GL_BLEND);
@@ -1784,15 +1792,11 @@ void CompositorEngine::pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
 
 GLuint CompositorEngine::getFrameFromRing(const FrameRingBuffer& ring, int framesAgo) const
 {
-    if (!ring.initialized || ring.frameCount == 0)
+    if (!ring.initialized)
         return 0;
-
-    int maxDelay = ring.frameCount - 1;
-    if (framesAgo > maxDelay) framesAgo = maxDelay;
-    if (framesAgo < 0) framesAgo = 0;
-
-    int idx = (ring.writeIndex - 1 - framesAgo + kMaxRingFrames * 2) % kMaxRingFrames;
-    return ring.textures[static_cast<size_t>(idx)];
+    // The pure index math (tests/test_frame_ring.cpp): the index is always a cell written in this lifetime.
+    const int idx = FrameRing::readIndex(ring.writeIndex, ring.frameCount, framesAgo, kMaxRingFrames);
+    return idx < 0 ? 0 : ring.textures[static_cast<size_t>(idx)];
 }
 
 // === Screen Split: render grid with per-cell delay ===

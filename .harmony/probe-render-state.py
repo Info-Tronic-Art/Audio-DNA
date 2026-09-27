@@ -60,9 +60,15 @@ R1 (a crossfade's two clip chains share one history): one layer, OUT = col 0 = A
 R1 counts (memory bound, /api/state): a FRESH layer id, 6 columns alternating A/B, each [Screen Split 0.15
   0.15 0.25 0], faded through col 0 -> 5 with T = 1 s. /api/state frame_rings / temporal_buffers read before
   col 0 and after the last fade. PASS: frame_rings grew by exactly 2 (the layer's ring + its outgoing slot)
-  and temporal_buffers by <= 2; peak_frame_time_ms read right after the FIRST fade (the spare ring is created
-  then) <= 50 ms (logged). Calibration: base has no such fields (FAIL); per-clip history (option A) would
-  grow by 6.
+  and temporal_buffers by <= 2; peak_frame_time_ms read right after the layer's FIRST USE (its ring is
+  created) and right after the FIRST fade (the spare ring is created) each <= peakMaxMs = 16.7 ms (one 60 Hz
+  frame; s-rta-0927 plan-renderperf C1, was 50 ms on the first fade only); the second fade's peak is printed
+  for context (no bar). Quiet rule: waits until no compiler runs; the load average is printed. Calibration:
+  base has no such fields (FAIL); per-clip history (option A) would grow by 6. Peaks (s-rta-0927 renderperf):
+  dc7adf9 (480 cells created in one frame), this row alone on a fresh app: first use 37.87, first fade 39.42 ms
+  (FAIL); C1 (cells created on first write): 1.35-1.66 ms in 3 full runs (both images already uploaded by earlier
+  rows) and 9.02 / 11.75 ms with the row alone on a fresh app -- that residual is the first upload of image A / B
+  (CompositorEngine::loadKeyImage decodes on the GL thread), not the ring.
 R4-opaque (persistent Opaque layer over the active deck): base deck 0 layer 0 Opaque = A.
   r4_opaque_opacity subject = deck 1 layer id 5 Opaque, persistent, Normal, opacity 0.5, clip B (covers the
     frame); reference = the same layer as a NORMAL Transparent (Alpha key) layer on deck 0 above A; full =
@@ -85,7 +91,7 @@ R4 empty active deck (Harmony item, wave-1 found_not_fixed #1): deck 0 layer 0 =
   fallback image. PASS: reference non-blank and d(subject, reference) <= tol. Calibration: base subject =
   the fallback (black), d ~ 19 (wave-1 r4g 19.46); fixed 0.00.
 """
-import json, os, sys, threading, time
+import json, os, subprocess, sys, threading, time
 
 import numpy as np
 import requests
@@ -422,33 +428,58 @@ def r1_wipe(tag, spec):
         f"ratios <= {bound}): {bad[:3]}")
 
 
+def wait_no_compiler(tag, limit_s=1800):
+    """Rig rule: perf rows run only when no compiler is running (copied from probe-canvas.py)."""
+    t0 = time.time()
+    while True:
+        # macOS pgrep takes a regex: a bare "clang++" is an invalid pattern (error, empty stdout = never "busy").
+        busy = [n for n in ("clang", r"clang\+\+") if subprocess.run(["pgrep", "-x", n], capture_output=True).stdout.strip()]
+        if not busy:
+            return True
+        if time.time() - t0 > limit_s:
+            no(f"{tag}: a compiler ({busy}) kept running for {limit_s} s -- perf not measured")
+            return False
+        print(f"      {tag}: waiting for {busy} to finish (load avg %.2f %.2f %.2f)" % os.getloadavg(), flush=True)
+        time.sleep(20)
+
+
 def r1_counts(spec):
     lid = int(spec["layerId"]); T = float(spec["T"])
     clips = [clip(10 + k, IMG_A if k % 2 == 0 else IMG_B, spec["fx"]) for k in range(6)]
     if not load("r1_counts", [deck(0, [layer(lid, clips, speed=T)], ncols=6)]):
         return
+    if not wait_no_compiler("r1_counts"):   # the peak bars are perf rows (s-rta-0927 plan-renderperf C1)
+        return
     s0 = state()
     trig(0, 0); time.sleep(1.5)
-    s1 = state()                      # resets the peak (first use of the layer's ring)
+    s1 = state()                      # peak across the layer's FIRST USE of Screen Split (its ring is created)
     trig(0, 1); time.sleep(0.6)
     s2 = state()                      # peak across the FIRST fade's start (the spare ring is created)
     time.sleep(T)
-    for c in range(2, 6):
+    trig(0, 2); time.sleep(0.6)
+    s2b = state()                     # the SECOND fade's start: the same work without creation (context, no bar)
+    time.sleep(T)
+    for c in range(3, 6):
         trig(0, c); time.sleep(T + 0.3)
     s3 = state()
     keys = ("frame_rings", "temporal_buffers", "peak_frame_time_ms")
-    if any(sx is None or any(kk not in sx for kk in keys) for sx in (s0, s1, s2, s3)):
+    if any(sx is None or any(kk not in sx for kk in keys) for sx in (s0, s1, s2, s2b, s3)):
         no(f"r1_counts: /api/state has no {keys} fields ({sorted((s0 or {}).keys())[:12]})"); return
     dr = s3["frame_rings"] - s0["frame_rings"]; dtb = s3["temporal_buffers"] - s0["temporal_buffers"]
     print(f"      r1_counts: frame_rings {s0['frame_rings']} -> {s3['frame_rings']} (+{dr}), temporal_buffers "
           f"{s0['temporal_buffers']} -> {s3['temporal_buffers']} (+{dtb}); peak_frame_time_ms first use "
-          f"{s1['peak_frame_time_ms']:.2f}, first fade {s2['peak_frame_time_ms']:.2f}", flush=True)
+          f"{s1['peak_frame_time_ms']:.2f}, first fade {s2['peak_frame_time_ms']:.2f}, second fade (no creation) "
+          f"{s2b['peak_frame_time_ms']:.2f}; load avg %.2f %.2f %.2f" % os.getloadavg(), flush=True)
     (ok if dr == 2 and dtb <= 2 else no)(
         f"r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+{dr}) and <= 2 "
         f"temporal buffers (+{dtb})")
+    bar = float(spec["peakMaxMs"])
+    pu = float(s1["peak_frame_time_ms"])
+    (ok if pu <= bar else no)(
+        f"r1_counts: longest frame across the layer's first use (its ring created) {pu:.2f} ms <= {bar} ms")
     pk = float(s2["peak_frame_time_ms"])
-    (ok if pk <= float(spec["peakMaxMs"]) else no)(
-        f"r1_counts: longest frame across the first fade (spare ring created) {pk:.2f} ms <= {spec['peakMaxMs']} ms")
+    (ok if pk <= bar else no)(
+        f"r1_counts: longest frame across the first fade (spare ring created) {pk:.2f} ms <= {bar} ms")
 
 
 def base_only():
