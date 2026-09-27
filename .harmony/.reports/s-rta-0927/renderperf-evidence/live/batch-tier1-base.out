@@ -1,0 +1,8 @@
+### batch tier1-base 2026-09-27 16:21:59
+16:21:59 lock acquired
+### tier1-base 16:21:59 load={ 4.85 7.26 8.00 } compilers=[3/3]
+rc=0 :: 8 failed, 5 passed in 1116.12s (0:18:36) 
+16:41:40 samples 1166 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+16:41:41 lock released
+### batch tier1-base done 2026-09-27 16:41:41

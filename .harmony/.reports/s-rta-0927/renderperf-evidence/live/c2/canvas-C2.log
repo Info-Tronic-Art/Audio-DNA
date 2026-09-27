@@ -1,0 +1,61 @@
+app: SP/apps/C2/Audio-DNA.app
+out: SP/live/c2/canvas.aVECMl
+--- c_default_shape
+PASS  c_default_shape: a composition without outputWidth/outputHeight renders a 1920x1080 canvas (render_frame PNG 1920x1080)
+PASS  c_default_shape: the clip fills the canvas (non-blank=True, d(f, A stretched to 1920x1080)=0.01, tol 6.0)
+--- c_4k_shape
+PASS  c_4k_shape: outputWidth 3840 / outputHeight 2160 renders a 3840x2160 canvas (render_frame PNG 3840x2160)
+PASS  c_4k_shape: the 4K picture is the 1080p picture at 4x the pixels (d(4K box-downsized, 1080p)=0.02, tol 6.0)
+      c_4k_shape: /api/state fps 103.3 frame_time_ms 1.88 gpu_time_ms 5.565267086029053 (load avg 3.89 3.32 3.38)
+--- c_custom_4x3
+PASS  c_custom_4x3: a 1024x768 composition renders a 1024x768 canvas (render_frame PNG 1024x768)
+PASS  c_custom_4x3: the clip fills the 4:3 canvas (d(f, A stretched to 1024x768)=0.01, tol 6.0)
+--- c_runtime_change_keeps_history
+      c_runtime_change: set_composition_params 2560x1440 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 2560,
+  "outputHeight": 1440
+}
+      c_runtime_change: set_composition_params 1920x1080 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 1920,
+  "outputHeight": 1080
+}
+      c_runtime_change: peak_frame_time_ms [('before 1440p', 16.761207580566406), ('across 1080p -> 1440p', 5.724333763122559), ('across 1440p -> 1080p', 2.731750011444092)]
+      c_runtime_change: f0 (1920, 1080) d(f0, image)=25.54 mean(image) 139.7 (Freeze 0.98's 8-bit fixed point sits up to ~25 levels under the image -- report only)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+PASS  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=0.29, tol 6.0)
+PASS  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 1920x1080 and still the same picture (d(f2, f0)=0.01, tol 8.0)
+--- c_legacy_image_fit
+PASS  c_legacy_image_fit: a 600x600 image is fitted inside the 1920x1080 canvas over black, never stretched (x 0..400 mean RGB 0.00 <= 2; x 440..1480 mean R 255.0 >= 250)
+--- c_capture_deterministic
+PASS  c_capture_deterministic: two captures with the same time decode to identical pixels ((1920, 1080), identical=True)
+--- c_capture_cost
+      c_capture_cost 1920x1080: render_frame wall 150 ms, PNG (1920, 1080); /api/state fps over the next 1.5 s: min 93.0 [93.0, 93.0, 93.0, 104.7, 104.7, 104.7] (load avg 3.81 3.33 3.38)
+      c_capture_cost 3840x2160: render_frame wall 479 ms, PNG (3840, 2160); /api/state fps over the next 1.5 s: min 68.6 [68.6, 68.6, 68.6, 107.2, 107.2, 107.2] (load avg 4.06 3.39 3.40)
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+--- c_perf_1080
+      c_perf_1080 1920x1080: fps mean 114.7 min 109.5; frame_time_ms mean 1.52 max-peak 11.93; gpu_time_ms mean 2.30 peak 11.69; temporal_buffers 1 frame_rings 2 (load avg 3.74 3.34 3.38)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 114.7 >= 58.0 and mean frame_time_ms 1.52 <= 12.0
+--- c_perf_4k
+      c_perf_4k 3840x2160: fps mean 95.4 min 90.7; frame_time_ms mean 1.77 max-peak 12.54; gpu_time_ms mean 8.05 peak 10.82; temporal_buffers 1 frame_rings 2 (load avg 3.39 3.28 3.36)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+--- f2_deck_transition
+      f2: d(refA, refB)=29.43 (deck frames (1920, 1080))
+      f2 trial 0: t=1.11s p=0.25 residual=0.10 d(f,A)=7.51 d(f,B)=21.92
+      f2 trial 0: t=2.10s p=0.50 residual=0.14 d(f,A)=14.93 d(f,B)=14.50
+      f2 trial 1: t=1.10s p=0.25 residual=0.10 d(f,A)=7.51 d(f,B)=21.92
+      f2 trial 1: t=2.10s p=0.50 residual=0.14 d(f,A)=14.93 d(f,B)=14.50
+      f2 trial 2: t=1.11s p=0.25 residual=0.11 d(f,A)=7.49 d(f,B)=21.94
+      f2 trial 2: t=2.10s p=0.50 residual=0.14 d(f,A)=14.93 d(f,B)=14.50
+PASS  f2_deck_transition: a deck switch with a 4 s transition shows the OUTGOING deck fading into the new one (p per trial [[0.25, 0.5], [0.25, 0.5], [0.25, 0.5]]; failures [])
+
+PY 15 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS GREEN

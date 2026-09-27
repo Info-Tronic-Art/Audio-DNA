@@ -1,0 +1,26 @@
+### batch c1 2026-09-27 16:53:33
+16:53:33 re-acquire cooldown 31 s
+16:54:04 lock held by: beatclock 37787 1790542401 -- waiting
+16:56:04 lock held by: beatclock 37787 1790542401 -- waiting
+16:58:04 lock held by: beatclock 37787 1790542401 -- waiting
+16:59:04 lock acquired
+### t2-C1-1 16:59:04 load={ 3.03 3.43 4.00 } compilers=[0/0]
+rc=0 :: 
+### t2-C1-2 16:59:17 load={ 2.96 3.40 3.99 } compilers=[0/0]
+rc=0 :: 
+### t2-C1-3 16:59:29 load={ 2.81 3.35 3.96 } compilers=[0/0]
+rc=0 :: 
+### t2-C1-4k 16:59:41 load={ 4.18 3.63 4.05 } compilers=[0/0]
+rc=0 :: 
+### rstate-C1-1 16:59:54 load={ 3.78 3.56 4.02 } compilers=[0/0]
+rc=0 :: PY 32 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+### rstate-C1-2 17:05:44 load={ 2.27 2.96 3.59 } compilers=[0/0]
+rc=0 :: PY 32 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+### rstate-C1-3 17:11:33 load={ 3.34 3.29 3.52 } compilers=[0/0]
+rc=0 :: PY 32 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+### parity-C1 17:17:23 load={ 2.96 3.26 3.44 } compilers=[0/0]
+rc=0 :: PY 46 PASS / 0 FAIL PROBE-EFFECTS-PARITY GREEN 
+17:18:07 samples 1126 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+17:18:08 lock released
+### batch c1 done 2026-09-27 17:18:08

@@ -1,0 +1,34 @@
+CAPT base start 2026-09-27 16:51:07 quiet=yes load={ 3.02 3.20 4.32 } app=/Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+load default: {'ok': True}; enabled global effects: []
+CAP base_def1 png=(1920, 1080) ok=True http_rt_ms=115.0 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP base_def2 png=(1920, 1080) ok=True http_rt_ms=108.7 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP base_t1080_1 png=(1920, 1080) ok=True http_rt_ms=95.8 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP base_t1080_2 png=(1920, 1080) ok=True http_rt_ms=105.2 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP base_t1080_3 png=(1920, 1080) ok=True http_rt_ms=99.5 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+load (1280, 720): {'ok': True}; enabled global effects: []
+CAP base_720_1 png=(1280, 720) ok=True http_rt_ms=59.2 bytes=62331 sha256=eb1f5191ac13fd94e975f3f00aa1c44a61c7677f4512186aa99496d8a8fb8156
+CAP base_720_2 png=(1280, 720) ok=True http_rt_ms=53.4 bytes=62331 sha256=eb1f5191ac13fd94e975f3f00aa1c44a61c7677f4512186aa99496d8a8fb8156
+load (3840, 2160): {'ok': True}; enabled global effects: []
+CAP base_t4k_1 png=(3840, 2160) ok=True http_rt_ms=365.3 bytes=298975 sha256=650ef6677958a8b01340f22cd4ad4e50de830425db92062c6bb04cd255863ac7
+PIL def1 vs def2: shape (1080, 1920, 4) array_equal=True mean RGBA [16.83, 0.97, 12.22, 191.0] alpha min/max 191/191
+PIL 7201 vs 7202: shape (720, 1280, 4) array_equal=True mean RGBA [16.83, 0.97, 12.22, 191.0] alpha min/max 191/191
+CAPT base end 2026-09-27 16:51:21 load={ 2.73 3.13 4.28 } compilers=[0/0]
+app running after quit: no
+audio-dna windows 0, Output-named 0
+--- app err.log capture lines:
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/base/base_def1.png (1920x1080)
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/base/base_def2.png (1920x1080)
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/base/base_t1080_1.png (1920x1080)
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/base/base_t1080_2.png (1920x1080)
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/base/base_t1080_3.png (1920x1080)
+[Eyes] Processing capture: canvas 1280x720
+[Eyes] Captured frame: SP/capt/base/base_720_1.png (1280x720)
+[Eyes] Processing capture: canvas 1280x720
+[Eyes] Captured frame: SP/capt/base/base_720_2.png (1280x720)
+[Eyes] Processing capture: canvas 3840x2160
+[Eyes] Captured frame: SP/capt/base/base_t4k_1.png (3840x2160)

@@ -1,0 +1,6 @@
+TIER1 C3 start 2026-09-27 17:58:08 load={ 4.86 4.04 3.74 } app=SP/apps/C3/Audio-DNA.app
+pytest rc=1
+8 failed, 5 passed in 1122.30s (0:18:42)
+TIER1 C3 end 2026-09-27 18:17:55
+app running after quit: no
+audio-dna windows 0, Output-named 0

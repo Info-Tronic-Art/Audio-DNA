@@ -1,0 +1,22 @@
+### batch warm 2026-09-27 17:18:22
+17:18:22 re-acquire cooldown 31 s
+17:18:53 lock held by: outputs-c3 1476 1790543893 -- waiting
+17:19:33 lock acquired
+### warm-C1-1 17:19:33 load={ 3.78 3.50 3.51 } compilers=[0/0]
+rc=0 :: 
+### warm-C1-2 17:19:47 load={ 3.52 3.46 3.49 } compilers=[0/0]
+rc=0 :: 
+### warm-C1-3 17:20:01 load={ 3.02 3.35 3.45 } compilers=[0/0]
+rc=0 :: 
+### warm-C1-4k 17:20:14 load={ 3.33 3.41 3.47 } compilers=[1/1]
+rc=0 :: 
+### warm-base-1 17:20:49 load={ 2.97 3.30 3.43 } compilers=[0/0]
+rc=0 :: 
+### warm-base-2 17:21:03 load={ 3.21 3.33 3.44 } compilers=[0/0]
+rc=0 :: 
+### rstate-r1counts-C1-alone 17:21:16 load={ 2.88 3.25 3.41 } compilers=[0/0]
+rc=0 :: PY 3 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+17:21:31 samples 117 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+17:21:31 lock released
+### batch warm done 2026-09-27 17:21:31

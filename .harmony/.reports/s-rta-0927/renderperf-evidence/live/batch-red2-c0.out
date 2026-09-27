@@ -1,0 +1,16 @@
+### batch red2-c0 2026-09-27 16:45:38
+16:45:38 re-acquire cooldown 8 s
+16:45:46 lock held by: beatclock 34045 1790541910 -- waiting
+16:47:46 lock held by: beatclock 34045 1790541910 -- waiting
+16:49:47 lock held by: beatclock 34045 1790541910 -- waiting
+16:51:07 lock acquired
+### capt-base 16:51:07 load={ 3.02 3.20 4.32 } compilers=[0/0]
+rc=0 :: 
+### capt-C0 16:51:23 load={ 2.73 3.13 4.28 } compilers=[0/0]
+rc=0 :: 
+### canvas-C0 16:51:38 load={ 3.75 3.33 4.33 } compilers=[0/0]
+rc=0 :: PY 15 PASS / 0 FAIL PROBE-CANVAS GREEN 
+16:53:19 samples 131 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+16:53:19 lock released
+### batch red2-c0 done 2026-09-27 16:53:20

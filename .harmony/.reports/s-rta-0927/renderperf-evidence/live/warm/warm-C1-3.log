@@ -1,0 +1,12 @@
+T2 C1 run 3 start 2026-09-27 17:20:01 quiet=yes load={ 3.02 3.35 3.45 } canvas=1920x1080 app=SP/apps/C1/Audio-DNA.app
+load {'ok': True}
+warm layer showed A then B
+pre-first-use: n=25 max peak 1.72 ms at +0.249 s, frame_rings 0->0, temporal 0->0, median peak 0.61
+first-use: n=64 max peak 1.76 ms at +0.869 s, frame_rings 0->1, temporal 0->0, median peak 0.73
+steady: n=43 max peak 7.83 ms at +2.406 s, frame_rings 1->1, temporal 0->0, median peak 0.74
+fade1: n=69 max peak 5.44 ms at +0.816 s, frame_rings 1->2, temporal 0->0, median peak 0.76
+fade2: n=67 max peak 2.55 ms at +1.368 s, frame_rings 2->2, temporal 0->0, median peak 0.73
+fade1 timeline (t, peak): [(0.003, 0.8), (0.028, 1.5), (0.052, 0.8), (0.076, 0.8), (0.099, 0.7), (0.12, 1.6), (0.14, 0.6), (0.161, 0.8), (0.186, 0.7), (0.211, 0.7), (0.23, 0.7), (0.249, 1.9), (0.269, 1.0), (0.288, 0.7)]
+T2 C1 run 3 end 2026-09-27 17:20:13 load={ 3.33 3.41 3.47 } compilers=[1/1]
+app running after quit: no
+audio-dna windows 0, Output-named 0

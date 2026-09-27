@@ -1,0 +1,120 @@
+app: SP/apps/C1/Audio-DNA.app
+out: SP/live/c1/rstate.VcBc58
+--- r2_temporal
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r2_ring
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r4_clip_transform
+      r4_clip_transform: d(reference, absent)=28.27 d(subject, reference)=0.00 d(subject, absent)=28.27
+PASS  r4_clip_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_clip_opacity
+      r4_clip_opacity: d(reference, absent)=9.64 d(subject, reference)=0.00 d(subject, absent)=9.64
+PASS  r4_clip_opacity: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_layer_effects
+      r4_layer_effects: d(reference, absent)=228.19 d(subject, reference)=0.00 d(subject, absent)=228.19
+PASS  r4_layer_effects: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_layer_transform
+      r4_layer_transform: d(reference, absent)=30.87 d(subject, reference)=0.00 d(subject, absent)=30.87
+PASS  r4_layer_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_feedback
+      r4_feedback: d(reference, absent)=15.01 d(subject, reference)=0.00 d(subject, absent)=15.01
+PASS  r4_feedback: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_transition
+      r4_transition: t=0.89s p=0.09 residual=0.12 d(f,IN)=26.85
+      r4_transition: t=2.02s p=0.23 residual=0.14 d(f,IN)=22.69
+      r4_transition: t=3.13s p=0.37 residual=0.14 d(f,IN)=18.50
+      r4_transition: t=4.26s p=0.51 residual=0.13 d(f,IN)=14.40
+PASS  r4_transition: persistent layer mid-crossfade frames lie between OUT and IN (4/4): []
+PASS  r4_transition: crossfade keeps advancing while the deck is inactive (p [0.09, 0.23, 0.37, 0.51])
+PASS  r4_transition: back on its deck after T + 2 s the crossfade is complete (d(f, IN)=0.00, tol 1.5)
+--- r5_hold
+      r5_hold: frame 0 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 0 mean|RGBA|=0.00 (tol 1.5)
+      r5_hold: frame 1 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 1 mean|RGBA|=0.00 (tol 1.5)
+      r5_hold: frame 2 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 2 mean|RGBA|=0.00 (tol 1.5)
+--- r5_burst
+      r5_burst id=81: 19 frames after the switch
+      r5_burst id=82: 19 frames after the switch
+      r5_burst id=83: 19 frames after the switch
+      r5_burst id=84: 19 frames after the switch
+      r5_burst id=85: 19 frames after the switch
+PASS  r5_burst: every attempt captured >= 8 frames after the switch (short: [])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+--- r1_temporal
+      r1_temporal: t=1.09s p~0.14 IN x<30 ratio 0.00 (d(A,B) 14.00)  OUT x>491 ratio 0.00 (d(A,B) 30.32)
+      r1_temporal: t=1.72s p~0.21 IN x<181 ratio 0.00 (d(A,B) 3.56)  OUT x>642 ratio 0.00 (d(A,B) 27.74)  [not counted]
+      r1_temporal: t=2.35s p~0.29 IN x<333 ratio 0.00 (d(A,B) 15.51)  OUT x>794 ratio 0.00 (d(A,B) 26.45)
+      r1_temporal: t=2.98s p~0.37 IN x<485 ratio 0.00 (d(A,B) 24.59)  OUT x>946 ratio 0.00 (d(A,B) 28.21)
+      r1_temporal: t=3.60s p~0.45 IN x<634 ratio 0.00 (d(A,B) 30.87)  OUT x>1095 ratio 0.00 (d(A,B) 30.48)
+      r1_temporal: t=4.22s p~0.53 IN x<782 ratio 0.00 (d(A,B) 32.42)  OUT x>1243 ratio 0.00 (d(A,B) 30.56)
+      r1_temporal: t=4.84s p~0.61 IN x<931 ratio 0.00 (d(A,B) 29.83)  OUT x>1392 ratio 0.00 (d(A,B) 29.86)
+      r1_temporal: t=5.47s p~0.68 IN x<1083 ratio 0.00 (d(A,B) 27.76)  OUT x>1543 ratio 0.00 (d(A,B) 26.06)
+      r1_temporal: t=6.09s p~0.76 IN x<1231 ratio 0.00 (d(A,B) 27.91)  OUT x>1692 ratio 0.00 (d(A,B) 12.88)
+PASS  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_control
+      r1_control: t=1.07s p~0.13 IN x<27 ratio 0.00 (d(A,B) 15.00)  OUT x>487 ratio 0.00 (d(A,B) 30.67)
+      r1_control: t=1.69s p~0.21 IN x<174 ratio 0.00 (d(A,B) 3.68)  OUT x>635 ratio 0.00 (d(A,B) 28.21)  [not counted]
+      r1_control: t=2.32s p~0.29 IN x<326 ratio 0.00 (d(A,B) 15.12)  OUT x>787 ratio 0.00 (d(A,B) 26.77)
+      r1_control: t=2.96s p~0.37 IN x<479 ratio 0.00 (d(A,B) 24.80)  OUT x>940 ratio 0.00 (d(A,B) 28.45)
+      r1_control: t=3.59s p~0.45 IN x<630 ratio 0.00 (d(A,B) 31.04)  OUT x>1091 ratio 0.00 (d(A,B) 30.75)
+      r1_control: t=4.21s p~0.53 IN x<779 ratio 0.00 (d(A,B) 32.77)  OUT x>1239 ratio 0.00 (d(A,B) 30.91)
+      r1_control: t=4.83s p~0.60 IN x<928 ratio 0.00 (d(A,B) 30.20)  OUT x>1389 ratio 0.00 (d(A,B) 30.22)
+      r1_control: t=5.45s p~0.68 IN x<1078 ratio 0.00 (d(A,B) 28.14)  OUT x>1539 ratio 0.00 (d(A,B) 26.62)
+      r1_control: t=6.08s p~0.76 IN x<1228 ratio 0.00 (d(A,B) 28.23)  OUT x>1689 ratio 0.00 (d(A,B) 13.47)
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_ring
+      r1_ring: t=1.08s p~0.14 IN x<29 ratio 0.00 (d(A,B) 15.00)  OUT x>490 ratio 0.00 (d(A,B) 30.90)
+      r1_ring: t=1.71s p~0.21 IN x<179 ratio 0.00 (d(A,B) 3.77)  OUT x>639 ratio 0.00 (d(A,B) 28.36)  [not counted]
+      r1_ring: t=2.33s p~0.29 IN x<329 ratio 0.00 (d(A,B) 15.50)  OUT x>790 ratio 0.00 (d(A,B) 27.00)
+      r1_ring: t=2.95s p~0.37 IN x<477 ratio 0.00 (d(A,B) 24.93)  OUT x>938 ratio 0.00 (d(A,B) 28.66)
+      r1_ring: t=3.57s p~0.45 IN x<626 ratio 0.00 (d(A,B) 31.09)  OUT x>1086 ratio 0.00 (d(A,B) 30.94)
+      r1_ring: t=4.20s p~0.52 IN x<776 ratio 0.00 (d(A,B) 33.02)  OUT x>1237 ratio 0.00 (d(A,B) 31.16)
+      r1_ring: t=4.83s p~0.60 IN x<928 ratio 0.00 (d(A,B) 30.42)  OUT x>1389 ratio 0.00 (d(A,B) 30.43)
+      r1_ring: t=5.45s p~0.68 IN x<1077 ratio 0.00 (d(A,B) 28.35)  OUT x>1538 ratio 0.00 (d(A,B) 26.83)
+      r1_ring: t=6.07s p~0.76 IN x<1227 ratio 0.00 (d(A,B) 28.44)  OUT x>1688 ratio 0.00 (d(A,B) 13.64)
+PASS  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_retrigger
+      r1_retrigger: t=1.09s p~0.14 IN x<30 ratio 0.00 (d(A,B) 14.00)  OUT x>490 ratio 0.00 (d(A,B) 30.32)
+      r1_retrigger: t=1.71s p~0.21 IN x<180 ratio 0.00 (d(A,B) 3.52)  OUT x>640 ratio 0.00 (d(A,B) 27.78)  [not counted]
+      r1_retrigger: t=2.34s p~0.29 IN x<330 ratio 0.00 (d(A,B) 15.22)  OUT x>791 ratio 0.00 (d(A,B) 26.45)
+      r1_retrigger: t=2.95s p~0.37 IN x<477 ratio 0.00 (d(A,B) 24.47)  OUT x>938 ratio 0.00 (d(A,B) 28.09)
+      r1_retrigger: t=3.57s p~0.45 IN x<627 ratio 0.00 (d(A,B) 30.60)  OUT x>1087 ratio 0.00 (d(A,B) 30.38)
+      r1_retrigger: t=4.20s p~0.52 IN x<777 ratio 0.00 (d(A,B) 32.45)  OUT x>1237 ratio 0.00 (d(A,B) 30.59)
+      r1_retrigger: t=4.82s p~0.60 IN x<926 ratio 0.00 (d(A,B) 29.94)  OUT x>1387 ratio 0.00 (d(A,B) 29.90)
+      r1_retrigger: t=5.44s p~0.68 IN x<1075 ratio 0.00 (d(A,B) 27.82)  OUT x>1536 ratio 0.00 (d(A,B) 26.41)
+      r1_retrigger: t=6.08s p~0.76 IN x<1229 ratio 0.00 (d(A,B) 27.90)  OUT x>1690 ratio 0.00 (d(A,B) 13.08)
+PASS  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 8 counted frames, ratios <= 0.05): []
+--- r1_counts
+      r1_counts: frame_rings 4 -> 6 (+2), temporal_buffers 9 -> 9 (+0); peak_frame_time_ms first use 1.44, first fade 1.57, second fade (no creation) 1.56; load avg 3.03 3.23 3.73
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the layer's first use (its ring created) 1.44 ms <= 16.7 ms
+PASS  r1_counts: longest frame across the first fade (spare ring created) 1.57 ms <= 16.7 ms
+--- r4_opaque_opacity
+      r4_opaque_opacity: d(reference, full)=14.57 d(subject, reference)=0.00 d(subject, full)=14.57
+PASS  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=0.00, tol 1.5)
+--- r4_opaque_overlay
+      r4_opaque_overlay: outside centre d(f, A)=0.00; centre d(f, A)=35.73
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.73 >= 5)
+--- r4_fxonly_persistent
+      r4_fxonly_persistent: d(reference, A-only)=228.66 d(subject, reference)=0.00 d(subject, A-only)=228.66
+PASS  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_fxonly_medialess
+      r4_fxonly_medialess: d(reference, A-only)=228.66 d(subject, reference)=0.00 d(subject, A-only)=228.66
+PASS  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_mask_skipped
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+--- r4_empty_active_deck
+      r4_empty_active_deck: reference rgb 19.46, subject rgb 19.46, d(subject, reference)=0.00
+PASS  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=0.00, tol 1.5)
+
+PY 32 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN

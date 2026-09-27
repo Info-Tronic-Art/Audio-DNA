@@ -1,0 +1,13 @@
+app: SP/apps/C1/Audio-DNA.app
+out: SP/live/warm/rstate.eZI8ZE
+--- r1_counts
+      r1_counts: frame_rings 0 -> 2 (+2), temporal_buffers 0 -> 0 (+0); peak_frame_time_ms first use 9.02, first fade 11.75, second fade (no creation) 5.42; load avg 2.98 3.26 3.41
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the layer's first use (its ring created) 9.02 ms <= 16.7 ms
+PASS  r1_counts: longest frame across the first fade (spare ring created) 11.75 ms <= 16.7 ms
+
+PY 3 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN

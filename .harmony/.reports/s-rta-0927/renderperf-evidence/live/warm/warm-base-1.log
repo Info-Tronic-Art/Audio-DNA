@@ -1,0 +1,12 @@
+T2 base run 1 start 2026-09-27 17:20:49 quiet=yes load={ 2.97 3.30 3.43 } canvas=1920x1080 app=/Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+load {'ok': True}
+warm layer showed A then B
+pre-first-use: n=23 max peak 1.34 ms at +0.189 s, frame_rings 0->0, temporal 0->0, median peak 0.64
+first-use: n=60 max peak 26.33 ms at +0.055 s, frame_rings 0->1, temporal 0->0, median peak 0.67
+steady: n=38 max peak 1.42 ms at +1.647 s, frame_rings 1->1, temporal 0->0, median peak 0.74
+fade1: n=62 max peak 28.70 ms at +0.049 s, frame_rings 1->2, temporal 0->0, median peak 0.73
+fade2: n=61 max peak 1.56 ms at +0.111 s, frame_rings 2->2, temporal 0->0, median peak 0.76
+fade1 timeline (t, peak): [(0.004, 0.8), (0.024, 0.0), (0.049, 28.7), (0.074, 0.7), (0.099, 1.3), (0.125, 1.5), (0.151, 0.7), (0.177, 0.8), (0.199, 0.8), (0.226, 0.6), (0.253, 0.7), (0.282, 0.8)]
+T2 base run 1 end 2026-09-27 17:21:01 load={ 3.21 3.33 3.44 } compilers=[0/0]
+app running after quit: no
+audio-dna windows 0, Output-named 0

@@ -1,0 +1,34 @@
+CAPT C2 start 2026-09-27 17:24:17 quiet=yes load={ 2.74 3.06 3.29 } app=SP/apps/C2/Audio-DNA.app
+load default: {'ok': True}; enabled global effects: []
+CAP C2_def1 png=(1920, 1080) ok=True http_rt_ms=104.2 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP C2_def2 png=(1920, 1080) ok=True http_rt_ms=95.9 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP C2_t1080_1 png=(1920, 1080) ok=True http_rt_ms=97.5 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP C2_t1080_2 png=(1920, 1080) ok=True http_rt_ms=98.9 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP C2_t1080_3 png=(1920, 1080) ok=True http_rt_ms=100.6 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+load (1280, 720): {'ok': True}; enabled global effects: []
+CAP C2_720_1 png=(1280, 720) ok=True http_rt_ms=60.3 bytes=62331 sha256=eb1f5191ac13fd94e975f3f00aa1c44a61c7677f4512186aa99496d8a8fb8156
+CAP C2_720_2 png=(1280, 720) ok=True http_rt_ms=62.5 bytes=62331 sha256=eb1f5191ac13fd94e975f3f00aa1c44a61c7677f4512186aa99496d8a8fb8156
+load (3840, 2160): {'ok': True}; enabled global effects: []
+CAP C2_t4k_1 png=(3840, 2160) ok=True http_rt_ms=344.4 bytes=298975 sha256=650ef6677958a8b01340f22cd4ad4e50de830425db92062c6bb04cd255863ac7
+PIL def1 vs def2: shape (1080, 1920, 4) array_equal=True mean RGBA [16.83, 0.97, 12.22, 191.0] alpha min/max 191/191
+PIL 7201 vs 7202: shape (720, 1280, 4) array_equal=True mean RGBA [16.83, 0.97, 12.22, 191.0] alpha min/max 191/191
+CAPT C2 end 2026-09-27 17:24:31 load={ 3.86 3.30 3.37 } compilers=[0/0]
+app running after quit: no
+audio-dna windows 0, Output-named 0
+--- app err.log capture lines:
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/C2/C2_def1.png (1920x1080) read=4.2 convert=6.4 png=86.9 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/C2/C2_def2.png (1920x1080) read=2.4 convert=3.9 png=78.7 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/C2/C2_t1080_1.png (1920x1080) read=2.2 convert=3.7 png=78.6 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/C2/C2_t1080_2.png (1920x1080) read=2.2 convert=3.7 png=78.4 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: SP/capt/C2/C2_t1080_3.png (1920x1080) read=2.4 convert=3.8 png=78.2 ms
+[Eyes] Processing capture: canvas 1280x720
+[Eyes] Captured frame: SP/capt/C2/C2_720_1.png (1280x720) read=2.4 convert=2.5 png=45.1 ms
+[Eyes] Processing capture: canvas 1280x720
+[Eyes] Captured frame: SP/capt/C2/C2_720_2.png (1280x720) read=1.2 convert=2.3 png=42.8 ms
+[Eyes] Processing capture: canvas 3840x2160
+[Eyes] Captured frame: SP/capt/C2/C2_t4k_1.png (3840x2160) read=8.3 convert=23.9 png=298.6 ms
