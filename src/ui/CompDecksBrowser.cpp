@@ -224,7 +224,10 @@ void CompDecksBrowser::showRowMenu(bool decksSection, int row, juce::Point<int> 
     menu.addItem(2, "Show in Finder");
     menu.addSeparator();
     menu.addItem(3, "Delete...");
-    menu.setLookAndFeel(&getLookAndFeel());   // the app LookAndFeel: a menu parented to the top-level window would draw stock
+    // No explicit menu.setLookAndFeel(&getLookAndFeel()) needed: this menu has no explicit LookAndFeel and
+    // no parent MenuWindow, so PopupMenu's findLookAndFeel() falls to LookAndFeel::getDefaultLookAndFeel()
+    // via installAsDefault() (decks-followup ITEM 1) -- verified pixel-identical to the prior per-site
+    // workaround (decks-followup-fix-shots/library-menu).
     menu.showMenuAsync(juce::PopupMenu::Options()
                            .withParentComponent(getTopLevelComponent())
                            .withTargetScreenArea({ screenPos.x, screenPos.y, 1, 1 }),
