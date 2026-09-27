@@ -1,0 +1,142 @@
+Filters: [restorestyle]
+Randomness seeded to: 3356618833
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_routine_engine is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+RoutineEngine restore style J1: Jump restores in one call ON the start boundary
+-- no glide, no read
+  fired more than a beat before the bar: nothing moves until the bar, then
+  touch / set 0.3 / release
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1386
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1394: FAILED:
+  CHECK( rig.slot(0).restoreStyle == "jump" )
+with expansion:
+  "ease" == "jump"
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1397: FAILED:
+  CHECK( rig.fd.log.empty() )
+with expansion:
+  false
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1398: FAILED:
+  CHECK( rig.slot(0).glides == 0 )
+with expansion:
+  1 == 0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1402: FAILED:
+  REQUIRE( rig.fd.log.size() == at4 + 4 )
+with expansion:
+  20 == 21
+
+-------------------------------------------------------------------------------
+RoutineEngine restore style J1: Jump restores in one call ON the start boundary
+-- no glide, no read
+  fired 1/16 beat before the bar: a hard set ON the bar, no quarter-beat spill
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1415
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1425: FAILED:
+  REQUIRE( rig.fd.log.size() == at4 + 4 )
+with expansion:
+  3 == 4
+
+-------------------------------------------------------------------------------
+RoutineEngine restore style J1: Jump restores in one call ON the start boundary
+-- no glide, no read
+  Quantize Off: the whole restore inside the fire call
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1436
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1446: FAILED:
+  REQUIRE( rig.fd.log.size() == mark + 4 )
+with expansion:
+  3 == 4
+
+-------------------------------------------------------------------------------
+RoutineEngine restore style J2: a Jump loop snaps back ON the loop point -- no
+return glide, no spill
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1476
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1494: FAILED:
+  CHECK( rig.fd.log.empty() )
+with expansion:
+  false
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1504: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 1 )
+with expansion:
+  2 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1505: FAILED:
+  CHECK( rig.slot(0).glides == 0 )
+with expansion:
+  1 == 0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1512: FAILED:
+  REQUIRE( ev1.size() == 3 )
+with expansion:
+  2 == 3
+
+-------------------------------------------------------------------------------
+RoutineEngine restore style J3: a Jump re-fire restarts with a one-call restore
+ON its bar
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1538
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1553: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 0 )
+with expansion:
+  1 == 0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1564: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 1 )
+with expansion:
+  2 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1565: FAILED:
+  CHECK( rig.slot(0).glides == 0 )
+with expansion:
+  1 == 0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1572: FAILED:
+  REQUIRE( ev.size() == 3 )
+with expansion:
+  2 == 3
+
+-------------------------------------------------------------------------------
+RoutineEngine restore style J4: a running loop picks up a style change at its
+next loop return
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1582
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1611: FAILED:
+  CHECK( rig.slot(0).restoreStyle == "jump" )
+with expansion:
+  "ease" == "jump"
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1614: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 1 )
+with expansion:
+  2 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1619: FAILED:
+  REQUIRE( ev.size() == 3 )
+with expansion:
+  2 == 3
+
+===============================================================================
+test cases:  4 |  0 passed |  4 failed
+assertions: 54 | 37 passed | 17 failed
+

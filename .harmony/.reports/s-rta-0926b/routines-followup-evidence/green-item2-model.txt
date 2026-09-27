@@ -1,0 +1,5 @@
+Filters: [restorestyle]
+Randomness seeded to: 621119320
+===============================================================================
+All tests passed (14 assertions in 1 test case)
+

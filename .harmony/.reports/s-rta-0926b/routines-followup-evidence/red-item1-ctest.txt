@@ -1,0 +1,24 @@
+Filters: "the TopBar Stop button says it stops all routines"
+Randomness seeded to: 4003003243
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_topbar_link_toggle is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+the TopBar Stop button says it stops all routines
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_topbar_link_toggle.cpp:95
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_topbar_link_toggle.cpp:112: FAILED:
+  CHECK( stop->getTooltip() == "Stop all routines" )
+with expansion:
+   == "Stop all routines"
+with message:
+  tooltip ""
+
+===============================================================================
+test cases: 1 | 1 failed
+assertions: 3 | 2 passed | 1 failed
+

@@ -1,0 +1,26 @@
+PASS  app launched via open -g, /api/health answered, PID=99737
+PASS  MINIMAL: GET /api/status .masterSignal == 1.0 at boot (1.0)
+PASS  MINIMAL: POST /api/set_master_signal {value:0.4} -> ok
+PASS  MINIMAL: GET /api/composition .masterSignal == 0.4 (0.400000005960464)
+PASS  MINIMAL: GET /api/composition .live.signal == 0.4 (0.400000005960464)
+(reset) master signal set back to 1.0
+PASS  B1: load_composition accepted the ms-conn fixture
+PASS  B1 @signal=0: live.scale sits at 1.0 +/-1e-4 across 10 samples (min=1.000000 max=1.000000)
+PASS  B1 @signal=0: b1_lo_a.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=46.833981)
+PASS  B1 @signal=0: b1_lo_b.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=46.833981)
+PASS  B1 @signal=0: render_frame 0.5s apart pixel-IDENTICAL (mean_abs_diff=0.000000 <= 0.5; frozen at hand/default values)
+PASS  B1 @signal=1: live.scale swings min=0.763033 (<0.9) max=1.319479 (>1.1) over 20 samples/1s
+PASS  B1 @signal=1: b1_hi_a.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=45.884555)
+PASS  B1 @signal=1: b1_hi_b.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=59.785627)
+PASS  B1 @signal=1: render_frame 0.5s apart pixel-DIFFER (mean_abs_diff=27.881218 > 0.5; signals driving both connections)
+PASS  B1 @signal=0.5: live.scale swing (0.277308) strictly smaller than at signal=1 (0.556446)
+PASS  B2: load_composition accepted the ms-pulse fixture
+PASS  B2 @signal=0: b2_a.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=51.710949)
+PASS  B2 @signal=0: b2_b.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=50.956324)
+PASS  B2 @signal=0: render_frame 0.25s apart pixel-DIFFER (mean_abs_diff=15.459454 > 0.5; Beat Ripple keeps pulsing on the beat clock, unaffected by Master Signal)
+PASS  B3: OSC /audiodna/signal 0.3 -> masterSignal==0.3+/-0.01 within 1s (last=0.300000011920929)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac): the Quartz window-list check above is the screen witness
+
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/probe-out/mastersignal)

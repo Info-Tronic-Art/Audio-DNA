@@ -1,0 +1,43 @@
+=== M1-twobar-extra-bars-dropped (toBar + kBeatsPerBar * ((2 - (lastBarCount_ + 1) % 2) % 2); -> toBar;): exit 42
+  2 Bar, fired in barCount 0 (totalBarCount 11): the start is barCount 2 at
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1663: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1666: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1668: FAILED:
+with expansion:
+test cases:  1 |  0 passed | 1 failed
+assertions: 50 | 47 passed | 3 failed
+=== M2-fourbar-parity-off-by-one (toBar + kBeatsPerBar * ((4 - (lastBarCount_ + 1) % 4) % 4); -> toBar + kBeatsPerBar * ((4 - (lastBarCount_) % 4) % 4);): exit 42
+  4 Bar, fired in barCount 0 (totalBarCount 12 at beat 4 is a multiple of 4):
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1663: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1666: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1668: FAILED:
+with expansion:
+  4 Bar, fired in barCount 3: only the rest of this bar
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1665: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1666: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1668: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1673: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1674: FAILED:
+with expansion:
+  4 Bar, barCount already 2 at the fire (a phrase reset left it mid-count):
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1665: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1666: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1668: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1673: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine_engine.cpp:1674: FAILED:
+with expansion:
+test cases:  1 |  0 passed |  1 failed
+assertions: 50 | 37 passed | 13 failed
+committed RoutineEngine.cpp sha256 before c272fc9b4035ce1eae2e488fc7fc56dfc0bdefc80fbb1d901920234da3899263 after c272fc9b4035ce1eae2e488fc7fc56dfc0bdefc80fbb1d901920234da3899263 (UNCHANGED)
