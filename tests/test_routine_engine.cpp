@@ -2206,3 +2206,42 @@ TEST_CASE("RoutineEngine: several points inside one tick gap all fire, once each
     }
     CHECK(rig.slot(0).position == Approx(1.6));
 }
+
+// The clock now keeps every beat across a stall, so a looping routine's position can pass more than one whole cycle in
+// ONE tick (the old wrap reader never advanced a whole beat per tick -- this path was unreachable). It must fold every
+// whole cycle at once with ONE restore, landing in the right cycle; the skipped cycles' events never fire.
+TEST_CASE("RoutineEngine: a looping routine folds every whole cycle a tick gap covers at once, with one restore",
+          "[routine][engine][stall][loop]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("loop", 4.0, Clip::BeatSnapMode::Bar, true);   // test 8's loop routine
+    Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.4f;
+    r.preamble = { restoreOp };
+    r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 3) });
+    r.lanes[op0] = continuousLane(op0, { gesture(0.5, 0.1f, 3.5, 0.9f) });
+
+    Rig rig;
+    addToBank(rig.comp, r, 0);
+    rig.tick();
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.0);                                   // start at bar 11
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.slot(0).cycle == 1);
+    rig.runTo(6.0);                                   // pos 2.0
+    CHECK(rig.fd.firedLanePoints(clipKey, 3) == 1);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+
+    rig.beat = 16.0;                                  // a 10-beat gap: 2.5 cycles
+    rig.tick();
+    CHECK(rig.slot(0).cycle == 4);                    // one fold per tick: cycle 2
+    CHECK(rig.slot(0).position == Approx(0.0).margin(1e-9));
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);         // ONE more restore
+    CHECK(rig.fd.firedLanePoints(clipKey, 3) == 1);   // nothing due at pos 0; the skipped cycles' points never fired
+
+    rig.runTo(17.0);
+    CHECK(rig.fd.firedLanePoints(clipKey, 3) == 2);
+    CHECK(rig.slot(0).cycle == 4);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+}
