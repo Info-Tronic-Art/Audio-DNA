@@ -1609,3 +1609,27 @@ hand-written functions with no shared layout model.
   (expect empty). A prior lane (render2) hit `make` missing a same-second revert; always rebuild AFTER
   reverting, never trust a build that predates the revert.
 - Valid while drawToggleButton and these three owners exist in their current form.
+
+## 2026-09-27 s-rta-0926b canvas (plan4 A/B1/B2/C) | Files: src/render/{Renderer,RenderGeometry,DeckClock,LayerClock}.*, src/render/CompositorEngine.cpp, src/model/AutopilotBank.h, .harmony/probe-{canvas,deck-clock}.*
+- The frame renders ONCE into `Renderer::canvasFBO_` at the composition's size (Pitfall 36); the panel only
+  presents it. Anything that reads "the picture" (recorder, Syphon, render_frame, snapshots) must bind
+  `canvasFBO_` as the READ framebuffer -- never the window framebuffer (it now holds the letterboxed present).
+- BEFORE plan4 the TestServer render_frame width/height lock was racy: the lock is read early in
+  renderOpenGL and the pending capture late, so most captures came from a frame rendered at the PANEL size
+  (756x756 / 756x878 / 518x756 ...) -- tests/visual crashed 7 times on shape mismatches. Now a capture waits
+  for the frame rendered at the lock's exact size (`processPendingCapture`). tests/visual is pre-existing RED
+  in test mode (base 167 failed / lane 166, lane set a subset) -- compare failure SETS against the base binary,
+  never read the lane's count alone.
+- The rig display runs at ~110-120 fps. A temporal-effect oracle tuned for 60 fps (Freeze 0.95, read 0.4 s
+  later) had NO teeth -- a no-rescale mutant passed (d 4.3). Always prove a new history row on a mutant
+  binary (mutate, build, run the row, restore, sha256 == HEAD, rebuild).
+- Deck transitions (P25) were cuts: the outgoing copy was taken after the new deck was composited; a race
+  between the deck-pointer read and the index read made 1 in 3 switches work. Detect state changes whose
+  "before" picture you need at the TOP of the frame, while the canvas still holds the previous frame.
+- `pytest tests/visual` rewrites a TRACKED pyc (tests/visual/__pycache__/vision_check.cpython-314.pyc): run it
+  with PYTHONDONTWRITEBYTECODE=1 and `-p no:cacheprovider`. `.harmony/*` is gitignored: new probe files need
+  `git add -f`.
+- A 1080p render_frame takes ~150-180 ms (4K ~500 ms) -- synchronous readback + per-pixel copy + PNG encode.
+  probe-render-state r5_burst's ">= 8 captures in 0.6 s" capacity check flips (6-7); its real assertion (no
+  blank frame) still passes. Fix = PBO async readback (plan4 F4), never a re-threshold.
+- Valid while: the canvas architecture (Renderer::canvasFBO_) and these probes exist.
