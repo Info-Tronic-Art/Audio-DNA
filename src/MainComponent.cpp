@@ -5683,9 +5683,12 @@ std::string MainComponent::perfRoutineSet(const ApiServer::RoutineSetOpts& opts)
         return msg;
     }
     // A running routine picks up loop / restore at its next end, quantize at its next (re)start,
-    // the name at once (the bank listing is re-read every tick).
+    // the restore style (Ease / Jump) when it next plans a restore (a fire, a re-fire, or the last beat
+    // of a loop), the name at once (the bank listing is re-read every tick).
     if (opts.loop)         routine->loop = *opts.loop;
     if (opts.restoreState) routine->restoreState = *opts.restoreState;
+    if (opts.restoreStyle.isNotEmpty())
+        routine->restoreStyle = Routine::restoreStyleFromString(opts.restoreStyle);
     if (opts.quantize.isNotEmpty())
         routine->quantize = Routine::quantizeFromString(opts.quantize);
     if (opts.name.isNotEmpty())
@@ -5703,7 +5706,10 @@ std::string MainComponent::perfRoutineSet(const ApiServer::RoutineSetOpts& opts)
         }
         routineEngine_.dispatch.notify("Routine " + routine->name + ": "
                                        + (routine->loop ? "loops" : "plays once") + ", "
-                                       + (routine->restoreState ? "restores first" : "starts from now")
+                                       + (routine->restoreState
+                                              ? (routine->restoreStyle == Routine::RestoreStyle::Jump
+                                                     ? "restores first (jump)" : "restores first (ease)")
+                                              : "starts from now")
                                        + ", starts " + when);
     }
     return {};
@@ -5758,6 +5764,7 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("lengthBeats", sl.lengthBeats);
         p->setProperty("loop", sl.loop);
         p->setProperty("restoreState", sl.restoreState);
+        p->setProperty("restoreStyle", juce::String(sl.restoreStyle));   // s-rta-0926b: "ease" | "jump"
         p->setProperty("quantize", juce::String(sl.quantize));
         p->setProperty("lanes", sl.lanes);
         p->setProperty("preambleEntries", sl.preambleEntries);

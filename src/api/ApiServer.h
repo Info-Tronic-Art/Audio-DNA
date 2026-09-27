@@ -145,6 +145,7 @@ public:
         int slot = -1;
         std::optional<bool> loop, restoreState;
         juce::String quantize, name;        // "" = unchanged
+        juce::String restoreStyle;          // "" = unchanged; "ease" | "jump" (s-rta-0926b)
     };
     std::function<void(const RoutineSaveOpts&)> onRoutineSave;
     std::function<void(int slot)> onRoutineFire;

@@ -133,6 +133,7 @@ struct RoutineEngine::Running
     bool pending = true;
     RoutineSnap ownSnap = RoutineSnap::Bar;   // the routine's own quantize; a forced (global) one wins
     bool restore = true, loop = false;
+    bool jump = false;                         // Routine::RestoreStyle::Jump: never glide -- the restore lands in one call ON its boundary
     double lengthBeats = 0.0;
     double startBeat = 0.0;                    // clock beat of this cycle's routine beat 0
     double position = 0.0;
@@ -467,11 +468,12 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
             // Everything due up to the end first, so a point just before it is never skipped.
             r.player->advanceTo(r.lengthBeats, *r.sink);
 
-            // loop / restore edits made while running land at the end (plan 5.1 `set`).
+            // loop / restore / restore-style edits made while running land at the end (plan 5.1 `set`).
             if (const Routine* live = comp.routineInSlot(r.slot); live != nullptr && live->uuid == r.uuid)
             {
                 r.loop = live->loop;
                 r.restore = live->restoreState;
+                r.jump = live->restoreStyle == Routine::RestoreStyle::Jump;
             }
 
             r.player->stop(*r.sink);   // every grip released (R9)
@@ -525,16 +527,18 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
 
         // plan3 C: once per cycle, when its last beat begins, the loop return is scheduled against the LIVE
         // loop / restore settings (the lookup the end uses). A requested restart owns the next restore.
+        // A Jump routine schedules nothing: its return lands in one call ON the loop point (s-rta-0926b).
         if (r.glideCycle != r.cycle && pos >= r.lengthBeats - kRestoreGlideBeats)
         {
             r.glideCycle = r.cycle;
-            bool loop = r.loop, restore = r.restore;
+            bool loop = r.loop, restore = r.restore, jump = r.jump;
             if (const Routine* live = comp.routineInSlot(r.slot); live != nullptr && live->uuid == r.uuid)
             {
                 loop = live->loop;
                 restore = live->restoreState;
+                jump = live->restoreStyle == Routine::RestoreStyle::Jump;
             }
-            if (loop && restore && beatAvailable_ && !r.restartRequested && r.lengthBeats > 0.0)
+            if (loop && restore && !jump && beatAvailable_ && !r.restartRequested && r.lengthBeats > 0.0)
             {
                 const double startBeat = r.startBeat, length = r.lengthBeats;
                 scheduleGlides(r, startBeat + length, [&r, startBeat, length, pos](const ControlPath& key) {
@@ -580,9 +584,15 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
             r.ownSnap = toSnap(routine->quantize);
             r.loop = routine->loop;
             r.restore = routine->restoreState;
+            r.jump = routine->restoreStyle == Routine::RestoreStyle::Jump;
             // plan3 C: the restart's restore glides onto ITS boundary by the same rule, never touching a
-            // knob while the recording's own hand is on it before that boundary.
-            if (newRequest && r.restore && beatAvailable)
+            // knob while the recording's own hand is on it before that boundary. Jump: it lands in one call
+            // on the restart's boundary; a return glide still in flight from an Ease setting lets go now.
+            if (newRequest && r.jump)
+            {
+                releaseGlides(r);
+            }
+            else if (newRequest && r.restore && beatAvailable)
             {
                 const double boundary = clock_.now().beat + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap));
                 const double startBeat = r.startBeat, endPos = boundary - r.startBeat, pos = r.position;
@@ -606,6 +616,7 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
     r.ownSnap = toSnap(routine->quantize);
     r.restore = routine->restoreState;
     r.loop = routine->loop;
+    r.jump = routine->restoreStyle == Routine::RestoreStyle::Jump;
     r.lengthBeats = r.program->length;
     running_.push_back(std::move(r));
     ++fires_;
@@ -623,10 +634,11 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
     else
     {
         // plan3 C: the restore glides over the last beat before the boundary it will start on; with
-        // Quantize Off the boundary is now (a quarter-beat spill that begins inside this call).
+        // Quantize Off the boundary is now (a quarter-beat spill that begins inside this call). Jump: no
+        // glide -- the whole restore lands in one call ON the boundary (startNow's one-call path).
         const RoutineSnap mode = effectiveSnap(forcedSnap, added.ownSnap);
         const double now = clock_.now().beat;
-        if (added.restore)
+        if (added.restore && !added.jump)
             scheduleGlides(added, now + beatsUntilBoundary(mode), [now](const ControlPath&) { return now; });
         if (mode == RoutineSnap::Off)
             startNow(added);
@@ -700,6 +712,7 @@ void RoutineEngine::refreshBank(const Composition& comp)
             s.lengthBeats = r->lengthBeats;
             s.loop = r->loop;
             s.restoreState = r->restoreState;
+            s.restoreStyle = Routine::restoreStyleToString(r->restoreStyle);
             s.quantize = Routine::quantizeToString(r->quantize);
             s.lanes = static_cast<int>(r->lanes.size());
             s.preambleEntries = static_cast<int>(r->preamble.size());

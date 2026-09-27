@@ -25,7 +25,8 @@ enum class RoutineSnap : uint8_t { Off, Beat, Bar, TwoBar, FourBar };
 // from app start), starts it on the next bar (per-routine quantize; global Quantize overrides),
 // fires its restore list through the SAME Player preamble -> dispatch path a take replay uses
 // (s-rta-0926b plan3 C: the discrete half ON the boundary; the continuous half GLIDES over the
-// last beat before it -- at the start, every loop return and a re-fire restart), loops or holds
+// last beat before it -- at the start, every loop return and a re-fire restart; a routine whose
+// Routine::restoreStyle is Jump restores both halves in one call ON the boundary), loops or holds
 // at its end, releases every grip on stop, and arbitrates two routines on
 // one control by which gesture BEGAN later (D9 "the later begin wins for the rest of that
 // gesture") inside its own sink. Message-thread only (same jassert idiom as RecorderHost);
@@ -71,6 +72,7 @@ public:
             std::string uuid, name;
             double lengthBeats = 0.0;
             bool loop = false, restoreState = true;
+            std::string restoreStyle = "ease";   // "ease" | "jump" (Routine::restoreStyle)
             std::string quantize;    // "off" | "beat" | "bar" | "2bar" | "4bar"
             int lanes = 0, preambleEntries = 0;
             std::string state = "empty";   // "empty" | "idle" | "pending" | "running"

@@ -7,7 +7,9 @@
 # bar, restore the recorded look (pixel-decoded), replay its recorded moves on the beat grid, hold
 # at the end (once) or loop (restore re-fired each cycle), restart on re-fire, skip the restore in
 # "start from now", and -- stacking (D9) -- let the routine whose gesture BEGAN later win for the
-# rest of the earlier routine's gesture.
+# rest of the earlier routine's gesture. s-rta-0926b routines-followup (row 11j): a routine whose restore
+# style is Jump cuts to its start look ON the bar -- at the start and at the loop return -- where the
+# default Ease glides (rows 5g/8g/9g/11g).
 #
 # RED on a pre-routines binary: every /api/routine/* route is 404 and /api/composition clips carry
 # no "effects" block; take.json meta has no startBeatInBar; a first-activation auto-play is not a
@@ -405,6 +407,40 @@ elif cmd == 'glide':                      # glide T1 FILE: row 5g (plan3 C) -- t
           + ' 5g: status bank[0].glides >= 1 during the last beat and 0 from T1+0.1 on (during: %s, after: %s)'
           % (sorted(set(str(g) for g in during)), sorted(set(str(g) for g in after))))
 
+elif cmd == 'jump':                       # jump TJ FILE: row 11j (s-rta-0926b routines-followup) -- a Jump start is a cut ON the bar
+    TJ, s = float(sys.argv[2]), load(sys.argv[3])
+    before = [r.get('op0') for r in s if r['t'] < TJ - 0.12]
+    bnum = [v for v in before if isinstance(v, (int, float))]
+    print(('ok' if len(before) >= 10 and all(near(v, 0.1, 0.02) for v in before) else 'no')
+          + ' 11j: while the Jump routine waits -- through its whole last beat -- L0 opacity holds the hand value 0.1 (%d samples before TJ-0.12, %s..%s)'
+          % (len(before), min(bnum) if bnum else None, max(bnum) if bnum else None))
+    upto = [r.get('op0') for r in s if r['t'] < TJ + 0.5]
+    mid = [round(v, 3) for v in upto if isinstance(v, (int, float)) and 0.15 < v < 0.95]
+    print(('ok' if upto and not mid else 'no')
+          + ' 11j: a hard cut -- no sample strictly between 0.15 and 0.95 up to TJ+0.5 (%d samples, %d in between: %s)' % (len(upto), len(mid), mid))
+    after = [r.get('op0') for r in s if TJ + 0.1 <= r['t'] <= TJ + 0.5]
+    print(('ok' if len(after) >= 3 and all(near(v, 1.0, 0.02) for v in after) else 'no')
+          + ' 11j: on the bar L0 opacity is restored to 1.0 (TJ+0.1..TJ+0.5: %d samples, %s)' % (len(after), sorted(set(round(v, 3) for v in after if isinstance(v, (int, float))))))
+    gl = [r['bank'][0].get('glides') for r in s if r.get('bank')]
+    print(('ok' if gl and all(g == 0 for g in gl) else 'no')
+          + ' 11j: status bank[0].glides stays 0 across the start (%s)' % sorted(set(str(g) for g in gl)))
+
+elif cmd == 'jumploop':                   # jumploop TJ FILE: row 11j (s-rta-0926b routines-followup) -- a Jump loop return is a cut ON the loop point
+    TJ, s = float(sys.argv[2]), load(sys.argv[3])
+    pre = [r.get('op0') for r in s if TJ + 7.0 <= r['t'] <= TJ + 7.9]
+    pnum = [v for v in pre if isinstance(v, (int, float))]
+    print(('ok' if len(pre) >= 10 and all(near(v, 0.9, 0.02) for v in pre) else 'no')
+          + ' 11j loop: the end of cycle 1 holds L0 opacity 0.9 through its last beat -- no return glide (+7.0..+7.9 s: %d samples, %s..%s)'
+          % (len(pre), min(pnum) if pnum else None, max(pnum) if pnum else None))
+    t_land = first(s, lambda r: near(r.get('op0'), 1.0, 0.01), TJ + 7.5)
+    print(('ok' if t_land is not None and TJ + 7.9 <= t_land <= TJ + 8.15 else 'no')
+          + ' 11j loop: the return cuts to 1.0 ON the loop point (first sample within 0.01 of 1.0 at +%s s, expected +7.9..+8.15)'
+          % (None if t_land is None else round(t_land - TJ, 2)))
+    between = [round(v, 3) for r in s if TJ + 7.0 <= r['t'] <= TJ + 8.3 for v in [r.get('op0')]
+               if isinstance(v, (int, float)) and 0.92 < v < 0.98]
+    print(('ok' if pre and not between else 'no')
+          + ' 11j loop: no sample strictly between 0.92 and 0.98 around the loop point (+7.0..+8.3 s: %s)' % between)
+
 elif cmd == 'restartglide':               # restartglide FILE: row 9g (plan3 C) -- the restart's restore glides too
     s = load(sys.argv[2])
     TR = first(s, lambda r: bool(r.get('bank')) and r['bank'][0].get('restarts') == 1, 0)
@@ -746,6 +782,45 @@ else
         && ok "stop while pending: L0 opacity stays where the glide left it (+0.1 s $V_SP1, +0.6 s $V_SP2, strictly between 0.15 and 0.95)" \
         || no "stop while pending: L0 opacity +0.1 s $V_SP1, +0.6 s $V_SP2 (expected equal within 0.02 and strictly between 0.15 and 0.95 -- mid-glide)"
 fi
+
+# --- 11j. restore style Jump (s-rta-0926b routines-followup ITEM 2, Boris "controls for jump or ease in each"):
+# a Jump routine restores in ONE cut on the bar -- nothing moves during the wait, no glide at the loop return.
+# RED on a glide-only binary: it ignores restoreStyle, so the restore still eases in over the last beat.
+P /api/routine/set '{"slot":0,"restoreStyle":"jump","loop":true}' >/dev/null
+sleep 0.3
+JSTYLE="$(rstat "d['bank'][0].get('restoreStyle')")"
+[ "$JSTYLE" = "jump" ] && ok "11j: POST /api/routine/set restoreStyle jump -- status bank[0].restoreStyle == jump" \
+    || no "11j: status bank[0].restoreStyle == $JSTYLE (expected jump)"
+P /api/set_layer_opacity '{"layer":0,"opacity":0.1}' >/dev/null
+sleep 1   # > gripHoldMs: the REST write's Decaying grip expires
+frame jpre.png "11j waiting look"
+assert_nonblank jpre.png "11j waiting look"
+T_EDGEJ="$(python3 "$RT" edge)"
+if [ "$T_EDGEJ" = "NA" ]; then
+    no "11j: never saw an early-in-bar poll within 4 s"
+else
+    python3 "$RT" sample 3.0 "$OUT/jump.json" >/dev/null &
+    JUMP_SAMPLER=$!
+    P /api/routine/fire '{"slot":0}' >/dev/null
+    ( sleep "$(perl -e "my \$d = ($T_EDGEJ - 0.30) - $(now); printf '%.3f', \$d > 0 ? \$d : 0")"
+      curl -s --max-time 20 -X POST "$A/api/render_frame" -H 'Content-Type: application/json' \
+           -d "{\"output_path\":\"$OUT/jmid.png\"}" > "$OUT/jmid.json" ) &
+    JMID_SHOT=$!
+    TJ="$(python3 "$RT" wait 0 running 2.6)"
+    if [ "$TJ" = "NA" ]; then no "11j: bank[0] never became running within 2.6 s"; TJ="$(now)"; fi
+    wait "$JUMP_SAMPLER"; wait "$JMID_SHOT"
+    echo "(11j: predicted bar edge at TJ $(perl -e "printf '%+.3f', $T_EDGEJ - $TJ") s)"
+    rows python3 "$RT" jump "$TJ" "$OUT/jump.json"
+    grep -q '"ok":[[:space:]]*true' "$OUT/jmid.json" 2>/dev/null && [ -f "$OUT/jmid.png" ] \
+        && ok "11j: render_frame wrote jmid.png 0.30 s before the bar" || no "11j: render_frame did not write jmid.png ($(cat "$OUT/jmid.json" 2>/dev/null))"
+    MAD_JJ="$(mean_abs_diff "$OUT/jpre.png" "$OUT/jmid.png")"
+    num_leq "$MAD_JJ" "$MAD_REST" \
+        && ok "11j: 0.30 s before the bar the frame is still the waiting look -- mad(jpre, jmid) = $MAD_JJ <= $MAD_REST (nothing eased in)" \
+        || no "11j: 0.30 s before the bar the frame has moved -- mad(jpre, jmid) = $MAD_JJ (expected <= $MAD_REST: a Jump waits for the bar)"
+    python3 "$RT" sample "$(perl -e "printf '%.2f', 8.5 - ($(now) - $TJ)")" "$OUT/jumploop.json" >/dev/null
+    rows python3 "$RT" jumploop "$TJ" "$OUT/jumploop.json"
+fi
+P /api/routine/stop '{"all":true}' >/dev/null
 
 # --- 12. teardown (SCREEN-SAFETY LAW) ---------------------------------------------------
 osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1

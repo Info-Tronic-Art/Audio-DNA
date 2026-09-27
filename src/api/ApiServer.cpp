@@ -1647,10 +1647,17 @@ void ApiServer::handleRoutineSet(const httplib::Request& req, httplib::Response&
     opts.restoreState = optionalBool(json, "restoreState");
     opts.quantize = json.getProperty("quantize", "").toString();
     opts.name = json.getProperty("name", "").toString();
+    opts.restoreStyle = json.getProperty("restoreStyle", "").toString();
     if (!quantizeKnown(opts.quantize))
     {
         res.status = 400;
         res.set_content(jsonError("quantize must be off, beat, bar, 2bar or 4bar."), "application/json");
+        return;
+    }
+    if (opts.restoreStyle.isNotEmpty() && opts.restoreStyle != "ease" && opts.restoreStyle != "jump")
+    {
+        res.status = 400;
+        res.set_content(jsonError("restoreStyle must be ease or jump."), "application/json");
         return;
     }
 
