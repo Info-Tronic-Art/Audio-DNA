@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Audio-DNA — only you can check (s-rta-0927)</title>
+<style>
+  body{background:#111;color:#ddd;font:14px/1.5 -apple-system,Helvetica,Arial,sans-serif;margin:0;padding:24px 32px;max-width:1280px}
+  h1{font-size:20px;margin:0 0 4px;color:#fff} h2{font-size:16px;margin:32px 0 6px;color:#fff;border-top:1px solid #2a2a2a;padding-top:18px}
+  .sub{color:#888;margin-bottom:12px} .q{background:#1a1a1a;border-left:3px solid #4a9a8a;padding:8px 12px;margin:10px 0}
+  .def{color:#9fd49a} .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start} figure{margin:0}
+  figcaption{color:#aaa;font-size:12px;margin-top:4px} img{border:1px solid #2a2a2a;max-width:600px;display:block}
+  ol li,ul li{margin:4px 0} code{background:#1c1c1c;padding:0 4px}
+</style></head><body>
+<h1>Only you can check — session s-rta-0927</h1>
+<div class="sub">Each item has a default already built. Say nothing and the default stays. Page updated in place; refresh to see changes.</div>
+
+<h2>1. Routine highlight colour — cyan or chartreuse?</h2>
+<p>While a routine moves a control, the control lights up. The approved mockup used <b>cyan</b>. But cyan is already the colour
+of every mapped knob and the Mod knobs, on every screen. A design critic flagged that you could not tell "a routine owns this" from "a normal mapped knob".
+So it is now <b>chartreuse</b> (yellow-green), the one hue the app does not use yet. Switching back is one line.</p>
+<div class="row">
+  <figure><img src="routine-display-shots/crop-fixround-before-03-playing-deck.png"><figcaption>Before: cyan (layer name bands "Drop", L1 fader)</figcaption></figure>
+  <figure><img src="routine-display-shots/crop-after-03-playing-deck.png"><figcaption>Now: chartreuse</figcaption></figure>
+</div>
+<div class="row" style="margin-top:12px">
+  <figure><img src="routine-display-shots/crop-fixround-before-03-playing-inspector-rows.png"><figcaption>Before: inspector row, cyan</figcaption></figure>
+  <figure><img src="routine-display-shots/crop-after-03-playing-inspector-rows.png"><figcaption>Now: chartreuse, with the word ROUTINE</figcaption></figure>
+</div>
+<div class="q">Keep chartreuse, or back to cyan? <span class="def">Default: chartreuse.</span></div>
+
+<h2>2. The routine pads row sits right above the column numbers</h2>
+<p>Pads 1-8 are a fixed bank, shared by every deck. The column numbers below them belong to the deck. They look alike and line up, so "pad 2" could be read as "column 2" at a glance.</p>
+<figure><img src="routine-display-shots/crop-after-03-playing-routines-row.png"><figcaption>ROUTINES row (top) above the column numbers</figcaption></figure>
+<div class="q">OK as is, or should the pads row look different (or move to the bottom, above the deck tabs)? <span class="def">Default: top, as is.</span></div>
+
+<h2>3. Stopping a routine has no confirm</h2>
+<p>The small <b>x</b> on a routine's name band stops that routine on <i>every</i> layer it plays. The layer's <b>X</b> (clear) now also stops routines on that layer.
+Neither can be undone. Both have a tooltip now, but a tooltip only shows if you hover first. "Delete routine" in the pad menu does ask first.</p>
+<div class="q">Fine without a confirm (fast, live)? <span class="def">Default: no confirm.</span></div>
+
+<h2>4. "Restart waiting" mark</h2>
+<p>Press a playing pad again: it restarts on the next bar. Until then the pad shows a small "back to start" mark next to "5/8".</p>
+<figure><img src="routine-display-shots/crop-after-13-restart-pending-routines-row.png"><figcaption>Pad 1 with the restart mark</figcaption></figure>
+<div class="q">Visible enough from where you stand? <span class="def">Default: as is.</span></div>
+
+<h2>5. Projector output (part 1 built: one display at a time)</h2>
+<p>No test ever opens the output window on your screens, so these need you, the app and a second display:</p>
+<ol>
+  <li>Plug in a second display. Output menu, pick it. It shows exactly what the lower-left preview shows, same black bars, sharp, right size.</li>
+  <li>Turn it off. Nothing stays on any screen.</li>
+  <li>Click on the output picture, then use your usual keys (clip keys, Cmd+F, the menu). They all still work. The picture never takes the keyboard.</li>
+  <li>With the output on, open the big signal bar (the preview hides). The projector keeps the last picture, frozen. Close the bar and it moves again. Same when you minimise the app.</li>
+  <li>Quit with the output open (Cmd+Q). Every screen is clean.</li>
+  <li>Top edge of the projector: do you see a see-through menu-bar strip? If yes, System Settings &gt; Control Center &gt; "Automatically hide and show the menu bar: Always" removes it.</li>
+  <li>Laptop at 120 Hz and projector at 60 Hz, fast motion: smooth, no stutter, no horizontal tear line.</li>
+  <li>TopBar fps with the output on vs off: the cost in your own numbers.</li>
+</ol>
+<p class="sub">Part 2 (any number of displays, a tick per display in the Output menu, Cmd+Shift+Esc closes all) is being built now. Part 3 (unplug/replug, "Restore Last Outputs") follows.</p>
+
+<h2>Still open from earlier (defaults in force)</h2>
+<ul>
+  <li>Fit "Bars": see-through (built) or solid black.</li>
+  <li>Deck defaults: New Deck = 3 empty layers; Load Deck adds a tab; Duplicate names it "&lt;name&gt; copy".</li>
+  <li>Outputs questions 1-7 (asked in chat today): one-click restore, plain Esc no longer closes outputs, screens not saved in files, no windowed output yet, picture comes back on replug, frozen while the signal bar is open, whole picture on every screen.</li>
+</ul>
+</body></html>

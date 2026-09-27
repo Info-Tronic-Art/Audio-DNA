@@ -151,3 +151,42 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 98/0, mastersignal 22/0, decktabs 6/0, deckclock 10/0,
   step3 94/0, tempo GREEN; canvas 12/0 + fitmode 10/0 on the correctness rows (row filter; perf rows c_perf_1080/4k +
   f_perf DEFERRED to a quiet window — 3 lanes compiling). ctest 729/729. Pushed.
+- 16:30 wave 3 plans ADOPTED by Harmony: plan-beatclock.md (Fable final after 3 REVISE seats: FeatureSnapshot::totalBeatCount
+  written by BPMTracker; RecorderClock integrates count + phase; looping routine folds whole cycles with one restore;
+  TEST-ONLY message-thread stall hook for RED; Boris flags: catch-up burst after a stall (default) vs skip; the audio-clock
+  pause (reppre1) is a tracker-level Boris call, filed) and plan-renderperf.md. Builders running W7/W8; C3 in W9 (+3).
+- 17:09 tier1-diag dispatched (opus, diagnosis only, main app, starts from lane O's tier1 logs: 8 failed / 5 passed, identical pre/post C1).
+- 17:48 tier1-diag DONE (.harmony/.reports/s-rta-0927/tier1-diag.md): Tier-1 red = mostly HARNESS: H1 /api/load_source
+  without params keeps the cached source's last params (651/651 pairs; fix TestServer::handleLoadSource seeds defaults like
+  MainComponent.cpp:1119-1125); H2 each 256x256 render_frame resizes the canvas and resets stateful sources (fix: conftest
+  sets composition 256x256); H3 mean-brightness metric calls line art black (p99.5 max-channel < 16); H4 periodic test
+  value 1.0 == 0 / t=1.0 no-op; E stale audio expectations (u_bass = band 1, beatPhase readers, RMS readers). APP DEFECTS:
+  A1 julia_set + newton_3d black at defaults, burning_ship corner only; A2 74 registered params no shader reads
+  (addTorusControls on 8 sources, only torus_hole implements); A3 Dot Field default dot ~1 px; A4 sierpinski lines vanish
+  at 256; A5 crystal_cavern black at t=5/10. Policy: 56 "goes black at 0" lines need an exceptions list. QUEUED: tier1-fix
+  lane (H1+H2+H3+H4+E+exceptions, re-run, triage remainder) when a build slot frees; A1-A5 -> Fable plan (A2 implement vs
+  remove = product call -> default + Boris flag).
+- 17:58 Fable plan for app defects A1-A5 + exceptions policy dispatched (architect fable max; REPORT plan-source-defects.md).
+- 17:59 beatclock builder DONE 6e9cb79 (7 commits): FeatureSnapshot::totalBeatCount (BPMTracker), RecorderClock integrates
+  count+phase, loop folds whole cycles in one tick, TEST-ONLY stall hook + probe-beatclock; ctest 742/742; probe-routines
+  105/0 x3; routine-display/resync/manual-bpm/downbeat/step3/tempo GREEN; Pitfall 42. Follow-up queued: the other
+  beat-crossing wrap readers (Autopilot.cpp:44, Renderer.cpp:407, advanceSlideshow, beatSyncRandomize) -> totalBeatCount.
+  Boris: catch-up vs skip after a freeze (default catch up); audio-clock pause moves the grid (tracker-level). Lock
+  starvation again: beatclock waited 2963 s (renderperf re-acquired repeatedly).
+- 18:20 beatclock review PASS. Harmony RED on pre-merge main: probe-beatclock b1 FAIL (totalBeatCount absent), b2/b3 SKIP (no
+  hook in that binary; the builder's commit-1 app showed b2 -0.980 / b3 -0.714). Merged -> 2ee1013; rebuild OK; ctest
+  742/742. Battery (+beatclock; canvas/fitmode perf rows filtered out while lanes compile) running (bxayvhny9).
+- 18:22 renderperf builder DONE e617312: lazy ring cells (hitch 32.7-47.7 -> 9.0-14.2 ms cold, 1.7-5.4 ms images warm), row
+  PixelConvert (byte-identical PNGs), GL thread only reads (1080p capture GL share 94-110 -> 2.3-5.0 ms; 4K 372 -> 7.6);
+  ctest 736; review running. found_not_fixed QUEUED: (1) juce::FileOutputStream APPENDS to an existing file -> render_frame /
+  snapshot to an existing path keeps old bytes (1-s snapshot names collide) — real bug; (2) loadKeyImage first-upload
+  9-14 ms on the GL thread; (3) PNG encode dominates HTTP capture round trip.
+- 18:32 plan-source-defects.md (Fable) ADOPTED: julia 0.2/0.635/0.1, burning 0.5/0.5/0.0, newton Angle X 0.0 + yaw-only orbit,
+  sierpinski maxIter cap by log2(res), crystal cavern domain repetition (diagnose first), Dot Field default 0.7; REMOVE 78
+  dead controls + IMPLEMENT 3 (mandelbulb/julia_3d Iterations, Dot Field depth); compload reconcile for old clips; lint
+  ctest + GL defaults ctest + T4 must-not-change sweep. Boris Q1-Q6 defaults ship. Lane launched (wrtbg680f /
+  wf_4e0e5886-e5c, W10 from 2ee1013, opus high; reviewer + 3 critics).
+- 18:51 beatclock gate GREEN on main 2ee1013: outputs 13/0, routine-display 16/0, beatclock 6/0, render-state 31/0, crossfade
+  35/0, effects-parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 105/0, mastersignal 22/0, decktabs 6/0,
+  canvas 12/0 + fitmode 10/0 (correctness rows; perf deferred), deckclock 10/0, step3 94/0, tempo GREEN; ctest 742/742.
+  Pushed.
