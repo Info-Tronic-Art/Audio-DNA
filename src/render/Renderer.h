@@ -618,13 +618,18 @@ private:
     std::atomic<bool> pendingCapture_{false};
     int captureWidth_ = 0;
     int captureHeight_ = 0;
-    std::promise<bool>* capturePromise_ = nullptr;
-    // s-rta-0927 plan-renderperf C3: the GL thread only reads the canvas into capturePixels_ (RGBA8, bottom-up);
-    // the caller of captureFrame -- already blocked on the promise -- converts, encodes and writes the PNG.
-    // GL thread writes, the waiting caller moves them out; both under captureMutex_.
-    std::vector<uint8_t> capturePixels_;
-    int captureReadW_ = 0, captureReadH_ = 0;
-    double captureReadMs_ = 0.0;
+    // s-rta-0927 plan-renderperf C3: the GL thread only reads the canvas; the caller of captureFrame -- already
+    // blocked on the promise -- converts, encodes and writes the PNG. The read travels to ITS OWN caller by value,
+    // inside the promise (fix round): no shared state outlives the signal, so two captures in flight (8080, 7070,
+    // snapshot threads) can never take each other's pixels.
+    struct CaptureRead
+    {
+        bool ok = false;
+        std::vector<uint8_t> pixels;   // RGBA8, bottom-up (GL origin)
+        int width = 0, height = 0;
+        double readMs = 0.0;
+    };
+    std::promise<CaptureRead>* capturePromise_ = nullptr;
     juce::File snapshotDir_; // P22.7: where snapshots are saved
 
     // Process pending capture after render. Called from renderOpenGL(). Reads the whole canvas
