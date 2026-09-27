@@ -168,3 +168,7 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
   C verify+fix deck-transition capture (F2); Fable fit-mode spec in parallel -> fitmode commit; reviewer + 3 critics.
 - NOTE 23:37 (read from date): my log stamps '23:4x'..'00:2x' above were estimates, not clock reads — true times were ~22:30-23:30. HABIT: stamp from `date +%H:%M`.
 - 23:48 GREEN on build/ 2d02681 (hardened probes, AUDIODNA_LOCK_OWNER=harmony): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 18/0, resync 16/0, downbeat 14/0, routines 74/0, mastersignal 22/0, step3 94/0, tempo witness GREEN. Wave 3a DONE: tempo-glide (A 2b32536 + C d640b13, review PASS_WITH_NITS, 6 disclosed departures each test-covered) + topbar-count (review PASS, critic 3/3 PASS); looked at glide mid frame + Bar 4 crop.
+- 23:49 Harmony RED on build/ 2d02681 (lane X probe copies): manual-bpm "18 PASS / 4 FAIL" (S1-S3), routines "79 PASS / 7 FAIL"
+  (the 7 glide rows). Merged b332e0d tempo-glide + 5285662 topbar-count (auto-merged probe files; bash -n ok). build/
+  rebuilt; ctest 613/613. 00:08 GREEN: render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0,
+  downbeat 14/0, routines 86/0, mastersignal 22/0, step3 94/0, tempo witness GREEN.
