@@ -4,7 +4,10 @@
 The .sh owns launch / refuse / quit; this file talks to the already-running app on port 7070 and
 decodes every captured PNG with PIL+numpy (never file hashes/sizes). Every render_frame response is
 checked, and the output dir is fresh per run, so a failed capture is a FAIL -- never a decode of an
-older file (parity-diagnosis.md section 8).
+older file (parity-diagnosis.md section 8). `cap()` additionally deletes any pre-existing file at the
+target path before the request and requires the written file's mtime to be at/after the request --
+belt-and-suspenders against a render_frame that answers ok:true without actually writing a fresh frame
+(probe hygiene, notebook.md s-rta-0926).
 
 usage: probe-effects-parity.py <root> <fresh-outdir> <media-dir>
 
@@ -67,6 +70,34 @@ def fx(name, v):
     return {"name": name, "enabled": True, "bypassed": False, "dryWet": 1.0, "params": [v]}
 
 
+def cap(p, label):
+    """render_frame into p. Deletes any pre-existing file at p first, then requires the response's
+    ok:true, the file to exist, AND its mtime to be at/after the request -- never decode a PNG this
+    call did not write (probe hygiene: notebook.md s-rta-0926, "a render probe must check
+    render_frame's JSON response and delete old PNGs first"). Returns the decoded RGBA float array,
+    or None (and a FAIL) on any failure."""
+    if os.path.exists(p):
+        os.remove(p)
+    t0 = time.time()
+    try:
+        body = requests.post(A + "/api/render_frame", json={"output_path": p}, timeout=20).json()
+    except Exception as e:  # noqa: BLE001 -- any transport/JSON failure is a failed capture
+        no(f"{label}: render_frame transport/JSON failure: {e}")
+        return None
+    if not body.get("ok"):
+        no(f"{label}: render_frame failed: {body}")
+        return None
+    if not os.path.isfile(p):
+        no(f"{label}: render_frame ok:true but no file written at {p}")
+        return None
+    mt = os.path.getmtime(p)
+    if mt < t0 - 0.01:
+        no(f"{label}: render_frame ok:true but {p} mtime {mt:.3f} predates the request {t0:.3f} "
+           f"(stale file from a previous run -- never decoded)")
+        return None
+    return np.asarray(Image.open(p).convert("RGBA")).astype(float)
+
+
 HUE, SAT, INV, BRI = fx("Hue Shift", 0.5), fx("Saturation", 0.8), fx("Invert", 0.7), fx("Brightness", 0.6)
 GENERATED = {
     "REF1": ([HUE, SAT], []),
@@ -102,15 +133,7 @@ def run(tag):
     frames = []
     for k in range(FRAMES):
         p = os.path.join(OUT, f"{tag}_{k}.png")
-        try:
-            body = requests.post(A + "/api/render_frame", json={"output_path": p}, timeout=20).json()
-        except Exception as e:  # noqa: BLE001 -- any transport/JSON failure is a failed capture
-            body = {"error": str(e)}
-        if not body.get("ok") or not os.path.isfile(p):
-            no(f"{tag} frame {k}: render_frame failed: {body}")
-            frames.append(None)
-        else:
-            frames.append(np.asarray(Image.open(p).convert("RGBA")).astype(float))
+        frames.append(cap(p, f"{tag} frame {k}"))
         time.sleep(0.3)
     return frames
 
@@ -154,15 +177,7 @@ def run_global_chain():
     frames = []
     for k in range(FRAMES):
         p = os.path.join(OUT, f"G1_{k}.png")
-        try:
-            body = requests.post(A + "/api/render_frame", json={"output_path": p}, timeout=20).json()
-        except Exception as e:  # noqa: BLE001 -- any transport/JSON failure is a failed capture
-            body = {"error": str(e)}
-        if not body.get("ok") or not os.path.isfile(p):
-            no(f"G1 frame {k}: render_frame failed: {body}")
-            frames.append(None)
-        else:
-            frames.append(np.asarray(Image.open(p).convert("RGBA")).astype(float))
+        frames.append(cap(p, f"G1 frame {k}"))
         time.sleep(0.3)
 
     for k, a in enumerate(frames):
