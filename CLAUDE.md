@@ -137,6 +137,8 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 **PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
+**Deck tab row**: '+' = New Deck / Load Deck...; right-click a tab = Save Deck / Save Deck As... / Rename Deck... / Duplicate Deck / Remove Deck (the menu is headed by the deck's name; Remove shows a 10-s `Undo Remove "<name>"` button flush right in the row, no dialog); the Deck menu mirrors every action for the active deck. The Compositions browser tab is the library (row click = open / append as a new tab; right-click = Open / Show in Finder / Delete... to the Trash, confirmed). `DeckView::DeckTabButton` intercepts `isPopupMenu()` in `mouseDown` because a JUCE Button fires `onClick` on ANY mouse button (a right-click used to switch decks). Geometry and menus: `src/ui/DeckTabRow.h` (pure, `tests/test_deck_tab_row.cpp`).
+
 ---
 
 ## Claude Working Instructions
@@ -271,6 +273,7 @@ the named area; this index is triage-only.
 33. Effect/source-param rows are engine-driven -- before writing to `paramValues`/`sourceParams[].value` directly.
 34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
 35. A crossfading layer has two live clip chains -- before keying any per-chain GL history (never by deck + layer alone).
+36. Deck ids are unique per composition; a Duplicate re-mints clip ids -- before creating or copying a deck (mint via `appendDeck`/`addDeck`).
 
 ---
 

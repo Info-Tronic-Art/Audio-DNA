@@ -9,6 +9,7 @@
 #include "core/TriggerCommands.h"
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
+#include "render/LayerStateKey.h"
 #include <optional>
 #include <random>
 
@@ -225,19 +226,21 @@ static bool operator==(const Layer& a, const Layer& b)
 // Hand-written deep-equality for Deck (step-6 RemoveDeckCmd full-Deck restore).
 //
 // FIELD COVERAGE against Deck.h: every PUBLIC instance field — name, id,
-// numColumns, and the layers vector (element-wise via Layer operator==). The
-// only Deck member NOT compared is the private `nextLayerId_` id counter: it is
-// inaccessible to a free operator== AND is an internal allocation counter, not
-// structural identity — the same class of exclusion as Clip/Layer runtime
-// fields. A full-Deck VALUE copy (RemoveDeckCmd) still restores nextLayerId_
-// bit-identically via the implicit copy ctor; it is simply not asserted here.
-// A future added PUBLIC Deck field surfaces as a compile-visible gap in this
-// list rather than a silent weakening.
+// sourceFile, numColumns, and the layers vector (element-wise via Layer
+// operator==). The only Deck member NOT compared is the private `nextLayerId_`
+// id counter: it is inaccessible to a free operator== AND is an internal
+// allocation counter, not structural identity — the same class of exclusion as
+// Clip/Layer runtime fields. A full-Deck VALUE copy (RemoveDeckCmd) still
+// restores nextLayerId_ bit-identically via the implicit copy ctor; it is simply
+// not asserted here.
+// HAND-WRITTEN: a new public Deck field is NOT detected by the compiler —
+// whoever adds one to Deck.h must add it here (or record the exclusion) by hand.
 // ---------------------------------------------------------------------------
 
 static bool operator==(const Deck& a, const Deck& b)
 {
     return a.name == b.name && a.id == b.id
+        && a.sourceFile == b.sourceFile
         && a.numColumns == b.numColumns
         && vecEq(a.layers, b.layers);
 }
@@ -1489,7 +1492,9 @@ TEST_CASE("AddDeckCmd: add appends + activates, undo removes, redo restores same
     REQUIRE(static_cast<int>(comp.decks.size()) == before + 1);
     REQUIRE(comp.activeDeckIndex == before);            // new deck is active
     REQUIRE(comp.decks[1].name == "Deck 2");            // faithful to kDeckNew naming
-    REQUIRE(comp.decks[1].getNumLayers() == 0);         // kDeckNew: no initDefault → no layers
+    // plan6 §3 E1 (deliberate behaviour change): New Deck now arrives initDefault()ed —
+    // a zero-layer deck cannot be saved and loaded back (compload::validateDeck refuses it).
+    REQUIRE(comp.decks[1].getNumLayers() == Deck::kDefaultLayers);
     REQUIRE(mgr.undoDescription() == "Add Deck");
     const Deck expected = comp.decks[1];               // capture for redo compare
 
@@ -1501,6 +1506,134 @@ TEST_CASE("AddDeckCmd: add appends + activates, undo removes, redo restores same
     REQUIRE(static_cast<int>(comp.decks.size()) == before + 1);
     REQUIRE(comp.activeDeckIndex == before);
     REQUIRE(comp.decks[1] == expected);                // redo re-inserts the SAME deck
+}
+
+// plan6 §3 E1 (F1): every deck-creating path mints a unique deck id. Before this, New
+// Deck left every added deck at id 0, and LayerStateKey keys per-layer GL history by
+// (deckId, layerId) — two decks sharing an id aliased each other's temporal buffers.
+TEST_CASE("AddDeckCmd: the new deck gets an id no existing deck holds; redo keeps it; a second add differs", "[undo][deck][ids]")
+{
+    Composition comp = makeComp();          // 1 deck, id 0
+    UndoManager mgr;
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.decks[1].id != comp.decks[0].id);
+    REQUIRE(LayerStateKey::clipChain(comp.decks[0].id, 0) != LayerStateKey::clipChain(comp.decks[1].id, 0));
+
+    const auto id1 = comp.decks[1].id;
+    mgr.undo();
+    mgr.redo();
+    REQUIRE(comp.decks[1].id == id1);       // redo re-inserts the captured deck, minted id included
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.decks[2].id != id1);
+    REQUIRE(comp.decks[2].id != comp.decks[0].id);
+}
+
+// ---------------------------------------------------------------------------
+// plan6 §5 A1-d: InsertDeckCmd — Load Deck / Duplicate Deck append a FULLY-FORMED
+// deck under a fresh id and make it active, undoable like New Deck (no whole-
+// model swap: routines keep running, undo history survives). Media: the caller
+// opened it on the staged deck, so the first do reconnects nothing; undo
+// disposes every occupied cell of the inserted deck, redo reconnects them.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("InsertDeckCmd: appends a prebuilt deck under a fresh id and activates it; undo disposes, redo reconnects", "[undo][deck]")
+{
+    Composition comp = makeComp();          // 1 deck (id 0), active 0
+    UndoManager mgr;
+
+    int disposeCalls = 0, reconnectCalls = 0, fenceCalls = 0;
+    ClipMediaHook reconnect = [&reconnectCalls](const Clip&) { ++reconnectCalls; };
+    ClipMediaDisposeHook dispose = [&disposeCalls](const Clip&) { ++disposeCalls; };
+    DeckFenceHook fence = [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    mgr.perform(std::make_unique<InsertDeckCmd>(compResolverFor(comp), fence, reconnect, dispose,
+                richDeck("Loaded", 999), "Load Deck"));
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(comp.decks[1].id != comp.decks[0].id);
+    REQUIRE(comp.decks[1].id != 999u);                 // the file's id is never kept
+    REQUIRE(comp.decks[1].name == "Loaded");
+    REQUIRE(mgr.undoDescription() == "Load Deck");
+    REQUIRE(fenceCalls == 1);
+    REQUIRE(disposeCalls == 0);
+    REQUIRE(reconnectCalls == 0);                      // first do: media already open by the caller
+    const Deck expected = comp.decks[1];
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 1);
+    REQUIRE(comp.activeDeckIndex == 0);
+    REQUIRE(disposeCalls == 1);                        // richDeck's one Video clip
+    REQUIRE(reconnectCalls == 0);
+    REQUIRE(fenceCalls == 2);
+
+    mgr.redo();
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(comp.decks[1] == expected);                // the SAME deck, minted id included
+    REQUIRE(reconnectCalls == 1);
+    REQUIRE(disposeCalls == 1);
+    REQUIRE(fenceCalls == 3);
+}
+
+// Same shape as the AddDeckCmd pending-trigger test below: inserting a deck
+// deactivates the deck that was active, so its queued trigger is cancelled —
+// restored on undo, re-cancelled on redo.
+TEST_CASE("InsertDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels",
+          "[undo][deck][trigger][quantize]")
+{
+    Composition comp = makeComp();                   // 1 deck (index 0), active 0
+    UndoManager mgr;
+
+    comp.decks[0].getLayer(0)->clips[5] = richClip(99, "queued");
+    comp.decks[0].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);   // queues: col(5) != active(-1)
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == 5);
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.perform(std::make_unique<InsertDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                richDeck("Loaded", 2), "Load Deck"));
+    REQUIRE(comp.activeDeckIndex == 1);                                          // inserted deck active
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == -1);              // cancelled by the insert
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+
+    mgr.undo();
+    REQUIRE(comp.activeDeckIndex == 0);
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == 5);               // restored — not stranded
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.redo();
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == -1);              // re-cancelled
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+}
+
+// ---------------------------------------------------------------------------
+// plan6 §5 A1-c: RenameDeckCmd — the tab menu's Rename Deck... as one undo step.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RenameDeckCmd: execute renames, undo restores, redo re-applies; a stale index is a no-op", "[undo][deck]")
+{
+    Composition comp = makeComp();          // 1 deck "Deck 1"
+    UndoManager mgr;
+
+    mgr.perform(std::make_unique<RenameDeckCmd>(compResolverFor(comp), 0, "Deck 1", "Intro", "Rename Deck"));
+    REQUIRE(comp.decks[0].name == "Intro");
+    REQUIRE(mgr.undoDescription() == "Rename Deck");
+
+    mgr.undo();
+    REQUIRE(comp.decks[0].name == "Deck 1");
+    mgr.redo();
+    REQUIRE(comp.decks[0].name == "Intro");
+
+    // Stale coordinate (deck 5 of a 1-deck composition): execute/undo are safe no-ops.
+    mgr.perform(std::make_unique<RenameDeckCmd>(compResolverFor(comp), 5, "Gone", "Other", "Rename Deck"));
+    REQUIRE(comp.decks.size() == 1);
+    REQUIRE(comp.decks[0].name == "Intro");
+    mgr.undo();
+    REQUIRE(comp.decks[0].name == "Intro");
 }
 
 // ---------------------------------------------------------------------------
@@ -1583,6 +1716,79 @@ TEST_CASE("RemoveDeckCmd: remove active non-last deck keeps indices consistent",
     REQUIRE(comp.decks[1] == expected);                // re-inserted at the same index
     REQUIRE(comp.decks[2].name == survivorName);       // survivor shifted back to 2
     REQUIRE(comp.activeDeckIndex == 1);
+}
+
+// ---------------------------------------------------------------------------
+// plan6 §5 A1-b: RemoveDeckCmd removes ANY deck (the deck tab row's right-click
+// Remove targets a tab, not only the active one). Removing a deck BEFORE the
+// active one must keep the same deck OBJECT on screen: its index drops by one.
+// The arithmetic only differs when the active deck is NOT last (A/B/C/D, active
+// C): without the decrement, the index still reads 2 after the erase -> "D".
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveDeckCmd: removing a deck before the active one keeps the same deck active; undo restores", "[undo][deck]")
+{
+    Composition comp = makeComp();
+    comp.decks[0].name = "A";
+    comp.decks.push_back(richDeck("B", 2));
+    comp.decks.push_back(richDeck("C", 3));
+    comp.decks.push_back(richDeck("D", 4));
+    comp.activeDeckIndex = 2;                           // "C" on screen, not last
+    UndoManager mgr;
+
+    Deck removedCopy = comp.decks[0];
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                0, std::move(removedCopy), 2, "Remove Deck"));
+
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.decks[static_cast<size_t>(comp.activeDeckIndex)].name == "C");   // the same deck stays on screen
+    REQUIRE(comp.activeDeckIndex == 1);
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 4);
+    REQUIRE(comp.activeDeckIndex == 2);
+    REQUIRE(comp.decks[0].name == "A");
+    REQUIRE(comp.decks[2].name == "C");
+
+    mgr.redo();
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(comp.decks[1].name == "C");
+}
+
+// plan6 §5 A1-b: undoing a BACKGROUND-deck removal re-inserts a deck that was
+// never on screen — the active deck OBJECT is untouched (only its index moves
+// back up), so a quantized trigger queued on it must survive the undo. Only
+// reactivating the deck that WAS active deactivates the current one (the two
+// "undo cancels ..." tests below keep that half pinned). Never cache a Layer&
+// across perform/undo — erase/insert reallocate comp.decks.
+TEST_CASE("RemoveDeckCmd: undoing a background-deck removal keeps the active deck's pending trigger", "[undo][deck][trigger][quantize]")
+{
+    Composition comp = makeComp();
+    comp.decks[0].name = "A";
+    comp.decks.push_back(richDeck("B", 2));
+    comp.decks.push_back(richDeck("C", 3));
+    comp.activeDeckIndex = 2;                           // "C" on screen
+    UndoManager mgr;
+
+    comp.decks[2].getLayer(0)->clips[5] = richClip(99, "queued");
+    comp.decks[2].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerColumn == 5);
+
+    Deck removedCopy = comp.decks[0];
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                0, std::move(removedCopy), 2, "Remove Deck"));
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.decks[1].name == "C");                 // "C" slid down to 1
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(comp.decks[1].getLayer(0)->pendingTriggerColumn == 5);
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.activeDeckIndex == 2);
+    REQUIRE(comp.decks[2].name == "C");
+    REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerColumn == 5);   // survives the background undo
+    REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 }
 
 // ---------------------------------------------------------------------------

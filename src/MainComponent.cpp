@@ -350,12 +350,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
   #endif
 
-    // Deck save/load
-    addAndMakeVisible(deckSaveButton_);
-    addAndMakeVisible(deckLoadButton_);
-    deckSaveButton_.onClick = [this] { saveDeck(); };
-    deckLoadButton_.onClick = [this] { loadDeck(); };
-
     // Bottom preset slots (10 buttons + dropdowns)
     for (int i = 0; i < kNumSlots; ++i)
     {
@@ -1491,6 +1485,26 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
 
+    // plan6 §6.4: the deck tab row -- "+" (New Deck / Load Deck..., deckIndex -1) and a tab's right-click menu.
+    deckView_->onDeckAction = [this](int deckIndex, DeckTabRow::Action action) {
+        switch (action)
+        {
+            case DeckTabRow::Action::NewDeck:    newDeck();                break;
+            case DeckTabRow::Action::LoadDeck:   loadDeck();               break;
+            case DeckTabRow::Action::SaveDeck:   saveDeck(deckIndex);      break;
+            case DeckTabRow::Action::SaveDeckAs: saveDeckAs(deckIndex);    break;
+            case DeckTabRow::Action::Rename:     renameDeck(deckIndex);    break;
+            case DeckTabRow::Action::Duplicate:  duplicateDeck(deckIndex); break;
+            case DeckTabRow::Action::Remove:     removeDeck(deckIndex);    break;
+        }
+    };
+    // The 10-s "Undo Remove" button is bound to THAT removal: if anything else is on top of the undo stack the click
+    // is a no-op and the button just hides (pushCommands hides it on any later command anyway).
+    deckView_->onUndoHint = [this] {
+        if (undoManager_.undoDescription() == "Remove Deck")
+            handleMenuCommand(AudioDNAMenuBar::kCompUndo);
+    };
+
     // === v2: Inspector Panel ===
     inspectorPanel_ = std::make_unique<InspectorPanel>();
     addAndMakeVisible(inspectorPanel_.get());
@@ -1570,8 +1584,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // fence/undo-clear treatment loadComposition already gives Open).
     // onDeckLoad (STEP 3) APPENDS the deck rather than replacing the active
     // one — see appendDeckFromFile's header comment for why.
+    // plan6 §7: a library row is ONE click away from replacing everything on screen -- confirm first.
     browserPanel_->getCompDecksBrowser().onCompositionLoad = [this](const juce::File& f) {
-        loadComposition(f);
+        confirmReplaceShow("Open Composition",
+                           "Open \"" + f.getFileNameWithoutExtension() + "\" and replace \""
+                               + juce::String(composition_.name) + "\"?",
+                           "Open", [this, f] { loadComposition(f); });
     };
     browserPanel_->getCompDecksBrowser().onCompositionSave = [this] { saveComposition(); };
     browserPanel_->getCompDecksBrowser().onDeckLoad = [this](const juce::File& f) {
@@ -2543,22 +2561,6 @@ void MainComponent::resized()
     row1.removeFromLeft(2);
     fastSaveButton_.setBounds(row1.removeFromLeft(50));
     row1.removeFromLeft(2);
-    {
-        // Size both Deck Save and Deck Load from their measured label width so the whole word always
-        // shows (UI Text Rules: never abbreviate) -- a fixed 60px clipped "Deck Load" to "Deck Loa".
-        // Same measured-width convention as BrowserPanel.cpp's TabBarLayout.h use: measure with the
-        // font drawButtonText draws with (LookAndFeel.cpp:83), pad 8px each side (matches BrowserPanel's
-        // kTabTextPadding), and never shrink below the previous 60px minimum. One helper for both
-        // buttons (review-polish-r1.md nit: Deck Save was still hardcoded at 60px while Deck Load was
-        // already measured).
-        const juce::Font btnFont(juce::FontOptions(14.0f));
-        auto measuredButtonWidth = [&btnFont](const juce::TextButton& button) {
-            return juce::jmax(60, juce::GlyphArrangement::getStringWidthInt(btnFont, button.getButtonText()) + 2 * 8);
-        };
-        deckSaveButton_.setBounds(row1.removeFromLeft(measuredButtonWidth(deckSaveButton_)));
-        row1.removeFromLeft(2);
-        deckLoadButton_.setBounds(row1.removeFromLeft(measuredButtonWidth(deckLoadButton_)));
-    }
     fileLabel_.setBounds(row1);
 
     area.removeFromTop(2);
@@ -2912,6 +2914,21 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     refreshUiAfterModelSwap();
 }
 
+// plan6 §7: the confirm before a composition is replaced by a one-click gesture (the library row, New
+// Composition). Asynchronous (no modal loop); the callback runs only on OK. File > Open... (a two-step chooser)
+// and REST /api/load_composition do not ask.
+void MainComponent::confirmReplaceShow(const juce::String& title, const juce::String& question,
+                                       const juce::String& okLabel, std::function<void()> proceed)
+{
+    // NoIcon + associatedComponent = this: the dialog is created by -- and draws with -- the app LookAndFeel.
+    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::NoIcon, title,
+        question + "\n\nEverything playing now will be replaced. To keep the current composition, Cancel and save it first.",
+        okLabel, "Cancel", this,
+        juce::ModalCallbackFunction::create([proceed = std::move(proceed)](int result) {
+            if (result == 1) proceed();
+        }));
+}
+
 void MainComponent::openComposition()
 {
     fileChooser_ = std::make_unique<juce::FileChooser>(
@@ -3102,11 +3119,12 @@ void MainComponent::saveCompositionAs()
     });
 }
 
-// L3 STEP 3 (2026-09): the Comp/Decks browser's Decks-row click. APPENDS the
-// saved deck into the live composition and makes it active — never replaces
-// the active deck (see the header comment on appendDeckFromFile's
-// declaration for why). Same STAGE -> VALIDATE -> RE-MINT -> OPEN NEW ->
-// NAME -> SWAP shape as loadComposition, on a Deck instead of a Composition.
+// L3 STEP 3 (2026-09) + plan6 §6.4: the library's Decks-row click and Load
+// Deck... APPENDS the saved deck into the live composition as a new tab and
+// makes it active — never replaces the deck on screen (see the header comment
+// on appendDeckFromFile's declaration for why). STAGE -> VALIDATE -> RE-MINT ->
+// OPEN NEW -> NAME on a private Deck (like loadComposition), then ONE undoable
+// InsertDeckCmd instead of a whole-model swap.
 void MainComponent::appendDeckFromFile(const juce::File& file)
 {
     // 1. STAGE + shape-check — a deck file's top level is `Deck::toVar()`'s
@@ -3151,39 +3169,256 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
     // 4. OPEN NEW — shared with loadComposition's per-deck body.
     openMediaForDeck(incoming);
 
-    // 5. NAME — a deck saved without a "name" key (fromVar's getProperty is
-    //    unguarded and yields "" when the key is absent) falls back to the
-    //    file's base name, matching loadComposition's convention.
-    if (incoming.name.empty())
-        incoming.name = file.getFileNameWithoutExtension().toStdString();
+    // 5. NAME — ALWAYS the file's base name (plan6 §6.4): the library row the
+    //    user clicked IS the file name, and Save Deck As enforces name == file.
+    //    The library link (Deck::sourceFile, runtime only) lets Save Deck
+    //    overwrite this same file later.
+    incoming.name = file.getFileNameWithoutExtension().toStdString();
+    incoming.sourceFile = file;
 
-    // 6. SWAP — append, not replace: a performer clicking a saved deck
-    //    mid-set must not lose the deck they are on. idsRetired(before, after)
-    //    is empty for an append (nothing is orphaned), so nothing closes.
-    //    The fence is still required: Composition::appendDeck's push_back
-    //    can reallocate `decks`, which the GL thread walks lock-free
-    //    (renderOpenGL()'s P21 persistent-layer loop) — same hazard class as
-    //    the whole-composition swap, just on push_back instead of move-assign.
-    //    The guard inside withDeckDetached re-points the renderer at the new
-    //    active deck; rebuildGrid() (inside refreshUiAfterModelSwap) rebuilds
-    //    the deck tabs too (setupDeckTabs() runs inside it).
-    swapCompositionModel([this, &incoming] {
-        // L5 Quantize follow-on (review round 2): appending a new deck
-        // deactivates whichever deck was active — the same "queued trigger
-        // freezes on an abandoned deck" bug AddDeckCmd/SwitchDeckCmd already
-        // close, via the same shared helper (DeckCommands.h). This path isn't
-        // undo-tracked (a raw model swap, like loadComposition — no Command
-        // wraps appending a deck from a file), so there is no snapshot to
-        // restore; the cancelled list is discarded.
-        if (auto* leavingDeck = composition_.getActiveDeck())
-            cancelPendingTriggers(*leavingDeck);
-        composition_.activeDeckIndex = composition_.appendDeck(std::move(incoming));
-    });
+    // 6. APPEND — one undoable InsertDeckCmd (plan6 §5 A1-d), not a whole-model
+    //    swap: an append retires no media (nothing to close), must not stop
+    //    running routines, and must not wipe undo history. The command fences
+    //    the push_back (Composition::appendDeck reallocates `decks`, which the
+    //    GL thread walks lock-free — renderOpenGL()'s P21 persistent-layer
+    //    loop), mints a fresh deck id, makes the deck active (withDeckDetached
+    //    re-points the renderer), and cancels any pending quantized trigger on
+    //    the deck being left (restored on undo). Undo disposes the appended
+    //    deck's media; redo reopens it.
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<InsertDeckCmd>(
+        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
+        std::move(incoming), "Load Deck"));
+    pushCommands(std::move(children), "Load Deck");
+    if (deckView_) deckView_->rebuildGrid();   // rebuilds the deck tabs too (setupDeckTabs)
+    if (auto* active = composition_.getActiveDeck())
+        refreshPreviewFromActiveClip(*active);
 
     // 7. LABEL
     fileLabel_.setText("Loaded deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
     if (browserPanel_)
         browserPanel_->getCompDecksBrowser().refresh();
+}
+
+// plan6 §6.4 — the deck tab row's handlers. Message thread; each guards its
+// deck index (menus and choosers are async, so the model can change meanwhile).
+
+void MainComponent::newDeck()
+{
+    // #21: command-owns-the-mutation (push_back is non-idempotent). The
+    // fenced AddDeckCmd appends the deck (3 layers, fresh id), makes it active,
+    // and re-points the renderer (via withDeckDetached's re-resolve) —
+    // perform() runs it. The new deck is empty: reconcile the preview fallback
+    // like a switch to an empty deck.
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<AddDeckCmd>(
+        makeCompositionResolver(), makeDeckFence(), "Add Deck"));
+    pushCommands(std::move(children), "Add Deck");
+    if (deckView_) deckView_->rebuildGrid();
+    if (auto* active = composition_.getActiveDeck())
+        refreshPreviewFromActiveClip(*active);
+}
+
+void MainComponent::loadDeck()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Load Deck...",
+        CompDecksBrowser::getDecksDir(),
+        "*.json");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+        appendDeckFromFile(file);
+    });
+}
+
+// Overwrite the deck's library file when it has one that still matches the
+// deck (the folder exists and the file's base name is the deck's name — a
+// Rename breaks the link); otherwise Save Deck As... (mirrors Composition >
+// Save falling through to Save As).
+void MainComponent::saveDeck(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+    const Deck& deck = composition_.decks[static_cast<size_t>(deckIndex)];
+    if (deck.sourceFile != juce::File()
+        && deck.sourceFile.getParentDirectory().isDirectory()
+        && deck.sourceFile.getFileNameWithoutExtension().toStdString() == deck.name)
+        writeDeckFile(deck, deck.sourceFile);
+    else
+        saveDeckAs(deckIndex);
+}
+
+void MainComponent::saveDeckAs(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+
+    auto dir = CompDecksBrowser::getDecksDir();
+    dir.createDirectory();
+
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Save Deck As...",
+        dir.getChildFile(juce::String(composition_.decks[static_cast<size_t>(deckIndex)].name) + ".json"),
+        "*.json");
+
+    auto flags = juce::FileBrowserComponent::saveMode
+               | juce::FileBrowserComponent::canSelectFiles
+               | juce::FileBrowserComponent::warnAboutOverwriting;
+
+    fileChooser_->launchAsync(flags, [this, deckIndex](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+        if (deckIndex >= static_cast<int>(composition_.decks.size()))
+            return;   // the deck went away while the chooser was open
+
+        auto saveFile = file.hasFileExtension(".json") ? file
+                            : file.withFileExtension("json");
+
+        auto& deck = composition_.decks[static_cast<size_t>(deckIndex)];
+        if (writeDeckFile(deck, saveFile))
+        {
+            // Like Save Composition As: the deck takes the file's name and
+            // remembers the file (NOT undoable — a file write, like Save As).
+            deck.sourceFile = saveFile;
+            deck.name = saveFile.getFileNameWithoutExtension().toStdString();
+            if (deckView_) deckView_->refresh();   // relabel + tooltip
+        }
+    });
+}
+
+// One deck -> one library file, in Deck::toVar()'s shape (top-level "layers" —
+// what appendDeckFromFile's shape check accepts; the shape the old browser
+// "Save Deck" button wrote).
+bool MainComponent::writeDeckFile(const Deck& deck, const juce::File& file)
+{
+    if (file.replaceWithText(juce::JSON::toString(deck.toVar())))
+    {
+        fileLabel_.setText("Saved deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+        if (browserPanel_)
+            browserPanel_->getCompDecksBrowser().refresh();
+        return true;
+    }
+    if (!testMode_)
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::MessageBoxIconType::WarningIcon,
+            "Save Deck",
+            "Save failed: " + file.getFullPathName());
+    return false;
+}
+
+void MainComponent::renameDeck(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+    const std::string oldName = composition_.decks[static_cast<size_t>(deckIndex)].name;
+
+    auto* w = new juce::AlertWindow("Rename Deck", "", juce::MessageBoxIconType::NoIcon);
+    w->setLookAndFeel(&lookAndFeel_);   // a top-level window: it does not inherit MainComponent's LookAndFeel
+    w->addTextEditor("name", juce::String(oldName));
+    w->addButton("Rename", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    w->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    // deleteWhenDismissed = true: ModalComponentManager runs this callback BEFORE
+    // it deletes the window, so reading w's text editor inside it is safe.
+    w->enterModalState(true, juce::ModalCallbackFunction::create(
+        [this, deckIndex, w, oldName](int result) {
+            const auto text = w->getTextEditorContents("name").trim();
+            if (result != 1 || text.isEmpty()
+                || deckIndex >= static_cast<int>(composition_.decks.size())
+                || text.toStdString() == oldName)
+                return;
+            std::vector<std::unique_ptr<Command>> children;
+            children.push_back(std::make_unique<RenameDeckCmd>(
+                makeCompositionResolver(), deckIndex, oldName, text.toStdString(), "Rename Deck"));
+            pushCommands(std::move(children), "Rename Deck");
+            if (deckView_) deckView_->refresh();   // relabel the tab
+        }), true);
+}
+
+void MainComponent::duplicateDeck(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+
+    // A value copy under "<name> copy" with every clip re-minted (a clip id is
+    // live in at most ONE cell — makeClipMediaDisposeHook's FUTURE-FRAGILE
+    // note) and no queued trigger; media opened on the staged copy under its
+    // new ids BEFORE the fenced append (like loadComposition's step 4).
+    Deck copy = compload::duplicateDeck(composition_.decks[static_cast<size_t>(deckIndex)], s_nextClipId);
+    const juce::String copyName(copy.name);
+    openMediaForDeck(copy);
+
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<InsertDeckCmd>(
+        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
+        std::move(copy), "Duplicate Deck"));
+    pushCommands(std::move(children), "Duplicate Deck");
+    if (deckView_) deckView_->rebuildGrid();
+    if (auto* active = composition_.getActiveDeck())
+        refreshPreviewFromActiveClip(*active);
+    fileLabel_.setText("Duplicated deck: " + copyName, juce::dontSendNotification);
+}
+
+// Remove ANY deck (a tab's menu names it; the Deck menu passes the active one).
+// No dialog — the tab row shows a 10-s "Undo Remove" button instead (plan6 R1),
+// and Composition > Undo works as for every deck command.
+void MainComponent::removeDeck(int deckIndex)
+{
+    if (composition_.decks.size() <= 1
+        || deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;   // a composition keeps at least one deck
+
+    const bool activeChanges = (deckIndex == composition_.activeDeckIndex);
+    const juce::String name(composition_.decks[static_cast<size_t>(deckIndex)].name);
+
+    // Null both inspectors FIRST: the erased deck's Layer/Clip objects die, and
+    // an inspector can be showing one of them even when a BACKGROUND deck is
+    // removed (handleDeckSwitch never re-points the inspectors).
+    if (inspectorPanel_)
+    {
+        inspectorPanel_->getClipInspector().setClip(nullptr);
+        inspectorPanel_->getLayerInspector().setLayer(nullptr);
+    }
+
+    // #22: command-owns-the-mutation. Snapshot the full Deck VALUE + the prior
+    // active index; the fenced execute() erases and keeps the on-screen deck
+    // object active (its index drops by one when a deck before it goes).
+    Deck removedCopy = composition_.decks[static_cast<size_t>(deckIndex)];
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<RemoveDeckCmd>(
+        makeCompositionResolver(), makeDeckFence(),
+        makeClipMediaHook(), makeClipMediaDisposeHook(),
+        deckIndex, std::move(removedCopy), composition_.activeDeckIndex, "Remove Deck"));
+    pushCommands(std::move(children), "Remove Deck");
+
+    if (deckView_)
+    {
+        if (activeChanges)
+        {
+            deckView_->clearSelection();
+            deckView_->selectLayer(-1);
+        }
+        deckView_->rebuildGrid();
+        // After rebuildGrid (refreshUiAfterModelSwap's order): setActiveColumn
+        // refreshes the strips, which must already point into the live model.
+        if (activeChanges)
+            deckView_->setActiveColumn(-1);
+    }
+    if (activeChanges)
+        if (auto* active = composition_.getActiveDeck())
+            refreshPreviewFromActiveClip(*active);
+    if (inspectorPanel_)
+        inspectorPanel_->refresh();
+
+    if (deckView_)
+        deckView_->showUndoHint("Undo Remove \"" + name + "\"");
+    fileLabel_.setText("Removed deck \"" + name + "\"", juce::dontSendNotification);
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
@@ -3697,189 +3932,6 @@ void MainComponent::populateSlotMenu(int slot)
     // Restore previous selection
     if (restoreId > 0)
         s.dropdown->setSelectedId(restoreId, juce::dontSendNotification);
-}
-
-void MainComponent::saveDeck()
-{
-    fileChooser_ = std::make_unique<juce::FileChooser>(
-        "Save deck...",
-        PresetManager::getDeckDirectory(),
-        "*.deck.json");
-
-    auto flags = juce::FileBrowserComponent::saveMode
-               | juce::FileBrowserComponent::canSelectFiles;
-
-    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
-        auto file = fc.getResult();
-        if (file == juce::File{})
-            return;
-
-        auto saveFile = file.hasFileExtension(".deck.json") ? file
-                            : juce::File(file.getFullPathName() + ".deck.json");
-
-        PresetManager::DeckState deck;
-        deck.audioFile = currentAudioFile_;
-        deck.imageFile = currentImageFile_;
-        if (!slideshowImages_.isEmpty())
-            deck.imageFolderPath = slideshowImages_[0].getParentDirectory();
-        deck.slideshowBeatsPerImage = slideshowBeats_;
-        deck.beatRandomCount = beatRandomCount_;
-        deck.beatRandomEnabled = beatRandomToggle_.getToggleState();
-        deck.audioSourceMode = audioSourceSelector_.getSelectedId();
-        deck.viewportResolution = resolutionSelector_.getSelectedId();
-        deck.outputDisplay = displaySelector_.getSelectedId();
-        deck.inputGain = static_cast<float>(inputGainSlider_.getValue());
-        deck.showAudioPanel = true;
-        deck.showFxPanel = true;
-        deck.showWavePanel = true;
-        deck.showKeysPanel = true;
-        deck.showPresetsPanel = true;
-
-        // Collect slot assignments
-        for (int i = 0; i < kNumSlots; ++i)
-        {
-            auto& s = presetSlots_[static_cast<size_t>(i)];
-            deck.slotFiles.add(s.loadedFile.getFullPathName());
-        }
-
-        if (PresetManager::saveDeck(saveFile, deck,
-                                     previewPanel_.getEffectChain(),
-                                     previewPanel_.getMappingEngine()))
-        {
-            fileLabel_.setText("Deck saved: " + saveFile.getFileNameWithoutExtension(),
-                              juce::dontSendNotification);
-        }
-    });
-}
-
-void MainComponent::loadDeck()
-{
-    fileChooser_ = std::make_unique<juce::FileChooser>(
-        "Load deck...",
-        PresetManager::getDeckDirectory(),
-        "*.deck.json");
-
-    auto flags = juce::FileBrowserComponent::openMode
-               | juce::FileBrowserComponent::canSelectFiles;
-
-    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
-        auto file = fc.getResult();
-        if (file == juce::File{})
-            return;
-
-        PresetManager::DeckState deck;
-        if (!PresetManager::loadDeck(file, deck,
-                                      previewPanel_.getEffectChain(),
-                                      previewPanel_.getMappingEngine()))
-        {
-            fileLabel_.setText("Failed to load deck", juce::dontSendNotification);
-            return;
-        }
-
-        // Restore settings
-        slideshowBeats_ = deck.slideshowBeatsPerImage > 0 ? deck.slideshowBeatsPerImage : 8;
-        beatRandomCount_ = deck.beatRandomCount > 0 ? deck.beatRandomCount : 4;
-        beatRandomToggle_.setToggleState(deck.beatRandomEnabled, juce::dontSendNotification);
-
-        // Restore beats per image selector
-        {
-            const int beats[] = { 2, 4, 8, 16, 32, 64, 128 };
-            for (int i = 0; i < 7; ++i)
-                if (beats[i] == slideshowBeats_)
-                    { imageBeatSelector_.setSelectedId(i + 1, juce::dontSendNotification); break; }
-        }
-
-        // Restore beat random count selector
-        {
-            const int counts[] = { 1, 2, 4, 8, 16, 32 };
-            for (int i = 0; i < 6; ++i)
-                if (counts[i] == beatRandomCount_)
-                    { beatCountSelector_.setSelectedId(i + 1, juce::dontSendNotification); break; }
-        }
-
-        // Restore image folder slideshow
-        if (deck.imageFolderPath.isDirectory())
-        {
-            slideshowImages_.clear();
-            for (const auto& f : deck.imageFolderPath.findChildFiles(
-                juce::File::findFiles, false, "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff"))
-                slideshowImages_.add(f);
-            slideshowImages_.sort();
-            slideshowIndex_ = 0;
-            slideshowBeatCounter_ = 0;
-        }
-
-        // Restore UI selectors — use sendNotificationSync so handlers fire
-        if (deck.viewportResolution > 0)
-            resolutionSelector_.setSelectedId(deck.viewportResolution, juce::sendNotificationSync);
-
-        // Restore audio source — trigger onChange to switch engine mode
-        if (deck.audioSourceMode > 0)
-            audioSourceSelector_.setSelectedId(deck.audioSourceMode, juce::sendNotificationSync);
-
-        // Restore output display
-        if (deck.outputDisplay > 1)
-            displaySelector_.setSelectedId(deck.outputDisplay, juce::sendNotificationSync);
-
-        // Restore input gain
-        if (deck.inputGain > 0.0f)
-            inputGainSlider_.setValue(deck.inputGain, juce::sendNotificationSync);
-
-        // Panel visibility is no longer user-togglable (v2 layout)
-        // Ignore saved panel states — kept for backward compat in deck files
-
-        // Load audio
-        if (deck.audioFile.existsAsFile())
-        {
-            if (audioEngine_.loadFile(deck.audioFile))
-            {
-                currentAudioFile_ = deck.audioFile;
-                audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
-                audioSourceSelector_.setSelectedId(2, juce::dontSendNotification);
-                applyAudioTransport("play", Origin::Human);
-            }
-        }
-
-        // Load image
-        if (deck.imageFile.existsAsFile())
-        {
-            previewPanel_.loadImage(deck.imageFile);
-            currentImageFile_ = deck.imageFile;
-            if (outputWindow_)
-                outputWindow_->loadImage(deck.imageFile);
-        }
-
-        // Restore slot assignments
-        for (int i = 0; i < kNumSlots && i < deck.slotFiles.size(); ++i)
-        {
-            auto& s = presetSlots_[static_cast<size_t>(i)];
-            auto slotFile = juce::File(deck.slotFiles[i]);
-            if (slotFile.existsAsFile())
-            {
-                s.loadedFile = slotFile;
-                s.button->setButtonText(slotFile.getFileNameWithoutExtension()
-                                        .replace("FX_Save_", "FX"));
-                s.button->setColour(juce::TextButton::buttonColourId,
-                                    juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.4f));
-            }
-            else
-            {
-                s.loadedFile = juce::File();
-                s.button->setButtonText(juce::String(i + 1));
-                s.button->removeColour(juce::TextButton::buttonColourId);
-            }
-            populateSlotMenu(i);
-        }
-
-        if (effectsRackPanel_)
-            effectsRackPanel_->refreshFromChain();
-
-        // Loading a legacy deck replaces app state — drop stale undo history.
-        undoManager_.clear();
-
-        fileLabel_.setText("Deck: " + file.getFileNameWithoutExtension(),
-                          juce::dontSendNotification);
-    });
 }
 
 #if AUDIODNA_HAS_CAMERA
@@ -4770,6 +4822,9 @@ std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const Cell
 void MainComponent::pushCommands(std::vector<std::unique_ptr<Command>> children,
                                  const juce::String& compositeDescription)
 {
+    // plan6 §6.2: any later command (a clip placed, a tab switch, a trigger) retires the Remove-Deck undo hint --
+    // Undo would then no longer mean "un-remove".
+    if (deckView_) deckView_->hideUndoHint();
     if (children.empty())
         return;
     if (children.size() == 1)
@@ -5983,7 +6038,10 @@ void MainComponent::handleMenuCommand(int commandId)
             // not nested — the fence has already returned before either runs.
             // L3 (2026-09): routed through the shared swap helper so New also
             // closes orphaned media and re-points the inspectors.
-            swapCompositionModel([this] { composition_.initDefault(); });
+            // plan6 §7: confirmed first -- New replaces everything playing.
+            confirmReplaceShow("New Composition",
+                               "Start a new composition and replace \"" + juce::String(composition_.name) + "\"?",
+                               "New", [this] { swapCompositionModel([this] { composition_.initDefault(); }); });
             break;
         case C::kCompOpen:
             openComposition();
@@ -6108,34 +6166,27 @@ void MainComponent::handleMenuCommand(int commandId)
         }
 
         // --- Deck menu ---
+        // plan6 §6.3: the Deck menu mirrors the deck tab row; tab actions act on the ACTIVE deck here.
         case C::kDeckNew:
-        {
-            // #21: command-owns-the-mutation (push_back is non-idempotent). The
-            // fenced AddDeckCmd appends the deck, makes it active, and re-points
-            // the renderer (via withDeckDetached's re-resolve) — perform() runs it.
-            std::vector<std::unique_ptr<Command>> children;
-            children.push_back(std::make_unique<AddDeckCmd>(
-                makeCompositionResolver(), makeDeckFence(), "Add Deck"));
-            pushCommands(std::move(children), "Add Deck");
-            if (deckView_) deckView_->rebuildGrid();
+            newDeck();
             break;
-        }
+        case C::kDeckLoad:
+            loadDeck();
+            break;
+        case C::kDeckSave:
+            saveDeck(composition_.activeDeckIndex);
+            break;
+        case C::kDeckSaveAs:
+            saveDeckAs(composition_.activeDeckIndex);
+            break;
+        case C::kDeckRename:
+            renameDeck(composition_.activeDeckIndex);
+            break;
+        case C::kDeckDuplicate:
+            duplicateDeck(composition_.activeDeckIndex);
+            break;
         case C::kDeckRemove:
-            // #22: command-owns-the-mutation. Snapshot the full Deck VALUE + the
-            // prior active index BEFORE building the command (it does not pre-erase
-            // — the fenced execute() erases). Guard mirrors HEAD: keep >=1 deck.
-            if (composition_.decks.size() > 1)
-            {
-                const int removeIdx = composition_.activeDeckIndex;
-                Deck removedCopy = composition_.decks[static_cast<size_t>(removeIdx)];
-                std::vector<std::unique_ptr<Command>> children;
-                children.push_back(std::make_unique<RemoveDeckCmd>(
-                    makeCompositionResolver(), makeDeckFence(),
-                    makeClipMediaHook(), makeClipMediaDisposeHook(),
-                    removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
-                pushCommands(std::move(children), "Remove Deck");
-                if (deckView_) deckView_->rebuildGrid();
-            }
+            removeDeck(composition_.activeDeckIndex);
             break;
         case C::kDeckClearClips:
             // Whole-deck clip clear = one composite of ClearLayerClipsCmd, one per

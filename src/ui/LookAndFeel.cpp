@@ -36,6 +36,11 @@ AudioDNALookAndFeel::AudioDNALookAndFeel()
     setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colour(kAccentCyan).withAlpha(0.2f));
     setColour(juce::PopupMenu::highlightedTextColourId, juce::Colour(kAccentCyan));
 
+    // AlertWindow (dialogs)
+    setColour(juce::AlertWindow::backgroundColourId, juce::Colour(kBackground));
+    setColour(juce::AlertWindow::textColourId, juce::Colour(kTextPrimary));
+    setColour(juce::AlertWindow::outlineColourId, juce::Colour(kPanelBorder));
+
     // ScrollBar
     setColour(juce::ScrollBar::thumbColourId, juce::Colour(kSurfaceLight));
     setColour(juce::ScrollBar::trackColourId, juce::Colour(kBackground));
@@ -326,13 +331,14 @@ juce::Font AudioDNALookAndFeel::getComboBoxFont(juce::ComboBox&)
 
 void AudioDNALookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
 {
+    auto bounds = juce::Rectangle<float>(0, 0, static_cast<float>(width),
+                                          static_cast<float>(height));
+
     g.setColour(juce::Colour(kSurface));
-    g.fillRoundedRectangle(0.0f, 0.0f, static_cast<float>(width),
-                           static_cast<float>(height), 4.0f);
+    g.fillRect(bounds);
 
     g.setColour(juce::Colour(kPanelBorder));
-    g.drawRoundedRectangle(0.5f, 0.5f, static_cast<float>(width) - 1.0f,
-                           static_cast<float>(height) - 1.0f, 4.0f, 1.0f);
+    g.drawRect(bounds, 1.0f);
 }
 
 void AudioDNALookAndFeel::drawPopupMenuItem(juce::Graphics& g,
@@ -406,6 +412,53 @@ void AudioDNALookAndFeel::drawPopupMenuItem(juce::Graphics& g,
 }
 
 //==============================================================================
+// AlertWindow (dialogs)
+//==============================================================================
+
+juce::AlertWindow* AudioDNALookAndFeel::createAlertWindow(const juce::String& title,
+                                                          const juce::String& message,
+                                                          const juce::String& button1,
+                                                          const juce::String& button2,
+                                                          const juce::String& button3,
+                                                          juce::MessageBoxIconType iconType,
+                                                          int numButtons,
+                                                          juce::Component* associatedComponent)
+{
+    // The plain window + buttons (LookAndFeel_V2), then this LookAndFeel -- which re-lays it out --
+    // then LookAndFeel_V4's 50-px margin on top (the same three lines as
+    // LookAndFeel_V4::createAlertWindow, applied after the re-layout so they are not undone by it).
+    auto* aw = juce::LookAndFeel_V2::createAlertWindow(title, message, button1, button2, button3,
+                                                       iconType, numButtons, associatedComponent);
+    aw->setLookAndFeel(this);
+
+    aw->setBounds(aw->getBounds().withSizeKeepingCentre(aw->getWidth() + 50, aw->getHeight() + 50));
+    for (auto* child : aw->getChildren())
+        if (auto* button = dynamic_cast<juce::TextButton*>(child))
+            button->setBounds(button->getBounds() + juce::Point<int>(25, 40));
+
+    return aw;
+}
+
+void AudioDNALookAndFeel::drawAlertBox(juce::Graphics& g, juce::AlertWindow& alert,
+                                        const juce::Rectangle<int>& /*textArea*/,
+                                        juce::TextLayout& textLayout)
+{
+    auto bounds = alert.getLocalBounds().toFloat();
+
+    // Square panel + 1-px border, like every other panel. No icon: the app's dialogs are text only.
+    g.setColour(alert.findColour(juce::AlertWindow::backgroundColourId));
+    g.fillRect(bounds);
+
+    g.setColour(alert.findColour(juce::AlertWindow::outlineColourId));
+    g.drawRect(bounds, 1.0f);
+
+    // The text where LookAndFeel_V4 puts it (30 px down, above the buttons).
+    textLayout.draw(g, juce::Rectangle<float>(0.0f, 30.0f, bounds.getWidth(),
+                                              bounds.getHeight()
+                                                  - static_cast<float>(getAlertWindowButtonHeight()) - 20.0f));
+}
+
+//==============================================================================
 // Label
 //==============================================================================
 
@@ -420,10 +473,12 @@ void AudioDNALookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
         g.fillRect(bounds);
     }
 
-    if (!label.isBeingEdited())
+    // A transparent text colour means "draw no text" -- e.g. AlertWindow's hidden accessibility label,
+    // which holds a second copy of the dialog's message for screen readers.
+    auto textColour = label.findColour(juce::Label::textColourId);
+    if (!label.isBeingEdited() && !textColour.isTransparent())
     {
-        auto textColour = label.findColour(juce::Label::textColourId);
-        g.setColour(textColour.isTransparent() ? juce::Colour(kTextPrimary) : textColour);
+        g.setColour(textColour);
         g.setFont(label.getFont());
         g.drawFittedText(label.getText(), label.getBorderSize().subtractedFrom(label.getLocalBounds()),
                          label.getJustificationType(),

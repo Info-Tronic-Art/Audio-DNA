@@ -77,6 +77,25 @@ inline int remintClipIds(Composition& c, uint32_t& nextId)
     return n;
 }
 
+// Duplicate = a value copy under "<name> copy", library link dropped, EVERY clip re-minted: the copy must never share
+// a clip id with its source — MainComponent's dispose hook closes media by id (its FUTURE-FRAGILE note), and
+// InsertDeckCmd/RemoveDeckCmd dispose by id on undo/execute. A queued (quantized) trigger is NOT copied: the copy
+// becomes the active deck at once and a copied pending trigger would fire on it at the next beat.
+inline Deck duplicateDeck(const Deck& src, uint32_t& nextClipId)
+{
+    Deck copy = src;
+    copy.name = src.name + " copy";
+    copy.sourceFile = juce::File();
+    copy.id = 0;                     // re-minted by Composition::appendDeck
+    remintClipIds(copy, nextClipId);
+    for (auto& layer : copy.layers)
+    {
+        layer.pendingTriggerColumn = -1;
+        layer.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+    }
+    return copy;
+}
+
 // Ids of every clip that owns renderer-side media (Video / ImageSequence), sorted.
 inline std::vector<uint32_t> playableClipIds(const Composition& c)
 {
