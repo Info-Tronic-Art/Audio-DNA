@@ -45,6 +45,19 @@ struct Layer
     };
     Type type = Type::Opaque;
 
+    // s-rta-0926b R4-types: which layer types can keep rendering while their
+    // deck is not active. Opaque / Transparent composite over the active deck;
+    // FX Only applies its clip's effects over whatever is on screen at that
+    // point. Mask (masking "everything below" across decks has no defined
+    // order) and 3D (not implemented on any path) cannot. ONE rule, consulted
+    // by CompositorEngine::compositePersistentLayers AND the LayerInspector
+    // Persistent toggle, so the toggle is disabled exactly when the flag would
+    // do nothing.
+    static constexpr bool canBePersistent(Type t)
+    {
+        return t == Type::Opaque || t == Type::Transparent || t == Type::FXOnly;
+    }
+
     // === Layer Controls ===
     float opacity = 1.0f;
     bool visible = true;

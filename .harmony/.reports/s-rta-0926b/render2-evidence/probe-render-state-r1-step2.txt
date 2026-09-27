@@ -1,0 +1,64 @@
+=== GREEN-step2-r1 app=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step2/Audio-DNA.app kind=rstate rows=r1_temporal,r1_control,r1_ring,r1_retrigger,r1_counts start Sat Sep 26 21:31:26 EDT 2026
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step2/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/runs/rstate.zgErqf
+--- r1_temporal
+      r1_temporal: t=1.49s p~0.19 IN x<50 ratio 0.00 (d(A,B) 4.35)  OUT x>231 ratio 0.00 (d(A,B) 29.13)  [not counted]
+      r1_temporal: t=1.97s p~0.25 IN x<95 ratio 0.00 (d(A,B) 8.16)  OUT x>276 ratio 0.00 (d(A,B) 26.97)
+      r1_temporal: t=2.45s p~0.31 IN x<140 ratio 0.00 (d(A,B) 17.69)  OUT x>322 ratio 0.00 (d(A,B) 26.70)
+      r1_temporal: t=2.94s p~0.37 IN x<187 ratio 0.00 (d(A,B) 24.54)  OUT x>368 ratio 0.00 (d(A,B) 28.26)
+      r1_temporal: t=3.43s p~0.43 IN x<233 ratio 0.00 (d(A,B) 29.23)  OUT x>414 ratio 0.00 (d(A,B) 30.15)
+      r1_temporal: t=3.92s p~0.49 IN x<280 ratio 0.00 (d(A,B) 32.79)  OUT x>461 ratio 0.00 (d(A,B) 31.14)
+      r1_temporal: t=4.43s p~0.55 IN x<327 ratio 0.00 (d(A,B) 32.18)  OUT x>509 ratio 0.00 (d(A,B) 30.51)
+      r1_temporal: t=4.93s p~0.62 IN x<375 ratio 0.01 (d(A,B) 29.66)  OUT x>556 ratio 0.00 (d(A,B) 29.75)
+      r1_temporal: t=5.43s p~0.68 IN x<422 ratio 0.01 (d(A,B) 28.03)  OUT x>603 ratio 0.00 (d(A,B) 26.73)
+      r1_temporal: t=5.92s p~0.74 IN x<468 ratio 0.01 (d(A,B) 27.88)  OUT x>650 ratio 0.00 (d(A,B) 16.67)
+      r1_temporal: t=6.41s p~0.80 IN x<515 ratio 0.01 (d(A,B) 28.46)  OUT x>696 ratio 0.00 (d(A,B) 5.81)
+PASS  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 10 counted frames, ratios <= 0.05): []
+--- r1_control
+      r1_control: t=1.52s p~0.19 IN x<52 ratio 0.00 (d(A,B) 4.52)  OUT x>233 ratio 0.00 (d(A,B) 29.15)  [not counted]
+      r1_control: t=2.00s p~0.25 IN x<98 ratio 0.00 (d(A,B) 9.05)  OUT x>280 ratio 0.00 (d(A,B) 27.03)
+      r1_control: t=2.50s p~0.31 IN x<145 ratio 0.00 (d(A,B) 19.10)  OUT x>326 ratio 0.00 (d(A,B) 26.85)
+      r1_control: t=3.00s p~0.37 IN x<192 ratio 0.00 (d(A,B) 24.96)  OUT x>374 ratio 0.00 (d(A,B) 28.61)
+      r1_control: t=3.50s p~0.44 IN x<239 ratio 0.00 (d(A,B) 30.10)  OUT x>421 ratio 0.00 (d(A,B) 30.49)
+      r1_control: t=3.99s p~0.50 IN x<286 ratio 0.00 (d(A,B) 32.98)  OUT x>468 ratio 0.00 (d(A,B) 31.18)
+      r1_control: t=4.50s p~0.56 IN x<334 ratio 0.00 (d(A,B) 32.12)  OUT x>515 ratio 0.00 (d(A,B) 30.59)
+      r1_control: t=4.99s p~0.62 IN x<380 ratio 0.00 (d(A,B) 29.63)  OUT x>562 ratio 0.00 (d(A,B) 29.67)
+      r1_control: t=5.49s p~0.69 IN x<427 ratio 0.00 (d(A,B) 28.11)  OUT x>609 ratio 0.00 (d(A,B) 26.25)
+      r1_control: t=5.99s p~0.75 IN x<475 ratio 0.00 (d(A,B) 28.13)  OUT x>656 ratio 0.00 (d(A,B) 15.52)
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 9 counted frames, ratios <= 0.05): []
+--- r1_ring
+      r1_ring: t=1.53s p~0.19 IN x<53 ratio 0.00 (d(A,B) 4.19)  OUT x>234 ratio 0.00 (d(A,B) 29.28)  [not counted]
+      r1_ring: t=2.03s p~0.25 IN x<101 ratio 0.00 (d(A,B) 9.58)  OUT x>282 ratio 0.00 (d(A,B) 27.16)
+      r1_ring: t=2.52s p~0.32 IN x<147 ratio 0.00 (d(A,B) 19.53)  OUT x>329 ratio 0.00 (d(A,B) 27.04)
+      r1_ring: t=3.02s p~0.38 IN x<194 ratio 0.00 (d(A,B) 25.14)  OUT x>375 ratio 0.00 (d(A,B) 28.77)
+      r1_ring: t=3.52s p~0.44 IN x<242 ratio 0.00 (d(A,B) 30.54)  OUT x>423 ratio 0.00 (d(A,B) 30.66)
+      r1_ring: t=4.03s p~0.50 IN x<289 ratio 0.00 (d(A,B) 33.12)  OUT x>471 ratio 0.00 (d(A,B) 31.23)
+      r1_ring: t=4.52s p~0.57 IN x<336 ratio 0.00 (d(A,B) 32.19)  OUT x>517 ratio 0.00 (d(A,B) 30.63)
+      r1_ring: t=5.00s p~0.63 IN x<382 ratio 0.00 (d(A,B) 29.73)  OUT x>563 ratio 0.00 (d(A,B) 29.67)
+      r1_ring: t=5.49s p~0.69 IN x<427 ratio 0.00 (d(A,B) 28.31)  OUT x>609 ratio 0.00 (d(A,B) 26.22)
+      r1_ring: t=5.97s p~0.75 IN x<473 ratio 0.00 (d(A,B) 28.30)  OUT x>655 ratio 0.00 (d(A,B) 15.65)
+PASS  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 9 counted frames, ratios <= 0.05): []
+--- r1_retrigger
+      r1_retrigger: t=1.50s p~0.19 IN x<50 ratio 0.00 (d(A,B) 4.35)  OUT x>232 ratio 0.00 (d(A,B) 28.89)  [not counted]
+      r1_retrigger: t=2.00s p~0.25 IN x<98 ratio 0.00 (d(A,B) 8.80)  OUT x>279 ratio 0.00 (d(A,B) 26.74)
+      r1_retrigger: t=2.49s p~0.31 IN x<144 ratio 0.00 (d(A,B) 18.58)  OUT x>325 ratio 0.00 (d(A,B) 26.53)
+      r1_retrigger: t=2.98s p~0.37 IN x<191 ratio 0.00 (d(A,B) 24.62)  OUT x>372 ratio 0.00 (d(A,B) 28.22)
+      r1_retrigger: t=3.47s p~0.43 IN x<237 ratio 0.00 (d(A,B) 29.57)  OUT x>418 ratio 0.00 (d(A,B) 30.09)
+      r1_retrigger: t=3.96s p~0.50 IN x<283 ratio 0.00 (d(A,B) 32.65)  OUT x>465 ratio 0.00 (d(A,B) 30.90)
+      r1_retrigger: t=4.46s p~0.56 IN x<330 ratio 0.00 (d(A,B) 31.94)  OUT x>512 ratio 0.00 (d(A,B) 30.30)
+      r1_retrigger: t=4.97s p~0.62 IN x<378 ratio 0.00 (d(A,B) 29.39)  OUT x>560 ratio 0.00 (d(A,B) 29.42)
+      r1_retrigger: t=5.46s p~0.68 IN x<425 ratio 0.00 (d(A,B) 27.83)  OUT x>606 ratio 0.00 (d(A,B) 26.29)
+      r1_retrigger: t=5.94s p~0.74 IN x<470 ratio 0.00 (d(A,B) 27.76)  OUT x>652 ratio 0.00 (d(A,B) 16.11)
+      r1_retrigger: t=6.43s p~0.80 IN x<516 ratio 0.00 (d(A,B) 28.30)  OUT x>698 ratio 0.00 (d(A,B) 5.41)
+PASS  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 10 counted frames, ratios <= 0.05): []
+--- r1_counts
+      r1_counts: frame_rings 2 -> 4 (+2), temporal_buffers 2 -> 2 (+0); peak_frame_time_ms first use 19.85, first fade 24.12
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the first fade (spare ring created) 24.12 ms <= 50.0 ms
+
+PY 6 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN
+=== end Sat Sep 26 21:33:30 EDT 2026

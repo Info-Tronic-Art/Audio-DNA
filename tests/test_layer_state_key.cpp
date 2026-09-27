@@ -41,19 +41,27 @@ TEST_CASE("LayerStateKey: every (deck, layer, chain) is unique and never the Glo
 {
     std::set<std::uint64_t> seen;
     const std::uint32_t decks[] = { 0u, 1u, 2u, 7u, 0xFFFFFFFEu };
-    const std::uint32_t layers[] = { 0u, 1u, 2u, 3u, 15u, 1000u, 0x7FFFFFFEu };
+    // s-rta-0926b R1: the largest layer id is 0x3FFFFFFF (was 0x7FFFFFFE) -- the
+    // outgoing-chain bit is bit 30, and real layer ids never reach it
+    // (Deck::nextLayerId_ starts at 100).
+    const std::uint32_t layers[] = { 0u, 1u, 2u, 3u, 15u, 1000u, 0x3FFFFFFFu };
     for (std::uint32_t d : decks)
     {
         for (std::uint32_t l : layers)
         {
             const std::uint64_t clip = LayerStateKey::clipChain(d, l);
             const std::uint64_t lay = LayerStateKey::layerChain(d, l);
+            const std::uint64_t outgoing = LayerStateKey::outgoingChain(d, l);
             INFO("deck " << d << " layer " << l);
-            REQUIRE(clip != lay);                                // a layer's two chains never share state
+            REQUIRE(clip != lay);                                // a layer's chains never share state
+            REQUIRE(outgoing != clip);                           // s-rta-0926b R1: the two clip chains of
+            REQUIRE(outgoing != lay);                            // a crossfade never share state either
             REQUIRE(clip != LayerStateKey::kGlobalEffects);
             REQUIRE(lay != LayerStateKey::kGlobalEffects);
+            REQUIRE(outgoing != LayerStateKey::kGlobalEffects);
             REQUIRE(seen.insert(clip).second);
             REQUIRE(seen.insert(lay).second);
+            REQUIRE(seen.insert(outgoing).second);
         }
     }
 }
@@ -64,5 +72,6 @@ TEST_CASE("LayerStateKey: a deck's own keys are stable (same inputs, same key)",
     // and by compositePersistentLayers otherwise; both must reach the SAME state.
     REQUIRE(LayerStateKey::clipChain(3u, 2u) == LayerStateKey::clipChain(3u, 2u));
     REQUIRE(LayerStateKey::layerChain(3u, 2u) == LayerStateKey::layerChain(3u, 2u));
+    REQUIRE(LayerStateKey::outgoingChain(3u, 2u) == LayerStateKey::outgoingChain(3u, 2u));
     static_assert(LayerStateKey::clipChain(0u, 0u) == 0u, "deck 0 / layer 0 keeps key 0");
 }

@@ -6,10 +6,12 @@
 #include "render/FullscreenQuad.h"
 #include "render/FeedbackProcessor.h"
 #include "render/LayerStateKey.h"
+#include "render/CrossfadeHistory.h"
 #include "effects/EffectLibrary.h"
 #include "effects/Effect.h"
 #include "analysis/FeatureSnapshot.h"
 #include <unordered_map>
+#include <atomic>
 #include <string>
 #include <functional>
 #include <memory>
@@ -100,6 +102,19 @@ public:
 
     bool hasActiveLayers() const { return hasActiveLayers_; }
 
+    // s-rta-0926b: true when compositePersistentLayers(deck) has at least one
+    // layer to composite this frame -- persistent, visible, not bypassed, not
+    // soloed out, a type Layer::canBePersistent allows, and an active clip with
+    // content (the same content rule compositeDeck applies to the active deck).
+    static bool hasPersistentContent(const Deck& deck);
+
+    // s-rta-0926b: the active deck has nothing to draw (compositeDeck returned
+    // 0) but another deck's persistent layers do. Starts the frame exactly as a
+    // black active deck would (an Opaque black clip at full opacity): resize +
+    // clear the accumulator to opaque black. Returns the accumulator texture
+    // (0 before initGL). Call before compositePersistentLayers().
+    GLuint beginEmptyActiveDeck(int width, int height);
+
     // Copy the current composited frame into the persistent feedback buffer.
     // Call AFTER compositeDeck() each frame.
     void updateFeedbackBuffer(ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
@@ -122,6 +137,13 @@ public:
     // Get the feedback texture (previous frame's output)
     GLuint getFeedbackTexture() const { return feedbackTex_; }
     bool isFeedbackReady() const { return feedbackReady_; }
+
+    // s-rta-0926b R1: how many temporal buffers (u_prev_frame) and Screen Split /
+    // Frame Stutter frame rings exist right now. Written on the GL thread where
+    // they are created/released, read from any thread (/api/state) -- relaxed
+    // atomics, same pattern as Renderer::frameTimeMs_.
+    int getTemporalBufferCount() const { return temporalBufferCount_.load(std::memory_order_relaxed); }
+    int getFrameRingCount() const { return frameRingCount_.load(std::memory_order_relaxed); }
 
 private:
     // Accumulator FBO — the composited result
@@ -220,7 +242,10 @@ private:
                               ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
 
     // Frame ring buffer for Screen Split / Frame Stutter.
-    // Stores up to 480 previous frames at reduced resolution (~120MB at 480x270).
+    // Stores up to 480 previous frames at 1/4 x 1/4 of the render size:
+    // 248.8 MB (237 MiB) at 1080p, 995 MB at 4K; two per (deck, layer) clip
+    // chain after a fade with Split/Stutter on both sides (s-rta-0926b R1: the
+    // outgoing slot).
     static constexpr int kMaxRingFrames = 480;
     static constexpr int kRingDownscale = 4; // store at 1/4 resolution
     struct FrameRingBuffer {
@@ -235,6 +260,24 @@ private:
     std::unordered_map<uint64_t, FrameRingBuffer> layerRingBuffers_;
 
     FrameRingBuffer& getOrCreateRingBuffer(uint64_t stateKey, int w, int h);
+
+    // s-rta-0926b R1: live counts of the two maps above (see the getters).
+    std::atomic<int> temporalBufferCount_{ 0 };
+    std::atomic<int> frameRingCount_{ 0 };
+
+    // s-rta-0926b R1: one crossfade-start detector per clip chain (key:
+    // LayerStateKey::clipChain). Compositor state, not a Layer field.
+    std::unordered_map<uint64_t, CrossfadeStartDetector> crossfadeStart_;
+
+    // s-rta-0926b R1: at the first frame of a crossfade, hand the layer's
+    // clip-chain history (clipKey) to its outgoing slot (outKey): COPY the
+    // temporal buffer (the incoming clip starts from the layer's last picture,
+    // exactly as after a cut) and SWAP the frame ring (the incoming clip's ring
+    // starts empty; the outgoing clip keeps its frames). May create GL objects
+    // (the spare buffer) and ends with framebuffer 0 bound: call it OUTSIDE any
+    // pass, before the incoming clip's chain runs.
+    void handOverClipHistory(uint64_t clipKey, uint64_t outKey,
+                             ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
     void pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
                          ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
     GLuint getFrameFromRing(const FrameRingBuffer& ring, int framesAgo) const;
@@ -313,8 +356,11 @@ private:
                                ShaderManager& shaderMgr, FullscreenQuad& quad,
                                int w, int h);
 
-    // Apply keying mode from Layer
-    void applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
+    // Apply a keying mode (normally layer.keyingMode) with the layer's key
+    // parameters and opacity (u_opacity). s-rta-0926b R4-opaque: the mode is
+    // explicit so a persistent Opaque layer can run the Alpha key purely to
+    // apply its layer opacity.
+    void applyLayerKeying(const Layer& layer, Layer::KeyingMode mode, GLuint srcTex, GLuint dstFBO,
                           ShaderManager& shaderMgr, FullscreenQuad& quad,
                           int w, int h);
 
@@ -336,13 +382,20 @@ private:
     // Get texture for any clip (image, source, video, or image sequence)
     GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt);
 
+    // Does this clip give its layer something to draw -- media that exists, or
+    // effects to apply (FX Only)? The rule compositeDeck uses to decide whether
+    // the active deck has anything to show (s-rta-0926b: shared with
+    // hasPersistentContent).
+    static bool clipHasContent(const Clip& clip);
+
     // Apply transition shader: blend previous clip texture with new clip texture
     // Returns the blended texture. The outgoing clip gets the same per-clip
     // stages as the active clip (transform + opacity, then effects); newClipTex
     // is HELD across all of them (holdTex=newClipTex).
-    // stateKey: the layer's clip-chain key (the outgoing chain shares it --
-    // s-rta-0926b open fork R1).
-    GLuint applyTransition(Layer& layer, uint64_t stateKey, GLuint newClipTex, float time,
+    // outgoingKey: LayerStateKey::outgoingChain of the layer -- the outgoing
+    // clip's chain keeps its own temporal buffer / frame ring for the whole
+    // fade, never the incoming clip's (s-rta-0926b R1, handOverClipHistory).
+    GLuint applyTransition(Layer& layer, uint64_t outgoingKey, GLuint newClipTex, float time,
                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
 

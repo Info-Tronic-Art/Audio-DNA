@@ -593,6 +593,11 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     auto* obj = new juce::DynamicObject();
     obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
     obj->setProperty("frame_time_ms", static_cast<double>(renderer_.getFrameTimeMs()));
+    // s-rta-0926b R1: compositor history memory + the longest frame since the
+    // previous /api/state read (reading resets it).
+    obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
+    obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
+    obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
     // s-rta-0925: master_level is now the one master (composition_.eff()).
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     // Onset render-path fix: frames on which the render-frame onset pulse fired.

@@ -1,5 +1,5 @@
 {
-  "_doc": "Fixtures for .harmony/probe-render-state.sh (s-rta-0926b render lane, R2/R4/R5). @MEDIA@ is replaced at run time with the checkout's media/ dir. Effects are [name, param...]. Thresholds and calibration: docstring of .harmony/probe-render-state.py.",
+  "_doc": "Fixtures for .harmony/probe-render-state.sh (s-rta-0926b render lanes: R2/R4/R5 wave 1; R1, R4-opaque, R4-types, R4 empty active deck: render2). @MEDIA@ is replaced at run time with the checkout's media/ dir. Effects are [name, param...]. Thresholds and calibration: docstring of .harmony/probe-render-state.py.",
   "imageA": "@MEDIA@/P16_01_baseline.png",
   "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
   "tol": 1.5,
@@ -29,5 +29,29 @@
     "_why": "fresh layer ids, col 0 = A, col 1 = A + [Freeze 0.5]; back-to-back captures across the switch. No frame after the switch may be blank (the creation frame used to be fully transparent)",
     "layerIds": [ 81, 82, 83, 84, 85 ],
     "fx": [ ["Freeze", 0.5] ]
+  },
+  "r1": {
+    "_why": "one layer, OUT = col 0 = A + out, IN = col 1 = B + in, Wipe Left over T s: each region must show ONLY its own clip (ratio vs that clip alone <= bound). Ruling R1 = B': outgoing slot, copy buffer / swap ring",
+    "T": 8.0, "bound": 0.05, "minRegionD": 5.0,
+    "temporal":  { "out": [ ["Freeze", 0.5] ], "in": [ ["Freeze", 0.5] ] },
+    "control":   { "out": [], "in": [ ["Freeze", 0.5] ] },
+    "ring":      { "out": [ ["Frame Stutter", 0.0, 0.0] ], "in": [ ["Frame Stutter", 0.0, 0.0] ] },
+    "retrigger": { "out": [ ["Freeze", 0.5] ], "in": [ ["Freeze", 0.5] ], "retrigger": 2.0 },
+    "counts": {
+      "_why": "fresh layer id, 6 cols alternating A/B each with fx, faded through with T s: exactly +2 frame rings (the layer's + its outgoing slot)",
+      "layerId": 71, "T": 1.0, "fx": [ ["Screen Split", 0.15, 0.15, 0.25, 0.0] ], "peakMaxMs": 50.0
+    }
+  },
+  "r4_opaque": {
+    "_why": "persistent Opaque layer (deck 1, id 5, Normal) over deck 0's A: honours layer opacity through the alpha keying pass and never hides the active deck",
+    "opacity": 0.5, "overlayScale": 0.5
+  },
+  "r4_fxonly": {
+    "_why": "a persistent FX Only layer / a Transparent layer with a media-less effect clip applies its effects over the active deck; a persistent Mask layer stays skipped",
+    "fx": [ ["Invert", 1.0] ]
+  },
+  "r4_empty_active_deck": {
+    "_why": "persistent layers must render over an EMPTY active deck exactly as over a black one (wave-1 found_not_fixed #1)",
+    "lock": [ 756, 878 ]
   }
 }

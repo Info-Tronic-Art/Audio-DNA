@@ -1,0 +1,46 @@
+base: 858acd1
+deliverable sha256 before: 781170b055418129 3646a25c22389a4c 
+=== base LayerStateKey.h + new test_layer_state_key.cpp: COMPILE FAILED (RED)
+tests/test_layer_state_key.cpp:54:59: error: no member named 'outgoingChain' in namespace 'LayerStateKey'
+tests/test_layer_state_key.cpp:75:28: error: no member named 'outgoingChain' in namespace 'LayerStateKey'
+tests/test_layer_state_key.cpp:75:68: error: no member named 'outgoingChain' in namespace 'LayerStateKey'
+(base has src/render/CrossfadeHistory.h: no)
+=== base src/ + new test_crossfade_history.cpp: COMPILE FAILED (RED)
+tests/test_crossfade_history.cpp:15:10: fatal error: 'render/CrossfadeHistory.h' file not found
+1 error generated.
+>         return clipChain(deckId, layerId);
+=== mutation lsk_drop_outgoing_bit:
+tests/test_layer_state_key.cpp:57: FAILED:
+  REQUIRE( outgoing != clip )
+test cases:  3 |  2 passed | 1 failed
+>         const bool start = running && (true || prev != lastPrev || active != lastActive
+=== mutation cfh_fire_every_frame:
+tests/test_crossfade_history.cpp:34: FAILED:
+  REQUIRE_FALSE( det.observe(0, 1, 0.1f) )
+tests/test_crossfade_history.cpp:47: FAILED:
+  REQUIRE_FALSE( det.observe(0, 1, 0.3f) )
+tests/test_crossfade_history.cpp:63: FAILED:
+  REQUIRE_FALSE( det.observe(0, 1, 0.6f) )
+tests/test_crossfade_history.cpp:72: FAILED:
+  REQUIRE_FALSE( det.observe(0, 1, 0.4f) )
+tests/test_crossfade_history.cpp:88: FAILED:
+  REQUIRE_FALSE( det.observe(0, 1, 0.0f) )
+tests/test_crossfade_history.cpp:96: FAILED:
+  REQUIRE_FALSE( det.observe(3, 4, 0.25f) )
+test cases:  7 |  1 passed | 6 failed
+>         const bool start = running && (!wasRunning || false
+=== mutation cfh_ignore_pair:
+tests/test_crossfade_history.cpp:55: FAILED:
+  REQUIRE( det.observe(1, 0, 0.16f) )
+test cases:  7 |  6 passed | 1 failed
+>                                        );
+=== mutation cfh_ignore_rewind:
+tests/test_crossfade_history.cpp:64: FAILED:
+  REQUIRE( det.observe(0, 1, 0.2f) )
+test cases:  7 |  6 passed | 1 failed
+>         const bool running = progress < 1.0f;
+=== mutation cfh_no_prev_gate:
+tests/test_crossfade_history.cpp:23: FAILED:
+  REQUIRE_FALSE( det.observe(-1, 2, 0.0f) )
+test cases:  7 |  6 passed | 1 failed
+deliverable sha256 after:  781170b055418129 3646a25c22389a4c 

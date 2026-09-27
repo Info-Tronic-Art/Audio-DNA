@@ -1,0 +1,1197 @@
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane
+        Start   1: RingBuffer capacity is power of two
+  1/596 Test   #1: RingBuffer capacity is power of two ..................................................................................................................................   Passed    0.01 sec
+        Start   2: RingBuffer basic push and pop
+  2/596 Test   #2: RingBuffer basic push and pop ........................................................................................................................................   Passed    0.00 sec
+        Start   3: RingBuffer fills to capacity
+  3/596 Test   #3: RingBuffer fills to capacity .........................................................................................................................................   Passed    0.00 sec
+        Start   4: RingBuffer wraps around correctly
+  4/596 Test   #4: RingBuffer wraps around correctly ....................................................................................................................................   Passed    0.00 sec
+        Start   5: RingBuffer concurrent push/pop
+  5/596 Test   #5: RingBuffer concurrent push/pop .......................................................................................................................................   Passed    0.01 sec
+        Start   6: Waveform seqlock snapshot has no torn reads under thread stress
+  6/596 Test   #6: Waveform seqlock snapshot has no torn reads under thread stress ......................................................................................................   Passed    0.16 sec
+        Start   7: Owner-thread-confined map creates each key exactly once under concurrent contention
+  7/596 Test   #7: Owner-thread-confined map creates each key exactly once under concurrent contention ..................................................................................   Passed    0.09 sec
+        Start   8: Owner-thread caller runs inline without deadlocking itself
+  8/596 Test   #8: Owner-thread caller runs inline without deadlocking itself ...........................................................................................................   Passed    0.00 sec
+        Start   9: S166-LEAK: video->image replace retires the outgoing video decoder
+  9/596 Test   #9: S166-LEAK: video->image replace retires the outgoing video decoder ...................................................................................................   Passed    0.01 sec
+        Start  10: S166-LEAK: the pre-fix image branch reproduces the leak (proves the test above has teeth)
+ 10/596 Test  #10: S166-LEAK: the pre-fix image branch reproduces the leak (proves the test above has teeth) ............................................................................   Passed    0.00 sec
+        Start  11: S166-LEAK: imageSequence->image replace retires the outgoing sequence (same leak family)
+ 11/596 Test  #11: S166-LEAK: imageSequence->image replace retires the outgoing sequence (same leak family) .............................................................................   Passed    0.00 sec
+        Start  12: image->image replace is a safe no-op — nothing to retire
+ 12/596 Test  #12: image->image replace is a safe no-op — nothing to retire ...........................................................................................................   Passed    0.00 sec
+        Start  13: video->video replace retires the old decoder before installing the new one
+ 13/596 Test  #13: video->video replace retires the old decoder before installing the new one ...........................................................................................   Passed    0.00 sec
+        Start  14: image->video replace has nothing to retire and installs cleanly
+ 14/596 Test  #14: image->video replace has nothing to retire and installs cleanly ......................................................................................................   Passed    0.00 sec
+        Start  15: LayerTransport resume does not reset a reversed, paused clip's direction
+ 15/596 Test  #15: LayerTransport resume does not reset a reversed, paused clip's direction .............................................................................................   Passed    0.00 sec
+        Start  16: LayerTransport pause leg still pauses, and does not touch reverse
+ 16/596 Test  #16: LayerTransport pause leg still pauses, and does not touch reverse ....................................................................................................   Passed    0.00 sec
+        Start  17: the pre-fix LayerTransport toggle reproduces the regression (proves the test above has teeth)
+ 17/596 Test  #17: the pre-fix LayerTransport toggle reproduces the regression (proves the test above has teeth) ........................................................................   Passed    0.00 sec
+        Start  18: TopBar Play still resets reverse (unchanged, intentional semantics)
+ 18/596 Test  #18: TopBar Play still resets reverse (unchanged, intentional semantics) ..................................................................................................   Passed    0.00 sec
+        Start  19: resume on an already-forward clip is a plain no-op on direction
+ 19/596 Test  #19: resume on an already-forward clip is a plain no-op on direction ......................................................................................................   Passed    0.00 sec
+        Start  20: transform + default clip opacity: the real picker never aliases the transform's own output
+ 20/596 Test  #20: transform + default clip opacity: the real picker never aliases the transform's own output ...........................................................................   Passed    0.01 sec
+        Start  21: no transform + default clip opacity remains a true no-op (unaffected safe path)
+ 21/596 Test  #21: no transform + default clip opacity remains a true no-op (unaffected safe path) ......................................................................................   Passed    0.00 sec
+        Start  22: transform + non-default clip opacity was already safe pre-fix, and still runs through the real picker
+ 22/596 Test  #22: transform + non-default clip opacity was already safe pre-fix, and still runs through the real picker ................................................................   Passed    0.00 sec
+        Start  23: odd per-clip effect count + a layer effect: the real picker never aliases across the two chained calls
+ 23/596 Test  #23: odd per-clip effect count + a layer effect: the real picker never aliases across the two chained calls ...............................................................   Passed    0.00 sec
+        Start  24: even per-clip effect count + a layer effect: unaffected control, still safe
+ 24/596 Test  #24: even per-clip effect count + a layer effect: unaffected control, still safe ..........................................................................................   Passed    0.00 sec
+        Start  25: zero per-clip effects + a layer effect: clip's persistent texture passes straight through, still safe
+ 25/596 Test  #25: zero per-clip effects + a layer effect: clip's persistent texture passes straight through, still safe ................................................................   Passed    0.00 sec
+        Start  26: ScratchPool::pick never returns the sampled or the held texture
+ 26/596 Test  #26: ScratchPool::pick never returns the sampled or the held texture ......................................................................................................   Passed    0.01 sec
+        Start  27: ScratchPool::pick keeps the historic A/B ping-pong when nothing is held
+ 27/596 Test  #27: ScratchPool::pick keeps the historic A/B ping-pong when nothing is held ..............................................................................................   Passed    0.00 sec
+        Start  28: ScratchPool::pick uses the third member only while a pool texture is held
+ 28/596 Test  #28: ScratchPool::pick uses the third member only while a pool texture is held ............................................................................................   Passed    0.00 sec
+        Start  29: ScratchPool::pick with only two members cannot honour a pool hold
+ 29/596 Test  #29: ScratchPool::pick with only two members cannot honour a pool hold ....................................................................................................   Passed    0.00 sec
+        Start  30: LayerStateKey: the same layer id in two decks gets two keys
+ 30/596 Test  #30: LayerStateKey: the same layer id in two decks gets two keys ..........................................................................................................   Passed    0.01 sec
+        Start  31: LayerStateKey: every (deck, layer, chain) is unique and never the Global Effects key
+ 31/596 Test  #31: LayerStateKey: every (deck, layer, chain) is unique and never the Global Effects key .................................................................................   Passed    0.01 sec
+        Start  32: LayerStateKey: a deck's own keys are stable (same inputs, same key)
+ 32/596 Test  #32: LayerStateKey: a deck's own keys are stable (same inputs, same key) ..................................................................................................   Passed    0.01 sec
+        Start  33: CrossfadeStartDetector: a layer that is not crossfading never fires
+ 33/596 Test  #33: CrossfadeStartDetector: a layer that is not crossfading never fires ..................................................................................................   Passed    0.00 sec
+        Start  34: CrossfadeStartDetector: the first running frame fires once, rising progress does not
+ 34/596 Test  #34: CrossfadeStartDetector: the first running frame fires once, rising progress does not .................................................................................   Passed    0.00 sec
+        Start  35: CrossfadeStartDetector: a re-trigger mid-fade fires again
+ 35/596 Test  #35: CrossfadeStartDetector: a re-trigger mid-fade fires again ............................................................................................................   Passed    0.00 sec
+        Start  36: CrossfadeStartDetector: same pair with progress going backwards fires (restore)
+ 36/596 Test  #36: CrossfadeStartDetector: same pair with progress going backwards fires (restore) ......................................................................................   Passed    0.00 sec
+        Start  37: CrossfadeStartDetector: a cut never fires and ends a running fade
+ 37/596 Test  #37: CrossfadeStartDetector: a cut never fires and ends a running fade ....................................................................................................   Passed    0.00 sec
+        Start  38: CrossfadeStartDetector: triggerClipImmediate's write ordering fires exactly once, on the last state
+ 38/596 Test  #38: CrossfadeStartDetector: triggerClipImmediate's write ordering fires exactly once, on the last state ..................................................................   Passed    0.00 sec
+        Start  39: CrossfadeStartDetector: equal progress (dt = 0) never fires
+ 39/596 Test  #39: CrossfadeStartDetector: equal progress (dt = 0) never fires ..........................................................................................................   Passed    0.00 sec
+        Start  40: composition-tier oracle: unknown effect name has no EffectDef
+ 40/596 Test  #40: composition-tier oracle: unknown effect name has no EffectDef ........................................................................................................   Passed    0.01 sec
+        Start  41: composition-tier oracle: adding a known global effect uses registry defaults
+ 41/596 Test  #41: composition-tier oracle: adding a known global effect uses registry defaults .........................................................................................   Passed    0.01 sec
+        Start  42: composition-tier oracle: bypass write flips only the targeted slot
+ 42/596 Test  #42: composition-tier oracle: bypass write flips only the targeted slot ...................................................................................................   Passed    0.01 sec
+        Start  43: composition-tier oracle: remove-by-index rejects out-of-range and leaves the vector untouched
+ 43/596 Test  #43: composition-tier oracle: remove-by-index rejects out-of-range and leaves the vector untouched ........................................................................   Passed    0.01 sec
+        Start  44: composition-tier oracle: the three remaining scalars round-trip
+ 44/596 Test  #44: composition-tier oracle: the three remaining scalars round-trip ......................................................................................................   Passed    0.01 sec
+        Start  45: SpectralFeatures centroid — pure sine
+ 45/596 Test  #45: SpectralFeatures centroid — pure sine ..............................................................................................................................   Passed    0.01 sec
+        Start  46: SpectralFeatures centroid — flat spectrum
+ 46/596 Test  #46: SpectralFeatures centroid — flat spectrum ..........................................................................................................................   Passed    0.00 sec
+        Start  47: SpectralFeatures flux — identical frames give zero flux
+ 47/596 Test  #47: SpectralFeatures flux — identical frames give zero flux ............................................................................................................   Passed    0.00 sec
+        Start  48: SpectralFeatures flux — changing frames give nonzero flux
+ 48/596 Test  #48: SpectralFeatures flux — changing frames give nonzero flux ..........................................................................................................   Passed    0.00 sec
+        Start  49: SpectralFeatures flatness — peaked spectrum is tonal (low flatness)
+ 49/596 Test  #49: SpectralFeatures flatness — peaked spectrum is tonal (low flatness) ................................................................................................   Passed    0.00 sec
+        Start  50: SpectralFeatures flatness — flat spectrum is noisy (high flatness)
+ 50/596 Test  #50: SpectralFeatures flatness — flat spectrum is noisy (high flatness) .................................................................................................   Passed    0.00 sec
+        Start  51: SpectralFeatures rolloff — low frequency content
+ 51/596 Test  #51: SpectralFeatures rolloff — low frequency content ...................................................................................................................   Passed    0.00 sec
+        Start  52: SpectralFeatures band energies — bass sine activates bass band
+ 52/596 Test  #52: SpectralFeatures band energies — bass sine activates bass band .....................................................................................................   Passed    0.00 sec
+        Start  53: SpectralFeatures band energies — high frequency sine activates brilliance
+ 53/596 Test  #53: SpectralFeatures band energies — high frequency sine activates brilliance ..........................................................................................   Passed    0.00 sec
+        Start  54: SpectralFeatures silent input
+ 54/596 Test  #54: SpectralFeatures silent input ........................................................................................................................................   Passed    0.00 sec
+        Start  55: SpectralFeatures T3.1 — bandwidth -> bandValidMask
+ 55/596 Test  #55: SpectralFeatures T3.1 — bandwidth -> bandValidMask .................................................................................................................   Passed    0.00 sec
+        Start  56: SpectralFeatures T3.2 — residue-only mode is gated, not normalized as garbage
+ 56/596 Test  #56: SpectralFeatures T3.2 — residue-only mode is gated, not normalized as garbage ......................................................................................   Passed    0.00 sec
+        Start  57: SpectralFeatures T3.3 — truncated-but-valid band reports 0 above the bandwidth
+ 57/596 Test  #57: SpectralFeatures T3.3 — truncated-but-valid band reports 0 above the bandwidth .....................................................................................   Passed    0.00 sec
+        Start  58: SpectralFeatures T3.4 — default behaviour unchanged without setInputBandwidthHz
+ 58/596 Test  #58: SpectralFeatures T3.4 — default behaviour unchanged without setInputBandwidthHz ....................................................................................   Passed    0.00 sec
+        Start  59: FeatureBus initial state — cleared snapshot, nothing newer
+ 59/596 Test  #59: FeatureBus initial state — cleared snapshot, nothing newer .........................................................................................................   Passed    0.00 sec
+        Start  60: FeatureBus single write-read cycle
+ 60/596 Test  #60: FeatureBus single write-read cycle ...................................................................................................................................   Passed    0.00 sec
+        Start  61: FeatureBus roundtrips resyncBarOrigin (the new 96-word payload tier)
+ 61/596 Test  #61: FeatureBus roundtrips resyncBarOrigin (the new 96-word payload tier) .................................................................................................   Passed    0.00 sec
+        Start  62: FeatureBus read returns the last published snapshot repeatedly
+ 62/596 Test  #62: FeatureBus read returns the last published snapshot repeatedly .......................................................................................................   Passed    0.00 sec
+        Start  63: FeatureBus multiple writes before read — reader gets latest
+ 63/596 Test  #63: FeatureBus multiple writes before read — reader gets latest ........................................................................................................   Passed    0.00 sec
+        Start  64: FeatureBus writer does not clobber a reader's copy
+ 64/596 Test  #64: FeatureBus writer does not clobber a reader's copy ...................................................................................................................   Passed    0.00 sec
+        Start  65: FeatureBus staging buffer is stable and writer-private
+ 65/596 Test  #65: FeatureBus staging buffer is stable and writer-private ...............................................................................................................   Passed    0.00 sec
+        Start  66: FeatureBus createWriter enforces the single-writer claim
+ 66/596 Test  #66: FeatureBus createWriter enforces the single-writer claim .............................................................................................................   Passed    0.00 sec
+        Start  67: FeatureBus concurrent write-read stress test
+ 67/596 Test  #67: FeatureBus concurrent write-read stress test .........................................................................................................................   Passed    0.01 sec
+        Start  68: FeatureBus multi-reader coherence under concurrent publish
+ 68/596 Test  #68: FeatureBus multi-reader coherence under concurrent publish ...........................................................................................................   Passed    2.97 sec
+        Start  69: FeatureSnapshot clear restores struct-default genre/energy
+ 69/596 Test  #69: FeatureSnapshot clear restores struct-default genre/energy ...........................................................................................................   Passed    0.00 sec
+        Start  70: Smoother first sample passes through unchanged
+ 70/596 Test  #70: Smoother first sample passes through unchanged .......................................................................................................................   Passed    0.01 sec
+        Start  71: Smoother alpha=1 is passthrough
+ 71/596 Test  #71: Smoother alpha=1 is passthrough ......................................................................................................................................   Passed    0.00 sec
+        Start  72: Smoother converges to constant input
+ 72/596 Test  #72: Smoother converges to constant input .................................................................................................................................   Passed    0.00 sec
+        Start  73: Smoother with low alpha is slower than high alpha
+ 73/596 Test  #73: Smoother with low alpha is slower than high alpha ....................................................................................................................   Passed    0.00 sec
+        Start  74: Smoother reset clears state
+ 74/596 Test  #74: Smoother reset clears state ..........................................................................................................................................   Passed    0.00 sec
+        Start  75: Smoother setAlpha changes behavior
+ 75/596 Test  #75: Smoother setAlpha changes behavior ...................................................................................................................................   Passed    0.00 sec
+        Start  76: Smoother value() returns current without advancing
+ 76/596 Test  #76: Smoother value() returns current without advancing ...................................................................................................................   Passed    0.00 sec
+        Start  77: OnsetPulse: first consume only establishes the baseline
+ 77/596 Test  #77: OnsetPulse: first consume only establishes the baseline ..............................................................................................................   Passed    0.00 sec
+        Start  78: OnsetPulse: same count twice is not a new onset (fast poller, no duplicate)
+ 78/596 Test  #78: OnsetPulse: same count twice is not a new onset (fast poller, no duplicate) ..........................................................................................   Passed    0.00 sec
+        Start  79: OnsetPulse: deltas of one and of several (missed hops recovered)
+ 79/596 Test  #79: OnsetPulse: deltas of one and of several (missed hops recovered) .....................................................................................................   Passed    0.00 sec
+        Start  80: OnsetPulse: exact across a 2^32 wrap
+ 80/596 Test  #80: OnsetPulse: exact across a 2^32 wrap .................................................................................................................................   Passed    0.00 sec
+        Start  81: OnsetPulse: a backwards jump (writer reset) re-baselines without a pulse
+ 81/596 Test  #81: OnsetPulse: a backwards jump (writer reset) re-baselines without a pulse .............................................................................................   Passed    0.00 sec
+        Start  82: OnsetPulse: reset() forgets the baseline
+ 82/596 Test  #82: OnsetPulse: reset() forgets the baseline .............................................................................................................................   Passed    0.00 sec
+        Start  83: OnsetPulse: 60 Hz and 120 Hz readers of a 93.75 Hz always-latest counter see every onset exactly once
+ 83/596 Test  #83: OnsetPulse: 60 Hz and 120 Hz readers of a 93.75 Hz always-latest counter see every onset exactly once ................................................................   Passed    0.00 sec
+        Start  84: InjectedOnsetCount: carry, bump, explicit and reset
+ 84/596 Test  #84: InjectedOnsetCount: carry, bump, explicit and reset ..................................................................................................................   Passed    0.00 sec
+        Start  85: OscillatorSignal 8-beat cycle completes across two bars (was bounded to 4/8)
+ 85/596 Test  #85: OscillatorSignal 8-beat cycle completes across two bars (was bounded to 4/8) .........................................................................................   Passed    0.00 sec
+        Start  86: OscillatorSignal Sine 8-beat cycle reaches both extremes
+ 86/596 Test  #86: OscillatorSignal Sine 8-beat cycle reaches both extremes .............................................................................................................   Passed    0.00 sec
+        Start  87: OscillatorSignal short beat durations unchanged across bars
+ 87/596 Test  #87: OscillatorSignal short beat durations unchanged across bars ..........................................................................................................   Passed    0.00 sec
+        Start  88: Live-app regression anchors: Mod 1 (OscillatorSignal Sine, duration 1) and Mod 2 (EnvelopeSignal, duration 4) unchanged at barCount=0
+ 88/596 Test  #88: Live-app regression anchors: Mod 1 (OscillatorSignal Sine, duration 1) and Mod 2 (EnvelopeSignal, duration 4) unchanged at barCount=0 ................................   Passed    0.00 sec
+        Start  89: EnvelopeSignal completes a full cycle over 8 beats (2 bars)
+ 89/596 Test  #89: EnvelopeSignal completes a full cycle over 8 beats (2 bars) ..........................................................................................................   Passed    0.00 sec
+        Start  90: EnvelopeSignal 16-beat option (SignalInspector's longest envelope duration) completes across 4 bars
+ 90/596 Test  #90: EnvelopeSignal 16-beat option (SignalInspector's longest envelope duration) completes across 4 bars ..................................................................   Passed    0.00 sec
+        Start  91: EnvelopeSignal default duration (4.0, the boundary case) is unchanged across bars
+ 91/596 Test  #91: EnvelopeSignal default duration (4.0, the boundary case) is unchanged across bars ....................................................................................   Passed    0.00 sec
+        Start  92: Phrase-reset trade-off is pinned: no jump from a fixed period, a real jump from an actual reset
+ 92/596 Test  #92: Phrase-reset trade-off is pinned: no jump from a fixed period, a real jump from an actual reset ......................................................................   Passed    0.00 sec
+        Start  93: S168: default oscillator phase is monotonic across a structural reset; switch=true still jumps
+ 93/596 Test  #93: S168: default oscillator phase is monotonic across a structural reset; switch=true still jumps .......................................................................   Passed    0.00 sec
+        Start  94: FeatureSnapshot::barsSinceResync guards a contradictory origin and matches totalBarCount before the first Resync
+ 94/596 Test  #94: FeatureSnapshot::barsSinceResync guards a contradictory origin and matches totalBarCount before the first Resync .....................................................   Passed    0.00 sec
+        Start  95: Manual Resync origin re-aligns the default fold to the new downbeat; an automatic reset still moves nothing
+ 95/596 Test  #95: Manual Resync origin re-aligns the default fold to the new downbeat; an automatic reset still moves nothing ..........................................................   Passed    0.00 sec
+        Start  96: Integration: 440Hz sine — spectral centroid near 440Hz
+ 96/596 Test  #96: Integration: 440Hz sine — spectral centroid near 440Hz .............................................................................................................   Passed    0.02 sec
+        Start  97: Integration: 440Hz sine — amplitude features
+ 97/596 Test  #97: Integration: 440Hz sine — amplitude features .......................................................................................................................   Passed    0.01 sec
+        Start  98: Integration: 440Hz sine — spectral flatness is low (tonal)
+ 98/596 Test  #98: Integration: 440Hz sine — spectral flatness is low (tonal) .........................................................................................................   Passed    0.01 sec
+        Start  99: Integration: 440Hz sine — rolloff near 440Hz
+ 99/596 Test  #99: Integration: 440Hz sine — rolloff near 440Hz .......................................................................................................................   Passed    0.01 sec
+        Start 100: Integration: 440Hz sine — bass band has energy, not brilliance
+100/596 Test #100: Integration: 440Hz sine — bass band has energy, not brilliance .....................................................................................................   Passed    0.01 sec
+        Start 101: Integration: 440Hz sine — pitch detection near 440Hz
+101/596 Test #101: Integration: 440Hz sine — pitch detection near 440Hz ...............................................................................................................   Passed    0.02 sec
+        Start 102: Integration: 440Hz sine — chroma peaks on A
+102/596 Test #102: Integration: 440Hz sine — chroma peaks on A ........................................................................................................................   Passed    0.02 sec
+        Start 103: Integration: 440Hz sine — LUFS is reasonable
+103/596 Test #103: Integration: 440Hz sine — LUFS is reasonable .......................................................................................................................   Passed    0.01 sec
+        Start 104: Integration: 440Hz sine — MFCCs are computed
+104/596 Test #104: Integration: 440Hz sine — MFCCs are computed .......................................................................................................................   Passed    0.01 sec
+        Start 105: Integration: 440Hz sine — steady tone has no onsets
+105/596 Test #105: Integration: 440Hz sine — steady tone has no onsets ................................................................................................................   Passed    0.02 sec
+        Start 106: Integration: 440Hz sine — structural state is stable
+106/596 Test #106: Integration: 440Hz sine — structural state is stable ...............................................................................................................   Passed    0.02 sec
+        Start 107: Integration: silence — all features near zero/default
+107/596 Test #107: Integration: silence — all features near zero/default ..............................................................................................................   Passed    0.01 sec
+        Start 108: Integration: 10kHz sine — centroid is high
+108/596 Test #108: Integration: 10kHz sine — centroid is high .........................................................................................................................   Passed    0.01 sec
+        Start 109: Integration: 10kHz sine — brilliance band dominant
+109/596 Test #109: Integration: 10kHz sine — brilliance band dominant .................................................................................................................   Passed    0.01 sec
+        Start 110: Integration: ring buffer feeds pipeline correctly
+110/596 Test #110: Integration: ring buffer feeds pipeline correctly ....................................................................................................................   Passed    0.01 sec
+        Start 111: Integration: pipeline publishes to FeatureBus
+111/596 Test #111: Integration: pipeline publishes to FeatureBus ........................................................................................................................   Passed    0.01 sec
+        Start 112: R13 T2.1: spectral centroid rate-invariant after resampling
+112/596 Test #112: R13 T2.1: spectral centroid rate-invariant after resampling ..........................................................................................................   Passed    0.02 sec
+        Start 113: R13 T2.2: LUFS rate-invariant after resampling
+113/596 Test #113: R13 T2.2: LUFS rate-invariant after resampling .......................................................................................................................   Passed    0.02 sec
+        Start 114: R13 T2.3: BPM rate-invariant after resampling
+114/596 Test #114: R13 T2.3: BPM rate-invariant after resampling ........................................................................................................................   Passed    0.21 sec
+        Start 115: R13 T2.4: bandValidMask/bandEnergies rate-invariant
+115/596 Test #115: R13 T2.4: bandValidMask/bandEnergies rate-invariant ..................................................................................................................   Passed    0.02 sec
+        Start 116: Onset count: FeatureSnapshot::onsetCount increments exactly once per detected onset over a click train with a -50 dBFS noise floor
+116/596 Test #116: Onset count: FeatureSnapshot::onsetCount increments exactly once per detected onset over a click train with a -50 dBFS noise floor ...................................   Passed    0.06 sec
+        Start 117: Onset pulse: a render-cadence reader of the always-latest snapshot sees every onset exactly once
+117/596 Test #117: Onset pulse: a render-cadence reader of the always-latest snapshot sees every onset exactly once .....................................................................   Passed    0.12 sec
+        Start 118: CurveTransforms::linear
+118/596 Test #118: CurveTransforms::linear ..............................................................................................................................................   Passed    0.02 sec
+        Start 119: CurveTransforms::exponential
+119/596 Test #119: CurveTransforms::exponential .........................................................................................................................................   Passed    0.01 sec
+        Start 120: CurveTransforms::logarithmic
+120/596 Test #120: CurveTransforms::logarithmic .........................................................................................................................................   Passed    0.01 sec
+        Start 121: CurveTransforms::sCurve
+121/596 Test #121: CurveTransforms::sCurve ..............................................................................................................................................   Passed    0.01 sec
+        Start 122: CurveTransforms::stepped
+122/596 Test #122: CurveTransforms::stepped .............................................................................................................................................   Passed    0.01 sec
+        Start 123: MappingEngine::applyCurve dispatches correctly
+123/596 Test #123: MappingEngine::applyCurve dispatches correctly .......................................................................................................................   Passed    0.01 sec
+        Start 124: extractSource reads correct FeatureSnapshot fields
+124/596 Test #124: extractSource reads correct FeatureSnapshot fields ...................................................................................................................   Passed    0.01 sec
+        Start 125: Mapping normalization scales source to [0,1]
+125/596 Test #125: Mapping normalization scales source to [0,1] .........................................................................................................................   Passed    0.01 sec
+        Start 126: Mapping with custom output range
+126/596 Test #126: Mapping with custom output range .....................................................................................................................................   Passed    0.01 sec
+        Start 127: Mapping smoothing converges to target
+127/596 Test #127: Mapping smoothing converges to target ................................................................................................................................   Passed    0.01 sec
+        Start 128: Smoothing alpha=1 gives immediate response
+128/596 Test #128: Smoothing alpha=1 gives immediate response ...........................................................................................................................   Passed    0.01 sec
+        Start 129: Low smoothing alpha gives slow response
+129/596 Test #129: Low smoothing alpha gives slow response ..............................................................................................................................   Passed    0.01 sec
+        Start 130: Multiple mappings to same parameter are summed
+130/596 Test #130: Multiple mappings to same parameter are summed .......................................................................................................................   Passed    0.01 sec
+        Start 131: Summed mappings clamp to [0,1]
+131/596 Test #131: Summed mappings clamp to [0,1] .......................................................................................................................................   Passed    0.01 sec
+        Start 132: Disabled mapping has no effect
+132/596 Test #132: Disabled mapping has no effect .......................................................................................................................................   Passed    0.01 sec
+        Start 133: Add and remove mappings
+133/596 Test #133: Add and remove mappings ..............................................................................................................................................   Passed    0.01 sec
+        Start 134: getMapping returns nullptr for invalid index
+134/596 Test #134: getMapping returns nullptr for invalid index .........................................................................................................................   Passed    0.01 sec
+        Start 135: Full pipeline with exponential curve
+135/596 Test #135: Full pipeline with exponential curve .................................................................................................................................   Passed    0.01 sec
+        Start 136: Full pipeline with logarithmic curve
+136/596 Test #136: Full pipeline with logarithmic curve .................................................................................................................................   Passed    0.01 sec
+        Start 137: Full pipeline with stepped curve
+137/596 Test #137: Full pipeline with stepped curve .....................................................................................................................................   Passed    0.01 sec
+        Start 138: Mapping to nonexistent effect is safely ignored
+138/596 Test #138: Mapping to nonexistent effect is safely ignored ......................................................................................................................   Passed    0.01 sec
+        Start 139: Mapping to nonexistent param is safely ignored
+139/596 Test #139: Mapping to nonexistent param is safely ignored .......................................................................................................................   Passed    0.01 sec
+        Start 140: Integration: RMS → Ripple intensity with exponential curve
+140/596 Test #140: Integration: RMS → Ripple intensity with exponential curve .........................................................................................................   Passed    0.01 sec
+        Start 141: Integration: RMS → Ripple with exponential + smoothing
+141/596 Test #141: Integration: RMS → Ripple with exponential + smoothing .............................................................................................................   Passed    0.01 sec
+        Start 142: Integration: simulated audio playback with varying features
+142/596 Test #142: Integration: simulated audio playback with varying features ..........................................................................................................   Passed    0.01 sec
+        Start 143: Single-store processFrame is bit-identical to the old 3-pass pipeline
+143/596 Test #143: Single-store processFrame is bit-identical to the old 3-pass pipeline ................................................................................................   Passed    0.01 sec
+        Start 144: Single-store step response matches the old pipeline tick-for-tick (EMA parity)
+144/596 Test #144: Single-store step response matches the old pipeline tick-for-tick (EMA parity) .......................................................................................   Passed    0.01 sec
+        Start 145: MappingEngine::processFrame anchors to EffectParam::defaultValue at Master Signal depth 0
+145/596 Test #145: MappingEngine::processFrame anchors to EffectParam::defaultValue at Master Signal depth 0 ............................................................................   Passed    0.01 sec
+        Start 146: Median filter rejects outlier spikes
+146/596 Test #146: Median filter rejects outlier spikes .................................................................................................................................   Passed    0.01 sec
+        Start 147: Median filter converges on consistent input
+147/596 Test #147: Median filter converges on consistent input ..........................................................................................................................   Passed    0.01 sec
+        Start 148: Octave error: 60 BPM folds to 120 BPM
+148/596 Test #148: Octave error: 60 BPM folds to 120 BPM ................................................................................................................................   Passed    0.01 sec
+        Start 149: Octave error: 240 BPM folds to 120 BPM
+149/596 Test #149: Octave error: 240 BPM folds to 120 BPM ...............................................................................................................................   Passed    0.01 sec
+        Start 150: BPM range gate folds extreme values
+150/596 Test #150: BPM range gate folds extreme values ..................................................................................................................................   Passed    0.01 sec
+        Start 151: Hysteresis: stable BPM stays locked despite small jitter
+151/596 Test #151: Hysteresis: stable BPM stays locked despite small jitter .............................................................................................................   Passed    0.01 sec
+        Start 152: Hysteresis: real tempo change is accepted after persistence
+152/596 Test #152: Hysteresis: real tempo change is accepted after persistence ..........................................................................................................   Passed    0.01 sec
+        Start 153: Hysteresis: brief tempo change is rejected
+153/596 Test #153: Hysteresis: brief tempo change is rejected ...........................................................................................................................   Passed    0.01 sec
+        Start 154: Confidence gate: low confidence values are ignored
+154/596 Test #154: Confidence gate: low confidence values are ignored ...................................................................................................................   Passed    0.01 sec
+        Start 155: Tracker starts in SEARCHING state
+155/596 Test #155: Tracker starts in SEARCHING state ....................................................................................................................................   Passed    0.01 sec
+        Start 156: Tracker transitions: SEARCHING → LOCKING → LOCKED
+156/596 Test #156: Tracker transitions: SEARCHING → LOCKING → LOCKED ................................................................................................................   Passed    0.01 sec
+        Start 157: Beat phase ramps smoothly between 0 and 1
+157/596 Test #157: Beat phase ramps smoothly between 0 and 1 ............................................................................................................................   Passed    0.01 sec
+        Start 158: Beat phase resets to 0 on high-confidence beat
+158/596 Test #158: Beat phase resets to 0 on high-confidence beat .......................................................................................................................   Passed    0.01 sec
+        Start 159: Beat phase stays 0 when no BPM locked
+159/596 Test #159: Beat phase stays 0 when no BPM locked ................................................................................................................................   Passed    0.01 sec
+        Start 160: BPMTracker constants are valid
+160/596 Test #160: BPMTracker constants are valid .......................................................................................................................................   Passed    0.01 sec
+        Start 161: Silence: beatInBar and barCount keep advancing off the predicted phase wrap
+161/596 Test #161: Silence: beatInBar and barCount keep advancing off the predicted phase wrap ..........................................................................................   Passed    0.01 sec
+        Start 162: Manual mode: beatInBar and barCount advance from cold with no audio
+162/596 Test #162: Manual mode: beatInBar and barCount advance from cold with no audio ..................................................................................................   Passed    0.01 sec
+        Start 163: Anti-double-count: 16 live onsets advance barCount by exactly 4, not 8
+163/596 Test #163: Anti-double-count: 16 live onsets advance barCount by exactly 4, not 8 ...............................................................................................   Passed    0.01 sec
+        Start 164: Pre-existing BPM/beat-phase tests are unaffected by predicted beat advance
+164/596 Test #164: Pre-existing BPM/beat-phase tests are unaffected by predicted beat advance ...........................................................................................   Passed    0.01 sec
+        Start 165: Manual mode: structural transition into drop does not reset barCount
+165/596 Test #165: Manual mode: structural transition into drop does not reset barCount .................................................................................................   Passed    0.01 sec
+        Start 166: Manual mode: structural transition out of breakdown does not reset barCount
+166/596 Test #166: Manual mode: structural transition out of breakdown does not reset barCount ..........................................................................................   Passed    0.01 sec
+        Start 167: Real audio: structural transition into drop still resets barCount
+167/596 Test #167: Real audio: structural transition into drop still resets barCount ....................................................................................................   Passed    0.01 sec
+        Start 168: Real audio: structural transition into drop zeroes barCount while totalBarCount keeps climbing
+168/596 Test #168: Real audio: structural transition into drop zeroes barCount while totalBarCount keeps climbing .......................................................................   Passed    0.01 sec
+        Start 169: requestResync is applied by the next analysis hop, not by the caller
+169/596 Test #169: requestResync is applied by the next analysis hop, not by the caller .................................................................................................   Passed    0.01 sec
+        Start 170: no phantom bar when the Resync lands during the first beat
+170/596 Test #170: no phantom bar when the Resync lands during the first beat ...........................................................................................................   Passed    0.01 sec
+        Start 171: one bar after a Resync: bars since resync == 1, the phrase restarted, the origin held
+171/596 Test #171: one bar after a Resync: bars since resync == 1, the phrase restarted, the origin held ................................................................................   Passed    0.01 sec
+        Start 172: automatic structural reset leaves resyncBarOrigin untouched (real onsets)
+172/596 Test #172: automatic structural reset leaves resyncBarOrigin untouched (real onsets) ............................................................................................   Passed    0.01 sec
+        Start 173: Silence-exit hysteresis: a real onset arriving while still officially silent is not double-scored
+173/596 Test #173: Silence-exit hysteresis: a real onset arriving while still officially silent is not double-scored ....................................................................   Passed    0.01 sec
+        Start 174: Manual mode: detected beats at another tempo never move the beat phase
+174/596 Test #174: Manual mode: detected beats at another tempo never move the beat phase ...............................................................................................   Passed    0.01 sec
+        Start 175: Manual mode with detected beats at another tempo: Resync realigns once, then free-runs
+175/596 Test #175: Manual mode with detected beats at another tempo: Resync realigns once, then free-runs ...............................................................................   Passed    0.01 sec
+        Start 176: Tap still realigns in manual mode; leaving manual mode restores the AUTO beat reset
+176/596 Test #176: Tap still realigns in manual mode; leaving manual mode restores the AUTO beat reset ..................................................................................   Passed    0.01 sec
+        Start 177: setManualBPM (Tap / set_bpm) is applied by the next analysis hop, not by the caller
+177/596 Test #177: setManualBPM (Tap / set_bpm) is applied by the next analysis hop, not by the caller ..................................................................................   Passed    0.01 sec
+        Start 178: tempo writers on the message thread vs the analysis hop: no data race (run it under ThreadSanitizer)
+178/596 Test #178: tempo writers on the message thread vs the analysis hop: no data race (run it under ThreadSanitizer) .................................................................   Passed    0.02 sec
+        Start 179: Ableton Link: an unchanged tempo re-sent every UI tick (~30 Hz) never realigns the phase
+179/596 Test #179: Ableton Link: an unchanged tempo re-sent every UI tick (~30 Hz) never realigns the phase .............................................................................   Passed    0.01 sec
+        Start 180: Downbeat level (real onsets): held for the whole first beat, totalBarCount once per bar; 60/120 Hz readers lose nothing, a 0.9 s poller needs the counter
+180/596 Test #180: Downbeat level (real onsets): held for the whole first beat, totalBarCount once per bar; 60/120 Hz readers lose nothing, a 0.9 s poller needs the counter ............   Passed    0.01 sec
+        Start 181: Downbeat level (manual BPM, predicted beats): the same level + counter contract with no onsets -- the regime /api/set_bpm puts the tracker in
+181/596 Test #181: Downbeat level (manual BPM, predicted beats): the same level + counter contract with no onsets -- the regime /api/set_bpm puts the tracker in ........................   Passed    0.01 sec
+        Start 182: Downbeat detector starts unlocked
+182/596 Test #182: Downbeat detector starts unlocked ....................................................................................................................................   Passed    0.01 sec
+        Start 183: Downbeat locks after consistent 4/4 pattern
+183/596 Test #183: Downbeat locks after consistent 4/4 pattern ..........................................................................................................................   Passed    0.01 sec
+        Start 184: beatInBar cycles 0-3 when locked
+184/596 Test #184: beatInBar cycles 0-3 when locked .....................................................................................................................................   Passed    0.01 sec
+        Start 185: downbeatDetected fires only on beat 0
+185/596 Test #185: downbeatDetected fires only on beat 0 ................................................................................................................................   Passed    0.01 sec
+        Start 186: barPhase stays within zero to one range
+186/596 Test #186: barPhase stays within zero to one range ..............................................................................................................................   Passed    0.01 sec
+        Start 187: barPhase is 0 when no BPM locked
+187/596 Test #187: barPhase is 0 when no BPM locked .....................................................................................................................................   Passed    0.01 sec
+        Start 188: Downbeat detection with synthetic kick pattern over 32 beats
+188/596 Test #188: Downbeat detection with synthetic kick pattern over 32 beats .........................................................................................................   Passed    0.01 sec
+        Start 189: Beat-in-bar accuracy over extended sequence
+189/596 Test #189: Beat-in-bar accuracy over extended sequence ..........................................................................................................................   Passed    0.01 sec
+        Start 190: Composition default initialization
+190/596 Test #190: Composition default initialization ...................................................................................................................................   Passed    0.01 sec
+        Start 191: Composition::initDefault resets masterSignal to 1.0 (s-rta-0925 mastersignal Step 1)
+191/596 Test #191: Composition::initDefault resets masterSignal to 1.0 (s-rta-0925 mastersignal Step 1) .................................................................................   Passed    0.01 sec
+        Start 192: Deck layer management
+192/596 Test #192: Deck layer management ................................................................................................................................................   Passed    0.01 sec
+        Start 193: Clip placement and triggering
+193/596 Test #193: Clip placement and triggering ........................................................................................................................................   Passed    0.01 sec
+        Start 194: Composition JSON roundtrip
+194/596 Test #194: Composition JSON roundtrip ...........................................................................................................................................   Passed    0.01 sec
+        Start 195: Clip full field serialization roundtrip
+195/596 Test #195: Clip full field serialization roundtrip ..............................................................................................................................   Passed    0.01 sec
+        Start 196: Layer full field serialization roundtrip
+196/596 Test #196: Layer full field serialization roundtrip .............................................................................................................................   Passed    0.01 sec
+        Start 197: Composition full field serialization roundtrip
+197/596 Test #197: Composition full field serialization roundtrip .......................................................................................................................   Passed    0.01 sec
+        Start 198: Backward compatibility: old-format presets load with struct defaults
+198/596 Test #198: Backward compatibility: old-format presets load with struct defaults .................................................................................................   Passed    0.01 sec
+        Start 199: Deck::fromVar bumps the layer-id mint past every loaded id
+199/596 Test #199: Deck::fromVar bumps the layer-id mint past every loaded id ...........................................................................................................   Passed    0.01 sec
+        Start 200: Composition::fromVar bumps the deck-id mint past every loaded id
+200/596 Test #200: Composition::fromVar bumps the deck-id mint past every loaded id .....................................................................................................   Passed    0.01 sec
+        Start 201: Composition::appendDeck assigns a fresh id, keeps contents, returns the index
+201/596 Test #201: Composition::appendDeck assigns a fresh id, keeps contents, returns the index ........................................................................................   Passed    0.01 sec
+        Start 202: compload::validateComposition refuses structurally-empty files and repairs indices/columns
+202/596 Test #202: compload::validateComposition refuses structurally-empty files and repairs indices/columns ...........................................................................   Passed    0.01 sec
+        Start 203: compload::remintClipIds gives every clip a unique monotonic id and advances the mint
+203/596 Test #203: compload::remintClipIds gives every clip a unique monotonic id and advances the mint .................................................................................   Passed    0.01 sec
+        Start 204: compload::idsRetired is before minus after
+204/596 Test #204: compload::idsRetired is before minus after ...........................................................................................................................   Passed    0.01 sec
+        Start 205: Composition saveToFile/loadFromFile round-trips through a real file and sets filePath
+205/596 Test #205: Composition saveToFile/loadFromFile round-trips through a real file and sets filePath ................................................................................   Passed    0.01 sec
+        Start 206: Composition::loadFromFile fails closed on a missing or non-JSON file
+206/596 Test #206: Composition::loadFromFile fails closed on a missing or non-JSON file .................................................................................................   Passed    0.01 sec
+        Start 207: UndoManager basic operations
+207/596 Test #207: UndoManager basic operations .........................................................................................................................................   Passed    0.01 sec
+        Start 208: CompositeCommand executes in order, undoes in reverse
+208/596 Test #208: CompositeCommand executes in order, undoes in reverse ................................................................................................................   Passed    0.01 sec
+        Start 209: CompositeCommand is one undo unit through UndoManager
+209/596 Test #209: CompositeCommand is one undo unit through UndoManager ................................................................................................................   Passed    0.01 sec
+        Start 210: UndoManager merges consecutive mergeable commands
+210/596 Test #210: UndoManager merges consecutive mergeable commands ....................................................................................................................   Passed    0.01 sec
+        Start 211: UndoManager caps history at kMaxHistory (100)
+211/596 Test #211: UndoManager caps history at kMaxHistory (100) ........................................................................................................................   Passed    0.01 sec
+        Start 212: Take JSON round-trip is lane-by-lane stable, seqs unchanged
+212/596 Test #212: Take JSON round-trip is lane-by-lane stable, seqs unchanged ..........................................................................................................   Passed    0.01 sec
+        Start 213: Take meta: startBeatInBar round-trips; absent reads as unknown (-1)
+213/596 Test #213: Take meta: startBeatInBar round-trips; absent reads as unknown (-1) ..................................................................................................   Passed    0.01 sec
+        Start 214: Take::load bridges a v1 (SessionRecorder) fixture to lanes, wallOnly
+214/596 Test #214: Take::load bridges a v1 (SessionRecorder) fixture to lanes, wallOnly .................................................................................................   Passed    0.01 sec
+        Start 215: Take::load reports and byte-preserves unknown feature/section/kind
+215/596 Test #215: Take::load reports and byte-preserves unknown feature/section/kind ...................................................................................................   Passed    0.01 sec
+        Start 216: RecorderClock keeps beat monotonic across a resync and an unmetered gap
+216/596 Test #216: RecorderClock keeps beat monotonic across a resync and an unmetered gap ..............................................................................................   Passed    0.01 sec
+        Start 217: AutomationCurve::eval -- linear ramps, Hold steps
+217/596 Test #217: AutomationCurve::eval -- linear ramps, Hold steps ....................................................................................................................   Passed    0.01 sec
+        Start 218: PerformanceRecorder coalesces a burst of set() calls to a bounded gesture, begin/end exact
+218/596 Test #218: PerformanceRecorder coalesces a burst of set() calls to a bounded gesture, begin/end exact ...........................................................................   Passed    0.01 sec
+        Start 219: Program::compile resolves, rebinds-by-position, rebinds-by-name, and reports unresolved
+219/596 Test #219: Program::compile resolves, rebinds-by-position, rebinds-by-name, and reports unresolved ..............................................................................   Passed    0.01 sec
+        Start 220: Player fires discrete events in order under jittery dt with a stall
+220/596 Test #220: Player fires discrete events in order under jittery dt with a stall ..................................................................................................   Passed    0.01 sec
+        Start 221: Player TOUCH refusal displaces a lane for one gesture only
+221/596 Test #221: Player TOUCH refusal displaces a lane for one gesture only ...........................................................................................................   Passed    0.01 sec
+        Start 222: Player::swap re-seats cursors and releases orphaned gestures
+222/596 Test #222: Player::swap re-seats cursors and releases orphaned gestures .........................................................................................................   Passed    0.01 sec
+        Start 223: Player::stop releases every held gesture
+223/596 Test #223: Player::stop releases every held gesture .............................................................................................................................   Passed    0.01 sec
+        Start 224: RecorderClock stays within 0.05 beats and one block of the map over a long steady take
+224/596 Test #224: RecorderClock stays within 0.05 beats and one block of the map over a long steady take ...............................................................................   Passed    0.01 sec
+        Start 225: RecorderClock writes no periodic anchors while unmetered
+225/596 Test #225: RecorderClock writes no periodic anchors while unmetered .............................................................................................................   Passed    0.01 sec
+        Start 226: RecorderClock: beat is 0 at Record and counts from there even when Record falls mid-beat
+226/596 Test #226: RecorderClock: beat is 0 at Record and counts from there even when Record falls mid-beat .............................................................................   Passed    0.01 sec
+        Start 227: Player: a backwards advanceTo re-seats and events re-fire on re-pass
+227/596 Test #227: Player: a backwards advanceTo re-seats and events re-fire on re-pass .................................................................................................   Passed    0.01 sec
+        Start 228: Player: seeking within a gesture keeps the grip and re-evaluates
+228/596 Test #228: Player: seeking within a gesture keeps the grip and re-evaluates .....................................................................................................   Passed    0.01 sec
+        Start 229: Player: explicit forward seek skips discrete events; advanceTo alone catches up
+229/596 Test #229: Player: explicit forward seek skips discrete events; advanceTo alone catches up ......................................................................................   Passed    0.01 sec
+        Start 230: Player: a backwards seek to exactly an event's `at` re-fires it in that same advanceTo
+230/596 Test #230: Player: a backwards seek to exactly an event's `at` re-fires it in that same advanceTo ...............................................................................   Passed    0.01 sec
+        Start 231: Player: a backwards seek out of a DISPLACED gesture releases nothing and re-touches on re-entry
+231/596 Test #231: Player: a backwards seek out of a DISPLACED gesture releases nothing and re-touches on re-entry ......................................................................   Passed    0.01 sec
+        Start 232: Player::setOverride refuses Latch loudly; Touch remains the mode
+232/596 Test #232: Player::setOverride refuses Latch loudly; Touch remains the mode .....................................................................................................   Passed    0.01 sec
+        Start 233: Player::firePreamble fires discrete then continuous exactly once per call
+233/596 Test #233: Player::firePreamble fires discrete then continuous exactly once per call ............................................................................................   Passed    0.01 sec
+        Start 234: Player::firePreamble: a refused set() counts as refused and never releases that key
+234/596 Test #234: Player::firePreamble: a refused set() counts as refused and never releases that key ..................................................................................   Passed    0.01 sec
+        Start 235: AudioTap sync -- D10.3 T1 at 48 kHz / 512-sample blocks
+235/596 Test #235: AudioTap sync -- D10.3 T1 at 48 kHz / 512-sample blocks ..............................................................................................................   Passed    0.03 sec
+        Start 236: AudioTap sync -- D10.3 T1 at 44.1 kHz / 128-sample blocks (tolerance scales)
+236/596 Test #236: AudioTap sync -- D10.3 T1 at 44.1 kHz / 128-sample blocks (tolerance scales) .........................................................................................   Passed    0.01 sec
+        Start 237: AudioTap R14 -- hostTimeNs null disables gap detection, and the take says so
+237/596 Test #237: AudioTap R14 -- hostTimeNs null disables gap detection, and the take says so .........................................................................................   Passed    0.01 sec
+        Start 238: AudioTap header flush -- the WAV header is patched while recording, so a crashed show is readable up to the last flush
+238/596 Test #238: AudioTap header flush -- the WAV header is patched while recording, so a crashed show is readable up to the last flush ...............................................   Passed    0.03 sec
+        Start 239: AudioTap genuine FIFO overrun -- a stall longer than the retry buffer inserts silence, keeps the frame count honest, and is surfaced
+239/596 Test #239: AudioTap genuine FIFO overrun -- a stall longer than the retry buffer inserts silence, keeps the frame count honest, and is surfaced .................................   Passed    0.02 sec
+        Start 240: CombinedCallback: a block with no analyzable buffer (listened == nullptr) still advances AudioTap in lockstep with deliveredSamples_
+240/596 Test #240: CombinedCallback: a block with no analyzable buffer (listened == nullptr) still advances AudioTap in lockstep with deliveredSamples_ .................................   Passed    0.01 sec
+        Start 241: AudioTap::stop() waits out an in-flight push() before destroying the writer (s168 review: UAF race)
+241/596 Test #241: AudioTap::stop() waits out an in-flight push() before destroying the writer (s168 review: UAF race) ..................................................................   Passed    0.12 sec
+        Start 242: AudioTap::stop() -- a push() landing after the busy-wait, before the writer teardown, is not counted (s-rta-0924b truncation)
+242/596 Test #242: AudioTap::stop() -- a push() landing after the busy-wait, before the writer teardown, is not counted (s-rta-0924b truncation) ........................................   Passed    0.01 sec
+        Start 243: AudioTap::stop() -- a push() already in flight when stop() begins is counted and written (s-rta-0924b critic)
+243/596 Test #243: AudioTap::stop() -- a push() already in flight when stop() begins is counted and written (s-rta-0924b critic) ........................................................   Passed    0.12 sec
+        Start 244: SetClipCmd: drop onto an empty cell
+244/596 Test #244: SetClipCmd: drop onto an empty cell ..................................................................................................................................   Passed    0.01 sec
+        Start 245: SetClipCmd: replace an existing cell (deep-equal both ways)
+245/596 Test #245: SetClipCmd: replace an existing cell (deep-equal both ways) ..........................................................................................................   Passed    0.01 sec
+        Start 246: SetClipCmd: clear a cell (after = nullopt)
+246/596 Test #246: SetClipCmd: clear a cell (after = nullopt) ...........................................................................................................................   Passed    0.01 sec
+        Start 247: SetClipCmd: dispose hook fires on clear/redo, NOT on undo (trap a)
+247/596 Test #247: SetClipCmd: dispose hook fires on clear/redo, NOT on undo (trap a) ...................................................................................................   Passed    0.01 sec
+        Start 248: SetClipCmd: media hook fires for playable clips only
+248/596 Test #248: SetClipCmd: media hook fires for playable clips only .................................................................................................................   Passed    0.01 sec
+        Start 249: SetClipCmd: fence fires once per execute/undo/redo
+249/596 Test #249: SetClipCmd: fence fires once per execute/undo/redo ...................................................................................................................   Passed    0.01 sec
+        Start 250: ToggleClipLockCmd: flips contentLocked without touching other state
+250/596 Test #250: ToggleClipLockCmd: flips contentLocked without touching other state ..................................................................................................   Passed    0.01 sec
+        Start 251: CompositeCommand clears multiple cells as one undo unit
+251/596 Test #251: CompositeCommand clears multiple cells as one undo unit ..............................................................................................................   Passed    0.01 sec
+        Start 252: SwapClipsCmd: swap two occupied cells, deep-equal both directions
+252/596 Test #252: SwapClipsCmd: swap two occupied cells, deep-equal both directions ....................................................................................................   Passed    0.01 sec
+        Start 253: SwapClipsCmd: move to a far empty column grows then undo shrinks numColumns
+253/596 Test #253: SwapClipsCmd: move to a far empty column grows then undo shrinks numColumns ..........................................................................................   Passed    0.01 sec
+        Start 254: SwapClipsCmd: fence fires once per execute/undo/redo
+254/596 Test #254: SwapClipsCmd: fence fires once per execute/undo/redo .................................................................................................................   Passed    0.01 sec
+        Start 255: UndoService::resolveDeck handles valid, out-of-range, and null
+255/596 Test #255: UndoService::resolveDeck handles valid, out-of-range, and null .......................................................................................................   Passed    0.01 sec
+        Start 256: UndoService::resolveLayer returns null for stale layer coordinates
+256/596 Test #256: UndoService::resolveLayer returns null for stale layer coordinates ...................................................................................................   Passed    0.01 sec
+        Start 257: needsVideoReopen covers missing/match/mismatch/no-player
+257/596 Test #257: needsVideoReopen covers missing/match/mismatch/no-player .............................................................................................................   Passed    0.01 sec
+        Start 258: UndoService::resolveClip returns null for empty cells and stale coords
+258/596 Test #258: UndoService::resolveClip returns null for empty cells and stale coords ...............................................................................................   Passed    0.01 sec
+        Start 259: SetColumnCountCmd: add column grows count, undo/redo round-trip
+259/596 Test #259: SetColumnCountCmd: add column grows count, undo/redo round-trip ......................................................................................................   Passed    0.01 sec
+        Start 260: SetColumnCountCmd: fence fires once per execute/undo/redo
+260/596 Test #260: SetColumnCountCmd: fence fires once per execute/undo/redo ............................................................................................................   Passed    0.01 sec
+        Start 261: RemoveColumnCmd: remove-column-with-clips restores cells + count
+261/596 Test #261: RemoveColumnCmd: remove-column-with-clips restores cells + count .....................................................................................................   Passed    0.01 sec
+        Start 262: RemoveColumnCmd: fence fires once per execute/undo/redo
+262/596 Test #262: RemoveColumnCmd: fence fires once per execute/undo/redo ..............................................................................................................   Passed    0.01 sec
+        Start 263: ClearLayerClipsCmd: clear one layer, undo restores clips + runtime
+263/596 Test #263: ClearLayerClipsCmd: clear one layer, undo restores clips + runtime ...................................................................................................   Passed    0.01 sec
+        Start 264: ClearLayerClipsCmd: fence fires once per execute/undo/redo
+264/596 Test #264: ClearLayerClipsCmd: fence fires once per execute/undo/redo ...........................................................................................................   Passed    0.01 sec
+        Start 265: Deck clear-clips composite: clear all layers, one entry, undo restores all
+265/596 Test #265: Deck clear-clips composite: clear all layers, one entry, undo restores all ...........................................................................................   Passed    0.01 sec
+        Start 266: Multi-video drop composite: N cells + column growth, undo restores both
+266/596 Test #266: Multi-video drop composite: N cells + column growth, undo restores both ..............................................................................................   Passed    0.01 sec
+        Start 267: Multi-select clear composite (Clear N Clips): one entry, undo restores all
+267/596 Test #267: Multi-select clear composite (Clear N Clips): one entry, undo restores all ...........................................................................................   Passed    0.01 sec
+        Start 268: kClipClear composite: clearing the active cell empties it AND resets activeClipColumn
+268/596 Test #268: kClipClear composite: clearing the active cell empties it AND resets activeClipColumn ................................................................................   Passed    0.01 sec
+        Start 269: Empty composite is never performed (pushCommands guard contract)
+269/596 Test #269: Empty composite is never performed (pushCommands guard contract) .....................................................................................................   Passed    0.01 sec
+        Start 270: Deck commands no-op on stale coordinates (never crash)
+270/596 Test #270: Deck commands no-op on stale coordinates (never crash) ...............................................................................................................   Passed    0.01 sec
+        Start 271: AddLayerCmd: add appends, undo removes, redo restores same layer
+271/596 Test #271: AddLayerCmd: add appends, undo removes, redo restores same layer .....................................................................................................   Passed    0.01 sec
+        Start 272: RemoveLayerCmd: remove restores the full layer on undo (deep-equal)
+272/596 Test #272: RemoveLayerCmd: remove restores the full layer on undo (deep-equal) ..................................................................................................   Passed    0.01 sec
+        Start 273: RemoveLayerCmd: refuses when only 1 layer remains, does not dispose
+273/596 Test #273: RemoveLayerCmd: refuses when only 1 layer remains, does not dispose ..................................................................................................   Passed    0.01 sec
+        Start 274: MoveLayerCmd: move up then undo restores original order
+274/596 Test #274: MoveLayerCmd: move up then undo restores original order ..............................................................................................................   Passed    0.01 sec
+        Start 275: ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently
+275/596 Test #275: ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently ...................................................................................................   Passed    0.01 sec
+        Start 276: ClearActiveClipCmd: X-button clear restores layer runtime on undo
+276/596 Test #276: ClearActiveClipCmd: X-button clear restores layer runtime on undo ....................................................................................................   Passed    0.01 sec
+        Start 277: Layer index consistency: remove+undo keeps later-layer commands resolvable
+277/596 Test #277: Layer index consistency: remove+undo keeps later-layer commands resolvable ...........................................................................................   Passed    0.01 sec
+        Start 278: Layer commands no-op on stale coordinates (never crash)
+278/596 Test #278: Layer commands no-op on stale coordinates (never crash) ..............................................................................................................   Passed    0.01 sec
+        Start 279: AddDeckCmd: add appends + activates, undo removes, redo restores same deck
+279/596 Test #279: AddDeckCmd: add appends + activates, undo removes, redo restores same deck ...........................................................................................   Passed    0.01 sec
+        Start 280: RemoveDeckCmd: remove active last deck clamps active, undo restores deck + index
+280/596 Test #280: RemoveDeckCmd: remove active last deck clamps active, undo restores deck + index .....................................................................................   Passed    0.01 sec
+        Start 281: RemoveDeckCmd: remove active non-last deck keeps indices consistent
+281/596 Test #281: RemoveDeckCmd: remove active non-last deck keeps indices consistent ..................................................................................................   Passed    0.01 sec
+        Start 282: SwitchDeckCmd: switch + undo restores active index, redo re-applies
+282/596 Test #282: SwitchDeckCmd: switch + undo restores active index, redo re-applies ..................................................................................................   Passed    0.01 sec
+        Start 283: SwitchDeckCmd: double-switch redo chain restores each active index
+283/596 Test #283: SwitchDeckCmd: double-switch redo chain restores each active index ...................................................................................................   Passed    0.01 sec
+        Start 284: AddDeckCmd: fence fires once per execute/undo/redo
+284/596 Test #284: AddDeckCmd: fence fires once per execute/undo/redo ...................................................................................................................   Passed    0.01 sec
+        Start 285: RemoveDeckCmd: refuses to remove the last remaining deck
+285/596 Test #285: RemoveDeckCmd: refuses to remove the last remaining deck .............................................................................................................   Passed    0.01 sec
+        Start 286: Deck commands no-op on stale coordinates (never crash)
+286/596 Test #286: Deck commands no-op on stale coordinates (never crash) ...............................................................................................................   Passed    0.01 sec
+        Start 287: EffectStackCmd: whole-vector round-trip for all three scopes
+287/596 Test #287: EffectStackCmd: whole-vector round-trip for all three scopes .........................................................................................................   Passed    0.01 sec
+        Start 288: EffectStackCmd: add / remove / bypass shapes each round-trip
+288/596 Test #288: EffectStackCmd: add / remove / bypass shapes each round-trip .........................................................................................................   Passed    0.01 sec
+        Start 289: EffectStackCmd: stale coordinate is a safe no-op (never crash)
+289/596 Test #289: EffectStackCmd: stale coordinate is a safe no-op (never crash) .......................................................................................................   Passed    0.01 sec
+        Start 290: EffectStackCmd: two scopes in history undo to their own vectors
+290/596 Test #290: EffectStackCmd: two scopes in history undo to their own vectors ......................................................................................................   Passed    0.01 sec
+        Start 291: EffectStackCmd: refresh hook fires once per execute/undo/redo
+291/596 Test #291: EffectStackCmd: refresh hook fires once per execute/undo/redo ........................................................................................................   Passed    0.01 sec
+        Start 292: EffectStackCmd: fence fires once per execute/undo/redo
+292/596 Test #292: EffectStackCmd: fence fires once per execute/undo/redo ...............................................................................................................   Passed    0.01 sec
+        Start 293: EffectStackCmd: undo/redo preserves connections and clears grips
+293/596 Test #293: EffectStackCmd: undo/redo preserves connections and clears grips .....................................................................................................   Passed    0.01 sec
+        Start 294: TriggerClipCmd: trigger activates clip, undo restores runtime + playing, redo re-applies
+294/596 Test #294: TriggerClipCmd: trigger activates clip, undo restores runtime + playing, redo re-applies .............................................................................   Passed    0.01 sec
+        Start 295: TriggerClipCmd: empty-cell trigger clears active clip, undo restores runtime
+295/596 Test #295: TriggerClipCmd: empty-cell trigger clears active clip, undo restores runtime .........................................................................................   Passed    0.01 sec
+        Start 296: TriggerClipCmd: consecutive same-layer triggers merge (original before, latest after)
+296/596 Test #296: TriggerClipCmd: consecutive same-layer triggers merge (original before, latest after) ................................................................................   Passed    0.01 sec
+        Start 297: TriggerClipCmd: different-layer triggers do NOT merge
+297/596 Test #297: TriggerClipCmd: different-layer triggers do NOT merge ................................................................................................................   Passed    0.01 sec
+        Start 298: TriggerClipCmd: retrigger of the already-active cell pushes nothing
+298/596 Test #298: TriggerClipCmd: retrigger of the already-active cell pushes nothing ..................................................................................................   Passed    0.01 sec
+        Start 299: TriggerColumnCmd composite: triggers all non-ignoring layers, excludes ignoring, one slot
+299/596 Test #299: TriggerColumnCmd composite: triggers all non-ignoring layers, excludes ignoring, one slot ............................................................................   Passed    0.01 sec
+        Start 300: TriggerClipCmd: stale coordinate is a safe no-op (never crash)
+300/596 Test #300: TriggerClipCmd: stale coordinate is a safe no-op (never crash) .......................................................................................................   Passed    0.01 sec
+        Start 301: TriggerColumnCmd composite: stale coordinates are safe no-ops (never crash)
+301/596 Test #301: TriggerColumnCmd composite: stale coordinates are safe no-ops (never crash) ..........................................................................................   Passed    0.01 sec
+        Start 302: Property: random mixed-command sequence undoes to initial / redoes to final
+302/596 Test #302: Property: random mixed-command sequence undoes to initial / redoes to final ..........................................................................................   Passed    0.01 sec
+        Start 303: Coordinate resolution: remove MIDDLE layer + undo keeps later-layer command resolvable
+303/596 Test #303: Coordinate resolution: remove MIDDLE layer + undo keeps later-layer command resolvable ...............................................................................   Passed    0.01 sec
+        Start 304: RemoveLayerCmd: stale coordinate is a safe no-op (never crash)
+304/596 Test #304: RemoveLayerCmd: stale coordinate is a safe no-op (never crash) .......................................................................................................   Passed    0.01 sec
+        Start 305: TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, round-trips
+305/596 Test #305: TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, round-trips .........................................................................................   Passed    0.01 sec
+        Start 306: Layer::triggerClip: forced snap queues a non-active column instead of firing immediately
+306/596 Test #306: Layer::triggerClip: forced snap queues a non-active column instead of firing immediately .............................................................................   Passed    0.01 sec
+        Start 307: Layer::processPendingTrigger: forced override picks granularity independent of the clip's own beatSnapMode
+307/596 Test #307: Layer::processPendingTrigger: forced override picks granularity independent of the clip's own beatSnapMode ...........................................................   Passed    0.01 sec
+        Start 308: Deck::triggerColumn: forced snap queues on every non-ignoring layer, skips ignoring ones
+308/596 Test #308: Deck::triggerColumn: forced snap queues on every non-ignoring layer, skips ignoring ones .............................................................................   Passed    0.01 sec
+        Start 309: TriggerClipCmd: undo of a queued forced-snap trigger restores pendingTriggerSnapOverride too
+309/596 Test #309: TriggerClipCmd: undo of a queued forced-snap trigger restores pendingTriggerSnapOverride too .........................................................................   Passed    0.01 sec
+        Start 310: SwitchDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels
+310/596 Test #310: SwitchDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels ...................................................................   Passed    0.01 sec
+        Start 311: AddDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels
+311/596 Test #311: AddDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels ......................................................................   Passed    0.01 sec
+        Start 312: RemoveDeckCmd: undo cancels a pending trigger on the deck the reactivation deactivates
+312/596 Test #312: RemoveDeckCmd: undo cancels a pending trigger on the deck the reactivation deactivates ...............................................................................   Passed    0.01 sec
+        Start 313: RemoveDeckCmd: undo cancels a pending trigger even when activeDeckIndex numerically stays the same
+313/596 Test #313: RemoveDeckCmd: undo cancels a pending trigger even when activeDeckIndex numerically stays the same ...................................................................   Passed    0.01 sec
+        Start 314: Layer::clearActiveClip: cancels a pending trigger too, even one queued on an unrelated column
+314/596 Test #314: Layer::clearActiveClip: cancels a pending trigger too, even one queued on an unrelated column ........................................................................   Passed    0.01 sec
+        Start 315: ConnectionShaper::shapeValue matches v1 MappingEngine's curve pipeline bit-for-bit
+315/596 Test #315: ConnectionShaper::shapeValue matches v1 MappingEngine's curve pipeline bit-for-bit ...................................................................................   Passed    0.02 sec
+        Start 316: ConnectionShaper::shapeValue applies INVERT then the RANGE sub-range
+316/596 Test #316: ConnectionShaper::shapeValue applies INVERT then the RANGE sub-range .................................................................................................   Passed    0.01 sec
+        Start 317: ConnectionShaper::shapeValue: RANGE sweeps only the chosen sub-range
+317/596 Test #317: ConnectionShaper::shapeValue: RANGE sweeps only the chosen sub-range .................................................................................................   Passed    0.01 sec
+        Start 318: ConnectionShaper::beatsNow folds across bars (4*barCount term)
+318/596 Test #318: ConnectionShaper::beatsNow folds across bars (4*barCount term) .......................................................................................................   Passed    0.01 sec
+        Start 319: Lfo phase at bar 0/1/2 for cycle lengths 1, 4, 8, 16 beats
+319/596 Test #319: Lfo phase at bar 0/1/2 for cycle lengths 1, 4, 8, 16 beats ...........................................................................................................   Passed    0.01 sec
+        Start 320: An 8-beat LFO progresses across two full bars instead of retracing forever
+320/596 Test #320: An 8-beat LFO progresses across two full bars instead of retracing forever ...........................................................................................   Passed    0.01 sec
+        Start 321: ConnectionShaper::beatsNow diverges across a structural reset -- default (totalBarCount) keeps climbing, legacy (barCount) jumps back
+321/596 Test #321: ConnectionShaper::beatsNow diverges across a structural reset -- default (totalBarCount) keeps climbing, legacy (barCount) jumps back ................................   Passed    0.01 sec
+        Start 322: ConnectionEngine::evaluate: default Lfo phase is monotonic across a structural reset; resetPhaseOnStructural=true still jumps
+322/596 Test #322: ConnectionEngine::evaluate: default Lfo phase is monotonic across a structural reset; resetPhaseOnStructural=true still jumps ........................................   Passed    0.01 sec
+        Start 323: ConnectionEngine::evaluate: a manual Resync restarts a default Lfo at the new downbeat
+323/596 Test #323: ConnectionEngine::evaluate: a manual Resync restarts a default Lfo at the new downbeat ...............................................................................   Passed    0.01 sec
+        Start 324: loop=false: a manual Resync retriggers a held one-shot from the new downbeat
+324/596 Test #324: loop=false: a manual Resync retriggers a held one-shot from the new downbeat .........................................................................................   Passed    0.01 sec
+        Start 325: ConnectionShaper::playbackXform for each direction
+325/596 Test #325: ConnectionShaper::playbackXform for each direction ...................................................................................................................   Passed    0.01 sec
+        Start 326: loop=false holds the Lfo's end value instead of wrapping
+326/596 Test #326: loop=false holds the Lfo's end value instead of wrapping .............................................................................................................   Passed    0.01 sec
+        Start 327: Grip: held suspends publishing
+327/596 Test #327: Grip: held suspends publishing .......................................................................................................................................   Passed    0.01 sec
+        Start 328: Grip: release snaps immediately when handBackGlideMs == 0
+328/596 Test #328: Grip: release snaps immediately when handBackGlideMs == 0 ............................................................................................................   Passed    0.01 sec
+        Start 329: Grip: release glides over handBackGlideMs, starting from the gripped value
+329/596 Test #329: Grip: release glides over handBackGlideMs, starting from the gripped value ...........................................................................................   Passed    0.01 sec
+        Start 330: Grip: decaying expires after gripHoldMs; Held does not
+330/596 Test #330: Grip: decaying expires after gripHoldMs; Held does not ...............................................................................................................   Passed    0.01 sec
+        Start 331: Grip: Held displaces Decaying; Decaying does not displace Held
+331/596 Test #331: Grip: Held displaces Decaying; Decaying does not displace Held .......................................................................................................   Passed    0.01 sec
+        Start 332: ConnSerialization::fromVar: an absent/empty object loads as disconnected
+332/596 Test #332: ConnSerialization::fromVar: an absent/empty object loads as disconnected .............................................................................................   Passed    0.01 sec
+        Start 333: ConnSerialization::fromVar: an unrecognized source kind loads as None and is reported
+333/596 Test #333: ConnSerialization::fromVar: an unrecognized source kind loads as None and is reported ................................................................................   Passed    0.01 sec
+        Start 334: ConnSerialization: round-trips a real connection through toVar/fromVar
+334/596 Test #334: ConnSerialization: round-trips a real connection through toVar/fromVar ...............................................................................................   Passed    0.01 sec
+        Start 335: AutomationCurve::eval interpolates Linear/Hold/Smooth segments and clamps outside range
+335/596 Test #335: AutomationCurve::eval interpolates Linear/Hold/Smooth segments and clamps outside range ..............................................................................   Passed    0.01 sec
+        Start 336: AutomationCurve::eval Smooth eases via smoothstep, not linear
+336/596 Test #336: AutomationCurve::eval Smooth eases via smoothstep, not linear ........................................................................................................   Passed    0.01 sec
+        Start 337: ConnSerialization: Envelope round-trips AutomationCurve breakpoints with interp
+337/596 Test #337: ConnSerialization: Envelope round-trips AutomationCurve breakpoints with interp ......................................................................................   Passed    0.01 sec
+        Start 338: ConnSerialization: old flat [x,y] pair points load as Interp::Linear
+338/596 Test #338: ConnSerialization: old flat [x,y] pair points load as Interp::Linear .................................................................................................   Passed    0.01 sec
+        Start 339: ConnectionEngine::evaluate drives an Envelope connection through AutomationCurve
+339/596 Test #339: ConnectionEngine::evaluate drives an Envelope connection through AutomationCurve .....................................................................................   Passed    0.01 sec
+        Start 340: Clip::fromVar loads a clip with no connections at all (old-file shape)
+340/596 Test #340: Clip::fromVar loads a clip with no connections at all (old-file shape) ...............................................................................................   Passed    0.01 sec
+        Start 341: Clip::toVar/fromVar round-trips a scalar connection and an effect param connection
+341/596 Test #341: Clip::toVar/fromVar round-trips a scalar connection and an effect param connection ...................................................................................   Passed    0.01 sec
+        Start 342: ConnectionEngine::tick publishes into twins with macros ticked first; disconnect leaves the twin at NaN
+342/596 Test #342: ConnectionEngine::tick publishes into twins with macros ticked first; disconnect leaves the twin at NaN ..............................................................   Passed    0.01 sec
+        Start 343: ConnectionEngine::tick publishes an effect param connection into paramLive
+343/596 Test #343: ConnectionEngine::tick publishes an effect param connection into paramLive ...........................................................................................   Passed    0.01 sec
+        Start 344: ConnectionEngine::tick: a gripped source-param connection publishes NaN, never a frozen last value
+344/596 Test #344: ConnectionEngine::tick: a gripped source-param connection publishes NaN, never a frozen last value ...................................................................   Passed    0.01 sec
+        Start 345: ConnectionEngine::tick: a disabled source-param connection clears its twin to NaN
+345/596 Test #345: ConnectionEngine::tick: a disabled source-param connection clears its twin to NaN ....................................................................................   Passed    0.01 sec
+        Start 346: EffectSlot::addParam keeps paramValues/paramConns/paramLive in lock-step
+346/596 Test #346: EffectSlot::addParam keeps paramValues/paramConns/paramLive in lock-step .............................................................................................   Passed    0.01 sec
+        Start 347: EffectSlot::effParam returns the manual value when paramLive is shorter than paramValues
+347/596 Test #347: EffectSlot::effParam returns the manual value when paramLive is shorter than paramValues .............................................................................   Passed    0.01 sec
+        Start 348: evaluate: depth blends toward manualNorm after shaping, for every non-Macro kind
+348/596 Test #348: evaluate: depth blends toward manualNorm after shaping, for every non-Macro kind .....................................................................................   Passed    0.01 sec
+        Start 349: evaluate: depth is applied AFTER the hand-back glide
+349/596 Test #349: evaluate: depth is applied AFTER the hand-back glide .................................................................................................................   Passed    0.01 sec
+        Start 350: evaluate: a gripped connection returns NaN at every depth
+350/596 Test #350: evaluate: a gripped connection returns NaN at every depth ............................................................................................................   Passed    0.01 sec
+        Start 351: ConnectionEngine::tick: CompScalar::Signal's own connection ticks at full depth while other scalars scale
+351/596 Test #351: ConnectionEngine::tick: CompScalar::Signal's own connection ticks at full depth while other scalars scale ............................................................   Passed    0.01 sec
+        Start 352: ConnectionEngine::tick: a macro chain applies Master Signal depth exactly once (D3)
+352/596 Test #352: ConnectionEngine::tick: a macro chain applies Master Signal depth exactly once (D3) ..................................................................................   Passed    0.01 sec
+        Start 353: MacroBank::updateValues applies Master Signal depth to a signal-driven macro
+353/596 Test #353: MacroBank::updateValues applies Master Signal depth to a signal-driven macro .........................................................................................   Passed    0.01 sec
+        Start 354: SignalRegistry initialization
+354/596 Test #354: SignalRegistry initialization ........................................................................................................................................   Passed    0.02 sec
+        Start 355: Signal evaluation
+355/596 Test #355: Signal evaluation ....................................................................................................................................................   Passed    0.01 sec
+        Start 356: SignalRegistry cache moves only on an explicit evaluateAll tick
+356/596 Test #356: SignalRegistry cache moves only on an explicit evaluateAll tick ......................................................................................................   Passed    0.01 sec
+        Start 357: OscillatorSignal waveforms
+357/596 Test #357: OscillatorSignal waveforms ...........................................................................................................................................   Passed    0.01 sec
+        Start 358: RoutingEngine basic route
+358/596 Test #358: RoutingEngine basic route ............................................................................................................................................   Passed    0.01 sec
+        Start 359: RoutingEngine invert
+359/596 Test #359: RoutingEngine invert .................................................................................................................................................   Passed    0.01 sec
+        Start 360: RoutingEngine remove route
+360/596 Test #360: RoutingEngine remove route ...........................................................................................................................................   Passed    0.01 sec
+        Start 361: ThumbnailCache basic put/get
+361/596 Test #361: ThumbnailCache basic put/get .........................................................................................................................................   Passed    0.02 sec
+        Start 362: ThumbnailCache treats a changed mtime as a miss
+362/596 Test #362: ThumbnailCache treats a changed mtime as a miss ......................................................................................................................   Passed    0.01 sec
+        Start 363: ThumbnailCache evicts least-recently-used entries at capacity
+363/596 Test #363: ThumbnailCache evicts least-recently-used entries at capacity ........................................................................................................   Passed    0.01 sec
+        Start 364: ThumbnailCache re-put at the same mtime overwrites without growing
+364/596 Test #364: ThumbnailCache re-put at the same mtime overwrites without growing ...................................................................................................   Passed    0.01 sec
+        Start 365: ThumbnailCache put(file, explicitMtime, image) keys by the captured mtime, not the file's live mtime
+365/596 Test #365: ThumbnailCache put(file, explicitMtime, image) keys by the captured mtime, not the file's live mtime .................................................................   Passed    0.01 sec
+        Start 366: Deck layer compositing data model
+366/596 Test #366: Deck layer compositing data model ....................................................................................................................................   Passed    0.01 sec
+        Start 367: Autopilot clip advancement
+367/596 Test #367: Autopilot clip advancement ...........................................................................................................................................   Passed    0.01 sec
+        Start 368: Column management
+368/596 Test #368: Column management ....................................................................................................................................................   Passed    0.01 sec
+        Start 369: Opacity product multiplies master/layer/clip (S167-L4b)
+369/596 Test #369: Opacity product multiplies master/layer/clip (S167-L4b) ..............................................................................................................   Passed    0.01 sec
+        Start 370: Speed fold leaves BPM-synced clips tempo-locked (S167-L4b)
+370/596 Test #370: Speed fold leaves BPM-synced clips tempo-locked (S167-L4b) ...........................................................................................................   Passed    0.01 sec
+        Start 371: Transition progress step is frame-rate independent (S167-L4b)
+371/596 Test #371: Transition progress step is frame-rate independent (S167-L4b) ........................................................................................................   Passed    0.01 sec
+        Start 372: Procedural-source scaledTime_ accumulation is frame-rate independent (S167-L4b)
+372/596 Test #372: Procedural-source scaledTime_ accumulation is frame-rate independent (S167-L4b) ......................................................................................   Passed    0.01 sec
+        Start 373: Layer keying and blend properties
+373/596 Test #373: Layer keying and blend properties ....................................................................................................................................   Passed    0.01 sec
+        Start 374: Layer::canBePersistent: Opaque, Transparent and FX Only; never Mask or 3D (s-rta-0926b)
+374/596 Test #374: Layer::canBePersistent: Opaque, Transparent and FX Only; never Mask or 3D (s-rta-0926b) ..............................................................................   Passed    0.01 sec
+        Start 375: End-of-Video mode: non-playable clip falls through to beat advancement
+375/596 Test #375: End-of-Video mode: non-playable clip falls through to beat advancement ...............................................................................................   Passed    0.01 sec
+        Start 376: End-of-Video mode: playable (Video) clip threshold behavior unchanged
+376/596 Test #376: End-of-Video mode: playable (Video) clip threshold behavior unchanged ................................................................................................   Passed    0.01 sec
+        Start 377: On-Beat mode: advancement is gated on clip->playing (source parity)
+377/596 Test #377: On-Beat mode: advancement is gated on clip->playing (source parity) ..................................................................................................   Passed    0.01 sec
+        Start 378: advanceClip column selection skips empty columns
+378/596 Test #378: advanceClip column selection skips empty columns .....................................................................................................................   Passed    0.01 sec
+        Start 379: FAIL-FIRST T1: mapping retargets by key after a library re-grouping shifts indices
+379/596 Test #379: FAIL-FIRST T1: mapping retargets by key after a library re-grouping shifts indices ...................................................................................   Passed    0.02 sec
+        Start 380: FAIL-FIRST T8: effect param values restore by name after a mid-list param insertion
+380/596 Test #380: FAIL-FIRST T8: effect param values restore by name after a mid-list param insertion ..................................................................................   Passed    0.01 sec
+        Start 381: T2: mapping resolves by key when the display name changes but shaderName is kept
+381/596 Test #381: T2: mapping resolves by key when the display name changes but shaderName is kept .....................................................................................   Passed    0.01 sec
+        Start 382: T3: mapping resolves by display-name fallback when shaderName changes
+382/596 Test #382: T3: mapping resolves by display-name fallback when shaderName changes ................................................................................................   Passed    0.01 sec
+        Start 383: T4: mapping target absent from the chain is dropped, not silently mistargeted
+383/596 Test #383: T4: mapping target absent from the chain is dropped, not silently mistargeted ........................................................................................   Passed    0.01 sec
+        Start 384: T5: hand-written v1 JSON (no keys) validates the raw index against the live chain
+384/596 Test #384: T5: hand-written v1 JSON (no keys) validates the raw index against the live chain ....................................................................................   Passed    0.01 sec
+        Start 385: T6: premise gate — built-in effect defs have unique names/shaderNames/param+uniform names
+385/596 Test #385: T6: premise gate — built-in effect defs have unique names/shaderNames/param+uniform names ..........................................................................   Passed    0.01 sec
+        Start 386: T7: registerDynamic rejects duplicate name/shaderName/intra-def param collisions
+386/596 Test #386: T7: registerDynamic rejects duplicate name/shaderName/intra-def param collisions .....................................................................................   Passed    0.01 sec
+        Start 387: T9: save writes version 2 and keeps the legacy int fields equal to the live indices
+387/596 Test #387: T9: save writes version 2 and keeps the legacy int fields equal to the live indices ..................................................................................   Passed    0.01 sec
+        Start 388: Deck round-trip: mapping resolution survives the embedded-fx save/load path
+388/596 Test #388: Deck round-trip: mapping resolution survives the embedded-fx save/load path ..........................................................................................   Passed    0.01 sec
+        Start 389: S166-FAV: a favorited preset survives save + reload in a fresh manager instance
+389/596 Test #389: S166-FAV: a favorited preset survives save + reload in a fresh manager instance ......................................................................................   Passed    0.02 sec
+        Start 390: S166-FAV: loading a missing user-data file is a silent no-op (normal on first run)
+390/596 Test #390: S166-FAV: loading a missing user-data file is a silent no-op (normal on first run) ...................................................................................   Passed    0.01 sec
+        Start 391: S166-FAV: loading a malformed/truncated user-data file does not crash and sets no favorites
+391/596 Test #391: S166-FAV: loading a malformed/truncated user-data file does not crash and sets no favorites ..........................................................................   Passed    0.01 sec
+        Start 392: S166-FAV: saveUserData() writes the documented favorites/userPresets JSON schema
+392/596 Test #392: S166-FAV: saveUserData() writes the documented favorites/userPresets JSON schema .....................................................................................   Passed    0.01 sec
+        Start 393: Program::compile takes each breakpoint's x from its own stamp, not the tempo map
+393/596 Test #393: Program::compile takes each breakpoint's x from its own stamp, not the tempo map .....................................................................................   Passed    0.01 sec
+        Start 394: Program::compile falls back to the tempo map and reports it when a gesture has no parallel stamps
+394/596 Test #394: Program::compile falls back to the tempo map and reports it when a gesture has no parallel stamps ....................................................................   Passed    0.01 sec
+        Start 395: Program::compile builds the preamble from checkpoint0 in restore order
+395/596 Test #395: Program::compile builds the preamble from checkpoint0 in restore order ...............................................................................................   Passed    0.01 sec
+        Start 396: Program::compile: an active clip with no captured ClipRuntime restores paused
+396/596 Test #396: Program::compile: an active clip with no captured ClipRuntime restores paused ........................................................................................   Passed    0.01 sec
+        Start 397: Program::compile: a missing deck or layer is counted in preambleUnresolved, never silently dropped
+397/596 Test #397: Program::compile: a missing deck or layer is counted in preambleUnresolved, never silently dropped ...................................................................   Passed    0.01 sec
+        Start 398: Program::compile: a layer moved position but kept its name rebinds by name
+398/596 Test #398: Program::compile: a layer moved position but kept its name rebinds by name ...........................................................................................   Passed    0.01 sec
+        Start 399: Program::compile: the preamble never enters the discrete lane schedule
+399/596 Test #399: Program::compile: the preamble never enters the discrete lane schedule ...............................................................................................   Passed    0.01 sec
+        Start 400: Program::compile: a layer opacity captured AT the scalar default still emits a continuous restore
+400/596 Test #400: Program::compile: a layer opacity captured AT the scalar default still emits a continuous restore ....................................................................   Passed    0.01 sec
+        Start 401: Routine: composition round-trip, legacy file, unknown quantize, orphan bank entry
+401/596 Test #401: Routine: composition round-trip, legacy file, unknown quantize, orphan bank entry ....................................................................................   Passed    0.01 sec
+        Start 402: sliceRoutine: rebases to routine beats, synthesizes straddling breakpoints, restore list in order
+402/596 Test #402: sliceRoutine: rebases to routine beats, synthesizes straddling breakpoints, restore list in order ....................................................................   Passed    0.01 sec
+        Start 403: sliceRoutine: restore falls back to checkpoint 0, then defaults; comp scalars are unknown
+403/596 Test #403: sliceRoutine: restore falls back to checkpoint 0, then defaults; comp scalars are unknown ............................................................................   Passed    0.01 sec
+        Start 404: sliceRoutine: drops tempo/audio/activeDeck lanes, refuses an unmetered stretch, rounds to whole bars
+404/596 Test #404: sliceRoutine: drops tempo/audio/activeDeck lanes, refuses an unmetered stretch, rounds to whole bars .................................................................   Passed    0.01 sec
+        Start 405: takeBeatOfBar: bar 1 is the first full bar after Record; unknown grid counts from the start
+405/596 Test #405: takeBeatOfBar: bar 1 is the first full bar after Record; unknown grid counts from the start ..........................................................................   Passed    0.01 sec
+        Start 406: takeBeatOfBar refuses bar < 1: treated as bar 1, never a negative beat
+406/596 Test #406: takeBeatOfBar refuses bar < 1: treated as bar 1, never a negative beat ...............................................................................................   Passed    0.01 sec
+        Start 407: compileRoutine: Beat clock, routine length, missing targets counted, stampless gestures exact
+407/596 Test #407: compileRoutine: Beat clock, routine length, missing targets counted, stampless gestures exact ........................................................................   Passed    0.01 sec
+        Start 408: RoutineEngine: waits for the next bar, restores, then plays its lanes on its own beat grid
+408/596 Test #408: RoutineEngine: waits for the next bar, restores, then plays its lanes on its own beat grid ...........................................................................   Passed    0.01 sec
+        Start 409: RoutineEngine: loop re-fires the restore each cycle; stop and the end of a once routine release
+409/596 Test #409: RoutineEngine: loop re-fires the restore each cycle; stop and the end of a once routine release ......................................................................   Passed    0.01 sec
+        Start 410: RoutineEngine: re-fire restarts on the next bar; global Quantize overrides; no beat starts at once
+410/596 Test #410: RoutineEngine: re-fire restarts on the next bar; global Quantize overrides; no beat starts at once ...................................................................   Passed    0.01 sec
+        Start 411: RoutineEngine: two routines on one control -- the gesture that began later wins
+411/596 Test #411: RoutineEngine: two routines on one control -- the gesture that began later wins ......................................................................................   Passed    0.01 sec
+        Start 412: RoutineEngine: quantize Off and Beat; 2 Bar and 4 Bar parity comes from barCount, not totalBarCount
+412/596 Test #412: RoutineEngine: quantize Off and Beat; 2 Bar and 4 Bar parity comes from barCount, not totalBarCount ..................................................................   Passed    0.01 sec
+        Start 413: Binding: TriggerRoutine appends after MasterSignal and round-trips targetRoutineSlot
+413/596 Test #413: Binding: TriggerRoutine appends after MasterSignal and round-trips targetRoutineSlot .................................................................................   Passed    0.01 sec
+        Start 414: RoutineEngine: two routines ending in one tick are both released and removed exactly once
+414/596 Test #414: RoutineEngine: two routines ending in one tick are both released and removed exactly once ............................................................................   Passed    0.01 sec
+        Start 415: RoutineEngine::saveRefusalText: an unmetered slice is refused in whole words
+415/596 Test #415: RoutineEngine::saveRefusalText: an unmetered slice is refused in whole words .........................................................................................   Passed    0.01 sec
+        Start 416: Routine: a move keeps its place in the bar when Record fell late in a bar
+416/596 Test #416: Routine: a move keeps its place in the bar when Record fell late in a bar ............................................................................................   Passed    0.01 sec
+        Start 417: PerformanceRecorder::touch() closes an already-open gesture exactly instead of discarding it
+417/596 Test #417: PerformanceRecorder::touch() closes an already-open gesture exactly instead of discarding it .........................................................................   Passed    0.01 sec
+        Start 418: Take format version constants are 3/3
+418/596 Test #418: Take format version constants are 3/3 ................................................................................................................................   Passed    0.01 sec
+        Start 419: v1 and v2 fixtures still load under a v3 reader
+419/596 Test #419: v1 and v2 fixtures still load under a v3 reader ......................................................................................................................   Passed    0.01 sec
+        Start 420: v3 fixture loads; resolve against an empty store is Missing and names the id
+420/596 Test #420: v3 fixture loads; resolve against an empty store is Missing and names the id .........................................................................................   Passed    0.01 sec
+        Start 421: legacy v2 in-folder audio is flagged, round-trips, and resolves as Legacy
+421/596 Test #421: legacy v2 in-folder audio is flagged, round-trips, and resolves as Legacy ............................................................................................   Passed    0.01 sec
+        Start 422: beginAsset creates the folder and sets the active id; finalize writes the sidecar last
+422/596 Test #422: beginAsset creates the folder and sets the active id; finalize writes the sidecar last ...............................................................................   Passed    0.02 sec
+        Start 423: fp1 is deterministic and specified
+423/596 Test #423: fp1 is deterministic and specified ...................................................................................................................................   Passed    0.09 sec
+        Start 424: resolve verdicts
+424/596 Test #424: resolve verdicts .....................................................................................................................................................   Passed    0.06 sec
+        Start 425: finalize with an unreadable wav still yields a complete reference
+425/596 Test #425: finalize with an unreadable wav still yields a complete reference ....................................................................................................   Passed    0.01 sec
+        Start 426: truncation: header shorter than framesWritten sets unreliableFrom
+426/596 Test #426: truncation: header shorter than framesWritten sets unreliableFrom ....................................................................................................   Passed    0.01 sec
+        Start 427: repair from the take rebuilds the sidecar
+427/596 Test #427: repair from the take rebuilds the sidecar ............................................................................................................................   Passed    0.02 sec
+        Start 428: active asset is excluded from the incomplete list; abandonAsset is narrow
+428/596 Test #428: active asset is excluded from the incomplete list; abandonAsset is narrow ............................................................................................   Passed    0.01 sec
+        Start 429: fork shares one asset
+429/596 Test #429: fork shares one asset ................................................................................................................................................   Passed    0.02 sec
+        Start 430: referencing round-trips the domain
+430/596 Test #430: referencing round-trips the domain ...................................................................................................................................   Passed    0.01 sec
+        Start 431: scanTakes + unreferencedAssetIds
+431/596 Test #431: scanTakes + unreferencedAssetIds .....................................................................................................................................   Passed    0.02 sec
+        Start 432: a live recording lands in the store, not in the take folder
+432/596 Test #432: a live recording lands in the store, not in the take folder ..........................................................................................................   Passed    0.01 sec
+        Start 433: more than 63 gaps survive only when drained per tick
+433/596 Test #433: more than 63 gaps survive only when drained per tick .................................................................................................................   Passed    0.03 sec
+        Start 434: moving the asset folder makes resolve refuse
+434/596 Test #434: moving the asset folder makes resolve refuse .........................................................................................................................   Passed    0.01 sec
+        Start 435: a self-stopped tap is recorded as audio ending early
+435/596 Test #435: a self-stopped tap is recorded as audio ending early .................................................................................................................   Passed    0.01 sec
+        Start 436: v1 TransportChange bridges play/pause/stop faithfully and counts speed/reverse as dropped
+436/596 Test #436: v1 TransportChange bridges play/pause/stop faithfully and counts speed/reverse as dropped ............................................................................   Passed    0.01 sec
+        Start 437: compile of a bridged v1 take dispatches only faithful audio points
+437/596 Test #437: compile of a bridged v1 take dispatches only faithful audio points ...................................................................................................   Passed    0.01 sec
+        Start 438: BT shapes: mono (chans=1) blocks larger than the prepared maxBlock_ against a 2-channel tap
+438/596 Test #438: BT shapes: mono (chans=1) blocks larger than the prepared maxBlock_ against a 2-channel tap ..........................................................................   Passed    0.02 sec
+        Start 439: BT shapes: null-input (chans=0) blocks larger than the prepared maxBlock_
+439/596 Test #439: BT shapes: null-input (chans=0) blocks larger than the prepared maxBlock_ ............................................................................................   Passed    0.01 sec
+        Start 440: BT shapes: device restart 48000/2ch -> 16000/1ch mid-stream, then a block-size sweep while recording
+440/596 Test #440: BT shapes: device restart 48000/2ch -> 16000/1ch mid-stream, then a block-size sweep while recording .................................................................   Passed    0.01 sec
+        Start 441: BT shapes: randomized channel-count/block-size sequence against a small prepared maxBlock_
+441/596 Test #441: BT shapes: randomized channel-count/block-size sequence against a small prepared maxBlock_ ...........................................................................   Passed    0.01 sec
+        Start 442: resolveControl: every addressable control shape
+442/596 Test #442: resolveControl: every addressable control shape ......................................................................................................................   Passed    0.02 sec
+        Start 443: manualWriteCore: an unconnected scalar writes through toModel
+443/596 Test #443: manualWriteCore: an unconnected scalar writes through toModel ........................................................................................................   Passed    0.01 sec
+        Start 444: manualWriteCore: HumanHeld displaces a Lane grip
+444/596 Test #444: manualWriteCore: HumanHeld displaces a Lane grip .....................................................................................................................   Passed    0.01 sec
+        Start 445: manualWriteCore: a Lane write is refused while HumanHeld holds the grip
+445/596 Test #445: manualWriteCore: a Lane write is refused while HumanHeld holds the grip ..............................................................................................   Passed    0.01 sec
+        Start 446: manualWriteCore: a Lane write succeeds once a HumanDecaying grip has expired
+446/596 Test #446: manualWriteCore: a Lane write succeeds once a HumanDecaying grip has expired .........................................................................................   Passed    0.01 sec
+        Start 447: manualWriteCore: a HumanDecaying write is refused while HumanHeld holds the grip
+447/596 Test #447: manualWriteCore: a HumanDecaying write is refused while HumanHeld holds the grip .....................................................................................   Passed    0.01 sec
+        Start 448: manualReleaseCore: a lower hand cannot release a higher hand's grip; the human releases anything
+448/596 Test #448: manualReleaseCore: a lower hand cannot release a higher hand's grip; the human releases anything .....................................................................   Passed    0.01 sec
+        Start 449: manualWriteCore + ConnectionEngine::tick: a HumanHeld grip leaves the twin at NaN; release glides from the hand's value
+449/596 Test #449: manualWriteCore + ConnectionEngine::tick: a HumanHeld grip leaves the twin at NaN; release glides from the hand's value ..............................................   Passed    0.01 sec
+        Start 450: ConnectionEngine::tick: a Held grip clears an ALREADY-published twin to NaN (critic finding #1)
+450/596 Test #450: ConnectionEngine::tick: a Held grip clears an ALREADY-published twin to NaN (critic finding #1) ......................................................................   Passed    0.01 sec
+        Start 451: [pin] Composition scalarConns round-trip through toVar/fromVar with grip cleared
+451/596 Test #451: [pin] Composition scalarConns round-trip through toVar/fromVar with grip cleared .....................................................................................   Passed    0.01 sec
+        Start 452: manualWriteCore + resolveControl: Master Signal (CompScalar::Signal / masterSignal)
+452/596 Test #452: manualWriteCore + resolveControl: Master Signal (CompScalar::Signal / masterSignal) ..................................................................................   Passed    0.01 sec
+        Start 453: posPxToCompUniformX/Y: zero pixel offset is zero
+453/596 Test #453: posPxToCompUniformX/Y: zero pixel offset is zero .....................................................................................................................   Passed    0.01 sec
+        Start 454: posPxToCompUniformX: +1920px (half the 3840-wide reference canvas) maps to a uniform of 1.0
+454/596 Test #454: posPxToCompUniformX: +1920px (half the 3840-wide reference canvas) maps to a uniform of 1.0 ..........................................................................   Passed    0.01 sec
+        Start 455: posPxToCompUniformY: +1080px (half the 2160-tall reference canvas) maps to a uniform of 1.0
+455/596 Test #455: posPxToCompUniformY: +1080px (half the 2160-tall reference canvas) maps to a uniform of 1.0 ..........................................................................   Passed    0.01 sec
+        Start 456: posPxToCompUniformX/Y: sign is preserved (round trip through pixel space)
+456/596 Test #456: posPxToCompUniformX/Y: sign is preserved (round trip through pixel space) ............................................................................................   Passed    0.00 sec
+        Start 457: posPxToCompUniformX: demonstrates why the pre-fix identity 'conversion' was broken
+457/596 Test #457: posPxToCompUniformX: demonstrates why the pre-fix identity 'conversion' was broken ...................................................................................   Passed    0.00 sec
+        Start 458: sourceFromPicker: BpmSync maps shape + division onto an Lfo
+458/596 Test #458: sourceFromPicker: BpmSync maps shape + division onto an Lfo ..........................................................................................................   Passed    0.02 sec
+        Start 459: sourceFromPicker: Signal carries the registry name straight through
+459/596 Test #459: sourceFromPicker: Signal carries the registry name straight through ..................................................................................................   Passed    0.01 sec
+        Start 460: sourceFromPicker: Macro 7 is reachable (pins the widget's <200+kNumMacros menu-id fix)
+460/596 Test #460: sourceFromPicker: Macro 7 is reachable (pins the widget's <200+kNumMacros menu-id fix) ...............................................................................   Passed    0.01 sec
+        Start 461: sourceFromPicker: Timeline becomes a real 4-beat linear ramp Envelope
+461/596 Test #461: sourceFromPicker: Timeline becomes a real 4-beat linear ramp Envelope ................................................................................................   Passed    0.01 sec
+        Start 462: sourceFromPicker: ClipPosition
+462/596 Test #462: sourceFromPicker: ClipPosition .......................................................................................................................................   Passed    0.01 sec
+        Start 463: [pin] sourceFromPicker: Manual is Kind::None
+463/596 Test #463: [pin] sourceFromPicker: Manual is Kind::None .........................................................................................................................   Passed    0.01 sec
+        Start 464: describeSource: matches the picker menu strings
+464/596 Test #464: describeSource: matches the picker menu strings ......................................................................................................................   Passed    0.01 sec
+        Start 465: [pin] describeSource: Manual (Kind::None) describes as empty
+465/596 Test #465: [pin] describeSource: Manual (Kind::None) describes as empty .........................................................................................................   Passed    0.01 sec
+        Start 466: RecorderHost arm -- provisional take.json exists before the first tick and carries the asset id
+466/596 Test #466: RecorderHost arm -- provisional take.json exists before the first tick and carries the asset id ......................................................................   Passed    0.02 sec
+        Start 467: RecorderHost periodic -- a save lands every 60s of clock time and refreshes frames/firstSample/gaps/gapDetection
+467/596 Test #467: RecorderHost periodic -- a save lands every 60s of clock time and refreshes frames/firstSample/gaps/gapDetection .....................................................   Passed    0.01 sec
+        Start 468: RecorderHost R14 -- gapDetection false reaches the periodic and the final take
+468/596 Test #468: RecorderHost R14 -- gapDetection false reaches the periodic and the final take .......................................................................................   Passed    0.02 sec
+        Start 469: RecorderHost gaps -- 80 gaps survive the per-tick drain
+469/596 Test #469: RecorderHost gaps -- 80 gaps survive the per-tick drain ..............................................................................................................   Passed    0.02 sec
+        Start 470: RecorderHost stop -- disarm finalizes, references, saves; take folder has no audio.wav; resolve == Resolved
+470/596 Test #470: RecorderHost stop -- disarm finalizes, references, saves; take folder has no audio.wav; resolve == Resolved ..........................................................   Passed    0.01 sec
+        Start 471: RecorderHost arm -- a store failure refuses arm and leaves nothing behind (R-A1)
+471/596 Test #471: RecorderHost arm -- a store failure refuses arm and leaves nothing behind (R-A1) .....................................................................................   Passed    0.01 sec
+        Start 472: RecorderHost capture -- discrete points get clock stamps; Origin::Replay is never recorded
+472/596 Test #472: RecorderHost capture -- discrete points get clock stamps; Origin::Replay is never recorded ...........................................................................   Passed    0.01 sec
+        Start 473: RecorderHost replay -- the discrete sequence fires through Dispatch in (at,seq) order; audio is skipped in WithAudio, fired in WallClock
+473/596 Test #473: RecorderHost replay -- the discrete sequence fires through Dispatch in (at,seq) order; audio is skipped in WithAudio, fired in WallClock .............................   Passed    0.02 sec
+        Start 474: RecorderHost::play restores checkpoint 0 before the first lane point, in both modes, and refusals are counted apart from skipped
+474/596 Test #474: RecorderHost::play restores checkpoint 0 before the first lane point, in both modes, and refusals are counted apart from skipped .....................................   Passed    0.04 sec
+        Start 475: RecorderHost overdub -- arm against a stored asset uses firstSample 0 and the asset-frame clock
+475/596 Test #475: RecorderHost overdub -- arm against a stored asset uses firstSample 0 and the asset-frame clock ......................................................................   Passed    0.02 sec
+        Start 476: RecorderHost continuous -- empty Dispatch::continuous refuses loudly
+476/596 Test #476: RecorderHost continuous -- empty Dispatch::continuous refuses loudly .................................................................................................   Passed    0.01 sec
+        Start 477: RecorderHost selfstop -- a mid-take rate change ends the audio early
+477/596 Test #477: RecorderHost selfstop -- a mid-take rate change ends the audio early .................................................................................................   Passed    0.01 sec
+        Start 478: RecorderHost status -- concurrent status() reads while tick() runs
+478/596 Test #478: RecorderHost status -- concurrent status() reads while tick() runs ...................................................................................................   Passed    0.01 sec
+        Start 479: PerfStateCapture -- captures non-default state from a Composition and round-trips
+479/596 Test #479: PerfStateCapture -- captures non-default state from a Composition and round-trips ....................................................................................   Passed    0.01 sec
+        Start 480: RecorderHost decaying -- a Decaying gesture with no release gets an exact end after gripHoldMs of silence
+480/596 Test #480: RecorderHost decaying -- a Decaying gesture with no release gets an exact end after gripHoldMs of silence ............................................................   Passed    0.01 sec
+        Start 481: RecorderHost onHumanWrite -- with no prior touch opens the gesture
+481/596 Test #481: RecorderHost onHumanWrite -- with no prior touch opens the gesture ...................................................................................................   Passed    0.01 sec
+        Start 482: RecorderHost selfstop -- a tick before the first push is never misread as a self-stop
+482/596 Test #482: RecorderHost selfstop -- a tick before the first push is never misread as a self-stop ................................................................................   Passed    0.01 sec
+        Start 483: RecorderHost selfstop -- a genuine running-to-stopped transition is reported exactly once
+483/596 Test #483: RecorderHost selfstop -- a genuine running-to-stopped transition is reported exactly once ............................................................................   Passed    0.02 sec
+        Start 484: RecorderHost selfstop -- after a reported self-stop, a recovered tap reports a genuine second stop (re-armed edge)
+484/596 Test #484: RecorderHost selfstop -- after a reported self-stop, a recovered tap reports a genuine second stop (re-armed edge) ...................................................   Passed    0.02 sec
+        Start 485: RecorderHost onset marker -- two ticks reading the SAME onset snapshot produce exactly one marker
+485/596 Test #485: RecorderHost onset marker -- two ticks reading the SAME onset snapshot produce exactly one marker ....................................................................   Passed    0.01 sec
+        Start 486: RecorderHost onset marker -- a new onset snapshot (onsetCount advanced by 1) produces a second marker
+486/596 Test #486: RecorderHost onset marker -- a new onset snapshot (onsetCount advanced by 1) produces a second marker ................................................................   Passed    0.01 sec
+        Start 487: RecorderHost onset marker -- a tick seeing onsetCount jump by 2 since the last tick emits 2 markers
+487/596 Test #487: RecorderHost onset marker -- a tick seeing onsetCount jump by 2 since the last tick emits 2 markers ..................................................................   Passed    0.01 sec
+        Start 488: RecorderHost onset marker -- a new arm resets the dedupe baseline (onsets before arm never emit)
+488/596 Test #488: RecorderHost onset marker -- a new arm resets the dedupe baseline (onsets before arm never emit) .....................................................................   Passed    0.01 sec
+        Start 489: RecorderHost r13 -- a device armed at 44100 Hz that never changes rate never reports a change
+489/596 Test #489: RecorderHost r13 -- a device armed at 44100 Hz that never changes rate never reports a change ........................................................................   Passed    0.01 sec
+        Start 490: RecorderHost r13 -- a mid-take device rate change (no audio) reports rateChangedSinceArm exactly once
+490/596 Test #490: RecorderHost r13 -- a mid-take device rate change (no audio) reports rateChangedSinceArm exactly once ................................................................   Passed    0.01 sec
+        Start 491: RecorderHost onset marker -- onsetCount jump of 10 emits 8 markers this tick, 2 more next tick
+491/596 Test #491: RecorderHost onset marker -- onsetCount jump of 10 emits 8 markers this tick, 2 more next tick .......................................................................   Passed    0.01 sec
+        Start 492: RecorderHost onset marker -- onsetCount wrapping past UINT32_MAX yields the correct small delta, no flood
+492/596 Test #492: RecorderHost onset marker -- onsetCount wrapping past UINT32_MAX yields the correct small delta, no flood ............................................................   Passed    0.01 sec
+        Start 493: RecorderHost status loaded -- load() publishes the loaded take's facts without a tick
+493/596 Test #493: RecorderHost status loaded -- load() publishes the loaded take's facts without a tick ................................................................................   Passed    0.02 sec
+        Start 494: RecorderHost status seconds -- positionSeconds/lengthSeconds in both drive clocks
+494/596 Test #494: RecorderHost status seconds -- positionSeconds/lengthSeconds in both drive clocks ....................................................................................   Passed    0.03 sec
+        Start 495: RecorderHost end of replay -- a wall-clock replay finishes at the take's end and holds: finished, position pinned, one callback, nothing fires after
+495/596 Test #495: RecorderHost end of replay -- a wall-clock replay finishes at the take's end and holds: finished, position pinned, one callback, nothing fires after .................   Passed    0.01 sec
+        Start 496: RecorderHost end of replay -- the end is the take's length, not its last event
+496/596 Test #496: RecorderHost end of replay -- the end is the take's length, not its last event .......................................................................................   Passed    0.01 sec
+        Start 497: RecorderHost end of replay -- a with-audio replay finishes when the transport reaches the asset's end; a later rewind cannot re-fire it
+497/596 Test #497: RecorderHost end of replay -- a with-audio replay finishes when the transport reaches the asset's end; a later rewind cannot re-fire it ..............................   Passed    0.02 sec
+        Start 498: RecorderHost end of replay -- transport frames are device-domain: the end lands at the asset's end on a device at another rate (R13)
+498/596 Test #498: RecorderHost end of replay -- transport frames are device-domain: the end lands at the asset's end on a device at another rate (R13) .................................   Passed    0.02 sec
+        Start 499: RecorderHost end of replay -- a backwards transport position mid-take re-seats and re-fires on the re-pass (D10.2 scrub; HANDOFF s168 addendum 2 at the host seam)
+499/596 Test #499: RecorderHost end of replay -- a backwards transport position mid-take re-seats and re-fires on the re-pass (D10.2 scrub; HANDOFF s168 addendum 2 at the host seam) ...   Passed    0.02 sec
+        Start 500: RecorderHost stopPlayback -- Stop Playback during an overdub ends the overdub too (ruling 1)
+500/596 Test #500: RecorderHost stopPlayback -- Stop Playback during an overdub ends the overdub too (ruling 1) .........................................................................   Passed    0.04 sec
+        Start 501: RecorderHost clock -- t restarts at every arm; a wall-clock replay is not delayed by the app's uptime
+501/596 Test #501: RecorderHost clock -- t restarts at every arm; a wall-clock replay is not delayed by the app's uptime ................................................................   Passed    0.01 sec
+        Start 502: RecorderHost disarm -- a finalize problem (truncated asset) reaches status(): lastError, lastFinalizeError, finalizeErrors; the take still references the audio
+502/596 Test #502: RecorderHost disarm -- a finalize problem (truncated asset) reaches status(): lastError, lastFinalizeError, finalizeErrors; the take still references the audio ......   Passed    0.02 sec
+        Start 503: RecorderHost tempo map -- provisional, periodic and final take.json carry the clock's anchors
+503/596 Test #503: RecorderHost tempo map -- provisional, periodic and final take.json carry the clock's anchors ........................................................................   Passed    0.01 sec
+        Start 504: RecorderHost tempo map -- Manual BPM: an early crash (no periodic save, no disarm) still recovers a metered beat grid that agrees with the final take
+504/596 Test #504: RecorderHost tempo map -- Manual BPM: an early crash (no periodic save, no disarm) still recovers a metered beat grid that agrees with the final take ................   Passed    0.01 sec
+        Start 505: RecorderHost tempo map -- detected BPM: no beat grid while the tracker is unlocked; one appears the moment it locks, well before any periodic save
+505/596 Test #505: RecorderHost tempo map -- detected BPM: no beat grid while the tracker is unlocked; one appears the moment it locks, well before any periodic save ...................   Passed    0.01 sec
+        Start 506: T1.1: bypass is bit-exact at 48kHz
+506/596 Test #506: T1.1: bypass is bit-exact at 48kHz ...................................................................................................................................   Passed    0.02 sec
+        Start 507: T1.2: sample-count accounting / no drift
+507/596 Test #507: T1.2: sample-count accounting / no drift .............................................................................................................................   Passed    0.15 sec
+        Start 508: T1.3: spectral fidelity after resampling
+508/596 Test #508: T1.3: spectral fidelity after resampling .............................................................................................................................   Passed    0.02 sec
+        Start 509: T1.4: anti-alias prefilter attenuates above-Nyquist content
+509/596 Test #509: T1.4: anti-alias prefilter attenuates above-Nyquist content ..........................................................................................................   Passed    0.01 sec
+        Start 510: T1.5: rate switch mid-stream produces no assertion failures
+510/596 Test #510: T1.5: rate switch mid-stream produces no assertion failures ..........................................................................................................   Passed    0.01 sec
+        Start 511: T1.6: AudioCallback rate cell reflects audioDeviceAboutToStart
+511/596 Test #511: T1.6: AudioCallback rate cell reflects audioDeviceAboutToStart .......................................................................................................   Passed    0.01 sec
+        Start 512: RecordPanelModel row 1 -- idle, nothing loaded, nothing recorded
+512/596 Test #512: RecordPanelModel row 1 -- idle, nothing loaded, nothing recorded .....................................................................................................   Passed    0.01 sec
+        Start 513: RecordPanelModel row 2 -- idle, last take recorded, nothing loaded
+513/596 Test #513: RecordPanelModel row 2 -- idle, last take recorded, nothing loaded ...................................................................................................   Passed    0.00 sec
+        Start 514: RecordPanelModel row 3 -- idle, loaded, audio ready
+514/596 Test #514: RecordPanelModel row 3 -- idle, loaded, audio ready ..................................................................................................................   Passed    0.00 sec
+        Start 515: RecordPanelModel row 4 -- idle, loaded, audio incomplete
+515/596 Test #515: RecordPanelModel row 4 -- idle, loaded, audio incomplete .............................................................................................................   Passed    0.00 sec
+        Start 516: RecordPanelModel row 5 -- idle, loaded, audio not usable
+516/596 Test #516: RecordPanelModel row 5 -- idle, loaded, audio not usable .............................................................................................................   Passed    0.00 sec
+        Start 517: RecordPanelModel row 6 -- armed (audio requested, no frames yet)
+517/596 Test #517: RecordPanelModel row 6 -- armed (audio requested, no frames yet) .....................................................................................................   Passed    0.00 sec
+        Start 518: RecordPanelModel row 7 -- recording (plain)
+518/596 Test #518: RecordPanelModel row 7 -- recording (plain) ..........................................................................................................................   Passed    0.00 sec
+        Start 519: RecordPanelModel row 8 -- playing, wall clock
+519/596 Test #519: RecordPanelModel row 8 -- playing, wall clock ........................................................................................................................   Passed    0.00 sec
+        Start 520: RecordPanelModel row 9 -- playing with audio
+520/596 Test #520: RecordPanelModel row 9 -- playing with audio .........................................................................................................................   Passed    0.00 sec
+        Start 521: RecordPanelModel row 10 -- overdub recording while playing
+521/596 Test #521: RecordPanelModel row 10 -- overdub recording while playing ...........................................................................................................   Passed    0.00 sec
+        Start 522: RecordPanelModel row 11 -- overdub recording, no playback (REST-only)
+522/596 Test #522: RecordPanelModel row 11 -- overdub recording, no playback (REST-only) ................................................................................................   Passed    0.00 sec
+        Start 523: RecordPanelModel row 12 -- plain recording while playing (REST-only)
+523/596 Test #523: RecordPanelModel row 12 -- plain recording while playing (REST-only) .................................................................................................   Passed    0.00 sec
+        Start 524: RecordPanelModel row 13 -- finished, wall clock
+524/596 Test #524: RecordPanelModel row 13 -- finished, wall clock ......................................................................................................................   Passed    0.00 sec
+        Start 525: RecordPanelModel row 14 -- finished, with audio
+525/596 Test #525: RecordPanelModel row 14 -- finished, with audio ......................................................................................................................   Passed    0.00 sec
+        Start 526: RecordPanelModel notice -- a notice raised while playing is dropped at the finish; one raised at the finish survives it, gone after Stop Playback
+526/596 Test #526: RecordPanelModel notice -- a notice raised while playing is dropped at the finish; one raised at the finish survives it, gone after Stop Playback ....................   Passed    0.00 sec
+        Start 527: RecordPanelModel formatClock
+527/596 Test #527: RecordPanelModel formatClock .........................................................................................................................................   Passed    0.00 sec
+        Start 528: RecordPanelModel notice -- shown for kNoticeSeconds, then expires
+528/596 Test #528: RecordPanelModel notice -- shown for kNoticeSeconds, then expires ....................................................................................................   Passed    0.00 sec
+        Start 529: RecordPanelModel notice -- shown only while the recorder is still in the situation it was raised in
+529/596 Test #529: RecordPanelModel notice -- shown only while the recorder is still in the situation it was raised in ..................................................................   Passed    0.00 sec
+        Start 530: RecordPanelModel play with audio is forced off whenever the audio is not ready
+530/596 Test #530: RecordPanelModel play with audio is forced off whenever the audio is not ready .......................................................................................   Passed    0.01 sec
+        Start 531: RecordPanelModel recordSendsOverdub only while playing with audio and not recording
+531/596 Test #531: RecordPanelModel recordSendsOverdub only while playing with audio and not recording ..................................................................................   Passed    0.00 sec
+        Start 532: RecordPanelModel warning precedence -- lastError beats every other warning
+532/596 Test #532: RecordPanelModel warning precedence -- lastError beats every other warning ...........................................................................................   Passed    0.00 sec
+        Start 533: RecordPanelModel disabled reasons -- a locked switch or name field says why (D1, tooltip version)
+533/596 Test #533: RecordPanelModel disabled reasons -- a locked switch or name field says why (D1, tooltip version) ....................................................................   Passed    0.00 sec
+        Start 534: RoutineBankModel pad 0 empty -- disabled, numbered
+534/596 Test #534: RoutineBankModel pad 0 empty -- disabled, numbered ...................................................................................................................   Passed    0.01 sec
+        Start 535: RoutineBankModel pad idle -- named, enabled, fires
+535/596 Test #535: RoutineBankModel pad idle -- named, enabled, fires ...................................................................................................................   Passed    0.00 sec
+        Start 536: RoutineBankModel pad pending -- Warning tone, next-bar text, stops on press
+536/596 Test #536: RoutineBankModel pad pending -- Warning tone, next-bar text, stops on press ..........................................................................................   Passed    0.00 sec
+        Start 537: RoutineBankModel pad running -- Playing tone, current bar text, stops on press
+537/596 Test #537: RoutineBankModel pad running -- Playing tone, current bar text, stops on press .......................................................................................   Passed    0.00 sec
+        Start 538: RoutineBankModel running bar 1 at the very start of the cycle
+538/596 Test #538: RoutineBankModel running bar 1 at the very start of the cycle ........................................................................................................   Passed    0.00 sec
+        Start 539: RoutineBankModel pads are independent -- one running does not affect the rest
+539/596 Test #539: RoutineBankModel pads are independent -- one running does not affect the rest ........................................................................................   Passed    0.00 sec
+        Start 540: clampRoutineBarRange leaves an already-valid range untouched
+540/596 Test #540: clampRoutineBarRange leaves an already-valid range untouched .........................................................................................................   Passed    0.00 sec
+        Start 541: clampRoutineBarRange raises a blank/zero fromBar to 1
+541/596 Test #541: clampRoutineBarRange raises a blank/zero fromBar to 1 ................................................................................................................   Passed    0.00 sec
+        Start 542: clampRoutineBarRange raises a blank/zero toBar to at least fromBar
+542/596 Test #542: clampRoutineBarRange raises a blank/zero toBar to at least fromBar ...................................................................................................   Passed    0.00 sec
+        Start 543: clampRoutineBarRange raises a negative bar to 1
+543/596 Test #543: clampRoutineBarRange raises a negative bar to 1 ......................................................................................................................   Passed    0.00 sec
+        Start 544: clampRoutineBarRange raises an inverted range so toBar >= fromBar
+544/596 Test #544: clampRoutineBarRange raises an inverted range so toBar >= fromBar ....................................................................................................   Passed    0.00 sec
+        Start 545: bodyless POST (HTTP/1.1 keep-alive) is answered immediately
+545/596 Test #545: bodyless POST (HTTP/1.1 keep-alive) is answered immediately ..........................................................................................................   Passed    0.01 sec
+        Start 546: control: POST with Content-Length: 0 is answered immediately
+546/596 Test #546: control: POST with Content-Length: 0 is answered immediately .........................................................................................................   Passed    0.01 sec
+        Start 547: bodyless POST with Connection: close is answered immediately
+547/596 Test #547: bodyless POST with Connection: close is answered immediately .........................................................................................................   Passed    0.01 sec
+        Start 548: bodyless POST over HTTP/1.0 is answered immediately
+548/596 Test #548: bodyless POST over HTTP/1.0 is answered immediately ..................................................................................................................   Passed    0.01 sec
+        Start 549: TabBarLayout -- the Browser's six tabs at the crop width: Compositions gets its whole label
+549/596 Test #549: TabBarLayout -- the Browser's six tabs at the crop width: Compositions gets its whole label ..........................................................................   Passed    0.01 sec
+        Start 550: TabBarLayout -- exact sum and every minimum whenever the minimums fit
+550/596 Test #550: TabBarLayout -- exact sum and every minimum whenever the minimums fit ................................................................................................   Passed    0.00 sec
+        Start 551: TabBarLayout -- the leftover pixels go to the leftmost tabs, one each
+551/596 Test #551: TabBarLayout -- the leftover pixels go to the leftmost tabs, one each ................................................................................................   Passed    0.00 sec
+        Start 552: TabBarLayout -- equal labels give equal widths
+552/596 Test #552: TabBarLayout -- equal labels give equal widths .......................................................................................................................   Passed    0.00 sec
+        Start 553: TabBarLayout -- too narrow: proportional, exact sum, the longest label keeps the largest share
+553/596 Test #553: TabBarLayout -- too narrow: proportional, exact sum, the longest label keeps the largest share .......................................................................   Passed    0.00 sec
+        Start 554: TabBarLayout -- edges
+554/596 Test #554: TabBarLayout -- edges ................................................................................................................................................   Passed    0.00 sec
+        Start 555: PerTypeAutopilotLayout -- the four rows never overlap
+555/596 Test #555: PerTypeAutopilotLayout -- the four rows never overlap ................................................................................................................   Passed    0.00 sec
+        Start 556: PerTypeAutopilotLayout -- no overlap holds for any row height/gap
+556/596 Test #556: PerTypeAutopilotLayout -- no overlap holds for any row height/gap ....................................................................................................   Passed    0.00 sec
+        Start 557: applyDepth: depth 1.0 returns driven, bit-for-bit
+557/596 Test #557: applyDepth: depth 1.0 returns driven, bit-for-bit ....................................................................................................................   Passed    0.00 sec
+        Start 558: applyDepth: depth 0.0 returns manual, bit-for-bit
+558/596 Test #558: applyDepth: depth 0.0 returns manual, bit-for-bit ....................................................................................................................   Passed    0.00 sec
+        Start 559: applyDepth: depth 0.5 is the midpoint
+559/596 Test #559: applyDepth: depth 0.5 is the midpoint ................................................................................................................................   Passed    0.00 sec
+        Start 560: applyDepth: out-of-range depth degrades to the nearest guard
+560/596 Test #560: applyDepth: out-of-range depth degrades to the nearest guard .........................................................................................................   Passed    0.00 sec
+        Start 561: ResettableSlider: right-click on its own area resets to the armed default
+561/596 Test #561: ResettableSlider: right-click on its own area resets to the armed default ............................................................................................   Passed    0.05 sec
+        Start 562: ResettableSlider: onResetToDefault fires once, after onValueChange
+562/596 Test #562: ResettableSlider: onResetToDefault fires once, after onValueChange ...................................................................................................   Passed    0.04 sec
+        Start 563: ResettableSlider: a right-click relayed from the IncDec text box resets; from a +/- button or the slider itself it does not
+563/596 Test #563: ResettableSlider: a right-click relayed from the IncDec text box resets; from a +/- button or the slider itself it does not ..........................................   Passed    0.04 sec
+        Start 564: UniversalParamControl: the inner slider is armed without any setDefaultValue call
+564/596 Test #564: UniversalParamControl: the inner slider is armed without any setDefaultValue call ....................................................................................   Passed    0.04 sec
+        Start 565: UniversalParamControl: a right-click reset touches a bound connection (Decaying grip)
+565/596 Test #565: UniversalParamControl: a right-click reset touches a bound connection (Decaying grip) ................................................................................   Passed    0.04 sec
+        Start 566: fader write lands on Composition::masterOpacity
+566/596 Test #566: fader write lands on Composition::masterOpacity ......................................................................................................................   Passed    0.05 sec
+        Start 567: fader drag grips Held on CompScalar::Opacity and releases on drag end
+567/596 Test #567: fader drag grips Held on CompScalar::Opacity and releases on drag end ................................................................................................   Passed    0.04 sec
+        Start 568: sync: not connected -> fader shows the manual field
+568/596 Test #568: sync: not connected -> fader shows the manual field ..................................................................................................................   Passed    0.04 sec
+        Start 569: sync: connected -> fader shows toNorm(eff()), not the manual field
+569/596 Test #569: sync: connected -> fader shows toNorm(eff()), not the manual field ...................................................................................................   Passed    0.04 sec
+        Start 570: sync: the thumb never moves while the fader is being dragged
+570/596 Test #570: sync: the thumb never moves while the fader is being dragged .........................................................................................................   Passed    0.04 sec
+        Start 571: right-click on the fader resets to 1.0 on the model and touches the grip
+571/596 Test #571: right-click on the fader resets to 1.0 on the model and touches the grip .............................................................................................   Passed    0.04 sec
+        Start 572: Signal fader write lands on Composition::masterSignal
+572/596 Test #572: Signal fader write lands on Composition::masterSignal ................................................................................................................   Passed    0.05 sec
+        Start 573: Signal fader drag grips Held on CompScalar::Signal and releases on drag end
+573/596 Test #573: Signal fader drag grips Held on CompScalar::Signal and releases on drag end ..........................................................................................   Passed    0.06 sec
+        Start 574: Signal sync: not connected -> fader shows the manual field
+574/596 Test #574: Signal sync: not connected -> fader shows the manual field ...........................................................................................................   Passed    0.04 sec
+        Start 575: Signal sync: connected -> fader shows toNorm(eff()), not the manual field
+575/596 Test #575: Signal sync: connected -> fader shows toNorm(eff()), not the manual field ............................................................................................   Passed    0.04 sec
+        Start 576: Signal sync: the thumb never moves while the fader is being dragged
+576/596 Test #576: Signal sync: the thumb never moves while the fader is being dragged ..................................................................................................   Passed    0.04 sec
+        Start 577: right-click on the Signal fader resets to 1.0 on the model and touches the grip
+577/596 Test #577: right-click on the Signal fader resets to 1.0 on the model and touches the grip ......................................................................................   Passed    0.04 sec
+        Start 578: the Signal and Master faders are independent
+578/596 Test #578: the Signal and Master faders are independent .........................................................................................................................   Passed    0.04 sec
+        Start 579: layout: the Signal fader sits to the right of Fade with no overlap on Master
+579/596 Test #579: layout: the Signal fader sits to the right of Fade with no overlap on Master .........................................................................................   Passed    0.06 sec
+        Start 580: the Signal fader's label reads the full "Master Signal" name, not the bare word
+580/596 Test #580: the Signal fader's label reads the full "Master Signal" name, not the bare word ......................................................................................   Passed    0.04 sec
+        Start 581: Signal and Master both expose a numeric readout, not just thumb position
+581/596 Test #581: Signal and Master both expose a numeric readout, not just thumb position .............................................................................................   Passed    0.04 sec
+        Start 582: Signal carries a distinct thumb/track accent from Master, using an existing theme colour
+582/596 Test #582: Signal carries a distinct thumb/track accent from Master, using an existing theme colour .............................................................................   Passed    0.04 sec
+        Start 583: Signal and Master each carry a plain-words tooltip explaining what they do
+583/596 Test #583: Signal and Master each carry a plain-words tooltip explaining what they do ...........................................................................................   Passed    0.04 sec
+        Start 584: layout at 1728: the Master Signal label is not truncated and both readouts are visible
+584/596 Test #584: layout at 1728: the Master Signal label is not truncated and both readouts are visible ...............................................................................   Passed    0.05 sec
+        Start 585: layout at the minimum window width (1280): Signal/Master group never overlaps itself
+585/596 Test #585: layout at the minimum window width (1280): Signal/Master group never overlaps itself .................................................................................   Passed    0.05 sec
+        Start 586: ResettableSlider rclick2-1: direct right-click resets an armed slider and notifies once
+586/596 Test #586: ResettableSlider rclick2-1: direct right-click resets an armed slider and notifies once ..............................................................................   Passed    0.05 sec
+        Start 587: ResettableSlider rclick2-2: un-armed right-click is swallowed (no jump, no drag)
+587/596 Test #587: ResettableSlider rclick2-2: un-armed right-click is swallowed (no jump, no drag) .....................................................................................   Passed    0.04 sec
+        Start 588: ResettableSlider rclick2-3: right-click relayed from the IncDec text box resets
+588/596 Test #588: ResettableSlider rclick2-3: right-click relayed from the IncDec text box resets ......................................................................................   Passed    0.04 sec
+        Start 589: ResettableSlider rclick2-4: right-click relayed from a +/- Button does not reset
+589/596 Test #589: ResettableSlider rclick2-4: right-click relayed from a +/- Button does not reset .....................................................................................   Passed    0.04 sec
+        Start 590: ResettableSlider rclick2-5: a left-click relayed from any child never starts a drag
+590/596 Test #590: ResettableSlider rclick2-5: a left-click relayed from any child never starts a drag ..................................................................................   Passed    0.04 sec
+        Start 591: ResettableSlider rclick2-7: resetToDefault() on an un-armed slider is a no-op
+591/596 Test #591: ResettableSlider rclick2-7: resetToDefault() on an un-armed slider is a no-op ........................................................................................   Passed    0.04 sec
+        Start 592: ResettableSlider rclick2-8: hook-less reset notifies once, and not when already at default
+592/596 Test #592: ResettableSlider rclick2-8: hook-less reset notifies once, and not when already at default ...........................................................................   Passed    0.05 sec
+        Start 593: EffectStackView::setEffects binds every param row and the dry/wet row to the slot's connection
+593/596 Test #593: EffectStackView::setEffects binds every param row and the dry/wet row to the slot's connection .......................................................................   Passed    0.05 sec
+        Start 594: EffectStackView::tickModulation never writes the manual field and the thumb shows fx.effParam
+594/596 Test #594: EffectStackView::tickModulation never writes the manual field and the thumb shows fx.effParam ........................................................................   Passed    0.04 sec
+        Start 595: EffectStackView: rebuilding rows after the effects vector is cleared/reallocated touches no freed memory
+595/596 Test #595: EffectStackView: rebuilding rows after the effects vector is cleared/reallocated touches no freed memory .............................................................   Passed    0.04 sec
+        Start 596: syphon_check_negative
+596/596 Test #596: syphon_check_negative ................................................................................................................................................   Passed    0.52 sec
+
+100% tests passed, 0 tests failed out of 596
+
+Total Test time (real) =  10.45 sec

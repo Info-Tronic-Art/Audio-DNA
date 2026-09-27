@@ -509,6 +509,24 @@ void Renderer::renderOpenGL()
         // P21: Composite persistent layers from non-active decks
         if (composition_)
         {
+            // s-rta-0926b: an EMPTY active deck (compositeDeck returned 0) used
+            // to drop every persistent layer as well -- the fallback below was
+            // presented and the accumulator they had drawn into was discarded.
+            // When another deck has persistent content, the frame starts as over
+            // a black active deck instead.
+            if (sourceTexture == 0)
+            {
+                for (const auto& otherDeck : composition_->decks)
+                {
+                    if (&otherDeck != deck && CompositorEngine::hasPersistentContent(otherDeck))
+                    {
+                        sourceTexture = compositor_.beginEmptyActiveDeck(static_cast<int>(renderW),
+                                                                         static_cast<int>(renderH));
+                        break;
+                    }
+                }
+            }
+
             for (auto& otherDeck : composition_->decks)
             {
                 if (&otherDeck == deck) continue; // Skip active deck
@@ -733,6 +751,9 @@ void Renderer::renderOpenGL()
     // EMA smoothing for UI display
     float prevMs = frameTimeMs_.load(std::memory_order_relaxed);
     frameTimeMs_.store(prevMs + 0.1f * (static_cast<float>(frameMs) - prevMs), std::memory_order_relaxed);
+    // s-rta-0926b R1: un-smoothed peak (a one-frame hitch is invisible in the EMA)
+    if (static_cast<float>(frameMs) > peakFrameTimeMs_.load(std::memory_order_relaxed))
+        peakFrameTimeMs_.store(static_cast<float>(frameMs), std::memory_order_relaxed);
 
     // Adaptive quality: if sustained high frame times, disable heaviest effect
     if (frameMs > static_cast<double>(kFrameTimeBudgetMs))

@@ -1,0 +1,24 @@
+=== GREEN-step3 app=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step3/Audio-DNA.app kind=rstate rows=r4_opaque_opacity,r4_opaque_overlay,r2_temporal,r2_ring start Sat Sep 26 21:34:38 EDT 2026
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step3/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/runs/rstate.laXP36
+--- r2_temporal
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r2_ring
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r4_opaque_opacity
+      r4_opaque_opacity: d(reference, full)=14.57 d(subject, reference)=0.00 d(subject, full)=14.57
+PASS  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=0.00, tol 1.5)
+--- r4_opaque_overlay
+      r4_opaque_overlay: outside centre d(f, A)=0.00; centre d(f, A)=35.74
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.74 >= 5)
+
+PY 8 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN
+=== end Sat Sep 26 21:35:25 EDT 2026

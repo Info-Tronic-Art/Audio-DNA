@@ -1,0 +1,18 @@
+=== GREEN-step4 app=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step4/Audio-DNA.app kind=rstate rows=r4_fxonly_persistent,r4_fxonly_medialess,r4_mask_skipped start Sat Sep 26 21:36:21 EDT 2026
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step4/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/runs/rstate.LPqS9s
+--- r4_fxonly_persistent
+      r4_fxonly_persistent: d(reference, A-only)=228.68 d(subject, reference)=0.00 d(subject, A-only)=228.68
+PASS  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_fxonly_medialess
+      r4_fxonly_medialess: d(reference, A-only)=228.68 d(subject, reference)=0.00 d(subject, A-only)=228.68
+PASS  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_mask_skipped
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+
+PY 3 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN
+=== end Sat Sep 26 21:36:59 EDT 2026

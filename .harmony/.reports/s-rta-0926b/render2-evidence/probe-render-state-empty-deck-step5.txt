@@ -1,0 +1,21 @@
+=== GREEN-step5 app=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step5/Audio-DNA.app kind=rstate rows=r4_empty_active_deck,r4_transition start Sat Sep 26 21:38:14 EDT 2026
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/apps/step5/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/runs/rstate.U9mYY5
+--- r4_transition
+      r4_transition: t=0.80s p=0.09 residual=0.11 d(f,IN)=26.97
+      r4_transition: t=1.72s p=0.20 residual=0.08 d(f,IN)=23.48
+      r4_transition: t=2.65s p=0.32 residual=0.11 d(f,IN)=20.04
+      r4_transition: t=3.58s p=0.43 residual=0.14 d(f,IN)=16.62
+PASS  r4_transition: persistent layer mid-crossfade frames lie between OUT and IN (4/4): []
+PASS  r4_transition: crossfade keeps advancing while the deck is inactive (p [0.09, 0.2, 0.32, 0.43])
+PASS  r4_transition: back on its deck after T + 2 s the crossfade is complete (d(f, IN)=0.00, tol 1.5)
+--- r4_empty_active_deck
+      r4_empty_active_deck: reference rgb 19.46, subject rgb 19.46, d(subject, reference)=0.00
+PASS  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=0.00, tol 1.5)
+
+PY 4 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN
+=== end Sat Sep 26 21:39:02 EDT 2026
