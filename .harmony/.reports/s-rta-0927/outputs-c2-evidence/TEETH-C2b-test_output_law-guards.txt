@@ -1,0 +1,29 @@
+8747dd84e5a35fd94f18e779988b41a1e8cc1211ad7f8ecee9dee0fd6afa547f  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/src/output/OutputManager.cpp
+25e6136281f12d1eaa353bc6ac3a32571f8aa79381239fce23869f103bee5e19  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/src/MainComponent.cpp
+== mutant: unchanged copy (control)
+All tests passed (68 assertions in 13 test cases)
+== mutant: OutputManager raises its window (toFront (true) after openOnDisplay)
+84:    window->toFront (true);
+output law: OutputManager never raises, focuses, floats or shows a window
+test cases: 13 | 12 passed | 1 failed
+== mutant: OutputManager shows the window itself (setVisible (true) instead of openOnDisplay)
+83:    window->setBounds (display.totalArea); window->setVisible (true);   // bounds, then visible; ordered front, never made key
+output law: OutputManager never raises, focuses, floats or shows a window
+test cases: 13 | 12 passed | 1 failed
+== mutant: OutputManager floats its window (setAlwaysOnTop(true))
+84:    window->setAlwaysOnTop(true);
+output law: OutputManager never raises, focuses, floats or shows a window
+test cases: 13 | 12 passed | 1 failed
+== mutant: MainComponent reads a deck's output display (struct field)
+3149:    if (composition_.outputDisplay >= 0) outputs_.openDisplay(composition_.outputDisplay);
+output law: no deck or composition file reaches the output code (outputDisplay,
+test cases: 13 | 12 passed | 1 failed
+== mutant: MainComponent reads the JSON key by name (string literal)
+3149:    auto od = juce::var().getProperty("outputDisplay", 1);
+output law: no deck or composition file reaches the output code (outputDisplay,
+test cases: 13 | 12 passed | 1 failed
+== mutant: the key named only in a comment (must stay green)
+3149:    // outputDisplay is never read here (plan5 R7)
+All tests passed (68 assertions in 13 test cases)
+8747dd84e5a35fd94f18e779988b41a1e8cc1211ad7f8ecee9dee0fd6afa547f  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/src/output/OutputManager.cpp
+25e6136281f12d1eaa353bc6ac3a32571f8aa79381239fce23869f103bee5e19  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/src/MainComponent.cpp

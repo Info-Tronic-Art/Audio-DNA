@@ -446,3 +446,45 @@ TEST_CASE("Deck round-trip: mapping resolution survives the embedded-fx save/loa
 
     tempFile.deleteFile();
 }
+
+// s-rta-0927 outputs-c2 (plan5 section 9, R7): a deck file never carries an output display. Outputs are machine
+// state, not deck state: saveDeck writes "outputDisplay": 1 (Off) whatever the DeckState holds (the key stays for
+// old readers), and loadDeck ignores the key -- an old deck saved with an output open (2+) loads as 1 and opens
+// nothing.
+TEST_CASE("Deck files never carry an output display (plan5 R7)", "[preset][deck][outputs]")
+{
+    EffectChain chain;
+    MappingEngine engine;
+    auto tempFile = tempPresetFile("deck_output_display");
+    tempFile.deleteFile();
+
+    SECTION("saveDeck writes outputDisplay = 1 (Off), the key kept")
+    {
+        PresetManager::DeckState deck;
+        deck.outputDisplay = 3;   // what the old hidden combo held with display 2 open
+        REQUIRE(PresetManager::saveDeck(tempFile, deck, chain, engine));
+        const auto parsed = juce::JSON::parse(tempFile.loadFileAsString());
+        auto* obj = parsed.getDynamicObject();
+        REQUIRE(obj != nullptr);
+        REQUIRE(obj->hasProperty("outputDisplay"));
+        CHECK(static_cast<int>(obj->getProperty("outputDisplay")) == 1);
+    }
+
+    SECTION("loadDeck ignores an old file's outputDisplay >= 2")
+    {
+        PresetManager::DeckState deck;
+        REQUIRE(PresetManager::saveDeck(tempFile, deck, chain, engine));
+        auto parsed = juce::JSON::parse(tempFile.loadFileAsString());
+        auto* obj = parsed.getDynamicObject();
+        REQUIRE(obj != nullptr);
+        obj->setProperty("outputDisplay", 2);   // an old deck saved with the output on display 1
+        REQUIRE(tempFile.replaceWithText(juce::JSON::toString(parsed)));
+
+        PresetManager::DeckState loaded;
+        loaded.outputDisplay = 1;
+        REQUIRE(PresetManager::loadDeck(tempFile, loaded, chain, engine));
+        CHECK(loaded.outputDisplay == 1);
+    }
+
+    tempFile.deleteFile();
+}

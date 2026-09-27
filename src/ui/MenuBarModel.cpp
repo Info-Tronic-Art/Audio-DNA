@@ -133,23 +133,10 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
 
         case 6: // Output
         {
-            menu.addItem(kOutputDisabled, "Disabled", true, false);
-            menu.addSeparator();
-
-            // Add available displays
-            const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
-            for (int i = 0; i < static_cast<int>(displays.size()); ++i)
-            {
-                const auto& d = displays[static_cast<size_t>(i)];
-                juce::String label = "Fullscreen: "
-                    + juce::String(d.totalArea.getWidth()) + "x"
-                    + juce::String(d.totalArea.getHeight());
-                if (d.isMain)
-                    label += " (main)";
-                else
-                    label += " (display " + juce::String(i + 1) + ")";
-                menu.addItem(kOutputFullscreenBase + i, label, true, false);
-            }
+            // plan5 C2: one tickable item per connected display (kOutputFullscreenBase + i), then "All Outputs Off"
+            // (kOutputDisabled) -- from OutputManager, the same list as the TopBar "Outputs" button.
+            if (populateOutputItems)
+                populateOutputItems(menu);
 
             menu.addSeparator();
             menu.addItem(kOutputSnapshot,         "Snapshot",            true, false);

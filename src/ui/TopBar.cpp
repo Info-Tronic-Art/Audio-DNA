@@ -1,5 +1,6 @@
 #include "TopBar.h"
 #include "TopBarModel.h"
+#include "output/OutputMenuModel.h"
 #include "connect/ConnClock.h"
 #include "sync/LinkSync.h"
 #include <cmath>
@@ -286,12 +287,10 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
         composition_.scalarConns[static_cast<size_t>(CompScalar::Opacity)].gripTouch(connNow());
     };
 
-    // Output
-    addAndMakeVisible(outputLabel_);
-    outputLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
-    outputLabel_.setColour(juce::Label::textColourId,
-                           juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    addAndMakeVisible(displaySelector_);
+    // Outputs (plan5 C2): a button that opens the output item list (MainComponent wires onClick).
+    addAndMakeVisible(outputsButton_);
+    outputsButton_.setTooltip("Show the composition on displays: tick one or more (Cmd+Shift+Esc turns all off)");
+    setLiveOutputCount(0);
 
     // Stats
     addAndMakeVisible(fpsLabel_);
@@ -304,6 +303,11 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
                         juce::Colour(AudioDNALookAndFeel::kTextSecondary));
 
     startTimerHz(15);
+}
+
+void TopBar::setLiveOutputCount(int liveCount)
+{
+    outputsButton_.setButtonText(output::outputsButtonText(liveCount));
 }
 
 void TopBar::timerCallback()
@@ -623,8 +627,7 @@ void TopBar::resized()
     fpsLabel_.setBounds(rightSection.removeFromRight(45));
     rightSection.removeFromRight(6);
 
-    displaySelector_.setBounds(rightSection.removeFromRight(100));
-    outputLabel_.setBounds(rightSection.removeFromRight(42));
+    outputsButton_.setBounds(rightSection.removeFromRight(100));
     rightSection.removeFromRight(4);
 
     // 90 (was 70) so the 35-wide TextBoxRight readout added above has a

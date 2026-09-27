@@ -156,6 +156,11 @@ public:
     std::function<void(int slot)> onRoutineRemove;
     std::function<juce::var()> onRoutineStatus;   // synchronous; see comment above
 
+    // s-rta-0927 outputs-c2 (plan5 C2): /api/state.outputs.displays -- the display list of the Output menu
+    // (OutputManager::stateVar(): built on the message thread, read here as a mutex-guarded copy; never
+    // Desktop::getDisplays() off the message thread). Set it BEFORE start(): HTTP threads only read it.
+    void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
+
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
 
@@ -224,6 +229,7 @@ private:
     RoutingEngine& routingEngine_;
     BindingManager& bindingManager_;
 
+    std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
     int port_;
     // R6 (featurebus-thread-safety-design.md): production = not registered
     // (ctor flag from testMode_) so inject_features 404s outside test mode.

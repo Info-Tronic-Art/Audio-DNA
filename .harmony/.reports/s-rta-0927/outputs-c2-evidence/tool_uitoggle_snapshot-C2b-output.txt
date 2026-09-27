@@ -1,0 +1,31 @@
+TopBar Outputs button menu (fake 3-display set):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  [x] Display 2 (1920x1080)  (id 1602)
+  [ ] Display 3 (3840x2160)  (id 1603)
+  ----
+  [ ] All Outputs Off  (id 1600, Cmd+Shift+Esc)
+Menu bar > Output (fake 3-display set):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  [x] Display 2 (1920x1080)  (id 1602)
+  [ ] Display 3 (3840x2160)  (id 1603)
+  ----
+  [ ] All Outputs Off  (id 1600, Cmd+Shift+Esc)
+  ----
+  [ ] Snapshot  (id 1693)
+  ----
+  [ ] Start Recording  (id 1694)
+  [ ] Stop Recording  (id 1695)
+  ----
+  [ ] Syphon Output  (id 1696)
+Menu bar > Output (this machine's displays, nothing live):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  ----
+  [ ] All Outputs Off  (id 1600, disabled, Cmd+Shift+Esc)
+  ----
+  [ ] Snapshot  (id 1693)
+  ----
+  [ ] Start Recording  (id 1694)
+  [ ] Stop Recording  (id 1695)
+  ----
+  [ ] Syphon Output  (id 1696)
+wrote 10 PNGs to /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/after-shots

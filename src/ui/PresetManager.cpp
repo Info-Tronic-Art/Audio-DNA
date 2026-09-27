@@ -501,7 +501,8 @@ bool PresetManager::saveDeck(const juce::File& file,
     deckObj->setProperty("beatRandomEnabled", deck.beatRandomEnabled);
     deckObj->setProperty("audioSourceMode", deck.audioSourceMode);
     deckObj->setProperty("viewportResolution", deck.viewportResolution);
-    deckObj->setProperty("outputDisplay", deck.outputDisplay);
+    // plan5 R7 (s-rta-0927 outputs-c2): a deck never carries an output display -- always 1 (Off); the key stays.
+    deckObj->setProperty("outputDisplay", 1);
     deckObj->setProperty("inputGain", static_cast<double>(deck.inputGain));
     deckObj->setProperty("masterVideoLevel", static_cast<double>(deck.masterVideoLevel));
     deckObj->setProperty("showAudioPanel", deck.showAudioPanel);
@@ -552,7 +553,8 @@ bool PresetManager::loadDeck(const juce::File& file,
     deck.beatRandomEnabled = static_cast<bool>(obj->getProperty("beatRandomEnabled"));
     deck.audioSourceMode = static_cast<int>(obj->getProperty("audioSourceMode"));
     deck.viewportResolution = static_cast<int>(obj->getProperty("viewportResolution"));
-    deck.outputDisplay = static_cast<int>(obj->getProperty("outputDisplay"));
+    deck.outputDisplay = 1;   // plan5 R7: the file's "outputDisplay" is ignored -- an old deck saved with an
+                              // output open (2+) no longer opens one
     deck.inputGain = static_cast<float>(static_cast<double>(obj->getProperty("inputGain")));
     deck.masterVideoLevel = static_cast<float>(static_cast<double>(obj->getProperty("masterVideoLevel")));
     deck.showAudioPanel = obj->hasProperty("showAudioPanel") ? static_cast<bool>(obj->getProperty("showAudioPanel")) : true;

@@ -3,6 +3,8 @@
 #if AUDIODNA_TEST_SERVER
 
 #include <httplib.h>
+#include <juce_core/juce_core.h>
+#include <functional>
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -64,6 +66,11 @@ public:
     void stop();
 
     bool isRunning() const { return running_.load(std::memory_order_relaxed); }
+
+    // s-rta-0927 outputs-c2 (plan5 C2): /api/state.outputs.displays -- the display list of the Output menu
+    // (OutputManager::stateVar(): built on the message thread, read here as a mutex-guarded copy; never
+    // Desktop::getDisplays() off the message thread). Set it BEFORE start(): HTTP threads only read it.
+    void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
 
     TestServer(const TestServer&) = delete;
     TestServer& operator=(const TestServer&) = delete;
@@ -141,6 +148,7 @@ private:
     void* probeContext_ = nullptr;
     output::PresenterGLState probeState_;
 
+    std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
     int port_;
     httplib::Server server_;
     std::thread serverThread_;

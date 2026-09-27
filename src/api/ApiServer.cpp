@@ -1308,6 +1308,9 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
         outputs->setProperty("frame_serial", static_cast<juce::int64>(front.serial));
         outputs->setProperty("canvas_w", frames.frontWidth());
         outputs->setProperty("canvas_h", frames.frontHeight());
+        // s-rta-0927 outputs-c2: [{index, x, y, w, h, scale, main, live, label}] -- the Output menu's display list.
+        if (outputsStateProvider_)
+            outputs->setProperty("displays", outputsStateProvider_());
         obj->setProperty("outputs", juce::var(outputs));
     }
 

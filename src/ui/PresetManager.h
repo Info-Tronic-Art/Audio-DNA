@@ -82,7 +82,7 @@ public:
         bool beatRandomEnabled = false;
         int audioSourceMode = 1;    // Combo box ID: 1=Mic, 2=File
         int viewportResolution = 0; // Combo box ID
-        int outputDisplay = 1;      // Combo box ID: 1=Off, 2+=display
+        int outputDisplay = 1;      // Always 1 (Off): outputs are machine state, never deck state (plan5 R7)
         float inputGain = 1.0f;
         float masterVideoLevel = 1.0f;
         bool showAudioPanel = true;

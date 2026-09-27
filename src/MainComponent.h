@@ -12,7 +12,7 @@
 #include "ui/EffectsRackPanel.h"
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
-#include "ui/OutputWindow.h"
+#include "output/OutputManager.h"
 #include "ui/SignalBar.h"
 #include "ui/TopBar.h"
 #include "ui/DeckView.h"
@@ -168,9 +168,6 @@ private:
     // without re-plumbing. Reads the feature bus once and drives
     // MappingEngine::processFrame — see mappingTickTimer_ below.
     void tickFeaturePipeline();
-    void refreshDisplayList();
-    void openOutputOnDisplay(int displayIndex);
-    void closeOutput();
     void randomizeAllEffects();
     void beatSyncRandomize();
     void fastSave();
@@ -354,11 +351,9 @@ private:
     };
     std::array<PresetSlot, kNumSlots> presetSlots_;
 
-    // Output window
-    juce::Label outputLabel_;
-    juce::ComboBox displaySelector_;
-    std::unique_ptr<OutputWindow> outputWindow_;
-    juce::File currentImageFile_;  // The loaded legacy image. No reader since s-rta-0927 outputs-c1 (the output window presents the canvas)
+    // The output windows, one per display (s-rta-0927 outputs-c2 = plan5 C2). Declared AFTER previewPanel_: it
+    // references the Renderer's SharedFrameSet, and members die in reverse order, so the windows die first.
+    output::OutputManager outputs_{ previewPanel_.getRenderer().getSharedFrames(), previewPanel_.getRenderer() };
 
     // Audio source selector
     juce::ComboBox audioSourceSelector_;

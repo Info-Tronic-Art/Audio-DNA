@@ -332,7 +332,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
                         juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         label.setJustificationType(juce::Justification::centredRight);
     };
-    setupLabel(outputLabel_,     "Output");
   #if AUDIODNA_HAS_CAMERA
     setupLabel(cameraLabel_,     "Camera");
   #endif
@@ -430,18 +429,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // s-rta-0926b plan4 S5: the per-deck "Viewport" resolution lock (hidden since v2) is retired --
     // the canvas is Composition::outputWidth x outputHeight (Composition inspector). The renderer's
     // lock survives as the TEST-ONLY canvas override (TestServer render_frame width/height).
-
-    // Display selector for output window
-    addAndMakeVisible(displaySelector_);
-    displaySelector_.setTextWhenNothingSelected("Output: Off");
-    refreshDisplayList();
-    displaySelector_.onChange = [this] {
-        int selected = displaySelector_.getSelectedId();
-        if (selected == 1) // "Off"
-            closeOutput();
-        else if (selected > 1)
-            openOutputOnDisplay(selected - 2); // display index
-    };
 
     openImageButton_.onClick = [this] { openImage(); };
 
@@ -558,33 +545,15 @@ MainComponent::MainComponent(bool testMode, int testPort)
         audioEngine_.setInputGain(static_cast<float>(topBar_->getInputGainSlider().getValue()));
     };
 
-    // Wire TopBar display selector
-    auto& topDisplay = topBar_->getDisplaySelector();
-    topDisplay.setTextWhenNothingSelected("Output: Off");
-    // Populate from existing display list
-    {
-        topDisplay.clear();
-        topDisplay.addItem("Off", 1);
-        const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
-        for (int i = 0; i < static_cast<int>(displays.size()); ++i)
-        {
-            const auto& d = displays[static_cast<size_t>(i)];
-            juce::String label = juce::String(d.totalArea.getWidth())
-                              + "x" + juce::String(d.totalArea.getHeight());
-            if (d.isMain)
-                label += " (main)";
-            else
-                label += " (display " + juce::String(i + 1) + ")";
-            topDisplay.addItem(label, i + 2);
-        }
-        topDisplay.setSelectedId(1, juce::dontSendNotification);
-    }
-    topDisplay.onChange = [this] {
-        int selected = topBar_->getDisplaySelector().getSelectedId();
-        if (selected == 1)
-            closeOutput();
-        else if (selected > 1)
-            openOutputOnDisplay(selected - 2);
+    // plan5 C2: the TopBar "Outputs" button opens the output item list -- the SAME list as the Output menu
+    // (OutputManager::populateMenu); a pick goes through handleMenuCommand like a menu-bar pick.
+    topBar_->getOutputsButton().onClick = [this] {
+        juce::PopupMenu m;
+        outputs_.populateMenu(m);
+        m.showMenuAsync(juce::PopupMenu::Options()
+                            .withParentComponent(getTopLevelComponent())
+                            .withTargetComponent(&topBar_->getOutputsButton()),
+                        [this](int id) { if (id != 0) handleMenuCommand(id); });
     };
 
     // s-rta-0923/0924 step 3 (plan section 3.3 B3): all tempo writers now go
@@ -724,14 +693,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
             {
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
-                currentImageFile_ = clip->mediaFile;
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
             }
             else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
             {
                 previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
                 previewPanel_.getRenderer().clearImage();
-                currentImageFile_ = juce::File();
                 fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
             }
         }
@@ -1540,7 +1507,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
     browserPanel_->getFilesBrowser().onFileActivated = [this](const juce::File& file) {
         previewPanel_.loadImage(file);
-        currentImageFile_ = file;
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     };
     // s-rta-0924b step 4 (Lane S4-B): the Record tab drives the recorder through
@@ -1620,7 +1586,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // Load source into preview renderer
         previewPanel_.getRenderer().setActiveSource(sourceId.toStdString(), clip.sourceParams);
         previewPanel_.getRenderer().clearImage();
-        currentImageFile_ = juce::File();
         fileLabel_.setText(juce::String(sourceId), juce::dontSendNotification);
 
         if (deckView_) deckView_->rebuildGrid();
@@ -1768,7 +1733,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 // Also set the source as active in the preview renderer
                 previewPanel_.getRenderer().setActiveSource("projectm_visualizer");
                 previewPanel_.getRenderer().clearImage();
-                currentImageFile_ = juce::File();
 
                 // Extract display name from path
                 juce::File presetFile(path);
@@ -1788,6 +1752,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
     menuBarModel_ = std::make_unique<AudioDNAMenuBar>();
     menuBarModel_->onMenuCommand = [this](int cmdId) { handleMenuCommand(cmdId); };
     menuBarModel_->isSyphonOutputEnabled = [this]() { return syphonOutput_.isEnabled(); };
+    // plan5 C2: the Output menu's display items + "All Outputs Off" are OutputManager's item list; a change in the
+    // live outputs relabels the TopBar button and rebuilds the native menu (the ticks).
+    menuBarModel_->populateOutputItems = [this](juce::PopupMenu& m) { outputs_.populateMenu(m); };
+    outputs_.onLiveCountChanged = [this](int liveCount) {
+        if (topBar_) topBar_->setLiveOutputCount(liveCount);
+        if (menuBarModel_) menuBarModel_->menuItemsChanged();
+    };
     menuBarModel_->hasClipSelection = [this]() {
         return deckView_ && !deckView_->getSelectedCells().empty();
     };
@@ -1852,6 +1823,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             signalRegistry_,
             previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
+        testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
         testServer_->start();
         std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;
     }
@@ -2101,6 +2073,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             testServer_->injectSnapshot(snap, onsetIntent);
         };
 #endif
+    apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks, then start listening (below).
@@ -2314,15 +2287,14 @@ MainComponent::~MainComponent()
     // just moves the first detach earlier.
     previewPanel_.getRenderer().detach();
 
-    // W3 (outputwindow-arc, scout R5): the second GL context obeys the same
-    // shutdown law — end its GL activity HERE, before any teardown below,
-    // not 17 members later when outputWindow_.reset() runs. detachGL() is
-    // idempotent, so the reset() further down stays where it is. (s-rta-0927
-    // outputs-c1: the output reads only the shared IOSurface frames, which
-    // live until the Renderer is destroyed -- no order against the main
-    // detach above matters.)
-    if (outputWindow_)
-        outputWindow_->detachGL();
+    // W3 (outputwindow-arc, scout R5): the output GL contexts obey the same
+    // shutdown law — end their GL activity HERE, before any teardown below.
+    // (s-rta-0927 outputs-c2: OutputManager::shutdown() detaches and destroys
+    // every output window synchronously; idempotent, its destructor calls it
+    // again. The outputs read only the shared IOSurface frames, which live
+    // until the Renderer is destroyed -- no order against the main detach
+    // above matters.)
+    outputs_.shutdown();
 
     // Drop undo history on shutdown: commands hold model snapshots that must
     // not outlive the composition/renderer they refer to.
@@ -2339,7 +2311,6 @@ MainComponent::~MainComponent()
 #if AUDIODNA_HAS_CAMERA
     closeCamera();
 #endif
-    outputWindow_.reset();
     if (!testMode_)
         analysisThread_.stopThread(1000);
     lookAndFeel_.uninstallAsDefault();   // before lookAndFeel_'s own destruction below (teardown-order assert)
@@ -2492,8 +2463,6 @@ void MainComponent::resized()
     audioSourceSelector_.setVisible(false);
     inputGainLabel_.setVisible(false);
     inputGainSlider_.setVisible(false);
-    displaySelector_.setVisible(false);
-    outputLabel_.setVisible(false);
     fpsLabel_.setVisible(false);
     cpuLabel_.setVisible(false);
     randomLabel_.setVisible(false);
@@ -2678,7 +2647,6 @@ void MainComponent::openImage()
             return;
 
         previewPanel_.loadImage(file);
-        currentImageFile_ = file;
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     });
 }
@@ -3418,15 +3386,25 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // Escape = close output window
-    if (key.isKeyCode(juce::KeyPress::escapeKey))
+    // plan5 7.2-7.3 (s-rta-0927 outputs-c2): the output keys, classified in ONE place
+    // (output::classifyOutputKey, tests/test_output_menu_model.cpp). Cmd+Shift+Esc is tested BEFORE the bare-Escape
+    // case: KeyPress::isKeyCode compares the key code only, so a modifier-blind Escape branch would swallow it.
+    switch (output::classifyOutputKey(key))
     {
-        if (outputWindow_ && outputWindow_->isVisible())
-        {
-            closeOutput();
-            displaySelector_.setSelectedId(1, juce::dontSendNotification);
-        }
-        return true;
+        case output::OutputKey::CloseAll:        // Cmd+Shift+Esc = PANIC: close every output
+            outputs_.closeAll();
+            return true;
+        case output::OutputKey::RaiseApp:        // Cmd+` = the app window back above an output that covers it
+            if (auto* top = getTopLevelComponent())
+                top->toFront(true);
+            return true;
+        case output::OutputKey::ToggleMain:      // Cmd+F = the output on the main display (Boris: leave Cmd+F as-is)
+            outputs_.toggleDisplay(outputs_.mainDisplayIndex());
+            return true;
+        case output::OutputKey::SwallowEscape:   // plan5 Q2: plain Esc no longer touches outputs; still swallowed
+            return true;
+        case output::OutputKey::None:
+            break;
     }
 
     // Cmd/Ctrl+Z = Undo, Cmd/Ctrl+Shift+Z = Redo
@@ -3467,22 +3445,6 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     if (key.isKeyCode('S') && mod.isCommandDown())
     {
         handleMenuCommand(AudioDNAMenuBar::kCompSave);
-        return true;
-    }
-
-    // Cmd/Ctrl+F = fullscreen output on primary display
-    if (key.isKeyCode('F') && mod.isCommandDown())
-    {
-        if (outputWindow_ && outputWindow_->isVisible())
-        {
-            closeOutput();
-            displaySelector_.setSelectedId(1, juce::dontSendNotification);
-        }
-        else
-        {
-            openOutputOnDisplay(0);
-            displaySelector_.setSelectedId(2, juce::dontSendNotification);
-        }
         return true;
     }
 
@@ -3580,7 +3542,6 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
                  ext == ".gif" || ext == ".bmp" || ext == ".tiff")
         {
             previewPanel_.loadImage(file);
-            currentImageFile_ = file;
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
         }
     }
@@ -3772,58 +3733,6 @@ void MainComponent::timerCallback()
     }
 }
 
-void MainComponent::refreshDisplayList()
-{
-    displaySelector_.clear(juce::dontSendNotification);
-    displaySelector_.addItem("Off", 1);
-
-    const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
-    for (int i = 0; i < static_cast<int>(displays.size()); ++i)
-    {
-        const auto& d = displays[static_cast<size_t>(i)];
-        juce::String label = "Display " + juce::String(i + 1);
-        label += " (" + juce::String(d.totalArea.getWidth())
-              + "x" + juce::String(d.totalArea.getHeight()) + ")";
-        if (d.isMain)
-            label += " main";
-        displaySelector_.addItem(label, i + 2);
-    }
-
-    displaySelector_.setSelectedId(1, juce::dontSendNotification);
-}
-
-void MainComponent::openOutputOnDisplay(int displayIndex)
-{
-    const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
-    if (displayIndex < 0 || displayIndex >= static_cast<int>(displays.size()))
-        return;
-
-    if (!outputWindow_)
-    {
-        // s-rta-0927 outputs-c1: the window presents the COMPOSITION -- the main renderer's canvas, copied once per
-        // frame into the shared frames -- letterboxed to the composition's shape; it never takes the keyboard.
-        outputWindow_ = std::make_unique<OutputWindow>(previewPanel_.getRenderer().getSharedFrames());
-        juce::Component::SafePointer<MainComponent> safe(this);
-        outputWindow_->onCloseRequested = [safe] {
-            // Never destroy a window inside one of its own callbacks.
-            juce::MessageManager::callAsync([safe] { if (safe != nullptr) safe->closeOutput(); });
-        };
-    }
-
-    outputWindow_->openOnDisplay(displays[static_cast<size_t>(displayIndex)]);
-    previewPanel_.getRenderer().setLiveOutputCount(1);   // the tap runs only while an output is live
-}
-
-void MainComponent::closeOutput()
-{
-    if (outputWindow_)
-    {
-        previewPanel_.getRenderer().setLiveOutputCount(0);
-        outputWindow_->setVisible(false);
-        outputWindow_.reset();
-    }
-}
-
 juce::File MainComponent::getFastSaveDir() const
 {
     return PresetManager::getFxSaveDirectory();
@@ -3951,7 +3860,6 @@ void MainComponent::openImageFolder()
         // Load first image
         auto first = slideshowImages_[0];
         previewPanel_.loadImage(first);
-        currentImageFile_ = first;
 
         fileLabel_.setText("Folder: " + dir.getFileName() + " ("
                           + juce::String(slideshowImages_.size()) + " images)",
@@ -3979,7 +3887,6 @@ void MainComponent::advanceSlideshow()
 
             auto img = slideshowImages_[slideshowIndex_];
             previewPanel_.loadImage(img);
-            currentImageFile_ = img;
         }
     }
     lastSlideshowBeatPhase_ = phase;
@@ -4362,14 +4269,12 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         {
             previewPanel_.getRenderer().clearActiveSource();
             previewPanel_.loadImage(clip->mediaFile);
-            currentImageFile_ = clip->mediaFile;
             fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
         }
         else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
         {
             previewPanel_.getRenderer().setActiveSource(clip->sourceType);
             previewPanel_.getRenderer().clearImage();
-            currentImageFile_ = juce::File();
             fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
         }
         else if (clip->mediaType == Clip::MediaType::Video && clip->mediaFile.existsAsFile())
@@ -4382,7 +4287,6 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
             // Video clips rendered via compositor — clear single-image path
             renderer.clearActiveSource();
             renderer.clearImage();
-            currentImageFile_ = juce::File();
             fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
         }
         else if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
@@ -4394,7 +4298,6 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
 
             renderer.clearActiveSource();
             renderer.clearImage();
-            currentImageFile_ = juce::File();
             auto frameCount = static_cast<int>(clip->sequenceFiles.size());
             fileLabel_.setText(juce::String(clip->name) + " (" + juce::String(frameCount) + " frames)",
                               juce::dontSendNotification);
@@ -4405,7 +4308,6 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         // No active clip — clear preview
         previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
-        currentImageFile_ = juce::File();
         fileLabel_.setText("", juce::dontSendNotification);
     }
 
@@ -4570,7 +4472,6 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             {
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
-                currentImageFile_ = clip->mediaFile;
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
                 foundActiveClip = true;
                 break;
@@ -4579,7 +4480,6 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             {
                 previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
                 previewPanel_.getRenderer().clearImage();
-                currentImageFile_ = juce::File();
                 fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
                 foundActiveClip = true;
                 break;
@@ -4591,14 +4491,13 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     {
         previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
-        currentImageFile_ = juce::File();
         fileLabel_.setText("", juce::dontSendNotification);
     }
     }
 }
 
 // A1 fix (2026-07-30): the previewPanel_ renderer's fallback state
-// (activeSourceType_ / loaded image / currentImageFile_ / fileLabel_) is
+// (activeSourceType_ / loaded image / fileLabel_) is
 // GLOBAL to the whole deck, but a layer's X-clear is PER-LAYER — naively
 // purging that global state on any layer's clear could blank a DIFFERENT
 // layer's still-playing visual even though nothing about ITS clip changed.
@@ -4628,7 +4527,6 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
             {
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
-                currentImageFile_ = clip->mediaFile;
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
                 foundActiveClip = true;
                 break;
@@ -4637,7 +4535,6 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
             {
                 previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
                 previewPanel_.getRenderer().clearImage();
-                currentImageFile_ = juce::File();
                 fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
                 foundActiveClip = true;
                 break;
@@ -4649,7 +4546,6 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
     {
         previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
-        currentImageFile_ = juce::File();
         fileLabel_.setText("", juce::dontSendNotification);
     }
 }
@@ -6012,11 +5908,10 @@ void MainComponent::handleMenuCommand(int commandId)
 {
     using C = AudioDNAMenuBar::CommandID;
 
-    // Output fullscreen commands (dynamic range)
+    // Output display items (dynamic range): a tickable toggle per display (plan5 C2)
     if (commandId >= C::kOutputFullscreenBase && commandId < C::kOutputWindowed)
     {
-        int displayIdx = commandId - C::kOutputFullscreenBase;
-        openOutputOnDisplay(displayIdx);
+        outputs_.toggleDisplay(commandId - C::kOutputFullscreenBase);
         return;
     }
 
@@ -6660,8 +6555,8 @@ void MainComponent::handleMenuCommand(int commandId)
         }
 
         // --- Output menu ---
-        case C::kOutputDisabled:
-            closeOutput();
+        case C::kOutputDisabled:   // "All Outputs Off" (plan5 C2)
+            outputs_.closeAll();
             break;
         case C::kOutputSnapshot:
         {

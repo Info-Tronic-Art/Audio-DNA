@@ -1,0 +1,8 @@
+Level-probe constants vs the LIVE lane app (C2c build): the display titles are the app's own /api/state.outputs.displays[].label from the GREEN probe-outputs run (7070), stamped 2026-09-27 14:03:50. REST carries the display items only, so the close-item line below reads ABSENT for both versions by construction; the close item's title is proven in RED-GREEN-C2b-level-probe-constants-headless.txt (MenuBarModel case 6).
+Output menu titles fed to the level probe (live lane app /api/state.outputs.displays[].label): ['Display 1 (1728x1117, main)']
+== OLD main f4507e8: DISABLED_ITEM='Disabled' FULLSCREEN_PREFIX='Fullscreen: ' MAIN_SUFFIX='(main)'
+   open item  -> REFUSES (ProbeBlocked -> the probe exits BLOCKED before opening anything): No 'Fullscreen: <WxH> (main)' item in the Output menu. Items seen: ['Display 1 (1728x1117, main)']
+   close item -> ABSENT (teardown rung 1 would fail): 'Disabled'
+== NEW lane: DISABLED_ITEM='All Outputs Off' FULLSCREEN_PREFIX='Display ' MAIN_SUFFIX=', main)'
+   open item  -> PICKS 'Display 1 (1728x1117, main)'
+   close item -> ABSENT (teardown rung 1 would fail): 'All Outputs Off'

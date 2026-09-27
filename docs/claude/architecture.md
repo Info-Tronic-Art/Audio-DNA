@@ -227,6 +227,8 @@ AudioDNA/
 │   ├── osc/
 │   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 14/14 callbacks wired (`/audiodna/routine/{slot}` added s-rta-0926 routines slice 1)
 │   ├── output/
+│   │   ├── OutputManager.h/.cpp     ✅ # s-rta-0927 outputs-c2: the output windows, one per display; the Output menu / TopBar "Outputs" item list
+│   │   ├── OutputMenuModel.h        ✅ # s-rta-0927 outputs-c2: pure -- buildOutputMenu, the button text, classifyOutputKey (unit-tested)
 │   │   └── SyphonOutput.h/.mm       ✅ # [P22] macOS Syphon server — WIRED 2026-07-17 (Wave 1-A): publishes final composited frame each frame; no-op unless built -DAUDIODNA_BUILD_SYPHON=ON + Syphon.framework
 │   │                                    #   (SyphonInput.h/.mm, SpoutOutput.h, NdiOutput.h, NdiInput.h REMOVED 2026-07-17 (Wave 0) — were orphaned/no-op stubs)
 │   ├── test/                           # Build-gated (AUDIODNA_BUILD_TEST_SERVER=ON)

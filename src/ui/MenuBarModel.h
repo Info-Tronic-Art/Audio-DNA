@@ -136,6 +136,11 @@ public:
     // "Syphon Output" menu item. MainComponent wires this.
     std::function<bool()> isSyphonOutputEnabled;
 
+    // Fills the top of the Output menu: one tickable item per connected display, then "All Outputs Off"
+    // (s-rta-0927 outputs-c2 = plan5 C2). MainComponent wires it to OutputManager::populateMenu -- the SAME item
+    // list the TopBar "Outputs" button shows (src/output/OutputMenuModel.h). Read each time the menu opens.
+    std::function<void(juce::PopupMenu&)> populateOutputItems;
+
     // Returns whether the Clip menu's selection-dependent items (Clear,
     // Replace Content..., Lock Content) have a cell to act on. MainComponent
     // wires this to the same deckView_ selection check the command handlers

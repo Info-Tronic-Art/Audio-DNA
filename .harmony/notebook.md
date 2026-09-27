@@ -1877,3 +1877,22 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
 - A per-sample status `clockBeat` vs `ts` gives the message thread's staleness for free: w0 = min(ts - clockBeat*spb),
   staleness = ts - (w0 + clockBeat*spb); a frozen clockBeat across samples = a stalled message thread (no profiler needed).
 - Valid while: /api/routine/status publishes clockBeat + bank[].position at the 120 Hz tick and probe-routines exists.
+
+## 2026-09-27 s-rta-0927 outputs-c2: a window-opening probe's RED without a window; menu titles over REST
+**Files:** src/output/OutputManager.{h,cpp}, src/output/OutputMenuModel.h, tests/test_output_menu_model.cpp, tests/tool_uitoggle_snapshot.cpp, tests/visual/test_output_window_level.py, .harmony/probe-outputs.py
+**Note:**
+- A probe that may only run Boris-supervised (it opens a window) can still get a RED/GREEN for a constants change:
+  import its module (`sys.dont_write_bytecode = True`; replace `main`/`_spawn_app`/`_click_output_item`/`_osascript`
+  with a raise BEFORE calling anything) and feed its pure picker the titles the new code builds -- headless from
+  `tool_uitoggle_snapshot` (prints MenuBarModel case 6 for this machine's real displays) and live from
+  `/api/state.outputs.displays[].label` (the exact Output-menu title). Script: `.harmony/.reports/s-rta-0927/
+  outputs-c2-evidence/level_probe_labels.py`. Any AX script that clicks an output item should read that label, never
+  hardcode "Display 1 (1728x1117, main)".
+- Never reset a `std::function` callback from inside its own invocation (OutputWindow::closeButtonPressed ->
+  onCloseRequested -> OutputManager close path): it destroys the executing lambda. Leave it set; the graveyard destroys
+  the window on the next message-loop turn and a late call finds nothing in `live_`.
+- Until plan5 C3 (hot-plug reconcile) a window whose display is unplugged stays open -- macOS may move it onto a
+  remaining display; All Outputs Off / Cmd+Shift+Esc close it (both count windows, not ticked displays).
+- CLAUDE.md is 22.4 KB at main since the phase protocol moved to docs/claude/phase-protocol.md (20cede2) -- below the
+  25,000 cap; the "pay for every new line" ruling was applied anyway (outputs-c2 net -16 B).
+- Valid while: OutputManager owns the output windows and the level probe discovers items by title.
