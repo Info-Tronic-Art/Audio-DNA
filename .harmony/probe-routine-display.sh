@@ -23,6 +23,10 @@
 #   d3 on the edge: running, layers [0,2], position advancing; L1 opacity 0.3 / L3 0.8 (the restore)
 #   d14 (fix round) press pad 1 again while it plays -> restartPending and startsOn "bar" (the grid the restart lands
 #      on, the pad's restart mark + tooltip; RED: startsOn "" while running); shot 13-restart-pending
+#   d15 (fix round 2) set pad 1's quantize to "4bar" WHILE its restart waits -> within 0.5 s startsOn reads "4bar"
+#      (the edit reaches the pending restart; RED: the restart kept the "bar" it was pressed with). Re-fired first
+#      if the d14 restart already landed during the shot; one retry when the restart lands between the press and
+#      the edit (inconclusive, never a pass). Quantize goes back to "bar" before d4.
 #   d4 fire pad 2 -> bank[1].fireSeq > bank[0].fireSeq
 #   d5 switch_deck 1 -> bank[0].deck == 0 and its position keeps growing (a deck switch never stops a routine)
 #   d6 switch_deck 0; stop pad 1 -> idle, layers []
@@ -222,6 +226,21 @@ if wait_for 0.5 "b[0].get('restartPending') == True"; then
     || no "d14 restart pending witness: expected (True, 'bar', 'running'), got $G"
   shot 13-restart-pending
 else no "d14 pad 1 restartPending within 0.5 s of a second press (got $(st "b[0].get('restartPending')"))"; fi
+
+# fix round 2: a Quantize edit made while that restart waits reaches it (the pad menu writes the same routine)
+D15=""
+for _try in 1 2; do
+  post /api/routine/set '{"slot":0,"quantize":"bar"}' >/dev/null
+  [ "$(st "b[0].get('restartPending')")" = "True" ] || { post /api/routine/fire '{"slot":0}' >/dev/null; wait_for 0.5 "b[0].get('restartPending') == True"; }
+  post /api/routine/set '{"slot":0,"quantize":"4bar"}' >/dev/null
+  if wait_for 0.5 "b[0].get('startsOn') == '4bar'"; then D15=pass; break; fi
+  G="$(st "(b[0].get('restartPending'), b[0].get('startsOn'), b[0]['state'])")"
+  [ "$G" = "(False, '', 'running')" ] && { echo "  d15 try $_try inconclusive: the restart landed before the edit $G"; continue; }
+  D15="$G"; break
+done
+if [ "$D15" = "pass" ]; then ok "d15 quantize set to 4bar while the restart waits: (restartPending, startsOn) $(st "(b[0].get('restartPending'), b[0].get('startsOn'))")"
+else no "d15 quantize set to 4bar while the restart waits: (restartPending, startsOn, state) ${D15:-inconclusive twice}"; fi
+post /api/routine/set '{"slot":0,"quantize":"bar"}' >/dev/null
 
 post /api/routine/fire '{"slot":1}' >/dev/null
 if wait_for 5 "b[1]['state'] == 'running'"; then
