@@ -1823,6 +1823,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             signalRegistry_,
             previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
+        testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
         testServer_->start();
         std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;
     }
@@ -2072,6 +2073,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             testServer_->injectSnapshot(snap, onsetIntent);
         };
 #endif
+    apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks, then start listening (below).

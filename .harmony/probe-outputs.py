@@ -11,7 +11,7 @@ PIL+numpy; every probe/capture response is checked (a failed one is a FAIL). The
 
 usage: probe-outputs.py <root> <fresh-outdir> <media-dir> [row,row,...]
 rows: o_probe_matches_canvas o_probe_portrait_target o_probe_tracks_change o_probe_survives_resolution_change
-      o_probe_repeat_stable o_state_outputs o_no_window_opened o_tap_cost
+      o_probe_repeat_stable o_state_outputs o_state_displays o_no_window_opened o_tap_cost
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. Fixtures A = media/P16_01_baseline.png, B =
 media/P16_02_Screen_Split_2x2.png (d(A, B) = 29.4 at 1920x1080). Composition: 1920x1080, deck 0 L0 (Opaque, no
@@ -36,6 +36,15 @@ o_probe_repeat_stable (guard/soak): col0 again; 60 output_probes 1920x1080 back 
   Prints the elapsed time.
 o_state_outputs (RED): 8080 and 7070 /api/state carry outputs {live == 0, tap == true, frame_gen >= 1,
   frame_serial >= 1, canvas_w == 1920, canvas_h == 1080}; after set_output_tap off, tap == false.
+o_state_displays (RED on a pre-C2 app: no `displays`; s-rta-0927 outputs-c2 = plan5 C2): 8080 and 7070
+  /api/state.outputs.displays is the Output menu's display list (OutputManager, built from buildOutputMenu):
+  non-empty, exactly one `main`, index 0..n-1, every entry has x/y/w/h/scale/main/live/label, nothing live
+  (this probe never opens an output; the count of live entries == outputs.live == 0), label == "Display <i+1>
+  (<w>x<h>[, main])". Independent oracle (CoreGraphics, not JUCE): the entry count == CGGetActiveDisplayList's and
+  the main entry's w x h == CGDisplayBounds(CGMainDisplayID()) in points. Then the level probe's OWN discovery
+  (tests/visual/test_output_window_level.py `_pick_main_fullscreen_item`, imported -- never run: its main() is
+  replaced by a raise before use) must pick the main entry's label: the Boris-supervised level probe can find the
+  item it opens.
 o_no_window_opened (guard, THE LAW): a Quartz window-list sampler (every 0.25 s for the whole run) never sees an
   Audio-DNA window named like the Output window, and never more than ONE on-screen Audio-DNA window at layer 0
   (the main window) -- the second check needs no window-name permission. The .sh adds the after-quit census.
@@ -62,6 +71,9 @@ CW, CH = FIX["canvas"]
 TOL = float(FIX["matchTol"])
 PASS = FAIL = 0
 S = requests.Session()
+# A fresh connection per request: cpp-httplib closes a keep-alive connection idle for 5 s and drops a request that
+# races that close (s-rta-0927 c1-state-fix, .harmony/notebook.md). Connection: close avoids the race by construction.
+S.headers["Connection"] = "close"
 KEEP = {}
 
 
@@ -395,6 +407,83 @@ def o_state_outputs():
     tap(True)
 
 
+def expected_display_label(i, x):
+    return f"Display {i + 1} ({x.get('w')}x{x.get('h')}" + (", main)" if x.get("main") is True else ")")
+
+
+def level_probe_picker():
+    """The Boris-supervised level probe's own item picker, imported (never run: main() is replaced first)."""
+    sys.dont_write_bytecode = True   # no __pycache__ in tests/visual
+    vis = os.path.join(ROOT, "tests", "visual")
+    if vis not in sys.path:
+        sys.path.insert(0, vis)
+    import importlib
+    L = importlib.import_module("test_output_window_level")
+
+    def _never(*_a, **_k):
+        raise RuntimeError("probe-outputs never runs the level probe (it opens the Output window)")
+    L.main = L._spawn_app = L._click_output_item = L._open_output_window = L._osascript = _never
+    return L
+
+
+def o_state_displays():
+    try:
+        import Quartz
+        _err, _ids, n = Quartz.CGGetActiveDisplayList(32, None, None)
+        mb = Quartz.CGDisplayBounds(Quartz.CGMainDisplayID())
+        q_count, q_main = int(n), (int(mb.size.width), int(mb.size.height))
+    except Exception as e:  # noqa: BLE001
+        q_count, q_main = None, None
+        no(f"o_state_displays: CoreGraphics display list unavailable ({e})")
+    main_label = None
+    for base in (T8, A):
+        o = (state(base) or {}).get("outputs") or {}
+        d = o.get("displays")
+        bad = []
+        if not isinstance(d, list) or not d:
+            bad.append(f"displays missing or empty ({d!r})")
+            d = []
+        mains = [x for x in d if isinstance(x, dict) and x.get("main") is True]
+        if d and len(mains) != 1:
+            bad.append(f"{len(mains)} entries flagged main (want 1)")
+        for i, x in enumerate(d):
+            miss = [k for k in ("index", "x", "y", "w", "h", "scale", "main", "live", "label") if k not in x]
+            if miss:
+                bad.append(f"entry {i} lacks {miss}")
+                continue
+            if x["index"] != i:
+                bad.append(f"entry {i} has index {x['index']}")
+            if x["live"] is not False:
+                bad.append(f"entry {i} live={x['live']} (this probe never opens an output)")
+            if x["label"] != expected_display_label(i, x):
+                bad.append(f"entry {i} label {x['label']!r} != {expected_display_label(i, x)!r}")
+        live_n = sum(1 for x in d if x.get("live") is True)
+        if d and live_n != o.get("live"):
+            bad.append(f"{live_n} live entries != outputs.live {o.get('live')}")
+        if d and q_count is not None and len(d) != q_count:
+            bad.append(f"{len(d)} entries != CGGetActiveDisplayList {q_count}")
+        if mains and q_main is not None and (mains[0].get("w"), mains[0].get("h")) != q_main:
+            bad.append(f"main entry {mains[0].get('w')}x{mains[0].get('h')} != CGDisplayBounds(main) {q_main[0]}x{q_main[1]}")
+        if mains:
+            main_label = mains[0].get("label")
+        (ok if not bad else no)(
+            f"o_state_displays: {base} outputs.displays = {d} (CoreGraphics: {q_count} display(s), main "
+            f"{q_main}){' -- ' + '; '.join(bad) if bad else ''}")
+    if main_label is None:
+        no("o_state_displays: no main display label to hand to the level probe's picker")
+        return
+    try:
+        L = level_probe_picker()
+        picked = L._pick_main_fullscreen_item([x for x in [main_label] if x])
+        (ok if picked == main_label else no)(
+            f"o_state_displays: the level probe's _pick_main_fullscreen_item (FULLSCREEN_PREFIX {L.FULLSCREEN_PREFIX!r}, "
+            f"MAIN_SUFFIX {L.MAIN_SUFFIX!r}) picks {picked!r} from the app's labels; close item DISABLED_ITEM "
+            f"{L.DISABLED_ITEM!r}")
+    except Exception as e:  # noqa: BLE001 -- ProbeBlocked = the level probe would REFUSE
+        no(f"o_state_displays: the level probe's picker REFUSES the app's main label {main_label!r}: "
+           f"{type(e).__name__}: {e}")
+
+
 def o_no_window_opened():
     WATCH.stop_ev.set()
     WATCH.join(timeout=3)
@@ -443,7 +532,7 @@ def o_tap_cost():
 
 
 ROWS = [o_probe_matches_canvas, o_probe_portrait_target, o_probe_tracks_change, o_probe_survives_resolution_change,
-        o_probe_repeat_stable, o_state_outputs, o_tap_cost, o_no_window_opened]
+        o_probe_repeat_stable, o_state_outputs, o_state_displays, o_tap_cost, o_no_window_opened]
 
 if __name__ == "__main__":
     WATCH.start()
