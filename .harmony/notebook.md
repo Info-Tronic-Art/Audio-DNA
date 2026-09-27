@@ -1809,3 +1809,17 @@ hand-written functions with no shared layout model.
   copies on a (15,15,15) frame. A capture of B looks like a tiling bug with a grey border at every canvas size; compare
   a B frame only with a B reference (a 720p B frame compared with the 1080p A frame read as a false Pitfall-37 MUST).
 - Valid while: these files exist and the Output window stays IOSurface-based.
+
+## 2026-09-27 s-rta-0927 c1-state-fix: a probe request sent ~5.0 s after the previous one on a requests.Session races the app's 5 s keep-alive close
+**Files:** .harmony/probe-deck-clock.py (fixed), every other `.harmony/probe-*.py` that uses a `requests.Session()` (not changed)
+**Note:** cpp-httplib (0.57.1) closes a connection idle for 5 s (`CPPHTTPLIB_KEEPALIVE_TIMEOUT_SECOND`), checking every
+10 ms, then `drain_and_close_socket` shuts down and READS AND DISCARDS whatever request arrived in that instant (up to
+100 ms). A pooled keep-alive request sent ~5.00 s after the previous response then fails with
+`RemoteDisconnected('Remote end closed connection without response')`, and requests never retries it. Seen with a
+temporarily instrumented header: keep-alive timeout +0.66 ms after the client sent, then `drained=160`, the exact size of
+the GET /api/state request. This hits BOTH apps, the pre-C1 app and the C1 app (d_return_hitch s0: 1 in 3 full runs
+each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and reconnects, or the server reads the request. Fix used:
+`S.headers["Connection"] = "close"`, so every request gets its own connection (http.client drops the socket on a
+`Connection: close` response, so urllib3 always reconnects; no timing). Before you trust or waive a lone
+`RemoteDisconnected` in any probe, check the idle gap before the failing request (python-side timestamps).
+**Valid while:** the app serves 7070/8080 with cpp-httplib's default keep-alive timeout and probes use requests.Sessions.

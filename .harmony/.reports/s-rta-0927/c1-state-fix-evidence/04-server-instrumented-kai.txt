@@ -1,0 +1,114 @@
+# SERVER-INSTRUMENTED lane build ([KAI] fprintf in the fetched httplib.h, build-lane/_deps only; reverted, sha256 restored, strings = 0)
+# TEMPORARY instrumentation of the fetched cpp-httplib header (build-lane/_deps only; reverted with git checkout of
+# that dep's own file). Tags every line "[KAI]" so the strings check can prove removal.
+import sys
+p = sys.argv[1]; s = open(p).read()
+W = "std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count()"
+def rep(old, new):
+    global s
+    assert s.count(old) == 1, old
+    s = s.replace(old, new)
+rep("""      if (steady_clock::now() - start > timeout) {
+        break; // Timeout""", """      if (steady_clock::now() - start > timeout) {
+        fprintf(stderr, "[KAI] keepalive-timeout sock=%d wall=%.6f\\n", (int)sock, """ + W + """);
+        break; // Timeout""")
+rep("""    } else {
+      return true; // Ready for read
+    }
+  }
+
+  return false;""", """    } else {
+      fprintf(stderr, "[KAI] readable sock=%d wall=%.6f\\n", (int)sock, """ + W + """);
+      return true; // Ready for read
+    }
+  }
+
+  return false;""")
+rep("""  shutdown_socket(sock);
+  close_socket(sock);""", """  fprintf(stderr, "[KAI] drain_and_close sock=%d wall=%.6f drained=%zu\\n", (int)sock, """ + W + """, total);
+  shutdown_socket(sock);
+  close_socket(sock);""")
+rep("""    ret = callback(close_connection, connection_closed);
+    if (!ret || connection_closed) { break; }""", """    ret = callback(close_connection, connection_closed);
+    fprintf(stderr, "[KAI] served sock=%d wall=%.6f ret=%d closed=%d\\n", (int)sock, """ + W + """, (int)ret, (int)connection_closed);
+    if (!ret || connection_closed) { break; }""")
+rep("""  bool websocket_upgraded = false;
+  auto ret = serve_guarded([&]() {""", """  bool websocket_upgraded = false;
+  fprintf(stderr, "[KAI] conn sock=%d local=%d remote=%d wall=%.6f\\n", (int)sock, local_port, remote_port, """ + W + """);
+  auto ret = serve_guarded([&]() {""")
+open(p, "w").write(s); print("patched")
+
+=== kai summary (per x: OK = reused and answered, RESET = client saw the close first, ERR = race)
+kai x= -1.0ms  OK 4  RESET 1  ERR 0
+kai x= +0.0ms  OK 3  RESET 2  ERR 0
+kai x= +1.0ms  OK 1  RESET 3  ERR 1
+kai x= +2.0ms  OK 1  RESET 4  ERR 0
+kai x= +3.0ms  OK 1  RESET 4  ERR 0
+kai x= +4.0ms  OK 1  RESET 4  ERR 0
+
+# client attempt joined with server events (kai_join.py): server event time relative to the client's send_wall
+x= -1.0 idle=5.0088 -> OK    | server: readable +0.84ms
+x= +0.0 idle=5.0017 -> OK    | server: readable +0.83ms
+x= +1.0 idle=5.0046 -> OK    | server: readable +0.80ms
+x= +2.0 idle=5.0047 -> RESET | server: keepalive-timeout -0.78ms; drain_and_close(drained=0) +0.75ms
+x= +3.0 idle=5.0098 -> RESET | server: keepalive-timeout -4.54ms; drain_and_close(drained=0) +0.76ms
+x= +4.0 idle=5.0117 -> RESET | server: keepalive-timeout -5.59ms; drain_and_close(drained=0) +1.30ms
+x= -1.0 idle=5.0086 -> RESET | server: keepalive-timeout -0.62ms; drain_and_close(drained=0) +0.68ms
+x= +0.0 idle=5.0075 -> RESET | server: keepalive-timeout +0.18ms; drain_and_close(drained=0) +0.70ms
+x= +1.0 idle=5.0086 -> ERR   | server: keepalive-timeout +0.66ms; drain_and_close(drained=160) +0.88ms
+x= +2.0 idle=5.0120 -> RESET | server: keepalive-timeout -4.06ms; drain_and_close(drained=0) +0.72ms
+x= +3.0 idle=5.0130 -> RESET | server: keepalive-timeout -4.50ms; drain_and_close(drained=0) +0.80ms
+x= +4.0 idle=5.0077 -> RESET | server: keepalive-timeout -5.33ms; drain_and_close(drained=0) +0.93ms
+x= -1.0 idle=5.0038 -> OK    | server: readable +1.20ms
+x= +0.0 idle=5.0069 -> RESET | server: keepalive-timeout -0.02ms; drain_and_close(drained=0) +3.03ms
+x= +1.0 idle=5.0079 -> RESET | server: keepalive-timeout -0.01ms; drain_and_close(drained=0) +0.66ms
+x= +2.0 idle=5.0089 -> RESET | server: keepalive-timeout -5.68ms; drain_and_close(drained=0) +1.88ms
+x= +3.0 idle=5.0071 -> OK    | server: readable +2.03ms
+x= +4.0 idle=5.0053 -> OK    | server: readable +5.23ms
+x= -1.0 idle=4.9991 -> OK    | server: readable +3.28ms
+x= +0.0 idle=5.0100 -> OK    | server: readable +0.87ms
+x= +1.0 idle=5.0032 -> RESET | server: keepalive-timeout -0.02ms; drain_and_close(drained=0) +1.09ms
+x= +2.0 idle=5.0120 -> RESET | server: keepalive-timeout -3.96ms; drain_and_close(drained=0) +0.97ms
+x= +3.0 idle=5.0127 -> RESET | server: keepalive-timeout -10.75ms; drain_and_close(drained=0) +0.99ms
+x= +4.0 idle=5.0065 -> RESET | server: keepalive-timeout -3.45ms; drain_and_close(drained=0) +0.96ms
+x= -1.0 idle=5.0033 -> OK    | server: readable +0.94ms
+x= +0.0 idle=5.0039 -> OK    | server: readable +1.48ms
+x= +1.0 idle=5.0093 -> RESET | server: keepalive-timeout +0.65ms; drain_and_close(drained=0) +2.84ms
+x= +2.0 idle=5.0023 -> OK    | server: readable +0.86ms
+x= +3.0 idle=5.0095 -> RESET | server: keepalive-timeout +0.01ms; drain_and_close(drained=0) +0.95ms
+x= +4.0 idle=5.0070 -> RESET | server: keepalive-timeout -6.01ms; drain_and_close(drained=0) +0.93ms; drain_and_close(drained=0) +3.53ms
+
+# raw [KAI] lines around the ERR attempt
+ERR send_wall=1790528136.980338
+[KAI] keepalive-timeout sock=10 wall=1790528131.965576
+[KAI] drain_and_close sock=10 wall=1790528131.966099 drained=0
+[KAI] conn sock=10 local=7070 remote=50273 wall=1790528131.969100
+[KAI] served sock=10 wall=1790528131.970514 ret=1 closed=0
+[KAI] served sock=10 wall=1790528131.971560 ret=1 closed=0
+[KAI] keepalive-timeout sock=10 wall=1790528136.980996
+[KAI] drain_and_close sock=10 wall=1790528136.981214 drained=160
+[KAI] conn sock=10 local=7070 remote=50277 wall=1790528136.981800
+[KAI] served sock=10 wall=1790528136.981947 ret=1 closed=0
+
+# GET /api/state request size from requests 2.34.2 = 160 bytes (prepared headers: User-Agent, Accept-Encoding 'gzip, deflate, zstd', Accept, Connection)
+### row kai #1 13:02:33
+      d_return_hitch: peak_frame_time_ms while away 18.11, across the return 20.94 (fps 106.6)
+PY 1 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 13:02:54: load averages: 3.45 3.91 5.41; clang running: 0
+### row kai #2 13:02:54
+      d_return_hitch: peak_frame_time_ms while away 14.68, across the return 22.91 (fps 100.5)
+PY 1 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 13:03:15: load averages: 3.99 4.00 5.40; clang running: 0
+### row kai #3 13:03:15
+      d_return_hitch: peak_frame_time_ms while away 17.66, across the return 16.42 (fps 111.2)
+PY 1 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 13:03:35: load averages: 4.61 4.14 5.42; clang running: 0
+### row kai #4 13:03:35
+      d_return_hitch: peak_frame_time_ms while away 15.47, across the return 16.65 (fps 107.5)
+PY 1 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### lock released 13:03:56
+### DONE 13:03:56
