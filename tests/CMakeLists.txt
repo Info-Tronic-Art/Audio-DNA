@@ -2318,3 +2318,34 @@ target_link_libraries(test_output_law PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_output_law PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_output_law)
 catch_discover_tests(test_output_law)
+
+# --- test_source_defaults_gl (s-rta-0927 source-defects, plan-source-defects.md T2): every procedural source the
+# Tier-1 diagnosis found black draws a visible picture at its REGISTERED defaults (parsed from SourceRegistry.cpp /
+# EffectLibrary.cpp at test time) -- the shipped GLSL from EmbeddedShaders.h rendered offscreen in a private CGL
+# context, pixels decoded. No window. SKIPs loudly on a machine without a GL pixel format.
+if(APPLE)
+    add_executable(test_source_defaults_gl test_source_defaults_gl.cpp)
+    target_include_directories(test_source_defaults_gl PRIVATE ${SRC_DIR})
+    target_link_libraries(test_source_defaults_gl PRIVATE
+        Catch2::Catch2WithMain
+        juce::juce_core
+        juce::juce_opengl
+        "-framework OpenGL"
+    )
+    target_compile_definitions(test_source_defaults_gl PRIVATE
+        AUDIODNA_SRC_DIR="${SRC_DIR}"
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+        GL_SILENCE_DEPRECATION
+    )
+    if(NOT MSVC)
+        target_compile_options(test_source_defaults_gl PRIVATE
+            -Wno-old-style-cast
+            -Wno-conversion
+            -Wno-sign-conversion
+        )
+    endif()
+    apply_sanitizers(test_source_defaults_gl)
+    catch_discover_tests(test_source_defaults_gl)
+endif()

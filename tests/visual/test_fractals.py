@@ -65,9 +65,9 @@ MANDELBROT_PARAMS = [
 JULIA_PARAMS = [
     ("julia_set", "u_src_dive_speed", 0.0, 0.3, "Dive Speed"),
     ("julia_set", "u_src_location", 0.0, 0.5, "Location"),
-    ("julia_set", "u_src_cx", 0.5, 0.8, "C Real"),
-    ("julia_set", "u_src_cy", 0.5, 0.8, "C Imaginary"),
-    ("julia_set", "u_src_zoom", 0.0, 0.4, "Zoom"),
+    ("julia_set", "u_src_cx", 0.2, 0.8, "C Real"),
+    ("julia_set", "u_src_cy", 0.635, 0.8, "C Imaginary"),
+    ("julia_set", "u_src_zoom", 0.1, 0.4, "Zoom"),
     ("julia_set", "u_src_iterations", 0.3, 0.8, "Iterations"),
     ("julia_set", "u_src_color_speed", 0.3, 0.8, "Color Speed"),
     ("julia_set", "u_src_color_shift", 0.0, 0.5, "Color Shift"),
