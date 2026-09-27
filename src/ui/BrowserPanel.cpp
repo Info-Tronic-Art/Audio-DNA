@@ -106,7 +106,9 @@ void BrowserPanel::setEffectLibrary(EffectLibrary* lib)
 
 void BrowserPanel::setComposition(Composition* comp)
 {
-    compDecksBrowser_.setComposition(comp);
+    // plan6 §8: the Compositions tab no longer reads the model (its Save Deck button moved to the deck tab row, the
+    // only reader). Kept as the seam MainComponent calls -- no other tab takes the composition today.
+    juce::ignoreUnused(comp);
 }
 
 void BrowserPanel::refresh()

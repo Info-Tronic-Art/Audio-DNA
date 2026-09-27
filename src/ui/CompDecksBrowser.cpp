@@ -97,10 +97,8 @@ public:
                 {
                     if (event.mods.isRightButtonDown())
                     {
-                        // Right-click: delete
-                        auto& entry = owner_.compositions_[i];
-                        entry.file.deleteFile();
-                        owner_.refresh();
+                        // Right-click: the row menu (Open / Show in Finder / Delete...) -- plan6 §8.
+                        owner_.showRowMenu(false, static_cast<int>(i), event.getScreenPosition());
                     }
                     else if (owner_.onCompositionLoad)
                     {
@@ -130,9 +128,7 @@ public:
                 {
                     if (event.mods.isRightButtonDown())
                     {
-                        auto& entry = owner_.decks_[i];
-                        entry.file.deleteFile();
-                        owner_.refresh();
+                        owner_.showRowMenu(true, static_cast<int>(i), event.getScreenPosition());
                     }
                     else if (owner_.onDeckLoad)
                     {
@@ -179,24 +175,9 @@ CompDecksBrowser::CompDecksBrowser()
     addAndMakeVisible(viewport_);
 
     addAndMakeVisible(saveCompBtn_);
-    addAndMakeVisible(saveDeckBtn_);
 
     saveCompBtn_.onClick = [this] {
         if (onCompositionSave) onCompositionSave();
-    };
-
-    saveDeckBtn_.onClick = [this] {
-        // Save current deck as a standalone deck file
-        if (!composition_) return;
-        auto* deck = composition_->getActiveDeck();
-        if (!deck) return;
-
-        auto dir = getDecksDir();
-        dir.createDirectory();
-        auto file = dir.getChildFile(juce::String(deck->name) + ".json");
-        auto json = juce::JSON::toString(deck->toVar());
-        file.replaceWithText(json);
-        refresh();
     };
 
     scanForFiles();
@@ -213,9 +194,7 @@ void CompDecksBrowser::resized()
 
     // Button bar
     auto btnBar = area.removeFromTop(kButtonBarHeight);
-    int half = btnBar.getWidth() / 2;
-    saveCompBtn_.setBounds(btnBar.removeFromLeft(half).reduced(1));
-    saveDeckBtn_.setBounds(btnBar.reduced(1));
+    saveCompBtn_.setBounds(btnBar.reduced(1));
 
     area.removeFromTop(1);
     viewport_.setBounds(area);
@@ -231,6 +210,61 @@ void CompDecksBrowser::refresh()
         listContent_->updateSize();
         listContent_->repaint();
     }
+}
+
+void CompDecksBrowser::showRowMenu(bool decksSection, int row, juce::Point<int> screenPos)
+{
+    const auto& entries = decksSection ? decks_ : compositions_;
+    if (row < 0 || row >= static_cast<int>(entries.size()))
+        return;
+    const juce::File file = entries[static_cast<size_t>(row)].file;
+
+    juce::PopupMenu menu;
+    menu.addItem(1, decksSection ? "Open as New Deck" : "Open");
+    menu.addItem(2, "Show in Finder");
+    menu.addSeparator();
+    menu.addItem(3, "Delete...");
+    menu.showMenuAsync(juce::PopupMenu::Options()
+                           .withParentComponent(getTopLevelComponent())
+                           .withTargetScreenArea({ screenPos.x, screenPos.y, 1, 1 }),
+                       [this, decksSection, row, file](int result) {
+                           // Re-resolve: the list can refresh while the menu is open -- act only if the row
+                           // still names the same file.
+                           const auto& list = decksSection ? decks_ : compositions_;
+                           if (result <= 0 || row >= static_cast<int>(list.size())
+                               || list[static_cast<size_t>(row)].file != file)
+                               return;
+                           if (result == 1)
+                           {
+                               // The same callback the left-click uses.
+                               if (decksSection) { if (onDeckLoad) onDeckLoad(file); }
+                               else if (onCompositionLoad) onCompositionLoad(file);
+                           }
+                           else if (result == 2)
+                               file.revealToUser();
+                           else if (result == 3)
+                               confirmDelete(decksSection, row);
+                       });
+}
+
+void CompDecksBrowser::confirmDelete(bool decksSection, int row)
+{
+    const auto& entries = decksSection ? decks_ : compositions_;
+    if (row < 0 || row >= static_cast<int>(entries.size()))
+        return;
+    const juce::File file = entries[static_cast<size_t>(row)].file;
+    const juce::String name = entries[static_cast<size_t>(row)].name;
+
+    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::WarningIcon, "Delete from Library",
+        "Delete \"" + name + "\" from the library?\n\nThe file will be moved to the Trash.",
+        "Delete", "Cancel", this,
+        juce::ModalCallbackFunction::create([this, file](int result) {
+            if (result == 1)
+            {
+                file.moveToTrash();
+                refresh();
+            }
+        }));
 }
 
 void CompDecksBrowser::scanForFiles()
