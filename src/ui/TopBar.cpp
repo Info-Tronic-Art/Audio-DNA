@@ -1,5 +1,6 @@
 #include "TopBar.h"
 #include "connect/ConnClock.h"
+#include "sync/LinkSync.h"
 #include <cmath>
 
 TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
@@ -122,6 +123,15 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
         if (onLinkToggled)
             onLinkToggled(linkToggleBtn_.getToggleState());
     };
+    // s-rta-0926b bpm2: a default build (AUDIODNA_BUILD_LINK OFF) has no Link -- the toggle
+    // stays in place (same bounds) but is disabled and dimmed like the Record panel's
+    // disabled controls (0.4 alpha), and its tooltip says why.
+    if (!LinkSync::isAvailable())
+    {
+        linkToggleBtn_.setEnabled(false);
+        linkToggleBtn_.setAlpha(0.4f);
+        linkToggleBtn_.setTooltip("Ableton Link is not included in this build");
+    }
 
     bpmEditField_.setJustification(juce::Justification::centred);
     bpmEditField_.setFont(juce::Font(juce::FontOptions(14.0f)).boldened());
