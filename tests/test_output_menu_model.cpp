@@ -1,7 +1,7 @@
 // test_output_menu_model -- s-rta-0927 outputs-c2 = plan5 slice C2 (.harmony/.reports/s-rta-0926b/plan5-final.md
 // sections 5, 6, 7.3, 10.1): the ONE item list behind both doors to the output displays (the Output menu and the
 // TopBar "Outputs" button), the button text, the output keys, and the menu bar's Output menu built from the list.
-// outputs-c3 (plan5 C3) adds the Shift-up rule for Cmd+F / Cmd+` (Harmony ruling (b)).
+// outputs-c3 (plan5 C3) adds "Restore Last Outputs" and the Shift-up rule for Cmd+F / Cmd+` (Harmony ruling (b)).
 // Pure/headless: no window, no GL, no Desktop -- the code under test is src/output/OutputMenuModel.h (what
 // OutputManager::populateMenu and MainComponent::keyPressed run) and src/ui/MenuBarModel.cpp (case 6).
 #include <catch2/catch_test_macros.hpp>
@@ -180,6 +180,67 @@ TEST_CASE("the menu bar's Output menu is built from the item list (All Outputs O
     CHECK(static_cast<int>(C::kOutputFullscreenBase) == 1601);
     CHECK(static_cast<int>(C::kOutputWindowed) == 1690);
     CHECK(static_cast<int>(C::kOutputSyphon) == 1696);
+}
+
+TEST_CASE("Restore Last Outputs (plan5 C3): right below All Outputs Off, enabled iff restoring would open an output",
+          "[output_menu_model]")
+{
+    // Its id is APPENDED after the last existing Output id: no existing id moves.
+    CHECK(static_cast<int>(C::kOutputRestoreLast) == static_cast<int>(C::kOutputSyphon) + 1);
+    CHECK(static_cast<int>(C::kOutputRestoreLast) == 1697);
+    CHECK(static_cast<int>(C::kOutputRestoreLast) < static_cast<int>(C::kShortcutsEditKeyboard));
+
+    SECTION("something to restore -> enabled, never ticked, no shortcut")
+    {
+        const auto items = output::buildOutputMenu({ kLaptop, kProjector }, {}, 0, C::kOutputFullscreenBase,
+                                                   C::kOutputDisabled, C::kOutputRestoreLast, true);
+        REQUIRE(items.size() == 4);
+        CHECK(items[2].label == "All Outputs Off");
+        CHECK(items[3].label == "Restore Last Outputs");
+        CHECK(items[3].id == C::kOutputRestoreLast);
+        CHECK(items[3].enabled);
+        CHECK_FALSE(items[3].ticked);
+        CHECK(items[3].shortcut.isEmpty());
+    }
+
+    SECTION("nothing to restore (an empty or absent saved set, or none of its displays free) -> disabled")
+    {
+        const auto items = output::buildOutputMenu({ kLaptop, kProjector }, { false, true }, 1, C::kOutputFullscreenBase,
+                                                   C::kOutputDisabled, C::kOutputRestoreLast, false);
+        REQUIRE(items.size() == 4);
+        CHECK(items[3].label == "Restore Last Outputs");
+        CHECK_FALSE(items[3].enabled);
+        CHECK(items[2].enabled);   // All Outputs Off keeps its own rule
+    }
+
+    SECTION("both doors: the PopupMenu has it right below All Outputs Off, and so does the menu bar's Output menu")
+    {
+        juce::ScopedJuceInitialiser_GUI gui;
+        const auto items = output::buildOutputMenu({ kLaptop, kProjector, kTv }, { false, true, false }, 1,
+                                                   C::kOutputFullscreenBase, C::kOutputDisabled,
+                                                   C::kOutputRestoreLast, false);
+        juce::PopupMenu menu;
+        output::addOutputMenuItems(menu, items, C::kOutputDisabled);
+        const auto f = flatten(menu);
+        REQUIRE(f.size() == 6);   // three displays, a separator, All Outputs Off, Restore Last Outputs
+        CHECK(f[3].separator);
+        CHECK(f[4].text == "All Outputs Off");
+        CHECK(f[5].text == "Restore Last Outputs");
+        CHECK(f[5].id == C::kOutputRestoreLast);
+        CHECK_FALSE(f[5].enabled);
+
+        AudioDNAMenuBar bar;
+        bar.populateOutputItems = [&items](juce::PopupMenu& m) { output::addOutputMenuItems(m, items, C::kOutputDisabled); };
+        std::vector<Flat> bi;
+        for (const auto& x : flatten(bar.getMenuForIndex(6, "Output")))
+            if (!x.separator)
+                bi.push_back(x);
+        REQUIRE(bi.size() == 9);
+        CHECK(bi[3].text == "All Outputs Off");
+        CHECK(bi[4].text == "Restore Last Outputs");
+        CHECK(bi[5].text == "Snapshot");
+        CHECK(bi[8].text == "Syphon Output");
+    }
 }
 
 TEST_CASE("the output keys (plan5 7.2-7.3), from KeyPress descriptions -- no key is ever pressed",

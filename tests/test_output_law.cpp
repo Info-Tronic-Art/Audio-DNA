@@ -11,6 +11,8 @@
 // From plan5 C2 (s-rta-0927 outputs-c2) the law also covers src/output/OutputManager.{h,cpp}, the one owner of the
 // output windows: it never raises, focuses, floats or shows a window itself (only OutputWindow::openOnDisplay shows
 // one, bounds first), and no deck/composition file's "outputDisplay" reaches the output code (plan5 R7).
+// From plan5 C3 (s-rta-0927 outputs-c3): nothing opens an output at launch -- the saved set opens only through the
+// "Restore Last Outputs" menu case (plan5 Q1).
 // The files are read at test time from AUDIODNA_SRC_DIR; comments and string literals are stripped and all
 // whitespace removed before matching, so a comment that NAMES a forbidden call is not a violation and
 // "toFront (true)" is.
@@ -224,5 +226,58 @@ TEST_CASE("output law: no deck or composition file reaches the output code (outp
     {
         INFO("src/" << rel << " must never read `outputDisplay` (comments excluded, string literals included)");
         CHECK(codeWithStrings(readFile(rel)).find("outputDisplay") == std::string::npos);
+    }
+}
+
+// ---- plan5 C3 (s-rta-0927 outputs-c3): hot-plug + the saved output set ----
+
+namespace
+{
+// The body (braces included) of the first definition `sig` in whitespace-free code, or "" if there is none.
+std::string functionBody(const std::string& code, const std::string& sig)
+{
+    const size_t at = code.find(sig);
+    const size_t open = at == std::string::npos ? std::string::npos : code.find('{', at);
+    if (open == std::string::npos)
+        return {};
+    int depth = 0;
+    size_t i = open;
+    for (; i < code.size(); ++i)
+    {
+        if (code[i] == '{') ++depth;
+        else if (code[i] == '}' && --depth == 0) break;
+    }
+    return code.substr(open, i - open + 1);
+}
+} // namespace
+
+TEST_CASE("output law: nothing opens an output at launch -- Restore Last Outputs is the saved set's only door (plan5 Q1)",
+          "[output_law]")
+{
+    // MainComponent calls OutputManager::restoreLast() exactly once, as the first statement of the
+    // kOutputRestoreLast menu case (the Output menu / TopBar item), never at startup or on a file load.
+    const std::string mc = codeOnly(readFile("MainComponent.cpp"));
+    const std::string call = "outputs_.restoreLast(";
+    size_t calls = 0;
+    for (size_t p = mc.find(call); p != std::string::npos; p = mc.find(call, p + 1))
+        ++calls;
+    INFO("src/MainComponent.cpp must call outputs_.restoreLast( exactly once, in `case C::kOutputRestoreLast:`");
+    REQUIRE(calls == 1);
+    const size_t at = mc.find(call);
+    const std::string label = "caseC::kOutputRestoreLast:";
+    const size_t caseAt = mc.rfind(label, at);
+    REQUIRE(caseAt != std::string::npos);
+    CHECK(mc.substr(caseAt + label.size(), at - caseAt - label.size()).empty());
+
+    // OutputManager's constructor and attachSettings() (which loads the saved set) never open a window.
+    const std::string om = codeOnly(readFile("output/OutputManager.cpp"));
+    for (const char* sig : { "OutputManager::OutputManager(", "OutputManager::attachSettings(" })
+    {
+        const std::string body = functionBody(om, sig);
+        INFO(sig << " body: " << body);
+        REQUIRE_FALSE(body.empty());
+        for (const char* opener : { "openWindow(", "openDisplay(", "toggleDisplay(", "restoreLast(", "reconcile(",
+                                    "openOnDisplay(" })
+            CHECK(body.find(opener) == std::string::npos);
     }
 }

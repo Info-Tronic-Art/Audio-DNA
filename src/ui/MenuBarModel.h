@@ -99,6 +99,7 @@ public:
         kOutputStartRecording,
         kOutputStopRecording,
         kOutputSyphon,          // Toggle Syphon output publishing
+        kOutputRestoreLast,     // "Restore Last Outputs" (plan5 C3): APPENDED, so no existing id moves
 
         // Shortcuts menu
         kShortcutsEditKeyboard = 1700,
@@ -137,8 +138,9 @@ public:
     std::function<bool()> isSyphonOutputEnabled;
 
     // Fills the top of the Output menu: one tickable item per connected display, then "All Outputs Off"
-    // (s-rta-0927 outputs-c2 = plan5 C2). MainComponent wires it to OutputManager::populateMenu -- the SAME item
-    // list the TopBar "Outputs" button shows (src/output/OutputMenuModel.h). Read each time the menu opens.
+    // (s-rta-0927 outputs-c2 = plan5 C2), then "Restore Last Outputs" (outputs-c3 = C3). MainComponent wires it to
+    // OutputManager::populateMenu -- the SAME item list the TopBar "Outputs" button shows
+    // (src/output/OutputMenuModel.h). Read each time the menu opens.
     std::function<void(juce::PopupMenu&)> populateOutputItems;
 
     // Returns whether the Clip menu's selection-dependent items (Clear,

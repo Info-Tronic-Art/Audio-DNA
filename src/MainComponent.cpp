@@ -1779,6 +1779,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // plan5 C2: the Output menu's display items + "All Outputs Off" are OutputManager's item list; a change in the
     // live outputs relabels the TopBar button and rebuilds the native menu (the ticks).
     menuBarModel_->populateOutputItems = [this](juce::PopupMenu& m) { outputs_.populateMenu(m); };
+    // plan5 C3: the saved output set is LOADED here (settings.json "outputs") -- it opens nothing: the app never
+    // opens an output at launch or on a composition/deck load; only Output > Restore Last Outputs does (Q1).
+    outputs_.attachSettings(appSettingsFile(testMode_));
     outputs_.onLiveCountChanged = [this](int liveCount) {
         if (topBar_) topBar_->setLiveOutputCount(liveCount);
         if (menuBarModel_) menuBarModel_->menuItemsChanged();
@@ -3673,6 +3676,10 @@ void MainComponent::tickFeaturePipeline()
 
 void MainComponent::timerCallback()
 {
+    // plan5 C3: the hot-plug backstop, on EVERY tick (30 Hz) -- reconciles the outputs only when the display list
+    // differs from the last one seen; otherwise a cached comparison, nothing else.
+    outputs_.pollDisplays();
+
     // Update FPS/CPU labels at ~4Hz (every 8th call at 30Hz)
     if (++uiUpdateCounter_ >= 8)
     {
@@ -6568,6 +6575,9 @@ void MainComponent::handleMenuCommand(int commandId)
         // --- Output menu ---
         case C::kOutputDisabled:   // "All Outputs Off" (plan5 C2)
             outputs_.closeAll();
+            break;
+        case C::kOutputRestoreLast:   // "Restore Last Outputs" (plan5 C3) -- the ONLY way the saved set opens
+            outputs_.restoreLast();
             break;
         case C::kOutputSnapshot:
         {

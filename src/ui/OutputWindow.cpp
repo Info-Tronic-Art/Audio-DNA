@@ -96,6 +96,13 @@ void OutputWindow::closeButtonPressed()
         onCloseRequested();
 }
 
+void OutputWindow::parentSizeChanged()
+{
+    DocumentWindow::parentSizeChanged();
+    if (onDisplaysChanged)
+        onDisplaysChanged();
+}
+
 void OutputWindow::resized()
 {
     DocumentWindow::resized();

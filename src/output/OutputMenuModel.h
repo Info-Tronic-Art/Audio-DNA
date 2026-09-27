@@ -30,14 +30,19 @@ inline juce::String displayLabel(int index, const DisplayInfo& d)
 
 inline const char* allOutputsOffLabel() { return "All Outputs Off"; }
 inline const char* allOutputsOffShortcut() { return "Cmd+Shift+Esc"; }
+inline const char* restoreLastOutputsLabel() { return "Restore Last Outputs"; }
 
 // One tickable item per connected display (tick = an output is live on it; id = fullscreenBase + index), then
 // "All Outputs Off" (id = allOffId). `live` may be shorter than `displays` (missing entries read as not live).
 // "All Outputs Off" is enabled iff any output window is live: a ticked display OR liveWindows > 0 -- the
-// window count, because a window whose display went away (no reconcile before plan5 C3) ticks no item but
-// must still be closable from the panic item.
+// window count, so a window is always closable from the panic item even in the instant between a display change
+// and the reconcile that follows it (plan5 C3).
+// With restoreId != 0 (plan5 C3) the list ends with "Restore Last Outputs" (id = restoreId), enabled iff restoring
+// would open at least one output now (canRestore) -- greyed out when the saved set is empty or none of its displays
+// is connected and free.
 inline std::vector<OutputMenuItem> buildOutputMenu(const std::vector<DisplayInfo>& displays, const std::vector<bool>& live,
-                                                   int liveWindows, int fullscreenBase, int allOffId)
+                                                   int liveWindows, int fullscreenBase, int allOffId,
+                                                   int restoreId = 0, bool canRestore = false)
 {
     std::vector<OutputMenuItem> items;
     bool anyLive = liveWindows > 0;
@@ -48,10 +53,13 @@ inline std::vector<OutputMenuItem> buildOutputMenu(const std::vector<DisplayInfo
         items.push_back({ displayLabel(static_cast<int>(i), displays[i]), fullscreenBase + static_cast<int>(i), on, true, {} });
     }
     items.push_back({ allOutputsOffLabel(), allOffId, false, anyLive, allOutputsOffShortcut() });
+    if (restoreId != 0)
+        items.push_back({ restoreLastOutputsLabel(), restoreId, false, canRestore, {} });
     return items;
 }
 
-// The items into a PopupMenu (both doors): the display items, a separator, then "All Outputs Off".
+// The items into a PopupMenu (both doors): the display items, a separator, then "All Outputs Off" (and, from C3,
+// "Restore Last Outputs" right below it).
 inline void addOutputMenuItems(juce::PopupMenu& menu, const std::vector<OutputMenuItem>& items, int allOffId)
 {
     for (const auto& it : items)
