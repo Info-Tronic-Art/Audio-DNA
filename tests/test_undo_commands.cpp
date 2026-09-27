@@ -9,6 +9,7 @@
 #include "core/TriggerCommands.h"
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
+#include "render/LayerStateKey.h"
 #include <optional>
 #include <random>
 
@@ -1489,7 +1490,9 @@ TEST_CASE("AddDeckCmd: add appends + activates, undo removes, redo restores same
     REQUIRE(static_cast<int>(comp.decks.size()) == before + 1);
     REQUIRE(comp.activeDeckIndex == before);            // new deck is active
     REQUIRE(comp.decks[1].name == "Deck 2");            // faithful to kDeckNew naming
-    REQUIRE(comp.decks[1].getNumLayers() == 0);         // kDeckNew: no initDefault → no layers
+    // plan6 §3 E1 (deliberate behaviour change): New Deck now arrives initDefault()ed —
+    // a zero-layer deck cannot be saved and loaded back (compload::validateDeck refuses it).
+    REQUIRE(comp.decks[1].getNumLayers() == Deck::kDefaultLayers);
     REQUIRE(mgr.undoDescription() == "Add Deck");
     const Deck expected = comp.decks[1];               // capture for redo compare
 
@@ -1501,6 +1504,30 @@ TEST_CASE("AddDeckCmd: add appends + activates, undo removes, redo restores same
     REQUIRE(static_cast<int>(comp.decks.size()) == before + 1);
     REQUIRE(comp.activeDeckIndex == before);
     REQUIRE(comp.decks[1] == expected);                // redo re-inserts the SAME deck
+}
+
+// plan6 §3 E1 (F1): every deck-creating path mints a unique deck id. Before this, New
+// Deck left every added deck at id 0, and LayerStateKey keys per-layer GL history by
+// (deckId, layerId) — two decks sharing an id aliased each other's temporal buffers.
+TEST_CASE("AddDeckCmd: the new deck gets an id no existing deck holds; redo keeps it; a second add differs", "[undo][deck][ids]")
+{
+    Composition comp = makeComp();          // 1 deck, id 0
+    UndoManager mgr;
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.decks[1].id != comp.decks[0].id);
+    REQUIRE(LayerStateKey::clipChain(comp.decks[0].id, 0) != LayerStateKey::clipChain(comp.decks[1].id, 0));
+
+    const auto id1 = comp.decks[1].id;
+    mgr.undo();
+    mgr.redo();
+    REQUIRE(comp.decks[1].id == id1);       // redo re-inserts the captured deck, minted id included
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.decks[2].id != id1);
+    REQUIRE(comp.decks[2].id != comp.decks[0].id);
 }
 
 // ---------------------------------------------------------------------------

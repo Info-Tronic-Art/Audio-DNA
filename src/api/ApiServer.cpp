@@ -352,6 +352,7 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
         auto& deck = composition_.decks[di];
         auto* deckObj = new juce::DynamicObject();
         deckObj->setProperty("name", juce::String(deck.name));
+        deckObj->setProperty("id", static_cast<int>(deck.id));
         deckObj->setProperty("numLayers", static_cast<int>(deck.layers.size()));
         deckObj->setProperty("numColumns", deck.numColumns);
 

@@ -1070,3 +1070,43 @@ TEST_CASE("UndoManager caps history at kMaxHistory (100)", "[undo][cap]")
     // Undoing #51 last restores value to its before-state (50).
     REQUIRE(value == 50);
 }
+
+// plan6 §3 E2 (F1): a file saved by a build whose New Deck left every deck at id 0 carries
+// DUPLICATE deck ids; LayerStateKey keys per-layer GL history by (deckId, layerId), so two
+// decks sharing an id alias each other's temporal buffers. fromVar re-mints every repeat
+// (the first holder keeps its id) and leaves distinct ids untouched.
+TEST_CASE("Composition::fromVar re-mints duplicate deck ids", "[composition][serialization][ids]")
+{
+    Composition source;
+    source.initDefault();
+    juce::var v = source.toVar();
+
+    juce::Array<juce::var> deckArray;
+    const char* names[] = { "A", "B", "C" };
+    const uint32_t ids[] = { 0u, 0u, 7u };
+    for (int i = 0; i < 3; ++i)
+    {
+        Deck deck;
+        deck.name = names[i];
+        deck.id = ids[i];
+        deck.initDefault();
+        deckArray.add(deck.toVar());
+    }
+    v.getDynamicObject()->setProperty("decks", deckArray);
+
+    Composition comp;
+    comp.fromVar(v);
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.decks[0].id != comp.decks[1].id);
+    REQUIRE(comp.decks[0].id != comp.decks[2].id);
+    REQUIRE(comp.decks[1].id != comp.decks[2].id);
+    REQUIRE(comp.decks[0].id == 0u);        // the first holder keeps its id
+    REQUIRE(comp.decks[2].id == 7u);        // a distinct id is untouched
+    REQUIRE(comp.decks[1].id >= 100u);      // the repeat is re-minted from the mint
+
+    comp.addDeck();
+    REQUIRE(comp.decks.size() == 4);
+    REQUIRE(comp.decks[3].id != comp.decks[0].id);
+    REQUIRE(comp.decks[3].id != comp.decks[1].id);
+    REQUIRE(comp.decks[3].id != comp.decks[2].id);
+}

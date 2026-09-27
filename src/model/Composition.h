@@ -557,6 +557,20 @@ struct Composition
             for (const auto& deck : decks)
                 nextDeckId_ = std::max(nextDeckId_, deck.id + 1u);
 
+            // F1 (s-rta-0926b plan6): a file saved by a build whose New Deck left every deck at id 0 carries
+            // DUPLICATE deck ids; LayerStateKey keys per-layer GL history by (deckId, layerId), so two decks sharing an id
+            // alias each other's temporal buffers. Re-mint any repeat (the bump above already put nextDeckId_ past every
+            // loaded id).
+            {
+                std::vector<uint32_t> seen;
+                for (auto& deck : decks)
+                {
+                    if (std::find(seen.begin(), seen.end(), deck.id) != seen.end())
+                        deck.id = nextDeckId_++;
+                    seen.push_back(deck.id);
+                }
+            }
+
             globalEffects.clear();
             if (auto* fxArray = obj->getProperty("globalEffects").getArray())
             {

@@ -671,13 +671,16 @@ using CompositionResolver = std::function<Composition*()>;
 // re-points through this lightweight hook instead.
 using DeckActivateHook = std::function<void()>;
 
-// AddDeckCmd: deck new (#21) — faithfully replicates the kDeckNew handler, which
-// appends a RAW default Deck (name "Deck N"; NO Deck::initDefault(), so the new
-// deck has ZERO layers; NOT Composition::addDeck(), so nextDeckId_ is untouched
-// and id stays 0) and makes it the active deck. Command-owns-the-mutation (like
-// AddLayerCmd): the handler does NOT pre-mutate; perform() runs the single fenced
-// mutation, because push_back is non-idempotent. The appended deck is captured on
-// first execute so redo re-inserts the EXACT same deck. GL fence: push_back can
+// AddDeckCmd: deck new (#21) — builds a deck named "Deck N", initDefault()s it
+// (3 layers x 12 columns, like Composition::addDeck — a zero-layer deck cannot be
+// saved and loaded back, compload::validateDeck refuses it) and appends it via
+// Composition::appendDeck, which mints a fresh deck id from nextDeckId_ (plan6 F1:
+// LayerStateKey keys per-layer GL history by (deckId, layerId), so an id shared
+// by two decks aliases their temporal buffers), then makes it the active deck.
+// Command-owns-the-mutation (like AddLayerCmd): the handler does NOT pre-mutate;
+// perform() runs the single fenced mutation, because push_back is
+// non-idempotent. The appended deck (minted id included) is captured on first
+// execute so redo re-inserts the EXACT same deck. GL fence: push_back can
 // reallocate composition->decks, and the renderer's activeDeck_ points at an
 // element — withDeckDetached fences the GL thread AND re-points activeDeck_ by
 // re-resolving getActiveDeck() after the mutation (so the renderer follows the
@@ -727,14 +730,14 @@ public:
             }
             else
             {
-                // first do: replicate kDeckNew exactly (raw default Deck, name
-                // "Deck N", no initDefault → no layers; becomes active).
+                // first do: "Deck N", initDefault() (3 layers), appended under a
+                // freshly minted id (appendDeck); becomes active.
                 priorActiveIndex_ = comp->activeDeckIndex;
                 Deck newDeck;
                 newDeck.name = "Deck " + std::to_string(comp->decks.size() + 1);
-                comp->decks.push_back(std::move(newDeck));
-                addedIndex_ = static_cast<int>(comp->decks.size()) - 1;
-                added_ = comp->decks.back();               // capture for redo
+                newDeck.initDefault();                     // 3 layers x 12 columns, like Composition::addDeck
+                addedIndex_ = comp->appendDeck(std::move(newDeck));   // mints deck.id (never 0), push_back
+                added_ = comp->decks.back();               // redo re-inserts THIS deck, minted id included
 
                 // L5 Quantize follow-on: cancel any pending trigger on the deck
                 // being deactivated by this add, BEFORE switching away from it —
