@@ -14,7 +14,8 @@
 # `playing` lane point (routines-1a carried concern (a)).
 #
 # Mechanics copied from probe-step3.sh (helpers, `open -g` launch, graceful osascript quit,
-# Quartz 0-Output-window witness, 'MacOS/Audio-DN[A]') and probe-mastersignal.sh (pixel oracle:
+# Quartz 0-Output-window witness, adna_pids/adna_running/adna_kill (ucomm-based)) and
+# probe-mastersignal.sh (pixel oracle:
 # decode with PIL+numpy, non-blank first, mean-absolute-difference thresholds, never md5).
 # Production mode, port 7070, NO --test-mode. No audio device needed: POST /api/set_bpm puts the
 # tracker in manual LOCKED mode with a predicted phase (a bar = 2.0 s at 120 BPM) and the take is
@@ -38,8 +39,31 @@
 #
 # SCREEN-SAFETY LAW: launches the real app with `open -g` only, never opens the Output window (no
 # endpoint used here reaches it), never a full-screen capture; graceful osascript quit first,
-# pkill only as the last resort. The caller holds the live lock (/tmp/audiodna-live.lock).
+# pkill only as the last resort. The caller holds the live lock (/tmp/audiodna-live.lock, now enforced -- see PROBE RIG GATE below).
+# PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
+# /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
+# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
+# exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
+# exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
+# -o argument is ".../MacOS/Audio-DNA" has REAL ucomm clang/ld, never matched (the old `pgrep -f`
+# substring match DID match it -- that was the bug); (2) a process that spoofs argv[0] via
+# `exec -a .../MacOS/Audio-DNA <cmd>` still has the REAL exec'd command's ucomm (e.g. "sleep"), also
+# never matched -- `pgrep -x` alone is NOT enough here, since macOS pgrep without -f still matches
+# on the (spoofable) comm/argv[0] field, not on ucomm.
 set -u
+# --- live-lock gate: refuse unless the caller holds /tmp/audiodna-live.lock (rig rule) ---
+LOCK_OWNER_FILE=/tmp/audiodna-live.lock/owner
+[ -f "$LOCK_OWNER_FILE" ] || { echo "REFUSE: no live lock held -- mkdir /tmp/audiodna-live.lock && echo \"<lane> \$\$ \$(date +%s)\" > $LOCK_OWNER_FILE first"; exit 64; }
+if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
+  LOCK_OWNER="$(cut -d' ' -f1 "$LOCK_OWNER_FILE" 2>/dev/null)"
+  [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
+fi
+# adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
+adna_running() { [ -n "$(adna_pids)" ]; }
+adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT_BASE="${1:-/tmp/audiodna-routines}"
 OUT="$OUT_BASE/run-$(date +%Y%m%d-%H%M%S)-$$"
 mkdir -p "$OUT"
@@ -389,7 +413,7 @@ now(){ perl -MTime::HiRes=time -e 'printf "%.3f", time'; }
 since(){ perl -e "printf '%.3f', $(now) - $1"; }
 
 # --- 0. preconditions --------------------------------------------------------
-pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set ROUTINES_APP or ROUTINES_BUILD_DIR)"; exit 64; }
 [ -x "$PXPY" ] || { echo "REFUSE: no python at $PXPY with PIL+numpy (set ROUTINES_PY)"; exit 64; }
 "$PXPY" -c "import PIL, numpy" >/dev/null 2>&1 || { echo "REFUSE: $PXPY lacks PIL and/or numpy"; exit 64; }
@@ -404,7 +428,7 @@ echo "(artifacts: $OUT)"
 open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" "$APPBUNDLE"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (first launch after a rebuild may need the microphone permission allowed once -- do NOT full-screen capture to check)"; exit 1; }
-PID="$(pgrep -f 'MacOS/Audio-DN[A]' | head -1)"
+PID="$(adna_pids | head -1)"
 [ -n "$PID" ] && ok "app launched via open -g, /api/health answered, PID=$PID" || { echo "FAIL: no Audio-DNA process"; exit 1; }
 
 ST_OK="$(rstat "d.get('ok')")"
@@ -593,13 +617,13 @@ fi
 
 # --- 12. teardown (SCREEN-SAFETY LAW) ---------------------------------------------------
 osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
-if pgrep -f 'MacOS/Audio-DN[A]' >/dev/null; then
+for _ in $(seq 1 30); do adna_running || break; sleep 1; done
+if adna_running; then
     echo "graceful quit did not clear the process within 30 s -- pkill (last resort)"
-    pkill -f 'MacOS/Audio-DN[A]' >/dev/null 2>&1
-    for _ in $(seq 1 20); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
+    adna_kill
+    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
 fi
-pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && no "APP STILL RUNNING after quit + pkill" || ok "app terminated, no process remains"
+adna_running && no "APP STILL RUNNING after quit + pkill" || ok "app terminated, no process remains"
 W="$("$PXPY" -c "
 import Quartz
 wl = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionAll, Quartz.kCGNullWindowID)

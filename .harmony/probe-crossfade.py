@@ -112,16 +112,32 @@ def trig(col):
 
 
 def cap(name):
-    """render_frame into the fresh dir; returns the decoded RGBA float array, or None (and a FAIL)."""
+    """render_frame into the fresh dir. Deletes any pre-existing file at p first, then requires the
+    response's ok:true, the file to exist, AND its mtime to be at/after the request -- never decode a
+    PNG this call did not write (probe hygiene: notebook.md s-rta-0926, "a render probe must check
+    render_frame's JSON response and delete old PNGs first"; ported from probe-effects-parity.py's
+    cap(), probehygiene lane commit 4f9e78d). Returns the decoded RGBA float array, or None (and a
+    FAIL) on any failure."""
     p = os.path.join(OUT, name + ".png")
+    if os.path.exists(p):
+        os.remove(p)
+    t0 = time.time()
     try:
         r = requests.post(A + "/api/render_frame", json={"output_path": p}, timeout=20)
         body = r.json()
     except Exception as e:  # noqa: BLE001 -- any transport/JSON failure is a failed capture
         no(f"render_frame {name}: {e}")
         return None
-    if not body.get("ok") or not os.path.isfile(p):
+    if not body.get("ok"):
         no(f"render_frame {name}: response {body}")
+        return None
+    if not os.path.isfile(p):
+        no(f"render_frame {name}: ok:true but no file written at {p}")
+        return None
+    mt = os.path.getmtime(p)
+    if mt < t0 - 0.01:
+        no(f"render_frame {name}: ok:true but {p} mtime {mt:.3f} predates the request {t0:.3f} "
+           f"(stale file from a previous run -- never decoded)")
         return None
     return np.asarray(Image.open(p).convert("RGBA")).astype(float)
 

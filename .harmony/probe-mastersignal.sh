@@ -54,10 +54,8 @@
 #     if /api/health never answers, this is surfaced as a FAIL with that
 #     hint; per the SCREEN-SAFETY LAW below this script does NOT
 #     screencapture to check (that would be a full-screen capture).
-#   * SELF-MATCH: `pgrep -f 'MacOS/Audio-DNA'` matches ITS OWN argv, which
-#     breaks any "wait until gone" loop -- every pgrep/pkill pattern in this
-#     file uses the bracket trick 'MacOS/Audio-DN[A]' (rig rule, this
-#     dispatch's builder packet; also probe-step3.sh's convention).
+#   * EXACT-MATCH (probehygiene2): every pgrep/pkill below is adna_pids/adna_running/adna_kill
+#     (ucomm-based, immune to argv[0] spoofing) -- see the PROBE RIG GATE note below.
 #   * Hue Shift declares only u_texture + u_hue_shift (EmbeddedShaders.h,
 #     VERIFIED via EffectLibrary.cpp "Hue Shift" registration) -- no
 #     u_time, so a frozen param IS a static frame (no confound from time-
@@ -93,7 +91,30 @@
 # pattern as probe-step3.sh's teardown. The Output-window check (Quartz
 # CGWindowList, filtered on the "Audio-DNA Output" title, never the app's
 # own expected main window) runs at the very end, before the final tally.
+# PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
+# /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
+# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
+# exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
+# exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
+# -o argument is ".../MacOS/Audio-DNA" has REAL ucomm clang/ld, never matched (the old `pgrep -f`
+# substring match DID match it -- that was the bug); (2) a process that spoofs argv[0] via
+# `exec -a .../MacOS/Audio-DNA <cmd>` still has the REAL exec'd command's ucomm (e.g. "sleep"), also
+# never matched -- `pgrep -x` alone is NOT enough here, since macOS pgrep without -f still matches
+# on the (spoofable) comm/argv[0] field, not on ucomm.
 set -u
+# --- live-lock gate: refuse unless the caller holds /tmp/audiodna-live.lock (rig rule) ---
+LOCK_OWNER_FILE=/tmp/audiodna-live.lock/owner
+[ -f "$LOCK_OWNER_FILE" ] || { echo "REFUSE: no live lock held -- mkdir /tmp/audiodna-live.lock && echo \"<lane> \$\$ \$(date +%s)\" > $LOCK_OWNER_FILE first"; exit 64; }
+if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
+  LOCK_OWNER="$(cut -d' ' -f1 "$LOCK_OWNER_FILE" 2>/dev/null)"
+  [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
+fi
+# adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
+adna_running() { [ -n "$(adna_pids)" ]; }
+adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT="${1:-/tmp/audiodna-mastersignal}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="${MS_BUILD_DIR:-build}"
@@ -242,7 +263,7 @@ sample_clip_scale(){
 }
 
 # --- preconditions -------------------------------------------------------
-pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set MS_BUILD_DIR to override the build dir name)"; exit 64; }
 [ -x "$PXPY" ] || { echo "REFUSE: no python venv at $PXPY (needed for the PIL+numpy pixel oracle) -- python3 -m venv .venv && .venv/bin/pip install pillow numpy"; exit 64; }
 "$PXPY" -c "import PIL, numpy" >/dev/null 2>&1 || { echo "REFUSE: $PXPY lacks PIL and/or numpy -- .venv/bin/pip install pillow numpy"; exit 64; }
@@ -253,7 +274,7 @@ pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance
 open -g --stdout /tmp/adna-mastersignal-out.log --stderr /tmp/adna-mastersignal-err.log "$APPBUNDLE"
 for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (a production launch needs the mic-permission prompt clicked once -- do NOT full-screen screencapture to check; re-run after clicking Allow once)"; exit 1; }
-PID="$(pgrep -f 'MacOS/Audio-DN[A]' | head -1)"
+PID="$(adna_pids | head -1)"
 [ -n "$PID" ] || { echo "FAIL: health answered but no Audio-DNA process was found"; exit 1; }
 ok "app launched via open -g, /api/health answered, PID=$PID"
 
@@ -473,13 +494,13 @@ set_master_signal 1.0 >/dev/null
 # pattern as probe-step3.sh's teardown.
 # ---------------------------------------------------------------------------
 osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-for _ in $(seq 1 30); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
-if pgrep -f 'MacOS/Audio-DN[A]' >/dev/null; then
+for _ in $(seq 1 30); do adna_running || break; sleep 1; done
+if adna_running; then
     echo "graceful osascript quit did not clear the process -- falling back to pkill (last resort)"
-    pkill -f 'MacOS/Audio-DN[A]' >/dev/null 2>&1
-    for _ in $(seq 1 20); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
+    adna_kill
+    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
 fi
-pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
+adna_running && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
 
 # Screen-safety: confirm the OUTPUT window specifically was never opened.
 # Same filter as probe-lane3.sh/probe-step3.sh (the app's own normal main

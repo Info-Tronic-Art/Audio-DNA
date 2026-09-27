@@ -161,17 +161,33 @@ def switch(d):
 
 
 def cap(name, size=None):
+    """render_frame into the fresh dir. Deletes any pre-existing file at p first, then requires the
+    response's ok:true, the file to exist, AND its mtime to be at/after the request -- never decode a
+    PNG this call did not write (probe hygiene: notebook.md s-rta-0926, "a render probe must check
+    render_frame's JSON response and delete old PNGs first"; ported from probe-effects-parity.py's
+    cap(), probehygiene lane commit 4f9e78d)."""
     p = os.path.join(OUT, name + ".png")
+    if os.path.exists(p):
+        os.remove(p)
     req = {"output_path": p}
     if size:
         req.update(width=int(size[0]), height=int(size[1]))
+    t0 = time.time()
     try:
         body = S.post(A + "/api/render_frame", json=req, timeout=20).json()
     except Exception as e:  # noqa: BLE001 -- any transport/JSON failure is a failed capture
         no(f"render_frame {name}: {e}")
         return None
-    if not body.get("ok") or not os.path.isfile(p):
+    if not body.get("ok"):
         no(f"render_frame {name}: response {body}")
+        return None
+    if not os.path.isfile(p):
+        no(f"render_frame {name}: ok:true but no file written at {p}")
+        return None
+    mt = os.path.getmtime(p)
+    if mt < t0 - 0.01:
+        no(f"render_frame {name}: ok:true but {p} mtime {mt:.3f} predates the request {t0:.3f} "
+           f"(stale file from a previous run -- never decoded)")
         return None
     return decode(p)
 
