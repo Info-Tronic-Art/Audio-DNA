@@ -100,6 +100,12 @@ IMG_B = FIX["imageB"].replace("@MEDIA@", MEDIA)
 TOL = float(FIX["tol"])
 PASS = FAIL = 0
 S = requests.Session()
+# One fresh connection per request, never a pooled keep-alive one (s-rta-0927 c1-state-fix). The app's cpp-httplib
+# server closes a connection idle for 5 s (CPPHTTPLIB_KEEPALIVE_TIMEOUT_SECOND) -- shutdown, then it drains and
+# DISCARDS whatever request arrives in that instant. A reused connection can then fail with RemoteDisconnected
+# (~1 run in 3, on the pre-C1 app too), and requests never retries it. Evidence:
+# .harmony/.reports/s-rta-0927/c1-state-fix.md.
+S.headers["Connection"] = "close"
 
 
 def ok(msg):

@@ -1,6 +1,7 @@
 #pragma once
 
-// Embedded GLSL shader source strings shared between Renderer and OutputRenderer.
+// Embedded GLSL shader source strings shared between Renderer and CompositorEngine
+// (OutputRenderer was deleted in plan5 C1).
 // If shader files exist on disk, ShaderManager loads those instead.
 
 namespace EmbeddedShaders

@@ -63,6 +63,12 @@ IMG_A = FIX["imageA"].replace("@MEDIA@", MEDIA)
 IMG_B = FIX["imageB"].replace("@MEDIA@", MEDIA)
 PASS = FAIL = 0
 S = requests.Session()
+# One fresh connection per request, never a pooled keep-alive one (s-rta-0927 c1-state-fix). The app's cpp-httplib
+# server closes a connection idle for 5 s (CPPHTTPLIB_KEEPALIVE_TIMEOUT_SECOND) -- shutdown, then it drains and
+# DISCARDS whatever request arrives in that instant. A reused connection can then fail with RemoteDisconnected
+# (~1 run in 3, on the pre-C1 app too), and requests never retries it. Evidence:
+# .harmony/.reports/s-rta-0927/c1-state-fix.md.
+S.headers["Connection"] = "close"
 KEEP = {}   # frames shared between rows (c_default_shape's frame)
 
 
@@ -201,7 +207,8 @@ def wait_no_compiler(tag, limit_s=1800):
     """Rig rule: perf rows run only when no compiler is running."""
     t0 = time.time()
     while True:
-        busy = [n for n in ("clang", "clang++") if subprocess.run(["pgrep", "-x", n], capture_output=True).stdout.strip()]
+        # macOS pgrep takes a regex: a bare "clang++" is an invalid pattern (error, empty stdout = never "busy").
+        busy = [n for n in ("clang", r"clang\+\+") if subprocess.run(["pgrep", "-x", n], capture_output=True).stdout.strip()]
         if not busy:
             return True
         if time.time() - t0 > limit_s:
