@@ -1,0 +1,55 @@
+Filters: [recorderclock] [stall]
+Randomness seeded to: 922408158
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_take is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+RecorderClock: a 1.1-beat tick gap loses nothing
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:719
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:727: FAILED:
+  CHECK( clock.now().beat == Approx(3.1).margin(1e-6) )
+with expansion:
+  2.10000000149011612
+  ==
+  Approx( 3.10000000000000009 )
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:714: FAILED:
+  REQUIRE( clock.now().beat == Approx(2.0 * t).margin(1e-6) )
+with expansion:
+  2.11666666716337204
+  ==
+  Approx( 3.1166666666666667 )
+
+-------------------------------------------------------------------------------
+RecorderClock: a 0.7-beat tick gap that begins at phase 0.5 loses nothing
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:731
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:739: FAILED:
+  CHECK( clock.now().beat == Approx(3.2).margin(1e-6) )
+with expansion:
+  2.5 == Approx( 3.20000000000000018 )
+
+-------------------------------------------------------------------------------
+RecorderClock: a 0.6-beat publication burst between two ticks adds 0.6
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:742
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_take.cpp:750: FAILED:
+  CHECK( clock.now().beat == Approx(3.3).margin(1e-6) )
+with expansion:
+  2.69999998807907104
+  ==
+  Approx( 3.29999999999999982 )
+
+===============================================================================
+test cases: 4 | 1 passed | 3 failed
+assertions: 9 | 5 passed | 4 failed
+

@@ -1,0 +1,249 @@
+2026-09-27 17:49:25 ACQUIRED (waited 2963 s)
+=== C2 probe-routine-display
+(17:49:25 load: 5.61 3.89 3.51; compilers: 0 clang, 0 clang++)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd
+== Phase 1 (production, no env)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/08-empty-w0.png (window 6541)
+PASS  d0 load_composition ok; pad 1 is Drop (Drop,Build,Wash)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/01-idle-w0.png (window 6541)
+PASS  d1 bank[0] carries deck/layers/fireSeq/startsOn/restartPending/touchesComp
+PASS  d2 fired pad 1: pending, deck 0, layers [0, 2], startsOn 4bar ((0, [0, 2], '4bar'))
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/02-waiting-w0.png (window 6541)
+  02-waiting shot while pending (the witness)
+PASS  d13 quantize set to bar while waiting: startsOn now bar (state pending)
+PASS  d3 on the edge: running, layers [0, 2], position 0.063999999314547 -> 1.344000075012445
+PASS  d3 the restore landed: L1 / L3 opacity 0.30 0.80
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/03-playing-w0.png (window 6541)
+  03-playing at position 17.22 (L1 opacity 0.578)
+PASS  d14 pad 1 pressed again while playing: (restartPending, startsOn, state) (True, 'bar', 'running')
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/13-restart-pending-w0.png (window 6541)
+PASS  d15 quantize set to 4bar while the restart waits: (restartPending, startsOn) (True, '4bar')
+PASS  d4 pad 2 fired later: fireSeq (2, 1)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/04-two-on-one-w0.png (window 6541)
+PASS  d5 on deck B: pad 1 still (deck, state) (0, 'running'), position 4.07466684281826 -> 6.186666950583458
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/05-offdeck-w0.png (window 6541)
+PASS  d6 stop pad 1: idle, layers [] (Build still running) ('idle', [], 'running')
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/06-removed-w0.png (window 6541)
+PASS  d8 pad 3: preambleUnresolved 1 while running, ('idle', 1) 3 s after its end
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/09-warning-w0.png (window 6541)
+  L2 opacity 0.3 (REST set_layer_opacity 0.3)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd/12-fader-follow-w0.png (window 6541)
+  08-empty: nonblank=1 teal=0 cyan=144 cue=0
+  01-idle: nonblank=1 teal=5824 cyan=146 cue=0
+  02-waiting: nonblank=1 teal=6704 cyan=146 cue=6
+  03-playing: nonblank=1 teal=7872 cyan=146 cue=3828
+  04-two-on-one: nonblank=1 teal=9348 cyan=146 cue=654
+  05-offdeck: nonblank=1 teal=0 cyan=144 cue=0
+  06-removed: nonblank=1 teal=7752 cyan=147 cue=226
+  09-warning: nonblank=1 teal=5824 cyan=148 cue=0
+  12-fader-follow: nonblank=1 teal=5824 cyan=148 cue=0
+  13-restart-pending: nonblank=1 teal=7896 cyan=146 cue=3988
+PASS  d9 02-waiting has the waiting pad's teal frame (teal 5824 -> 6704)
+PASS  d9 03-playing has the routine-cue band names / V fill (cue 0 -> 3828)
+PASS  d12 03-playing adds no accent cyan: the routine cue is its own hue (cyan 146 -> 146)
+PASS  d11: app quit, 0 Audio-DNA windows in the FULL window list
+
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-rd)
+exit 0
+=== C2 probe-resync
+(17:50:04 load: 4.22 3.75 3.48; compilers: 0 clang, 0 clang++)
+PASS  app launched (production), /api/health answered, PID=82395
+PASS  manual tempo took (bpm=120.0)
+PASS  load_composition accepted the resync fixture
+PASS  layers[0].connected contains 'opacity' (deck engaged)
+PASS  /api/bpm exposes resyncBarOrigin (int)
+PASS  POST /api/resync answers ok:true within 1s
+PASS  reached totalBarCount%4==2, beatInBar==2 within 8.5s (16-beat SawUp sits mid-cycle, ~0.625 pre-fix)
+PASS  V1 tracker: first sample >=60ms after POST is the new downbeat (origin=2 totalBarCount=2 beatInBar=0 barCount=0 downbeatDetected=True beatPhase=0.1707)
+PASS  V2 THE RULING: live.opacity at 107ms after Resync is 0.0093 (< 0.10 expected -- pre-fix reads ~0.6)
+PASS  V3a runs from the new downbeat: opacity at ~2.0s is 0.2520 (expect [0.22,0.30])
+PASS  V3b runs from the new downbeat: opacity at ~4.0s is 0.4987 (expect [0.47,0.55])
+PASS  V4a no phantom bar: totalBarCount at ~1.0s == origin (2 == 2)
+PASS  V4b one bar after Resync: totalBarCount == origin+1, resyncBarOrigin unchanged (totalBarCount=3 origin=2, expected origin=2)
+INFO  91 samples captured over ~4.5s (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-resync/samples.json)
+PASS  V5 parity independence: same V1 shape reached from totalBarCount%4==3 (origin=7 totalBarCount=7 beatInBar=0 barCount=0 downbeatDetected=True)
+INFO  V6: automatic-reset half (drop/breakdown never touches resyncBarOrigin) is NOT drivable live in production -- manual mode suppresses structural transitions; unit test T3d carries it.
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-resync)
+exit 0
+=== C2 probe-manual-bpm
+(17:50:23 load: 9.23 4.82 3.86; compilers: 0 clang, 0 clang++)
+PASS  click WAV generated: 142 BPM (interval 20282 frames @ 48 kHz), 150 s
+INFO  app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+PASS  app launched (production), /api/health answered, PID=82720
+PASS  perf/record accepted the click file (file mode, transport playing)
+PASS  A  AUTO sanity: the tracker locks on the 142 BPM click and holds 3 s (last bpm=143.86, held by 10.9 s)
+PASS  M  poller healthy: 691 polls in 20 s, 0 errors
+PASS  M  bpm stays 120.0 on every poll (seen [120.0])
+PASS  M  non-vacuous: the analysis heard the click (onsetCount +48 over the window, ~47 clicks played)
+PASS  M  beatPhase free-runs: 0 jumps (first: [])
+PASS  M  beatPhase advances at 2.000 beats/s (expect 2.00 +/- 3%)
+PASS  M  every bar lasts 2.00 s +/- 3% (9 full bars in 20 s, expect ~9): [1.996, 2.017, 2.001, 1.995, 1.987, 2.009, 2.008, 2.005, 1.989]
+PASS  S1 set_bpm 120 (the SAME value) never moves the beat: 3/3 continuous -- #1: POST at phase 0.419 (beat 3, bar 12) -> +67 ms phase 0.547 (beat 3, bar 12), step error 0.007 beat, then 1 s: 0 jumps, bpm [120.0] | #2: POST at phase 0.573 (beat 1, bar 13) -> +66 ms phase 0.723 (beat 1, bar 13), step error 0.015 beat, then 1 s: 0 jumps, bpm [120.0] | #3: POST at phase 0.411 (beat 0, bar 14) -> +66 ms phase 0.539 (beat 0, bar 14), step error 0.004 beat, then 1 s: 0 jumps, bpm [120.0]
+PASS  S2 set_bpm 128 (a CHANGED value) changes the tempo only, the beat runs on -- 120 -> 128: POST at phase 0.587 (beat 2, bar 14) -> +66 ms phase 0.744 (beat 2, bar 14), step error 0.016 beat, then 1 s: 0 jumps, bpm [128.0]
+PASS  S2 set_bpm 120 (changed back) changes the tempo only, the beat runs on -- 128 -> 120: POST at phase 0.407 (beat 1, bar 15) -> +60 ms phase 0.535 (beat 1, bar 15), step error 0.006 beat, then 1 s: 0 jumps, bpm [120.0]
+PASS  S3 OSC /audiodna/bpm 120 every 100 ms for 2 s (20 sent): the beat free-runs -- 0 jumps (first: []), bpm [120.0], totalBarCount +2 (>= 1)
+PASS  R  first poll 70 ms after the Resync is the new downbeat (beatInBar=0 barCount=0 beatPhase=0.107 origin 0 -> 17, totalBarCount=17)
+PASS  R  a single realignment: resyncBarOrigin took 1 value(s) after the POST [17]
+PASS  R  beatPhase free-runs after the Resync: 0 jumps (first: [])
+PASS  R  first bar after the Resync lands 2.024 s after the POST (expect 2.00 s + message-thread hop, [1.90, 2.12])
+PASS  R  bars after the Resync last 2.00 s +/- 3%: [1.993, 2.005, 1.973]
+PASS  R  bpm stays 120.0 (seen [120.0])
+INFO  'leave manual mode -> AUTO resets on beats again' is not drivable over REST/OSC (no route leaves manual mode); ctest-pinned instead.
+PASS  app terminated, no process remains
+INFO  removed this run's take folder /Users/boriskarpman/Documents/Audio-DNA/Takes/probe-manual-bpm-20260927-175023-82696.adna-take
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture: the Quartz window-list check above is the screen witness
+
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-mbpm/run-20260927-175023-82696)
+exit 0
+=== C2 probe-downbeat-level
+(17:51:29 load: 4.71 4.39 3.77; compilers: 0 clang, 0 clang++)
+PASS  app launched (production), /api/health answered, PID=83062
+PASS  analysis thread live: totalBarCount readable (0)
+PASS  /api/bpm exposes downbeatDetected (bool)
+PASS  manual tempo took (bpm=120.0)
+PASS  poller healthy: 617 polls, mean 48.7 ms, max gap 56.9 ms (need >= 400 polls, max gap < 250 ms)
+PASS  analysis hops flowing: beatPhase took 100 distinct values
+PASS  bars advance at the manual tempo: totalBarCount +15 in 30 s (expect ~15 at 120 BPM)
+PASS  LEVEL: downbeatDetected duty 0.256 (expect ~0.25), true-run median 517 ms over 15 runs (expect ~500 ms) -- a one-hop pulse would read duty ~0.03 and runs <= 45 ms
+PASS  no loss at ~25 Hz: rising edges 15 == totalBarCount delta 15
+PASS  coherent: downbeatDetected == (beatInBar == 0) on every poll (0 mismatches)
+PASS  counter is cadence-independent: the 0.9 s subsample (34 reads) saw 15 advancing reads, delta 15 (fast delta 15)
+PASS  level edge-detection at 0.9 s LOSES bars: 8 edges vs 15 bars (expect roughly half) -- the counter above did not
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+14 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-downbeat)
+exit 0
+=== C2 probe-step3
+(17:52:13 load: 3.50 4.10 3.69; compilers: 0 clang, 0 clang++)
+PASS  click-track WAV generated at /tmp/click_48k.wav
+PASS  fixture /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/.harmony/probe-step3.json is valid JSON
+PASS  app launched, /api/health answered, PID=83260
+PASS  analysis thread live: totalBarCount readable (0)
+PASS  load_composition accepted probe-step3.json
+PASS  R13: /api/features sourceSampleRate (48000) == /api/perf/status deviceRate (48000)
+PASS  R13: bandValidMask == 127 at 48 kHz
+PASS  R13: no analysis-rate-assumption warning on stderr (retired)
+(informational) environment: no non-Audio-DNA process holds an audio-related power assertion (pmset -g assertions)
+PASS  perf/record accepted (file-mode audio, onset markers)
+PASS  perf/status: recording=true
+PASS  assetId looks like a 32-hex fingerprint-less id (11313ec9511a4c96adbaac085d9d084a)
+PASS  perf/status: gapDetection present (True)
+PASS  perf/status: framesWritten>0 (92672)
+PASS  provisional take.json exists at arm+2s (v2 5.6 #1)
+PASS  trigger_clip column 0 -> activeClipColumn=0
+PASS  trigger_clip column 1 -> activeClipColumn=1
+PASS  trigger_clip column 2 -> activeClipColumn=2
+PASS  trigger_clip column 3 -> activeClipColumn=3
+PASS  set_bpm(128) took effect (bpm=128.0)
+PASS  set_layer_opacity(0.2) landed (opacity=0.200000002980232)
+PASS  take.json mtime advanced past the arm-time write (1790545951 -> 1790546011, periodic-save fired)
+PASS  perf/status: recording=false after stop
+PASS  perf/status: lastError empty
+PASS  perf/status: lastFinalizeError empty after stop (audio.wav header frames == tap framesWritten; no block lost at stop)
+PASS  R13: rateChangedSinceArm == false after the take (no device-rate change mid-take)
+PASS  Audio store has audio.wav + audio.json (/Users/boriskarpman/Documents/Audio-DNA/Audio/11313ec9511a4c96adbaac085d9d084a.adna-audio)
+PASS  take folder has exactly one file (take.json only, Ruling 28)
+PASS  take.json version == 3
+PASS  audio.segments[0].rate == 48000 (device rate at arm)
+PASS  audio.segments[0].frames > 0 (2947072)
+PASS  take.json audio.unreliableFrom is null (no truncation, no overrun)
+PASS  audio.wav frame count == take segment frames (2947072)
+PASS  audio.segments[0].fingerprint carries the fp1: prefix
+PASS  take.json audio.gapDetection is a boolean
+PASS  take.json audio.mode == file
+PASS  layer/scalar:opacity lane kind == continuous
+PASS  layer/scalar:opacity lane has 3 gestures (one per REST write)
+PASS  layer/scalar:opacity gesture values in order: 0.4 0.7 0.2
+PASS  layer/scalar:opacity gesture grip == decaying
+PASS  layer/scalar:opacity first gesture has 2 breakpoints (touch + idle end)
+PASS  layer/activeClip lane has >=4 points (5)
+PASS  comp/tempo point v == 12800 (centi-BPM for 128, plan R-8 unit)
+PASS  checkpoint0.activeDeckIndex == 0
+PASS  checkpointEnd present
+PASS  take.json tempoMap non-empty (6 anchors), first anchor 'start', carries the set_bpm(128) anchor
+(informational) take-level rate fields: NA
+T2 alignment: mean_offset_ms=44.95 drift_ms=-0.51 drift_stderr_ms=2.96 p95_jitter_ms=11.05 n_markers_raw=124 n_dupes=0 n_matched=124 n_spurious=0 n_grid_in_range=123 pct_matched=100.8 n_peaks=120
+PASS  T2 alignment: drift within +-6.9200ms (<=1ms+2*stderr; drift=-0.51ms stderr=2.96ms) (mean_offset_ms=44.95 drift_ms=-0.51 drift_stderr_ms=2.96 p95_jitter_ms=11.05 n_markers_raw=124 n_dupes=0 n_matched=124 n_spurious=0 n_grid_in_range=123 pct_matched=100.8 n_peaks=120)
+WARN  T2 alignment: drift stderr 2.96ms exceeds 0.5ms -- this take is too short/noisy to support a tight 1ms drift claim (informational, does not fail the gate)
+PASS  T2 alignment: p95 jitter <=15ms (11.05 ms)
+PASS  T2 alignment: mean offset within [0,60]ms (44.95 ms, latency lag expected per D10.3)
+PASS  T2 alignment: matched markers cover >=90% of grid clicks in the asset's frame range (100.8%)
+(informational) T2 duplicate onset markers this take: 0 (deduped before matching -- a RecorderHost product fix for the duplicate-marker source is landing separately)
+(informational) T2 spurious (off-grid, >interval/2) markers rejected: 0
+(informational) T2 raw-peak-detector cross-check: found 120 burst peaks directly in the audio (best-effort threshold detector, not the pairing oracle)
+PASS  perf/load: audioStatus == Resolved
+PASS  perf/load: unresolved == 0
+PASS  end: /api/audio/source input accepted
+PASS  end: inputSource == input before Play
+PASS  snap-back(withAudio): pre-play perturbation landed (col 3, opacity 0.9)
+PASS  snap-back(withAudio): layer 0 restored to checkpoint0 (col=-1, opacity=1.0) within 100 ms of Play
+PASS  snap-back(withAudio): preambleUnresolved == 0
+PASS  snap-back(withAudio): preambleRefused == 0
+PASS  snap-back(withAudio): preambleFired >= 8 (9)
+  replay(withAudio): t~0s activeClipColumn=-1
+  replay(withAudio): t~2s activeClipColumn=0
+  replay(withAudio): t~5s activeClipColumn=1
+  replay(withAudio): t~8s activeClipColumn=2
+  replay(withAudio): t~12s activeClipColumn=3
+  replay(withAudio): t~17s activeClipColumn=2
+  wait_for_replay_finish(withAudio): lengthSeconds=61.397333333333336 elapsed=45s -- waiting up to 21s more
+PASS  end(withAudio): finished == true
+PASS  end(withAudio): playing stays true (hold, not stop)
+PASS  end(withAudio): positionSeconds == lengthSeconds (61.397333333333336 / 61.397333333333336)
+PASS  end(withAudio): the clock stopped (61.397333333333336 -> 61.397333333333336 over 1 s)
+PASS  end(withAudio): inputSource == file while the take's audio drives the replay
+PASS  end(withAudio): inputSource back to input at the end
+PASS  end(withAudio): last look held (activeClipColumn == 2)
+PASS  end(withAudio): layer 0 opacity still near 0.2 (held, nothing reset)
+PASS  replay(withAudio): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=-1 0 1 2 3 2)
+PASS  replay(withAudio): layer 0 opacity visited near 0.4 (tolerance 0.05)
+PASS  replay(withAudio): layer 0 opacity visited near 0.7 (tolerance 0.05)
+PASS  replay(withAudio): layer 0 opacity settled near the final 0.2 (last observed=0.200000002980232)
+PASS  replay(withAudio): bpm reached 128 after the tempo point (128.0)
+PASS  replay(withAudio): status.skipped==1 (the arm-time 'audio play' point, WithAudio policy)
+PASS  perf/stop_play: playing==false
+PASS  snap-back(wallClock): pre-play perturbation landed (col 3, opacity 0.9)
+PASS  snap-back(wallClock): layer 0 restored to checkpoint0 (col=-1, opacity=1.0) within 100 ms of Play
+PASS  snap-back(wallClock): preambleUnresolved == 0
+PASS  snap-back(wallClock): preambleRefused == 0
+PASS  snap-back(wallClock): preambleFired >= 8 (9)
+  replay(wallClock): t~1s activeClipColumn=-1
+  replay(wallClock): t~3s activeClipColumn=0
+  replay(wallClock): t~6s activeClipColumn=1
+  replay(wallClock): t~9s activeClipColumn=2
+  replay(wallClock): t~12s activeClipColumn=3
+  replay(wallClock): t~17s activeClipColumn=2
+  wait_for_replay_finish(wallClock): lengthSeconds=61.384800666652154 elapsed=45s -- waiting up to 21s more
+PASS  end(wallClock): finished == true
+PASS  end(wallClock): playing stays true (hold, not stop)
+PASS  end(wallClock): last look held (activeClipColumn == 2)
+PASS  end(wallClock): inputSource still input (wall-clock never touches it)
+PASS  replay(wallClock): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=-1 0 1 2 3 2)
+PASS  probe pin: first post-leftover activeClipColumn change lands within 1.5s across replay modes (withAudio=2s wallClock=3s diff=1.0s)
+PASS  replay(wallClock): status.skipped==0 (audio points fire on wall-clock replay)
+  (skipping 10F end-overdub row -- set STEP3_END_OVERDUB=1 to run it, ~35s extra)
+PASS  overdub arm accepted against the stored asset
+PASS  overdub take has exactly 1 activeClip point (only the REST trigger sent during overdub, not the replay)
+PASS  overdub take firstSample==0 (v2 5.2)
+PASS  overdub take references the SAME asset id (11313ec9511a4c96adbaac085d9d084a)
+PASS  Audio/ gained exactly one asset this run, overdub added none (234 -> 235)
+SKIP  LONG take for the T2 drift proof (set STEP3_LONG=1; STEP3_LONG_MINUTES=N overrides, default 10, 2 = dry run)
+SKIP  crash-readability row (set STEP3_RUN_CRASH_TEST=1 to run it -- destructive, kill -9)
+PASS  no stop in this run reported a finalize problem (perf/status finalizeErrors == 0)
+PASS  stderr: no '[Recorder] asset ...: truncated' line this run
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+94 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/C2-step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio)
+exit 0
+(17:56:09 load: 3.08 3.63 3.58; compilers: 0 clang, 0 clang++)
+2026-09-27 17:56:09 RELEASED

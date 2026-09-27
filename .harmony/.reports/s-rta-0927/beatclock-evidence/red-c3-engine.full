@@ -1,0 +1,54 @@
+Filters: [stall]
+Randomness seeded to: 196283082
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_routine_engine is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+RoutineEngine: position is exact across a 1.1-beat tick gap and the point
+               inside it fires once
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2152
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2165: FAILED:
+  CHECK( rig.slot(0).position == Approx(1.6) )
+with expansion:
+  0.60000002384185791
+  ==
+  Approx( 1.60000000000000009 )
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2166: FAILED:
+  CHECK( rig.fd.firedLanePoints(clipKey, 1) == 1 )
+with expansion:
+  0 == 1
+
+-------------------------------------------------------------------------------
+RoutineEngine: a Beat-quantized start survives a tick gap that swallows the
+               beat edge
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2169
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2182: FAILED:
+  CHECK( rig.slot(0).state == "running" )
+with expansion:
+  "pending" == "running"
+
+-------------------------------------------------------------------------------
+RoutineEngine: several points inside one tick gap all fire, once each, in
+               order, in the resume tick
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2186
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2201: FAILED:
+  REQUIRE( ev.size() == 3 )
+with expansion:
+  0 == 3
+
+===============================================================================
+test cases:  3 |  0 passed | 3 failed
+assertions: 14 | 10 passed | 4 failed
+
