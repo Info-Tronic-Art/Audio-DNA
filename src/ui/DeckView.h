@@ -6,12 +6,15 @@
 #include "ui/LayerStrip.h"
 #include "ui/LookAndFeel.h"
 #include "ui/DeckTabRow.h"
+#include "ui/RoutinePad.h"
+#include "ui/RoutineDeckView.h"
+#include <array>
 #include <vector>
 #include <memory>
 
 // DeckView: Resolume-style layer × column deck grid.
-// Displays column trigger buttons at top, layer strips on the left,
-// clip cells in the grid, and deck tabs at the bottom.
+// Displays the ROUTINES row (eight routine pads, s-rta-0927) and the column trigger buttons at top,
+// layer strips on the left, clip cells in the grid, and deck tabs at the bottom.
 // Supports horizontal/vertical scrolling when content exceeds viewport.
 class DeckView : public juce::Component
 {
@@ -59,6 +62,21 @@ public:
     // undo stack is still that removal).
     std::function<void()> onUndoHint;
 
+    // s-rta-0927 routine display (plan-routine-display-A.md 2.1-2.3): the ROUTINES row above the column
+    // numbers. A pad press fires (restart while playing); a band's x or the pad menu's "Remove from layers"
+    // removes a routine (whole, every layer); the other menu rows are settings, Rename and Delete. MainComponent
+    // runs each through its perfRoutine* funnel (message thread).
+    std::function<void(int slot)> onRoutineFired;
+    std::function<void(int slot)> onRoutineRemoved;
+    std::function<void(int slot, const RoutineSettingsChange&)> onRoutineSet;
+    std::function<void(int slot)> onRoutineRename;
+    std::function<void(int slot)> onRoutineDeleted;
+
+    // Pushed by MainComponent every 30 Hz tick (never via refresh()): the pads' specs, the corner note, and
+    // each shown layer's bands (at most two drawn). Repaints only what changed.
+    void setRoutineView(const RoutineDeckView& view);
+    void showRoutinePadMenu(int slot);
+
     // plan6 §6.2: the deck tab row's menus (right-click a tab / click the "+"), and the 10-s "Undo Remove" button
     // flush right in the row. Every structural change (rebuildGrid) and every later undoable command hides it.
     void showDeckTabMenu(int deckIndex);
@@ -90,6 +108,11 @@ private:
     std::vector<std::unique_ptr<LayerStrip>> layerStrips_;
     std::vector<std::vector<std::unique_ptr<ClipCell>>> clipCells_; // [layer][column]
     std::vector<std::unique_ptr<juce::TextButton>> columnTriggers_;
+    // s-rta-0927: the ROUTINES row -- created ONCE in the constructor as direct children (rebuildGrid never
+    // destroys them), laid out over the column triggers' x so pad N sits above column N.
+    std::array<std::unique_ptr<RoutinePad>, RoutineEngine::kBankSize> routinePads_;
+    juce::String routineCornerNote_;
+    RoutineDeckView lastRoutineView_;   // the bands re-fan to freshly built strips after a rebuild
     // A deck tab. JUCE's Button fires onClick for ANY mouse button (Button::mouseDown/mouseUp check no button), so
     // a right-click (or Ctrl+click -- isPopupMenu()) is intercepted here: it opens the tab's menu and never reaches
     // the base class, so it never switches decks (plan6 §6.2).
@@ -124,6 +147,7 @@ private:
     // Layout constants — Resolume-style dense grid
     static constexpr int kLayerStripWidth = 250;
     static constexpr int kColumnTriggerHeight = 22;
+    static constexpr int kRoutineRowHeight = 22;   // s-rta-0927: the ROUTINES row, above the triggers
     static constexpr int kCellWidth = 90;
     static constexpr int kCellHeight = 96; // 3-row layer strip height
     static constexpr int kDeckTabHeight = 24;
@@ -132,6 +156,7 @@ private:
     void layoutGrid();
     void setupColumnTriggers();
     void setupDeckTabs();
+    void fanRoutineBands();
     static juce::String tabTooltipFor(const Deck& deck);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DeckView)

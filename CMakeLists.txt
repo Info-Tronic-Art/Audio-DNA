@@ -323,6 +323,7 @@ target_sources(AudioDNA PRIVATE
     src/ui/LayerStrip.cpp
     src/ui/DeckView.h
     src/ui/DeckView.cpp
+    src/ui/RoutinePad.cpp
     src/ui/UniversalParamControl.h
     src/ui/UniversalParamControl.cpp
     src/ui/EffectStackView.h

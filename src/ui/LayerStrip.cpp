@@ -1,5 +1,8 @@
 #include "ui/LayerStrip.h"
 #include "connect/ConnClock.h"
+#include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's routine cue reads)
+#include <algorithm>
+#include <cmath>
 
 // ID scheme for V dropdown: 1-100 = MixMode, 101+ = KeyingMode
 static constexpr int kKeyingIdOffset = 101;
@@ -110,7 +113,7 @@ class OpacitySliderLookAndFeel : public FullBoundsSliderLAF
 public:
     void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
                           float sliderPos, float, float,
-                          juce::Slider::SliderStyle, juce::Slider&) override
+                          juce::Slider::SliderStyle, juce::Slider& slider) override
     {
         auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
 
@@ -120,7 +123,10 @@ public:
         float fillHeight = bounds.getBottom() - sliderPos;
         if (fillHeight > 0.0f)
         {
-            g.setColour(juce::Colour(0xff4a7a6a));
+            // s-rta-0927: the strip sets trackColourId (kRoutineCue) while a routine's hand grips opacity.
+            g.setColour(slider.isColourSpecified(juce::Slider::trackColourId)
+                            ? slider.findColour(juce::Slider::trackColourId)
+                            : juce::Colour(0xff4a7a6a));
             g.fillRect(juce::Rectangle<float>(bounds.getX(), sliderPos,
                                                bounds.getWidth(), fillHeight));
         }
@@ -331,6 +337,9 @@ LayerStrip::LayerStrip()
     clearBtn_.onClick = [this] {
         if (onClearClip && layer_) onClearClip(layerIndex_);
     };
+    // s-rta-0927 fix round: the familiar X now also stops the layer's routines (RoutineEngine::stopOnLayer) -- say so.
+    clearBtn_.setTooltip("Clear this layer's clip. Also stops every routine playing on this layer "
+                         "(the clip comes back with Undo; a routine stop cannot be undone).");
     bypassBtn_.onClick = [this] {
         if (!layer_) return;
         layer_->bypassed = !layer_->bypassed;
@@ -381,6 +390,7 @@ LayerStrip::LayerStrip()
 
     // S = speed slider (0 = 0x, 0.25 = 1x default, 1.0 = 4x)
     addAndMakeVisible(speedSlider_);
+    speedSlider_.setComponentID("layerSpeed");
     speedSlider_.setRange(0.0, 1.0, 0.01);
     speedSlider_.setValue(0.25, juce::dontSendNotification);
     speedSlider_.setDefaultValue(0.25);
@@ -413,6 +423,7 @@ LayerStrip::LayerStrip()
 
     // V = opacity slider
     addAndMakeVisible(opacitySlider_);
+    opacitySlider_.setComponentID("layerOpacity");
     opacitySlider_.setRange(0.0, 1.0, 0.01);
     opacitySlider_.setValue(1.0, juce::dontSendNotification);
     opacitySlider_.setDefaultValue(1.0);
@@ -512,6 +523,8 @@ void LayerStrip::paint(juce::Graphics& g)
         g.setColour(juce::Colour(kBtnBorder));
         g.drawRect(tb, 1.0f);
     }
+
+    paintRoutineBands(g);   // s-rta-0927: over the top of the picture
 
     // Transport/playhead display (between left buttons and right sliders)
     if (!transportBounds_.isEmpty())
@@ -723,10 +736,145 @@ void LayerStrip::timerCallback()
         repaint(transportBounds_);
     if (!clipNameBounds_.isEmpty())
         repaint(clipNameBounds_);
+
+    syncFromModel();   // s-rta-0927: the faders follow the model
+
+    // s-rta-0927: a playing routine's band hairline creeps.
+    if (bandsShown() && std::any_of(routineBands_.begin(), routineBands_.end(), [](const RoutineDeckView::Band& b) {
+            return b.state == RoutineDeckView::State::Playing; }))
+        repaint(thumbnailBounds_.withHeight(kBandHeight * 2));
+}
+
+void LayerStrip::syncFromModel()
+{
+    if (!layer_)
+        return;
+
+    const auto& conn = layer_->scalarConns[static_cast<size_t>(LayerScalar::Opacity)];
+    if (!opacitySlider_.isMouseButtonDown())
+    {
+        // The LayerInspector rule: a connected control shows its effective value (opacity's toNorm is identity).
+        const double shown = conn.isConnected() ? layer_->eff(LayerScalar::Opacity) : layer_->opacity;
+        if (std::abs(opacitySlider_.getValue() - shown) > 1e-4)
+            opacitySlider_.setValue(shown, juce::dontSendNotification);   // never fires onValueChange: no grip, no write
+    }
+
+    // The routine cue (kRoutineCue) while a lane-rank hand (a routine or a take replay) holds opacity.
+    const bool laneGrip = conn.grip.kind != ParamConnection::Grip::Kind::None
+                       && conn.grip.rank == static_cast<uint8_t>(Hand::Lane);
+    if (laneGrip != opacitySlider_.isColourSpecified(juce::Slider::trackColourId))
+    {
+        if (laneGrip)
+            opacitySlider_.setColour(juce::Slider::trackColourId, juce::Colour(AudioDNALookAndFeel::kRoutineCue));
+        else
+            opacitySlider_.removeColour(juce::Slider::trackColourId);
+        opacitySlider_.repaint();
+    }
+
+    if (!speedSlider_.isMouseButtonDown())
+    {
+        const auto* clip = layer_->getActiveClip();
+        const double shown = clip ? static_cast<double>(clip->speed / 4.0f) : 0.25;
+        if (std::abs(speedSlider_.getValue() - shown) > 1e-4)
+            speedSlider_.setValue(shown, juce::dontSendNotification);
+    }
+}
+
+void LayerStrip::setRoutineBands(std::vector<RoutineDeckView::Band> bands)
+{
+    bool changed = bands.size() != routineBands_.size();
+    for (size_t i = 0; !changed && i < bands.size(); ++i)
+        changed = bands[i].slot != routineBands_[i].slot || bands[i].state != routineBands_[i].state
+               || bands[i].name != routineBands_[i].name;
+    routineBands_ = std::move(bands);
+    if (changed && !thumbnailBounds_.isEmpty())
+        repaint(thumbnailBounds_.withHeight(kBandHeight * 2));
+}
+
+juce::Rectangle<int> LayerStrip::bandBounds(int k) const
+{
+    return { thumbnailBounds_.getX(), thumbnailBounds_.getY() + kBandHeight * k, thumbnailBounds_.getWidth(), kBandHeight };
+}
+
+juce::Rectangle<int> LayerStrip::bandXBounds(int k) const
+{
+    const auto b = bandBounds(k);
+    return { b.getRight() - kBandHeight, b.getY(), kBandHeight, kBandHeight };
+}
+
+void LayerStrip::paintRoutineBands(juce::Graphics& g)
+{
+    if (!bandsShown())
+        return;
+    const int n = std::min(2, static_cast<int>(routineBands_.size()));
+    for (int k = 0; k < n; ++k)
+    {
+        const auto& band = routineBands_[static_cast<size_t>(k)];
+        const auto b = bandBounds(k);
+        const auto xb = bandXBounds(k);
+        const bool waiting = band.state == RoutineDeckView::State::Waiting;
+        if (waiting)
+            g.beginTransparencyLayer(0.5f);   // announced, not yet on the layer
+
+        g.setColour(juce::Colours::black.withAlpha(0.7f));
+        g.fillRect(b);
+        if (k == 1)
+        {
+            g.setColour(juce::Colour(kBtnBorder));   // the divider between two bands
+            g.fillRect(b.getX(), b.getY(), b.getWidth(), 1);
+        }
+
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kRoutineCue));
+        g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
+        g.drawText(band.name, juce::Rectangle<int>(b.getX() + 3, b.getY(), b.getWidth() - 3 - kBandHeight, b.getHeight()),
+                   juce::Justification::centredLeft, true);
+
+        g.setColour(juce::Colour(0xff3a3a3a));
+        g.fillRect(xb.getX(), xb.getY(), 1, xb.getHeight());
+        g.setColour(juce::Colour(kTextDim));
+        g.setFont(juce::Font(juce::FontOptions(10.0f)));
+        g.drawText("x", xb, juce::Justification::centred, false);   // ASCII (Pitfall 6)
+
+        if (!waiting)
+        {
+            const int hw = juce::roundToInt(static_cast<float>(b.getWidth()) * juce::jlimit(0.0f, 1.0f, band.progress01));
+            g.setColour(juce::Colour(0xff4a9a8a));   // teal, like the pad's frame (the mockup)
+            g.fillRect(b.getX(), b.getBottom() - 1, hw, 1);
+        }
+
+        if (waiting)
+            g.endTransparencyLayer();
+    }
+}
+
+juce::String LayerStrip::tooltipAt(juce::Point<int> pos) const
+{
+    if (!bandsShown())
+        return {};
+    const int n = std::min(2, static_cast<int>(routineBands_.size()));
+    for (int k = 0; k < n; ++k)
+        if (bandXBounds(k).contains(pos))
+            return "Stop this routine on every layer it plays on. A routine stop cannot be undone.";
+    return {};
 }
 
 void LayerStrip::mouseDown(const juce::MouseEvent& event)
 {
+    // s-rta-0927: a routine band's x takes that routine off every layer it plays on. A press elsewhere on a
+    // band falls through to the strip's own select -- no new accidental action.
+    if (bandsShown() && event.mods.isLeftButtonDown())
+    {
+        const int n = std::min(2, static_cast<int>(routineBands_.size()));
+        for (int k = 0; k < n; ++k)
+        {
+            if (bandXBounds(k).contains(event.getPosition()))
+            {
+                if (onRoutineRemove) onRoutineRemove(routineBands_[static_cast<size_t>(k)].slot);
+                return;
+            }
+        }
+    }
+
     // Scrub playhead if clicking in the transport bar area
     if (!transportBounds_.isEmpty() && transportBounds_.contains(event.getPosition()))
     {

@@ -44,6 +44,44 @@ namespace
                         busy = std::max(busy, g.x1);
         return busy;
     }
+
+    // s-rta-0927 routine display: where a compiled routine plays -- its RESOLVED targets (a rebound-by-name
+    // lane sits on the layer it really drives, never ControlPath::layer). deck = the first target's deck;
+    // layers sorted and deduplicated; touchesComp = any composition-level target (layer -1).
+    struct Footprint { int deck = -1; std::vector<int> layers; bool touchesComp = false; };
+
+    Footprint footprint(const Program& prog)
+    {
+        Footprint fp;
+        const auto add = [&fp](const ResolvedTarget& t) {
+            if (fp.deck < 0 && t.deck >= 0)
+                fp.deck = t.deck;
+            if (t.layer >= 0)
+                fp.layers.push_back(t.layer);
+            else
+                fp.touchesComp = true;
+        };
+        for (const auto& f : prog.preamble)            add(f.target);
+        for (const auto& ps : prog.preambleContinuous) add(ps.target);
+        for (const auto& f : prog.discrete)            add(f.target);
+        for (const auto& lane : prog.continuous)       add(lane.target);
+        std::sort(fp.layers.begin(), fp.layers.end());
+        fp.layers.erase(std::unique(fp.layers.begin(), fp.layers.end()), fp.layers.end());
+        return fp;
+    }
+
+    const char* snapWord(RoutineSnap m)
+    {
+        switch (m)
+        {
+            case RoutineSnap::Off:     return "now";
+            case RoutineSnap::Beat:    return "beat";
+            case RoutineSnap::Bar:     return "bar";
+            case RoutineSnap::TwoBar:  return "2bar";
+            case RoutineSnap::FourBar: return "4bar";
+        }
+        return "bar";
+    }
 }
 
 // ---- SlotSink: forwards one routine's Player into `dispatch`, counts refusals, and arbitrates
@@ -146,6 +184,11 @@ struct RoutineEngine::Running
     int glideCycle = 0;                        // the cycle whose loop return has been scheduled
     int glideRefused = 0;                      // this restore's glides a human hand refused (the start notice)
     bool glideScheduled = false;               // the continuous half of the NEXT restore belongs to `glides`
+    // s-rta-0927 routine display: the footprint, computed ONCE at fire (never per tick), and the fire order.
+    int deck = -1;
+    std::vector<int> layers;
+    bool touchesComp = false;
+    uint32_t fireSeq = 0;
 };
 
 RoutineEngine::RoutineEngine()
@@ -415,10 +458,61 @@ void RoutineEngine::startNow(Running& r)
     notify(msg + ".");
 }
 
+// plan3 C: a requested restart's restore glides onto ITS boundary, never touching a knob while the recording's own
+// hand is on it before that boundary (fire()'s re-fire, and a settings edit while that restart waits).
+void RoutineEngine::scheduleRestartGlides(Running& r, RoutineSnap forcedSnap)
+{
+    const double boundary = clock_.now().beat + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap));
+    const double startBeat = r.startBeat, endPos = boundary - r.startBeat, pos = r.position;
+    scheduleGlides(r, boundary, [&r, startBeat, endPos, pos](const ControlPath& key) {
+        return startBeat + std::min(busyUntil(*r.program, key, pos, endPos), endPos);
+    });
+}
+
+// s-rta-0927 fix round: a WAITING routine re-reads its Quantize, Loop, Restore first / Start from now and Start:
+// Ease / Jump from the live routine on every tick (the re-fire-while-running re-sync in fire(), for the wait), so
+// a pad-menu or REST edit made before the start reaches THIS start -- the menu's tick, the pad's "Starting on ..."
+// tooltip and what happens on the boundary always agree. The restore glides follow the style: switched off (Jump,
+// or Start from now) they let go where they are; switched on (Ease) they are scheduled for the boundary now
+// ahead, by the one rule fire() uses; a Quantize change re-times them.
+// Fix round 2: a RESTART waiting for its boundary (pressed again while running) follows the same edits by the
+// same rules; its glides are scheduled by the restart's own rule (scheduleRestartGlides).
+void RoutineEngine::resyncPending(Running& r, const Composition& comp, RoutineSnap forcedSnap)
+{
+    const Routine* live = comp.routineInSlot(r.slot);
+    if (live == nullptr || live->uuid != r.uuid)
+        return;
+    const bool easedBefore = r.restore && !r.jump;
+    const RoutineSnap snapBefore = r.ownSnap;
+    r.ownSnap = toSnap(live->quantize);
+    r.loop = live->loop;
+    r.restore = live->restoreState;
+    r.jump = live->restoreStyle == Routine::RestoreStyle::Jump;
+    const bool eased = r.restore && !r.jump;
+    if (easedBefore && !eased)
+    {
+        releaseGlides(r);
+    }
+    else if (eased && beatAvailable_ && (!easedBefore || r.ownSnap != snapBefore))
+    {
+        if (r.pending)
+        {
+            const double now = clock_.now().beat;
+            scheduleGlides(r, now + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap)),
+                           [now](const ControlPath&) { return now; });
+        }
+        else
+        {
+            scheduleRestartGlides(r, forcedSnap);
+        }
+    }
+}
+
 void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Composition& comp,
                          RoutineSnap forcedSnap, bool beatAvailable)
 {
     ROUTINE_ENGINE_ASSERT_MESSAGE_THREAD();
+    lastForcedSnap_ = forcedSnap;   // s-rta-0927: a pending slot's `startsOn`
 
     // Plan 4.2 step 1: the `sample` argument is unused here; the TempoMap it grows is bounded and
     // never read.
@@ -442,6 +536,8 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
     for (size_t i = 0; i < running_.size(); ++i)
     {
         Running& r = running_[i];
+        if (r.pending || r.restartRequested)
+            resyncPending(r, comp, forcedSnap);   // s-rta-0927 fix rounds 1-2: a menu edit made while waiting counts
         const RoutineSnap mode = effectiveSnap(forcedSnap, r.ownSnap);
 
         if (r.pending)
@@ -518,6 +614,7 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
                 releaseOwnership(r.slot);
                 r.position = r.lengthBeats;
                 r.done = true;
+                rememberRun(r);   // s-rta-0927: the idle pad keeps this run's "!"
             }
             continue;
         }
@@ -557,6 +654,7 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
 std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap forcedSnap, bool beatAvailable)
 {
     ROUTINE_ENGINE_ASSERT_MESSAGE_THREAD();
+    lastForcedSnap_ = forcedSnap;   // s-rta-0927: a pending slot's `startsOn`
 
     refreshBank(comp);
     auto refuse = [this](const std::string& msg) {
@@ -594,11 +692,7 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
             }
             else if (newRequest && r.restore && beatAvailable)
             {
-                const double boundary = clock_.now().beat + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap));
-                const double startBeat = r.startBeat, endPos = boundary - r.startBeat, pos = r.position;
-                scheduleGlides(r, boundary, [&r, startBeat, endPos, pos](const ControlPath& key) {
-                    return startBeat + std::min(busyUntil(*r.program, key, pos, endPos), endPos);
-                });
+                scheduleRestartGlides(r, forcedSnap);
             }
         }
         lastError_.clear();
@@ -618,8 +712,15 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
     r.loop = routine->loop;
     r.jump = routine->restoreStyle == Routine::RestoreStyle::Jump;
     r.lengthBeats = r.program->length;
+    {
+        auto fp = footprint(*r.program);   // s-rta-0927: where it plays, once
+        r.deck = fp.deck;
+        r.layers = std::move(fp.layers);
+        r.touchesComp = fp.touchesComp;
+    }
     running_.push_back(std::move(r));
     ++fires_;
+    running_.back().fireSeq = static_cast<uint32_t>(fires_);
     lastError_.clear();
 
     Running& added = running_.back();
@@ -656,6 +757,7 @@ void RoutineEngine::stop(int slot)
             continue;
         releaseGlides(r);          // plan3 C: a glide lets go where it has the knob (R9)
         r.player->stop(*r.sink);   // every grip released (R9)
+        rememberRun(r);            // s-rta-0927: the idle pad keeps this run's "!"
     }
     releaseOwnership(slot);
     std::erase_if(running_, [slot](const Running& r) { return r.slot == slot; });
@@ -672,7 +774,32 @@ void RoutineEngine::stopAll()
     }
     laneOwner_.clear();
     running_.clear();
+    for (auto& lr : lastRun_)
+        lr = LastRun{};   // s-rta-0927: a composition load / Stop / shutdown starts every pad clean
     publishStatus();
+}
+
+void RoutineEngine::stopOnLayer(int deck, int layer)
+{
+    ROUTINE_ENGINE_ASSERT_MESSAGE_THREAD();
+    std::vector<int> slots;
+    for (const auto& r : running_)
+        if (r.deck == deck && std::find(r.layers.begin(), r.layers.end(), layer) != r.layers.end())
+            slots.push_back(r.slot);
+    for (int slot : slots)
+        stop(slot);   // whole routine, every grip released; publishes
+}
+
+void RoutineEngine::rememberRun(const Running& r)
+{
+    if (r.slot < 0 || r.slot >= kBankSize)
+        return;
+    const auto& report = r.program->report;
+    auto& lr = lastRun_[r.slot];
+    lr.uuid = r.uuid;
+    lr.unresolved = static_cast<int>(report.unresolved.size());
+    lr.preambleUnresolved = static_cast<int>(report.preambleUnresolved.size());
+    lr.skipped = r.sink->skipped;
 }
 
 void RoutineEngine::setLastSaved(const Status::LastSaved& s)
@@ -731,7 +858,17 @@ void RoutineEngine::publishStatus()
     s.lastError = lastError_;
     s.lastSaved = lastSaved_;
     for (int i = 0; i < kBankSize; ++i)
+    {
         s.slots[i] = bank_[i];
+        // s-rta-0927: an idle pad of the routine that last ran here keeps that run's warning counters.
+        const auto& lr = lastRun_[i];
+        if (!lr.uuid.empty() && lr.uuid == s.slots[i].uuid)
+        {
+            s.slots[i].unresolved = lr.unresolved;
+            s.slots[i].preambleUnresolved = lr.preambleUnresolved;
+            s.slots[i].skipped = lr.skipped;
+        }
+    }
 
     for (const auto& r : running_)
     {
@@ -755,6 +892,13 @@ void RoutineEngine::publishStatus()
         sl.yielded = r.sink->yielded;
         sl.glides = static_cast<int>(std::count_if(r.glides.begin(), r.glides.end(),
                                                    [](const Glide& g) { return g.started; }));
+        sl.deck = r.deck;
+        sl.layers = r.layers;
+        sl.touchesComp = r.touchesComp;
+        sl.restartPending = r.restartRequested;
+        sl.fireSeq = r.fireSeq;
+        // s-rta-0927: the grid a waiting start -- or a pending restart (fix round: the pad's restart cue) -- lands on.
+        sl.startsOn = (r.pending || r.restartRequested) ? snapWord(effectiveSnap(lastForcedSnap_, r.ownSnap)) : "";
     }
 
     std::lock_guard<std::mutex> lock(statusMutex_);

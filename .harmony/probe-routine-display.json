@@ -1,0 +1,258 @@
+{
+ "name": "probe-routine-display",
+ "activeDeckIndex": 0,
+ "masterOpacity": 1.0,
+ "decks": [
+  {
+   "name": "A",
+   "id": 0,
+   "numColumns": 2,
+   "layers": [
+    {
+     "name": "L1",
+     "id": 0,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 1,
+     "clips": [
+      {
+       "name": "card",
+       "id": 1,
+       "mediaType": 1,
+       "mediaFile": "@ROOT@/tests/fixtures/test_card.png",
+       "effects": []
+      },
+      null
+     ]
+    },
+    {
+     "name": "L2",
+     "id": 1,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 1,
+     "clips": [
+      null,
+      null
+     ]
+    },
+    {
+     "name": "L3",
+     "id": 2,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 1,
+     "clips": [
+      {
+       "name": "card",
+       "id": 2,
+       "mediaType": 1,
+       "mediaFile": "@ROOT@/tests/fixtures/test_card.png",
+       "effects": []
+      },
+      null
+     ]
+    }
+   ]
+  },
+  {
+   "name": "B",
+   "id": 1,
+   "numColumns": 2,
+   "layers": [
+    {
+     "name": "L1",
+     "id": 0,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 1,
+     "clips": [
+      null,
+      null
+     ]
+    }
+   ]
+  }
+ ],
+ "routines": [
+  {
+   "uuid": "fx-drop",
+   "name": "Drop",
+   "lengthBeats": 32.0,
+   "quantize": "bar",
+   "loop": false,
+   "restoreState": true,
+   "restoreStyle": "ease",
+   "deckRelative": true,
+   "source": {
+    "takeFolder": "",
+    "fromBeat": 0.0,
+    "toBeat": 32.0
+   },
+   "preamble": [
+    {
+     "key": {
+      "scope": "layer",
+      "deck": {
+       "i": 0,
+       "rel": true,
+       "name": "A"
+      },
+      "layer": {
+       "i": 0,
+       "id": 0,
+       "name": "L1"
+      },
+      "control": "scalar",
+      "scalar": "opacity"
+     },
+     "norm": 0.3
+    },
+    {
+     "key": {
+      "scope": "layer",
+      "deck": {
+       "i": 0,
+       "rel": true,
+       "name": "A"
+      },
+      "layer": {
+       "i": 2,
+       "id": 2,
+       "name": "L3"
+      },
+      "control": "scalar",
+      "scalar": "opacity"
+     },
+     "norm": 0.8
+    }
+   ],
+   "lanes": [
+    {
+     "key": {
+      "scope": "layer",
+      "deck": {
+       "i": 0,
+       "rel": true,
+       "name": "A"
+      },
+      "layer": {
+       "i": 0,
+       "id": 0,
+       "name": "L1"
+      },
+      "control": "scalar",
+      "scalar": "opacity"
+     },
+     "kind": "continuous",
+     "gestures": [
+      {
+       "grip": "held",
+       "curve": [
+        {
+         "x": 8.0,
+         "y": 0.3,
+         "interp": "linear"
+        },
+        {
+         "x": 28.0,
+         "y": 0.9,
+         "interp": "linear"
+        }
+       ],
+       "stamps": [],
+       "bpmAtBegin": 120.0,
+       "origin": "human"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "uuid": "fx-build",
+   "name": "Build",
+   "lengthBeats": 16.0,
+   "quantize": "bar",
+   "loop": true,
+   "restoreState": true,
+   "restoreStyle": "ease",
+   "deckRelative": true,
+   "source": {
+    "takeFolder": "",
+    "fromBeat": 0.0,
+    "toBeat": 16.0
+   },
+   "preamble": [
+    {
+     "key": {
+      "scope": "layer",
+      "deck": {
+       "i": 0,
+       "rel": true,
+       "name": "A"
+      },
+      "layer": {
+       "i": 0,
+       "id": 0,
+       "name": "L1"
+      },
+      "control": "scalar",
+      "scalar": "opacity"
+     },
+     "norm": 0.6
+    }
+   ],
+   "lanes": []
+  },
+  {
+   "uuid": "fx-wash",
+   "name": "Wash",
+   "lengthBeats": 4.0,
+   "quantize": "bar",
+   "loop": false,
+   "restoreState": true,
+   "restoreStyle": "ease",
+   "deckRelative": true,
+   "source": {
+    "takeFolder": "",
+    "fromBeat": 0.0,
+    "toBeat": 4.0
+   },
+   "preamble": [
+    {
+     "key": {
+      "scope": "layer",
+      "deck": {
+       "i": 0,
+       "rel": true,
+       "name": "A"
+      },
+      "layer": {
+       "i": 5,
+       "id": 5,
+       "name": "L6"
+      },
+      "control": "scalar",
+      "scalar": "opacity"
+     },
+     "norm": 0.5
+    }
+   ],
+   "lanes": []
+  }
+ ],
+ "routineBank": [
+  {
+   "slot": 0,
+   "uuid": "fx-drop"
+  },
+  {
+   "slot": 1,
+   "uuid": "fx-build"
+  },
+  {
+   "slot": 2,
+   "uuid": "fx-wash"
+  }
+ ]
+}

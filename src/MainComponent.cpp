@@ -752,6 +752,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!deck) return;
         auto* layer = deck->getLayer(layerIdx);
         if (!layer) return;
+        routineEngine_.stopOnLayer(composition_.activeDeckIndex, layerIdx);   // s-rta-0927: X clears the layer of routines too (not undoable, like Stop)
         LayerRuntimeSnapshot before = captureLayerRuntime(*layer);
         layer->clearActiveClip();
         LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
@@ -1563,9 +1564,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         rp.onLoad     = [this](const juce::File& f) { return perfLoad(f); };
         rp.onRepair   = [this] { return perfRepair(); };
 
-        // Routines strip (s-rta-0926 lane 3): the SAME funnel /api/routine/* uses.
-        rp.onFireRoutine  = [this](int slot) { return perfRoutineFire(slot); };
-        rp.onStopRoutine  = [this](int slot) { return perfRoutineStop(slot, false); };
+        // Save Routine (s-rta-0926 lane 3): the SAME funnel /api/routine/save uses.
         rp.onSaveRoutine  = [this](const juce::String& name, int fromBar, int toBar) {
             ApiServer::RoutineSaveOpts o;
             o.name = name;
@@ -1574,7 +1573,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
             o.toBar = toBar;
             return perfRoutineSave(o);
         };
-        rp.onRoutineStatus = [this] { return routineEngine_.status(); };
     }
     browserPanel_->getSourcesBrowser().onSourceActivated = [this](const juce::String& sourceId) {
         auto* deck = composition_.getActiveDeck();
@@ -2032,6 +2030,22 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (browserPanel_)
             browserPanel_->getRecordPanel().setNotice(msg, recorderHost_.status());
     };
+
+    // s-rta-0927 routine display (plan-routine-display-A.md 2.1-2.3): the deck's ROUTINES row and the strips'
+    // bands run through the SAME perfRoutine* funnel /api/routine/*, OSC and bindings use.
+    deckView_->onRoutineFired   = [this](int slot) { perfRoutineFire(slot); };
+    deckView_->onRoutineRemoved = [this](int slot) { perfRoutineStop(slot, false); };
+    deckView_->onRoutineSet     = [this](int slot, const RoutineSettingsChange& c) {
+        ApiServer::RoutineSetOpts o;
+        o.slot = slot;
+        o.loop = c.loop;
+        o.restoreState = c.restoreState;
+        o.restoreStyle = c.restoreStyle;
+        o.quantize = c.quantize;
+        perfRoutineSet(o);
+    };
+    deckView_->onRoutineRename  = [this](int slot) { renameRoutine(slot); };
+    deckView_->onRoutineDeleted = [this](int slot) { deleteRoutine(slot); };
 
     // Continuous capture: the recorder HOOKS the funnel's own accept/refuse
     // notification (critic A1/A2/N12) -- Human writes only; Replay writes are
@@ -3742,6 +3756,20 @@ void MainComponent::timerCallback()
     // Image slideshow advance
     if (!slideshowImages_.isEmpty())
         advanceSlideshow();
+
+    // s-rta-0927 routine display: the ROUTINES row and the strips' bands follow the routine engine's status
+    // (one status() copy per tick, pushed -- never DeckView::refresh()).
+    if (deckView_)
+    {
+        std::vector<juce::String> deckNames, layerNames;
+        for (const auto& d : composition_.decks)
+            deckNames.push_back(juce::String(d.name));
+        if (const auto* deck = composition_.getActiveDeck())
+            for (const auto& l : deck->layers)
+                layerNames.push_back(juce::String(l.name));
+        deckView_->setRoutineView(deriveRoutineDeckView(routineEngine_.status(), composition_.activeDeckIndex,
+                                                        deckNames, layerNames));
+    }
 }
 
 void MainComponent::refreshDisplayList()
@@ -5731,6 +5759,56 @@ std::string MainComponent::perfRoutineRemove(int slot)
     return {};
 }
 
+void MainComponent::renameRoutine(int slot)
+{
+    const Routine* routine = composition_.routineInSlot(slot);
+    if (routine == nullptr)
+        return;
+    const juce::String oldName(routine->name);
+    const std::string uuid = routine->uuid;
+
+    // The renameDeck idiom: the app LookAndFeel is the default, so the window is square with a bold title.
+    auto* w = new juce::AlertWindow("Rename Routine", "", juce::MessageBoxIconType::NoIcon);
+    w->addTextEditor("name", oldName);
+    w->addButton("Rename", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    w->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    // deleteWhenDismissed = true: ModalComponentManager runs this callback BEFORE it deletes the window.
+    w->enterModalState(true, juce::ModalCallbackFunction::create(
+        [this, slot, w, oldName, uuid](int result) {
+            const auto text = w->getTextEditorContents("name").trim();
+            const Routine* now = composition_.routineInSlot(slot);
+            if (result != 1 || text.isEmpty() || text == oldName || now == nullptr || now->uuid != uuid)
+                return;
+            ApiServer::RoutineSetOpts o;
+            o.slot = slot;
+            o.name = text;
+            perfRoutineSet(o);   // the name changes at once (the bank listing is re-read every tick)
+        }), true);
+}
+
+void MainComponent::deleteRoutine(int slot)
+{
+    const Routine* routine = composition_.routineInSlot(slot);
+    if (routine == nullptr)
+        return;
+    const juce::String name = routine->name.empty() ? "Routine " + juce::String(slot + 1) : juce::String(routine->name);
+    const std::string uuid = routine->uuid;
+
+    // A destructive library action sits behind a confirm (plan6); "Remove from layers" is the non-destructive one.
+    auto* w = new juce::AlertWindow("Delete Routine",
+                                    "Delete routine \"" + name + "\" from this show? This cannot be undone.",
+                                    juce::MessageBoxIconType::NoIcon);
+    w->addButton("Delete", 1, juce::KeyPress(juce::KeyPress::returnKey));
+    w->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+    w->enterModalState(true, juce::ModalCallbackFunction::create(
+        [this, slot, uuid](int result) {
+            const Routine* now = composition_.routineInSlot(slot);
+            if (result != 1 || now == nullptr || now->uuid != uuid)
+                return;
+            perfRoutineRemove(slot);   // stops it, then erases it from the composition
+        }), true);
+}
+
 juce::var MainComponent::routineStatusVar() const
 {
     const auto s = routineEngine_.status();
@@ -5783,6 +5861,16 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("skipped", sl.skipped);
         p->setProperty("yielded", sl.yielded);
         p->setProperty("glides", sl.glides);   // s-rta-0926b plan3 C: restore glides started, not yet released
+        // s-rta-0927 routine display: where a pending/running routine plays (idle: -1 / [] / false / 0 / "")
+        p->setProperty("deck", sl.deck);
+        juce::Array<juce::var> layers;
+        for (int l : sl.layers)
+            layers.add(l);
+        p->setProperty("layers", layers);
+        p->setProperty("touchesComp", sl.touchesComp);
+        p->setProperty("restartPending", sl.restartPending);
+        p->setProperty("fireSeq", static_cast<juce::int64>(sl.fireSeq));
+        p->setProperty("startsOn", juce::String(sl.startsOn));
         bank.add(juce::var(p));
     }
     obj->setProperty("bank", bank);

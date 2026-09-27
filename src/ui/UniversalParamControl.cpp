@@ -185,8 +185,14 @@ void UniversalParamControl::paint(juce::Graphics& g)
     g.drawText(paramName_, row.removeFromLeft(72.0f).toNearestInt(),
                juce::Justification::centredLeft, true);
 
+    // s-rta-0927 routine display (design 2.3.4): a lane-rank hand -- a routine, or a take replay (the cue is
+    // rank-based) -- holds this control now: its value reads in the routine cue (kRoutineCue, never the accent
+    // cyan a mapped knob wears -- fix round) and the collapsed hint slot says ROUTINE. A human hand shows nothing
+    // new; the triangle above stays the SIGNAL cue.
+    const bool routineHand = routineHandHolds();
+
     // Value text
-    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    g.setColour(juce::Colour(routineHand ? AudioDNALookAndFeel::kRoutineCue : AudioDNALookAndFeel::kTextPrimary));
     g.setFont(juce::Font(juce::FontOptions(11.0f)));
     g.drawText(juce::String(currentValue_, 2),
                juce::Rectangle<int>(kTriangleSize + 72, 0, 36, kCollapsedHeight),
@@ -215,16 +221,19 @@ void UniversalParamControl::paint(juce::Graphics& g)
         g.fillRect(meterBounds.withWidth(fillWidth));
     }
 
-    // When connected but collapsed, show a subtle source name hint
-    if (isConnected() && !expanded_)
+    // When connected but collapsed, show a subtle source name hint -- or, while a routine's hand holds the
+    // control (s-rta-0927), the word ROUTINE in the same slot (the engine publishes no signal value then).
+    if ((isConnected() || routineHand) && !expanded_)
     {
-        // Draw tiny source label above the slider area
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.5f));
+        // Draw tiny source label above the slider area. ROUTINE is the cue at full strength (fix round 2: at 50 %
+        // alpha it read 4.5:1 on the inspector's #1a1a1a; full kRoutineCue is ~14:1, past the 7:1 AAA line).
+        g.setColour(routineHand ? juce::Colour(AudioDNALookAndFeel::kRoutineCue)
+                                : juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.5f));
         g.setFont(juce::Font(juce::FontOptions(8.0f)));
         auto hintBounds = getLocalBounds().toFloat();
         hintBounds = hintBounds.removeFromTop(10.0f);
         hintBounds.removeFromLeft(static_cast<float>(kTriangleSize) + 72.0f + 36.0f + 46.0f);
-        g.drawText(sourceName_, hintBounds.toNearestInt(),
+        g.drawText(routineHand ? juce::String("ROUTINE") : sourceName_, hintBounds.toNearestInt(),
                    juce::Justification::centredLeft, true);
     }
 }
@@ -333,7 +342,19 @@ void UniversalParamControl::setParamValue(float value)
 {
     currentValue_ = juce::jlimit(0.0f, 1.0f, value);
     valueSlider_.setValue(static_cast<double>(currentValue_), juce::dontSendNotification);
+
+    // s-rta-0927 fix round: under a routine's hand the slider's fill and thumb wear the routine cue too, so no
+    // accent cyan is left on the row (the inspector's 10 Hz refresh calls this; paint() reads the grip itself).
+    const auto thumb = juce::Colour(routineHandHolds() ? AudioDNALookAndFeel::kRoutineCue : AudioDNALookAndFeel::kAccentCyan);
+    if (valueSlider_.findColour(juce::Slider::thumbColourId) != thumb)
+        valueSlider_.setColour(juce::Slider::thumbColourId, thumb);
     updateValueDisplay();
+}
+
+bool UniversalParamControl::routineHandHolds() const
+{
+    return conn_ != nullptr && conn_->grip.kind != ParamConnection::Grip::Kind::None
+        && conn_->grip.rank == static_cast<uint8_t>(Hand::Lane);
 }
 
 void UniversalParamControl::setExpanded(bool expanded)

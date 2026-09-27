@@ -3,6 +3,8 @@
 #include "model/Layer.h"
 #include "ui/LookAndFeel.h"
 #include "ui/UniversalParamControl.h" // for ResettableSlider
+#include "ui/RoutineDeckView.h"
+#include <vector>
 
 // LayerStrip: Resolume-style layer header — flat, dense, machine-like.
 //
@@ -22,6 +24,7 @@
 // playhead = cyan vertical line over clip name area
 class LayerStrip : public juce::Component,
                    public juce::DragAndDropTarget,
+                   public juce::TooltipClient,
                    private juce::Timer
 {
 public:
@@ -35,6 +38,23 @@ public:
     int getLayerIndex() const { return layerIndex_; }
 
     void refresh();
+
+    // s-rta-0927 routine display (plan-routine-display-A.md 2.5): pull the V fader (opacity; eff() when
+    // connected) and the S fader (the active clip's speed) from the model -- a routine, REST, MIDI or OSC
+    // write moves them -- skipping a fader under the mouse; the V fill turns kRoutineCue while a lane-rank hand
+    // (a routine or a take replay) grips opacity. Called by the strip's own 30 Hz timer; public for tests.
+    void syncFromModel();
+
+    // s-rta-0927 routine display (2.2): the routines playing / waiting on this layer, newest first, at most
+    // two (RoutineDeckView bandsToDraw). Painted over the top of the thumbnail with the name, a progress
+    // hairline and an x that takes the WHOLE routine off every layer it plays on (onRoutineRemove).
+    void setRoutineBands(std::vector<RoutineDeckView::Band> bands);
+    std::function<void(int slot)> onRoutineRemove;
+
+    // s-rta-0927 fix round: the strip's own tooltip -- over a band's x it says the WHOLE routine stops on every
+    // layer it plays on and that this cannot be undone; empty elsewhere (the child buttons carry their own).
+    juce::String getTooltip() override { return tooltipAt(getMouseXYRelative()); }
+    juce::String tooltipAt(juce::Point<int> pos) const;
 
     void setSelected(bool sel) { if (selected_ != sel) { selected_ = sel; repaint(); } }
     bool isSelected() const { return selected_; }
@@ -71,6 +91,14 @@ private:
     bool fxDropHighlight_ = false;
 
     void scrubPlayhead(juce::Point<int> pos);
+
+    // s-rta-0927 routine bands: band k = (thumb x, thumb y + 16k, thumb w, 16); its x = the rightmost 16x16.
+    static constexpr int kBandHeight = 16;
+    bool bandsShown() const { return thumbnailBounds_.getHeight() >= 48; }   // a folded row shows none
+    juce::Rectangle<int> bandBounds(int k) const;
+    juce::Rectangle<int> bandXBounds(int k) const;
+    void paintRoutineBands(juce::Graphics& g);
+    std::vector<RoutineDeckView::Band> routineBands_;
 
     Layer* layer_ = nullptr;
     int layerIndex_ = 0;

@@ -30,6 +30,10 @@ public:
     static constexpr juce::uint32 kMeterYellow   = 0xffffea00;
     static constexpr juce::uint32 kMeterRed      = 0xffff1744;
     static constexpr juce::uint32 kPanelBorder   = 0xff3a3a5c;
+    // s-rta-0927: "a routine holds this" -- the routine band names, the V fill and the inspector digits / ROUTINE
+    // hint / thumb under a routine's hand. Chartreuse: the 60-120 degree hue band no other UI element uses (cyan is
+    // every mapped knob's accent, magenta SIGNAL, the rest meters / categories). Reserved: use it for nothing else.
+    static constexpr juce::uint32 kRoutineCue    = 0xffb4ff2e;
 
     // Disabled-control dimming: applied by drawToggleButton() when
     // !button.isEnabled(), matching the alpha owners previously applied

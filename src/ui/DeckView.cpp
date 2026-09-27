@@ -20,16 +20,47 @@ DeckView::DeckView()
         hideUndoHint();
     };
     addChildComponent(undoHintBtn_.get());
+
+    // s-rta-0927: the eight routine pads, created once (never in rebuildGrid).
+    for (int i = 0; i < RoutineEngine::kBankSize; ++i)
+    {
+        auto pad = std::make_unique<RoutinePad>(i);
+        pad->setSpec(lastRoutineView_.pads[i]);
+        pad->onFire = [this](int slot) { if (onRoutineFired) onRoutineFired(slot); };
+        pad->onContextMenu = [this](int slot) { showRoutinePadMenu(slot); };
+        addAndMakeVisible(pad.get());
+        routinePads_[static_cast<size_t>(i)] = std::move(pad);
+    }
 }
 
 void DeckView::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
+
+    // s-rta-0927: the ROUTINES row's corner cell -- the label, then the corner note after it.
+    const juce::Font label(juce::FontOptions(10.0f, juce::Font::bold));
+    g.setColour(juce::Colour(0xff888888));
+    g.setFont(label);
+    g.drawText("ROUTINES", juce::Rectangle<int>(6, 0, kLayerStripWidth - 6, kRoutineRowHeight),
+               juce::Justification::centredLeft, false);
+    if (routineCornerNote_.isNotEmpty())
+    {
+        const int noteX = 6 + juce::GlyphArrangement::getStringWidthInt(label, "ROUTINES") + 4;
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText(routineCornerNote_, juce::Rectangle<int>(noteX, 0, kLayerStripWidth - 4 - noteX, kRoutineRowHeight),
+                   juce::Justification::centredLeft, true);
+    }
 }
 
 void DeckView::resized()
 {
     auto area = getLocalBounds();
+
+    // s-rta-0927: the ROUTINES row at the very top; pad N over column N.
+    auto routineRow = area.removeFromTop(kRoutineRowHeight);
+    for (size_t i = 0; i < routinePads_.size(); ++i)
+        routinePads_[i]->setBounds(kLayerStripWidth + static_cast<int>(i) * (kCellWidth + kCellGap), routineRow.getY(),
+                                   kCellWidth, kRoutineRowHeight);
 
     // Column trigger row at top (shifted right by layer strip width)
     auto triggerRow = area.removeFromTop(kColumnTriggerHeight);
@@ -137,6 +168,9 @@ void DeckView::rebuildGrid()
         strip->onEffectDropped = [this](int idx, const juce::String& effectDesc) {
             if (onLayerEffectDropped) onLayerEffectDropped(idx, effectDesc);
         };
+        strip->onRoutineRemove = [this](int slot) {   // s-rta-0927: a band's x
+            if (onRoutineRemoved) onRoutineRemoved(slot);
+        };
 
         gridContent_->addAndMakeVisible(strip.get());
         layerStrips_.push_back(std::move(strip));
@@ -199,6 +233,8 @@ void DeckView::rebuildGrid()
 
     // Deck tabs
     setupDeckTabs();
+
+    fanRoutineBands();   // s-rta-0927: fresh strips carry the last pushed bands at once
 
     // A structural rebuild (layer add/remove, column count change) can leave
     // selectedCells_ pointing at layer/column coordinates that no longer
@@ -296,7 +332,7 @@ int DeckView::getNaturalHeight() const
         auto* layer = deck->getLayer(i);
         totalRowHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
     }
-    return kColumnTriggerHeight + totalRowHeight + kDeckTabHeight;
+    return kRoutineRowHeight + kColumnTriggerHeight + totalRowHeight + kDeckTabHeight;
 }
 
 void DeckView::layoutGrid()
@@ -497,6 +533,90 @@ void DeckView::showDeckTabMenu(int deckIndex)
                            if (result > 0 && composition_ != nullptr
                                && deckIndex < static_cast<int>(composition_->decks.size()) && onDeckAction)
                                onDeckAction(deckIndex, static_cast<DeckTabRow::Action>(result));
+                       });
+}
+
+void DeckView::setRoutineView(const RoutineDeckView& view)
+{
+    for (int i = 0; i < RoutineEngine::kBankSize; ++i)
+        routinePads_[static_cast<size_t>(i)]->setSpec(view.pads[i]);
+    if (view.cornerNote != routineCornerNote_)
+    {
+        routineCornerNote_ = view.cornerNote;
+        repaint(0, 0, kLayerStripWidth, kRoutineRowHeight);
+    }
+    lastRoutineView_ = view;
+    fanRoutineBands();
+}
+
+void DeckView::fanRoutineBands()
+{
+    // Each strip knows its own layer index (the display rows are mirrored); a strip with no band gets none.
+    for (auto& strip : layerStrips_)
+    {
+        const auto it = lastRoutineView_.bandsByLayer.find(strip->getLayerIndex());
+        strip->setRoutineBands(it == lastRoutineView_.bandsByLayer.end() ? std::vector<RoutineDeckView::Band>{}
+                                                                         : bandsToDraw(it->second));
+    }
+}
+
+void DeckView::showRoutinePadMenu(int slot)
+{
+    if (slot < 0 || slot >= RoutineEngine::kBankSize)
+        return;
+    auto* pad = routinePads_[static_cast<size_t>(slot)].get();
+    const auto spec = pad->getSpec();
+    if (spec.state == RoutineDeckView::State::Empty)
+        return;
+
+    // Headed by the routine's name, the showDeckTabMenu idiom. No "Stop" row anywhere.
+    const auto items = padMenu(spec);
+    juce::PopupMenu quantize;
+    for (const auto& item : items)
+        if (item.inQuantizeSubmenu)
+            quantize.addItem(static_cast<int>(item.id), item.label, item.enabled, item.ticked);
+
+    juce::PopupMenu menu;
+    menu.addSectionHeader(spec.name);
+    bool quantizeAdded = false;
+    for (const auto& item : items)
+    {
+        if (item.inQuantizeSubmenu)
+        {
+            if (!quantizeAdded)
+            {
+                if (item.separatorBefore)
+                    menu.addSeparator();
+                menu.addSubMenu("Quantize", quantize);
+                quantizeAdded = true;
+            }
+            continue;
+        }
+        if (item.separatorBefore)
+            menu.addSeparator();
+        if (item.destructive)   // "Delete routine": the app's warning red (s-rta-0927 fix round)
+            menu.addColouredItem(static_cast<int>(item.id), item.label, juce::Colour(AudioDNALookAndFeel::kMeterRed),
+                                 item.enabled, item.ticked);
+        else
+            menu.addItem(static_cast<int>(item.id), item.label, item.enabled, item.ticked);
+    }
+    menu.setLookAndFeel(&getLookAndFeel());   // the app LookAndFeel: a menu parented to the top-level window would draw stock
+    menu.showMenuAsync(juce::PopupMenu::Options()
+                           .withTargetComponent(pad)
+                           .withParentComponent(getTopLevelComponent()),
+                       [this, slot](int result) {
+                           if (result <= 0)
+                               return;
+                           using M = RoutineDeckView::PadMenu;
+                           switch (static_cast<M>(result))
+                           {
+                               case M::Rename:           if (onRoutineRename) onRoutineRename(slot); break;
+                               case M::RemoveFromLayers: if (onRoutineRemoved) onRoutineRemoved(slot); break;
+                               case M::DeleteRoutine:    if (onRoutineDeleted) onRoutineDeleted(slot); break;
+                               default:
+                                   if (onRoutineSet) onRoutineSet(slot, settingsChangeFor(static_cast<M>(result)));
+                                   break;
+                           }
                        });
 }
 

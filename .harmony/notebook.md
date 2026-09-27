@@ -1809,3 +1809,39 @@ hand-written functions with no shared layout model.
   copies on a (15,15,15) frame. A capture of B looks like a tiling bug with a grey border at every canvas size; compare
   a B frame only with a B reference (a 720p B frame compared with the 1080p A frame read as a false Pitfall-37 MUST).
 - Valid while: these files exist and the Output window stays IOSurface-based.
+## 2026-09-27 s-rta-0927 routine-display | Files: .harmony/probe-routine-display.sh, src/ui/LayerStrip.cpp, src/ui/RoutineDeckView.h
+- Quartz window captures (`screencapture -l <id>`) are COLOUR-MANAGED into the display profile: the app's teal
+  #4a9a8a decodes as ~(95,152,138) and cyan #00e5ff as ~(104,226,251) on this rig, so an exact-hex pixel oracle on a
+  window shot counts 0. Match the measured rendering (or both), and cut the SignalBar away (its meters are cyan and move
+  with the room's audio, +-1600 px between shots) -- probe-routine-display.sh decodes the window's left half, 15-50 %
+  down (the deck). Headless createComponentSnapshot PNGs are NOT colour-managed (exact hex).
+- A test that needs to stage only SOME new blocks of a shared file (tests/CMakeLists.txt) per commit: build the
+  intended content from `git show HEAD:<file>` + the chosen blocks, `git hash-object -w`, then
+  `git update-index --cacheinfo 100644,<sha>,<file>` -- no interactive `git add -p`, the working copy untouched.
+- `static_assert(!requires(T& p){ p.onStop; })` on a CONCRETE class is a hard compile error, not `false`; wrap it in a
+  concept (`template<class T> concept HasStop = requires(T& p){ p.onStop; };`) for a "this member must not exist" pin.
+- Valid while these files exist in their current form.
+
+## 2026-09-27 s-rta-0927 routine-display fix round | Files: src/ui/LookAndFeel.cpp, src/ui/LookAndFeel.h, src/recording/RoutineEngine.cpp, .harmony/probe-routine-display.sh
+- `AudioDNALookAndFeel::drawPopupMenuItem` IGNORED the item colour (the `textColour` parameter was commented out), so
+  `PopupMenu::addColouredItem` drew plain kTextPrimary until the fix round; it now keeps an item's own colour. JUCE hands
+  the colour through `LookAndFeel_V2::drawPopupMenuItemWithOptions` (`item.colour != Colour() ? &item.colour : nullptr`).
+- Before picking a new "semantic" UI colour, survey every `0xffRRGGBB` literal in src/ui by HSL hue: the only empty
+  saturated band was 60-120 deg (chartreuse) -- cyan is every mapped knob's accent, magenta SIGNAL, the rest meters /
+  categories. `kRoutineCue` #b4ff2e lives there; decode it in a window capture by HUE (68..100 deg), which survives the
+  display-profile colour shift that breaks exact-hex oracles.
+- A waiting `RoutineEngine::Running` must re-read its settings from the live `Routine` every tick
+  (`resyncPending`): anything captured at `fire()` and only refreshed on a re-fire-while-running goes stale for the
+  wait, and the pad menu / REST edits read as applied while the start ignores them.
+- Valid while these files exist in their current form.
+
+## 2026-09-27 s-rta-0927 routine-display fix round 2 | Files: src/recording/RoutineEngine.cpp, src/ui/UniversalParamControl.cpp, tests/test_param_control_routine_cue.cpp
+- A routine has TWO waits, not one: `r.pending` (fired, not started) and `r.restartRequested` (pressed again while
+  running; `r.pending` stays false the whole time). Any per-tick "follow the live settings" logic must gate on
+  `r.pending || r.restartRequested`; the restart's glides use its own rule (`scheduleRestartGlides`: never before the
+  recording's hand lets go of the knob), a waiting start's use `now`.
+- `UniversalParamControl`'s collapsed hint slot (x >= kTriangleSize+154, top 10 px) lies UNDER the child
+  `valueSlider_`, whose thumb is also drawn in the routine cue: a `createComponentSnapshot` pixel test of the hint
+  counts the thumb and false-passes (the pre-fix 50 %-alpha hint measured 14.3:1 that way). Paint the parent only
+  (`c.paint(g)` onto an image pre-filled with the panel colour) to measure the text itself.
+- Valid while these files exist in their current form.

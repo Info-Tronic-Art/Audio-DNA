@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once; eight routine pads above the deck's column numbers, the routine's name banded on every layer it plays), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -143,6 +143,8 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 **Deck tab row**: '+' = New / Load Deck; right-click a tab = its menu (Save / Save As / Rename / Duplicate / Remove + 10-s Undo), never a deck switch: `DeckTabButton` intercepts `isPopupMenu()` (a JUCE Button fires `onClick` on ANY mouse button); `docs/claude/performance-controls.md`.
 
+**Routine pads and bands**: a routine pad's press is always Fire (restart while playing, no-op while waiting); there is no stop control -- a routine leaves by its band's x (the whole routine, every layer), the layer X (clears the layer of routines too), its own end, the pad menu's "Remove from layers", or Stop (routines only). "Delete routine" (pad menu, warning red via `addColouredItem` -- the app LookAndFeel honours an item colour -- behind a confirm) is the only path that erases one. Pads and bands are model-driven from `RoutineEngine::Status` via `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`) every 30 Hz tick, never from panel memory; a strip fader follows the model (`LayerStrip::syncFromModel`, Pitfall 41) and its V fill turns the routine cue while a routine's hand grips opacity; a bound `UniversalParamControl` shows its value (and slider) in the routine cue with ROUTINE in the hint slot while a routine's (lane-rank) hand holds it. The routine cue is `AudioDNALookAndFeel::kRoutineCue` (chartreuse, band names too) -- reserved: never the accent cyan every mapped knob wears, and never used for anything else; `docs/claude/recording.md` "Surfaces".
+
 ---
 
 ## Claude Working Instructions
@@ -155,61 +157,9 @@ Batch multiple tasks together when they are all code/infrastructure. Present one
 
 ### "Kick off phase N" Protocol (v2)
 
-When the user says **"kick off phase N"**, follow this exact sequence:
-
-1. **Read** these files in order:
-   - `CLAUDE.md` (this file) — sacred rules, project context
-   - `PHASE_GUIDE.md` — find Phase N, read its specific instructions
-   - **For phases 1-12**: `ARCHITECTURE_V2.md` + `TASKPLAN_V2.md`
-   - **For phases 13-25**: `research/UNIFIED_BUILD_PLAN.md` — this is the ONLY file needed. It contains all tasks, all files to read, the 3-step shader process, validation criteria, and references to detailed GLSL specs in `research/resolumeEffectSourceIntegration.md` and `research/archaosEffectSourceIntegration.md`.
-
-2. **Read** all source files listed in the phase guide for that phase before changing anything
-
-3. **Execute ALL tasks** in the phase without stopping between tasks. Batch everything.
-
-4. **Self-validate** after completing all tasks:
-   - Build: `cmake --build build --config Release` exits 0
-   - Tests: all existing + new tests pass
-   - Grep: no RT violations (no `new`/`malloc` in audio callback or analysis steady-state, no `std::mutex` on hot paths)
-   - **Shader verification (MANDATORY if sources/effects/shaders changed)**: Follow the 4-tier system in `tests/visual/SHADER_VERIFICATION.md`:
-     - **Tier 1 — Sources**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_sources.py -v` — auto-discovers ALL sources, sweeps every param, checks non-black + has-effect + no-discontinuity
-     - **Tier 1 — Effects**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_effects.py -v` — auto-discovers ALL 112 effects, verifies each param changes output
-     - **Tier 1 — Audio**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_audio_reactivity.py -v` — verifies injected audio features change source/effect output
-     - **Tier 1 — Time**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_time_sweep.py -v` — verifies animated sources change over time
-     - **Tier 1 — Performance**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_performance.py -v` — verifies render time within budget
-     - **Tier 2**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_range_quality.py -v` — 11-position sweep, CSV reports, 70%+ useful range, no dead zones
-     - **Tier 3**: Open `tests/visual/shader_preview.html` in browser, move every slider end-to-end
-     - **Tier 4**: User tests in the actual app
-     - Fix ALL Tier 1 failures before reporting. Tier 2 for tuning. Tier 3 is Claude's visual check. Tier 4 is user's.
-   - **Quick run all visual tests**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/ -v --ignore=tests/visual/test_range_quality.py` (range quality is slow, run separately for tuning)
-   - Phase-specific checks listed in PHASE_GUIDE.md
-
-5. **Decision point — does this phase have UI changes?**
-   - **NO UI changes** (P1, P3): Commit to git, update PHASE_GUIDE.md status to COMPLETE, report done. User does NOT need to validate.
-   - **YES UI changes** (P2, P4-P20): Report to user with:
-
-     ```text
-     ## Phase N Complete
-     **What changed**: <summary>
-     **What to look for**: <specific UI elements to verify by launching the app>
-     ```
-
-     Wait for user to confirm.
-
-6. **On human PASS**: Commit to git, update PHASE_GUIDE.md status to COMPLETE, then run Step 8.
-7. **On human FAIL**: Fix the issue, rebuild, re-validate, report again. After final PASS, run Step 8.
-
-8. **Post-phase documentation (MANDATORY after every phase)**:
-   - Update `CLAUDE.md`:
-     - Effect/source counts if changed
-     - Any new architectural patterns, rendering pipeline changes, or data model changes
-     - Add new entries to `docs/claude/pitfalls.md` (and its one-line index in CLAUDE.md) if bugs were discovered and fixed
-     - Add new entries to "UI Patterns" if new interaction conventions were established
-   - Update `research/UNIFIED_BUILD_PLAN.md`: mark phase COMPLETE with summary of what shipped
-   - Update `PHASE_GUIDE.md`: mark phase COMPLETE
-   - Write a project memory file summarizing what was built and any non-obvious lessons
-   - Write feedback memory files for any user preferences discovered during testing
-   - **Ask**: "Did we learn anything this phase that should change how future phases work?" If yes, update the relevant docs. If Claude identified patterns (common bug classes, UI conventions the user validated, architectural shortcuts), capture them proactively.
+When the user says **"kick off phase N"**, read and follow `docs/claude/phase-protocol.md` (the full 8-step
+sequence: read order, execute all tasks, self-validate incl. the 4-tier shader verification, UI decision point,
+commit, post-phase documentation).
 
 ### Before Any Work
 
@@ -268,6 +218,7 @@ the named area; this index is triage-only.
 38. Autopilot keeps one beat-crossing baseline per instance -- before calling `Autopilot::processFrame` for more than one deck.
 39. `layer_transform` is one program shared by clip and layer transforms -- before adding a uniform to it or reading a picture's size.
 40. Output windows: normal level, never key -- before touching `OutputWindow`.
+41. `LayerStrip` faders must follow the model from the timer -- before adding a strip/inspector widget that shows a model value a routine, REST, MIDI or OSC can write.
 
 ---
 
@@ -295,4 +246,5 @@ these are NOT @-imported, so they cost nothing at boot and are read on demand.
 | Adding/tuning a procedural fractal source, or doing browser-based shader testing before porting a shader into `EmbeddedShaders.h` | `docs/claude/fractals.md` |
 | Hitting a bug that might already be a known pitfall (check the one-line index above first) | `docs/claude/pitfalls.md` |
 | Building on Windows/Linux, adding Aubio, or adding any new project dependency | `docs/claude/build-other-platforms.md` |
+| Boris says "kick off phase N" (the legacy phase protocol) | `docs/claude/phase-protocol.md` |
 | Needing milestone history (incl. the P1-P12 phase dependency map), the v2 redesign rationale, or the `research/` document index | `docs/claude/history.md` |

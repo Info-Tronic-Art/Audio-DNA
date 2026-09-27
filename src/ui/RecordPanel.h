@@ -3,7 +3,6 @@
 #include "ui/LookAndFeel.h"
 #include "ui/RecordPanelModel.h"
 #include "ui/RoutineBankModel.h"
-#include <array>
 #include <functional>
 #include <string>
 
@@ -44,16 +43,12 @@ public:
     // tab switch. Message thread; every host transition publishes synchronously, so the read is post-action.
     std::function<RecorderHost::Status()> onStatus;
 
-    // Routines strip (s-rta-0926 lane 3, plan-routines-s1-final.md 5.4/section 7 LANE 3). Wired by
-    // the app to the SAME perf* routine funnel /api/routine/* uses (perfRoutineFire/Stop/Save).
-    // fire/stop return "" or the refusal text; save takes 1-based inclusive bars (the panel's own
-    // "From bar"/"To bar" fields), an empty name meaning the default name. onRoutineStatus reads
-    // RoutineEngine::status() directly (not the REST-shaped var) -- pulled by this panel itself on
-    // every refresh()/visibilityChanged(), so no extra call site is needed in the app.
-    std::function<std::string(int slot)> onFireRoutine;
-    std::function<std::string(int slot)> onStopRoutine;
+    // Save Routine (s-rta-0926 lane 3, plan-routines-s1-final.md 5.4/section 7 LANE 3). Wired by the
+    // app to the SAME perf* routine funnel /api/routine/save uses (perfRoutineSave): 1-based inclusive
+    // bars (the panel's own "From bar"/"To bar" fields), an empty name meaning the default name; returns
+    // "" or the refusal text. s-rta-0927: the pad row that fired/stopped routines here is gone -- routines
+    // are fired from the deck's ROUTINES row (DeckView / RoutinePad).
     std::function<std::string(const juce::String& name, int fromBar, int toBar)> onSaveRoutine;
-    std::function<RoutineEngine::Status()> onRoutineStatus;
 
     // The fixed takes folder: the Load dialog's starting folder and the caption.
     void setTakesRoot(const juce::File& root);
@@ -74,10 +69,9 @@ private:
     void forgetNotice();
     static void applyButton(juce::TextButton& button, const RecordPanelView::Button& spec);
 
-    // Routines strip.
-    void applyRoutines(double nowSeconds);
+    // Save Routine.
+    void applyRoutineNotice(double nowSeconds);
     void runRoutineAction(const std::function<std::string()>& action);
-    static void applyPad(juce::TextButton& button, const RoutineBankView::Pad& spec);
 
     juce::TextButton recordBtn_{"Record Take"};
     juce::TextButton playBtn_{"Play Take"};
@@ -106,11 +100,7 @@ private:
     double noticeAt_ = -1.0;
     RecordPanelNoticeKey noticeKey_;
 
-    // Routines strip (s-rta-0926 lane 3): the "Routines" row of pads + the "Save Routine" row.
-    juce::Label routinesLabel_;
-    std::array<juce::TextButton, RoutineEngine::kBankSize> routinePads_;
-    RoutineBankView lastRoutineView_;   // read by each pad's onClick to decide fire vs. stop
-
+    // Save Routine (s-rta-0926 lane 3): the "Save Routine" row.
     juce::Label saveRoutineLabel_;
     juce::Label fromBarLabel_{"", "From bar"};
     juce::TextEditor fromBarEditor_;

@@ -1695,3 +1695,446 @@ TEST_CASE("RoutineEngine glide: the 2 Bar and 4 Bar boundary prediction puts the
         check(Clip::BeatSnapMode::FourBar, 10, 2, 1.0, 8.0);
     }
 }
+
+// === s-rta-0927 routine display (plan-routine-display-A.md 3.1-3.2, 5.2): the status says WHERE a pending /
+// running routine plays (deck, resolved layers, fire order, the grid it starts on, a pending restart), the
+// layer X stops every routine on that layer, and a finished run's warning stays on its idle pad. ===
+
+TEST_CASE("RoutineEngine display D1: a fired routine reports its deck, resolved layers, fire order and start grid", "[routine][engine][display]")
+{
+    Rig rig;
+    addToBank(rig.comp, test7Routine(), 0);   // restores layer 0's clip and layer 1's opacity; a lane on layer 0
+    rig.tick();
+    rig.runTo(1.0);
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "idle");
+        CHECK(s.deck == -1);
+        CHECK(s.layers.empty());
+        CHECK(s.fireSeq == 0);
+        CHECK(s.startsOn.empty());
+    }
+    CHECK(rig.fire(0).empty());
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "pending");
+        CHECK(s.deck == 0);
+        CHECK(s.layers == std::vector<int>{ 0, 1 });
+        CHECK_FALSE(s.touchesComp);
+        CHECK(s.fireSeq == 1);
+        CHECK(s.startsOn == "bar");
+        CHECK_FALSE(s.restartPending);
+    }
+    rig.runTo(4.0);
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "running");
+        CHECK(s.deck == 0);
+        CHECK(s.layers == std::vector<int>{ 0, 1 });
+        CHECK(s.startsOn.empty());   // only a waiting routine has a grid still to start on
+    }
+
+    SECTION("the global Quantize override is the grid it starts on")
+    {
+        Rig q;
+        addToBank(q.comp, test7Routine(), 0);
+        q.forced = RoutineSnap::FourBar;
+        q.tick();
+        q.runTo(1.0);
+        CHECK(q.fire(0).empty());
+        CHECK(q.slot(0).startsOn == "4bar");
+    }
+}
+
+TEST_CASE("RoutineEngine display D2: a deck-relative routine resolves on the deck that is active at the fire", "[routine][engine][display]")
+{
+    Rig rig;
+    Deck second;
+    second.name = "Deck 2";
+    second.initDefault();
+    const int idx = rig.comp.appendDeck(std::move(second));
+    REQUIRE(idx == 1);
+    rig.comp.activeDeckIndex = 1;
+    addToBank(rig.comp, test7Routine(), 0);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.slot(0).deck == 1);
+    CHECK(rig.slot(0).layers == std::vector<int>{ 0, 1 });
+    rig.comp.activeDeckIndex = 0;   // a deck switch after the fire does not move it
+    rig.runTo(5.0);
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.slot(0).deck == 1);
+}
+
+TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that layer of that deck, whole, grips released", "[routine][engine][display]")
+{
+    Rig rig;
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath speed0 = layerKey(0, "scalar", "speed");
+    addToBank(rig.comp, test7Routine(), 0);                                  // layers {0, 1}
+    Routine b = makeRoutine("b", 8.0, Clip::BeatSnapMode::Bar, false);       // layer {0} only
+    b.lanes[speed0] = continuousLane(speed0, { gesture(0.0, 0.1f, 4.0, 0.9f) });
+    addToBank(rig.comp, b, 1);
+
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.fire(1).empty());
+    CHECK(rig.slot(1).layers == std::vector<int>{ 0 });
+    CHECK(rig.slot(1).fireSeq > rig.slot(0).fireSeq);
+    rig.runTo(6.5);   // both running; A's gesture on layer 0 opacity (clock 6..7) and B's on speed (4..8) held
+    REQUIRE(rig.slot(0).state == "running");
+    REQUIRE(rig.slot(1).state == "running");
+    CHECK(rig.fd.count(Ev::Release, op0) == 0);
+    CHECK(rig.fd.count(Ev::Release, speed0) == 0);
+
+    rig.eng.stopOnLayer(0, 1);   // only A plays on layer 1
+    CHECK(rig.slot(0).state == "idle");
+    CHECK(rig.slot(0).layers.empty());
+    CHECK(rig.slot(1).state == "running");
+    CHECK(rig.fd.count(Ev::Release, op0) == 1);   // A's gesture on layer 0 let go too: the WHOLE routine stops
+
+    rig.eng.stopOnLayer(1, 0);   // another deck: nothing
+    CHECK(rig.slot(1).state == "running");
+    CHECK(rig.fd.count(Ev::Release, speed0) == 0);
+
+    rig.eng.stopOnLayer(0, 0);
+    CHECK(rig.slot(1).state == "idle");
+    CHECK(rig.fd.count(Ev::Release, speed0) == 1);
+
+    SECTION("both routines on layer 0 stop together")
+    {
+        Rig r2;
+        addToBank(r2.comp, test7Routine(), 0);
+        addToBank(r2.comp, b, 1);
+        r2.tick();
+        r2.runTo(1.0);
+        CHECK(r2.fire(0).empty());
+        CHECK(r2.fire(1).empty());
+        r2.eng.stopOnLayer(0, 0);   // while still pending
+        CHECK(r2.slot(0).state == "idle");
+        CHECK(r2.slot(1).state == "idle");
+    }
+}
+
+TEST_CASE("RoutineEngine display D4: a finished run's warning stays on its idle pad until stopAll", "[routine][engine][display]")
+{
+    Rig rig;
+    Routine w = makeRoutine("w", 4.0, Clip::BeatSnapMode::Bar, false);
+    Routine::PreambleEntry gone; gone.key = opacityKey(5); gone.continuous = true; gone.norm = 0.5f;   // no layer 6
+    w.preamble = { gone };
+    addToBank(rig.comp, w, 2);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(2).empty());
+    rig.runTo(5.0);
+    CHECK(rig.slot(2).state == "running");
+    CHECK(rig.slot(2).preambleUnresolved == 1);
+    rig.runTo(9.0);   // 4 beats from beat 4: once, ended
+    CHECK(rig.slot(2).state == "idle");
+    CHECK(rig.slot(2).preambleUnresolved == 1);
+    CHECK(rig.slot(2).layers.empty());
+
+    SECTION("a stop keeps it too; stopAll clears it")
+    {
+        CHECK(rig.fire(2).empty());
+        rig.eng.stop(2);
+        CHECK(rig.slot(2).state == "idle");
+        CHECK(rig.slot(2).preambleUnresolved == 1);
+        rig.eng.stopAll();
+        CHECK(rig.slot(2).preambleUnresolved == 0);
+    }
+}
+
+TEST_CASE("RoutineEngine display D5: restartPending is set by a re-fire while running and cleared when the restart lands", "[routine][engine][display]")
+{
+    Rig rig;
+    addToBank(rig.comp, test7Routine(), 0);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.5);
+    REQUIRE(rig.slot(0).state == "running");
+    CHECK_FALSE(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).startsOn.empty());
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).startsOn == "bar");   // s-rta-0927 fix round: the grid the restart lands on (the pad's cue)
+    CHECK(rig.slot(0).fireSeq == 1);   // a restart is not a new fire
+    rig.runTo(8.0);
+    CHECK(rig.slot(0).restarts == 1);
+    CHECK_FALSE(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).startsOn.empty());
+}
+
+// === s-rta-0927 fix round: a pad-menu (or REST) settings edit made while a routine WAITS reaches that very
+// start -- Quantize, Start: Ease / Jump and Restore first / Start from now are re-read from the live routine on
+// every tick of the wait, not frozen at the press (critic MUST: the menu re-ticked, the start did not). ===
+
+TEST_CASE("RoutineEngine display D6: a settings edit made while waiting reaches the pending start", "[routine][engine][display][pending]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op1 = opacityKey(1);
+
+    SECTION("Quantize Bar -> 4 Bar while waiting: startsOn follows at once and the bar edge no longer starts it")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);   // Bar
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).startsOn == "bar");
+        rig.comp.routines[0].quantize = Clip::BeatSnapMode::FourBar;   // what perfRoutineSet writes
+        rig.runTo(1.0625);
+        CHECK(rig.slot(0).startsOn == "4bar");                          // the tooltip agrees with the menu tick
+        CHECK(rig.slot(0).quantize == "4bar");
+        rig.runTo(4.0);                                                 // barCount 1: not a four-bar line
+        CHECK(rig.slot(0).state == "pending");
+        rig.runTo(16.0);                                                // barCount 4
+        CHECK(rig.slot(0).state == "running");
+    }
+
+    SECTION("Ease -> Jump before the glide began: nothing moves in the wait, one call ON the bar, no read")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);   // Ease (the default)
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Jump;
+        rig.runTo(3.9375);
+        CHECK(rig.slot(0).state == "pending");
+        CHECK(rig.slot(0).restoreStyle == "jump");
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);                       // Ease would have touched op1 at 3.0
+        CHECK(rig.slot(0).glides == 0);
+        const size_t at4 = rig.fd.log.size();
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        REQUIRE(rig.fd.log.size() == at4 + 4);
+        checkEvent(rig.fd.log[at4], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[at4 + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[at4 + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[at4 + 2].v == Approx(0.3f));                   // at once, not a step of a glide from 0.9
+        checkEvent(rig.fd.log[at4 + 3], Ev::Release, op1);
+        CHECK(rig.fd.reads == 0);
+    }
+
+    SECTION("Ease -> Jump inside the glide: the glide lets go where it is, the restore lands in one call ON the bar")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(3.5);                                                 // gliding 0.9 -> 0.3 over [3, 4]
+        REQUIRE(rig.fd.count(Ev::Touch, op1) == 1);
+        CHECK(rig.fd.count(Ev::Release, op1) == 0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Jump;
+        rig.runTo(3.5625);
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);                     // let go, never a leaked grip
+        CHECK(rig.slot(0).glides == 0);
+        const size_t mark = rig.fd.log.size();
+        rig.runTo(3.9375);
+        CHECK(rig.fd.on(op1, mark).empty());                            // no more glide steps
+        rig.runTo(4.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 2);
+    }
+
+    SECTION("Jump -> Ease while waiting: the restore now glides over the last beat before the bar")
+    {
+        Rig rig;
+        Routine r = test7Routine();
+        r.restoreStyle = Routine::RestoreStyle::Jump;
+        addToBank(rig.comp, r, 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Ease;
+        rig.runTo(3.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);                       // Jump would touch nothing before the bar
+        CHECK(rig.fd.lastSet(op1) == Approx(0.9f));                     // from where the knob is
+        rig.runTo(3.5);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    }
+
+    SECTION("Restore first -> Start from now while waiting: nothing is restored at the start")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.0);
+        rig.comp.routines[0].restoreState = false;
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.fd.firedRestores() == 0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);
+        CHECK_FALSE(rig.slot(0).restoreState);
+    }
+}
+
+// === s-rta-0927 fix round 2: a RESTART waiting for its boundary (a pad pressed again while it plays) follows the
+// same edits a waiting start does -- Quantize, Start: Ease / Jump and Restore first / Start from now are re-read from
+// the live routine on every tick of the restart wait, not frozen at the second press (critic MUST: the menu, the
+// notice and the restart tooltip said one thing; the restart landed on the settings of the press). ===
+
+TEST_CASE("RoutineEngine display D7: a settings edit made while a restart waits reaches that restart", "[routine][engine][display][pending]")
+{
+    const ControlPath op1 = opacityKey(1);
+
+    // test7Routine started on the bar at 4.0 (its Ease restore glided op1 0.9 -> 0.3 over [3, 4]), then pressed
+    // again at 4.5: a restart waits for the bar at 8.0, its restore glide scheduled over [7, 8].
+    auto startThenRefire = [](Rig& rig) {
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(4.5);
+        REQUIRE(rig.slot(0).state == "running");
+        CHECK(rig.fire(0).empty());
+        REQUIRE(rig.slot(0).restartPending);
+        CHECK(rig.slot(0).startsOn == "bar");
+    };
+
+    SECTION("Quantize Bar -> Beat while the restart waits: startsOn follows at once and the restart lands on the next beat")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        startThenRefire(rig);
+        rig.comp.routines[0].quantize = Clip::BeatSnapMode::Beat;      // what perfRoutineSet writes
+        rig.runTo(4.5625);
+        CHECK(rig.slot(0).startsOn == "beat");                          // the restart tooltip agrees with the menu tick
+        CHECK(rig.slot(0).restarts == 0);
+        rig.runTo(5.0);                                                 // the next beat, not the bar at 8.0
+        CHECK(rig.slot(0).restarts == 1);
+        CHECK_FALSE(rig.slot(0).restartPending);
+        CHECK(rig.slot(0).position == Approx(0.0));
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));                     // its restore landed with it
+    }
+
+    SECTION("Quantize Bar -> 4 Bar while a loop's restart waits: the next bar no longer restarts it, the four-bar line does")
+    {
+        Rig rig;
+        Routine r = test7Routine();
+        r.loop = true;
+        addToBank(rig.comp, r, 0);
+        startThenRefire(rig);
+        rig.runTo(5.0);
+        rig.comp.routines[0].quantize = Clip::BeatSnapMode::FourBar;
+        rig.runTo(5.0625);
+        CHECK(rig.slot(0).startsOn == "4bar");
+        rig.runTo(8.0);                                                 // barCount 2: not a four-bar line
+        CHECK(rig.slot(0).restarts == 0);
+        CHECK(rig.slot(0).restartPending);
+        rig.runTo(15.9375);
+        CHECK(rig.slot(0).restarts == 0);
+        rig.runTo(16.0);                                                // barCount 4
+        CHECK(rig.slot(0).restarts == 1);
+        CHECK_FALSE(rig.slot(0).restartPending);
+        CHECK(rig.slot(0).position == Approx(0.0));
+    }
+
+    SECTION("Ease -> Jump before the restart's glide began: nothing moves before the bar, one call ON the bar, no read")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);   // Ease (the default)
+        rig.fd.values[op1] = 0.9f;
+        startThenRefire(rig);
+        const int reads = rig.fd.reads;
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Jump;
+        rig.fd.values[op1] = 0.9f;                                      // a hand moved the knob since the start
+        rig.runTo(7.9375);
+        CHECK(rig.slot(0).restarts == 0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);                       // the start's glide only; Ease would touch at 7.0
+        CHECK(rig.slot(0).glides == 0);
+        const size_t at8 = rig.fd.log.size();
+        rig.runTo(8.0);
+        CHECK(rig.slot(0).restarts == 1);
+        {
+            const auto ev = rig.fd.on(op1, at8);
+            REQUIRE(ev.size() == 3);
+            checkEvent(ev[0], Ev::Touch, op1);
+            checkEvent(ev[1], Ev::Set, op1);
+            CHECK(ev[1].v == Approx(0.3f));                             // at once, not a step of a glide from 0.9
+            checkEvent(ev[2], Ev::Release, op1);
+        }
+        CHECK(rig.fd.reads == reads);
+    }
+
+    SECTION("Ease -> Jump inside the restart's glide: the glide lets go where it is, the restore lands in one call ON the bar")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        startThenRefire(rig);
+        rig.runTo(5.0);
+        rig.fd.values[op1] = 0.9f;
+        rig.runTo(7.5);                                                 // the restart's glide 0.9 -> 0.3 over [7, 8]
+        REQUIRE(rig.fd.count(Ev::Touch, op1) == 2);
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Jump;
+        rig.runTo(7.5625);
+        CHECK(rig.fd.count(Ev::Release, op1) == 2);                     // let go, never a leaked grip
+        CHECK(rig.slot(0).glides == 0);
+        const size_t mark = rig.fd.log.size();
+        rig.runTo(7.9375);
+        CHECK(rig.fd.on(op1, mark).empty());                            // no more glide steps
+        rig.runTo(8.0);
+        CHECK(rig.slot(0).restarts == 1);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 3);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 3);
+    }
+
+    SECTION("Jump -> Ease while the restart waits: the restart's restore now glides over the last beat before the bar")
+    {
+        Rig rig;
+        Routine r = test7Routine();
+        r.restoreStyle = Routine::RestoreStyle::Jump;
+        addToBank(rig.comp, r, 0);
+        rig.fd.values[op1] = 0.9f;
+        startThenRefire(rig);                                           // the start: one call ON the bar at 4.0
+        REQUIRE(rig.fd.count(Ev::Touch, op1) == 1);
+        rig.runTo(5.0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Ease;
+        rig.fd.values[op1] = 0.9f;
+        rig.runTo(7.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 2);                       // Jump would touch nothing before the bar
+        CHECK(rig.fd.lastSet(op1) == Approx(0.9f));                     // from where the knob is
+        rig.runTo(7.5);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+        rig.runTo(8.0);
+        CHECK(rig.slot(0).restarts == 1);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 2);
+    }
+
+    SECTION("Restore first -> Start from now while the restart waits: nothing is restored at the restart")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        startThenRefire(rig);
+        const int restores = rig.fd.firedRestores();
+        rig.runTo(5.0);
+        rig.comp.routines[0].restoreState = false;
+        rig.runTo(8.0);
+        CHECK(rig.slot(0).restarts == 1);
+        CHECK(rig.fd.firedRestores() == restores);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);                       // the start's glide only
+        CHECK(rig.slot(0).glides == 0);
+    }
+}

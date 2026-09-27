@@ -367,7 +367,7 @@ void AudioDNALookAndFeel::drawPopupMenuItem(juce::Graphics& g,
                                              const juce::String& text,
                                              const juce::String& shortcutKeyText,
                                              const juce::Drawable* /*icon*/,
-                                             const juce::Colour* /*textColour*/)
+                                             const juce::Colour* textColour)
 {
     if (isSeparator)
     {
@@ -387,6 +387,10 @@ void AudioDNALookAndFeel::drawPopupMenuItem(juce::Graphics& g,
 
     auto colour = isHighlighted && isActive ? juce::Colour(kAccentCyan)
                                              : juce::Colour(kTextPrimary);
+    // s-rta-0927: an item added with its own colour (addColouredItem -- e.g. "Delete routine" in warning red)
+    // keeps it, highlighted or not.
+    if (textColour != nullptr)
+        colour = *textColour;
     if (!isActive)
         colour = juce::Colour(kTextSecondary);
 

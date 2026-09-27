@@ -72,7 +72,24 @@ routines reaching for the same control):
   (six REST routes, `src/api/ApiServer.cpp`); `/audiodna/routine/{slot}` over OSC (value > 0
   fires; `src/osc/OscHandler.{h,cpp}`); `Binding::Action::TriggerRoutine` (keyboard + MIDI,
   learnable from 8 whole-word overlay targets "Routine 1".."Routine 8", `targetRoutineSlot`
-  0-7) — Toggle mode fires/restarts, Momentary mode holds-to-run.
+  0-7) — Toggle mode fires/restarts, Momentary mode holds-to-run. **On screen (s-rta-0927 routine
+  display, slice A)**: a 22 px ROUTINES row at the top of the deck (`DeckView`) holds eight
+  `RoutinePad`s over the column numbers -- a press fires (restart while playing; a waiting pad ignores
+  it), right-click opens the pad's settings (Loop/Once, Restore first/Start from now, Start: Ease/Jump,
+  Quantize, Rename..., Remove from layers, Delete routine...); a waiting pad has a thin teal frame, a
+  playing one a thick frame, a teal sweep and "5/8" (pressed again: a drawn "back to the start" mark
+  left of "5/8" until the restart lands; fix round); a red "!" marks a routine that could not restore
+  or play something (kept after the run until Stop / a composition load); a routine playing on another
+  deck dims and the corner names it. A settings edit made while a pad waits reaches that start, and one
+  made while a pressed-again pad's restart waits reaches that restart (`RoutineEngine::resyncPending`, fix
+  rounds 1-2). Every layer a waiting/playing routine drives on the shown deck
+  carries a band with its name (the routine cue, chartreuse `kRoutineCue`) over the top of the strip's
+  picture (two at most, "+N"); the band's
+  x takes the whole routine off, and the layer X takes every routine off that layer
+  (`RoutineEngine::stopOnLayer`). Driven every 30 Hz tick from `RoutineEngine::Status` (`deck`,
+  `layers`, `fireSeq`, `startsOn`, `restartPending`, `touchesComp` -- also on `/api/routine/status`)
+  through `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`). The Record tab keeps only Save
+  Routine (its old pad row is gone). Live: `.harmony/probe-routine-display.sh`.
 - **Deferred to slice 2+** (disclosed, not silent): nothing about a fired routine is recorded back
   into a take (no `routine` lane, no `via`-tagged children); no lane editor / range-select UI (a
   routine is saved by beat/bar numbers over REST in slice 1); no per-slot binding re-target table;
