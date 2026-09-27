@@ -350,6 +350,9 @@ public:
 
     // Render frame time tracking
     float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
+    // s-rta-0926b R1: the longest single frame (same CPU-side measure as
+    // frameTimeMs_, no EMA) since the previous call; reading resets it.
+    float takePeakFrameTimeMs() { return peakFrameTimeMs_.exchange(0.0f, std::memory_order_relaxed); }
 
     // === Frame Capture ===
 
@@ -404,6 +407,7 @@ private:
     void publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH);
 
     std::atomic<float> frameTimeMs_{0.0f};
+    std::atomic<float> peakFrameTimeMs_{0.0f};
     double renderProfileAccum_ = 0.0;
     int renderProfileCount_ = 0;
     static constexpr int kRenderProfileInterval = 300; // Log every N frames (~5s at 60fps)

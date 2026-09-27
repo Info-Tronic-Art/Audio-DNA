@@ -50,6 +50,7 @@ void CompositorEngine::releaseGL()
         if (buf.tex != 0) glDeleteTextures(1, &buf.tex);
     }
     layerTemporalBuffers_.clear();
+    temporalBufferCount_.store(0, std::memory_order_relaxed);
 
     // Release per-layer output textures (Layer Router P20)
     for (auto& [id, fbo] : layerOutputFBOs_)
@@ -74,6 +75,8 @@ void CompositorEngine::releaseGL()
         }
     }
     layerRingBuffers_.clear();
+    frameRingCount_.store(0, std::memory_order_relaxed);
+    crossfadeStart_.clear();
 
     glInitialized_ = false;
 }
@@ -820,6 +823,16 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const 
     // feedback) is keyed by deck AND layer id -- layer ids repeat across decks.
     const uint64_t clipKey = LayerStateKey::clipChain(deckId, layer.id);
 
+    // s-rta-0926b R1: while the layer crossfades, the outgoing clip's chain runs
+    // on its own key. At the first frame of each crossfade the layer's clip-chain
+    // history is handed to it (copy buffer, swap ring) -- BEFORE the incoming
+    // clip's chain reads or writes that history this frame. Nothing happens at
+    // fade end: the slot idles as the spare for the next fade.
+    const uint64_t outKey = LayerStateKey::outgoingChain(deckId, layer.id);
+    if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
+                                         layer.crossfadeProgress))
+        handOverClipHistory(clipKey, outKey, shaderMgr, quad, width, height);
+
     // Apply per-clip transform (position, scale, rotation) + clip opacity
     clipTex = applyClipTransform(clip, clipTex, shaderMgr, quad, width, height);
 
@@ -829,7 +842,7 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const 
     // P14: Apply clip-to-clip transition if crossfading. S167-L4b
     // DT-FIX: real measured dt (function param) -- see
     // compositeDeck()'s header comment.
-    clipTex = applyTransition(layer, clipKey, clipTex, time, shaderMgr, quad, width, height, dt);
+    clipTex = applyTransition(layer, outKey, clipTex, time, shaderMgr, quad, width, height, dt);
 
     // P16: Apply feedback (Larsen loop) if enabled
     if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
@@ -1328,7 +1341,7 @@ juce::String CompositorEngine::getTransitionShaderName(Layer::MixMode mode)
 
 // === Phase 14: Transition rendering ===
 
-GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t stateKey, GLuint newClipTex, float time,
+GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t outgoingKey, GLuint newClipTex, float time,
                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
                                           int w, int h, float dt)
 {
@@ -1392,10 +1405,12 @@ GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t stateKey, GLuint
     // transition start (0.5 x invert(A) instead of invert(0.5 x A)). Neither
     // pass writes the held incoming result.
     prevTex = applyClipTransform(*prevClip, prevTex, shaderMgr, quad, w, h, /*holdTex=*/newClipTex);
-    // NOTE (s-rta-0926b open fork R1): this chain keys its temporal / ring state
-    // with the SAME key as the incoming clip's chain -- per-layer history,
-    // needs a design ruling (render.md, open_forks R1).
-    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, stateKey,
+    // s-rta-0926b R1: the outgoing chain keys its temporal buffer / frame ring
+    // by the layer's OUTGOING slot (handed over at fade start, renderLayerStages)
+    // -- it used to share the incoming chain's key, so each clip read the
+    // other's output as its history (1/3 ghost at Freeze 0.5; with Frame
+    // Stutter each clip showed the other outright).
+    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, outgoingKey,
                                /*holdTex=*/newClipTex);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
@@ -1481,12 +1496,14 @@ CompositorEngine::TemporalBuffer& CompositorEngine::getOrCreateTemporalBuffer(ui
         return buf;
 
     // Release old if size changed
+    if (buf.tex != 0) temporalBufferCount_.fetch_sub(1, std::memory_order_relaxed);
     if (buf.fbo != 0) { glDeleteFramebuffers(1, &buf.fbo); buf.fbo = 0; }
     if (buf.tex != 0) { glDeleteTextures(1, &buf.tex); buf.tex = 0; }
 
     buf.width = w;
     buf.height = h;
     createFBO(buf.fbo, buf.tex, w, h);
+    temporalBufferCount_.fetch_add(1, std::memory_order_relaxed);
 
     // Clear to black so first frame's u_prev_frame is black
     glBindFramebuffer(GL_FRAMEBUFFER, buf.fbo);
@@ -1533,6 +1550,7 @@ CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint6
             if (ring.fbos[i] != 0) glDeleteFramebuffers(1, &ring.fbos[i]);
             if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
         }
+        frameRingCount_.fetch_sub(1, std::memory_order_relaxed);
     }
 
     ring.ringWidth = rw;
@@ -1553,7 +1571,55 @@ CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint6
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     ring.initialized = true;
+    frameRingCount_.fetch_add(1, std::memory_order_relaxed);
     return ring;
+}
+
+void CompositorEngine::handOverClipHistory(uint64_t clipKey, uint64_t outKey,
+                                           ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h)
+{
+    // s-rta-0926b R1 (ruling B'). Runs outside any pass: it may create the spare
+    // buffer (createFBO rebinds GL_TEXTURE_2D on the active unit and leaves
+    // framebuffer 0 bound -- the R5 lesson); every later pass binds its own FBO
+    // and textures, so nothing needs restoring.
+
+    // Temporal buffer: COPY layer -> outgoing slot. The outgoing clip keeps its
+    // Echo / Freeze / Posterize Time history unbroken; the incoming clip reads
+    // the layer buffer (the picture the layer was just showing) as its first
+    // u_prev_frame -- exactly what a cut gives it.
+    auto itL = layerTemporalBuffers_.find(clipKey);
+    if (itL != layerTemporalBuffers_.end() && itL->second.tex != 0)
+    {
+        const GLuint layerTex = itL->second.tex;
+        auto& out = getOrCreateTemporalBuffer(outKey, w, h);   // creates/resizes; src != dst always
+        saveToTemporalBuffer(out, layerTex, shaderMgr, quad, w, h);
+    }
+    else
+    {
+        // Nothing to copy: a stale spare from an earlier fade must not be read
+        // as this outgoing clip's history -- clear it to a fresh (transparent
+        // black) history.
+        auto itO = layerTemporalBuffers_.find(outKey);
+        if (itO != layerTemporalBuffers_.end() && itO->second.fbo != 0)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, itO->second.fbo);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }
+
+    // Frame ring: SWAP (O(1), vector moves). The outgoing Screen Split / Frame
+    // Stutter keeps its frames; the incoming clip's ring starts empty (the same
+    // degradation as a fresh layer: getFrameFromRing clamps to the frames
+    // available). A missing entry on either key is created lazily on first use.
+    std::swap(layerRingBuffers_[clipKey], layerRingBuffers_[outKey]);
+    auto& incoming = layerRingBuffers_[clipKey];
+    if (incoming.initialized)
+    {
+        incoming.frameCount = 0;
+        incoming.writeIndex = 0;
+    }
 }
 
 void CompositorEngine::pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
