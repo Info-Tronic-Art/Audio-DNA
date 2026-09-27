@@ -7,26 +7,11 @@
 // its /api/state view are built from buildOutputMenu(), so the two doors and the REST view cannot disagree.
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "output/OutputTargets.h"   // DisplayInfo (one definition, plan5 C3)
 #include <vector>
 
 namespace output
 {
-// A display as the output code identifies it: Displays::Display::totalArea (logical points), scale and isMain.
-// JUCE's Display has no id and no name, so a live output is matched to a display by this exact fingerprint.
-struct DisplayInfo
-{
-    int x = 0, y = 0, w = 0, h = 0;
-    double scale = 1.0;
-    bool isMain = false;
-};
-
-inline bool operator==(const DisplayInfo& a, const DisplayInfo& b) noexcept
-{
-    return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h && a.scale == b.scale && a.isMain == b.isMain;
-}
-
-inline bool operator!=(const DisplayInfo& a, const DisplayInfo& b) noexcept { return !(a == b); }
-
 struct OutputMenuItem
 {
     juce::String label;

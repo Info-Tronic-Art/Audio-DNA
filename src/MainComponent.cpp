@@ -10,6 +10,7 @@
 #include "core/CompositionLoad.h"
 #include "recording/PerfStateCapture.h"
 #include "recording/RoutineSlice.h"
+#include "model/AppSettings.h"
 #include <algorithm>
 
 static uint32_t s_nextClipId = 1000;
@@ -62,6 +63,29 @@ namespace
     {
         return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
                    .getChildFile("Audio-DNA").getChildFile("milkdrop_userdata.json");
+    }
+
+    // s-rta-0927 outputs-c3 (plan5 C3): the machine's settings.json -- read and written ONLY through AppSettings
+    // (read-modify-write: "milkDropPresetDir" and "outputs" never clobber each other). TEST-ONLY override: in a
+    // test-server build (AUDIODNA_TEST_SERVER) running --test-mode, an absolute path in AUDIODNA_SETTINGS_FILE
+    // replaces it, so a probe never reads or writes the user's real settings file. Anywhere else the variable is
+    // ignored.
+    juce::File appSettingsFile(bool testMode)
+    {
+#if AUDIODNA_TEST_SERVER
+        if (testMode)
+        {
+            const auto path = juce::SystemStats::getEnvironmentVariable("AUDIODNA_SETTINGS_FILE", {});
+            if (juce::File::isAbsolutePath(path))
+            {
+                std::cerr << "[Settings] test mode: AUDIODNA_SETTINGS_FILE = " << path << std::endl;
+                return juce::File(path);
+            }
+        }
+#else
+        juce::ignoreUnused(testMode);
+#endif
+        return AppSettings::defaultFile();
     }
 
     // s-rta-0923 lane 3 (plan section 3.4): ControlPath builders for
@@ -2202,26 +2226,13 @@ void MainComponent::setTooltipsEnabled(bool enabled)
 
 juce::String MainComponent::loadMilkDropPresetDirSetting() const
 {
-    auto file = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-                    .getChildFile("Audio-DNA").getChildFile("settings.json");
-    if (!file.existsAsFile())
-        return {};
-
-    auto parsed = juce::JSON::parse(file.loadFileAsString());
-    if (auto* obj = parsed.getDynamicObject())
-        return obj->getProperty("milkDropPresetDir").toString();
-    return {};
+    return AppSettings(appSettingsFile(testMode_)).read(AppSettings::kMilkDropPresetDir).toString();
 }
 
 void MainComponent::saveMilkDropPresetDirSetting(const juce::String& dir) const
 {
-    auto settingsDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-                            .getChildFile("Audio-DNA");
-    settingsDir.createDirectory();
-
-    auto* obj = new juce::DynamicObject();
-    obj->setProperty("milkDropPresetDir", dir);
-    settingsDir.getChildFile("settings.json").replaceWithText(juce::JSON::toString(juce::var(obj)));
+    // plan5 C3: read-modify-write -- the "outputs" key (OutputManager) survives this write, and vice versa.
+    AppSettings(appSettingsFile(testMode_)).update(AppSettings::kMilkDropPresetDir, dir);
 }
 
 void MainComponent::setMilkDropPresetDir(const juce::String& dir)

@@ -391,6 +391,11 @@ target_sources(AudioDNA PRIVATE
     src/output/OutputMenuModel.h
     src/output/OutputManager.h
     src/output/OutputManager.cpp
+    # ...hot-plug reconcile + the wanted set in settings.json (s-rta-0927 outputs-c3)
+    src/output/OutputTargets.h
+    src/output/OutputTargets.cpp
+    src/model/AppSettings.h
+    src/model/AppSettings.cpp
 )
 
 # Conditionally add test server sources
