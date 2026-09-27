@@ -1,4 +1,5 @@
 #include "TopBar.h"
+#include "TopBarModel.h"
 #include "connect/ConnClock.h"
 #include "sync/LinkSync.h"
 #include <cmath>
@@ -312,7 +313,6 @@ void TopBar::timerCallback()
     displaySnap_.beatInBar = snap.beatInBar;
     displaySnap_.barPhase = snap.barPhase;
     displaySnap_.beatPhase = snap.beatPhase;
-    displaySnap_.phrasePhase = snap.phrasePhase;
     displaySnap_.barCount = snap.barCount;
 
     updateBpmDisplay();
@@ -524,26 +524,13 @@ void TopBar::paintBarPhraseDisplay(juce::Graphics& g) const
     bool hasBpm = displaySnap_.bpm > 0.0f && displaySnap_.trackerState >= 1;
 
     auto bounds = barPhraseBounds_.toFloat();
-    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.setFont(juce::Font(juce::FontOptions(11.0f)));
 
-    // Top line: "Bar N" (bar count since reset)
-    auto topHalf = bounds.removeFromTop(bounds.getHeight() * 0.5f);
+    // One line: "Bar 1".."Bar 4" (bar within the 4-bar group; s-rta-0926b plan3 ITEM B)
     g.setColour(hasBpm ? juce::Colour(AudioDNALookAndFeel::kTextPrimary)
                        : juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    if (hasBpm)
-        g.drawText("Bar " + juce::String(displaySnap_.barCount + 1),
-                   topHalf.toNearestInt(), juce::Justification::centredLeft, false);
-    else
-        g.drawText("Bar -", topHalf.toNearestInt(), juce::Justification::centredLeft, false);
-
-    // Bottom line: "Phr 0.XX" (phrase phase)
-    g.setColour(hasBpm ? juce::Colour(AudioDNALookAndFeel::kTextSecondary)
-                       : juce::Colour(0xff444444));
-    if (hasBpm)
-        g.drawText("Phr " + juce::String(displaySnap_.phrasePhase, 2),
-                   bounds.toNearestInt(), juce::Justification::centredLeft, false);
-    else
-        g.drawText("Phr -", bounds.toNearestInt(), juce::Justification::centredLeft, false);
+    g.drawText(barReadoutText(hasBpm, displaySnap_.barCount),
+               bounds.toNearestInt(), juce::Justification::centredLeft, false);
 }
 
 void TopBar::resized()
@@ -577,7 +564,7 @@ void TopBar::resized()
     beatWheelBounds_ = area.removeFromLeft(26).reduced(1);
     area.removeFromLeft(2);
 
-    // Bar/Phrase readout (small text: "Bar N" / "Phr 0.XX")
+    // Bar readout (Bar 1..4)
     barPhraseBounds_ = area.removeFromLeft(44);
     area.removeFromLeft(2);
 
