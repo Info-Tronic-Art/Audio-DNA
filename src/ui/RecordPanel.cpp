@@ -295,12 +295,12 @@ void RecordPanel::applyView(double nowSeconds)
     applyButton(revealBtn_, v.reveal);
     applyButton(repairBtn_, v.repair);
 
+    // The LookAndFeel's drawToggleButton dims disabled toggles itself
+    // (s-rta-0926b uitoggle), so no per-owner alpha on these two ToggleButtons.
     recordAudioToggle_.setEnabled(v.recordAudioEnabled);
-    recordAudioToggle_.setAlpha(v.recordAudioEnabled ? 1.0f : kDisabledAlpha);
     recordAudioToggle_.setTooltip(v.recordAudioTooltip);
 
     playWithAudioToggle_.setEnabled(v.playWithAudioEnabled);
-    playWithAudioToggle_.setAlpha(v.playWithAudioEnabled ? 1.0f : kDisabledAlpha);
     playWithAudioToggle_.setToggleState(v.playWithAudioValue, juce::dontSendNotification);
     playWithAudioToggle_.setTooltip(v.playWithAudioTooltip);
 

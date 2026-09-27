@@ -124,12 +124,12 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
             onLinkToggled(linkToggleBtn_.getToggleState());
     };
     // s-rta-0926b bpm2: a default build (AUDIODNA_BUILD_LINK OFF) has no Link -- the toggle
-    // stays in place (same bounds) but is disabled and dimmed like the Record panel's
-    // disabled controls (0.4 alpha), and its tooltip says why.
+    // stays in place (same bounds) but is disabled, and its tooltip says why. The LookAndFeel's
+    // drawToggleButton dims disabled toggles itself (s-rta-0926b uitoggle), so no per-owner
+    // alpha here.
     if (!LinkSync::isAvailable())
     {
         linkToggleBtn_.setEnabled(false);
-        linkToggleBtn_.setAlpha(0.4f);
         linkToggleBtn_.setTooltip("Ableton Link is not included in this build");
     }
 
