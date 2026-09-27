@@ -403,3 +403,121 @@ DONE
 
 ## NEXT ACTION
 Harmony's behavioral gate + Reviewer.
+
+---
+
+# Merge-with-main round (lane followup-merge)
+
+STATUS: DONE
+
+RESULT: `main` (17a3ebf, which includes lane/canvas) is merged into `lane/decks-followup-0926b` as merge commit `f177b30`. There was one textual conflict, `.harmony/notebook.md`. I kept every entry from both sides. The code files auto-merged. I checked each one by diff: the merged file equals main plus this lane's hunks, and nothing else. build-lane was reconfigured and rebuilt. Serial ctest: `100% tests passed, 0 tests failed out of 667` (main's 661 plus this lane's 6). Live on build-lane: probe-deck-tabs, probe-fitmode, probe-canvas, probe-render-state and probe-crossfade are all GREEN (raw lines below). An earlier battery run had probe-canvas RED. The cause was build configuration, not the merge: this worktree's build-lane had `AUDIODNA_BUILD_TEST_SERVER=OFF`. See ISSUES 1.
+
+FACTS:
+- Merge commit `f177b30`, parents `569fb62` (lane) and `17a3ebf` (main).
+- Textual conflict: `.harmony/notebook.md` only.
+- Auto-merged files touched by both sides: `src/ui/LookAndFeel.{h,cpp}`, `src/MainComponent.{h,cpp}`, `tests/CMakeLists.txt`.
+- `git diff main -- src/ui/LookAndFeel.* src/MainComponent.* tests/CMakeLists.txt` shows only this lane's hunks:
+  - installAsDefault/uninstallAsDefault
+  - the getTypefaceForFont override
+  - the ctor/dtor calls
+  - renameDeck without its per-site setLookAndFeel
+  - the currentAudioFile_ comment
+  - the test_comp_decks_browser target
+- `git diff HEAD~1 -- src/ui/LookAndFeel.*` (lane side) shows only main's hunks: drawComboBox dimming, drawLabel dimming inside the transparent-skip branch, and the kDisabledAlpha comment.
+- CLAUDE.md is 24,989 B and identical to main; this lane never touched CLAUDE.md or docs/claude. A script checked the pitfall numbering: the CLAUDE.md index is 1-39, docs/claude/pitfalls.md is 1-39, there are no duplicates, and the two lists match.
+- `.harmony/notebook.md`: `git diff main` is additions only. Before this round's own entry it was the 53 added lines of this lane's two entries, identical to what the lane added over the merge-base.
+- Evidence is in `.harmony/.reports/s-rta-0926b/decks-followup-merge-evidence/`:
+  - `battery.out`, `battery-summary.log` and `probe-*.log` from the GREEN run
+  - `run1-test-server-off/` for the first run
+- Run facts:
+  - GREEN run: app binary sha256 `6fd6b515a45920a1...`, HEAD `f177b30`, lock owner `followup-merge 32842 1790502539`, 0 compilers running, load 2.9-4.1.
+  - Every probe ended with `Audio-DNA processes now: 0`, and the run ended with `LOCK RELEASED: followup-merge 32842 1790502539`.
+  - Both battery runs waited for Harmony's holds (`harmony 14151 ...`, then `harmony 27388 ...`, about 21 min). I launched nothing while waiting.
+
+METHOD:
+- I read the canvas report's "Merge-with-main round", this report, and the diff of each side against merge-base `b766720`.
+- I ran `git merge main --no-commit` and resolved the notebook by hand (script: main's block, then this lane's block, no text edited).
+- For each auto-merged shared file, I diffed the result against BOTH parents, to show that neither side lost a hunk.
+- I grepped every `setLookAndFeel` in `src/` and every main-side `+/-` line that touches PopupMenu, showMenuAsync, AlertWindow or setLookAndFeel.
+- Then: reconfigure, rebuild, serial ctest, commit the merge, then the live battery under one lock hold.
+- After run 1 I diagnosed the probe-canvas RED from the app's err.log and the CMakeCache.txt. I reconfigured with TEST_SERVER=ON (the main checkout's `build/` setting), rebuilt, re-ran serial ctest (667 again), and re-ran all five probes on that one binary.
+
+CONFIDENCE+VERIFY: HIGH. Every merge claim is a diff against each parent, and every probe line is from the GREEN run's logs.
+- Verify: `git -C <WT> diff main -- src tests` gives exactly this lane's hunks.
+- Verify: `ctest --test-dir build-lane -j1` gives `out of 667`.
+- Verify: re-run the five probes with `*_APP=<build-lane app>` and `AUDIODNA_LOCK_OWNER=<owner>`.
+
+UNKNOWNS/NOT-DONE:
+- (1) Rig rule, as before: no synthetic input. The interactive paths are still driven by no probe: dialogs, menus, the Fit combo pick, the Resolution pick. So there is no live pixel check of the canvas-lane combos under the app-wide default LookAndFeel. I infer they are unchanged: those combos are MainComponent descendants and already resolved to AudioDNALookAndFeel before this lane (see the combo before/after in ITEM 1).
+- (2) The Output window was never opened (rig).
+
+NUANCE:
+- With the default installed, main's drawLabel dimming now also applies to labels in owner-less windows (alerts). Those labels are enabled, so nothing changes there.
+- The bold/italic `getTypefaceForFont` fallback now also covers any bold text in the canvas-lane controls. The Fit caption and CanvasSizeCombo use no bold font that I found, so this is inferred, not rendered.
+
+HANDOFF-NEEDS: Harmony's behavioral gate plus a Reviewer on the merge. Nothing else is pending.
+
+INBOX-RECHECK: none
+
+### Conflicts -> resolution
+| file | main side | lane side | resolution |
+|---|---|---|---|
+| `.harmony/notebook.md` | 4 new 2026-09-27 entries (canvas, fitmode, canvas fix, canvas merge) | 2 new 2026-09-27 entries (decks-followup, decks-followup-fix) | All 6 kept verbatim. Main's first, then the lane's (the order the canvas-merge round used). No marker is left, and `git diff main` is additions only. |
+| `src/ui/LookAndFeel.{h,cpp}` (auto) | drawLabel `kDisabledAlpha` dimming inside `!isBeingEdited && !textColour.isTransparent()`; drawComboBox dimming; square alerts/menus unchanged | installAsDefault/uninstallAsDefault; bold/italic `getTypefaceForFont` override | Both kept, no hand edit (checked by a diff against each parent). |
+| `src/MainComponent.{h,cpp}` (auto) | canvas: resolutionSelector_ retirement, `OutputWindow(&composition_)`, recorder canvas config, fit REST, etc. | ctor `installAsDefault()`; dtor `uninstallAsDefault()` before `setLookAndFeel(nullptr)`; renameDeck's per-site setLookAndFeel removed; currentAudioFile_ comment | Both kept, no hand edit. Merged file == main + the lane's 4 hunks. |
+| `tests/CMakeLists.txt` (auto) | canvas test targets | `test_comp_decks_browser` | Both kept. |
+| per-site `menu.setLookAndFeel` | the canvas lane adds NO PopupMenu and NO setLookAndFeel call (the Fit and Resolution controls are ComboBoxes that resolve through MainComponent's LookAndFeel) | removed at `CompDecksBrowser.cpp:227` (pixel-verified in the fix round) | Nothing further removed. `DeckView.cpp:492/514` stay; they are outside this lane and harmless. `src/` now has only MainComponent's own set/clear, LookAndFeel.cpp's `aw->setLookAndFeel(this)`, and LayerStrip's per-control LAFs. |
+| `CLAUDE.md`, `docs/claude/*` | pitfalls 36-39, index 1-39, 24,989 B | untouched | Main's version, unchanged. |
+
+### Tests (raw lines, verbatim)
+- ctest serial, merge tree, TEST_SERVER=OFF config (before the merge commit): `100% tests passed, 0 tests failed out of 667`
+- ctest serial, after the reconfigure with `-DAUDIODNA_BUILD_TEST_SERVER=ON` + rebuild, HEAD `f177b30`: `100% tests passed, 0 tests failed out of 667`
+
+| probe (GREEN run, TEST_SERVER=ON binary) | raw summary |
+|---|---|
+| probe-deck-tabs | `6 PASS / 0 FAIL` (R1-R6 all PASS; `PASS  R3 the three deck ids are pairwise distinct (0,100,101; the file had 0,0,0)`) |
+| probe-fitmode | `PY 10 PASS / 0 FAIL` / `PROBE-FITMODE GREEN` |
+| probe-canvas | `PY 15 PASS / 0 FAIL` / `PROBE-CANVAS GREEN` |
+| probe-render-state | `PY 31 PASS / 0 FAIL` / `PROBE-RENDER-STATE GREEN` |
+| probe-crossfade | `PY 35 PASS / 0 FAIL` / `PROBE-CROSSFADE GREEN` |
+
+Selected rows, verbatim:
+```
+PASS  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=0.29, tol 6.0)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 112.0 >= 58.0 and mean frame_time_ms 1.85 <= 12.0
+PASS  r1_counts: longest frame across the first fade (spare ring created) 31.54 ms <= 50.0 ms
+PASS  r5_burst: every attempt captured >= 8 frames after the switch (short: [])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+```
+
+### ISSUES
+1. **Run 1: probe-canvas RED because of a build-config gap, not the merge.** The first battery ran on build-lane as the decks-followup builder had configured it (`AUDIODNA_BUILD_TEST_SERVER:BOOL=OFF`). The main checkout's `build/` and the sibling worktree's build-lane are ON. probe-canvas launches `--test-mode`, and its `c_runtime_change_keeps_history` row calls the TestServer on `[::1]:8080`. Results:
+   - Run 1: deck-tabs, fitmode, render-state and crossfade GREEN; probe-canvas `PY 14 PASS / 4 FAIL` / `PROBE-CANVAS RED`.
+   - Canvas failure lines: 3 x `FAIL  http://[::1]:8080/api/state: ... [Errno 61] Connection refused` and `FAIL  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 1920x1080 ...`, because the size change never reached the app.
+   - The app's err.log shows `[API] HTTP server listening on 127.0.0.1:7070` and no TestServer.
+   - Fix: reconfigure with `-DAUDIODNA_BUILD_TEST_SERVER=ON`. This is a configuration change, not a source change. After it, all five probes are GREEN on one binary.
+   - Run-1 logs are kept in `decks-followup-merge-evidence/run1-test-server-off/`. There is a notebook entry.
+2. **Commit hook:** the merge commit triggered the `[graphify hook] launching background rebuild`. No compilers were running when any probe ran (`compilers: 0` in each battery header).
+
+### RISKS
+- r1_counts is still the marginal perf row found by the canvas merge. It passed here at 31.54 ms, so its 1-in-3 margin risk remains.
+- CLAUDE.md is at 24,989 / 25,000 B. It is unchanged here.
+
+### FILES CHANGED (this round)
+- Merge `f177b30`: `.harmony/notebook.md`, the only hand resolution. Everything else is main's content, auto-merged.
+- Report commit:
+  - this section
+  - `.harmony/.reports/s-rta-0926b/decks-followup-merge-evidence/`
+  - `.harmony/notebook.md`, one entry: probe-canvas needs TEST_SERVER=ON
+
+### PACKET QUALITY
+- Clarity: CLEAR.
+- Missing context: the probe set assumes a build-lane configured with `AUDIODNA_BUILD_TEST_SERVER=ON`, but the packet's cmake line does not pass it. This cost one battery run.
+- Unused context: the CLAUDE.md size and pitfall-renumbering guidance. This lane never touched docs, so main's docs came through unchanged. They were checked anyway.
+- Self-brief files: the canvas report's "Merge-with-main round" was useful for knowing which LookAndFeel hunks to preserve. This report's ITEM 1 facts explained why no canvas-lane control needs a per-site setLookAndFeel. Grep only (no KNOWLEDGE_TOOLS); I took a conservative posture on impact.
+
+### STATUS
+DONE
+
+### NEXT ACTION
+Harmony's behavioral gate plus a Reviewer on merge `f177b30`.

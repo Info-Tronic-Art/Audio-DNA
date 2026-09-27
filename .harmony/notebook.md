@@ -1762,3 +1762,15 @@ hand-written functions with no shared layout model.
   compositions or decks" against the IDENTICAL real directory -- no fixture needed for this one case.
 - Valid while `AudioDNALookAndFeel` keeps `setDefaultSansSerifTypeface()` in its ctor and is the JUCE-wide
   default, and while `~/Library/AudioDNA/Decks` keeps exactly these 4 legacy files.
+
+## 2026-09-27 s-rta-0926b followup-merge: probe-canvas needs a build-lane configured with AUDIODNA_BUILD_TEST_SERVER=ON
+**Files:** .harmony/probe-canvas.{sh,py}, CMakeLists.txt (option AUDIODNA_BUILD_TEST_SERVER, default OFF)
+**Note:**
+- A worktree build-lane configured without `-DAUDIODNA_BUILD_TEST_SERVER=ON` builds and passes ctest (667 both ways),
+  and probe-deck-tabs/fitmode/render-state/crossfade are GREEN on it (they use only the 7070 REST API). probe-canvas
+  launches with `--test-mode` and its c_runtime_change_keeps_history row talks to the TestServer on [::1]:8080; with
+  the option OFF nothing listens there, so it reports `PY 14 PASS / 4 FAIL` with `[Errno 61] Connection refused` on
+  `http://[::1]:8080` and a "frame is 1920x1080" FAIL. That is the build config, not a render regression: check
+  `grep AUDIODNA_BUILD_TEST_SERVER build-lane/CMakeCache.txt` (the main checkout's build/ is ON) before reading it
+  as one.
+- Valid while: the option defaults OFF and probe-canvas uses the 8080 TestServer.
