@@ -918,6 +918,16 @@ void LayerInspector::syncFromLayer()
 
     syncScalar(masterControl_, LayerScalar::Opacity, layer_->opacity);
     persistentToggle_.setToggleState(layer_->persistent, juce::dontSendNotification);
+    // s-rta-0926b R4-types: the compositor ignores the flag on Mask / 3D layers
+    // (Layer::canBePersistent), so the toggle is disabled there -- a Mask layer
+    // already marked persistent in a saved file shows checked-but-disabled.
+    {
+        const bool canPersist = Layer::canBePersistent(layer_->type);
+        persistentToggle_.setEnabled(canPersist);
+        persistentToggle_.setTooltip(canPersist
+            ? "Keep this layer rendering when switching to another deck"
+            : "Persistent is available for Opaque, Transparent and FX Only layers");
+    }
     ignoreColumnToggle_.setToggleState(layer_->ignoreColumnTrigger, juce::dontSendNotification);
     syncScalar(opacityControl_, LayerScalar::Opacity, layer_->opacity);
     blendModeSelector_.setSelectedId(static_cast<int>(layer_->blendMode) + 1, juce::dontSendNotification);

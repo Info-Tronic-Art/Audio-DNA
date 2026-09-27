@@ -1,0 +1,15 @@
+base: 3d92481; deliverable sha256 before: a8b01cd5f304abe1
+=== base Layer.h (3d92481) + new test: COMPILE FAILED (RED)
+tests/test_compositor.cpp:431:20: error: no member named 'canBePersistent' in 'Layer'
+tests/test_compositor.cpp:431:20: error: no member named 'canBePersistent' in 'Layer'
+>         return t != Type::ThreeD;
+=== mutation allow_mask:
+tests/test_compositor.cpp:434: FAILED:
+  REQUIRE_FALSE( Layer::canBePersistent(Layer::Type::Mask) )
+test cases: 1 | 1 failed
+>         return t == Type::Opaque || t == Type::Transparent;
+=== mutation drop_fxonly:
+tests/test_compositor.cpp:433: FAILED:
+  REQUIRE( Layer::canBePersistent(Layer::Type::FXOnly) )
+test cases: 1 | 1 failed
+deliverable sha256 after:  a8b01cd5f304abe1

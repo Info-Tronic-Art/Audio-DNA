@@ -1088,9 +1088,21 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         if (clip == nullptr)
             continue;
 
-        // Only composite Opaque/Transparent persistent layers for now
-        if (layer.type != Layer::Type::Opaque && layer.type != Layer::Type::Transparent)
+        // s-rta-0926b R4-types: Opaque / Transparent / FX Only (Layer::
+        // canBePersistent -- the same rule disables the LayerInspector toggle).
+        // Mask and 3D persistent layers stay skipped.
+        if (!Layer::canBePersistent(layer.type))
             continue;
+
+        // FX Only: the clip's effects over the accumulator as it stands at this
+        // point of the persistent pass (the active deck + persistent layers of
+        // lower-index decks) -- the same call and key as on its own deck.
+        if (layer.type == Layer::Type::FXOnly)
+        {
+            applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                             shaderMgr, quad, time, width, height);
+            continue;
+        }
 
         GLuint clipTex = 0;
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
@@ -1111,7 +1123,15 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
             clipTex = videoFrameFn_(clip, dt);
         }
 
-        if (clipTex == 0) continue;
+        // A media-less clip with effects on an Opaque/Transparent layer applies
+        // as FX Only, exactly as on the active deck (s-rta-0926b R4-types).
+        if (clipTex == 0)
+        {
+            if (clip->hasEffects())
+                applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                                 shaderMgr, quad, time, width, height);
+            continue;
+        }
 
         // s-rta-0926b R4: the same per-layer stages as on the active deck
         // (clip transform + opacity, clip effects, transition, feedback, layer
@@ -1120,8 +1140,8 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         // .harmony/.reports/s-rta-0926b/ruling-render-forks.md): an Opaque
         // persistent layer blends over the active deck with its blend mode and
         // layer opacity (it never clears the accumulator); no Layer Router
-        // output is saved (the router addresses the active deck only);
-        // FX Only / Mask persistent layers are skipped above.
+        // output is saved (the router addresses the active deck only); Mask /
+        // 3D persistent layers are skipped above.
         GLuint processedTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
                                                 time, dt, width, height);
         if (processedTex == 0) processedTex = clipTex;
