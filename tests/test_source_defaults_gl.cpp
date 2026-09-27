@@ -290,3 +290,14 @@ TEST_CASE("burning_ship draws a picture at its registered defaults", "[source-de
         for (float t : { 0.0f, 1.13f, 10.0f })
             requireVisible(rig, "burning_ship", EmbeddedShaders::sourceBurningShip, w, h, t, ps);
 }
+
+// A1.3 -- Newton 3D is a heightfield: at its registered defaults the camera looks at it from ABOVE, and the
+// auto-rotation orbits around it (yaw) instead of tumbling under the floor (t = 30 / 45 were under it).
+TEST_CASE("newton_3d draws a picture at its registered defaults and keeps it while auto-rotating", "[source-defaults][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("newton_3d");
+    for (auto [w, h] : kSizes)
+        for (float t : { 0.0f, 1.13f, 30.0f, 45.0f })
+            requireVisible(rig, "newton_3d", EmbeddedShaders::sourceNewton3D, w, h, t, ps);
+}

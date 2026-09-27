@@ -7544,8 +7544,10 @@ inline const char* sourceNewton3D = R"(
         float damp = 0.5 + u_src_damping * 1.0;
         float heightScale = 0.2 + u_src_height * 1.5;
         float autoSpeed = (u_src_speed - 0.5) * 2.0;
-        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed + 0.3;
-        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        // A heightfield: the camera must stay ABOVE it (Pitfall 43). Auto-rotation orbits around the landscape
+        // (yaw only); tumbling the pitch too took the camera under the floor ~half of every cycle (black).
+        float rx = u_src_rotation_x * 6.28318 + 0.3;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed;
         mat3 rot = rotY(ry) * rotX(rx);
         float camDist = mix(5.0, 0.3, u_src_zoom);
         vec3 ro = rot * vec3(0, 1.5, camDist);

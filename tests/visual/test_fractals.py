@@ -200,7 +200,7 @@ BURNING3D_PARAMS = [
 
 NEWTON3D_PARAMS = [
     ("newton_3d", "u_src_power", 0.2, 0.6, "Power"),
-    ("newton_3d", "u_src_rotation_x", 0.55, 0.8, "Angle X"),
+    ("newton_3d", "u_src_rotation_x", 0.0, 0.2, "Angle X"),
     ("newton_3d", "u_src_rotation_y", 0.55, 0.8, "Angle Y"),
     ("newton_3d", "u_src_zoom", 0.3, 0.8, "Zoom"),
     ("newton_3d", "u_src_speed", 0.55, 0.8, "Speed"),

@@ -583,7 +583,7 @@ void SourceRegistry::registerDefaults()
     registerSource("newton_3d", [] {
         auto s = std::make_unique<ProceduralSource>("newton_3d", "Newton 3D", "3D", "source_newton_3d");
         s->addParam("Power", "u_src_power", 0.2f);
-        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.0f);
         s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
         s->addParam("Zoom", "u_src_zoom", 0.3f);
         s->addParam("Speed", "u_src_speed", 0.55f);
