@@ -212,3 +212,184 @@ Harmony:
 3. Ask Boris Q2 with the numbers: 4K holds about 92 fps here, 8.0 ms GPU per frame, and Split/Stutter cells are softer at 4K.
 4. Ask Q4 about stretching.
 5. Hand S7 to Boris for a by-eye check.
+
+---
+
+## Fit mode (plan-fitmode) -- builder report
+
+STATUS: DONE_WITH_CONCERNS
+RESULT: One feature commit `65db4e2` on `lane/canvas-0926b` (continued from `3954242`): each clip now has a Fit setting. Stretch is the default and is byte-identical to before. Bars keeps the picture's shape, centred, and the bars are TRANSPARENT (the layer below shows). Crop fills the canvas and cuts the overflow. Fit is set from the Clip inspector (first row of Transform, greyed for a Source), from `POST /api/set_clip_param`, and from OSC `/audiodna/clip/{l}/{c}/fit`. Report, shots and evidence are in the report commit on top.
+FACTS: `src/model/ClipFit.h` (new, pure) + `tests/test_clip_fit.cpp`; `src/render/EmbeddedShaders.h` (`layer_transform`: 2 uniforms + 2 lines); `src/render/CompositorEngine.cpp` (`applyClipTransform` fit + `applyLayerTransform` reset); live probe `.harmony/probe-fitmode.{sh,py,json}` "PY 10 PASS / 0 FAIL", "PROBE-FITMODE GREEN"; raw logs in `.harmony/.reports/s-rta-0926b/fitmode-evidence/`; shots in `.harmony/.reports/s-rta-0926b/fitmode-shots/`.
+METHOD: Unit tests were written first and are RED by absence (compile errors recorded), and their teeth were checked on mutated COPIES. Every probe row was run RED on two binaries: the pre-change main app (pre-canvas) and my own pre-fit build (commit C). They then ran GREEN on the fit build. The shared-program trap was also checked on an in-place mutant build, restored with sha256 proof. The existing battery was re-run with no threshold changes; tests/visual failure SETS were compared; ctest ran serially.
+CONFIDENCE+VERIFY: High for the pixel behaviour and the REST/OSC surface; medium for the inspector visuals (window shots only, taken through a temporary hook). Verify: `ctest --test-dir build-lane -j1` = 623/623; `AUDIODNA_LOCK_OWNER=<owner> FIT_APP=<lane app> bash .harmony/probe-fitmode.sh` -> "PY 10 PASS / 0 FAIL".
+UNKNOWNS/NOT-DONE: (1) Nobody has opened the Output window with a fitted clip (rig rule; the plan's S7 is unchanged by this commit). (2) probe-deck-path and probe-lane3 were not run (same rig reason as above). (3) Mask layers are not fitted (plan 2.9 gap, as specified). (4) Undo does not cover the Fit setting (by parity, plan 2.6).
+NUANCE: The plan's `f_layer_transform_no_double_fit` as written ("whole-frame d <= 6") had NO teeth on this dark fixture: it PASSED on the pre-fit build with d = 4.32. I strengthened it: the picture's box must also match A at 465x540, and the outside must be black. It is now RED on the pre-fit build (inside d 22.80) and on a no-reset mutant (inside d 17.33). The plan's layer JSON key `scale` is really `layerScale`, and the Layer anchor defaults to the corner (0,0), so the row sets `layerAnchorX/Y` 0.5.
+HANDOFF-NEEDS: none
+
+### SUMMARY (fit)
+A portrait picture on the 16:9 composition now has three looks, chosen per clip:
+- **Stretch** (default) is exactly today's picture. It is proven byte-identical.
+- **Bars** shows the picture at its own shape, centred. Beside it, the layer below shows through, or black if nothing is below.
+- **Crop** fills the frame and cuts off the top and bottom.
+
+The setting is saved with the composition, and old files open as Stretch. REST and OSC change it live, and `/api/composition` reads it back. Procedural sources are not affected: they draw at the composition's size, and their Fit box is greyed out.
+
+### FILES CHANGED (commit `65db4e2`)
+- `src/model/ClipFit.h` (new):
+  - `Mode` {Stretch 0, Bars 1, Crop 2}.
+  - `clampMode`: out of range becomes Stretch.
+  - `scale()` returns {1,1} exactly for Stretch, same aspect, or any input <= 0.
+  - `barsRect` uses the same integer math as `RenderGeometry::fitCanvas`. `cropRect`.
+- `src/model/Clip.h`, `src/model/Clip.cpp`:
+  - The `fitMode` field (default Stretch). `replaceContent` keeps it (it travels with the transform) and `clear()` resets it.
+  - JSON key `fitMode`. `fromVar` is guarded, and loading goes through `clampMode`.
+- `src/render/EmbeddedShaders.h`: in `layer_transform`, `uniform int u_fitEnabled; uniform vec2 u_fitScale;`, and `if (u_fitEnabled != 0) uv = (uv - 0.5) * u_fitScale + 0.5;` as the last inverse step. With 0, the arithmetic is untouched.
+- `src/render/CompositorEngine.cpp`:
+  - `applyClipTransform` queries the texture size only when the mode is not Stretch and the media is Image, Video or ImageSequence. `fitActive` joins `needsTransform`, and both uniforms are set on every draw.
+  - `applyLayerTransform` sets `u_fitEnabled = 0`.
+- `src/ui/ClipInspector.{h,cpp}`:
+  - A `Fit` label and a `Stretch/Bars/Crop` combo as the first row of Transform, with a tooltip. It writes the model directly.
+  - `resized`, `paint` and `getPreferredHeight` each gain `kRowHeight`.
+  - `syncFromClip` sets the selection, and disables the combo unless the clip is Image, Video or ImageSequence.
+- `src/ui/LookAndFeel.{h,cpp}`: `drawComboBox` and `drawLabel` now dim by `kDisabledAlpha` when disabled. JUCE's own V2 `drawLabel` dims; this override had dropped that. The plan asked for this check (2.4).
+- `src/api/ApiServer.{h,cpp}`:
+  - `POST /api/set_clip_param` validates on the HTTP thread (`layer/column >= 0`, `param == "fitMode"`, `value` an int 0..2), then does `callAsync` to `onSetClipFitMode` and answers ok.
+  - `/api/composition` has `fitMode` per clip.
+- `src/osc/OscHandler.{h,cpp}`: `/audiodna/clip/{l}/{c}/fit` is matched BEFORE the trigger branch.
+- `src/MainComponent.{h,cpp}`: `setClipFitMode` (active deck, clamp, inspector refresh), wired to REST and OSC.
+- Tests:
+  - `tests/test_clip_fit.cpp` (new, 9 cases / 54 assertions). `tests/CMakeLists.txt` registers it.
+  - `tests/test_composition.cpp`: roundtrip Crop, backcompat Stretch, and a new case (7 loads as Stretch; `replaceContent` keeps Bars; `clear()` resets).
+- `.harmony/probe-fitmode.{sh,py,json}` (new):
+  - The `.sh` is a clone of probe-render-state.sh, plus a UDP 8000 listener refusal.
+  - Production `open -g` launch (no `--args`).
+- Docs:
+  - `docs/claude/rendering.md` "Per-clip Fit Mode".
+  - `docs/claude/pitfalls.md` Pitfall 38, plus the CLAUDE.md index line and the Key-capabilities clause.
+  - `.harmony/APP-INVENTORY.md`: row 72, REST row 42 (42 routes), OSC 15 patterns.
+
+Report commit: this section, `fitmode-shots/`, `fitmode-evidence/`, and a `.harmony/notebook.md` entry.
+
+### TESTS (fit)
+**Unit tests**, RED by absence (`fitmode-evidence/unit-RED-and-teeth.txt`):
+- `test_composition.cpp:234:10: error: no member named 'fitMode' in 'Clip'`
+- `test_clip_fit.cpp:3:10: fatal error: 'model/ClipFit.h' file not found` (compiled against the `3954242` tree)
+
+**Unit teeth**, on mutated COPIES of ClipFit.h (deliverable sha256 `1751d9b5...` unchanged before and after):
+
+| mutant | result |
+|---|---|
+| barsRect `<=` to `>=` | "54 \| 41 passed \| 13 failed" |
+| Bars/Crop swapped in scale() | "54 \| 39 passed \| 15 failed" |
+| clampMode accepts 3 | "54 \| 53 passed \| 1 failed" |
+| plan's `<=` to `<` | EQUIVALENT: with exactly equal aspects both branches give the same rect. It passes, as the canvas lane also found. |
+| same-aspect early return removed | EQUIVALENT: a/a is exactly 1.0f |
+
+**ctest serial:** 623/623 (613 + 9 clip_fit + 1 composition case), run before the live runs and again at the end (`fitmode-evidence/ctest-final-tail.txt`).
+
+**Live RED, pre-change main app** (`build/.../Audio-DNA.app`, no canvas; `RED-main-app-probe-fitmode.txt`): "PY 4 PASS / 6 FAIL", "PROBE-FITMODE RED".
+- The 5 geometry rows fail on size: "frame is 756x878, not the 1920x1080 canvas". This app cannot host the fit geometry.
+- f_rest_osc_set fails on the REST/OSC surface itself: `HTTP 404`, readback None. `OSC /audiodna/clip/0/1/fit 1 -> activeClipColumn=1`, meaning the fit address TRIGGERED the clip.
+- The 4 guards PASS.
+
+**Live RED, my pre-fit canvas build** (commit C binary, sha256 `11a9d5a2...`; `RED-prefit-canvas-build-probe-fitmode.txt`): "PY 5 PASS / 5 FAIL", then the strengthened row "PY 0 PASS / 1 FAIL".
+
+| row | pre-fit result |
+|---|---|
+| f_bars_geometry | d(f, bars)=17.32, band RGB L=8.54 R=14.34 |
+| f_bars_transparent_lower_shows | bands == B-only False/False (d 24.96 / 29.69) |
+| f_crop_geometry | d(f, crop)=22.39 |
+| f_transform_after_fit | outside == B-only False, inside d 22.80 |
+| f_rest_osc_set | HTTP 404; OSC trigger |
+| f_layer_transform_no_double_fit | first form PASSED (4.32 -- no teeth, see NUANCE); strengthened: inside d 22.80 FAIL |
+
+The re-derived RED margins match the plan exactly: 17.32 / 22.39.
+
+**Teeth for the shared-program trap** (`TEETH-no-fit-reset-mutant.txt`):
+- Mutant: `applyLayerTransform`'s reset removed.
+- Result: "FAIL f_layer_transform_no_double_fit ... inside d(., A 465x540)=17.33". f_transform_after_fit still PASSes.
+- Restore: sha256 `f1f75106...` before and after (RESTORE OK), then rebuilt.
+
+**Live GREEN, fit build** (`GREEN-final-probe-fitmode-and-existing-battery.txt`): "PY 10 PASS / 0 FAIL", "PROBE-FITMODE GREEN".
+
+| row | GREEN result |
+|---|---|
+| f_bars_geometry | d 0.05; bands RGB 0.00 (alpha 0.0) |
+| f_bars_transparent_lower_shows | bands == B-only exactly True/True; centre 30.29 |
+| f_crop_geometry | 0.12 |
+| f_transform_after_fit | outside exact; inside 0.27 |
+| f_layer_transform_no_double_fit | 0.03 / inside 0.21 / outside 0.00 |
+
+- Guards (byte-identical on all three binaries): stretch identity, stretch+transform identity, same-aspect identity, checkerboard Source (noise floor 0, so exact).
+- f_rest_osc_set:
+  - REST 1: readback 1, d(f, bars) 0.05.
+  - Bad requests answer `ok:false` ("'value' must be an int 0..2 ...", "unknown param") and change nothing.
+  - REST 0: byte-identical to f0.
+  - OSC col 1: readback 1, activeClipColumn stays 0.
+  - OSC 2: readback 2, d(f, crop) 0.12.
+  - OSC 0: readback 0.
+- Tolerance 6 (the plan's); measured worst 0.27.
+
+**f_perf (REPORT)**, 3 Bars layers vs 3 Stretch layers:
+
+| metric | Bars | Stretch | delta |
+|---|---|---|---|
+| frame_time_ms | 0.785 | 0.712 | +0.073 ms |
+| gpu_time_ms | 2.322 | 1.761 | +0.561 ms |
+
+Both deltas are under the 1 ms FINDING bar. Load avg 3.06, no compiler running. The GPU delta is the extra transform + opacity pass per fitted layer at 1080p (the plan predicted this: "the pass a transformed clip already pays").
+
+**Existing probes**, re-run on the fit build with no threshold edits:
+
+| probe | result |
+|---|---|
+| canvas | 15 / 0 (c_perf_1080 116.1 fps, 1.70 ms) |
+| deck-clock | 10 / 0 |
+| render-state | 30 / 1 (the same known r5_burst capacity sub-check as commits A and C) |
+| crossfade | 35 / 0 |
+| effects-parity | 46 / 0 |
+| step3 | 94 / 0 (also the plan's post-perf re-run) |
+| mastersignal | 22 / 0 |
+| routines | 74 / 0 |
+| resync | 16 / 0 |
+| onset-render | 13 / 0 |
+
+**tests/visual** (fit build): 166 failed / 165 passed / 6 skipped. The failed-test SET is IDENTICAL to commit A's (`comm`: 0 fit-only, 0 A-only; `fitmode-evidence/tests-visual-FIT-outcomes.txt`), so nothing changed.
+
+### SHOTS (fit) -- `.harmony/.reports/s-rta-0926b/fitmode-shots/`
+- **Decoded composition frames** (the probe's own 1920x1080 captures, BOX-downscaled to 960x540, RGB as displayed):
+  - Frames: `stretch.png`, `bars.png`, `crop.png`, `bars-over-lower-layer.png`, `bars-clip-scale-0.5.png`, `bars-layer-scale-0.5.png`.
+  - The PIL oracles: `expected-{stretch,bars,crop}.png`.
+  - The pre-fit build's frames: `before-*.png`.
+  - Overview: `fit-before-after-grid.png`.
+- **Clip inspector**: LIVE-app window-only shots (Quartz window id, `screencapture -l<id> -o -x`, `open -g`, no synthetic input), taken under the live lock.
+  - Close-ups (preview + Clip inspector): `inspector-fit-{stretch,bars,crop,source-disabled}.png`. Full windows: `window-fit-*.png`.
+  - To select the clip in the inspector without a click, a TEMPORARY env-gated hook (`AUDIODNA_DEBUG_FITSHOT`, inside `setClipFitMode`) inspected the clip set over REST and scrolled to Transform. It was removed, `MainComponent.cpp` sha256 `38671a0e...` equals the pre-hook sha, the app was rebuilt, and `strings` counts 0.
+  - The Bars shot shows the lower layer (B) visible beside the portrait picture in the preview. The Source shot shows the Fit row greyed.
+  - I did not use the headless snapshot tool.
+
+### ISSUES (fit)
+1. **The plan's double-fit row had no teeth as specified** (whole-frame d 4.32 on the pre-fit build, because the fixture is dark). I strengthened it with region checks and proved it on the pre-fit build and on a mutant (NUANCE). No existing probe threshold was touched.
+2. **The plan named the layer JSON key `scale`; it is `layerScale`.** The Layer anchor defaults to 0 (the corner) and is passed raw as `u_anchor`, so the row sets `layerAnchorX/Y` 0.5 to reach the plan's centred geometry.
+3. **Disabled combos and labels now dim app-wide** (LookAndFeel). The plan authorised this for the combo (2.4). The combo's text is its child Label, so `drawLabel` had to honour `isEnabled()` too. Blast radius, from a grep of `setEnabled`: the MilkDrop preset selector and any label inside a disabled parent now read dimmed. No per-owner `setAlpha` double-dims them (RecordPanel's `setAlpha` sites are TextButtons / a TextEditor, which are not Labels).
+4. **OSC was tested with a hand-encoded `,i` UDP message** (no python-osc or oscsend on the rig), so the OSC row is RED-capable, not N/A.
+5. **The probe launches in production mode** (`open -g`, no `--args`): fit needs only 7070 and OSC.
+6. **Not run: probe-deck-path.sh and probe-lane3.sh** (launch forms forbidden by the rig, as in the canvas report).
+
+### RISKS (fit)
+- **Bars alpha:** over an Opaque bottom layer the bars are (0,0,0,0) in captures (alpha 0 measured). The app, recorder and Syphon show them black, but a PNG viewer with a checkerboard shows them as transparent. If Boris wants opaque bars in captures, that is one clear alpha (plan RISKS).
+- Image sequences whose frames differ in size fit per frame, so the bars can "breathe".
+- A portrait MASK still stretches (no transform on the mask path).
+- The fit is relative to the canvas, so changing the composition size changes the bars. This is by definition.
+- Undo does not record a Fit change; this is the sibling class.
+
+### PACKET QUALITY (fit)
+- Clarity: CLEAR, with numbered sections and re-derived numbers that matched live (17.32 / 22.39).
+- Missing context:
+  - The dark-fixture teeth gap in the layer row.
+  - The `layerScale` key name and the corner anchor default.
+  - There was no OSC client on the rig.
+- Unused context: the headless snapshot-tool fallback (the live lock was available).
+- Self-brief: CLAUDE.md, canvas.md and the notebook's canvas entry were useful.
+
+INBOX-RECHECK: none

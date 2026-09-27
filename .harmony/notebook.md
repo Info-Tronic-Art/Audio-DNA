@@ -1633,3 +1633,19 @@ hand-written functions with no shared layout model.
   probe-render-state r5_burst's ">= 8 captures in 0.6 s" capacity check flips (6-7); its real assertion (no
   blank frame) still passes. Fix = PBO async readback (plan4 F4), never a re-threshold.
 - Valid while: the canvas architecture (Renderer::canvasFBO_) and these probes exist.
+
+## 2026-09-27 s-rta-0926b fitmode: a dark fixture hides a geometry bug from whole-frame d; the Layer anchor default is the CORNER
+**Files:** .harmony/probe-fitmode.py, src/render/CompositorEngine.cpp (applyLayerTransform), src/ui/LookAndFeel.cpp
+**Note:**
+- media/P16_01_baseline.png has mean ~20: a whole-frame d(frame, oracle) between "fitted once" and "not
+  fitted" at layer scale 0.5 was only 4.32 (< tol 6) -- the row passed on the pre-fit build. Region-restricted
+  checks (the picture's box vs its oracle; outside the box) carry the teeth; prove any new geometry row on the
+  pre-change binary AND on a mutant (here: drop applyLayerTransform's u_fitEnabled reset -> inside d 17.33).
+- `Layer::layerAnchorX/Y` default 0.0 and applyLayerTransform passes them RAW as u_anchor, so a layer scale
+  pivots on the UV origin (a corner), not the centre; clip transforms pass 0.5 + anchor. A probe that wants a
+  centred layer scale sets layerAnchorX/Y 0.5.
+- AudioDNALookAndFeel::drawLabel/drawComboBox used to ignore isEnabled() (JUCE's V2 drawLabel dims 0.5); both
+  now dim by kDisabledAlpha, so a disabled combo (and its child text Label) reads disabled app-wide.
+- OSC without python-osc: a ",i" message is 3 padded fields -- pad(address) + pad(b",i") + struct.pack(">i", v)
+  over a UDP socket (probe-fitmode.py osc()).
+- Valid while: these files exist and the Layer anchor convention is unchanged.
