@@ -40,6 +40,14 @@ public:
     static juce::File getCompositionsDir();
     static juce::File getDecksDir();
 
+    // decks-followup ITEM 2: true only for a v2 deck file (Deck::toVar()'s shape: a top-level
+    // "layers" key). getDecksDir() collides case-insensitively on APFS with the legacy
+    // PresetManager::getDeckDirectory() ("Decks"), so Boris's old *.deck.json files ("type":"deck",
+    // audioFile/fx/slots, no "layers") live in the same folder and cannot be loaded by anything in
+    // the app -- scanForFiles() calls this to keep them out of the Decks section list. Public +
+    // static so it is unit-testable with fixture files in a temp dir.
+    static bool isV2DeckFile(const juce::File& file);
+
 private:
     // Compositions section
     struct SavedEntry

@@ -298,6 +298,8 @@ void CompDecksBrowser::scanForFiles()
         files.sort();
         for (auto& f : files)
         {
+            if (!isV2DeckFile(f))   // decks-followup ITEM 2: skip legacy v1 PresetManager deck files
+                continue;
             SavedEntry entry;
             entry.file = f;
             entry.name = f.getFileNameWithoutExtension();
@@ -305,6 +307,13 @@ void CompDecksBrowser::scanForFiles()
             decks_.push_back(std::move(entry));
         }
     }
+}
+
+bool CompDecksBrowser::isV2DeckFile(const juce::File& file)
+{
+    auto parsed = juce::JSON::parse(file.loadFileAsString());
+    auto* obj = parsed.getDynamicObject();
+    return obj != nullptr && obj->hasProperty("layers");
 }
 
 juce::File CompDecksBrowser::getCompositionsDir()

@@ -1533,6 +1533,34 @@ endif()
 apply_sanitizers(test_lookandfeel_square)
 catch_discover_tests(test_lookandfeel_square)
 
+# --- test_comp_decks_browser (decks-followup ITEM 2: the Compositions-browser
+# library's Decks section lists only files that load as a v2 deck ("layers"),
+# never a legacy v1 PresetManager::saveDeck file living in the same directory).
+add_executable(test_comp_decks_browser
+    test_comp_decks_browser.cpp
+    ${SRC_DIR}/ui/CompDecksBrowser.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+)
+target_include_directories(test_comp_decks_browser PRIVATE ${SRC_DIR})
+target_link_libraries(test_comp_decks_browser PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_comp_decks_browser PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_comp_decks_browser PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_comp_decks_browser)
+catch_discover_tests(test_comp_decks_browser)
+
 # --- test_per_type_autopilot_layout (s-rta-0925 visualfix: the Composition
 # Inspector's Per-Type Autopilot enable-checkbox row and its Opaque cycle row
 # used to land at the same y). Pure function in
