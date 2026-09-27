@@ -487,10 +487,9 @@ private:
     // active deck exactly as handleClipTrigger's own refresh is.
     Deck* deckForDispatch(int deckIndex, const char* who, Origin origin);
     void applyClearActiveClip(int layerIndex, Origin origin, int deckIndex = -1);
-    // s-rta-0926b: `linkTick` is true ONLY from the Ableton Link timer tick ("link" re-sent at
-    // ~30 Hz): an unchanged tempo then does not realign (BPMTracker::followExternalTempo). Every
-    // other "link" caller (REST/OSC set_bpm, take/routine replay) keeps realigning, as before.
-    void applyTempoCommand(const std::string& action, float bpm, Origin origin, bool linkTick = false);
+    // Tempo VALUES (typed BPM, REST/OSC set_bpm, Link, a replayed value) never move the beat;
+    // Tap and Resync do (s-rta-0926b plan3 A).
+    void applyTempoCommand(const std::string& action, float bpm, Origin origin);
     void applyAudioTransport(const std::string& action, Origin origin);
     void applyLayerFlag(int layerIndex, const std::string& flag, bool value, Origin origin, int deckIndex = -1);
     void applyEffectBypass(int layerIndex, int column, int fxIndex, bool value, Origin origin, int deckIndex = -1);

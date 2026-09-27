@@ -136,8 +136,9 @@ public:
     void requestResync();
     uint32_t resyncBarOrigin() const { return resyncBarOrigin_; }   // analysis thread; published each hop
 
-    // Override BPM from tap tempo / the manual field / set_bpm (bypasses the stabilization
-    // pipeline) and realign: beat phase to 0 -- always, even when the BPM is unchanged.
+    // Override BPM from Tap -- a beat GESTURE (bypasses the stabilization pipeline) -- and
+    // realign: beat phase to 0 -- always, even when the BPM is unchanged. Tempo VALUES take
+    // followExternalTempo() instead (s-rta-0926b plan3 A).
     // s-rta-0926b: a REQUEST, like requestResync(). Any thread may call it; it writes nothing
     // the analysis thread owns. The analysis thread applies it at the START of its next hop
     // (runPipeline), before that hop's phase advance, so the hop publishes what the old direct
@@ -145,12 +146,13 @@ public:
     // Requests between two hops coalesce: the last BPM wins, and a realign asked by any is kept.
     void setManualBPM(float bpm);
 
-    // Ableton Link tick (MainComponent's ~30 Hz timer re-sends Link's tempo every tick): the
-    // same request as setManualBPM(), except it NEVER realigns -- changed or unchanged, the new
-    // tempo only changes the rate the phase runs at (s-rta-0926b bpm2, LINK-RAMP ruling b).
-    // The phase is not aligned to Link's own beat (LinkSync::getBeatPhase() is not followed),
-    // so any reset here would be an arbitrary jump: setManualBPM() here re-zeroed the phase
-    // ~30x/s, and a peer's tempo ramp re-zeroed it on every tick that carried a new tempo.
+    // Any tempo VALUE -- the typed manual BPM, REST / OSC set_bpm, the Ableton Link tick
+    // (MainComponent's ~30 Hz timer re-sends Link's tempo every tick), a replayed tempo value:
+    // the same request as setManualBPM(), except it NEVER realigns -- changed or unchanged, the
+    // new tempo only changes the rate the phase runs at (s-rta-0926b bpm2, LINK-RAMP ruling b;
+    // plan3 A for the typed / REST / OSC values). A value lands at an arbitrary instant, never
+    // on the beat, so any reset here would be an arbitrary jump: setManualBPM() here re-zeroed
+    // the phase ~30x/s for Link, and on every re-sent value from a controller.
     void followExternalTempo(float bpm);
 
     // Manual mode: freeze the stabilization pipeline, use manually-set BPM.
