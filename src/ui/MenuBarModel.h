@@ -37,13 +37,16 @@ public:
 
         // Deck menu
         kDeckNew = 1200,
-        kDeckInsertBefore,
-        kDeckInsertAfter,
+        kDeckInsertBefore,     // reserved, no handler, no menu item (plan6 R5)
+        kDeckInsertAfter,      // reserved, no handler, no menu item (plan6 R5)
         kDeckDuplicate,
         kDeckRename,
-        kDeckClose,
+        kDeckClose,            // reserved, no handler, no menu item (plan6 R5)
         kDeckClearClips,
         kDeckRemove,
+        kDeckSave,             // plan6 §6.3: the Deck menu mirrors the deck tab row (acts on the ACTIVE deck)
+        kDeckSaveAs,
+        kDeckLoad,
 
         // Layer menu
         kLayerNew = 1300,

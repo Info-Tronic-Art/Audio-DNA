@@ -1497,6 +1497,15 @@ target_link_libraries(test_tab_bar_layout PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_tab_bar_layout)
 catch_discover_tests(test_tab_bar_layout)
 
+# --- test_deck_tab_row (s-rta-0926b plan6 §6.1: the deck tab row's geometry --
+# tabs, the "+" button, the Remove-Deck undo hint -- and its two menus). Pure
+# header src/ui/DeckTabRow.h -- no JUCE; DeckView places its buttons from it.
+add_executable(test_deck_tab_row test_deck_tab_row.cpp)
+target_include_directories(test_deck_tab_row PRIVATE ${SRC_DIR})
+target_link_libraries(test_deck_tab_row PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_deck_tab_row)
+catch_discover_tests(test_deck_tab_row)
+
 # --- test_per_type_autopilot_layout (s-rta-0925 visualfix: the Composition
 # Inspector's Per-Type Autopilot enable-checkbox row and its Opaque cycle row
 # used to land at the same y). Pure function in

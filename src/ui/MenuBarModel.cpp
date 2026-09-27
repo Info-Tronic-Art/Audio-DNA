@@ -80,7 +80,16 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
 
         case 2: // Deck
         {
+            // plan6 §6.3: mirrors the deck tab row ("+" and the tab right-click menu); every item acts on the
+            // ACTIVE deck (a menu cannot know a tab). Remove Deck stays enabled here -- its handler guards.
             menu.addItem(kDeckNew,          "New Deck",              true, false);
+            menu.addItem(kDeckLoad,         "Load Deck...",          true, false);
+            menu.addSeparator();
+            menu.addItem(kDeckSave,         "Save Deck",             true, false);
+            menu.addItem(kDeckSaveAs,       "Save Deck As...",       true, false);
+            menu.addSeparator();
+            menu.addItem(kDeckRename,       "Rename Deck...",        true, false);
+            menu.addItem(kDeckDuplicate,    "Duplicate Deck",        true, false);
             menu.addSeparator();
             menu.addItem(kDeckClearClips,   "Clear Clips",           true, false);
             menu.addItem(kDeckRemove,       "Remove Deck",           true, false);

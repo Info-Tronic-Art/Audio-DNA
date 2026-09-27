@@ -137,14 +137,28 @@ private:
     void saveCompositionAs();
     void swapCompositionModel(const std::function<void()>& mutation);
     void refreshUiAfterModelSwap();
-    // L3 STEP 3 (2026-09): the Comp/Decks browser's Decks rows append a saved
-    // deck into the live composition rather than replacing it — a performer
-    // clicking a saved deck mid-set must not lose the deck they are on, and
-    // append closes no live media (zero outgoing ids). openMediaForDeck is
-    // the per-clip media-open loop factored out of loadComposition's OPEN
-    // NEW step (§1 step 4) so both callers share one body.
+    // L3 STEP 3 (2026-09) + plan6 §6.4: the library's Decks rows and Load
+    // Deck... append a saved deck into the live composition as a NEW TAB rather
+    // than replacing the deck on screen — a performer loading a deck mid-set
+    // must not lose the deck they are on. The append is one undoable
+    // InsertDeckCmd (no whole-model swap: routines keep running, undo history
+    // survives, nothing is closed). openMediaForDeck is the per-clip media-open
+    // loop factored out of loadComposition's OPEN NEW step (§1 step 4) so
+    // loadComposition, appendDeckFromFile and duplicateDeck share one body.
     void openMediaForDeck(Deck& deck);
     void appendDeckFromFile(const juce::File& file);
+    // plan6 §6.4: the deck tab row's actions ("+" menu, a tab's right-click
+    // menu) and the Deck menu's mirror (which passes the ACTIVE deck's index).
+    // Message thread. Undoable: New / Load / Duplicate / Rename / Remove.
+    // Not undoable: Save Deck / Save Deck As (file writes).
+    void newDeck();
+    void loadDeck();
+    void saveDeck(int deckIndex);
+    void saveDeckAs(int deckIndex);
+    bool writeDeckFile(const Deck& deck, const juce::File& file);
+    void renameDeck(int deckIndex);
+    void duplicateDeck(int deckIndex);
+    void removeDeck(int deckIndex);
     void timerCallback() override;
     // W5 (outputwindow-arc-design.md): named seam for the mapping tick, so
     // the A1 routing/signal-extraction follow-up can join here later

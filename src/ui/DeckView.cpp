@@ -9,6 +9,17 @@ DeckView::DeckView()
     gridViewport_.setViewedComponent(gridContent_.get(), false);
     gridViewport_.setScrollBarsShown(true, true);
     addAndMakeVisible(gridViewport_);
+
+    // plan6 §6.2: the Remove-Deck undo hint -- created once, hidden until showUndoHint (Pitfall 34: a Component is
+    // invisible by default; addChildComponent keeps it so), never rebuilt with the tabs.
+    undoHintBtn_ = std::make_unique<juce::TextButton>();
+    undoHintBtn_->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
+    undoHintBtn_->setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcccccc));
+    undoHintBtn_->onClick = [this] {
+        if (onUndoHint) onUndoHint();
+        hideUndoHint();
+    };
+    addChildComponent(undoHintBtn_.get());
 }
 
 void DeckView::paint(juce::Graphics& g)
@@ -44,14 +55,19 @@ void DeckView::resized()
     int viewportHeight = std::min(gridHeight, area.getHeight() - kDeckTabHeight);
     gridViewport_.setBounds(area.removeFromTop(viewportHeight));
 
-    // Deck tabs immediately after the grid (attached to bottom of last layer)
+    // Deck tabs immediately after the grid (attached to bottom of last layer); the "+" after the last tab and the
+    // Remove-Deck undo hint flush right (plan6 §6.1 DeckTabRow::layout -- tabs never move for the hint).
     auto tabArea = area.removeFromTop(kDeckTabHeight);
-    int tabX = 0;
-    for (auto& tab : deckTabs_)
-    {
-        tab->setBounds(tabX, tabArea.getY(), 100, kDeckTabHeight);
-        tabX += 102;
-    }
+    const auto L = DeckTabRow::layout(tabArea.getWidth(), static_cast<int>(deckTabs_.size()),
+                                      undoHintBtn_->isVisible() ? undoHintBtn_->getWidth() : 0);
+    for (size_t i = 0; i < deckTabs_.size(); ++i)
+        deckTabs_[i]->setBounds(tabArea.getX() + L.tabs[i].x, tabArea.getY(), L.tabs[i].w, kDeckTabHeight);
+    if (plusTab_)
+        plusTab_->setBounds(tabArea.getX() + L.plus.x, tabArea.getY(), L.plus.w, kDeckTabHeight);
+    if (L.hint.w > 0)
+        undoHintBtn_->setBounds(tabArea.getX() + L.hint.x, tabArea.getY(), L.hint.w, kDeckTabHeight);
+    else if (undoHintBtn_->isVisible())
+        hideUndoHint();                         // no room next to the "+": never overlap it
 
     // Layout grid content inside viewport
     layoutGrid();
@@ -65,6 +81,9 @@ void DeckView::setComposition(Composition* comp)
 
 void DeckView::rebuildGrid()
 {
+    // plan6 §6.2: every structural change retires the Remove-Deck undo hint (removeDeck shows it AFTER its rebuild).
+    hideUndoHint();
+
     // Clear existing
     layerStrips_.clear();
     clipCells_.clear();
@@ -236,13 +255,23 @@ void DeckView::refresh()
             isActive ? juce::Colour(0xff3a5a4a) : juce::Colour(0xff2a2a2a));
     }
 
-    // Update deck tabs
+    // Update deck tabs: active colour, plus the label and tooltip (a Rename / Save As changes them) --
+    // compare-before-set, refresh runs at UI rate.
     for (size_t i = 0; i < deckTabs_.size(); ++i)
     {
         bool isActive = static_cast<int>(i) == composition_->activeDeckIndex;
         deckTabs_[i]->setColour(
             juce::TextButton::buttonColourId,
             isActive ? juce::Colour(0xff3a5a4a) : juce::Colour(0xff2a2a2a));
+        if (i < composition_->decks.size())
+        {
+            const juce::String label(composition_->decks[i].name);
+            if (deckTabs_[i]->getButtonText() != label)
+                deckTabs_[i]->setButtonText(label);
+            const auto tip = tabTooltipFor(composition_->decks[i]);
+            if (deckTabs_[i]->getTooltip() != tip)
+                deckTabs_[i]->setTooltip(tip);
+        }
     }
 
     repaint();
@@ -408,17 +437,110 @@ void DeckView::setupDeckTabs()
     for (size_t i = 0; i < composition_->decks.size(); ++i)
     {
         auto& deck = composition_->decks[i];
-        auto btn = std::make_unique<juce::TextButton>(juce::String(deck.name));
-        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
+        auto btn = std::make_unique<DeckTabButton>(juce::String(deck.name));
+        // Active colour at creation too: a rebuild (a deck switch, New / Load / Remove) is not always followed by
+        // refresh(), and a freshly built row must still show which deck is on screen.
+        btn->setColour(juce::TextButton::buttonColourId,
+                       static_cast<int>(i) == composition_->activeDeckIndex ? juce::Colour(0xff3a5a4a)
+                                                                           : juce::Colour(0xff2a2a2a));
         btn->setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcccccc));
+        btn->setTooltip(tabTooltipFor(deck));
 
         int capturedIdx = static_cast<int>(i);
         btn->onClick = [this, capturedIdx] {
             if (onDeckSwitched)
                 onDeckSwitched(capturedIdx);
         };
+        btn->onContextMenu = [this, capturedIdx] { showDeckTabMenu(capturedIdx); };
 
         addAndMakeVisible(btn.get());
         deckTabs_.push_back(std::move(btn));
+    }
+
+    // plan6 §6.2: the "+" -- a 24x24 square after the last tab, inactive-tab colours, ASCII only (Pitfall 6).
+    plusTab_ = std::make_unique<juce::TextButton>("+");
+    plusTab_->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
+    plusTab_->setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcccccc));
+    plusTab_->setTooltip("New Deck or Load Deck...");
+    plusTab_->onClick = [this] { showPlusMenu(); };
+    addAndMakeVisible(plusTab_.get());
+}
+
+juce::String DeckView::tabTooltipFor(const Deck& deck)
+{
+    return (deck.sourceFile == juce::File() ? juce::String("Not in the library yet - Save Deck As... adds it")
+                                            : deck.sourceFile.getFullPathName())
+         + "\nRight-click: Save / Rename / Duplicate / Remove";
+}
+
+void DeckView::showDeckTabMenu(int deckIndex)
+{
+    if (composition_ == nullptr || deckIndex < 0
+        || deckIndex >= static_cast<int>(composition_->decks.size())
+        || deckIndex >= static_cast<int>(deckTabs_.size()))
+        return;
+
+    // Headed by the deck's name so the performer sees WHICH deck the menu is about before choosing Remove.
+    juce::PopupMenu menu;
+    menu.addSectionHeader(juce::String(composition_->decks[static_cast<size_t>(deckIndex)].name));
+    for (const auto& item : DeckTabRow::tabMenu(static_cast<int>(composition_->decks.size())))
+    {
+        if (item.separatorBefore)
+            menu.addSeparator();
+        menu.addItem(static_cast<int>(item.action), item.label, item.enabled);
+    }
+    menu.showMenuAsync(juce::PopupMenu::Options()
+                           .withTargetComponent(deckTabs_[static_cast<size_t>(deckIndex)].get())
+                           .withParentComponent(getTopLevelComponent()),
+                       [this, deckIndex](int result) {
+                           if (result > 0 && composition_ != nullptr
+                               && deckIndex < static_cast<int>(composition_->decks.size()) && onDeckAction)
+                               onDeckAction(deckIndex, static_cast<DeckTabRow::Action>(result));
+                       });
+}
+
+void DeckView::showPlusMenu()
+{
+    if (plusTab_ == nullptr)
+        return;
+    juce::PopupMenu menu;
+    for (const auto& item : DeckTabRow::plusMenu())
+    {
+        if (item.separatorBefore)
+            menu.addSeparator();
+        menu.addItem(static_cast<int>(item.action), item.label, item.enabled);
+    }
+    menu.showMenuAsync(juce::PopupMenu::Options()
+                           .withTargetComponent(plusTab_.get())
+                           .withParentComponent(getTopLevelComponent()),
+                       [this](int result) {
+                           if (result > 0 && onDeckAction)
+                               onDeckAction(-1, static_cast<DeckTabRow::Action>(result));
+                       });
+}
+
+void DeckView::showUndoHint(const juce::String& text)
+{
+    undoHintBtn_->setButtonText(text);
+    // Measured like the tab text (drawButtonText's 14 pt font) + 8 px each side.
+    const int w = juce::GlyphArrangement::getStringWidthInt(juce::Font(juce::FontOptions(14.0f)), text) + 16;
+    undoHintBtn_->setSize(w, kDeckTabHeight);
+    undoHintBtn_->setVisible(true);
+    resized();
+
+    const int gen = ++undoHintGeneration_;
+    juce::Timer::callAfterDelay(kUndoHintMs, [sp = juce::Component::SafePointer<DeckView>(this), gen] {
+        if (sp != nullptr && sp->undoHintGeneration_ == gen)
+            sp->hideUndoHint();
+    });
+}
+
+void DeckView::hideUndoHint()
+{
+    ++undoHintGeneration_;
+    if (undoHintBtn_->isVisible())
+    {
+        undoHintBtn_->setVisible(false);
+        resized();
     }
 }
