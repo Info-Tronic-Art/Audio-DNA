@@ -1,0 +1,15 @@
+canvas: PY 15 PASS / 0 FAIL PROBE-CANVAS GREEN 
+crossfade: PY 35 PASS / 0 FAIL PROBE-CROSSFADE GREEN 
+deck-clock: PY 10 PASS / 0 FAIL PROBE-DECK-CLOCK GREEN 
+deck-tabs: 6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/deck-tabs-out) 
+downbeat-level: 14 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/downbeat-level) 
+effects-parity: PY 46 PASS / 0 FAIL PROBE-EFFECTS-PARITY GREEN 
+fitmode: PY 10 PASS / 0 FAIL PROBE-FITMODE GREEN 
+manual-bpm: 22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/manual-bpm/run-20260927-145545-23094) 
+mastersignal: 22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/mastersignal) 
+onset-render: 13 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/onset-render) 
+render-state: PY 31 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+resync: 16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/resync) 
+routine-display: 16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/routine-display) 
+routines: 98 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/routines/run-20260927-144816-16651) 
+step3: 94 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio) 

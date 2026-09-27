@@ -1,0 +1,57 @@
+===== render-state (14:05:09)
+exit 0
+PY 31 PASS / 0 FAIL
+PROBE-RENDER-STATE GREEN
+===== crossfade (14:11:00)
+exit 0
+PY 35 PASS / 0 FAIL
+PROBE-CROSSFADE GREEN
+===== effects-parity (14:26:35)
+exit 0
+PY 46 PASS / 0 FAIL
+PROBE-EFFECTS-PARITY GREEN
+===== canvas (14:29:05)
+exit 0
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+PY 15 PASS / 0 FAIL
+PROBE-CANVAS GREEN
+===== deck-clock (14:32:53)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+===== fitmode (14:35:50)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-FITMODE GREEN
+===== deck-tabs (14:38:48)
+exit 0
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/deck-tabs-out)
+===== step3 (14:39:45)
+exit 0
+94 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio)
+===== mastersignal (14:44:27)
+exit 0
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/mastersignal)
+===== routines (14:46:30)
+exit 0
+98 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/routines/run-20260927-144816-16651)
+===== resync (14:49:45)
+exit 0
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/resync)
+===== onset-render (14:51:51)
+exit 0
+13 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/onset-render)
+===== downbeat-level (14:53:30)
+exit 0
+14 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/downbeat-level)
+===== manual-bpm (14:55:00)
+exit 0
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/manual-bpm/run-20260927-145545-23094)
+===== routine-display (14:56:51)
+exit 0
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs2/battery/routine-display)
+battery done (14:58:16); .venv symlink removed: yes
+window sampler 14:05:09..14:58:16: 12121 samples, Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1, names seen ['Audio-DNA']
+
+[exited with code 0]

@@ -131,7 +131,8 @@ void OutputManager::closeLive(size_t index)
     live_.erase(live_.begin() + static_cast<std::ptrdiff_t>(index));
     if (window != nullptr)
     {
-        window->onCloseRequested = nullptr;
+        // onCloseRequested is left set: this may run INSIDE that callback (closeButtonPressed), and resetting a
+        // std::function destroys the lambda that is executing. A late call finds nothing in live_ and does nothing.
         window->setVisible(false);
         destroyLater(std::move(window));
     }
