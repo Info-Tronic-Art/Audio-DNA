@@ -172,15 +172,9 @@ Harmony: behavioral gate on build-lane (probe-outputs + existing battery), indep
 
 ## Fix round (outputs-c1-fix, round 1)
 
-STATUS: PENDING
+Two executors ran this round. Section 1a was written and committed (`5e1b7a1`) by a concurrent executor: no code, a note only. Section 1b below follows Harmony's ruling (probe fixed like with like, the Release never-key check added) and SUPERSEDES 1a wherever the two differ.
 
-### F1. critic MUST (720p grey border) -- probe side
-### F2. GL SHOULD (jassert is a Release no-op)
-### F3. conformance NITs
-### F4. gates re-run
-### F5. commits
-
-### Fix round (outputs-c1-fix, critic round 1: `critic-outputs-c1-r1.md`; stamped 2026-09-27 11:18:22 from `date`)
+### Fix round 1a (outputs-c1-fix, critic round 1: `critic-outputs-c1-r1.md`; stamped 2026-09-27 11:18:22 from `date`)
 
 STATUS: DONE. There is NO CODE CHANGE this round. The one MUST is a false positive, and the pixel evidence below refutes it. The one SHOULD asked only for a note, and the note is below. No gate is affected (no source, test, probe or build file changed), so no ctest, probe or live run was repeated. No app was launched and the live lock was never taken. `output_window_opened` = false.
 
@@ -200,3 +194,51 @@ STATUS: DONE. There is NO CODE CHANGE this round. The one MUST is a false positi
 **SHOULD (the `jassert` in the OutputWindow ctor is a no-op in Release): NOTED, no code change (as the finding asks).** The never-key guarantee in Release rests entirely on the `getDesktopWindowStyleFlags()` override (`src/ui/OutputWindow.cpp:69-74`). The `jassert` at `:49-50` is a Debug-only tripwire. If the timing of peer creation ever changed, it would give no Release safety net. The override is what `test_output_law` holds. Its teeth include "the flag kept only in the jassert -> 1 failed" (`TEETH-test_output_law-guards.txt`), so a refactor that left only the jassert would go RED in ctest.
 
 Fix-round state: commits = this report and the two evidence files only. ctest unchanged at `100% tests passed, 0 tests failed out of 690` (no source changed since `e14027c`). Shots unchanged (no UI change). No `.venv` link present. Lock not taken. No Audio-DNA launched.
+
+### Fix round 1b (outputs-c1-fix, following Harmony's ruling; stamped 2026-09-27 11:24 from `date`)
+
+STATUS: DONE
+RESULT: The critic's 720p MUST was a false positive. Nothing in the app changed for it: the probe row now compares like with like. It triggers A before the resize and asserts that the 720p frame is one full-bleed A (d 0.013). The GL SHOULD is fixed in Release: the OutputWindow constructor checks the peer's never-key flag in every build type, and test_output_law has a new row that holds that check. The conformance NIT 2 note is in the notebook. NIT 1 (`EmbeddedShaders.h:3`) is outside the fence and is left alone.
+FACTS: commits `79b4410` (OutputWindow.cpp + test_output_law.cpp), `67bd544` (probe-outputs.py/.json), `52dd980` (notebook + pitfalls.md), plus this report commit. Evidence is in `.harmony/.reports/s-rta-0927/outputs-c1-evidence/fixround-*.txt`. ctest is `100% tests passed, 0 tests failed out of 691`. probe-outputs: RED on the pre-change app `PY 1 PASS / 9 FAIL`, GREEN on the lane app `PY 10 PASS / 0 FAIL`, and the mutant probe `PY 9 PASS / 1 FAIL`.
+METHOD: Each gate ran RED first. test_output_law ran against the e14027c OutputWindow.cpp before the code change. probe-outputs ran against the main checkout's pre-change app. Mutants ran on COPIES only, and the deliverables' sha256 was the same before and after. Full ctest ran serially. Each live run took the lock (`outputs-c1-fix`) for that run only. Every PNG was decoded.
+CONFIDENCE+VERIFY: HIGH. Re-run `bash .harmony/probe-outputs.sh` with the lock held and OUTP_APP=build-lane. The o_probe_survives_resolution_change line must show `d(f_720, fixture A P16_01_baseline.png stretched to 1280x720)` of about 0.013.
+UNKNOWNS/NOT-DONE: The repair branch (log + `addToDesktop()`) is never taken today because the peer already carries the flag. By law it cannot be exercised live, since that would mean creating the Output window. It is held in source by test_output_law, and the string check shows it is compiled into the Release binary.
+NUANCE: 1a's claim that the "jassert-only refactor would go RED" was true only for dropping the flag from the override. A ctor with only the jassert was green in round 1. It is RED now (the new row).
+HANDOFF-NEEDS: none
+
+**F1. Critic MUST (720p grey border): FALSE. Fixed on the probe side only, per the ruling.**
+- Cause: `o_probe_tracks_change` leaves col1 = B showing. Fixture B, `media/P16_02_Screen_Split_2x2.png`, is itself a 2x2 grid on a (15,15,15) frame. So the round-1 f720 was B, and the critic compared it with f0, which is A. Harmony's live diagnosis on main is in `/Users/boriskarpman/projects/RealTimeAudio/.harmony/.reports/s-rta-0927/canvas720-diag.md`.
+- Change (`67bd544`): the row runs `trig(0)` and waits `settleAfterTrigger` (1 s) before `set_composition_params 1280x720`. It then asserts `d(f_720, fixture A stretched to 1280x720 BILINEAR) <= contentTol (6)`, and the output line names the reference. The existing checks are unchanged: size, canvas, gen, and d(probe, f_720 upscaled) <= 6. No tolerance was changed. The JSON `_doc`, `resolution._why` and the docstring now say that fixture B is a 2x2 grid and that a B frame should only be compared with a B reference.
+- RED on the pre-change app (main checkout build, probe at this tree), verbatim: `FAIL  o_probe_survives_resolution_change: output_probe probe_1920x1080_of_720p: HTTP 404 {'raw': ''}`, then `PY 1 PASS / 9 FAIL`, `PROBE-OUTPUTS RED` (`fixround-RED-base-probe-outputs.txt`).
+- GREEN on the lane app, verbatim: `PASS  o_probe_survives_resolution_change: render_frame 1280x720 of col0 = A, d(f_720, fixture A P16_01_baseline.png stretched to 1280x720) 0.013 <= 6.0; probe canvas 1280x720, gen 1 -> 2, d(probe, f_720 upscaled) 0.013 <= 6.0`, then `PY 10 PASS / 0 FAIL`, `PROBE-OUTPUTS GREEN` (`fixround-GREEN-lane-probe-outputs.txt`).
+- Teeth: a mutant COPY of the probe with the `trig(0)` line removed, which is round 1's capture of B, run against the lane app. Verbatim: `FAIL  o_probe_survives_resolution_change: render_frame 1280x720 of col0 = A, d(f_720, fixture A P16_01_baseline.png stretched to 1280x720) 29.425 <= 6.0; ...`, then `PY 9 PASS / 1 FAIL`. The deliverable probe's sha256 (`d53ace27…`) was identical before and after (`fixround-TEETH-probe-no-trig0-mutant.txt`). The label "of col0 = A" states what the row intends. In the mutant, B is actually showing, and that is exactly what the FAIL catches.
+- Decoded pixels (GREEN run): `f720_render_frame.png` 1280x720 has corner (0,0,0), 0.000 of its pixels at (15,15,15), and an edge-ring mean of 0.00. `probe_1920x1080_of_720p.png` gives the same values. As a control, `fB_render_frame.png` still has 0.129 of its pixels at (15,15,15), which is B's own frame.
+
+**F2. GL SHOULD (the jassert is a Release no-op): FIXED, so the guarantee is checked in every build type (`79b4410`).**
+- `src/ui/OutputWindow.cpp`: after `setDropShadowEnabled(false)`, the ctor reads `getPeer()->getStyleFlags()` in every build type. If the peer is missing, or lacks `windowIgnoresKeyPresses`, the ctor logs `[OutputWindow] the peer lacks windowIgnoresKeyPresses -- re-adding the window to the desktop` to stderr and calls `TopLevelWindow::addToDesktop()`, which rebuilds the peer with the override's flags. This is the same re-add that JUCE's `setDropShadowEnabled` already does. The window is not visible at that point, so nothing is shown. The jassert stays after the repair as the Debug tripwire. The string is in the Release binary (`strings … | grep -c "peer lacks windowIgnoresKeyPresses"` = 1).
+- `tests/test_output_law.cpp` new row, "the constructor checks the peer's windowIgnoresKeyPresses in every build type": it strips every `jassert(...)` from the ctor body, then requires `getStyleFlags()`, `windowIgnoresKeyPresses` and `addToDesktop(` in what is left.
+  - RED on the e14027c OutputWindow.cpp, verbatim: `test cases: 1 | 1 failed` / `assertions: 7 | 4 passed | 3 failed`; whole binary `test cases: 11 | 10 passed | 1 failed`.
+  - GREEN: `All tests passed (7 assertions in 1 test case)`; whole binary `All tests passed (39 assertions in 11 test cases)`.
+  - Teeth on COPIES: control `All tests passed`; "runtime check removed (jassert only)" `7 | 4 passed | 3 failed`; "check that only logs (no repair)" `7 | 6 passed | 1 failed`; "check that repairs but never reads the flag" `7 | 5 passed | 2 failed`. OutputWindow.{h,cpp} sha256 was identical before and after (`fixround-{RED,GREEN-TEETH}-test_output_law-releasecheck.txt`).
+- `docs/claude/pitfalls.md` Pitfall 40 now names the Release check (`52dd980`).
+
+**F3. Conformance NITs.**
+- NIT 1 was left alone because it is outside the C1 fence. `src/render/EmbeddedShaders.h:3` still says "shared between Renderer and OutputRenderer", but OutputRenderer no longer exists. The other two mentions, `Renderer.cpp:126` and `EffectChain.h:17`, are accurate history that says the class went away in outputs-c1. Only `EmbeddedShaders.h:3` is stale, and it needs a one-line comment fix from whoever next owns that file.
+- NIT 2 is done (`52dd980`). The lane's notebook entry now says inline: if a lane merged first also added a Pitfall 40, renumber this one on merge, in CLAUDE.md, pitfalls.md, integration.md and rendering.md.
+
+**F4. Gates re-run (and why only these).**
+- ctest, full and serial, at `79b4410`: `100% tests passed, 0 tests failed out of 691`. That is 690 plus the new row. Later commits change only the probe and docs (`fixround-ctest-tail.txt`).
+- probe-outputs RED, GREEN and mutant runs, as above. `o_no_window_opened` passed in every run (22 / 75 / 70 Quartz samples, never more than 1 layer-0 window, no Output-named window). After each quit there were 0 Audio-DNA windows. No run saw foreign REST traffic.
+- Not re-run: the existing probe battery and the tests/visual Tier-1 set. The only app change is in the OutputWindow constructor, which runs only when the Output window is created, and no probe or visual test ever creates it (screen-safety law). Render, capture and canvas code are unchanged since the round-1 battery.
+- No perf numbers this round.
+- Shots: every PNG in `outputs-c1-evidence/png/` now comes from the fix-round GREEN run (`outputs.B6ArlG`). Only three bytes-differ from round 1: `f720_render_frame.png` and `probe_1920x1080_of_720p.png` (now A, full-bleed), and `main-window.png` (a fresh capture). The other eight are byte-identical to round 1. main-window shows clip cA active, the Preview showing A, and the TopBar Output set to "Off".
+
+**F5. Rig.**
+- The lock was taken as `outputs-c1-fix` for three runs: 11:22:04-11:22:17, 11:22:22-11:22:48 and 11:22:52-11:23:17. It was released after each one.
+- A first background attempt was killed while it was still waiting on routines-timing's lock. It never acquired the lock and never launched anything.
+- Launches used only `open -g … --args --test-mode` (inside probe-outputs.sh), and every quit went through osascript.
+- There was no Output window, no full-screen capture, no lldb and no synthetic input. No temporary hook was used.
+- The `.venv` link was not needed: probe-outputs.sh falls back to the main checkout's `.venv`. No `.venv` exists in the worktree.
+- build-lane is kept.
+
+INBOX-RECHECK: 1 addendum folded (Harmony's ruling: the MUST is false, fix on the probe side, take the SHOULD, list NIT 1).

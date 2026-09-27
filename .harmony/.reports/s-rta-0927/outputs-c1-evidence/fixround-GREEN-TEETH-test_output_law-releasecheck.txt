@@ -1,0 +1,24 @@
+Sun Sep 27 11:19:39 EDT 2026
+===== GREEN (lane tree)
+All tests passed (7 assertions in 1 test case)
+
+All tests passed (39 assertions in 11 test cases)
+
+===== TEETH on mutated COPIES (the deliverable is untouched)
+9d4060ea07bad309847f283958359e0b31c44e7eb698a683985c088a7eb33239  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.cpp
+fc68352bf59aee4e7ab9f89b4e780be28eb6be7636a9c47a0956f3edee70ddb3  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.h
+== mutant: unchanged copy (control)
+   changed lines: 0
+All tests passed (7 assertions in 1 test case)
+== mutant: runtime check removed (jassert only = the round-1 code)
+   changed lines: 9
+assertions: 7 | 4 passed | 3 failed
+== mutant: check that only logs (no repair)
+   changed lines: 1
+assertions: 7 | 6 passed | 1 failed
+== mutant: check that repairs but never reads the flag
+   changed lines: 2
+assertions: 7 | 5 passed | 2 failed
+9d4060ea07bad309847f283958359e0b31c44e7eb698a683985c088a7eb33239  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.cpp
+fc68352bf59aee4e7ab9f89b4e780be28eb6be7636a9c47a0956f3edee70ddb3  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.h
+Sun Sep 27 11:19:40 EDT 2026

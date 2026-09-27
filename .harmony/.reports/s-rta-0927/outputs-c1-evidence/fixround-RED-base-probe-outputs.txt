@@ -1,0 +1,24 @@
+LOCK: acquired 11:22:04 (outputs-c1-fix 24232 1790522524)
+RED run start 2026-09-27 11:22:04 -- pre-change app (main checkout build), probe at the fix-round tree
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/fix/runs/outputs.DfPcqD
+FAIL  o_probe_matches_canvas: before any publish output_probe answers 409 ok:false (HTTP 404, {'raw': ''})
+FAIL  o_probe_matches_canvas: set_output_tap on -> HTTP 404 
+FAIL  o_probe_portrait_target: output_probe probe_portrait_1080x1920: HTTP 404 {'raw': ''}
+FAIL  o_probe_tracks_change: output_probe probe_after_B: HTTP 404 {'raw': ''}
+FAIL  o_probe_survives_resolution_change: output_probe probe_1920x1080_of_720p: HTTP 404 {'raw': ''}
+FAIL  o_probe_repeat_stable: 60 probes in 0.06 s, every PNG decoded, none blank, worst d 0.000 <= 2.0 (60 bad: ['#0 no frame (HTTP 404)', '#1 no frame (HTTP 404)', '#2 no frame (HTTP 404)', '#3 no frame (HTTP 404)'])
+FAIL  o_state_outputs: http://[::1]:8080 /api/state.outputs = None
+FAIL  o_state_outputs: http://127.0.0.1:7070 /api/state.outputs = None
+FAIL  o_state_outputs: after set_output_tap off, 8080 outputs.tap == false (None)
+PASS  o_no_window_opened: 22 Quartz samples over the run: Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1 (<= 1 = the main window); window names readable: ['Audio-DNA']
+
+PY 1 PASS / 9 FAIL
+PASS  no foreign render_frame / output_probe traffic during the run
+      main window (Quartz id 4496) -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/fix/runs/outputs.DfPcqD/main-window.png
+PASS  app terminated
+PASS  after quit: 0 Audio-DNA windows in the FULL Quartz window list (no output window survives)
+
+PROBE-OUTPUTS RED
+exit 1  end 11:22:17
+LOCK: released 11:22:17
