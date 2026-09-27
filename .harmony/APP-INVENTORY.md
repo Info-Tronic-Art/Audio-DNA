@@ -69,9 +69,9 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
-| ClipInspector (`ClipInspector.h:25`) | Inspector → Clip tab (auto on clip select) | Dashboard (8 knobs + 8 source pickers); Transport (mode/loop/trigger/speed/reverse/duration); conditional Images-per-sec OR Beat-Division+Content-Beats; 8 cuepoint jump + 8 Set; Autopilot (action/duration/beat-snap); Source Parameters (UniversalParamControls); Video (opacity/W-H/blend/alpha/RGBA); Transform (pos/scale/rotation/anchor); Effects (EffectStackView); interactive timeline (in/out/playhead drag) | yes |
+| ClipInspector (`ClipInspector.h:25`) | Inspector → Clip tab (auto on clip select) | Dashboard (8 knobs + 8 source pickers); Transport (mode/loop/trigger/speed/reverse/duration); conditional Images-per-sec OR Beat-Division+Content-Beats; 8 cuepoint jump + 8 Set; Autopilot (action/duration/beat-snap); Source Parameters (UniversalParamControls); Video (opacity/W-H/blend/alpha/RGBA); Transform (fit Stretch/Bars/Crop with a caption saying what the selected mode does -- greyed for a Source, s-rta-0926b plan-fitmode; pos/scale/rotation/anchor); Effects (EffectStackView); interactive timeline (in/out/playhead drag) | yes |
 | LayerInspector (`LayerInspector.h:28`) | Inspector → Layer tab | Editable name; Dashboard; Autopilot (4 dir + trigger-mode + beat-count + loops); Layer (master/persistent/ignore-column); Video (blend/opacity/W-H/auto-size); Transition (blend ~55 + duration); Keying (Transparent only, 13 modes); Dry/Wet (FX-Only only); 3D controls (ThreeD only); Transform (5 UPCs); Feedback (enable + preset + 7 sliders); Layer Effects (EffectStackView) | yes |
-| CompositionInspector (`CompositionInspector.h:23`) | Inspector → Composition tab | Dashboard; Autopilot (4 dir + duration + clip-loops + loop + master-layer); Per-Type Autopilot (enable + cycle sliders + randomize); Composition master/speed; Transform (5 UPCs); Global Effects (EffectStackView); Output resolution combo. Collapse triangles + P. buttons decorative. **Panel-wide FX drop target (2026-07-30): fx: drags land anywhere on the panel → global stack via existing undo-recorded path; multi-select = one undo entry** | yes |
+| CompositionInspector (`CompositionInspector.h:23`) | Inspector → Composition tab | Dashboard; Autopilot (4 dir + duration + clip-loops + loop + master-layer); Per-Type Autopilot (enable + cycle sliders + randomize); Composition master/speed; Transform (5 UPCs); Global Effects (EffectStackView); Output resolution combo (presets 1920x1080 / 1280x720 / 2560x1440 / 3840x2160 / 1080x1920 portrait / 1080x1080 square / 1024x768 4:3, plus a "Custom (W x H)" item whenever the canvas matches no preset -- `src/ui/CanvasSizeCombo.h`, s-rta-0926b canvas fix round; = the composition canvas: the preview, recordings, Syphon, render_frame and snapshots are this size, s-rta-0926b plan4). Collapse triangles + P. buttons decorative. **Panel-wide FX drop target (2026-07-30): fx: drags land anywhere on the panel → global stack via existing undo-recorded path; multi-select = one undo entry** | yes |
 | SignalInspector (`SignalInspector.h:15`) | Inspector → Signal tab | Audio: threshold/gain/falloff. Oscillator: wave-shape (5) + beat-duration (6) + amplitude + phase. Envelope: curve-type (3) + beat-duration (5) + amplitude + phase + looping/one-shot toggles + **paint-only curve editor (NOT draggable)** | yes |
 
 ### Browser tabs
@@ -136,9 +136,10 @@ Source: lane-1-audio-analysis.md §2-4.
 
 ### REST API — production server (`src/api/ApiServer.cpp`, port 7070, always-on, CORS)
 
-Source: `src/api/ApiServer.cpp` (route registrations counted by command, s-rta-0926). **41 registered
+Source: `src/api/ApiServer.cpp` (route registrations counted by command, s-rta-0926). **42 registered
 routes total: 27 core control endpoints (rows 1-27) + 7 `/api/perf/*` (rows 28-34) + `POST
-/api/audio/source` (row 35) + 6 `/api/routine/*` (rows 36-41)**; all functional (`/api/set_bpm` wired
+/api/audio/source` (row 35) + 6 `/api/routine/*` (rows 36-41) + `POST /api/set_clip_param` (row 42,
+s-rta-0926b plan-fitmode)**; all functional (`/api/set_bpm` wired
 Wave 0; `/api/resync` added s-rta-0925 -- manual Resync via `requestResync()`, message thread ->
 analysis thread). Rows 28-35 are the performance take recorder's REST surface (see "Audio Store /
 Step 3" in `docs/claude/recording.md` for the full field-level detail of each); rows 36-41 are the
@@ -170,7 +171,7 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 | 22 | POST | /api/render_frame | captureFrame() to path |
 | 23 | POST | /api/reset | clear image + source + disable all effects |
 | 24 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
-| 25 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
+| 25 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), gpu_time_ms / peak_gpu_time_ms (GL timer queries, s-rta-0926b plan4), effects[], decks |
 | 26 | GET | /api/syphon | Syphon output enabled/initialized status (P22.1) |
 | 27 | POST | /api/set_syphon | toggle Syphon output publishing |
 | 28 | POST | /api/perf/record | arm: name, audio, audioFile, onsetMarkers, overdubAssetId |
@@ -187,6 +188,7 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 | 39 | POST | /api/routine/set | edit a saved routine's `loop`/`restoreState`/`quantize`/`name` (any subset) |
 | 40 | POST | /api/routine/remove | free a bank pad; erases the routine unless another pad still references it |
 | 41 | GET | /api/routine/status | clock beat, per-slot state (empty/idle/pending/running), lanes/preamble/stacking counters, lastSaved/lastError |
+| 42 | POST | /api/set_clip_param | per-clip field write, active deck: `{"layer","column","param":"fitMode","value":0\|1\|2}` (Stretch/Bars/Crop; other params -> "unknown param"); message thread, ok:true once well-formed, not undo-recorded; `/api/composition` reads `fitMode` back per clip (s-rta-0926b plan-fitmode) |
 
 The 7 `handlePerfRecord`/`handlePerfStop`/`handlePerfLoad`/`handlePerfPlay`/`handlePerfStopPlay`/
 `handlePerfRepair`/`handlePerfStatus` handlers return 503 "Recorder unavailable" when the
@@ -199,7 +201,7 @@ when unwired; `handleRoutineStatus` (row 41) is synchronous, reading only `Routi
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 17 endpoints) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
-### OSC input (`src/osc/OscHandler.cpp`) — 14 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
+### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 
 `startListening(8000)` is called unconditionally at startup (`MainComponent.cpp:1207-1211`,
 like ApiServer); receiver binds UDP port 8000 (de-facto OSC receive default). All 14/14
@@ -211,7 +213,8 @@ global dashboard-link bank; effect param → global effect-chain; signal → Mas
 s-rta-0925 mastersignal Step 1; routine → fire a bank pad, same funnel as `/api/routine/fire`,
 s-rta-0926 routines slice 1). Delivery is on the message
 thread (`MessageLoopCallback`). Patterns:
-`/audiodna/clip/{layer}/{column}`, `/layer/{n}/opacity|bypass|solo|mute`, `/deck/{n}`,
+`/audiodna/clip/{layer}/{column}`, `/clip/{layer}/{column}/fit <int 0..2>` (Stretch/Bars/Crop, matched BEFORE
+the bare clip trigger, s-rta-0926b plan-fitmode), `/layer/{n}/opacity|bypass|solo|mute`, `/deck/{n}`,
 `/master`, `/signal`, `/bpm`, `/resync`, `/snapshot`, `/macro/{n}`, `/effect/{name}/{param}`,
 `/routine/{slot}` (value > 0 fires; 0 ignored).
 Port is hardcoded (no preferences UI configures it yet — matches absence of a settings store).

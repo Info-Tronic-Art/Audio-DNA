@@ -109,6 +109,8 @@ private:
 
     // --- Output Settings ---
     juce::ComboBox resolutionSelector_;
+    int shownCanvasW_ = -1;   // the canvas size the Resolution dropdown last showed (CanvasSizeCombo)
+    int shownCanvasH_ = -1;
 
     // DragAndDropTarget for FX drops
     bool isInterestedInDragSource(const SourceDetails& details) override;

@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -28,7 +28,7 @@ Runs every 2.67ms (128 samples @ 48kHz). Receives samples from JUCE's `AudioIODe
 Runs every ~10.7ms (512-sample hop @ 48kHz). Pulls device-rate samples from the ring buffer and resamples them to the fixed internal 48 kHz (`AnalysisResampler`, R13) before anything else — a bit-identical bypass when the device already runs at 48 kHz. Maintains a 2048-sample overlap window, runs FFT, and extracts all audio features in a fixed pipeline order. Pre-allocates all buffers and Aubio objects at startup — zero allocation in steady state, including at a device rate change (the resampler reconfigures a fixed-size interpolator in O(1), no aubio object is ever re-created). Budget: <2ms per hop (5x headroom). Publishes a complete `FeatureSnapshot` to the Feature Bus via atomic triple-buffer swap.
 
 **Render Thread (OpenGL, NORMAL priority, VSync)**
-Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple buffer (lock-free atomic read). Runs all active mappings (source → curve → scale → target), uploads uniforms to GPU, and renders the effect chain on a fullscreen quad with the loaded image texture. Uses ping-pong FBOs for multi-effect chains. Budget: <8ms for full chain. Communicates display values back to UI via `juce::MessageManager::callAsync()`.
+Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple buffer (lock-free atomic read). Runs all active mappings (source → curve → scale → target), uploads uniforms to GPU, and renders the effect chain on a fullscreen quad with the loaded image texture. Uses ping-pong FBOs for multi-effect chains. Budget: <8ms for full chain. Communicates display values back to UI via `juce::MessageManager::callAsync()`. It renders the composition canvas once per frame, offscreen (Pitfall 37).
 
 **Message Thread (JUCE UI, NORMAL priority)**
 Runs on user events. Handles all UI interaction — sliders, buttons, file choosers, mapping editor. Writes configuration changes (effect enable/disable, parameter values, mapping settings) via `std::atomic<T>` config variables that the render and analysis threads read. Never blocks the other threads.
@@ -123,6 +123,8 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 14. **When this document says something, it overrides any default behavior**: If CLAUDE.md and a research doc disagree, CLAUDE.md wins (research docs are pre-decision references).
 
+15. **An inactive deck keeps time**: crossfades, media clocks (no decode) and autopilot keep running on off-screen decks (`DeckClock::tick` in the `deckActive` fence; `docs/claude/performance-controls.md`).
+
 ---
 
 ## UI Patterns (Mandatory for all new UI)
@@ -137,7 +139,9 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 **PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
-**Deck tab row**: '+' = New Deck / Load Deck...; right-click a tab = Save Deck / Save Deck As... / Rename Deck... / Duplicate Deck / Remove Deck (the menu is headed by the deck's name; Remove shows a 10-s `Undo Remove "<name>"` button flush right in the row, no dialog); the Deck menu mirrors every action for the active deck. The Compositions browser tab is the library (row click = open / append as a new tab; right-click = Open / Show in Finder / Delete... to the Trash, confirmed). `DeckView::DeckTabButton` intercepts `isPopupMenu()` in `mouseDown` because a JUCE Button fires `onClick` on ANY mouse button (a right-click used to switch decks). Geometry and menus: `src/ui/DeckTabRow.h` (pure, `tests/test_deck_tab_row.cpp`).
+**Preview/Output panel never reshapes the picture**: it letter/pillar-boxes the composition canvas, never stretches it; the Resolution dropdown never names a size the canvas is not (`docs/claude/rendering.md`).
+
+**Deck tab row**: '+' = New / Load Deck; right-click a tab = its menu (Save / Save As / Rename / Duplicate / Remove + 10-s Undo), never a deck switch: `DeckTabButton` intercepts `isPopupMenu()` (a JUCE Button fires `onClick` on ANY mouse button); `docs/claude/performance-controls.md`.
 
 ---
 
@@ -207,20 +211,6 @@ When the user says **"kick off phase N"**, follow this exact sequence:
    - Write feedback memory files for any user preferences discovered during testing
    - **Ask**: "Did we learn anything this phase that should change how future phases work?" If yes, update the relevant docs. If Claude identified patterns (common bug classes, UI conventions the user validated, architectural shortcuts), capture them proactively.
 
-### Phase Dependency Map
-
-```text
-P1 (BPM lock) ──→ P2 (downbeat) ──→ P3 (architecture) ──→ P4 (signal bar)
-                                                          ──→ P5 (deck)
-                                                          ──→ P6 (inspector)
-                                                          ──→ P7 (browser)
-                                          P4+P5+P6+P7 ──→ P8 (layout)
-                                                    P8 ──→ P9 (binding)
-                                                P5+P6 ──→ P10 (sources)
-                                                P5+P6 ──→ P11 (video)
-                                                  All ──→ P12 (polish)
-```
-
 ### Before Any Work
 
 - Always read this CLAUDE.md before touching any file
@@ -274,6 +264,9 @@ the named area; this index is triage-only.
 34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
 35. A crossfading layer has two live clip chains -- before keying any per-chain GL history (never by deck + layer alone).
 36. Deck ids are unique per composition; a Duplicate re-mints clip ids -- before creating or copying a deck (mint via `appendDeck`/`addDeck`).
+37. The canvas is the composition -- before sizing any render target, capture or recording (never from a Component).
+38. Autopilot keeps one beat-crossing baseline per instance -- before calling `Autopilot::processFrame` for more than one deck.
+39. `layer_transform` is one program shared by clip and layer transforms -- before adding a uniform to it or reading a picture's size.
 
 ---
 
@@ -301,4 +294,4 @@ these are NOT @-imported, so they cost nothing at boot and are read on demand.
 | Adding/tuning a procedural fractal source, or doing browser-based shader testing before porting a shader into `EmbeddedShaders.h` | `docs/claude/fractals.md` |
 | Hitting a bug that might already be a known pitfall (check the one-line index above first) | `docs/claude/pitfalls.md` |
 | Building on Windows/Linux, adding Aubio, or adding any new project dependency | `docs/claude/build-other-platforms.md` |
-| Needing milestone history, the v2 redesign rationale, or the `research/` document index | `docs/claude/history.md` |
+| Needing milestone history (incl. the P1-P12 phase dependency map), the v2 redesign rationale, or the `research/` document index | `docs/claude/history.md` |

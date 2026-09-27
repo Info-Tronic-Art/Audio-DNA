@@ -1642,3 +1642,68 @@ hand-written functions with no shared layout model.
   MacroPanel / UniversalParamControl / SignalBar menus still draw stock. AudioDNALookAndFeel::drawLabel draws NO text
   for a transparent text colour (AlertWindow's hidden accessibility label would otherwise double every message).
 - Valid while DeckView/CompDecksBrowser keep this shape and JUCE's PopupMenu keeps the foreground check.
+
+## 2026-09-27 s-rta-0926b canvas (plan4 A/B1/B2/C) | Files: src/render/{Renderer,RenderGeometry,DeckClock,LayerClock}.*, src/render/CompositorEngine.cpp, src/model/AutopilotBank.h, .harmony/probe-{canvas,deck-clock}.*
+- The frame renders ONCE into `Renderer::canvasFBO_` at the composition's size (Pitfall 37); the panel only
+  presents it. Anything that reads "the picture" (recorder, Syphon, render_frame, snapshots) must bind
+  `canvasFBO_` as the READ framebuffer -- never the window framebuffer (it now holds the letterboxed present).
+- BEFORE plan4 the TestServer render_frame width/height lock was racy: the lock is read early in
+  renderOpenGL and the pending capture late, so most captures came from a frame rendered at the PANEL size
+  (756x756 / 756x878 / 518x756 ...) -- tests/visual crashed 7 times on shape mismatches. Now a capture waits
+  for the frame rendered at the lock's exact size (`processPendingCapture`). tests/visual is pre-existing RED
+  in test mode (base 167 failed / lane 166, lane set a subset) -- compare failure SETS against the base binary,
+  never read the lane's count alone.
+- The rig display runs at ~110-120 fps. A temporal-effect oracle tuned for 60 fps (Freeze 0.95, read 0.4 s
+  later) had NO teeth -- a no-rescale mutant passed (d 4.3). Always prove a new history row on a mutant
+  binary (mutate, build, run the row, restore, sha256 == HEAD, rebuild).
+- Deck transitions (P25) were cuts: the outgoing copy was taken after the new deck was composited; a race
+  between the deck-pointer read and the index read made 1 in 3 switches work. Detect state changes whose
+  "before" picture you need at the TOP of the frame, while the canvas still holds the previous frame.
+- `pytest tests/visual` rewrites a TRACKED pyc (tests/visual/__pycache__/vision_check.cpython-314.pyc): run it
+  with PYTHONDONTWRITEBYTECODE=1 and `-p no:cacheprovider`. `.harmony/*` is gitignored: new probe files need
+  `git add -f`.
+- A 1080p render_frame takes ~150-180 ms (4K ~500 ms) -- synchronous readback + per-pixel copy + PNG encode.
+  probe-render-state r5_burst's ">= 8 captures in 0.6 s" capacity check flips (6-7); its real assertion (no
+  blank frame) still passes. Fix = PBO async readback (plan4 F4), never a re-threshold.
+- Valid while: the canvas architecture (Renderer::canvasFBO_) and these probes exist.
+
+## 2026-09-27 s-rta-0926b fitmode: a dark fixture hides a geometry bug from whole-frame d; the Layer anchor default is the CORNER
+**Files:** .harmony/probe-fitmode.py, src/render/CompositorEngine.cpp (applyLayerTransform), src/ui/LookAndFeel.cpp
+**Note:**
+- media/P16_01_baseline.png has mean ~20: a whole-frame d(frame, oracle) between "fitted once" and "not
+  fitted" at layer scale 0.5 was only 4.32 (< tol 6) -- the row passed on the pre-fit build. Region-restricted
+  checks (the picture's box vs its oracle; outside the box) carry the teeth; prove any new geometry row on the
+  pre-change binary AND on a mutant (here: drop applyLayerTransform's u_fitEnabled reset -> inside d 17.33).
+- `Layer::layerAnchorX/Y` default 0.0 and applyLayerTransform passes them RAW as u_anchor, so a layer scale
+  pivots on the UV origin (a corner), not the centre; clip transforms pass 0.5 + anchor. A probe that wants a
+  centred layer scale sets layerAnchorX/Y 0.5.
+- AudioDNALookAndFeel::drawLabel/drawComboBox used to ignore isEnabled() (JUCE's V2 drawLabel dims 0.5); both
+  now dim by kDisabledAlpha, so a disabled combo (and its child text Label) reads disabled app-wide.
+- OSC without python-osc: a ",i" message is 3 padded fields -- pad(address) + pad(b",i") + struct.pack(">i", v)
+  over a UDP socket (probe-fitmode.py osc()).
+- Valid while: these files exist and the Layer anchor convention is unchanged.
+
+## 2026-09-27 s-rta-0926b canvas fix: fixture B (P16_02_Screen_Split_2x2.png) is a 2x2 split of A -- through transparent Bars it reads as a render fault
+**Files:** .harmony/probe-fitmode.py, .harmony/probe-fitmode.json, src/ui/CanvasSizeCombo.h, src/ui/CompositionInspector.cpp
+**Note:**
+- A visual critic read Bars-over-B frames as "mirrored/tiled corruption": B is itself four tiles of A-like ellipses,
+  so the lower layer showing beside A looks like a wrap bug. The bands were B exactly (d 0.01 vs a PIL oracle of the
+  media file). For human-facing shots use a visually distinct lower layer (a checkerboard Source) and ship the
+  lower-layer-alone reference; FIT_SHOTS now writes lower-layer-only.png.
+- The Composition inspector's Resolution combo is CanvasSizeCombo::show(): exact W AND H preset match, else a
+  "Custom (W x H)" item; it is rebuilt only when the canvas size changed (not on every refresh).
+- Valid while: these fixtures and files exist.
+
+## 2026-09-27 s-rta-0926b canvas merge: CLAUDE.md is at its 25,000-byte cap; parallel lanes collide on pitfall numbers
+**Files:** CLAUDE.md, docs/claude/{pitfalls,rendering,performance-controls,history}.md, .harmony/probe-render-state.{py,json}
+**Note:**
+- Main was already 25,241 B before this merge; with the canvas lane's additions it was 26,754 B. A new UI pattern,
+  rule or render note goes into CLAUDE.md as ONE line with a pointer, and its full text goes into the docs/claude
+  file it belongs to (Deck tab row -> performance-controls.md, Preview panel -> rendering.md). Check with `wc -c CLAUDE.md`.
+- Two lanes that each add "Pitfall 36" collide. The lane merged first keeps its number; renumber the other lane's
+  pitfalls AND every citation of them (`grep -rn -i "pitfall 3[0-9]"`: docs, src comments, Catch2 TEST_CASE titles, the notebook).
+- probe-render-state r1_counts ("longest frame across the first fade <= 50 ms") is marginal at the 1080p canvas
+  because the spare frame ring (237 MiB of textures) is allocated in that frame. Measured values: 26-29 ms with one
+  50.82 before the merge; 51.86 / 48.86 / 34.29 on the merge build. One FAIL is not a verdict: rerun it before
+  blaming a change.
+- Valid while: the CLAUDE.md byte cap, the canvas ring sizing and these probes exist.

@@ -155,6 +155,11 @@ private:
     UniversalParamControl scaleControl_;
     UniversalParamControl rotationControl_;
     UniversalParamControl anchorControl_;
+    // s-rta-0926b plan-fitmode: Stretch / Bars / Crop (first row of the Transform section)
+    juce::Label fitLabel_;
+    juce::ComboBox fitSelector_;
+    juce::Label fitCaption_;            // fix round: what the selected mode does (not hover-only)
+    void updateFitCaption();
 
     // --- Effects ---
     EffectStackView effectStackView_;
@@ -190,6 +195,7 @@ private:
     static constexpr int kSectionHeaderHeight = 20;
     static constexpr int kSectionGap = 8;
     static constexpr int kRowHeight = 24;
+    static constexpr int kFitCaptionHeight = 16;   // the Fit caption line under the Fit combo
     static constexpr int kNameBarHeight = 28;
     static constexpr int kTimelineHeight = 36; // timeline bar with in/out markers + handles
     static constexpr int kInset = 6;           // left/right padding within sections

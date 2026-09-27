@@ -1,0 +1,20 @@
+04:26:49 LOCK ACQUIRED: canvas-merge 97798 1790497609
+== probe-render-state r5_burst (merge build, probe postSwitchS 2.0) load: load averages: 3.12 4.19 3.90
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas-merge/runs/rstate.uZO6nC
+--- r5_burst
+      r5_burst id=81: 19 frames after the switch
+      r5_burst id=82: 20 frames after the switch
+      r5_burst id=83: 19 frames after the switch
+      r5_burst id=84: 19 frames after the switch
+      r5_burst id=85: 19 frames after the switch
+PASS  r5_burst: every attempt captured >= 8 frames after the switch (short: [])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+
+PY 2 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE GREEN
+Audio-DNA processes now: 0
+04:27:25 LOCK RELEASED: canvas-merge 97798 1790497609

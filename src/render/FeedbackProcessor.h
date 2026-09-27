@@ -40,6 +40,11 @@ public:
 
     bool isInitialized() const { return initialized_; }
 
+    // s-rta-0926b plan4 1C: resize to width x height KEEPING the feedback picture -- both ping-pong
+    // textures are linear-blitted into new ones, currentBuffer_ kept. Not initialized: plain initGL.
+    // GL thread; ends with framebuffer 0 bound.
+    void resizePreserving(int width, int height);
+
     // Get the list of built-in feedback presets
     static const std::vector<FeedbackPreset>& getPresets();
 

@@ -84,6 +84,12 @@ public:
     // Call once per render frame from GL thread.
     void advanceFrame(double dt);
 
+    // s-rta-0926b plan4 T3: advance the playhead exactly like advanceFrame() -- same transport math, the loop
+    // wrap's demuxer seek included (cheap, no decode) -- but decode and convert NOTHING. For a clip whose deck is
+    // not on screen: the clock keeps running and the next advanceFrame() catches up (decodeFrameAtTime seeks /
+    // decodes forward, bounded per call). A pending seek request is applied to the clock only. GL thread.
+    void advanceClock(double dt);
+
     // Upload the current decoded frame to a GL texture.
     // Creates the texture on first call, reuses thereafter.
     // Returns the GL texture ID, or 0 if no frame is ready.
@@ -146,6 +152,11 @@ private:
     // Current decode position in seconds
     double currentTime_ = 0.0;
     bool pingPongForward_ = true;
+
+    // plan4 T3: the transport math shared by advanceFrame() and advanceClock() -- speed / reverse / loop /
+    // ping-pong / one-shot, the loop wrap's seekToTimestamp, the playhead store. Returns false when the clock
+    // did not run (not playing, or no duration) -- advanceFrame() then decodes nothing, as before.
+    bool advanceTransport(double dt);
 
     // Decode the frame at the current time position
     bool decodeFrameAtTime(double timeSec);

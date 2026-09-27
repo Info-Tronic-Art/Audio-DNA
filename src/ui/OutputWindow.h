@@ -9,6 +9,8 @@
 #include "features/FeatureBus.h"
 #include "features/OnsetPulse.h"
 
+struct Composition;
+
 // OutputRenderer: renders the same effect chain as the primary Renderer
 // but in its own OpenGL context (for the output window/display).
 //
@@ -18,9 +20,11 @@
 class OutputRenderer : public juce::OpenGLRenderer
 {
 public:
+    // composition: read-only, for the picture's shape (s-rta-0926b plan4 S7); may be nullptr.
     OutputRenderer(const FeatureBus& featureBus,
                    MappingEngine& mappingEngine,
-                   EffectChain& effectChain);
+                   EffectChain& effectChain,
+                   const Composition* composition = nullptr);
 
     void newOpenGLContextCreated() override;
     void renderOpenGL() override;
@@ -44,6 +48,9 @@ private:
     const FeatureBus& featureBus_;  // read-only (R5); kept for the queued OutputWindow arc
     MappingEngine& mappingEngine_;
     EffectChain& effectChain_;
+    // plan4 S7: the image is letterboxed inside a composition-shaped rect (outputWidth/outputHeight,
+    // plain-int reads on this GL thread -- the house class). Not owned.
+    const Composition* composition_ = nullptr;
 
     // Own GL state
     FullscreenQuad quad_;
@@ -82,7 +89,8 @@ class OutputWindow : public juce::DocumentWindow
 public:
     OutputWindow(const FeatureBus& featureBus,
                  MappingEngine& mappingEngine,
-                 EffectChain& effectChain);
+                 EffectChain& effectChain,
+                 const Composition* composition = nullptr);
     ~OutputWindow() override;
 
     void closeButtonPressed() override;

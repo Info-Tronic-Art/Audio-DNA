@@ -1,0 +1,6 @@
+Independent re-derivation (canvas fix round): the Bars side bands in the critic's shots vs an oracle built from the
+lower layer's MEDIA FILE alone (PIL: B 756x878 -> BILINEAR 1920x1080 -> BOX 960x540). Bands = x<240 and x>=720 at 960 wide.
+fitmode-shots/bars-over-lower-layer: band d vs B-oracle L=0.01 R=0.01; band d vs black L=16.63
+fitmode-shots/bars-clip-scale-0.5: band d vs B-oracle L=0.01 R=0.01; band d vs black L=16.63
+canvas-fix-shots/bars-over-lower-layer: band d vs B-oracle L=0.01 R=0.01; band d vs black L=16.63
+canvas-fix-shots/lower-layer-only: band d vs B-oracle L=0.01 R=0.01; band d vs black L=16.63

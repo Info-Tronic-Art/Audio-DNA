@@ -66,7 +66,9 @@ connected control sits at its own hand value (a hand-turned macro keeps working 
 - `CompositorEngine::applyClipEffects()` (per-clip/layer deck mode): uses the `layerTemporalBuffers_` map keyed by `LayerStateKey` (`src/render/LayerStateKey.h`) = deck id + layer id + which chain — never by layer id alone (ids repeat in every deck). A layer has three chain keys: `clipChain` (the active clip's effects, also keys the feedback processor), `outgoingChain` (the OUTGOING clip's effects during a clip-to-clip crossfade) and `layerChain` (layer effects). Binds `u_prev_frame` from the chain's buffer, saves output after the chain completes.
 - **Crossfades (s-rta-0926b R1)**: at the first frame of every crossfade (`CrossfadeStartDetector`, `src/render/CrossfadeHistory.h`) `handOverClipHistory` COPIES the layer's clip-chain temporal buffer into its outgoing slot and SWAPS the frame rings; the outgoing chain uses the slot for the whole fade. So the outgoing clip keeps its own Echo/Freeze/Screen Split look, and the incoming clip starts from the picture the layer was just showing (exactly what a cut gives it) with an empty ring. Nothing happens at fade end — the slot is the layer's spare for the next fade.
 
-**Frame Ring Buffer** (`FrameRingBuffer` in CompositorEngine): stores 480 previous frames at 1/4 resolution for Screen Split and Frame Stutter effects. These effects are intercepted in `applyClipEffects()` before normal shader processing and rendered by the compositor directly — they don't use GLSL shaders at all. One ring is 248.8 MB (237 MiB) of VRAM at 1080p, ~995 MB at 4K, per (deck, layer) chain that uses them — up to two per layer clip chain once it has crossfaded with Split/Stutter on both sides (the outgoing slot). Rings and temporal buffers are created lazily and freed only when the GL context closes; `/api/state` reports `frame_rings` / `temporal_buffers` (and `peak_frame_time_ms`, the longest frame since the previous read).
+**Frame Ring Buffer** (`FrameRingBuffer` in CompositorEngine): stores 480 previous frames for Screen Split and Frame Stutter effects, downscaled per canvas by `RenderGeometry::ringDownscale(canvasW)` -- at least 1/4 and never a cell wider than 480 px (s-rta-0926b plan4 1E), so one ring is 237 MiB of VRAM at 1080p (1/4) AND at 4K (1/8), 187 MiB at 1440p (1/6); above 1080p the cells are softer than the canvas. These effects are intercepted in `applyClipEffects()` before normal shader processing and rendered by the compositor directly — they don't use GLSL shaders at all. One ring per (deck, layer) chain that uses them — up to two per layer clip chain once it has crossfaded with Split/Stutter on both sides (the outgoing slot). Rings and temporal buffers are created lazily and freed when the GL context closes; `/api/state` reports `frame_rings` / `temporal_buffers` (and `peak_frame_time_ms`, the longest frame since the previous read; `gpu_time_ms` / `peak_gpu_time_ms`, GL timer queries).
+
+**Canvas size changes keep history (plan4 1C)**: the render size is the composition canvas (`Composition::outputWidth x outputHeight`, Pitfall 37), so `CompositorEngine::resize` runs on a resolution change, never on a window resize. It recreates the base FBOs and then `rescaleHistory` linear-blits every temporal buffer (incl. the crossfade outgoing slots) and every `FeedbackProcessor` ping-pong (`resizePreserving`) to the new size -- Freeze / Echo / feedback pictures survive -- and drops every frame ring (recreated lazily at the new size; Split/Stutter cells fall back to the frames available). NOT rescaled (accepted): the legacy `EffectChainGLState` prevFrame (single-image mode) and stateful procedural sources (they reset on any resize). The one-time hitch (ring recreation ~18-24 ms per ring) shows in `peak_frame_time_ms`.
 
 **Feedback System** (`FeedbackProcessor`): per-layer Larsen feedback loop. Each layer with `feedback.enabled` gets its own FBO pair. Applied after clip effects, before layer effects in `compositeDeck()`. 6 presets: Zoom In, Spiral, Drift, Kaleidoscope, Echo, Stretch. UI in LayerInspector "Feedback" section.
 
@@ -117,6 +119,20 @@ The fader only reaches signal→parameter connections (`ConnectionEngine`, `Macr
 
 ---
 
+### Composition Canvas and the Preview Panel (s-rta-0926b plan4)
+
+> Moved from CLAUDE.md's UI Patterns (s-rta-0926b canvas merge, CLAUDE.md byte cap); the canvas render rule is Pitfall 37.
+
+**Preview/Output panel never reshapes the picture**: the canvas is the composition's size and shape (Composition inspector > Output Settings resolution: 16:9 / portrait / square / 4:3 presets, and "Custom (W x H)" for any other size, so the dropdown never names a size the canvas is not); the lower-left panel shows it letter/pillar-boxed at any window size, never stretched to the panel. A window/panel resize reallocates nothing.
+
+---
+
+### Per-clip Fit Mode (s-rta-0926b plan-fitmode)
+
+`Clip::fitMode` (`ClipFit::Mode`, `src/model/ClipFit.h`): **Stretch** (0, default -- the picture fills the canvas, today's output), **Bars** (1 -- its own shape, centred, the rest TRANSPARENT so lower layers show; over nothing it reads black), **Crop** (2 -- its own shape covering the canvas, overflow cut). Stage order: fit -> clip transform -> clip opacity -> clip effects -> transition -> feedback -> layer effects -> layer transform; the fit is the last step of `layer_transform`'s inverse UV chain (`u_fitEnabled` / `u_fitScale` = `ClipFit::scale()`), inside `CompositorEngine::applyClipTransform` -- the one pass every media clip goes through (active deck, persistent layers, the outgoing clip of a crossfade). Only Image / Video / ImageSequence are fitted: a Source renders at the canvas size (nothing to fit), Camera has no deck path, Mask layers skip the transform pass (a portrait mask still stretches). The picture's size comes from the texture (`glGetTexLevelParameteriv`), never `clipWidth/clipHeight` (Pitfall 39). Stretch, or a picture already the canvas's shape, runs no query and no extra pass. Set by the Clip inspector's Fit combo (Transform section), `POST /api/set_clip_param` and OSC `/audiodna/clip/{l}/{c}/fit`; saved as the clip JSON key `fitMode` (missing / out of range -> Stretch). Live: `.harmony/probe-fitmode.sh`.
+
+---
+
 ### Composition-Level Transform (P25)
 
 The `comp_transform` shader applies position/scale/rotation to the entire final output. Applied after the effect chain renders, before the master level dim. Uses `glBlitFramebuffer` to copy the framebuffer, then renders the transform shader.
@@ -130,5 +146,7 @@ Fields in `Composition`: `compPositionX/Y` (normalized offset), `compScale` (1.0
 When `Composition::activeDeckIndex` changes, the Renderer saves the current frame as the "outgoing" deck texture and blends to the new deck over `Composition::globalTransitionSpeed` seconds. Three blend modes: Alpha (crossfade), Add (additive), Multiply. Uses `Composition::crossfaderBlendMode` for the blend mode.
 
 The `deck_transition` shader takes two textures (`u_textureA` = outgoing, `u_textureB` = incoming) and a progress uniform. Frame is saved to `prevDeckTexture_` on deck switch detection.
+
+**The outgoing picture is the canvas's PREVIOUS frame (s-rta-0926b plan4 F2)**: the switch is detected at the TOP of `Renderer::renderOpenGL` (the canvas block, before the canvas is cleared), where the canvas still holds the last frame that left the app -- that is blitted into `prevDeckFBO_`. It used to be detected after the new deck was composited, so the "outgoing" copy was the NEW deck's first frame and most deck transitions were cuts (a race decided: measured 2 of 3 switches were cuts on the pre-change app). The transition pass runs AFTER master opacity (both inputs are then final pictures), so it starts exactly on the frame that was on screen; a switch during a running transition starts from the blend that was showing. Live: `.harmony/probe-canvas.sh` row `f2_deck_transition`.
 
 ---

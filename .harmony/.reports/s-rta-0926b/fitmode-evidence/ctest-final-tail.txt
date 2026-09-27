@@ -1,0 +1,6 @@
+        Start 623: syphon_check_negative
+623/623 Test #623: syphon_check_negative .................................................................................................................................................   Passed    0.52 sec
+
+100% tests passed, 0 tests failed out of 623
+
+Total Test time (real) =  10.21 sec

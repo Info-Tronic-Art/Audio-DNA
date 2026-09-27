@@ -1,0 +1,55 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/runs/canvas.w97h2o
+--- c_default_shape
+FAIL  c_default_shape: a composition without outputWidth/outputHeight renders a 1920x1080 canvas (render_frame PNG 756x878)
+PASS  c_default_shape: the clip fills the canvas (non-blank=True, d(f, A stretched to 1920x1080)=0.00, tol 6.0)
+--- c_4k_shape
+FAIL  c_4k_shape: outputWidth 3840 / outputHeight 2160 renders a 3840x2160 canvas (render_frame PNG 756x878)
+PASS  c_4k_shape: the 4K picture is the 1080p picture at 4x the pixels (d(4K box-downsized, 1080p)=0.08, tol 6.0)
+      c_4k_shape: /api/state fps 97.0 frame_time_ms 0.38 gpu_time_ms n/a (load avg 3.95 4.15 4.83)
+--- c_custom_4x3
+FAIL  c_custom_4x3: a 1024x768 composition renders a 1024x768 canvas (render_frame PNG 756x878)
+PASS  c_custom_4x3: the clip fills the 4:3 canvas (d(f, A stretched to 1024x768)=0.00, tol 6.0)
+--- c_runtime_change_keeps_history
+      c_runtime_change: set_composition_params 2560x1440 -> HTTP 400 {
+  "ok": false,
+  "error": "No known field provided (expected masterOpacity and/or masterSpeed)"
+}
+      c_runtime_change: set_composition_params 1920x1080 -> HTTP 400 {
+  "ok": false,
+  "error": "No known field provided (expected masterOpacity and/or masterSpeed)"
+}
+      c_runtime_change: peak_frame_time_ms [('before 1440p', 12.712332725524902), ('0.4 s after 1440p', 3.950790882110596), ('0.4 s after back to 1080p', 1.221207976341248)]
+      c_runtime_change: f0 (756, 878) d(f0, image)=10.36 mean(image) 139.7 (Freeze 0.95's 8-bit fixed point sits a few levels under the image -- report only)
+PASS  c_runtime_change_keeps_history: the Freeze 0.95 picture f0 is non-blank
+FAIL  c_runtime_change_keeps_history: 0.4 s after 1080p -> 2560x1440 the frame is 756x878 and keeps the Freeze history (d(f1 resized, f0)=0.00, tol 6.0)
+FAIL  c_runtime_change_keeps_history: 0.4 s after going back to 1920x1080 the frame is 756x878 and still the same picture (d(f2, f0)=0.00, tol 8.0)
+--- c_legacy_image_fit
+FAIL  c_legacy_image_fit: the legacy image frame is the 1920x1080 canvas (render_frame PNG 756x756; mean R of the whole frame 255.0)
+--- c_capture_deterministic
+PASS  c_capture_deterministic: two captures with the same time decode to identical pixels ((756, 878), identical=True)
+--- c_capture_cost
+      c_capture_cost 1920x1080: render_frame wall 81 ms, PNG (756, 878); /api/state fps over the next 1.5 s: min 99.7 [100.2, 100.2, 100.2, 99.7, 99.7, 99.7] (load avg 3.81 4.11 4.80)
+      c_capture_cost 3840x2160: render_frame wall 89 ms, PNG (756, 878); /api/state fps over the next 1.5 s: min 97.9 [102.6, 97.9, 97.9, 97.9, 107.0, 107.0] (load avg 4.14 4.17 4.82)
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+--- c_perf_1080
+      c_perf_1080 1920x1080: fps mean 110.6 min 106.8; frame_time_ms mean 1.34 max-peak 10.27; gpu_time_ms n/a (field absent); temporal_buffers 1 frame_rings 2 (load avg 3.81 4.10 4.79)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 110.6 >= 58.0 and mean frame_time_ms 1.34 <= 12.0
+--- c_perf_4k
+      c_perf_4k 3840x2160: fps mean 112.6 min 111.1; frame_time_ms mean 1.25 max-peak 9.52; gpu_time_ms n/a (field absent); temporal_buffers 1 frame_rings 2 (load avg 3.77 4.08 4.78)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+--- f2_deck_transition
+      f2: d(refA, refB)=29.43 (deck frames (756, 878))
+      f2 trial 0: t=1.06s p=1.00 residual=0.00 d(f,A)=29.43 d(f,B)=0.00
+      f2 trial 0: t=2.05s p=1.00 residual=0.00 d(f,A)=29.43 d(f,B)=0.00
+      f2 trial 1: t=1.04s p=0.25 residual=0.11 d(f,A)=7.35 d(f,B)=22.08
+      f2 trial 1: t=2.04s p=0.50 residual=0.14 d(f,A)=14.90 d(f,B)=14.53
+      f2 trial 2: t=1.05s p=1.00 residual=0.00 d(f,A)=29.43 d(f,B)=0.00
+      f2 trial 2: t=2.04s p=1.00 residual=0.00 d(f,A)=29.43 d(f,B)=0.00
+FAIL  f2_deck_transition: a deck switch with a 4 s transition shows the OUTGOING deck fading into the new one (p per trial [[1.0, 1.0], [0.25, 0.5], [1.0, 1.0]]; failures ['trial 0 t=1.06s p=1.00 res=0.00', 'trial 0 t=2.05s p=1.00 res=0.00', 'trial 0 p not rising [1.0, 1.0]', 'trial 2 t=1.05s p=1.00 res=0.00'])
+
+PY 8 PASS / 7 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS RED

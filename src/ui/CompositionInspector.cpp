@@ -1,5 +1,6 @@
 #include "ui/CompositionInspector.h"
 #include "ui/PerTypeAutopilotLayout.h"
+#include "ui/CanvasSizeCombo.h"
 
 CompositionInspector::CompositionInspector()
 {
@@ -174,20 +175,17 @@ CompositionInspector::CompositionInspector()
     addAndMakeVisible(effectStackView_);
 
     // --- Output Settings ---
-    resolutionSelector_.addItem("1920x1080", 1);
-    resolutionSelector_.addItem("1280x720", 2);
-    resolutionSelector_.addItem("2560x1440", 3);
-    resolutionSelector_.addItem("3840x2160", 4);
-    resolutionSelector_.setSelectedId(1, juce::dontSendNotification);
+    // s-rta-0926b canvas fix round: presets incl. portrait / square / 4:3, and a "Custom (W x H)" item
+    // whenever the canvas matches no preset (CanvasSizeCombo) -- the dropdown never shows a stale size.
+    CanvasSizeCombo::show(resolutionSelector_, 1920, 1080);
     resolutionSelector_.onChange = [this] {
         if (!composition_) return;
-        switch (resolutionSelector_.getSelectedId())
-        {
-            case 1: composition_->outputWidth = 1920; composition_->outputHeight = 1080; break;
-            case 2: composition_->outputWidth = 1280; composition_->outputHeight = 720; break;
-            case 3: composition_->outputWidth = 2560; composition_->outputHeight = 1440; break;
-            case 4: composition_->outputWidth = 3840; composition_->outputHeight = 2160; break;
-        }
+        int w = 0, h = 0;
+        if (!CanvasSizeCombo::sizeFor(resolutionSelector_.getSelectedId(), w, h)) return;   // Custom = the current size
+        composition_->outputWidth = w;
+        composition_->outputHeight = h;
+        syncFromComposition();   // a preset drops the Custom item
+        repaint();               // the name bar shows the size
     };
     addAndMakeVisible(resolutionSelector_);
 }
@@ -571,11 +569,13 @@ void CompositionInspector::syncFromComposition()
     syncScalar(rotationControl_, CompScalar::Rotation, composition_->compRotation / 720.0f + 0.5f);
     syncScalar(anchorControl_, CompScalar::AnchorX, composition_->compAnchorX / 3840.0f + 0.5f);
 
-    // Resolution
-    if (composition_->outputWidth == 1920) resolutionSelector_.setSelectedId(1, juce::dontSendNotification);
-    else if (composition_->outputWidth == 1280) resolutionSelector_.setSelectedId(2, juce::dontSendNotification);
-    else if (composition_->outputWidth == 2560) resolutionSelector_.setSelectedId(3, juce::dontSendNotification);
-    else if (composition_->outputWidth == 3840) resolutionSelector_.setSelectedId(4, juce::dontSendNotification);
+    // Resolution: rebuilt only when the canvas size changed (never under an open popup on a plain refresh)
+    if (composition_->outputWidth != shownCanvasW_ || composition_->outputHeight != shownCanvasH_)
+    {
+        shownCanvasW_ = composition_->outputWidth;
+        shownCanvasH_ = composition_->outputHeight;
+        CanvasSizeCombo::show(resolutionSelector_, shownCanvasW_, shownCanvasH_);
+    }
 }
 
 bool CompositionInspector::isInterestedInDragSource(const SourceDetails& details)

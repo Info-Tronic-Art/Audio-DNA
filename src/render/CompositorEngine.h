@@ -38,7 +38,9 @@ public:
     // Release GL resources. Call from openGLContextClosing().
     void releaseGL();
 
-    // Resize FBOs if viewport changed.
+    // Resize FBOs if the canvas size changed (s-rta-0926b plan4: the render size is the composition
+    // canvas, so this runs on a resolution change, not on a window resize). Keeps picture histories
+    // (rescaleHistory).
     void resize(int width, int height);
 
     // Set the effect library for creating per-clip effect instances.
@@ -242,12 +244,13 @@ private:
                               ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
 
     // Frame ring buffer for Screen Split / Frame Stutter.
-    // Stores up to 480 previous frames at 1/4 x 1/4 of the render size:
-    // 248.8 MB (237 MiB) at 1080p, 995 MB at 4K; two per (deck, layer) clip
-    // chain after a fade with Split/Stutter on both sides (s-rta-0926b R1: the
-    // outgoing slot).
+    // Stores up to 480 previous frames downscaled by RenderGeometry::ringDownscale(canvas width) --
+    // at least 1/4 (kRingDownscale), and never a cell wider than 480 px (s-rta-0926b plan4 1E):
+    // 237 MiB per ring at 1080p (ds 4) AND at 4K (ds 8), 187 MiB at 1440p (ds 6); cells above 1080p
+    // are therefore softer than the canvas. Two per (deck, layer) clip chain after a fade with
+    // Split/Stutter on both sides (s-rta-0926b R1: the outgoing slot).
     static constexpr int kMaxRingFrames = 480;
-    static constexpr int kRingDownscale = 4; // store at 1/4 resolution
+    static constexpr int kRingDownscale = 4; // the MINIMUM downscale (1/4 resolution)
     struct FrameRingBuffer {
         std::vector<GLuint> fbos;
         std::vector<GLuint> textures;
@@ -292,6 +295,11 @@ private:
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
+
+    // s-rta-0926b plan4 1C: called by resize() -- rescale-blit every temporal buffer and feedback
+    // processor to the new size (histories kept), drop every frame ring (recreated lazily). Ends
+    // with framebuffer 0 bound.
+    void rescaleHistory(int width, int height);
 
     // Upload audio feature uniforms to the current shader program.
     // Used by audio-reactive effects (P18) that need chromagram, MFCCs, etc.

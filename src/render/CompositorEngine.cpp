@@ -1,6 +1,8 @@
 #include "CompositorEngine.h"
 #include "render/EmbeddedShaders.h"
 #include "render/ScratchPool.h"
+#include "render/RenderGeometry.h"
+#include "render/LayerClock.h"
 #include <iostream>
 #include <cmath>
 
@@ -111,6 +113,53 @@ void CompositorEngine::resize(int width, int height)
     layerOutputFBOs_.clear();
     layerOutputTexStorage_.clear();
     layerOutputTextures_.clear();
+
+    // s-rta-0926b plan4 item 1 (1C): a canvas-size change keeps every picture history.
+    rescaleHistory(width, height);
+}
+
+void CompositorEngine::rescaleHistory(int width, int height)
+{
+    // Runs only from resize(), i.e. before any pass of the frame (R5-safe by construction). Temporal
+    // buffers (u_prev_frame, incl. the crossfade outgoing slots) and feedback ping-pongs are rescale-
+    // blitted -- recreating them black made Freeze / Echo / feedback pictures drop out for a hold
+    // interval. Frame rings are dropped and recreated lazily at the new size by getOrCreateRingBuffer
+    // (Screen Split / Frame Stutter cells fall back to the frames available, as on a fresh layer).
+    for (auto& [key, buf] : layerTemporalBuffers_)
+    {
+        if (buf.tex == 0)
+            continue;
+        GLuint fbo = 0, tex = 0;
+        createFBO(fbo, tex, width, height);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, buf.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glBlitFramebuffer(0, 0, buf.width, buf.height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glDeleteFramebuffers(1, &buf.fbo);
+        glDeleteTextures(1, &buf.tex);
+        buf.fbo = fbo;
+        buf.tex = tex;
+        buf.width = width;
+        buf.height = height;   // temporalBufferCount_ unchanged: one buffer replaced by one
+    }
+
+    for (auto& [key, proc] : feedbackProcessors_)
+        if (proc != nullptr)
+            proc->resizePreserving(width, height);
+
+    for (auto& [key, ring] : layerRingBuffers_)
+    {
+        if (!ring.initialized)
+            continue;
+        for (size_t i = 0; i < ring.fbos.size(); ++i)
+        {
+            if (ring.fbos[i] != 0) glDeleteFramebuffers(1, &ring.fbos[i]);
+            if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
+        }
+        ring = FrameRingBuffer{};
+        frameRingCount_.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void CompositorEngine::createFBO(GLuint& fbo, GLuint& tex, int w, int h)
@@ -491,10 +540,28 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     const float effAnchorY   = clip.eff(ClipScalar::AnchorY);
     const float effClipOpacity = clip.eff(ClipScalar::Opacity);
 
+    // s-rta-0926b plan-fitmode. Only media with a picture of its own is fitted: a Source renders AT the
+    // canvas size (compositeDeck's sourceRenderFn_ call) and Camera has no deck path. Size = the texture's
+    // real size, never clipWidth/clipHeight (only the video open sites set those). Stretch runs today's
+    // code: no query, and fit stays {1,1}.
+    ClipFit::Scale fit;                                                   // {1,1}
+    if (clip.fitMode != ClipFit::Mode::Stretch
+        && (clip.mediaType == Clip::MediaType::Image || clip.mediaType == Clip::MediaType::Video
+            || clip.mediaType == Clip::MediaType::ImageSequence))
+    {
+        GLint tw = 0, th = 0;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, srcTex);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH,  &tw);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &th);
+        fit = ClipFit::scale(clip.fitMode, tw, th, w, h);
+    }
+    const bool fitActive = (fit.x != 1.0f || fit.y != 1.0f);             // exact: scale() returns {1,1} verbatim
+
     bool needsTransform = (std::abs(effPositionX) > eps ||
                            std::abs(effPositionY) > eps ||
                            std::abs(effScale - 1.0f) > eps ||
-                           std::abs(effRotation) > eps);
+                           std::abs(effRotation) > eps) || fitActive;
 
     GLuint transformedTex = srcTex;
 
@@ -526,6 +593,10 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
                         effScale);
             glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
                         effRotation * 3.14159265f / 180.0f);
+            // plan-fitmode: layer_transform is shared with applyLayerTransform and uniform values persist
+            // per program, so u_fitEnabled is set on EVERY draw (0 or 1), never left to the default.
+            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_fitEnabled"), fitActive ? 1 : 0);
+            glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_fitScale"), fit.x, fit.y);
 
             quad.draw();
 
@@ -661,6 +732,9 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
                 effLayerScale);
     glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
                 effLayerRotation);
+    // plan-fitmode LOAD-BEARING: the shared program keeps the last clip's u_fitEnabled = 1; a layer
+    // transform must never fit the picture a second time.
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_fitEnabled"), 0);
 
     quad.draw();
 
@@ -788,31 +862,10 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 
 void CompositorEngine::advanceCrossfade(Layer& layer, float dt)
 {
-    // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
-    // `speed` here is actually a DURATION in seconds (transitionSpeed
-    // is a misleading name inherited from the model -- see its slider
-    // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
-    // seconds UI), so step = dt / duration is the frame-rate-
-    // independent progress increment: cumulative progress after real
-    // elapsed time T is T / duration, completing exactly at T ==
-    // duration regardless of callback rate. Real dt (function param),
-    // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
-    // Not gated on timeOverride_/`time`, same reasoning as
-    // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
-    // is persistent per-layer state (like previousClipColumn) that
-    // already advances every real GL callback regardless of
-    // deterministic test-capture mode, so there is no
-    // render_frame byte-identical-repeat contract covering it to
-    // preserve here either -- only the rate was wrong.
-    if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
-    {
-        float speed = layer.transitionSpeed;
-        if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
-        float step = dt / speed;
-        layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
-        if (layer.crossfadeProgress >= 1.0f)
-            layer.previousClipColumn = -1; // transition complete
-    }
+    // s-rta-0926b plan4 T1: the body lives in LayerClock (pure) so DeckClock::tick -- decks that are not on
+    // screen -- runs the very same clock. Real dt (function param), not a hardcoded 1/60 -- see
+    // compositeDeck()'s header comment and LayerClock::advanceCrossfade's.
+    LayerClock::advanceCrossfade(layer, dt);
 }
 
 GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,
@@ -1617,8 +1670,10 @@ void CompositorEngine::saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
 
 CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint64_t stateKey, int w, int h)
 {
-    int rw = std::max(1, w / kRingDownscale);
-    int rh = std::max(1, h / kRingDownscale);
+    // plan4 1E: a ring cell is never stored wider than 480 px (kRingDownscale is the minimum).
+    const int ds = RenderGeometry::ringDownscale(w);
+    int rw = std::max(1, w / ds);
+    int rh = std::max(1, h / ds);
 
     auto& ring = layerRingBuffers_[stateKey];
     if (ring.initialized && ring.ringWidth == rw && ring.ringHeight == rh)

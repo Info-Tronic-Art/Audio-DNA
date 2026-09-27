@@ -1,5 +1,7 @@
 #include "OutputWindow.h"
 #include "render/EmbeddedShaders.h"
+#include "render/RenderGeometry.h"
+#include "model/Composition.h"
 #include <iostream>
 
 using namespace juce::gl;
@@ -10,10 +12,12 @@ using namespace juce::gl;
 
 OutputRenderer::OutputRenderer(const FeatureBus& featureBus,
                                MappingEngine& mappingEngine,
-                               EffectChain& effectChain)
+                               EffectChain& effectChain,
+                               const Composition* composition)
     : featureBus_(featureBus),
       mappingEngine_(mappingEngine),
-      effectChain_(effectChain)
+      effectChain_(effectChain),
+      composition_(composition)
 {
 }
 
@@ -146,20 +150,24 @@ void OutputRenderer::renderOpenGL()
     float compW = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
     float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
 
-    // Compute letterbox viewport using loaded image aspect ratio
-    float vpX = 0.0f, vpY = 0.0f, vpW = compW, vpH = compH;
-    int imgW = texMgr_.getImageWidth();
-    int imgH = texMgr_.getImageHeight();
-    if (imgW > 0 && imgH > 0)
-    {
-        float scaleX = compW / static_cast<float>(imgW);
-        float scaleY = compH / static_cast<float>(imgH);
-        float fitScale = std::min(scaleX, scaleY);
-        vpW = static_cast<float>(imgW) * fitScale;
-        vpH = static_cast<float>(imgH) * fitScale;
-        vpX = (compW - vpW) * 0.5f;
-        vpY = (compH - vpH) * 0.5f;
-    }
+    // s-rta-0926b plan4 S7: the picture is the composition's shape -- a composition-shaped rect
+    // letterboxed in the window (outputWidth x outputHeight, 1920x1080 when unset), and the image
+    // fitted inside that rect by its own aspect. For a 16:9 image on a 16:9 display with a 16:9
+    // composition this is the whole window, exactly as before. (This window still shows only the
+    // legacy image, not the composition -- plan4's caveat / Boris Q3.)
+    const auto canvas = RenderGeometry::resolveCanvas(0, 0,
+                                                      composition_ != nullptr ? composition_->outputWidth : 0,
+                                                      composition_ != nullptr ? composition_->outputHeight : 0);
+    const auto canvasRect = RenderGeometry::fitCanvas(canvas.w, canvas.h,
+                                                      static_cast<int>(compW), static_cast<int>(compH));
+    auto imgRect = RenderGeometry::fitCanvas(texMgr_.getImageWidth(), texMgr_.getImageHeight(),
+                                             canvasRect.w, canvasRect.h);
+    if (imgRect.w <= 0 || imgRect.h <= 0)
+        imgRect = { 0, 0, canvasRect.w, canvasRect.h };
+    float vpX = static_cast<float>(canvasRect.x + imgRect.x);
+    float vpY = static_cast<float>(canvasRect.y + imgRect.y);
+    float vpW = static_cast<float>(imgRect.w);
+    float vpH = static_cast<float>(imgRect.h);
 
     GLint defaultFBO = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFBO);
@@ -296,11 +304,12 @@ void OutputRenderer::initShaders()
 
 OutputWindow::OutputWindow(const FeatureBus& featureBus,
                            MappingEngine& mappingEngine,
-                           EffectChain& effectChain)
+                           EffectChain& effectChain,
+                           const Composition* composition)
     : DocumentWindow("Audio-DNA Output",
                      juce::Colours::black,
                      0), // No title bar buttons
-      renderer_(featureBus, mappingEngine, effectChain)
+      renderer_(featureBus, mappingEngine, effectChain, composition)
 {
     setUsingNativeTitleBar(false);
     setTitleBarHeight(0);

@@ -1,0 +1,48 @@
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/prefit/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/red-prefit/fit.QRmENM
+--- f_stretch_identity
+PASS  f_stretch_identity: A with no fitMode key vs fitMode 0 -- byte-identical=True (max |diff| 0.0; d(f, stretch oracle)=0.01)
+--- f_bars_geometry
+FAIL  f_bars_geometry: A fitMode 1 = its own shape, centred, bars beside it -- d(f, bars)=17.32 (tol 6.0), band RGB L=8.54 R=14.34 (<= 2.0; alpha L=255.0 R=255.0), centre d=22.86 [d(f, stretch)=0.01]
+--- f_bars_transparent_lower_shows
+FAIL  f_bars_transparent_lower_shows: the bars are transparent -- the lower layer (B) shows beside A: bands == B-only exactly L=False R=False (d L=24.96 R=29.69), centre d(f, B-only)=31.41 (>= 5.0)
+--- f_crop_geometry
+FAIL  f_crop_geometry: A fitMode 2 fills the canvas, top and bottom cut -- d(f, crop)=22.39 (tol 6.0) [d(f, stretch)=0.01]
+--- f_transform_after_fit
+FAIL  f_transform_after_fit: fit first, then the clip's scale 0.5 -- outside == B-only exactly=False (d 3.56), inside d(., A 465x540)=22.80 (tol 6.0)
+--- f_layer_transform_no_double_fit
+PASS  f_layer_transform_no_double_fit: Bars clip under a layer scale 0.5 is fitted ONCE -- d(f, expected)=4.32 (tol 6.0) [d(f, stretched picture at half size)=0.00]
+--- f_stretch_transform_identity
+PASS  f_stretch_transform_identity: A scale 0.5 with no key vs fitMode 0 -- byte-identical=True (frame (1920, 1080))
+--- f_same_aspect_identity
+PASS  f_same_aspect_identity: a 1920x1080 picture is untouched by Bars / Crop -- Bars==Stretch True, Crop==Stretch True (frame (1920, 1080))
+--- f_source_unaffected
+PASS  f_source_unaffected: a checkerboard Source ignores fitMode -- byte-identical required (two fitMode-0 captures are identical): d(fitMode 1, fitMode 0)=0.000, non-blank=True (frame (1920, 1080))
+--- f_rest_osc_set
+      REST value 1: HTTP 404  -> readback fitMode=None activeClipColumn=0; d(f1, bars)=17.32
+      REST bad request param=fitMode value=3: HTTP 404  -> readback None
+      REST bad request param=bogus value=1: HTTP 404  -> readback None
+      REST value 0: HTTP 404  -> readback None; f2 == f0 byte-identical True
+      OSC /audiodna/clip/0/1/fit 1 -> col 1 fitMode=None, activeClipColumn=1
+      OSC /audiodna/clip/0/0/fit 2 -> fitMode=None, activeClipColumn=0; d(f3, crop)=22.39
+      OSC /audiodna/clip/0/0/fit 0 -> fitMode=None, activeClipColumn=0
+FAIL  f_rest_osc_set: /api/set_clip_param and /audiodna/clip/{l}/{c}/fit flip the fit live, /api/composition reads it back, the OSC address never triggers (failures ['REST 1 readback None', 'REST 1 d(f1, bars) 17.32', 'bad request fitMode=3 not refused (HTTP 404, readback None)', 'bad request bogus=1 not refused (HTTP 404, readback None)', 'REST 0 readback None', 'OSC col1 readback None', 'OSC fit address TRIGGERED the clip (activeClipColumn 1)', 'OSC col0 readback None', 'OSC 2 d(f3, crop) 22.39', 'OSC 0 readback None'])
+
+PY 5 PASS / 5 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-FITMODE RED
+
+
+##### row re-run after the layer-transform row was strengthened (whole-frame d had no teeth: 4.32 PASS above)
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/prefit/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/red-prefit-layer/fit.4wUvR3
+--- f_layer_transform_no_double_fit
+FAIL  f_layer_transform_no_double_fit: Bars clip under a layer scale 0.5 is fitted ONCE -- d(f, expected)=4.32, inside d(., A 465x540)=22.80 (tol 6.0), outside mean RGB=1.56 (<= 2.0) [d(f, stretched picture at half size)=0.00]
+
+PY 0 PASS / 1 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-FITMODE RED

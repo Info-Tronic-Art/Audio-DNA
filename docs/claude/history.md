@@ -57,6 +57,22 @@ Core audio pipeline, full 14-stage analysis engine, OpenGL rendering with 135 GL
 
 **See TASKPLAN_V2.md for current phase and task details.**
 
+### Phase Dependency Map
+
+> Moved from CLAUDE.md (s-rta-0926b canvas merge, CLAUDE.md byte cap). All phases P1-P25 are complete.
+
+```text
+P1 (BPM lock) ──→ P2 (downbeat) ──→ P3 (architecture) ──→ P4 (signal bar)
+                                                          ──→ P5 (deck)
+                                                          ──→ P6 (inspector)
+                                                          ──→ P7 (browser)
+                                          P4+P5+P6+P7 ──→ P8 (layout)
+                                                    P8 ──→ P9 (binding)
+                                                P5+P6 ──→ P10 (sources)
+                                                P5+P6 ──→ P11 (video)
+                                                  All ──→ P12 (polish)
+```
+
 ---
 
 ## Research Documents Reference

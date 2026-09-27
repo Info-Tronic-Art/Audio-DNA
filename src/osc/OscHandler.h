@@ -44,6 +44,7 @@ public:
 
     // Callbacks wired by MainComponent
     std::function<void(int layer, int column)> onTriggerClip;
+    std::function<void(int layer, int column, int fitMode)> onSetClipFitMode;   // s-rta-0926b plan-fitmode
     std::function<void(int layer, float opacity)> onSetLayerOpacity;
     std::function<void(int layer, bool bypass)> onSetLayerBypass;
     std::function<void(int layer, bool solo)> onSetLayerSolo;

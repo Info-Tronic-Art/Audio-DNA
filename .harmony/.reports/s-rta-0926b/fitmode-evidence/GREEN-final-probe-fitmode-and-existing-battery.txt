@@ -1,0 +1,716 @@
+===== probe-fitmode [final] app=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app (02:51:09) load averages: 2.91 3.01 3.17
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/final/fit.WGnIoD
+--- f_stretch_identity
+PASS  f_stretch_identity: A with no fitMode key vs fitMode 0 -- byte-identical=True (max |diff| 0.0; d(f, stretch oracle)=0.01)
+--- f_bars_geometry
+PASS  f_bars_geometry: A fitMode 1 = its own shape, centred, bars beside it -- d(f, bars)=0.05 (tol 6.0), band RGB L=0.00 R=0.00 (<= 2.0; alpha L=0.0 R=0.0), centre d=0.11 [d(f, stretch)=17.30]
+--- f_bars_transparent_lower_shows
+PASS  f_bars_transparent_lower_shows: the bars are transparent -- the lower layer (B) shows beside A: bands == B-only exactly L=True R=True (d L=0.00 R=0.00), centre d(f, B-only)=30.29 (>= 5.0)
+--- f_crop_geometry
+PASS  f_crop_geometry: A fitMode 2 fills the canvas, top and bottom cut -- d(f, crop)=0.12 (tol 6.0) [d(f, stretch)=22.36]
+--- f_transform_after_fit
+PASS  f_transform_after_fit: fit first, then the clip's scale 0.5 -- outside == B-only exactly=True (d 0.00), inside d(., A 465x540)=0.27 (tol 6.0)
+--- f_layer_transform_no_double_fit
+PASS  f_layer_transform_no_double_fit: Bars clip under a layer scale 0.5 is fitted ONCE -- d(f, expected)=0.03, inside d(., A 465x540)=0.21 (tol 6.0), outside mean RGB=0.00 (<= 2.0) [d(f, stretched picture at half size)=4.32]
+--- f_stretch_transform_identity
+PASS  f_stretch_transform_identity: A scale 0.5 with no key vs fitMode 0 -- byte-identical=True (frame (1920, 1080))
+--- f_same_aspect_identity
+PASS  f_same_aspect_identity: a 1920x1080 picture is untouched by Bars / Crop -- Bars==Stretch True, Crop==Stretch True (frame (1920, 1080))
+--- f_source_unaffected
+PASS  f_source_unaffected: a checkerboard Source ignores fitMode -- byte-identical required (two fitMode-0 captures are identical): d(fitMode 1, fitMode 0)=0.000, non-blank=True (frame (1920, 1080))
+--- f_rest_osc_set
+      REST value 1: HTTP 200 {"ok":true} -> readback fitMode=1 activeClipColumn=0; d(f1, bars)=0.05
+      REST bad request param=fitMode value=3: HTTP 200 {
+  "ok": false,
+  "error": "'value' must be an int 0..2 (0 Stretch, 1 Bars, 2 Crop)"
+} -> readback 1
+      REST bad request param=bogus value=1: HTTP 200 {
+  "ok": false,
+  "error": "unknown param"
+} -> readback 1
+      REST value 0: HTTP 200 {"ok":true} -> readback 0; f2 == f0 byte-identical True
+      OSC /audiodna/clip/0/1/fit 1 -> col 1 fitMode=1, activeClipColumn=0
+      OSC /audiodna/clip/0/0/fit 2 -> fitMode=2, activeClipColumn=0; d(f3, crop)=0.12
+      OSC /audiodna/clip/0/0/fit 0 -> fitMode=0, activeClipColumn=0
+PASS  f_rest_osc_set: /api/set_clip_param and /audiodna/clip/{l}/{c}/fit flip the fit live, /api/composition reads it back, the OSC address never triggers (failures [])
+--- f_perf
+      perf fitMode 1: frame_time_ms mean 0.785 (n=10), fps mean 120.0, gpu_time_ms mean 2.322 (n=10) (load avg 3.16 3.04 3.17)
+      perf fitMode 0: frame_time_ms mean 0.712 (n=10), fps mean 119.6, gpu_time_ms mean 1.761 (n=10) (load avg 3.06 3.02 3.16)
+REPORT f_perf: three Bars layers vs three Stretch layers -- frame_time_ms 0.785 vs 0.712 (delta +0.073 ms), gpu_time_ms 2.322 vs 1.761 (delta +0.561 ms) (ok; FINDING above 1.0 ms); load avg 3.06 3.02 3.16
+
+PY 10 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-FITMODE GREEN
+===== probe-canvas (02:52:22)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/final/canvas.F91dIG
+--- c_default_shape
+PASS  c_default_shape: a composition without outputWidth/outputHeight renders a 1920x1080 canvas (render_frame PNG 1920x1080)
+PASS  c_default_shape: the clip fills the canvas (non-blank=True, d(f, A stretched to 1920x1080)=0.01, tol 6.0)
+--- c_4k_shape
+PASS  c_4k_shape: outputWidth 3840 / outputHeight 2160 renders a 3840x2160 canvas (render_frame PNG 3840x2160)
+PASS  c_4k_shape: the 4K picture is the 1080p picture at 4x the pixels (d(4K box-downsized, 1080p)=0.02, tol 6.0)
+      c_4k_shape: /api/state fps 93.8 frame_time_ms 1.39 gpu_time_ms 5.384761333465576 (load avg 2.83 2.97 3.14)
+--- c_custom_4x3
+PASS  c_custom_4x3: a 1024x768 composition renders a 1024x768 canvas (render_frame PNG 1024x768)
+PASS  c_custom_4x3: the clip fills the 4:3 canvas (d(f, A stretched to 1024x768)=0.01, tol 6.0)
+--- c_runtime_change_keeps_history
+      c_runtime_change: set_composition_params 2560x1440 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 2560,
+  "outputHeight": 1440
+}
+      c_runtime_change: set_composition_params 1920x1080 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 1920,
+  "outputHeight": 1080
+}
+      c_runtime_change: peak_frame_time_ms [('before 1440p', 15.24033260345459), ('across 1080p -> 1440p', 4.644791126251221), ('across 1440p -> 1080p', 3.027292013168335)]
+      c_runtime_change: f0 (1920, 1080) d(f0, image)=25.54 mean(image) 139.7 (Freeze 0.98's 8-bit fixed point sits up to ~25 levels under the image -- report only)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+PASS  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=0.29, tol 6.0)
+PASS  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 1920x1080 and still the same picture (d(f2, f0)=0.01, tol 8.0)
+--- c_legacy_image_fit
+PASS  c_legacy_image_fit: a 600x600 image is fitted inside the 1920x1080 canvas over black, never stretched (x 0..400 mean RGB 0.00 <= 2; x 440..1480 mean R 255.0 >= 250)
+--- c_capture_deterministic
+PASS  c_capture_deterministic: two captures with the same time decode to identical pixels ((1920, 1080), identical=True)
+--- c_capture_cost
+      c_capture_cost 1920x1080: render_frame wall 146 ms, PNG (1920, 1080); /api/state fps over the next 1.5 s: min 97.6 [106.0, 106.0, 97.6, 97.6, 97.6, 97.6] (load avg 3.35 3.07 3.17)
+      c_capture_cost 3840x2160: render_frame wall 495 ms, PNG (3840, 2160); /api/state fps over the next 1.5 s: min 76.8 [76.8, 76.8, 76.8, 106.5, 106.5, 106.5] (load avg 3.40 3.09 3.17)
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+--- c_perf_1080
+      c_perf_1080: waiting for ['clang'] to finish (load avg 3.40 3.09 3.17)
+      c_perf_1080 1920x1080: fps mean 116.1 min 114.2; frame_time_ms mean 1.70 max-peak 11.72; gpu_time_ms mean 2.19 peak 7.67; temporal_buffers 1 frame_rings 2 (load avg 3.84 3.22 3.22)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 116.1 >= 58.0 and mean frame_time_ms 1.70 <= 12.0
+--- c_perf_4k
+      c_perf_4k 3840x2160: fps mean 94.0 min 92.5; frame_time_ms mean 1.74 max-peak 10.36; gpu_time_ms mean 7.95 peak 10.52; temporal_buffers 1 frame_rings 2 (load avg 3.56 3.18 3.21)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+--- f2_deck_transition
+      f2: d(refA, refB)=29.43 (deck frames (1920, 1080))
+      f2 trial 0: t=1.12s p=0.25 residual=0.10 d(f,A)=7.51 d(f,B)=21.92
+      f2 trial 0: t=2.10s p=0.50 residual=0.14 d(f,A)=14.93 d(f,B)=14.50
+      f2 trial 1: t=1.10s p=0.25 residual=0.11 d(f,A)=7.49 d(f,B)=21.94
+      f2 trial 1: t=2.11s p=0.50 residual=0.14 d(f,A)=14.93 d(f,B)=14.50
+      f2 trial 2: t=1.10s p=0.25 residual=0.11 d(f,A)=7.49 d(f,B)=21.94
+      f2 trial 2: t=2.10s p=0.50 residual=0.14 d(f,A)=14.86 d(f,B)=14.57
+PASS  f2_deck_transition: a deck switch with a 4 s transition shows the OUTGOING deck fading into the new one (p per trial [[0.25, 0.5], [0.25, 0.5], [0.25, 0.5]]; failures [])
+
+PY 15 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS GREEN
+===== probe-deck-clock (02:54:23)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/final/dclock.8Hk8jh
+--- d_fade_finishes
+      d_fade_finishes: d(A,B)=29.43 FLOOR=1.00
+      d_fade_finishes: deck 0 L0 (t, crossfadeProgress, previousClipColumn) while away: [(0.84, 0.205517366528511, 0), (1.36, 0.332880109548569, 0), (1.88, 0.463429898023605, 0), (2.39, 0.594039857387543, 0), (2.91, 0.722338259220123, 0), (3.42, 0.849539399147034, 0), (3.94, 0.981093883514404, 0), (4.45, 1.0, -1), (4.97, 1.0, -1), (5.48, 1.0, -1)]
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.45, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+--- d_persistent_single_advance
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.50 at T/2 = 2.0 s, expected in [0.35, 0.65])
+--- d_pending_trigger_still_cancelled
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+--- d_video_keeps_time
+PASS  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 6.40 s, t1 - t0 = 4.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.550 matches the frame (0.533 +- 0.06)
+--- d_imageseq_keeps_time
+      d_imageseq_keeps_time: d(rA, rB)=29.43 FLOOR=1.00
+PASS  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=0.00, floor 1.00; d(f, frame A)=29.43)
+--- d_autopilot_keeps_time
+PASS  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 1, expected >= 1)
+--- d_return_hitch
+      d_return_hitch: peak_frame_time_ms while away 12.44, across the return 22.39 (fps 104.0)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 22.39 ms; REPORT -- target <= 16)
+
+PY 10 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-DECK-CLOCK GREEN
+===== probe-render-state (02:55:34)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/final/rstate.4MUfak
+--- r2_temporal
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r2_ring
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r4_clip_transform
+      r4_clip_transform: d(reference, absent)=28.27 d(subject, reference)=0.00 d(subject, absent)=28.27
+PASS  r4_clip_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_clip_opacity
+      r4_clip_opacity: d(reference, absent)=9.64 d(subject, reference)=0.00 d(subject, absent)=9.64
+PASS  r4_clip_opacity: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_layer_effects
+      r4_layer_effects: d(reference, absent)=228.19 d(subject, reference)=0.00 d(subject, absent)=228.19
+PASS  r4_layer_effects: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_layer_transform
+      r4_layer_transform: d(reference, absent)=30.87 d(subject, reference)=0.00 d(subject, absent)=30.87
+PASS  r4_layer_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_feedback
+      r4_feedback: d(reference, absent)=15.01 d(subject, reference)=0.00 d(subject, absent)=15.01
+PASS  r4_feedback: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_transition
+      r4_transition: t=0.88s p=0.09 residual=0.12 d(f,IN)=26.90
+      r4_transition: t=2.00s p=0.23 residual=0.13 d(f,IN)=22.84
+      r4_transition: t=3.13s p=0.37 residual=0.14 d(f,IN)=18.56
+      r4_transition: t=4.26s p=0.51 residual=0.13 d(f,IN)=14.41
+PASS  r4_transition: persistent layer mid-crossfade frames lie between OUT and IN (4/4): []
+PASS  r4_transition: crossfade keeps advancing while the deck is inactive (p [0.09, 0.23, 0.37, 0.51])
+PASS  r4_transition: back on its deck after T + 2 s the crossfade is complete (d(f, IN)=0.00, tol 1.5)
+--- r5_hold
+      r5_hold: frame 0 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 0 mean|RGBA|=0.00 (tol 1.5)
+      r5_hold: frame 1 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 1 mean|RGBA|=0.00 (tol 1.5)
+      r5_hold: frame 2 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 2 mean|RGBA|=0.00 (tol 1.5)
+--- r5_burst
+      r5_burst id=81: 7 frames after the switch
+      r5_burst id=82: 6 frames after the switch
+      r5_burst id=83: 6 frames after the switch
+      r5_burst id=84: 7 frames after the switch
+      r5_burst id=85: 6 frames after the switch
+FAIL  r5_burst: every attempt captured >= 8 frames after the switch (short: [81, 82, 83, 84, 85])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+--- r1_temporal
+      r1_temporal: t=1.08s p~0.14 IN x<29 ratio 0.00 (d(A,B) 14.00)  OUT x>490 ratio 0.00 (d(A,B) 30.32)
+      r1_temporal: t=1.71s p~0.21 IN x<179 ratio 0.00 (d(A,B) 3.49)  OUT x>639 ratio 0.00 (d(A,B) 27.80)  [not counted]
+      r1_temporal: t=2.34s p~0.29 IN x<331 ratio 0.00 (d(A,B) 15.32)  OUT x>792 ratio 0.00 (d(A,B) 26.45)
+      r1_temporal: t=2.97s p~0.37 IN x<482 ratio 0.00 (d(A,B) 24.54)  OUT x>943 ratio 0.00 (d(A,B) 28.16)
+      r1_temporal: t=3.60s p~0.45 IN x<633 ratio 0.00 (d(A,B) 30.83)  OUT x>1094 ratio 0.00 (d(A,B) 30.47)
+      r1_temporal: t=4.23s p~0.53 IN x<784 ratio 0.00 (d(A,B) 32.40)  OUT x>1245 ratio 0.00 (d(A,B) 30.55)
+      r1_temporal: t=4.85s p~0.61 IN x<934 ratio 0.00 (d(A,B) 29.78)  OUT x>1395 ratio 0.00 (d(A,B) 29.83)
+      r1_temporal: t=5.47s p~0.68 IN x<1082 ratio 0.00 (d(A,B) 27.77)  OUT x>1543 ratio 0.00 (d(A,B) 26.06)
+      r1_temporal: t=6.08s p~0.76 IN x<1229 ratio 0.00 (d(A,B) 27.90)  OUT x>1690 ratio 0.00 (d(A,B) 13.08)
+PASS  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_control
+      r1_control: t=1.08s p~0.13 IN x<28 ratio 0.00 (d(A,B) 15.00)  OUT x>489 ratio 0.00 (d(A,B) 30.66)
+      r1_control: t=1.70s p~0.21 IN x<176 ratio 0.00 (d(A,B) 3.69)  OUT x>637 ratio 0.00 (d(A,B) 28.17)  [not counted]
+      r1_control: t=2.33s p~0.29 IN x<328 ratio 0.00 (d(A,B) 15.31)  OUT x>789 ratio 0.00 (d(A,B) 26.77)
+      r1_control: t=2.95s p~0.37 IN x<478 ratio 0.00 (d(A,B) 24.79)  OUT x>939 ratio 0.00 (d(A,B) 28.44)
+      r1_control: t=3.60s p~0.45 IN x<632 ratio 0.00 (d(A,B) 31.12)  OUT x>1093 ratio 0.00 (d(A,B) 30.77)
+      r1_control: t=4.23s p~0.53 IN x<784 ratio 0.00 (d(A,B) 32.74)  OUT x>1245 ratio 0.00 (d(A,B) 30.88)
+      r1_control: t=4.85s p~0.61 IN x<932 ratio 0.00 (d(A,B) 30.13)  OUT x>1393 ratio 0.00 (d(A,B) 30.19)
+      r1_control: t=5.47s p~0.68 IN x<1083 ratio 0.00 (d(A,B) 28.10)  OUT x>1544 ratio 0.00 (d(A,B) 26.37)
+      r1_control: t=6.09s p~0.76 IN x<1232 ratio 0.00 (d(A,B) 28.24)  OUT x>1692 ratio 0.00 (d(A,B) 13.18)
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_ring
+      r1_ring: t=1.08s p~0.14 IN x<28 ratio 0.00 (d(A,B) 15.00)  OUT x>489 ratio 0.00 (d(A,B) 30.91)
+      r1_ring: t=1.70s p~0.21 IN x<176 ratio 0.00 (d(A,B) 3.71)  OUT x>637 ratio 0.00 (d(A,B) 28.40)  [not counted]
+      r1_ring: t=2.31s p~0.29 IN x<324 ratio 0.00 (d(A,B) 15.02)  OUT x>785 ratio 0.00 (d(A,B) 27.00)
+      r1_ring: t=2.93s p~0.37 IN x<473 ratio 0.00 (d(A,B) 24.88)  OUT x>934 ratio 0.00 (d(A,B) 28.61)
+      r1_ring: t=3.56s p~0.44 IN x<623 ratio 0.00 (d(A,B) 30.97)  OUT x>1084 ratio 0.00 (d(A,B) 30.92)
+      r1_ring: t=4.18s p~0.52 IN x<771 ratio 0.00 (d(A,B) 33.04)  OUT x>1232 ratio 0.00 (d(A,B) 31.19)
+      r1_ring: t=4.80s p~0.60 IN x<920 ratio 0.00 (d(A,B) 30.66)  OUT x>1381 ratio 0.00 (d(A,B) 30.49)
+      r1_ring: t=5.42s p~0.68 IN x<1069 ratio 0.00 (d(A,B) 28.42)  OUT x>1530 ratio 0.00 (d(A,B) 27.22)
+      r1_ring: t=6.03s p~0.75 IN x<1216 ratio 0.00 (d(A,B) 28.38)  OUT x>1677 ratio 0.00 (d(A,B) 14.65)
+PASS  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_retrigger
+      r1_retrigger: t=1.08s p~0.14 IN x<29 ratio 0.00 (d(A,B) 14.00)  OUT x>490 ratio 0.00 (d(A,B) 30.32)
+      r1_retrigger: t=1.70s p~0.21 IN x<178 ratio 0.00 (d(A,B) 3.46)  OUT x>638 ratio 0.00 (d(A,B) 27.82)  [not counted]
+      r1_retrigger: t=2.31s p~0.29 IN x<325 ratio 0.00 (d(A,B) 14.74)  OUT x>785 ratio 0.00 (d(A,B) 26.46)
+      r1_retrigger: t=2.93s p~0.37 IN x<473 ratio 0.00 (d(A,B) 24.41)  OUT x>934 ratio 0.00 (d(A,B) 28.03)
+      r1_retrigger: t=3.56s p~0.44 IN x<623 ratio 0.00 (d(A,B) 30.44)  OUT x>1084 ratio 0.00 (d(A,B) 30.35)
+      r1_retrigger: t=4.17s p~0.52 IN x<770 ratio 0.00 (d(A,B) 32.49)  OUT x>1231 ratio 0.00 (d(A,B) 30.62)
+      r1_retrigger: t=4.79s p~0.60 IN x<918 ratio 0.00 (d(A,B) 30.19)  OUT x>1379 ratio 0.00 (d(A,B) 29.95)
+      r1_retrigger: t=5.41s p~0.68 IN x<1066 ratio 0.00 (d(A,B) 27.90)  OUT x>1527 ratio 0.00 (d(A,B) 26.83)
+      r1_retrigger: t=6.03s p~0.75 IN x<1216 ratio 0.00 (d(A,B) 27.84)  OUT x>1676 ratio 0.00 (d(A,B) 14.36)
+PASS  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 8 counted frames, ratios <= 0.05): []
+--- r1_counts
+      r1_counts: frame_rings 4 -> 6 (+2), temporal_buffers 9 -> 9 (+0); peak_frame_time_ms first use 28.63, first fade 29.28
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the first fade (spare ring created) 29.28 ms <= 50.0 ms
+--- r4_opaque_opacity
+      r4_opaque_opacity: d(reference, full)=14.57 d(subject, reference)=0.00 d(subject, full)=14.57
+PASS  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=0.00, tol 1.5)
+--- r4_opaque_overlay
+      r4_opaque_overlay: outside centre d(f, A)=0.00; centre d(f, A)=35.73
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.73 >= 5)
+--- r4_fxonly_persistent
+      r4_fxonly_persistent: d(reference, A-only)=228.66 d(subject, reference)=0.00 d(subject, A-only)=228.66
+PASS  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_fxonly_medialess
+      r4_fxonly_medialess: d(reference, A-only)=228.66 d(subject, reference)=0.00 d(subject, A-only)=228.66
+PASS  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_mask_skipped
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+--- r4_empty_active_deck
+      r4_empty_active_deck: reference rgb 19.46, subject rgb 19.46, d(subject, reference)=0.00
+PASS  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=0.00, tol 1.5)
+
+PY 30 PASS / 1 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE RED
+===== probe-crossfade (03:01:13)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/final/xfade.VO5vtF
+      a_both_effected: d(A,B)=155.93 noise=0.00 FLOOR=1.00
+      a_both_effected: t=0.58s dA=15.71 dB=140.22 p=0.10
+      a_both_effected: t=1.01s dA=32.46 dB=123.47 p=0.21
+      a_both_effected: t=1.44s dA=49.05 dB=106.88 p=0.31
+      a_both_effected: t=1.87s dA=65.65 dB=90.28 p=0.42
+      a_both_effected: t=2.29s dA=82.42 dB=73.52 p=0.53
+      a_both_effected: t=2.73s dA=99.19 dB=56.74 p=0.64
+      a_both_effected: t=3.17s dA=116.40 dB=39.53 p=0.75
+PASS  a_both_effected: 7/7 mid frames strictly between OUT and IN
+PASS  a_both_effected: progress moves toward IN (0.10 -> 0.75)
+PASS  a_both_effected: final frame matches IN (d=0.00, floor 1.00)
+      b_only_incoming_effected: d(A,B)=153.21 noise=0.00 FLOOR=1.00
+      b_only_incoming_effected: t=0.58s dA=16.22 dB=136.99 p=0.11
+      b_only_incoming_effected: t=1.01s dA=31.95 dB=121.26 p=0.21
+      b_only_incoming_effected: t=1.45s dA=49.00 dB=104.21 p=0.32
+      b_only_incoming_effected: t=1.87s dA=65.33 dB=87.88 p=0.43
+      b_only_incoming_effected: t=2.31s dA=81.77 dB=71.44 p=0.53
+      b_only_incoming_effected: t=2.74s dA=98.15 dB=55.06 p=0.64
+      b_only_incoming_effected: t=3.16s dA=114.55 dB=38.66 p=0.75
+PASS  b_only_incoming_effected: 7/7 mid frames strictly between OUT and IN
+PASS  b_only_incoming_effected: progress moves toward IN (0.11 -> 0.75)
+PASS  b_only_incoming_effected: final frame matches IN (d=0.00, floor 1.00)
+      c_only_outgoing_effected: d(A,B)=32.00 noise=0.00 FLOOR=1.00
+      c_only_outgoing_effected: t=0.60s dA=3.39 dB=28.61 p=0.11
+      c_only_outgoing_effected: t=1.03s dA=6.86 dB=25.14 p=0.21
+      c_only_outgoing_effected: t=1.47s dA=10.41 dB=21.59 p=0.33
+      c_only_outgoing_effected: t=1.90s dA=13.76 dB=18.24 p=0.43
+      c_only_outgoing_effected: t=2.33s dA=17.29 dB=14.72 p=0.54
+      c_only_outgoing_effected: t=2.76s dA=20.73 dB=11.27 p=0.65
+      c_only_outgoing_effected: t=3.19s dA=24.12 dB=7.88 p=0.75
+PASS  c_only_outgoing_effected: 7/7 mid frames strictly between OUT and IN
+PASS  c_only_outgoing_effected: progress moves toward IN (0.11 -> 0.75)
+PASS  c_only_outgoing_effected: final frame matches IN (d=0.00, floor 1.00)
+      d_neither_effected: d(A,B)=29.43 noise=0.00 FLOOR=1.00
+      d_neither_effected: t=0.57s dA=3.01 dB=26.42 p=0.10
+      d_neither_effected: t=1.00s dA=6.07 dB=23.36 p=0.21
+      d_neither_effected: t=1.44s dA=9.31 dB=20.12 p=0.32
+      d_neither_effected: t=1.86s dA=12.41 dB=17.02 p=0.42
+      d_neither_effected: t=2.29s dA=15.59 dB=13.84 p=0.53
+      d_neither_effected: t=2.72s dA=18.78 dB=10.65 p=0.64
+      d_neither_effected: t=3.17s dA=21.94 dB=7.49 p=0.75
+PASS  d_neither_effected: 7/7 mid frames strictly between OUT and IN
+PASS  d_neither_effected: progress moves toward IN (0.10 -> 0.75)
+PASS  d_neither_effected: final frame matches IN (d=0.00, floor 1.00)
+      e_two_effects_each: d(A,B)=108.13 noise=0.00 FLOOR=1.00
+      e_two_effects_each: t=0.60s dA=11.01 dB=97.12 p=0.10
+      e_two_effects_each: t=1.05s dA=23.05 dB=85.08 p=0.21
+      e_two_effects_each: t=1.49s dA=34.95 dB=73.18 p=0.32
+      e_two_effects_each: t=1.93s dA=46.95 dB=61.18 p=0.43
+      e_two_effects_each: t=2.37s dA=59.42 dB=48.70 p=0.55
+      e_two_effects_each: t=2.79s dA=70.72 dB=37.41 p=0.65
+      e_two_effects_each: t=3.21s dA=81.85 dB=26.28 p=0.76
+PASS  e_two_effects_each: 7/7 mid frames strictly between OUT and IN
+PASS  e_two_effects_each: progress moves toward IN (0.10 -> 0.76)
+PASS  e_two_effects_each: final frame matches IN (d=0.00, floor 1.00)
+      f_same_source_type: d(A,B)=170.00 noise=0.00 FLOOR=1.00
+      f_same_source_type: t=0.54s dA=18.00 dB=152.00 p=0.11
+      f_same_source_type: t=0.92s dA=34.67 dB=135.33 p=0.20
+      f_same_source_type: t=1.28s dA=50.00 dB=120.00 p=0.29
+      f_same_source_type: t=1.66s dA=66.00 dB=104.00 p=0.39
+      f_same_source_type: t=2.03s dA=82.00 dB=88.00 p=0.48
+      f_same_source_type: t=2.40s dA=98.00 dB=72.00 p=0.58
+      f_same_source_type: t=2.78s dA=113.33 dB=56.67 p=0.67
+      f_same_source_type: t=3.16s dA=130.00 dB=40.00 p=0.76
+PASS  f_same_source_type: 8/8 mid frames strictly between OUT and IN
+PASS  f_same_source_type: progress moves toward IN (0.11 -> 0.76)
+PASS  f_same_source_type: final frame matches IN (d=0.00, floor 1.00)
+      k_outgoing_transform: d(A,B)=21.26 noise=0.00 FLOOR=1.00
+      k_outgoing_transform: t=0.56s dA=2.02 dB=19.24 p=0.09
+      k_outgoing_transform: t=0.98s dA=4.33 dB=16.93 p=0.20
+      k_outgoing_transform: t=1.39s dA=6.62 dB=14.64 p=0.31
+      k_outgoing_transform: t=1.81s dA=8.46 dB=12.80 p=0.40
+      k_outgoing_transform: t=2.23s dA=10.85 dB=10.41 p=0.51
+      k_outgoing_transform: t=2.65s dA=13.07 dB=8.19 p=0.61
+      k_outgoing_transform: t=3.07s dA=15.29 dB=5.97 p=0.72
+      k_outgoing_transform: t=0.56s on-line fit p=0.10 residual=0.50
+      k_outgoing_transform: t=0.98s on-line fit p=0.20 residual=0.29
+      k_outgoing_transform: t=1.39s on-line fit p=0.31 residual=0.29
+      k_outgoing_transform: t=1.81s on-line fit p=0.41 residual=0.34
+      k_outgoing_transform: t=2.23s on-line fit p=0.51 residual=0.19
+      k_outgoing_transform: t=2.65s on-line fit p=0.62 residual=0.15
+      k_outgoing_transform: t=3.07s on-line fit p=0.72 residual=0.20
+PASS  k_outgoing_transform: 7/7 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  k_outgoing_transform: 7/7 mid frames strictly between OUT and IN
+PASS  k_outgoing_transform: progress moves toward IN (0.09 -> 0.72)
+PASS  k_outgoing_transform: final frame matches IN (d=0.00, floor 1.00)
+      l_outgoing_opacity_effect: d(A,B)=225.59 noise=0.00 FLOOR=1.00
+      l_outgoing_opacity_effect: t=0.57s dA=23.76 dB=201.83 p=0.11
+      l_outgoing_opacity_effect: t=1.00s dA=47.77 dB=177.82 p=0.21
+      l_outgoing_opacity_effect: t=1.43s dA=71.64 dB=153.95 p=0.32
+      l_outgoing_opacity_effect: t=1.86s dA=96.28 dB=129.31 p=0.43
+      l_outgoing_opacity_effect: t=2.28s dA=119.48 dB=106.11 p=0.53
+      l_outgoing_opacity_effect: t=2.72s dA=144.11 dB=81.48 p=0.64
+      l_outgoing_opacity_effect: t=3.15s dA=168.20 dB=57.39 p=0.75
+      l_outgoing_opacity_effect: t=0.57s on-line fit p=0.11 residual=0.20
+      l_outgoing_opacity_effect: t=1.00s on-line fit p=0.21 residual=0.11
+      l_outgoing_opacity_effect: t=1.43s on-line fit p=0.32 residual=0.12
+      l_outgoing_opacity_effect: t=1.86s on-line fit p=0.43 residual=0.23
+      l_outgoing_opacity_effect: t=2.28s on-line fit p=0.53 residual=0.13
+      l_outgoing_opacity_effect: t=2.72s on-line fit p=0.64 residual=0.18
+      l_outgoing_opacity_effect: t=3.15s on-line fit p=0.75 residual=0.17
+PASS  l_outgoing_opacity_effect: 7/7 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  l_outgoing_opacity_effect: 7/7 mid frames strictly between OUT and IN
+PASS  l_outgoing_opacity_effect: progress moves toward IN (0.11 -> 0.75)
+PASS  l_outgoing_opacity_effect: final frame matches IN (d=0.00, floor 1.00)
+      g_drywet_second_effect: d(DRY,WET)=165.77 d(MIX,expected)=0.05
+PASS  g_drywet_second_effect: MIX frame non-blank
+PASS  g_drywet_second_effect: MIX == 0.50*DRY + 0.50*WET (d=0.05, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 0 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 1 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  i_layer_router_self: router frame 0 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 1 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 2 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 0 non-blank=True and == reference (d=0.22, tol 1.5)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 1 non-blank=True and == reference (d=0.22, tol 1.5)
+
+PY 35 PASS / 0 FAIL
+PASS  app terminated
+
+PROBE-CROSSFADE GREEN
+===== probe-effects-parity (03:03:40)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/final/parity.N6ciH6
+PASS  G1 PARITY-DOCUMENTS-GAP: /api/set_effect_chain has no dryWet field (Invert dry_wet=1.0, expected unchanged 1.0 default despite the request's "dryWet": 0.5 -- closest reachable path used instead)
+PASS  G1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  V1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V5 frame 0 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 1 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 2 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 3 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 4 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 5 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 0 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 1 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 2 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 3 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 4 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 5 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V6 frame 0 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 1 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 2 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 3 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 4 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 5 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 0 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 1 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 2 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 3 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 4 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 5 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  PARITY V1 vs single-chain REF1: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PASS  PARITY V5 vs single-chain REF5: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PASS  PARITY V6 vs single-chain REF6: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+
+PY 46 PASS / 0 FAIL
+PASS  app terminated
+
+PROBE-EFFECTS-PARITY GREEN
+===== probe-step3 (03:04:24)
+PASS  click-track WAV generated at /tmp/click_48k.wav
+PASS  fixture /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/.harmony/probe-step3.json is valid JSON
+PASS  app launched, /api/health answered, PID=10689
+PASS  analysis thread live: totalBarCount readable (0)
+PASS  load_composition accepted probe-step3.json
+PASS  R13: /api/features sourceSampleRate (48000) == /api/perf/status deviceRate (48000)
+PASS  R13: bandValidMask == 127 at 48 kHz
+PASS  R13: no analysis-rate-assumption warning on stderr (retired)
+(informational) environment: no non-Audio-DNA process holds an audio-related power assertion (pmset -g assertions)
+PASS  perf/record accepted (file-mode audio, onset markers)
+PASS  perf/status: recording=true
+PASS  assetId looks like a 32-hex fingerprint-less id (db249d6bc2604151b57867d43b0e66dd)
+PASS  perf/status: gapDetection present (True)
+PASS  perf/status: framesWritten>0 (91648)
+PASS  provisional take.json exists at arm+2s (v2 5.6 #1)
+PASS  trigger_clip column 0 -> activeClipColumn=0
+PASS  trigger_clip column 1 -> activeClipColumn=1
+PASS  trigger_clip column 2 -> activeClipColumn=2
+PASS  trigger_clip column 3 -> activeClipColumn=3
+PASS  set_bpm(128) took effect (bpm=128.0)
+PASS  set_layer_opacity(0.2) landed (opacity=0.200000002980232)
+PASS  take.json mtime advanced past the arm-time write (1790492682 -> 1790492742, periodic-save fired)
+PASS  perf/status: recording=false after stop
+PASS  perf/status: lastError empty
+PASS  perf/status: lastFinalizeError empty after stop (audio.wav header frames == tap framesWritten; no block lost at stop)
+PASS  R13: rateChangedSinceArm == false after the take (no device-rate change mid-take)
+PASS  Audio store has audio.wav + audio.json (/Users/boriskarpman/Documents/Audio-DNA/Audio/db249d6bc2604151b57867d43b0e66dd.adna-audio)
+PASS  take folder has exactly one file (take.json only, Ruling 28)
+PASS  take.json version == 3
+PASS  audio.segments[0].rate == 48000 (device rate at arm)
+PASS  audio.segments[0].frames > 0 (2950144)
+PASS  take.json audio.unreliableFrom is null (no truncation, no overrun)
+PASS  audio.wav frame count == take segment frames (2950144)
+PASS  audio.segments[0].fingerprint carries the fp1: prefix
+PASS  take.json audio.gapDetection is a boolean
+PASS  take.json audio.mode == file
+PASS  layer/scalar:opacity lane kind == continuous
+PASS  layer/scalar:opacity lane has 3 gestures (one per REST write)
+PASS  layer/scalar:opacity gesture values in order: 0.4 0.7 0.2
+PASS  layer/scalar:opacity gesture grip == decaying
+PASS  layer/scalar:opacity first gesture has 2 breakpoints (touch + idle end)
+PASS  layer/activeClip lane has >=4 points (5)
+PASS  comp/tempo point v == 12800 (centi-BPM for 128, plan R-8 unit)
+PASS  checkpoint0.activeDeckIndex == 0
+PASS  checkpointEnd present
+PASS  take.json tempoMap non-empty (6 anchors), first anchor 'start', carries the set_bpm(128) anchor
+(informational) take-level rate fields: NA
+T2 alignment: mean_offset_ms=32.56 drift_ms=-0.85 drift_stderr_ms=2.57 p95_jitter_ms=11.44 n_markers_raw=124 n_dupes=0 n_matched=124 n_spurious=0 n_grid_in_range=123 pct_matched=100.8 n_peaks=119
+PASS  T2 alignment: drift within +-6.1400ms (<=1ms+2*stderr; drift=-0.85ms stderr=2.57ms) (mean_offset_ms=32.56 drift_ms=-0.85 drift_stderr_ms=2.57 p95_jitter_ms=11.44 n_markers_raw=124 n_dupes=0 n_matched=124 n_spurious=0 n_grid_in_range=123 pct_matched=100.8 n_peaks=119)
+WARN  T2 alignment: drift stderr 2.57ms exceeds 0.5ms -- this take is too short/noisy to support a tight 1ms drift claim (informational, does not fail the gate)
+PASS  T2 alignment: p95 jitter <=15ms (11.44 ms)
+PASS  T2 alignment: mean offset within [0,60]ms (32.56 ms, latency lag expected per D10.3)
+PASS  T2 alignment: matched markers cover >=90% of grid clicks in the asset's frame range (100.8%)
+(informational) T2 duplicate onset markers this take: 0 (deduped before matching -- a RecorderHost product fix for the duplicate-marker source is landing separately)
+(informational) T2 spurious (off-grid, >interval/2) markers rejected: 0
+(informational) T2 raw-peak-detector cross-check: found 119 burst peaks directly in the audio (best-effort threshold detector, not the pairing oracle)
+PASS  perf/load: audioStatus == Resolved
+PASS  perf/load: unresolved == 0
+PASS  end: /api/audio/source input accepted
+PASS  end: inputSource == input before Play
+PASS  snap-back(withAudio): pre-play perturbation landed (col 3, opacity 0.9)
+PASS  snap-back(withAudio): layer 0 restored to checkpoint0 (col=-1, opacity=1.0) within 100 ms of Play
+PASS  snap-back(withAudio): preambleUnresolved == 0
+PASS  snap-back(withAudio): preambleRefused == 0
+PASS  snap-back(withAudio): preambleFired >= 8 (9)
+  replay(withAudio): t~1s activeClipColumn=-1
+  replay(withAudio): t~3s activeClipColumn=0
+  replay(withAudio): t~6s activeClipColumn=1
+  replay(withAudio): t~9s activeClipColumn=2
+  replay(withAudio): t~12s activeClipColumn=3
+  replay(withAudio): t~17s activeClipColumn=2
+  wait_for_replay_finish(withAudio): lengthSeconds=61.461333333333336 elapsed=45s -- waiting up to 21s more
+PASS  end(withAudio): finished == true
+PASS  end(withAudio): playing stays true (hold, not stop)
+PASS  end(withAudio): positionSeconds == lengthSeconds (61.461333333333336 / 61.461333333333336)
+PASS  end(withAudio): the clock stopped (61.461333333333336 -> 61.461333333333336 over 1 s)
+PASS  end(withAudio): inputSource == file while the take's audio drives the replay
+PASS  end(withAudio): inputSource back to input at the end
+PASS  end(withAudio): last look held (activeClipColumn == 2)
+PASS  end(withAudio): layer 0 opacity still near 0.2 (held, nothing reset)
+PASS  replay(withAudio): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=-1 0 1 2 3 2)
+PASS  replay(withAudio): layer 0 opacity visited near 0.4 (tolerance 0.05)
+PASS  replay(withAudio): layer 0 opacity visited near 0.7 (tolerance 0.05)
+PASS  replay(withAudio): layer 0 opacity settled near the final 0.2 (last observed=0.200000002980232)
+PASS  replay(withAudio): bpm reached 128 after the tempo point (128.0)
+PASS  replay(withAudio): status.skipped==1 (the arm-time 'audio play' point, WithAudio policy)
+PASS  perf/stop_play: playing==false
+PASS  snap-back(wallClock): pre-play perturbation landed (col 3, opacity 0.9)
+PASS  snap-back(wallClock): layer 0 restored to checkpoint0 (col=-1, opacity=1.0) within 100 ms of Play
+PASS  snap-back(wallClock): preambleUnresolved == 0
+PASS  snap-back(wallClock): preambleRefused == 0
+PASS  snap-back(wallClock): preambleFired >= 8 (9)
+  replay(wallClock): t~0s activeClipColumn=-1
+  replay(wallClock): t~2s activeClipColumn=0
+  replay(wallClock): t~5s activeClipColumn=1
+  replay(wallClock): t~8s activeClipColumn=2
+  replay(wallClock): t~11s activeClipColumn=3
+  replay(wallClock): t~16s activeClipColumn=2
+  wait_for_replay_finish(wallClock): lengthSeconds=61.45831966665719 elapsed=45s -- waiting up to 21s more
+PASS  end(wallClock): finished == true
+PASS  end(wallClock): playing stays true (hold, not stop)
+PASS  end(wallClock): last look held (activeClipColumn == 2)
+PASS  end(wallClock): inputSource still input (wall-clock never touches it)
+PASS  replay(wallClock): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=-1 0 1 2 3 2)
+PASS  probe pin: first post-leftover activeClipColumn change lands within 1.5s across replay modes (withAudio=3s wallClock=2s diff=1.0s)
+PASS  replay(wallClock): status.skipped==0 (audio points fire on wall-clock replay)
+  (skipping 10F end-overdub row -- set STEP3_END_OVERDUB=1 to run it, ~35s extra)
+PASS  overdub arm accepted against the stored asset
+PASS  overdub take has exactly 1 activeClip point (only the REST trigger sent during overdub, not the replay)
+PASS  overdub take firstSample==0 (v2 5.2)
+PASS  overdub take references the SAME asset id (db249d6bc2604151b57867d43b0e66dd)
+PASS  Audio/ gained exactly one asset this run, overdub added none (223 -> 224)
+SKIP  LONG take for the T2 drift proof (set STEP3_LONG=1; STEP3_LONG_MINUTES=N overrides, default 10, 2 = dry run)
+SKIP  crash-readability row (set STEP3_RUN_CRASH_TEST=1 to run it -- destructive, kill -9)
+PASS  no stop in this run reported a finalize problem (perf/status finalizeErrors == 0)
+PASS  stderr: no '[Recorder] asset ...: truncated' line this run
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+94 PASS / 0 FAIL   (artifacts in /tmp/audiodna-step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio)
+===== probe-mastersignal (03:08:20)
+PASS  app launched via open -g, /api/health answered, PID=16647
+PASS  MINIMAL: GET /api/status .masterSignal == 1.0 at boot (1.0)
+PASS  MINIMAL: POST /api/set_master_signal {value:0.4} -> ok
+PASS  MINIMAL: GET /api/composition .masterSignal == 0.4 (0.400000005960464)
+PASS  MINIMAL: GET /api/composition .live.signal == 0.4 (0.400000005960464)
+(reset) master signal set back to 1.0
+PASS  B1: load_composition accepted the ms-conn fixture
+PASS  B1 @signal=0: live.scale sits at 1.0 +/-1e-4 across 10 samples (min=1.000000 max=1.000000)
+PASS  B1 @signal=0: b1_lo_a.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=46.833981)
+PASS  B1 @signal=0: b1_lo_b.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=46.833981)
+PASS  B1 @signal=0: render_frame 0.5s apart pixel-IDENTICAL (mean_abs_diff=0.000000 <= 0.5; frozen at hand/default values)
+PASS  B1 @signal=1: live.scale swings min=0.757860 (<0.9) max=1.306100 (>1.1) over 20 samples/1s
+PASS  B1 @signal=1: b1_hi_a.png decodes NON-BLANK (alpha_frac=0.942148 rgb_std=49.928594)
+PASS  B1 @signal=1: b1_hi_b.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=59.785627)
+PASS  B1 @signal=1: render_frame 0.5s apart pixel-DIFFER (mean_abs_diff=27.636730 > 0.5; signals driving both connections)
+PASS  B1 @signal=0.5: live.scale swing (0.275304) strictly smaller than at signal=1 (0.54824)
+PASS  B2: load_composition accepted the ms-pulse fixture
+PASS  B2 @signal=0: b2_a.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=51.364374)
+PASS  B2 @signal=0: b2_b.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=51.439763)
+PASS  B2 @signal=0: render_frame 0.25s apart pixel-DIFFER (mean_abs_diff=19.364041 > 0.5; Beat Ripple keeps pulsing on the beat clock, unaffected by Master Signal)
+PASS  B3: OSC /audiodna/signal 0.3 -> masterSignal==0.3+/-0.01 within 1s (last=0.300000011920929)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac): the Quartz window-list check above is the screen witness
+
+22 PASS / 0 FAIL   (artifacts in /tmp/audiodna-mastersignal)
+===== probe-routines (03:08:37)
+PASS  fixture is valid JSON (/tmp/audiodna-routines/run-20260927-030837-17193/probe-routines.json)
+(app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app)
+(artifacts: /tmp/audiodna-routines/run-20260927-030837-17193)
+PASS  app launched via open -g, /api/health answered, PID=17211
+PASS  GET /api/routine/status answers ok
+PASS  manual 120 BPM: totalBarCount advances (0 -> 1)
+PASS  load_composition accepted the fixture
+PASS  L0 on column 0 (the image)
+PASS  reference: render_frame wrote ref.png
+PASS  reference: ref.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=78.978754)
+PASS  record: /api/perf/record accepted ({"ok": true})
+PASS  record: every scheduled move went out within 80 ms of its time (worst 0.010 s late)
+PASS  take stopped (recording false)
+PASS  take.json written (/Users/boriskarpman/Documents/Audio-DNA/Takes/probe-routines-20260927-030837.adna-take)
+PASS  take: tempoMap has 1 anchor(s), all with a tempo (the take has a beat grid to cut)
+PASS  take: 5 lanes carry beat stamps (>= 4)
+PASS  take: meta.startBeatInBar present and in [0, 4) (0.245333895087242)
+PASS  take: the L0 opacity ramp is ONE gesture of 32 breakpoints, beats 17.98..24.51, values 0.20..0.80
+PASS  take: the trigger of C1 recorded its auto-play as a playing/resume point at the same beat (1 point(s))
+PASS  POST /api/routine/save accepted
+PASS  status lastSaved.slot == 0 within 1 s
+PASS  bank[0].name == Probe Routine
+PASS  bank[0].lanes == 5 (>= 4)
+PASS  bank[0].preambleEntries == 6 (>= 5)
+PASS  bank[0].lengthBeats == 16
+PASS  lastSaved.dropped == []
+PASS  bank[0].state == idle
+PASS  perturbed: L0 column 1, L0 0.1, L1 0.6, C1 Brightness 0.2
+PASS  perturbed: render_frame wrote pert.png
+PASS  perturbed: pert.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=3.354102)
+PASS  mad(ref, pert) = 64.798847 > 0.5 (the perturbation is visible)
+PASS  fire: bank[0] running 1.79 s after the fire
+PASS  restored: render_frame wrote rest.png
+PASS  restored frame captured +0.152 s after the start (before the first move at +0.6)
+PASS  fire: started on a LATER bar (startedTotalBar 13 >= 12 + 1)
+PASS  fire: waited 1.789 s (<= 2.2 s, one bar)
+PASS  fire: preambleUnresolved == 0
+PASS  fire: preambleRefused == 0
+PASS  fire: unresolved == 0
+PASS  fire: preambleFired == 6 (>= 5)
+(restore read at +0.236 s: 0|1.0|1.0|0.5)
+PASS  restore: L0 back on column 0
+PASS  restore: L0 opacity 1.0 ~ 1.0
+PASS  restore: L1 opacity 1.0 ~ 1.0
+PASS  restore: C1 Brightness 0.5 ~ 0.5
+PASS  restored: rest.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=78.978754)
+PASS  mad(pert, rest) = 64.798847 > 0.5 (the restore changed the frame)
+PASS  mad(ref, rest) = 0.000000 <= 2.0 (the restored look IS the recorded look)
+(sampled 219 rows over 8.9 s)
+PASS  grid: L0 opacity ~0.5 first at +0.53 s (expected +0.6 +/- 0.35)
+PASS  grid: L0 on column 1 first at +2.52 s (expected +2.6 +/- 0.35)
+PASS  grid: C1 Brightness ~0.9 first at +4.53 s (expected +4.6 +/- 0.35)
+PASS  grid: L0 opacity ~0.9 first at +6.53 s (expected +6.6 +/- 0.35)
+PASS  grid: the four moves arrive in the recorded order
+PASS  grid: once -- state idle after the end (idle)
+PASS  grid: once -- the last look holds (L0 opacity 0.899999976158142, column 1)
+PASS  set: bank[0].loop == true
+(sampled 226 rows over 9.22 s)
+PASS  loop: end of cycle 1 holds L0 opacity 0.9 (23 samples)
+PASS  loop: the restore re-fired at the loop (L0 opacity back to 1.0 at +8.01 s)
+PASS  loop: cycle 2 replays the first move (L0 opacity 0.5 at +8.55 s)
+PASS  loop: status cycle reached 2 (>= 2)
+PASS  loop: preambleFired grew at the loop (6 -> 12)
+PASS  stop: bank[0] idle 0.079 s after the stop
+PASS  stop: after Stop a hand write of 0.42 sticks and nothing moves it (29 samples)
+PASS  re-fire: first move played (L0 opacity 0.5)
+PASS  re-fire: restarts == 1 at the next bar (0.918 s after the second fire)
+PASS  re-fire: the restart restored L0 opacity to 1.0
+PASS  start from now: preambleFired == 0
+PASS  start from now: L0 opacity stays at the hand value 0.1 until the first move (9 samples)
+PASS  start from now: the first move lands on the grid (0.5 at +0.61 s, expected +0.6)
+PASS  stack: saved Probe Ramp to pad 2
+PASS  stack: lastSaved.slot == 1
+(stack: Probe Ramp started at T5; its ramp runs +0.99..+4.26 s, 0.20..0.80; Probe Routine started at T5+2.04 s)
+PASS  stack: before the second routine starts, the ramp drives L0 opacity (18 samples, 0.253333240747452..0.38999992609024)
+PASS  stack: the later restore wins -- L0 opacity holds 1.0 after Probe Routine starts, no ramp values ([1.0])
+PASS  stack: the earlier ramp stays quiet for the rest of its gesture and after it (L0 opacity 0.5, 52 samples)
+PASS  stack: status bank[1].yielded == 1 (>= 1: the displaced gesture is counted)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the full window list (screen-safety law held)
+no full-screen capture was taken; the Quartz window list is the screen witness
+(take kept at /Users/boriskarpman/Documents/Audio-DNA/Takes/probe-routines-20260927-030837.adna-take; look at /tmp/audiodna-routines/run-20260927-030837-17193/rest.png before accepting)
+
+74 PASS / 0 FAIL   (artifacts in /tmp/audiodna-routines/run-20260927-030837-17193)
+===== probe-resync (03:09:41)
+PASS  app launched (production), /api/health answered, PID=17769
+PASS  manual tempo took (bpm=120.0)
+PASS  load_composition accepted the resync fixture
+PASS  layers[0].connected contains 'opacity' (deck engaged)
+PASS  /api/bpm exposes resyncBarOrigin (int)
+PASS  POST /api/resync answers ok:true within 1s
+PASS  reached totalBarCount%4==2, beatInBar==2 within 8.5s (16-beat SawUp sits mid-cycle, ~0.625 pre-fix)
+PASS  V1 tracker: first sample >=60ms after POST is the new downbeat (origin=2 totalBarCount=2 beatInBar=0 barCount=0 downbeatDetected=True beatPhase=0.1707)
+PASS  V2 THE RULING: live.opacity at 104ms after Resync is 0.0093 (< 0.10 expected -- pre-fix reads ~0.6)
+PASS  V3a runs from the new downbeat: opacity at ~2.0s is 0.2480 (expect [0.22,0.30])
+PASS  V3b runs from the new downbeat: opacity at ~4.0s is 0.4973 (expect [0.47,0.55])
+PASS  V4a no phantom bar: totalBarCount at ~1.0s == origin (2 == 2)
+PASS  V4b one bar after Resync: totalBarCount == origin+1, resyncBarOrigin unchanged (totalBarCount=3 origin=2, expected origin=2)
+INFO  90 samples captured over ~4.5s (artifacts in /tmp/audiodna-resync/samples.json)
+PASS  V5 parity independence: same V1 shape reached from totalBarCount%4==3 (origin=7 totalBarCount=7 beatInBar=0 barCount=0 downbeatDetected=True)
+INFO  V6: automatic-reset half (drop/breakdown never touches resyncBarOrigin) is NOT drivable live in production -- manual mode suppresses structural transitions; unit test T3d carries it.
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+16 PASS / 0 FAIL   (artifacts in /tmp/audiodna-resync)
+===== probe-onset-render (03:10:00)
+PASS  click-track WAV generated at /tmp/click_onset_30s.wav (30 s, 60 bursts)
+PASS  app launched (production), /api/health answered, PID=17865
+PASS  analysis thread live: totalBarCount readable (0)
+PASS  load_composition accepted probe-step3.json
+PASS  render_frame 200 in 134 ms (GL context attached -- preview visible)
+INFO  fps before the take: 120.0
+PASS  /api/features onsetCount present (12)
+PASS  /api/status renderOnsetPulses present (10)
+PASS  perf/record accepted (file-mode audio, onset markers)
+INFO  fps at t=5s: 120.0
+INFO  fps at t=15s: 119.0
+INFO  fps at t=25s: 120.0
+PASS  counters stable 1 s after stop (onsetCount=72, renderOnsetPulses=70)
+INFO  onsetCount delta = 60, renderOnsetPulses delta = 60 (fps before=120.0)
+PASS  analysis detected 60 onsets (>= 54 of 60 clicks)
+PASS  ORACLE: render pulse frames == onsets (60 == 60) -- no loss, no duplication
+INFO  take.json onset markers = 60 (expect onsetCount delta +-1; baseline set at arm, F0 read just before)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+13 PASS / 0 FAIL   (artifacts in /tmp/audiodna-onset-render)
+===== done final (03:10:53)
