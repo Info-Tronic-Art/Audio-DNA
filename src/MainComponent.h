@@ -338,7 +338,11 @@ private:
     juce::TextButton fastSaveButton_{"FX Save"};
     int fastSaveCounter_ = 1;
 
-    juce::File currentAudioFile_;  // Track loaded audio for deck save
+    juce::File currentAudioFile_;  // decks-followup ITEM 4: stale "for deck save" comment fixed --
+                                    // the legacy Deck Save/Load buttons that read this are gone
+                                    // (lane/decks-0926b item D); this now only remembers the loaded
+                                    // audio file to re-show its name in fileLabel_ on a source-mode switch
+                                    // (setAudioSourceModeSynced) and after an /api/perf/record file load
 
     // Bottom preset slots (10 slots)
     static constexpr int kNumSlots = 10;
