@@ -84,7 +84,11 @@ outputs on every display and the routines display in the layers.
    cold residual is the image's first upload, loadKeyImage); r1_counts bar 50 -> 16.7 ms on first use AND first fade.
 3. [OPEN] tests/visual Tier-1 (test mode) is RED on main: ~167 failures that predate tonight (the canvas lane added none,
    fixed one). Needs its own investigation lane.
-4. [OPEN] Capture cost (plan4 F4): render_frame/snapshots do a synchronous glReadPixels + per-pixel loop; ~4x at 4K.
+4. [FIXED s-rta-0927 renderperf C2+C3] Capture cost (plan4 F4): only glReadPixels stays on the GL thread; the byte-
+   identical row conversion (PixelConvert, test_pixel_convert + live sha256 A/B) and the PNG encode run on the waiting
+   caller. GL-thread share per capture: 1080p 93-110 ms (read 2.3-4.5 + convert 12.5-20.9 + png 78.6-84.3) -> read
+   2.3-5.0 ms; 4K 372 ms (7.9 + 68.4 + 296.2) -> 7.6 ms. The HTTP round trip is unchanged (~95-116 ms at 1080p, ~350 ms
+   at 4K): the PNG is still encoded before the response. PBO readback: out of scope (plan-renderperf).
 5. [OPEN, Boris] Fit "Bars": see-through (shipped) vs solid black; deck defaults; outputs Q1-Q7; routines mockup 8.
 6. [OPEN, low] Resolution control has presets + "Custom (W x H)" display only (no free numeric entry). Interactive paths
    (tab right-click, dialogs, Fit/Resolution picks, Undo Remove click) were never driven live (no synthetic input) —

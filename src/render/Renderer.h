@@ -616,10 +616,15 @@ private:
     std::atomic<float> timeOverride_{-1.0f};
     std::mutex captureMutex_;
     std::atomic<bool> pendingCapture_{false};
-    juce::File captureOutputPath_;
     int captureWidth_ = 0;
     int captureHeight_ = 0;
     std::promise<bool>* capturePromise_ = nullptr;
+    // s-rta-0927 plan-renderperf C3: the GL thread only reads the canvas into capturePixels_ (RGBA8, bottom-up);
+    // the caller of captureFrame -- already blocked on the promise -- converts, encodes and writes the PNG.
+    // GL thread writes, the waiting caller moves them out; both under captureMutex_.
+    std::vector<uint8_t> capturePixels_;
+    int captureReadW_ = 0, captureReadH_ = 0;
+    double captureReadMs_ = 0.0;
     juce::File snapshotDir_; // P22.7: where snapshots are saved
 
     // Process pending capture after render. Called from renderOpenGL(). Reads the whole canvas
