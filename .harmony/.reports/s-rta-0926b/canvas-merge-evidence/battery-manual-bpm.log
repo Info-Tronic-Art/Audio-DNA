@@ -1,0 +1,28 @@
+PASS  click WAV generated: 142 BPM (interval 20282 frames @ 48 kHz), 150 s
+INFO  app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+PASS  app launched (production), /api/health answered, PID=3218
+PASS  perf/record accepted the click file (file mode, transport playing)
+PASS  A  AUTO sanity: the tracker locks on the 142 BPM click and holds 3 s (last bpm=143.86, held by 10.9 s)
+PASS  M  poller healthy: 688 polls in 20 s, 0 errors
+PASS  M  bpm stays 120.0 on every poll (seen [120.0])
+PASS  M  non-vacuous: the analysis heard the click (onsetCount +48 over the window, ~47 clicks played)
+PASS  M  beatPhase free-runs: 0 jumps (first: [])
+PASS  M  beatPhase advances at 2.000 beats/s (expect 2.00 +/- 3%)
+PASS  M  every bar lasts 2.00 s +/- 3% (9 full bars in 20 s, expect ~9): [2.011, 1.992, 2.01, 1.996, 2.008, 1.998, 1.987, 1.995, 2.003]
+PASS  S1 set_bpm 120 (the SAME value) never moves the beat: 3/3 continuous -- #1: POST at phase 0.410 (beat 3, bar 12) -> +66 ms phase 0.538 (beat 3, bar 12), step error 0.006 beat, then 1 s: 0 jumps, bpm [120.0] | #2: POST at phase 0.586 (beat 1, bar 13) -> +69 ms phase 0.714 (beat 1, bar 13), step error 0.012 beat, then 1 s: 0 jumps, bpm [120.0] | #3: POST at phase 0.402 (beat 0, bar 14) -> +65 ms phase 0.530 (beat 0, bar 14), step error 0.004 beat, then 1 s: 0 jumps, bpm [120.0]
+PASS  S2 set_bpm 128 (a CHANGED value) changes the tempo only, the beat runs on -- 120 -> 128: POST at phase 0.557 (beat 2, bar 14) -> +64 ms phase 0.693 (beat 2, bar 14), step error 0.001 beat, then 1 s: 0 jumps, bpm [128.0]
+PASS  S2 set_bpm 120 (changed back) changes the tempo only, the beat runs on -- 128 -> 120: POST at phase 0.401 (beat 1, bar 15) -> +64 ms phase 0.531 (beat 1, bar 15), step error 0.001 beat, then 1 s: 0 jumps, bpm [120.0]
+PASS  S3 OSC /audiodna/bpm 120 every 100 ms for 2 s (20 sent): the beat free-runs -- 0 jumps (first: []), bpm [120.0], totalBarCount +2 (>= 1)
+PASS  R  first poll 80 ms after the Resync is the new downbeat (beatInBar=0 barCount=0 beatPhase=0.149 origin 0 -> 17, totalBarCount=17)
+PASS  R  a single realignment: resyncBarOrigin took 1 value(s) after the POST [17]
+PASS  R  beatPhase free-runs after the Resync: 0 jumps (first: [])
+PASS  R  first bar after the Resync lands 2.010 s after the POST (expect 2.00 s + message-thread hop, [1.90, 2.12])
+PASS  R  bars after the Resync last 2.00 s +/- 3%: [1.984, 1.999, 2.022]
+PASS  R  bpm stays 120.0 (seen [120.0])
+INFO  'leave manual mode -> AUTO resets on beats again' is not drivable over REST/OSC (no route leaves manual mode); ctest-pinned instead.
+PASS  app terminated, no process remains
+INFO  removed this run's take folder /Users/boriskarpman/Documents/Audio-DNA/Takes/probe-manual-bpm-20260927-044343-3199.adna-take
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture: the Quartz window-list check above is the screen witness
+
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas-merge/runs/manual-bpm/run-20260927-044343-3199)

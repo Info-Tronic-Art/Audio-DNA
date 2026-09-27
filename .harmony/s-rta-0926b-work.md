@@ -190,3 +190,18 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
   tempo GREEN; routines 97/1 — the 8g "lands ON the loop point" row: first sample within 0.01 at +7.85 vs window 7.85..8.1.
   Discriminator x3: 98/0 each, landings +7.89/+7.88/+7.88 -> sampling-edge flake (samples ~40 ms apart). Widened the new
   row lower bound to 7.80 (still fails an early half-beat glide ~7.7 and a missing glide). NOT a regression.
+- 02:26 decks lane DONE (10 agents): r1 critics FAIL (visual: stock rounded AlertWindows + stock striped PopupMenus),
+  fix round: app LookAndFeel for alerts + menus (menus parented to the DocumentWindow drew stock), doubled alert text fixed;
+  r2 review PASS, critics 3/3 PASS. Harmony looked at the deck menu (square, app colours), the tab row "Deck 1 | +",
+  Compositions tab (Save Composition + library). Harmony RED on build/: probe-deck-tabs "4 PASS / 2 FAIL" (decks[].id absent).
+  Merged (auto-merge MainComponent/ApiServer); ctest 636/636; strings AUDIODNA_DEBUG_ = 0. GREEN suite running (bkurjnkmv).
+  FOLLOW-UPS (decided by Harmony, next lane): (1) app-wide default LookAndFeel so the ~13 remaining showMessageBoxAsync
+  alerts + other stock menus are square (Boris rule "no rounded corners"); (2) library lists only v2 deck files — Boris's 4
+  legacy v1 *.deck.json (PresetManager dir ~/Library/AudioDNA/Decks, same folder) stay on disk, hidden from the list;
+  (3) static_assert(std::is_nothrow_move_constructible_v<Deck>) (inspectors hold raw Clip*/Layer* across deck reallocation);
+  (4) dead PresetManager::DeckState/saveDeck/loadDeck + currentAudioFile_ comment. Compositions dir is ~/Library/AudioDNA/
+  compositions (JUCE maps userApplicationDataDirectory to ~/Library).
+- 02:27 decks-followup lane launched (wf_2118d32b-106, W2): default LookAndFeel app-wide, library hides legacy v1 files, Deck static_assert, dead PresetManager deck code.
+- 02:43 GREEN on build/ (decks merged): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 98/0, mastersignal 22/0, decktabs 6/0, step3 94/0, tempo GREEN. ctest 636/636.
+- 04:14 canvas lane: Harmony RED on build/: probe-canvas 8/7, deck-clock 2/6, fitmode 4/6 (RED). Merge into main CONFLICTED (notebook, CLAUDE.md, pitfalls, MainComponent.cpp, LookAndFeel.cpp) -> aborted; conflict resolution delegated to a builder in W1 (merge main into lane/canvas) + reviewer. Rulings: tests/visual Tier-1 gate = no NEW failures (base already 167 failed: pre-existing, own follow-up); r5_burst capture-count guard: capture longer (never lower the 8-frame bar). Boris Q: Bars see-through vs solid black.
+- 04:28 decks-followup DONE (r2 review PASS, critics 3/3 PASS; fix round restored bold alert titles lost by the default-LookAndFeel install; library hides the 4 legacy v1 files, verified read-only on the real folder). RIG SLIP by that lane: launched open -g after a failed lock mkdir (reached Harmony's running instance) -> gotcha filed. Merge order: canvas-merge first (W1, running), then decks-followup re-based on it.

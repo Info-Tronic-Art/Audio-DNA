@@ -308,18 +308,22 @@ void AudioDNALookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
                                         bool isButtonDown,
                                         int /*buttonX*/, int /*buttonY*/,
                                         int /*buttonW*/, int /*buttonH*/,
-                                        juce::ComboBox& /*box*/)
+                                        juce::ComboBox& box)
 {
+    // s-rta-0926b plan-fitmode: a disabled combo is drawn disabled app-wide (the drawToggleButton
+    // treatment); its text is the combo's child Label, dimmed by drawLabel below.
+    const float alphaMul = box.isEnabled() ? 1.0f : kDisabledAlpha;
+
     auto bounds = juce::Rectangle<float>(0, 0, static_cast<float>(width),
                                           static_cast<float>(height));
 
     // Background
-    g.setColour(juce::Colour(kSurface));
+    g.setColour(juce::Colour(kSurface).withMultipliedAlpha(alphaMul));
     g.fillRect(bounds);
 
     // Border
-    g.setColour(isButtonDown ? juce::Colour(kAccentCyan)
-                             : juce::Colour(kPanelBorder));
+    g.setColour((isButtonDown ? juce::Colour(kAccentCyan)
+                              : juce::Colour(kPanelBorder)).withMultipliedAlpha(alphaMul));
     g.drawRect(bounds, 1.0f);
 
     // Arrow
@@ -330,7 +334,7 @@ void AudioDNALookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
     arrow.addTriangle(arrowCentre.x - 4.0f, arrowCentre.y - 2.0f,
                       arrowCentre.x + 4.0f, arrowCentre.y - 2.0f,
                       arrowCentre.x, arrowCentre.y + 3.0f);
-    g.setColour(juce::Colour(kAccentCyan));
+    g.setColour(juce::Colour(kAccentCyan).withMultipliedAlpha(alphaMul));
     g.fillPath(arrow);
 }
 
@@ -504,7 +508,10 @@ void AudioDNALookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
     auto textColour = label.findColour(juce::Label::textColourId);
     if (!label.isBeingEdited() && !textColour.isTransparent())
     {
-        g.setColour(textColour);
+        // s-rta-0926b plan-fitmode: a disabled label (or one inside a disabled combo) is drawn disabled,
+        // as JUCE's own LookAndFeel_V2::drawLabel does -- this override used to drop that.
+        const float alphaMul = label.isEnabled() ? 1.0f : kDisabledAlpha;
+        g.setColour(textColour.withMultipliedAlpha(alphaMul));
         g.setFont(label.getFont());
         g.drawFittedText(label.getText(), label.getBorderSize().subtractedFrom(label.getLocalBounds()),
                          label.getJustificationType(),

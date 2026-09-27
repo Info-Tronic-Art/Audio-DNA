@@ -354,10 +354,6 @@ private:
     };
     std::array<PresetSlot, kNumSlots> presetSlots_;
 
-    // Resolution lock
-    juce::Label viewportLabel_;
-    juce::ComboBox resolutionSelector_;
-
     // Output window
     juce::Label outputLabel_;
     juce::ComboBox displaySelector_;
@@ -462,6 +458,9 @@ private:
     void handleClipTrigger(int layerIndex, int column, Origin origin = Origin::Human, int deckIndex = -1,
                            bool immediate = false);
     void handleColumnTrigger(int column, Origin origin = Origin::Human, int deckIndex = -1);
+    // s-rta-0926b plan-fitmode: REST /api/set_clip_param + OSC /audiodna/clip/{l}/{c}/fit (message thread,
+    // active deck). A direct field write like the Clip inspector's Fit combo: not undo-recorded, not a scalar.
+    void setClipFitMode(int layerIdx, int column, int mode);
     // A1 fix (2026-07-30): re-sync the previewPanel_ renderer's global fallback
     // state (activeSourceType_ / loaded image) to whichever layer still owns
     // active content after a layer's clip is cleared. Mirrors handleColumnTrigger's

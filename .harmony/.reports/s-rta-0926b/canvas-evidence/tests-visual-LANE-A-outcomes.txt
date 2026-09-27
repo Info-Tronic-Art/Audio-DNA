@@ -1,0 +1,504 @@
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[RMS] PASSED
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[Beat Phase] FAILED
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[Bass] FAILED
+tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectEffects::test_rms_affects_effects FAILED
+tests/visual/test_ax_inspector.py::TestWalkElement::test_single_element PASSED
+tests/visual/test_ax_inspector.py::TestWalkElement::test_nested_children PASSED
+tests/visual/test_ax_inspector.py::TestWalkElement::test_empty_tree PASSED
+tests/visual/test_ax_inspector.py::TestDepthLimiting::test_depth_zero_skips_children PASSED
+tests/visual/test_ax_inspector.py::TestDepthLimiting::test_depth_one_walks_immediate_children PASSED
+tests/visual/test_ax_inspector.py::TestDepthLimiting::test_unlimited_depth PASSED
+tests/visual/test_ax_inspector.py::TestJsonSerialization::test_output_is_valid_json PASSED
+tests/visual/test_ax_inspector.py::TestJsonSerialization::test_nested_tree_serializes PASSED
+tests/visual/test_ax_inspector.py::TestAppLookup::test_permissions_denied PASSED
+tests/visual/test_ax_inspector.py::TestAppLookup::test_app_not_found PASSED
+tests/visual/test_ax_inspector.py::TestAppLookup::test_inspect_by_pid PASSED
+tests/visual/test_ax_inspector.py::TestAppLookup::test_inspect_by_name PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_help_flag PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_app_not_found_exit_code PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_permission_denied_exit_code PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_json_output_to_stdout PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_output_to_file PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_depth_flag_passed PASSED
+tests/visual/test_ax_inspector.py::TestCLI::test_pid_flag_passed PASSED
+tests/visual/test_ax_inspector.py::TestIntegration::test_live_tree_structure SKIPPED
+tests/visual/test_ax_inspector.py::TestIntegration::test_live_tree_has_children SKIPPED
+tests/visual/test_ax_inspector.py::TestIntegration::test_live_tree_json_roundtrip SKIPPED
+tests/visual/test_effects.py::TestAllEffectsRender::test_all_effects_non_black FAILED
+tests/visual/test_effects.py::TestAllEffectParams::test_all_params_have_effect FAILED
+tests/visual/test_effects.py::TestEffectNotDestructive::test_no_destructive_effects PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[kaleido_fractal] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[mandelbrot] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[julia_set] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[burning_ship] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[newton_fractal] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[sierpinski] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[apollonian] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[mandelbulb] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[menger_sponge] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[kifs] PASSED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[julia_set_3d] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[burning_ship_3d] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[newton_3d] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[sierpinski_tetra] FAILED
+tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[apollonian_3d] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Iterations] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Fold Angle] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Zoom] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Rotation] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Dive Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Location] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Center X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Center Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Julia Mix] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Max Iterations] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Power] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Color Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Dive Speed] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Location] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:C Real] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:C Imaginary] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Color Speed] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Color Shift] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Palette] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Dive Speed] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Location] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Center X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Center Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Color Speed] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Color Shift] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Palette] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_fractal:Dive Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_fractal:Power] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_fractal:Zoom] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_fractal:Damping] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_fractal:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_fractal:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Mode] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Rotation] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Color Shift] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Palette] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian:Zoom] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian:Iterations] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian:Rotation] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Power] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Cross Section] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Slice Count] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Glow] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Trail Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Trail Fade] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Slice Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Iterations] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Zoom] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Twist] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Cross Section] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Slice Count] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Trail Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Trail Fade] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Slice Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Scale] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Fold Type] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Speed] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Offset] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Color Shift] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Cross Section] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Slice Count] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Trail Distance] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Trail Fade] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Slice Distance] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Palette] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Location] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:C Real] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:C Imaginary] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Cross Section] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Slice Count] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Glow] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Trail Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Trail Fade] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Slice Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Power] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Cross Section] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Slice Count] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Glow] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Trail Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Trail Fade] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Slice Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Power] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Speed] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Damping] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Height] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Trail Distance] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Trail Fade] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Palette] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Cross Section] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Slice Count] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Trail Distance] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Trail Fade] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Slice Distance] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Palette] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Scale] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Iterations] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Angle X] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Angle Y] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Zoom] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Speed] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Color Shift] PASSED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Cross Section] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Slice Count] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Trail Distance] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Trail Fade] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Slice Distance] FAILED
+tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Palette] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-mandelbrot] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-julia_set] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-burning_ship] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-sierpinski] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-apollonian] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-mandelbrot] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-julia_set] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-burning_ship] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-sierpinski] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-apollonian] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-mandelbrot] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-julia_set] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-burning_ship] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-sierpinski] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-apollonian] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-mandelbrot] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-julia_set] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-burning_ship] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-sierpinski] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-apollonian] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-mandelbrot] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-julia_set] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-burning_ship] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-sierpinski] FAILED
+tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-apollonian] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.1-mandelbrot] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.1-julia_set] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.1-burning_ship] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.1-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.3-mandelbrot] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.3-julia_set] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.3-burning_ship] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.3-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.5-mandelbrot] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.5-julia_set] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.5-burning_ship] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.5-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.7-mandelbrot] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.7-julia_set] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.7-burning_ship] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.7-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[1.0-mandelbrot] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[1.0-julia_set] PASSED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[1.0-burning_ship] FAILED
+tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[1.0-newton_fractal] PASSED
+tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[0.0] PASSED
+tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[0.25] PASSED
+tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[0.5] FAILED
+tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[0.75] FAILED
+tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[1.0] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-mandelbulb] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-menger_sponge] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-kifs] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-julia_set_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-burning_ship_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-sierpinski_tetra] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-apollonian_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-mandelbulb] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-menger_sponge] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-kifs] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-julia_set_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-burning_ship_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-sierpinski_tetra] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-apollonian_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-mandelbulb] PASSED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-menger_sponge] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-kifs] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-julia_set_3d] PASSED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-burning_ship_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-sierpinski_tetra] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-apollonian_3d] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-mandelbulb] PASSED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-menger_sponge] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-kifs] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-julia_set_3d] PASSED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-burning_ship_3d] PASSED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-sierpinski_tetra] FAILED
+tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-apollonian_3d] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[kaleido_fractal] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[mandelbrot] FAILED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[julia_set] FAILED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[burning_ship] FAILED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[newton_fractal] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[sierpinski] FAILED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[apollonian] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[mandelbulb] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[menger_sponge] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[kifs] FAILED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[julia_set_3d] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[burning_ship_3d] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[newton_3d] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[sierpinski_tetra] PASSED
+tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[apollonian_3d] PASSED
+tests/visual/test_fractals.py::TestSourceRegistry::test_all_registered PASSED
+tests/visual/test_fractals.py::TestSourceRegistry::test_all_have_palette PASSED
+tests/visual/test_fractals.py::TestSourceRegistry::test_3d_have_new_controls PASSED
+tests/visual/test_mapping_tick.py::test_state1_preview_tracks PASSED
+tests/visual/test_mapping_tick.py::test_state2_preview_output_tracks SKIPPED
+tests/visual/test_mapping_tick.py::test_state3_signalbar_tracks SKIPPED
+tests/visual/test_mapping_tick.py::test_state4_signalbar_output_tracks SKIPPED
+tests/visual/test_onset_pulse.py::test_injected_onsets_pulse_exactly_once PASSED
+tests/visual/test_performance.py::TestSourcePerformance::test_source_render_time PASSED
+tests/visual/test_performance.py::TestEffectPerformance::test_effect_render_time PASSED
+tests/visual/test_render_pipeline.py::TestHealth::test_health_endpoint PASSED
+tests/visual/test_render_pipeline.py::TestFrameCapture::test_capture_black_frame PASSED
+tests/visual/test_render_pipeline.py::TestFrameCapture::test_capture_with_image PASSED
+tests/visual/test_render_pipeline.py::TestFrameCapture::test_deterministic_renders PASSED
+tests/visual/test_render_pipeline.py::TestEffects::test_enable_single_effect PASSED
+tests/visual/test_render_pipeline.py::TestEffects::test_effect_chain PASSED
+tests/visual/test_render_pipeline.py::TestFeatureInjection::test_inject_features PASSED
+tests/visual/test_render_pipeline.py::TestState::test_state_returns_effects PASSED
+tests/visual/test_render_pipeline.py::TestReset::test_reset_disables_effects PASSED
+tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[RMS zero vs high] FAILED
+tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[Beat phase start vs mid] FAILED
+tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[Bass vs treble] FAILED
+tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[Low vs high spectral centroid] FAILED
+tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[No onset vs strong onset] FAILED
+tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_rms_affects_effects_on_image FAILED
+tests/visual/test_signals.py::TestSignalRouteEndToEnd::test_create_route_volume_to_ripple PASSED
+tests/visual/test_signals.py::TestSignalRouteEndToEnd::test_route_threshold_and_gain PASSED
+tests/visual/test_signals.py::TestSignalRouteEndToEnd::test_route_invert PASSED
+tests/visual/test_signals.py::TestSignalRouteEndToEnd::test_route_output_range PASSED
+tests/visual/test_signals.py::TestSignalRouteEndToEnd::test_macro_aggregation PASSED
+tests/visual/test_signals.py::TestSignalRouteEndToEnd::test_oscillator_modulation PASSED
+tests/visual/test_signals.py::TestSignalRegistrySpec::test_signal_registry_has_minimum_signals FAILED
+tests/visual/test_signals.py::TestSignalRegistrySpec::test_signal_values_respond_to_features PASSED
+tests/visual/test_sources.py::TestAllSourcesRender::test_all_sources_non_black FAILED
+tests/visual/test_sources.py::TestAllSourceParams::test_all_params_have_effect FAILED
+tests/visual/test_sources.py::TestSourceParamSweep::test_no_discontinuities PASSED
+tests/visual/test_time_sweep.py::TestSourcesAnimateOverTime::test_sources_change_over_time FAILED
+FAILED tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[Beat Phase]
+FAILED tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectSources::test_rms_bass_beat_affect_sources[Bass]
+FAILED tests/visual/test_audio_reactivity.py::TestAudioFeaturesAffectEffects::test_rms_affects_effects
+FAILED tests/visual/test_effects.py::TestAllEffectsRender::test_all_effects_non_black
+FAILED tests/visual/test_effects.py::TestAllEffectParams::test_all_params_have_effect
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[julia_set]
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[burning_ship]
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[mandelbulb]
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[julia_set_3d]
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[burning_ship_3d]
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[newton_3d]
+FAILED tests/visual/test_fractals.py::TestSourceLoadsAndRenders::test_renders_non_black[sierpinski_tetra]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kaleido_fractal:Rotation]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Center X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Center Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbrot:Julia Mix]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Dive Speed]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Location]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:C Real]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:C Imaginary]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Color Speed]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Color Shift]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set:Palette]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Dive Speed]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Location]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Center X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Center Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Color Speed]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Color Shift]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship:Palette]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Rotation]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Color Shift]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski:Palette]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Power]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Cross Section]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[mandelbulb:Slice Count]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Cross Section]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[menger_sponge:Slice Count]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Scale]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Fold Type]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Speed]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Offset]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Color Shift]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Cross Section]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Slice Count]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Trail Distance]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Trail Fade]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Slice Distance]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[kifs:Palette]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Location]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:C Real]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:C Imaginary]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[julia_set_3d:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Power]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Cross Section]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[burning_ship_3d:Slice Count]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Power]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Speed]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[newton_3d:Trail Fade]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Cross Section]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Slice Count]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Trail Distance]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Trail Fade]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Slice Distance]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[sierpinski_tetra:Palette]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Scale]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Iterations]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Angle X]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Angle Y]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Zoom]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Cross Section]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Slice Count]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Trail Distance]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Trail Fade]
+FAILED tests/visual/test_fractals.py::TestEveryParamHasEffect::test_param_changes_output[apollonian_3d:Slice Distance]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.0-sierpinski]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-mandelbrot]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-burning_ship]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.25-sierpinski]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-mandelbrot]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-burning_ship]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.5-sierpinski]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-mandelbrot]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-burning_ship]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[0.75-sierpinski]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-mandelbrot]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-burning_ship]
+FAILED tests/visual/test_fractals.py::TestZoomLooping::test_2d_zoom_not_black[1.0-sierpinski]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.1-julia_set]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.1-burning_ship]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.3-julia_set]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.3-burning_ship]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.5-julia_set]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.5-burning_ship]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.7-julia_set]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[0.7-burning_ship]
+FAILED tests/visual/test_fractals.py::TestDiveSpeedNotBlack::test_dive_not_black[1.0-burning_ship]
+FAILED tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[0.5]
+FAILED tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[0.75]
+FAILED tests/visual/test_fractals.py::TestPowerNotBlack::test_mandelbrot_power[1.0]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-mandelbulb]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-menger_sponge]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-kifs]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-julia_set_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-burning_ship_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-sierpinski_tetra]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.0-apollonian_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-mandelbulb]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-menger_sponge]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-kifs]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-julia_set_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-burning_ship_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-sierpinski_tetra]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.3-apollonian_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-menger_sponge]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-kifs]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-burning_ship_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-sierpinski_tetra]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.6-apollonian_3d]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-menger_sponge]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-kifs]
+FAILED tests/visual/test_fractals.py::Test3DZoomRange::test_3d_zoom_not_black[0.9-sierpinski_tetra]
+FAILED tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[mandelbrot]
+FAILED tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[julia_set]
+FAILED tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[burning_ship]
+FAILED tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[sierpinski]
+FAILED tests/visual/test_fractals.py::TestPaletteVariety::test_palettes_different[kifs]
+FAILED tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[RMS zero vs high]
+FAILED tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[Beat phase start vs mid]
+FAILED tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[Bass vs treble]
+FAILED tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[Low vs high spectral centroid]
+FAILED tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_feature_pair_changes_source[No onset vs strong onset]
+FAILED tests/visual/test_signals.py::TestFeatureInjectionChangesOutput::test_rms_affects_effects_on_image
+FAILED tests/visual/test_signals.py::TestSignalRegistrySpec::test_signal_registry_has_minimum_signals
+FAILED tests/visual/test_sources.py::TestAllSourcesRender::test_all_sources_non_black
+FAILED tests/visual/test_sources.py::TestAllSourceParams::test_all_params_have_effect
+FAILED tests/visual/test_time_sweep.py::TestSourcesAnimateOverTime::test_sources_change_over_time
+=========== 166 failed, 165 passed, 6 skipped in 1279.80s (0:21:19) ============

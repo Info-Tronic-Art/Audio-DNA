@@ -1,0 +1,35 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/red-main-final/fit.da0Pyu
+--- f_stretch_identity
+PASS  f_stretch_identity: A with no fitMode key vs fitMode 0 -- byte-identical=True (max |diff| 0.0; frame (756, 878))
+--- f_bars_geometry
+FAIL  f_bars_geometry: frame is 756x878, not the 1920x1080 canvas (a pre-canvas build renders at the preview panel's size -- the fit geometry cannot be measured)
+--- f_bars_transparent_lower_shows
+FAIL  f_bars_transparent_lower_shows: frame is 756x878, not the 1920x1080 canvas (a pre-canvas build renders at the preview panel's size -- the fit geometry cannot be measured)
+--- f_crop_geometry
+FAIL  f_crop_geometry: frame is 756x878, not the 1920x1080 canvas (a pre-canvas build renders at the preview panel's size -- the fit geometry cannot be measured)
+--- f_transform_after_fit
+FAIL  f_transform_after_fit: frame is 756x878, not the 1920x1080 canvas (a pre-canvas build renders at the preview panel's size -- the fit geometry cannot be measured)
+--- f_layer_transform_no_double_fit
+FAIL  f_layer_transform_no_double_fit: frame is 756x878, not the 1920x1080 canvas (a pre-canvas build renders at the preview panel's size -- the fit geometry cannot be measured)
+--- f_stretch_transform_identity
+PASS  f_stretch_transform_identity: A scale 0.5 with no key vs fitMode 0 -- byte-identical=True (frame (756, 878))
+--- f_same_aspect_identity
+PASS  f_same_aspect_identity: a 1920x1080 picture is untouched by Bars / Crop -- Bars==Stretch True, Crop==Stretch True (frame (756, 425))
+--- f_source_unaffected
+PASS  f_source_unaffected: a checkerboard Source ignores fitMode -- byte-identical required (two fitMode-0 captures are identical): d(fitMode 1, fitMode 0)=0.000, non-blank=True (frame (756, 878))
+--- f_rest_osc_set
+      REST value 1: HTTP 404  -> readback fitMode=None activeClipColumn=0; d(f1, bars)=999.00
+      REST bad request param=fitMode value=3: HTTP 404  -> readback None
+      REST bad request param=bogus value=1: HTTP 404  -> readback None
+      REST value 0: HTTP 404  -> readback None; f2 == f0 byte-identical True
+      OSC /audiodna/clip/0/1/fit 1 -> col 1 fitMode=None, activeClipColumn=1
+      OSC /audiodna/clip/0/0/fit 2 -> fitMode=None, activeClipColumn=0; d(f3, crop)=999.00
+      OSC /audiodna/clip/0/0/fit 0 -> fitMode=None, activeClipColumn=0
+FAIL  f_rest_osc_set: /api/set_clip_param and /audiodna/clip/{l}/{c}/fit flip the fit live, /api/composition reads it back, the OSC address never triggers (failures ['frame (756, 878) is not the 1920x1080 canvas -- pixel checks skipped', 'REST 1 readback None', 'bad request fitMode=3 not refused (HTTP 404, readback None)', 'bad request bogus=1 not refused (HTTP 404, readback None)', 'REST 0 readback None', 'OSC col1 readback None', 'OSC fit address TRIGGERED the clip (activeClipColumn 1)', 'OSC col0 readback None', 'OSC 0 readback None'])
+
+PY 4 PASS / 6 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-FITMODE RED

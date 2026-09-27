@@ -1,0 +1,45 @@
+### RED by absence
+--- build test_composition (Clip.h unchanged)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:234:10: error: no member named 'fitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:234:26: error: no member named 'FitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:282:20: error: no member named 'fitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:282:37: error: no member named 'FitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:282:20: error: no member named 'fitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:282:37: error: no member named 'FitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:282:20: error: no member named 'fitMode' in 'Clip'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_composition.cpp:282:37: error: no member named 'FitMode' in 'Clip'
+build exit 2
+--- compile test_clip_fit.cpp against the base src (git show 3954242 tree, no ClipFit.h)
+ls: /var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/tmp.StG3RhOz4B/src/model/ClipFit.h: No such file or directory
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:3:10: fatal error: 'model/ClipFit.h' file not found
+1 error generated.
+compile exit 1
+
+### teeth on mutated COPIES of ClipFit.h
+deliverable sha256 before: 1751d9b5c8d078e6
+=== mutant: barsRect <= -> >=
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:78: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:79: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:80: FAILED:
+with expansion:
+assertions: 54 | 41 passed | 13 failed
+=== mutant: barsRect <= -> < (plan's suggested mutant)
+All tests passed (54 assertions in 9 test cases)
+=== mutant: scale: Bars/Crop swapped
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:38: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:39: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:41: FAILED:
+with expansion:
+assertions: 54 | 39 passed | 15 failed
+=== mutant: scale: no same-aspect early return
+All tests passed (54 assertions in 9 test cases)
+=== mutant: clampMode accepts 3
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_clip_fit.cpp:127: FAILED:
+with expansion:
+test cases:  9 |  8 passed | 1 failed
+assertions: 54 | 53 passed | 1 failed
+deliverable sha256 after:  1751d9b5c8d078e6

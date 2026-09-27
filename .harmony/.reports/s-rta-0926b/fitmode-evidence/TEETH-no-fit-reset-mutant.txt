@@ -1,0 +1,16 @@
+Mutant: applyLayerTransform's glUniform1i(u_fitEnabled, 0) removed (in place), built, row run, restored.
+pre-mutation sha256 f1f75106b97945b8495bc17fa7b480b696fa264b9dfbec55ad3d6e2b024aefd7
+restored sha256     f1f75106b97945b8495bc17fa7b480b696fa264b9dfbec55ad3d6e2b024aefd7 (RESTORE OK, byte-identical), rebuilt
+
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/fit/runs/teeth-no-reset/fit.u6A6Pd
+--- f_transform_after_fit
+PASS  f_transform_after_fit: fit first, then the clip's scale 0.5 -- outside == B-only exactly=True (d 0.00), inside d(., A 465x540)=0.27 (tol 6.0)
+--- f_layer_transform_no_double_fit
+FAIL  f_layer_transform_no_double_fit: Bars clip under a layer scale 0.5 is fitted ONCE -- d(f, expected)=2.10, inside d(., A 465x540)=17.33 (tol 6.0), outside mean RGB=0.00 (<= 2.0) [d(f, stretched picture at half size)=5.58]
+
+PY 1 PASS / 1 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-FITMODE RED

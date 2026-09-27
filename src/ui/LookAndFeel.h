@@ -34,6 +34,7 @@ public:
     // Disabled-control dimming: applied by drawToggleButton() when
     // !button.isEnabled(), matching the alpha owners previously applied
     // themselves via Component::setAlpha() (RecordPanel's kDisabledAlpha).
+    // Also applied by drawComboBox() and drawLabel() (s-rta-0926b plan-fitmode).
     static constexpr float kDisabledAlpha = 0.4f;
 
     // --- Buttons ---

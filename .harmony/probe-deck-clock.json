@@ -1,0 +1,43 @@
+{
+  "_doc": "Fixtures for .harmony/probe-deck-clock.sh (s-rta-0926b plan4 item 2: decks that are not on screen keep time; plan4-final.md section 3.6). @MEDIA@ is replaced at run time with the checkout's media/ dir. JSON enum ints: Clip MediaType Image 1 / Video 2 / ImageSequence 5 (Clip.h:21), TransportMode Timeline 0, LoopMode Loop 0 (Clip.h:116/:118), AutopilotAction PlayNext 2, AutopilotDuration Beat4 3 (Clip.h:146-160). A clip's 'speed' key is loaded unguarded (Clip.cpp:214) -- every video/sequence clip here sets it to 1.0. Assertions + calibration: the docstring of .harmony/probe-deck-clock.py.",
+  "imageA": "@MEDIA@/P16_01_baseline.png",
+  "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
+  "imageC": "@MEDIA@/P16_06_Freeze.png",
+  "fade": {
+    "_why": "deck 0 L0 transitionSpeed T (a duration, s), col0 = A, col1 = B. Trigger col1 (A -> B fade), leave the deck 0.3 s later: the fade must keep running and be complete when you come back.",
+    "T": 4.0
+  },
+  "persistent": {
+    "_why": "deck 0 layer id 5 persistent Transparent fading col0 -> col1 over T while deck 1 is shown: compositePersistentLayers advances it; the inactive-deck tick must NOT advance it a second time (a double advance reads ~1.0 at T/2).",
+    "T": 4.0,
+    "range": [0.35, 0.65]
+  },
+  "pending": {
+    "_why": "deck 0 col1 has beatSnap: its trigger is queued; leaving the deck cancels it (L5). Four injected beat crossings later deck 0 must still be on col 0.",
+    "crossings": 4
+  },
+  "video": {
+    "_why": "ramp12.mp4: 12 s, 320x240, 30 fps, frame mean G = 255 * t / 12 (t = 12 * meanG / 255, +-0.15 s). Away 4 s: the playhead must be ~4 s further on return.",
+    "ffmpeg": ["-f", "lavfi", "-i", "color=c=black:s=320x240:r=30:d=12", "-vf", "geq=r='255*(1-T/12)':g='255*T/12':b='0'", "-g", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
+    "ffmpeg1080": ["-f", "lavfi", "-i", "color=c=black:s=1920x1080:r=30:d=12", "-vf", "geq=r='255*(1-T/12)':g='255*T/12':b='0'", "-g", "60", "-c:v", "libx264", "-pix_fmt", "yuv420p"],
+    "before": 2.0,
+    "away": 4.0,
+    "window": [3.5, 5.5],
+    "playheadTol": 0.06
+  },
+  "sequence": {
+    "_why": "ImageSequence [A, B] at 0.5 fps (2 s per frame, 4 s loop): 0.5 s in (showing A), away 2 s, back 0.3 s -> t ~= 2.8-3.4 s -> frame 1 = B. A frozen sequence resumes at ~1 s -> still A.",
+    "fps": 0.5,
+    "before": 0.5,
+    "away": 2.0
+  },
+  "autopilot": {
+    "_why": "deck 0 L0 autopilotEnabled, cols A B C each Beat4 / PlayNext; trigger col0, leave, 6 injected beat crossings (beatPhase 0.99 / 0.01, 100 ms apart): deck 0 must have advanced to col >= 1.",
+    "crossings": 6
+  },
+  "hitch": {
+    "_why": "deck 0 L0 = ramp12_1080.mp4 (1920x1080, GOP 60); away 5 s; the return frame's catch-up decode runs inside compositeDeck (inside frame_time_ms). REPORT; FAIL above render2's 50 ms bar.",
+    "away": 5.0,
+    "failMs": 50.0
+  }
+}

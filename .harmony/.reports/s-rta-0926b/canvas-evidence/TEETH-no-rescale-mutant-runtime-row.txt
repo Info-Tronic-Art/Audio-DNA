@@ -1,0 +1,28 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/runs/MUTANT_NORESCALE2/canvas.L8y5II
+--- c_runtime_change_keeps_history
+      c_runtime_change: set_composition_params 2560x1440 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 2560,
+  "outputHeight": 1440
+}
+      c_runtime_change: set_composition_params 1920x1080 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 1920,
+  "outputHeight": 1080
+}
+      c_runtime_change: peak_frame_time_ms [('before 1440p', 15.013999938964844), ('across 1080p -> 1440p', 4.22445821762085), ('across 1440p -> 1080p', 2.635333061218262)]
+      c_runtime_change: f0 (1920, 1080) d(f0, image)=25.54 mean(image) 139.7 (Freeze 0.98's 8-bit fixed point sits up to ~25 levels under the image -- report only)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+FAIL  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=81.76, tol 6.0)
+FAIL  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 1920x1080 and still the same picture (d(f2, f0)=81.76, tol 8.0)
+
+PY 1 PASS / 2 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS RED

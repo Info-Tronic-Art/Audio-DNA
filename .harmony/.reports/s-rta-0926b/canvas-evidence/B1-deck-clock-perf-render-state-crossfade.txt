@@ -1,0 +1,291 @@
+===== probe-deck-clock (01:14:03)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/runs/B1/dclock.ox2Q3S
+--- d_fade_finishes
+      d_fade_finishes: d(A,B)=29.43 FLOOR=1.00
+      d_fade_finishes: deck 0 L0 (t, crossfadeProgress, previousClipColumn) while away: [(0.83, 0.201407060027122, 0), (1.34, 0.330757468938828, 0), (1.85, 0.457913368940353, 0), (2.36, 0.583771109580994, 0), (2.87, 0.712017178535461, 0), (3.4, 0.839998722076416, 0), (3.9, 0.970388054847717, 0), (4.42, 1.0, -1), (4.93, 1.0, -1), (5.44, 1.0, -1)]
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.42, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+--- d_persistent_single_advance
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.50 at T/2 = 2.0 s, expected in [0.35, 0.65])
+--- d_pending_trigger_still_cancelled
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+--- d_video_keeps_time
+FAIL  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 2.40 s, t1 - t0 = 0.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.212 matches the frame (0.200 +- 0.06)
+--- d_imageseq_keeps_time
+      d_imageseq_keeps_time: d(rA, rB)=29.43 FLOOR=1.00
+FAIL  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=29.43, floor 1.00; d(f, frame A)=0.00)
+--- d_autopilot_keeps_time
+FAIL  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 0, expected >= 1)
+--- d_return_hitch
+      d_return_hitch: peak_frame_time_ms while away 12.71, across the return 8.38 (fps 101.4)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 8.38 ms; REPORT -- target <= 16)
+
+PY 7 PASS / 3 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-DECK-CLOCK RED
+===== done B1 (01:15:15)
+===== probe-canvas (01:15:15)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/runs/B1/canvas.VUbCqf
+--- c_perf_1080
+      c_perf_1080 1920x1080: fps mean 115.2 min 110.7; frame_time_ms mean 1.76 max-peak 11.04; gpu_time_ms mean 2.26 peak 8.87; temporal_buffers 1 frame_rings 2 (load avg 6.73 4.65 3.74)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 115.2 >= 58.0 and mean frame_time_ms 1.76 <= 12.0
+
+PY 1 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS GREEN
+===== done B1 (01:15:29)
+===== probe-render-state (01:15:29)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/runs/B1/rstate.5mmkeG
+--- r2_temporal
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r2_ring
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+--- r4_clip_transform
+      r4_clip_transform: d(reference, absent)=28.27 d(subject, reference)=0.00 d(subject, absent)=28.27
+PASS  r4_clip_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_clip_opacity
+      r4_clip_opacity: d(reference, absent)=9.64 d(subject, reference)=0.00 d(subject, absent)=9.64
+PASS  r4_clip_opacity: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_layer_effects
+      r4_layer_effects: d(reference, absent)=228.19 d(subject, reference)=0.00 d(subject, absent)=228.19
+PASS  r4_layer_effects: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_layer_transform
+      r4_layer_transform: d(reference, absent)=30.87 d(subject, reference)=0.00 d(subject, absent)=30.87
+PASS  r4_layer_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_feedback
+      r4_feedback: d(reference, absent)=15.01 d(subject, reference)=0.00 d(subject, absent)=15.01
+PASS  r4_feedback: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+--- r4_transition
+      r4_transition: t=0.88s p=0.09 residual=0.12 d(f,IN)=26.88
+      r4_transition: t=2.01s p=0.23 residual=0.14 d(f,IN)=22.77
+      r4_transition: t=3.15s p=0.37 residual=0.14 d(f,IN)=18.50
+      r4_transition: t=4.29s p=0.51 residual=0.13 d(f,IN)=14.33
+PASS  r4_transition: persistent layer mid-crossfade frames lie between OUT and IN (4/4): []
+PASS  r4_transition: crossfade keeps advancing while the deck is inactive (p [0.09, 0.23, 0.37, 0.51])
+PASS  r4_transition: back on its deck after T + 2 s the crossfade is complete (d(f, IN)=0.00, tol 1.5)
+--- r5_hold
+      r5_hold: frame 0 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 0 mean|RGBA|=0.00 (tol 1.5)
+      r5_hold: frame 1 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 1 mean|RGBA|=0.00 (tol 1.5)
+      r5_hold: frame 2 mean RGBA = (0.0, 0.0, 0.0, 0.0)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 2 mean|RGBA|=0.00 (tol 1.5)
+--- r5_burst
+      r5_burst id=81: 6 frames after the switch
+      r5_burst id=82: 7 frames after the switch
+      r5_burst id=83: 6 frames after the switch
+      r5_burst id=84: 6 frames after the switch
+      r5_burst id=85: 6 frames after the switch
+FAIL  r5_burst: every attempt captured >= 8 frames after the switch (short: [81, 82, 83, 84, 85])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+--- r1_temporal
+      r1_temporal: t=1.08s p~0.13 IN x<28 ratio 0.00 (d(A,B) 14.00)  OUT x>489 ratio 0.00 (d(A,B) 30.33)
+      r1_temporal: t=1.70s p~0.21 IN x<177 ratio 0.00 (d(A,B) 3.45)  OUT x>637 ratio 0.00 (d(A,B) 27.84)  [not counted]
+      r1_temporal: t=2.32s p~0.29 IN x<327 ratio 0.00 (d(A,B) 14.93)  OUT x>788 ratio 0.00 (d(A,B) 26.45)
+      r1_temporal: t=2.95s p~0.37 IN x<476 ratio 0.00 (d(A,B) 24.45)  OUT x>937 ratio 0.00 (d(A,B) 28.08)
+      r1_temporal: t=3.58s p~0.45 IN x<628 ratio 0.00 (d(A,B) 30.64)  OUT x>1089 ratio 0.00 (d(A,B) 30.41)
+      r1_temporal: t=4.23s p~0.53 IN x<783 ratio 0.00 (d(A,B) 32.41)  OUT x>1244 ratio 0.00 (d(A,B) 30.55)
+      r1_temporal: t=4.86s p~0.61 IN x<936 ratio 0.00 (d(A,B) 29.75)  OUT x>1396 ratio 0.00 (d(A,B) 29.82)
+      r1_temporal: t=5.49s p~0.69 IN x<1088 ratio 0.00 (d(A,B) 27.73)  OUT x>1549 ratio 0.00 (d(A,B) 25.75)
+      r1_temporal: t=6.13s p~0.77 IN x<1240 ratio 0.00 (d(A,B) 27.96)  OUT x>1701 ratio 0.00 (d(A,B) 11.98)
+PASS  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_control
+      r1_control: t=1.09s p~0.14 IN x<30 ratio 0.00 (d(A,B) 15.00)  OUT x>491 ratio 0.00 (d(A,B) 30.65)
+      r1_control: t=1.71s p~0.21 IN x<180 ratio 0.00 (d(A,B) 3.77)  OUT x>641 ratio 0.00 (d(A,B) 28.08)  [not counted]
+      r1_control: t=2.35s p~0.29 IN x<332 ratio 0.00 (d(A,B) 15.70)  OUT x>793 ratio 0.00 (d(A,B) 26.77)
+      r1_control: t=2.98s p~0.37 IN x<483 ratio 0.00 (d(A,B) 24.86)  OUT x>944 ratio 0.00 (d(A,B) 28.51)
+      r1_control: t=3.61s p~0.45 IN x<636 ratio 0.00 (d(A,B) 31.27)  OUT x>1097 ratio 0.00 (d(A,B) 30.82)
+      r1_control: t=4.24s p~0.53 IN x<787 ratio 0.00 (d(A,B) 32.72)  OUT x>1248 ratio 0.00 (d(A,B) 30.86)
+      r1_control: t=4.86s p~0.61 IN x<936 ratio 0.00 (d(A,B) 30.07)  OUT x>1397 ratio 0.00 (d(A,B) 30.15)
+      r1_control: t=5.49s p~0.69 IN x<1086 ratio 0.00 (d(A,B) 28.08)  OUT x>1547 ratio 0.00 (d(A,B) 26.21)
+      r1_control: t=6.11s p~0.76 IN x<1235 ratio 0.00 (d(A,B) 28.26)  OUT x>1696 ratio 0.00 (d(A,B) 12.78)
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_ring
+      r1_ring: t=1.09s p~0.14 IN x<31 ratio 0.00 (d(A,B) 14.94)  OUT x>491 ratio 0.00 (d(A,B) 30.90)
+      r1_ring: t=1.71s p~0.21 IN x<181 ratio 0.00 (d(A,B) 3.83)  OUT x>641 ratio 0.00 (d(A,B) 28.32)  [not counted]
+      r1_ring: t=2.34s p~0.29 IN x<331 ratio 0.00 (d(A,B) 15.70)  OUT x>792 ratio 0.00 (d(A,B) 27.00)
+      r1_ring: t=2.97s p~0.37 IN x<481 ratio 0.00 (d(A,B) 25.00)  OUT x>942 ratio 0.00 (d(A,B) 28.72)
+      r1_ring: t=3.60s p~0.45 IN x<632 ratio 0.00 (d(A,B) 31.33)  OUT x>1093 ratio 0.00 (d(A,B) 31.03)
+      r1_ring: t=4.23s p~0.53 IN x<785 ratio 0.00 (d(A,B) 32.96)  OUT x>1246 ratio 0.00 (d(A,B) 31.12)
+      r1_ring: t=4.87s p~0.61 IN x<937 ratio 0.00 (d(A,B) 30.27)  OUT x>1398 ratio 0.00 (d(A,B) 30.35)
+      r1_ring: t=5.50s p~0.69 IN x<1088 ratio 0.00 (d(A,B) 28.27)  OUT x>1549 ratio 0.00 (d(A,B) 26.26)
+      r1_ring: t=6.13s p~0.77 IN x<1239 ratio 0.00 (d(A,B) 28.50)  OUT x>1700 ratio 0.00 (d(A,B) 12.44)
+PASS  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+--- r1_retrigger
+      r1_retrigger: t=1.09s p~0.14 IN x<31 ratio 0.00 (d(A,B) 14.00)  OUT x>492 ratio 0.00 (d(A,B) 30.31)
+      r1_retrigger: t=1.72s p~0.21 IN x<181 ratio 0.00 (d(A,B) 3.56)  OUT x>642 ratio 0.00 (d(A,B) 27.74)  [not counted]
+      r1_retrigger: t=2.34s p~0.29 IN x<330 ratio 0.00 (d(A,B) 15.22)  OUT x>791 ratio 0.00 (d(A,B) 26.45)
+      r1_retrigger: t=2.97s p~0.37 IN x<481 ratio 0.00 (d(A,B) 24.53)  OUT x>942 ratio 0.00 (d(A,B) 28.15)
+      r1_retrigger: t=3.58s p~0.45 IN x<629 ratio 0.00 (d(A,B) 30.68)  OUT x>1090 ratio 0.00 (d(A,B) 30.42)
+      r1_retrigger: t=4.20s p~0.53 IN x<777 ratio 0.00 (d(A,B) 32.45)  OUT x>1238 ratio 0.00 (d(A,B) 30.58)
+      r1_retrigger: t=4.82s p~0.60 IN x<926 ratio 0.00 (d(A,B) 29.94)  OUT x>1387 ratio 0.00 (d(A,B) 29.90)
+      r1_retrigger: t=5.45s p~0.68 IN x<1077 ratio 0.00 (d(A,B) 27.81)  OUT x>1538 ratio 0.00 (d(A,B) 26.31)
+      r1_retrigger: t=6.08s p~0.76 IN x<1228 ratio 0.00 (d(A,B) 27.90)  OUT x>1689 ratio 0.00 (d(A,B) 13.17)
+PASS  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 8 counted frames, ratios <= 0.05): []
+--- r1_counts
+      r1_counts: frame_rings 4 -> 6 (+2), temporal_buffers 9 -> 9 (+0); peak_frame_time_ms first use 31.18, first fade 50.82
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+FAIL  r1_counts: longest frame across the first fade (spare ring created) 50.82 ms <= 50.0 ms
+--- r4_opaque_opacity
+      r4_opaque_opacity: d(reference, full)=14.57 d(subject, reference)=0.00 d(subject, full)=14.57
+PASS  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=0.00, tol 1.5)
+--- r4_opaque_overlay
+      r4_opaque_overlay: outside centre d(f, A)=0.00; centre d(f, A)=35.73
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.73 >= 5)
+--- r4_fxonly_persistent
+      r4_fxonly_persistent: d(reference, A-only)=228.66 d(subject, reference)=0.00 d(subject, A-only)=228.66
+PASS  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_fxonly_medialess
+      r4_fxonly_medialess: d(reference, A-only)=228.66 d(subject, reference)=0.00 d(subject, A-only)=228.66
+PASS  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+--- r4_mask_skipped
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+--- r4_empty_active_deck
+      r4_empty_active_deck: reference rgb 19.46, subject rgb 19.46, d(subject, reference)=0.00
+PASS  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=0.00, tol 1.5)
+
+PY 29 PASS / 2 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE RED
+===== probe-crossfade (01:21:08)
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas/runs/B1/xfade.tw1UAi
+      a_both_effected: d(A,B)=155.93 noise=0.00 FLOOR=1.00
+      a_both_effected: t=0.58s dA=15.89 dB=140.04 p=0.10
+      a_both_effected: t=0.99s dA=32.41 dB=123.53 p=0.21
+      a_both_effected: t=1.41s dA=48.22 dB=107.71 p=0.31
+      a_both_effected: t=1.83s dA=64.70 dB=91.24 p=0.41
+      a_both_effected: t=2.24s dA=80.68 dB=75.25 p=0.52
+      a_both_effected: t=2.65s dA=97.13 dB=58.81 p=0.62
+      a_both_effected: t=3.07s dA=113.07 dB=42.87 p=0.73
+PASS  a_both_effected: 7/7 mid frames strictly between OUT and IN
+PASS  a_both_effected: progress moves toward IN (0.10 -> 0.73)
+PASS  a_both_effected: final frame matches IN (d=0.00, floor 1.00)
+      b_only_incoming_effected: d(A,B)=153.21 noise=0.00 FLOOR=1.00
+      b_only_incoming_effected: t=0.57s dA=15.40 dB=137.81 p=0.10
+      b_only_incoming_effected: t=0.98s dA=31.02 dB=122.19 p=0.20
+      b_only_incoming_effected: t=1.39s dA=47.25 dB=105.96 p=0.31
+      b_only_incoming_effected: t=1.80s dA=62.70 dB=90.51 p=0.41
+      b_only_incoming_effected: t=2.20s dA=78.30 dB=74.91 p=0.51
+      b_only_incoming_effected: t=2.61s dA=93.73 dB=59.48 p=0.61
+      b_only_incoming_effected: t=3.02s dA=109.40 dB=43.81 p=0.71
+PASS  b_only_incoming_effected: 7/7 mid frames strictly between OUT and IN
+PASS  b_only_incoming_effected: progress moves toward IN (0.10 -> 0.71)
+PASS  b_only_incoming_effected: final frame matches IN (d=0.00, floor 1.00)
+      c_only_outgoing_effected: d(A,B)=32.00 noise=0.00 FLOOR=1.00
+      c_only_outgoing_effected: t=0.59s dA=3.39 dB=28.61 p=0.11
+      c_only_outgoing_effected: t=1.02s dA=6.79 dB=25.21 p=0.21
+      c_only_outgoing_effected: t=1.47s dA=10.37 dB=21.63 p=0.32
+      c_only_outgoing_effected: t=1.91s dA=13.94 dB=18.06 p=0.44
+      c_only_outgoing_effected: t=2.35s dA=17.42 dB=14.58 p=0.54
+      c_only_outgoing_effected: t=2.78s dA=20.92 dB=11.08 p=0.65
+      c_only_outgoing_effected: t=3.21s dA=24.31 dB=7.69 p=0.76
+PASS  c_only_outgoing_effected: 7/7 mid frames strictly between OUT and IN
+PASS  c_only_outgoing_effected: progress moves toward IN (0.11 -> 0.76)
+PASS  c_only_outgoing_effected: final frame matches IN (d=0.00, floor 1.00)
+      d_neither_effected: d(A,B)=29.43 noise=0.00 FLOOR=1.00
+      d_neither_effected: t=0.57s dA=2.83 dB=26.61 p=0.10
+      d_neither_effected: t=0.99s dA=5.99 dB=23.44 p=0.20
+      d_neither_effected: t=1.42s dA=9.19 dB=20.24 p=0.31
+      d_neither_effected: t=1.85s dA=12.24 dB=17.19 p=0.42
+      d_neither_effected: t=2.29s dA=15.49 dB=13.94 p=0.53
+      d_neither_effected: t=2.72s dA=18.78 dB=10.65 p=0.64
+      d_neither_effected: t=3.16s dA=21.86 dB=7.57 p=0.74
+PASS  d_neither_effected: 7/7 mid frames strictly between OUT and IN
+PASS  d_neither_effected: progress moves toward IN (0.10 -> 0.74)
+PASS  d_neither_effected: final frame matches IN (d=0.00, floor 1.00)
+      e_two_effects_each: d(A,B)=108.13 noise=0.00 FLOOR=1.00
+      e_two_effects_each: t=0.57s dA=10.94 dB=97.19 p=0.10
+      e_two_effects_each: t=1.00s dA=22.19 dB=85.94 p=0.21
+      e_two_effects_each: t=1.42s dA=33.38 dB=74.75 p=0.31
+      e_two_effects_each: t=1.84s dA=45.02 dB=63.11 p=0.42
+      e_two_effects_each: t=2.27s dA=57.01 dB=51.12 p=0.53
+      e_two_effects_each: t=2.69s dA=68.09 dB=40.03 p=0.63
+      e_two_effects_each: t=3.10s dA=79.30 dB=28.83 p=0.73
+PASS  e_two_effects_each: 7/7 mid frames strictly between OUT and IN
+PASS  e_two_effects_each: progress moves toward IN (0.10 -> 0.73)
+PASS  e_two_effects_each: final frame matches IN (d=0.00, floor 1.00)
+      f_same_source_type: d(A,B)=170.00 noise=0.00 FLOOR=1.00
+      f_same_source_type: t=0.51s dA=18.00 dB=152.00 p=0.11
+      f_same_source_type: t=0.87s dA=33.33 dB=136.67 p=0.20
+      f_same_source_type: t=1.24s dA=48.67 dB=121.33 p=0.29
+      f_same_source_type: t=1.60s dA=64.67 dB=105.33 p=0.38
+      f_same_source_type: t=1.96s dA=80.00 dB=90.00 p=0.47
+      f_same_source_type: t=2.33s dA=95.33 dB=74.67 p=0.56
+      f_same_source_type: t=2.70s dA=110.67 dB=59.33 p=0.65
+      f_same_source_type: t=3.06s dA=126.00 dB=44.00 p=0.74
+PASS  f_same_source_type: 8/8 mid frames strictly between OUT and IN
+PASS  f_same_source_type: progress moves toward IN (0.11 -> 0.74)
+PASS  f_same_source_type: final frame matches IN (d=0.00, floor 1.00)
+      k_outgoing_transform: d(A,B)=21.26 noise=0.00 FLOOR=1.00
+      k_outgoing_transform: t=0.54s dA=2.05 dB=19.21 p=0.10
+      k_outgoing_transform: t=0.93s dA=4.39 dB=16.87 p=0.21
+      k_outgoing_transform: t=1.33s dA=6.07 dB=15.19 p=0.29
+      k_outgoing_transform: t=1.72s dA=8.22 dB=13.05 p=0.39
+      k_outgoing_transform: t=2.13s dA=10.23 dB=11.03 p=0.48
+      k_outgoing_transform: t=2.53s dA=12.44 dB=8.82 p=0.59
+      k_outgoing_transform: t=2.94s dA=14.64 dB=6.63 p=0.69
+      k_outgoing_transform: t=3.35s dA=16.89 dB=4.37 p=0.79
+      k_outgoing_transform: t=0.54s on-line fit p=0.10 residual=0.49
+      k_outgoing_transform: t=0.93s on-line fit p=0.20 residual=0.36
+      k_outgoing_transform: t=1.33s on-line fit p=0.29 residual=0.28
+      k_outgoing_transform: t=1.72s on-line fit p=0.39 residual=0.21
+      k_outgoing_transform: t=2.13s on-line fit p=0.49 residual=0.28
+      k_outgoing_transform: t=2.53s on-line fit p=0.59 residual=0.20
+      k_outgoing_transform: t=2.94s on-line fit p=0.69 residual=0.16
+      k_outgoing_transform: t=3.35s on-line fit p=0.79 residual=0.11
+PASS  k_outgoing_transform: 8/8 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  k_outgoing_transform: 8/8 mid frames strictly between OUT and IN
+PASS  k_outgoing_transform: progress moves toward IN (0.10 -> 0.79)
+PASS  k_outgoing_transform: final frame matches IN (d=0.00, floor 1.00)
+      l_outgoing_opacity_effect: d(A,B)=225.59 noise=0.00 FLOOR=1.00
+      l_outgoing_opacity_effect: t=0.55s dA=22.04 dB=203.55 p=0.10
+      l_outgoing_opacity_effect: t=0.96s dA=45.13 dB=180.46 p=0.20
+      l_outgoing_opacity_effect: t=1.37s dA=68.23 dB=157.36 p=0.30
+      l_outgoing_opacity_effect: t=1.79s dA=91.95 dB=133.64 p=0.41
+      l_outgoing_opacity_effect: t=2.20s dA=114.91 dB=110.68 p=0.51
+      l_outgoing_opacity_effect: t=2.62s dA=138.10 dB=87.49 p=0.61
+      l_outgoing_opacity_effect: t=3.03s dA=161.84 dB=63.75 p=0.72
+      l_outgoing_opacity_effect: t=0.55s on-line fit p=0.10 residual=0.18
+      l_outgoing_opacity_effect: t=0.96s on-line fit p=0.20 residual=0.09
+      l_outgoing_opacity_effect: t=1.37s on-line fit p=0.30 residual=0.20
+      l_outgoing_opacity_effect: t=1.79s on-line fit p=0.41 residual=0.15
+      l_outgoing_opacity_effect: t=2.20s on-line fit p=0.51 residual=0.17
+      l_outgoing_opacity_effect: t=2.62s on-line fit p=0.61 residual=0.16
+      l_outgoing_opacity_effect: t=3.03s on-line fit p=0.72 residual=0.14
+PASS  l_outgoing_opacity_effect: 7/7 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  l_outgoing_opacity_effect: 7/7 mid frames strictly between OUT and IN
+PASS  l_outgoing_opacity_effect: progress moves toward IN (0.10 -> 0.72)
+PASS  l_outgoing_opacity_effect: final frame matches IN (d=0.00, floor 1.00)
+      g_drywet_second_effect: d(DRY,WET)=165.77 d(MIX,expected)=0.05
+PASS  g_drywet_second_effect: MIX frame non-blank
+PASS  g_drywet_second_effect: MIX == 0.50*DRY + 0.50*WET (d=0.05, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 0 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 1 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  i_layer_router_self: router frame 0 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 1 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 2 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 0 non-blank=True and == reference (d=0.22, tol 1.5)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 1 non-blank=True and == reference (d=0.22, tol 1.5)
+
+PY 35 PASS / 0 FAIL
+PASS  app terminated
+
+PROBE-CROSSFADE GREEN
+===== done B1 (01:23:35)
+RELEASED

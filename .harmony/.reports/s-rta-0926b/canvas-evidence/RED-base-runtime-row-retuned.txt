@@ -1,0 +1,13 @@
+# c_runtime_change_keeps_history (re-tuned: Freeze 0.98, settle 0.1 s) on the PRE-CHANGE app
+# (/Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app), 2026-09-27 ~01:12,
+# CANVAS_ROWS=c_runtime_change_keeps_history; output copied verbatim from the run's terminal output.
+      c_runtime_change: f0 (756, 878) d(f0, image)=25.81 mean(image) 139.7 (Freeze 0.98's 8-bit fixed point sits up to ~25 levels under the image -- report only)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+FAIL  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 756x878 and keeps the Freeze history (d(f1 resized, f0)=0.00, tol 6.0)
+FAIL  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 756x878 and still the same picture (d(f2, f0)=0.00, tol 8.0)
+
+PY 1 PASS / 2 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS RED

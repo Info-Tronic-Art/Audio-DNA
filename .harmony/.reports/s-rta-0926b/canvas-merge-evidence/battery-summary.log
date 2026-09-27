@@ -1,0 +1,312 @@
+04:28:29 LOCK ACQUIRED: canvas-merge 99971 1790497709
+HEAD 325c650; app /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app; binary sha256 bdc934f31b874462
+
+######## probe-canvas  04:28:29  load averages: 2.71 3.78 3.77  compilers: 0
+probe-canvas exit 0
+PASS  c_default_shape: a composition without outputWidth/outputHeight renders a 1920x1080 canvas (render_frame PNG 1920x1080)
+PASS  c_default_shape: the clip fills the canvas (non-blank=True, d(f, A stretched to 1920x1080)=0.01, tol 6.0)
+PASS  c_4k_shape: outputWidth 3840 / outputHeight 2160 renders a 3840x2160 canvas (render_frame PNG 3840x2160)
+PASS  c_4k_shape: the 4K picture is the 1080p picture at 4x the pixels (d(4K box-downsized, 1080p)=0.02, tol 6.0)
+PASS  c_custom_4x3: a 1024x768 composition renders a 1024x768 canvas (render_frame PNG 1024x768)
+PASS  c_custom_4x3: the clip fills the 4:3 canvas (d(f, A stretched to 1024x768)=0.01, tol 6.0)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+PASS  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=0.29, tol 6.0)
+PASS  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 1920x1080 and still the same picture (d(f2, f0)=0.01, tol 8.0)
+PASS  c_legacy_image_fit: a 600x600 image is fitted inside the 1920x1080 canvas over black, never stretched (x 0..400 mean RGB 0.00 <= 2; x 440..1480 mean R 255.0 >= 250)
+PASS  c_capture_deterministic: two captures with the same time decode to identical pixels ((1920, 1080), identical=True)
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 114.5 >= 58.0 and mean frame_time_ms 1.82 <= 12.0
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+PASS  f2_deck_transition: a deck switch with a 4 s transition shows the OUTGOING deck fading into the new one (p per trial [[0.25, 0.5], [0.25, 0.5], [0.26, 0.5]]; failures [])
+PY 15 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-CANVAS GREEN
+
+######## probe-deck-clock  04:30:14  load averages: 3.86 3.90 3.82  compilers: 0
+probe-deck-clock exit 0
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.43, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.50 at T/2 = 2.0 s, expected in [0.35, 0.65])
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+PASS  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 6.40 s, t1 - t0 = 4.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.549 matches the frame (0.533 +- 0.06)
+PASS  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=0.00, floor 1.00; d(f, frame A)=29.43)
+PASS  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 1, expected >= 1)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 14.40 ms; REPORT -- target <= 16)
+PY 10 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-DECK-CLOCK GREEN
+
+######## probe-fitmode  04:31:28  load averages: 4.02 3.94 3.83  compilers: 0
+probe-fitmode exit 0
+PASS  f_stretch_identity: A with no fitMode key vs fitMode 0 -- byte-identical=True (max |diff| 0.0; d(f, stretch oracle)=0.01)
+PASS  f_bars_geometry: A fitMode 1 = its own shape, centred, bars beside it -- d(f, bars)=0.05 (tol 6.0), band RGB L=0.00 R=0.00 (<= 2.0; alpha L=0.0 R=0.0), centre d=0.11 [d(f, stretch)=17.30]
+PASS  f_bars_transparent_lower_shows: the bars are transparent -- the lower layer (B) shows beside A: bands == B-only exactly L=True R=True (d L=0.00 R=0.00), centre d(f, B-only)=30.29 (>= 5.0)
+PASS  f_crop_geometry: A fitMode 2 fills the canvas, top and bottom cut -- d(f, crop)=0.12 (tol 6.0) [d(f, stretch)=22.36]
+PASS  f_transform_after_fit: fit first, then the clip's scale 0.5 -- outside == B-only exactly=True (d 0.00), inside d(., A 465x540)=0.27 (tol 6.0)
+PASS  f_layer_transform_no_double_fit: Bars clip under a layer scale 0.5 is fitted ONCE -- d(f, expected)=0.03, inside d(., A 465x540)=0.21 (tol 6.0), outside mean RGB=0.00 (<= 2.0) [d(f, stretched picture at half size)=4.32]
+PASS  f_stretch_transform_identity: A scale 0.5 with no key vs fitMode 0 -- byte-identical=True (frame (1920, 1080))
+PASS  f_same_aspect_identity: a 1920x1080 picture is untouched by Bars / Crop -- Bars==Stretch True, Crop==Stretch True (frame (1920, 1080))
+PASS  f_source_unaffected: a checkerboard Source ignores fitMode -- byte-identical required (two fitMode-0 captures are identical): d(fitMode 1, fitMode 0)=0.000, non-blank=True (frame (1920, 1080))
+PASS  f_rest_osc_set: /api/set_clip_param and /audiodna/clip/{l}/{c}/fit flip the fit live, /api/composition reads it back, the OSC address never triggers (failures [])
+PY 10 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-FITMODE GREEN
+
+######## probe-deck-tabs  04:32:43  load averages: 2.87 3.62 3.72  compilers: 0
+probe-deck-tabs exit 0
+PASS  R1 load_composition accepted the three-deck fixture
+PASS  R2 /api/composition reports decks[].id (0,100,101)
+PASS  R3 the three deck ids are pairwise distinct (0,100,101; the file had 0,0,0)
+PASS  R4 activeDeck == 1 (B)
+PASS  R5 switch_deck 2 -> activeDeck == 2 (C)
+PASS  R6: app quit, 0 Audio-DNA windows in the FULL window list
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas-merge/runs/decktabs-043243)
+
+######## probe-render-state  04:32:57  load averages: 2.60 3.52 3.68  compilers: 0
+probe-render-state exit 1
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r4_clip_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_clip_opacity: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_layer_effects: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_layer_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_feedback: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_transition: persistent layer mid-crossfade frames lie between OUT and IN (4/4): []
+PASS  r4_transition: crossfade keeps advancing while the deck is inactive (p [0.09, 0.23, 0.37, 0.51])
+PASS  r4_transition: back on its deck after T + 2 s the crossfade is complete (d(f, IN)=0.00, tol 1.5)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 0 mean|RGBA|=0.00 (tol 1.5)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 1 mean|RGBA|=0.00 (tol 1.5)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 2 mean|RGBA|=0.00 (tol 1.5)
+PASS  r5_burst: every attempt captured >= 8 frames after the switch (short: [])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+PASS  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+PASS  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+PASS  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 8 counted frames, ratios <= 0.05): []
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+FAIL  r1_counts: longest frame across the first fade (spare ring created) 51.86 ms <= 50.0 ms
+PASS  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=0.00, tol 1.5)
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.73 >= 5)
+PASS  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+PASS  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+PASS  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=0.00, tol 1.5)
+PY 30 PASS / 1 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-RENDER-STATE RED
+
+######## probe-crossfade  04:38:50  load averages: 3.72 3.25 3.46  compilers: 0
+probe-crossfade exit 0
+PASS  a_both_effected: 7/7 mid frames strictly between OUT and IN
+PASS  a_both_effected: progress moves toward IN (0.10 -> 0.75)
+PASS  a_both_effected: final frame matches IN (d=0.00, floor 1.00)
+PASS  b_only_incoming_effected: 7/7 mid frames strictly between OUT and IN
+PASS  b_only_incoming_effected: progress moves toward IN (0.10 -> 0.74)
+PASS  b_only_incoming_effected: final frame matches IN (d=0.00, floor 1.00)
+PASS  c_only_outgoing_effected: 7/7 mid frames strictly between OUT and IN
+PASS  c_only_outgoing_effected: progress moves toward IN (0.10 -> 0.76)
+PASS  c_only_outgoing_effected: final frame matches IN (d=0.00, floor 1.00)
+PASS  d_neither_effected: 7/7 mid frames strictly between OUT and IN
+PASS  d_neither_effected: progress moves toward IN (0.10 -> 0.74)
+PASS  d_neither_effected: final frame matches IN (d=0.00, floor 1.00)
+PASS  e_two_effects_each: 7/7 mid frames strictly between OUT and IN
+PASS  e_two_effects_each: progress moves toward IN (0.10 -> 0.76)
+PASS  e_two_effects_each: final frame matches IN (d=0.00, floor 1.00)
+PASS  f_same_source_type: 8/8 mid frames strictly between OUT and IN
+PASS  f_same_source_type: progress moves toward IN (0.11 -> 0.76)
+PASS  f_same_source_type: final frame matches IN (d=0.00, floor 1.00)
+PASS  k_outgoing_transform: 7/7 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  k_outgoing_transform: 7/7 mid frames strictly between OUT and IN
+PASS  k_outgoing_transform: progress moves toward IN (0.09 -> 0.72)
+PASS  k_outgoing_transform: final frame matches IN (d=0.00, floor 1.00)
+PASS  l_outgoing_opacity_effect: 7/7 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  l_outgoing_opacity_effect: 7/7 mid frames strictly between OUT and IN
+PASS  l_outgoing_opacity_effect: progress moves toward IN (0.10 -> 0.74)
+PASS  l_outgoing_opacity_effect: final frame matches IN (d=0.00, floor 1.00)
+PASS  g_drywet_second_effect: MIX frame non-blank
+PASS  g_drywet_second_effect: MIX == 0.50*DRY + 0.50*WET (d=0.05, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 0 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 1 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  i_layer_router_self: router frame 0 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 1 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 2 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 0 non-blank=True and == reference (d=0.22, tol 1.5)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 1 non-blank=True and == reference (d=0.22, tol 1.5)
+PY 35 PASS / 0 FAIL
+PASS  app terminated
+PROBE-CROSSFADE GREEN
+
+######## probe-effects-parity  04:41:20  load averages: 3.09 3.18 3.39  compilers: 0
+probe-effects-parity exit 0
+PASS  G1 PARITY-DOCUMENTS-GAP: /api/set_effect_chain has no dryWet field (Invert dry_wet=1.0, expected unchanged 1.0 default despite the request's "dryWet": 0.5 -- closest reachable path used instead)
+PASS  G1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 86.8) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  V1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V5 frame 0 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 1 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 2 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 3 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 4 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 5 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 0 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 1 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 2 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 3 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 4 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 5 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V6 frame 0 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 1 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 2 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 3 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 4 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 5 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 0 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 1 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 2 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 3 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 4 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 5 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  PARITY V1 vs single-chain REF1: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PASS  PARITY V5 vs single-chain REF5: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PASS  PARITY V6 vs single-chain REF6: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PY 46 PASS / 0 FAIL
+PASS  app terminated
+PROBE-EFFECTS-PARITY GREEN
+
+######## probe-routines  04:42:08  load averages: 2.56 3.03 3.32  compilers: 0
+probe-routines exit 0
+PASS  bank[0].name == Probe Routine
+PASS  bank[0].lanes == 5 (>= 4)
+PASS  bank[0].preambleEntries == 6 (>= 5)
+PASS  bank[0].lengthBeats == 16
+PASS  lastSaved.dropped == []
+PASS  bank[0].state == idle
+PASS  perturbed: L0 column 1, L0 0.1, L1 0.6, C1 Brightness 0.2
+PASS  perturbed: render_frame wrote pert.png
+PASS  perturbed: pert.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=3.354102)
+PASS  mad(ref, pert) = 64.798847 > 0.5 (the perturbation is visible)
+PASS  fire: bank[0] running 1.96 s after the fire
+PASS  restored: render_frame wrote rest.png
+PASS  restored frame captured +0.160 s after the start (before the first move at +0.6)
+PASS  fire: started on a LATER bar (startedTotalBar 15 >= 14 + 1)
+PASS  fire: waited 1.961 s (<= 2.2 s, one bar)
+PASS  fire: preambleUnresolved == 0
+PASS  fire: preambleRefused == 0
+PASS  fire: unresolved == 0
+PASS  fire: preambleFired == 6 (>= 5)
+PASS  restore: L0 back on column 0
+PASS  restore: L0 opacity 1.0 ~ 1.0
+PASS  restore: L1 opacity 1.0 ~ 1.0
+PASS  restore: C1 Brightness 0.5 ~ 0.5
+PASS  restored: rest.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=78.978754)
+PASS  mad(pert, rest) = 64.798847 > 0.5 (the restore changed the frame)
+PASS  mad(ref, rest) = 0.000000 <= 2.0 (the restored look IS the recorded look)
+PASS  grid: L0 opacity ~0.5 first at +0.59 s (expected +0.6 +/- 0.35)
+PASS  grid: L0 on column 1 first at +2.56 s (expected +2.6 +/- 0.35)
+PASS  grid: C1 Brightness ~0.9 first at +4.58 s (expected +4.6 +/- 0.35)
+PASS  grid: L0 opacity ~0.9 first at +6.54 s (expected +6.6 +/- 0.35)
+PASS  grid: the four moves arrive in the recorded order
+PASS  grid: once -- state idle after the end (idle)
+PASS  grid: once -- the last look holds (L0 opacity 0.899999976158142, column 1)
+PASS  5g: while the routine waits, L0 opacity holds the hand value 0.1 until its last beat (36 samples before T1-0.6)
+PASS  5g: over the last beat before the bar L0 opacity GLIDES 0.1 -> 1.0 (T1-0.45..T1-0.1: 9 samples, 9 strictly between 0.15 and 0.95, non-decreasing=True: [0.338, 0.414, 0.51, 0.568, 0.645, 0.683, 0.76, 0.818, 0.914])
+PASS  5g: status bank[0].glides >= 1 during the last beat and 0 from T1+0.1 on (during: ['3'], after: ['0'])
+PASS  5g: render_frame wrote mid.png 0.30 s before the bar
+PASS  5g mid-glide: mid.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=33.783625)
+PASS  5g: mid.png lies BETWEEN the two looks -- mad(pert, mid) = 24.125000 and mad(mid, rest) = 73.288326, both > 0.5 (not a cut)
+PASS  set: bank[0].loop == true
+PASS  loop: end of cycle 1 holds L0 opacity 0.9 until the return glide begins (+7.0..+7.45 s, 11 samples)
+PASS  loop: the return GLIDES 0.9 -> 1.0 over the last beat (+7.55..+7.92 s: 9 samples, 6 strictly between 0.92 and 0.98, non-decreasing=True: [0.935, 0.943, 0.952, 0.961, 0.967, 0.974, 0.983, 0.989, 0.998])
+PASS  loop: the return lands ON the loop point (first sample within 0.01 of 1.0 at +7.88 s, expected +7.80..+8.1; s-rta-0926b: widened from 7.85 after a sampling-edge miss at +7.85 vs 3/3 landings at +7.88..7.89)
+PASS  loop: the restore re-fired at the loop (L0 opacity back to 1.0 at +7.96 s)
+PASS  loop: cycle 2 replays the first move (L0 opacity 0.5 at +8.48 s)
+PASS  loop: status cycle reached 2 (>= 2)
+PASS  loop: preambleFired grew at the loop (6 -> 12)
+PASS  stop: bank[0] idle 0.077 s after the stop
+PASS  stop: after Stop a hand write of 0.42 sticks and nothing moves it (29 samples)
+PASS  re-fire: first move played (L0 opacity 0.5)
+PASS  re-fire: restarts == 1 at the next bar (0.925 s after the second fire)
+PASS  re-fire: the restart restored L0 opacity to 1.0
+PASS  re-fire: over the last beat before the restart L0 opacity GLIDES from ~0.5 toward 1.0 (0.5 s before restarts == 1: 13 samples, 10 strictly between 0.55 and 0.95, non-decreasing=True: [0.584, 0.616, 0.648, 0.701, 0.733, 0.776, 0.787, 0.84, 0.893, 0.925, 0.957, 0.989, 0.989])
+PASS  start from now: preambleFired == 0
+PASS  start from now: L0 opacity stays at the hand value 0.1 until the first move (9 samples)
+PASS  start from now: the first move lands on the grid (0.5 at +0.6 s, expected +0.6)
+PASS  stack: saved Probe Ramp to pad 2
+PASS  stack: lastSaved.slot == 1
+PASS  stack: before the second routine starts, the ramp drives L0 opacity (7 samples, 0.251999914646149..0.320537358522415)
+PASS  stack: the later restore GLIDES in over the last beat, from the ramp value toward 1.0 (T6-0.45..T6-0.05: 9 samples, non-decreasing=True, max 0.992537498474121 > 0.75: [0.53, 0.574, 0.634, 0.694, 0.754, 0.813, 0.873, 0.933, 0.993])
+PASS  stack: the later restore wins -- L0 opacity holds 1.0 after Probe Routine starts, no ramp values ([1.0])
+PASS  stack: the earlier ramp stays quiet for the rest of its gesture and after it (L0 opacity 0.5, 54 samples)
+PASS  stack: status bank[1].yielded == 1 (>= 1: the displaced gesture is counted)
+PASS  stop while pending: the routine was pending at the stop and is idle after it
+PASS  stop while pending: L0 opacity stays where the glide left it (+0.1 s 0.644805908203125, +0.6 s 0.644805908203125, strictly between 0.15 and 0.95)
+PASS  11j: POST /api/routine/set restoreStyle jump -- status bank[0].restoreStyle == jump
+PASS  11j waiting look: render_frame wrote jpre.png
+PASS  11j waiting look: jpre.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=9.551033)
+PASS  11j: while the Jump routine waits -- through its whole last beat -- L0 opacity holds the hand value 0.1 (46 samples before TJ-0.12, 0.100000001490116..0.100000001490116)
+PASS  11j: a hard cut -- no sample strictly between 0.15 and 0.95 up to TJ+0.5 (62 samples, 0 in between: [])
+PASS  11j: on the bar L0 opacity is restored to 1.0 (TJ+0.1..TJ+0.5: 10 samples, [1.0])
+PASS  11j: status bank[0].glides stays 0 across the start (['0'])
+PASS  11j: render_frame wrote jmid.png 0.30 s before the bar
+PASS  11j: 0.30 s before the bar the frame is still the waiting look -- mad(jpre, jmid) = 0.000000 <= 2.0 (nothing eased in)
+PASS  11j loop: the end of cycle 1 holds L0 opacity 0.9 through its last beat -- no return glide (+7.0..+7.9 s: 22 samples, 0.899999976158142..0.899999976158142)
+PASS  11j loop: the return cuts to 1.0 ON the loop point (first sample within 0.01 of 1.0 at +7.97 s, expected +7.9..+8.15)
+PASS  11j loop: no sample strictly between 0.92 and 0.98 around the loop point (+7.0..+8.3 s: [])
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the full window list (screen-safety law held)
+98 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas-merge/runs/routines/run-20260927-044208-2384)
+
+######## probe-manual-bpm  04:43:43  load averages: 3.02 3.07 3.30  compilers: 0
+probe-manual-bpm exit 0
+PASS  click WAV generated: 142 BPM (interval 20282 frames @ 48 kHz), 150 s
+PASS  app launched (production), /api/health answered, PID=3218
+PASS  perf/record accepted the click file (file mode, transport playing)
+PASS  A  AUTO sanity: the tracker locks on the 142 BPM click and holds 3 s (last bpm=143.86, held by 10.9 s)
+PASS  M  poller healthy: 688 polls in 20 s, 0 errors
+PASS  M  bpm stays 120.0 on every poll (seen [120.0])
+PASS  M  non-vacuous: the analysis heard the click (onsetCount +48 over the window, ~47 clicks played)
+PASS  M  beatPhase free-runs: 0 jumps (first: [])
+PASS  M  beatPhase advances at 2.000 beats/s (expect 2.00 +/- 3%)
+PASS  M  every bar lasts 2.00 s +/- 3% (9 full bars in 20 s, expect ~9): [2.011, 1.992, 2.01, 1.996, 2.008, 1.998, 1.987, 1.995, 2.003]
+PASS  S1 set_bpm 120 (the SAME value) never moves the beat: 3/3 continuous -- #1: POST at phase 0.410 (beat 3, bar 12) -> +66 ms phase 0.538 (beat 3, bar 12), step error 0.006 beat, then 1 s: 0 jumps, bpm [120.0] | #2: POST at phase 0.586 (beat 1, bar 13) -> +69 ms phase 0.714 (beat 1, bar 13), step error 0.012 beat, then 1 s: 0 jumps, bpm [120.0] | #3: POST at phase 0.402 (beat 0, bar 14) -> +65 ms phase 0.530 (beat 0, bar 14), step error 0.004 beat, then 1 s: 0 jumps, bpm [120.0]
+PASS  S2 set_bpm 128 (a CHANGED value) changes the tempo only, the beat runs on -- 120 -> 128: POST at phase 0.557 (beat 2, bar 14) -> +64 ms phase 0.693 (beat 2, bar 14), step error 0.001 beat, then 1 s: 0 jumps, bpm [128.0]
+PASS  S2 set_bpm 120 (changed back) changes the tempo only, the beat runs on -- 128 -> 120: POST at phase 0.401 (beat 1, bar 15) -> +64 ms phase 0.531 (beat 1, bar 15), step error 0.001 beat, then 1 s: 0 jumps, bpm [120.0]
+PASS  S3 OSC /audiodna/bpm 120 every 100 ms for 2 s (20 sent): the beat free-runs -- 0 jumps (first: []), bpm [120.0], totalBarCount +2 (>= 1)
+PASS  R  first poll 80 ms after the Resync is the new downbeat (beatInBar=0 barCount=0 beatPhase=0.149 origin 0 -> 17, totalBarCount=17)
+PASS  R  a single realignment: resyncBarOrigin took 1 value(s) after the POST [17]
+PASS  R  beatPhase free-runs after the Resync: 0 jumps (first: [])
+PASS  R  first bar after the Resync lands 2.010 s after the POST (expect 2.00 s + message-thread hop, [1.90, 2.12])
+PASS  R  bars after the Resync last 2.00 s +/- 3%: [1.984, 1.999, 2.022]
+PASS  R  bpm stays 120.0 (seen [120.0])
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/canvas-merge/runs/manual-bpm/run-20260927-044343-3199)
+
+BATTERY DONE 04:44:52
+Audio-DNA processes now: 0
+04:44:52 LOCK RELEASED: canvas-merge 99971 1790497709

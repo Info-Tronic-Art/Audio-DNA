@@ -35,11 +35,13 @@ R5 hold (deterministic): fresh layer id; col 1 = A + [Screen Split, Freeze 1.0].
   grey held forever (the Freeze pass drew into framebuffer 0 on the creation frame; its target kept only
   the clear); fixed build (0, 0, 0, 0).
 R5 burst (the visible symptom): 5 fresh layer ids; col 1 = A + [Freeze 0.5]; back-to-back captures across
-  the 0 -> 1 switch. PASS: no captured frame after the switch is blank, and every attempt captured >= 8
-  post-switch frames. Calibration: 6e8f120 the creation frame is fully transparent (0 / 663768 non-zero
-  pixels) and was captured in 3/3 attempts; fixed build: no blank frame. This row can only be RED when a
-  burst happens to capture the creation frame (it did 3/3 on 6e8f120); it cannot false-FAIL on a fixed
-  build. R5 hold is the deterministic row.
+  the 0 -> 1 switch, for postSwitchS (2.0 s) after it. PASS: no captured frame after the switch is blank,
+  and every attempt captured >= 8 post-switch frames. The window was 0.6 s until the plan4 canvas: a capture
+  is now the full 1920x1080 canvas (~100-118 ms here, 150-180 ms under load), so 0.6 s held only 6-7 (Harmony
+  ruling, s-rta-0926b canvas merge: widen the window, keep the 8-frame bar). Calibration: 6e8f120 the
+  creation frame is fully transparent (0 / 663768 non-zero pixels) and was captured in 3/3 attempts; fixed
+  build: no blank frame. This row can only be RED when a burst happens to capture the creation frame (it did
+  3/3 on 6e8f120); it cannot false-FAIL on a fixed build. R5 hold is the deterministic row.
 
 --- s-rta-0926b render2 (ruling .harmony/.reports/s-rta-0926b/ruling-render-forks.md; base = 858acd1) ---
 R1 (a crossfade's two clip chains share one history): one layer, OUT = col 0 = A + fx, IN = col 1 = B + fx,
@@ -351,7 +353,7 @@ def r5_burst(spec):
                 shots.append((time.time(), p if good else None)); k += 1
         th = threading.Thread(target=burst); th.start()
         time.sleep(0.35); t_trig = time.time(); trig(0, 1)
-        time.sleep(0.6); stop[0] = True; th.join()
+        time.sleep(spec["postSwitchS"]); stop[0] = True; th.join()
         post = [(t, p) for t, p in shots if t >= t_trig]
         if any(p is None for _, p in shots):
             no(f"r5_burst id={lid}: a render_frame capture failed")

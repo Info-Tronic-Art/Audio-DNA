@@ -48,6 +48,16 @@ target_link_libraries(test_clip_replace_media_retire PRIVATE Catch2::Catch2WithM
 apply_sanitizers(test_clip_replace_media_retire)
 catch_discover_tests(test_clip_replace_media_retire)
 
+# --- test_clip_fit (s-rta-0926b plan-fitmode: per-clip Stretch / Bars / Crop).
+# The pure header src/model/ClipFit.h (scale / barsRect / cropRect / clampMode);
+# CompositorEngine::applyClipTransform only consumes scale(). Headless, no JUCE,
+# registered like test_clip_replace_media_retire above.
+add_executable(test_clip_fit test_clip_fit.cpp)
+target_include_directories(test_clip_fit PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_fit PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_clip_fit)
+catch_discover_tests(test_clip_fit)
+
 # --- test_layer_transport_reverse (s-rta-0924 step3 S3-B follow-up: the
 # LayerTransport binding's pause->play toggle must not reset clip->reverse
 # the way TopBar's Play button intentionally does). Headless: mirrors
@@ -1204,6 +1214,66 @@ endif()
 apply_sanitizers(test_comp_transform_units)
 catch_discover_tests(test_comp_transform_units)
 
+# --- test_render_geometry (s-rta-0926b plan4 item 1: the composition canvas --
+# resolveCanvas / fitCanvas / ringDownscale / presentTaps in the pure header
+# src/render/RenderGeometry.h; Renderer.cpp only consumes them). Headless,
+# no GL -- registered like test_comp_transform_units above.
+add_executable(test_render_geometry test_render_geometry.cpp)
+target_include_directories(test_render_geometry PRIVATE ${SRC_DIR})
+target_link_libraries(test_render_geometry PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_render_geometry PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_render_geometry PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_render_geometry)
+catch_discover_tests(test_render_geometry)
+
+# --- test_deck_clock (s-rta-0926b plan4 item 2: decks that are not on screen
+# keep time -- DeckClock::tick / LayerClock::advanceCrossfade, pure headers in
+# src/render/; B2 adds AutopilotBank, src/model/AutopilotBank.h). Built like
+# test_compositor: real Clip / Layer / Autopilot sources, juce_core +
+# juce_graphics, no GL.
+add_executable(test_deck_clock
+    test_deck_clock.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
+)
+target_include_directories(test_deck_clock PRIVATE ${SRC_DIR})
+target_link_libraries(test_deck_clock PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_deck_clock PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_deck_clock PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_deck_clock)
+catch_discover_tests(test_deck_clock)
+
 # --- test_conn_picker (s-rta-0923 lane 3, Lane C0 scaffold: the picker ->
 # ConnSource translation, headless -- .harmony/specs/s-rta-0923-lane3-plan.md
 # sections 4.3/5. Shaped exactly like test_connection above: same source
@@ -1959,3 +2029,22 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+
+# --- test_canvas_size_combo (s-rta-0926b canvas fix round: the Composition
+# inspector's Resolution dropdown matched on width only, had no fallback and no
+# non-16:9 preset, so a 1080x1920 canvas read "1920x1080"). Header-only
+# src/ui/CanvasSizeCombo.h -- the code CompositionInspector runs -- driven on a
+# real juce::ComboBox, headless (ScopedJuceInitialiser_GUI, no window).
+add_executable(test_canvas_size_combo test_canvas_size_combo.cpp)
+target_include_directories(test_canvas_size_combo PRIVATE ${SRC_DIR})
+target_link_libraries(test_canvas_size_combo PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_canvas_size_combo PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+apply_sanitizers(test_canvas_size_combo)
+catch_discover_tests(test_canvas_size_combo)

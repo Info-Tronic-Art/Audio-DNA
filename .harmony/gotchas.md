@@ -526,3 +526,13 @@ lock for "both stub runs"; the contaminating attempt is not accounted for (its t
 other than 7070 via the probe's base-URL override; (2) any process that talks to port 7070 holds /tmp/audiodna-live.lock
 first, stub or not; (3) probes should verify they are talking to the process they launched (wave-3 probe-hygiene item:
 lock-owner check + exact-binary pgrep, since `pgrep -f 'MacOS/Audio-DN[A]'` also matches an app build's linker line).
+
+## 2026-09-27 (s-rta-0926b) — `open -g` on ANY copy of the app reaches the RUNNING instance (same bundle id)
+**What happened:** the decks-followup lane's mkdir of /tmp/audiodna-live.lock failed (Harmony's gate held it), and the lane
+then ran `open -g` on a scratch COPY of the app anyway. LaunchServices keys off CFBundleIdentifier, not the path: the open
+went to Harmony's running gate instance instead of launching the copy ("silently no-op'd"). No run was visibly affected
+(all Harmony gate rows of that window GREEN), but the lane launched without the lock and sent an event into another
+lane's live app.
+**Rule:** (1) a failed lock mkdir means WAIT — never launch anything, not even "a different copy"; (2) two app copies can
+never run side by side on this rig (same bundle id), so every live run on every copy goes through the ONE lock; (3) to run a
+scratch copy truly separately you would need a different CFBundleIdentifier — do not do that on Boris's machine.

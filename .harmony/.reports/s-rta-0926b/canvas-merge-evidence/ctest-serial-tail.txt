@@ -1,0 +1,19 @@
+== after merge commit (28d53e9 tree, before commit):
+
+100% tests passed, 0 tests failed out of 661
+
+Total Test time (real) =  11.43 sec
+
+== final (HEAD 325c650, reconfigure + rebuild first):
+        Start 658: LayerInspector Persistent toggle: enabled iff the type supports it or the flag is already set, and a cleared stale flag cannot be re-set
+658/661 Test #658: LayerInspector Persistent toggle: enabled iff the type supports it or the flag is already set, and a cleared stale flag cannot be re-set ..............................   Passed    0.04 sec
+        Start 659: CanvasSizeCombo: the dropdown never shows a size the canvas is not
+659/661 Test #659: CanvasSizeCombo: the dropdown never shows a size the canvas is not ....................................................................................................   Passed    0.04 sec
+        Start 660: CanvasSizeCombo: a selection maps back to the size it names
+660/661 Test #660: CanvasSizeCombo: a selection maps back to the size it names ...........................................................................................................   Passed    0.01 sec
+        Start 661: syphon_check_negative
+661/661 Test #661: syphon_check_negative .................................................................................................................................................   Passed    0.52 sec
+
+100% tests passed, 0 tests failed out of 661
+
+Total Test time (real) =  10.37 sec

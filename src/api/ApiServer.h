@@ -85,6 +85,8 @@ public:
     // only thing the two handlers do now.
     std::function<void(int layer, float opacity)> onSetLayerOpacity;
     std::function<void(int layer, int column, int fxIndex, int paramIndex, const std::string& paramName, float value)> onSetClipEffectParam;
+    // s-rta-0926b plan-fitmode: POST /api/set_clip_param {"param": "fitMode"} (message thread, active deck).
+    std::function<void(int layer, int column, int fitMode)> onSetClipFitMode;
     // s-rta-0925 mastersignal Step 1: same shape as onSetLayerOpacity above --
     // handleSetMasterSignal only parses/validates the request; the actual
     // write is routed through MainComponent::manualWrite.
@@ -167,6 +169,7 @@ private:
     void handleTriggerClip(const httplib::Request& req, httplib::Response& res);
     void handleTriggerColumn(const httplib::Request& req, httplib::Response& res);
     void handleSetParam(const httplib::Request& req, httplib::Response& res);
+    void handleSetClipParam(const httplib::Request& req, httplib::Response& res);
     void handleSetLayerOpacity(const httplib::Request& req, httplib::Response& res);
     void handleSetMasterSignal(const httplib::Request& req, httplib::Response& res);
     void handleSwitchDeck(const httplib::Request& req, httplib::Response& res);
