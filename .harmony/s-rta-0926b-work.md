@@ -184,3 +184,9 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
   branch; C1 one display through today's paths (fixes F3: output shows the composition), C2 N windows + menu/TopBar +
   keys, C3 hot-plug + persistence + restore; offscreen 3-context GL ctest is C1's merge gate; no gate opens a window;
   10-item Boris checklist. STARTS AFTER plan4 commit A merges. Boris Q1-Q8 relayed.
+- 01:54 routines-followup: Harmony RED on build/ (lane probe copy): routines "90 PASS / 8 FAIL" (the 11j Jump rows).
+  Merged (Stop = routines only incl. GlobalStop binding; Ease/Jump restoreStyle; 2/4-bar ctest). ctest 620/620. GREEN suite:
+  render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, mastersignal 22/0, step3 94/0,
+  tempo GREEN; routines 97/1 — the 8g "lands ON the loop point" row: first sample within 0.01 at +7.85 vs window 7.85..8.1.
+  Discriminator x3: 98/0 each, landings +7.89/+7.88/+7.88 -> sampling-edge flake (samples ~40 ms apart). Widened the new
+  row lower bound to 7.80 (still fails an early half-beat glide ~7.7 and a missing glide). NOT a regression.
