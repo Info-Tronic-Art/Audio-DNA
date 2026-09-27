@@ -1,0 +1,36 @@
+RED FIRST for the C2b tests (stamped 2026-09-27 13:56:18), lane HEAD 548e2ce (C2a) + the new test cases, app code not yet changed:
+== test_preset_manager (new R7 case) against the unchanged src/ui/PresetManager.cpp
+build exit 0
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/tests/test_preset_manager.cpp:470: FAILED:
+  CHECK( static_cast<int>(obj->getProperty("outputDisplay")) == 1 )
+with expansion:
+  3 == 1
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/tests/test_preset_manager.cpp:486: FAILED:
+  CHECK( loaded.outputDisplay == 1 )
+with expansion:
+  2 == 1
+===============================================================================
+test cases: 1 | 1 failed
+assertions: 9 | 7 passed | 2 failed
+
+== test_output_menu_model (new MenuBarModel case) against the unchanged src/ui/MenuBarModel.h
+build exit 2
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/tests/test_output_menu_model.cpp:144:9: error: no member named 'populateOutputItems' in 'AudioDNAMenuBar'
+
+== test_output_law (C2 rows) against the BASE tree (main f4507e8 src, scratch export): a binary compiled with AUDIODNA_SRC_DIR=<basetree>/src
+build exit 0
+output law: OutputManager never raises, focuses, floats or shows a window
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/tests/test_output_law.cpp:32: FAILED:
+  REQUIRE( in.good() )
+output law: no deck or composition file reaches the output code (outputDisplay,
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/tests/test_output_law.cpp:32: FAILED:
+  REQUIRE( in.good() )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w5/tests/test_output_law.cpp:226: FAILED:
+due to unexpected exception with messages:
+test cases: 13 | 11 passed | 2 failed
+assertions: 42 | 39 passed | 3 failed
+
+== test_output_law (C2 rows) on the LANE tree at C2a (OutputManager present, MainComponent unchanged)
+===============================================================================
+All tests passed (68 assertions in 13 test cases)
+

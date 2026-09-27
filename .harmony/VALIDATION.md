@@ -30,7 +30,7 @@
   before any ctest claim; baseline 203/203, re-run it, never inherit it"]
 - **SCREEN-SAFETY LAW: output-window gates are owner-attended only.**
   Never end a session with the output window open; never `pkill` the app
-  while it is open (close via `Output > "Disabled"` first, let it tear
+  while it is open (close via `Output > "All Outputs Off"` first, let it tear
   down, then quit); verify the actual screen with `screencapture -x` and
   LOOK at the image — `pgrep` returning empty does NOT prove the screen is
   clean. [ATTESTED HANDOFF.md, "SCREEN-SAFETY LAW" section]
@@ -79,6 +79,6 @@
 | SignalBar drive (headless, no human) | `.venv/bin/python tests/visual/ax_press.py "▼"` (expand -> preview DETACHES) / `"▲"` (collapse -> preview REATTACHES) | preview detaches/reattaches per the detach oracle above | [ATTESTED HANDOFF.md, RIG MECHANICS] |
 | output window level probe | `AUDIODNA_NO_SPAWN=1 .venv/bin/python -m pytest tests/visual/test_output_window_level.py -v` (attach with `AUDIODNA_NO_SPAWN=1`) | test reports the output window's on-screen level correctly | [ATTESTED HANDOFF.md — "RIG: `tests/visual/test_output_window_level.py`" x2] |
 | 4 probe states (mapping tick) | `cd tests/visual && AUDIODNA_NO_SPAWN=1 OW_PROBE_STATE=<preview\|preview_output\|signalbar\|signalbar_output> ../../.venv/bin/python -m pytest test_mapping_tick.py -v -s` | ALL 4 states pass | [ATTESTED HANDOFF.md, RIG MECHANICS] |
-| output-window menu toggle (menus only, not in-window controls) | `osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "Fullscreen: 1728x1117 (main)" of menu 1 of menu bar item "Output" of menu bar 1'` | window enters fullscreen on main display | [ATTESTED HANDOFF.md, RIG MECHANICS] — OWNER-ATTENDED ONLY per SCREEN-SAFETY LAW |
-| close output window (EOS, mandatory before ending any session with it open) | `osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "Disabled" of menu 1 of menu bar item "Output" of menu bar 1'` then `screencapture -x /tmp/eos-screen.png` and LOOK at it | window closes; screenshot shows a clean screen, no black overlay/TCC dialog/stuck window | [ATTESTED HANDOFF.md, SCREEN-SAFETY LAW section] — OWNER-ATTENDED ONLY |
+| output-window menu toggle (menus only, not in-window controls) | `osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "Display 1 (1728x1117, main)" of menu 1 of menu bar item "Output" of menu bar 1'` | window covers the main display (a toggle: the item ticks) | [ATTESTED HANDOFF.md, RIG MECHANICS] — OWNER-ATTENDED ONLY per SCREEN-SAFETY LAW |
+| close output window (EOS, mandatory before ending any session with it open) | `osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "All Outputs Off" of menu 1 of menu bar item "Output" of menu bar 1'` then `screencapture -x /tmp/eos-screen.png` and LOOK at it | every output window closes; screenshot shows a clean screen, no black overlay/TCC dialog/stuck window | [ATTESTED HANDOFF.md, SCREEN-SAFETY LAW section] — OWNER-ATTENDED ONLY |
 | existence checks (file targets referenced above) | `ls tests/visual/test_output_window_level.py tests/visual/ax_press.py` | both files listed, no "No such file" | [RAN] both present on 2026-09-04 |

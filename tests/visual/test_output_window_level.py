@@ -22,7 +22,7 @@ WHAT IT PROVES
     THIS PROBE IS EXPECTED TO FAIL (exit 1) AGAINST TODAY'S CODE. That failure
     is the deliverable. It passes once the main-display path stops asking for
     always-on-top. (Boris's ruling keeps always-on-top for NON-main displays;
-    this probe only ever opens and measures the "(main)" display item, so it
+    this probe only ever opens and measures the ", main)" display item, so it
     does not contradict that ruling.)
 
 SCREEN SAFETY
@@ -41,8 +41,8 @@ SCREEN SAFETY
         waiting for NSWorkspace to notice an app that was in fact alive and
         healthy, declared "nothing was ever opened", skipped teardown and left
         an orphan running);
-      * teardown escalates: Output menu "Disabled" -> Escape key -> SIGTERM
-        -> SIGKILL. Killing the process provably removes the window (the app
+      * teardown escalates: Output menu "All Outputs Off" -> the panic chord
+        Cmd+Shift+Esc -> SIGTERM -> SIGKILL. Killing the process provably removes the window (the app
         creates no OS-level artifact that can outlive it — see
         "NO OS-LEVEL ARTIFACT SURFACE" in .harmony/black-overlay-rootcause.md);
       * a watchdog thread hard-kills whatever this run launched, and exits the
@@ -134,14 +134,16 @@ APP_NAME = "Audio-DNA"
 EXPECTED_LAYER = 0        # NSNormalWindowLevel   -> Managed -> one Space
 FLOATING_LAYER = 3        # NSFloatingWindowLevel -> Transient -> all Spaces
 
-# Output menu, src/ui/MenuBarModel.cpp:125-143 (menu name "Output",
-# getMenuBarNames() line 10). The fullscreen item label is built at runtime
-# from the display's totalArea — "Fullscreen: <W>x<H> (main)" for the main
-# display (MenuBarModel.cpp:135-142) — so it is DISCOVERED, never hardcoded.
+# Output menu, src/ui/MenuBarModel.cpp case 6 (menu name "Output",
+# getMenuBarNames()). Since s-rta-0927 outputs-c2 (plan5 slice C2) its items
+# come from src/output/OutputMenuModel.h buildOutputMenu(): one tickable item
+# per display, "Display <N> (<W>x<H>, main)" for the main display, then
+# "All Outputs Off". The display label is built at runtime from the display's
+# totalArea, so it is DISCOVERED, never hardcoded.
 OUTPUT_MENU = "Output"
-DISABLED_ITEM = "Disabled"          # MenuBarModel.cpp:127 -> closeOutput()
-FULLSCREEN_PREFIX = "Fullscreen: "
-MAIN_SUFFIX = "(main)"
+DISABLED_ITEM = "All Outputs Off"   # OutputMenuModel.h -> OutputManager::closeAll()
+FULLSCREEN_PREFIX = "Display "
+MAIN_SUFFIX = ", main)"
 
 # --- budgets ---------------------------------------------------------------
 
@@ -695,7 +697,7 @@ end tell
 
 
 def _discover_main_fullscreen_item(pid: int) -> str:
-    """Discover the 'Fullscreen: <W>x<H> (main)' item name from the live menu.
+    """Discover the 'Display <N> (<W>x<H>, main)' item name from the live menu.
 
     Tries a plain AX read first, then a read with the menu physically opened
     (see `force_open`). Never hardcodes a resolution.
@@ -716,7 +718,7 @@ def _discover_main_fullscreen_item(pid: int) -> str:
 
 
 def _pick_main_fullscreen_item(items: List[str]) -> str:
-    """Pick the 'Fullscreen: <W>x<H> (main)' item out of the live menu.
+    """Pick the 'Display <N> (<W>x<H>, main)' item out of the live menu.
 
     Raises:
         ProbeBlocked: If no main-display fullscreen item is present.
@@ -725,7 +727,7 @@ def _pick_main_fullscreen_item(items: List[str]) -> str:
         if name.startswith(FULLSCREEN_PREFIX) and name.endswith(MAIN_SUFFIX):
             return name
     raise ProbeBlocked(
-        "No 'Fullscreen: <WxH> (main)' item in the Output menu. Items seen: "
+        "No 'Display <N> (<WxH>, main)' item in the Output menu. Items seen: "
         f"{items!r}"
     )
 
@@ -746,14 +748,17 @@ end tell
 
 
 def _press_escape(pid: int) -> None:
-    """Send Escape to the app (OutputWindow::keyPressed, OutputWindow.cpp:349-358
-    hides the window — a weaker close than the menu, used only as a fallback)."""
+    """Send the panic chord Cmd+Shift+Esc to the app (MainComponent::keyPressed
+    -> OutputManager::closeAll(), destroys every output window — used only as
+    a fallback). Plain Esc no longer touches outputs (plan5 Q2), and the output
+    window never has the keyboard (windowIgnoresKeyPresses), so the chord goes
+    to the app window."""
     script = f"""
 tell application "System Events"
     set targetProc to first process whose unix id is {pid}
     set frontmost of targetProc to true
     delay 0.3
-    key code 53
+    keystroke (ASCII character 27) using {{command down, shift down}}
 end tell
 """
     _osascript(script)
@@ -813,9 +818,10 @@ def _close_output_window(pid: int) -> str:
     """Close the output window, escalating until the screen is clean.
 
     Ladder (each rung verified against CGWindowList, never assumed):
-        1. Output menu > "Disabled"  (MenuBarModel.cpp:127 -> closeOutput()
-           -> MainComponent.cpp:2523-2530, destroys the window)
-        2. Escape key                (OutputWindow.cpp:349-358, hides it)
+        1. Output menu > "All Outputs Off"  (OutputMenuModel.h ->
+           OutputManager::closeAll(), destroys every output window)
+        2. Cmd+Shift+Esc panic chord  (MainComponent::keyPressed ->
+           OutputManager::closeAll())
         3. SIGTERM / SIGKILL the app (process death removes the window)
 
     Returns:
@@ -836,14 +842,14 @@ def _close_output_window(pid: int) -> str:
                 return f'closed via Output > "{DISABLED_ITEM}" (attempt {attempt})'
             _say(f"[teardown] window still up after close attempt {attempt}")
 
-    _say("[teardown] menu close failed — trying Escape")
+    _say("[teardown] menu close failed — trying Cmd+Shift+Esc")
     try:
         _press_escape(pid)
     except ProbeBlocked as exc:
-        _say(f"[teardown] Escape failed: {exc}")
+        _say(f"[teardown] Cmd+Shift+Esc failed: {exc}")
     else:
         if _wait_for_output_window_gone(pid, WINDOW_GONE_TIMEOUT_S):
-            return "closed via Escape (window hidden, app state may be desynced)"
+            return "closed via Cmd+Shift+Esc (OutputManager::closeAll)"
 
     _say("[teardown] UI close failed — terminating the app to clear the screen")
     result = _terminate_app(pid)
@@ -1226,7 +1232,31 @@ def _measure(pid: int) -> None:
             f"[measure] WARNING: {len(matches)} windows titled "
             f"{OUTPUT_WINDOW_NAME!r} owned by pid {pid} — measuring the first."
         )
+    _say_focused_window(pid)
     _assert_normal_level(matches[0])
+
+
+def _say_focused_window(pid: int) -> None:
+    """INFO, never a gate (plan5 10.2): the app's AXFocusedWindow after the
+    output opened should NOT be the output window — it can never become the
+    key window (OutputWindow carries windowIgnoresKeyPresses)."""
+    script = f"""
+tell application "System Events"
+    set targetProc to first process whose unix id is {pid}
+    try
+        return name of (value of attribute "AXFocusedWindow" of targetProc)
+    on error errMsg
+        return "<unreadable: " & errMsg & ">"
+    end try
+end tell
+"""
+    try:
+        name = _osascript(script)
+    except ProbeBlocked as exc:
+        name = f"<unreadable: {exc}>"
+    note = ("the OUTPUT window (unexpected: it must never be key)" if name == OUTPUT_WINDOW_NAME
+            else "not the output window (expected)")
+    _say(f"  AXFocusedWindow: {name!r} -> {note}  [INFO, not a gate]")
 
 
 # ===========================================================================

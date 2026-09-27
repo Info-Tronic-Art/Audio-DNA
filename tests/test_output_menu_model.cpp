@@ -136,6 +136,51 @@ TEST_CASE("addOutputMenuItems: the PopupMenu both doors show", "[output_menu_mod
     CHECK(f[3].shortcut == "Cmd+Shift+Esc");
 }
 
+TEST_CASE("the menu bar's Output menu is built from the item list (All Outputs Off, no Fullscreen items)",
+          "[output_menu_model]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    AudioDNAMenuBar bar;
+    bar.populateOutputItems = [](juce::PopupMenu& m) {
+        output::addOutputMenuItems(m, output::buildOutputMenu({ kLaptop, kProjector, kTv }, { false, true, false }, 1,
+                                                              C::kOutputFullscreenBase, C::kOutputDisabled),
+                                   C::kOutputDisabled);
+    };
+    const auto names = bar.getMenuBarNames();
+    const int outputIndex = names.indexOf("Output");
+    REQUIRE(outputIndex == 6);
+    const auto f = flatten(bar.getMenuForIndex(outputIndex, "Output"));
+
+    std::vector<Flat> items;   // separators dropped
+    for (const auto& x : f)
+        if (!x.separator)
+            items.push_back(x);
+    REQUIRE(items.size() == 8);
+    CHECK(items[0].text == "Display 1 (1728x1117, main)");
+    CHECK(items[0].id == C::kOutputFullscreenBase);
+    CHECK(items[1].text == "Display 2 (1920x1080)");
+    CHECK(items[1].ticked);
+    CHECK(items[2].text == "Display 3 (1920x1080)");
+    CHECK(items[3].text == "All Outputs Off");
+    CHECK(items[3].id == C::kOutputDisabled);
+    // Snapshot / Recording / Syphon unchanged, ids unchanged.
+    CHECK(items[4].text == "Snapshot");
+    CHECK(items[4].id == C::kOutputSnapshot);
+    CHECK(items[5].text == "Start Recording");
+    CHECK(items[6].text == "Stop Recording");
+    CHECK(items[7].text == "Syphon Output");
+    CHECK(items[7].id == C::kOutputSyphon);
+    // The exact list above already rules out the retired close item (ids unchanged, the label now "All Outputs Off");
+    // no retired per-display "Fullscreen: WxH" item either.
+    for (const auto& x : items)
+        CHECK_FALSE(x.text.startsWith("Fullscreen: "));
+    // The enum is untouched in C2 (plan5 section 11): no existing id moved.
+    CHECK(static_cast<int>(C::kOutputDisabled) == 1600);
+    CHECK(static_cast<int>(C::kOutputFullscreenBase) == 1601);
+    CHECK(static_cast<int>(C::kOutputWindowed) == 1690);
+    CHECK(static_cast<int>(C::kOutputSyphon) == 1696);
+}
+
 TEST_CASE("the output keys (plan5 7.2-7.3), from KeyPress descriptions -- no key is ever pressed",
           "[output_menu_model]")
 {

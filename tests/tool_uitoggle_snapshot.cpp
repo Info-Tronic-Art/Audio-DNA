@@ -16,6 +16,9 @@
 #include "ui/RecordPanel.h"
 #include "features/FeatureBus.h"
 #include "model/Composition.h"
+#include "output/OutputMenuModel.h"
+#include "ui/MenuBarModel.h"
+#include <algorithm>
 #include <iostream>
 
 namespace
@@ -29,6 +32,62 @@ namespace
         if (!stream.openedOk())
             return false;
         return png.writeImageToStream(image, stream);
+    }
+
+    // s-rta-0927 outputs-c2: a PopupMenu drawn row by row with the app LookAndFeel's own popup painters
+    // (drawPopupMenuBackground / drawPopupMenuItem -- what JUCE's PopupMenu window paints for the TopBar
+    // "Outputs" button). The menu-bar door is the native macOS NSMenu: same titles, ids and ticks, drawn by macOS.
+    bool writeMenu(const juce::PopupMenu& menu, juce::LookAndFeel& laf, const juce::File& out)
+    {
+        std::vector<juce::PopupMenu::Item> items;
+        std::vector<int> heights;
+        int width = 0;
+        for (juce::PopupMenu::MenuItemIterator it(menu); it.next();)
+        {
+            const auto& i = it.getItem();
+            int w = 0, h = 0;
+            laf.getIdealPopupMenuItemSize(i.text, i.isSeparator, -1, w, h);
+            width = std::max(width, w + (i.shortcutKeyDescription.isNotEmpty() ? 110 : 0));
+            items.push_back(i);
+            heights.push_back(h);
+        }
+        int total = 8;
+        for (int h : heights)
+            total += h;
+        width += 24;
+        juce::Image image(juce::Image::ARGB, width, total, true);
+        {
+            juce::Graphics g(image);
+            laf.drawPopupMenuBackground(g, width, total);
+            int y = 4;
+            for (size_t k = 0; k < items.size(); ++k)
+            {
+                const auto& i = items[k];
+                laf.drawPopupMenuItem(g, { 0, y, width, heights[k] }, i.isSeparator, i.isEnabled, false, i.isTicked,
+                                      false, i.text, i.shortcutKeyDescription, nullptr, nullptr);
+                y += heights[k];
+            }
+        }
+        juce::PNGImageFormat png;
+        out.deleteFile();
+        juce::FileOutputStream stream(out);
+        return stream.openedOk() && png.writeImageToStream(image, stream);
+    }
+
+    void printMenu(const juce::String& title, const juce::PopupMenu& menu)
+    {
+        std::cout << title << "\n";
+        for (juce::PopupMenu::MenuItemIterator it(menu); it.next();)
+        {
+            const auto& i = it.getItem();
+            if (i.isSeparator)
+                std::cout << "  ----\n";
+            else
+                std::cout << "  [" << (i.isTicked ? "x" : " ") << "] " << i.text << "  (id " << i.itemID
+                          << (i.isEnabled ? "" : ", disabled")
+                          << (i.shortcutKeyDescription.isNotEmpty() ? ", " + i.shortcutKeyDescription : juce::String())
+                          << ")\n";
+        }
     }
 }
 
@@ -120,9 +179,68 @@ int main(int argc, char* argv[])
         }
     }
 
+    // s-rta-0927 outputs-c2: the TopBar "Outputs" button with 0 / 1 / 2 live outputs, set through
+    // TopBar::setLiveOutputCount -- the call OutputManager::onLiveCountChanged makes. No window is opened.
+    for (int n : { 0, 1, 2 })
+    {
+        Composition comp;
+        comp.initDefault();
+        FeatureBus bus;
+        TopBar bar(bus, comp);
+        bar.setSize(1728, 40);
+        bar.setLiveOutputCount(n);
+        const auto name = "topbar-outputs-" + juce::String(n) + "-headless.png";
+        if (!writeSnapshot(bar, outDir.getChildFile(name)))
+        {
+            std::cerr << "failed to write " << name << "\n";
+            ok = false;
+        }
+    }
+
+    // The output item list the model builds for a FAKE 3-display set (main flagged, Display 2 live), as the TopBar
+    // button's PopupMenu, and the whole Output menu of the menu bar built from the same list.
+    {
+        using C = AudioDNAMenuBar::CommandID;
+        const std::vector<output::DisplayInfo> fake { { 0, 0, 1728, 1117, 2.0, true },
+                                                      { 1728, 0, 1920, 1080, 1.0, false },
+                                                      { -3840, 0, 3840, 2160, 1.0, false } };
+        const auto items = output::buildOutputMenu(fake, { false, true, false }, 1, C::kOutputFullscreenBase,
+                                                   C::kOutputDisabled);
+        juce::PopupMenu topBarMenu;
+        output::addOutputMenuItems(topBarMenu, items, C::kOutputDisabled);
+        printMenu("TopBar Outputs button menu (fake 3-display set):", topBarMenu);
+        if (!writeMenu(topBarMenu, laf, outDir.getChildFile("outputs-menu-fake3-headless.png")))
+        {
+            std::cerr << "failed to write outputs-menu-fake3-headless.png\n";
+            ok = false;
+        }
+        AudioDNAMenuBar bar;
+        bar.populateOutputItems = [&items](juce::PopupMenu& m) { output::addOutputMenuItems(m, items, C::kOutputDisabled); };
+        const auto outputMenu = bar.getMenuForIndex(6, "Output");
+        printMenu("Menu bar > Output (fake 3-display set):", outputMenu);
+        if (!writeMenu(outputMenu, laf, outDir.getChildFile("output-menubar-fake3-headless.png")))
+        {
+            std::cerr << "failed to write output-menubar-fake3-headless.png\n";
+            ok = false;
+        }
+
+        // This machine's REAL displays (juce::Desktop -- a read, no window), nothing live: the titles the app's
+        // Output menu shows on this rig.
+        std::vector<output::DisplayInfo> real;
+        for (const auto& d : juce::Desktop::getInstance().getDisplays().displays)
+            real.push_back({ d.totalArea.getX(), d.totalArea.getY(), d.totalArea.getWidth(), d.totalArea.getHeight(),
+                             d.scale, d.isMain });
+        const auto realItems = output::buildOutputMenu(real, {}, 0, C::kOutputFullscreenBase, C::kOutputDisabled);
+        AudioDNAMenuBar realBar;
+        realBar.populateOutputItems = [&realItems](juce::PopupMenu& m) {
+            output::addOutputMenuItems(m, realItems, C::kOutputDisabled);
+        };
+        printMenu("Menu bar > Output (this machine's displays, nothing live):", realBar.getMenuForIndex(6, "Output"));
+    }
+
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
 
     if (ok)
-        std::cout << "wrote 5 PNGs to " << outDir.getFullPathName() << "\n";
+        std::cout << "wrote 10 PNGs to " << outDir.getFullPathName() << "\n";
     return ok ? 0 : 1;
 }

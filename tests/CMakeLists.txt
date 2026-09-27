@@ -2198,6 +2198,7 @@ add_executable(tool_uitoggle_snapshot
     ${SRC_DIR}/ui/RecordPanel.cpp
     ${SRC_DIR}/ui/LookAndFeel.cpp
     ${SRC_DIR}/features/FeatureBus.cpp
+    ${SRC_DIR}/ui/MenuBarModel.cpp
 )
 target_include_directories(tool_uitoggle_snapshot PRIVATE ${SRC_DIR})
 target_link_libraries(tool_uitoggle_snapshot PRIVATE
@@ -2290,9 +2291,12 @@ endif()
 
 # --- test_output_menu_model (s-rta-0927 outputs-c2 = plan5 C2, plan5-final.md 10.1): the ONE output item list (the
 # Output menu and the TopBar "Outputs" button), the button text and the output keys (built from KeyPress
-# descriptions -- no key is ever pressed). Headless: no window, no GL, no Desktop; the code under test is
-# src/output/OutputMenuModel.h.
-add_executable(test_output_menu_model test_output_menu_model.cpp)
+# descriptions -- no key is ever pressed) and the menu bar's Output menu built from the list. Headless: no window,
+# no GL, no Desktop; the code under test is src/output/OutputMenuModel.h and src/ui/MenuBarModel.cpp (case 6).
+add_executable(test_output_menu_model
+    test_output_menu_model.cpp
+    ${SRC_DIR}/ui/MenuBarModel.cpp
+)
 target_include_directories(test_output_menu_model PRIVATE ${SRC_DIR})
 target_link_libraries(test_output_menu_model PRIVATE
     Catch2::Catch2WithMain

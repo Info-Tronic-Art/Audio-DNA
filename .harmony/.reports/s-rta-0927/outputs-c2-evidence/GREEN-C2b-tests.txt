@@ -1,0 +1,10 @@
+GREEN C2b (stamped 2026-09-27 13:57:02), lane tree with the C2b change:
+== test_preset_manager R7
+All tests passed (9 assertions in 1 test case)
+
+== test_output_menu_model
+All tests passed (160 assertions in 6 test cases)
+
+== test_output_law
+All tests passed (68 assertions in 13 test cases)
+

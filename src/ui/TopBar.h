@@ -64,8 +64,10 @@ public:
     juce::String masterSignalLabelTextForTest() const { return masterSignalLabel_.getText(); }
     juce::Rectangle<int> masterLabelBoundsForTest() const { return masterLabel_.getBounds(); }
 
-    // Access display selector
-    juce::ComboBox& getDisplaySelector() { return displaySelector_; }
+    // The "Outputs" button (s-rta-0927 outputs-c2 = plan5 C2): MainComponent wires its click to the output item
+    // list (OutputManager::populateMenu); setLiveOutputCount sets its text ("Outputs: Off" / "Outputs: N").
+    juce::TextButton& getOutputsButton() { return outputsButton_; }
+    void setLiveOutputCount(int liveCount);
 
 private:
     void timerCallback() override;
@@ -135,9 +137,8 @@ private:
     ResettableSlider masterLevelSlider_;
     bool masterDragging_ = false;   // s-rta-0925 link: sync skips while dragging
 
-    // === Output ===
-    juce::Label outputLabel_{"", "Output:"};
-    juce::ComboBox displaySelector_;
+    // === Outputs (plan5 C2: one button; the combo and its "Output:" label are gone) ===
+    juce::TextButton outputsButton_;
 
     // === Stats ===
     juce::Label fpsLabel_;

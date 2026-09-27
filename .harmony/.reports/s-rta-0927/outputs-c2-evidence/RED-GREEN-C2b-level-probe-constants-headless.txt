@@ -1,0 +1,8 @@
+Level-probe constants update: RED = the OLD constants (main f4507e8) REFUSE the new Output menu; GREEN = the new constants find it. No window opened, no input: the level probe's pure picker is imported, every launching/driving function replaced by a raise first. Stamped 2026-09-27 13:59:00.
+Output menu titles fed to the level probe (tool_uitoggle_snapshot: MenuBarModel case 6 built from this machine's displays, C2b code): ['Display 1 (1728x1117, main)', 'All Outputs Off', 'Snapshot', 'Start Recording', 'Stop Recording', 'Syphon Output']
+== OLD main f4507e8: DISABLED_ITEM='Disabled' FULLSCREEN_PREFIX='Fullscreen: ' MAIN_SUFFIX='(main)'
+   open item  -> REFUSES (ProbeBlocked -> the probe exits BLOCKED before opening anything): No 'Fullscreen: <WxH> (main)' item in the Output menu. Items seen: ['Display 1 (1728x1117, main)', 'All Outputs Off', 'Snapshot', 'Start Recording', 'Stop Recording', 'Syphon Output']
+   close item -> ABSENT (teardown rung 1 would fail): 'Disabled'
+== NEW lane: DISABLED_ITEM='All Outputs Off' FULLSCREEN_PREFIX='Display ' MAIN_SUFFIX=', main)'
+   open item  -> PICKS 'Display 1 (1728x1117, main)'
+   close item -> PRESENT: 'All Outputs Off'

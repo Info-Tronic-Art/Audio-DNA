@@ -8,6 +8,9 @@
 //     asks for focus; the constructor checks the peer's flag in every build type (a jassert alone is a Release
 //     no-op) and re-adds the window to the desktop if it is missing;
 //   - bounds before visible (the GL context attaches once, already at display size).
+// From plan5 C2 (s-rta-0927 outputs-c2) the law also covers src/output/OutputManager.{h,cpp}, the one owner of the
+// output windows: it never raises, focuses, floats or shows a window itself (only OutputWindow::openOnDisplay shows
+// one, bounds first), and no deck/composition file's "outputDisplay" reaches the output code (plan5 R7).
 // The files are read at test time from AUDIODNA_SRC_DIR; comments and string literals are stripped and all
 // whitespace removed before matching, so a comment that NAMES a forbidden call is not a violation and
 // "toFront (true)" is.
@@ -53,6 +56,31 @@ std::string codeOnly(const std::string& s)
             case Block: if (c == '*' && n == '/') { st = Code; ++i; } break;
             case Str: if (c == '\\') ++i; else if (c == '"') { st = Code; out += '"'; } break;
             case Chr: if (c == '\\') ++i; else if (c == '\'') { st = Code; out += '\''; } break;
+        }
+    }
+    return out;
+}
+
+// Comments removed and whitespace removed, string literal CONTENTS KEPT (a JSON key read by name must be seen).
+std::string codeWithStrings(const std::string& s)
+{
+    std::string out;
+    enum { Code, Line, Block, Str, Chr } st = Code;
+    for (size_t i = 0; i < s.size(); ++i)
+    {
+        const char c = s[i], n = i + 1 < s.size() ? s[i + 1] : '\0';
+        switch (st)
+        {
+            case Code:
+                if (c == '/' && n == '/') { st = Line; ++i; }
+                else if (c == '/' && n == '*') { st = Block; ++i; }
+                else { if (c == '"') st = Str; else if (c == '\'') st = Chr;
+                       if (c != ' ' && c != '\t' && c != '\n' && c != '\r') out += c; }
+                break;
+            case Line: if (c == '\n') st = Code; break;
+            case Block: if (c == '*' && n == '/') { st = Code; ++i; } break;
+            case Str: out += c; if (c == '\\' && i + 1 < s.size()) out += s[++i]; else if (c == '"') st = Code; break;
+            case Chr: out += c; if (c == '\\' && i + 1 < s.size()) out += s[++i]; else if (c == '\'') st = Code; break;
         }
     }
     return out;
@@ -167,4 +195,34 @@ TEST_CASE("output law: bounds before visible -- every setVisible(true) follows a
     }
     INFO("the window is shown somewhere (a setVisible(true) exists)");
     CHECK(count >= 1);
+}
+
+// ---- plan5 C2 (s-rta-0927 outputs-c2): the output windows' one owner, OutputManager ----
+
+TEST_CASE("output law: OutputManager never raises, focuses, floats or shows a window itself", "[output_law]")
+{
+    const std::string h = codeOnly(readFile("output/OutputManager.h"));
+    const std::string cpp = codeOnly(readFile("output/OutputManager.cpp"));
+    for (const char* token : { "setAlwaysOnTop(true)", "NSFloatingWindowLevel", "setKioskModeComponent", "setFullScreen(true)",
+                               "toggleFullScreen", "toFront(true)", "grabKeyboardFocus", "setWantsKeyboardFocus(true)",
+                               "setVisible(true)" })
+    {
+        INFO("src/output/OutputManager.{h,cpp} must never contain `" << token << "` (comments excluded) -- a window is "
+             "shown only by OutputWindow::openOnDisplay (bounds first, ordered front, never key)");
+        CHECK(h.find(token) == std::string::npos);
+        CHECK(cpp.find(token) == std::string::npos);
+    }
+    INFO("OutputManager opens a window through OutputWindow::openOnDisplay");
+    CHECK(cpp.find("->openOnDisplay(") != std::string::npos);
+}
+
+TEST_CASE("output law: no deck or composition file reaches the output code (outputDisplay, plan5 R7)", "[output_law]")
+{
+    // An old deck/composition saved with an output open must never open one on load: the output code -- the
+    // manager and the MainComponent that wires it -- never names the file key or the struct field.
+    for (const char* rel : { "output/OutputManager.h", "output/OutputManager.cpp", "MainComponent.h", "MainComponent.cpp" })
+    {
+        INFO("src/" << rel << " must never read `outputDisplay` (comments excluded, string literals included)");
+        CHECK(codeWithStrings(readFile(rel)).find("outputDisplay") == std::string::npos);
+    }
 }

@@ -374,8 +374,9 @@ curl -s -m 12 -w "%{http_code} %{time_total}" -X POST \
 .venv/bin/python tests/visual/ax_press.py "▲"    # collapse -> preview REATTACHES
 # output window: MENUS work via AppleScript (in-window controls do NOT):
 osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click \
-  menu item "Fullscreen: 1728x1117 (main)" of menu 1 of menu bar item "Output" of menu bar 1'
-# ...and close it via Output > "Disabled" (Cmd+F / Escape get swallowed).
+  menu item "Display 1 (1728x1117, main)" of menu 1 of menu bar item "Output" of menu bar 1'
+# ...and close it via Output > "All Outputs Off" (or Cmd+Shift+Esc; since plan5 C2 plain Esc
+# no longer touches outputs). The item names come from src/output/OutputMenuModel.h.
 # the 4 probe states:
 cd tests/visual && AUDIODNA_NO_SPAWN=1 \
   OW_PROBE_STATE=<preview|preview_output|signalbar|signalbar_output> \
@@ -639,7 +640,8 @@ The last observed app state was: output window OPEN (fullscreen on main) + Signa
    non-fullscreen display. Check how OutputWindow chooses its display and bounds, and
    whether it creates one window per screen.
 2. **The window is not actually destroyed on close.** The Output menu is a TOGGLE
-   ("Fullscreen: ... (main)" / "Disabled"). Verify the close path really destroys the
+   (at the time a Fullscreen item / a Disabled item; since plan5 C2 "Display N (WxH, main)" /
+   "All Outputs Off"). Verify the close path really destroys the
    window + releases its GL context, rather than hiding it. NOTE: C1 added an output detach
    to the shutdown law (`MainComponent.cpp` ~1778-1780) — check that the SAME teardown runs
    on menu-close, not only on app shutdown.
@@ -680,7 +682,7 @@ exit of the app.
 
 ## The law
 1. **NEVER end a session with the output window open.** Closing it is part of EOS, not an
-   optional courtesy. Close via the Output menu toggle (`Output > "Disabled"`), then confirm.
+   optional courtesy. Close via `Output > "All Outputs Off"` (or Cmd+Shift+Esc), then confirm.
 2. **NEVER `pkill` / SIGKILL the app while the output window is open.** Close the window
    FIRST, let it tear down, THEN quit. Killing mid-fullscreen is the suspected trigger for
    the orphaned overlay.
@@ -701,7 +703,7 @@ exit of the app.
 
 ## EOS checklist addition (do this before writing "safe to close")
 ```
-osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "Disabled" of menu 1 of menu bar item "Output" of menu bar 1'   # close output window
+osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "All Outputs Off" of menu 1 of menu bar item "Output" of menu bar 1'   # close every output window
 pkill -f Audio-DNA ; sleep 2 ; pgrep -f Audio-DNA        # then quit, confirm gone
 screencapture -x /tmp/eos-screen.png                      # AND LOOK AT IT
 ```
@@ -714,7 +716,8 @@ On macOS, if **System Settings > Desktop & Dock > "Displays have separate Spaces
 (`defaults read com.apple.spaces spans-displays` == 1), then putting ANY window into NATIVE
 fullscreen on one display **blanks every OTHER display to black**. That is the OS, and it
 matches Boris's report exactly — including the "except the ones that are full screen"
-phrasing. The Output menu item is literally named "Fullscreen: <res> (main)".
+phrasing. The Output menu item is literally named "Fullscreen: <res> (main)" (until plan5 C2;
+now "Display N (<res>, main)").
 
 **CHECK FIRST, before reading any source:**
 1. `defaults read com.apple.spaces spans-displays` — 1 means separate-Spaces is OFF, which
