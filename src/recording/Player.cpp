@@ -83,11 +83,24 @@ void Player::seek(double pos, Sink& sink)
 
 int Player::firePreamble(Sink& sink)
 {
+    const int refused = firePreambleDiscrete(sink);
+    return refused + firePreambleContinuous(sink);
+}
+
+int Player::firePreambleDiscrete(Sink& sink)
+{
     int refused = 0;
 
     for (const auto& f : prog_->preamble)
         if (!sink.fire(f))
             ++refused;
+
+    return refused;
+}
+
+int Player::firePreambleContinuous(Sink& sink)
+{
+    int refused = 0;
 
     for (const auto& ps : prog_->preambleContinuous)
     {
@@ -100,6 +113,14 @@ int Player::firePreamble(Sink& sink)
     }
 
     return refused;
+}
+
+bool Player::holds(const ControlPath& key) const
+{
+    for (size_t i = 0; i < cursors_.size(); ++i)
+        if (cursors_[i].inGesture && !cursors_[i].displaced && prog_->continuous[i].key == key)
+            return true;
+    return false;
 }
 
 void Player::advanceTo(double pos, Sink& sink)

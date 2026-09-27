@@ -2065,6 +2065,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
     routineEngine_.dispatch.touch   = recorderHost_.dispatch.continuous.touch;
     routineEngine_.dispatch.set     = recorderHost_.dispatch.continuous.set;
     routineEngine_.dispatch.release = recorderHost_.dispatch.continuous.release;
+    // s-rta-0926b plan3 C: a restore glide's "from" -- the NORMALISED value the control shows now,
+    // resolved exactly as manualWrite resolves it (message thread, called from the engine's tick).
+    routineEngine_.dispatch.read    = [this](const ControlPath& k) -> std::optional<float> {
+        auto ref = resolveControl(composition_, globalMacroBank_, k);
+        if (!ref || !ref->manual) return std::nullopt;
+        // The twin is in the manual field's units (ConnectionEngine publishes toModel(y) for scalars);
+        // `live` may be null (macros).
+        const float model = ref->live ? ref->live->effective(*ref->manual) : *ref->manual;
+        return ref->toNorm ? ref->toNorm(model) : model;
+    };
     routineEngine_.dispatch.notify  = [this](const std::string& msg) {
         std::cerr << "[Routine] " << msg << std::endl;
         if (browserPanel_)
@@ -3545,7 +3555,7 @@ void MainComponent::timerCallback()
         linkSync_.update();
         double linkBPM = linkSync_.getBPM();
         if (linkBPM > 0.0)
-            applyTempoCommand("link", static_cast<float>(linkBPM), Origin::Human, /*linkTick=*/true);
+            applyTempoCommand("link", static_cast<float>(linkBPM), Origin::Human);
     }
 
     // P22.10: Update MIDI output pad feedback (~6Hz)
@@ -5167,7 +5177,9 @@ void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deck
 // message-thread function writes nothing the analysis thread owns; the tracker
 // applies the tempo at the start of its next hop (~10.7 ms), which is when the
 // old direct write first reached the published FeatureSnapshot anyway.
-void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin, bool linkTick)
+// s-rta-0926b plan3 A: a tempo VALUE ("manual", "link") never realigns the beat
+// (followExternalTempo); only the beat gestures do -- "tap" (setManualBPM) and "resync".
+void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin)
 {
     auto* tracker = analysisThread_.getBpmTracker();
     if (action == "tap")
@@ -5179,7 +5191,7 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
         if (tracker)
         {
             tracker->setManualMode(true);
-            if (bpm > 0.0f) tracker->setManualBPM(bpm);
+            if (bpm > 0.0f) tracker->followExternalTempo(bpm);
         }
     }
     else if (action == "auto")
@@ -5197,10 +5209,7 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
         if (tracker)
         {
             tracker->setManualMode(true);
-            if (linkTick)
-                tracker->followExternalTempo(bpm);   // a Link tempo never realigns the phase (bpm2 ruling b)
-            else
-                tracker->setManualBPM(bpm);          // explicit set_bpm: realigns, as before
+            tracker->followExternalTempo(bpm);   // Link, REST/OSC set_bpm, a replayed value: never realigns
         }
     }
 
@@ -5773,6 +5782,7 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("preambleRefused", sl.preambleRefused);
         p->setProperty("skipped", sl.skipped);
         p->setProperty("yielded", sl.yielded);
+        p->setProperty("glides", sl.glides);   // s-rta-0926b plan3 C: restore glides started, not yet released
         bank.add(juce::var(p));
     }
     obj->setProperty("bank", bank);

@@ -85,7 +85,7 @@ Layer autopilot fields: `autopilotEnabled`, `autopilotEndOfVideo`, `autopilotLoo
 TopBar has a "Manual" toggle. When enabled:
 - An editable BPM text field appears (type value, press Enter)
 - `BPMTracker::setManualMode(true)` freezes the stabilization pipeline
-- Beat phase still runs from the manually-set BPM
+- Beat phase still runs from the manually-set BPM. Typing a BPM (or a REST/OSC set_bpm) changes the tempo only -- the beat keeps running; Tap or Resync realign it (s-rta-0926b plan3 A).
 - All beat-driven features (beatPhase, barPhase, phrasePhase, autopilot) work without audio
 
 ### Tooltip System
