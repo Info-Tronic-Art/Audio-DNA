@@ -1864,3 +1864,122 @@ TEST_CASE("RoutineEngine display D5: restartPending is set by a re-fire while ru
     CHECK(rig.slot(0).restarts == 1);
     CHECK_FALSE(rig.slot(0).restartPending);
 }
+
+// === s-rta-0927 fix round: a pad-menu (or REST) settings edit made while a routine WAITS reaches that very
+// start -- Quantize, Start: Ease / Jump and Restore first / Start from now are re-read from the live routine on
+// every tick of the wait, not frozen at the press (critic MUST: the menu re-ticked, the start did not). ===
+
+TEST_CASE("RoutineEngine display D6: a settings edit made while waiting reaches the pending start", "[routine][engine][display][pending]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op1 = opacityKey(1);
+
+    SECTION("Quantize Bar -> 4 Bar while waiting: startsOn follows at once and the bar edge no longer starts it")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);   // Bar
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).startsOn == "bar");
+        rig.comp.routines[0].quantize = Clip::BeatSnapMode::FourBar;   // what perfRoutineSet writes
+        rig.runTo(1.0625);
+        CHECK(rig.slot(0).startsOn == "4bar");                          // the tooltip agrees with the menu tick
+        CHECK(rig.slot(0).quantize == "4bar");
+        rig.runTo(4.0);                                                 // barCount 1: not a four-bar line
+        CHECK(rig.slot(0).state == "pending");
+        rig.runTo(16.0);                                                // barCount 4
+        CHECK(rig.slot(0).state == "running");
+    }
+
+    SECTION("Ease -> Jump before the glide began: nothing moves in the wait, one call ON the bar, no read")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);   // Ease (the default)
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Jump;
+        rig.runTo(3.9375);
+        CHECK(rig.slot(0).state == "pending");
+        CHECK(rig.slot(0).restoreStyle == "jump");
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);                       // Ease would have touched op1 at 3.0
+        CHECK(rig.slot(0).glides == 0);
+        const size_t at4 = rig.fd.log.size();
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        REQUIRE(rig.fd.log.size() == at4 + 4);
+        checkEvent(rig.fd.log[at4], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[at4 + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[at4 + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[at4 + 2].v == Approx(0.3f));                   // at once, not a step of a glide from 0.9
+        checkEvent(rig.fd.log[at4 + 3], Ev::Release, op1);
+        CHECK(rig.fd.reads == 0);
+    }
+
+    SECTION("Ease -> Jump inside the glide: the glide lets go where it is, the restore lands in one call ON the bar")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(3.5);                                                 // gliding 0.9 -> 0.3 over [3, 4]
+        REQUIRE(rig.fd.count(Ev::Touch, op1) == 1);
+        CHECK(rig.fd.count(Ev::Release, op1) == 0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Jump;
+        rig.runTo(3.5625);
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);                     // let go, never a leaked grip
+        CHECK(rig.slot(0).glides == 0);
+        const size_t mark = rig.fd.log.size();
+        rig.runTo(3.9375);
+        CHECK(rig.fd.on(op1, mark).empty());                            // no more glide steps
+        rig.runTo(4.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 2);
+    }
+
+    SECTION("Jump -> Ease while waiting: the restore now glides over the last beat before the bar")
+    {
+        Rig rig;
+        Routine r = test7Routine();
+        r.restoreStyle = Routine::RestoreStyle::Jump;
+        addToBank(rig.comp, r, 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.0);
+        rig.comp.routines[0].restoreStyle = Routine::RestoreStyle::Ease;
+        rig.runTo(3.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);                       // Jump would touch nothing before the bar
+        CHECK(rig.fd.lastSet(op1) == Approx(0.9f));                     // from where the knob is
+        rig.runTo(3.5);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    }
+
+    SECTION("Restore first -> Start from now while waiting: nothing is restored at the start")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(2.0);
+        rig.comp.routines[0].restoreState = false;
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.fd.firedRestores() == 0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);
+        CHECK_FALSE(rig.slot(0).restoreState);
+    }
+}

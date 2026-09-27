@@ -149,6 +149,7 @@ private:
     void scheduleGlides(Running& r, double boundary, const std::function<double(const ControlPath&)>& keyFreeFrom);
     void stepGlides(Running& r);
     void releaseGlides(Running& r);
+    void resyncPending(Running& r, const Composition& comp, RoutineSnap forcedSnap);   // a waiting routine follows its settings
     RoutineSnap effectiveSnap(RoutineSnap forced, RoutineSnap own) const;
     void releaseOwnership(int slot);
     void notify(const std::string& msg) const;

@@ -458,6 +458,36 @@ void RoutineEngine::startNow(Running& r)
     notify(msg + ".");
 }
 
+// s-rta-0927 fix round: a WAITING routine re-reads its Quantize, Loop, Restore first / Start from now and Start:
+// Ease / Jump from the live routine on every tick (the re-fire-while-running re-sync in fire(), for the wait), so
+// a pad-menu or REST edit made before the start reaches THIS start -- the menu's tick, the pad's "Starting on ..."
+// tooltip and what happens on the boundary always agree. The restore glides follow the style: switched off (Jump,
+// or Start from now) they let go where they are; switched on (Ease) they are scheduled for the boundary now
+// ahead, by the one rule fire() uses; a Quantize change re-times them.
+void RoutineEngine::resyncPending(Running& r, const Composition& comp, RoutineSnap forcedSnap)
+{
+    const Routine* live = comp.routineInSlot(r.slot);
+    if (live == nullptr || live->uuid != r.uuid)
+        return;
+    const bool easedBefore = r.restore && !r.jump;
+    const RoutineSnap snapBefore = r.ownSnap;
+    r.ownSnap = toSnap(live->quantize);
+    r.loop = live->loop;
+    r.restore = live->restoreState;
+    r.jump = live->restoreStyle == Routine::RestoreStyle::Jump;
+    const bool eased = r.restore && !r.jump;
+    if (easedBefore && !eased)
+    {
+        releaseGlides(r);
+    }
+    else if (eased && beatAvailable_ && (!easedBefore || r.ownSnap != snapBefore))
+    {
+        const double now = clock_.now().beat;
+        scheduleGlides(r, now + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap)),
+                       [now](const ControlPath&) { return now; });
+    }
+}
+
 void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Composition& comp,
                          RoutineSnap forcedSnap, bool beatAvailable)
 {
@@ -486,6 +516,8 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
     for (size_t i = 0; i < running_.size(); ++i)
     {
         Running& r = running_[i];
+        if (r.pending)
+            resyncPending(r, comp, forcedSnap);   // s-rta-0927 fix round: a menu edit made while waiting counts
         const RoutineSnap mode = effectiveSnap(forcedSnap, r.ownSnap);
 
         if (r.pending)
