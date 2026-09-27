@@ -24,6 +24,7 @@
 // playhead = cyan vertical line over clip name area
 class LayerStrip : public juce::Component,
                    public juce::DragAndDropTarget,
+                   public juce::TooltipClient,
                    private juce::Timer
 {
 public:
@@ -49,6 +50,11 @@ public:
     // hairline and an x that takes the WHOLE routine off every layer it plays on (onRoutineRemove).
     void setRoutineBands(std::vector<RoutineDeckView::Band> bands);
     std::function<void(int slot)> onRoutineRemove;
+
+    // s-rta-0927 fix round: the strip's own tooltip -- over a band's x it says the WHOLE routine stops on every
+    // layer it plays on and that this cannot be undone; empty elsewhere (the child buttons carry their own).
+    juce::String getTooltip() override { return tooltipAt(getMouseXYRelative()); }
+    juce::String tooltipAt(juce::Point<int> pos) const;
 
     void setSelected(bool sel) { if (selected_ != sel) { selected_ = sel; repaint(); } }
     bool isSelected() const { return selected_; }

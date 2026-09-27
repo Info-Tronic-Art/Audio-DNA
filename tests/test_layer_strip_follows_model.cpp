@@ -242,3 +242,36 @@ TEST_CASE("LayerStrip: a playing band's name is painted in the routine cue hue, 
     CHECK(cuePixels(without, nameArea) == 0);
     CHECK(accentCyanPixels(with, nameArea) == 0);
 }
+
+// s-rta-0927 fix round (critic SHOULDs): the two controls that now stop routines say so before they are pressed --
+// a band's x (the WHOLE routine, every layer it plays on) and the layer's familiar X (it clears the clip and now
+// also stops every routine on the layer). The routine stop cannot be undone; the tooltips say that too.
+TEST_CASE("LayerStrip: the band x and the layer X carry tooltips that name the routine stop", "[layerstrip][routine][tooltip]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Layer layer;
+    LayerStrip strip;
+    strip.setLayer(&layer, 0);
+    strip.setSize(250, 96);
+    strip.setVisible(true);   // Pitfall 34
+
+    juce::String clearTip;
+    for (auto* child : strip.getChildren())
+        if (auto* b = dynamic_cast<juce::Button*>(child); b != nullptr && b->getButtonText() == "X")
+            clearTip = b->getTooltip();
+    INFO("layer X tooltip: '" << clearTip << "'");
+    CHECK(clearTip.containsIgnoreCase("clip"));
+    CHECK(clearTip.containsIgnoreCase("routine"));
+    CHECK(clearTip.containsIgnoreCase("undone"));
+
+    strip.setRoutineBands({ band(1, "Build"), band(0, "Drop") });
+    const auto xTip = strip.tooltipAt({ 212, 8 });
+    INFO("band x tooltip: '" << xTip << "'");
+    CHECK(xTip.containsIgnoreCase("every layer"));
+    CHECK(xTip.containsIgnoreCase("undone"));
+    CHECK(strip.tooltipAt({ 212, 24 }) == xTip);   // the second band's x says the same
+    CHECK(strip.tooltipAt({ 160, 8 }).isEmpty());  // the name: no tip
+    CHECK(strip.tooltipAt({ 212, 40 }).isEmpty()); // below the bands
+    strip.setRoutineBands({});
+    CHECK(strip.tooltipAt({ 212, 8 }).isEmpty());  // no band, no x
+}

@@ -337,6 +337,9 @@ LayerStrip::LayerStrip()
     clearBtn_.onClick = [this] {
         if (onClearClip && layer_) onClearClip(layerIndex_);
     };
+    // s-rta-0927 fix round: the familiar X now also stops the layer's routines (RoutineEngine::stopOnLayer) -- say so.
+    clearBtn_.setTooltip("Clear this layer's clip. Also stops every routine playing on this layer "
+                         "(the clip comes back with Undo; a routine stop cannot be undone).");
     bypassBtn_.onClick = [this] {
         if (!layer_) return;
         layer_->bypassed = !layer_->bypassed;
@@ -842,6 +845,17 @@ void LayerStrip::paintRoutineBands(juce::Graphics& g)
         if (waiting)
             g.endTransparencyLayer();
     }
+}
+
+juce::String LayerStrip::tooltipAt(juce::Point<int> pos) const
+{
+    if (!bandsShown())
+        return {};
+    const int n = std::min(2, static_cast<int>(routineBands_.size()));
+    for (int k = 0; k < n; ++k)
+        if (bandXBounds(k).contains(pos))
+            return "Stop this routine on every layer it plays on. A routine stop cannot be undone.";
+    return {};
 }
 
 void LayerStrip::mouseDown(const juce::MouseEvent& event)
