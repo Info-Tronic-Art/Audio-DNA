@@ -1,0 +1,18 @@
+{
+  "_doc": "Fixtures for .harmony/probe-deck-clock.sh (s-rta-0926b plan4 item 2: decks that are not on screen keep time; plan4-final.md section 3.6). @MEDIA@ is replaced at run time with the checkout's media/ dir. JSON enum ints: Clip MediaType Image 1 / Video 2 / ImageSequence 5 (Clip.h:21), TransportMode Timeline 0, LoopMode Loop 0 (Clip.h:116/:118), AutopilotAction PlayNext 2, AutopilotDuration Beat4 3 (Clip.h:146-160). A clip's 'speed' key is loaded unguarded (Clip.cpp:214) -- every video/sequence clip here sets it to 1.0. Assertions + calibration: the docstring of .harmony/probe-deck-clock.py.",
+  "imageA": "@MEDIA@/P16_01_baseline.png",
+  "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
+  "fade": {
+    "_why": "deck 0 L0 transitionSpeed T (a duration, s), col0 = A, col1 = B. Trigger col1 (A -> B fade), leave the deck 0.3 s later: the fade must keep running and be complete when you come back.",
+    "T": 4.0
+  },
+  "persistent": {
+    "_why": "deck 0 layer id 5 persistent Transparent fading col0 -> col1 over T while deck 1 is shown: compositePersistentLayers advances it; the inactive-deck tick must NOT advance it a second time (a double advance reads ~1.0 at T/2).",
+    "T": 4.0,
+    "range": [0.35, 0.65]
+  },
+  "pending": {
+    "_why": "deck 0 col1 has beatSnap: its trigger is queued; leaving the deck cancels it (L5). Four injected beat crossings later deck 0 must still be on col 0.",
+    "crossings": 4
+  }
+}

@@ -368,6 +368,10 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
             layerObj->setProperty("solo", layer.solo);
             layerObj->setProperty("bypassed", layer.bypassed);
             layerObj->setProperty("activeClipColumn", layer.activeClipColumn);
+            // s-rta-0926b plan4 T7: the clocks of a deck that is not on screen, witnessable over REST.
+            layerObj->setProperty("previousClipColumn", layer.previousClipColumn);
+            layerObj->setProperty("crossfadeProgress", static_cast<double>(layer.crossfadeProgress));
+            layerObj->setProperty("persistent", layer.persistent);
             layerObj->setProperty("blendMode", static_cast<int>(layer.blendMode));
             addLiveBlock<Layer, LayerScalar>(*layerObj, layer, layer.scalarConns, layerScalarDefs());
 
@@ -382,6 +386,7 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
                     clipObj->setProperty("name", juce::String(clip.name));
                     clipObj->setProperty("column", static_cast<int>(ci));
                     clipObj->setProperty("playing", clip.playing);
+                    clipObj->setProperty("playheadPosition", clip.playheadPosition);   // plan4 T7
                     clipObj->setProperty("mediaType", static_cast<int>(clip.mediaType));
                     clipObj->setProperty("sourceType", juce::String(clip.sourceType));
                     addLiveBlock<Clip, ClipScalar>(*clipObj, clip, clip.scalarConns, clipScalarDefs());

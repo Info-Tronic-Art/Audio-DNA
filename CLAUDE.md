@@ -123,6 +123,8 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 14. **When this document says something, it overrides any default behavior**: If CLAUDE.md and a research doc disagree, CLAUDE.md wins (research docs are pre-decision references).
 
+15. **An inactive deck keeps time**: crossfades on decks that are not on screen finish (`DeckClock::tick`, `docs/claude/performance-controls.md`); persistent layers are owned by `compositePersistentLayers`; the tick lives inside the `deckActive` fence in `Renderer::renderOpenGL`.
+
 ---
 
 ## UI Patterns (Mandatory for all new UI)

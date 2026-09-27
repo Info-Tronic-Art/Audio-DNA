@@ -2,6 +2,7 @@
 #include "render/EmbeddedShaders.h"
 #include "render/ScratchPool.h"
 #include "render/RenderGeometry.h"
+#include "render/LayerClock.h"
 #include <iostream>
 #include <cmath>
 
@@ -836,31 +837,10 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 
 void CompositorEngine::advanceCrossfade(Layer& layer, float dt)
 {
-    // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
-    // `speed` here is actually a DURATION in seconds (transitionSpeed
-    // is a misleading name inherited from the model -- see its slider
-    // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
-    // seconds UI), so step = dt / duration is the frame-rate-
-    // independent progress increment: cumulative progress after real
-    // elapsed time T is T / duration, completing exactly at T ==
-    // duration regardless of callback rate. Real dt (function param),
-    // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
-    // Not gated on timeOverride_/`time`, same reasoning as
-    // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
-    // is persistent per-layer state (like previousClipColumn) that
-    // already advances every real GL callback regardless of
-    // deterministic test-capture mode, so there is no
-    // render_frame byte-identical-repeat contract covering it to
-    // preserve here either -- only the rate was wrong.
-    if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
-    {
-        float speed = layer.transitionSpeed;
-        if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
-        float step = dt / speed;
-        layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
-        if (layer.crossfadeProgress >= 1.0f)
-            layer.previousClipColumn = -1; // transition complete
-    }
+    // s-rta-0926b plan4 T1: the body lives in LayerClock (pure) so DeckClock::tick -- decks that are not on
+    // screen -- runs the very same clock. Real dt (function param), not a hardcoded 1/60 -- see
+    // compositeDeck()'s header comment and LayerClock::advanceCrossfade's.
+    LayerClock::advanceCrossfade(layer, dt);
 }
 
 GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,

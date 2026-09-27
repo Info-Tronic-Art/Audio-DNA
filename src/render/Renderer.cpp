@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "render/EmbeddedShaders.h"
+#include "render/DeckClock.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
 #include "recording/VideoRecorder.h"
@@ -523,6 +524,18 @@ void Renderer::renderOpenGL()
                 compositor_.compositePersistentLayers(otherDeck, shaderMgr_, quad_, time, realDt,
                                                        static_cast<int>(renderW),
                                                        static_cast<int>(renderH));
+            }
+
+            // plan4 item 2 -- decks that are not on screen keep time (Boris 2026-09-26: "finish the fade ...
+            // does not touch the clips playing in the layer"). Inside `if (deckActive)` on purpose:
+            // withDeckDetached's fence (active deck = nullptr) covers this exactly as it covers
+            // compositePersistentLayers above. Not gated on sourceTexture: an empty active deck still lets
+            // the other decks run. Persistent layers are owned by compositePersistentLayers (DeckClock).
+            for (size_t di = 0; di < composition_->decks.size(); ++di)
+            {
+                Deck& other = composition_->decks[di];
+                if (&other == deck) continue;
+                DeckClock::tick(other, realDt, [](const Clip*, float) {});   // B1: fades only
             }
         }
 

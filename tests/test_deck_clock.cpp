@@ -1,0 +1,194 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include "model/Deck.h"
+#include "render/LayerClock.h"
+#include "render/DeckClock.h"
+#include <functional>
+#include <vector>
+
+using Catch::Approx;
+
+// s-rta-0926b plan4 item 2: a deck that is not on screen keeps time (Boris 2026-09-26: "finish the fade. when we
+// load a new deck that does not touch the clips playing in the layer"). DeckClock::tick is the inactive-deck
+// clock (pure, no GL); Renderer::renderOpenGL calls it for every deck except the active one, inside the deckActive
+// fence. LayerClock::advanceCrossfade is the ONE crossfade clock (CompositorEngine::advanceCrossfade forwards to
+// it). These drive the real headers on real Deck / Layer / Clip objects.
+
+namespace
+{
+Clip makeClip(uint32_t id, Clip::MediaType type)
+{
+    Clip c;
+    c.id = id;
+    c.name = "c" + std::to_string(id);
+    c.mediaType = type;
+    if (type == Clip::MediaType::Source)
+        c.sourceType = "perlin_noise";
+    return c;
+}
+
+// A deck whose layer `li` is mid-fade from col 0 to col 1 (progress 0, previousClipColumn 0).
+void startFade(Deck& deck, int li, float duration,
+               Clip::MediaType out = Clip::MediaType::Image, Clip::MediaType in = Clip::MediaType::Image)
+{
+    deck.setClip(li, 0, makeClip(static_cast<uint32_t>(100 + li * 10), out));
+    deck.setClip(li, 1, makeClip(static_cast<uint32_t>(101 + li * 10), in));
+    auto* layer = deck.getLayer(li);
+    layer->transitionSpeed = duration;
+    layer->triggerClip(0);          // first trigger: no fade
+    layer->triggerClip(1);          // col 0 -> col 1 over `duration` s
+}
+
+struct Recorder
+{
+    std::vector<const Clip*> ticked;
+    void operator()(const Clip* c, float) { ticked.push_back(c); }
+};
+
+auto noop = [](const Clip*, float) {};
+} // namespace
+
+TEST_CASE("(a) an inactive deck's non-persistent layer finishes its fade at the real rate", "[deck_clock]")
+{
+    Deck deck; deck.initDefault();
+    startFade(deck, 0, 2.0f);
+    auto* layer = deck.getLayer(0);
+    REQUIRE(layer->crossfadeProgress == Approx(0.0f));
+    REQUIRE(layer->previousClipColumn == 0);
+
+    DeckClock::tick(deck, 0.5f, noop);
+    CHECK(layer->crossfadeProgress == Approx(0.25f));
+    CHECK(layer->previousClipColumn == 0);
+
+    for (int i = 0; i < 3; ++i)
+        DeckClock::tick(deck, 0.5f, noop);
+    CHECK(layer->crossfadeProgress == Approx(1.0f));
+    CHECK(layer->previousClipColumn == -1);       // transition complete
+    CHECK(layer->activeClipColumn == 1);          // the clips are not touched
+}
+
+TEST_CASE("(b) persistent layers are owned by compositePersistentLayers: never advanced twice", "[deck_clock]")
+{
+    Deck deck; deck.initDefault();
+
+    SECTION("a persistent Transparent layer's fade is untouched by the tick")
+    {
+        startFade(deck, 1, 2.0f, Clip::MediaType::Video, Clip::MediaType::Video);
+        auto* layer = deck.getLayer(1);
+        layer->type = Layer::Type::Transparent;
+        layer->persistent = true;
+        Recorder rec;
+        DeckClock::tick(deck, 0.5f, std::ref(rec));
+        CHECK(layer->crossfadeProgress == Approx(0.0f));
+        CHECK(layer->previousClipColumn == 0);
+        CHECK(rec.ticked.empty());               // its media is rendered (and clocked) by compositePersistentLayers
+    }
+
+    SECTION("a persistent Mask layer (loaded persistent, not persistable): fade untouched, media clocked here")
+    {
+        startFade(deck, 1, 2.0f, Clip::MediaType::Video, Clip::MediaType::Video);
+        auto* layer = deck.getLayer(1);
+        layer->type = Layer::Type::Mask;
+        layer->persistent = true;
+        REQUIRE_FALSE(Layer::canBePersistent(layer->type));
+        Recorder rec;
+        DeckClock::tick(deck, 0.5f, std::ref(rec));
+        CHECK(layer->crossfadeProgress == Approx(0.0f));    // compositePersistentLayers advances it (before its type check)
+        REQUIRE(rec.ticked.size() == 2);                     // ... but never renders its media
+        CHECK(rec.ticked[0] == layer->getClipAt(1));
+        CHECK(rec.ticked[1] == layer->getClipAt(0));
+    }
+}
+
+TEST_CASE("(c) hidden, bypassed and solo-excluded layers are left alone (compositeDeck's gate)", "[deck_clock]")
+{
+    Deck deck; deck.initDefault();
+    startFade(deck, 0, 2.0f);
+    startFade(deck, 1, 2.0f);
+    startFade(deck, 2, 2.0f);
+
+    SECTION("hidden")
+    {
+        deck.getLayer(0)->visible = false;
+        DeckClock::tick(deck, 0.5f, noop);
+        CHECK(deck.getLayer(0)->crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(1)->crossfadeProgress == Approx(0.25f));
+    }
+    SECTION("bypassed")
+    {
+        deck.getLayer(1)->bypassed = true;
+        DeckClock::tick(deck, 0.5f, noop);
+        CHECK(deck.getLayer(1)->crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(0)->crossfadeProgress == Approx(0.25f));
+    }
+    SECTION("solo on another layer")
+    {
+        deck.getLayer(2)->solo = true;
+        DeckClock::tick(deck, 0.5f, noop);
+        CHECK(deck.getLayer(0)->crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(1)->crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(2)->crossfadeProgress == Approx(0.25f));
+    }
+}
+
+TEST_CASE("(d) the media clock ticks playable clips only: the active one, and the outgoing one during a fade", "[deck_clock]")
+{
+    Deck deck; deck.initDefault();
+    startFade(deck, 0, 1.0f, Clip::MediaType::ImageSequence, Clip::MediaType::Video);   // out = sequence, in = video
+    startFade(deck, 1, 1.0f, Clip::MediaType::Image, Clip::MediaType::Source);          // never ticked
+    auto* layer = deck.getLayer(0);
+
+    Recorder rec;
+    DeckClock::tick(deck, 0.5f, std::ref(rec));
+    REQUIRE(rec.ticked.size() == 2);
+    CHECK(rec.ticked[0] == layer->getClipAt(1));   // active Video
+    CHECK(rec.ticked[1] == layer->getClipAt(0));   // outgoing ImageSequence while fading
+
+    rec.ticked.clear();
+    DeckClock::tick(deck, 0.5f, std::ref(rec));    // this tick completes the fade
+    REQUIRE(layer->previousClipColumn == -1);
+    REQUIRE(rec.ticked.size() == 1);               // outgoing not ticked on the completing frame (applyTransition parity)
+    CHECK(rec.ticked[0] == layer->getClipAt(1));
+
+    rec.ticked.clear();
+    DeckClock::tick(deck, 0.5f, std::ref(rec));
+    REQUIRE(rec.ticked.size() == 1);
+    CHECK(rec.ticked[0] == layer->getClipAt(1));
+}
+
+TEST_CASE("(e) LayerClock::advanceCrossfade: step = dt / duration, 0.5 s default, clamps, clears previousClipColumn", "[deck_clock]")
+{
+    Layer layer;
+    layer.ensureColumns(2);
+    layer.previousClipColumn = 0;
+    layer.activeClipColumn = 1;
+    layer.crossfadeProgress = 0.0f;
+
+    SECTION("step = dt / duration")
+    {
+        layer.transitionSpeed = 4.0f;
+        LayerClock::advanceCrossfade(layer, 1.0f);
+        CHECK(layer.crossfadeProgress == Approx(0.25f));
+        CHECK(layer.previousClipColumn == 0);
+    }
+    SECTION("duration <= 0 uses 0.5 s")
+    {
+        layer.transitionSpeed = 0.0f;
+        LayerClock::advanceCrossfade(layer, 0.125f);
+        CHECK(layer.crossfadeProgress == Approx(0.25f));
+    }
+    SECTION("clamps at 1.0 and clears previousClipColumn")
+    {
+        layer.transitionSpeed = 1.0f;
+        LayerClock::advanceCrossfade(layer, 5.0f);
+        CHECK(layer.crossfadeProgress == Approx(1.0f));
+        CHECK(layer.previousClipColumn == -1);
+    }
+    SECTION("no fade in progress: untouched")
+    {
+        layer.previousClipColumn = -1;
+        layer.transitionSpeed = 1.0f;
+        LayerClock::advanceCrossfade(layer, 0.5f);
+        CHECK(layer.crossfadeProgress == Approx(0.0f));
+    }
+}
