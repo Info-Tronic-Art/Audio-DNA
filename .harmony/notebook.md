@@ -1642,3 +1642,25 @@ hand-written functions with no shared layout model.
   MacroPanel / UniversalParamControl / SignalBar menus still draw stock. AudioDNALookAndFeel::drawLabel draws NO text
   for a transparent text colour (AlertWindow's hidden accessibility label would otherwise double every message).
 - Valid while DeckView/CompDecksBrowser keep this shape and JUCE's PopupMenu keeps the foreground check.
+
+## 2026-09-27 s-rta-0926b decks-followup | Files: src/ui/LookAndFeel.{h,cpp}, src/MainComponent.{h,cpp}, src/ui/CompDecksBrowser.{h,cpp}
+- `juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel_)` in MainComponent's ctor (paired with
+  `setDefaultLookAndFeel(nullptr)` in ~MainComponent(), BEFORE lookAndFeel_'s own member destruction) makes every
+  owner-less top-level window resolve to the app LookAndFeel: `Component::getLookAndFeel()` walks parentComponent,
+  then falls to `LookAndFeel::getDefaultLookAndFeel()` (juce_Component.cpp) -- this is exactly the path
+  `AlertWindow::showMessageBoxAsync`/`showOkCancelBox` take when `associatedComponent == nullptr`
+  (juce_AlertWindowHelpers.h setUpAlert), and the path a `PopupMenu`'s `MenuWindow` takes when neither the menu
+  nor any ancestor has an explicit LookAndFeel (juce_PopupMenu.cpp `findLookAndFeel`/`getLookAndFeel()` at
+  MenuWindow-ctor time, BEFORE `addChildComponent` runs) -- so this one call also fixed the 3
+  "FOUND NOT FIXED" menus from the prior fix round (MacroPanel.cpp, UniversalParamControl.cpp x2, SignalBar.cpp)
+  with no per-site change.
+- DANGLING POINTER GOTCHA: `auto* obj = juce::JSON::parse(str).getDynamicObject();` is a use-after-free --
+  `getDynamicObject()` returns a raw pointer into the temporary `var`'s ReferenceCountedObject, and the temporary
+  is destroyed at the end of the full expression (i.e. AFTER `obj` is assigned, right at the `;`), leaving `obj`
+  dangling for every use after that statement. It doesn't reliably crash or return null -- it can silently return
+  a stale-but-still-"valid"-looking answer (e.g. an `isV2DeckFile` unit test: `hasProperty("layers")` was true when
+  checked inline in the same statement, false when the exact same check ran via a real function call one line
+  later, because the heap slot had already been reused). Always keep the `var` alive as a named local first:
+  `auto parsed = juce::JSON::parse(str); auto* obj = parsed.getDynamicObject();` -- this is the pattern
+  `PresetManager::loadDeck` already uses; a new call site that skips the named local silently reproduces the bug.
+- Valid while `var`/`DynamicObject` keep this ownership model and MainComponent owns `lookAndFeel_` as a member.
