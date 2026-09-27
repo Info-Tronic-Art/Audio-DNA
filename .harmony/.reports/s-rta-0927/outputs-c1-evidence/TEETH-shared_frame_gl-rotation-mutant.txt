@@ -1,0 +1,14 @@
+07b46365aedc5e6778aa3ecb382e639399b9a96d69b221f18a1146cd500ceccc  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/output/SharedFrameSet.cpp
+63c63
+<     write_ = (write_ + 1) % SurfacePool::kSlots;   // strict round-robin
+---
+>     write_ = (write_ + 1) % (SurfacePool::kSlots - 1);   // strict round-robin
+shared frames: slot_rotation
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_shared_frame_gl.cpp:383: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_shared_frame_gl.cpp:383: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/tests/test_shared_frame_gl.cpp:385: FAILED:
+with expansion:
+test cases:  8 |  7 passed | 1 failed
+07b46365aedc5e6778aa3ecb382e639399b9a96d69b221f18a1146cd500ceccc  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/output/SharedFrameSet.cpp

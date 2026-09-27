@@ -1,0 +1,40 @@
+abf52bd237719face003e33a31cce8a977660ca863db4b6a9d6609dab1668cd4  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.cpp
+fc68352bf59aee4e7ab9f89b4e780be28eb6be7636a9c47a0956f3edee70ddb3  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.h
+== mutant: unchanged copy (control)
+All tests passed (32 assertions in 10 test cases)
+== mutant: always-on-top in code
++    setAlwaysOnTop (true);
+output law: no setAlwaysOnTop(true) -- normal window level
+test cases: 10 |  9 passed | 1 failed
+== mutant: toFront (true) with a space
+-    toFront(false);   // ordered front, never made key (windowIgnoresKeyPresses)
++    toFront (true);   // ordered front, never made key (windowIgnoresKeyPresses)
+output law: never takes the keyboard -- no toFront(true)
+test cases: 10 |  9 passed | 1 failed
+== mutant: shown before bounds
+-    setBounds(area);
++    setVisible(true); setBounds(area);
+output law: bounds before visible -- every setVisible(true) follows a setBounds
+test cases: 10 |  9 passed | 1 failed
+== mutant: flag only named in the jassert (dropped from the style flags)
+-    return DocumentWindow::getDesktopWindowStyleFlags() | juce::ComponentPeer::windowIgnoresKeyPresses;
++    return DocumentWindow::getDesktopWindowStyleFlags();
+output law: the peer carries windowIgnoresKeyPresses
+test cases: 10 |  9 passed | 1 failed
+== mutant: flag removed
+-    // windowIgnoresKeyPresses before the window is ever shown.
++    // windowIsTemporary before the window is ever shown.
+-            && (getPeer()->getStyleFlags() & juce::ComponentPeer::windowIgnoresKeyPresses) != 0);
++            && (getPeer()->getStyleFlags() & juce::ComponentPeer::windowIsTemporary) != 0);
+-    return DocumentWindow::getDesktopWindowStyleFlags() | juce::ComponentPeer::windowIgnoresKeyPresses;
++    return DocumentWindow::getDesktopWindowStyleFlags();
+-    toFront(false);   // ordered front, never made key (windowIgnoresKeyPresses)
++    toFront(false);   // ordered front, never made key (windowIsTemporary)
+-//   - it can NEVER become the key window (ComponentPeer::windowIgnoresKeyPresses): the keyboard never
++//   - it can NEVER become the key window (ComponentPeer::windowIsTemporary): the keyboard never
+-    // The window's peer is created with windowIgnoresKeyPresses (plus DocumentWindow's own flags).
++    // The window's peer is created with windowIsTemporary (plus DocumentWindow's own flags).
+output law: the peer carries windowIgnoresKeyPresses
+test cases: 10 |  9 passed | 1 failed
+abf52bd237719face003e33a31cce8a977660ca863db4b6a9d6609dab1668cd4  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.cpp
+fc68352bf59aee4e7ab9f89b4e780be28eb6be7636a9c47a0956f3edee70ddb3  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/ui/OutputWindow.h

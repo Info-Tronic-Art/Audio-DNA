@@ -1,0 +1,14 @@
+canvas: PY 15 PASS / 0 FAIL PROBE-CANVAS GREEN 
+crossfade: PY 35 PASS / 0 FAIL PROBE-CROSSFADE GREEN 
+deck-clock: PY 10 PASS / 0 FAIL PROBE-DECK-CLOCK GREEN 
+deck-tabs: 6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/deck-tabs-out) 
+downbeat-level: 14 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/downbeat-level) 
+effects-parity: PY 46 PASS / 0 FAIL PROBE-EFFECTS-PARITY GREEN 
+fitmode: PY 10 PASS / 0 FAIL PROBE-FITMODE GREEN 
+manual-bpm: 22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/manual-bpm/run-20260927-104713-4445) 
+mastersignal: 22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/mastersignal) 
+onset-render: 13 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/onset-render) 
+render-state: PY 31 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+resync: 16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/resync) 
+routines: 98 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/routines/run-20260927-104345-99874) 
+step3: 94 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs/battery/step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio) 

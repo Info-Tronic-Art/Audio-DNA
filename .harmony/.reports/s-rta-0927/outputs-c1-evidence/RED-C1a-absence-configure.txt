@@ -1,0 +1,29 @@
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+CMake Warning (dev) at /opt/homebrew/share/cmake/Modules/FetchContent.cmake:1963 (message):
+  Calling FetchContent_Populate(syphon) is deprecated, call
+  FetchContent_MakeAvailable(syphon) instead.  Policy CMP0169 can be set to
+  OLD to allow FetchContent_Populate(syphon) to be called directly for now,
+  but the ability to call it with declared details will be removed completely
+  in a future version.
+Call Stack (most recent call first):
+  CMakeLists.txt:471 (FetchContent_Populate)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- AudioDNA: codesigning with 'Audio-DNA Dev' (found in keychain)
+-- Configuring done (2.6s)
+CMake Error at tests/CMakeLists.txt:2056 (add_executable):
+  Cannot find source file:
+
+    /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w1/src/output/SurfacePool.cpp
+
+
+CMake Error at tests/CMakeLists.txt:2056 (add_executable):
+  No SOURCES given to target: test_surface_pool
+
+
+CMake Generate step failed.  Build files cannot be regenerated correctly.
+configure exit 1
