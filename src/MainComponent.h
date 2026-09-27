@@ -137,6 +137,9 @@ private:
     void saveCompositionAs();
     void swapCompositionModel(const std::function<void()>& mutation);
     void refreshUiAfterModelSwap();
+    // plan6 §7: "replace everything playing?" before the library row click and New Composition.
+    void confirmReplaceShow(const juce::String& title, const juce::String& question,
+                            const juce::String& okLabel, std::function<void()> proceed);
     // L3 STEP 3 (2026-09) + plan6 §6.4: the library's Decks rows and Load
     // Deck... append a saved deck into the live composition as a NEW TAB rather
     // than replacing the deck on screen — a performer loading a deck mid-set

@@ -1591,8 +1591,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // fence/undo-clear treatment loadComposition already gives Open).
     // onDeckLoad (STEP 3) APPENDS the deck rather than replacing the active
     // one — see appendDeckFromFile's header comment for why.
+    // plan6 §7: a library row is ONE click away from replacing everything on screen -- confirm first.
     browserPanel_->getCompDecksBrowser().onCompositionLoad = [this](const juce::File& f) {
-        loadComposition(f);
+        confirmReplaceShow("Open Composition",
+                           "Open \"" + f.getFileNameWithoutExtension() + "\" and replace \""
+                               + juce::String(composition_.name) + "\"?",
+                           "Open", [this, f] { loadComposition(f); });
     };
     browserPanel_->getCompDecksBrowser().onCompositionSave = [this] { saveComposition(); };
     browserPanel_->getCompDecksBrowser().onDeckLoad = [this](const juce::File& f) {
@@ -2915,6 +2919,20 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     undoManager_.clear();
 
     refreshUiAfterModelSwap();
+}
+
+// plan6 §7: the confirm before a composition is replaced by a one-click gesture (the library row, New
+// Composition). Asynchronous (no modal loop); the callback runs only on OK. File > Open... (a two-step chooser)
+// and REST /api/load_composition do not ask.
+void MainComponent::confirmReplaceShow(const juce::String& title, const juce::String& question,
+                                       const juce::String& okLabel, std::function<void()> proceed)
+{
+    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::QuestionIcon, title,
+        question + "\n\nEverything playing now will be replaced. To keep the current composition, Cancel and save it first.",
+        okLabel, "Cancel", this,
+        juce::ModalCallbackFunction::create([proceed = std::move(proceed)](int result) {
+            if (result == 1) proceed();
+        }));
 }
 
 void MainComponent::openComposition()
@@ -6018,7 +6036,10 @@ void MainComponent::handleMenuCommand(int commandId)
             // not nested — the fence has already returned before either runs.
             // L3 (2026-09): routed through the shared swap helper so New also
             // closes orphaned media and re-points the inspectors.
-            swapCompositionModel([this] { composition_.initDefault(); });
+            // plan6 §7: confirmed first -- New replaces everything playing.
+            confirmReplaceShow("New Composition",
+                               "Start a new composition and replace \"" + juce::String(composition_.name) + "\"?",
+                               "New", [this] { swapCompositionModel([this] { composition_.initDefault(); }); });
             break;
         case C::kCompOpen:
             openComposition();
