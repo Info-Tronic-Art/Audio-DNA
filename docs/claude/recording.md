@@ -35,10 +35,22 @@ routines reaching for the same control):
   that boundary `RoutineEngine` (`src/recording/RoutineEngine.{h,cpp}`, message thread, ticked
   right after `RecorderHost::tick`) restores the routine's preamble by default (Boris ruling 26,
   "restore" — `restoreState = false` is the per-routine "Start from now" switch, ruling 26's
-  accepted exception) through the SAME `Player::firePreamble` path replay restore already uses,
+  accepted exception) through the SAME `Player` preamble path replay restore already uses,
   then plays its lanes on its OWN beat clock (a `RecorderClock` shared across all running
   routines). It either plays once and holds the last look, or loops (Boris ruling 22 — a
   per-routine setting, re-firing the preamble each cycle).
+  **The restore GLIDES** (s-rta-0926b plan3 C, Boris "glide is better"): the discrete half (clips,
+  flags, play/pause — `Player::firePreambleDiscrete`) fires ON the boundary; each continuous entry
+  is a glide the engine drives itself — this routine's lane-rank hand on the knob, a straight line
+  from what the control shows (`Dispatch::read`) to the recorded start value over ONE BEAT ENDING ON
+  THE BOUNDARY (shorter when fired later; a quarter-beat floor that spills past the boundary when
+  fired with less than that to go, or with Quantize Off). The loop return (over each cycle's last
+  beat, landing on the loop point) and a re-fire restart use the same rule, never touching a knob
+  while the recording's own hand is on it before that boundary. A human hand or the recording's own
+  move on the knob cancels the glide (no release: the knob is theirs); a stop — or a once-end / loop
+  switched off with a glide in flight — lets go where it is. No `read` wired, or no beat when fired:
+  the continuous restore lands in one call at the boundary, as before. `/api/routine/status`
+  `bank[].glides` = glides started and not yet released. The take replay's own restore stays a cut.
 - **Stop**: `POST /api/routine/stop` (`{"slot":N}` or `{"all":true}`) releases every grip the
   routine holds.
 - **Stacking (Boris ruling 22/his "signal" framing; F1 in the build plan)**: two routines reaching

@@ -2065,6 +2065,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
     routineEngine_.dispatch.touch   = recorderHost_.dispatch.continuous.touch;
     routineEngine_.dispatch.set     = recorderHost_.dispatch.continuous.set;
     routineEngine_.dispatch.release = recorderHost_.dispatch.continuous.release;
+    // s-rta-0926b plan3 C: a restore glide's "from" -- the NORMALISED value the control shows now,
+    // resolved exactly as manualWrite resolves it (message thread, called from the engine's tick).
+    routineEngine_.dispatch.read    = [this](const ControlPath& k) -> std::optional<float> {
+        auto ref = resolveControl(composition_, globalMacroBank_, k);
+        if (!ref || !ref->manual) return std::nullopt;
+        // The twin is in the manual field's units (ConnectionEngine publishes toModel(y) for scalars);
+        // `live` may be null (macros).
+        const float model = ref->live ? ref->live->effective(*ref->manual) : *ref->manual;
+        return ref->toNorm ? ref->toNorm(model) : model;
+    };
     routineEngine_.dispatch.notify  = [this](const std::string& msg) {
         std::cerr << "[Routine] " << msg << std::endl;
         if (browserPanel_)
@@ -5772,6 +5782,7 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("preambleRefused", sl.preambleRefused);
         p->setProperty("skipped", sl.skipped);
         p->setProperty("yielded", sl.yielded);
+        p->setProperty("glides", sl.glides);   // s-rta-0926b plan3 C: restore glides started, not yet released
         bank.add(juce::var(p));
     }
     obj->setProperty("bank", bank);

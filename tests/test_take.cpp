@@ -935,3 +935,104 @@ TEST_CASE("Player::firePreamble: a refused set() counts as refused and never rel
     REQUIRE(sink.sets.size() == 1);
     CHECK(sink.releases.empty());
 }
+
+// === s-rta-0926b plan3 C G10: the preamble split (a routine fires the discrete half on the boundary and
+// glides the continuous half) and Player::holds (the glide's cancel rule) ===
+
+TEST_CASE("Player: firePreambleDiscrete / firePreambleContinuous are the two halves of firePreamble; holds() is the lane's live grip", "[player][preamble][glide]")
+{
+    auto prog = std::make_shared<Program>();
+    prog->clock = DriveClock::Wall;
+    const ControlPath deckKey = [] { ControlPath k; k.scope = ControlPath::Scope::Comp; k.control = "activeDeck"; return k; }();
+    DiscretePoint p; p.v = 1; p.origin = Origin::Preamble;
+    prog->preamble.push_back(Fired{ 0.0, 0, deckKey, {}, p });
+    const ControlPath op0 = [] { ControlPath k = layerKey(0, "scalar"); k.scalar = "opacity"; return k; }();
+    const ControlPath op1 = [] { ControlPath k = layerKey(1, "scalar"); k.scalar = "opacity"; return k; }();
+    prog->preambleContinuous.push_back(PreambleSet{ op1, {}, 0.4f });
+    ContLane cl; cl.key = op0;
+    ContLane::G g; g.grip = "held";
+    g.curve.pts = { { 1.0, 0.2f, Breakpoint::Interp::Linear }, { 2.0, 0.8f, Breakpoint::Interp::Linear } };
+    g.x0 = 1.0; g.x1 = 2.0;
+    cl.gestures = { g };
+    prog->continuous.push_back(cl);
+
+    SECTION("the discrete half fires only the discrete entries")
+    {
+        FakeSink sink;
+        Player player(prog);
+        player.start(0.0);
+        CHECK(player.firePreambleDiscrete(sink) == 0);
+        REQUIRE(sink.fired.size() == 1);
+        CHECK(sink.fired[0].key == deckKey);
+        CHECK(sink.touches.empty());
+        CHECK(sink.sets.empty());
+        CHECK(sink.releases.empty());
+    }
+
+    SECTION("the continuous half fires only the continuous entries: touch -> set -> release")
+    {
+        FakeSink sink;
+        Player player(prog);
+        player.start(0.0);
+        CHECK(player.firePreambleContinuous(sink) == 0);
+        CHECK(sink.fired.empty());
+        REQUIRE(sink.touches.size() == 1);
+        CHECK(sink.touches[0].first == op1);
+        REQUIRE(sink.sets.size() == 1);
+        CHECK(sink.sets[0].second == Approx(0.4f));
+        REQUIRE(sink.releases.size() == 1);
+        CHECK(sink.releases[0] == op1);
+
+        FakeSink refusing;
+        refusing.refuseNextTouch = true;
+        CHECK(player.firePreambleContinuous(refusing) == 1);   // a refused touch counts, sets nothing
+        CHECK(refusing.sets.empty());
+        CHECK(refusing.releases.empty());
+    }
+
+    SECTION("firePreamble is the discrete half then the continuous half")
+    {
+        FakeSink sink;
+        Player player(prog);
+        player.start(0.0);
+        CHECK(player.firePreamble(sink) == 0);
+        REQUIRE(sink.fired.size() == 1);
+        REQUIRE(sink.touches.size() == 1);
+        REQUIRE(sink.sets.size() == 1);
+        REQUIRE(sink.releases.size() == 1);
+    }
+
+    SECTION("holds(): false before the gesture, true inside it, false after its end")
+    {
+        FakeSink sink;
+        Player player(prog);
+        player.start(0.0);
+        CHECK_FALSE(player.holds(op0));
+        player.advanceTo(0.5, sink);
+        CHECK_FALSE(player.holds(op0));
+        player.advanceTo(1.5, sink);
+        CHECK(player.holds(op0));
+        CHECK_FALSE(player.holds(op1));                         // no lane on it
+        player.advanceTo(2.0, sink);
+        CHECK_FALSE(player.holds(op0));
+    }
+
+    SECTION("holds(): false when the gesture's touch was refused (displaced), and after stop")
+    {
+        FakeSink sink;
+        sink.refuseNextTouch = true;
+        Player player(prog);
+        player.start(0.0);
+        player.advanceTo(1.5, sink);
+        REQUIRE(sink.touches.size() == 1);
+        CHECK_FALSE(player.holds(op0));
+
+        FakeSink sink2;
+        Player other(prog);
+        other.start(0.0);
+        other.advanceTo(1.5, sink2);
+        CHECK(other.holds(op0));
+        other.stop(sink2);
+        CHECK_FALSE(other.holds(op0));
+    }
+}
