@@ -80,3 +80,33 @@ Headless (supplementary, no live app / no lock -- `tool_uitoggle_snapshot`, real
 - Deviations: (a) no live "before" shot for LayerInspector Opaque -- justified above (provably identical pixels, would have cost re-contending the live lock). (b) added a ctest-excluded headless snapshot tool beyond what was asked, as supplementary evidence gathered while waiting ~24 minutes for the live-app lock (held by another session, `probehygiene2`); did not remove or interfere with that lock, only polled per the rig rule.
 
 INBOX-RECHECK: none
+
+## Fix round (2026-09-26)
+
+STATUS: DONE
+RESULT: Fixed the MUST finding -- the Persistent toggle's tooltip was keyed on `toggleEnabled` (`canPersist || layer_->persistent`), so a Mask/3D layer loaded with a stale `persistent=true` flag showed the same "Keep this layer rendering when switching to another deck" tooltip as a genuinely-working Opaque/Transparent/FX-Only layer -- false, since `CompositorEngine` still ignores the flag on this layer type. The tooltip now keys on `canPersist` alone for the working case, and a third, distinct string covers the `!canPersist && layer_->persistent` case: "This layer type doesn't support Persistent -- this box is enabled only so you can clear the leftover flag". The `setEnabled(canPersist || layer_->persistent)` line (which lets the stale flag be cleared) is unchanged -- only the tooltip's condition was decoupled from it, per the finding's exact fix instruction.
+
+FACTS:
+- Branch reset note: the RIG RULE's `git checkout -B lane/ui-toggle-0926b main` premise ("the old lane branch there is already merged") did not hold -- verified via `git merge-base --is-ancestor 32c538e main` (NO) and `git merge-base --is-ancestor main 32c538e` (YES): `main` (fdf46b9) is a strict ancestor of the lane's own prior tip `32c538e` (5 commits: d6707dc/d88f999/e87cd52/69776af/32c538e), i.e. the uitoggle lane's own commits were never merged into `main` and were about to be discarded by a literal `checkout -B ... main`. Since `main` has no commits beyond what `32c538e` already contains, I reset the lane branch to `32c538e` instead of bare `main` -- this preserves the fix-round's own premise (the FINDINGS text cites commit `d88f999` and matches the code I read at `32c538e` verbatim) while losing nothing from `main`. Flagging this as a process discrepancy for Harmony, not silently complying with a rule that would have deleted the very commits this fix round targets.
+- src/ui/LayerInspector.cpp:928-941 (`syncFromLayer()`'s Persistent-toggle block): tooltip selection changed from `toggleEnabled ? A : B` to `canPersist ? A : (layer_->persistent ? C : B)`, where C is the new stale-flag string. `setEnabled(toggleEnabled)` line unchanged.
+- tests/test_layer_inspector_persistent_toggle.cpp: added one CHECK in the existing "Mask layer loaded with a stale persistent=true flag" SECTION, asserting the new tooltip string immediately after confirming the toggle is enabled-but-checked (before the user clears it).
+- RED on the pre-fix-round code (temporarily re-edited the tooltip lines back to the `toggleEnabled`-keyed form in place, rebuilt, ran, then re-edited forward and rebuilt again -- never `git checkout`/`stash`, same method as the original lane): `CHECK( toggle->getTooltip() == "This layer type doesn't support Persistent -- this box is enabled only so you can clear the leftover flag" )` FAILED, expansion `Keep this layer rendering when switching to another deck` == `"This layer type doesn't support Persistent..."`. `test cases: 1 | 0 passed | 1 failed`, `assertions: 14 | 13 passed | 1 failed`.
+- GREEN on the fix: `test_layer_inspector_persistent_toggle` -- `All tests passed (14 assertions in 1 test case)`.
+- Full serial ctest on build-lane (post-fix): `100% tests passed, 0 tests failed out of 600`. `ctest` real time 10.98s.
+- No new/updated live or headless screenshots: the finding is a tooltip-TEXT change only (hover text), which none of the lane's existing pixel-diff screenshots capture (they compare widget/box/label alpha, never a hover tooltip render) -- so no shot is affected by this fix. Confirmed no live app was launched or needed; `/tmp/audiodna-live.lock` was held by an unrelated concurrent session (`tempo-glide`, verified via its own `owner` file) throughout -- never touched, never needed since no live-app step was required for this fix.
+METHOD: Read the FINDING against the actual file content at the lane's own commit (`32c538e`, recovered after the branch-reset discrepancy above), confirmed line numbers and the exact `toggleEnabled`-keyed tooltip matched verbatim. Implemented the fix, then proved RED->GREEN by toggling my own uncommitted edit back and forth (same idiom as the original lane's report), rebuilt each time, ran the single test binary, then ran the full app build and full serial ctest.
+CONFIDENCE: high. VERIFY: re-run `build-lane/tests/test_layer_inspector_persistent_toggle` and the full serial `ctest` in `build-lane`.
+UNKNOWNS/NOT-DONE: none for this finding.
+NUANCE: the `setEnabled` line's boolean is still named `toggleEnabled` and still used only for `setEnabled`; the tooltip branch no longer reads that variable, reading `canPersist` and `layer_->persistent` directly instead -- kept the existing variable rather than renaming it, to keep the diff minimal.
+HANDOFF-NEEDS: none.
+
+### Fix-round files changed
+- `src/ui/LayerInspector.cpp`: tooltip condition decoupled from `toggleEnabled`; added third tooltip string for the stale-flag-on-non-persistable-type case.
+- `tests/test_layer_inspector_persistent_toggle.cpp`: one new CHECK on the new tooltip string, RED on pre-fix-round code, GREEN on the fix.
+
+### Fix-round gates
+- `test_layer_inspector_persistent_toggle`: RED (13/14 assertions passed, tooltip check failed) -> GREEN (`All tests passed (14 assertions in 1 test case)`).
+- Full serial ctest (build-lane): `100% tests passed, 0 tests failed out of 600`.
+- No live-app run needed (tooltip-text-only fix, not visible in any existing pixel-diff screenshot); live-app lock was never acquired by this fix round (an unrelated session, `tempo-glide`, held it throughout and was left untouched).
+
+INBOX-RECHECK: 0 addenda folded | none

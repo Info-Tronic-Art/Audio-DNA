@@ -931,9 +931,15 @@ void LayerInspector::syncFromLayer()
         persistentToggle_.setEnabled(toggleEnabled);
         // The LookAndFeel's drawToggleButton dims disabled toggles itself
         // (s-rta-0926b uitoggle), so no per-owner alpha here.
-        persistentToggle_.setTooltip(toggleEnabled
+        // Tooltip tracks canPersist, NOT toggleEnabled (s-rta-0926b uitoggle fix
+        // round): the stale-flag case is enabled but still doesn't actually
+        // persist (CompositorEngine ignores the flag on this layer type), so
+        // it gets its own explanation rather than the "working" tooltip.
+        persistentToggle_.setTooltip(canPersist
             ? "Keep this layer rendering when switching to another deck"
-            : "Persistent is available for Opaque, Transparent and FX Only layers");
+            : (layer_->persistent
+                ? "This layer type doesn't support Persistent -- this box is enabled only so you can clear the leftover flag"
+                : "Persistent is available for Opaque, Transparent and FX Only layers"));
     }
     ignoreColumnToggle_.setToggleState(layer_->ignoreColumnTrigger, juce::dontSendNotification);
     syncScalar(opacityControl_, LayerScalar::Opacity, layer_->opacity);

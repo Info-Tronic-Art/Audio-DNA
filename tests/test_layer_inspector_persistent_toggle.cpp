@@ -66,6 +66,10 @@ TEST_CASE("LayerInspector Persistent toggle: enabled iff the type supports it or
 
         CHECK(toggle->isEnabled());                 // RED pre-fix: disabled (checked-but-inert)
         REQUIRE(toggle->getToggleState());
+        // RED pre-fix-round: tooltip read the same "working" string as a real
+        // persistable layer, even though canBePersistent is still false here.
+        CHECK(toggle->getTooltip() ==
+              "This layer type doesn't support Persistent -- this box is enabled only so you can clear the leftover flag");
 
         // The user clears the stale flag (a real click, same path syncFromLayer's onClick
         // handler wires) -- and once cleared it cannot be re-set: the next sync sees
