@@ -317,6 +317,40 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
 
 ---
 
+## Playback Behaviour (Boris rulings)
+
+- **Clip-to-clip transitions carry time effects over (2026-09-26, s-rta-0926b):** when a new clip comes in on a layer (cut or
+  fade), its Echo / trails / Freeze CONTINUE from what the layer was showing — "it should be a continuation of the effect.
+  The effect is like a fade. It makes the transition smooth." (Implements ruling R1 = B′: the incoming clip inherits the
+  layer's picture; the outgoing clip keeps its own history for the length of the fade.)
+
+- **Routines feel rulings (2026-09-26, s-rta-0926b; plan-routines-s1-final.md §10 questions):**
+  - Restore at routine start: **GLIDE** to the recorded starting look, not a hard jump ("glide is better").
+  - Two routines on one knob: the later one takes it over until its move ends — **yes** (feels like two hands).
+  - A looping routine returns to its starting look at the top of every loop — **yes**.
+  - Saved pieces round to whole bars — **yes**.
+  - 2/4-bar quantize counts from the last phrase restart, like clips — **ok**.
+  - Restore only the knobs the routine itself moves; leave the rest of the show alone — **yes**.
+  - Bar counting: "we only need longer than 4 bar counts for routines and that should be displayed with the routine and
+    nothing else. Top bar count should go 1-2-3-4-1 etc" (verbatim; interpretation being confirmed with Boris).
+
+- **Persistent layers over another deck (2026-09-26):** a persistent layer sits on top of the other deck with its own blend
+  and opacity, never blacking it out — "yes. unless we override it. how does the override work currently?"
+- **Deck switch mid-fade (2026-09-26):** "finish the fade. when we load a new deck that does not touch the clips playing in
+  the layer" — a fade keeps running while its deck is not on screen; switching decks does not disturb the clips playing
+  in layers.
+- **No stop model; routines live like clips (2026-09-26, verbatim):** "this is a playing app. there is no stop buttons
+  anywhere. to end a routine it is replaced or removed from the layer control. it would be smart to figure out the best way
+  to display routines in the players so they act like all things that are seen. A clip has a image or video and effects
+  that are controlled by signals. The routines need their own display logic so we can see them playing. where do you
+  recommend based on how you are building them? per layer? displayed in the layer strip and all clips and effects within
+  that routine are shown? or if there is a routine playing more than 1 layer, it needs to display in all layers it is
+  playing in and have the same name? does this make sense? anything we are missing here?"
+  On the routine pad's "(bar N)": "where is this shown? is this necessary to show?"
+- **Preview / Output aspect ratio (2026-09-26, verbatim):** "the preview and output display window in the lower left corner
+  should not change aspect ratios. they should be what the composition is setup for, typically 1920x1080, 2k, 4k, or
+  whatever the setting is.."
+
 ## Rejected (Do Not Implement)
 
 - Ribbon/strip layouts

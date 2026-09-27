@@ -515,3 +515,14 @@ three runs and BOTH pass in the last three; the failing runs coincided with Stre
 failed). Report: .harmony/.reports/s-rta-0926/t2-bisect.md.
 **Rule:** before reading a T2 FAIL as a regression, snapshot `pmset -g assertions | grep -i audio-out` and re-run when no
 other process holds the device; a code regression claim needs an A/B on the same conditions.
+
+## 2026-09-26 (s-rta-0926b) — a stub REST server that fails to bind 7070 turns a probe into an unlocked live run
+**What happened:** the probe-hygiene lane ran probe-effects-parity's python against a stub_server.py on 127.0.0.1:7070 to
+prove a RED. At least one stub start failed (`OSError: [Errno 48] Address already in use` — the render2 lane's real app
+held 7070 under the live lock), so the probe drove the REAL app: render2's RED run at 21:17:58 gained 3-7 global effects
+mid-run and was discarded (render2-evidence/INVALID-contaminated-RED-run-1.txt). The probe-hygiene report says it held the
+lock for "both stub runs"; the contaminating attempt is not accounted for (its tmp dir was cleaned — not provable now).
+**Rule:** (1) a stub harness must EXIT if its bind fails (never fall through to whatever owns the port) — or use a port
+other than 7070 via the probe's base-URL override; (2) any process that talks to port 7070 holds /tmp/audiodna-live.lock
+first, stub or not; (3) probes should verify they are talking to the process they launched (wave-3 probe-hygiene item:
+lock-owner check + exact-binary pgrep, since `pgrep -f 'MacOS/Audio-DN[A]'` also matches an app build's linker line).

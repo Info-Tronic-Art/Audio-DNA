@@ -51,3 +51,49 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
   (isolated, sonnet: probe-effects-parity fresh dir + render_frame check). Paused ~10 min for a quiet step3 run.
 - Boris closed Stremio 20:5x -> probe-step3 on merged build/ x2: 94 PASS / 0 FAIL both (p95 10.11 / 10.75 ms). T2 miss was
   ENVIRONMENTAL (Stremio) — CLOSED. Wave 2 resumed (wu2yiazvi).
+- 21:0x BORIS ANSWERED Q10: time effects CONTINUE across a clip change ("continuation of the effect ... like a fade ... smooth")
+  = ruling R1 B' default (carry over) — already what render2 builds. Recorded in BORIS_DECISIONS.md "Playback Behaviour".
+  Q11/Q12: he asked what deck 1 / deck 2 mean -> re-explained with the deck tabs. Q1-9: he could not see them (my first
+  message's mid-turn text) -> re-sent in plain words.
+- FINDING (UX, from Boris's confusion + source lookup): the toolbar buttons "Deck Save" / "Deck Load" do NOT save/load a
+  grid deck — loadDeck() (MainComponent.cpp:3751) loads a legacy PresetManager::DeckState (audio/image/slideshow/UI
+  settings) and never touches composition decks or tabs. Real grid decks: Deck menu > New Deck (MainComponent.cpp:6100),
+  or Compositions browser > Decks row click (appendDeckFromFile, :3107-3177). DeckView tabs have no "+" / context menu.
+  Name collision confuses the product's own owner -> candidate loose end (rename the toolbar pair, e.g. "Setup Save/Load",
+  or retire the v1 row). NOT fixed this session (Boris-facing naming = his call).
+- 21:2x BORIS routine answers: 1 GLIDE (not hard cut) -> build item; 3/4/5/6/7 yes (current behaviour stands);
+  2 "where is the stop control?" -> explain TopBar Stop + ask again; 8 "what is (bar N)?" -> explain; 9 verbatim: "we only
+  need longer than 4 bar counts for routines and that should be displayed with the routine and nothing else. Top bar count
+  should go 1-2-3-4-1 etc" -> ambiguous (display request vs same-BPM restart) -> lookup agent on counters, then confirm.
+  Recorded in BORIS_DECISIONS.md "Playback Behaviour".
+- FACTS (lookup, cited): pad text idle "N: name" / waiting "(next bar)" / playing "(bar N)" = bar within the routine's own
+  cycle, restarts each loop (RoutineBankModel.h:47-91). Stop: click the playing pad = stop that routine; TopBar Stop (square)
+  = routineEngine_.stopAll() + stop/rewind every clip on the active deck (MainComponent.cpp:701-712). TopBar "Bar N" =
+  barCount+1 (bars since last phrase reset, grows), "Phr X.XX" = phrasePhase decimal (TopBar.cpp:524/533). set_bpm resets
+  ONLY the sub-beat phase (always, even same value); bar/beatInBar counters untouched (BPMTracker.cpp:561-599).
+  MY ERROR: my Q9 to Boris said the same-BPM resend "restarts the beat count at beat 1" — false (only sub-beat phase).
+  I asked from the handoff's paraphrase without checking. Habit: verify the mechanism before phrasing a Boris question.
+- plan3 launched (wf_83de54ba-147): Fable draft -> 3 blind seats -> Fable final: (1) routine-start GLIDE, (2) TopBar bar
+  count 1-2-3-4-1, (3) same-BPM realign (Harmony decides on merits). Build after wave 2 merges (TopBar/BPMTracker overlap).
+- 21:4x BORIS: 11 yes + "how does the override work currently?"; 12 FINISH THE FADE + deck switch must not touch clips
+  playing in layers; 2 NO STOP MODEL — routines are ended by replace/remove like clips; asks for a routine DISPLAY design
+  (per layer? layer strip? multi-layer routine shown in every layer with the same name?); 8 "(bar N)" — where/necessary?;
+  NEW: Preview/Output panel must keep the COMPOSITION's aspect ratio (1920x1080 / 2K / 4K setting). All verbatim in
+  BORIS_DECISIONS.md. Next: fact lookup (override, inactive-deck clips/fades, preview aspect, comp resolution setting) +
+  routine-display design study (Fable + critics + mockup artifact).
+- 21:5x routine-ux design workflow (wf_8f851904-bb9; Boris: "have fable think through how we will display and use the
+  routines" + "that is after we have created them" -> scope = display/use of CREATED routines, creation unchanged):
+  recon (sonnet) -> 3 Fable designs (routine-as-clip / layer-centric / performer-workflow) -> 4 critic seats -> Fable
+  synthesis design-final.md -> HTML mockup (headless-Chrome shots) -> 4 visual critics -> 1 revision -> Harmony opens link.
+  MY ERROR: the first launch had `${ACK = ''}` inside a template literal (assignment to an undeclared name -> would throw
+  at the synthesis step in module strict mode). Caught on re-read, stopped, patched, relaunched. HABIT: syntax-check every
+  workflow script (node new Function on the body) BEFORE launching, not after.
+- FACTS (scout, cited): persistent-layer OVERRIDE while on another deck = none except Master opacity (dims all); the
+  inactive deck's strips are not shown (DeckView.cpp:78); OSC/REST/MIDI layer controls address the ACTIVE deck only; Solo is
+  per-deck (does not hide other decks' persistent layers). Inactive decks: video FREEZES (resumes same position), crossfades
+  freeze, autopilot paused. PREVIEW SIZE follows the panel component (756x878 portrait) — Composition Resolution control
+  (CompositionInspector, default 1920x1080, saved) is NOT used by the GL pipeline; per-deck resolutionSelector_ override
+  exists; render_frame captures the panel viewport. TopBar Stop "[]" = stopAll routines + stop active-deck clips.
+- plan4 launched (wf_33efa8a0-2f7): Fable plan -> 3 seats -> Fable final: (1) composition resolution drives the picture's
+  shape in Preview + Output (render strategy, 4K cost, probe re-baseline), (2) inactive decks keep time (fades finish;
+  video/autopilot decision).
