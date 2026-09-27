@@ -1,0 +1,54 @@
+# TEETH: test_output_plan against mutated COPIES of src/output/OutputTargets.cpp (the lane test object, relinked). Sun Sep 27 16:10:19 EDT 2026
+# NOTE: the Python traceback below belongs to the CONTROL step: its no-op replace pattern ('namespace output') occurs twice, so the helper refused to edit and the control ran on the UNMODIFIED copy (the intended control) -- 'All tests passed (63 assertions in 4 test cases)'.
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+AssertionError: ('namespace output', 2)
+--- mutant: control (unmodified copy)
+All tests passed (63 assertions in 4 test cases)
+--- mutant: matchDisplay: swap the exact / moved order (plan5 10.1 teeth)
+  two identical displays: position wins, then the first unused one
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:48: FAILED:
+  CHECK( output::matchDisplay(kProjector2, { kLaptop, kProjector, kProjector2 }, {}) == 2 )
+with expansion:
+test cases:  4 |  3 passed | 1 failed
+assertions: 63 | 62 passed | 1 failed
+--- mutant: diffOutputs: loose rungs also consider UNCHANGED displays (the untouched-projector jump)
+  MODE change with an identical, untouched projector beside it: the output does
+  NOT jump to it
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:116: FAILED:
+  CHECK( hasPair(diff.toRebound, 0, 1) )
+with expansion:
+  false
+  an interrupted target never reopens on an untouched identical display when
+  something else changes
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:133: FAILED:
+  CHECK( diff.empty() )
+with expansion:
+  false
+test cases:  4 |  3 passed | 1 failed
+assertions: 63 | 61 passed | 2 failed
+--- mutant: Track: no MODE-change rung (a live output on a re-moded display closes)
+  a MODE change (same top-left, other size) is followed by a live output only
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:65: FAILED:
+  CHECK( output::matchDisplay(kProjector, { kLaptop, kProjector720 }, {}, MatchRule::Track) == 1 )
+with expansion:
+  MODE change (resolution/scale): the live output follows its display (Harmony
+  ruling (a))
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:103: FAILED:
+  CHECK( diff.toClose.empty() )
+with expansion:
+  false
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:104: FAILED:
+  CHECK( hasPair(diff.toRebound, 0, 1) )
+with expansion:
+  false
+  MODE change with an identical, untouched projector beside it: the output does
+  NOT jump to it
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:114: FAILED:
+  CHECK( diff.toClose.empty() )
+with expansion:
+  false
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:115: FAILED:
+  REQUIRE( diff.toRebound.size() == 1 )
+with expansion:
+  0 == 1

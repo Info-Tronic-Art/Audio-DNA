@@ -1,0 +1,20 @@
+# TEETH: test_app_settings against a COPY of src/model/AppSettings.cpp whose update() writes a fresh one-key object -- the pre-C3 MilkDrop writer (MainComponent.cpp @dc7adf9 saveMilkDropPresetDirSetting: new DynamicObject, one setProperty, replaceWithText). Sun Sep 27 16:10:24 EDT 2026
+AppSettings: update is read-modify-write -- two keys, both kept
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:36: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:38: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:41: FAILED:
+with expansion:
+AppSettings: the MilkDrop folder and the output set coexist, whichever is
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:78: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:81: FAILED:
+with expansion:
+AppSettings: keys this build does not know survive every write
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:98: FAILED:
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:99: FAILED:
+with expansion:
+test cases:  6 |  3 passed | 3 failed
+assertions: 59 | 52 passed | 7 failed

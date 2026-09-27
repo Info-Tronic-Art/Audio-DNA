@@ -1,0 +1,18 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.CQwHxw
+settings: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.CQwHxw/settings.json (seeded, sha256 f03a2a8e7b6ca143)
+PASS  o_state_displays: http://[::1]:8080 outputs.displays = [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}] (CoreGraphics: 1 display(s), main (1728, 1117))
+PASS  o_state_displays: http://127.0.0.1:7070 outputs.displays = [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}] (CoreGraphics: 1 display(s), main (1728, 1117))
+PASS  o_state_displays: the level probe's _pick_main_fullscreen_item (FULLSCREEN_PREFIX 'Display ', MAIN_SUFFIX ', main)') picks 'Display 1 (1728x1117, main)' from the app's labels; close item DISABLED_ITEM 'All Outputs Off'
+PASS  o_restore_empty: the app reads and writes its settings in the run's scratch file /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.CQwHxw/settings.json (err.log: AUDIODNA_SETTINGS_FILE honoured)
+PASS  o_restore_empty: before: manager {'poll_enabled': True, 'poll_ticks': 81, 'reconciles': 0, 'settings_writes': 0, 'restore_calls': 0, 'interrupted': 0, 'saved': 1, 'restorable': 0}, outputs.live 0 (scratch settings seeded, 1 target(s): want saved == 1, restorable == 0, live == 0)
+PASS  o_restore_empty: Restore Last Outputs ran (HTTP 200 {'ok': True, 'queued': True}; restore_calls 0 -> 1) and opened NOTHING: outputs.live 8080 0 / 7070 0, saved 1 -> 1, settings_writes 0 -> 0, scratch settings f03a2a8e7b6c -> f03a2a8e7b6c, Output-named windows so far [], max layer-0 windows 1
+FAIL  o_no_window_opened: 3 Quartz samples over the run: Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1 (<= 1 = the main window); window names readable: ['Audio-DNA']
+
+PY 6 PASS / 1 FAIL
+PASS  no foreign render_frame / output_probe traffic during the run
+      main window (Quartz id 6338) -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.CQwHxw/main-window.png
+PASS  app terminated
+PASS  after quit: 0 Audio-DNA windows in the FULL Quartz window list (no output window survives)
+
+PROBE-OUTPUTS RED

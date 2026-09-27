@@ -1,0 +1,5 @@
+# SETTINGS SAFETY -- AFTER every live run (stamped Sun Sep 27 19:07:35 EDT 2026)
+ABSENT  /Users/boriskarpman/Library/Audio-DNA/settings.json
+ABSENT  /Users/boriskarpman/Library/Application Support/Audio-DNA/settings.json
+ls: /Users/boriskarpman/Library/Audio-DNA: No such file or directory
+ls: /Users/boriskarpman/Library/Application Support/Audio-DNA: No such file or directory

@@ -1,0 +1,7 @@
+# RED: test_output_law (lane source, incl. the plan5-C3 Q1 row) compiled with AUDIODNA_SRC_DIR = MAIN's src (git archive dc7adf9). Sun Sep 27 16:10:16 EDT 2026
+output law: nothing opens an output at launch -- Restore Last Outputs is the
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:265: FAILED:
+  REQUIRE( calls == 1 )
+with expansion:
+test cases: 14 | 13 passed | 1 failed
+assertions: 70 | 69 passed | 1 failed

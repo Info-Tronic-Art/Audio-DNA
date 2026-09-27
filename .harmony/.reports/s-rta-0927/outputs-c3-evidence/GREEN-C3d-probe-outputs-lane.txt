@@ -1,0 +1,29 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.XRPgln
+settings: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.XRPgln/settings.json (absent)
+PASS  o_probe_matches_canvas: before any publish output_probe answers 409 ok:false (HTTP 409, {'ok': False, 'error': 'nothing published yet (no live output and the tap is off)'})
+PASS  o_probe_matches_canvas: output_probe 1920x1080 == render_frame 1920x1080 (d 0.000 <= 2.0; gen 1 serial 36 slot 3 canvas 1920x1080)
+PASS  o_probe_portrait_target: 1080x1920, picture rect 1080x607 at PNG row 657 (fitCanvas 0,656,1080,607); bars mean RGB 0.000 <= 2.0; d(inner, f0 resized) 0.013 <= 6.0
+PASS  o_probe_tracks_change: after col1 = B the probe follows: d(probe, f0) 29.431 > 20.0 and d(probe, f_B) 0.000 <= 2.0 (serial 149)
+PASS  o_probe_survives_resolution_change: render_frame 1280x720 of col0 = A, d(f_720, fixture A P16_01_baseline.png stretched to 1280x720) 0.013 <= 6.0; probe canvas 1280x720, gen 1 -> 2, d(probe, f_720 upscaled) 0.013 <= 6.0
+PASS  o_probe_repeat_stable: 60 probes in 11.74 s, every PNG decoded, none blank, worst d 0.000 <= 2.0 (0 bad: [])
+PASS  o_state_outputs: http://[::1]:8080 /api/state.outputs = {'live': 0, 'tap': True, 'frame_gen': 3, 'frame_serial': 1874, 'canvas_w': 1920, 'canvas_h': 1080, 'displays': [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}], 'manager': {'poll_enabled': True, 'poll_ticks': 608, 'reconciles': 0, 'settings_writes': 0, 'restore_calls': 0, 'interrupted': 0, 'saved': 0, 'restorable': 0}}
+PASS  o_state_outputs: http://127.0.0.1:7070 /api/state.outputs = {'live': 0, 'tap': True, 'frame_gen': 3, 'frame_serial': 1874, 'canvas_w': 1920, 'canvas_h': 1080, 'displays': [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}]}
+PASS  o_state_outputs: after set_output_tap off, 8080 outputs.tap == false ({'live': 0, 'tap': False, 'frame_gen': 3, 'frame_serial': 1875, 'canvas_w': 1920, 'canvas_h': 1080, 'displays': [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}], 'manager': {'poll_enabled': True, 'poll_ticks': 614, 'reconciles': 0, 'settings_writes': 0, 'restore_calls': 0, 'interrupted': 0, 'saved': 0, 'restorable': 0}})
+PASS  o_state_displays: http://[::1]:8080 outputs.displays = [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}] (CoreGraphics: 1 display(s), main (1728, 1117))
+PASS  o_state_displays: http://127.0.0.1:7070 outputs.displays = [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}] (CoreGraphics: 1 display(s), main (1728, 1117))
+PASS  o_state_displays: the level probe's _pick_main_fullscreen_item (FULLSCREEN_PREFIX 'Display ', MAIN_SUFFIX ', main)') picks 'Display 1 (1728x1117, main)' from the app's labels; close item DISABLED_ITEM 'All Outputs Off'
+PASS  o_restore_empty: the app reads and writes its settings in the run's scratch file /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.XRPgln/settings.json (err.log: AUDIODNA_SETTINGS_FILE honoured)
+PASS  o_restore_empty: before: manager {'poll_enabled': True, 'poll_ticks': 616, 'reconciles': 0, 'settings_writes': 0, 'restore_calls': 0, 'interrupted': 0, 'saved': 0, 'restorable': 0}, outputs.live 0 (scratch settings absent: want saved == 0, restorable == 0, live == 0)
+PASS  o_restore_empty: Restore Last Outputs ran (HTTP 200 {'ok': True, 'queued': True}; restore_calls 0 -> 1) and opened NOTHING: outputs.live 8080 0 / 7070 0, saved 0 -> 0, settings_writes 0 -> 0, scratch settings absent -> absent, Output-named windows so far [], max layer-0 windows 1
+      o_poll_idle: load avg 3.68 3.46 3.50
+PASS  o_poll_idle: poll paused 5.01 s: 0 ticks, frame_time_ms 1.169 (18 samples) | poll running 5.01 s: 145 ticks = 29.0/s (>= 20.0), frame_time_ms 1.221 (18 samples) | delta +0.052 ms (|d| <= 0.3); reconciles +0, settings writes +0, outputs.live values seen [0], distinct displays lists 1 (load avg 3.64 3.46 3.50)
+PASS  o_no_window_opened: 121 Quartz samples over the run: Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1 (<= 1 = the main window); window names readable: ['Audio-DNA']
+
+PY 17 PASS / 0 FAIL
+PASS  no foreign render_frame / output_probe traffic during the run
+      main window (Quartz id 6331) -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/runs/outputs.XRPgln/main-window.png
+PASS  app terminated
+PASS  after quit: 0 Audio-DNA windows in the FULL Quartz window list (no output window survives)
+
+PROBE-OUTPUTS GREEN

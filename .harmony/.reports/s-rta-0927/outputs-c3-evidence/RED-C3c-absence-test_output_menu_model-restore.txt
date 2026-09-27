@@ -1,0 +1,10 @@
+# RED by absence: the lane's tests/test_output_menu_model.cpp (Restore Last Outputs case) against MAIN's src. Sun Sep 27 16:09:13 EDT 2026
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:189:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:189:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:189:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:190:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:190:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:190:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:191:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:191:31: error: no member named 'kOutputRestoreLast' in 'AudioDNAMenuBar::CommandID'
+exit=1

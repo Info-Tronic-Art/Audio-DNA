@@ -1,0 +1,5 @@
+# SETTINGS SAFETY -- BEFORE any live run (stamped Sun Sep 27 16:11:36 EDT 2026)
+ABSENT  /Users/boriskarpman/Library/Audio-DNA/settings.json
+ABSENT  /Users/boriskarpman/Library/Application Support/Audio-DNA/settings.json
+(the app's settings path: JUCE userApplicationDataDirectory = ~/Library on macOS -> ~/Library/Audio-DNA/settings.json; juce_Files_mac.mm: case userApplicationDataDirectory: resultPath = "~/Library")
+ls: /Users/boriskarpman/Library/Audio-DNA: No such file or directory

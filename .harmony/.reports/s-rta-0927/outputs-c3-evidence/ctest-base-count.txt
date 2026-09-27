@@ -1,0 +1,1 @@
+base (main dc7adf9): 729 = 731 listed in the first lane build minus the 2 new TEST_CASEs that build already compiled in (Restore Last Outputs, the Q1 law row); matches outputs-c2's final 729

@@ -1,0 +1,55 @@
+TopBar Outputs button menu (fake 3-display set, restore-off):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  [x] Display 2 (1920x1080)  (id 1602)
+  [ ] Display 3 (3840x2160)  (id 1603)
+  ----
+  [ ] All Outputs Off  (id 1600, Cmd+Shift+Esc)
+  [ ] Restore Last Outputs  (id 1697, disabled)
+Menu bar > Output (fake 3-display set, restore-off):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  [x] Display 2 (1920x1080)  (id 1602)
+  [ ] Display 3 (3840x2160)  (id 1603)
+  ----
+  [ ] All Outputs Off  (id 1600, Cmd+Shift+Esc)
+  [ ] Restore Last Outputs  (id 1697, disabled)
+  ----
+  [ ] Snapshot  (id 1693)
+  ----
+  [ ] Start Recording  (id 1694)
+  [ ] Stop Recording  (id 1695)
+  ----
+  [ ] Syphon Output  (id 1696)
+TopBar Outputs button menu (fake 3-display set, restore-on):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  [x] Display 2 (1920x1080)  (id 1602)
+  [ ] Display 3 (3840x2160)  (id 1603)
+  ----
+  [ ] All Outputs Off  (id 1600, Cmd+Shift+Esc)
+  [ ] Restore Last Outputs  (id 1697)
+Menu bar > Output (fake 3-display set, restore-on):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  [x] Display 2 (1920x1080)  (id 1602)
+  [ ] Display 3 (3840x2160)  (id 1603)
+  ----
+  [ ] All Outputs Off  (id 1600, Cmd+Shift+Esc)
+  [ ] Restore Last Outputs  (id 1697)
+  ----
+  [ ] Snapshot  (id 1693)
+  ----
+  [ ] Start Recording  (id 1694)
+  [ ] Stop Recording  (id 1695)
+  ----
+  [ ] Syphon Output  (id 1696)
+Menu bar > Output (this machine's displays, nothing live):
+  [ ] Display 1 (1728x1117, main)  (id 1601)
+  ----
+  [ ] All Outputs Off  (id 1600, disabled, Cmd+Shift+Esc)
+  [ ] Restore Last Outputs  (id 1697, disabled)
+  ----
+  [ ] Snapshot  (id 1693)
+  ----
+  [ ] Start Recording  (id 1694)
+  [ ] Stop Recording  (id 1695)
+  ----
+  [ ] Syphon Output  (id 1696)
+wrote 12 PNGs to /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/.harmony/.reports/s-rta-0927/outputs-c3-shots/tool-raw
