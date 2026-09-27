@@ -1609,6 +1609,49 @@ endif()
 apply_sanitizers(test_routine_pad_press)
 catch_discover_tests(test_routine_pad_press)
 
+# --- test_param_control_routine_cue (s-rta-0927 routine display C7, plan-routine-display-A.md 5.6): a bound
+# UniversalParamControl gripped by a lane-rank hand (a routine / a take replay) paints its value digits cyan and
+# "ROUTINE" in the collapsed hint slot; a human hand shows nothing new. Pixel-decoded createComponentSnapshot;
+# the test_right_click_reset link set.
+add_executable(test_param_control_routine_cue
+    test_param_control_routine_cue.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_param_control_routine_cue PRIVATE ${SRC_DIR})
+target_link_libraries(test_param_control_routine_cue PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_param_control_routine_cue PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_param_control_routine_cue PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_param_control_routine_cue)
+catch_discover_tests(test_param_control_routine_cue)
+
 # --- tool_routine_deck_snapshot (s-rta-0927 routine display, plan-routine-display-A.md section 4): a
 # ctest-EXCLUDED headless snapshot tool -- deliberately never registered with catch_discover_tests. Renders the
 # ROUTINES row (eight real RoutinePads) and one LayerStrip with routine bands, with the app's AudioDNALookAndFeel,
