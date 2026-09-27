@@ -924,6 +924,10 @@ void LayerInspector::syncFromLayer()
     {
         const bool canPersist = Layer::canBePersistent(layer_->type);
         persistentToggle_.setEnabled(canPersist);
+        // The look-and-feel draws a disabled toggle exactly like an enabled one
+        // (measured: same label/tick pixels), so dim it the way RecordPanel
+        // dims its disabled toggles (kDisabledAlpha 0.4).
+        persistentToggle_.setAlpha(canPersist ? 1.0f : 0.4f);
         persistentToggle_.setTooltip(canPersist
             ? "Keep this layer rendering when switching to another deck"
             : "Persistent is available for Opaque, Transparent and FX Only layers");
