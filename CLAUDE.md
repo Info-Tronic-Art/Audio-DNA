@@ -224,6 +224,7 @@ the named area; this index is triage-only.
 42. A beat clock integrates totalBeatCount + beatPhase, never the beatPhase wrap -- before reading beatPhase on the message thread as a clock or an edge.
 43. `newton_3d` is a heightfield: its camera stays above it, auto-rotate is yaw-only -- before touching a heightfield/terrain source's camera or its defaults.
 44. Fractal subdivision depth is capped by the canvas (a dyadic canvas aliases every pixel into a hole) -- before adding or deepening a digit/IFS-per-level source.
+45. A registered parameter must be read by its shader (`test_shader_param_lint`; helper lambdas hide dead params; old files reconcile on load) -- before adding a source/effect param or a param-adding helper.
 
 ---
 

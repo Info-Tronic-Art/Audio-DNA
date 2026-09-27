@@ -398,3 +398,28 @@ TEST_CASE("Dot Field is visible at its registered defaults and every control cha
     }
     glDeleteTextures(1, &tex);
 }
+
+// A2 IMPLEMENT -- Mandelbulb and Julia Set 3D "Iterations" now bound the DE loop (4 + 20x / 2 + 20x; the default 0.4
+// is today's fixed 12 / 10), so the control changes the picture somewhere in its range (the Tier-1 "param has an
+// effect" criterion: julia_set_3d's upper half is nearly flat -- most rays escape before 10 iterations).
+TEST_CASE("mandelbulb and julia_set_3d Iterations change the picture", "[source-defaults][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const std::pair<const char*, const char*> cases[] = { { "mandelbulb", EmbeddedShaders::sourceMandelbulb },
+                                                          { "julia_set_3d", EmbeddedShaders::sourceJuliaSet3D } };
+    for (const auto& [id, frag] : cases)
+    {
+        const auto ps = registryParams(id);
+        const Pixels dflt = rig.render(frag, 256, 256, 1.13f, ps);
+        double best = 1e9;
+        std::ostringstream seen;
+        for (float v : { 0.0f, 1.0f })
+        {
+            const double q = psnr(dflt, rig.render(frag, 256, 256, 1.13f, with(ps, "u_src_iterations", v)));
+            seen << " default -> " << v << ": PSNR " << q << ";";
+            best = std::min(best, q);
+        }
+        INFO(id << " Iterations" << seen.str());
+        CHECK(best < 55.0);
+    }
+}

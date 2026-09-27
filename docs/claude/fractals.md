@@ -78,12 +78,12 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 
 | Source ID | Name | Extra Params |
 |-----------|------|-------------|
-| `mandelbulb` | Mandelbulb | Power (2-16 quadratic), Iterations, Detail |
+| `mandelbulb` | Mandelbulb | Power (2-16 quadratic), Iterations (4-24 DE steps, 12 at 0.4) |
 | `menger_sponge` | Menger Sponge | Iterations, Twist |
 | `kifs` | Kaleidoscopic IFS | Scale, Iterations, Fold Type, Offset |
-| `julia_set_3d` | Julia Set 3D | Location (6 quaternion presets), C Real/Imag, Iterations |
+| `julia_set_3d` | Julia Set 3D | Location (6 quaternion presets), C Real/Imag, Iterations (2-22 DE steps, 10 at 0.4) |
 | `burning_ship_3d` | Burning Ship 3D | Power (2-16) |
-| `newton_3d` | Newton 3D | Power, Damping, Height |
+| `newton_3d` | Newton 3D | Power, Damping, Height -- a heightfield: NO Cross Section / Slice Count / Slice Distance / Glow; default Angle X 0.0, auto-rotate is yaw-only (Pitfall 43) |
 | `sierpinski_tetra` | Sierpinski Tetrahedron | Iterations |
 | `apollonian_3d` | Apollonian 3D | Scale, Iterations |
 

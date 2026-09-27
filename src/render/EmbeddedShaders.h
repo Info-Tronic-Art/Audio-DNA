@@ -6705,7 +6705,9 @@ inline const char* sourceMandelbulb = R"(
         vec3 z = pos;
         float dr = 1.0, r = 0.0;
         trap = 1e10;
-        for (int i = 0; i < 12; i++) {
+        int maxIt = 4 + int(u_src_iterations * 20.0);   // Iterations: 4..24, 12 at the default 0.4
+        for (int i = 0; i < 24; i++) {
+            if (i >= maxIt) break;
             r = length(z);
             if (r > 2.0) break;
             trap = min(trap, length(z));
@@ -7196,7 +7198,9 @@ inline const char* sourceJuliaSet3D = R"(
         vec4 z = vec4(pos, 0.0);
         float dz = 1.0;
         trap = 1e10;
-        for (int i = 0; i < 10; i++) {
+        int maxIt = 2 + int(u_src_iterations * 20.0);   // Iterations: 2..22, 10 at the default 0.4
+        for (int i = 0; i < 22; i++) {
+            if (i >= maxIt) break;
             dz = 2.0 * length(z) * dz;
             z = qmul(z, z) + c;
             trap = min(trap, length(z.xyz));

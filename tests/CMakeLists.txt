@@ -2349,3 +2349,12 @@ if(APPLE)
     apply_sanitizers(test_source_defaults_gl)
     catch_discover_tests(test_source_defaults_gl)
 endif()
+
+# --- test_shader_param_lint (s-rta-0927 source-defects, plan-source-defects.md T1): every registered source/effect
+# parameter is read by its shader (a control nothing reads is a dead knob). Static text scan of SourceRegistry.cpp,
+# EffectLibrary.cpp, Renderer.cpp and EmbeddedShaders.h at test time -- no GL.
+add_executable(test_shader_param_lint test_shader_param_lint.cpp)
+target_link_libraries(test_shader_param_lint PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_shader_param_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_shader_param_lint)
+catch_discover_tests(test_shader_param_lint)
