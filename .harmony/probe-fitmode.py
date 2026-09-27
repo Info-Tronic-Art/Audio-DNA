@@ -12,7 +12,8 @@ rows: f_stretch_identity f_bars_geometry f_bars_transparent_lower_shows f_crop_g
       f_layer_transform_no_double_fit f_stretch_transform_identity f_same_aspect_identity f_source_unaffected
       f_rest_osc_set f_perf
 env:  FIT_SHOTS=<dir> -- also write the composition frames (BOX-downscaled to 960x540, RGB as the app shows
-      them) + the PIL oracles there.
+      them) + the PIL oracles there, and lower-layer-only.png (B alone: B is itself a 2x2 split picture, so the
+      Bars-over-B frames show B's tiles beside A -- that is the lower layer, not a render fault).
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. Fixture A = media/P16_01_baseline.png (756x878 portrait,
 opaque), B = media/P16_02_Screen_Split_2x2.png (756x878, opaque). Canvas = outputWidth/outputHeight 1920x1080,
@@ -286,6 +287,7 @@ def f_bars_transparent_lower_shows():
     if not on_canvas("f_bars_transparent_lower_shows", f) or not on_canvas("f_bars_transparent_lower_shows ref", ref):
         return
     shot("bars-over-lower-layer", f)
+    shot("lower-layer-only", ref)   # fix round: B alone -- the bands above ARE this picture (B is a 2x2 split image)
     eqL = same_rgb(f[:, :BAND_L], ref[:, :BAND_L])
     eqR = same_rgb(f[:, BAND_R:], ref[:, BAND_R:])
     dL, dR = d(f[:, :BAND_L], ref[:, :BAND_L]), d(f[:, BAND_R:], ref[:, BAND_R:])
