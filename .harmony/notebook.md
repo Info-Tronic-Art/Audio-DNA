@@ -1575,3 +1575,21 @@ hand-written functions with no shared layout model.
   witness-*). DECISION (Harmony): no migration; the existing "no beat grid" refusal stays.
   HABIT: a disk census must first print ONE raw record's actual keys, then count — never count by a key name
   recalled from the C++ struct.
+
+## 2026-09-26 s-rta-0926b bpm-thread | Files: src/analysis/BPMTracker.{h,cpp}, src/MainComponent.cpp applyTempoCommand
+- setManualBPM / followExternalTempo are REQUESTS (one lock-free 64-bit word, applied at the start of the next
+  runPipeline), like requestResync. A test that reads bpm()/beatPhase() right after the call sees the OLD values; run
+  one hop first. TSan on one test target is ~1 min: -DADNA_SANITIZE=thread (cmake/Sanitizers.cmake), --target
+  test_bpm_stabilization. Offline worktree configure also needs FETCHCONTENT_SOURCE_DIR_SYPHON.
+- Link is NOT dormant in a default build: the TopBar Link toggle is always visible and LinkSync stores enabled_ and
+  reports its 120.0 default without AUDIODNA_HAS_LINK -> one click forces a fake 120 BPM (wave-2 fix).
+  LinkSync::getBeatPhase is never consumed (Link phase-following is unimplemented).
+- Valid while BPMTracker keeps the request word.
+
+## 2026-09-26 s-rta-0926b render (merged 7713aa4) | Files: src/render/CompositorEngine.{h,cpp}, LayerStateKey.h
+- Per-layer GL state (temporal buffers, frame rings, feedback) is keyed by LayerStateKey = deck id << 32 | layer id
+  [| layer-chain bit]; layer ids repeat in every deck (Deck.h), so NEVER key GL history by layer id alone.
+- A one-frame GL glitch can be made DETERMINISTIC for a RED row: Freeze 1.0 on a fresh layer + a non-black glClear
+  colour holds the glitch frame forever (probe-render-state r5_hold).
+- Persistent layers now run the same per-layer stages as active-deck layers (renderLayerStages + advanceCrossfade).
+- The frame ring at 1080p is ~249 MB per (deck, layer) chain that uses Screen Split / Frame Stutter.
