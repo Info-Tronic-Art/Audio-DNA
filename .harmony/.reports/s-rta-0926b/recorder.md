@@ -212,3 +212,11 @@ DONE.
 ## NEXT ACTION
 
 Harmony: rule on `open_forks` id `C-migration`. No further code action needed from this lane.
+
+
+## HARMONY CORRECTION (s-rta-0926b gate) — OBJECTIVE 2 census was wrong
+The census script read `data["tempo"]["a"]` (the in-memory Take struct shape); on disk take.json stores the grid as the
+list `tempoMap`. Re-derived by Harmony: 158 takes, 139 with `tempoMap: []`, all recorded before ebbff22 (last empty
+15:21:14); 19 non-empty; ZERO empty after ebbff22 (step3gate1: 6 anchors, step3gate2: 2). The "7 anomalous post-merge
+takes" do not exist. OBJECTIVE 1 (the fix) is unaffected: Harmony re-ran the live witness on build/ 6e8f120 — tempoMap []
+at t~1.5 s (RED). C-migration: no migration (all takes are dev/probe artifacts by name).

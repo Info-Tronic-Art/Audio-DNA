@@ -1567,13 +1567,11 @@ hand-written functions with no shared layout model.
   on the fix build; tempoMap: [] on the read-only baseline app (/Users/boriskarpman/projects/
   RealTimeAudio/build, built 18:12:35, i.e. AFTER ebbff22/e5ceb98 were merged into main -- the gap is
   real on top of both prior fixes, not something either of them already closed).
-- DISK FACT (Documents/Audio-DNA/Takes, read-only census, s-rta-0926b): all 157 existing takes have
-  tempoMap [] -- 150 predate e5ceb98 (17:08:47), 141 predate ebbff22 (16:14:49), but 7 postdate BOTH
-  and are STILL empty (e.g. step3gate1/step3gate2, recordedAt 18:16-18:20, duration ~15s < 60s, i.e.
-  they were disarmed cleanly but never got a real save after the provisional one -- exactly this gap,
-  most likely run against a stale/different binary than the 18:12:35 main rebuild). All 157 are
-  dev/probe artifacts by name (finloop-*, probe-routines-*, step3gate*, s4gate, resid*, lat*, shot_*) --
-  no user performance take is at risk. No migration implemented (Harmony decision, open_forks
-  C-migration in .harmony/.reports/s-rta-0926b/recorder.md); recommendation was "no migration, keep
-  the existing clear refusal message" -- offline re-analysis risks fabricating a beat grid the
-  performer never actually played to.
+- DISK FACT (Documents/Audio-DNA/Takes, read-only; CORRECTED by Harmony s-rta-0926b — the lane's census script read
+  the in-memory key `tempo`/`a`, but take.json stores the grid as the list `tempoMap`, so it reported "157/157 empty"
+  and "7 post-merge empty takes"; both FALSE): 158 takes, 139 with tempoMap [] — ALL recorded before ebbff22
+  (last empty 15:21:14); 19 non-empty; ZERO empty takes after ebbff22 (step3gate1 has 6 anchors, step3gate2 2).
+  All are dev/probe artifacts by name (finloop 120, probe-routines, step3gate*, s4gate, resid*, lat*, shot_*,
+  witness-*). DECISION (Harmony): no migration; the existing "no beat grid" refusal stays.
+  HABIT: a disk census must first print ONE raw record's actual keys, then count — never count by a key name
+  recalled from the C++ struct.
