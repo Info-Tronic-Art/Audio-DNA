@@ -1,0 +1,6 @@
+TIER1 FIX start 2026-09-27 19:25:04 load={ 4.92 4.11 4.06 } app=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/apps/fix/Audio-DNA.app
+pytest rc=1
+8 failed, 5 passed in 1128.14s (0:18:48)
+TIER1 FIX end 2026-09-27 19:44:56
+app running after quit: no
+audio-dna windows 0, Output-named 0

@@ -217,3 +217,118 @@ Summary lines are in `live/*/*.log` and `live/batch-*.out`.
 ## ERRATA
 - Commit 1a24467's message says "1080p 93-110 ms" for the old GL-thread share; the measured sums are 94.4-109.7 ms
   (C0 table above). HANDOFF item 4 is corrected to 94-110 in the report commit.
+
+## Fix round (lane renderperf-fix; base e617312, fix commit 7500718)
+
+STATUS: DONE
+RESULT: The one MUST is confirmed and fixed. On C3, a second capture could hand its pixels to the first caller, which then returned ok:true with the wrong picture. Each capture's read now reaches its own caller by value through its own promise. RED on e617312 with a temporary hook: capture A wrote capture B's picture (B's size, then B's colour at the same size) and B failed. GREEN on 7500718 with the same hook, twice: each capture got its own picture. Without the hook, the capture bytes match C3 exactly, ctest 736/736, 7 probes GREEN, Tier-1 outcome list identical to C3.
+FACTS: `src/render/Renderer.h` (`struct CaptureRead`, `std::promise<CaptureRead>* capturePromise_`; `capturePixels_` / `captureReadW_` / `captureReadH_` / `captureReadMs_` deleted); `src/render/Renderer.cpp` (captureFrame: `CaptureRead read = future.get()`; processPendingCapture: `set_value(std::move(read))`); evidence `.harmony/.reports/s-rta-0927/renderperf-evidence/fix/` (live/race/*.log, live/fix1, live/fix2, live/tier1, live/capt/sha256-FIX-vs-C3.txt, ctest-fix.log, hook-strings-count.txt, scripts/)
+METHOD: I confirmed the finding by reading the code, then reproduced it live. I built three apps from build-lane: e617312 + temporary hook (redhook), 7500718 + the same hook (greenhook), and 7500718 without the hook (fix). The hook was never committed. A new scratch probe, capture_race, runs two overlapping 8080 render_frame calls and decodes every PNG. Every live run held /tmp/audiodna-live.lock as `renderperf-fix` in 4 batches, released between batches with >= 45 s cooldown. Apps were launched with `open -g` and quit with osascript, and a Quartz window sampler ran in every batch.
+CONFIDENCE: high. The race reproduced on the first try exactly as the code reading predicted, including the log lines. The fix removes the shared state instead of narrowing the window. VERIFY: `git -C <wt> show 7500718 -- src`; `grep -c capturePixels_ src/render/Renderer.*` = 0; `renderperf-evidence/fix/live/race/race-redhook.log` vs `race-greenhook.log`.
+UNKNOWNS: The live RED needs the temporary hook; without it the window is microseconds and a frame is 8-16 ms. The probe cannot be re-run on the committed build (by design: `h_hook` FAILs there). No ctest covers this: Renderer.cpp is not linked into any ctest target.
+NUANCE: A separate older race is still there (found_not_fixed #5, first half). A second captureFrame can still overwrite capturePromise_ while the first is waiting for the GL thread, so the first times out after 5 s. It fails safely and never gives wrong data. It predates C3 and was not part of this finding.
+HANDOFF-NEEDS: Harmony: behavioral gate on lane/renderperf-0927 (now 5 plan/fix commits + 2 report commits), then merge. The Reviewer should read the 7500718 diff (about 40 lines in 2 files).
+
+INBOX-RECHECK: none
+
+### Finding verification (MUST: C3 shared capture members race)
+- **Confirmed by reading the code** (e617312 `src/render/Renderer.cpp`):
+  - processPendingCapture wrote `capturePixels_`, `captureReadW_/H_` and `captureReadMs_`, then called `set_value(true)` and `capturePromise_ = nullptr`. That frees the slot for the next capture.
+  - captureFrame took `captureMutex_` only AFTER `future.get()` and moved out whatever those members held at that moment.
+  - The callers are 8080 `/api/render_frame` (TestServer.cpp:588), 7070 `/api/render_frame` (ApiServer.cpp:1164) and `takeSnapshot` (Renderer.cpp, which runs on the snapshot thread in MainComponent.cpp:6563 and ApiServer.cpp:713). They can all be in flight at the same time.
+- **Confirmed live** (RED, `renderperf-evidence/fix/live/race/race-redhook.log`, raw lines):
+```
+      r1_sizes: A ok=True [...] -> 320x180 centre red; B ok=False [... "error": "Frame capture failed"] -> none; B sent 506 ms after A, A answered at 1511 ms, overlap=True
+FAIL  r1_sizes: capture A (640x360) returns ok and its PNG decodes 640x360 (320x180 centre red)
+FAIL  r1_sizes: capture B (320x180) returns ok and its PNG decodes 320x180 (none)
+      r2_content: load blue (200, '{"ok":true}'); A ok=True [...] -> 640x360 centre blue; B ok=False [...] -> none; B sent 932 ms after A, A answered at 1526 ms, overlap=True
+FAIL  r2_content: capture A (armed while red showed) returns ok and decodes RED -- its own frame (640x360 centre blue)
+FAIL  r2_content: capture B (armed after blue loaded) returns ok and decodes BLUE (none)
+PY 3 PASS / 4 FAIL
+[Eyes] Captured frame: r1_A.png (320x180) read=0.3 convert=0.1 png=1.9 ms
+[Eyes] Invalid capture dimensions: 320x180
+[Eyes] Captured frame: r2_A.png (640x360) read=0.8 convert=0.4 png=6.9 ms
+[Eyes] Invalid capture dimensions: 640x360
+PROBE-CAPTURE-RACE RED
+```
+  - r2_content is the silent case the finding described. Both captures are 640x360, so the size check could not catch the swap: A returned ok:true with B's (blue) picture.
+  - Nothing was refuted.
+
+### The fix (7500718)
+- `Renderer::CaptureRead {ok, pixels, width, height, readMs}` replaces the four shared members. The promise is now `std::promise<CaptureRead>`.
+- processPendingCapture fills a local CaptureRead (the same `glReadPixels` into the same kind of vector, still under captureMutex_ and gated on the lock size) and calls `set_value(std::move(read))`. The invalid-size path sends `CaptureRead{}` (ok=false), the same result as the old `set_value(false)`.
+- captureFrame's own `future.get()` returns the read. After the signal nothing shared is read, so no later capture can reach it.
+- Unchanged:
+  - no new mutex, and the GL-thread locking is the same;
+  - the 5 s timeout path;
+  - the `[Eyes] Captured frame: <path> (WxH) read= convert= png= ms` line;
+  - PixelConvert / PNG;
+  - GL-thread cost: still one vector allocation per capture, as in C0 and C3.
+- This is the finding's first suggested option. I did not take the second option (a request-scoped single-flight guard on the calling side). The by-value handoff removes the shared state itself and adds no lock.
+
+### GREEN (`renderperf-evidence/fix/live/race/race-greenhook.log`, `race-greenhook-2.log`, raw)
+```
+PASS  r1_sizes: capture A (640x360) returns ok and its PNG decodes 640x360 (640x360 centre red)
+PASS  r1_sizes: capture B (320x180) returns ok and its PNG decodes 320x180 (320x180 centre red)
+PASS  r2_content: capture A (armed while red showed) returns ok and decodes RED -- its own frame (640x360 centre red)
+PASS  r2_content: capture B (armed after blue loaded) returns ok and decodes BLUE (640x360 centre blue)
+PY 7 PASS / 0 FAIL
+PASS  h_hook: the collect-delay hook was armed (5 captures delayed)
+PROBE-CAPTURE-RACE GREEN
+```
+(`PY 7 PASS / 0 FAIL` and `PROBE-CAPTURE-RACE GREEN` on both greenhook runs.)
+
+### The temporary hook (never committed)
+- `renderperf-evidence/fix/scripts/hook.py add|remove` inserts one line: when `AUDIODNA_TEST_CAPTURE_COLLECT_DELAY_MS` is set, captureFrame sleeps that long after its future is ready and before it collects. That is the same spot in both trees (before `if (!future.get())` on e617312, before `CaptureRead read = future.get()` on 7500718). It also adds `<thread>` / `<cstdlib>`.
+- It was removed after each hooked build.
+- Renderer.cpp sha256 after removal equals the pre-hook sha256 for both e617312 and the fix (`renderer-sha256.txt`, `shasum -c` OK).
+- `strings` count of the variable name: redhook 1, greenhook 1, **fix 0**, and 0 for the final build-lane binary (`hook-strings-count.txt`).
+- Probe design (capture_race.py docstring):
+  - A (640x360) arms; the GL thread signals it within a frame or two; the hook holds A for 1.5 s.
+  - B arms 0.5 s later (r1, 320x180) or 0.9 s later after the blue image is loaded (r2, same 640x360), and is serviced inside A's window.
+  - Every output path is deleted first (FileOutputStream appends, found_not_fixed #4).
+  - Each overlap row also requires that B was sent before A's answer arrived.
+  - `h_hook` FAILs the run if the hook never fired.
+
+### Gates on the unhooked fix build (apps/fix = build-lane at 7500718)
+- Build: `cmake --build build-lane -j3` exit 0. There are 24 warnings, all in JUCE headers under `_deps/juce-src` (`build-fix-summary.txt`), and none in Renderer.cpp.
+- ctest full serial: `100% tests passed, 0 tests failed out of 736` (`ctest-fix.log`).
+- Capture byte identity (7070 render_frame, the same fixture as C0-C3): sha256 equals C3 (which equals dc7adf9) at 1920x1080 x5, 1280x720 x2 and 3840x2160 (`live/capt/sha256-FIX-vs-C3.txt`). PIL `array_equal=True`, alpha 191/191.
+  - Split timings: 1080p read 2.3-4.1 ms, 4K read 7.8 ms, png 79.7-98.3 / 305.7 ms.
+  - These timings were not quiet-gated (SKIPQUIET): compilers were 0/0 at step start and end, load 4.14-4.45.
+- Probes (existing, none re-thresholded):
+
+| probe | result |
+|---|---|
+| canvas | `PY 15 PASS / 0 FAIL` GREEN |
+| effects-parity | `PY 46 PASS / 0 FAIL` GREEN |
+| render-state | `PY 32 PASS / 0 FAIL` GREEN (r1_counts first use 1.57, first fade 1.57 ms) |
+| fitmode | `PY 10 PASS / 0 FAIL` GREEN |
+| crossfade | `PY 35 PASS / 0 FAIL` GREEN |
+| deck-clock | `PY 10 PASS / 0 FAIL` GREEN |
+| outputs | `PY 13 PASS / 0 FAIL` GREEN |
+
+- tests/visual Tier-1 (exactly test_sources / test_effects / test_audio_reactivity / test_time_sweep / test_performance, test mode): `8 failed, 5 passed in 1128.14s (0:18:48)`. `diff` against C3's outcome list is empty; these are the same 8 pre-existing failures.
+
+### Screen safety (fix round)
+- Window samplers in all 4 batches: `Output-named Audio-DNA windows []`, max 1 on-screen layer-0 Audio-DNA window.
+- After every batch: `audio-dna windows 0, Output-named 0`.
+- No Output window, no test_output_window_level.py, no screencapture, no synthetic input, no debugger.
+- The one env hook was reverted, and the final build's strings count is 0.
+- `.venv` symlink removed at every batch end.
+
+### found_not_fixed (fix-round update)
+- #5 splits in two:
+  - (a) Two captures swapping pixels: **FIXED** (7500718).
+  - (b) Still open, older than C3: a second captureFrame armed while the first is still waiting for the GL thread overwrites `capturePromise_`. The first then times out after 5 s, and its timeout path clears whatever capture is pending then. It fails safely and never gives wrong data. The finding's second option (a caller-side single-flight guard) would close it; not done here.
+- #1-#4 and #6 unchanged.
+
+### Fix-round DRIFT
+- F1 The commit message for 7500718 was written before the live RED/GREEN runs. The runs then matched it (RED 3/4 on redhook, GREEN 7/0 x2), so no amend was needed.
+- F2 capture_race lives in the evidence dir, not `.harmony/`: it needs the temporary hook and cannot pass on a committed build.
+- F3 The capture-timing step skipped the quiet wait (SKIPQUIET) so it would not hold the shared lock. Compilers were 0/0 at both ends. No perf claim rests on it; it is the byte-identity check.
+
+### Fix-round METRICS
+- 1 fix commit (7500718) + this report commit.
+- Live: 3 race runs, 1 capture A/B, 7 probes, 1 Tier-1.
+- 4 lock holds as `renderperf-fix`: 19:00:06-19:00:43, 19:07:29-19:15:59, 19:19:05-19:24:18, 19:25:03-19:44:58.

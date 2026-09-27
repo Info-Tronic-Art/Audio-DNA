@@ -1,0 +1,40 @@
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/apps/redhook/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/live/race/race.aFXEDM
+load red: (200, '{"ok":true}')
+      r0_single: ok=True wall 1538 ms, 640x360 centre red
+PASS  r0_single: a lone 640x360 capture decodes 640x360 with the red image at its centre (640x360 centre red)
+      r1_sizes: A ok=True [{
+  "ok": true,
+  "path": "/private/tmp/claude-501/-Users-] -> 320x180 centre red; B ok=False [{
+  "ok": false,
+  "error": "Frame capture failed"
+}] -> none; B sent 506 ms after A, A answered at 1511 ms, overlap=True
+PASS  r1_sizes: B was sent while A was still in flight
+FAIL  r1_sizes: capture A (640x360) returns ok and its PNG decodes 640x360 (320x180 centre red)
+FAIL  r1_sizes: capture B (320x180) returns ok and its PNG decodes 320x180 (none)
+      r2_content: load blue (200, '{"ok":true}'); A ok=True [{
+  "ok": true,
+  "path": "/private/tmp/claude-501/-Users-] -> 640x360 centre blue; B ok=False [{
+  "ok": false,
+  "error": "Frame capture failed"
+}] -> none; B sent 932 ms after A, A answered at 1526 ms, overlap=True
+PASS  r2_content: B was sent while A was still in flight
+FAIL  r2_content: capture A (armed while red showed) returns ok and decodes RED -- its own frame (640x360 centre blue)
+FAIL  r2_content: capture B (armed after blue loaded) returns ok and decodes BLUE (none)
+PY 3 PASS / 4 FAIL
+PASS  h_hook: the collect-delay hook was armed (5 captures delayed)
+PASS  no foreign render_frame traffic
+--- [Eyes] lines:
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] Captured frame: r0.png (640x360) read=2.4 convert=1.3 png=7.4 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] Captured frame: r1_A.png (320x180) read=0.3 convert=0.1 png=1.9 ms
+[Eyes] Invalid capture dimensions: 320x180
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] Captured frame: r2_A.png (640x360) read=0.8 convert=0.4 png=6.9 ms
+[Eyes] Invalid capture dimensions: 640x360
+PASS  app terminated
+
+PROBE-CAPTURE-RACE RED

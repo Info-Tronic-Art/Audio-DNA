@@ -1913,4 +1913,9 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
   PNG encode (~80 ms at 1080p, ~300 ms at 4K) run on the HTTP thread that waits for the answer, so the HTTP round trip
   is unchanged. The `[Eyes] Captured frame: <path> (WxH) read= convert= png= ms` fields are the capture's own timer
   (the frame timer never sees a capture: it runs after renderEnd).
+- Fix round: a capture's read reaches its caller BY VALUE through its own promise (`Renderer::CaptureRead`). Never
+  park a per-request result in a Renderer member. Three callers can be in flight at once (8080 render_frame, 7070
+  render_frame, snapshot threads). A result parked after the signal was taken by the wrong caller (live RED:
+  renderperf-evidence/fix). A second capture armed while the first is still pending still overwrites
+  capturePromise_, so the first times out after 5 s (older than C3; fails safely).
 - Valid while: FrameRingBuffer / loadKeyImage / captureFrame keep this shape.

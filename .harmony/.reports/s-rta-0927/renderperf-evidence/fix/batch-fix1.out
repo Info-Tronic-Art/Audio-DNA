@@ -1,0 +1,20 @@
+### batch fix1 2026-09-27 19:00:54
+19:00:54 re-acquire cooldown 34 s
+19:01:28 lock held by: source-defects 55759 1790550046 -- waiting
+19:03:28 lock held by: source-defects 55759 1790550046 -- waiting
+19:05:28 lock held by: outputs-c3 70033 1790550218 -- waiting
+19:07:29 lock acquired
+### capt-FIX 19:07:29 load={ 4.14 4.57 4.99 } compilers=[0/0]
+rc=0 :: 
+### canvas-FIX 19:07:45 load={ 4.45 4.61 5.00 } compilers=[0/0]
+rc=0 :: PY 15 PASS / 0 FAIL PROBE-CANVAS GREEN 
+### parity-FIX 19:09:25 load={ 4.17 4.41 4.87 } compilers=[0/0]
+rc=0 :: PY 46 PASS / 0 FAIL PROBE-EFFECTS-PARITY GREEN 
+### rstate-FIX 19:10:09 load={ 4.62 4.51 4.88 } compilers=[0/0]
+rc=0 :: PY 32 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+19:15:58 samples 503 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/batch.sh: line 15: 81000 Terminated: 15          $PY $SP/sampler.py $O/window-sampler.txt
+audio-dna windows 0, Output-named 0
+.venv symlink removed: yes
+19:15:59 lock released
+### batch fix1 done 2026-09-27 19:15:59

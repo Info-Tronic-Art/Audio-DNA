@@ -1,0 +1,2 @@
+9717dfc473ea61a57f2a214095d97e345589552faa27e8de2b2ff2d694688256  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/src/render/Renderer.cpp
+684e776f97610422e4178bbb45420ab1562fc45e9c81e58263947f3d48415132  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/src/render/Renderer.cpp

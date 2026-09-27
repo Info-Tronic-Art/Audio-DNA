@@ -1,0 +1,11 @@
+### batch tier1 2026-09-27 19:24:18
+19:24:18 re-acquire cooldown 45 s
+19:25:03 lock acquired
+### tier1-FIX 19:25:04 load={ 4.92 4.11 4.06 } compilers=[0/0]
+rc=0 :: 8 failed, 5 passed in 1128.14s (0:18:48) 
+19:44:57 samples 1176 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/batch.sh: line 15: 99387 Terminated: 15          $PY $SP/sampler.py $O/window-sampler.txt
+audio-dna windows 0, Output-named 0
+.venv symlink removed: yes
+19:44:58 lock released
+### batch tier1 done 2026-09-27 19:44:58

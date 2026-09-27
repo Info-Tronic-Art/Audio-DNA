@@ -1,0 +1,29 @@
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/apps/fix/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/live/fix2/dclock.sKchud
+--- d_fade_finishes
+      d_fade_finishes: d(A,B)=29.43 FLOOR=1.00
+      d_fade_finishes: deck 0 L0 (t, crossfadeProgress, previousClipColumn) while away: [(0.83, 0.205882042646408, 0), (1.35, 0.337689578533173, 0), (1.86, 0.464179843664169, 0), (2.38, 0.59380030632019, 0), (2.89, 0.721506595611572, 0), (3.4, 0.847902417182922, 0), (3.9, 0.974337518215179, 0), (4.43, 1.0, -1), (4.94, 1.0, -1), (5.46, 1.0, -1)]
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.43, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+--- d_persistent_single_advance
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.50 at T/2 = 2.0 s, expected in [0.35, 0.65])
+--- d_pending_trigger_still_cancelled
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+--- d_video_keeps_time
+PASS  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 6.40 s, t1 - t0 = 4.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.548 matches the frame (0.533 +- 0.06)
+--- d_imageseq_keeps_time
+      d_imageseq_keeps_time: d(rA, rB)=29.43 FLOOR=1.00
+PASS  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=0.00, floor 1.00; d(f, frame A)=29.43)
+--- d_autopilot_keeps_time
+PASS  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 1, expected >= 1)
+--- d_return_hitch
+      d_return_hitch: peak_frame_time_ms while away 17.15, across the return 15.02 (fps 117.0)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 15.02 ms; REPORT -- target <= 16)
+
+PY 10 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-DECK-CLOCK GREEN

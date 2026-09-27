@@ -1,0 +1,108 @@
+   1 _deps/juce-src/modules/juce_audio_basics/buffers/juce_AudioDataConverters.h:119:135: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/buffers/juce_AudioDataConverters.h:144:117: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/buffers/juce_AudioDataConverters.h:169:168: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/buffers/juce_AudioDataConverters.h:170:168: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/buffers/juce_AudioDataConverters.h:194:157: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/buffers/juce_AudioDataConverters.h:195:157: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/utilities/juce_ADSR.h:155:40: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/utilities/juce_ADSR.h:155:66: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/utilities/juce_ADSR.h:266:52: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_audio_basics/utilities/juce_ADSR.h:266:64: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/geometry/juce_Line.h:241:81: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/geometry/juce_Line.h:242:81: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:389:30: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:390:28: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:390:36: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:391:113: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:391:127: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:429:36: warning: implicit conversion increases floating-point precision: 'const float' to 'const double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:430:36: warning: implicit conversion increases floating-point precision: 'const float' to 'const double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:434:39: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:471:37: warning: implicit conversion increases floating-point precision: 'const float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:472:37: warning: implicit conversion increases floating-point precision: 'const float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:478:56: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 _deps/juce-src/modules/juce_graphics/native/juce_RenderingHelpers.h:479:56: warning: implicit conversion increases floating-point precision: 'float' to 'double' [-Wdouble-promotion]
+   1 [  1%] Built target syphon-check
+   1 [  4%] Built target tool_routine_deck_snapshot
+   1 [ 13%] Built target Catch2
+   1 [ 13%] Built target Catch2WithMain
+   1 [ 13%] Built target test_renderer_source_confinement
+   1 [ 13%] Built target test_ring_buffer
+   1 [ 13%] Built target test_waveform_snapshot
+   1 [ 16%] Built target test_clip_replace_media_retire
+   1 [ 16%] Built target tool_uitoggle_snapshot
+   1 [ 17%] Built target test_clip_fit
+   1 [ 17%] Built target test_compositor_effects_parity
+   1 [ 17%] Built target test_compositor_opacity_alias
+   1 [ 17%] Built target test_crossfade_history
+   1 [ 17%] Built target test_layer_transport_reverse
+   1 [ 17%] Built target test_scratch_pool
+   1 [ 18%] Built target test_layer_state_key
+   1 [ 19%] Built target test_spectral_features
+   1 [ 20%] Built target test_composition_tier_oracle
+   1 [ 21%] Built target test_feature_bus
+   1 [ 21%] Built target test_onset_pulse
+   1 [ 21%] Built target test_smoother
+   1 [ 22%] Built target test_oscillator_bar_fold
+   1 [ 23%] Built target test_integration_pipeline
+   1 [ 24%] Built target test_bpm_stabilization
+   1 [ 24%] Built target test_downbeat_detector
+   1 [ 24%] Built target test_mapping_engine
+   1 [ 25%] Built target test_composition
+   1 [ 27%] Built target test_take
+   1 [ 29%] Built target test_audio_tap_sync
+   1 [ 30%] Built target test_undo_commands
+   1 [ 35%] Built target test_connection
+   1 [ 35%] Built target test_routing_engine
+   1 [ 36%] Built target test_thumbnail_cache
+   1 [ 37%] Built target test_compositor
+   1 [ 38%] Built target test_autopilot
+   1 [ 39%] Built target test_preset_manager
+   1 [ 40%] Built target test_projectm_preset_manager
+   1 [ 41%] Built target test_program_stamps
+   1 [ 43%] Built target test_program_preamble
+   1 [ 45%] Built target test_routine
+   1 [ 47%] Built target test_routine_engine
+   1 [ 48%] Built target test_recorder_double_touch
+   1 [ 49%] Built target test_audio_store
+   1 [ 50%] Built target test_take_v1_transport
+   1 [ 52%] Built target test_bt_device_shapes
+   1 [ 52%] Built target test_comp_transform_units
+   1 [ 54%] Built target test_manual_write
+   1 [ 54%] Built target test_render_geometry
+   1 [ 55%] Built target test_deck_clock
+   1 [ 57%] Built target test_conn_picker
+   1 [ 60%] Built target test_record_panel_model
+   1 [ 60%] Built target test_recorder_host
+   1 [ 62%] Built target test_analysis_resampler
+   1 [ 62%] Built target test_routine_bank_model
+   1 [ 62%] Built target test_routine_deck_view
+   1 [ 63%] Built target test_record_panel_pads_removed
+   1 [ 65%] Built target test_layer_strip_follows_model
+   1 [ 66%] Built target test_routine_pad_press
+   1 [ 66%] Built target test_topbar_model
+   1 [ 68%] Built target test_deck_tab_row
+   1 [ 68%] Built target test_httplib_bodyless_post
+   1 [ 68%] Built target test_param_control_routine_cue
+   1 [ 68%] Built target test_tab_bar_layout
+   1 [ 69%] Built target test_lookandfeel_square
+   1 [ 70%] Built target test_comp_decks_browser
+   1 [ 70%] Built target test_per_type_autopilot_layout
+   1 [ 70%] Built target test_signal_depth
+   1 [ 72%] Built target test_right_click_reset
+   1 [ 74%] Built target test_master_opacity_link
+   1 [ 76%] Built target test_master_signal_link
+   1 [ 78%] Built target test_topbar_link_toggle
+   1 [ 79%] Built target test_link_sync
+   1 [ 80%] Built target test_resettable_slider
+   1 [ 82%] Built target test_effect_stack_binding
+   1 [ 85%] Built target test_canvas_size_combo
+   1 [ 85%] Built target test_layer_inspector_persistent_toggle
+   1 [ 85%] Built target test_surface_pool
+   1 [ 86%] Built target test_shared_frame_gl
+   1 [ 87%] Built target test_frame_ring
+   1 [ 87%] Built target test_output_law
+   1 [ 87%] Built target test_output_menu_model
+   1 [ 88%] Built target test_pixel_convert
+   1 [100%] Built target AudioDNA
+   1 exit=0
