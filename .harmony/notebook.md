@@ -1593,3 +1593,19 @@ hand-written functions with no shared layout model.
   colour holds the glitch frame forever (probe-render-state r5_hold).
 - Persistent layers now run the same per-layer stages as active-deck layers (renderLayerStages + advanceCrossfade).
 - The frame ring at 1080p is ~249 MB per (deck, layer) chain that uses Screen Split / Frame Stutter.
+
+## 2026-09-26 s-rta-0926b uitoggle | Files: src/ui/LookAndFeel.{h,cpp}, src/ui/{TopBar,RecordPanel,LayerInspector}.cpp
+- AudioDNALookAndFeel::drawToggleButton now dims disabled ToggleButtons itself (per-colour
+  `withMultipliedAlpha(kDisabledAlpha)`, kDisabledAlpha=0.4 in LookAndFeel.h) -- the three owners that
+  used to Component::setAlpha(0.4) themselves (TopBar linkToggleBtn_, RecordPanel recordAudioToggle_/
+  playWithAudioToggle_, LayerInspector persistentToggle_) had that line removed; leaving both in place
+  would double-dim (0.4*0.4=0.16, too dim).
+- Reaching an obscure UI state (a selected layer in LayerInspector, the Record tab) for a live-app
+  screenshot with NO synthetic clicks allowed: add a temporary env-var hook to MainComponent's
+  constructor end (AUDIODNA_DEBUG_TAB / AUDIODNA_DEBUG_LAYER / _LAYER_TYPE / _LAYER_PERSISTENT calling
+  browserPanel_->setActiveTab() / inspectorPanel_->inspectLayer() directly), launch with
+  `open --env KEY=V`, screenshot, then fully revert the hook and REBUILD before the final commit --
+  verify with `strings <binary> | grep -c AUDIODNA_DEBUG_` (expect 0) AND `git diff` on that file
+  (expect empty). A prior lane (render2) hit `make` missing a same-second revert; always rebuild AFTER
+  reverting, never trust a build that predates the revert.
+- Valid while drawToggleButton and these three owners exist in their current form.
