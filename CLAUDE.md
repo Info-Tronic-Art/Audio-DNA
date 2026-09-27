@@ -270,6 +270,7 @@ the named area; this index is triage-only.
 32. `downbeatDetected` is a beat-long LEVEL, not a pulse -- before reading `downbeatDetected` as an edge/pulse.
 33. Effect/source-param rows are engine-driven -- before writing to `paramValues`/`sourceParams[].value` directly.
 34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
+35. A crossfading layer has two live clip chains -- before keying any per-chain GL history (never by deck + layer alone).
 
 ---
 

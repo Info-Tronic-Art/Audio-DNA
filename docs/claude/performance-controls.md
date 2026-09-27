@@ -13,6 +13,7 @@ The Layer Router source (`layer_router`) lets one layer use another layer's rend
 - When a clip has `sourceType == "layer_router"`, `Renderer::renderSource()` intercepts it, reads the `u_src_layer` param to determine which layer index to read, and returns the saved texture
 - The "Source Layer" param maps [0,1] to layer indices 0-9
 - Self-reference safety: if a layer routes to itself, it gets the previous frame's output (one frame delay). Circular references between two layers produce feedback effects.
+- Only the active deck's layers publish output; a persistent layer of another deck is never a router source (s-rta-0926b ruling R4-router: the router resolves indices in the active deck only, and publishing under another deck's layer id would collide with the active deck's same-id layer).
 
 ---
 
@@ -36,7 +37,12 @@ Composition-level automation that sets different beat timings per layer type:
 - `Binding::velocityToOpacity` — maps MIDI velocity to clip opacity on trigger
 - New actions: `AdjustLayerOpacity`, `LayerTransport` (play/pause toggle), `ToggleEffectBypass`, `AdjustMacro`
 
-**Persistent Layers**: `Layer::persistent = true` keeps a layer rendering even when its deck is not active. `CompositorEngine::compositePersistentLayers()` composites persistent layers from non-active decks after the active deck's layers. `Renderer` holds a `Composition*` to iterate all decks.
+**Persistent Layers**: `Layer::persistent = true` keeps a layer rendering even when its deck is not active. `CompositorEngine::compositePersistentLayers()` composites persistent layers from non-active decks after the active deck's layers (so always on top). `Renderer` holds a `Composition*` to iterate all decks. s-rta-0926b (ruling `.harmony/.reports/s-rta-0926b/ruling-render-forks.md`):
+- A persistent layer gets every per-layer stage it gets on its own deck (`renderLayerStages`: clip transform + opacity, clip effects, clip-to-clip transition, feedback, layer effects, layer transform), with its state keyed by its own deck (`LayerStateKey`); its crossfades keep advancing while its deck is inactive.
+- An **Opaque** persistent layer BLENDS OVER the active deck with its blend mode and honours layer opacity (through the alpha keying pass a Transparent layer uses) — it never hides the active deck. **Transparent** keys and blends as usual. **FX Only** (and a media-less effect clip on an Opaque/Transparent layer) applies its clip's effects over whatever is on screen at that point of the persistent pass.
+- **Mask** and **3D** layers cannot be persistent: `Layer::canBePersistent(type)` is the one rule, used by the compositor and by the LayerInspector, whose Persistent toggle is disabled for them (tooltip "Persistent is available for Opaque, Transparent and FX Only layers").
+- Persistent layers render over an EMPTY active deck (no active clip with content) exactly as over a black one (`CompositorEngine::beginEmptyActiveDeck` clears the accumulator to opaque black; the image/source fallback is used only when no deck has anything to draw).
+- A persistent layer is never a Layer Router source (see Layer Router System above).
 
 **Beat Snap Granularity**: `Clip::BeatSnapMode` enum (Off, Beat, Bar, TwoBar, FourBar). `Layer::processPendingTrigger(beatInBar, barCount)` now checks the snap granularity before firing queued triggers.
 
