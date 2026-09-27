@@ -84,6 +84,15 @@ public:
             int skipped = 0;         // discrete fires the app refused at fire time (a layer/clip gone)
             int yielded = 0;         // gestures displaced by ANOTHER routine's later begin (never silent)
             int glides = 0;          // plan3 C: restore glides started and not yet released
+            // s-rta-0927 routine display (slice A): where a pending/running routine plays -- computed ONCE
+            // at fire from its compiled program's RESOLVED targets (never ControlPath::layer), so a
+            // rebound-by-name lane reports the layer it really drives. -1 / empty while idle.
+            int deck = -1;                 // the deck its targets resolved on (the active deck at fire)
+            std::vector<int> layers;       // sorted, deduplicated layer indices on `deck`
+            bool touchesComp = false;      // a target at composition level (layer -1)
+            bool restartPending = false;   // re-fired while running: restarts at the next boundary
+            uint32_t fireSeq = 0;          // the fire order (the engine's `fires` count at this fire)
+            std::string startsOn;          // pending only: "now" | "beat" | "bar" | "2bar" | "4bar" (effective grid)
         };
         Slot slots[kBankSize];
 
@@ -116,6 +125,9 @@ public:
     // pending = no-op.
     std::string fire(const Composition& comp, int slot, RoutineSnap forcedSnap, bool beatAvailable);
     void stop(int slot);   // releases every grip (Player::stop); idle at once
+    // s-rta-0927: the layer X -- stop(slot) (whole routine) for every pending/running routine whose
+    // footprint holds {deck, layer}. No-op when none does.
+    void stopOnLayer(int deck, int layer);
     void stopAll();        // global Stop, composition load, shutdown
 
     Status status() const;                          // mutex-guarded copy (HTTP thread reads it)
@@ -165,6 +177,16 @@ private:
     // The bank listing from the last tick()/fire() (names/settings from the composition), reused
     // by stop()/stopAll(), which do not receive the composition.
     Status::Slot bank_[kBankSize];
+
+    // s-rta-0927: the global Quantize override as last seen by tick()/fire() -- a pending slot's
+    // `startsOn` is the effective grid it will start on.
+    RoutineSnap lastForcedSnap_ = RoutineSnap::Off;
+
+    // s-rta-0927: a finished run's warning counters, kept for the idle pad of the SAME routine (uuid)
+    // so its "!" outlives the run; stopAll() clears them.
+    struct LastRun { std::string uuid; int unresolved = 0, preambleUnresolved = 0, skipped = 0; };
+    LastRun lastRun_[kBankSize];
+    void rememberRun(const Running& r);
 
     mutable std::mutex statusMutex_;
     Status published_;

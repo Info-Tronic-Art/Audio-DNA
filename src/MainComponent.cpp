@@ -5801,6 +5801,16 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("skipped", sl.skipped);
         p->setProperty("yielded", sl.yielded);
         p->setProperty("glides", sl.glides);   // s-rta-0926b plan3 C: restore glides started, not yet released
+        // s-rta-0927 routine display: where a pending/running routine plays (idle: -1 / [] / false / 0 / "")
+        p->setProperty("deck", sl.deck);
+        juce::Array<juce::var> layers;
+        for (int l : sl.layers)
+            layers.add(l);
+        p->setProperty("layers", layers);
+        p->setProperty("touchesComp", sl.touchesComp);
+        p->setProperty("restartPending", sl.restartPending);
+        p->setProperty("fireSeq", static_cast<juce::int64>(sl.fireSeq));
+        p->setProperty("startsOn", juce::String(sl.startsOn));
         bank.add(juce::var(p));
     }
     obj->setProperty("bank", bank);

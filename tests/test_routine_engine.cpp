@@ -1695,3 +1695,172 @@ TEST_CASE("RoutineEngine glide: the 2 Bar and 4 Bar boundary prediction puts the
         check(Clip::BeatSnapMode::FourBar, 10, 2, 1.0, 8.0);
     }
 }
+
+// === s-rta-0927 routine display (plan-routine-display-A.md 3.1-3.2, 5.2): the status says WHERE a pending /
+// running routine plays (deck, resolved layers, fire order, the grid it starts on, a pending restart), the
+// layer X stops every routine on that layer, and a finished run's warning stays on its idle pad. ===
+
+TEST_CASE("RoutineEngine display D1: a fired routine reports its deck, resolved layers, fire order and start grid", "[routine][engine][display]")
+{
+    Rig rig;
+    addToBank(rig.comp, test7Routine(), 0);   // restores layer 0's clip and layer 1's opacity; a lane on layer 0
+    rig.tick();
+    rig.runTo(1.0);
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "idle");
+        CHECK(s.deck == -1);
+        CHECK(s.layers.empty());
+        CHECK(s.fireSeq == 0);
+        CHECK(s.startsOn.empty());
+    }
+    CHECK(rig.fire(0).empty());
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "pending");
+        CHECK(s.deck == 0);
+        CHECK(s.layers == std::vector<int>{ 0, 1 });
+        CHECK_FALSE(s.touchesComp);
+        CHECK(s.fireSeq == 1);
+        CHECK(s.startsOn == "bar");
+        CHECK_FALSE(s.restartPending);
+    }
+    rig.runTo(4.0);
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "running");
+        CHECK(s.deck == 0);
+        CHECK(s.layers == std::vector<int>{ 0, 1 });
+        CHECK(s.startsOn.empty());   // only a waiting routine has a grid still to start on
+    }
+
+    SECTION("the global Quantize override is the grid it starts on")
+    {
+        Rig q;
+        addToBank(q.comp, test7Routine(), 0);
+        q.forced = RoutineSnap::FourBar;
+        q.tick();
+        q.runTo(1.0);
+        CHECK(q.fire(0).empty());
+        CHECK(q.slot(0).startsOn == "4bar");
+    }
+}
+
+TEST_CASE("RoutineEngine display D2: a deck-relative routine resolves on the deck that is active at the fire", "[routine][engine][display]")
+{
+    Rig rig;
+    Deck second;
+    second.name = "Deck 2";
+    second.initDefault();
+    const int idx = rig.comp.appendDeck(std::move(second));
+    REQUIRE(idx == 1);
+    rig.comp.activeDeckIndex = 1;
+    addToBank(rig.comp, test7Routine(), 0);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.slot(0).deck == 1);
+    CHECK(rig.slot(0).layers == std::vector<int>{ 0, 1 });
+    rig.comp.activeDeckIndex = 0;   // a deck switch after the fire does not move it
+    rig.runTo(5.0);
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.slot(0).deck == 1);
+}
+
+TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that layer of that deck, whole, grips released", "[routine][engine][display]")
+{
+    Rig rig;
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath speed0 = layerKey(0, "scalar", "speed");
+    addToBank(rig.comp, test7Routine(), 0);                                  // layers {0, 1}
+    Routine b = makeRoutine("b", 8.0, Clip::BeatSnapMode::Bar, false);       // layer {0} only
+    b.lanes[speed0] = continuousLane(speed0, { gesture(0.0, 0.1f, 4.0, 0.9f) });
+    addToBank(rig.comp, b, 1);
+
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.fire(1).empty());
+    CHECK(rig.slot(1).layers == std::vector<int>{ 0 });
+    CHECK(rig.slot(1).fireSeq > rig.slot(0).fireSeq);
+    rig.runTo(6.5);   // both running; A's gesture on layer 0 opacity (clock 6..7) and B's on speed (4..8) held
+    REQUIRE(rig.slot(0).state == "running");
+    REQUIRE(rig.slot(1).state == "running");
+    CHECK(rig.fd.count(Ev::Release, op0) == 0);
+    CHECK(rig.fd.count(Ev::Release, speed0) == 0);
+
+    rig.eng.stopOnLayer(0, 1);   // only A plays on layer 1
+    CHECK(rig.slot(0).state == "idle");
+    CHECK(rig.slot(0).layers.empty());
+    CHECK(rig.slot(1).state == "running");
+    CHECK(rig.fd.count(Ev::Release, op0) == 1);   // A's gesture on layer 0 let go too: the WHOLE routine stops
+
+    rig.eng.stopOnLayer(1, 0);   // another deck: nothing
+    CHECK(rig.slot(1).state == "running");
+    CHECK(rig.fd.count(Ev::Release, speed0) == 0);
+
+    rig.eng.stopOnLayer(0, 0);
+    CHECK(rig.slot(1).state == "idle");
+    CHECK(rig.fd.count(Ev::Release, speed0) == 1);
+
+    SECTION("both routines on layer 0 stop together")
+    {
+        Rig r2;
+        addToBank(r2.comp, test7Routine(), 0);
+        addToBank(r2.comp, b, 1);
+        r2.tick();
+        r2.runTo(1.0);
+        CHECK(r2.fire(0).empty());
+        CHECK(r2.fire(1).empty());
+        r2.eng.stopOnLayer(0, 0);   // while still pending
+        CHECK(r2.slot(0).state == "idle");
+        CHECK(r2.slot(1).state == "idle");
+    }
+}
+
+TEST_CASE("RoutineEngine display D4: a finished run's warning stays on its idle pad until stopAll", "[routine][engine][display]")
+{
+    Rig rig;
+    Routine w = makeRoutine("w", 4.0, Clip::BeatSnapMode::Bar, false);
+    Routine::PreambleEntry gone; gone.key = opacityKey(5); gone.continuous = true; gone.norm = 0.5f;   // no layer 6
+    w.preamble = { gone };
+    addToBank(rig.comp, w, 2);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(2).empty());
+    rig.runTo(5.0);
+    CHECK(rig.slot(2).state == "running");
+    CHECK(rig.slot(2).preambleUnresolved == 1);
+    rig.runTo(9.0);   // 4 beats from beat 4: once, ended
+    CHECK(rig.slot(2).state == "idle");
+    CHECK(rig.slot(2).preambleUnresolved == 1);
+    CHECK(rig.slot(2).layers.empty());
+
+    SECTION("a stop keeps it too; stopAll clears it")
+    {
+        CHECK(rig.fire(2).empty());
+        rig.eng.stop(2);
+        CHECK(rig.slot(2).state == "idle");
+        CHECK(rig.slot(2).preambleUnresolved == 1);
+        rig.eng.stopAll();
+        CHECK(rig.slot(2).preambleUnresolved == 0);
+    }
+}
+
+TEST_CASE("RoutineEngine display D5: restartPending is set by a re-fire while running and cleared when the restart lands", "[routine][engine][display]")
+{
+    Rig rig;
+    addToBank(rig.comp, test7Routine(), 0);
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.5);
+    REQUIRE(rig.slot(0).state == "running");
+    CHECK_FALSE(rig.slot(0).restartPending);
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).fireSeq == 1);   // a restart is not a new fire
+    rig.runTo(8.0);
+    CHECK(rig.slot(0).restarts == 1);
+    CHECK_FALSE(rig.slot(0).restartPending);
+}
