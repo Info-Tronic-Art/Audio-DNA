@@ -139,7 +139,7 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 **PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
-**Preview/Output panel never reshapes the picture**: the canvas is the composition's size and shape (Composition inspector > Output resolution); the lower-left panel shows it letter/pillar-boxed at any window size, never stretched to the panel. A window/panel resize reallocates nothing.
+**Preview/Output panel never reshapes the picture**: the canvas is the composition's size and shape (Composition inspector > Output Settings resolution: 16:9 / portrait / square / 4:3 presets, and "Custom (W x H)" for any other size, so the dropdown never names a size the canvas is not); the lower-left panel shows it letter/pillar-boxed at any window size, never stretched to the panel. A window/panel resize reallocates nothing.
 
 ---
 

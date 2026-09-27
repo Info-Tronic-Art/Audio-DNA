@@ -1939,3 +1939,22 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+
+# --- test_canvas_size_combo (s-rta-0926b canvas fix round: the Composition
+# inspector's Resolution dropdown matched on width only, had no fallback and no
+# non-16:9 preset, so a 1080x1920 canvas read "1920x1080"). Header-only
+# src/ui/CanvasSizeCombo.h -- the code CompositionInspector runs -- driven on a
+# real juce::ComboBox, headless (ScopedJuceInitialiser_GUI, no window).
+add_executable(test_canvas_size_combo test_canvas_size_combo.cpp)
+target_include_directories(test_canvas_size_combo PRIVATE ${SRC_DIR})
+target_link_libraries(test_canvas_size_combo PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_canvas_size_combo PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+apply_sanitizers(test_canvas_size_combo)
+catch_discover_tests(test_canvas_size_combo)
