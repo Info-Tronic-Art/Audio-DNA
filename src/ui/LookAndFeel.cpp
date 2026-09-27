@@ -227,6 +227,12 @@ void AudioDNALookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
                                             bool shouldDrawButtonAsHighlighted,
                                             bool /*shouldDrawButtonAsDown*/)
 {
+    // Disabled toggles previously rendered pixel-identical to enabled ones --
+    // this scales every colour's alpha the same way the owners' own
+    // Component::setAlpha(kDisabledAlpha) workaround did, so the toggle now
+    // reads as disabled everywhere without each owner dimming it itself.
+    const float alphaMul = button.isEnabled() ? 1.0f : kDisabledAlpha;
+
     auto bounds = button.getLocalBounds().toFloat();
     auto toggleSize = 16.0f;
     auto toggleX = bounds.getX() + 4.0f;
@@ -234,13 +240,13 @@ void AudioDNALookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
     auto toggleBounds = juce::Rectangle<float>(toggleX, toggleY, toggleSize, toggleSize);
 
     // Background
-    g.setColour(button.getToggleState() ? juce::Colour(kAccentCyan).withAlpha(0.2f)
-                                        : juce::Colour(kSurface));
+    g.setColour((button.getToggleState() ? juce::Colour(kAccentCyan).withAlpha(0.2f)
+                                          : juce::Colour(kSurface)).withMultipliedAlpha(alphaMul));
     g.fillRoundedRectangle(toggleBounds, 3.0f);
 
     // Border
-    g.setColour(button.getToggleState() ? juce::Colour(kAccentCyan)
-                                        : juce::Colour(kPanelBorder));
+    g.setColour((button.getToggleState() ? juce::Colour(kAccentCyan)
+                                          : juce::Colour(kPanelBorder)).withMultipliedAlpha(alphaMul));
     g.drawRoundedRectangle(toggleBounds, 3.0f, 1.5f);
 
     // Check mark
@@ -252,7 +258,7 @@ void AudioDNALookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
         check.lineTo(checkBounds.getX() + checkBounds.getWidth() * 0.35f,
                      checkBounds.getBottom());
         check.lineTo(checkBounds.getRight(), checkBounds.getY());
-        g.setColour(juce::Colour(kAccentCyan));
+        g.setColour(juce::Colour(kAccentCyan).withMultipliedAlpha(alphaMul));
         g.strokePath(check, juce::PathStrokeType(2.0f, juce::PathStrokeType::curved,
                                                   juce::PathStrokeType::rounded));
     }
@@ -260,15 +266,16 @@ void AudioDNALookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
     // Highlight on hover
     if (shouldDrawButtonAsHighlighted)
     {
-        g.setColour(juce::Colour(kAccentCyan).withAlpha(0.08f));
+        g.setColour(juce::Colour(kAccentCyan).withAlpha(0.08f).withMultipliedAlpha(alphaMul));
         g.fillRoundedRectangle(bounds, 4.0f);
     }
 
     // Text
     auto textBounds = bounds.withLeft(toggleX + toggleSize + 6.0f);
-    g.setColour(button.findColour(juce::ToggleButton::textColourId, true)
+    auto textColour = button.findColour(juce::ToggleButton::textColourId, true)
                     .isTransparent() ? juce::Colour(kTextPrimary)
-                                     : button.findColour(juce::ToggleButton::textColourId, true));
+                                     : button.findColour(juce::ToggleButton::textColourId, true);
+    g.setColour(textColour.withMultipliedAlpha(alphaMul));
     g.setFont(juce::Font(juce::FontOptions(13.0f)));
     g.drawText(button.getButtonText(), textBounds.toNearestInt(),
                juce::Justification::centredLeft, true);

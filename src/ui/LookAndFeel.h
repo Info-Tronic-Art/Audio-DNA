@@ -19,6 +19,11 @@ public:
     static constexpr juce::uint32 kMeterRed      = 0xffff1744;
     static constexpr juce::uint32 kPanelBorder   = 0xff3a3a5c;
 
+    // Disabled-control dimming: applied by drawToggleButton() when
+    // !button.isEnabled(), matching the alpha owners previously applied
+    // themselves via Component::setAlpha() (RecordPanel's kDisabledAlpha).
+    static constexpr float kDisabledAlpha = 0.4f;
+
     // --- Buttons ---
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&,
                               bool isMouseOver, bool isButtonDown) override;
