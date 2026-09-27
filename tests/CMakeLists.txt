@@ -1504,6 +1504,52 @@ endif()
 apply_sanitizers(test_routine_deck_view)
 catch_discover_tests(test_routine_deck_view)
 
+# --- test_layer_strip_follows_model (s-rta-0927 routine display, plan-routine-display-A.md 2.5 / 5.3): the
+# layer strip's V and S faders follow the model (a routine / REST / MIDI / OSC write moves them), the V fill
+# turns cyan while a lane-rank hand grips opacity, and the routine bands' x removes the routine. Headless JUCE
+# widgets, the test_right_click_reset harness + LayerStrip.cpp + LookAndFeel.cpp (each addition the ONE .cpp
+# that defines a symbol the linker named, never MainComponent.cpp/Renderer.cpp).
+add_executable(test_layer_strip_follows_model
+    test_layer_strip_follows_model.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_strip_follows_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_strip_follows_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_layer_strip_follows_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_strip_follows_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_strip_follows_model)
+catch_discover_tests(test_layer_strip_follows_model)
+
 # --- test_topbar_model (s-rta-0926b plan3-final.md section 3, ITEM B, B.4): the TopBar's
 # one-line bar readout. Header-only src/ui/TopBarModel.h is a pure function bool, uint16_t ->
 # juce::String; juce_core only -- NEVER juce_gui_basics (no display context under ctest), same
