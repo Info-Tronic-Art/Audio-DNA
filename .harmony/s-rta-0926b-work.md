@@ -172,3 +172,15 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
   (the 7 glide rows). Merged b332e0d tempo-glide + 5285662 topbar-count (auto-merged probe files; bash -n ok). build/
   rebuilt; ctest 613/613. 00:08 GREEN: render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0,
   downbeat 14/0, routines 86/0, mastersignal 22/0, step3 94/0, tempo witness GREEN.
+- 00:09 routines-followup lane launched (wf_503bf3db-029, WX): Stop = routines only; per-routine Ease/Jump (engine+persist+REST; UI later in routine-display slice A); lane-X leftovers. In flight: canvas (wf_dbd8d215-516), plan5 outputs (wf_346b3c6f-08f), plan6 decks (wf_72a8f8b4-e1e).
+- 00:14 plan6 FINAL ADOPTED (plan6-final.md): E unique deck ids (AddDeckCmd + fromVar re-mint), D legacy Deck Save/Load
+  retired, A-1 deck commands (Rename/Duplicate/Insert, RemoveDeckCmd active-index + pending-trigger fixes), A-2 DeckTabRow
+  ("+" New/Load; right-click Save/Save As/Rename/Duplicate/Remove + 10-s Undo button), B composition confirm, C library
+  (Delete behind confirm + moveToTrash — closes a SILENT DATA-LOSS bug: browser right-click deleted saved decks without
+  confirm or Trash), F probe + temporary screenshot hook. Boris §14 defaults ship. wave 5 launched (wf_dcb5801f-ee2) in W2.
+- 00:17 plan5 FINAL ADOPTED (plan5-final.md, 792 lines): outputs = one canvas blitted into 4 IOSurface slots; each
+  output = borderless JUCE window at NORMAL level (never always-on-top / kiosk / native fullscreen — the black-overlay
+  class), windowIgnoresKeyPresses (never takes the keyboard), panic chord Shift+Cmd+Esc before the modifier-blind Esc
+  branch; C1 one display through today's paths (fixes F3: output shows the composition), C2 N windows + menu/TopBar +
+  keys, C3 hot-plug + persistence + restore; offscreen 3-context GL ctest is C1's merge gate; no gate opens a window;
+  10-item Boris checklist. STARTS AFTER plan4 commit A merges. Boris Q1-Q8 relayed.
