@@ -15,7 +15,8 @@ rows: o_probe_matches_canvas o_probe_portrait_target o_probe_tracks_change o_pro
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. Fixtures A = media/P16_01_baseline.png, B =
 media/P16_02_Screen_Split_2x2.png (d(A, B) = 29.4 at 1920x1080). Composition: 1920x1080, deck 0 L0 (Opaque, no
-effects) col0 = A, col1 = B.
+effects) col0 = A, col1 = B. Fixture B is ITSELF a 2x2 grid of four copies on a (15,15,15) frame (a Screen Split
+still): a frame of B shows that grid and grey edge at every canvas size -- compare a B frame only with a B reference.
 
 o_probe_matches_canvas (RED on the base: 404): before the tap is ever on, output_probe answers 409 (nothing
   published). Trigger col0; 1 s; f0 = 7070 render_frame (1920x1080); set_output_tap on; 0.3 s; output_probe
@@ -25,9 +26,11 @@ o_probe_portrait_target (RED): output_probe 1080x1920 -> the picture sits in fit
   d(inner, f0 resized to 1080x607 BILINEAR) <= innerTol (6).
 o_probe_tracks_change (RED): trigger col1 (B); 0.5 s; f_B = render_frame; output_probe -> d(probe, f0) > 20 AND
   d(probe, f_B) <= 2 (LIVE, not a stale slot).
-o_probe_survives_resolution_change (RED): 8080 set_composition_params 1280x720; 0.4 s; f_720 = render_frame
-  (must be 1280x720); output_probe 1920x1080 -> response canvas 1280x720 and gen > the previous probe's gen;
-  d(probe, f_720 resized to 1920x1080 BILINEAR) <= 6. Restores 1920x1080.
+o_probe_survives_resolution_change (RED): trigger col0 (A; the previous row left B showing); 1 s; 8080
+  set_composition_params 1280x720; 0.4 s; f_720 = render_frame (must be 1280x720, and d(f_720, fixture A stretched
+  to 1280x720 BILINEAR) <= contentTol (6): one full-bleed A, like with like); output_probe 1920x1080 -> response
+  canvas 1280x720 and gen > the previous probe's gen; d(probe, f_720 resized to 1920x1080 BILINEAR) <= 6.
+  Restores 1920x1080.
 o_probe_repeat_stable (guard/soak): col0 again; 60 output_probes 1920x1080 back to back while the main renders
   static A: every PNG decodes, none blank, all d <= 2 vs a fresh f0 (the cross-thread/cross-context race soak).
   Prints the elapsed time.
@@ -328,6 +331,7 @@ def o_probe_tracks_change():
 def o_probe_survives_resolution_change():
     gen0 = KEEP.get("gen")
     RW, RH = FIX["resolution"]["to"]
+    trig(0); time.sleep(float(FIX["settleAfterTrigger"]))   # A, not the B the previous row left showing
     r = S.post(T8 + "/api/set_composition_params", json={"outputWidth": RW, "outputHeight": RH}, timeout=6)
     if not r.ok:
         no(f"o_probe_survives_resolution_change: set_composition_params -> HTTP {r.status_code} {r.text[:120]}")
@@ -339,10 +343,14 @@ def o_probe_survives_resolution_change():
     if pf is None or f720 is None:
         return
     de = d(pf, resized(f720, (CW, CH)))
+    refA = resized(decode(IMG_A), (RW, RH))
+    da = d(f720, refA) if size_of(f720) == (RW, RH) else 999.0
+    ctol = float(FIX["resolution"]["contentTol"])
     gen = int(pb.get("gen", 0))
     (ok if size_of(f720) == (RW, RH) and (pb.get("canvas_w"), pb.get("canvas_h")) == (RW, RH)
-     and gen0 is not None and gen > gen0 and de <= float(FIX["resolution"]["tol"]) else no)(
-        f"o_probe_survives_resolution_change: render_frame {size_of(f720)[0]}x{size_of(f720)[1]}, probe canvas "
+     and gen0 is not None and gen > gen0 and de <= float(FIX["resolution"]["tol"]) and da <= ctol else no)(
+        f"o_probe_survives_resolution_change: render_frame {size_of(f720)[0]}x{size_of(f720)[1]} of col0 = A, "
+        f"d(f_720, fixture A {os.path.basename(IMG_A)} stretched to {RW}x{RH}) {da:.3f} <= {ctol}; probe canvas "
         f"{pb.get('canvas_w')}x{pb.get('canvas_h')}, gen {gen0} -> {gen}, d(probe, f_720 upscaled) {de:.3f} <= "
         f"{FIX['resolution']['tol']}")
 
