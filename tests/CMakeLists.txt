@@ -1624,6 +1624,71 @@ endif()
 apply_sanitizers(test_master_signal_link)
 catch_discover_tests(test_master_signal_link)
 
+# --- test_topbar_link_toggle (s-rta-0926b bpm2: in a default build -- no
+# AUDIODNA_HAS_LINK, as here -- the TopBar "Link" toggle is disabled, dimmed,
+# says Link is not in this build, and keeps its bounds). Same TopBar link
+# closure and harness as test_master_signal_link above.
+add_executable(test_topbar_link_toggle
+    test_topbar_link_toggle.cpp
+    ${SRC_DIR}/ui/TopBar.cpp
+    ${SRC_DIR}/features/FeatureBus.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+)
+target_include_directories(test_topbar_link_toggle PRIVATE ${SRC_DIR})
+target_link_libraries(test_topbar_link_toggle PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_topbar_link_toggle PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_topbar_link_toggle PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_topbar_link_toggle)
+catch_discover_tests(test_topbar_link_toggle)
+
+# --- test_link_sync (s-rta-0926b bpm2: in a default build -- no AUDIODNA_HAS_LINK,
+# as here -- LinkSync never reports enabled and never hands out a tempo, so the
+# ~30 Hz Link tick cannot force the tracker into manual mode at a fake 120 BPM).
+add_executable(test_link_sync
+    test_link_sync.cpp
+    ${SRC_DIR}/sync/LinkSync.cpp
+    ${SRC_DIR}/analysis/BPMTracker.cpp
+)
+target_include_directories(test_link_sync PRIVATE ${SRC_DIR})
+target_link_libraries(test_link_sync PRIVATE
+    Catch2::Catch2WithMain
+    Aubio::Aubio
+)
+if(NOT MSVC)
+    target_compile_options(test_link_sync PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_link_sync)
+catch_discover_tests(test_link_sync)
+
 # --- test_resettable_slider (s-rta-0925 rclick2: reconciles lane/0925-rclick's
 # never-merged ResettableSlider test cases onto main's actual design, landed via
 # the opacity lane). Header-only class (src/ui/UniversalParamControl.h) -- no

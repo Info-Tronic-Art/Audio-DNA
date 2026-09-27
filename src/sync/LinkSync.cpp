@@ -28,7 +28,8 @@ void LinkSync::setEnabled(bool enabled)
 #if AUDIODNA_HAS_LINK
     link_.enable(enabled);
 #endif
-    enabled_.store(enabled, std::memory_order_release);
+    // s-rta-0926b bpm2: without Link compiled in there is nothing to enable.
+    enabled_.store(enabled && isAvailable(), std::memory_order_release);
 }
 
 void LinkSync::setBPM(double bpm)

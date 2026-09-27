@@ -3539,6 +3539,7 @@ void MainComponent::timerCallback()
         inspectorPanel_->refresh();
 
     // P21: Ableton Link sync — update cached state and feed BPM tracker
+    // (s-rta-0926b bpm2: never enabled in a default build -- LinkSync::isAvailable() is false)
     if (linkSync_.isEnabled())
     {
         linkSync_.update();
@@ -5197,7 +5198,7 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
         {
             tracker->setManualMode(true);
             if (linkTick)
-                tracker->followExternalTempo(bpm);   // unchanged tempo: phase keeps running
+                tracker->followExternalTempo(bpm);   // a Link tempo never realigns the phase (bpm2 ruling b)
             else
                 tracker->setManualBPM(bpm);          // explicit set_bpm: realigns, as before
         }
