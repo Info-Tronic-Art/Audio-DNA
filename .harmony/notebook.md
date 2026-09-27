@@ -1802,4 +1802,10 @@ hand-written functions with no shared layout model.
   never sees clang++. Use `pgrep -x 'clang\+\+'` (probe-outputs.py does; probe-canvas.py still has the bare form).
 - After outputs-c1, `MainComponent::currentImageFile_` has no reader (the plan assumed `deck.imageFile = ...`, but
   plan6 01ad154 removed that): write-only, left in place.
+- Pitfall 40 is this lane's number. If a lane merged before it also added a Pitfall 40, renumber THIS lane's on merge:
+  the CLAUDE.md index line, `docs/claude/pitfalls.md`, and the "Pitfall 40" mentions in `docs/claude/integration.md` and
+  `docs/claude/rendering.md` (plan5 drift D15).
+- Probe fixture `media/P16_02_Screen_Split_2x2.png` (B in probe-outputs / probe-canvas) is ITSELF a 2x2 grid of four
+  copies on a (15,15,15) frame. A capture of B looks like a tiling bug with a grey border at every canvas size; compare
+  a B frame only with a B reference (a 720p B frame compared with the 1080p A frame read as a false Pitfall-37 MUST).
 - Valid while: these files exist and the Output window stays IOSurface-based.
