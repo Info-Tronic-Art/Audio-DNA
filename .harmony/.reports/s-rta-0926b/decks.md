@@ -85,3 +85,94 @@ DONE_WITH_CONCERNS
 
 ## NEXT ACTION
 Harmony gate + Reviewer; the two design decisions under HANDOFF-NEEDS.
+
+---
+
+## Fix round (lane-name decks-fix, continued on lane/decks-0926b from 4c35272)
+
+STATUS: DONE_WITH_CONCERNS
+
+RESULT: Both MUSTs are fixed. The deck-tab menu, the "+" menu, the library row menu, Rename Deck, the Open-Composition
+confirm and Delete from Library now draw with the app LookAndFeel: square panels, a 1-px kPanelBorder, app colours,
+and no JUCE alert icons. The re-shoot turned up two more defects, both fixed. (1) The plan6 menus were never drawn
+in the app LookAndFeel: JUCE's stock striped grey-teal was used, so the base report's "05: app LookAndFeel" was
+wrong. (2) Once a dialog took the app LookAndFeel, its message printed twice. There are two fix commits (79c5502,
+ad9eb0d) plus this report commit. ctest went from 625 to 629 of 629. Live probe: hook build 18 PASS / 0 FAIL; final
+hook-free build 6 PASS / 0 FAIL. The hook is reverted, the app rebuilt, and `strings | grep -c AUDIODNA_DEBUG_` = 0.
+
+FACTS (worktree-relative):
+- MUST 1 (dialogs), root cause confirmed in JUCE source. `AlertWindow::showOkCancelBox` creates the window through
+  `associatedComponent->getLookAndFeel().createAlertWindow(...)` (`build/_deps/juce-src/modules/juce_gui_basics/detail/juce_AlertWindowHelpers.h:82-85`).
+  The window itself is top-level, so its `getLookAndFeel()` falls back to the default. `LookAndFeel_V4::drawAlertBox`
+  draws a 4-px rounded panel and the icons (`lookandfeel/juce_LookAndFeel_V4.cpp:414-484`).
+  Fix: `AudioDNALookAndFeel::createAlertWindow` calls `aw->setLookAndFeel(this)` and then re-applies V4's 50-px
+  margin. `drawAlertBox` draws a square fillRect/drawRect with no icon. The AlertWindow colours are set in the
+  constructor (`src/ui/LookAndFeel.cpp`). Rename Deck: `w->setLookAndFeel(&lookAndFeel_)` (`src/MainComponent.cpp`
+  renameDeck). The replace-confirm (`MainComponent::confirmReplaceShow`) and Delete from Library
+  (`src/ui/CompDecksBrowser.cpp` confirmDelete) already pass `this`; both now pass `NoIcon`. CompDecksBrowser
+  needed no LookAndFeel reference.
+- MUST 2 (menus): `drawPopupMenuBackground` is now fillRect/drawRect, matching `drawButtonBackground`.
+- Found by the re-shoot, fixed in ad9eb0d:
+  - A PopupMenu uses its own LookAndFeel or its parent's (`menus/juce_PopupMenu.cpp:1314-1317`, `:357`).
+    `.withParentComponent(getTopLevelComponent())` parents it to the DocumentWindow, which has no LookAndFeel, so
+    the plan6 menus drew stock (`LookAndFeel_V2::drawPopupMenuBackground` stripes). This means MUST 2's
+    "rounded" was true of our function, but that function never drew these three menus. Each menu now calls
+    `menu.setLookAndFeel(&getLookAndFeel())`, the way juce::ComboBox does (`src/ui/DeckView.cpp` x2,
+    `src/ui/CompDecksBrowser.cpp`). Pixel (100,700) of the 05 snapshot: `(50, 62, 68)` before, `(37, 37, 64)`
+    (kSurface) after.
+  - With the app LookAndFeel, the AlertWindow's hidden accessibility Label (text colour transparentBlack,
+    `windows/juce_AlertWindow.cpp:64`) was drawn in kTextPrimary. `drawLabel` mapped transparent to kTextPrimary,
+    so every message appeared twice (`decks-shots/fixround-mid-07-replace-confirm-doubled-text.png`). A
+    transparent text colour now draws no text. No Label in `src/` sets one (`grep` = empty), and in JUCE only
+    AlertWindow's does.
+- RED lines (verbatim, pre-fix code):
+  - Run 1: `test_lookandfeel_square.cpp:37: FAILED ... corner 0, 59 = 00000000`; `:59: FAILED: CHECK( &aw->getLookAndFeel() == &laf ) with expansion: 0x000000015b736d90 == 0x000000016ee1da28`; `:65 ... size 400x231, corners 868C969A 868C969A, left edge FF263238`; `test cases:  3 |  3 failed` / `assertions: 14 | 3 passed | 11 failed`.
+  - Run 2: `test_lookandfeel_square.cpp:117: FAILED: CHECK( painted == 0 ) with expansion: 1352 (0x548) == 0`; `test cases:  4 |  3 passed | 1 failed`.
+- GREEN lines: `All tests passed (14 assertions in 3 test cases)` → `All tests passed (16 assertions in 4 test cases)`.
+  Full serial ctest after 79c5502: `100% tests passed, 0 tests failed out of 628`. After ad9eb0d:
+  `100% tests passed, 0 tests failed out of 629`.
+- Live dialog corners (Quartz window captures). Pixels (0,0)/(w-1,0)/(0,h-1)/(w-1,h-1):
+  - Before: `(128, 128, 128, 2)` each, meaning the rounded corner lets the desktop through.
+  - After: `(58, 58, 90, 255)` = kPanelBorder, for 06, 07 and 10.
+- Hook: the saved patch (sha256 `ee75761d86c04b20…`) was applied, the app built with `strings` count 3, and the
+  shots were taken. Then `git apply -R` and a full rebuild: binary mtime `Sep 27 01:57:09`, `git diff --stat --
+  src/MainComponent.cpp` empty, `grep -c AUDIODNA_DEBUG_ src/MainComponent.cpp` = 0,
+  `strings build-lane/.../Audio-DNA | grep -c AUDIODNA_DEBUG_` = 0.
+- Live runs: `run-fix-after` 18/0 (the doubled-text witness), `run-fix2-after` 18/0, `run-fix3-after` 18/0 (the
+  shipped shots, `decks-shots/probe-fixround-hook.txt`), and `run-fixfinal-after1` hook-free 6/0
+  (`decks-shots/probe-fixround-final.txt`). Each run held `/tmp/audiodna-live.lock` (owner `decks <pid> <epoch>`,
+  AUDIODNA_LOCK_OWNER=decks) and released only its own lock. Each ended with `Audio-DNA processes now: 0`. The
+  temp library file and dir were created by the probe and removed on exit, as in the base round.
+
+SHOTS re-taken (in `decks-shots/`): 04-plus-menu, 05-deck-menu, 09-library-menu (app colours, square),
+06-rename-dialog(+window), 07-replace-confirm(+window), 10-library-delete-confirm(+window) (square, no icon, message
+once). Before/after evidence: fixround-before-05-deck-menu.png (stock striped menu),
+fixround-before-07-replace-confirm.png (rounded, icon), fixround-mid-07-replace-confirm-doubled-text.png. Shots
+01-03, 08 and 11 are unchanged surfaces and were not replaced.
+
+SHOULDs:
+- (a) Other AlertWindows use the default LookAndFeel. Not changed, per the finding. The 13 `showMessageBoxAsync`
+  calls pass no associated component, so they still draw stock and rounded. This includes this lane's Load/Save
+  Deck failure alerts. Passing `this` to each would restyle it. That needs an app-wide decision.
+- (b) The legacy Decks folder collision. Unchanged; needs a human decision.
+- (c) The menu-bar "Deck" menu shot. Not possible under the rig: it needs window-only capture, no synthetic input,
+  and the macOS menu bar is not an app window. Source evidence: `src/ui/MenuBarModel.cpp:9`
+  (`"Audio-DNA", "Composition", "Deck", ...`) and `:85-95` (New / ... / Rename Deck... / ... / Remove Deck).
+
+FOUND, NOT FIXED:
+- Other menus still draw with the stock LookAndFeel: MacroPanel.cpp:138, UniversalParamControl.cpp:376/388,
+  SignalBar.cpp:192. They have no menu LookAndFeel and no in-app parent.
+- AudioDNALookAndFeel still rounds other surfaces: the toggle box (3 px), the toggle hover highlight (4 px), the
+  linear-slider tracks, the knob pointer and the scrollbar thumb (`src/ui/LookAndFeel.cpp` fillRoundedRectangle
+  sites). This conflicts with "no rounded corners, anywhere" and is outside these findings.
+- The replace/delete dialogs are narrower than in the base shots because the 80-px icon column is gone
+  (07: 982 to 822 px wide at 2x). Intended.
+
+UNKNOWNS: the real mouse paths (right-click, choosers, button clicks) are still not driven live (rig: no synthetic
+input). The dialogs' keyboard shortcuts come from LookAndFeel_V2::createAlertWindow and are unchanged.
+
+HANDOFF-NEEDS: Harmony gate (rebuild; `ctest --test-dir build-lane` = 629/629; `.harmony/probe-deck-tabs.sh` 6/0;
+`git show 79c5502 ad9eb0d -- src/MainComponent.cpp` shows no hook) and the Reviewer. Decisions for Boris/Harmony: the
+remaining stock menus and alerts, the other rounded LookAndFeel draws, and the legacy Decks folder.
+
+INBOX-RECHECK: none

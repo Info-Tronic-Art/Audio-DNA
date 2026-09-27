@@ -1636,4 +1636,9 @@ hand-written functions with no shared layout model.
   `new AlertWindow` needs its own setLookAndFeel(&lookAndFeel_). drawAlertBox draws no icon -- pass NoIcon (an icon
   type still reserves 80 px and left-justifies the text). The showMessageBoxAsync calls pass no component, so they
   still draw stock/rounded until someone passes one.
+- A juce::PopupMenu takes ITS OWN LookAndFeel (menu.setLookAndFeel) or its parent's: `.withParentComponent(
+  getTopLevelComponent())` parents it to the DocumentWindow, which has none, so it draws STOCK (V2 grey-teal stripes)
+  -- not AudioDNALookAndFeel. plan6's three menus now call menu.setLookAndFeel(&getLookAndFeel()) (as ComboBox does);
+  MacroPanel / UniversalParamControl / SignalBar menus still draw stock. AudioDNALookAndFeel::drawLabel draws NO text
+  for a transparent text colour (AlertWindow's hidden accessibility label would otherwise double every message).
 - Valid while DeckView/CompDecksBrowser keep this shape and JUCE's PopupMenu keeps the foreground check.
