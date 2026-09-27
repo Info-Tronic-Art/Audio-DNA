@@ -347,3 +347,54 @@ TEST_CASE("crystal_cavern keeps drawing the cave as the camera flies", "[source-
     CHECK(black == 0);
     CHECK(flat == 0);
 }
+
+// A3 -- Dot Field on first add is a visible effect (Pitfalls 17/27), and its "depth" control does something.
+namespace
+{
+GLuint rampTexture(int w, int h)   // a horizontal grey ramp 0..255 with a vertical colour tint: every luma present
+{
+    Pixels p(static_cast<size_t>(w * h * 4));
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+        {
+            uint8_t* px = &p[static_cast<size_t>((y * w + x) * 4)];
+            const int g = x * 255 / (w - 1);
+            px[0] = static_cast<uint8_t>(g);
+            px[1] = static_cast<uint8_t>(std::min(255, g * (h - y) / h + 40 * y / h));
+            px[2] = static_cast<uint8_t>(std::min(255, g * y / h + 20));
+            px[3] = 255;
+        }
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, p.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    return tex;
+}
+} // namespace
+
+TEST_CASE("Dot Field is visible at its registered defaults and every control changes the picture", "[source-defaults][gl][effect]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = effectParams("Dot Field");
+    const GLuint tex = rampTexture(512, 512);
+    for (auto [w, h] : kSizes)
+    {
+        const Pixels dflt = rig.render(EmbeddedShaders::dotField, w, h, 1.13f, ps, tex);
+        const Stats s = stats(dflt, w, h);
+        INFO("Dot Field " << w << "x" << h << " defaults: mean=" << s.mean << " p99.5=" << s.p995 << " lit=" << s.lit);
+        CHECK(s.mean >= 5.0);
+        for (const auto& p : ps)
+            for (float v : { 0.0f, 1.0f })
+            {
+                if (std::fabs(v - p.value) < 0.2f) continue;
+                const double q = psnr(dflt, rig.render(EmbeddedShaders::dotField, w, h, 1.13f, with(ps, p.uniform, v), tex));
+                INFO("Dot Field " << w << "x" << h << " '" << p.name << "' " << p.value << " -> " << v << ": PSNR " << q);
+                CHECK(q < 55.0);
+            }
+    }
+    glDeleteTextures(1, &tex);
+}

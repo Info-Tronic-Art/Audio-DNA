@@ -3647,7 +3647,10 @@ inline const char* dotField = R"(
         vec4 gridColor = texture(u_texture, gridPos);
         float luma = dot(gridColor.rgb, vec3(0.299, 0.587, 0.114));
         float dist = distance(v_texCoord, gridPos);
-        float dotRadius = luma * u_dotfield_size * gridSize * 0.6;
+        // depth: how strongly brightness drives dot size -- 0.4 (the default) is linear, lower = heavier contrast,
+        // higher = flatter (exponent 2.0 at 0, 0.35 at 1)
+        float lumaS = pow(luma, exp2((0.4 - u_dotfield_depth) * 2.5));
+        float dotRadius = lumaS * u_dotfield_size * gridSize * 0.6;
         float d = smoothstep(dotRadius, dotRadius - 0.001, dist);
         fragColor = vec4(gridColor.rgb * d, d);
     }
