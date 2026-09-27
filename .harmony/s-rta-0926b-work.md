@@ -159,3 +159,47 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
 - MY PACKET DEFECT: wave 2b fix-round prompt embedded the original packet's STEP 0 "git checkout -B <lane> main" — the
   uitoggle fix builder correctly refused (it would have discarded the lane's 5 unmerged commits). HABIT: fix-round
   prompts must strip branch-creation steps and name the exact commit to continue from.
+- 00:2x wave 2b merged: a030319 ui-toggle (LookAndFeel dims disabled toggles app-wide; Persistent clearable on stale
+  Mask/3D with honest tooltip; critics r2 3/3 PASS, reviews PASS), 2d02681 probe-hygiene2 (lock-owner refuse, exact-binary
+  pgrep, stale-PNG guard; review PASS). Looked at before/after compare (Link unchanged, Mask stale box usable). build/
+  rebuilt: ctest 600/600; negative check: probe with non-matching AUDIODNA_LOCK_OWNER -> "REFUSE: no live lock held" rc 64.
+  GREEN run (all probes, AUDIODNA_LOCK_OWNER=harmony) in background (bzps952wh).
+- wave 4 launched (wf_dbd8d215-516): canvas lane in W1 (opus): plan4 A canvas, B1 fades, B2 clocks+autopilot (Boris Q1 ON),
+  C verify+fix deck-transition capture (F2); Fable fit-mode spec in parallel -> fitmode commit; reviewer + 3 critics.
+- NOTE 23:37 (read from date): my log stamps '23:4x'..'00:2x' above were estimates, not clock reads — true times were ~22:30-23:30. HABIT: stamp from `date +%H:%M`.
+- 23:48 GREEN on build/ 2d02681 (hardened probes, AUDIODNA_LOCK_OWNER=harmony): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 18/0, resync 16/0, downbeat 14/0, routines 74/0, mastersignal 22/0, step3 94/0, tempo witness GREEN. Wave 3a DONE: tempo-glide (A 2b32536 + C d640b13, review PASS_WITH_NITS, 6 disclosed departures each test-covered) + topbar-count (review PASS, critic 3/3 PASS); looked at glide mid frame + Bar 4 crop.
+- 23:49 Harmony RED on build/ 2d02681 (lane X probe copies): manual-bpm "18 PASS / 4 FAIL" (S1-S3), routines "79 PASS / 7 FAIL"
+  (the 7 glide rows). Merged b332e0d tempo-glide + 5285662 topbar-count (auto-merged probe files; bash -n ok). build/
+  rebuilt; ctest 613/613. 00:08 GREEN: render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0,
+  downbeat 14/0, routines 86/0, mastersignal 22/0, step3 94/0, tempo witness GREEN.
+- 00:09 routines-followup lane launched (wf_503bf3db-029, WX): Stop = routines only; per-routine Ease/Jump (engine+persist+REST; UI later in routine-display slice A); lane-X leftovers. In flight: canvas (wf_dbd8d215-516), plan5 outputs (wf_346b3c6f-08f), plan6 decks (wf_72a8f8b4-e1e).
+- 00:14 plan6 FINAL ADOPTED (plan6-final.md): E unique deck ids (AddDeckCmd + fromVar re-mint), D legacy Deck Save/Load
+  retired, A-1 deck commands (Rename/Duplicate/Insert, RemoveDeckCmd active-index + pending-trigger fixes), A-2 DeckTabRow
+  ("+" New/Load; right-click Save/Save As/Rename/Duplicate/Remove + 10-s Undo button), B composition confirm, C library
+  (Delete behind confirm + moveToTrash — closes a SILENT DATA-LOSS bug: browser right-click deleted saved decks without
+  confirm or Trash), F probe + temporary screenshot hook. Boris §14 defaults ship. wave 5 launched (wf_dcb5801f-ee2) in W2.
+- 00:17 plan5 FINAL ADOPTED (plan5-final.md, 792 lines): outputs = one canvas blitted into 4 IOSurface slots; each
+  output = borderless JUCE window at NORMAL level (never always-on-top / kiosk / native fullscreen — the black-overlay
+  class), windowIgnoresKeyPresses (never takes the keyboard), panic chord Shift+Cmd+Esc before the modifier-blind Esc
+  branch; C1 one display through today's paths (fixes F3: output shows the composition), C2 N windows + menu/TopBar +
+  keys, C3 hot-plug + persistence + restore; offscreen 3-context GL ctest is C1's merge gate; no gate opens a window;
+  10-item Boris checklist. STARTS AFTER plan4 commit A merges. Boris Q1-Q8 relayed.
+- 01:54 routines-followup: Harmony RED on build/ (lane probe copy): routines "90 PASS / 8 FAIL" (the 11j Jump rows).
+  Merged (Stop = routines only incl. GlobalStop binding; Ease/Jump restoreStyle; 2/4-bar ctest). ctest 620/620. GREEN suite:
+  render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, mastersignal 22/0, step3 94/0,
+  tempo GREEN; routines 97/1 — the 8g "lands ON the loop point" row: first sample within 0.01 at +7.85 vs window 7.85..8.1.
+  Discriminator x3: 98/0 each, landings +7.89/+7.88/+7.88 -> sampling-edge flake (samples ~40 ms apart). Widened the new
+  row lower bound to 7.80 (still fails an early half-beat glide ~7.7 and a missing glide). NOT a regression.
+- 02:26 decks lane DONE (10 agents): r1 critics FAIL (visual: stock rounded AlertWindows + stock striped PopupMenus),
+  fix round: app LookAndFeel for alerts + menus (menus parented to the DocumentWindow drew stock), doubled alert text fixed;
+  r2 review PASS, critics 3/3 PASS. Harmony looked at the deck menu (square, app colours), the tab row "Deck 1 | +",
+  Compositions tab (Save Composition + library). Harmony RED on build/: probe-deck-tabs "4 PASS / 2 FAIL" (decks[].id absent).
+  Merged (auto-merge MainComponent/ApiServer); ctest 636/636; strings AUDIODNA_DEBUG_ = 0. GREEN suite running (bkurjnkmv).
+  FOLLOW-UPS (decided by Harmony, next lane): (1) app-wide default LookAndFeel so the ~13 remaining showMessageBoxAsync
+  alerts + other stock menus are square (Boris rule "no rounded corners"); (2) library lists only v2 deck files — Boris's 4
+  legacy v1 *.deck.json (PresetManager dir ~/Library/AudioDNA/Decks, same folder) stay on disk, hidden from the list;
+  (3) static_assert(std::is_nothrow_move_constructible_v<Deck>) (inspectors hold raw Clip*/Layer* across deck reallocation);
+  (4) dead PresetManager::DeckState/saveDeck/loadDeck + currentAudioFile_ comment. Compositions dir is ~/Library/AudioDNA/
+  compositions (JUCE maps userApplicationDataDirectory to ~/Library).
+- 02:27 decks-followup lane launched (wf_2118d32b-106, W2): default LookAndFeel app-wide, library hides legacy v1 files, Deck static_assert, dead PresetManager deck code.
+- 02:43 GREEN on build/ (decks merged): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 98/0, mastersignal 22/0, decktabs 6/0, step3 94/0, tempo GREEN. ctest 636/636.

@@ -1,8 +1,8 @@
 #!/bin/bash
 # probe-manual-bpm.sh -- s-rta-0926 lane manual-bpm live gate: in Manual BPM mode the beat phase
 # free-runs from the manual BPM; a beat the analysis detects in the audio NEVER moves it. The only
-# manual realignments are Resync (POST /api/resync, OSC /audiodna/resync, TopBar Resync) and Tap /
-# a new set_bpm.
+# manual realignments are Resync (POST /api/resync, OSC /audiodna/resync, TopBar Resync) and Tap --
+# a typed / REST / OSC set_bpm only changes the tempo, never the beat (s-rta-0926b plan3 A; mode setbpm).
 #
 # BUG this pins (routine-grid lane, .harmony/notebook.md s-rta-0926 routine-grid): BPMTracker's
 # manual branch still ran updatePhase()'s hard reset on an aubio beat at confidence >= 0.5, so at a
@@ -257,11 +257,108 @@ elif mode == 'resync':
       "R  bars after the Resync last %.2f s +/- 3%%: %s" % (bar_s, d))
     bpms = sorted(set(round(r['bpm'], 3) for r in rows))
     v(bpms == [round(manual_bpm, 3)], "R  bpm stays %.1f (seen %s)" % (manual_bpm, bpms[:6]))
+
+elif mode == 'setbpm':
+    # S (s-rta-0926b plan3 A): a tempo VALUE -- REST /api/set_bpm, OSC /audiodna/bpm, the typed BPM --
+    # never moves the beat; only Tap and Resync realign it. Each POST lands mid-beat (beatPhase in
+    # [0.40, 0.60]); the first poll >= 60 ms later must continue the beat: its bar position
+    # (barCount*4 + beatInBar + beatPhase) moved by bps*dt within 0.06 beat -- phase, beat-in-bar and
+    # bar count all unmoved by the request. RED before plan3 A: every set_bpm realigned the phase to 0.
+    import socket, struct, threading
+
+    def one():
+        t0 = time.monotonic()
+        d = get('/api/bpm')
+        t1 = time.monotonic()
+        return {'t': 0.5 * (t0 + t1), 'bpm': d['bpm'], 'ph': d['beatPhase'], 'bib': d['beatInBar'],
+                'bc': d['barCount'], 'tbc': d['totalBarCount']}
+
+    def mid_beat(timeout=3.0):
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            r = one()
+            if 0.40 <= r['ph'] <= 0.60:
+                return r
+            time.sleep(0.005)
+        return None
+
+    def barpos(r):
+        return r['bc'] * 4 + r['bib'] + r['ph']
+
+    def set_value(bpm):
+        """POST set_bpm mid-beat; returns (pre, t_post, post, err) -- err = |bar-position step - bpm/60*dt|."""
+        pre = mid_beat()
+        if pre is None:
+            return None, None, None, None
+        t_post = time.monotonic()
+        post('/api/set_bpm', {'bpm': bpm})
+        post_row = None
+        while time.monotonic() - t_post < 0.5:
+            r = one()
+            if r['t'] - t_post >= 0.06:
+                post_row = r
+                break
+            time.sleep(0.005)
+        if post_row is None:
+            return pre, t_post, None, None
+        err = abs((barpos(post_row) - barpos(pre)) - (bpm / 60.0) * (post_row['t'] - pre['t']))
+        return pre, t_post, post_row, err
+
+    def trial(label, bpm):
+        pre, t_post, p, err = set_value(bpm)
+        if p is None:
+            return False, '%s: no mid-beat poll or no poll after the POST' % label
+        rows, errs = poll(1.0)
+        bad = jumps(rows, bpm / 60.0)
+        bpms = sorted(set(round(r['bpm'], 3) for r in [p] + rows))
+        good = (p['t'] - t_post <= 0.25 and err <= 0.06 and bpms == [round(bpm, 3)] and not bad and errs == 0)
+        return good, ('%s: POST at phase %.3f (beat %d, bar %d) -> +%.0f ms phase %.3f (beat %d, bar %d), step error '
+                      '%.3f beat, then 1 s: %d jumps, bpm %s' % (label, pre['ph'], pre['bib'], pre['bc'],
+                      1000 * (p['t'] - t_post), p['ph'], p['bib'], p['bc'], err, len(bad), bpms))
+
+    # S1: the same value, 3 times.
+    res = [trial('#%d' % (i + 1), manual_bpm) for i in range(3)]
+    json.dump([r[1] for r in res], open(OUT + '/setbpm-s1.json', 'w'))
+    n_ok = sum(1 for r in res if r[0])
+    v(n_ok == 3, "S1 set_bpm %.0f (the SAME value) never moves the beat: %d/3 continuous -- %s"
+      % (manual_bpm, n_ok, ' | '.join(r[1] for r in res)))
+
+    # S2: a changed value, and back.
+    up = trial('%.0f -> 128' % manual_bpm, 128.0)
+    v(up[0], "S2 set_bpm 128 (a CHANGED value) changes the tempo only, the beat runs on -- " + up[1])
+    down = trial('128 -> %.0f' % manual_bpm, manual_bpm)
+    v(down[0], "S2 set_bpm %.0f (changed back) changes the tempo only, the beat runs on -- %s" % (manual_bpm, down[1]))
+
+    # S3: a value stream -- OSC /audiodna/bpm every 100 ms for 2 s (the probe-mastersignal.sh B3 UDP idiom).
+    addr = b'/audiodna/bpm\0'
+    addr += b'\0' * ((4 - len(addr) % 4) % 4)
+    msg = addr + b',f\0\0' + struct.pack('>f', manual_bpm)
+    sent = [0]
+    def stream():
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        t_next = time.monotonic()
+        for _ in range(20):
+            s.sendto(msg, ('127.0.0.1', 8000))
+            sent[0] += 1
+            t_next += 0.1
+            time.sleep(max(0.0, t_next - time.monotonic()))
+    th = threading.Thread(target=stream)
+    th.start()
+    rows, errs = poll(2.4)
+    th.join()
+    json.dump(rows, open(OUT + '/setbpm-s3.json', 'w'))
+    bad = jumps(rows, bps)
+    bpms = sorted(set(round(r['bpm'], 3) for r in rows))
+    adv = (rows[-1]['tbc'] - rows[0]['tbc']) if rows else 0
+    v(sent[0] == 20 and errs == 0 and bpms == [round(manual_bpm, 3)] and not bad and adv >= 1,
+      "S3 OSC /audiodna/bpm %.0f every 100 ms for 2 s (%d sent): the beat free-runs -- %d jumps (first: %s), "
+      "bpm %s, totalBarCount +%d (>= 1)" % (manual_bpm, sent[0], len(bad), bad[:3], bpms, adv))
 PY
 
 "$VENV_PY" -c 'pass' 2>/dev/null && PY="$VENV_PY" || PY=python3
 "$PY" "$OUT/mb.py" auto   "$OUT" "$CLICK_BPM" "$MANUAL_BPM" "$POLL_S" > "$OUT/rows-auto.txt" 2>&1;   count_rows "$OUT/rows-auto.txt"
 "$PY" "$OUT/mb.py" manual "$OUT" "$CLICK_BPM" "$MANUAL_BPM" "$POLL_S" > "$OUT/rows-manual.txt" 2>&1; count_rows "$OUT/rows-manual.txt"
+"$PY" "$OUT/mb.py" setbpm "$OUT" "$CLICK_BPM" "$MANUAL_BPM" "$POLL_S" > "$OUT/rows-setbpm.txt" 2>&1; count_rows "$OUT/rows-setbpm.txt"
 "$PY" "$OUT/mb.py" resync "$OUT" "$CLICK_BPM" "$MANUAL_BPM" "$POLL_S" > "$OUT/rows-resync.txt" 2>&1; count_rows "$OUT/rows-resync.txt"
 grep -q 'Traceback' "$OUT"/rows-*.txt && no "a python helper crashed (see $OUT/rows-*.txt)"
 echo "INFO  'leave manual mode -> AUTO resets on beats again' is not drivable over REST/OSC (no route leaves manual mode); ctest-pinned instead."

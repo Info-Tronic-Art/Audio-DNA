@@ -8,8 +8,8 @@
 //
 // The loop below performs, per UI tick, the calls MainComponent::timerCallback makes
 // ("P21: Ableton Link sync": isEnabled() -> update() -> getBPM() -> a positive tempo goes
-// to applyTempoCommand("link", bpm, Human, linkTick=true)), and for a fed tempo the two
-// tracker calls that applyTempoCommand's "link" + linkTick branch makes (setManualMode(true),
+// to applyTempoCommand("link", bpm, Human)), and for a fed tempo the two tracker calls that
+// applyTempoCommand's "link" branch makes (setManualMode(true),
 // followExternalTempo). MainComponent.cpp itself cannot be linked into a unit test, so the
 // test drives the real LinkSync and the real BPMTracker through that call sequence.
 #include <catch2/catch_test_macros.hpp>
@@ -38,7 +38,7 @@ namespace
         const double linkBPM = link.getBPM();
         if (linkBPM <= 0.0)
             return false;
-        tracker.setManualMode(true);                                   // applyTempoCommand("link", ..., linkTick)
+        tracker.setManualMode(true);                                   // applyTempoCommand("link", bpm, Human)
         tracker.followExternalTempo(static_cast<float>(linkBPM));
         return true;
     }

@@ -21,6 +21,11 @@ struct Routine
     Clip::BeatSnapMode quantize = Clip::BeatSnapMode::Bar;   // ruling 27; global Quantize overrides when on
     bool loop = false;                // ruling 22: once (default) / loop
     bool restoreState = true;         // ruling 26: restore (default) / "start from now"
+    // s-rta-0926b (Boris: "we should have controls for jump or ease in each"): HOW the restore reaches the
+    // recorded start look -- at the start, every loop return and a re-fire restart. Ease (default) glides
+    // over the last beat onto the boundary (RoutineEngine, plan3 C); Jump restores in one call ON it.
+    enum class RestoreStyle { Ease, Jump };
+    RestoreStyle restoreStyle = RestoreStyle::Ease;
     bool deckRelative = true;         // D2/D9: keys resolve on the ACTIVE deck at fire time; layer = recorded (ruling 17)
 
     // Where it came from (display + re-slice later; never identity).
@@ -103,6 +108,13 @@ struct Routine
         return Clip::BeatSnapMode::Bar;
     }
 
+    // "ease" | "jump". Unknown -- and a routine saved before the setting existed -- reads as Ease.
+    static const char* restoreStyleToString(RestoreStyle s) { return s == RestoreStyle::Jump ? "jump" : "ease"; }
+    static RestoreStyle restoreStyleFromString(const juce::String& s)
+    {
+        return s == "jump" ? RestoreStyle::Jump : RestoreStyle::Ease;
+    }
+
     juce::var toVar() const
     {
         auto* obj = new juce::DynamicObject();
@@ -112,6 +124,7 @@ struct Routine
         obj->setProperty("quantize", juce::String(quantizeToString(quantize)));
         obj->setProperty("loop", loop);
         obj->setProperty("restoreState", restoreState);
+        obj->setProperty("restoreStyle", juce::String(restoreStyleToString(restoreStyle)));
         obj->setProperty("deckRelative", deckRelative);
 
         auto* srcObj = new juce::DynamicObject();
@@ -149,6 +162,8 @@ struct Routine
             r.loop = static_cast<bool>(obj->getProperty("loop"));
         if (obj->hasProperty("restoreState"))
             r.restoreState = static_cast<bool>(obj->getProperty("restoreState"));
+        if (obj->hasProperty("restoreStyle"))
+            r.restoreStyle = restoreStyleFromString(obj->getProperty("restoreStyle").toString());
         if (obj->hasProperty("deckRelative"))
             r.deckRelative = static_cast<bool>(obj->getProperty("deckRelative"));
 

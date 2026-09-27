@@ -468,7 +468,7 @@ private:
     std::atomic<Deck*> activeDeck_{nullptr};
     Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
     // Beat-synced clip advancement: one Autopilot per deck INDEX (s-rta-0926b plan4 T5) -- the active deck's
-    // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 37).
+    // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 38).
     AutopilotBank autopilots_;
     std::function<void()> onAutopilotAdvanced_;  // UI refresh callback
 

@@ -88,3 +88,34 @@ TEST_CASE("default build: the TopBar Link toggle is disabled, dimmed, says Link 
 
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
 }
+
+// s-rta-0926b routines-followup ITEM 1 (Boris 2026-09-26: "ok we can keep stop for routines only"):
+// the TopBar Stop button ("[]", wired to TopBar::onStop) stops routines and nothing else, and its
+// tooltip says so. Same headless harness; the button is found as TopBar's child TextButton "[]".
+TEST_CASE("the TopBar Stop button says it stops all routines", "[topbar][routine][s-rta-0926b]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+
+    Composition comp;
+    comp.initDefault();
+    FeatureBus bus;
+    TopBar bar(bus, comp);
+    bar.setSize(1728, 40);
+
+    juce::TextButton* stop = nullptr;
+    for (auto* child : bar.getChildren())
+        if (auto* button = dynamic_cast<juce::TextButton*>(child))
+            if (button->getButtonText() == "[]")
+                stop = button;
+    REQUIRE(stop != nullptr);
+    INFO("tooltip \"" << stop->getTooltip() << "\"");
+    CHECK(stop->getTooltip() == "Stop all routines");   // RED pre-fix: no tooltip ("")
+
+    // It is still the button wired to onStop: one click, one call.
+    int fired = 0;
+    bar.onStop = [&fired] { ++fired; };
+    juce::Component& asComponent = *stop;
+    asComponent.mouseDown(leftClickOn(*stop));
+    asComponent.mouseUp(leftClickOn(*stop));
+    CHECK(fired == 1);
+}

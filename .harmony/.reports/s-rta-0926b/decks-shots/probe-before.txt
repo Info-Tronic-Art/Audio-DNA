@@ -1,0 +1,15 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/decks/run-r1-before
+== Phase 1 (production, no env)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/decks/run-r1-before/01-default-w0.png (window 3115)
+PASS  R1 load_composition accepted the three-deck fixture
+  decks: names=A,B,C ids=ABSENT,ABSENT,ABSENT
+FAIL  R2 /api/composition decks[].id present (got: ABSENT,ABSENT,ABSENT)
+FAIL  R3 deck ids pairwise distinct (ids: ABSENT,ABSENT,ABSENT)
+PASS  R4 activeDeck == 1 (B)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/decks/run-r1-before/02-three-decks-w0.png (window 3115)
+PASS  R5 switch_deck 2 -> activeDeck == 2 (C)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/decks/run-r1-before/03-active-C-w0.png (window 3115)
+PASS  R6: app quit, 0 Audio-DNA windows in the FULL window list
+
+4 PASS / 2 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/decks/run-r1-before)

@@ -1,0 +1,32 @@
+ACQUIRED after 93 tries: tempo-glide 28286 1790479057
+=== probe-manual-bpm on /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app at Sat Sep 26 23:17:37 EDT 2026 ===
+PASS  click WAV generated: 142 BPM (interval 20282 frames @ 48 kHz), 150 s
+INFO  app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+PASS  app launched (production), /api/health answered, PID=34030
+PASS  perf/record accepted the click file (file mode, transport playing)
+PASS  A  AUTO sanity: the tracker locks on the 142 BPM click and holds 3 s (last bpm=143.86, held by 10.7 s)
+PASS  M  poller healthy: 818 polls in 20 s, 0 errors
+PASS  M  bpm stays 120.0 on every poll (seen [120.0])
+PASS  M  non-vacuous: the analysis heard the click (onsetCount +48 over the window, ~47 clicks played)
+PASS  M  beatPhase free-runs: 0 jumps (first: [])
+PASS  M  beatPhase advances at 2.000 beats/s (expect 2.00 +/- 3%)
+PASS  M  every bar lasts 2.00 s +/- 3% (9 full bars in 20 s, expect ~9): [2.011, 1.997, 2.003, 1.987, 1.993, 2.012, 2.012, 1.989, 1.991]
+FAIL  S1 set_bpm 120 (the SAME value) never moves the beat: 0/3 continuous -- #1: POST at phase 0.413 (beat 2, bar 12) -> +64 ms phase 0.128 (beat 2, bar 12), step error 0.414 beat, then 1 s: 0 jumps, bpm [120.0] | #2: POST at phase 0.411 (beat 0, bar 13) -> +63 ms phase 0.128 (beat 0, bar 13), step error 0.410 beat, then 1 s: 0 jumps, bpm [120.0] | #3: POST at phase 0.411 (beat 2, bar 13) -> +61 ms phase 0.128 (beat 2, bar 13), step error 0.406 beat, then 1 s: 0 jumps, bpm [120.0]
+FAIL  S2 set_bpm 128 (a CHANGED value) changes the tempo only, the beat runs on -- 120 -> 128: POST at phase 0.411 (beat 0, bar 14) -> +66 ms phase 0.137 (beat 0, bar 14), step error 0.415 beat, then 1 s: 0 jumps, bpm [128.0]
+FAIL  S2 set_bpm 120 (changed back) changes the tempo only, the beat runs on -- 128 -> 120: POST at phase 0.412 (beat 2, bar 14) -> +61 ms phase 0.107 (beat 2, bar 14), step error 0.428 beat, then 1 s: 0 jumps, bpm [120.0]
+FAIL  S3 OSC /audiodna/bpm 120 every 100 ms for 2 s (20 sent): the beat free-runs -- 19 jumps (first: [(0.125, 0.192, 0.064), (0.225, 0.213, 0.043), (0.326, 0.192, 0.043)]), bpm [120.0], totalBarCount +0 (>= 1)
+PASS  R  first poll 74 ms after the Resync is the new downbeat (beatInBar=0 barCount=0 beatPhase=0.128 origin 0 -> 15, totalBarCount=15)
+PASS  R  a single realignment: resyncBarOrigin took 1 value(s) after the POST [15]
+PASS  R  beatPhase free-runs after the Resync: 0 jumps (first: [])
+PASS  R  first bar after the Resync lands 2.012 s after the POST (expect 2.00 s + message-thread hop, [1.90, 2.12])
+PASS  R  bars after the Resync last 2.00 s +/- 3%: [2.001, 1.994, 2.0]
+PASS  R  bpm stays 120.0 (seen [120.0])
+INFO  'leave manual mode -> AUTO resets on beats again' is not drivable over REST/OSC (no route leaves manual mode); ctest-pinned instead.
+PASS  app terminated, no process remains
+INFO  removed this run's take folder /Users/boriskarpman/Documents/Audio-DNA/Takes/probe-manual-bpm-20260926-231737-32215.adna-take
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture: the Quartz window-list check above is the screen witness
+
+18 PASS / 4 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/tempo-glide/mb-red/run-20260926-231737-32215)
+=== probe exit 1 at Sat Sep 26 23:18:42 EDT 2026 ===
+RELEASED

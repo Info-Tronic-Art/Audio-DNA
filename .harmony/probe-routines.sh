@@ -7,7 +7,9 @@
 # bar, restore the recorded look (pixel-decoded), replay its recorded moves on the beat grid, hold
 # at the end (once) or loop (restore re-fired each cycle), restart on re-fire, skip the restore in
 # "start from now", and -- stacking (D9) -- let the routine whose gesture BEGAN later win for the
-# rest of the earlier routine's gesture.
+# rest of the earlier routine's gesture. s-rta-0926b routines-followup (row 11j): a routine whose restore
+# style is Jump cuts to its start look ON the bar -- at the start and at the loop return -- where the
+# default Ease glides (rows 5g/8g/9g/11g).
 #
 # RED on a pre-routines binary: every /api/routine/* route is 404 and /api/composition clips carry
 # no "effects" block; take.json meta has no startBeatInBar; a first-activation auto-play is not a
@@ -141,7 +143,7 @@ def snap():
         pass
     s = get('/api/routine/status')
     if isinstance(s.get('bank'), list):
-        row['bank'] = [{k: b.get(k) for k in ('state', 'cycle', 'restarts', 'yielded', 'preambleFired', 'position')}
+        row['bank'] = [{k: b.get(k) for k in ('state', 'cycle', 'restarts', 'yielded', 'preambleFired', 'position', 'glides')}
                        for b in s['bank'][:2]]
     return row
 
@@ -185,6 +187,21 @@ elif cmd == 'sample':                     # sample SECONDS OUTFILE
     with open(sys.argv[3], 'w') as f:
         json.dump(out, f)
     print('(sampled %d rows over %s s)' % (len(out), sys.argv[2]))
+
+elif cmd == 'edge':                       # edge -> epoch of the NEXT bar edge, polled early in a bar (plan3 C), else NA
+    # Waits until beatInBar == 0 and beatPhase < 0.5 (so >= 3.5 beats remain: a routine fired now glides over
+    # the bar's whole last beat), then predicts the edge from the tempo.
+    end = time.time() + 4.0
+    while time.time() < end:
+        t = time.time()
+        d = get('/api/bpm')
+        try:
+            if d['beatInBar'] == 0 and d['beatPhase'] < 0.5 and d['bpm'] > 0:
+                print('%.3f' % (t + (4.0 - d['beatInBar'] - d['beatPhase']) * 60.0 / d['bpm'])); sys.exit(0)
+        except Exception:
+            pass
+        time.sleep(0.01)
+    print('NA')
 
 elif cmd == 'wait':                       # wait SLOT STATE TIMEOUT -> epoch when bank[SLOT].state == STATE, else NA
     slot, want, end = int(sys.argv[2]), sys.argv[3], time.time() + float(sys.argv[4])
@@ -296,9 +313,21 @@ elif cmd == 'grid':                       # grid T1 FILE: row 7
 
 elif cmd == 'loop':                       # loop T2 FILE FIRED_AT_START: row 8
     T2, s, fired0 = float(sys.argv[2]), load(sys.argv[3]), int(sys.argv[4])
-    pre = [r for r in s if T2 + 7.0 <= r['t'] <= T2 + 7.9]
+    # plan3 C: the return glide moves L0 opacity over the cycle's last half second, so "holds 0.9" ends at +7.45.
+    pre = [r for r in s if T2 + 7.0 <= r['t'] <= T2 + 7.45]
     print(('ok' if pre and all(near(r.get('op0'), 0.9, 0.05) for r in pre) else 'no')
-          + ' loop: end of cycle 1 holds L0 opacity 0.9 (%d samples)' % len(pre))
+          + ' loop: end of cycle 1 holds L0 opacity 0.9 until the return glide begins (+7.0..+7.45 s, %d samples)' % len(pre))
+    # 8g (plan3 C): over the cycle's last beat L0 opacity EASES 0.9 -> 1.0 and lands on the loop point.
+    ret = [r.get('op0') for r in s if T2 + 7.55 <= r['t'] <= T2 + 7.92]
+    between = [v for v in ret if isinstance(v, (int, float)) and 0.92 < v < 0.98]
+    nondec = all(isinstance(a, (int, float)) and isinstance(b, (int, float)) and b >= a - 0.005 for a, b in zip(ret, ret[1:]))
+    print(('ok' if len(between) >= 2 and nondec else 'no')
+          + ' loop: the return GLIDES 0.9 -> 1.0 over the last beat (+7.55..+7.92 s: %d samples, %d strictly between 0.92 and 0.98, non-decreasing=%s: %s)'
+          % (len(ret), len(between), nondec, [round(v, 3) if isinstance(v, (int, float)) else v for v in ret]))
+    t_land = first(s, lambda r: near(r.get('op0'), 1.0, 0.01), T2 + 7.55)
+    print(('ok' if t_land is not None and T2 + 7.80 <= t_land <= T2 + 8.1 else 'no')
+          + ' loop: the return lands ON the loop point (first sample within 0.01 of 1.0 at +%s s, expected +7.80..+8.1; s-rta-0926b: widened from 7.85 after a sampling-edge miss at +7.85 vs 3/3 landings at +7.88..7.89)'
+          % (None if t_land is None else round(t_land - T2, 2)))
     t_back = first(s, lambda r: near(r.get('op0'), 1.0, 0.05), T2 + 7.95)
     print(('ok' if t_back is not None and t_back <= T2 + 8.6 else 'no')
           + ' loop: the restore re-fired at the loop (L0 opacity back to 1.0 at +%s s)' % (None if t_back is None else round(t_back - T2, 2)))
@@ -333,13 +362,22 @@ elif cmd == 'stack':                      # stack T5 T6 RAMPFILE FILE: row 11
     lo, hi = min(ramp['y0'], ramp['y1']), max(ramp['y0'], ramp['y1'])
     print('(stack: Probe Ramp started at T5; its ramp runs +%.2f..+%.2f s, %.2f..%.2f; Probe Routine started at T5+%.2f s)'
           % (rs, re, lo, hi, T6 - T5))
-    before = [r for r in s if T5 + rs + 0.2 <= r['t'] <= T6 - 0.1]
+    # plan3 C: the second routine's restore begins up to one beat BEFORE its bar, so the ramp's window ends at T6-0.55.
+    before = [r for r in s if T5 + rs + 0.2 <= r['t'] <= T6 - 0.55]
     vals = [r.get('op0') for r in before]
     inside = bool(vals) and all(isinstance(v, (int, float)) and lo - 0.01 <= v <= hi + 0.01 for v in vals)
     rising = bool(vals) and all(b >= a - 0.005 for a, b in zip(vals, vals[1:])) and vals[-1] > vals[0]
     print(('ok' if inside and rising else 'no')
           + ' stack: before the second routine starts, the ramp drives L0 opacity (%d samples, %s..%s)'
           % (len(vals), vals[0] if vals else None, vals[-1] if vals else None))
+    # 11g (plan3 C): over the last beat before its bar the second routine's restore GLIDES L0 opacity from the
+    # ramp's value toward 1.0 -- far faster than the ramp (which alone stays below ~0.45 there).
+    gl = [r.get('op0') for r in s if T6 - 0.45 <= r['t'] <= T6 - 0.05]
+    gnum = [v for v in gl if isinstance(v, (int, float))]
+    gnondec = len(gnum) == len(gl) and all(b >= a - 0.005 for a, b in zip(gnum, gnum[1:]))
+    print(('ok' if len(gnum) >= 3 and gnondec and max(gnum) > 0.75 else 'no')
+          + ' stack: the later restore GLIDES in over the last beat, from the ramp value toward 1.0 (T6-0.45..T6-0.05: %d samples, non-decreasing=%s, max %s > 0.75: %s)'
+          % (len(gnum), gnondec, max(gnum) if gnum else None, [round(v, 3) for v in gnum]))
     win = [r for r in s if T6 + 0.12 <= r['t'] <= T6 + 0.5]
     print(('ok' if win and all(near(r.get('op0'), 1.0, 0.03) for r in win) else 'no')
           + ' stack: the later restore wins -- L0 opacity holds 1.0 after Probe Routine starts, no ramp values (%s)'
@@ -349,6 +387,73 @@ elif cmd == 'stack':                      # stack T5 T6 RAMPFILE FILE: row 11
           + ' stack: the earlier ramp stays quiet for the rest of its gesture and after it (L0 opacity 0.5, %d samples)' % len(mid))
     y = max([r['bank'][1]['yielded'] or 0 for r in s if 'bank' in r] or [0])
     print(('ok' if y >= 1 else 'no') + ' stack: status bank[1].yielded == %d (>= 1: the displaced gesture is counted)' % y)
+
+elif cmd == 'glide':                      # glide T1 FILE: row 5g (plan3 C) -- the start's restore glides onto the bar
+    T1, s = float(sys.argv[2]), load(sys.argv[3])
+    early = [r.get('op0') for r in s if r['t'] < T1 - 0.6]
+    print(('ok' if len(early) >= 5 and all(near(v, 0.1, 0.02) for v in early) else 'no')
+          + ' 5g: while the routine waits, L0 opacity holds the hand value 0.1 until its last beat (%d samples before T1-0.6)' % len(early))
+    win = [r.get('op0') for r in s if T1 - 0.45 <= r['t'] <= T1 - 0.1]
+    num = [v for v in win if isinstance(v, (int, float))]
+    mid = [v for v in num if 0.15 < v < 0.95]
+    nondec = len(num) == len(win) and all(b >= a - 0.005 for a, b in zip(num, num[1:]))
+    print(('ok' if len(mid) >= 3 and nondec else 'no')
+          + ' 5g: over the last beat before the bar L0 opacity GLIDES 0.1 -> 1.0 (T1-0.45..T1-0.1: %d samples, %d strictly between 0.15 and 0.95, non-decreasing=%s: %s)'
+          % (len(num), len(mid), nondec, [round(v, 3) for v in num]))
+    during = [r['bank'][0].get('glides') for r in s if T1 - 0.5 <= r['t'] < T1 and r.get('bank')]
+    after = [r['bank'][0].get('glides') for r in s if r['t'] >= T1 + 0.1 and r.get('bank')]
+    okc = any(isinstance(g, int) and g >= 1 for g in during) and bool(after) and all(g == 0 for g in after)
+    print(('ok' if okc else 'no')
+          + ' 5g: status bank[0].glides >= 1 during the last beat and 0 from T1+0.1 on (during: %s, after: %s)'
+          % (sorted(set(str(g) for g in during)), sorted(set(str(g) for g in after))))
+
+elif cmd == 'jump':                       # jump TJ FILE: row 11j (s-rta-0926b routines-followup) -- a Jump start is a cut ON the bar
+    TJ, s = float(sys.argv[2]), load(sys.argv[3])
+    before = [r.get('op0') for r in s if r['t'] < TJ - 0.12]
+    bnum = [v for v in before if isinstance(v, (int, float))]
+    print(('ok' if len(before) >= 10 and all(near(v, 0.1, 0.02) for v in before) else 'no')
+          + ' 11j: while the Jump routine waits -- through its whole last beat -- L0 opacity holds the hand value 0.1 (%d samples before TJ-0.12, %s..%s)'
+          % (len(before), min(bnum) if bnum else None, max(bnum) if bnum else None))
+    upto = [r.get('op0') for r in s if r['t'] < TJ + 0.5]
+    mid = [round(v, 3) for v in upto if isinstance(v, (int, float)) and 0.15 < v < 0.95]
+    print(('ok' if upto and not mid else 'no')
+          + ' 11j: a hard cut -- no sample strictly between 0.15 and 0.95 up to TJ+0.5 (%d samples, %d in between: %s)' % (len(upto), len(mid), mid))
+    after = [r.get('op0') for r in s if TJ + 0.1 <= r['t'] <= TJ + 0.5]
+    print(('ok' if len(after) >= 3 and all(near(v, 1.0, 0.02) for v in after) else 'no')
+          + ' 11j: on the bar L0 opacity is restored to 1.0 (TJ+0.1..TJ+0.5: %d samples, %s)' % (len(after), sorted(set(round(v, 3) for v in after if isinstance(v, (int, float))))))
+    gl = [r['bank'][0].get('glides') for r in s if r.get('bank')]
+    print(('ok' if gl and all(g == 0 for g in gl) else 'no')
+          + ' 11j: status bank[0].glides stays 0 across the start (%s)' % sorted(set(str(g) for g in gl)))
+
+elif cmd == 'jumploop':                   # jumploop TJ FILE: row 11j (s-rta-0926b routines-followup) -- a Jump loop return is a cut ON the loop point
+    TJ, s = float(sys.argv[2]), load(sys.argv[3])
+    pre = [r.get('op0') for r in s if TJ + 7.0 <= r['t'] <= TJ + 7.9]
+    pnum = [v for v in pre if isinstance(v, (int, float))]
+    print(('ok' if len(pre) >= 10 and all(near(v, 0.9, 0.02) for v in pre) else 'no')
+          + ' 11j loop: the end of cycle 1 holds L0 opacity 0.9 through its last beat -- no return glide (+7.0..+7.9 s: %d samples, %s..%s)'
+          % (len(pre), min(pnum) if pnum else None, max(pnum) if pnum else None))
+    t_land = first(s, lambda r: near(r.get('op0'), 1.0, 0.01), TJ + 7.5)
+    print(('ok' if t_land is not None and TJ + 7.9 <= t_land <= TJ + 8.15 else 'no')
+          + ' 11j loop: the return cuts to 1.0 ON the loop point (first sample within 0.01 of 1.0 at +%s s, expected +7.9..+8.15)'
+          % (None if t_land is None else round(t_land - TJ, 2)))
+    between = [round(v, 3) for r in s if TJ + 7.0 <= r['t'] <= TJ + 8.3 for v in [r.get('op0')]
+               if isinstance(v, (int, float)) and 0.92 < v < 0.98]
+    print(('ok' if pre and not between else 'no')
+          + ' 11j loop: no sample strictly between 0.92 and 0.98 around the loop point (+7.0..+8.3 s: %s)' % between)
+
+elif cmd == 'restartglide':               # restartglide FILE: row 9g (plan3 C) -- the restart's restore glides too
+    s = load(sys.argv[2])
+    TR = first(s, lambda r: bool(r.get('bank')) and r['bank'][0].get('restarts') == 1, 0)
+    if TR is None:
+        print('no re-fire: the sampler never saw restarts == 1')
+    else:
+        win = [r.get('op0') for r in s if TR - 0.5 <= r['t'] < TR]
+        num = [v for v in win if isinstance(v, (int, float))]
+        mid = [v for v in num if 0.55 < v < 0.95]
+        nondec = len(num) == len(win) and all(b >= a - 0.005 for a, b in zip(num, num[1:]))
+        print(('ok' if len(mid) >= 2 and nondec else 'no')
+              + ' re-fire: over the last beat before the restart L0 opacity GLIDES from ~0.5 toward 1.0 (0.5 s before restarts == 1: %d samples, %d strictly between 0.55 and 0.95, non-decreasing=%s: %s)'
+              % (len(num), len(mid), nondec, [round(v, 3) for v in num]))
 PY
 
 # --- pixel oracle (probe-mastersignal.sh, 2026-09-26 md5-vs-pixel fix) ----
@@ -489,8 +594,22 @@ MAD_RP="$(mean_abs_diff "$OUT/ref.png" "$OUT/pert.png" resize)"
 num_gt "$MAD_RP" "$MAD_THRESHOLD" && ok "mad(ref, pert) = $MAD_RP > $MAD_THRESHOLD (the perturbation is visible)" || no "mad(ref, pert) = $MAD_RP (expected > $MAD_THRESHOLD)"
 
 # --- 5. fire on the next bar ------------------------------------------------------------
+# 5g (s-rta-0926b plan3 C): fire EARLY in a bar so the restore's glide window is the bar's whole last beat;
+# sample across it (glide.json) and render one frame 0.30 s before the bar (mid.png: between the two looks).
+T_EDGE="$(python3 "$RT" edge)"
+python3 "$RT" sample 3.0 "$OUT/glide.json" >/dev/null &
+GLIDE_SAMPLER=$!
 B0="$(G /api/bpm "d.get('totalBarCount','NA')")"; T0="$(now)"
 P /api/routine/fire '{"slot":0}' >/dev/null
+MID_SHOT=""
+if [ "$T_EDGE" != "NA" ]; then
+    ( sleep "$(perl -e "my \$d = ($T_EDGE - 0.30) - $(now); printf '%.3f', \$d > 0 ? \$d : 0")"
+      T_MID="$(now)"
+      curl -s --max-time 20 -X POST "$A/api/render_frame" -H 'Content-Type: application/json' \
+           -d "{\"output_path\":\"$OUT/mid.png\"}" > "$OUT/mid.json"
+      echo "$T_MID" > "$OUT/mid.t" ) &
+    MID_SHOT=$!
+fi
 T1="$(python3 "$RT" wait 0 running 2.6)"
 if [ "$T1" = "NA" ]; then
     no "fire: bank[0] never became running within 2.6 s"
@@ -532,6 +651,24 @@ num_leq "$MAD_RR" "$MAD_REST" && ok "mad(ref, rest) = $MAD_RR <= $MAD_REST (the 
 wait "$SAMPLER"
 rows python3 "$RT" grid "$T1" "$OUT/grid.json"
 
+# --- 5g. the start's restore glides onto the bar (plan3 C) -----------------------------
+wait "$GLIDE_SAMPLER"
+if [ "$T_EDGE" = "NA" ]; then
+    no "5g: never saw an early-in-bar poll (beatInBar 0, beatPhase < 0.5) within 4 s before the fire"
+else
+    echo "(5g: predicted bar edge at T1 $(perl -e "printf '%+.3f', $T_EDGE - $T1") s; mid.png requested at T_edge $(perl -e "printf '%+.3f', $(cat "$OUT/mid.t" 2>/dev/null || echo 0) - $T_EDGE") s)"
+    [ -n "$MID_SHOT" ] && wait "$MID_SHOT"
+    rows python3 "$RT" glide "$T1" "$OUT/glide.json"
+    grep -q '"ok":[[:space:]]*true' "$OUT/mid.json" 2>/dev/null && [ -f "$OUT/mid.png" ] \
+        && ok "5g: render_frame wrote mid.png 0.30 s before the bar" || no "5g: render_frame did not write mid.png ($(cat "$OUT/mid.json" 2>/dev/null))"
+    assert_nonblank mid.png "5g mid-glide"
+    MAD_PM="$(mean_abs_diff "$OUT/pert.png" "$OUT/mid.png" resize)"
+    MAD_MR="$(mean_abs_diff "$OUT/mid.png" "$OUT/rest.png" resize)"
+    num_gt "$MAD_PM" "$MAD_THRESHOLD" && num_gt "$MAD_MR" "$MAD_THRESHOLD" \
+        && ok "5g: mid.png lies BETWEEN the two looks -- mad(pert, mid) = $MAD_PM and mad(mid, rest) = $MAD_MR, both > $MAD_THRESHOLD (not a cut)" \
+        || no "5g: mid.png is not between the two looks -- mad(pert, mid) = $MAD_PM, mad(mid, rest) = $MAD_MR (both must be > $MAD_THRESHOLD)"
+fi
+
 # --- 8. loop --------------------------------------------------------------------------------
 P /api/routine/set '{"slot":0,"loop":true}' >/dev/null
 sleep 0.3
@@ -557,6 +694,8 @@ T3="$(python3 "$RT" wait 0 running 2.6)"
 if [ "$T3" = "NA" ]; then no "re-fire: never running"; T3="$(now)"; fi
 sleep 0.9   # past the first move (+0.6 s: L0 opacity 0.5)
 near "$(comp "d['decks'][0]['layers'][0]['opacity']")" 0.5 0.05 && ok "re-fire: first move played (L0 opacity 0.5)" || no "re-fire: L0 opacity $(comp "d['decks'][0]['layers'][0]['opacity']") (expected 0.5)"
+python3 "$RT" sample 2.8 "$OUT/restart.json" >/dev/null &   # 9g (plan3 C): across the second fire
+RESTART_SAMPLER=$!
 P /api/routine/fire '{"slot":0}' >/dev/null
 T_RF="$(now)"; RESTARTED=""
 while [ "$(perl -e "print(($(now) - $T_RF) < 2.3 ? 1 : 0)")" = "1" ]; do
@@ -569,6 +708,8 @@ if [ -n "$RESTARTED" ]; then
 else
     no "re-fire: restarts never reached 1 within 2.3 s"
 fi
+wait "$RESTART_SAMPLER"
+rows python3 "$RT" restartglide "$OUT/restart.json"
 P /api/routine/stop '{"all":true}' >/dev/null
 sleep 0.3
 
@@ -614,6 +755,72 @@ print('%.3f' % t[0] if t else 'NA')")"
 else
     no "stack: skipped -- the take has no ramp gesture (row 2 failed)"
 fi
+
+# --- 11b. stop while pending (plan3 C): a stop inside the glide lets go where the glide left the knob --
+P /api/set_layer_opacity '{"layer":0,"opacity":0.1}' >/dev/null
+sleep 1   # > gripHoldMs: the REST write's Decaying grip expires
+T_EDGE2="$(python3 "$RT" edge)"
+if [ "$T_EDGE2" = "NA" ]; then
+    no "stop while pending: never saw an early-in-bar poll within 4 s"
+else
+    P /api/routine/fire '{"slot":0}' >/dev/null
+    sleep "$(perl -e "my \$d = ($T_EDGE2 - 0.40) - $(now); printf '%.3f', \$d > 0 ? \$d : 0")"
+    ST_PEND="$(rstat "d['bank'][0]['state']")"
+    sleep "$(perl -e "my \$d = ($T_EDGE2 - 0.25) - $(now); printf '%.3f', \$d > 0 ? \$d : 0")"
+    P /api/routine/stop '{"slot":0}' >/dev/null
+    T_SP="$(now)"
+    sleep 0.1
+    V_SP1="$(comp "d['decks'][0]['layers'][0]['opacity']")"
+    sleep 0.5
+    V_SP2="$(comp "d['decks'][0]['layers'][0]['opacity']")"
+    ST_SP="$(rstat "d['bank'][0]['state']")"
+    echo "(stop while pending: state before the stop '$ST_PEND', stopped $(perl -e "printf '%+.3f', $T_SP - $T_EDGE2") s from the predicted bar; L0 opacity +0.1 s: $V_SP1, +0.6 s: $V_SP2)"
+    [ "$ST_PEND" = "pending" ] && [ "$ST_SP" = "idle" ] \
+        && ok "stop while pending: the routine was pending at the stop and is idle after it" \
+        || no "stop while pending: state before the stop '$ST_PEND' (expected pending), after '$ST_SP' (expected idle)"
+    near "$V_SP2" "$V_SP1" 0.02 && awk -v v="$V_SP2" 'BEGIN{exit !(v > 0.15 && v < 0.95)}' \
+        && ok "stop while pending: L0 opacity stays where the glide left it (+0.1 s $V_SP1, +0.6 s $V_SP2, strictly between 0.15 and 0.95)" \
+        || no "stop while pending: L0 opacity +0.1 s $V_SP1, +0.6 s $V_SP2 (expected equal within 0.02 and strictly between 0.15 and 0.95 -- mid-glide)"
+fi
+
+# --- 11j. restore style Jump (s-rta-0926b routines-followup ITEM 2, Boris "controls for jump or ease in each"):
+# a Jump routine restores in ONE cut on the bar -- nothing moves during the wait, no glide at the loop return.
+# RED on a glide-only binary: it ignores restoreStyle, so the restore still eases in over the last beat.
+P /api/routine/set '{"slot":0,"restoreStyle":"jump","loop":true}' >/dev/null
+sleep 0.3
+JSTYLE="$(rstat "d['bank'][0].get('restoreStyle')")"
+[ "$JSTYLE" = "jump" ] && ok "11j: POST /api/routine/set restoreStyle jump -- status bank[0].restoreStyle == jump" \
+    || no "11j: status bank[0].restoreStyle == $JSTYLE (expected jump)"
+P /api/set_layer_opacity '{"layer":0,"opacity":0.1}' >/dev/null
+sleep 1   # > gripHoldMs: the REST write's Decaying grip expires
+frame jpre.png "11j waiting look"
+assert_nonblank jpre.png "11j waiting look"
+T_EDGEJ="$(python3 "$RT" edge)"
+if [ "$T_EDGEJ" = "NA" ]; then
+    no "11j: never saw an early-in-bar poll within 4 s"
+else
+    python3 "$RT" sample 3.0 "$OUT/jump.json" >/dev/null &
+    JUMP_SAMPLER=$!
+    P /api/routine/fire '{"slot":0}' >/dev/null
+    ( sleep "$(perl -e "my \$d = ($T_EDGEJ - 0.30) - $(now); printf '%.3f', \$d > 0 ? \$d : 0")"
+      curl -s --max-time 20 -X POST "$A/api/render_frame" -H 'Content-Type: application/json' \
+           -d "{\"output_path\":\"$OUT/jmid.png\"}" > "$OUT/jmid.json" ) &
+    JMID_SHOT=$!
+    TJ="$(python3 "$RT" wait 0 running 2.6)"
+    if [ "$TJ" = "NA" ]; then no "11j: bank[0] never became running within 2.6 s"; TJ="$(now)"; fi
+    wait "$JUMP_SAMPLER"; wait "$JMID_SHOT"
+    echo "(11j: predicted bar edge at TJ $(perl -e "printf '%+.3f', $T_EDGEJ - $TJ") s)"
+    rows python3 "$RT" jump "$TJ" "$OUT/jump.json"
+    grep -q '"ok":[[:space:]]*true' "$OUT/jmid.json" 2>/dev/null && [ -f "$OUT/jmid.png" ] \
+        && ok "11j: render_frame wrote jmid.png 0.30 s before the bar" || no "11j: render_frame did not write jmid.png ($(cat "$OUT/jmid.json" 2>/dev/null))"
+    MAD_JJ="$(mean_abs_diff "$OUT/jpre.png" "$OUT/jmid.png")"
+    num_leq "$MAD_JJ" "$MAD_REST" \
+        && ok "11j: 0.30 s before the bar the frame is still the waiting look -- mad(jpre, jmid) = $MAD_JJ <= $MAD_REST (nothing eased in)" \
+        || no "11j: 0.30 s before the bar the frame has moved -- mad(jpre, jmid) = $MAD_JJ (expected <= $MAD_REST: a Jump waits for the bar)"
+    python3 "$RT" sample "$(perl -e "printf '%.2f', 8.5 - ($(now) - $TJ)")" "$OUT/jumploop.json" >/dev/null
+    rows python3 "$RT" jumploop "$TJ" "$OUT/jumploop.json"
+fi
+P /api/routine/stop '{"all":true}' >/dev/null
 
 # --- 12. teardown (SCREEN-SAFETY LAW) ---------------------------------------------------
 osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1

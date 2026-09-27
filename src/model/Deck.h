@@ -14,6 +14,7 @@ struct Deck
     // === Identity ===
     std::string name = "Deck 1";
     uint32_t id = 0;
+    juce::File sourceFile;  // library file this deck was loaded from / last saved to; NOT serialized (like Composition::filePath)
 
     // === Grid ===
     std::vector<Layer> layers;

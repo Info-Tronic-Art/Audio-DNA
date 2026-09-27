@@ -1478,6 +1478,32 @@ endif()
 apply_sanitizers(test_routine_bank_model)
 catch_discover_tests(test_routine_bank_model)
 
+# --- test_topbar_model (s-rta-0926b plan3-final.md section 3, ITEM B, B.4): the TopBar's
+# one-line bar readout. Header-only src/ui/TopBarModel.h is a pure function bool, uint16_t ->
+# juce::String; juce_core only -- NEVER juce_gui_basics (no display context under ctest), same
+# posture as test_routine_bank_model above.
+add_executable(test_topbar_model test_topbar_model.cpp)
+target_include_directories(test_topbar_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_topbar_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_topbar_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_topbar_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_topbar_model)
+catch_discover_tests(test_topbar_model)
+
 # --- tool_routine_strip_snapshot (s-rta-0926 lane 3 SHOTS, plan-routines-s1-final.md section 7
 # LANE 3): a ctest-EXCLUDED headless snapshot tool -- deliberately never registered with
 # catch_discover_tests, so `ctest` never runs it and it never adds file I/O to the normal suite.
@@ -1540,6 +1566,42 @@ target_include_directories(test_tab_bar_layout PRIVATE ${SRC_DIR})
 target_link_libraries(test_tab_bar_layout PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_tab_bar_layout)
 catch_discover_tests(test_tab_bar_layout)
+
+# --- test_deck_tab_row (s-rta-0926b plan6 §6.1: the deck tab row's geometry --
+# tabs, the "+" button, the Remove-Deck undo hint -- and its two menus). Pure
+# header src/ui/DeckTabRow.h -- no JUCE; DeckView places its buttons from it.
+add_executable(test_deck_tab_row test_deck_tab_row.cpp)
+target_include_directories(test_deck_tab_row PRIVATE ${SRC_DIR})
+target_link_libraries(test_deck_tab_row PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_deck_tab_row)
+catch_discover_tests(test_deck_tab_row)
+
+# --- test_lookandfeel_square (s-rta-0926b plan6 fix round: no rounded corners,
+# anywhere -- the PopupMenu background and the AlertWindow dialogs drawn with the
+# app's own AudioDNALookAndFeel, painted headless into images).
+add_executable(test_lookandfeel_square
+    test_lookandfeel_square.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+)
+target_include_directories(test_lookandfeel_square PRIVATE ${SRC_DIR})
+target_link_libraries(test_lookandfeel_square PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_lookandfeel_square PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_lookandfeel_square PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_lookandfeel_square)
+catch_discover_tests(test_lookandfeel_square)
 
 # --- test_per_type_autopilot_layout (s-rta-0925 visualfix: the Composition
 # Inspector's Per-Type Autopilot enable-checkbox row and its Opaque cycle row

@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -22,8 +23,11 @@ enum class RoutineSnap : uint8_t { Off, Beat, Bar, TwoBar, FourBar };
 // RoutineEngine -- s167 D9 / s-rta-0926 routines slice 1 (plan-routines-s1-final.md section 4):
 // runs every fired routine as its OWN Player on one shared beat clock (a RecorderClock that ticks
 // from app start), starts it on the next bar (per-routine quantize; global Quantize overrides),
-// fires its restore list through the SAME Player::firePreamble -> dispatch path a take replay
-// uses, loops or holds at its end, releases every grip on stop, and arbitrates two routines on
+// fires its restore list through the SAME Player preamble -> dispatch path a take replay uses
+// (s-rta-0926b plan3 C: the discrete half ON the boundary; the continuous half GLIDES over the
+// last beat before it -- at the start, every loop return and a re-fire restart; a routine whose
+// Routine::restoreStyle is Jump restores both halves in one call ON the boundary), loops or holds
+// at its end, releases every grip on stop, and arbitrates two routines on
 // one control by which gesture BEGAN later (D9 "the later begin wins for the rest of that
 // gesture") inside its own sink. Message-thread only (same jassert idiom as RecorderHost);
 // talks to the app ONLY through `dispatch`. Never includes MainComponent.h, src/ui/, src/render/.
@@ -42,8 +46,18 @@ public:
         std::function<bool(const ControlPath&, float v)> set;   // v normalised [0,1]
         std::function<void(const ControlPath&)> release;
         std::function<void(const std::string&)> notify;          // one-line human-readable notices
+        // s-rta-0926b plan3 C: the NORMALISED value the control shows right now (the connected twin
+        // when it is driven, else the manual field) -- a restore glide's "from". An empty slot means
+        // no glide: the continuous restore lands in one call at the boundary, as before.
+        std::function<std::optional<float>(const ControlPath&)> read;
     };
     Dispatch dispatch;
+
+    // plan3 C: a restore glides over kRestoreGlideBeats ending on its boundary (less when fired
+    // later), never shorter than kRestoreGlideMinBeats (which then spills past the boundary).
+    static constexpr double kRestoreGlideBeats = 1.0;
+    static constexpr double kRestoreGlideMinBeats = 0.25;
+    static constexpr int kBeatsPerBar = 4;
 
     struct Status
     {
@@ -58,6 +72,7 @@ public:
             std::string uuid, name;
             double lengthBeats = 0.0;
             bool loop = false, restoreState = true;
+            std::string restoreStyle = "ease";   // "ease" | "jump" (Routine::restoreStyle)
             std::string quantize;    // "off" | "beat" | "bar" | "2bar" | "4bar"
             int lanes = 0, preambleEntries = 0;
             std::string state = "empty";   // "empty" | "idle" | "pending" | "running"
@@ -68,6 +83,7 @@ public:
             int preambleUnresolved = 0, preambleCount = 0, preambleFired = 0, preambleRefused = 0;
             int skipped = 0;         // discrete fires the app refused at fire time (a layer/clip gone)
             int yielded = 0;         // gestures displaced by ANOTHER routine's later begin (never silent)
+            int glides = 0;          // plan3 C: restore glides started and not yet released
         };
         Slot slots[kBankSize];
 
@@ -113,9 +129,14 @@ public:
 private:
     struct SlotSink;
     struct Running;
+    struct Glide;
 
     void startNow(Running& r);
     bool dueNow(RoutineSnap mode, bool beatEdge, bool barEdge) const;
+    double beatsUntilBoundary(RoutineSnap mode) const;
+    void scheduleGlides(Running& r, double boundary, const std::function<double(const ControlPath&)>& keyFreeFrom);
+    void stepGlides(Running& r);
+    void releaseGlides(Running& r);
     RoutineSnap effectiveSnap(RoutineSnap forced, RoutineSnap own) const;
     void releaseOwnership(int slot);
     void notify(const std::string& msg) const;
@@ -135,6 +156,7 @@ private:
     uint32_t lastTotalBar_ = 0;
     uint16_t lastBarCount_ = 0;
     float lastBeatPhase_ = 0.0f;     // the tracker's beatPhase last tick (Beat edge = its wrap)
+    uint8_t lastBeatInBar_ = 0;      // plan3 C: the tracker's beatInBar last tick (the Bar boundary prediction)
     bool beatAvailable_ = false;
     int fires_ = 0;
     std::string lastError_;

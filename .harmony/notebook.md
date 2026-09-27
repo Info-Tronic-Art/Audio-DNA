@@ -1610,8 +1610,41 @@ hand-written functions with no shared layout model.
   reverting, never trust a build that predates the revert.
 - Valid while drawToggleButton and these three owners exist in their current form.
 
+## 2026-09-27 s-rta-0926b decks (plan6) | Files: .harmony/probe-deck-tabs.sh, src/ui/DeckView.cpp, src/ui/CompDecksBrowser.cpp, src/MainComponent.cpp
+- A JUCE PopupMenu is DISMISSED within ~50 ms while the app is not the foreground process
+  (juce_PopupMenu.cpp checkButtonState -> doesAnyJuceCompHaveFocus -> Process::isForegroundProcess), so a menu opened
+  by a temporary env-var hook in an `open -g` launch is gone before any Quartz capture. Menu shots: the hook grabs the
+  live top-level window with createComponentSnapshot synchronously right after showMenuAsync (AUDIODNA_DEBUG_SNAP=<png>;
+  the GL preview is black in it). Modal AlertWindows and plain UI state stay up in a background app -> Quartz
+  `screencapture -x -o -l <id>` works for them (the dialog is its own window: capture every "Audio-DNA" window).
+- Hook states used (plan6 §9): plus_menu, deck_menu:<i>, deck_rename:<i>, remove_hint:<i>, replace_confirm,
+  browser_compositions, library_menu:<i>, library_delete_confirm:<i>; AUDIODNA_DEBUG_COMP loads a fixture at +2.5 s
+  (NOT synchronously at constructor end: loadComposition fences via executeOnGLThread(blocking), unsafe before the
+  window/GL context is up), the state fires at +4.5 s, everything is cancelled (result 0) at +14 s. Revert proof on the
+  lane: `git diff --stat -- src/MainComponent.cpp` empty and `strings <binary> | grep -c AUDIODNA_DEBUG_` = 0 on a
+  binary rebuilt AFTER `git apply -R` of the saved hook patch.
+- JUCE userApplicationDataDirectory is ~/Library on macOS: the library is ~/Library/AudioDNA/{compositions,decks}, and
+  on case-insensitive APFS "decks" IS the legacy PresetManager "Decks" dir -- its v1 *.deck.json files (no "layers")
+  list as Decks rows that refuse to load ("not a deck file").
+- DeckView::rebuildGrid is not always followed by refresh() (handleDeckSwitch), so tab colours must be right at
+  creation (setupDeckTabs) -- before plan6 a deck switch left NO tab green.
+- Every juce::AlertWindow here draws with the JUCE default LookAndFeel (rounded buttons): only MainComponent calls
+  setLookAndFeel (no setDefaultLookAndFeel anywhere), and a top-level AlertWindow does not inherit it.
+  Fix-round fix (plan6 dialogs only): AudioDNALookAndFeel::createAlertWindow calls aw->setLookAndFeel(this), so
+  AlertWindow::showOkCancelBox(..., associatedComponent = a component under MainComponent, ...) draws square with app
+  colours (JUCE creates it via associatedComponent->getLookAndFeel(), detail/juce_AlertWindowHelpers.h); a hand-built
+  `new AlertWindow` needs its own setLookAndFeel(&lookAndFeel_). drawAlertBox draws no icon -- pass NoIcon (an icon
+  type still reserves 80 px and left-justifies the text). The showMessageBoxAsync calls pass no component, so they
+  still draw stock/rounded until someone passes one.
+- A juce::PopupMenu takes ITS OWN LookAndFeel (menu.setLookAndFeel) or its parent's: `.withParentComponent(
+  getTopLevelComponent())` parents it to the DocumentWindow, which has none, so it draws STOCK (V2 grey-teal stripes)
+  -- not AudioDNALookAndFeel. plan6's three menus now call menu.setLookAndFeel(&getLookAndFeel()) (as ComboBox does);
+  MacroPanel / UniversalParamControl / SignalBar menus still draw stock. AudioDNALookAndFeel::drawLabel draws NO text
+  for a transparent text colour (AlertWindow's hidden accessibility label would otherwise double every message).
+- Valid while DeckView/CompDecksBrowser keep this shape and JUCE's PopupMenu keeps the foreground check.
+
 ## 2026-09-27 s-rta-0926b canvas (plan4 A/B1/B2/C) | Files: src/render/{Renderer,RenderGeometry,DeckClock,LayerClock}.*, src/render/CompositorEngine.cpp, src/model/AutopilotBank.h, .harmony/probe-{canvas,deck-clock}.*
-- The frame renders ONCE into `Renderer::canvasFBO_` at the composition's size (Pitfall 36); the panel only
+- The frame renders ONCE into `Renderer::canvasFBO_` at the composition's size (Pitfall 37); the panel only
   presents it. Anything that reads "the picture" (recorder, Syphon, render_frame, snapshots) must bind
   `canvasFBO_` as the READ framebuffer -- never the window framebuffer (it now holds the letterboxed present).
 - BEFORE plan4 the TestServer render_frame width/height lock was racy: the lock is read early in

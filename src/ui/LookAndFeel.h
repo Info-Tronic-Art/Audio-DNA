@@ -63,6 +63,19 @@ public:
                            const juce::String& text, const juce::String& shortcutKeyText,
                            const juce::Drawable* icon, const juce::Colour* textColour) override;
 
+    // --- AlertWindow (dialogs) ---
+    // An AlertWindow is its own top-level window, so it never inherits MainComponent's LookAndFeel:
+    // createAlertWindow() hands this LookAndFeel to every dialog it creates (AlertWindow::showOkCancelBox
+    // and friends create through the associated component's LookAndFeel), and drawAlertBox() draws a
+    // square panel with no icon -- no rounded corners, anywhere.
+    juce::AlertWindow* createAlertWindow(const juce::String& title, const juce::String& message,
+                                         const juce::String& button1, const juce::String& button2,
+                                         const juce::String& button3, juce::MessageBoxIconType iconType,
+                                         int numButtons, juce::Component* associatedComponent) override;
+
+    void drawAlertBox(juce::Graphics&, juce::AlertWindow&, const juce::Rectangle<int>& textArea,
+                      juce::TextLayout&) override;
+
     // --- Label ---
     void drawLabel(juce::Graphics&, juce::Label&) override;
 

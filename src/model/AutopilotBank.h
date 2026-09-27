@@ -9,7 +9,7 @@
 //
 // Why one per deck: Autopilot keeps ONE beat-crossing baseline (lastBeatPhase_, Autopilot.h). Calling a single
 // Autopilot::processFrame for two decks in one frame lets only the first see the crossing (docs/claude/pitfalls.md
-// Pitfall 37). Keyed by INDEX, not Deck::id: ids are not unique (Deck > New Deck leaves id 0, plan4 F1). Removing
+// Pitfall 38). Keyed by INDEX, not Deck::id: ids were not unique before plan6 F1 (Pitfall 36). Removing
 // a deck shifts the indices above it, so one instance's baseline moves to its neighbour deck once -- at most one
 // missed or extra beat crossing, once.
 //

@@ -986,9 +986,9 @@ TEST_CASE("Tap still realigns in manual mode; leaving manual mode restores the A
     ForeignBeatFeeder room{ 142.0f };
 
     for (int i = 0; i < 20; ++i) room.hop(tracker);
-    // Tap / a new set_bpm (setManualBPM) is a deliberate realignment: phase to 0 -- even
-    // with the SAME BPM (120 again here). s-rta-0926b: applied by the next hop, which then
-    // advances one step from 0.
+    // Tap (setManualBPM) is a deliberate realignment: phase to 0 -- even with the SAME BPM
+    // (120 again here). s-rta-0926b: applied by the next hop, which then advances one step
+    // from 0. (plan3 A: a set_bpm / typed BPM is a tempo value now -- it never realigns.)
     REQUIRE(tracker.beatPhase() > 0.0f);
     tracker.setManualBPM(120.0f);
     room.hop(tracker);
@@ -1039,7 +1039,7 @@ TEST_CASE("setManualBPM (Tap / set_bpm) is applied by the next analysis hop, not
     REQUIRE_THAT(bpm0, WithinAbs(120.0, 1e-3));
     REQUIRE(phase0 > 0.1f);
 
-    tracker.setManualBPM(140.0f);   // the message thread: TopBar Tap / REST or OSC set_bpm
+    tracker.setManualBPM(140.0f);   // the message thread: TopBar Tap / a Tap binding (s-rta-0926b plan3 A)
 
     // The caller writes nothing the analysis thread owns. RED pre-fix: bpm 140 and
     // phase 0 were written straight from the calling thread (the data race).
@@ -1051,6 +1051,38 @@ TEST_CASE("setManualBPM (Tap / set_bpm) is applied by the next analysis hop, not
     quietHop(tracker);
     REQUIRE_THAT(tracker.bpm(), WithinAbs(140.0, 1e-3));
     REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(140.0f), 1e-6));
+}
+
+TEST_CASE("a Tap and a tempo value posted before the same hop: the Tap's realign is never dropped, the latest BPM wins",
+          "[bpm][manual][thread][s-rta-0926b][coalesce]")
+{
+    // s-rta-0926b plan3 A: the typed BPM and REST / OSC set_bpm now post followExternalTempo (a
+    // tempo VALUE: never realigns), as the Link tick already did -- so the request word's
+    // coalescing now runs for every value writer. A Tap (setManualBPM, a beat gesture) posted
+    // before the same hop as a value must still realign that hop, whichever came last.
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+    for (int i = 0; i < 30; ++i) quietHop(tracker);
+    REQUIRE(tracker.beatPhase() > 0.1f);
+
+    SECTION("(i) Tap 120, then the value 120: the hop realigns")
+    {
+        tracker.setManualBPM(120.0f);
+        tracker.followExternalTempo(120.0f);
+        quietHop(tracker);
+        REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 1e-3));
+        REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(120.0f), 1e-6));
+    }
+
+    SECTION("(ii) the value 140, then Tap 120: the hop applies 120 AND realigns")
+    {
+        tracker.followExternalTempo(140.0f);
+        tracker.setManualBPM(120.0f);
+        quietHop(tracker);
+        REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 1e-3));
+        REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(120.0f), 1e-6));
+    }
 }
 
 TEST_CASE("tempo writers on the message thread vs the analysis hop: no data race (run it under ThreadSanitizer)",

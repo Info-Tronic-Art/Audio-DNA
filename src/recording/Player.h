@@ -75,6 +75,18 @@ public:
     // refusals + continuous touch/set refusals).
     int firePreamble(Sink& sink);
 
+    // s-rta-0926b plan3 C: the two halves of firePreamble, in the order it runs them (firePreamble ==
+    // firePreambleDiscrete then firePreambleContinuous). A routine fires the discrete half ON its
+    // boundary and glides the continuous half itself (RoutineEngine); a take replay still calls the
+    // whole. Each returns its own refused count.
+    int firePreambleDiscrete(Sink& sink);
+    int firePreambleContinuous(Sink& sink);
+
+    // s-rta-0926b plan3 C: does a continuous lane on `key` hold the control right now -- inside a
+    // gesture whose touch was accepted and not displaced (the grips stop() releases)? A routine's
+    // restore glide yields to the recording's own hand on that knob.
+    bool holds(const ControlPath& key) const;
+
     // Releases every gesture this Player still holds (D5/R9: "a stopped
     // routine lets go of its hands") and stops firing discrete points.
     void stop(Sink& sink);

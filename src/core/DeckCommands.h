@@ -234,7 +234,8 @@ struct PendingTriggerSnapshot
 // not fire later against a deck nobody is looking at" — shared by every deck
 // deactivation path: SwitchDeckCmd's caller (handleDeckSwitch, MainComponent.cpp,
 // for the deck-tab/REST/OSC/MIDI/genre-auto switch paths), AddDeckCmd (Add Deck),
-// and the deck-append activation (MainComponent.cpp's appendDeckFromFile). Before
+// and InsertDeckCmd (Load Deck / Duplicate Deck, plan6 — the deck-append
+// activation, MainComponent.cpp's appendDeckFromFile). Before
 // this was factored out, the loop was pasted at each site; a review round found
 // two of the three had been added without it entirely (AddDeckCmd, deck-append).
 inline std::vector<PendingTriggerSnapshot> cancelPendingTriggers(Deck& deck)
@@ -671,13 +672,16 @@ using CompositionResolver = std::function<Composition*()>;
 // re-points through this lightweight hook instead.
 using DeckActivateHook = std::function<void()>;
 
-// AddDeckCmd: deck new (#21) — faithfully replicates the kDeckNew handler, which
-// appends a RAW default Deck (name "Deck N"; NO Deck::initDefault(), so the new
-// deck has ZERO layers; NOT Composition::addDeck(), so nextDeckId_ is untouched
-// and id stays 0) and makes it the active deck. Command-owns-the-mutation (like
-// AddLayerCmd): the handler does NOT pre-mutate; perform() runs the single fenced
-// mutation, because push_back is non-idempotent. The appended deck is captured on
-// first execute so redo re-inserts the EXACT same deck. GL fence: push_back can
+// AddDeckCmd: deck new (#21) — builds a deck named "Deck N", initDefault()s it
+// (3 layers x 12 columns, like Composition::addDeck — a zero-layer deck cannot be
+// saved and loaded back, compload::validateDeck refuses it) and appends it via
+// Composition::appendDeck, which mints a fresh deck id from nextDeckId_ (plan6 F1:
+// LayerStateKey keys per-layer GL history by (deckId, layerId), so an id shared
+// by two decks aliases their temporal buffers), then makes it the active deck.
+// Command-owns-the-mutation (like AddLayerCmd): the handler does NOT pre-mutate;
+// perform() runs the single fenced mutation, because push_back is
+// non-idempotent. The appended deck (minted id included) is captured on first
+// execute so redo re-inserts the EXACT same deck. GL fence: push_back can
 // reallocate composition->decks, and the renderer's activeDeck_ points at an
 // element — withDeckDetached fences the GL thread AND re-points activeDeck_ by
 // re-resolving getActiveDeck() after the mutation (so the renderer follows the
@@ -727,14 +731,14 @@ public:
             }
             else
             {
-                // first do: replicate kDeckNew exactly (raw default Deck, name
-                // "Deck N", no initDefault → no layers; becomes active).
+                // first do: "Deck N", initDefault() (3 layers), appended under a
+                // freshly minted id (appendDeck); becomes active.
                 priorActiveIndex_ = comp->activeDeckIndex;
                 Deck newDeck;
                 newDeck.name = "Deck " + std::to_string(comp->decks.size() + 1);
-                comp->decks.push_back(std::move(newDeck));
-                addedIndex_ = static_cast<int>(comp->decks.size()) - 1;
-                added_ = comp->decks.back();               // capture for redo
+                newDeck.initDefault();                     // 3 layers x 12 columns, like Composition::addDeck
+                addedIndex_ = comp->appendDeck(std::move(newDeck));   // mints deck.id (never 0), push_back
+                added_ = comp->decks.back();               // redo re-inserts THIS deck, minted id included
 
                 // L5 Quantize follow-on: cancel any pending trigger on the deck
                 // being deactivated by this add, BEFORE switching away from it —
@@ -787,9 +791,111 @@ private:
     std::string description_;
 };
 
-// RemoveDeckCmd: deck remove (#22) — faithfully replicates kDeckRemove, which
-// erases the deck at activeDeckIndex (only when more than one deck exists) and
-// then clamps activeDeckIndex if it fell off the end. Command-owns-the-mutation
+// InsertDeckCmd: append a FULLY-FORMED deck — Load Deck (a library file) or
+// Duplicate Deck — under a fresh id and make it active (plan6 §5 A1-d). Undoable
+// like New Deck, NOT a whole-model swap (swapCompositionModel stops every routine
+// and wipes undo history — safeguards an append does not need). Command-owns-the-
+// mutation: the caller stages the deck (validate, re-mint clip ids, open media on
+// the staged copy) and does not touch the model; execute() appends it through the
+// fence via Composition::appendDeck (fresh deck id) and captures it so redo
+// re-inserts the EXACT same deck. Media: open already on first do (the caller ran
+// openMediaForDeck on the staged deck); undo disposes every occupied cell of the
+// inserted deck (the app's dispose hook re-scans the live model, so a clip id
+// still live elsewhere is never closed), redo reconnects them. Pending triggers:
+// activating the new deck deactivates the deck that was active — cancelled via
+// the shared helpers exactly like AddDeckCmd (restored on undo, re-cancelled on
+// redo). All three bodies are fenced: push_back / insert / erase reallocate decks.
+class InsertDeckCmd : public Command
+{
+public:
+    InsertDeckCmd(CompositionResolver compResolver, DeckFenceHook fence,
+                  ClipMediaHook mediaHook, ClipMediaDisposeHook disposeHook,
+                  Deck prebuilt, std::string description)
+        : compResolver_(std::move(compResolver)), fence_(std::move(fence)),
+          mediaHook_(std::move(mediaHook)), disposeHook_(std::move(disposeHook)),
+          prebuilt_(std::move(prebuilt)), description_(std::move(description)) {}
+
+    void execute() override
+    {
+        runFenced([this]
+        {
+            Composition* comp = resolve();
+            if (comp == nullptr)
+                return;
+            if (added_.has_value())
+            {
+                // redo: re-insert the exact deck captured on first execute.
+                const size_t at = std::min(static_cast<size_t>(addedIndex_), comp->decks.size());
+                comp->decks.insert(comp->decks.begin() + static_cast<std::ptrdiff_t>(at), *added_);
+                comp->activeDeckIndex = static_cast<int>(at);
+                // priorActiveIndex_ < addedIndex_ always (an append), so the insert never shifts it.
+                if (priorActiveIndex_ >= 0 && priorActiveIndex_ < static_cast<int>(comp->decks.size()))
+                    applyPendingTriggerCancellation(comp->decks[static_cast<size_t>(priorActiveIndex_)],
+                                                     cancelledOnAdd_, false);
+                // Reconnect every occupied cell of the restored deck (undo disposed them).
+                if (mediaHook_)
+                    for (const auto& layer : comp->decks[at].layers)
+                        for (const auto& c : layer.clips)
+                            if (c.has_value())
+                                mediaHook_(*c);
+            }
+            else
+            {
+                // first do: append under a fresh id, capture, activate.
+                priorActiveIndex_ = comp->activeDeckIndex;
+                if (priorActiveIndex_ >= 0 && priorActiveIndex_ < static_cast<int>(comp->decks.size()))
+                    cancelledOnAdd_ = cancelPendingTriggers(comp->decks[static_cast<size_t>(priorActiveIndex_)]);
+                addedIndex_ = comp->appendDeck(std::move(prebuilt_));   // fresh id; media ALREADY open (the caller)
+                added_ = comp->decks.back();                            // capture for redo
+                comp->activeDeckIndex = addedIndex_;
+            }
+        });
+    }
+
+    void undo() override
+    {
+        runFenced([this]
+        {
+            Composition* comp = resolve();
+            if (comp == nullptr)
+                return;
+            if (addedIndex_ >= 0 && addedIndex_ < static_cast<int>(comp->decks.size()))
+                comp->decks.erase(comp->decks.begin() + addedIndex_);
+            comp->activeDeckIndex = priorActiveIndex_;      // restore prior active deck
+            if (priorActiveIndex_ >= 0 && priorActiveIndex_ < static_cast<int>(comp->decks.size()))
+                applyPendingTriggerCancellation(comp->decks[static_cast<size_t>(priorActiveIndex_)],
+                                                 cancelledOnAdd_, true);
+            // The inserted deck is gone from the model: dispose every occupied cell it held.
+            if (disposeHook_ && added_.has_value())
+                for (const auto& layer : added_->layers)
+                    for (const auto& c : layer.clips)
+                        if (c.has_value())
+                            disposeHook_(*c);
+        });
+    }
+
+    std::string description() const override { return description_; }
+
+private:
+    Composition* resolve() { return compResolver_ ? compResolver_() : nullptr; }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
+
+    CompositionResolver compResolver_;
+    DeckFenceHook fence_;
+    ClipMediaHook mediaHook_;
+    ClipMediaDisposeHook disposeHook_;
+    Deck prebuilt_;                     // moved into the model on first execute
+    std::optional<Deck> added_;         // the appended deck (minted id included), for redo/undo
+    std::vector<PendingTriggerSnapshot> cancelledOnAdd_;
+    int addedIndex_ = -1;
+    int priorActiveIndex_ = 0;
+    std::string description_;
+};
+
+// RemoveDeckCmd: deck remove (#22) — erases the deck at deckIndex_ (only when
+// more than one deck exists; any deck since plan6 §5 A1-b — the deck tab row's
+// right-click Remove targets a tab, the Deck menu the active deck) and keeps
+// the on-screen deck OBJECT active (see execute()). Command-owns-the-mutation
 // (like RemoveLayerCmd): the handler snapshots the full Deck VALUE + the prior
 // active index and does NOT pre-erase; execute() erases through the fence. undo
 // re-inserts the exact deck at its index and restores the prior active index.
@@ -813,17 +919,8 @@ public:
           deckIndex_(deckIndex), removed_(std::move(removed)),
           priorActiveIndex_(priorActiveIndex), description_(std::move(description))
     {
-        // Invariant: this command removes the ACTIVE deck (deckIndex_ ==
-        // priorActiveIndex_). kDeckRemove only ever removes the active deck, and
-        // execute()'s clamp restores activeDeckIndex ONLY for the fell-off-the-end
-        // case — a future call site that removed a NON-active deck (one BEFORE the
-        // active index) would silently mis-clamp activeDeckIndex (wrong-result-not-
-        // crash class). Assert so such a variant trips immediately. Guarded exactly
-        // like RemoveColumnCmd / UndoManager: enforced in the app (MessageManager
-        // present), skipped headless (no MessageManager in the Catch2 binary) so it
-        // never arms a unit test — the standing lane pattern for ctor invariants.
-        jassert(juce::MessageManager::getInstanceWithoutCreating() == nullptr
-                || deckIndex_ == priorActiveIndex_);
+        // deckIndex_ may be any deck; priorActiveIndex_ is the active index at push
+        // time and is restored verbatim on undo (plan6 §5 A1-b).
     }
 
     void execute() override
@@ -839,10 +936,11 @@ public:
                 && deckIndex_ >= 0 && deckIndex_ < static_cast<int>(comp->decks.size()))
             {
                 comp->decks.erase(comp->decks.begin() + deckIndex_);
-                // Clamp exactly as kDeckRemove does (only when the active index
-                // fell past the end — kDeckRemove removes the active deck).
-                if (comp->activeDeckIndex >= static_cast<int>(comp->decks.size()))
-                    comp->activeDeckIndex = static_cast<int>(comp->decks.size()) - 1;
+                if (deckIndex_ < comp->activeDeckIndex)
+                    --comp->activeDeckIndex;                       // the deck on screen slid down one slot: the same OBJECT stays active
+                else if (comp->activeDeckIndex >= static_cast<int>(comp->decks.size()))
+                    comp->activeDeckIndex = static_cast<int>(comp->decks.size()) - 1;   // the active deck was last: its previous neighbour
+                // (deckIndex_ == active, not last: the next deck slides into the slot — unchanged from today)
                 // Family coverage (media-leak fix, L1 round 2): removed_ is
                 // the handler's pre-removal snapshot of the WHOLE deck
                 // (command-owns-the-mutation, like RemoveLayerCmd — this
@@ -884,18 +982,13 @@ public:
             // shift with the OLD activeDeckIndex would silently target the
             // wrong deck.
             //
-            // UNCONDITIONAL, unlike handleDeckSwitch's "same index = no-op"
-            // guard: insert() ALWAYS displaces whichever deck occupies
-            // activeDeckIndex right now — that deck object can never survive
-            // as "the active deck" after this undo, because the deck about to
-            // become active (`removed_`) is being freshly inserted, not
-            // already live. This matters even when the index number does NOT
-            // change: a non-last-index removal leaves activeDeckIndex
-            // un-clamped (still in range), but the deck occupying that index
-            // is the SURVIVOR that shifted down to fill the gap — undo's
-            // insert() shifts it back UP and off the active slot, so an index
-            // equality check here would silently skip cancelling ITS trigger.
-            if (comp->activeDeckIndex >= 0 && comp->activeDeckIndex < static_cast<int>(comp->decks.size()))
+            // Gated: when the removed deck was the active one, insert()
+            // displaces the survivor that slid into the active slot (even at an
+            // unchanged index), so its trigger is cancelled; when a background
+            // deck is restored the active OBJECT is untouched (its index moves
+            // back up) and nothing is cancelled (plan6 §5 A1-b).
+            if (deckIndex_ == priorActiveIndex_
+                && comp->activeDeckIndex >= 0 && comp->activeDeckIndex < static_cast<int>(comp->decks.size()))
                 cancelPendingTriggers(comp->decks[static_cast<size_t>(comp->activeDeckIndex)]);
 
             const size_t at = std::min(static_cast<size_t>(deckIndex_),
@@ -991,4 +1084,37 @@ private:
     int before_, after_;
     std::string description_;
     std::vector<PendingTriggerSnapshot> cancelledOnLeave_;
+};
+
+// RenameDeckCmd: the deck tab menu's Rename Deck... (plan6 §5 A1-c).
+// Command-owns-the-mutation: execute() writes `after`, undo() writes `before`,
+// re-resolved by deckIndex on every apply; a stale index is a safe no-op. No
+// fence and no hooks: a name write never reallocates `decks`, and the GL thread
+// never reads deck.name.
+class RenameDeckCmd : public Command
+{
+public:
+    RenameDeckCmd(CompositionResolver compResolver, int deckIndex,
+                  std::string before, std::string after, std::string description)
+        : compResolver_(std::move(compResolver)), deckIndex_(deckIndex),
+          before_(std::move(before)), after_(std::move(after)),
+          description_(std::move(description)) {}
+
+    void execute() override { apply(after_); }
+    void undo() override    { apply(before_); }
+    std::string description() const override { return description_; }
+
+private:
+    void apply(const std::string& name)
+    {
+        Composition* comp = compResolver_ ? compResolver_() : nullptr;
+        if (comp == nullptr || deckIndex_ < 0 || deckIndex_ >= static_cast<int>(comp->decks.size()))
+            return;                             // stale coordinate → safe no-op
+        comp->decks[static_cast<size_t>(deckIndex_)].name = name;
+    }
+
+    CompositionResolver compResolver_;
+    int deckIndex_;
+    std::string before_, after_;
+    std::string description_;
 };

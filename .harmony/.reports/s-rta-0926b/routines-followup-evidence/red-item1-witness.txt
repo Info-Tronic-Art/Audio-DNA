@@ -1,0 +1,23 @@
+(lock acquired: routines-followup 56322 1790482768 at 00:28:48)
+(app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/apps/red-item1/Audio-DNA.app)
+(take: /Users/boriskarpman/Documents/Audio-DNA/Takes/probe-routines-20260927-002628.adna-take)
+PASS  load_composition accepted the fixture
+PASS  routine Witness saved on pad 1
+(clips before: [(0, 0, True), (1, 0, True)])
+PASS  both layers have an active clip that is playing
+PASS  recording armed ({'ok': True})
+PASS  button: the routine is running before the Stop
+(button: clips before [(0, 0, True), (1, 0, True)] after [(0, 0, False), (1, 0, False)]; recorded points 0 -> 2; state idle)
+PASS  button: Stop stops the routine (state idle)
+FAIL  button: no clip is stopped -- every active clip still playing on the same column ([(0, 0, False), (1, 0, False)])
+FAIL  button: nothing captured into the recording (points 0 -> 2)
+PASS  binding: the routine is running before the Stop
+(binding: clips before [(0, 0, True), (1, 0, False)] after [(0, 0, True), (1, 0, False)]; recorded points 2 -> 3; state idle)
+PASS  binding: Stop stops the routine (state idle)
+PASS  binding: no clip changes ([(0, 0, True), (1, 0, False)])
+FAIL  binding: no audio-transport stop captured into the recording (points 2 -> 3)
+
+9 PASS / 3 FAIL
+(app terminated)
+(witness take copied to /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/evidence/red-item1 and its folder removed)
+(lock released at 00:29:02)

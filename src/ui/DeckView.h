@@ -5,6 +5,7 @@
 #include "ui/ClipCell.h"
 #include "ui/LayerStrip.h"
 #include "ui/LookAndFeel.h"
+#include "ui/DeckTabRow.h"
 #include <vector>
 #include <memory>
 
@@ -51,6 +52,19 @@ public:
     std::function<void(int layerIndex, bool bypassed)> onLayerBypass; // Undo v1 #14
     std::function<void(int layerIndex, bool solo)> onLayerSolo;    // Undo v1 #15
     std::function<void(int layerIndex, const juce::String& effectDesc)> onLayerEffectDropped; // FX-drop-target on the channel strip (2026-07-30)
+    // plan6 §6.2: a deck tab row action chosen from a tab's right-click menu (deckIndex = that tab) or from the "+"
+    // menu (deckIndex -1: NewDeck / LoadDeck). MainComponent runs the handler (message thread).
+    std::function<void(int deckIndex, DeckTabRow::Action)> onDeckAction;
+    // plan6 §6.2: the "Undo Remove" button in the tab row was clicked (MainComponent undoes iff the top of the
+    // undo stack is still that removal).
+    std::function<void()> onUndoHint;
+
+    // plan6 §6.2: the deck tab row's menus (right-click a tab / click the "+"), and the 10-s "Undo Remove" button
+    // flush right in the row. Every structural change (rebuildGrid) and every later undoable command hides it.
+    void showDeckTabMenu(int deckIndex);
+    void showPlusMenu();
+    void showUndoHint(const juce::String& text);
+    void hideUndoHint();
 
     // Get active column (-1 if none)
     int getActiveColumn() const { return activeColumn_; }
@@ -76,7 +90,26 @@ private:
     std::vector<std::unique_ptr<LayerStrip>> layerStrips_;
     std::vector<std::vector<std::unique_ptr<ClipCell>>> clipCells_; // [layer][column]
     std::vector<std::unique_ptr<juce::TextButton>> columnTriggers_;
-    std::vector<std::unique_ptr<juce::TextButton>> deckTabs_;
+    // A deck tab. JUCE's Button fires onClick for ANY mouse button (Button::mouseDown/mouseUp check no button), so
+    // a right-click (or Ctrl+click -- isPopupMenu()) is intercepted here: it opens the tab's menu and never reaches
+    // the base class, so it never switches decks (plan6 §6.2).
+    struct DeckTabButton : juce::TextButton
+    {
+        using juce::TextButton::TextButton;
+        std::function<void()> onContextMenu;
+        void mouseDown(const juce::MouseEvent& e) override
+        {
+            if (e.mods.isPopupMenu()) { if (onContextMenu) onContextMenu(); return; }
+            juce::TextButton::mouseDown(e);
+        }
+        void mouseDrag(const juce::MouseEvent& e) override { if (! e.mods.isPopupMenu()) juce::TextButton::mouseDrag(e); }
+        void mouseUp(const juce::MouseEvent& e) override   { if (! e.mods.isPopupMenu()) juce::TextButton::mouseUp(e); }
+    };
+    std::vector<std::unique_ptr<DeckTabButton>> deckTabs_;
+    std::unique_ptr<juce::TextButton> plusTab_;          // "+" -- New Deck / Load Deck... (rebuilt with the tabs)
+    std::unique_ptr<juce::TextButton> undoHintBtn_;      // "Undo Remove \"<name>\"" -- created once, hidden (Pitfall 34)
+    int undoHintGeneration_ = 0;                         // bumps on every show/hide: a stale 10-s timer does nothing
+    static constexpr int kUndoHintMs = 10000;
 
     // Scroll viewport for the grid
     juce::Viewport gridViewport_;
@@ -99,6 +132,7 @@ private:
     void layoutGrid();
     void setupColumnTriggers();
     void setupDeckTabs();
+    static juce::String tabTooltipFor(const Deck& deck);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DeckView)
 };

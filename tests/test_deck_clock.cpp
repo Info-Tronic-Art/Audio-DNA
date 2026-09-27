@@ -194,7 +194,7 @@ TEST_CASE("(e) LayerClock::advanceCrossfade: step = dt / duration, 0.5 s default
     }
 }
 
-TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (Pitfall 37)", "[deck_clock][autopilot]")
+TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (Pitfall 38)", "[deck_clock][autopilot]")
 {
     // Two decks, layer 0 of each on autopilot Beat4 / PlayNext over three columns (test_autopilot.cpp's setup).
     auto makeDeck = []() {

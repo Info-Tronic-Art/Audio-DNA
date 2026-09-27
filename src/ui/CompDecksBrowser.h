@@ -1,12 +1,12 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "model/Composition.h"
 #include "ui/LookAndFeel.h"
 #include <vector>
 
-// CompDecksBrowser: shows saved compositions and decks.
-// Two sections: Compositions (click to load full state) and Decks (click to switch).
-// Supports save/rename/delete operations.
+// CompDecksBrowser: the library -- saved compositions and decks.
+// Two sections: Compositions (click = open, replacing everything after a confirm) and Decks (click = append as a
+// new deck tab, undoable); right-click a row = Open / Show in Finder / Delete... (confirmed, moved to the Trash).
+// Save Composition lives here; deck save/load live in the deck tab row (DeckView) -- plan6 §8.
 class CompDecksBrowser : public juce::Component
 {
 public:
@@ -16,27 +16,20 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    // Set the current composition (for saving)
-    void setComposition(Composition* comp) { composition_ = comp; }
-
     // Refresh the file lists
     void refresh();
 
-    // Callbacks
-    // FUTURE-FENCE REQUIREMENT (family-fence fix, 2026-07-28 — see
-    // .harmony/notebook.md LAW entry): onCompositionLoad / onDeckLoad are
-    // UNWIRED no-ops at HEAD (verified — no assignment exists anywhere in
-    // MainComponent.cpp or elsewhere). Whoever wires them MUST apply the
-    // loaded model under undoService_.withDeckDetached(...) and call
-    // undoManager_.clear() in the same breath (the kCompNew precedent,
-    // MainComponent.cpp's kCompNew handler) — otherwise the proven UAF class
-    // returns (the model swap reallocates composition_.decks under an
-    // unlocked GL read, exactly like kCompNew's initDefault()) — the
-    // ClipCommands.h GL-FENCE EXEMPTION this used to also threaten was
-    // closed in round 3 (SetClipCmd/SwapClipsCmd are now unconditionally
-    // fenced), so this composition-swap hazard is the sole remaining reason,
-    // not a joint one. onCompositionSave only reads the model (serializes
-    // it) and does not need this treatment.
+    // plan6 §8: right-click a row -> "Open" (compositions) / "Open as New Deck" (decks), "Show in Finder",
+    // "Delete..." -- the menu at the click. confirmDelete asks, then moves the file to the Trash (never a
+    // silent delete). Both re-resolve `row` in their callbacks (the list can refresh while they are open).
+    void showRowMenu(bool decksSection, int row, juce::Point<int> screenPos);
+    void confirmDelete(bool decksSection, int row);
+
+    // Callbacks -- wired in MainComponent's constructor (the browser wiring next to setComposition):
+    //   onCompositionLoad -> confirmReplaceShow -> loadComposition (the fence + undo-clear rule this comment used
+    //                        to demand is satisfied there: loadComposition -> swapCompositionModel)
+    //   onDeckLoad        -> appendDeckFromFile (one undoable InsertDeckCmd, fenced)
+    //   onCompositionSave -> saveComposition (reads the model only)
     std::function<void(const juce::File&)> onCompositionLoad;
     std::function<void(const juce::File&)> onDeckLoad;
     std::function<void()> onCompositionSave;
@@ -48,8 +41,6 @@ public:
     static juce::File getDecksDir();
 
 private:
-    Composition* composition_ = nullptr;
-
     // Compositions section
     struct SavedEntry
     {
@@ -66,7 +57,6 @@ private:
 
     // Buttons
     juce::TextButton saveCompBtn_{"Save Composition"};
-    juce::TextButton saveDeckBtn_{"Save Deck"};
 
     // Scrollable content
     juce::Viewport viewport_;

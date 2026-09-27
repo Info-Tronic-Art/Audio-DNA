@@ -22,6 +22,8 @@
 #include "analysis/FeatureSnapshot.h"
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -112,7 +114,10 @@ namespace
     {
         std::vector<Ev> log;
         std::vector<std::string> notices;
+        std::map<ControlPath, float> values;   // s-rta-0926b plan3 C: what each control shows now (`read`)
         bool refuseTouch = false;
+        bool refuseSet = false;
+        int reads = 0;                         // s-rta-0926b routines-followup: `read` calls (a Jump routine makes none)
 
         void wire(RoutineEngine& eng)
         {
@@ -126,16 +131,43 @@ namespace
             };
             eng.dispatch.set = [this](const ControlPath& k, float v) {
                 log.push_back({ Ev::Set, k, v });
+                if (refuseSet)
+                    return false;
+                values[k] = v;   // an accepted write moves the control
                 return true;
             };
             eng.dispatch.release = [this](const ControlPath& k) { log.push_back({ Ev::Release, k }); };
             eng.dispatch.notify = [this](const std::string& s) { notices.push_back(s); };
+            eng.dispatch.read = [this](const ControlPath& k) -> std::optional<float> {
+                ++reads;
+                const auto it = values.find(k);
+                if (it == values.end())
+                    return std::nullopt;
+                return it->second;
+            };
         }
 
         int count(Ev::Type t, const ControlPath& key) const
         {
             return static_cast<int>(std::count_if(log.begin(), log.end(),
                 [&](const Ev& e) { return e.type == t && e.key == key; }));
+        }
+        // The value of the last Set on `key` (NaN when there is none).
+        float lastSet(const ControlPath& key) const
+        {
+            for (auto it = log.rbegin(); it != log.rend(); ++it)
+                if (it->type == Ev::Set && it->key == key)
+                    return it->v;
+            return std::nanf("");
+        }
+        // Every event on `key` from log index `from` on, in order.
+        std::vector<Ev> on(const ControlPath& key, size_t from = 0) const
+        {
+            std::vector<Ev> out;
+            for (size_t i = from; i < log.size(); ++i)
+                if (log[i].key == key)
+                    out.push_back(log[i]);
+            return out;
         }
         int firedLanePoints(const ControlPath& key, int v) const   // recorded (non-restore) fires
         {
@@ -178,6 +210,7 @@ namespace
             s.bpm = 120.0f;
             s.trackerState = 2;
             s.beatPhase = static_cast<float>(beat - std::floor(beat));
+            s.beatInBar = static_cast<uint8_t>(static_cast<int>(std::floor(beat)) % 4);   // bar edges at multiples of 4
             const auto bars = static_cast<int>(std::floor(beat / 4.0));
             s.totalBarCount = totalBase + static_cast<uint32_t>(bars);
             s.barCount = static_cast<uint16_t>(barBase + bars);
@@ -199,35 +232,77 @@ namespace
         std::string fire(int slot) { return eng.fire(comp, slot, forced, beatAvailable); }
         RoutineEngine::Status::Slot slot(int i) const { return eng.status().slots[i]; }
     };
+
+    // Test 7's routine (s-rta-0926b plan3 C.5): a continuous restore of layer 1's opacity to 0.3 (no lane on
+    // it), a discrete restore of layer 0's clip, a point at 1.0 and a gesture on layer 0's opacity over [2, 3].
+    // 8 beats, quantize Bar, once.
+    Routine test7Routine(Clip::BeatSnapMode quantize = Clip::BeatSnapMode::Bar)
+    {
+        const ControlPath clipKey = layerKey(0, "activeClip");
+        const ControlPath op0 = opacityKey(0);
+        const ControlPath op1 = opacityKey(1);
+        Routine r = makeRoutine("a", 8.0, quantize, false);
+        Routine::PreambleEntry restoreClip; restoreClip.key = clipKey; restoreClip.v = 2;
+        Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.3f;
+        r.preamble = { restoreClip, restoreOp };
+        r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 1) });
+        r.lanes[op0] = continuousLane(op0, { gesture(2.0, 0.2f, 3.0, 0.8f) });
+        return r;
+    }
+
+    void checkEvent(const Ev& e, Ev::Type type, const ControlPath& key)
+    {
+        CHECK(e.type == type);
+        CHECK(e.key == key);
+    }
 }
 
 // === 7: pending until the next bar, then restore (discrete before continuous), then the lanes ===
+// s-rta-0926b plan3 C G1: the continuous restore GLIDES over the last beat before the bar and lands ON it,
+// after the discrete restore fires on the bar.
 
-TEST_CASE("RoutineEngine: waits for the next bar, restores, then plays its lanes on its own beat grid", "[routine][engine]")
+TEST_CASE("RoutineEngine: waits for the next bar, restores, then plays its lanes on its own beat grid", "[routine][engine][glide]")
 {
     Rig rig;
     const ControlPath clipKey = layerKey(0, "activeClip");
     const ControlPath op0 = opacityKey(0);
     const ControlPath op1 = opacityKey(1);
 
-    Routine r = makeRoutine("a", 8.0, Clip::BeatSnapMode::Bar, false);
-    Routine::PreambleEntry restoreClip; restoreClip.key = clipKey; restoreClip.v = 2;
-    Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.3f;
-    r.preamble = { restoreClip, restoreOp };
-    r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 1) });
-    r.lanes[op0] = continuousLane(op0, { gesture(2.0, 0.2f, 3.0, 0.8f) });
-    addToBank(rig.comp, r, 0);
+    addToBank(rig.comp, test7Routine(), 0);
+    rig.fd.values[op1] = 0.9f;   // what layer 1's opacity shows when the routine is fired
 
     rig.tick();                  // beat 0, totalBarCount 10
     rig.runTo(1.0);
     CHECK(rig.slot(0).state == "idle");
-    CHECK(rig.fire(0).empty());
+    CHECK(rig.fire(0).empty());  // Bar: the boundary is beat 4.0, the glide window [3.0, 4.0]
     CHECK(rig.slot(0).state == "pending");
 
-    rig.runTo(3.9375);           // still bar 10
-    CHECK(rig.slot(0).state == "pending");
+    rig.runTo(2.9375);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 0);
     CHECK(rig.fd.log.empty());
 
+    const size_t at3 = rig.fd.log.size();
+    rig.runTo(3.0);              // the glide begins: touch, then a set from where the knob is (0.9)
+    {
+        const auto ev = rig.fd.on(op1, at3);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Touch, op1);
+        checkEvent(ev[1], Ev::Set, op1);
+        CHECK(ev[1].v == Approx(0.9f));
+    }
+    rig.runTo(3.5);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+    rig.runTo(3.9375);           // still bar 10
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+    CHECK(rig.fd.count(Ev::Release, op1) == 0);
+    {
+        const auto s = rig.slot(0);
+        CHECK(s.state == "pending");
+        CHECK(s.glides == 1);
+        CHECK(s.preambleFired == 1);
+    }
+
+    const size_t at4 = rig.fd.log.size();
     rig.runTo(4.0);              // totalBarCount 10 -> 11: the start boundary
     {
         const auto s = rig.slot(0);
@@ -236,18 +311,19 @@ TEST_CASE("RoutineEngine: waits for the next bar, restores, then plays its lanes
         CHECK(s.preambleCount == 2);
         CHECK(s.preambleFired == 2);
         CHECK(s.preambleRefused == 0);
+        CHECK(s.glides == 0);
     }
-    // Restore order: every discrete entry before every continuous one (touch -> set -> release).
-    REQUIRE(rig.fd.log.size() >= 4);
-    CHECK(rig.fd.log[0].type == Ev::Fire);
-    CHECK(rig.fd.log[0].key == clipKey);
-    CHECK(rig.fd.log[0].origin == Origin::Preamble);
-    CHECK(static_cast<int>(rig.fd.log[0].v) == 2);
-    CHECK(rig.fd.log[1].type == Ev::Touch);
-    CHECK(rig.fd.log[1].key == op1);
-    CHECK(rig.fd.log[2].type == Ev::Set);
-    CHECK(rig.fd.log[2].v == Approx(0.3f));
-    CHECK(rig.fd.log[3].type == Ev::Release);
+    // This tick: the discrete restore fires on the bar, then the glide lands ON it and lets go.
+    REQUIRE(rig.fd.log.size() == at4 + 3);
+    CHECK(rig.fd.log[at4].type == Ev::Fire);
+    CHECK(rig.fd.log[at4].key == clipKey);
+    CHECK(rig.fd.log[at4].origin == Origin::Preamble);
+    CHECK(static_cast<int>(rig.fd.log[at4].v) == 2);
+    checkEvent(rig.fd.log[at4 + 1], Ev::Set, op1);
+    CHECK(rig.fd.log[at4 + 1].v == Approx(0.3f));
+    checkEvent(rig.fd.log[at4 + 2], Ev::Release, op1);
+    REQUIRE_FALSE(rig.fd.notices.empty());
+    CHECK(rig.fd.notices.back().rfind("Routine Routine a started.", 0) == 0);   // no growing bar number
 
     // The point at routine beat 1.0 fires exactly once, on the tick where clockBeat - startBeat >= 1.
     rig.runTo(4.9375);
@@ -351,23 +427,43 @@ TEST_CASE("RoutineEngine: re-fire restarts on the next bar; global Quantize over
 
     SECTION("re-fire while running restarts at the next bar edge and restores again")
     {
+        // s-rta-0926b plan3 C G12: the restart's restore glides over the last beat before ITS bar, from
+        // where the knob is when the glide begins.
         Rig rig;
         addToBank(rig.comp, r, 0);
         rig.tick();
+        rig.runTo(1.0);
         CHECK(rig.fire(0).empty());
         rig.runTo(4.0);
         CHECK(rig.slot(0).state == "running");
-        CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);          // the start's glide, [3.0, 4.0]
         rig.runTo(5.0);
         CHECK(rig.fire(0).empty());                        // restart requested
         CHECK(rig.fire(0).empty());                        // asking twice is still one restart
-        rig.runTo(7.9375);
+        rig.runTo(5.5);
+        rig.fd.values[op1] = 0.9f;                         // a hand moved the knob while nobody held it
+        rig.runTo(6.9375);
         CHECK(rig.slot(0).restarts == 0);
         CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+        rig.runTo(7.0);                                    // the restart's glide begins: [7.0, 8.0]
+        CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+        rig.runTo(7.5);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.7f));        // 0.9 -> 0.5, half way
+        rig.runTo(7.9375);
+        CHECK(rig.slot(0).restarts == 0);
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);        // only the start's glide has let go
+        const size_t at8 = rig.fd.log.size();
         rig.runTo(8.0);                                    // the next bar edge
         CHECK(rig.slot(0).restarts == 1);
         CHECK(rig.slot(0).startedTotalBar == 12);
         CHECK(rig.slot(0).position == Approx(0.0));
+        {
+            const auto ev = rig.fd.on(op1, at8);
+            REQUIRE(ev.size() == 2);
+            checkEvent(ev[0], Ev::Set, op1);
+            CHECK(ev[0].v == Approx(0.5f));
+            checkEvent(ev[1], Ev::Release, op1);
+        }
         CHECK(rig.fd.count(Ev::Touch, op1) == 2);
         CHECK(rig.eng.status().fires == 1);                // a restart is not a new fire
     }
@@ -537,7 +633,28 @@ TEST_CASE("RoutineEngine: two routines on one control -- the gesture that began 
         CHECK(rig.fire(0).empty());
         rig.runTo(5.0);                                   // A running since bar 11
         CHECK(rig.fire(1).empty());
-        rig.runTo(8.0);                                   // B starts on bar 12: its restore touches the key
+        // s-rta-0926b plan3 C: B's restore now begins one beat BEFORE its bar -- its glide's touch at 7.0 is
+        // the later begin; from there every write on the key is B's, rising from A's 0.2 to 0.6.
+        rig.runTo(6.9375);
+        const size_t atB = rig.fd.log.size();
+        rig.runTo(7.0);
+        const auto touched = std::find_if(rig.fd.log.begin() + static_cast<std::ptrdiff_t>(atB), rig.fd.log.end(),
+                                          [&](const Ev& e) { return e.type == Ev::Touch && e.key == key; });
+        REQUIRE(touched != rig.fd.log.end());
+        const size_t fromB = static_cast<size_t>(touched - rig.fd.log.begin());
+        rig.runTo(7.0625);
+        CHECK(rig.slot(0).yielded == 1);                  // A's next write was refused
+        rig.runTo(8.0);                                   // B starts on bar 12: its glide lands and lets go
+        {
+            std::vector<float> bSets;
+            for (size_t i = fromB; i < rig.fd.log.size(); ++i)
+                if (rig.fd.log[i].type == Ev::Set && rig.fd.log[i].key == key)
+                    bSets.push_back(rig.fd.log[i].v);
+            REQUIRE(bSets.size() == 17);                  // 7.0 .. 8.0 in 1/16 steps: B's glide only
+            CHECK(bSets.front() == Approx(0.2f));
+            CHECK(bSets.back() == Approx(0.6f));
+            CHECK(std::is_sorted(bSets.begin(), bSets.end()));
+        }
         const size_t afterRestore = rig.fd.log.size();
         rig.runTo(12.0);
         std::vector<float> sets;
@@ -824,4 +941,757 @@ TEST_CASE("Routine: a move keeps its place in the bar when Record fell late in a
     CHECK(rig.fd.firedLanePoints(playKey, 1) == 0);
     rig.runTo(5.0625);
     CHECK(rig.fd.firedLanePoints(playKey, 1) == 1);
+}
+
+// === s-rta-0926b plan3 C: the routine's restore GLIDES (start, loop return, restart) ===
+//
+// Rig: 1/16-beat ticks, bar edges at multiples of 4. "Fire at X" = runTo(X) then fire(), so the next tick
+// is X + 1/16. The continuous restore of op1 travels from what the control shows (FakeDispatch::values,
+// the `read` seam) to the recorded start value on a straight line; the discrete half fires on the bar.
+
+TEST_CASE("RoutineEngine glide G2: fired inside the last beat, the restore glides from the fire to the bar", "[routine][engine][glide]")
+{
+    Rig rig;
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op1 = opacityKey(1);
+    addToBank(rig.comp, test7Routine(), 0);
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    rig.runTo(3.5);
+    CHECK(rig.fire(0).empty());                       // window [3.5, 4.0]
+
+    const size_t mark = rig.fd.log.size();
+    rig.runTo(3.5625);
+    {
+        const auto ev = rig.fd.on(op1, mark);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Touch, op1);
+        checkEvent(ev[1], Ev::Set, op1);
+        CHECK(ev[1].v == Approx(0.825f));             // 0.9 + 0.125 * (0.3 - 0.9)
+    }
+    rig.runTo(3.75);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+    rig.runTo(3.9375);
+    const size_t at4 = rig.fd.log.size();
+    rig.runTo(4.0);
+    REQUIRE(rig.fd.log.size() == at4 + 3);
+    checkEvent(rig.fd.log[at4], Ev::Fire, clipKey);
+    checkEvent(rig.fd.log[at4 + 1], Ev::Set, op1);
+    CHECK(rig.fd.log[at4 + 1].v == Approx(0.3f));
+    checkEvent(rig.fd.log[at4 + 2], Ev::Release, op1);
+    CHECK(rig.slot(0).state == "running");
+}
+
+TEST_CASE("RoutineEngine glide G3: under a quarter beat to go, or Quantize Off, the glide spills a quarter beat past the start", "[routine][engine][glide]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op1 = opacityKey(1);
+
+    SECTION("fired 1/16 beat before the bar: the window is [3.9375, 4.1875]")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(3.9375);
+        CHECK(rig.fire(0).empty());
+        const size_t mark = rig.fd.log.size();
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        REQUIRE(rig.fd.log.size() == mark + 3);
+        checkEvent(rig.fd.log[mark], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[mark + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[mark + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[mark + 2].v == Approx(0.75f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 0);
+        CHECK(rig.slot(0).glides == 1);
+        rig.runTo(4.0625);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+        rig.runTo(4.125);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.45f));
+        CHECK(rig.fd.count(Ev::Release, op1) == 0);
+        const size_t mark2 = rig.fd.log.size();
+        rig.runTo(4.1875);
+        const auto ev = rig.fd.on(op1, mark2);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Set, op1);
+        CHECK(ev[0].v == Approx(0.3f));
+        checkEvent(ev[1], Ev::Release, op1);
+        CHECK(rig.slot(0).glides == 0);
+    }
+
+    SECTION("Quantize Off: the glide begins inside the fire call and lands a quarter beat later")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(Clip::BeatSnapMode::Off), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        const size_t mark = rig.fd.log.size();
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).state == "running");
+        REQUIRE(rig.fd.log.size() == mark + 3);
+        checkEvent(rig.fd.log[mark], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[mark + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[mark + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[mark + 2].v == Approx(0.9f));
+        rig.runTo(1.1875);
+        CHECK(rig.fd.count(Ev::Release, op1) == 0);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.45f));
+        const size_t mark2 = rig.fd.log.size();
+        rig.runTo(1.25);
+        const auto ev = rig.fd.on(op1, mark2);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Set, op1);
+        CHECK(ev[0].v == Approx(0.3f));
+        checkEvent(ev[1], Ev::Release, op1);
+    }
+}
+
+TEST_CASE("RoutineEngine glide G4: the recording's own move on the knob cancels the glide -- no release, no second hand", "[routine][engine][glide]")
+{
+    Rig rig;
+    const ControlPath op1 = opacityKey(1);
+    Routine r = test7Routine();
+    r.lanes[op1] = continuousLane(op1, { gesture(0.125, 0.2f, 1.0, 0.2f) });
+    addToBank(rig.comp, r, 0);
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    rig.runTo(3.9375);
+    CHECK(rig.fire(0).empty());                       // spill [3.9375, 4.1875]
+    rig.runTo(4.0625);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+
+    const size_t mark = rig.fd.log.size();
+    rig.runTo(4.125);                                 // routine beat 0.125: the recording takes the knob
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+    {
+        const auto ev = rig.fd.on(op1, mark);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Touch, op1);
+        checkEvent(ev[1], Ev::Set, op1);
+        CHECK(ev[1].v == Approx(0.2f));               // the gesture's value -- the glide wrote nothing
+    }
+    rig.runTo(4.9375);
+    for (const Ev& e : rig.fd.on(op1, mark))
+        if (e.type == Ev::Set)
+            CHECK(e.v == Approx(0.2f));
+    CHECK(rig.fd.count(Ev::Release, op1) == 0);       // the glide never closed the recording's grip
+    rig.runTo(5.0);                                   // the gesture's end (routine beat 1.0)
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    CHECK(rig.slot(0).preambleRefused == 0);
+    CHECK(rig.slot(0).glides == 0);
+    rig.runTo(6.0);
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+}
+
+TEST_CASE("RoutineEngine glide G5: a loop eases back to its start look over the last beat and lands on the loop point", "[routine][engine][glide]")
+{
+    Rig rig;
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("L", 4.0, Clip::BeatSnapMode::Bar, true);
+    Routine::PreambleEntry p1; p1.key = op1; p1.continuous = true; p1.norm = 0.4f;
+    Routine::PreambleEntry p0; p0.key = op0; p0.continuous = true; p0.norm = 0.1f;
+    r.preamble = { p1, p0 };
+    r.lanes[op0] = continuousLane(op0, { gesture(0.5, 0.1f, 4.0, 0.9f) });   // held to the very end
+    addToBank(rig.comp, r, 0);
+    rig.fd.values[op1] = 0.9f;
+    rig.fd.values[op0] = 0.0f;
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.0);
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.slot(0).cycle == 1);
+    rig.runTo(6.0);
+    rig.fd.values[op1] = 0.9f;                        // a hand moved op1 while nobody held it
+
+    rig.runTo(6.9375);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+    const size_t at7 = rig.fd.log.size();
+    rig.runTo(7.0);                                   // the cycle's last beat: op1's return glide [7.0, 8.0]
+    {
+        const auto ev = rig.fd.on(op1, at7);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Touch, op1);
+        checkEvent(ev[1], Ev::Set, op1);
+        CHECK(ev[1].v == Approx(0.9f));
+    }
+    rig.runTo(7.5);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.65f));
+    rig.runTo(7.9375);
+    const float gestureLast = rig.fd.lastSet(op0);    // where the recording's own hand left op0
+    CHECK(rig.fd.count(Ev::Touch, op0) == 2);         // the start's glide + cycle 1's gesture
+    const size_t at8 = rig.fd.log.size();
+    rig.runTo(8.0);                                   // the loop point
+    {
+        const auto ev1 = rig.fd.on(op1, at8);         // op1 lands ON the loop point
+        REQUIRE(ev1.size() == 2);
+        checkEvent(ev1[0], Ev::Set, op1);
+        CHECK(ev1[0].v == Approx(0.4f));
+        checkEvent(ev1[1], Ev::Release, op1);
+        const auto ev0 = rig.fd.on(op0, at8);         // op0 was held to the end: a quarter-beat spill after it
+        REQUIRE(ev0.size() == 3);
+        checkEvent(ev0[0], Ev::Release, op0);         // the gesture's end first
+        checkEvent(ev0[1], Ev::Touch, op0);
+        checkEvent(ev0[2], Ev::Set, op0);
+        CHECK(ev0[2].v == Approx(gestureLast));
+        const auto s = rig.slot(0);
+        CHECK(s.cycle == 2);
+        CHECK(s.preambleFired == 4);
+        CHECK(s.glides == 1);
+    }
+    rig.runTo(8.1875);
+    const size_t at825 = rig.fd.log.size();
+    rig.runTo(8.25);
+    {
+        const auto ev = rig.fd.on(op0, at825);
+        REQUIRE(ev.size() == 2);
+        checkEvent(ev[0], Ev::Set, op0);
+        CHECK(ev[0].v == Approx(0.1f));
+        checkEvent(ev[1], Ev::Release, op0);
+        CHECK(rig.slot(0).glides == 0);
+    }
+    rig.runTo(8.4375);
+    CHECK(rig.fd.count(Ev::Touch, op0) == 3);
+    rig.runTo(8.5);                                   // cycle 2's gesture takes op0
+    CHECK(rig.fd.count(Ev::Touch, op0) == 4);
+}
+
+TEST_CASE("RoutineEngine glide G6: a routine that takes the knob later keeps it -- the gliding one yields and never releases", "[routine][engine][glide][stacking]")
+{
+    Rig rig;
+    const ControlPath op1 = opacityKey(1);
+    Routine a = makeRoutine("A", 8.0, Clip::BeatSnapMode::Bar, false);
+    Routine::PreambleEntry restore; restore.key = op1; restore.continuous = true; restore.norm = 0.3f;
+    a.preamble = { restore };
+    Routine b = makeRoutine("B", 8.0, Clip::BeatSnapMode::Off, false);
+    b.lanes[op1] = continuousLane(op1, { gesture(0.0, 0.8f, 2.0, 0.8f) });
+    addToBank(rig.comp, a, 0);
+    addToBank(rig.comp, b, 1);
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());                       // A's glide [3.0, 4.0]
+    rig.runTo(3.25);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+    const size_t mark = rig.fd.log.size();
+    CHECK(rig.fire(1).empty());                       // B starts at once and takes op1
+    CHECK(rig.slot(1).state == "running");
+    rig.runTo(3.3125);
+    CHECK(rig.slot(0).yielded == 1);
+    CHECK(rig.slot(0).preambleRefused == 0);
+    CHECK(rig.slot(0).glides == 0);
+    rig.runTo(5.1875);
+    CHECK(rig.fd.count(Ev::Release, op1) == 0);
+    rig.runTo(5.25);                                  // B's gesture ends (routine beat 2.0)
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    rig.runTo(12.0);                                  // A started at 4.0 and ended at 12.0
+    for (const Ev& e : rig.fd.on(op1, mark))
+        if (e.type == Ev::Set)
+            CHECK(e.v == Approx(0.8f));
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);       // A never released B's knob
+    CHECK(rig.slot(0).state == "idle");
+}
+
+TEST_CASE("RoutineEngine glide G7: a human hand refuses the glide's touch, or cuts in mid-glide", "[routine][engine][glide]")
+{
+    const ControlPath op1 = opacityKey(1);
+
+    SECTION("the touch is refused: left alone, counted once, said in the start notice")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.fd.refuseTouch = true;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.fd.count(Ev::Set, op1) == 0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);     // one attempt, not a second one at the start
+        CHECK(rig.slot(0).preambleRefused == 1);
+        CHECK(rig.slot(0).glides == 0);
+        REQUIRE_FALSE(rig.fd.notices.empty());
+        CHECK(rig.fd.notices.back().find("1 control you are holding was left alone") != std::string::npos);
+    }
+
+    SECTION("a set is refused mid-glide: dropped where it is, no release")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(3.5);
+        CHECK(rig.fd.count(Ev::Set, op1) == 9);       // 3.0 .. 3.5, all accepted
+        rig.fd.refuseSet = true;                      // a human grabs the knob
+        const size_t mark = rig.fd.log.size();
+        rig.runTo(3.5625);
+        CHECK(rig.slot(0).glides == 0);
+        CHECK(rig.slot(0).preambleRefused == 1);
+        rig.runTo(4.0);
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.fd.count(Ev::Release, op1) == 0);
+        CHECK(rig.fd.on(op1, mark).size() == 1);      // only the one refused set -- no retry, no release
+        CHECK(rig.slot(0).preambleRefused == 1);
+    }
+}
+
+TEST_CASE("RoutineEngine glide G8: a stop during the wait lets go where the glide left the knob", "[routine][engine][glide]")
+{
+    Rig rig;
+    const ControlPath op1 = opacityKey(1);
+    addToBank(rig.comp, test7Routine(), 0);
+    Routine b = makeRoutine("B", 4.0, Clip::BeatSnapMode::Off, false);
+    b.lanes[op1] = continuousLane(op1, { gesture(0.0, 0.5f, 1.0, 0.5f) });
+    addToBank(rig.comp, b, 1);
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(3.5);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.6f));
+    const size_t mark = rig.fd.log.size();
+    rig.eng.stop(0);
+    {
+        const auto ev = rig.fd.on(op1, mark);
+        REQUIRE(ev.size() == 1);
+        checkEvent(ev[0], Ev::Release, op1);
+    }
+    CHECK(rig.slot(0).state == "idle");
+    CHECK(rig.slot(0).glides == 0);
+    CHECK(rig.fd.values[op1] == Approx(0.6f));        // the knob stays where the glide left it
+    rig.runTo(8.0);
+    CHECK(rig.fd.on(op1, mark).size() == 1);          // nothing more from the stopped routine
+
+    // The stopped routine owns nothing any more: a later routine's gesture on op1 writes and lets go freely.
+    CHECK(rig.fire(1).empty());
+    rig.runTo(9.0);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.5f));
+    CHECK(rig.fd.count(Ev::Release, op1) == 2);
+    CHECK(rig.slot(1).yielded == 0);
+}
+
+TEST_CASE("RoutineEngine glide G9: no beat, or no read seam -- the continuous restore lands in one call, as before", "[routine][engine][glide]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op1 = opacityKey(1);
+
+    SECTION("no beat yet: the whole restore inside the fire call")
+    {
+        Rig rig;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        rig.beatAvailable = false;
+        const size_t mark = rig.fd.log.size();
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).state == "running");
+        CHECK(rig.slot(0).glides == 0);
+        REQUIRE(rig.fd.log.size() == mark + 4);
+        checkEvent(rig.fd.log[mark], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[mark + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[mark + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[mark + 2].v == Approx(0.3f));
+        checkEvent(rig.fd.log[mark + 3], Ev::Release, op1);
+    }
+
+    SECTION("no read seam wired: touch, set 0.3 and release on the bar")
+    {
+        Rig rig;
+        rig.eng.dispatch.read = nullptr;
+        addToBank(rig.comp, test7Routine(), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(3.9375);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);
+        const size_t mark = rig.fd.log.size();
+        rig.runTo(4.0);
+        REQUIRE(rig.fd.log.size() == mark + 4);
+        checkEvent(rig.fd.log[mark], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[mark + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[mark + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[mark + 2].v == Approx(0.3f));
+        checkEvent(rig.fd.log[mark + 3], Ev::Release, op1);
+        CHECK(rig.slot(0).preambleFired == 2);
+    }
+}
+
+TEST_CASE("RoutineEngine glide G11: loop switched off inside the return glide -- the glide is let go at the end, never leaked", "[routine][engine][glide]")
+{
+    Rig rig;
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("loop", 4.0, Clip::BeatSnapMode::Bar, true);   // test 8's loop routine
+    Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.4f;
+    r.preamble = { restoreOp };
+    r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 3) });
+    r.lanes[op0] = continuousLane(op0, { gesture(0.5, 0.1f, 3.5, 0.9f) });
+    addToBank(rig.comp, r, 0);
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.0);
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);       // the start's glide landed and let go
+    rig.runTo(7.5);                                   // the return glide has been in flight since 7.0
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+    CHECK(rig.slot(0).glides == 1);
+
+    for (auto& routine : rig.comp.routines)           // the performer switches loop off mid-glide
+        if (routine.uuid == "loop")
+            routine.loop = false;
+    rig.runTo(7.9375);
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    const size_t mark = rig.fd.log.size();
+    rig.runTo(8.0);                                   // the end: once now -- the glide is let go where it is
+    {
+        const auto ev = rig.fd.on(op1, mark);
+        REQUIRE(ev.size() == 1);
+        checkEvent(ev[0], Ev::Release, op1);
+    }
+    CHECK(rig.fd.count(Ev::Release, op1) == 2);
+    CHECK(rig.slot(0).state == "idle");
+    CHECK(rig.slot(0).glides == 0);
+    const size_t logSize = rig.fd.log.size();
+    rig.runTo(12.0);
+    CHECK(rig.fd.log.size() == logSize);
+}
+
+// === s-rta-0926b routines-followup ITEM 2: a per-routine RESTORE STYLE -- Ease (default: the plan3 C glide above)
+// or Jump (Boris: "we should have controls for jump or ease in each"). Jump is exactly the pre-glide restore: the
+// discrete and continuous halves together, in one call, ON the boundary -- at the start, every loop return and a
+// re-fire restart -- and Dispatch::read is never called. ===
+
+TEST_CASE("RoutineEngine restore style J1: Jump restores in one call ON the start boundary -- no glide, no read", "[routine][engine][restorestyle]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op1 = opacityKey(1);
+    auto styled = [](Clip::BeatSnapMode q, Routine::RestoreStyle style) {
+        Routine r = test7Routine(q);
+        r.restoreStyle = style;
+        return r;
+    };
+
+    SECTION("fired more than a beat before the bar: nothing moves until the bar, then touch / set 0.3 / release")
+    {
+        Rig rig;
+        addToBank(rig.comp, styled(Clip::BeatSnapMode::Bar, Routine::RestoreStyle::Jump), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).restoreStyle == "jump");
+        rig.runTo(3.9375);
+        CHECK(rig.slot(0).state == "pending");
+        CHECK(rig.fd.log.empty());                    // Ease touches op1 at 3.0 (G1)
+        CHECK(rig.slot(0).glides == 0);
+        const size_t at4 = rig.fd.log.size();
+        rig.runTo(4.0);                               // the bar
+        CHECK(rig.slot(0).state == "running");
+        REQUIRE(rig.fd.log.size() == at4 + 4);
+        checkEvent(rig.fd.log[at4], Ev::Fire, clipKey);
+        CHECK(rig.fd.log[at4].origin == Origin::Preamble);
+        checkEvent(rig.fd.log[at4 + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[at4 + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[at4 + 2].v == Approx(0.3f)); // the recorded value at once, not a step from 0.9
+        checkEvent(rig.fd.log[at4 + 3], Ev::Release, op1);
+        CHECK(rig.slot(0).preambleFired == 2);
+        CHECK(rig.slot(0).preambleRefused == 0);
+        CHECK(rig.slot(0).glides == 0);
+        CHECK(rig.fd.reads == 0);                     // Dispatch::read is never used
+    }
+
+    SECTION("fired 1/16 beat before the bar: a hard set ON the bar, no quarter-beat spill")
+    {
+        Rig rig;
+        addToBank(rig.comp, styled(Clip::BeatSnapMode::Bar, Routine::RestoreStyle::Jump), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(3.9375);
+        CHECK(rig.fire(0).empty());
+        const size_t at4 = rig.fd.log.size();
+        rig.runTo(4.0);
+        REQUIRE(rig.fd.log.size() == at4 + 4);        // Ease (G3): Fire, Touch, Set 0.75 -- a spill to 4.1875
+        checkEvent(rig.fd.log[at4 + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[at4 + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[at4 + 2].v == Approx(0.3f));
+        checkEvent(rig.fd.log[at4 + 3], Ev::Release, op1);
+        const size_t after = rig.fd.log.size();
+        rig.runTo(4.1875);
+        CHECK(rig.fd.on(op1, after).empty());
+        CHECK(rig.fd.reads == 0);
+    }
+
+    SECTION("Quantize Off: the whole restore inside the fire call")
+    {
+        Rig rig;
+        addToBank(rig.comp, styled(Clip::BeatSnapMode::Off, Routine::RestoreStyle::Jump), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        const size_t mark = rig.fd.log.size();
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).state == "running");
+        REQUIRE(rig.fd.log.size() == mark + 4);       // Ease (G3): Touch + Set 0.9 now, landing at 1.25
+        checkEvent(rig.fd.log[mark], Ev::Fire, clipKey);
+        checkEvent(rig.fd.log[mark + 1], Ev::Touch, op1);
+        checkEvent(rig.fd.log[mark + 2], Ev::Set, op1);
+        CHECK(rig.fd.log[mark + 2].v == Approx(0.3f));
+        checkEvent(rig.fd.log[mark + 3], Ev::Release, op1);
+        const size_t after = rig.fd.log.size();
+        rig.runTo(1.25);
+        CHECK(rig.fd.on(op1, after).empty());
+        CHECK(rig.fd.reads == 0);
+    }
+
+    SECTION("guard: the same routine on Ease (the default) still glides from where the knob is (G1)")
+    {
+        Rig rig;
+        addToBank(rig.comp, styled(Clip::BeatSnapMode::Bar, Routine::RestoreStyle::Ease), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(1.0);
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).restoreStyle == "ease");
+        rig.runTo(2.9375);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);
+        rig.runTo(3.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.9f));
+        CHECK(rig.fd.reads >= 1);
+    }
+}
+
+TEST_CASE("RoutineEngine restore style J2: a Jump loop snaps back ON the loop point -- no return glide, no spill", "[routine][engine][restorestyle]")
+{
+    Rig rig;
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("L", 4.0, Clip::BeatSnapMode::Bar, true);     // G5's loop, on Jump
+    r.restoreStyle = Routine::RestoreStyle::Jump;
+    Routine::PreambleEntry p1; p1.key = op1; p1.continuous = true; p1.norm = 0.4f;
+    Routine::PreambleEntry p0; p0.key = op0; p0.continuous = true; p0.norm = 0.1f;
+    r.preamble = { p1, p0 };
+    r.lanes[op0] = continuousLane(op0, { gesture(0.5, 0.1f, 4.0, 0.9f) });   // held to the very end
+    addToBank(rig.comp, r, 0);
+    rig.fd.values[op1] = 0.9f;
+    rig.fd.values[op0] = 0.0f;
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(3.9375);
+    CHECK(rig.fd.log.empty());
+    rig.runTo(4.0);                                   // the start: both hard-set on the bar
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.4f));
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    rig.runTo(6.0);
+    rig.fd.values[op1] = 0.9f;                        // a hand moved op1 while nobody held it
+
+    rig.runTo(7.9375);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);         // Ease begins op1's return glide at 7.0 (G5)
+    CHECK(rig.slot(0).glides == 0);
+    const float gestureLast = rig.fd.lastSet(op0);    // where the recording's own hand left op0
+    CHECK(gestureLast > 0.5f);
+    const size_t at8 = rig.fd.log.size();
+    rig.runTo(8.0);                                   // the loop point: the restore in one call, as before the glide
+    {
+        const auto ev1 = rig.fd.on(op1, at8);
+        REQUIRE(ev1.size() == 3);
+        checkEvent(ev1[0], Ev::Touch, op1);
+        checkEvent(ev1[1], Ev::Set, op1);
+        CHECK(ev1[1].v == Approx(0.4f));
+        checkEvent(ev1[2], Ev::Release, op1);
+        const auto ev0 = rig.fd.on(op0, at8);         // held to the end: released, then set straight to 0.1
+        REQUIRE(ev0.size() == 4);                     // Ease (G5): Release, Touch, Set(gestureLast) -- a spill
+        checkEvent(ev0[0], Ev::Release, op0);
+        checkEvent(ev0[1], Ev::Touch, op0);
+        checkEvent(ev0[2], Ev::Set, op0);
+        CHECK(ev0[2].v == Approx(0.1f));
+        checkEvent(ev0[3], Ev::Release, op0);
+        const auto s = rig.slot(0);
+        CHECK(s.cycle == 2);
+        CHECK(s.preambleFired == 4);
+        CHECK(s.glides == 0);
+    }
+    const size_t after = rig.fd.log.size();
+    rig.runTo(8.4375);
+    CHECK(rig.fd.on(op0, after).empty());             // nothing until cycle 2's gesture
+    CHECK(rig.fd.on(op1, after).empty());
+    rig.runTo(8.5);
+    CHECK(rig.fd.count(Ev::Touch, op0) == 4);         // start restore, cycle 1 gesture, loop restore, cycle 2 gesture
+    CHECK(rig.fd.reads == 0);
+}
+
+TEST_CASE("RoutineEngine restore style J3: a Jump re-fire restarts with a one-call restore ON its bar", "[routine][engine][restorestyle]")
+{
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("r", 16.0, Clip::BeatSnapMode::Bar, false);   // test 9's routine (G12), on Jump
+    r.restoreStyle = Routine::RestoreStyle::Jump;
+    Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.5f;
+    r.preamble = { restoreOp };
+
+    Rig rig;
+    addToBank(rig.comp, r, 0);
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(3.9375);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 0);
+    rig.runTo(4.0);
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);        // the start: touch / set 0.5 / release on the bar
+    rig.runTo(5.0);
+    CHECK(rig.fire(0).empty());                        // restart requested
+    rig.runTo(5.5);
+    rig.fd.values[op1] = 0.9f;                         // a hand moved the knob while nobody held it
+    rig.runTo(7.9375);
+    CHECK(rig.slot(0).restarts == 0);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);          // Ease begins the restart's glide at 7.0 (G12)
+    CHECK(rig.slot(0).glides == 0);
+    const size_t at8 = rig.fd.log.size();
+    rig.runTo(8.0);                                    // the next bar: restart, restore in one call
+    CHECK(rig.slot(0).restarts == 1);
+    CHECK(rig.slot(0).position == Approx(0.0));
+    {
+        const auto ev = rig.fd.on(op1, at8);
+        REQUIRE(ev.size() == 3);
+        checkEvent(ev[0], Ev::Touch, op1);
+        checkEvent(ev[1], Ev::Set, op1);
+        CHECK(ev[1].v == Approx(0.5f));
+        checkEvent(ev[2], Ev::Release, op1);
+    }
+    CHECK(rig.slot(0).glides == 0);
+    CHECK(rig.fd.reads == 0);
+}
+
+TEST_CASE("RoutineEngine restore style J4: a running loop picks up a style change at its next loop return", "[routine][engine][restorestyle]")
+{
+    Rig rig;
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("loop", 4.0, Clip::BeatSnapMode::Bar, true);   // test 8's loop routine, Ease
+    Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.4f;
+    r.preamble = { restoreOp };
+    r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 3) });
+    r.lanes[op0] = continuousLane(op0, { gesture(0.5, 0.1f, 3.5, 0.9f) });
+    addToBank(rig.comp, r, 0);
+    auto setStyle = [&rig](Routine::RestoreStyle style) {
+        for (auto& routine : rig.comp.routines)       // what POST /api/routine/set writes
+            if (routine.uuid == "loop")
+                routine.restoreStyle = style;
+    };
+    rig.fd.values[op1] = 0.9f;
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.0);                                    // the start glided in over [3.0, 4.0]
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+    CHECK(rig.fd.count(Ev::Release, op1) == 1);
+
+    rig.runTo(5.0);
+    setStyle(Routine::RestoreStyle::Jump);             // switched to Jump mid-cycle
+    rig.runTo(5.0625);
+    CHECK(rig.slot(0).restoreStyle == "jump");
+    rig.fd.values[op1] = 0.9f;
+    rig.runTo(7.9375);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);          // no return glide over [7.0, 8.0]
+    const size_t at8 = rig.fd.log.size();
+    rig.runTo(8.0);                                    // cycle 2: the return jumps
+    {
+        const auto ev = rig.fd.on(op1, at8);
+        REQUIRE(ev.size() == 3);
+        checkEvent(ev[0], Ev::Touch, op1);
+        checkEvent(ev[1], Ev::Set, op1);
+        CHECK(ev[1].v == Approx(0.4f));
+        checkEvent(ev[2], Ev::Release, op1);
+    }
+    CHECK(rig.slot(0).cycle == 2);
+
+    rig.runTo(9.0);
+    setStyle(Routine::RestoreStyle::Ease);             // back to Ease: the next return glides again
+    rig.fd.values[op1] = 0.9f;
+    rig.runTo(10.9375);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+    rig.runTo(11.0);                                   // cycle 2's last beat: the return glide [11.0, 12.0]
+    CHECK(rig.fd.count(Ev::Touch, op1) == 3);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.9f));
+    rig.runTo(11.5);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.65f));
+    rig.runTo(12.0);
+    CHECK(rig.fd.lastSet(op1) == Approx(0.4f));
+    CHECK(rig.fd.count(Ev::Release, op1) == 3);
+    CHECK(rig.slot(0).cycle == 3);
+}
+
+// === s-rta-0926b routines-followup ITEM 3a: the 2 Bar / 4 Bar boundary prediction ===
+// RoutineEngine::beatsUntilBoundary (private) predicts, from the last snapshot, how many beats remain until
+// the boundary a routine starts on; the restore glide is scheduled from it ([boundary - 1, boundary]). It is
+// pinned here through what it decides -- WHEN the glide begins: a wrong 2 Bar / 4 Bar prediction starts the
+// glide a bar (or more) early and holds it, or turns it into a quarter-beat spill after the start. The PARITY
+// is barCount's (the counter dueNow consults), never totalBarCount's: totalBase 11 makes the two disagree.
+
+TEST_CASE("RoutineEngine glide: the 2 Bar and 4 Bar boundary prediction puts the glide in the last beat before the start", "[routine][engine][glide][quantize]")
+{
+    const ControlPath op1 = opacityKey(1);
+    auto check = [&op1](Clip::BeatSnapMode quantize, uint32_t totalBase, int barBase, double fireAt, double start) {
+        Rig rig;
+        rig.totalBase = totalBase;
+        rig.barBase = barBase;
+        addToBank(rig.comp, test7Routine(quantize), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(fireAt);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(start - 1.0 - Rig::kStep);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);     // nothing moves before the last beat
+        rig.runTo(start - 1.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);     // the glide begins exactly one beat before the start
+        CHECK(rig.fd.lastSet(op1) == Approx(0.9f));
+        rig.runTo(start - 0.5);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.6f));   // half way at half the beat
+        rig.runTo(start - Rig::kStep);
+        CHECK(rig.slot(0).state == "pending");
+        rig.runTo(start);
+        CHECK(rig.slot(0).state == "running");        // dueNow agrees with the prediction
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));   // landed ON the start
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    };
+
+    SECTION("2 Bar, fired in barCount 0 (totalBarCount 11): the start is barCount 2 at beat 8, not the next bar")
+    {
+        check(Clip::BeatSnapMode::TwoBar, 11, 0, 1.0, 8.0);
+    }
+    SECTION("2 Bar, fired mid-beat in barCount 1: only the rest of this bar")
+    {
+        check(Clip::BeatSnapMode::TwoBar, 11, 0, 5.5, 8.0);
+    }
+    SECTION("4 Bar, fired in barCount 0 (totalBarCount 12 at beat 4 is a multiple of 4): three more bars, beat 16")
+    {
+        check(Clip::BeatSnapMode::FourBar, 11, 0, 1.0, 16.0);
+    }
+    SECTION("4 Bar, fired in barCount 3: only the rest of this bar")
+    {
+        check(Clip::BeatSnapMode::FourBar, 11, 0, 13.0, 16.0);
+    }
+    SECTION("4 Bar, barCount already 2 at the fire (a phrase reset left it mid-count): beat 8")
+    {
+        check(Clip::BeatSnapMode::FourBar, 10, 2, 1.0, 8.0);
+    }
 }

@@ -1,0 +1,21 @@
+PASS  app launched (production), /api/health answered, PID=99597
+PASS  manual tempo took (bpm=120.0)
+PASS  load_composition accepted the resync fixture
+PASS  layers[0].connected contains 'opacity' (deck engaged)
+PASS  /api/bpm exposes resyncBarOrigin (int)
+PASS  POST /api/resync answers ok:true within 1s
+PASS  reached totalBarCount%4==2, beatInBar==2 within 8.5s (16-beat SawUp sits mid-cycle, ~0.625 pre-fix)
+PASS  V1 tracker: first sample >=60ms after POST is the new downbeat (origin=2 totalBarCount=2 beatInBar=0 barCount=0 downbeatDetected=True beatPhase=0.0853)
+PASS  V2 THE RULING: live.opacity at 63ms after Resync is 0.0027 (< 0.10 expected -- pre-fix reads ~0.6)
+PASS  V3a runs from the new downbeat: opacity at ~2.0s is 0.2493 (expect [0.22,0.30])
+PASS  V3b runs from the new downbeat: opacity at ~4.0s is 0.4987 (expect [0.47,0.55])
+PASS  V4a no phantom bar: totalBarCount at ~1.0s == origin (2 == 2)
+PASS  V4b one bar after Resync: totalBarCount == origin+1, resyncBarOrigin unchanged (totalBarCount=3 origin=2, expected origin=2)
+INFO  90 samples captured over ~4.5s (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/probe-out/resync/samples.json)
+PASS  V5 parity independence: same V1 shape reached from totalBarCount%4==3 (origin=7 totalBarCount=7 beatInBar=0 barCount=0 downbeatDetected=True)
+INFO  V6: automatic-reset half (drop/breakdown never touches resyncBarOrigin) is NOT drivable live in production -- manual mode suppresses structural transitions; unit test T3d carries it.
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/probe-out/resync)

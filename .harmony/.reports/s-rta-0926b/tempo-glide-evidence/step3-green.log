@@ -1,0 +1,126 @@
+ACQUIRED after 1 tries: tempo-glide 58230 1790479398
+(APP arg ignored: STEP3_BUILD_DIR=build-lane)
+=== probe-step3 on IGNORED at Sat Sep 26 23:23:18 EDT 2026 ===
+PASS  click-track WAV generated at /tmp/click_48k.wav
+PASS  fixture /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/.harmony/probe-step3.json is valid JSON
+PASS  app launched, /api/health answered, PID=59336
+PASS  analysis thread live: totalBarCount readable (0)
+PASS  load_composition accepted probe-step3.json
+PASS  R13: /api/features sourceSampleRate (48000) == /api/perf/status deviceRate (48000)
+PASS  R13: bandValidMask == 127 at 48 kHz
+PASS  R13: no analysis-rate-assumption warning on stderr (retired)
+(informational) environment: no non-Audio-DNA process holds an audio-related power assertion (pmset -g assertions)
+PASS  perf/record accepted (file-mode audio, onset markers)
+PASS  perf/status: recording=true
+PASS  assetId looks like a 32-hex fingerprint-less id (249ef311ba23463681ae03c9ec610ff2)
+PASS  perf/status: gapDetection present (True)
+PASS  perf/status: framesWritten>0 (92672)
+PASS  provisional take.json exists at arm+2s (v2 5.6 #1)
+PASS  trigger_clip column 0 -> activeClipColumn=0
+PASS  trigger_clip column 1 -> activeClipColumn=1
+PASS  trigger_clip column 2 -> activeClipColumn=2
+PASS  trigger_clip column 3 -> activeClipColumn=3
+PASS  set_bpm(128) took effect (bpm=128.0)
+PASS  set_layer_opacity(0.2) landed (opacity=0.200000002980232)
+PASS  take.json mtime advanced past the arm-time write (1790479417 -> 1790479477, periodic-save fired)
+PASS  perf/status: recording=false after stop
+PASS  perf/status: lastError empty
+PASS  perf/status: lastFinalizeError empty after stop (audio.wav header frames == tap framesWritten; no block lost at stop)
+PASS  R13: rateChangedSinceArm == false after the take (no device-rate change mid-take)
+PASS  Audio store has audio.wav + audio.json (/Users/boriskarpman/Documents/Audio-DNA/Audio/249ef311ba23463681ae03c9ec610ff2.adna-audio)
+PASS  take folder has exactly one file (take.json only, Ruling 28)
+PASS  take.json version == 3
+PASS  audio.segments[0].rate == 48000 (device rate at arm)
+PASS  audio.segments[0].frames > 0 (2942976)
+PASS  take.json audio.unreliableFrom is null (no truncation, no overrun)
+PASS  audio.wav frame count == take segment frames (2942976)
+PASS  audio.segments[0].fingerprint carries the fp1: prefix
+PASS  take.json audio.gapDetection is a boolean
+PASS  take.json audio.mode == file
+PASS  layer/scalar:opacity lane kind == continuous
+PASS  layer/scalar:opacity lane has 3 gestures (one per REST write)
+PASS  layer/scalar:opacity gesture values in order: 0.4 0.7 0.2
+PASS  layer/scalar:opacity gesture grip == decaying
+PASS  layer/scalar:opacity first gesture has 2 breakpoints (touch + idle end)
+PASS  layer/activeClip lane has >=4 points (5)
+PASS  comp/tempo point v == 12800 (centi-BPM for 128, plan R-8 unit)
+PASS  checkpoint0.activeDeckIndex == 0
+PASS  checkpointEnd present
+PASS  take.json tempoMap non-empty (6 anchors), first anchor 'start', carries the set_bpm(128) anchor
+(informational) take-level rate fields: NA
+T2 alignment: mean_offset_ms=31.78 drift_ms=0.38 drift_stderr_ms=2.39 p95_jitter_ms=8.22 n_markers_raw=124 n_dupes=0 n_matched=124 n_spurious=0 n_grid_in_range=123 pct_matched=100.8 n_peaks=119
+PASS  T2 alignment: drift within +-5.7800ms (<=1ms+2*stderr; drift=0.38ms stderr=2.39ms) (mean_offset_ms=31.78 drift_ms=0.38 drift_stderr_ms=2.39 p95_jitter_ms=8.22 n_markers_raw=124 n_dupes=0 n_matched=124 n_spurious=0 n_grid_in_range=123 pct_matched=100.8 n_peaks=119)
+WARN  T2 alignment: drift stderr 2.39ms exceeds 0.5ms -- this take is too short/noisy to support a tight 1ms drift claim (informational, does not fail the gate)
+PASS  T2 alignment: p95 jitter <=15ms (8.22 ms)
+PASS  T2 alignment: mean offset within [0,60]ms (31.78 ms, latency lag expected per D10.3)
+PASS  T2 alignment: matched markers cover >=90% of grid clicks in the asset's frame range (100.8%)
+(informational) T2 duplicate onset markers this take: 0 (deduped before matching -- a RecorderHost product fix for the duplicate-marker source is landing separately)
+(informational) T2 spurious (off-grid, >interval/2) markers rejected: 0
+(informational) T2 raw-peak-detector cross-check: found 119 burst peaks directly in the audio (best-effort threshold detector, not the pairing oracle)
+PASS  perf/load: audioStatus == Resolved
+PASS  perf/load: unresolved == 0
+PASS  end: /api/audio/source input accepted
+PASS  end: inputSource == input before Play
+PASS  snap-back(withAudio): pre-play perturbation landed (col 3, opacity 0.9)
+PASS  snap-back(withAudio): layer 0 restored to checkpoint0 (col=-1, opacity=1.0) within 100 ms of Play
+PASS  snap-back(withAudio): preambleUnresolved == 0
+PASS  snap-back(withAudio): preambleRefused == 0
+PASS  snap-back(withAudio): preambleFired >= 8 (9)
+  replay(withAudio): t~0s activeClipColumn=-1
+  replay(withAudio): t~2s activeClipColumn=0
+  replay(withAudio): t~5s activeClipColumn=1
+  replay(withAudio): t~8s activeClipColumn=2
+  replay(withAudio): t~11s activeClipColumn=3
+  replay(withAudio): t~16s activeClipColumn=2
+  wait_for_replay_finish(withAudio): lengthSeconds=61.312 elapsed=45s -- waiting up to 21s more
+PASS  end(withAudio): finished == true
+PASS  end(withAudio): playing stays true (hold, not stop)
+PASS  end(withAudio): positionSeconds == lengthSeconds (61.312 / 61.312)
+PASS  end(withAudio): the clock stopped (61.312 -> 61.312 over 1 s)
+PASS  end(withAudio): inputSource == file while the take's audio drives the replay
+PASS  end(withAudio): inputSource back to input at the end
+PASS  end(withAudio): last look held (activeClipColumn == 2)
+PASS  end(withAudio): layer 0 opacity still near 0.2 (held, nothing reset)
+PASS  replay(withAudio): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=-1 0 1 2 3 2)
+PASS  replay(withAudio): layer 0 opacity visited near 0.4 (tolerance 0.05)
+PASS  replay(withAudio): layer 0 opacity visited near 0.7 (tolerance 0.05)
+PASS  replay(withAudio): layer 0 opacity settled near the final 0.2 (last observed=0.200000002980232)
+PASS  replay(withAudio): bpm reached 128 after the tempo point (128.0)
+PASS  replay(withAudio): status.skipped==1 (the arm-time 'audio play' point, WithAudio policy)
+PASS  perf/stop_play: playing==false
+PASS  snap-back(wallClock): pre-play perturbation landed (col 3, opacity 0.9)
+PASS  snap-back(wallClock): layer 0 restored to checkpoint0 (col=-1, opacity=1.0) within 100 ms of Play
+PASS  snap-back(wallClock): preambleUnresolved == 0
+PASS  snap-back(wallClock): preambleRefused == 0
+PASS  snap-back(wallClock): preambleFired >= 8 (9)
+  replay(wallClock): t~0s activeClipColumn=-1
+  replay(wallClock): t~2s activeClipColumn=0
+  replay(wallClock): t~5s activeClipColumn=1
+  replay(wallClock): t~8s activeClipColumn=2
+  replay(wallClock): t~11s activeClipColumn=3
+  replay(wallClock): t~16s activeClipColumn=2
+  wait_for_replay_finish(wallClock): lengthSeconds=61.29821187500056 elapsed=45s -- waiting up to 21s more
+PASS  end(wallClock): finished == true
+PASS  end(wallClock): playing stays true (hold, not stop)
+PASS  end(wallClock): last look held (activeClipColumn == 2)
+PASS  end(wallClock): inputSource still input (wall-clock never touches it)
+PASS  replay(wallClock): activeClipColumn sequence == 0,1,2,3,2 after dropping the pre-play leftover (raw=-1 0 1 2 3 2)
+PASS  probe pin: first post-leftover activeClipColumn change lands within 1.5s across replay modes (withAudio=2s wallClock=2s diff=0.0s)
+PASS  replay(wallClock): status.skipped==0 (audio points fire on wall-clock replay)
+  (skipping 10F end-overdub row -- set STEP3_END_OVERDUB=1 to run it, ~35s extra)
+PASS  overdub arm accepted against the stored asset
+PASS  overdub take has exactly 1 activeClip point (only the REST trigger sent during overdub, not the replay)
+PASS  overdub take firstSample==0 (v2 5.2)
+PASS  overdub take references the SAME asset id (249ef311ba23463681ae03c9ec610ff2)
+PASS  Audio/ gained exactly one asset this run, overdub added none (214 -> 215)
+SKIP  LONG take for the T2 drift proof (set STEP3_LONG=1; STEP3_LONG_MINUTES=N overrides, default 10, 2 = dry run)
+SKIP  crash-readability row (set STEP3_RUN_CRASH_TEST=1 to run it -- destructive, kill -9)
+PASS  no stop in this run reported a finalize problem (perf/status finalizeErrors == 0)
+PASS  stderr: no '[Recorder] asset ...: truncated' line this run
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+no full-screen capture (Boris works on this Mac; s-rta-0925 habit): the Quartz window-list checks above are the screen witness
+
+94 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/tempo-glide/step3-green; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio)
+=== probe exit 0 at Sat Sep 26 23:27:15 EDT 2026 ===
+RELEASED
