@@ -24,6 +24,11 @@ public:
     // JUCE's userApplicationDataDirectory is ~/Library.
     static juce::File defaultFile();
 
+    // TEST MODE only (a test-server build running --test-mode, MainComponent's appSettingsFile()): `overridePath`
+    // (AUDIODNA_SETTINGS_FILE) when it is an absolute path, else a scratch file in the temp directory -- the same one
+    // for the whole run. NEVER defaultFile(): a test-mode launch without the variable cannot touch the real file.
+    static juce::File testModeFile(const juce::String& overridePath);
+
     const juce::File& file() const noexcept { return file_; }
 
     // The value stored under `key`; a void var when the file, or the key, is absent (or the file is corrupt).

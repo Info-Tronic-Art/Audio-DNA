@@ -68,19 +68,21 @@ namespace
     // s-rta-0927 outputs-c3 (plan5 C3): the machine's settings.json -- read and written ONLY through AppSettings
     // (read-modify-write: "milkDropPresetDir" and "outputs" never clobber each other). TEST-ONLY override: in a
     // test-server build (AUDIODNA_TEST_SERVER) running --test-mode, an absolute path in AUDIODNA_SETTINGS_FILE
-    // replaces it, so a probe never reads or writes the user's real settings file. Anywhere else the variable is
-    // ignored.
+    // replaces it, and without one a scratch file does (AppSettings::testModeFile) -- a test-mode app never reads or
+    // writes the user's real settings file. Anywhere else the variable is ignored.
     juce::File appSettingsFile(bool testMode)
     {
 #if AUDIODNA_TEST_SERVER
         if (testMode)
         {
             const auto path = juce::SystemStats::getEnvironmentVariable("AUDIODNA_SETTINGS_FILE", {});
+            const auto file = AppSettings::testModeFile(path);
             if (juce::File::isAbsolutePath(path))
-            {
                 std::cerr << "[Settings] test mode: AUDIODNA_SETTINGS_FILE = " << path << std::endl;
-                return juce::File(path);
-            }
+            else
+                std::cerr << "[Settings] test mode: AUDIODNA_SETTINGS_FILE unset or not absolute -- scratch settings "
+                          << file.getFullPathName() << " (never the real settings.json)" << std::endl;
+            return file;
         }
 #else
         juce::ignoreUnused(testMode);

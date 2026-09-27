@@ -100,6 +100,36 @@ TEST_CASE("AppSettings: keys this build does not know survive every write", "[ap
     CHECK(root["outputs"]["targets"].isArray());
 }
 
+TEST_CASE("AppSettings: test mode never falls back to the user's real settings file", "[app_settings]")
+{
+    // MainComponent's appSettingsFile() in a test-server build running --test-mode: AUDIODNA_SETTINGS_FILE if it is an
+    // absolute path, else a scratch file -- a --test-mode launch without the variable must not write the real file.
+    const auto real = AppSettings::defaultFile();
+    SECTION("an absolute AUDIODNA_SETTINGS_FILE is used as is")
+    {
+        CHECK(AppSettings::testModeFile("/tmp/audiodna-probe/settings.json") == juce::File("/tmp/audiodna-probe/settings.json"));
+    }
+    SECTION("unset or not absolute: a scratch file in the temp directory, the same one for the whole run")
+    {
+        for (const juce::String env : { juce::String(), juce::String("settings.json"), juce::String("rel/dir/s.json") })
+        {
+            INFO("AUDIODNA_SETTINGS_FILE = '" << env << "'");
+            const auto f = AppSettings::testModeFile(env);
+            REQUIRE(f != real);   // REQUIRE: a broken fallback stops here, before the write below could reach it
+            REQUIRE(f.isAChildOf(juce::File::getSpecialLocation(juce::File::tempDirectory)));
+            CHECK(f == AppSettings::testModeFile({}));
+        }
+        // Once written, the same file is read back: the MilkDrop folder / the output set survive within the run.
+        const auto f = AppSettings::testModeFile({});
+        REQUIRE(f != real);
+        REQUIRE(f.isAChildOf(juce::File::getSpecialLocation(juce::File::tempDirectory)));
+        REQUIRE(AppSettings(f).update("probe", 7));
+        CHECK(AppSettings::testModeFile({}) == f);
+        CHECK(static_cast<int>(AppSettings(AppSettings::testModeFile({})).read("probe")) == 7);
+        CHECK(f.deleteFile());
+    }
+}
+
 TEST_CASE("AppSettings: the default file is <userApplicationDataDirectory>/Audio-DNA/settings.json", "[app_settings]")
 {
     const auto f = AppSettings::defaultFile();

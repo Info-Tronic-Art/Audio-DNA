@@ -7,6 +7,15 @@ juce::File AppSettings::defaultFile()
         .getChildFile("settings.json");
 }
 
+juce::File AppSettings::testModeFile(const juce::String& overridePath)
+{
+    if (juce::File::isAbsolutePath(overridePath))
+        return juce::File(overridePath);
+    static const juce::File scratch = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                          .getNonexistentChildFile("test-mode-settings", ".json", false);
+    return scratch;
+}
+
 juce::var AppSettings::readRoot() const
 {
     if (file_.existsAsFile())

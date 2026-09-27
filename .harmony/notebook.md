@@ -1921,3 +1921,19 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
   exports the INDEX (never the working tree) for a per-commit syntax check / test build.
 - Valid while: AppSettings owns settings.json, OutputManager reconciles through diffOutputs, and probe-outputs points
   the app at a scratch settings file.
+
+## 2026-09-27 — outputs-c3-fix: the saved output set, the test-mode settings fallback, and a teeth run that wrote the real settings file
+**Files:** src/output/OutputManager.cpp, src/output/OutputTargets.{h,cpp}, src/model/AppSettings.{h,cpp}, src/MainComponent.cpp (appSettingsFile), tests/test_app_settings.cpp
+**Note:**
+- `AppSettings::update()` replaces a key WHOLE, so any writer of `"outputs"` must write the full wanted set:
+  `output::wantedSet(live, interrupted, saved_)`. Writing live + interrupted alone dropped every saved target Restore
+  had not opened yet on the session's first output change. A manual open/close forgets that display's saved target;
+  `attachSettings` seeds `lastWanted_` with the loaded set so nothing is rewritten until the set changes.
+- 11 of the 12 `--test-mode` probe scripts launch WITHOUT `AUDIODNA_SETTINGS_FILE` (only probe-outputs sets it). Since
+  outputs-c3-fix a test-mode app then uses `AppSettings::testModeFile` = `~/Library/Caches/Audio-DNA/test-mode-settings.json`
+  (err.log `[Settings] test mode: ... scratch settings <path>`), never `~/Library/Audio-DNA/settings.json`.
+- TEETH HAZARD: a mutant that transplants a "falls back to the REAL file" bug runs the test's later WRITE against the
+  real file if the guarding assertion is a CHECK (Catch continues). This happened once in this fix round (the real
+  settings.json was created and deleted within the run, leaving an empty `~/Library/Audio-DNA/`, removed). Guard a
+  write with REQUIRE on the path first, and sandbox `defaultFile()` in every mutant copy.
+**Valid while:** AppSettings owns settings.json and appSettingsFile() routes test mode through testModeFile.
