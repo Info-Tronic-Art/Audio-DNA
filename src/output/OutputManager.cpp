@@ -97,6 +97,7 @@ void OutputManager::openDisplay(int displayIndex)
     if (!openWindow(displayIndex))
         return;
     forgetInterrupted(live_.back().target);
+    forgetSaved(live_.back().target);
     changed();
     persistWanted();
 }
@@ -112,6 +113,7 @@ void OutputManager::closeDisplay(int displayIndex)
     {
         if (live_[i].target == displays[static_cast<size_t>(displayIndex)])
         {
+            forgetSaved(live_[i].target);
             closeLive(i);   // a MANUAL close: the target leaves the wanted set
             changed();
             persistWanted();
@@ -138,6 +140,7 @@ void OutputManager::closeWindow(const OutputWindow* window)
     {
         if (live_[i].window.get() == window)
         {
+            forgetSaved(live_[i].target);
             closeLive(i);
             changed();
             persistWanted();
@@ -170,6 +173,11 @@ void OutputManager::destroyLater(std::unique_ptr<OutputWindow> window)
 void OutputManager::forgetInterrupted(const DisplayInfo& target)
 {
     interrupted_.erase(std::remove(interrupted_.begin(), interrupted_.end(), target), interrupted_.end());
+}
+
+void OutputManager::forgetSaved(const DisplayInfo& target)
+{
+    saved_.erase(std::remove(saved_.begin(), saved_.end(), target), saved_.end());
 }
 
 void OutputManager::handleAsyncUpdate()
@@ -273,17 +281,18 @@ void OutputManager::attachSettings(const juce::File& settingsFile)
     JUCE_ASSERT_MESSAGE_THREAD
     settingsFile_ = settingsFile;
     saved_ = wantedFromVar(AppSettings(settingsFile_).read(AppSettings::kOutputs));   // loaded only: opens NOTHING (Q1)
+    lastWanted_ = saved_;   // what the file already holds: nothing is rewritten until the wanted set changes
     rebuildState();
 }
 
 void OutputManager::persistWanted()
 {
-    std::vector<DisplayInfo> wanted;
+    // live + interrupted + the saved targets Restore has not opened yet: the "outputs" key is replaced whole, so a
+    // partial Restore, an unrelated output change or All Outputs Off never drops a saved target from disk.
+    std::vector<DisplayInfo> liveTargets;
     for (const auto& l : live_)
-        wanted.push_back(l.target);
-    for (const auto& t : interrupted_)
-        if (std::find(wanted.begin(), wanted.end(), t) == wanted.end())
-            wanted.push_back(t);
+        liveTargets.push_back(l.target);
+    const auto wanted = wantedSet(liveTargets, interrupted_, saved_);
     if (sameTargets(wanted, lastWanted_))
         return;   // never a write without a change (the poll never gets here with nothing changed)
     lastWanted_ = wanted;

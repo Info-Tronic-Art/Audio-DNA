@@ -281,3 +281,30 @@ TEST_CASE("output law: nothing opens an output at launch -- Restore Last Outputs
             CHECK(body.find(opener) == std::string::npos);
     }
 }
+
+TEST_CASE("output law: every settings write keeps the saved set not yet restored; a manual open/close decides for "
+          "its display",
+          "[output_law]")
+{
+    // settings.json "outputs" is replaced whole on each write, so persistWanted() must write output::wantedSet(live,
+    // interrupted, saved_) -- never live + interrupted alone, which drops every saved target Restore has not opened
+    // (a partial Restore, an unrelated output change, All Outputs Off). A manual open or close of a display removes
+    // that display's saved target (the user decided), and the loaded set is what the file already holds.
+    const std::string om = codeOnly(readFile("output/OutputManager.cpp"));
+    const std::string persist = functionBody(om, "voidOutputManager::persistWanted(");
+    INFO("persistWanted body: " << persist);
+    REQUIRE_FALSE(persist.empty());
+    CHECK(persist.find("wantedSet(") != std::string::npos);
+    CHECK(persist.find("saved_)") != std::string::npos);
+    for (const char* sig : { "voidOutputManager::openDisplay(", "voidOutputManager::closeDisplay(",
+                             "voidOutputManager::closeWindow(" })
+    {
+        const std::string body = functionBody(om, sig);
+        INFO(sig << " body: " << body);
+        REQUIRE_FALSE(body.empty());
+        CHECK(body.find("forgetSaved(") != std::string::npos);
+    }
+    const std::string attach = functionBody(om, "voidOutputManager::attachSettings(");
+    INFO("attachSettings body: " << attach);
+    CHECK(attach.find("lastWanted_=saved_;") != std::string::npos);
+}

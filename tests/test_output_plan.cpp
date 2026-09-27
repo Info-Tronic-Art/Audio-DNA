@@ -168,6 +168,35 @@ TEST_CASE("sameTargets is order-insensitive (the settings file is written on a c
     CHECK_FALSE(output::sameTargets({ kProjector, kProjector }, { kProjector, kProjector2 }));
 }
 
+TEST_CASE("the wanted set keeps every saved target not yet restored (settings.json \"outputs\")", "[output_plan]")
+{
+    // What OutputManager::persistWanted() writes: live + interrupted + the saved set Restore has not opened yet.
+    // AppSettings::update() replaces the whole "outputs" key, so a saved target left out here is gone from disk.
+    SECTION("a partial Restore: the connected display is live, the missing one stays saved")
+    {
+        // saved {laptop, projector}, the projector unplugged: Restore opens the laptop only
+        CHECK(output::sameTargets(output::wantedSet({ kLaptop }, {}, { kProjector }), { kLaptop, kProjector }));
+    }
+    SECTION("an unrelated output change before any Restore keeps the saved set")
+    {
+        CHECK(output::sameTargets(output::wantedSet({ kProjector2 }, {}, { kLaptop, kProjector }),
+                                  { kProjector2, kLaptop, kProjector }));
+    }
+    SECTION("All Outputs Off (nothing live or interrupted) keeps the saved set not yet restored")
+    {
+        CHECK(output::sameTargets(output::wantedSet({}, {}, { kProjector }), { kProjector }));
+    }
+    SECTION("live, interrupted and saved: each target once")
+    {
+        CHECK(output::sameTargets(output::wantedSet({ kLaptop }, { kProjector, kLaptop }, { kProjector, kProjector2 }),
+                                  { kLaptop, kProjector, kProjector2 }));
+    }
+    SECTION("nothing live, interrupted or saved: empty")
+    {
+        CHECK(output::wantedSet({}, {}, {}).empty());
+    }
+}
+
 TEST_CASE("settings.json \"outputs\": wantedToVar / wantedFromVar", "[output_plan]")
 {
     SECTION("round trip, version present")

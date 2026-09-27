@@ -18,11 +18,13 @@
 // 30 Hz UI timer tick -- runs it when the display list differs from the last one seen (a cached read; no window
 // needed). After every reconcile the menu ticks, the TopBar count and /api/state.outputs(.displays) are rebuilt.
 //
-// The WANTED set (live + interrupted) is saved in settings.json "outputs" through AppSettings, on a change only,
-// never per tick: a manual close removes a target, a hot-plug close keeps it; quitting writes nothing. The app NEVER
-// opens an output by itself at launch (Q1): the saved set is only loaded (SAVED targets), and only the "Restore Last
-// Outputs" menu action opens them. The only openers are the Output menu, the TopBar button, Cmd+F, Restore Last
-// Outputs, and a hot-plug reopen of a target that was live this session.
+// The WANTED set (live + interrupted + the saved targets not yet restored, output::wantedSet) is saved in
+// settings.json "outputs" through AppSettings, on a change only, never per tick: a manual open or close decides for
+// its display (the target leaves the saved set; a close also leaves the wanted set), a hot-plug close keeps it, and a
+// saved target Restore has not opened stays in the file until it is restored or decided for; quitting writes
+// nothing. The app NEVER opens an output by itself at launch (Q1): the saved set is only loaded (SAVED targets), and
+// only the "Restore Last Outputs" menu action opens them. The only openers are the Output menu, the TopBar button,
+// Cmd+F, Restore Last Outputs, and a hot-plug reopen of a target that was live this session.
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "output/OutputMenuModel.h"
@@ -108,6 +110,7 @@ private:
     void closeLive(size_t index);                        // hide + deferred destroy, no notification
     void destroyLater(std::unique_ptr<OutputWindow> window);
     void forgetInterrupted(const DisplayInfo& target);   // a manual open/close decides for that display
+    void forgetSaved(const DisplayInfo& target);         // ditto, for the saved set
     bool reconcileIfDisplaysChanged();                   // the poll's comparison; true if it reconciled
     void changed();                                      // live count -> renderer, state, onLiveCountChanged
     void rebuildState();
@@ -123,7 +126,7 @@ private:
     std::vector<DisplayInfo> lastSeen_;       // the display list the last reconcile (or the constructor) saw
     std::vector<DisplayInfo> interrupted_;    // closed by a hot-plug this session; reopen when their display returns
     std::vector<DisplayInfo> saved_;          // the saved set loaded at startup; opened only by restoreLast()
-    std::vector<DisplayInfo> lastWanted_;     // the wanted set as last written (starts empty: launch writes nothing)
+    std::vector<DisplayInfo> lastWanted_;     // the wanted set as last written (attachSettings: the loaded set)
     juce::File settingsFile_;                 // empty until attachSettings(): nothing is written
     bool reconcilePending_ = false;
 

@@ -121,6 +121,17 @@ bool sameTargets(const std::vector<DisplayInfo>& a, const std::vector<DisplayInf
     return true;
 }
 
+std::vector<DisplayInfo> wantedSet(const std::vector<DisplayInfo>& live, const std::vector<DisplayInfo>& interrupted,
+                                   const std::vector<DisplayInfo>& saved)
+{
+    std::vector<DisplayInfo> wanted;
+    for (const auto* group : { &live, &interrupted, &saved })
+        for (const auto& t : *group)
+            if (!contains(wanted, t))
+                wanted.push_back(t);
+    return wanted;
+}
+
 juce::var wantedToVar(const std::vector<DisplayInfo>& targets)
 {
     juce::Array<juce::var> arr;

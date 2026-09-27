@@ -65,6 +65,12 @@ OutputDiff diffOutputs(const std::vector<DisplayInfo>& live, const std::vector<D
 // The same set of targets, in any order (the settings file is rewritten only when this is false).
 bool sameTargets(const std::vector<DisplayInfo>& a, const std::vector<DisplayInfo>& b);
 
+// The WANTED set settings.json "outputs" holds: every live target, every interrupted one, then every saved target
+// Restore Last Outputs has not opened yet -- each once. The file's key is replaced whole on a write, so a saved target
+// left out here would be lost from disk by a partial Restore, an unrelated output change or All Outputs Off.
+std::vector<DisplayInfo> wantedSet(const std::vector<DisplayInfo>& live, const std::vector<DisplayInfo>& interrupted,
+                                   const std::vector<DisplayInfo>& saved);
+
 // settings.json "outputs": {"version": 1, "targets": [{"x", "y", "w", "h", "scale", "main"}, ...]}.
 juce::var wantedToVar(const std::vector<DisplayInfo>& targets);
 // Unknown keys are ignored; an entry without a positive w and h is skipped; anything else reads as no targets.
