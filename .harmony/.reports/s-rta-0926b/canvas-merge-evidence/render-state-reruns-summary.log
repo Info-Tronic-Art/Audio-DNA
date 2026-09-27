@@ -1,0 +1,19 @@
+04:45:21 LOCK ACQUIRED: canvas-merge 3587 1790498721
+######## probe-render-state rerun 1  04:45:21  load averages: 3.02 3.11 3.30  compilers: 0
+exit 0
+--- r1_counts
+      r1_counts: frame_rings 4 -> 6 (+2), temporal_buffers 9 -> 9 (+0); peak_frame_time_ms first use 37.39, first fade 48.86
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the first fade (spare ring created) 48.86 ms <= 50.0 ms
+PY 31 PASS / 0 FAIL
+PROBE-RENDER-STATE GREEN
+######## probe-render-state rerun 2  04:51:15  load averages: 2.91 3.15 3.25  compilers: 0
+exit 0
+--- r1_counts
+      r1_counts: frame_rings 4 -> 6 (+2), temporal_buffers 9 -> 9 (+0); peak_frame_time_ms first use 29.73, first fade 34.29
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the first fade (spare ring created) 34.29 ms <= 50.0 ms
+PY 31 PASS / 0 FAIL
+PROBE-RENDER-STATE GREEN
+Audio-DNA processes now: 0
+04:57:09 LOCK RELEASED: canvas-merge 3587 1790498721

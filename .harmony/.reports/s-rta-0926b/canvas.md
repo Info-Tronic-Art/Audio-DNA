@@ -499,3 +499,115 @@ Strongest alternative explanation: a UV wrap or repeat bug inside the fitted pas
 - Self-brief: CLAUDE.md, this report's Fit section, and the prior round's scratch scripts (hook.py, shot.py) were useful.
 
 INBOX-RECHECK: none
+
+---
+
+## Merge-with-main round (lane canvas-merge) -- builder report
+
+STATUS: DONE_WITH_CONCERNS
+RESULT: `main` (4f4aaa0: decks, routines-followup, tempo-glide, topbar-count) is merged into `lane/canvas-0926b` as merge commit `28d53e9`. All five conflicts are resolved and both sides' behaviour is kept. The Harmony ruling on `r5_burst` is its own commit, `325c650`: the post-switch capture window goes from 0.6 s to 2.0 s, and the 8-frame bar and the "no blank frame" assertion are unchanged. build-lane was reconfigured and rebuilt: ctest serial `100% tests passed, 0 tests failed out of 661` (main's 636 + the lane's 25). Live on build-lane:
+- GREEN: probe-canvas, deck-clock, fitmode, deck-tabs, crossfade, effects-parity, routines (ROUTINES_RECORD_PAUSE=1.8) and manual-bpm.
+- probe-render-state: every row passes, r5_burst included. In the battery run one OTHER row failed once: `r1_counts` longest frame 51.86 ms against its 50 ms bar. Two reruns of the full probe were 31/0 (48.86 ms and 34.29 ms). No render-path source changed in the merge, so I infer (did not prove) that this is not the merge -- see ISSUES 1.
+FACTS:
+- Merge commit `28d53e9` (parents `9fd48ab` lane, `4f4aaa0` main); r5 commit `325c650`.
+- Conflicts: `src/ui/LookAndFeel.cpp`, `src/MainComponent.cpp`, `docs/claude/pitfalls.md`, `CLAUDE.md`, `.harmony/notebook.md`.
+- `wc -c CLAUDE.md` = 24989. Pitfall numbering, checked by script: CLAUDE.md index 1-39, docs/claude/pitfalls.md 1-39, no duplicates, the two lists match.
+- Evidence: `.harmony/.reports/s-rta-0926b/canvas-merge-evidence/` holds battery-*.log (full per-probe logs), battery-summary.log, RED-/GREEN-r5_burst logs, r5-capture-intervals.txt, render-state-rerun-{1,2}.log and ctest-serial-tail.txt.
+METHOD:
+- I read each side's commits (`git log main..lane`, `lane..main`), the decks, canvas and routines-followup reports, and both sides' diffs against merge-base `2d02681` for every conflicted file. I resolved each conflict by hand.
+- I then checked that no side lost anything. `git diff main -- src/MainComponent.*` holds exactly the lane's hunks. Counts of main's markers (confirmReplaceShow, DeckTabRow, renameDeck, InsertDeckCmd, restoreStyle, setLookAndFeel) are equal to main's.
+- Build and serial ctest ran before the merge commit.
+- r5: RED on the merge build with the unchanged probe, then GREEN with the change. Capture cost was measured from the PNG mtimes.
+- The full live battery ran under one lock hold, with a load average and a compiler count printed per probe. r1_counts was diagnosed with two reruns of the full probe under the same conditions.
+CONFIDENCE+VERIFY: HIGH for the merge content and every GREEN probe. MEDIUM on the r1_counts attribution: it is inferred from the source diff and reruns, and there is no A/B against a pre-merge binary.
+- Verify: `ctest --test-dir build-lane -j1` shows `out of 661`.
+- Verify: `AUDIODNA_LOCK_OWNER=<owner> RSTATE_APP=<build-lane app> bash .harmony/probe-render-state.sh <out>` gives `PY 31 PASS / 0 FAIL`; the r1_counts peak is the one to watch.
+- Verify: `wc -c CLAUDE.md` <= 25000.
+UNKNOWNS/NOT-DONE:
+- (1) No A/B of r1_counts against a pre-merge (9fd48ab) binary. The rig allows only build-lane in this worktree, and the branch must not move.
+- (2) The interactive paths of both lanes are still driven by no probe (rig: no synthetic input): deck tab right-click, the dialogs, the Fit combo pick, the Resolution dropdown pick.
+- (3) The Output window was never opened (rig).
+NUANCE:
+- CLAUDE.md could not hold both sides' text. Main alone was already 25,241 B; merged, it was 26,754 B.
+- Each side's long addition is now one line with a pointer, and its full text moved VERBATIM to the doc it belongs to. This included one base block, the historical P1-P12 Phase Dependency Map, which moved to docs/claude/history.md. Harmony should know that base content moved.
+HANDOFF-NEEDS: Harmony's behavioral gate plus a Reviewer on the merge resolution. Harmony should also rule on ISSUES 1 (the r1_counts margin) and ISSUES 2 (CLAUDE.md content moved to docs).
+
+INBOX-RECHECK: none
+
+### Conflicts -> resolution
+| file | main side | lane side | resolution |
+|---|---|---|---|
+| `src/ui/LookAndFeel.cpp` `drawLabel` | a transparent text colour draws NO text (AlertWindow's hidden accessibility label; the message prints once) | a disabled label dims by `kDisabledAlpha` (plan-fitmode; the disabled Fit combo's text) | Both kept: `if (!isBeingEdited && !textColour.isTransparent())` then `textColour.withMultipliedAlpha(alphaMul)`. The lane's `drawComboBox` dimming and main's `createAlertWindow` / `drawAlertBox` / square `drawPopupMenuBackground` / AlertWindow colours auto-merged intact. Both notebook rules hold. |
+| `src/MainComponent.cpp` `saveDeck()`/`loadDeck()` | legacy bodies deleted (plan6 D) | edited them (S5: `deck.viewportResolution` no longer saved or applied) | Took main's deletion. The lane's intent (no per-deck viewport resolution) holds trivially, because the code is gone. Main's new `loadDeck()` (the DeckTabRow Load Deck) is untouched. The rest auto-merged: DeckTabRow handlers, Insert/Rename/Duplicate/Remove + Undo, `confirmReplaceShow`, the Rename dialog LookAndFeel, Stop = routines only, restoreStyle AND the resolutionSelector_/viewportLabel_ retirement, the canvas-sized recorder config (menu + binding), `OutputWindow(..., &composition_)`, setClipFitMode REST/OSC. |
+| `docs/claude/pitfalls.md` | new 36: deck ids unique / Duplicate re-mints clip ids | new 36 canvas / 37 autopilot baseline / 38 layer_transform | Main keeps 36; the lane's become 37 / 38 / 39. Citations renumbered: rendering.md (36->37, 38->39), performance-controls.md (37->38), `src/render/Renderer.h`, `src/model/AutopilotBank.h`, `tests/test_deck_clock.cpp` case (f) title (37->38), and the canvas notebook entry (36->37). The lane's 38 text said `Deck::id` "is not unique -- AddDeckCmd", which is false after plan6 F1. It now reads "was not unique before plan6 F1 -- Pitfall 36" (same edit in the AutopilotBank.h comment). |
+| `CLAUDE.md` | UI pattern "Deck tab row"; index 36 | render-thread canvas sentence, rule 15, UI pattern "Preview/Output panel", index 36-38 | Index 1-39, each once. Both UI patterns are kept as one-liners with pointers; their full paragraphs moved verbatim to `docs/claude/performance-controls.md` (Deck tab row) and `docs/claude/rendering.md` (new "Composition Canvas and the Preview Panel"). The render-thread sentence and rule 15 are shortened, because their detail is already in Pitfall 37 and performance-controls.md. The P1-P12 Phase Dependency Map moved verbatim to `docs/claude/history.md`, and the Trigger Table row names it. 26,754 -> 24,989 B. |
+| `.harmony/notebook.md` | 2026-09-27 decks entry | canvas, fitmode, canvas-fix entries | All kept: main's first, then the lane's three. |
+
+### Ruling commit `325c650` (probe-render-state r5_burst)
+- The change: `time.sleep(0.6)` becomes `time.sleep(spec["postSwitchS"])`, with fixture `r5_burst.postSwitchS = 2.0` and a docstring note. The 60-attempt cap already covers 0.35 + 2.0 s. The 8-frame bar, the "no blank frame" assertion and every other row are untouched.
+- Capture cost at the 1920x1080 canvas, from PNG mtimes: median 106 ms, range 99-121 ms (n = 148 intervals). 0.6 s held 6-7 captures; 2.0 s holds 19-20.
+- RED (merge build, probe unchanged; `RED-r5_burst-merge-build-probe-unchanged.log`):
+  ```
+        r5_burst id=81: 6 frames after the switch
+        r5_burst id=82: 6 frames after the switch
+        r5_burst id=83: 7 frames after the switch
+        r5_burst id=84: 7 frames after the switch
+        r5_burst id=85: 6 frames after the switch
+  FAIL  r5_burst: every attempt captured >= 8 frames after the switch (short: [81, 82, 83, 84, 85])
+  PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+  PY 1 PASS / 1 FAIL
+  ```
+- GREEN (`GREEN-r5_burst-postSwitchS-2.0.log`): 19 / 20 / 19 / 19 / 19 frames.
+  ```
+  PASS  r5_burst: every attempt captured >= 8 frames after the switch (short: [])
+  PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+  PY 2 PASS / 0 FAIL
+  ```
+
+### Tests (raw summary lines, verbatim)
+- ctest serial, after reconfigure + rebuild at HEAD `325c650`: `100% tests passed, 0 tests failed out of 661`. The same count was on the merge tree before the commit.
+- The live battery ran under one hold of `/tmp/audiodna-live.lock` (owner `canvas-merge 99971 1790497709`). App binary sha256 `bdc934f31b874462...`, compilers running 0, load average 2.6-4.0.
+
+| probe | raw summary |
+|---|---|
+| probe-canvas | `PY 15 PASS / 0 FAIL` / `PROBE-CANVAS GREEN` (c_perf_1080: "mean fps 114.5 >= 58.0 and mean frame_time_ms 1.82 <= 12.0", load 2.71) |
+| probe-deck-clock | `PY 10 PASS / 0 FAIL` / `PROBE-DECK-CLOCK GREEN` |
+| probe-fitmode | `PY 10 PASS / 0 FAIL` / `PROBE-FITMODE GREEN` |
+| probe-deck-tabs | `6 PASS / 0 FAIL` ("R3 the three deck ids are pairwise distinct (0,100,101; the file had 0,0,0)") |
+| probe-render-state (battery) | `PY 30 PASS / 1 FAIL` / `PROBE-RENDER-STATE RED`. The only FAIL: `FAIL  r1_counts: longest frame across the first fade (spare ring created) 51.86 ms <= 50.0 ms`. Both r5_burst rows PASS (lines as above). |
+| probe-render-state rerun 1 | `PY 31 PASS / 0 FAIL` / `PROBE-RENDER-STATE GREEN` (r1_counts 48.86 ms) |
+| probe-render-state rerun 2 | `PY 31 PASS / 0 FAIL` / `PROBE-RENDER-STATE GREEN` (r1_counts 34.29 ms) |
+| probe-crossfade | `PY 35 PASS / 0 FAIL` / `PROBE-CROSSFADE GREEN` |
+| probe-effects-parity | `PY 46 PASS / 0 FAIL` / `PROBE-EFFECTS-PARITY GREEN` |
+| probe-routines (ROUTINES_RECORD_PAUSE=1.8) | `98 PASS / 0 FAIL` |
+| probe-manual-bpm | `22 PASS / 0 FAIL` |
+
+Every run ended with `Audio-DNA processes now: 0` and `LOCK RELEASED: canvas-merge ...`.
+
+### ISSUES
+1. **r1_counts peak (not the ruled row) failed once: 51.86 ms against 50.**
+   - Two full reruns under the same conditions passed, at 48.86 and 34.29 ms. The row allocates a 237 MiB frame ring inside the measured frame.
+   - Pre-merge lane values from its own evidence were 29.28, 26.07, 29.03 and 50.82 (the B1 outlier). The merge-build values are 51.86, 48.86 and 34.29.
+   - Why I infer it is NOT the merge: `git diff --stat 9fd48ab HEAD -- src/` touches no render, compositor or effect file. The only render file is a comment line in `src/render/Renderer.h`. Main brought UI, deck commands, RoutineEngine/Player and BPMTracker, none of which runs on the GL thread's ring allocation.
+   - Strongest alternative: the merge-build numbers do look higher on average (3 samples against 4). If Harmony wants it proven, the cheapest decisive test is an interleaved A/B of the full probe on a 9fd48ab binary and this binary. I did not do it, because the rig allows one build dir in this worktree and the branch must not move.
+   - No threshold was touched (not ruled).
+2. **CLAUDE.md content moved out to meet the cap.** Both lanes' long texts are now pointers, and their full text is verbatim in docs. One BASE block also moved: the P1-P12 Phase Dependency Map, to history.md. Without that move, the cap could not be met with both lanes' index lines and patterns. Harmony may prefer a different trim.
+3. **Found, not fixed (not merge-caused):**
+   - (a) `.harmony/APP-INVENTORY.md:29` still says "41 registered REST routes", while its REST section (and a grep of `src/api/ApiServer.cpp`: 42 unique `/api` routes) says 42 since plan-fitmode.
+   - (b) `tests/test_undo_commands.cpp` `operator==(Clip, Clip)`, the deep-equal that main's Duplicate/Insert tests use, does not compare `Clip::fitMode`. `compload::duplicateDeck` copies by value, so fitMode survives, but no test pins it.
+   - (c) Inferred, not run: deck-switch detection is by INDEX (`prevActiveDeckIndex_`, as before the lane). Main's Remove of a deck BEFORE the active one shifts `activeDeckIndex`, so the renderer starts a cross-deck fade whose outgoing picture is the same deck's previous frame. That is a near-invisible fade. It pre-dates this merge (main + index detection); after the lane's F2 the fade is real rather than a cut. The AutopilotBank index shift is already documented in its header.
+
+### RISKS
+- The r1_counts margin: it fails at about 1 run in 3 on this rig state. The next battery may see it again (Issue 1).
+- CLAUDE.md is at 24,989 / 25,000 B. The next lane that adds a pitfall line must trim or move something.
+
+### FILES CHANGED (this round)
+- Merge `28d53e9`: the 5 conflicted files above. Resolution edits outside them: `docs/claude/rendering.md`, `docs/claude/performance-controls.md`, `docs/claude/history.md` (moved text + renumbered citations), `src/render/Renderer.h` (comment), `src/model/AutopilotBank.h` (comment), `tests/test_deck_clock.cpp` (case (f) title).
+- `325c650`: `.harmony/probe-render-state.py`, `.harmony/probe-render-state.json`.
+- Report commit: this section, `canvas-merge-evidence/`, and a `.harmony/notebook.md` entry (CLAUDE.md cap, pitfall-number collisions, the r1_counts margin).
+
+### PACKET QUALITY
+- Clarity: CLEAR.
+- Missing context: CLAUDE.md was ALREADY over 25,000 on main (25,241), so meeting the cap needed more than the merge's own text. r1_counts is a second marginal perf row, next to the r5 one the ruling covers.
+- Unused context: none.
+- Self-brief files: the canvas, decks and routines-followup reports were all useful (the decks report explained the AlertWindow/PopupMenu LookAndFeel rules the drawLabel merge had to keep). The `.harmony/inbox.md` boot-trim request gave the 25-KB target's origin. Grep-only (no KNOWLEDGE_TOOLS); impact was taken conservatively.

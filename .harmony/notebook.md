@@ -1693,3 +1693,17 @@ hand-written functions with no shared layout model.
 - The Composition inspector's Resolution combo is CanvasSizeCombo::show(): exact W AND H preset match, else a
   "Custom (W x H)" item; it is rebuilt only when the canvas size changed (not on every refresh).
 - Valid while: these fixtures and files exist.
+
+## 2026-09-27 s-rta-0926b canvas merge: CLAUDE.md is at its 25,000-byte cap; parallel lanes collide on pitfall numbers
+**Files:** CLAUDE.md, docs/claude/{pitfalls,rendering,performance-controls,history}.md, .harmony/probe-render-state.{py,json}
+**Note:**
+- Main was already 25,241 B before this merge; with the canvas lane's additions it was 26,754 B. A new UI pattern,
+  rule or render note goes into CLAUDE.md as ONE line with a pointer, and its full text goes into the docs/claude
+  file it belongs to (Deck tab row -> performance-controls.md, Preview panel -> rendering.md). Check with `wc -c CLAUDE.md`.
+- Two lanes that each add "Pitfall 36" collide. The lane merged first keeps its number; renumber the other lane's
+  pitfalls AND every citation of them (`grep -rn -i "pitfall 3[0-9]"`: docs, src comments, Catch2 TEST_CASE titles, the notebook).
+- probe-render-state r1_counts ("longest frame across the first fade <= 50 ms") is marginal at the 1080p canvas
+  because the spare frame ring (237 MiB of textures) is allocated in that frame. Measured values: 26-29 ms with one
+  50.82 before the merge; 51.86 / 48.86 / 34.29 on the merge build. One FAIL is not a verdict: rerun it before
+  blaming a change.
+- Valid while: the CLAUDE.md byte cap, the canvas ring sizing and these probes exist.
