@@ -458,12 +458,25 @@ void RoutineEngine::startNow(Running& r)
     notify(msg + ".");
 }
 
+// plan3 C: a requested restart's restore glides onto ITS boundary, never touching a knob while the recording's own
+// hand is on it before that boundary (fire()'s re-fire, and a settings edit while that restart waits).
+void RoutineEngine::scheduleRestartGlides(Running& r, RoutineSnap forcedSnap)
+{
+    const double boundary = clock_.now().beat + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap));
+    const double startBeat = r.startBeat, endPos = boundary - r.startBeat, pos = r.position;
+    scheduleGlides(r, boundary, [&r, startBeat, endPos, pos](const ControlPath& key) {
+        return startBeat + std::min(busyUntil(*r.program, key, pos, endPos), endPos);
+    });
+}
+
 // s-rta-0927 fix round: a WAITING routine re-reads its Quantize, Loop, Restore first / Start from now and Start:
 // Ease / Jump from the live routine on every tick (the re-fire-while-running re-sync in fire(), for the wait), so
 // a pad-menu or REST edit made before the start reaches THIS start -- the menu's tick, the pad's "Starting on ..."
 // tooltip and what happens on the boundary always agree. The restore glides follow the style: switched off (Jump,
 // or Start from now) they let go where they are; switched on (Ease) they are scheduled for the boundary now
 // ahead, by the one rule fire() uses; a Quantize change re-times them.
+// Fix round 2: a RESTART waiting for its boundary (pressed again while running) follows the same edits by the
+// same rules; its glides are scheduled by the restart's own rule (scheduleRestartGlides).
 void RoutineEngine::resyncPending(Running& r, const Composition& comp, RoutineSnap forcedSnap)
 {
     const Routine* live = comp.routineInSlot(r.slot);
@@ -482,9 +495,16 @@ void RoutineEngine::resyncPending(Running& r, const Composition& comp, RoutineSn
     }
     else if (eased && beatAvailable_ && (!easedBefore || r.ownSnap != snapBefore))
     {
-        const double now = clock_.now().beat;
-        scheduleGlides(r, now + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap)),
-                       [now](const ControlPath&) { return now; });
+        if (r.pending)
+        {
+            const double now = clock_.now().beat;
+            scheduleGlides(r, now + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap)),
+                           [now](const ControlPath&) { return now; });
+        }
+        else
+        {
+            scheduleRestartGlides(r, forcedSnap);
+        }
     }
 }
 
@@ -516,8 +536,8 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
     for (size_t i = 0; i < running_.size(); ++i)
     {
         Running& r = running_[i];
-        if (r.pending)
-            resyncPending(r, comp, forcedSnap);   // s-rta-0927 fix round: a menu edit made while waiting counts
+        if (r.pending || r.restartRequested)
+            resyncPending(r, comp, forcedSnap);   // s-rta-0927 fix rounds 1-2: a menu edit made while waiting counts
         const RoutineSnap mode = effectiveSnap(forcedSnap, r.ownSnap);
 
         if (r.pending)
@@ -672,11 +692,7 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
             }
             else if (newRequest && r.restore && beatAvailable)
             {
-                const double boundary = clock_.now().beat + beatsUntilBoundary(effectiveSnap(forcedSnap, r.ownSnap));
-                const double startBeat = r.startBeat, endPos = boundary - r.startBeat, pos = r.position;
-                scheduleGlides(r, boundary, [&r, startBeat, endPos, pos](const ControlPath& key) {
-                    return startBeat + std::min(busyUntil(*r.program, key, pos, endPos), endPos);
-                });
+                scheduleRestartGlides(r, forcedSnap);
             }
         }
         lastError_.clear();

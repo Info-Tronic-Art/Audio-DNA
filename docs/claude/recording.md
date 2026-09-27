@@ -80,8 +80,9 @@ routines reaching for the same control):
   playing one a thick frame, a teal sweep and "5/8" (pressed again: a drawn "back to the start" mark
   left of "5/8" until the restart lands; fix round); a red "!" marks a routine that could not restore
   or play something (kept after the run until Stop / a composition load); a routine playing on another
-  deck dims and the corner names it. A settings edit made while a pad waits reaches that start
-  (`RoutineEngine::resyncPending`, fix round). Every layer a waiting/playing routine drives on the shown deck
+  deck dims and the corner names it. A settings edit made while a pad waits reaches that start, and one
+  made while a pressed-again pad's restart waits reaches that restart (`RoutineEngine::resyncPending`, fix
+  rounds 1-2). Every layer a waiting/playing routine drives on the shown deck
   carries a band with its name (the routine cue, chartreuse `kRoutineCue`) over the top of the strip's
   picture (two at most, "+N"); the band's
   x takes the whole routine off, and the layer X takes every routine off that layer
