@@ -51,8 +51,15 @@ routines reaching for the same control):
   switched off with a glide in flight — lets go where it is. No `read` wired, or no beat when fired:
   the continuous restore lands in one call at the boundary, as before. `/api/routine/status`
   `bank[].glides` = glides started and not yet released. The take replay's own restore stays a cut.
+  **Restore style** (s-rta-0926b, Boris "controls for jump or ease in each"): each routine's
+  `restoreStyle` is `"ease"` (default — the glide above) or `"jump"` (the whole restore in one call ON
+  the boundary at the start, every loop return and a restart, `read` never called), saved with the show
+  (a file without it loads as ease), set by `POST /api/routine/set {"restoreStyle": ...}` and reported as
+  `/api/routine/status` `bank[].restoreStyle`.
 - **Stop**: `POST /api/routine/stop` (`{"slot":N}` or `{"all":true}`) releases every grip the
-  routine holds.
+  routine holds. The TopBar Stop (`[]`, tooltip "Stop all routines") and the `GlobalStop` key/MIDI
+  binding stop every running and waiting routine and nothing else — no clip is stopped, paused or
+  rewound (Boris 2026-09-26, "we can keep stop for routines only").
 - **Stacking (Boris ruling 22/his "signal" framing; F1 in the build plan)**: two routines reaching
   for the same control — the one whose gesture BEGAN LATER wins for the rest of that gesture; the
   earlier routine stays displaced until its own NEXT gesture (it does not resume when the later one

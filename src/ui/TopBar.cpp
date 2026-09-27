@@ -34,6 +34,7 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     playButton_.onClick  = [this] { if (onPlay)  onPlay(); };
     pauseButton_.onClick = [this] { if (onPause) onPause(); };
     stopButton_.onClick  = [this] { if (onStop)  onStop(); };
+    stopButton_.setTooltip("Stop all routines");   // s-rta-0926b: Stop is for routines only
 
     // Tempo display
     addAndMakeVisible(tempoLabel_);

@@ -1,0 +1,14 @@
+# The SCRATCH-only REST hook used for the ITEM 1 RED/GREEN live witness (built into the two witness
+# app snapshots only; removed before commit f8d1d6e -- `grep -c SCRATCH src/MainComponent.cpp` == 0).
+# It is reached through POST /api/routine/set {"slot":0,"name":"__scratch_stop_button"|"__scratch_stop_binding"}
+# and calls the REAL handlers: topBar_->onStop() and handleBindingAction(GlobalStop, 1.0).
+--- a/src/MainComponent.cpp  (perfRoutineSet, top)
++++ b/src/MainComponent.cpp
+@@ std::string MainComponent::perfRoutineSet(const ApiServer::RoutineSetOpts& opts)
+ {
++    // SCRATCH-HOOK-ROUTINES-FOLLOWUP (ITEM 1 RED/GREEN witness only -- NEVER committed)
++    if (opts.name == "__scratch_stop_button") { if (topBar_ && topBar_->onStop) topBar_->onStop(); return {}; }
++    if (opts.name == "__scratch_stop_binding") { Binding b; b.action = Binding::Action::GlobalStop; handleBindingAction(b, 1.0f); return {}; }
+     Routine* routine = composition_.routineInSlot(opts.slot);
+# RED app (main 41aeb23 + hook + the new ctest) sha256 90e8091ce39cfe59d3006420b83c9c77d0f8037f078a318b62a13b889cb02133
+# GREEN app (ITEM 1 fix + hook)                sha256 3fec98c22b61cc4914a3d35a6a668746eb90f360060d677ac8482c794b4360d9

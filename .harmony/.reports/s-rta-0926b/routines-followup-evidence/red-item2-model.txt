@@ -1,0 +1,28 @@
+Filters: [restorestyle]
+Randomness seeded to: 2778828805
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_routine is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+Routine: the restore style round-trips; a file without it, or with an unknown
+         one, loads as Ease
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine.cpp:284
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine.cpp:299: FAILED:
+  CHECK( savedRoutines->getReference(0).getProperty("restoreStyle", "").toString() == "jump" )
+with expansion:
+   == "jump"
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/tests/test_routine.cpp:304: FAILED:
+  CHECK( back.routineInSlot(0)->restoreStyle == Routine::RestoreStyle::Jump )
+with expansion:
+  0 == 1
+
+===============================================================================
+test cases:  1 |  0 passed | 1 failed
+assertions: 14 | 12 passed | 2 failed
+

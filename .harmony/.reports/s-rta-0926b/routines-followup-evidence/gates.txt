@@ -1,0 +1,12 @@
+(lock acquired: routines-followup 96303 1790485048 at 01:07:09)
+cb875808196d1f13f1f7c269aaa35375b3e21aea9966e7867a51d61b5db08447  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_156f9cfa-a36-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA
+== probe-manual-bpm
+exit 0
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/probe-out/manual-bpm/run-20260927-010709-98771)
+== probe-resync
+exit 0
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/probe-out/resync)
+== probe-mastersignal
+exit 0
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup/probe-out/mastersignal)
+(lock released at 01:08:45)

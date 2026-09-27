@@ -699,17 +699,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
     topBar_->onStop = [this] {
-        // s-rta-0926 routines (plan 4.3, ruling 5 "Stop means stop"): running and waiting routines
-        // stop too, letting go of every control they hold.
+        // s-rta-0926b (Boris 2026-09-26, "ok we can keep stop for routines only"): Stop stops every
+        // running and waiting routine, letting go of every control they hold -- and nothing else: no
+        // clip is stopped, paused or rewound. The GlobalStop binding does the same.
         routineEngine_.stopAll();
-        if (auto* deck = composition_.getActiveDeck())
-        {
-            const uint64_t group = recorderHost_.nextGroupId();
-            for (int l = 0; l < deck->getNumLayers(); ++l)
-                if (auto* layer = deck->getLayer(l))
-                    if (layer->getActiveClip())
-                        applyClipPlaying(l, layer->activeClipColumn, "stop", Origin::Human, group);
-        }
     };
 
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
@@ -5690,9 +5683,12 @@ std::string MainComponent::perfRoutineSet(const ApiServer::RoutineSetOpts& opts)
         return msg;
     }
     // A running routine picks up loop / restore at its next end, quantize at its next (re)start,
-    // the name at once (the bank listing is re-read every tick).
+    // the restore style (Ease / Jump) when it next plans a restore (a fire, a re-fire, or the last beat
+    // of a loop), the name at once (the bank listing is re-read every tick).
     if (opts.loop)         routine->loop = *opts.loop;
     if (opts.restoreState) routine->restoreState = *opts.restoreState;
+    if (opts.restoreStyle.isNotEmpty())
+        routine->restoreStyle = Routine::restoreStyleFromString(opts.restoreStyle);
     if (opts.quantize.isNotEmpty())
         routine->quantize = Routine::quantizeFromString(opts.quantize);
     if (opts.name.isNotEmpty())
@@ -5710,7 +5706,10 @@ std::string MainComponent::perfRoutineSet(const ApiServer::RoutineSetOpts& opts)
         }
         routineEngine_.dispatch.notify("Routine " + routine->name + ": "
                                        + (routine->loop ? "loops" : "plays once") + ", "
-                                       + (routine->restoreState ? "restores first" : "starts from now")
+                                       + (routine->restoreState
+                                              ? (routine->restoreStyle == Routine::RestoreStyle::Jump
+                                                     ? "restores first (jump)" : "restores first (ease)")
+                                              : "starts from now")
                                        + ", starts " + when);
     }
     return {};
@@ -5765,6 +5764,7 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("lengthBeats", sl.lengthBeats);
         p->setProperty("loop", sl.loop);
         p->setProperty("restoreState", sl.restoreState);
+        p->setProperty("restoreStyle", juce::String(sl.restoreStyle));   // s-rta-0926b: "ease" | "jump"
         p->setProperty("quantize", juce::String(sl.quantize));
         p->setProperty("lanes", sl.lanes);
         p->setProperty("preambleEntries", sl.preambleEntries);
@@ -7228,11 +7228,10 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             break;
 
         case Binding::Action::GlobalStop:
+            // s-rta-0926b: the "Stop" binding follows the TopBar Stop -- routines only (Boris 2026-09-26).
+            // The audio file's stop stays on the Play / Pause binding (it stops a playing file).
             if (value > 0.0f)
-            {
-                routineEngine_.stopAll();   // s-rta-0926: Stop also stops routines (plan 4.3)
-                applyAudioTransport("stop", Origin::Human);
-            }
+                routineEngine_.stopAll();
             break;
 
         case Binding::Action::TriggerRoutine:

@@ -1,8 +1,8 @@
 #!/bin/bash
 # probe-manual-bpm.sh -- s-rta-0926 lane manual-bpm live gate: in Manual BPM mode the beat phase
 # free-runs from the manual BPM; a beat the analysis detects in the audio NEVER moves it. The only
-# manual realignments are Resync (POST /api/resync, OSC /audiodna/resync, TopBar Resync) and Tap /
-# a new set_bpm.
+# manual realignments are Resync (POST /api/resync, OSC /audiodna/resync, TopBar Resync) and Tap --
+# a typed / REST / OSC set_bpm only changes the tempo, never the beat (s-rta-0926b plan3 A; mode setbpm).
 #
 # BUG this pins (routine-grid lane, .harmony/notebook.md s-rta-0926 routine-grid): BPMTracker's
 # manual branch still ran updatePhase()'s hard reset on an aubio beat at confidence >= 0.5, so at a

@@ -278,6 +278,49 @@ TEST_CASE("Routine: composition round-trip, legacy file, unknown quantize, orpha
     }
 }
 
+// === s-rta-0926b routines-followup ITEM 2: the per-routine restore style (Ease / Jump) is saved with the show ===
+
+TEST_CASE("Routine: the restore style round-trips; a file without it, or with an unknown one, loads as Ease",
+          "[routine][model][restorestyle]")
+{
+    Composition comp = makeComposition();
+    Routine r;
+    r.uuid = "style-uuid";
+    r.name = "Jumper";
+    CHECK(r.restoreStyle == Routine::RestoreStyle::Ease);   // the default
+    r.restoreStyle = Routine::RestoreStyle::Jump;
+    comp.routines.push_back(r);
+    REQUIRE(comp.assignRoutineSlot(0, r.uuid));
+
+    const juce::var saved = comp.toVar();
+    auto* savedRoutines = saved.getDynamicObject()->getProperty("routines").getArray();
+    REQUIRE(savedRoutines != nullptr);
+    REQUIRE(savedRoutines->size() == 1);
+    CHECK(savedRoutines->getReference(0).getProperty("restoreStyle", "").toString() == "jump");   // a string (D12)
+
+    Composition back;
+    back.fromVar(saved);
+    REQUIRE(back.routineInSlot(0) != nullptr);
+    CHECK(back.routineInSlot(0)->restoreStyle == Routine::RestoreStyle::Jump);
+    CHECK(routinesJson(comp) == routinesJson(back));
+
+    // A routine saved before the setting existed (no key) loads as Ease; so does an unknown value.
+    for (const juce::var& style : { juce::var(), juce::var("sideways") })
+    {
+        const juce::var v = comp.toVar();
+        auto* obj = v.getDynamicObject()->getProperty("routines").getArray()->getReference(0).getDynamicObject();
+        REQUIRE(obj != nullptr);
+        if (style.isVoid())
+            obj->removeProperty("restoreStyle");
+        else
+            obj->setProperty("restoreStyle", style);
+        Composition loaded;
+        loaded.fromVar(v);
+        REQUIRE(loaded.routineInSlot(0) != nullptr);
+        CHECK(loaded.routineInSlot(0)->restoreStyle == Routine::RestoreStyle::Ease);
+    }
+}
+
 // === 2: slice cuts, rebases, synthesizes straddling breakpoints, and builds the restore list ===
 
 TEST_CASE("sliceRoutine: rebases to routine beats, synthesizes straddling breakpoints, restore list in order", "[routine][slice]")
