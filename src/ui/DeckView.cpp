@@ -594,7 +594,11 @@ void DeckView::showRoutinePadMenu(int slot)
         }
         if (item.separatorBefore)
             menu.addSeparator();
-        menu.addItem(static_cast<int>(item.id), item.label, item.enabled, item.ticked);
+        if (item.destructive)   // "Delete routine": the app's warning red (s-rta-0927 fix round)
+            menu.addColouredItem(static_cast<int>(item.id), item.label, juce::Colour(AudioDNALookAndFeel::kMeterRed),
+                                 item.enabled, item.ticked);
+        else
+            menu.addItem(static_cast<int>(item.id), item.label, item.enabled, item.ticked);
     }
     menu.setLookAndFeel(&getLookAndFeel());   // the app LookAndFeel: a menu parented to the top-level window would draw stock
     menu.showMenuAsync(juce::PopupMenu::Options()

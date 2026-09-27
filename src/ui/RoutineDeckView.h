@@ -61,6 +61,7 @@ struct RoutineDeckView
         PadMenu id;
         juce::String label;
         bool enabled = true, ticked = false, separatorBefore = false, inQuantizeSubmenu = false;
+        bool destructive = false;       // irreversible: DeckView paints it in the app's warning red
     };
 };
 
@@ -262,7 +263,7 @@ inline std::vector<RoutineDeckView::MenuItem> padMenu(const RoutineDeckView::Pad
         { M::QuantizeFourBar,  "4 Bar",              true, pad.quantize == "4bar", false, true },
         { M::Rename,           "Rename...",          true, false,                false, false },
         { M::RemoveFromLayers, "Remove from layers", live, false,                false, false },
-        { M::DeleteRoutine,    "Delete routine",     true, false,                true,  false },
+        { M::DeleteRoutine,    "Delete routine",     true, false,                true,  false, true },
     };
 }
 

@@ -242,6 +242,11 @@ TEST_CASE("RoutineDeckView padMenu: order, ticks, Remove from layers only while 
     CHECK(items.back().id == M::DeleteRoutine);
     CHECK(items.back().separatorBefore);
     CHECK(items.back().label == "Delete routine");
+    // s-rta-0927 fix round: the one irreversible row is marked destructive (DeckView paints it warning red);
+    // nothing else is.
+    CHECK(items.back().destructive);
+    for (size_t i = 0; i + 1 < items.size(); ++i)
+        CHECK_FALSE(items[i].destructive);
     for (const auto& it : items)
         CHECK_FALSE(it.label.containsIgnoreCase("stop"));   // no Stop row anywhere
 

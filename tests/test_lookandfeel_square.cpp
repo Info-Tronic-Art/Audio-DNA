@@ -188,3 +188,38 @@ TEST_CASE("a Label whose text colour is transparent draws no text (the AlertWind
     hidden.setLookAndFeel(nullptr);
     shown.setLookAndFeel(nullptr);
 }
+
+// s-rta-0927 routine display fix round (critic SHOULD): a destructive menu row ("Delete routine") is added with
+// PopupMenu::addColouredItem in the app's warning red -- the app LookAndFeel used to ignore the item colour.
+TEST_CASE("a popup menu item given a colour draws its text in that colour; an item without one stays kTextPrimary",
+          "[lookandfeel][s-rta-0927]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    AudioDNALookAndFeel laf;
+    const juce::Colour red(AudioDNALookAndFeel::kMeterRed);
+
+    auto render = [&laf](const juce::Colour* colour, bool highlighted) {
+        juce::Image img(juce::Image::ARGB, 200, 24, true);
+        juce::Graphics g(img);
+        laf.drawPopupMenuItem(g, img.getBounds(), false, true, highlighted, false, false, "Delete routine", {},
+                              nullptr, colour);
+        return img;
+    };
+    auto redPixels = [](const juce::Image& img) {
+        int n = 0;
+        for (int y = 0; y < img.getHeight(); ++y)
+            for (int x = 0; x < img.getWidth(); ++x)
+            {
+                const auto c = img.getPixelAt(x, y);
+                if (c.getAlpha() > 60 && c.getRed() > 150 && c.getGreen() < 90 && c.getBlue() < 110)
+                    ++n;
+            }
+        return n;
+    };
+
+    INFO("red text pixels: coloured " << redPixels(render(&red, false)) << ", coloured+highlighted "
+         << redPixels(render(&red, true)) << ", plain " << redPixels(render(nullptr, false)));
+    CHECK(redPixels(render(&red, false)) >= 20);
+    CHECK(redPixels(render(&red, true)) >= 20);   // still red under the hover highlight
+    CHECK(redPixels(render(nullptr, false)) == 0);
+}
