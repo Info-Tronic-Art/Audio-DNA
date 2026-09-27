@@ -1774,3 +1774,15 @@ hand-written functions with no shared layout model.
   `grep AUDIODNA_BUILD_TEST_SERVER build-lane/CMakeCache.txt` (the main checkout's build/ is ON) before reading it
   as one.
 - Valid while: the option defaults OFF and probe-canvas uses the 8080 TestServer.
+
+## 2026-09-27 s-rta-0926b — methods worth repeating (Harmony)
+- Design pipeline that held all night: Fable draft -> 2-4 blind critic seats (distinct temperaments) -> Fable final ruling
+  (verifies every critic point in source) -> Harmony adopts -> builder lane -> pinned reviewer + critic panel -> <= 1 fix
+  round -> Harmony RED-first on the pre-change build -> merge -> rebuild -> ctest serial -> full live suite -> look at frames.
+- When a lane's merge into main CONFLICTS in source: `git merge --abort` on main, then a builder merges main INTO the lane
+  branch inside its worktree (keep both sides; diff the resolution against BOTH parents), rebuild, re-probe, a reviewer checks
+  the resolution; main only ever receives a clean merge. Merge the bigger lane first; re-base the smaller one on it.
+- A lane report that says DONE_WITH_CONCERNS or cites a count: re-derive it from disk before acting (the take census read
+  the wrong key; a stub harness drove another lane's app).
+- Timing probes: after any change that makes captures slower (canvas-sized readback), expect edge flakes in rows whose
+  windows end at the next scheduled event; give windows >= 0.1 s margin.
