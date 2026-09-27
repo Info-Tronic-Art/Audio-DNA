@@ -18,9 +18,33 @@
 #   * ApiServer = http://127.0.0.1:7070 (IPv4 ONLY), PRODUCTION mode, NO --test-mode (test mode
 #     never starts AnalysisThread -- requestResync() would never be applied; probe-tempo-silence.sh's
 #     lesson, cited in the downbeat probe header, applies here too -- see plan section 3.0).
-#   * Launch via `open`; every pgrep uses the bracket trick 'MacOS/Audio-DN[A]'.
+#   * Launch via `open`; every pgrep/pkill is adna_pids/adna_running/adna_kill (ucomm-based; see the
+#     PROBE RIG GATE note below).
 #   * SCREEN-SAFETY LAW: never open the Output window; graceful osascript quit first, pkill last.
+# PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
+# /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
+# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
+# exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
+# exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
+# -o argument is ".../MacOS/Audio-DNA" has REAL ucomm clang/ld, never matched (the old `pgrep -f`
+# substring match DID match it -- that was the bug); (2) a process that spoofs argv[0] via
+# `exec -a .../MacOS/Audio-DNA <cmd>` still has the REAL exec'd command's ucomm (e.g. "sleep"), also
+# never matched -- `pgrep -x` alone is NOT enough here, since macOS pgrep without -f still matches
+# on the (spoofable) comm/argv[0] field, not on ucomm.
 set -u
+# --- live-lock gate: refuse unless the caller holds /tmp/audiodna-live.lock (rig rule) ---
+LOCK_OWNER_FILE=/tmp/audiodna-live.lock/owner
+[ -f "$LOCK_OWNER_FILE" ] || { echo "REFUSE: no live lock held -- mkdir /tmp/audiodna-live.lock && echo \"<lane> \$\$ \$(date +%s)\" > $LOCK_OWNER_FILE first"; exit 64; }
+if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
+  LOCK_OWNER="$(cut -d' ' -f1 "$LOCK_OWNER_FILE" 2>/dev/null)"
+  [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
+fi
+# adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
+adna_running() { [ -n "$(adna_pids)" ]; }
+adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT="${1:-/tmp/audiodna-resync}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="${RESYNC_BUILD_DIR:-build-lane}"
@@ -44,13 +68,13 @@ except Exception as e:
 }
 
 # --- 1. preconditions + production launch (probe-downbeat-level.sh section 1, verbatim) --------
-pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set RESYNC_BUILD_DIR to override)"; exit 64; }
 : > "$OUT/adna-out.log"; : > "$OUT/adna-err.log"      # open --stdout/--stderr APPEND: clear first
 open -g --stdout "$OUT/adna-out.log" --stderr "$OUT/adna-err.log" "$APPBUNDLE"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (TCC mic prompt? screencapture -x and LOOK)"; exit 1; }
-PID="$(pgrep -f 'MacOS/Audio-DN[A]' | head -1)"
+PID="$(adna_pids | head -1)"
 [ -n "$PID" ] || { echo "FAIL: health answered but no Audio-DNA process was found"; exit 1; }
 ok "app launched (production), /api/health answered, PID=$PID"
 
@@ -270,13 +294,13 @@ fi
 
 # --- 8. teardown (probe-downbeat-level.sh section 5, verbatim) -----------------------------------
 osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-for _ in $(seq 1 30); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
-if pgrep -f 'MacOS/Audio-DN[A]' >/dev/null; then
+for _ in $(seq 1 30); do adna_running || break; sleep 1; done
+if adna_running; then
     echo "graceful osascript quit did not clear the process -- falling back to pkill (last resort)"
-    pkill -f 'MacOS/Audio-DN[A]' >/dev/null 2>&1
-    for _ in $(seq 1 20); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
+    adna_kill
+    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
 fi
-pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
+adna_running && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
 if [ -x "$VENV_PY" ]; then
     W="$("$VENV_PY" -c "
 import Quartz

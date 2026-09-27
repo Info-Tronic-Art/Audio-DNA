@@ -77,4 +77,17 @@ requests.post(f"{BASE}/api/load_source", json={"source_type": "perlin_noise"})
 requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/source_test.png", "time": 1.0})
 ```
 
+#### Probe rig rules (`.harmony/probe-*.sh`, distinct from Eyes above)
+
+The production-mode live probes in `.harmony/probe-*.sh` (not the `--test-mode` Eyes harness) each
+refuse (exit 64) unless `/tmp/audiodna-live.lock/owner` exists, and honor `AUDIODNA_LOCK_OWNER` if
+set. They detect/terminate the app via `adna_pids`/`adna_running`/`adna_kill` helpers defined in
+each script, which filter `ps -o ucomm=` for exactly `Audio-DNA` -- the kernel's real exec-time
+process name, immune to a build's linker/compiler command line containing that path as an `-o`
+argument, and immune to a process spoofing argv[0] via `exec -a .../MacOS/Audio-DNA <cmd>` (both
+would falsely match a plain `pgrep -f`/`pgrep -x` substring or comm check). `probe-crossfade.py` and
+`probe-render-state.py`'s `cap()` also delete any pre-existing output PNG before requesting a new
+one and require the written file's mtime to postdate the request (ported from
+`probe-effects-parity.py`'s `cap()`), so a probe never decodes a stale frame from a previous run.
+
 ---
