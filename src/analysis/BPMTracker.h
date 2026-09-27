@@ -146,9 +146,11 @@ public:
     void setManualBPM(float bpm);
 
     // Ableton Link tick (MainComponent's ~30 Hz timer re-sends Link's tempo every tick): the
-    // same request as setManualBPM(), except an UNCHANGED tempo (== the BPM in force when the
-    // analysis thread applies it) leaves the phase free-running. A changed tempo realigns, as
-    // before. setManualBPM() here re-zeroed the phase ~30x/s, so it never reached a beat.
+    // same request as setManualBPM(), except it NEVER realigns -- changed or unchanged, the new
+    // tempo only changes the rate the phase runs at (s-rta-0926b bpm2, LINK-RAMP ruling b).
+    // The phase is not aligned to Link's own beat (LinkSync::getBeatPhase() is not followed),
+    // so any reset here would be an arbitrary jump: setManualBPM() here re-zeroed the phase
+    // ~30x/s, and a peer's tempo ramp re-zeroed it on every tick that carried a new tempo.
     void followExternalTempo(float bpm);
 
     // Manual mode: freeze the stabilization pipeline, use manually-set BPM.
@@ -275,7 +277,7 @@ private:
     // (exchange) at the start of runPipeline(). 0 = empty. The word carries everything,
     // so relaxed ordering suffices (as resyncRequests_).
     static constexpr uint64_t kTempoPending = uint64_t{1} << 63;
-    static constexpr uint64_t kTempoRealign = uint64_t{1} << 32;   // realign even if unchanged
+    static constexpr uint64_t kTempoRealign = uint64_t{1} << 32;   // setManualBPM: realign (phase 0); unset: phase untouched
     // low 32 bits: the requested BPM's float bits
     std::atomic<uint64_t> tempoRequest_{0};
     static_assert(std::atomic<uint64_t>::is_always_lock_free, "tempo requests must be lock-free");

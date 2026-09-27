@@ -587,15 +587,17 @@ void BPMTracker::postTempoRequest(float bpm, bool realign)   // any thread -- wr
 void BPMTracker::applyTempoRequest(float bpm, bool realign)   // analysis thread only -- from runPipeline()
 {
     // The body setManualBPM() used to run on the calling thread, except that a
-    // followExternalTempo() request with an unchanged tempo keeps the phase running.
+    // followExternalTempo() request (realign == false) never touches the phase:
+    // s-rta-0926b bpm2, LINK-RAMP ruling (b) -- a Link tempo, changed or unchanged,
+    // leaves the phase continuous (it is not aligned to Link's beat, so a reset
+    // here would only be an arbitrary jump, e.g. on every tick of a peer's ramp).
     float folded = foldBPMToRange(bpm);
-    const bool tempoChanged = (folded != lockedBPM_);
     lockedBPM_ = folded;
     candidateBPM_ = folded;
     lastConfidentBPM_ = folded;
     trackerState_ = STATE_LOCKED;
     consistencyCounter_ = kHysteresisHops; // Already locked
-    if (realign || tempoChanged)
+    if (realign)
         phase_ = 0.0f;
 }
 

@@ -1166,10 +1166,62 @@ TEST_CASE("Ableton Link: an unchanged tempo re-sent every UI tick (~30 Hz) never
         REQUIRE(barHops[i] - barHops[i - 1] <= 188);
     }
 
-    // A CHANGED Link tempo is applied on the next hop and realigns, as every tempo change did.
+    // s-rta-0926b bpm2 (LINK-RAMP ruling b): a CHANGED Link tempo is applied on the next hop
+    // and does NOT realign either -- the phase keeps running, now at the new tempo.
+    const float before = tracker.beatPhase();
     tracker.setManualMode(true);
     tracker.followExternalTempo(128.0f);
     quietHop(tracker);
     REQUIRE_THAT(tracker.bpm(), WithinAbs(128.0, 1e-3));
-    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(128.0f), 1e-6));
+    REQUIRE_FALSE(phaseJumped(before, tracker.beatPhase(), manualPhaseInc(128.0f)));
+}
+
+TEST_CASE("Ableton Link: a peer's tempo ramp (120 -> 128 over 2 s of 30 Hz ticks) never realigns the phase",
+          "[bpm][manual][link][s-rta-0926b]")
+{
+    // s-rta-0926b bpm2, LINK-RAMP ruling (b): a tempo that arrives from Link never touches the
+    // beat phase, changed or unchanged. The phase is not aligned to Link's own beat (LinkSync's
+    // phase is not followed), so any reset here is an arbitrary jump. RED pre-fix: every tick
+    // that carried a new tempo re-zeroed the phase.
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualMode(true);
+    tracker.setManualBPM(120.0f);
+    for (int i = 0; i < 50; ++i) quietHop(tracker);   // the phase free-runs at 120 before the ramp
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 1e-3));
+
+    const double hopsPerTick = (48000.0 / 512.0) / 30.0;   // 3.125 hops between UI ticks
+    constexpr int kTicks = 60;                              // 2 s at 30 Hz
+    int ticks = 0, jumps = 0, firstJumpHop = -1, tempoSteps = 0;
+    float prev = tracker.beatPhase();
+    float prevBpm = tracker.bpm();
+    double nextTick = 0.0;
+    for (int h = 0; h < 250; ++h)   // the 2 s ramp plus ~0.6 s at the final tempo
+    {
+        if (ticks < kTicks && h >= nextTick)
+        {
+            const float linkBpm = 120.0f + 8.0f * static_cast<float>(ticks) / static_cast<float>(kTicks - 1);
+            tracker.setManualMode(true);           // the Link tick's tracker calls
+            tracker.followExternalTempo(linkBpm);
+            ++ticks;
+            nextTick += hopsPerTick;
+        }
+        quietHop(tracker);
+        const float now = tracker.beatPhase();
+        // The tempo request is applied at the start of the hop, so this hop advanced at bpm().
+        if (phaseJumped(prev, now, manualPhaseInc(tracker.bpm())))
+        {
+            ++jumps;
+            if (firstJumpHop < 0) firstJumpHop = h;
+        }
+        if (tracker.bpm() != prevBpm) ++tempoSteps;
+        prev = now;
+        prevBpm = tracker.bpm();
+    }
+
+    INFO("Link ticks " << ticks << ", tempo steps applied " << tempoSteps << ", phase jumps " << jumps
+         << " (first at hop " << firstJumpHop << ")");
+    REQUIRE(ticks == kTicks);
+    REQUIRE(tempoSteps >= kTicks - 1);                          // non-vacuous: the tempo really ramped
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(128.0, 1e-3));        // and landed on the new tempo
+    REQUIRE(jumps == 0);                                        // RED pre-fix: a reset per changed tick
 }
