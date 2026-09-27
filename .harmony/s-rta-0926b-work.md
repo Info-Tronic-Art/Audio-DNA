@@ -37,3 +37,17 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
 - merged 7713aa4 render, efa40ab bpm, c9823ef recorder; build/ reconfigured + rebuilt 20:23; ctest 588/588 (serial).
 - MY ERROR: `cd .harmony && ...` moved the main loop cwd (same as s-rta-0926 error #5). Restored. Habit: no `cd` in the
   main loop at all — absolute paths, git -C, script files.
+- Harmony GREEN on merged build/ (5f84899 code = c9823ef): render-state "PY 19 PASS / 0 FAIL"; crossfade "PY 35 PASS / 0 FAIL";
+  effects-parity "PY 46 PASS / 0 FAIL"; manual-bpm 18/0; downbeat 14/0; routines 74/0 (pause 1.8); mastersignal 22/0;
+  tempo witness GREEN (tempoMap start anchor bpm 120 at 1.5 s). Frame looked at: k_outgoing_transform refA/mid02/05/08/refB
+  strip — real blend of the scaled outgoing clip into the incoming grid.
+- resync 15/1 once (V2 opacity 0.3987 at 64 ms) -> A/B/C x2 (merged / bpm-only W2 / render-only W1): 6/6 16/0 (V2 0.003-0.009
+  at 62-108 ms). NOT a regression. INFERRED cause: load avg ~13 right after build+ctest delayed state publish past 64 ms.
+- step3 T2 p95 FAIL on ALL three builds (merged 19.57, bpm-only 17.29, render-only 16.17; all other 93 rows PASS). Render-only
+  touches no analysis/capture code -> ENVIRONMENTAL (Stremio running ~25% CPU, same as s-rta-0926 bisect). Cheapest
+  discriminating test: re-run probe-step3 on build/ with Stremio closed (Boris's app — ask).
+- 20:5x wave 2 launched (wf_b6cc814e-3f6): render2 (W1, opus: ruling steps 1-4 + empty-active-deck persistence + docs),
+  bpm2 (W2, opus: LINK-RAMP (b) + default-build Link toggle disabled/never feeds 120 BPM + nits/docs), probehygiene
+  (isolated, sonnet: probe-effects-parity fresh dir + render_frame check). Paused ~10 min for a quiet step3 run.
+- Boris closed Stremio 20:5x -> probe-step3 on merged build/ x2: 94 PASS / 0 FAIL both (p95 10.11 / 10.75 ms). T2 miss was
+  ENVIRONMENTAL (Stremio) — CLOSED. Wave 2 resumed (wu2yiazvi).
