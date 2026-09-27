@@ -255,7 +255,8 @@ void CompDecksBrowser::confirmDelete(bool decksSection, int row)
     const juce::File file = entries[static_cast<size_t>(row)].file;
     const juce::String name = entries[static_cast<size_t>(row)].name;
 
-    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::WarningIcon, "Delete from Library",
+    // NoIcon + associatedComponent = this: the dialog is created by -- and draws with -- the app LookAndFeel.
+    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::NoIcon, "Delete from Library",
         "Delete \"" + name + "\" from the library?\n\nThe file will be moved to the Trash.",
         "Delete", "Cancel", this,
         juce::ModalCallbackFunction::create([this, file](int result) {

@@ -2927,7 +2927,8 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
 void MainComponent::confirmReplaceShow(const juce::String& title, const juce::String& question,
                                        const juce::String& okLabel, std::function<void()> proceed)
 {
-    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::QuestionIcon, title,
+    // NoIcon + associatedComponent = this: the dialog is created by -- and draws with -- the app LookAndFeel.
+    juce::AlertWindow::showOkCancelBox(juce::MessageBoxIconType::NoIcon, title,
         question + "\n\nEverything playing now will be replaced. To keep the current composition, Cancel and save it first.",
         okLabel, "Cancel", this,
         juce::ModalCallbackFunction::create([proceed = std::move(proceed)](int result) {
@@ -3326,6 +3327,7 @@ void MainComponent::renameDeck(int deckIndex)
     const std::string oldName = composition_.decks[static_cast<size_t>(deckIndex)].name;
 
     auto* w = new juce::AlertWindow("Rename Deck", "", juce::MessageBoxIconType::NoIcon);
+    w->setLookAndFeel(&lookAndFeel_);   // a top-level window: it does not inherit MainComponent's LookAndFeel
     w->addTextEditor("name", juce::String(oldName));
     w->addButton("Rename", 1, juce::KeyPress(juce::KeyPress::returnKey));
     w->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));

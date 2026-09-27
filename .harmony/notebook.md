@@ -1630,4 +1630,10 @@ hand-written functions with no shared layout model.
   creation (setupDeckTabs) -- before plan6 a deck switch left NO tab green.
 - Every juce::AlertWindow here draws with the JUCE default LookAndFeel (rounded buttons): only MainComponent calls
   setLookAndFeel (no setDefaultLookAndFeel anywhere), and a top-level AlertWindow does not inherit it.
+  Fix-round fix (plan6 dialogs only): AudioDNALookAndFeel::createAlertWindow calls aw->setLookAndFeel(this), so
+  AlertWindow::showOkCancelBox(..., associatedComponent = a component under MainComponent, ...) draws square with app
+  colours (JUCE creates it via associatedComponent->getLookAndFeel(), detail/juce_AlertWindowHelpers.h); a hand-built
+  `new AlertWindow` needs its own setLookAndFeel(&lookAndFeel_). drawAlertBox draws no icon -- pass NoIcon (an icon
+  type still reserves 80 px and left-justifies the text). The showMessageBoxAsync calls pass no component, so they
+  still draw stock/rounded until someone passes one.
 - Valid while DeckView/CompDecksBrowser keep this shape and JUCE's PopupMenu keeps the foreground check.
