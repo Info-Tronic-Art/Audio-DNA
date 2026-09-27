@@ -280,6 +280,12 @@ void ApiServer::setupRoutes()
     // s-rta-0925 (probe enabler, end-of-replay plan section 5): puts the app on the live input or (if
     // loaded) the file transport -- a dev/probe control, documented in the inventory row.
     server_.Post("/api/audio/source", [this](const httplib::Request& req, httplib::Response& res) { handleAudioSource(req, res); });
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0927 beat clock (TEST-ONLY build path: absent from a build without AUDIODNA_BUILD_TEST_SERVER;
+    // needs no --test-mode): sleeps the MESSAGE thread for `ms` (1..2000) -- the deterministic stall
+    // probe-beatclock.sh and probe-routines row 7s use as their RED. Answers at once.
+    server_.Post("/api/debug/stall_message_thread", [this](const httplib::Request& req, httplib::Response& res) { handleDebugStallMessageThread(req, res); });
+#endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
     // as a routine on a pad, fire / stop / edit / remove it, and read the bank back.
@@ -742,6 +748,7 @@ void ApiServer::handleGetBpm(const httplib::Request&, httplib::Response& res)
     // s-rta-0925: totalBarCount at the last MANUAL Resync (0 until the first one) -- read in the
     // same coherent snapshot so a poller can compute barsSinceResync() itself.
     obj->setProperty("resyncBarOrigin", static_cast<int>(snap.resyncBarOrigin));
+    obj->setProperty("totalBeatCount", static_cast<juce::int64>(snap.totalBeatCount));   // s-rta-0927 beat clock
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
@@ -873,6 +880,11 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("resyncBarOrigin"))
         snap.resyncBarOrigin = static_cast<uint32_t>(std::clamp(static_cast<int>(json["resyncBarOrigin"]), 0,
                                                                   std::numeric_limits<int>::max()));
+    // s-rta-0927 beat clock: same clamp precedent -- an injected moving beatPhase must move totalBeatCount
+    // with it, or the routine/take clock reads every wrap as a realign and freezes (Pitfall 42).
+    if (json.hasProperty("totalBeatCount"))
+        snap.totalBeatCount = static_cast<uint32_t>(std::clamp(static_cast<int>(json["totalBeatCount"]), 0,
+                                                                 std::numeric_limits<int>::max()));
     if (json.hasProperty("spectralCentroid")) snap.spectralCentroid = static_cast<float>(static_cast<double>(json["spectralCentroid"]));
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
@@ -1562,6 +1574,28 @@ void ApiServer::handleAudioSource(const httplib::Request& req, httplib::Response
 
     res.set_content(jsonOk(), "application/json");
 }
+
+#if AUDIODNA_TEST_SERVER
+// s-rta-0927 beat clock (TEST-ONLY): sleeps inside ONE message, so the 120 Hz MappingTickTimer fires exactly
+// once on wake (juce_Timer.cpp callTimers resets the countdown on that fire) -- the recorded loadpost1
+// signature, on a quiet machine.
+void ApiServer::handleDebugStallMessageThread(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("ms"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("ms (1..2000) required"), "application/json");
+        return;
+    }
+    const int ms = std::clamp(static_cast<int>(json["ms"]), 1, 2000);
+    juce::MessageManager::callAsync([ms]() { juce::Thread::sleep(ms); });
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("ms", ms);
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+#endif
 
 // --- s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): /api/routine/* ---
 //

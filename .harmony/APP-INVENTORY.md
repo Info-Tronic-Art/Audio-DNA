@@ -157,7 +157,7 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 | 8 | POST | /api/set_master_signal | Master Signal depth (s-rta-0925 mastersignal Step 1), via manualWrite(compScalarPath("signal")) |
 | 9 | POST | /api/switch_deck | onSwitchDeck(deck) |
 | 10 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
-| 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, downbeatDetected (level) |
+| 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, resyncBarOrigin, totalBeatCount (s-rta-0927 beat clock), downbeatDetected (level) |
 | 12 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
 | 13 | POST | /api/resync | manual Resync via `BPMTracker::requestResync()` (s-rta-0925), same funnel as the TopBar Resync button |
 | 14 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |
@@ -200,6 +200,12 @@ when unwired; `handleRoutineStatus` (row 41) is synchronous, reading only `Routi
 
 Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 28 endpoints -- recounted s-rta-0927 from `server_.Get/Post` in `setupRoutes`, incl. outputs-c1's `set_output_tap` + `output_probe`) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
+
+TEST-ONLY build path on the production port (not a counted row): `POST /api/debug/stall_message_thread
+{"ms":1..2000}` (s-rta-0927 beat clock) sleeps the MESSAGE thread once for `ms` -- the deterministic stall
+`.harmony/probe-beatclock.sh` and `probe-routines.sh` row 7s use. Compiled only with
+`AUDIODNA_BUILD_TEST_SERVER=ON` (`#if AUDIODNA_TEST_SERVER`, `ApiServer.cpp`); needs no `--test-mode`;
+a build without the flag 404s it.
 
 ### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 

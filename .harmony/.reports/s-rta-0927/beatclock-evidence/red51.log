@@ -1,0 +1,21 @@
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1293:21: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1293:21: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1293:21: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1299:21: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1299:21: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1299:21: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1312:37: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1315:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1315:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1315:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1321:37: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1324:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1324:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1324:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1339:37: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1342:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1342:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1342:25: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_bpm_stabilization.cpp:1348:37: error: no member named 'totalBeatCount' in 'BPMTracker'; did you mean 'totalBarCount'?
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+RED51 compile exit 1

@@ -217,16 +217,18 @@ void BPMTracker::updatePhase(bool beat, float conf)
     float lockedPeriodSamples = (static_cast<float>(sampleRate_) * 60.0f) / lockedBPM_;
     phase_ += static_cast<float>(hopSize_) / lockedPeriodSamples;
 
-    // Wrap at 1.0
+    // Wrap at 1.0 -- s-rta-0927 beat clock: every whole beat the phase crossed is COUNTED, never discarded
     bool wrapped = (phase_ >= 1.0f);
     if (wrapped)
-        phase_ -= std::floor(phase_);
+    {
+        const float whole = std::floor(phase_);
+        totalBeatCount_ += static_cast<uint32_t>(whole);
+        phase_ -= whole;
+    }
 
     // Hard reset on high-confidence beat detection from aubio
     if (beat && conf >= kBeatResetConfidence)
-    {
-        phase_ = 0.0f;
-    }
+        realignPhaseToZero();
 
     // P24: while a real onset cannot arrive this hop (predictedBeatRegime_,
     // set by runPipeline), the predicted phase wrap is what drives
@@ -237,6 +239,17 @@ void BPMTracker::updatePhase(bool beat, float conf)
     {
         advancePredictedBeat();
     }
+}
+
+// s-rta-0927 beat clock: THE one rule for every hard realign (confident detection, Resync, Tap,
+// resetBeatPhase). The phase is exact here (per hop), so the "did the beat complete or restart" decision
+// RecorderClock.cpp used to make from a 120 Hz sample (its 0.5 rule) is made once, where a tick gap cannot
+// fool it: a realign from the second half completes the beat (+1), one from the first half restarts it.
+void BPMTracker::realignPhaseToZero()
+{
+    if (phase_ >= 0.5f)
+        ++totalBeatCount_;
+    phase_ = 0.0f;
 }
 
 void BPMTracker::advancePredictedBeat()
@@ -546,7 +559,7 @@ void BPMTracker::requestResync()
 
 void BPMTracker::applyResync()   // analysis thread only -- called last in feedDownbeatFeatures()
 {
-    phase_ = 0.0f;                     // this instant is the onset of beat 1
+    realignPhaseToZero();              // this instant is the onset of beat 1
     beatCounter_ = 0;
     beatInBar_ = 0;
     barPhase_ = 0.0f;
@@ -598,12 +611,12 @@ void BPMTracker::applyTempoRequest(float bpm, bool realign)   // analysis thread
     trackerState_ = STATE_LOCKED;
     consistencyCounter_ = kHysteresisHops; // Already locked
     if (realign)
-        phase_ = 0.0f;
+        realignPhaseToZero();
 }
 
 void BPMTracker::resetBeatPhase()
 {
-    phase_ = 0.0f;
+    realignPhaseToZero();
     beatInBar_ = 0;
     barPhase_ = 0.0f;
     beatCounter_ = 0;

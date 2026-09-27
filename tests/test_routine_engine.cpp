@@ -210,6 +210,7 @@ namespace
             s.bpm = 120.0f;
             s.trackerState = 2;
             s.beatPhase = static_cast<float>(beat - std::floor(beat));
+            s.totalBeatCount = static_cast<uint32_t>(std::floor(beat));   // s-rta-0927: what BPMTracker publishes
             s.beatInBar = static_cast<uint8_t>(static_cast<int>(std::floor(beat)) % 4);   // bar edges at multiples of 4
             const auto bars = static_cast<int>(std::floor(beat / 4.0));
             s.totalBarCount = totalBase + static_cast<uint32_t>(bars);
@@ -868,22 +869,23 @@ TEST_CASE("Routine: a move keeps its place in the bar when Record fell late in a
     EffectLibrary lib;
     lib.registerDefaults();
 
-    auto tracker = [](double phase) {
+    auto tracker = [](double beats) {   // s-rta-0927: the continuous beat -> count + phase, as BPMTracker publishes
         FeatureSnapshot s;
         s.clear();
         s.bpm = 120.0f;
         s.trackerState = 2;
-        s.beatPhase = static_cast<float>(phase);
+        s.beatPhase = static_cast<float>(beats - std::floor(beats));
+        s.totalBeatCount = static_cast<uint32_t>(std::floor(beats));
         return s;
     };
     RecorderClock clock;
-    double phase = 0.84, wall = 0.0;
-    clock.tick(tracker(phase), wall, 0);
+    double beats = 0.84, wall = 0.0;
+    clock.tick(tracker(beats), wall, 0);
     for (int i = 0; i < 72; ++i)   // 0.6 s at 120 Hz
     {
         wall += 1.0 / 120.0;
-        phase = std::fmod(phase + 1.0 / 60.0, 1.0);
-        clock.tick(tracker(phase), wall, 0);
+        beats += 1.0 / 60.0;
+        clock.tick(tracker(beats), wall, 0);
     }
     const ClockStamp moveAt = clock.now();
 
@@ -2137,4 +2139,109 @@ TEST_CASE("RoutineEngine display D7: a settings edit made while a restart waits 
         CHECK(rig.fd.count(Ev::Touch, op1) == 1);                       // the start's glide only
         CHECK(rig.slot(0).glides == 0);
     }
+}
+
+// === s-rta-0927 beat clock: a tick gap swallows no beat and no Beat edge (Pitfall 42) ===
+//
+// The 120 Hz message-thread tick can stall (a deck load held it 0.53 s in s-rta-0927's loadpost1 sample). The routine
+// clock (RecorderClock) and the Beat edge used to read the beatPhase sawtooth's wraps, so a gap carried only its
+// fractional part: every later event of a running routine landed a beat late for good, and a Beat-quantized start
+// missed any edge inside the gap. Both now read the tracker's counter (totalBeatCount).
+
+TEST_CASE("RoutineEngine: position is exact across a 1.1-beat tick gap and the point inside it fires once",
+          "[routine][engine][stall]")
+{
+    Rig rig;
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    addToBank(rig.comp, test7Routine(Clip::BeatSnapMode::Off), 0);
+    rig.tick();
+    rig.runTo(4.0);
+    CHECK(rig.fire(0).empty());                 // Off: starts now, startBeat 4.0
+    CHECK(rig.slot(0).state == "running");
+    rig.runTo(4.5);
+    CHECK(rig.fd.firedLanePoints(clipKey, 1) == 0);
+    rig.beat = 5.6;                             // the message thread slept 0.55 s
+    rig.tick();
+    CHECK(rig.slot(0).position == Approx(1.6));    // the old clock: 0.6
+    CHECK(rig.fd.firedLanePoints(clipKey, 1) == 1); // the point at routine beat 1.0
+}
+
+TEST_CASE("RoutineEngine: a Beat-quantized start survives a tick gap that swallows the beat edge", "[routine][engine][stall]")
+{
+    Rig rig;
+    addToBank(rig.comp, test7Routine(Clip::BeatSnapMode::Beat), 0);
+    rig.tick();
+    rig.runTo(4.25);
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.slot(0).state == "pending");
+    rig.beat = 4.5;
+    rig.tick();
+    CHECK(rig.slot(0).state == "pending");      // same beat (count 4 == 4)
+    rig.beat = 5.2;                             // a gap across the beat line at 5.0
+    rig.tick();
+    CHECK(rig.slot(0).state == "running");      // the old wrap test: 0.2 < 0.5 - 0.5 is false, no edge
+}
+
+TEST_CASE("RoutineEngine: several points inside one tick gap all fire, once each, in order, in the resume tick",
+          "[routine][engine][stall]")
+{
+    Rig rig;
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    Routine r = test7Routine(Clip::BeatSnapMode::Off);
+    r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 1), point(2, 1.25, 2), point(3, 1.5, 3) });
+    addToBank(rig.comp, r, 0);
+    rig.tick();
+    rig.runTo(4.0);
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.5);
+    const size_t n = rig.fd.log.size();
+    rig.beat = 5.6;
+    rig.tick();
+    const auto ev = rig.fd.on(clipKey, n);
+    REQUIRE(ev.size() == 3);                    // the old clock: none (position 0.6)
+    for (size_t i = 0; i < ev.size(); ++i)
+    {
+        CHECK(ev[i].type == Ev::Fire);
+        CHECK(static_cast<int>(ev[i].v) == static_cast<int>(i) + 1);
+    }
+    CHECK(rig.slot(0).position == Approx(1.6));
+}
+
+// The clock now keeps every beat across a stall, so a looping routine's position can pass more than one whole cycle in
+// ONE tick (the old wrap reader never advanced a whole beat per tick -- this path was unreachable). It must fold every
+// whole cycle at once with ONE restore, landing in the right cycle; the skipped cycles' events never fire.
+TEST_CASE("RoutineEngine: a looping routine folds every whole cycle a tick gap covers at once, with one restore",
+          "[routine][engine][stall][loop]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    const ControlPath op0 = opacityKey(0);
+    const ControlPath op1 = opacityKey(1);
+    Routine r = makeRoutine("loop", 4.0, Clip::BeatSnapMode::Bar, true);   // test 8's loop routine
+    Routine::PreambleEntry restoreOp; restoreOp.key = op1; restoreOp.continuous = true; restoreOp.norm = 0.4f;
+    r.preamble = { restoreOp };
+    r.lanes[clipKey] = discreteLane(clipKey, { point(1, 1.0, 3) });
+    r.lanes[op0] = continuousLane(op0, { gesture(0.5, 0.1f, 3.5, 0.9f) });
+
+    Rig rig;
+    addToBank(rig.comp, r, 0);
+    rig.tick();
+    CHECK(rig.fire(0).empty());
+    rig.runTo(4.0);                                   // start at bar 11
+    CHECK(rig.slot(0).state == "running");
+    CHECK(rig.slot(0).cycle == 1);
+    rig.runTo(6.0);                                   // pos 2.0
+    CHECK(rig.fd.firedLanePoints(clipKey, 3) == 1);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 1);
+
+    rig.beat = 16.0;                                  // a 10-beat gap: 2.5 cycles
+    rig.tick();
+    CHECK(rig.slot(0).cycle == 4);                    // one fold per tick: cycle 2
+    CHECK(rig.slot(0).position == Approx(0.0).margin(1e-9));
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);         // ONE more restore
+    CHECK(rig.fd.firedLanePoints(clipKey, 3) == 1);   // nothing due at pos 0; the skipped cycles' points never fired
+
+    rig.runTo(17.0);
+    CHECK(rig.fd.firedLanePoints(clipKey, 3) == 2);
+    CHECK(rig.slot(0).cycle == 4);
+    CHECK(rig.fd.count(Ev::Touch, op1) == 2);
 }

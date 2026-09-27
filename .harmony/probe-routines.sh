@@ -14,6 +14,8 @@
 # restored on the bar, loop hold, loop landing) select samples by the routine's PUBLISHED position (routine beats),
 # ending >= 0.1 s before the next recorded event -- not by wall time after a sampled anchor, which lags the start
 # 0.06..0.12 s (the flake of s-rta-0926b). Why: the comment above LEN in the helpers.
+# s-rta-0927 beat clock (row 7s): row 7's grid again with a 550 ms message-thread stall at +1.0 s (the TEST-ONLY
+# POST /api/debug/stall_message_thread; SKIP in a binary without it) -- the routine clock loses no beat across it.
 #
 # RED on a pre-routines binary: every /api/routine/* route is 404 and /api/composition clips carry
 # no "effects" block; take.json meta has no startBeatInBar; a first-activation auto-play is not a
@@ -332,8 +334,9 @@ elif cmd == 'take':                       # take FOLDER RAMPOUT: structural rows
     okA = len(auto) == 1 and len(trig) >= 1 and abs(auto[0].get('beat', -99) - trig[0].get('beat', 99)) < 0.05
     print(('ok' if okA else 'no') + ' take: the trigger of C1 recorded its auto-play as a playing/resume point at the same beat (%d point(s))' % len(auto))
 
-elif cmd == 'grid':                       # grid T1 FILE: row 7
+elif cmd == 'grid':                       # grid T1 FILE [TAG]: row 7 (TAG 7s: the same marks through a stall)
     T1, s = float(sys.argv[2]), load(sys.argv[3])
+    tag = sys.argv[4] if len(sys.argv) > 4 else 'grid'
     marks = [('L0 opacity ~0.5', lambda r: near(r.get('op0'), 0.5, 0.05), 0.6),
              ('L0 on column 1', lambda r: r.get('col0') == 1, 2.6),
              ('C1 Brightness ~0.9', lambda r: near(r.get('amt1'), 0.9, 0.02), 4.6),
@@ -343,20 +346,20 @@ elif cmd == 'grid':                       # grid T1 FILE: row 7
         t = first(s, pred, T1)
         times.append(t)
         if t is None:
-            print('no grid: %s never seen (expected at +%.1f s)' % (label, at))
+            print('no %s: %s never seen (expected at +%.1f s)' % (tag, label, at))
         else:
             rel = t - T1
-            print(('ok' if abs(rel - at) <= 0.35 else 'no') + ' grid: %s first at +%.2f s (expected +%.1f +/- 0.35)' % (label, rel, at))
+            print(('ok' if abs(rel - at) <= 0.35 else 'no') + ' %s: %s first at +%.2f s (expected +%.1f +/- 0.35)' % (tag, label, rel, at))
     seen = [t for t in times if t is not None]
-    print(('ok' if len(seen) == 4 and seen == sorted(seen) else 'no') + ' grid: the four moves arrive in the recorded order')
+    print(('ok' if len(seen) == 4 and seen == sorted(seen) else 'no') + ' %s: the four moves arrive in the recorded order' % tag)
     tail = [r for r in s if r['t'] >= T1 + 8.3]
     if not tail:
-        print('no grid: no samples after +8.3 s')
+        print('no %s: no samples after +8.3 s' % tag)
     else:
         r = tail[-1]
-        print(('ok' if state(r, 0) == 'idle' else 'no') + ' grid: once -- state idle after the end (%s)' % state(r, 0))
+        print(('ok' if state(r, 0) == 'idle' else 'no') + ' %s: once -- state idle after the end (%s)' % (tag, state(r, 0)))
         print(('ok' if near(r.get('op0'), 0.9, 0.05) and r.get('col0') == 1 else 'no')
-              + ' grid: once -- the last look holds (L0 opacity %s, column %s)' % (r.get('op0'), r.get('col0')))
+              + ' %s: once -- the last look holds (L0 opacity %s, column %s)' % (tag, r.get('op0'), r.get('col0')))
 
 elif cmd == 'loop':                       # loop T2 FILE FIRED_AT_START: row 8
     T2, s, fired0 = float(sys.argv[2]), load(sys.argv[3]), int(sys.argv[4])
@@ -725,6 +728,30 @@ num_leq "$MAD_RR" "$MAD_REST" && ok "mad(ref, rest) = $MAD_RR <= $MAD_REST (the 
 # --- 7. the recorded moves on the beat grid, then hold -----------------------------
 wait "$SAMPLER"
 rows python3 "$RT" grid "$T1" "$OUT/grid.json"
+
+# --- 7s. the grid through a 550 ms message-thread stall (s-rta-0927 beat clock, plan-beatclock.md 5.5) -----
+# Fire Probe Routine again (once, no loop) and stall the app's message thread for 550 ms at +1.0 s (the window
+# +1.0..+1.55 s holds NO mark, so a mark inside the stall cannot fail a row for the wrong reason). The routine
+# clock must keep every beat the tracker counted through the stall: the later marks stay on the recorded grid.
+# RED on the pre-fix wrap reader (a 1.1-beat gap loses exactly 1 beat): marks 2-4 arrive +0.50 s late -> 3 FAILs.
+# The stall hook is TEST-ONLY (AUDIODNA_BUILD_TEST_SERVER=ON); a binary without it SKIPs this row.
+STALL_HOOK="$(P /api/debug/stall_message_thread '{"ms":1}')"
+if echo "$STALL_HOOK" | grep -q '"ok": true'; then
+    sleep 0.3
+    P /api/routine/fire '{"slot":0}' >/dev/null
+    T1s="$(python3 "$RT" wait 0 running 2.6)"
+    if [ "$T1s" = "NA" ]; then no "7s: bank[0] never became running within 2.6 s"; T1s="$(now)"; fi
+    python3 "$RT" sample 8.9 "$OUT/grid-stall.json" >/dev/null &
+    STALL_SAMPLER=$!
+    sleep "$(perl -e "my \$d = ($T1s + 1.0) - $(now); printf '%.3f', \$d > 0 ? \$d : 0")"
+    echo "(7s: stall requested at +$(since "$T1s") s: $(P /api/debug/stall_message_thread '{"ms":550}'))"
+    wait "$STALL_SAMPLER"
+    rows python3 "$RT" grid "$T1s" "$OUT/grid-stall.json" 7s
+    P /api/routine/stop '{"all":true}' >/dev/null
+    sleep 0.3
+else
+    echo "SKIP: 7s -- no TEST-ONLY stall hook in this binary ($STALL_HOOK)"
+fi
 
 # --- 5g. the start's restore glides onto the bar (plan3 C) -----------------------------
 wait "$GLIDE_SAMPLER"

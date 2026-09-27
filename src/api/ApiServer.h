@@ -206,6 +206,9 @@ private:
     void handlePerfRepair(const httplib::Request& req, httplib::Response& res);
     void handlePerfStatus(const httplib::Request& req, httplib::Response& res);
     void handleAudioSource(const httplib::Request& req, httplib::Response& res);
+#if AUDIODNA_TEST_SERVER
+    void handleDebugStallMessageThread(const httplib::Request& req, httplib::Response& res);   // s-rta-0927 beat clock (TEST-ONLY)
+#endif
 
     // s-rta-0926 routines slice 1 -- /api/routine/*
     void handleRoutineSave(const httplib::Request& req, httplib::Response& res);

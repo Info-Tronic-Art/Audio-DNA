@@ -205,6 +205,7 @@ void AnalysisThread::run()
         snap->barCount         = bpmTracker_->barCount();
         snap->totalBarCount    = bpmTracker_->totalBarCount(); // S168
         snap->resyncBarOrigin  = bpmTracker_->resyncBarOrigin(); // s-rta-0925
+        snap->totalBeatCount   = bpmTracker_->totalBeatCount(); // s-rta-0927 beat clock
         snap->phrasePhase      = bpmTracker_->phrasePhase();
 
         stageEnd = std::chrono::high_resolution_clock::now();

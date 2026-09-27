@@ -26,6 +26,7 @@
 | `onsetStrength` | `float` | detection value | Onset detection function output |
 | `bpm` | `float` | BPM | Current tempo estimate |
 | `beatPhase` | `float` | [0, 1) | Sawtooth synced to beat |
+| `totalBeatCount` | `uint32_t` | count | Whole beats the tracker completed (s-rta-0927 beat clock): +1 per `beatPhase` wrap, +1 for a realign from the second half of a beat; never reset. `totalBeatCount + beatPhase` is continuous beat time -- a message-thread clock integrates it, never the wrap (Pitfall 42) |
 | `trackerState` | `uint8_t` | 0-2 | BPM lock state: 0=searching, 1=locking, 2=locked |
 | `beatInBar` | `uint8_t` | 0-3 | Which beat in the bar (0=downbeat) |
 | `barPhase` | `float` | [0, 1) | Bar-level sawtooth over 4 beats |

@@ -1,0 +1,158 @@
+2026-09-27 16:41:42 ACQUIRED (waited 220 s)
+=== A1 probe-beatclock on the PRE-CHANGE main app
+pgrep: Cannot compile regular expression `clang++' (repetition-operator operand invalid)
+(16:41:42 load: 3.54 4.30 5.55; compilers: 0 clang, 0 clang++)
+(app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app)
+(artifacts: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A1/run-20260927-164142-32282)
+PASS  app launched via open -g, /api/health answered, PID=32295
+SKIP: no TEST-ONLY hook in this binary ({"ok": false, "http": 404}) -- b2/b3 not run
+FAIL  b1: /api/bpm has no totalBeatCount field (absent -- a pre-beat-clock binary)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the full window list (screen-safety law held)
+no full-screen capture was taken; the Quartz window list is the screen witness
+
+3 PASS / 1 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A1/run-20260927-164142-32282)
+exit 1
+=== A2 probe-beatclock on the commit-1 app (hook, old reader)
+pgrep: Cannot compile regular expression `clang++' (repetition-operator operand invalid)
+(16:41:50 load: 3.39 4.24 5.52; compilers: 0 clang, 0 clang++)
+(app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/app-c1/Audio-DNA.app)
+(artifacts: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A2/run-20260927-164150-32502)
+PASS  app launched via open -g, /api/health answered, PID=32559
+(b0: stall hook present: {"ok": true, "ms": 1})
+FAIL  b1: /api/bpm has no totalBeatCount field (absent -- a pre-beat-clock binary)
+FAIL  b2: a 550 ms message-thread stall -- clockBeat advanced 0.643 beats over 0.811 s of wall (expected 1.622 at 120 BPM; error -0.980, tolerance 0.10; the old wrap reader loses 1 beat: a 1.1-beat gap carries only its fractional part)
+(b3: stall requested at beatPhase 0.315)
+FAIL  b3: a 350 ms message-thread stall -- clockBeat advanced 0.491 beats over 0.602 s of wall (expected 1.205 at 120 BPM; error -0.714, tolerance 0.10; the old reader reads the wrap inside the gap as a resync and freezes for it)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the full window list (screen-safety law held)
+no full-screen capture was taken; the Quartz window list is the screen witness
+
+3 PASS / 3 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A2/run-20260927-164150-32502)
+exit 1
+=== A3 probe-routines on the commit-1 app (row 7s RED)
+pgrep: Cannot compile regular expression `clang++' (repetition-operator operand invalid)
+(16:42:01 load: 3.31 4.20 5.49; compilers: 0 clang, 0 clang++)
+PASS  fixture is valid JSON (/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A3/run-20260927-164201-32757/probe-routines.json)
+(app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/app-c1/Audio-DNA.app)
+(artifacts: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A3/run-20260927-164201-32757)
+PASS  app launched via open -g, /api/health answered, PID=32774
+PASS  GET /api/routine/status answers ok
+PASS  manual 120 BPM: totalBarCount advances (0 -> 1)
+PASS  load_composition accepted the fixture
+PASS  L0 on column 0 (the image)
+PASS  reference: render_frame wrote ref.png
+PASS  reference: ref.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=78.978754)
+PASS  record: /api/perf/record accepted ({"ok": true})
+PASS  record: every scheduled move went out within 80 ms of its time (worst 0.010 s late)
+PASS  take stopped (recording false)
+PASS  take.json written (/Users/boriskarpman/Documents/Audio-DNA/Takes/probe-routines-20260927-164201.adna-take)
+PASS  take: tempoMap has 1 anchor(s), all with a tempo (the take has a beat grid to cut)
+PASS  take: 5 lanes carry beat stamps (>= 4)
+PASS  take: meta.startBeatInBar present and in [0, 4) (3.957334101200104)
+PASS  take: the L0 opacity ramp is ONE gesture of 32 breakpoints, beats 18.01..24.51, values 0.20..0.80
+PASS  take: the trigger of C1 recorded its auto-play as a playing/resume point at the same beat (1 point(s))
+PASS  POST /api/routine/save accepted
+PASS  status lastSaved.slot == 0 within 1 s
+PASS  bank[0].name == Probe Routine
+PASS  bank[0].lanes == 5 (>= 4)
+PASS  bank[0].preambleEntries == 6 (>= 5)
+PASS  bank[0].lengthBeats == 16
+PASS  lastSaved.dropped == []
+PASS  bank[0].state == idle
+PASS  perturbed: L0 column 1, L0 0.1, L1 0.6, C1 Brightness 0.2
+PASS  perturbed: render_frame wrote pert.png
+PASS  perturbed: pert.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=3.354102)
+PASS  mad(ref, pert) = 64.798847 > 0.5 (the perturbation is visible)
+PASS  fire: bank[0] running 1.95 s after the fire
+PASS  restored: render_frame wrote rest.png
+PASS  restored frame captured +0.158 s after the start (before the first move at +0.6)
+PASS  fire: started on a LATER bar (startedTotalBar 15 >= 14 + 1)
+PASS  fire: waited 1.952 s (<= 2.2 s, one bar)
+PASS  fire: preambleUnresolved == 0
+PASS  fire: preambleRefused == 0
+PASS  fire: unresolved == 0
+PASS  fire: preambleFired == 6 (>= 5)
+(restore read at +0.249 s: 0|1.0|1.0|0.5)
+PASS  restore: L0 back on column 0
+PASS  restore: L0 opacity 1.0 ~ 1.0
+PASS  restore: L1 opacity 1.0 ~ 1.0
+PASS  restore: C1 Brightness 0.5 ~ 0.5
+PASS  restored: rest.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=78.978754)
+PASS  mad(pert, rest) = 64.798847 > 0.5 (the restore changed the frame)
+PASS  mad(ref, rest) = 0.000000 <= 2.0 (the restored look IS the recorded look)
+(sampled 225 rows over 8.9 s)
+PASS  grid: L0 opacity ~0.5 first at +0.55 s (expected +0.6 +/- 0.35)
+PASS  grid: L0 on column 1 first at +2.57 s (expected +2.6 +/- 0.35)
+PASS  grid: C1 Brightness ~0.9 first at +4.55 s (expected +4.6 +/- 0.35)
+PASS  grid: L0 opacity ~0.9 first at +6.59 s (expected +6.6 +/- 0.35)
+PASS  grid: the four moves arrive in the recorded order
+PASS  grid: once -- state idle after the end (idle)
+PASS  grid: once -- the last look holds (L0 opacity 0.899999976158142, column 1)
+(7s: stall requested at +1.031 s: {"ok": true, "ms": 550})
+PASS  7s: L0 opacity ~0.5 first at +0.54 s (expected +0.6 +/- 0.35)
+FAIL  7s: L0 on column 1 first at +3.05 s (expected +2.6 +/- 0.35)
+FAIL  7s: C1 Brightness ~0.9 first at +5.03 s (expected +4.6 +/- 0.35)
+FAIL  7s: L0 opacity ~0.9 first at +7.07 s (expected +6.6 +/- 0.35)
+PASS  7s: the four moves arrive in the recorded order
+PASS  7s: once -- state idle after the end (idle)
+PASS  7s: once -- the last look holds (L0 opacity 0.899999976158142, column 1)
+(5g: predicted bar edge at T1 -0.073 s; mid.png requested at T_edge -0.280 s)
+PASS  5g: while the routine waits, L0 opacity holds the hand value 0.1 until its last beat (36 samples before T1-0.6)
+PASS  5g: over the last beat before the bar L0 opacity GLIDES 0.1 -> 1.0 (T1-0.45..T1-0.1: 9 samples, 9 strictly between 0.15 and 0.95, non-decreasing=True: [0.357, 0.453, 0.491, 0.587, 0.626, 0.702, 0.76, 0.856, 0.933])
+PASS  5g: status bank[0].glides >= 1 during the last beat and 0 from T1+0.1 on (during: ['3'], after: ['0'])
+PASS  5g: render_frame wrote mid.png 0.30 s before the bar
+PASS  5g mid-glide: mid.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=30.014811)
+PASS  5g: mid.png lies BETWEEN the two looks -- mad(pert, mid) = 22.125000 and mad(mid, rest) = 73.325600, both > 0.5 (not a cut)
+PASS  set: bank[0].loop == true
+(sampled 232 rows over 9.21 s)
+PASS  loop: end of cycle 1 holds L0 opacity 0.9 until the return glide begins (routine beats 14.0..14.8, 10 samples)
+PASS  loop: the return GLIDES 0.9 -> 1.0 over the last beat (+7.55..+7.92 s: 9 samples, 6 strictly between 0.92 and 0.98, non-decreasing=True: [0.929, 0.94, 0.947, 0.956, 0.964, 0.973, 0.98, 0.987, 0.996])
+PASS  loop: the return lands ON the loop point (first sample within 0.01 of 1.0 at +7.9 s, expected +7.80..+8.1; s-rta-0926b: widened from 7.85 after a sampling-edge miss at +7.85 vs 3/3 landings at +7.88..7.89)
+PASS  loop: the restore re-fired at the loop (L0 opacity back to 1.0 at +7.99 s)
+PASS  loop: cycle 2 replays the first move (L0 opacity 0.5 at +8.55 s)
+PASS  loop: status cycle reached 2 (>= 2)
+PASS  loop: preambleFired grew at the loop (6 -> 12)
+PASS  stop: bank[0] idle 0.078 s after the stop
+PASS  stop: after Stop a hand write of 0.42 sticks and nothing moves it (30 samples)
+PASS  re-fire: first move played (L0 opacity 0.5)
+PASS  re-fire: restarts == 1 at the next bar (0.941 s after the second fire)
+PASS  re-fire: the restart restored L0 opacity to 1.0
+PASS  re-fire: over the last beat before the restart L0 opacity GLIDES from ~0.5 toward 1.0 (0.5 s before restarts == 1: 13 samples, 10 strictly between 0.55 and 0.95, non-decreasing=True: [0.589, 0.621, 0.664, 0.717, 0.739, 0.781, 0.813, 0.845, 0.888, 0.931, 0.963, 0.995, 0.995])
+PASS  start from now: preambleFired == 0
+PASS  start from now: L0 opacity stays at the hand value 0.1 until the first move (10 samples)
+PASS  start from now: the first move lands on the grid (0.5 at +0.55 s, expected +0.6)
+PASS  stack: saved Probe Ramp to pad 2
+PASS  stack: lastSaved.slot == 1
+(stack: Probe Ramp started at T5; its ramp runs +1.00..+4.26 s, 0.20..0.80; Probe Routine started at T5+2.00 s)
+PASS  stack: before the second routine starts, the ramp drives L0 opacity (6 samples, 0.259999930858612..0.328004688024521)
+PASS  stack: the later restore GLIDES in over the last beat, from the ramp value toward 1.0 (T6-0.45..T6-0.05: 10 samples, non-decreasing=True, max 0.970138132572174 > 0.75: [0.492, 0.522, 0.582, 0.627, 0.686, 0.746, 0.806, 0.851, 0.881, 0.97])
+PASS  stack: the later restore wins -- L0 opacity holds 1.0 after Probe Routine starts, no ramp values (routine beats 0.4..0.973, first move at beat 1.173: 7 samples, [1.0])
+PASS  stack: the earlier ramp stays quiet for the rest of its gesture and after it (L0 opacity 0.5, 56 samples)
+PASS  stack: status bank[1].yielded == 1 (>= 1: the displaced gesture is counted)
+(stop while pending: state before the stop 'pending', stopped -0.158 s from the predicted bar; L0 opacity +0.1 s: 0.654406726360321, +0.6 s: 0.654406726360321)
+PASS  stop while pending: the routine was pending at the stop and is idle after it
+PASS  stop while pending: L0 opacity stays where the glide left it (+0.1 s 0.654406726360321, +0.6 s 0.654406726360321, strictly between 0.15 and 0.95)
+PASS  11j: POST /api/routine/set restoreStyle jump -- status bank[0].restoreStyle == jump
+PASS  11j waiting look: render_frame wrote jpre.png
+PASS  11j waiting look: jpre.png decodes NON-BLANK (alpha_frac=1.000000 rgb_std=9.551033)
+(11j: predicted bar edge at TJ -0.065 s)
+PASS  11j: while the Jump routine waits -- through its whole last beat -- L0 opacity holds the hand value 0.1 (48 samples before TJ-0.12, 0.100000001490116..0.100000001490116)
+PASS  11j: a hard cut -- no sample strictly between 0.15 and 0.95 up to routine beat 0.973 (61 samples, 0 in between: [])
+PASS  11j: on the bar L0 opacity is restored to 1.0 (routine beats 0.4..0.973: 7 samples, [1.0])
+PASS  11j: status bank[0].glides stays 0 across the start (['0'])
+PASS  11j: render_frame wrote jmid.png 0.30 s before the bar
+PASS  11j: 0.30 s before the bar the frame is still the waiting look -- mad(jpre, jmid) = 0.000000 <= 2.0 (nothing eased in)
+PASS  11j loop: the end of cycle 1 holds L0 opacity 0.9 through its last beat -- no return glide (routine beats 14.0..15.8: 22 samples, 0.899999976158142..0.899999976158142)
+PASS  11j loop: the return cuts to 1.0 ON the loop point (first sample within 0.01 of 1.0 at cycle/position 2/0.107, expected cycle 2 <= 0.5 beats in; +8.01 s after TJ)
+PASS  11j loop: no sample strictly between 0.92 and 0.98 around the loop point (+7.0..+8.3 s: [])
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the full window list (screen-safety law held)
+no full-screen capture was taken; the Quartz window list is the screen witness
+(take kept at /Users/boriskarpman/Documents/Audio-DNA/Takes/probe-routines-20260927-164201.adna-take; look at /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A3/run-20260927-164201-32757/rest.png before accepting)
+
+102 PASS / 3 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/beatclock/runs/A3/run-20260927-164201-32757)
+exit 1
+pgrep: Cannot compile regular expression `clang++' (repetition-operator operand invalid)
+(16:43:42 load: 3.41 3.99 5.26; compilers: 0 clang, 0 clang++)
+2026-09-27 16:43:42 RELEASED

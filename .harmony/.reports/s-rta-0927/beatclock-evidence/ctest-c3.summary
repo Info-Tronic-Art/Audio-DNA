@@ -1,0 +1,8 @@
+99% tests passed, 6 tests failed out of 741
+Total Test time (real) =  12.19 sec
+	246 - RecorderClock: a 1.1-beat tick gap loses nothing (Failed)
+	247 - RecorderClock: a 0.7-beat tick gap that begins at phase 0.5 loses nothing (Failed)
+	248 - RecorderClock: a 0.6-beat publication burst between two ticks adds 0.6 (Failed)
+	470 - RoutineEngine: position is exact across a 1.1-beat tick gap and the point inside it fires once (Failed)
+	471 - RoutineEngine: a Beat-quantized start survives a tick gap that swallows the beat edge (Failed)
+	472 - RoutineEngine: several points inside one tick gap all fire, once each, in order, in the resume tick (Failed)

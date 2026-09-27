@@ -36,6 +36,7 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 | Onset Detection | Aubio `aubio_onset` (spectral flux method, adaptive threshold) | bool flag + strength | `onsetDetected`, `onsetStrength` |
 | BPM | Aubio `aubio_tempo` (autocorrelation of onset accumulator) | BPM float | `bpm` |
 | Beat Phase | Derived from BPM tracker | [0, 1) sawtooth | `beatPhase` |
+| Total Beat Count | BPM tracker (s-rta-0927 beat clock): +1 per beatPhase wrap, +1 for a hard realign (Tap / Resync / confident detection) from the second half of a beat; never reset; a tempo value never touches it. `totalBeatCount + beatPhase` = continuous beat time for a message-thread clock (Pitfall 42) | uint32 | `totalBeatCount` |
 | Bar Phase | (beatInBar + beatPhase) / 4 | [0, 1) over 4 beats | `barPhase` |
 | Phrase Phase | Bar count mod N bars (default 8), resets on structural transitions | [0, 1) over N bars | `phrasePhase` |
 | Bar Count | Bars since last phrase reset | uint16 | `barCount` |

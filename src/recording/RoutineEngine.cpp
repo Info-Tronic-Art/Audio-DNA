@@ -519,13 +519,17 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
     clock_.tick(snap, wallNow, 0);
     const double beat = clock_.now().beat;
 
-    // Step 2: edges, then the trackers. The Beat edge is the TRACKER's beat -- its beatPhase
-    // sawtooth wrap, the rule a Beat-quantized clip uses (Autopilot.cpp) -- never a whole beat of
-    // clock_, whose zero sits wherever the tracker was when the clock started or re-locked
+    // Step 2: edges, then the trackers. The Bar edge is totalBarCount's change; the Beat edge (s-rta-0927
+    // beat clock) is totalBeatCount's change -- the tracker's beat, the rule a Beat-quantized clip uses,
+    // read as its COUNTER so a tick gap swallows no edge (the old beatPhase-wrap test missed every edge
+    // inside a gap >= half a beat, Pitfall 42). A realign from the second half of a beat is an edge (the
+    // writer completed the beat), one from the first half is not -- the meaning the wrap test had. Never a
+    // whole beat of clock_, whose zero sits wherever the tracker was when the clock started or re-locked
     // (s-rta-0926 routine-grid).
     const bool barEdge = haveTicked_ && snap.totalBarCount != lastTotalBar_;
-    const bool beatEdge = haveTicked_ && snap.beatPhase < lastBeatPhase_ - 0.5f;
+    const bool beatEdge = haveTicked_ && snap.totalBeatCount != lastTotalBeatCount_;
     lastTotalBar_ = snap.totalBarCount;
+    lastTotalBeatCount_ = snap.totalBeatCount;
     lastBarCount_ = snap.barCount;
     lastBeatPhase_ = snap.beatPhase;
     lastBeatInBar_ = snap.beatInBar;
@@ -575,9 +579,15 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
             r.player->stop(*r.sink);   // every grip released (R9)
             if (r.loop && r.lengthBeats > 0.0)
             {
-                r.startBeat += r.lengthBeats;   // exact, no drift
-                pos -= r.lengthBeats;
-                ++r.cycle;
+                // s-rta-0927 beat clock: fold EVERY whole cycle the gap covers at once. The clock now keeps every
+                // beat across a stall, so `pos` can exceed one cycle in a single tick (the old lossy clock never
+                // advanced a whole beat per tick -- this was unreachable). One restore, for the landing cycle;
+                // the skipped cycles' events never fire -- their end state IS the landing cycle's restore. One
+                // fold per tick re-fired the preamble once per skipped cycle (Pitfall 42).
+                const double cycles = std::floor(pos / r.lengthBeats);   // >= 1 here (pos >= lengthBeats)
+                r.startBeat += cycles * r.lengthBeats;   // exact, no drift
+                pos -= cycles * r.lengthBeats;
+                r.cycle += static_cast<int>(cycles);
                 r.player->start(0.0);
                 if (r.restore)   // D9: a loop restart re-fires the restore
                 {

@@ -19,11 +19,14 @@ struct ClockStamp
 // each FeatureSnapshot into the take's three-clock timebase and grows the
 // take-level TempoMap. One instance per take being recorded.
 //
-// Beat integration rule (D1): phase = snap.beatPhase; a backward jump of
-// >= 0.5 is the ordinary sawtooth wrap (G14 precedent) -- one more whole
-// beat elapsed. A SMALLER backward jump (resync/tap/relock -- BPMTracker.h
-// phase reset) is absorbed into an offset so `beat` stays monotonic and
-// non-decreasing instead of dipping; an anchor `why:"reset"` is written.
+// Beat integration rule (D1, s-rta-0927): raw = snap.totalBeatCount +
+// snap.beatPhase is the tracker's continuous beat time -- there is no wrap to
+// detect, so a tick gap of any length or an analysis catch-up burst adds
+// exactly the beats the tracker published (Pitfall 42). A DECREASE of raw is
+// a realign that restarted the beat (Tap / Resync / confident detection from
+// the first half of a beat; BPMTracker completes a beat from the second half
+// by counting it) and is absorbed into an offset so `beat` stays monotonic
+// and non-decreasing instead of dipping; an anchor `why:"reset"` is written.
 // While bpm == 0 (no lock, nothing tapped) the beat clock does not advance
 // at all -- the segment is unmetered -- and resumes continuity (the same
 // absorption trick) the moment a lock returns.
@@ -58,9 +61,8 @@ private:
     bool haveTicked_ = false;
     double startWall_ = 0.0;
 
-    double wholeBeats_ = 0.0;
     double beatOffset_ = 0.0;
-    double lastPhase_ = 0.0;
+    double lastRaw_ = 0.0;   // totalBeatCount + beatPhase at the last metered tick
     float lastBpm_ = -1.0f;   // sentinel: never ticked
 
     TempoMap tempo_;

@@ -168,8 +168,9 @@ private:
     RecorderClock clock_;            // the routine beat clock: ticks EVERY tick from app start
     bool haveTicked_ = false;
     uint32_t lastTotalBar_ = 0;
+    uint32_t lastTotalBeatCount_ = 0;   // the Beat edge is its change (the tracker's beat, stall-proof)
     uint16_t lastBarCount_ = 0;
-    float lastBeatPhase_ = 0.0f;     // the tracker's beatPhase last tick (Beat edge = its wrap)
+    float lastBeatPhase_ = 0.0f;     // the tracker's beatPhase last tick (the boundary PREDICTION only)
     uint8_t lastBeatInBar_ = 0;      // plan3 C: the tracker's beatInBar last tick (the Bar boundary prediction)
     bool beatAvailable_ = false;
     int fires_ = 0;

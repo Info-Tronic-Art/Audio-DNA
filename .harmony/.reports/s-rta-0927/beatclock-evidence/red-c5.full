@@ -1,0 +1,43 @@
+Filters: [stall] [loop]
+Randomness seeded to: 4009482885
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_routine_engine is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+RoutineEngine: a looping routine folds every whole cycle a tick gap covers at
+               once, with one restore
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2214
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2238: FAILED:
+  CHECK( rig.slot(0).cycle == 4 )
+with expansion:
+  2 == 4
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2239: FAILED:
+  CHECK( rig.slot(0).position == Approx(0.0).margin(1e-9) )
+with expansion:
+  8.0 == Approx( 0.0 )
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2241: FAILED:
+  CHECK( rig.fd.firedLanePoints(clipKey, 3) == 1 )
+with expansion:
+  2 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2244: FAILED:
+  CHECK( rig.fd.firedLanePoints(clipKey, 3) == 2 )
+with expansion:
+  4 == 2
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w7/tests/test_routine_engine.cpp:2246: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 2 )
+with expansion:
+  4 == 2
+
+===============================================================================
+test cases:  1 | 1 failed
+assertions: 13 | 8 passed | 5 failed
+

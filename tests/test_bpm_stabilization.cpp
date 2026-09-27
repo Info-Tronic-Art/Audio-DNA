@@ -1257,3 +1257,126 @@ TEST_CASE("Ableton Link: a peer's tempo ramp (120 -> 128 over 2 s of 30 Hz ticks
     REQUIRE_THAT(tracker.bpm(), WithinAbs(128.0, 1e-3));        // and landed on the new tempo
     REQUIRE(jumps == 0);                                        // RED pre-fix: a reset per changed tick
 }
+
+// ============================================================================
+// s-rta-0927 beat clock: FeatureSnapshot::totalBeatCount. BPMTracker counts every whole beat where
+// the phase is exact (per hop): +1 per beatPhase wrap, +1 for a hard realign (Tap / Resync /
+// confident detection) from the SECOND half of a beat (the beat came early: it is completed), +0
+// from the first half (the beat restarted); a tempo VALUE never touches it. totalBeatCount +
+// beatPhase is then continuous beat time a message-thread clock integrates without losing a beat
+// across a tick gap (RecorderClock, Pitfall 42).
+// ============================================================================
+
+namespace
+{
+    // Quiet hops until the phase lies in [lo, hi] (one hop is 0.0213 beat at 120 BPM, so a 0.1-wide
+    // window is always hit).
+    void hopUntilPhaseIn(BPMTracker& tracker, float lo, float hi)
+    {
+        for (int i = 0; i < 200 && !(tracker.beatPhase() >= lo && tracker.beatPhase() <= hi); ++i)
+            quietHop(tracker);
+        REQUIRE(tracker.beatPhase() >= lo);
+        REQUIRE(tracker.beatPhase() <= hi);
+    }
+
+    void manualTracker120(BPMTracker& tracker)
+    {
+        tracker.setManualMode(true);
+        tracker.setManualBPM(120.0f);   // a request: the first hop applies it
+    }
+}
+
+TEST_CASE("totalBeatCount counts every beatPhase wrap", "[bpm][beatcount][s-rta-0927]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    manualTracker120(tracker);
+    REQUIRE(tracker.totalBeatCount() == 0u);
+    for (int h = 0; h < 3060; ++h)   // 65.28 wraps at 46.875 hops/beat (test_downbeat_detector.cpp)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f);
+    }
+    REQUIRE(tracker.totalBeatCount() == 65u);
+}
+
+TEST_CASE("totalBeatCount: a Tap from the second half of a beat completes it, from the first half restarts it",
+          "[bpm][beatcount][s-rta-0927]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    manualTracker120(tracker);
+    for (int i = 0; i < 60; ++i) quietHop(tracker);
+
+    SECTION("second half: +1")
+    {
+        hopUntilPhaseIn(tracker, 0.6f, 0.7f);
+        const uint32_t c0 = tracker.totalBeatCount();
+        tracker.setManualBPM(120.0f);   // applied at the START of the next hop, before its advance
+        quietHop(tracker);
+        REQUIRE(tracker.totalBeatCount() == c0 + 1);
+        REQUIRE_THAT(tracker.beatPhase(), WithinAbs(1.0 / 46.875, 1e-4));
+    }
+    SECTION("first half: +0")
+    {
+        hopUntilPhaseIn(tracker, 0.2f, 0.3f);
+        const uint32_t c0 = tracker.totalBeatCount();
+        tracker.setManualBPM(120.0f);
+        quietHop(tracker);
+        REQUIRE(tracker.totalBeatCount() == c0);
+        REQUIRE_THAT(tracker.beatPhase(), WithinAbs(1.0 / 46.875, 1e-4));
+    }
+}
+
+TEST_CASE("totalBeatCount: a Resync from the second half of a beat completes it, from the first half restarts it",
+          "[bpm][beatcount][s-rta-0927]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    manualTracker120(tracker);
+    for (int i = 0; i < 60; ++i) quietHop(tracker);
+
+    SECTION("second half: +1")
+    {
+        hopUntilPhaseIn(tracker, 0.6f, 0.7f);
+        const uint32_t c0 = tracker.totalBeatCount();
+        tracker.requestResync();        // applied at the END of the next feedDownbeatFeatures, after its advance
+        quietHop(tracker);
+        REQUIRE(tracker.totalBeatCount() == c0 + 1);
+        REQUIRE(tracker.beatPhase() == 0.0f);
+    }
+    SECTION("first half: +0")
+    {
+        hopUntilPhaseIn(tracker, 0.2f, 0.3f);
+        const uint32_t c0 = tracker.totalBeatCount();
+        tracker.requestResync();
+        quietHop(tracker);
+        REQUIRE(tracker.totalBeatCount() == c0);
+        REQUIRE(tracker.beatPhase() == 0.0f);
+    }
+}
+
+TEST_CASE("totalBeatCount: a tempo VALUE (typed / REST / OSC set_bpm / Link) never moves the beat or the count",
+          "[bpm][beatcount][s-rta-0927]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    manualTracker120(tracker);
+    for (int i = 0; i < 60; ++i) quietHop(tracker);
+    hopUntilPhaseIn(tracker, 0.6f, 0.66f);
+    const uint32_t c0 = tracker.totalBeatCount();
+    const float p0 = tracker.beatPhase();
+    tracker.followExternalTempo(140.0f);
+    quietHop(tracker);
+    REQUIRE(tracker.totalBeatCount() == c0);
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(140.0, 1e-3));
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(p0 + 512.0 / (48000.0 * 60.0 / 140.0), 1e-4));
+}
+
+TEST_CASE("totalBeatCount: an unlocked tracker counts nothing", "[bpm][beatcount][s-rta-0927]")
+{
+    BPMTracker tracker(512, 1024, 48000);   // fresh, never locked
+    for (int h = 0; h < 500; ++h)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f);
+    }
+    REQUIRE(tracker.totalBeatCount() == 0u);
+    REQUIRE(tracker.beatPhase() == 0.0f);
+}
