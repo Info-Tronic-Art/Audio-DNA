@@ -1550,6 +1550,80 @@ endif()
 apply_sanitizers(test_layer_strip_follows_model)
 catch_discover_tests(test_layer_strip_follows_model)
 
+# --- test_routine_pad_press (s-rta-0927 routine display, plan-routine-display-A.md 2.1 / 5.4): a routine pad's
+# ONE press action is Fire; a right-click opens the settings menu; an empty pad does nothing; RoutinePad has no
+# stop callback (a compile-level pin of the removed press-to-stop grammar). Headless JUCE widgets under
+# ScopedJuceInitialiser_GUI.
+add_executable(test_routine_pad_press
+    test_routine_pad_press.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+)
+target_include_directories(test_routine_pad_press PRIVATE ${SRC_DIR})
+target_link_libraries(test_routine_pad_press PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_routine_pad_press PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_routine_pad_press PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_routine_pad_press)
+catch_discover_tests(test_routine_pad_press)
+
+# --- tool_routine_deck_snapshot (s-rta-0927 routine display, plan-routine-display-A.md section 4): a
+# ctest-EXCLUDED headless snapshot tool -- deliberately never registered with catch_discover_tests. Renders the
+# ROUTINES row (eight real RoutinePads) and one LayerStrip with routine bands, with the app's AudioDNALookAndFeel,
+# for synthetic RoutineEngine::Status states through the real deriveRoutineDeckView, into PNGs via
+# createComponentSnapshot -- no window, no peer. Run by hand:
+#   ./tool_routine_deck_snapshot <output-directory>
+add_executable(tool_routine_deck_snapshot
+    tool_routine_deck_snapshot.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(tool_routine_deck_snapshot PRIVATE ${SRC_DIR})
+target_link_libraries(tool_routine_deck_snapshot PRIVATE
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(tool_routine_deck_snapshot PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(tool_routine_deck_snapshot PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+
 # --- test_topbar_model (s-rta-0926b plan3-final.md section 3, ITEM B, B.4): the TopBar's
 # one-line bar readout. Header-only src/ui/TopBarModel.h is a pure function bool, uint16_t ->
 # juce::String; juce_core only -- NEVER juce_gui_basics (no display context under ctest), same

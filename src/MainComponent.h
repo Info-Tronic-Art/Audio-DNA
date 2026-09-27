@@ -548,6 +548,10 @@ private:
     std::string perfRoutineSet(const ApiServer::RoutineSetOpts& opts);
     std::string perfRoutineRemove(int slot);
     juce::var   routineStatusVar() const;              // /api/routine/status; reads ONLY routineEngine_.status()
+    // s-rta-0927 routine display: the pad menu's Rename... (an AlertWindow, then perfRoutineSet {name}) and
+    // Delete routine (a confirm, then perfRoutineRemove -- the only path that erases a routine from the show).
+    void renameRoutine(int slot);
+    void deleteRoutine(int slot);
 
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
     void setTooltipsEnabled(bool enabled);
