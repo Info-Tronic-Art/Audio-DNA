@@ -9079,6 +9079,10 @@ inline const char* sourceCrystalCavern = R"(
     float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
 
     float caveDE(vec3 p, float crystalSize) {
+        // Endless cave: the folded cluster spans |z| < ~1 and the camera flies along +z, so repeat it every 2.4
+        // along z (it used to END: black forever after ~2.3 s at the default Speed). The cluster sits inside its
+        // cell, so the repeated DE stays a valid bound.
+        p.z = mod(p.z + 1.2, 2.4) - 1.2;
         // Menger-like folded cave
         float scale = mix(1.5, 3.0, crystalSize);
         int iters = int(u_src_complexity * 4.0) + 2;
@@ -9110,6 +9114,10 @@ inline const char* sourceCrystalCavern = R"(
         float totalDist = 0.0;
         vec3 col = vec3(0.0);
         float crystalSize = u_src_crystal_size;
+        // Flying through the repeated cave the camera passes through thin crystal walls: every ray would hit at
+        // distance 0 and the frame would flash one flat colour. Start the march just past the wall -- only while the
+        // camera is within 0.08 of a surface (identical otherwise).
+        if (caveDE(ro, crystalSize) < 0.08) totalDist = 0.08;
 
         for (int i = 0; i < 80; i++) {
             vec3 p = ro + rd * totalDist;

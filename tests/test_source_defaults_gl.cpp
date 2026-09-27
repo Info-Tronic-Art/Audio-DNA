@@ -315,3 +315,35 @@ TEST_CASE("sierpinski draws a picture on power-of-two canvases", "[source-defaul
     requireVisible(rig, "sierpinski iter 0.75", EmbeddedShaders::sourceSierpinski, 1024, 1024, 1.13f,
                    with(ps, "u_src_iterations", 0.75f));
 }
+
+// A5 -- Crystal Cavern flies along +z through a cave that used to END (~1 unit): black forever after ~2.3 s at the
+// default Speed. The cave now repeats along the flight axis; a camera passing through a crystal wall must not flash
+// the whole frame one flat colour. Swept every 0.05 s over the first 20 s at a small size (visible AND not flat:
+// the per-pixel max channel's standard deviation >= 4), plus fixed times at both shipped sizes and at Speed 0.
+TEST_CASE("crystal_cavern keeps drawing the cave as the camera flies", "[source-defaults][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("crystal_cavern");
+    for (auto [w, h] : kSizes)
+        for (float t : { 0.0f, 1.13f, 5.0f, 10.0f, 30.0f, 60.0f })
+            requireVisible(rig, "crystal_cavern", EmbeddedShaders::sourceCrystalCavern, w, h, t, ps);
+    for (float t : { 5.0f, 8.0f, 30.0f })
+        requireVisible(rig, "crystal_cavern speed 0", EmbeddedShaders::sourceCrystalCavern, 256, 256, t,
+                       with(ps, "u_src_speed", 0.0f));
+    int black = 0, flat = 0;
+    std::ostringstream bad;
+    for (int i = 0; i <= 400; ++i)
+    {
+        const float t = 0.05f * float(i);
+        const Stats s = stats(rig.render(EmbeddedShaders::sourceCrystalCavern, 96, 54, t, ps), 96, 54);
+        const bool isBlack = s.p995 < 16.0 || s.lit < 0.05;
+        const bool isFlat = !isBlack && s.sd < 4.0;
+        if (isBlack) ++black;
+        if (isFlat) ++flat;
+        if ((isBlack || isFlat) && black + flat <= 12)
+            bad << " t=" << t << (isBlack ? "(black" : "(flat") << " lit=" << s.lit << " sd=" << s.sd << ")";
+    }
+    INFO("96x54 sweep 0..20 s step 0.05: " << black << " black, " << flat << " flat frames;" << bad.str());
+    CHECK(black == 0);
+    CHECK(flat == 0);
+}
