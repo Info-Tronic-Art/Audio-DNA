@@ -18,14 +18,21 @@
 #   d0 load_composition ok; bank[0] is "Drop"
 #   d1 bank[0] carries deck/layers/fireSeq/startsOn/restartPending          (RED pre-change: absent)
 #   d2 fire pad 1 (quantize 4bar) -> within 0.5 s pending, deck 0, layers [0,2], startsOn "4bar"
+#   d13 (fix round) set pad 1's quantize to "bar" WHILE it waits -> within 0.5 s its startsOn reads "bar" (the edit
+#      reaches the pending start; RED: the waiting routine kept the "4bar" it was pressed with)
 #   d3 on the edge: running, layers [0,2], position advancing; L1 opacity 0.3 / L3 0.8 (the restore)
+#   d14 (fix round) press pad 1 again while it plays -> restartPending and startsOn "bar" (the grid the restart lands
+#      on, the pad's restart mark + tooltip; RED: startsOn "" while running); shot 13-restart-pending
 #   d4 fire pad 2 -> bank[1].fireSeq > bank[0].fireSeq
 #   d5 switch_deck 1 -> bank[0].deck == 0 and its position keeps growing (a deck switch never stops a routine)
 #   d6 switch_deck 0; stop pad 1 -> idle, layers []
 #   d8 fire pad 3 -> preambleUnresolved == 1 while running AND 3 s later while idle (RED: an idle pad reported 0)
 #   d9 window shots 08-empty, 01-idle, 02-waiting, 03-playing, 04-two-on-one, 05-offdeck, 06-removed, 09-warning,
-#      12-fader-follow -- non-blank; decoded: 02-waiting has more teal (#4a9a8a) pixels than 01-idle (the pad frame),
-#      03-playing has more cyan (#00e5ff) pixels than 01-idle (band names + the cyan V fill) (RED: no row, no bands)
+#      12-fader-follow, 13-restart-pending -- non-blank; decoded: 02-waiting has more teal (#4a9a8a) pixels than
+#      01-idle (the pad frame), 03-playing has more routine-cue pixels (kRoutineCue #b4ff2e, chartreuse, decoded by
+#      hue 68..100 deg) than 01-idle (band names + the V fill) (RED: no row, no bands; fix-round RED: the cue was
+#      cyan) and d12 (fix round) NO more accent-cyan (#00e5ff) pixels than 01-idle (+100 at most: the routine cue is
+#      never the app's accent cyan; RED: +300 and more)
 #   d11 the app quits, 0 Audio-DNA windows in the FULL window list
 # Phase 2 (--hook): ONLY on a build carrying the TEMPORARY routine-display screenshot hook (MainComponent constructor
 #   end, NEVER committed): AUDIODNA_DEBUG_SHOW=<state> fires at AUDIODNA_DEBUG_AT ms after the constructor; the probe
@@ -94,7 +101,7 @@ if not wins:
     print("  shot %s: NO Audio-DNA window on screen" % name)
 PYEOF
 }
-# px NAME -> "<nonblank 0/1> <teal count> <cyan count>" decoded from $OUT/NAME-w0.png (counts: the deck region)
+# px NAME -> "<nonblank 0/1> <teal count> <cyan count> <routine-cue count>" decoded from $OUT/NAME-w0.png (counts: the deck region)
 px() {
   "$PY" - "$OUT/$1-w0.png" <<'PYEOF'
 import sys
@@ -103,7 +110,7 @@ from PIL import Image
 try:
     a = np.asarray(Image.open(sys.argv[1]).convert('RGB')).astype(int)
 except Exception:
-    print("0 0 0"); sys.exit(0)
+    print("0 0 0 0"); sys.exit(0)
 nonblank = int(a.std() > 4.0)
 # the deck (ROUTINES row, strips, grid) sits in the window's left half, 15-50 % down, under the TopBar and the
 # SignalBar -- whose meters are cyan and move with the room's audio, so they are cut away (window-relative, never a
@@ -116,7 +123,13 @@ def near(rgb, tol):
 # ~(104,226,251) on this rig -- accept the raw hex and its measured rendering
 teal = near((0x4a, 0x9a, 0x8a), 10) + near((95, 152, 138), 10)
 cyan = int(((a[:, :, 0] < 130) & (a[:, :, 1] > 195) & (a[:, :, 2] > 225)).sum())
-print(nonblank, teal, cyan)
+# the routine cue kRoutineCue #b4ff2e (fix round): chartreuse, decoded by hue so the display profile's shift does not
+# matter -- hue 68..100 deg, saturation > 0.5, value > 0.6 (no other UI colour sits in 60..120 deg)
+mx = a.max(axis=2).astype(float); mn = a.min(axis=2).astype(float); d = np.maximum(mx - mn, 1.0)
+r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
+hue = np.where(mx == g, 60.0 * ((b - r) / d) + 120.0, np.where(mx == r, (60.0 * ((g - b) / d)) % 360.0, 60.0 * ((r - g) / d) + 240.0))
+cue = int(((mx == g) & (hue >= 68.0) & (hue <= 100.0) & ((mx - mn) / np.maximum(mx, 1.0) > 0.5) & (mx > 153)).sum())
+print(nonblank, teal, cyan, cue)
 PYEOF
 }
 st() {   # st EXPR -> python expression over d = /api/routine/status
@@ -187,6 +200,8 @@ else no "d2 pad 1 pending within 0.5 s (state $(st "b[0]['state']"))"; fi
 sleep 1
 [ "$(st "b[0]['state']")" = "pending" ] && { shot 02-waiting; echo "  02-waiting shot while pending (the witness)"; } || no "d9 02-waiting: pad 1 no longer pending at the shot"
 post /api/routine/set '{"slot":0,"quantize":"bar"}' >/dev/null
+if wait_for 0.5 "b[0].get('startsOn') == 'bar'"; then ok "d13 quantize set to bar while waiting: startsOn now $(st "b[0].get('startsOn')") (state $(st "b[0]['state']"))"
+else no "d13 quantize set to bar while waiting: startsOn still '$(st "b[0].get('startsOn')")' (state $(st "b[0]['state']"))"; fi
 if wait_for 10 "b[0]['state'] == 'running'"; then
   P1="$(st "b[0]['position']")"; sleep 0.6; P2="$(st "b[0]['position']")"
   G="$(st "b[0].get('layers')")"
@@ -198,6 +213,15 @@ else no "d3 pad 1 running within 10 s (state $(st "b[0]['state']"))"; fi
 # bar 5 of 8: position 16..20 beats (8..10 s after the start)
 wait_for 12 "16.5 <= b[0]['position'] <= 19.0" && { shot 03-playing; echo "  03-playing at position $(st "round(b[0]['position'], 2)") (L1 opacity $(cj "round(d['decks'][0]['layers'][0]['opacity'], 3)"))"; } \
   || no "d9 03-playing: never saw position 16.5..19 (at $(st "b[0]['position']"))"
+
+# fix round: press pad 1 again while it plays -- a restart waits for the next bar
+post /api/routine/fire '{"slot":0}' >/dev/null
+if wait_for 0.5 "b[0].get('restartPending') == True"; then
+  G="$(st "(b[0].get('restartPending'), b[0].get('startsOn'), b[0]['state'])")"
+  [ "$G" = "(True, 'bar', 'running')" ] && ok "d14 pad 1 pressed again while playing: (restartPending, startsOn, state) $G" \
+    || no "d14 restart pending witness: expected (True, 'bar', 'running'), got $G"
+  shot 13-restart-pending
+else no "d14 pad 1 restartPending within 0.5 s of a second press (got $(st "b[0].get('restartPending')"))"; fi
 
 post /api/routine/fire '{"slot":1}' >/dev/null
 if wait_for 5 "b[1]['state'] == 'running'"; then
@@ -239,16 +263,18 @@ sleep 1
 echo "  L2 opacity $(cj "round(d['decks'][0]['layers'][1]['opacity'], 3)") (REST set_layer_opacity 0.3)"
 shot 12-fader-follow
 
-for n in 08-empty 01-idle 02-waiting 03-playing 04-two-on-one 05-offdeck 06-removed 09-warning 12-fader-follow; do
-  read -r NB TEAL CYAN <<< "$(px "$n")"
-  echo "  $n: nonblank=$NB teal=$TEAL cyan=$CYAN"
-  eval "TEAL_${n//-/_}=$TEAL; CYAN_${n//-/_}=$CYAN"
+for n in 08-empty 01-idle 02-waiting 03-playing 04-two-on-one 05-offdeck 06-removed 09-warning 12-fader-follow 13-restart-pending; do
+  read -r NB TEAL CYAN CUE <<< "$(px "$n")"
+  echo "  $n: nonblank=$NB teal=$TEAL cyan=$CYAN cue=$CUE"
+  eval "TEAL_${n//-/_}=$TEAL; CYAN_${n//-/_}=$CYAN; CUE_${n//-/_}=${CUE:-0}"
   [ "$NB" = "1" ] || no "d9 $n non-blank"
 done
 [ "${TEAL_02_waiting:-0}" -gt $(( ${TEAL_01_idle:-0} + 150 )) ] && ok "d9 02-waiting has the waiting pad's teal frame (teal ${TEAL_01_idle:-0} -> ${TEAL_02_waiting:-0})" \
   || no "d9 02-waiting teal frame (teal ${TEAL_01_idle:-0} -> ${TEAL_02_waiting:-0}, need > +150)"
-[ "${CYAN_03_playing:-0}" -gt $(( ${CYAN_01_idle:-0} + 300 )) ] && ok "d9 03-playing has the cyan band names / V fill (cyan ${CYAN_01_idle:-0} -> ${CYAN_03_playing:-0})" \
-  || no "d9 03-playing cyan bands (cyan ${CYAN_01_idle:-0} -> ${CYAN_03_playing:-0}, need > +300)"
+[ "${CUE_03_playing:-0}" -gt $(( ${CUE_01_idle:-0} + 300 )) ] && ok "d9 03-playing has the routine-cue band names / V fill (cue ${CUE_01_idle:-0} -> ${CUE_03_playing:-0})" \
+  || no "d9 03-playing routine-cue bands / V fill (cue ${CUE_01_idle:-0} -> ${CUE_03_playing:-0}, need > +300)"
+[ "${CYAN_03_playing:-0}" -le $(( ${CYAN_01_idle:-0} + 100 )) ] && ok "d12 03-playing adds no accent cyan: the routine cue is its own hue (cyan ${CYAN_01_idle:-0} -> ${CYAN_03_playing:-0})" \
+  || no "d12 03-playing added accent cyan (cyan ${CYAN_01_idle:-0} -> ${CYAN_03_playing:-0}, allowed +100): the routine cue is the app's accent cyan"
 
 quit_app
 zero_windows "d11"

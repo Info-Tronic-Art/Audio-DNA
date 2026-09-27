@@ -1799,3 +1799,16 @@ hand-written functions with no shared layout model.
 - `static_assert(!requires(T& p){ p.onStop; })` on a CONCRETE class is a hard compile error, not `false`; wrap it in a
   concept (`template<class T> concept HasStop = requires(T& p){ p.onStop; };`) for a "this member must not exist" pin.
 - Valid while these files exist in their current form.
+
+## 2026-09-27 s-rta-0927 routine-display fix round | Files: src/ui/LookAndFeel.cpp, src/ui/LookAndFeel.h, src/recording/RoutineEngine.cpp, .harmony/probe-routine-display.sh
+- `AudioDNALookAndFeel::drawPopupMenuItem` IGNORED the item colour (the `textColour` parameter was commented out), so
+  `PopupMenu::addColouredItem` drew plain kTextPrimary until the fix round; it now keeps an item's own colour. JUCE hands
+  the colour through `LookAndFeel_V2::drawPopupMenuItemWithOptions` (`item.colour != Colour() ? &item.colour : nullptr`).
+- Before picking a new "semantic" UI colour, survey every `0xffRRGGBB` literal in src/ui by HSL hue: the only empty
+  saturated band was 60-120 deg (chartreuse) -- cyan is every mapped knob's accent, magenta SIGNAL, the rest meters /
+  categories. `kRoutineCue` #b4ff2e lives there; decode it in a window capture by HUE (68..100 deg), which survives the
+  display-profile colour shift that breaks exact-hex oracles.
+- A waiting `RoutineEngine::Running` must re-read its settings from the live `Routine` every tick
+  (`resyncPending`): anything captured at `fire()` and only refreshed on a re-fire-while-running goes stale for the
+  wait, and the pad menu / REST edits read as applied while the start ignores them.
+- Valid while these files exist in their current form.
