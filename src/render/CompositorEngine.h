@@ -102,6 +102,19 @@ public:
 
     bool hasActiveLayers() const { return hasActiveLayers_; }
 
+    // s-rta-0926b: true when compositePersistentLayers(deck) has at least one
+    // layer to composite this frame -- persistent, visible, not bypassed, not
+    // soloed out, a type Layer::canBePersistent allows, and an active clip with
+    // content (the same content rule compositeDeck applies to the active deck).
+    static bool hasPersistentContent(const Deck& deck);
+
+    // s-rta-0926b: the active deck has nothing to draw (compositeDeck returned
+    // 0) but another deck's persistent layers do. Starts the frame exactly as a
+    // black active deck would (an Opaque black clip at full opacity): resize +
+    // clear the accumulator to opaque black. Returns the accumulator texture
+    // (0 before initGL). Call before compositePersistentLayers().
+    GLuint beginEmptyActiveDeck(int width, int height);
+
     // Copy the current composited frame into the persistent feedback buffer.
     // Call AFTER compositeDeck() each frame.
     void updateFeedbackBuffer(ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
@@ -368,6 +381,12 @@ private:
 
     // Get texture for any clip (image, source, video, or image sequence)
     GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt);
+
+    // Does this clip give its layer something to draw -- media that exists, or
+    // effects to apply (FX Only)? The rule compositeDeck uses to decide whether
+    // the active deck has anything to show (s-rta-0926b: shared with
+    // hasPersistentContent).
+    static bool clipHasContent(const Clip& clip);
 
     // Apply transition shader: blend previous clip texture with new clip texture
     // Returns the blended texture. The outgoing clip gets the same per-clip

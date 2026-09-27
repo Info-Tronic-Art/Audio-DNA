@@ -889,16 +889,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo)) continue;
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr) continue;
-        if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
-        { hasActiveLayers_ = true; break; }
-        if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
-        { hasActiveLayers_ = true; break; }
-        if (clip->mediaType == Clip::MediaType::Video && clip->mediaFile.existsAsFile())
-        { hasActiveLayers_ = true; break; }
-        if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
-        { hasActiveLayers_ = true; break; }
-        // Layers with effects (even without media) are active — FX applies to accumulator
-        if (!clip->effects.empty())
+        if (clipHasContent(*clip))
         { hasActiveLayers_ = true; break; }
     }
 
@@ -1049,6 +1040,60 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         }
     }
 
+    return accumulatorTex_;
+}
+
+bool CompositorEngine::clipHasContent(const Clip& clip)
+{
+    if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
+        return true;
+    if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty())
+        return true;
+    if (clip.mediaType == Clip::MediaType::Video && clip.mediaFile.existsAsFile())
+        return true;
+    if (clip.mediaType == Clip::MediaType::ImageSequence && !clip.sequenceFiles.empty())
+        return true;
+    // Layers with effects (even without media) are active — FX applies to accumulator
+    return !clip.effects.empty();
+}
+
+bool CompositorEngine::hasPersistentContent(const Deck& deck)
+{
+    // The same gates as compositePersistentLayers() below, in the same order.
+    bool anySolo = false;
+    for (const auto& layer : deck.layers)
+    {
+        if (layer.solo) { anySolo = true; break; }
+    }
+    for (const auto& layer : deck.layers)
+    {
+        if (!layer.persistent || !layer.visible || layer.bypassed || (anySolo && !layer.solo))
+            continue;
+        const Clip* clip = layer.getActiveClip();
+        if (clip != nullptr && Layer::canBePersistent(layer.type) && clipHasContent(*clip))
+            return true;
+    }
+    return false;
+}
+
+GLuint CompositorEngine::beginEmptyActiveDeck(int width, int height)
+{
+    if (!glInitialized_)
+        return 0;
+
+    // compositeDeck() returned before its resize + clear (nothing on the active
+    // deck to draw); do both here, as compositeDeck does before its first layer.
+    resize(width, height);
+
+    // Opaque black, not compositeDeck's transparent black: the persistent layers
+    // then land on exactly what an Opaque black clip at full opacity leaves in
+    // the accumulator (compositeDeck's Opaque branch clears to opaque black and
+    // draws the clip with blending off), so an EMPTY active deck and a BLACK
+    // active deck give the same frame, alpha included.
+    glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+    glViewport(0, 0, width, height);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
     return accumulatorTex_;
 }
 
