@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <atomic>
 #include <cmath>
+#include <thread>
 #include <vector>
 
 // We test the stabilization pipeline in isolation using processRawBPM(),
@@ -378,7 +380,6 @@ TEST_CASE("Manual mode: beatInBar and barCount advance from cold with no audio",
     tracker.setManualBPM(120.0f);
     tracker.setManualMode(true);
     REQUIRE(tracker.isManualMode());
-    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 0.5));
     REQUIRE_FALSE(tracker.downbeatLocked());
 
     const float hopsPerSec = 48000.0f / 512.0f;
@@ -402,6 +403,9 @@ TEST_CASE("Manual mode: beatInBar and barCount advance from cold with no audio",
     uint16_t barsAdvanced = static_cast<uint16_t>(tracker.barCount() - barCountStart);
     REQUIRE(barsAdvanced >= 3);
     REQUIRE(barsAdvanced <= 5);
+    // s-rta-0926b: the tapped tempo is applied by the first hop (a request, not a direct
+    // write), so it is checked after the run rather than right after the call.
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 0.5));
 }
 
 TEST_CASE("Anti-double-count: 16 live onsets advance barCount by exactly 4, not 8",
@@ -982,10 +986,13 @@ TEST_CASE("Tap still realigns in manual mode; leaving manual mode restores the A
     ForeignBeatFeeder room{ 142.0f };
 
     for (int i = 0; i < 20; ++i) room.hop(tracker);
-    // Tap / a new set_bpm (setManualBPM) is a deliberate realignment: phase to 0.
+    // Tap / a new set_bpm (setManualBPM) is a deliberate realignment: phase to 0 -- even
+    // with the SAME BPM (120 again here). s-rta-0926b: applied by the next hop, which then
+    // advances one step from 0.
     REQUIRE(tracker.beatPhase() > 0.0f);
     tracker.setManualBPM(120.0f);
-    REQUIRE(tracker.beatPhase() == 0.0f);
+    room.hop(tracker);
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(120.0f), 1e-6));
 
     // Back to AUTO: a high-confidence detected beat hard-resets the phase again,
     // exactly as before (AUTO behaviour unchanged).
@@ -996,4 +1003,173 @@ TEST_CASE("Tap still realigns in manual mode; leaving manual mode restores the A
     REQUIRE(tracker.beatPhase() > 0.0f);
     tracker.processRawBPM(120.0f, 1.0f, true);
     REQUIRE(tracker.beatPhase() == 0.0f);
+}
+
+// ============================================================================
+// s-rta-0926b bpm-thread: every tempo writer -- TopBar Tap and manual field,
+// REST /api/set_bpm, OSC /audiodna/bpm, a Tap binding, take/routine replay,
+// the Ableton Link tick -- reaches the tracker on the MESSAGE thread
+// (MainComponent::applyTempoCommand), while the ANALYSIS thread reads and
+// writes the same tempo/phase fields every hop. setManualBPM used to write
+// lockedBPM_/phase_/... straight from the calling thread: a data race. It now
+// posts a request that the analysis thread applies at the START of its next
+// hop -- the requestResync pattern above -- so that hop publishes exactly what
+// the old direct write published on its next hop.
+// ============================================================================
+
+namespace
+{
+    // One analysis hop in AnalysisThread's stage-5 order, with no audio (the manual regime).
+    void quietHop(BPMTracker& tracker)
+    {
+        tracker.processRawBPM(0.0f, 0.0f, false);
+        tracker.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    }
+}
+
+TEST_CASE("setManualBPM (Tap / set_bpm) is applied by the next analysis hop, not by the caller",
+          "[bpm][manual][thread][s-rta-0926b]")
+{
+    BPMTracker tracker(512, 1024, 48000);
+    tracker.setManualBPM(120.0f);
+    tracker.setManualMode(true);
+    for (int i = 0; i < 30; ++i) quietHop(tracker);
+    const float bpm0 = tracker.bpm();
+    const float phase0 = tracker.beatPhase();
+    REQUIRE_THAT(bpm0, WithinAbs(120.0, 1e-3));
+    REQUIRE(phase0 > 0.1f);
+
+    tracker.setManualBPM(140.0f);   // the message thread: TopBar Tap / REST or OSC set_bpm
+
+    // The caller writes nothing the analysis thread owns. RED pre-fix: bpm 140 and
+    // phase 0 were written straight from the calling thread (the data race).
+    REQUIRE(tracker.bpm() == bpm0);
+    REQUIRE(tracker.beatPhase() == phase0);
+
+    // ONE hop applies it, and publishes what the old direct write published on its
+    // next hop: the new tempo, and the phase one hop's increment from 0 (realigned).
+    quietHop(tracker);
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(140.0, 1e-3));
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(140.0f), 1e-6));
+}
+
+TEST_CASE("tempo writers on the message thread vs the analysis hop: no data race (run it under ThreadSanitizer)",
+          "[bpm][thread][tsan][s-rta-0926b]")
+{
+    // An ADNA_SANITIZE=thread build reports any unsynchronised access between the two
+    // threads below and the test binary exits non-zero (RED pre-fix: setManualBPM wrote
+    // lockedBPM_/phase_ while the analysis hop read and wrote them). In a plain build it
+    // runs the same interleaving and checks the tracker still ends coherent.
+    BPMTracker tracker(512, 1024, 48000);
+    constexpr int kHops = 3000;   // ~32 s of 512-sample hops
+    std::atomic<bool> analysisDone{ false };
+    float published = 0.0f;   // written by the analysis thread only; read after join()
+
+    std::thread analysis([&tracker, &analysisDone, &published] {
+        // AnalysisThread's stage 5, in its order, on a 120 BPM click (a 64-sample burst
+        // every 24000 samples) so aubio really tracks beats between the tempo writes.
+        std::vector<float> hop(512, 0.0f);
+        float sink = 0.0f;
+        for (int h = 0; h < kHops; ++h)
+        {
+            float sumSq = 0.0f;
+            for (int i = 0; i < 512; ++i)
+            {
+                const int k = (h * 512 + i) % 24000;
+                hop[static_cast<size_t>(i)] = (k < 64) ? 0.8f * (1.0f - static_cast<float>(k) / 64.0f) : 0.0f;
+                sumSq += hop[static_cast<size_t>(i)] * hop[static_cast<size_t>(i)];
+            }
+            const float rms = std::sqrt(sumSq / 512.0f);
+            tracker.feedSilenceDetection(rms);
+            tracker.process(hop.data());
+            tracker.feedDownbeatFeatures(rms, rms, 0.0f, 0);
+            // the snapshot publish AnalysisThread does right after stage 5
+            sink += tracker.bpm() + tracker.beatPhase() + tracker.barPhase() + tracker.phrasePhase()
+                  + static_cast<float>(tracker.trackerState() + tracker.beatInBar() + tracker.barCount()
+                                       + tracker.totalBarCount() + tracker.resyncBarOrigin())
+                  + (tracker.downbeatDetected() ? 1.0f : 0.0f);
+        }
+        published = sink;   // no Catch2 assertion off the test thread (not thread-safe in v3.7)
+        analysisDone.store(true);
+    });
+
+    // The message thread, meanwhile: exactly the tracker calls applyTempoCommand makes
+    // for "tap" / "manual" / "auto" / "resync" / "link" (REST+OSC set_bpm, Link tick).
+    int writes = 0;
+    while (!analysisDone.load())
+    {
+        tracker.setManualMode(true);
+        tracker.setManualBPM(100.0f + static_cast<float>(writes % 60));
+        if (writes % 3 == 0) tracker.followExternalTempo(120.0f);   // the Link tick
+        if (writes % 7 == 0) tracker.requestResync();
+        if (writes % 11 == 0) tracker.setManualMode(false);
+        ++writes;
+        std::this_thread::yield();
+    }
+    analysis.join();
+    REQUIRE(writes > 0);
+    REQUIRE(std::isfinite(published));
+
+    // Drain what the loop left pending (a tempo and/or a Resync), then one more request
+    // lands on the next hop like any other.
+    quietHop(tracker);
+    tracker.setManualMode(true);
+    tracker.setManualBPM(133.0f);
+    quietHop(tracker);
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(133.0, 1e-3));
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(133.0f), 1e-6));
+}
+
+TEST_CASE("Ableton Link: an unchanged tempo re-sent every UI tick (~30 Hz) never realigns the phase",
+          "[bpm][manual][link][s-rta-0926b]")
+{
+    // MainComponent's 30 Hz timer re-sends Link's tempo on every tick while Link is on
+    // (applyTempoCommand("link") -> manual mode + the tempo). An unchanged tempo must
+    // leave the phase free-running; RED pre-fix: every tick reset it to 0, so the phase
+    // never passed ~0.07 and no bar ever landed.
+    BPMTracker tracker(512, 1024, 48000);
+    const float inc = manualPhaseInc(120.0f);
+    const double hopsPerTick = (48000.0 / 512.0) / 30.0;   // 3.125 hops between UI ticks
+
+    constexpr int kHops = 1900;   // ~20.3 s: 10 bars at 120 BPM
+    int ticks = 0, jumps = 0, firstJumpHop = -1;
+    std::vector<int> barHops;
+    uint32_t bars = tracker.totalBarCount();
+    double nextTick = 0.0;
+    float prev = tracker.beatPhase();
+    for (int h = 0; h < kHops; ++h)
+    {
+        if (h >= nextTick)
+        {
+            tracker.setManualMode(true);        // the Link tick's tracker calls
+            tracker.followExternalTempo(120.0f);
+            ++ticks;
+            nextTick += hopsPerTick;
+        }
+        quietHop(tracker);
+        const float now = tracker.beatPhase();
+        if (phaseJumped(prev, now, inc)) { ++jumps; if (firstJumpHop < 0) firstJumpHop = h; }
+        prev = now;
+        if (tracker.totalBarCount() != bars) { bars = tracker.totalBarCount(); barHops.push_back(h); }
+    }
+
+    INFO("Link ticks " << ticks << ", phase jumps " << jumps << " (first at hop " << firstJumpHop
+         << "), bars " << barHops.size());
+    REQUIRE(ticks >= 600);                                    // non-vacuous: ~30 ticks/s for 20 s
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(120.0, 1e-3));
+    REQUIRE(jumps == 0);                                      // RED pre-fix: a reset on every tick
+    REQUIRE(barHops.size() == 10);                            // RED pre-fix: 0 bars
+    for (size_t i = 1; i < barHops.size(); ++i)
+    {
+        INFO("bar " << i << " took " << (barHops[i] - barHops[i - 1]) << " hops (187.5 = 2.000 s)");
+        REQUIRE(barHops[i] - barHops[i - 1] >= 187);
+        REQUIRE(barHops[i] - barHops[i - 1] <= 188);
+    }
+
+    // A CHANGED Link tempo is applied on the next hop and realigns, as every tempo change did.
+    tracker.setManualMode(true);
+    tracker.followExternalTempo(128.0f);
+    quietHop(tracker);
+    REQUIRE_THAT(tracker.bpm(), WithinAbs(128.0, 1e-3));
+    REQUIRE_THAT(tracker.beatPhase(), WithinAbs(manualPhaseInc(128.0f), 1e-6));
 }

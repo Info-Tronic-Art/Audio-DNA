@@ -3544,7 +3544,7 @@ void MainComponent::timerCallback()
         linkSync_.update();
         double linkBPM = linkSync_.getBPM();
         if (linkBPM > 0.0)
-            applyTempoCommand("link", static_cast<float>(linkBPM), Origin::Human);
+            applyTempoCommand("link", static_cast<float>(linkBPM), Origin::Human, /*linkTick=*/true);
     }
 
     // P22.10: Update MIDI output pad feedback (~6Hz)
@@ -5162,7 +5162,11 @@ void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deck
 // analysis thread applies (s-rta-0925: BPMTracker::requestResync(), no longer
 // a direct message-thread write into the tracker); "link" (also REST/OSC
 // set_bpm) turns manual mode on and applies the BPM.
-void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin)
+// s-rta-0926b: setManualBPM / followExternalTempo are requests too now -- this
+// message-thread function writes nothing the analysis thread owns; the tracker
+// applies the tempo at the start of its next hop (~10.7 ms), which is when the
+// old direct write first reached the published FeatureSnapshot anyway.
+void MainComponent::applyTempoCommand(const std::string& action, float bpm, Origin origin, bool linkTick)
 {
     auto* tracker = analysisThread_.getBpmTracker();
     if (action == "tap")
@@ -5192,7 +5196,10 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
         if (tracker)
         {
             tracker->setManualMode(true);
-            tracker->setManualBPM(bpm);
+            if (linkTick)
+                tracker->followExternalTempo(bpm);   // unchanged tempo: phase keeps running
+            else
+                tracker->setManualBPM(bpm);          // explicit set_bpm: realigns, as before
         }
     }
 

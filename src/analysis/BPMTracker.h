@@ -136,13 +136,25 @@ public:
     void requestResync();
     uint32_t resyncBarOrigin() const { return resyncBarOrigin_; }   // analysis thread; published each hop
 
-    // Override BPM from external tap tempo (bypasses stabilization pipeline).
-    // Sets the locked BPM immediately and resets beat phase.
+    // Override BPM from tap tempo / the manual field / set_bpm (bypasses the stabilization
+    // pipeline) and realign: beat phase to 0 -- always, even when the BPM is unchanged.
+    // s-rta-0926b: a REQUEST, like requestResync(). Any thread may call it; it writes nothing
+    // the analysis thread owns. The analysis thread applies it at the START of its next hop
+    // (runPipeline), before that hop's phase advance, so the hop publishes what the old direct
+    // write published on its next hop: bpm = the request, beatPhase = one hop's increment.
+    // Requests between two hops coalesce: the last BPM wins, and a realign asked by any is kept.
     void setManualBPM(float bpm);
+
+    // Ableton Link tick (MainComponent's ~30 Hz timer re-sends Link's tempo every tick): the
+    // same request as setManualBPM(), except an UNCHANGED tempo (== the BPM in force when the
+    // analysis thread applies it) leaves the phase free-running. A changed tempo realigns, as
+    // before. setManualBPM() here re-zeroed the phase ~30x/s, so it never reached a beat.
+    void followExternalTempo(float bpm);
 
     // Manual mode: freeze the stabilization pipeline, use manually-set BPM.
     // Beat phase still runs from the locked BPM value; detected beats never
     // reset it (only requestResync() or setManualBPM() realign it).
+    // One relaxed atomic store -- any thread; the analysis thread reads it each hop.
     void setManualMode(bool enabled);
     bool isManualMode() const { return manualMode_; }
 
@@ -257,6 +269,18 @@ private:
     uint32_t resyncRequestsApplied_ = 0;        // analysis thread only
     uint32_t resyncBarOrigin_ = 0;              // analysis thread only; MANUAL Resync only
     void applyResync();                         // analysis thread only
+
+    // === s-rta-0926b: tempo requests (setManualBPM / followExternalTempo) ===
+    // ONE lock-free word: posted by any thread (CAS loop), taken by the analysis thread
+    // (exchange) at the start of runPipeline(). 0 = empty. The word carries everything,
+    // so relaxed ordering suffices (as resyncRequests_).
+    static constexpr uint64_t kTempoPending = uint64_t{1} << 63;
+    static constexpr uint64_t kTempoRealign = uint64_t{1} << 32;   // realign even if unchanged
+    // low 32 bits: the requested BPM's float bits
+    std::atomic<uint64_t> tempoRequest_{0};
+    static_assert(std::atomic<uint64_t>::is_always_lock_free, "tempo requests must be lock-free");
+    void postTempoRequest(float bpm, bool realign);    // any thread
+    void applyTempoRequest(float bpm, bool realign);   // analysis thread only
 
     // === P23: Smart BPM recovery ===
     bool  inSilence_ = false;

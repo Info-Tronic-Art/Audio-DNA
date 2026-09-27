@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <bit>
 
 BPMTracker::BPMTracker(int hopSize, int bufSize, int sampleRate)
     : hopSize_(hopSize), sampleRate_(sampleRate)
@@ -67,6 +68,16 @@ void BPMTracker::processRawBPM(float rawBpm, float conf, bool beat)
 
 void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
 {
+    // s-rta-0926b: a tempo request (setManualBPM / followExternalTempo) posted since the last
+    // hop is applied HERE, before this hop's phase advance -- the moment the old direct write
+    // from the message thread took effect. One relaxed load per hop; the exchange only when pending.
+    if (tempoRequest_.load(std::memory_order_relaxed) & kTempoPending)
+    {
+        const uint64_t req = tempoRequest_.exchange(0, std::memory_order_relaxed);
+        if (req & kTempoPending)
+            applyTempoRequest(std::bit_cast<float>(static_cast<uint32_t>(req)), (req & kTempoRealign) != 0);
+    }
+
     rawBPM_       = rawBpm;
     confidence_   = conf;
     beatDetected_ = beat;
@@ -550,13 +561,42 @@ void BPMTracker::applyResync()   // analysis thread only -- called last in feedD
 void BPMTracker::setManualBPM(float bpm)
 {
     if (bpm <= 0.0f) return;
+    postTempoRequest(bpm, true);
+}
+
+void BPMTracker::followExternalTempo(float bpm)
+{
+    if (bpm <= 0.0f) return;
+    postTempoRequest(bpm, false);
+}
+
+void BPMTracker::postTempoRequest(float bpm, bool realign)   // any thread -- writes only tempoRequest_
+{
+    const uint64_t bits = std::bit_cast<uint32_t>(bpm);
+    uint64_t prev = tempoRequest_.load(std::memory_order_relaxed);
+    uint64_t next;
+    do
+    {
+        // Coalesce with a request the analysis thread has not taken yet: the latest BPM wins,
+        // a realign asked by either is kept (a Tap is never downgraded by a Link tick).
+        const bool keepRealign = (prev & kTempoPending) && (prev & kTempoRealign);
+        next = kTempoPending | ((realign || keepRealign) ? kTempoRealign : 0) | bits;
+    } while (!tempoRequest_.compare_exchange_weak(prev, next, std::memory_order_relaxed));
+}
+
+void BPMTracker::applyTempoRequest(float bpm, bool realign)   // analysis thread only -- from runPipeline()
+{
+    // The body setManualBPM() used to run on the calling thread, except that a
+    // followExternalTempo() request with an unchanged tempo keeps the phase running.
     float folded = foldBPMToRange(bpm);
+    const bool tempoChanged = (folded != lockedBPM_);
     lockedBPM_ = folded;
     candidateBPM_ = folded;
     lastConfidentBPM_ = folded;
     trackerState_ = STATE_LOCKED;
     consistencyCounter_ = kHysteresisHops; // Already locked
-    phase_ = 0.0f;
+    if (realign || tempoChanged)
+        phase_ = 0.0f;
 }
 
 void BPMTracker::resetBeatPhase()
