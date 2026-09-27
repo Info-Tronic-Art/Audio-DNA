@@ -1631,6 +1631,7 @@ catch_discover_tests(test_master_signal_link)
 add_executable(test_topbar_link_toggle
     test_topbar_link_toggle.cpp
     ${SRC_DIR}/ui/TopBar.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
     ${SRC_DIR}/features/FeatureBus.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
@@ -1765,3 +1766,106 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_effect_stack_binding)
 catch_discover_tests(test_effect_stack_binding)
+
+# --- test_layer_inspector_persistent_toggle (s-rta-0926b uitoggle): the Persistent toggle's
+# enable rule widens to canBePersistent(type) || layer->persistent, so a stale flag on a
+# non-persistable type can be cleared but not re-set. Same headless-widgets harness and link
+# closure as test_effect_stack_binding above, plus LayerInspector.cpp/MacroPanel.cpp/Knob.cpp
+# for the inspector under test.
+add_executable(test_layer_inspector_persistent_toggle
+    test_layer_inspector_persistent_toggle.cpp
+    ${SRC_DIR}/ui/LayerInspector.cpp
+    ${SRC_DIR}/ui/MacroPanel.cpp
+    ${SRC_DIR}/ui/Knob.cpp
+    ${SRC_DIR}/render/FeedbackProcessor.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_inspector_persistent_toggle PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_inspector_persistent_toggle PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_layer_inspector_persistent_toggle PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_inspector_persistent_toggle PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_inspector_persistent_toggle)
+catch_discover_tests(test_layer_inspector_persistent_toggle)
+
+# --- tool_uitoggle_snapshot (s-rta-0926b uitoggle SHOTS): a ctest-EXCLUDED headless snapshot
+# tool -- deliberately never registered with catch_discover_tests, same posture as
+# tool_routine_strip_snapshot above. Renders TopBar / LayerInspector / RecordPanel, with the
+# app's own AudioDNALookAndFeel, into PNGs via juce::Component::createComponentSnapshot -- no
+# window, no peer, no live app, no port 7070, no lock. Supplementary to (not a substitute for)
+# the rig-mandated live-app window screenshots. No Catch2: a manual tool with its own main():
+#   ./tool_uitoggle_snapshot <output-directory>
+add_executable(tool_uitoggle_snapshot
+    tool_uitoggle_snapshot.cpp
+    ${SRC_DIR}/ui/TopBar.cpp
+    ${SRC_DIR}/ui/LayerInspector.cpp
+    ${SRC_DIR}/ui/MacroPanel.cpp
+    ${SRC_DIR}/ui/Knob.cpp
+    ${SRC_DIR}/render/FeedbackProcessor.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/ui/RecordPanel.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/features/FeatureBus.cpp
+)
+target_include_directories(tool_uitoggle_snapshot PRIVATE ${SRC_DIR})
+target_link_libraries(tool_uitoggle_snapshot PRIVATE
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(tool_uitoggle_snapshot PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(tool_uitoggle_snapshot PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
