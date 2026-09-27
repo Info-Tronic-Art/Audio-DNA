@@ -1,4 +1,5 @@
 #include "OutputWindow.h"
+#include <iostream>
 
 using namespace juce::gl;
 
@@ -46,6 +47,15 @@ OutputWindow::OutputWindow(output::SharedFrameSet& frames)
     // getDesktopWindowStyleFlags() -- the override below -- so the peer is (re)created with
     // windowIgnoresKeyPresses before the window is ever shown.
     setDropShadowEnabled(false);
+    // Checked in every build type (a jassert is a Release no-op): a window without the flag could take the
+    // keyboard, so a peer that lacks it is logged and rebuilt with the override's flags.
+    if (auto* peer = getPeer();
+        peer == nullptr || (peer->getStyleFlags() & juce::ComponentPeer::windowIgnoresKeyPresses) == 0)
+    {
+        std::cerr << "[OutputWindow] the peer lacks windowIgnoresKeyPresses -- re-adding the window to the desktop"
+                  << std::endl;
+        addToDesktop();
+    }
     jassert(getPeer() != nullptr
             && (getPeer()->getStyleFlags() & juce::ComponentPeer::windowIgnoresKeyPresses) != 0);
 

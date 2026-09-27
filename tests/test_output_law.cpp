@@ -5,7 +5,8 @@
 //     bug, .harmony/black-overlay-rootcause.md), never kiosk, never native fullscreen;
 //   - never able to take the keyboard: the peer carries ComponentPeer::windowIgnoresKeyPresses
 //     (TopLevelWindow::visibilityChanged otherwise calls toFront(true) on every show), nothing in the window
-//     asks for focus;
+//     asks for focus; the constructor checks the peer's flag in every build type (a jassert alone is a Release
+//     no-op) and re-adds the window to the desktop if it is missing;
 //   - bounds before visible (the GL context attaches once, already at display size).
 // The files are read at test time from AUDIODNA_SRC_DIR; comments and string literals are stripped and all
 // whitespace removed before matching, so a comment that NAMES a forbidden call is not a violation and
@@ -107,6 +108,43 @@ TEST_CASE("output law: the peer carries windowIgnoresKeyPresses", "[output_law]"
     INFO("OutputWindow must override getDesktopWindowStyleFlags() and add juce::ComponentPeer::windowIgnoresKeyPresses "
          "(found body: " << (body.empty() ? std::string("<no override>") : body) << ")");
     CHECK(body.find("windowIgnoresKeyPresses") != std::string::npos);
+}
+
+TEST_CASE("output law: the constructor checks the peer's windowIgnoresKeyPresses in every build type", "[output_law]")
+{
+    // A jassert is compiled out of Release, so it cannot be the only check that the peer really carries the flag.
+    // The constructor body, with every jassert(...) removed, must still read the peer's style flags, test
+    // windowIgnoresKeyPresses and re-add the window to the desktop (the repair) when the flag is missing.
+    const Sources src;
+    const std::string& c = src.cpp;
+    const std::string sig = "OutputWindow::OutputWindow(";
+    const size_t at = c.find(sig);
+    REQUIRE(at != std::string::npos);
+    const size_t open = c.find('{', at);
+    REQUIRE(open != std::string::npos);
+    int depth = 0;
+    size_t end = open;
+    for (; end < c.size(); ++end)
+    {
+        if (c[end] == '{') ++depth;
+        else if (c[end] == '}' && --depth == 0) break;
+    }
+    std::string body = c.substr(open, end - open + 1);
+    for (size_t j = body.find("jassert("); j != std::string::npos; j = body.find("jassert("))
+    {
+        size_t k = j + 7;   // the '(' of jassert(
+        int d = 0;
+        for (; k < body.size(); ++k)
+        {
+            if (body[k] == '(') ++d;
+            else if (body[k] == ')' && --d == 0) break;
+        }
+        body.erase(j, k - j + 1);
+    }
+    INFO("OutputWindow's constructor, jasserts removed: " << body);
+    CHECK(body.find("getStyleFlags()") != std::string::npos);
+    CHECK(body.find("windowIgnoresKeyPresses") != std::string::npos);
+    CHECK(body.find("addToDesktop(") != std::string::npos);
 }
 
 TEST_CASE("output law: bounds before visible -- every setVisible(true) follows a setBounds( in its function", "[output_law]")
