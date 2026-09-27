@@ -142,8 +142,7 @@ private:
     // clicking a saved deck mid-set must not lose the deck they are on, and
     // append closes no live media (zero outgoing ids). openMediaForDeck is
     // the per-clip media-open loop factored out of loadComposition's OPEN
-    // NEW step (§1 step 4) so both callers share one body. NOT named
-    // loadDeck — that name is the legacy PresetManager path below.
+    // NEW step (§1 step 4) so both callers share one body.
     void openMediaForDeck(Deck& deck);
     void appendDeckFromFile(const juce::File& file);
     void timerCallback() override;
@@ -161,8 +160,6 @@ private:
     void loadSlotPreset(int slot, const juce::File& file);
     void populateSlotMenu(int slot);
     juce::File getFastSaveDir() const;
-    void saveDeck();
-    void loadDeck();
 #if AUDIODNA_HAS_CAMERA
     void openCamera(int deviceIndex);
     void closeCamera();
@@ -324,9 +321,6 @@ private:
     juce::TextButton fastSaveButton_{"FX Save"};
     int fastSaveCounter_ = 1;
 
-    // Deck save/load
-    juce::TextButton deckSaveButton_{"Deck Save"};
-    juce::TextButton deckLoadButton_{"Deck Load"};
     juce::File currentAudioFile_;  // Track loaded audio for deck save
 
     // Bottom preset slots (10 slots)
