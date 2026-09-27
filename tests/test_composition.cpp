@@ -1110,3 +1110,74 @@ TEST_CASE("Composition::fromVar re-mints duplicate deck ids", "[composition][ser
     REQUIRE(comp.decks[3].id != comp.decks[1].id);
     REQUIRE(comp.decks[3].id != comp.decks[2].id);
 }
+
+// plan6 §5 A1-e: Duplicate Deck = a value copy under "<name> copy" with the library link dropped,
+// every clip re-minted (media is closed BY CLIP ID, so a copy must never share one with its source)
+// and no queued (quantized) trigger (the copy becomes the active deck at once — a copied pending
+// trigger would fire on it at the next beat). Layer ids, layer count, columns and clip content
+// are kept. id 0 = re-minted by Composition::appendDeck.
+TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip re-minted and no queued trigger", "[composition][compload]")
+{
+    Deck src;
+    src.name = "A";
+    src.id = 42;
+    src.numColumns = 6;
+    src.sourceFile = juce::File("/tmp/plan6-A.json");
+
+    Layer l0;
+    l0.id = 0;
+    l0.name = "L0";
+    l0.ensureColumns(6);
+    Layer l1;
+    l1.id = 7;
+    l1.name = "L1";
+    l1.ensureColumns(6);
+
+    Clip video;  video.id = 11; video.name = "vid"; video.mediaType = Clip::MediaType::Video;
+    video.mediaFile = juce::File("/tmp/plan6-vid.mp4");
+    Clip image;  image.id = 12; image.name = "img"; image.mediaType = Clip::MediaType::Image;
+    Clip source; source.id = 13; source.name = "src"; source.mediaType = Clip::MediaType::Source;
+    source.sourceType = "plasma";
+    l0.clips[0] = video;
+    l0.clips[2] = image;
+    l1.clips[1] = source;
+    l1.pendingTriggerColumn = 4;
+    l1.pendingTriggerSnapOverride = Clip::BeatSnapMode::Bar;
+    src.layers = { l0, l1 };
+
+    uint32_t nextClipId = 500;
+    const Deck copy = compload::duplicateDeck(src, nextClipId);
+
+    REQUIRE(copy.name == "A copy");
+    REQUIRE(copy.id == 0u);
+    REQUIRE(copy.sourceFile == juce::File());
+    REQUIRE(copy.numColumns == src.numColumns);
+    REQUIRE(copy.layers.size() == 2);
+    REQUIRE(copy.layers[0].id == 0u);
+    REQUIRE(copy.layers[1].id == 7u);
+    REQUIRE(copy.layers[0].clips[0].has_value());
+    REQUIRE(copy.layers[0].clips[0]->name == "vid");
+    REQUIRE(copy.layers[0].clips[0]->mediaFile == video.mediaFile);
+    REQUIRE(copy.layers[0].clips[2]->name == "img");
+    REQUIRE(copy.layers[1].clips[1]->name == "src");
+
+    std::vector<uint32_t> copyIds;
+    for (const auto& layer : copy.layers)
+        for (const auto& cell : layer.clips)
+            if (cell.has_value()) copyIds.push_back(cell->id);
+    REQUIRE(copyIds.size() == 3);
+    for (auto id : copyIds)
+        REQUIRE((id != 11u && id != 12u && id != 13u));   // disjoint from the source's clip ids
+    REQUIRE(nextClipId == 503u);
+
+    for (const auto& layer : copy.layers)
+    {
+        REQUIRE(layer.pendingTriggerColumn == -1);
+        REQUIRE(layer.pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    }
+
+    // The source is untouched.
+    REQUIRE(src.name == "A");
+    REQUIRE(src.layers[0].clips[0]->id == 11u);
+    REQUIRE(src.layers[1].pendingTriggerColumn == 4);
+}
