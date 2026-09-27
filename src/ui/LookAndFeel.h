@@ -6,6 +6,18 @@ class AudioDNALookAndFeel : public juce::LookAndFeel_V4
 public:
     AudioDNALookAndFeel();
 
+    // --- App-wide default (decks-followup ITEM 1) ---
+    // MainComponent's constructor calls installAsDefault(); its destructor calls uninstallAsDefault()
+    // BEFORE this object is destroyed (JUCE asserts if a LookAndFeel is deleted while it is still the
+    // default -- juce_LookAndFeel.cpp ~LookAndFeel()). Once installed, ANY top-level Component with no
+    // explicit LookAndFeel of its own falls back to this one (juce::Component::getLookAndFeel() walks
+    // parentComponent, then juce::LookAndFeel::getDefaultLookAndFeel()) -- so an AlertWindow shown with
+    // no associated component (juce::AlertWindow::showMessageBoxAsync, the failure alerts) and a
+    // PopupMenu with no in-app parent (MacroPanel, UniversalParamControl, SignalBar) draw square, in
+    // app colours, no rounded corners (BORIS_DECISIONS: "Rejected: Rounded corners (anywhere, ever)").
+    void installAsDefault();
+    void uninstallAsDefault();
+
     // Color constants
     static constexpr juce::uint32 kBackground    = 0xff1a1a2e;
     static constexpr juce::uint32 kSurface       = 0xff252540;

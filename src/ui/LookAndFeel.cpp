@@ -56,6 +56,20 @@ AudioDNALookAndFeel::AudioDNALookAndFeel()
 }
 
 //==============================================================================
+// App-wide default
+//==============================================================================
+
+void AudioDNALookAndFeel::installAsDefault()
+{
+    juce::LookAndFeel::setDefaultLookAndFeel(this);
+}
+
+void AudioDNALookAndFeel::uninstallAsDefault()
+{
+    juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
+}
+
+//==============================================================================
 // Buttons
 //==============================================================================
 
