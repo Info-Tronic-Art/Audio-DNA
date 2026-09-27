@@ -246,7 +246,8 @@ def loadavg():
 def wait_no_compiler(tag, limit_s=3600):
     t0 = time.time()
     while True:
-        busy = [n for n in ("clang", "clang++") if subprocess.run(["pgrep", "-x", n], capture_output=True).stdout.strip()]
+        # macOS pgrep takes a regex: a bare "clang++" is an invalid pattern (error, empty stdout = never "busy").
+        busy = [n for n in ("clang", r"clang\+\+") if subprocess.run(["pgrep", "-x", n], capture_output=True).stdout.strip()]
         if not busy:
             return True
         if time.time() - t0 > limit_s:
