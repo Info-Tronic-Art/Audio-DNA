@@ -79,9 +79,9 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 | Issue | Fix |
 |-------|-----|
 | `FetchContent` download fails | Check internet connection; JUCE repo is ~200MB |
-| macOS: "OpenGL deprecated" warnings | Expected — Apple deprecated GL but 4.1 still works. Suppress with `-Wno-deprecated` |
-| Linux: missing X11/ALSA headers | Install the `apt` packages listed in `docs/claude/build-other-platforms.md`'s Linux section |
-| Windows: long path errors | Enable long paths: `git config --system core.longpaths true` |
+| macOS: "OpenGL deprecated" warnings | Expected (GL 4.1 still works); suppress with `-Wno-deprecated` |
+| Linux: missing X11/ALSA headers | The `apt` packages in `docs/claude/build-other-platforms.md` (Linux) |
+| Windows: long path errors | `git config --system core.longpaths true` |
 
 ---
 
@@ -224,7 +224,7 @@ When the user says **"kick off phase N"**, follow this exact sequence:
 
 ### Common Pitfalls Index
 
-Full detail (verbatim) for every numbered pitfall lives in `docs/claude/pitfalls.md` --
+Full detail for every numbered pitfall lives in `docs/claude/pitfalls.md` --
 numbers are stable and cited elsewhere as "Pitfall N". Read the full entry before touching
 the named area; this index is triage-only.
 
@@ -267,6 +267,7 @@ the named area; this index is triage-only.
 37. The canvas is the composition -- before sizing any render target, capture or recording (never from a Component).
 38. Autopilot keeps one beat-crossing baseline per instance -- before calling `Autopilot::processFrame` for more than one deck.
 39. `layer_transform` is one program shared by clip and layer transforms -- before adding a uniform to it or reading a picture's size.
+40. Output windows: normal level, never key -- before touching `OutputWindow`.
 
 ---
 

@@ -37,6 +37,7 @@ Status: RATIFIED (chair adjudication on the merits). Implements featurebus-threa
 
 ## Residuals (recorded, not silently fixed)
 - Routed params freeze on preview detach until the routing/signal follow-up (A1). Autopilot pauses on preview detach (pre-existing, unchanged). P3 scalar crossings (enlarged set) → spec Step 3. Msg-thread stalls bound mapping updates (modal pickers) — accepted; dominates the permanent freeze. Program-ID collision INFERRED half → settled by W7(iv).
+- s-rta-0927 outputs-c1 (plan5 slice C1): the output window no longer renders its own effect chain -- it presents the main Renderer's composition canvas through shared IOSurface frames (`src/output/SharedFrameSet.h`), so it shows the composition (not only the legacy image) and the second EffectChain reader is gone. The routed-param / autopilot freezes above are unchanged; while the preview is hidden the output keeps the LAST frame (frozen, never black).
 
 ## Boris items
 - Rig-feel taste-check of mapping response after C3 (constant chosen to preserve measured feel; confirm only). INFO: routed-param + autopilot detach freezes remain until follow-ups.

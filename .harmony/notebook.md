@@ -1786,3 +1786,20 @@ hand-written functions with no shared layout model.
   the wrong key; a stub harness drove another lane's app).
 - Timing probes: after any change that makes captures slower (canvas-sized readback), expect edge flakes in rows whose
   windows end at the next scheduled event; give windows >= 0.1 s margin.
+
+## 2026-09-27 s-rta-0927 outputs-c1: the Output window is screen-safe to TEST without ever opening it
+**Files:** src/output/{SharedFrameSet.h,SharedFrameSet.cpp,SurfacePool.cpp,OutputPresenter.*}, src/ui/OutputWindow.*, src/test/TestServer.cpp, tests/test_{surface_pool,shared_frame_gl,output_law}.cpp, .harmony/probe-outputs.*
+**Note:**
+- The whole output frame path is testable with NO window: a private CGL context (`CGLChoosePixelFormat` GL4 core +
+  `CGLCreateContext(pf, nullptr, ...)`, no drawable, FBO only) works on any thread; `juce::gl::loadFunctions()` is
+  dlsym-based and needs no JUCE context. The ctest uses three such contexts on one thread; the app's 8080
+  `/api/output_probe` uses one on the HTTP thread (serialised by a mutex -- httplib's pool may run each request on a
+  different thread; `CGLSetCurrentContext(nullptr)` after every use).
+- A window LAW that cannot be exercised live goes into a source-reading ctest (`test_output_law`: comments/literals
+  stripped, whitespace removed, tokens + "setBounds before setVisible" per function). Prove each guard on a mutated COPY
+  compiled with `-DAUDIODNA_SRC_DIR=<scratch>` -- the binary reads the files at run time, so one build serves all mutants.
+- macOS `pgrep -x clang++` is an INVALID regex (error, empty stdout): a "wait until no compiler" loop built on it
+  never sees clang++. Use `pgrep -x 'clang\+\+'` (probe-outputs.py does; probe-canvas.py still has the bare form).
+- After outputs-c1, `MainComponent::currentImageFile_` has no reader (the plan assumed `deck.imageFile = ...`, but
+  plan6 01ad154 removed that): write-only, left in place.
+- Valid while: these files exist and the Output window stays IOSurface-based.

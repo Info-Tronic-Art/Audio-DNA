@@ -18,6 +18,8 @@
 
 **Syphon Output** (`SyphonOutput`, macOS only, optional): Zero-copy GPU texture sharing via IOSurface. Obj-C++ wrapper around `SyphonServer`. Uses `__has_include(<Syphon/Syphon.h>)` for compile-time detection. Enable with `-DAUDIODNA_BUILD_SYPHON=ON` + install Syphon.framework to /Library/Frameworks/. **WIRED 2026-07-17 (Wave 1-A)**: `init()` runs on GL-context creation and the final composited frame is blit→published once per frame, gated on enabled + initialized; Output → "Syphon Output" menu toggle controls it (default OFF each boot, no persistence). Build-flag-gated — a runtime no-op unless built `-DAUDIODNA_BUILD_SYPHON=ON` with Syphon.framework installed. Post-publish, `publishSyphonFrame` re-binds `defaultFBO` so the subsequent `glReadPixels` capture path is unaffected.
 
+**Output window (s-rta-0927 outputs-c1, Pitfall 40)**: the Output menu (one item per display), the TopBar output combo and `Cmd+F` open ONE borderless window covering the chosen display. It shows the COMPOSITION -- the main Renderer's canvas, shared through IOSurface frames (`src/output/SharedFrameSet.h`, `OutputPresenter.h`) -- letterboxed to the composition's shape, at normal window level, and it can never take the keyboard (`windowIgnoresKeyPresses`). It no longer renders its own effect chain or the legacy image. macOS only (IOSurface; elsewhere the window stays black). `/api/state` (7070 and 8080) reports `outputs` {live, tap, frame_gen, frame_serial, canvas_w, canvas_h}. Screen-safe live witness: `.harmony/probe-outputs.sh` (test mode, offscreen, never a window).
+
 **Syphon Input / Spout / NDI**: REMOVED 2026-07-17 (Wave 0) — `SyphonInput` (.mm/.h, orphaned), `SpoutOutput.h` (Windows header-only no-op), `NdiOutput.h`/`NdiInput.h` (stubs) were all deleted.
 
 ---
