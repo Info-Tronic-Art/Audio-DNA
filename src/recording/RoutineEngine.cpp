@@ -519,13 +519,17 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
     clock_.tick(snap, wallNow, 0);
     const double beat = clock_.now().beat;
 
-    // Step 2: edges, then the trackers. The Beat edge is the TRACKER's beat -- its beatPhase
-    // sawtooth wrap, the rule a Beat-quantized clip uses (Autopilot.cpp) -- never a whole beat of
-    // clock_, whose zero sits wherever the tracker was when the clock started or re-locked
+    // Step 2: edges, then the trackers. The Bar edge is totalBarCount's change; the Beat edge (s-rta-0927
+    // beat clock) is totalBeatCount's change -- the tracker's beat, the rule a Beat-quantized clip uses,
+    // read as its COUNTER so a tick gap swallows no edge (the old beatPhase-wrap test missed every edge
+    // inside a gap >= half a beat, Pitfall 42). A realign from the second half of a beat is an edge (the
+    // writer completed the beat), one from the first half is not -- the meaning the wrap test had. Never a
+    // whole beat of clock_, whose zero sits wherever the tracker was when the clock started or re-locked
     // (s-rta-0926 routine-grid).
     const bool barEdge = haveTicked_ && snap.totalBarCount != lastTotalBar_;
-    const bool beatEdge = haveTicked_ && snap.beatPhase < lastBeatPhase_ - 0.5f;
+    const bool beatEdge = haveTicked_ && snap.totalBeatCount != lastTotalBeatCount_;
     lastTotalBar_ = snap.totalBarCount;
+    lastTotalBeatCount_ = snap.totalBeatCount;
     lastBarCount_ = snap.barCount;
     lastBeatPhase_ = snap.beatPhase;
     lastBeatInBar_ = snap.beatInBar;

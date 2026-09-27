@@ -10,17 +10,18 @@ void RecorderClock::anchor(double t, double beat, uint64_t sample, float bpm, co
 
 void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t deliveredSamples)
 {
+    // s-rta-0927 beat clock: the tracker's continuous beat time -- no wrap to detect (Pitfall 42).
+    const double raw = static_cast<double>(snap.totalBeatCount) + static_cast<double>(snap.beatPhase);
+
     if (!haveTicked_)
     {
         haveTicked_ = true;
         startWall_ = wallNow;
-        lastPhase_ = snap.beatPhase;
+        lastRaw_ = raw;
         lastBpm_ = snap.bpm;
-        wholeBeats_ = 0.0;
-        // `beat` counts from Record (D1 "beats since record start"), not from the tracker's last
-        // beat line: Record lands mid-beat, so cancel the seed phase or every stamp reads that
-        // phase late and disagrees with the "start" anchor below (s-rta-0926 routine-grid).
-        beatOffset_ = -static_cast<double>(snap.beatPhase);
+        // `beat` counts from Record (D1 "beats since record start"), not from the tracker's count or its
+        // last beat line: Record lands mid-beat (s-rta-0926 routine-grid).
+        beatOffset_ = -raw;
 
         anchor(0.0, 0.0, deliveredSamples, snap.bpm, "start");
         current_ = { 0.0, 0.0, deliveredSamples, snap.bpm };
@@ -30,51 +31,40 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
     const double t = wallNow - startWall_;
     const bool wasUnmetered = (lastBpm_ <= 0.0f);
     const bool isUnmetered = (snap.bpm <= 0.0f);
+    const double lastBeat = current_.beat;
 
     if (isUnmetered)
     {
         if (!wasUnmetered)
-            anchor(t, wholeBeats_ + lastPhase_ + beatOffset_, deliveredSamples, 0.0f, "unmetered");
-        // Frozen: wholeBeats_/lastPhase_/beatOffset_ untouched while unmetered.
+            anchor(t, lastBeat, deliveredSamples, 0.0f, "unmetered");
+        // Frozen: beatOffset_/lastRaw_ untouched while unmetered.
         // No periodic anchors while unmetered (D1's documented limitation --
         // several equal-beat anchors would move TempoMap::tAt's canonical
         // answer for that beat).
     }
     else if (wasUnmetered)
     {
-        // Re-locked: absorb the discontinuity exactly like a resync so the
-        // frozen value carries forward continuously (D1's "the clock
-        // follows the tracker").
-        const double target = wholeBeats_ + lastPhase_ + beatOffset_;
-        beatOffset_ = target - wholeBeats_ - snap.beatPhase;
-        lastPhase_ = snap.beatPhase;
-        anchor(t, target, deliveredSamples, snap.bpm, "lock");
+        // Re-locked: absorb the discontinuity so the frozen value carries
+        // forward continuously (D1's "the clock follows the tracker").
+        beatOffset_ = lastBeat - raw;
+        lastRaw_ = raw;
+        anchor(t, lastBeat, deliveredSamples, snap.bpm, "lock");
     }
     else
     {
         bool anchorWrittenThisTick = false;
-        const double phase = snap.beatPhase;
-        if (phase < lastPhase_ - 0.5)
+        if (raw < lastRaw_)
         {
-            wholeBeats_ += 1.0;              // ordinary sawtooth wrap (G14 precedent)
-            lastPhase_ = phase;
-        }
-        else if (phase < lastPhase_)
-        {
-            // Smaller backward jump: resync/tap/relock. Absorb into the
-            // offset so `beat` never dips.
-            const double target = wholeBeats_ + lastPhase_ + beatOffset_;
-            beatOffset_ = target - wholeBeats_ - phase;
-            lastPhase_ = phase;
-            anchor(t, target, deliveredSamples, snap.bpm, "reset");
+            // A realign that RESTARTED the beat (|d| < 0.5 by BPMTracker's rule) or a writer restart (test
+            // injection): absorb into the offset so `beat` never dips (D1). A comparison on doubles --
+            // never an unsigned subtraction across the count's wrap.
+            beatOffset_ = lastBeat - raw;
+            anchor(t, lastBeat, deliveredSamples, snap.bpm, "reset");
             anchorWrittenThisTick = true;
         }
-        else
-        {
-            lastPhase_ = phase;
-        }
+        lastRaw_ = raw;
 
-        const double beatNow = wholeBeats_ + lastPhase_ + beatOffset_;
+        const double beatNow = raw + beatOffset_;
         if (std::fabs(snap.bpm - lastBpm_) > kBpmChangeThreshold)
         {
             anchor(t, beatNow, deliveredSamples, snap.bpm, "bpm");
@@ -91,7 +81,7 @@ void RecorderClock::tick(const FeatureSnapshot& snap, double wallNow, uint64_t d
 
     lastBpm_ = snap.bpm;
     current_.t = t;
-    current_.beat = wholeBeats_ + lastPhase_ + beatOffset_;
+    current_.beat = isUnmetered ? lastBeat : raw + beatOffset_;
     current_.sample = deliveredSamples;
     current_.bpm = snap.bpm;
 }
