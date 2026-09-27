@@ -16,7 +16,7 @@ These bugs were discovered and fixed. Future phases MUST avoid reintroducing the
 
 4. **Demo effects left enabled**: `initEffectChain()` must NOT enable any effects by default. Users build their own effect chains via the FX browser.
 
-5. **JUCE slider right-click**: `juce::Slider` eats right-click events before the parent component's `mouseDown` fires. Use `ResettableSlider` (custom subclass) which overrides `mouseDown` to handle right-click reset directly. Always call `setDefaultValue()` on creation.
+5. **JUCE slider right-click**: `juce::Slider` eats right-click events before the parent component's `mouseDown` fires. Use `ResettableSlider` (custom subclass) which overrides `mouseDown` to handle right-click reset directly. Always call `setDefaultValue()` on creation. Right-click also resets from the text box of IncDecButtons/TextBox sliders (nested-child relay, s-rta-0925); `UniversalParamControl` arms its inner slider with 0.5 by default, so owners that skip `setDefaultValue()` get a 0.5 reset rather than a dead click — still call it with the real default.
 
 6. **Unicode button text**: JUCE's default button font at small sizes (26px buttons) may not render multi-byte Unicode glyphs. Use ASCII characters ("<", ">", "||") instead of Unicode arrows/symbols for small buttons.
 
