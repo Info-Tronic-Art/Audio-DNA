@@ -1,0 +1,49 @@
+deliverables sha256 BEFORE:
+bf01589c70ee926e04e0f0d553df84a28876b67711412ba91125c800dc4f095f  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/src/output/OutputTargets.cpp
+aaa62c62848a508d119a9c3f1fcfdc2b35a3cbce46d0dcc8a1d421991a743119  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/src/output/OutputManager.cpp
+# TEETH (MUST fix): test_output_plan vs COPIES of src/output/OutputTargets.cpp (Sun Sep 27 19:25:20 EDT 2026)
+--- mutant: control (unmodified copy)
+All tests passed (68 assertions in 5 test cases)
+--- mutant: PRE-CHANGE semantics transplanted: wantedSet = live + interrupted only (the pre-fix persistWanted loop)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:178: FAILED:
+  CHECK( output::sameTargets(output::wantedSet({ kLaptop }, {}, { kProjector }), { kLaptop, kProjector }) )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:183: FAILED:
+  CHECK( output::sameTargets(output::wantedSet({ kProjector2 }, {}, { kLaptop, kProjector }), { kProjector2, kLaptop, kProjector }) )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:187: FAILED:
+  CHECK( output::sameTargets(output::wantedSet({}, {}, { kProjector }), { kProjector }) )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:192: FAILED:
+  CHECK( output::sameTargets(output::wantedSet({ kLaptop }, { kProjector, kLaptop }, { kProjector, kProjector2 }), { kLaptop, kProjector, kProjector2 }) )
+with expansion:
+test cases:  5 |  4 passed | 1 failed
+assertions: 68 | 64 passed | 4 failed
+--- mutant: no de-duplication across groups
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:192: FAILED:
+  CHECK( output::sameTargets(output::wantedSet({ kLaptop }, { kProjector, kLaptop }, { kProjector, kProjector2 }), { kLaptop, kProjector, kProjector2 }) )
+with expansion:
+test cases:  5 |  4 passed | 1 failed
+assertions: 68 | 67 passed | 1 failed
+
+# TEETH (MUST fix): test_output_law's new row vs COPIES of the lane src (Sun Sep 27 19:25:23 EDT 2026)
+--- mutant: control (unmodified copy)
+All tests passed (11 assertions in 1 test case)
+--- mutant: persistWanted leaves the saved set out
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:298: FAILED:
+  CHECK( persist.find("saved_)") != std::string::npos )
+test cases:  1 |  0 passed | 1 failed
+assertions: 11 | 10 passed | 1 failed
+--- mutant: openDisplay keeps the saved target
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:305: FAILED:
+  CHECK( body.find("forgetSaved(") != std::string::npos )
+test cases:  1 |  0 passed | 1 failed
+assertions: 11 | 10 passed | 1 failed
+--- mutant: attachSettings leaves lastWanted_ empty
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:309: FAILED:
+  CHECK( attach.find("lastWanted_=saved_;") != std::string::npos )
+test cases:  1 |  0 passed | 1 failed
+assertions: 11 | 10 passed | 1 failed
+deliverables sha256 AFTER:
+bf01589c70ee926e04e0f0d553df84a28876b67711412ba91125c800dc4f095f  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/src/output/OutputTargets.cpp
+aaa62c62848a508d119a9c3f1fcfdc2b35a3cbce46d0dcc8a1d421991a743119  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/src/output/OutputManager.cpp

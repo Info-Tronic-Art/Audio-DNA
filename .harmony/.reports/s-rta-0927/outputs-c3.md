@@ -272,3 +272,106 @@ For Harmony:
 3. Get an independent review, then merge.
 
 Boris then runs checklist items 4 and 10 (and the C3 notes in 1-3) at the rig, ideally with the projector.
+
+---
+
+## Fix round (lane-name outputs-c3-fix; continues `lane/outputs-c3-0927` from `44f24a9`; 2026-09-27 19:22-19:55)
+
+STATUS: DONE_WITH_CONCERNS
+RESULT: 3 review findings verified. The MUST and the cheap SHOULD are fixed, one commit each. The third SHOULD is confirmed and left for a Harmony ruling, as the finding itself proposes.
+- `fadfdda` (MUST): a settings write no longer drops saved output targets that Restore has not opened yet.
+- `21b9a2b` (SHOULD 1): a test-mode app launched without `AUDIODNA_SETTINGS_FILE` now uses a scratch settings file, never the real one.
+- SHOULD 3 (menu index race): the race is real. It is not fixed here.
+- ctest 744/744 serial. probe-outputs `PY 17 PASS / 0 FAIL` on the fixed lane app. 4 existing probes GREEN. No output window was opened.
+- One settings-safety incident in this round, disclosed below (FR-ISSUES 1). A teeth mutant briefly created and deleted `~/Library/Audio-DNA/settings.json`. The end state is the same as before: absent.
+INBOX-RECHECK: none (no addendum message received during the fix round)
+
+### FR-1. Findings: verify first, then the verdict
+| # | finding | verified? | how | verdict |
+|---|---|---|---|---|
+| MUST | `persistWanted()` writes live + interrupted only, so saved targets are lost from disk | **CONFIRMED** | Read at 44f24a9: `OutputManager.cpp:279-296` builds `wanted` from `live_` + `interrupted_`. `AppSettings::update()` (`AppSettings.cpp`) sets the key on the root object, so `"outputs"` is replaced whole. `saved_` is not in the write. The 3 reproductions follow from that code. One refinement: All Outputs Off with nothing live and nothing interrupted returns early (`closeAll`, `:126`) and writes nothing. It drops saved targets only when at least one output was live or interrupted. | FIXED `fadfdda` |
+| SHOULD 1 | a test-mode launch without `AUDIODNA_SETTINGS_FILE` falls back to the real settings.json | **CONFIRMED, with one correction** | Read at 44f24a9: `MainComponent.cpp:73-89` returns `AppSettings::defaultFile()` when the variable is unset or not absolute. The finding said "no test exercises this fallback". That is REFUTED: **11 of the 12 `--test-mode` probe scripts launch without the variable**. `grep -l -- --test-mode .harmony/probe-*.sh` lists 12, and `grep -l AUDIODNA_SETTINGS_FILE` lists only `probe-outputs.sh`. So every existing-battery run read the real path. None of them wrote it: nothing opened an output, and the MilkDrop folder is set only from the Preferences UI. | FIXED `21b9a2b`. I used the finding's second option (a definitely-scratch path). Its first option, refusing to start, would break those 11 probes. |
+| SHOULD 3 | a menu command id is resolved to a display by a raw index at click time, so a hot-plug while the menu is open can act on another display | **CONFIRMED, with one correction** | `MainComponent.cpp:5944-5946` calls `toggleDisplay(commandId - kOutputFullscreenBase)`. `toggleDisplay` → `isLive` / `openDisplay` / `closeDisplay` index `currentDisplays()` at click time. JUCE's message queue source is added with `kCFRunLoopCommonModes` (`juce_MessageQueue_mac.h:56`), so the 30 Hz timer, and with it `pollDisplays()`, does run during NSMenu tracking. Correction: the renumbering comes from JUCE refreshing `Displays` on the screen-change notification. It does not come from the poll. The click resolves the index against the refreshed list with or without the poll, so C3's poll does not make the mis-resolution more likely. It only makes C3 act on the change sooner. | NOT FIXED. Harmony ruling needed. The fingerprint-at-menu-build fix touches `populateMenu`, both menu doors and JUCE's menu rebuilds (`menuItemsChanged` can rebuild the NSMenu while it is open). That is more than a cheap SHOULD. |
+
+### FR-2. What changed
+- `src/output/OutputTargets.{h,cpp}`: a new pure function, `wantedSet(live, interrupted, saved)`. It returns every live target, then every interrupted target, then every saved target that Restore has not opened yet, each target once.
+- `src/output/OutputManager.{h,cpp}`:
+  - `persistWanted()` writes `wantedSet(liveTargets, interrupted_, saved_)`.
+  - A new `forgetSaved(target)` is called by `openDisplay`, `closeDisplay` and `closeWindow`. A manual open or close is the user deciding about that display, so Boris check 1 ("untick = forget") still holds for a display that was also in the saved set.
+  - `attachSettings()` sets `lastWanted_ = saved_`. The file already holds that set, so nothing is rewritten until the set changes. The launch-writes-nothing property is preserved, and it is checked live below (`settings_writes 0 -> 0`).
+  - `restoreLast()` is unchanged. It still erases restored saved targets by index.
+  - `closeAll()` is unchanged. All Outputs Off still clears live and interrupted targets and now keeps the never-restored saved targets.
+- `src/model/AppSettings.{h,cpp}`: a new `static juce::File testModeFile(const juce::String& overridePath)`. It returns the absolute override. Otherwise it returns one scratch file per process: `tempDirectory.getNonexistentChildFile("test-mode-settings", ".json")`, which is `~/Library/Caches/Audio-DNA/test-mode-settings.json`, cached in a function-local static.
+- `src/MainComponent.cpp` `appSettingsFile(true)` (only under `#if AUDIODNA_TEST_SERVER`): routes through `testModeFile`. The `[Settings] test mode: AUDIODNA_SETTINGS_FILE = <path>` line is byte-identical to before, and probe-outputs asserts on it. There is a new line for the fallback: `[Settings] test mode: AUDIODNA_SETTINGS_FILE unset or not absolute -- scratch settings <path> (never the real settings.json)`. Production builds (`AUDIODNA_BUILD_TEST_SERVER=OFF`) are unchanged.
+- Tests:
+  - `tests/test_output_plan.cpp`: +1 case, "the wanted set keeps every saved target not yet restored". It covers the partial Restore, an unrelated output change, All Outputs Off, each target once, and the empty set.
+  - `tests/test_output_law.cpp`: +1 row. `persistWanted` writes `wantedSet(...saved_)`; open, close and closeWindow each call `forgetSaved(`; `attachSettings` has `lastWanted_=saved_;`.
+  - `tests/test_app_settings.cpp`: +1 case, "test mode never falls back to the user's real settings file". The safety checks are REQUIREs placed before the one write, so a regression cannot reach the real file.
+- Docs:
+  - `docs/claude/integration.md`: the saved-set semantics and the test-mode scratch file.
+  - `docs/claude/testing-eyes.md`: the scratch fallback.
+  - `.harmony/notebook.md`: a new entry covering the whole-key write, the 11 probes without the variable, and the teeth hazard.
+
+### FR-3. RED first, teeth, GREEN (raw lines, verbatim; `outputs-c3-evidence/FIX-*`)
+- MUST, RED on the pre-change tree (`git archive 44f24a9 src`, `FIX-RED-fix-persistWanted-pre-tree.txt`):
+  - law row: `test_output_law.cpp:297: FAILED: CHECK( persist.find("wantedSet(") != std::string::npos )`, `:298 ... "saved_)"`, `:305 ... forgetSaved(` ×3, `:309 ... "lastWanted_=saved_;"`, `test cases:  1 | 1 failed`, `assertions: 11 | 5 passed | 6 failed`.
+  - test_output_plan, RED by absence: `test_output_plan.cpp:178:43: error: no member named 'wantedSet' in namespace 'output'`.
+- MUST teeth on COPIES (`FIX-TEETH-fix-persistWanted.txt`). The deliverables' sha256 was identical before and after: OutputTargets.cpp `bf01589c...`, OutputManager.cpp `aaa62c62...`.
+  - Control: `All tests passed (68 assertions in 5 test cases)`.
+  - **The PRE-CHANGE semantics transplanted** (wantedSet = live + interrupted, the pre-fix loop): `:178 FAILED: CHECK( output::sameTargets(output::wantedSet({ kLaptop }, {}, { kProjector }), { kLaptop, kProjector }) )` (the partial Restore). `:183` (an unrelated change), `:187` (All Outputs Off) and `:192` also fail. `test cases:  5 |  4 passed | 1 failed`, `assertions: 68 | 64 passed | 4 failed`.
+  - No de-duplication: `:192 FAILED`, `assertions: 68 | 67 passed | 1 failed`.
+  - Law control: `All tests passed (11 assertions in 1 test case)`. Each law mutant fails with `assertions: 11 | 10 passed | 1 failed`: persistWanted with `{}` instead of `saved_` (`:298`), openDisplay without forgetSaved (`:305`), and attachSettings without `lastWanted_ = saved_` (`:309`).
+- SHOULD 1, RED on the pre-change tree (`FIX-RED-fix-testModeFile-pre-tree.txt`): `test_app_settings.cpp:110:28: error: no member named 'testModeFile' in 'AppSettings'`.
+- SHOULD 1 teeth on SANDBOXED copies (`FIX-TEETH-fix-testModeFile.txt`). In every copy, including the control, `defaultFile()` points into the scratchpad. The real paths were ABSENT before and after, and the deliverable sha256 `39fdf29a...` was identical before and after.
+  - Control: `All tests passed (16 assertions in 1 test case)`.
+  - **The PRE-CHANGE fallback transplanted** (not absolute → `defaultFile()`): `test_app_settings.cpp:118: FAILED:` (`REQUIRE( f != real )`, `AUDIODNA_SETTINGS_FILE = ''`), `test cases: 1 | 1 failed`. The run stops there, before any write. The sandboxed fake-real file was never created.
+  - A new scratch file on every call: `:127 FAILED: CHECK( AppSettings::testModeFile({}) == f )`, `:128 FAILED: ... read("probe")) == 7 )`, `assertions: 16 | 14 passed | 2 failed`.
+  - This mutant was toothless in the first version of the test (`All tests passed`), because nothing had been written, so both calls got the same name. The case now writes the scratch file and reads it back.
+- SHOULD 1 live witness (`FIX-live-witness-and-probe-outputs.txt`, one lock hold 19:45:00-19:45:58). Both runs were `open -g ... --args --test-mode` with `AUDIODNA_SETTINGS_FILE` unset.
+  - RED on the pre-fix lane app: a byte copy of build-lane at 44f24a9, sha256 `54bf7fc9...` = build-lane at 44f24a9. err.log `[Settings] lines:` is empty, so the app silently used `defaultFile()`.
+  - GREEN on the fixed app: `2 [Settings] test mode: AUDIODNA_SETTINGS_FILE unset or not absolute -- scratch settings /Users/boriskarpman/Library/Caches/Audio-DNA/test-mode-settings.json (never the real settings.json)`.
+  - Both runs: the real paths were ABSENT before and after, no scratch file was written, `Output-named Audio-DNA windows []`, max layer-0 windows 1, `PASS app terminated`.
+  - The 8080 `/api/state` read in the witness raised a Python traceback (it used 127.0.0.1:8080; the 8080 server answers on `[::1]`, per probe-outputs). This had no effect on the witness verdict. The manager counters come from probe-outputs instead.
+- GREEN probe-outputs on the fixed lane app, same hold. `settings: .../settings.json (absent)`.
+  - `PASS  o_restore_empty: ... Restore Last Outputs ran (HTTP 200 {'ok': True, 'queued': True}; restore_calls 0 -> 1) and opened NOTHING: outputs.live 8080 0 / 7070 0, saved 0 -> 0, settings_writes 0 -> 0, scratch settings absent -> absent`.
+  - `PASS  o_poll_idle: poll paused 5.05 s: 0 ticks, frame_time_ms 1.219 (18 samples) | poll running 5.25 s: 153 ticks = 29.1/s (>= 20.0), frame_time_ms 1.127 (19 samples) | delta -0.092 ms (|d| <= 0.3); reconciles +0, settings writes +0 ... (load avg 3.07 3.26 3.39)`.
+  - `PASS  o_no_window_opened: 129 Quartz samples`; `PY 17 PASS / 0 FAIL`; `PROBE-OUTPUTS GREEN`.
+- The MUST fix has no live witness, and cannot have one screen-safely. `persistWanted` changes the file only after a window opens or closes. Without a window, wanted = saved = `lastWanted_` at every reconcile, and the old code likewise wrote nothing (`{}` vs `{}`). probe-outputs above confirms the no-window path still writes nothing (`settings_writes 0 -> 0`). The fixed behaviour rests on the pure unit case plus the law row that pins the wiring. It joins Boris check 10.
+
+### FR-4. Battery (existing probes re-run, never re-thresholded)
+- ctest serial at the final tree: `100% tests passed, 0 tests failed out of 744` (`FIX-ctest-final-tail.txt`). 741 → 744 is the 3 new cases.
+- 4 existing probes that launch `--test-mode` WITHOUT the variable, so they now take the scratch fallback. One lock hold, 19:49:08-19:53:35 (`FIX-battery-existing-probes.txt`):
+  - deck-tabs `6 PASS / 0 FAIL`
+  - canvas `PY 15 PASS / 0 FAIL`
+  - fitmode `PY 10 PASS / 0 FAIL`
+  - deck-clock `PY 10 PASS / 0 FAIL`
+- Canvas and deck-clock err.logs carry the scratch line (4 occurrences in all). Sampler: `1018 samples, Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1`.
+- Not re-run: the other 11 probes (C3 round: all GREEN) and tests/visual Tier-1. The fix touches only the settings path (absent either way on this rig) and the output-persistence path, which no probe reaches without a window.
+- Build: `build-lane` no-op rebuild at HEAD (0 compile/link steps). `strings ... | grep -c AUDIODNA_DEBUG_` = 0 (no temporary hook was used). The fallback string is in the binary (`grep -c "scratch settings"` = 1).
+
+### FR-5. Settings and screen safety
+- Real paths BEFORE (19:22:53): `ABSENT ~/Library/Audio-DNA/settings.json`, `ABSENT ~/Library/Application Support/Audio-DNA/settings.json`. AFTER (19:54:03): the same, plus `ABSENT ~/Library/Audio-DNA` (the folder) and no `test-mode-settings` file in `~/Library/Caches/Audio-DNA`.
+- Screen: no output window was opened by any path. Every live launch used `open -g`, with Quartz samplers running: `[]` Output-named windows in 21 + 21 + 129 + 1018 samples. There was no synthetic input, no lldb, no full-screen capture, and no pytest on tests/visual.
+
+### FR-ISSUES
+1. **Settings-safety incident (disclosed; state restored).** The first run of the SHOULD-1 teeth transplanted the pre-change fallback (`return defaultFile();`) into a scratch copy. The first version of the new test guarded with CHECK, not REQUIRE, so Catch continued to the case's `update("probe", 7)` and then `deleteFile()`, both on the REAL path. The file was created and deleted within that run. The run also created the folder `~/Library/Audio-DNA/` (birth `Sep 27 19:27:20 2026`, `stat -f %SB`), which was left empty. I removed it with `rmdir`, which removes only an empty folder. I also removed the empty `~/Library/Caches/mutant` that the mutant binary created. The net state is identical to BEFORE: all real paths are absent, and no other process was involved. The fix has two layers:
+   - The test REQUIREs the path is not the real file and is inside the temp folder before its one write.
+   - The teeth script sandboxes `defaultFile()` in every copy and prints the real paths before and after.
+   The output of the unsafe run was overwritten by the safe re-run. This account comes from the live `ls` / `stat` taken at the time. The lesson is in `.harmony/notebook.md`.
+2. Semantics change for Harmony/Boris. This supersedes the C3 report's D7 sentence "the first output change of a session rewrites the file with live + interrupted", R-c, and Boris check 10's "after your first change of outputs in a session, 'last' means that new set". The saved set now survives until each saved target is either restored or decided for by a manual open or close of its display. All Outputs Off keeps never-restored saved targets. Boris check 1's "All Outputs Off forgets" now applies to live and interrupted outputs only.
+3. The first run of the MUST teeth printed a Python `AssertionError: ('namespace output', 2)` for the two controls. The control's no-op patch matched twice, and the copy was left unmodified, so the controls were still valid. The script was fixed and re-run; the committed evidence is the clean run.
+4. The first version of the scratch-file test had a toothless "same file for the whole run" check (FR-3). It was strengthened before commit.
+
+### FR-FILES (44f24a9..HEAD)
+- `fadfdda`: `src/output/OutputTargets.{h,cpp}`, `src/output/OutputManager.{h,cpp}`, `tests/test_output_plan.cpp`, `tests/test_output_law.cpp`, `docs/claude/integration.md`
+- `21b9a2b`: `src/model/AppSettings.{h,cpp}`, `src/MainComponent.cpp`, `tests/test_app_settings.cpp`, `docs/claude/{integration,testing-eyes}.md`, `.harmony/notebook.md`
+- this commit: this section and `outputs-c3-evidence/FIX-*`
+
+### FR-BORIS CHECKLIST (replaces item 10 and adjusts item 1)
+1. Untick a display: the app forgets that output for "Restore Last Outputs". All Outputs Off forgets every output that was on, or waiting for its cable. It keeps saved outputs from a previous session that you have not restored yet.
+10. Quit with two outputs on (laptop + projector). Unplug the projector and launch again: nothing opens. Output > Restore Last Outputs opens the laptop output only. Quit and plug the projector back in, then launch: Restore Last Outputs must still offer the projector output and open it. Before this fix, the projector was forgotten the moment you clicked Restore the first time.
+
+### FR-LANE STATE
+- Branch `lane/outputs-c3-0927`. Base for this round `44f24a9`. HEAD = the report commit after `21b9a2b`. Not merged or pushed.
+- Lock: every hold was released (19:45:00-19:45:58 and 19:49:08-19:53:35). No app I launched is running. `.venv` link removed. `build-lane` kept (no-op at HEAD).
+- Found, not fixed: SHOULD 3 (the index-at-click race; ruling needed).
