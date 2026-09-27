@@ -343,8 +343,11 @@ private:
                                ShaderManager& shaderMgr, FullscreenQuad& quad,
                                int w, int h);
 
-    // Apply keying mode from Layer
-    void applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
+    // Apply a keying mode (normally layer.keyingMode) with the layer's key
+    // parameters and opacity (u_opacity). s-rta-0926b R4-opaque: the mode is
+    // explicit so a persistent Opaque layer can run the Alpha key purely to
+    // apply its layer opacity.
+    void applyLayerKeying(const Layer& layer, Layer::KeyingMode mode, GLuint srcTex, GLuint dstFBO,
                           ShaderManager& shaderMgr, FullscreenQuad& quad,
                           int w, int h);
 

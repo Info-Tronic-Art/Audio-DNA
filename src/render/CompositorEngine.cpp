@@ -971,7 +971,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 if (layer.type == Layer::Type::Transparent)
                 {
                     // Apply keying → scratch FBO
-                    applyLayerKeying(layer, clipTex, scratchFBO_, shaderMgr, quad, width, height);
+                    applyLayerKeying(layer, layer.keyingMode, clipTex, scratchFBO_, shaderMgr, quad, width, height);
                     // Blend scratch onto accumulator
                     blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
                 }
@@ -1116,11 +1116,12 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         // s-rta-0926b R4: the same per-layer stages as on the active deck
         // (clip transform + opacity, clip effects, transition, feedback, layer
         // effects, layer transform). It used to run only the clip effects.
-        // Still different from an active-deck layer, pending a ruling
-        // (.harmony/.reports/s-rta-0926b/render.md open_forks): an Opaque
-        // persistent layer blends over the active deck (the active-deck path
-        // clears the accumulator and applies layer opacity); no Layer Router
-        // output is saved; FX Only / Mask persistent layers are skipped above.
+        // Deliberately different from an active-deck layer (ruling
+        // .harmony/.reports/s-rta-0926b/ruling-render-forks.md): an Opaque
+        // persistent layer blends over the active deck with its blend mode and
+        // layer opacity (it never clears the accumulator); no Layer Router
+        // output is saved (the router addresses the active deck only);
+        // FX Only / Mask persistent layers are skipped above.
         GLuint processedTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
                                                 time, dt, width, height);
         if (processedTex == 0) processedTex = clipTex;
@@ -1128,11 +1129,27 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         // Keying for transparent layers
         if (layer.type == Layer::Type::Transparent)
         {
-            applyLayerKeying(layer, processedTex, scratchFBO_, shaderMgr, quad, width, height);
+            applyLayerKeying(layer, layer.keyingMode, processedTex, scratchFBO_, shaderMgr, quad, width, height);
+            blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
+        }
+        else if (layer.eff(LayerScalar::Opacity) < 0.999f)
+        {
+            // s-rta-0926b R4-opaque (ruling (1)): a persistent Opaque layer sits
+            // on TOP of the active deck (persistent layers composite after it),
+            // so it blends over it with its blend mode -- it never clears the
+            // accumulator the way an active-deck Opaque layer does (that would
+            // black out the whole active deck from a default-typed layer). Its
+            // layer opacity used to be ignored here; it now goes through the
+            // same alpha keying pass (u_opacity) a Transparent layer gets.
+            // processedTex is never scratchTex_ (applyLayerTransform renders
+            // into the effect pool), so the pass never samples its own target.
+            applyLayerKeying(layer, Layer::KeyingMode::Alpha, processedTex, scratchFBO_, shaderMgr, quad,
+                             width, height);
             blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
         }
         else
         {
+            // Opacity 1.0: the direct blend, unchanged (no keying pass).
             blendLayerOntoAccumulator(layer, processedTex, shaderMgr, quad, width, height);
         }
     }
@@ -1153,7 +1170,7 @@ GLuint CompositorEngine::applyGlobalEffects(const std::vector<Clip::EffectSlot>&
                             LayerStateKey::kGlobalEffects);
 }
 
-void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
+void CompositorEngine::applyLayerKeying(const Layer& layer, Layer::KeyingMode mode, GLuint srcTex, GLuint dstFBO,
                                          ShaderManager& shaderMgr, FullscreenQuad& quad,
                                          int w, int h)
 {
@@ -1167,7 +1184,7 @@ void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuin
 
     // Map Layer::KeyingMode to shader name (same shaders as v1)
     const char* shaderKey = "key_alpha";
-    switch (layer.keyingMode)
+    switch (mode)
     {
         case Layer::KeyingMode::Alpha:              shaderKey = "key_alpha"; break;
         case Layer::KeyingMode::LumaKey:            shaderKey = "key_luma"; break;
