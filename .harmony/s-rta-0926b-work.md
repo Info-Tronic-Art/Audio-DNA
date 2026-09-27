@@ -97,3 +97,18 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
 - plan4 launched (wf_33efa8a0-2f7): Fable plan -> 3 seats -> Fable final: (1) composition resolution drives the picture's
   shape in Preview + Output (render strategy, 4K cost, probe re-baseline), (2) inactive decks keep time (fades finish;
   video/autopilot decision).
+- 22:xx wave 2 DONE (8 agents): render2 (R1 B' outgoing slot, R4-opaque, R4-types + toggle, empty-active-deck persistence,
+  docs/Pitfall 35) reviewer PASS_WITH_NITS, critic PASS/PASS/PASS; bpm2 (LINK-RAMP b, default-build Link never enabled +
+  TopBar toggle disabled) reviewer PASS, critic PASS x3; probehygiene (effects-parity fresh dir + mtime) PASS_WITH_NITS.
+  RECEIVER-VERIFY: render2 DONE_WITH_CONCERNS -> its first RED run was contaminated by a stub harness that failed to bind
+  7070 and drove render2's real app (discarded, re-run); probehygiene claims its stub runs held the lock — the stray run is
+  not provable now (tmp dir cleaned). Rule filed in .harmony/gotchas.md. Harmony RED on build/ (wave-1 main):
+  probe-render-state new rows "PY 3 PASS / 8 FAIL" (3 = guards) RED. Merged b022a28 render2, cef89f5 bpm2, 50b4bce
+  probehygiene; reconfigured + rebuilt; ctest 599/599; CLAUDE.md 24,366 B. Looked at: Persistent toggle crop (Mask dimmed),
+  TopBar Link crop (dimmed, same bounds) — PASS.
+  Follow-ups: LookAndFeel drawToggleButton ignores isEnabled (app-wide); Mask loaded persistent=true shows checked-disabled
+  with no way to clear; probes' pgrep matches the linker line; crossfade/render-state cap() lack mtime hardening; one-time
+  18-24 ms hitch when the spare ring is first created (first crossfade on a Split/Stutter layer).
+- Harmony GREEN on build/ 50b4bce: render-state "PY 31 PASS / 0 FAIL"; crossfade "PY 35 PASS / 0 FAIL"; effects-parity
+  (hardened) "PY 46 PASS / 0 FAIL"; manual-bpm 18/0; resync 16/0; downbeat 14/0; routines 74/0; mastersignal 22/0; step3
+  94/0; tempo witness GREEN. Frame looked at: r1_temporal refA/mid02/05/08/11/refB (wipe: each side its own clip, no ghost).
