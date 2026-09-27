@@ -159,3 +159,12 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
 - MY PACKET DEFECT: wave 2b fix-round prompt embedded the original packet's STEP 0 "git checkout -B <lane> main" — the
   uitoggle fix builder correctly refused (it would have discarded the lane's 5 unmerged commits). HABIT: fix-round
   prompts must strip branch-creation steps and name the exact commit to continue from.
+- 00:2x wave 2b merged: a030319 ui-toggle (LookAndFeel dims disabled toggles app-wide; Persistent clearable on stale
+  Mask/3D with honest tooltip; critics r2 3/3 PASS, reviews PASS), 2d02681 probe-hygiene2 (lock-owner refuse, exact-binary
+  pgrep, stale-PNG guard; review PASS). Looked at before/after compare (Link unchanged, Mask stale box usable). build/
+  rebuilt: ctest 600/600; negative check: probe with non-matching AUDIODNA_LOCK_OWNER -> "REFUSE: no live lock held" rc 64.
+  GREEN run (all probes, AUDIODNA_LOCK_OWNER=harmony) in background (bzps952wh).
+- wave 4 launched (wf_dbd8d215-516): canvas lane in W1 (opus): plan4 A canvas, B1 fades, B2 clocks+autopilot (Boris Q1 ON),
+  C verify+fix deck-transition capture (F2); Fable fit-mode spec in parallel -> fitmode commit; reviewer + 3 critics.
+- NOTE 23:37 (read from date): my log stamps '23:4x'..'00:2x' above were estimates, not clock reads — true times were ~22:30-23:30. HABIT: stamp from `date +%H:%M`.
+- 23:48 GREEN on build/ 2d02681 (hardened probes, AUDIODNA_LOCK_OWNER=harmony): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 18/0, resync 16/0, downbeat 14/0, routines 74/0, mastersignal 22/0, step3 94/0, tempo witness GREEN. Wave 3a DONE: tempo-glide (A 2b32536 + C d640b13, review PASS_WITH_NITS, 6 disclosed departures each test-covered) + topbar-count (review PASS, critic 3/3 PASS); looked at glide mid frame + Bar 4 crop.
