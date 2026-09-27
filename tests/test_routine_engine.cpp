@@ -1639,3 +1639,59 @@ TEST_CASE("RoutineEngine restore style J4: a running loop picks up a style chang
     CHECK(rig.fd.count(Ev::Release, op1) == 3);
     CHECK(rig.slot(0).cycle == 3);
 }
+
+// === s-rta-0926b routines-followup ITEM 3a: the 2 Bar / 4 Bar boundary prediction ===
+// RoutineEngine::beatsUntilBoundary (private) predicts, from the last snapshot, how many beats remain until
+// the boundary a routine starts on; the restore glide is scheduled from it ([boundary - 1, boundary]). It is
+// pinned here through what it decides -- WHEN the glide begins: a wrong 2 Bar / 4 Bar prediction starts the
+// glide a bar (or more) early and holds it, or turns it into a quarter-beat spill after the start. The PARITY
+// is barCount's (the counter dueNow consults), never totalBarCount's: totalBase 11 makes the two disagree.
+
+TEST_CASE("RoutineEngine glide: the 2 Bar and 4 Bar boundary prediction puts the glide in the last beat before the start", "[routine][engine][glide][quantize]")
+{
+    const ControlPath op1 = opacityKey(1);
+    auto check = [&op1](Clip::BeatSnapMode quantize, uint32_t totalBase, int barBase, double fireAt, double start) {
+        Rig rig;
+        rig.totalBase = totalBase;
+        rig.barBase = barBase;
+        addToBank(rig.comp, test7Routine(quantize), 0);
+        rig.fd.values[op1] = 0.9f;
+        rig.tick();
+        rig.runTo(fireAt);
+        CHECK(rig.fire(0).empty());
+        rig.runTo(start - 1.0 - Rig::kStep);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 0);     // nothing moves before the last beat
+        rig.runTo(start - 1.0);
+        CHECK(rig.fd.count(Ev::Touch, op1) == 1);     // the glide begins exactly one beat before the start
+        CHECK(rig.fd.lastSet(op1) == Approx(0.9f));
+        rig.runTo(start - 0.5);
+        CHECK(rig.fd.lastSet(op1) == Approx(0.6f));   // half way at half the beat
+        rig.runTo(start - Rig::kStep);
+        CHECK(rig.slot(0).state == "pending");
+        rig.runTo(start);
+        CHECK(rig.slot(0).state == "running");        // dueNow agrees with the prediction
+        CHECK(rig.fd.lastSet(op1) == Approx(0.3f));   // landed ON the start
+        CHECK(rig.fd.count(Ev::Release, op1) == 1);
+    };
+
+    SECTION("2 Bar, fired in barCount 0 (totalBarCount 11): the start is barCount 2 at beat 8, not the next bar")
+    {
+        check(Clip::BeatSnapMode::TwoBar, 11, 0, 1.0, 8.0);
+    }
+    SECTION("2 Bar, fired mid-beat in barCount 1: only the rest of this bar")
+    {
+        check(Clip::BeatSnapMode::TwoBar, 11, 0, 5.5, 8.0);
+    }
+    SECTION("4 Bar, fired in barCount 0 (totalBarCount 12 at beat 4 is a multiple of 4): three more bars, beat 16")
+    {
+        check(Clip::BeatSnapMode::FourBar, 11, 0, 1.0, 16.0);
+    }
+    SECTION("4 Bar, fired in barCount 3: only the rest of this bar")
+    {
+        check(Clip::BeatSnapMode::FourBar, 11, 0, 13.0, 16.0);
+    }
+    SECTION("4 Bar, barCount already 2 at the fire (a phrase reset left it mid-count): beat 8")
+    {
+        check(Clip::BeatSnapMode::FourBar, 10, 2, 1.0, 8.0);
+    }
+}
