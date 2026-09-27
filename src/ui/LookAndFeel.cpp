@@ -473,10 +473,12 @@ void AudioDNALookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
         g.fillRect(bounds);
     }
 
-    if (!label.isBeingEdited())
+    // A transparent text colour means "draw no text" -- e.g. AlertWindow's hidden accessibility label,
+    // which holds a second copy of the dialog's message for screen readers.
+    auto textColour = label.findColour(juce::Label::textColourId);
+    if (!label.isBeingEdited() && !textColour.isTransparent())
     {
-        auto textColour = label.findColour(juce::Label::textColourId);
-        g.setColour(textColour.isTransparent() ? juce::Colour(kTextPrimary) : textColour);
+        g.setColour(textColour);
         g.setFont(label.getFont());
         g.drawFittedText(label.getText(), label.getBorderSize().subtractedFrom(label.getLocalBounds()),
                          label.getJustificationType(),

@@ -489,6 +489,7 @@ void DeckView::showDeckTabMenu(int deckIndex)
             menu.addSeparator();
         menu.addItem(static_cast<int>(item.action), item.label, item.enabled);
     }
+    menu.setLookAndFeel(&getLookAndFeel());   // the app LookAndFeel: a menu parented to the top-level window would draw stock
     menu.showMenuAsync(juce::PopupMenu::Options()
                            .withTargetComponent(deckTabs_[static_cast<size_t>(deckIndex)].get())
                            .withParentComponent(getTopLevelComponent()),
@@ -510,6 +511,7 @@ void DeckView::showPlusMenu()
             menu.addSeparator();
         menu.addItem(static_cast<int>(item.action), item.label, item.enabled);
     }
+    menu.setLookAndFeel(&getLookAndFeel());   // the app LookAndFeel: a menu parented to the top-level window would draw stock
     menu.showMenuAsync(juce::PopupMenu::Options()
                            .withTargetComponent(plusTab_.get())
                            .withParentComponent(getTopLevelComponent()),

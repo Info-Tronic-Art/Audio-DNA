@@ -92,3 +92,42 @@ TEST_CASE("a hand-built AlertWindow (Rename Deck) given the app LookAndFeel is s
 
     w.setLookAndFeel(nullptr);
 }
+
+TEST_CASE("a Label whose text colour is transparent draws no text (the AlertWindow's hidden accessibility label)",
+          "[lookandfeel][s-rta-0926b]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    AudioDNALookAndFeel laf;
+
+    // juce::AlertWindow keeps a copy of its message in an invisible Label for screen readers
+    // (accessibleMessageLabel: text, background and outline colours all transparentBlack). Drawn
+    // visibly, it doubled every dialog's message as a second, overlapping block of text.
+    juce::Label hidden("hidden", "Open Composition: Open \"Example\"?");
+    hidden.setLookAndFeel(&laf);
+    hidden.setColour(juce::Label::textColourId, juce::Colours::transparentBlack);
+    hidden.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    hidden.setBounds(0, 0, 300, 24);
+
+    const auto shot = hidden.createComponentSnapshot(hidden.getLocalBounds());
+    int painted = 0;
+    for (int y = 0; y < shot.getHeight(); ++y)
+        for (int x = 0; x < shot.getWidth(); ++x)
+            if (shot.getPixelAt(x, y).getAlpha() != 0)
+                ++painted;
+    CHECK(painted == 0);   // RED pre-fix: the text drawn in kTextPrimary
+
+    // A label with the default colour still draws its text.
+    juce::Label shown("shown", "Open Composition: Open \"Example\"?");
+    shown.setLookAndFeel(&laf);
+    shown.setBounds(0, 0, 300, 24);
+    const auto shot2 = shown.createComponentSnapshot(shown.getLocalBounds());
+    int painted2 = 0;
+    for (int y = 0; y < shot2.getHeight(); ++y)
+        for (int x = 0; x < shot2.getWidth(); ++x)
+            if (shot2.getPixelAt(x, y).getAlpha() != 0)
+                ++painted2;
+    CHECK(painted2 > 0);
+
+    hidden.setLookAndFeel(nullptr);
+    shown.setLookAndFeel(nullptr);
+}
