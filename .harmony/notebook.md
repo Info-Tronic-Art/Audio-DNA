@@ -1649,3 +1649,14 @@ hand-written functions with no shared layout model.
 - OSC without python-osc: a ",i" message is 3 padded fields -- pad(address) + pad(b",i") + struct.pack(">i", v)
   over a UDP socket (probe-fitmode.py osc()).
 - Valid while: these files exist and the Layer anchor convention is unchanged.
+
+## 2026-09-27 s-rta-0926b canvas fix: fixture B (P16_02_Screen_Split_2x2.png) is a 2x2 split of A -- through transparent Bars it reads as a render fault
+**Files:** .harmony/probe-fitmode.py, .harmony/probe-fitmode.json, src/ui/CanvasSizeCombo.h, src/ui/CompositionInspector.cpp
+**Note:**
+- A visual critic read Bars-over-B frames as "mirrored/tiled corruption": B is itself four tiles of A-like ellipses,
+  so the lower layer showing beside A looks like a wrap bug. The bands were B exactly (d 0.01 vs a PIL oracle of the
+  media file). For human-facing shots use a visually distinct lower layer (a checkerboard Source) and ship the
+  lower-layer-alone reference; FIT_SHOTS now writes lower-layer-only.png.
+- The Composition inspector's Resolution combo is CanvasSizeCombo::show(): exact W AND H preset match, else a
+  "Custom (W x H)" item; it is rebuilt only when the canvas size changed (not on every refresh).
+- Valid while: these fixtures and files exist.

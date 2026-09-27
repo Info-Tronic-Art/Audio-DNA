@@ -1,0 +1,16 @@
+# RED by absence (header moved aside, test_canvas_size_combo built against the tree without it)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/tests/test_canvas_size_combo.cpp:8:10: fatal error: 'ui/CanvasSizeCombo.h' file not found
+1 error generated.
+
+# GREEN
+All tests passed (60 assertions in 2 test cases)
+
+# TEETH (in-place mutants of the uncommitted lane-authored header, restored from a copy; sha256 proof)
+d3c812848d4fa9f5bc7f88882a5ccc46fa4796dc6becb8b147a6540a30f4913c  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/src/ui/CanvasSizeCombo.h
+--- mutant width_only_match: test cases:  2 |  0 passed | 2 failed
+--- mutant no_custom_item: test cases:  2 |  0 passed | 2 failed
+--- mutant only_16x9_presets: test cases:  2 |  0 passed | 2 failed
+--- mutant custom_selects_nothing: test cases:  2 |  1 passed | 1 failed
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/src/ui/CanvasSizeCombo.h: OK
+RESTORE OK
+--- restored: All tests passed (60 assertions in 2 test cases)

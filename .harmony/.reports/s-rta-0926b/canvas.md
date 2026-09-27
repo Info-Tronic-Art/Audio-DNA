@@ -393,3 +393,109 @@ Both deltas are under the 1 ms FINDING bar. Load avg 3.06, no compiler running. 
 - Self-brief: CLAUDE.md, canvas.md and the notebook's canvas entry were useful.
 
 INBOX-RECHECK: none
+
+---
+
+## Fix round (lane canvas-fix) -- builder report
+
+STATUS: DONE_WITH_CONCERNS
+RESULT: Both MUSTs and both SHOULDs are dealt with on `lane/canvas-0926b`, continued from `03db325`. There are three code commits, one per item, plus this report commit.
+- **MUST 2 (Resolution dropdown), `baf9cde`:** fixed. The dropdown now shows the canvas's real size. A 1080x1920 canvas reads "1080x1920 (portrait)". Any size without a preset reads "Custom (W x H)". Portrait, square and 4:3 presets were added.
+- **SHOULDs, `bd6c953`:** a caption under the Fit combo now says what the selected mode does. The "Fit" label is kept on purpose.
+- **MUST 1 (Bars "corruption"):** this is NOT a render fault. The side bands in the critic's shots are the lower layer's own picture, pixel for pixel. That lower layer is `P16_02_Screen_Split_2x2.png`, which is itself four tiles of ellipses. Nothing in the render code was changed. Commit `08a45b5` makes the evidence readable: the lower-layer-alone reference is shot, and the window shots were re-taken over a checkerboard lower layer.
+FACTS:
+- `src/ui/CanvasSizeCombo.h` (new) and `src/ui/CompositionInspector.{h,cpp}`.
+- `tests/test_canvas_size_combo.cpp` (new): "All tests passed (60 assertions in 2 test cases)".
+- `src/ui/ClipInspector.{h,cpp}` (`fitCaption_`, `updateFitCaption`).
+- `.harmony/probe-fitmode.py`: one `shot()` line and the docstring.
+- ctest 625/625 serial (`canvas-fix-evidence/ctest-final-tail.txt`).
+- Live runs (`canvas-fix-evidence/GREEN-probe-fitmode-and-canvas.txt`): "PY 10 PASS / 0 FAIL" / "PROBE-FITMODE GREEN" and "PY 15 PASS / 0 FAIL" / "PROBE-CANVAS GREEN".
+- The band re-derivation is in `canvas-fix-evidence/bars-bands-are-the-lower-layer.txt`.
+- Shots are in `.harmony/.reports/s-rta-0926b/canvas-fix-shots/`.
+METHOD:
+- **MUST 1:** I re-derived it from a different starting point. I built a PIL oracle from the lower layer's MEDIA FILE alone and compared it with the critic's own PNGs. I then re-ran the probe, whose row already asserts bands == B-only exactly, and re-shot with a distinct lower layer.
+- **MUST 2:**
+  - The new unit test went RED by absence first; teeth were checked on 4 in-place mutants of the new, lane-authored header, restored with sha256 proof.
+  - The inspector code is the same header the test drives.
+  - Live window-only shots were taken at 5 canvas sizes.
+- **Fit caption:** checked only by window shots.
+- **Gates:** full ctest serial. The affected probes (fitmode, canvas) were re-run under the lock with no threshold edits. The perf rows ran with no compiler running; load average is printed next to them.
+CONFIDENCE+VERIFY: High that MUST 1 is the fixture and not a defect: band d vs the B oracle is 0.01, vs black 16.63, and the probe's exact-equality row PASSes. High for MUST 2's display logic. Medium for the user path of picking a new preset from the dropdown: `onChange` is 6 lines and was not driven live, because the rig allows no synthetic input.
+- Verify: `build-lane/tests/test_canvas_size_combo`.
+- Verify: `ctest --test-dir build-lane -j1` gives 625/625.
+- Verify: open `canvas-fix-shots/bars-explained.png` and `resolution-control-before-after.png`.
+UNKNOWNS/NOT-DONE: (1) There is no free numeric W x H entry; presets plus the Custom display were enough to meet the rec's "or". (2) Nobody picked a preset by hand in the live app (rig: no synthetic input). (3) Whether Bars should stay TRANSPARENT (the plan's design) or become opaque black is Boris's call; see RISKS.
+NUANCE: The critic's `inspector-fit-bars.png` ("no scale/lower-layer changes needed") DID have a lower layer: "Lower B" = the 2x2 image (see the layer strip in `window-fit-bars.png`). `bars-layer-scale-0.5.png` is clean only because that row has no lower layer. `window-fit-crop/stretch` are clean because those modes cover the whole canvas.
+HANDOFF-NEEDS: none
+
+### Findings -> disposition
+| # | sev | finding | disposition | commit |
+|---|---|---|---|---|
+| 1 | MUST | Bars renders "mirrored/tiled" over a lower layer or with clip Scale | **Refuted as a render defect; evidence made legible.** The bands are the lower layer B exactly. B is a 2x2 split image, so it looks tiled. See the evidence below. Probe shots now include B alone, and the window shots were re-taken over a checkerboard lower layer, where Bars reads unmistakably. | `08a45b5` (probe shot) + report |
+| 2 | SHOULD | "Fit" label vs the bare-combo idiom | **Kept, deliberately.** "Stretch/Bars/Crop" need a name, and the label plus the new caption read as one unit. The code comment now records the decision (it used to say "like Alpha Type"). | `bd6c953` |
+| 3 | MUST | Resolution dropdown shows "1920x1080" for 1080x1920 / 1024x768; no way to reach portrait / 4:3 | **Fixed.** Presets now match exact W AND H. 1080x1920 portrait, 1080x1080 square and 1024x768 4:3 presets were added. Any other size shows "Custom (W x H)", and a pick repaints the name bar. | `baf9cde` |
+| 4 | SHOULD | "Bars" is explained only by a hover tooltip; it could be misread as tempo | **Fixed.** A caption under the combo describes the selected mode. For Bars it reads "Letterbox: keeps the picture's shape; the layer below shows beside it." For a Source it reads "Sources draw at the composition's size." (dimmed). | `bd6c953` |
+
+### MUST 1 evidence (re-derived, not recalled)
+`canvas-fix-evidence/bars-bands-are-the-lower-layer.txt`. The oracle is B's media file, BILINEAR to 1920x1080, then BOX to 960x540. The critic's PNGs were compared against it:
+```
+fitmode-shots/bars-over-lower-layer: band d vs B-oracle L=0.01 R=0.01; band d vs black L=16.63
+fitmode-shots/bars-clip-scale-0.5: band d vs B-oracle L=0.01 R=0.01; band d vs black L=16.63
+```
+The live row on the final build:
+```
+PASS  f_bars_transparent_lower_shows: the bars are transparent -- the lower layer (B) shows beside A: bands == B-only exactly L=True R=True (d L=0.00 R=0.00), centre d(f, B-only)=30.29 (>= 5.0)
+PASS  f_transform_after_fit: fit first, then the clip's scale 0.5 -- outside == B-only exactly=True (d 0.00), inside d(., A 465x540)=0.27 (tol 6.0)
+```
+Strongest alternative explanation: a UV wrap or repeat bug inside the fitted pass. That would put A's pixels, which are portrait ellipses, in the bands. The bands match B, whose ellipses are landscape and tiled with grey separators, to 0.01. They do not match A. Over nothing, the bands are 0.00 RGB (`f_bars_geometry`). So the fitted pass writes nothing outside its box.
+
+### Tests
+- **Unit** (`canvas-fix-evidence/unit-RED-GREEN-teeth.txt`):
+  - RED: `test_canvas_size_combo.cpp:8:10: fatal error: 'ui/CanvasSizeCombo.h' file not found`.
+  - GREEN: "All tests passed (60 assertions in 2 test cases)".
+  - Teeth, on in-place mutants of the uncommitted lane-authored header (sha256 `d3c81284...` restored, "RESTORE OK"):
+
+    | mutant | result |
+    |---|---|
+    | width_only_match (the old bug) | "2 \| 0 passed \| 2 failed" |
+    | no_custom_item | "2 \| 0 passed \| 2 failed" |
+    | only_16x9_presets | "2 \| 0 passed \| 2 failed" |
+    | custom_selects_nothing | "2 \| 1 passed \| 1 failed" |
+- **ctest serial:** 625/625 (623 + 2 new cases). It was run after the code changes and again after the hook removal and rebuild.
+- **Live, lane build, lock owner canvas-fix** (`canvas-fix-evidence/GREEN-probe-fitmode-and-canvas.txt`). No compiler was running; load averages are printed in the log.
+  - probe-fitmode: "PY 10 PASS / 0 FAIL", "PROBE-FITMODE GREEN".
+  - f_perf REPORT: frame +0.005 ms, gpu +0.524 ms, load avg 2.88 2.93 2.83.
+  - probe-canvas: "PY 15 PASS / 0 FAIL", "PROBE-CANVAS GREEN".
+
+    | perf row | result | load avg |
+    |---|---|---|
+    | c_perf_1080 | mean fps 117.8, frame 1.52 ms | 3.17 3.00 2.86 |
+    | c_perf_4k REPORT | 96.9 fps, gpu 7.91 ms | 3.32 3.03 2.87 |
+- **RED-first for the live rows:** no new probe row was added (the probe only gained a shot), so no new RED run was due. The existing rows were re-run, not re-thresholded.
+
+### Shots -- `canvas-fix-shots/`
+- **`bars-explained.png`:** B alone | A Bars over B ("the sides ARE B") | A Bars over nothing (black bars). These are the probe's decoded 1920x1080 frames, BOX-downscaled.
+- **Window-only live shots** (Quartz window id, `open -g`, no synthetic input, temporary env-gated hook):
+  - `window-fit-{stretch,bars,crop}-over-checker.png`: the lower layer is a checkerboard Source. With Bars, the picture sits centred with the checkerboard clearly beside it.
+  - `window-fit-bars-over-2x2-lower.png`: the critic's scene, now with the caption.
+  - `window-fit-source-disabled.png`: the row and caption are greyed.
+  - `fit-caption-zoom.png`: the caption for each mode.
+- **Resolution control:**
+  - `resolution-control-before-after.png`: 1080x1920 and 1024x768 BEFORE read "1920x1080"; AFTER they read "1080x1920 (portrait)" and "1024x768 (4:3)".
+  - `resolution-control-after-fix-strip.png`: adds 1920x1080, "Custom (1080 x 1350)" and "Custom (1920 x 1200)". 1920x1200 is the old width-only false match.
+  - Full windows: `after-fix-*-resolution-control.png`.
+- **Hooks** (`AUDIODNA_DEBUG_COMPTAB`, `AUDIODNA_DEBUG_FITSHOT`): both were removed. `MainComponent.cpp` sha256 `38671a0e...` equals HEAD, the app was rebuilt, and `strings` counts 0 for both.
+
+### ISSUES / RISKS
+1. **Bars transparency is a product choice, not a bug.** The plan asked for TRANSPARENT bars, and this build does exactly that. A performer who expects black letterbox bars over a busy lower layer will instead see that layer beside the picture. If Boris wants opaque black bars, the fitted pass would have to write opaque black outside the picture's box. I expect that to be a small shader or alpha change, but that is my guess: I have not built or measured it. That is Harmony's or Boris's call, and I did not make it.
+2. **Picking a preset in the dropdown by hand was not driven live** (rig). It is covered by the unit round-trip `sizeFor`/`idFor` plus the shots of the display side.
+3. **`syncFromComposition` rebuilds the combo only when the canvas size changed.** A size change arriving while the dropdown's popup is open would rebuild it under the popup. This is rare; nothing else writes the size at runtime except TestServer and a composition load.
+4. **`build-lane/` is untracked** (kept per the rig rule). It is the only entry in `git status`.
+
+### PACKET QUALITY
+- Clarity: CLEAR for MUST 2 and the SHOULDs. For MUST 1 I HAD_TO_INFER that "fix" meant "resolve", since the claimed defect is not reproducible as a defect.
+- Missing context: the critic did not know that fixture B is a 2x2 split image. The plan's transparent-bars decision was not in the findings.
+- Unused context: the Output-window rule (not touched).
+- Self-brief: CLAUDE.md, this report's Fit section, and the prior round's scratch scripts (hook.py, shot.py) were useful.
+
+INBOX-RECHECK: none
