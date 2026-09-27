@@ -205,3 +205,12 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
 - 02:43 GREEN on build/ (decks merged): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 98/0, mastersignal 22/0, decktabs 6/0, step3 94/0, tempo GREEN. ctest 636/636.
 - 04:14 canvas lane: Harmony RED on build/: probe-canvas 8/7, deck-clock 2/6, fitmode 4/6 (RED). Merge into main CONFLICTED (notebook, CLAUDE.md, pitfalls, MainComponent.cpp, LookAndFeel.cpp) -> aborted; conflict resolution delegated to a builder in W1 (merge main into lane/canvas) + reviewer. Rulings: tests/visual Tier-1 gate = no NEW failures (base already 167 failed: pre-existing, own follow-up); r5_burst capture-count guard: capture longer (never lower the 8-frame bar). Boris Q: Bars see-through vs solid black.
 - 04:28 decks-followup DONE (r2 review PASS, critics 3/3 PASS; fix round restored bold alert titles lost by the default-LookAndFeel install; library hides the 4 legacy v1 files, verified read-only on the real folder). RIG SLIP by that lane: launched open -g after a failed lock mkdir (reached Harmony's running instance) -> gotcha filed. Merge order: canvas-merge first (W1, running), then decks-followup re-based on it.
+- 05:35 FINAL GREEN on build/ 17a3ebf (canvas merged): render-state 31/0, crossfade 35/0, parity 46/0, manual-bpm 22/0,
+  resync 16/0, downbeat 14/0, mastersignal 22/0, decktabs 6/0, canvas 15/0, deck-clock 10/0, fitmode 10/0, step3 94/0, tempo
+  GREEN; ctest 661/661; routines 97/1 (stack "later restore wins" saw [0.5, 1.0]). Re-runs x3: 98/0, 96/2 (11j Jump rows saw a
+  0.5 sample in TJ+0.1..TJ+0.5), 98/0. OPEN (not a gate blocker; next-session #1): routine timing rows now flake at window
+  edges that end at the routine's first recorded move (+0.5 s). INFERRED mechanism: render_frame capture is synchronous and
+  now reads back the 1920x1080 canvas (plan4 F4) -> longer message/GL stall (tempo-glide lane saw ~100 ms at 756x878) ->
+  timing jitter. Pre-canvas: 1 edge miss (8g) in ~6 runs; post-canvas: 2 in 4. Cheapest discriminating test: probe-routines
+  x5 on the pre-canvas build (b766720) vs x5 on 17a3ebf + log render_frame durations. Fixes: windows end >= 0.1 s before the
+  first recorded move; async (PBO) capture (F4).
