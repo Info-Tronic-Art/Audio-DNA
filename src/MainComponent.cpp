@@ -725,8 +725,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
                 currentImageFile_ = clip->mediaFile;
-                if (outputWindow_)
-                    outputWindow_->loadImage(clip->mediaFile);
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
             }
             else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
@@ -1542,8 +1540,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
     browserPanel_->getFilesBrowser().onFileActivated = [this](const juce::File& file) {
         previewPanel_.loadImage(file);
         currentImageFile_ = file;
-        if (outputWindow_)
-            outputWindow_->loadImage(file);
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     };
     // s-rta-0924b step 4 (Lane S4-B): the Record tab drives the recorder through
@@ -2306,10 +2302,13 @@ MainComponent::~MainComponent()
 
     // W3 (outputwindow-arc, scout R5): the second GL context obeys the same
     // shutdown law — end its GL activity HERE, before any teardown below,
-    // not 17 members later when outputWindow_.reset() runs. detach() is
-    // idempotent, so the reset() further down stays where it is.
+    // not 17 members later when outputWindow_.reset() runs. detachGL() is
+    // idempotent, so the reset() further down stays where it is. (s-rta-0927
+    // outputs-c1: the output reads only the shared IOSurface frames, which
+    // live until the Renderer is destroyed -- no order against the main
+    // detach above matters.)
     if (outputWindow_)
-        outputWindow_->getRenderer().detach();
+        outputWindow_->detachGL();
 
     // Drop undo history on shutdown: commands hold model snapshots that must
     // not outlive the composition/renderer they refer to.
@@ -2666,8 +2665,6 @@ void MainComponent::openImage()
 
         previewPanel_.loadImage(file);
         currentImageFile_ = file;
-        if (outputWindow_)
-            outputWindow_->loadImage(file);
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     });
 }
@@ -3570,8 +3567,6 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
         {
             previewPanel_.loadImage(file);
             currentImageFile_ = file;
-            if (outputWindow_)
-                outputWindow_->loadImage(file);
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
         }
     }
@@ -3777,24 +3772,25 @@ void MainComponent::openOutputOnDisplay(int displayIndex)
 
     if (!outputWindow_)
     {
-        outputWindow_ = std::make_unique<OutputWindow>(
-            analysisThread_.getFeatureBus(),
-            previewPanel_.getMappingEngine(),
-            previewPanel_.getEffectChain(),
-            &composition_);   // plan4 S7: letterboxed to the composition's shape
-
-        // Load the same image if one is loaded
-        if (currentImageFile_.existsAsFile())
-            outputWindow_->loadImage(currentImageFile_);
+        // s-rta-0927 outputs-c1: the window presents the COMPOSITION -- the main renderer's canvas, copied once per
+        // frame into the shared frames -- letterboxed to the composition's shape; it never takes the keyboard.
+        outputWindow_ = std::make_unique<OutputWindow>(previewPanel_.getRenderer().getSharedFrames());
+        juce::Component::SafePointer<MainComponent> safe(this);
+        outputWindow_->onCloseRequested = [safe] {
+            // Never destroy a window inside one of its own callbacks.
+            juce::MessageManager::callAsync([safe] { if (safe != nullptr) safe->closeOutput(); });
+        };
     }
 
-    outputWindow_->goFullscreenOnDisplay(displays[static_cast<size_t>(displayIndex)]);
+    outputWindow_->openOnDisplay(displays[static_cast<size_t>(displayIndex)]);
+    previewPanel_.getRenderer().setLiveOutputCount(1);   // the tap runs only while an output is live
 }
 
 void MainComponent::closeOutput()
 {
     if (outputWindow_)
     {
+        previewPanel_.getRenderer().setLiveOutputCount(0);
         outputWindow_->setVisible(false);
         outputWindow_.reset();
     }
@@ -3890,10 +3886,6 @@ void MainComponent::imageReceived(const juce::Image& image)
 {
     // Called from camera thread — queue frame for GL thread
     previewPanel_.queueCameraFrame(image);
-
-    // Also send to output window if active
-    if (outputWindow_)
-        outputWindow_->getRenderer().queueCameraFrame(image);
 }
 #endif
 
@@ -3932,8 +3924,6 @@ void MainComponent::openImageFolder()
         auto first = slideshowImages_[0];
         previewPanel_.loadImage(first);
         currentImageFile_ = first;
-        if (outputWindow_)
-            outputWindow_->loadImage(first);
 
         fileLabel_.setText("Folder: " + dir.getFileName() + " ("
                           + juce::String(slideshowImages_.size()) + " images)",
@@ -3962,8 +3952,6 @@ void MainComponent::advanceSlideshow()
             auto img = slideshowImages_[slideshowIndex_];
             previewPanel_.loadImage(img);
             currentImageFile_ = img;
-            if (outputWindow_)
-                outputWindow_->loadImage(img);
         }
     }
     lastSlideshowBeatPhase_ = phase;
@@ -4347,8 +4335,6 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
             previewPanel_.getRenderer().clearActiveSource();
             previewPanel_.loadImage(clip->mediaFile);
             currentImageFile_ = clip->mediaFile;
-            if (outputWindow_)
-                outputWindow_->loadImage(clip->mediaFile);
             fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
         }
         else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
@@ -4557,8 +4543,6 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
                 currentImageFile_ = clip->mediaFile;
-                if (outputWindow_)
-                    outputWindow_->loadImage(clip->mediaFile);
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
                 foundActiveClip = true;
                 break;
@@ -4617,8 +4601,6 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
                 currentImageFile_ = clip->mediaFile;
-                if (outputWindow_)
-                    outputWindow_->loadImage(clip->mediaFile);
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
                 foundActiveClip = true;
                 break;

@@ -2099,3 +2099,12 @@ if(APPLE)
     apply_sanitizers(test_shared_frame_gl)
     catch_discover_tests(test_shared_frame_gl)
 endif()
+
+# --- test_output_law (s-rta-0927 outputs-c1, plan5-final.md 10.1): the output window's screen-safety law asserted in
+# its SOURCE (no gate may ever open the window): normal level, never key (windowIgnoresKeyPresses), bounds before
+# visible. Reads src/ui/OutputWindow.{h,cpp} at test time; comments and literals stripped.
+add_executable(test_output_law test_output_law.cpp)
+target_link_libraries(test_output_law PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_output_law PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_output_law)
+catch_discover_tests(test_output_law)

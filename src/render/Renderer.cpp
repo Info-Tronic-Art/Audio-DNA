@@ -122,10 +122,9 @@ void Renderer::newOpenGLContextCreated()
     // flash for onsets that happened while it was detached.
     onsetPulse_.reset();
 
-    // W7(iv) outputwindow-arc: one-shot per-context program-ID log. Compare
-    // against the [OutputRenderer] lines when the output window opens —
-    // overlapping ID sets confirm (disjoint sets refute) scout R1's INFERRED
-    // cross-context program-ID collision claim.
+    // W7(iv) outputwindow-arc: one-shot per-context program-ID log (its
+    // [OutputRenderer] counterpart went with that renderer, s-rta-0927
+    // outputs-c1: the output window compiles no programs any more).
     for (const char* name : { "passthrough", "hue_shift", "vignette" })
         if (auto* p = shaderMgr_.getProgram(name))
             std::cerr << "[Renderer] programID(" << name << ")="
@@ -322,7 +321,9 @@ void Renderer::renderOpenGL()
     // Check if we have anything to render
     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
     {
-        // Nothing to render yet: a pending capture gets the black canvas-sized frame.
+        // Nothing to render yet: a pending capture gets the black canvas-sized frame. The outputs show it too
+        // (what the panel shows, never a stale picture).
+        publishToOutputs(canvas.w, canvas.h);
         processPendingCapture();
         presentCanvas(static_cast<GLuint>(defaultFBO), present);
         return;
@@ -630,7 +631,8 @@ void Renderer::renderOpenGL()
     if (sourceTexture == 0)
     {
         // No content -- the canvas is already cleared to black (canvas block above). A pending
-        // capture gets that black frame.
+        // capture gets that black frame, and so do the outputs.
+        publishToOutputs(canvas.w, canvas.h);
         processPendingCapture();
         presentCanvas(static_cast<GLuint>(defaultFBO), present);
         return;
@@ -756,6 +758,11 @@ void Renderer::renderOpenGL()
         if (deckTransitionProgress_ >= 1.0f)
             deckTransitionProgress_ = 1.0f;
     }
+
+    // s-rta-0927 outputs-c1: the canvas is final here (the deck transition above is its last writer) -- copy it
+    // once into the shared frames the output windows present. Inside the measured window: its cost shows in
+    // frame_time_ms / gpu_time_ms. No-op (zero cost) when no output is live.
+    publishToOutputs(canvas.w, canvas.h);
 
     // plan4 item 1: the panel shows the finished canvas, letter/pillar-boxed (inside the measured
     // window -- it is this frame's work). The canvas itself is untouched: the outputs below read it.
@@ -901,6 +908,16 @@ void Renderer::presentCanvas(GLuint windowFBO, const RenderGeometry::Rect& prese
     quad_.draw();
 }
 
+// s-rta-0927 outputs-c1 (plan5 slice C1, plan5-final.md 8.5): the output tap. Read-only for everything
+// downstream: SharedFrameSet::publish copies the canvas and leaves canvasFBO_ bound.
+void Renderer::publishToOutputs(int canvasW, int canvasH)
+{
+    if (liveOutputs_.load(std::memory_order_relaxed) <= 0 && !outputTapForced_.load(std::memory_order_relaxed))
+        return;
+    jassert(juce::OpenGLContext::getCurrentContext() == &glContext_);
+    sharedFrames_.publish(canvasFBO_, canvasW, canvasH);
+}
+
 // plan4 A-opt: GPU time per frame from two alternated GL_TIME_ELAPSED queries. A query's result is read
 // only once GL_QUERY_RESULT_AVAILABLE says so -- this never blocks; a frame whose slot is still in
 // flight is simply not timed.
@@ -1023,6 +1040,11 @@ void Renderer::openGLContextClosing()
         syphonOutput_->shutdown();
     if (syphonFBO_ != 0) { glDeleteFramebuffers(1, &syphonFBO_); syphonFBO_ = 0; }
     if (syphonTexture_ != 0) { glDeleteTextures(1, &syphonTexture_); syphonTexture_ = 0; }
+
+    // s-rta-0927 outputs-c1: this context's slot textures/FBOs go; the pending fence is dropped (it dies with the
+    // context). The shared surfaces and the front frame stay: the outputs keep the last picture, and the next
+    // context's first publish rebinds the same surfaces.
+    sharedFrames_.releaseGL();
 
     shaderMgr_.releaseAll();
     texMgr_.release();

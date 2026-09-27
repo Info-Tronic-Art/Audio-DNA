@@ -379,6 +379,13 @@ target_sources(AudioDNA PRIVATE
 
     # Output / texture sharing (P22.1-P22.5)
     src/output/SyphonOutput.h
+
+    # Output windows: the canvas in shared IOSurface frames (s-rta-0927 outputs-c1)
+    src/output/SharedFrameSet.h
+    src/output/SharedFrameSet.cpp
+    src/output/SurfacePool.cpp
+    src/output/OutputPresenter.h
+    src/output/OutputPresenter.cpp
 )
 
 # Conditionally add test server sources
@@ -564,6 +571,11 @@ set(AUDIODNA_LIBS
 )
 if(AUDIODNA_USE_CAMERA)
     list(APPEND AUDIODNA_LIBS juce::juce_video)
+endif()
+# s-rta-0927 outputs-c1: the output windows' shared frames are IOSurfaces -- linked whether or not Syphon is built
+# (the Syphon block above links it too, only when AUDIODNA_BUILD_SYPHON is ON).
+if(APPLE)
+    list(APPEND AUDIODNA_LIBS "-framework IOSurface")
 endif()
 target_link_libraries(AudioDNA PRIVATE ${AUDIODNA_LIBS})
 

@@ -1,336 +1,89 @@
 #include "OutputWindow.h"
-#include "render/EmbeddedShaders.h"
-#include "render/RenderGeometry.h"
-#include "model/Composition.h"
-#include <iostream>
 
 using namespace juce::gl;
 
 // ============================================================
-// OutputRenderer
+// OutputWindow::Presenter -- one blit per refresh, never blocks
 // ============================================================
 
-OutputRenderer::OutputRenderer(const FeatureBus& featureBus,
-                               MappingEngine& mappingEngine,
-                               EffectChain& effectChain,
-                               const Composition* composition)
-    : featureBus_(featureBus),
-      mappingEngine_(mappingEngine),
-      effectChain_(effectChain),
-      composition_(composition)
+void OutputWindow::Presenter::newOpenGLContextCreated()
 {
+    // JUCE set a swap interval of 1 just before this call (juce_OpenGLContext.cpp). All of the app's GL
+    // contexts render on ONE shared thread: a blocking swap here would stall the main render. Each output
+    // context is paced by its own display's display link instead.
+    context_.setSwapInterval(0);
 }
 
-void OutputRenderer::attachTo(juce::Component& component)
+void OutputWindow::Presenter::renderOpenGL()
 {
-    glContext_.setOpenGLVersionRequired(juce::OpenGLContext::openGL4_1);
-    glContext_.setRenderer(this);
-    glContext_.setContinuousRepainting(true);
-    glContext_.setComponentPaintingEnabled(false);
-    glContext_.attachTo(component);
+    GLint fbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
+    auto* component = context_.getTargetComponent();
+    const double scale = context_.getRenderingScale();   // Retina: physical pixels
+    const int w = component != nullptr ? juce::roundToInt(component->getWidth() * scale) : 0;
+    const int h = component != nullptr ? juce::roundToInt(component->getHeight() * scale) : 0;
+    output::presentSharedFrame(frames_, state_, static_cast<unsigned int>(fbo), w, h);
 }
 
-void OutputRenderer::detach()
+void OutputWindow::Presenter::openGLContextClosing()
 {
-    glContext_.detach();
-}
-
-void OutputRenderer::loadImage(const juce::File& imageFile)
-{
-    std::lock_guard<std::mutex> lock(pendingImageMutex_);
-    pendingImageFile_ = imageFile;
-    hasPendingImage_ = true;
-    lastImageFile_ = imageFile;
-}
-
-void OutputRenderer::queueCameraFrame(const juce::Image& frame)
-{
-    std::lock_guard<std::mutex> lock(cameraFrameMutex_);
-    pendingCameraFrame_ = frame;
-    hasPendingCameraFrame_ = true;
-}
-
-void OutputRenderer::newOpenGLContextCreated()
-{
-    std::cerr << "[OutputRenderer] GL context created." << std::endl;
-    quad_.init();
-    initShaders();
-    startTime_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
-    onsetPulse_.reset();  // onset render-path fix: a new context starts looking afresh
-
-    // Re-queue the image if we had one loaded before context recreation
-    std::lock_guard<std::mutex> lock(pendingImageMutex_);
-    if (lastImageFile_.existsAsFile())
-    {
-        std::cerr << "[OutputRenderer] Re-queuing image after context recreation" << std::endl;
-        pendingImageFile_ = lastImageFile_;
-        hasPendingImage_ = true;
-    }
-}
-
-void OutputRenderer::renderOpenGL()
-{
-    // Handle pending image load
-    {
-        std::lock_guard<std::mutex> lock(pendingImageMutex_);
-        if (hasPendingImage_)
-        {
-            std::cerr << "[OutputRenderer] Loading image: " << pendingImageFile_.getFullPathName() << std::endl;
-            bool ok = texMgr_.loadImage(pendingImageFile_);
-            std::cerr << "[OutputRenderer] Image load " << (ok ? "OK" : "FAILED")
-                      << ", texID=" << texMgr_.getImageTexture()
-                      << ", size=" << texMgr_.getImageWidth() << "x" << texMgr_.getImageHeight() << std::endl;
-            hasPendingImage_ = false;
-        }
-    }
-
-    // Handle pending camera frame
-    {
-        std::lock_guard<std::mutex> lock(cameraFrameMutex_);
-        if (hasPendingCameraFrame_)
-        {
-            texMgr_.uploadImage(pendingCameraFrame_);
-            hasPendingCameraFrame_ = false;
-        }
-    }
-
-    juce::OpenGLHelpers::clear(juce::Colours::black);
-
-    // W2 (outputwindow-arc): this renderer reads the bus ITSELF each frame
-    // and passes the coherent copy into render() — the EffectChain's shared
-    // parked snapshot is gone, so audio uniforms on this context can never
-    // freeze or tear against the main renderer's refresh cadence. The
-    // post-S2 seqlock bus is multi-reader-safe from any thread.
-    // Onset render-path fix: read BEFORE the no-image early return so idle frames keep the
-    // pulse baseline current; onsetDetected becomes this context's per-frame pulse (at least
-    // one onset since its previous frame), derived from the monotonic onsetCount delta.
-    FeatureSnapshot snap = featureBus_.read();
-    snap.onsetDetected = onsetPulse_.consume(snap.onsetCount) > 0u;
-
-    if (!texMgr_.hasImage())
-    {
-        static int noImageCount = 0;
-        if (++noImageCount % 60 == 1)
-            std::cerr << "[OutputRenderer] No image loaded yet (frame " << noImageCount << ")" << std::endl;
-        return;
-    }
-
-    // mappingEngine_.processFrame() is intentionally NOT called here (or on
-    // any GL thread): it races when called from more than one thread
-    // (STATEFUL — Smoother EMA plus a single-store read-modify-write on the
-    // shared EffectChain's params, MappingEngine.cpp) and must run on
-    // exactly ONE thread.
-    //
-    // POST-C3 (outputwindow-arc-design.md W5/U2): that one thread is a
-    // dedicated message-thread juce::Timer owned by MainComponent
-    // (MainComponent::MappingTickTimer, kMappingTickHz — see
-    // MainComponent::tickFeaturePipeline()), which replaces the old
-    // GL-thread call from the main Renderer's renderOpenGL(). It runs
-    // UNCONDITIONALLY, independent of either GL context's attach/visibility
-    // state, so mapping updates no longer stop when previewPanel_ is hidden
-    // (e.g. SignalBar expanded to fill the window, MainComponent.cpp:1941)
-    // or when this window's context detaches — the shared EffectChain's
-    // mapped params keep updating in every attach state.
-    //
-    // KNOWN RESIDUAL (honest as of C3): the tick above drives MappingEngine
-    // only (design A1 scope). Two things still FREEZE on preview detach
-    // until the routing/signal-extraction follow-up (A1) lands:
-    //   - Routed params (RoutingEngine, still driven from the main
-    //     Renderer's GL callback, Renderer.cpp).
-    //   - Autopilot (beat-synced clip advancement), which stays GL-attached
-    //     by design (deck/composition surface, excluded from this arc).
-    // See .harmony/specs/outputwindow-arc-design.md and
-    // .harmony/specs/featurebus-thread-safety-design.md R10.
-
-    float time = static_cast<float>(
-        juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
-
-    auto* component = glContext_.getTargetComponent();
-    float scale = static_cast<float>(glContext_.getRenderingScale());
-    float compW = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
-    float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
-
-    // s-rta-0926b plan4 S7: the picture is the composition's shape -- a composition-shaped rect
-    // letterboxed in the window (outputWidth x outputHeight, 1920x1080 when unset), and the image
-    // fitted inside that rect by its own aspect. For a 16:9 image on a 16:9 display with a 16:9
-    // composition this is the whole window, exactly as before. (This window still shows only the
-    // legacy image, not the composition -- plan4's caveat / Boris Q3.)
-    const auto canvas = RenderGeometry::resolveCanvas(0, 0,
-                                                      composition_ != nullptr ? composition_->outputWidth : 0,
-                                                      composition_ != nullptr ? composition_->outputHeight : 0);
-    const auto canvasRect = RenderGeometry::fitCanvas(canvas.w, canvas.h,
-                                                      static_cast<int>(compW), static_cast<int>(compH));
-    auto imgRect = RenderGeometry::fitCanvas(texMgr_.getImageWidth(), texMgr_.getImageHeight(),
-                                             canvasRect.w, canvasRect.h);
-    if (imgRect.w <= 0 || imgRect.h <= 0)
-        imgRect = { 0, 0, canvasRect.w, canvasRect.h };
-    float vpX = static_cast<float>(canvasRect.x + imgRect.x);
-    float vpY = static_cast<float>(canvasRect.y + imgRect.y);
-    float vpW = static_cast<float>(imgRect.w);
-    float vpH = static_cast<float>(imgRect.h);
-
-    GLint defaultFBO = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFBO);
-
-    effectChain_.render(texMgr_.getImageTexture(),
-                        shaderMgr_, texMgr_, quad_,
-                        effectChainGLState_, snap,
-                        time, compW, compH,
-                        static_cast<GLuint>(defaultFBO),
-                        vpX, vpY, vpW, vpH);
-}
-
-void OutputRenderer::openGLContextClosing()
-{
-    // W1: this context's EffectChain GL state dies with the context — see
-    // Renderer::openGLContextClosing() for the stale-cache rationale.
-    effectChainGLState_.release();
-    shaderMgr_.releaseAll();
-    texMgr_.release();
-    quad_.release();
-}
-
-void OutputRenderer::initShaders()
-{
-    auto compile = [&](const juce::String& name, const char* frag) {
-        shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag);
-    };
-
-    compile("passthrough",          EmbeddedShaders::passthrough);
-    compile("ripple",               EmbeddedShaders::ripple);
-    compile("bulge",                EmbeddedShaders::bulge);
-    compile("wave",                 EmbeddedShaders::wave);
-    compile("liquid",               EmbeddedShaders::liquid);
-    compile("kaleidoscope",         EmbeddedShaders::kaleidoscope);
-    compile("fisheye",              EmbeddedShaders::fisheye);
-    compile("swirl",                EmbeddedShaders::swirl);
-    compile("hue_shift",            EmbeddedShaders::hueShift);
-    compile("saturation",           EmbeddedShaders::saturation);
-    compile("brightness",           EmbeddedShaders::brightness);
-    compile("duotone",              EmbeddedShaders::duotone);
-    compile("chromatic_aberration", EmbeddedShaders::chromaticAberration);
-    compile("invert",               EmbeddedShaders::invert);
-    compile("posterize",            EmbeddedShaders::posterize);
-    compile("color_shift",          EmbeddedShaders::colorShift);
-    compile("thermal",              EmbeddedShaders::thermal);
-    compile("color_matrix",         EmbeddedShaders::colorMatrix);
-    compile("pixel_scatter",        EmbeddedShaders::pixelScatter);
-    compile("rgb_split",            EmbeddedShaders::rgbSplit);
-    compile("block_glitch",         EmbeddedShaders::blockGlitch);
-    compile("scanlines",            EmbeddedShaders::scanlines);
-    compile("digital_rain",         EmbeddedShaders::digitalRain);
-    compile("noise_overlay",        EmbeddedShaders::noiseOverlay);
-    compile("mirror",               EmbeddedShaders::mirror);
-    compile("pixelate",             EmbeddedShaders::pixelate);
-    compile("gaussian_blur",        EmbeddedShaders::gaussianBlur);
-    compile("zoom_blur",            EmbeddedShaders::zoomBlur);
-    compile("shake",                EmbeddedShaders::shake);
-    compile("vignette",             EmbeddedShaders::vignette);
-    compile("motion_blur",          EmbeddedShaders::motionBlur);
-    compile("glow",                 EmbeddedShaders::glow);
-    compile("edge_detect",          EmbeddedShaders::edgeDetect);
-
-    // 3D/Depth
-    compile("perspective_tilt",     EmbeddedShaders::perspectiveTilt);
-    compile("cylinder_wrap",        EmbeddedShaders::cylinderWrap);
-    compile("sphere_wrap",          EmbeddedShaders::sphereWrap);
-    compile("tunnel",               EmbeddedShaders::tunnel);
-    compile("page_curl",            EmbeddedShaders::pageCurl);
-    compile("parallax_layers",      EmbeddedShaders::parallaxLayers);
-
-    // Additional Warp
-    compile("polar_coords",         EmbeddedShaders::polarCoords);
-    compile("twirl",                EmbeddedShaders::twirl);
-    compile("shear",                EmbeddedShaders::shear);
-    compile("elastic_bounce",       EmbeddedShaders::elasticBounce);
-    compile("ripple_pond",          EmbeddedShaders::ripplePond);
-    compile("diamond_distort",      EmbeddedShaders::diamondDistort);
-    compile("barrel_distort",       EmbeddedShaders::barrelDistort);
-    compile("sine_grid",            EmbeddedShaders::sineGrid);
-    compile("glitch_displace",      EmbeddedShaders::glitchDisplace);
-
-    // Additional Color
-    compile("sepia",                EmbeddedShaders::sepia);
-    compile("cross_process",        EmbeddedShaders::crossProcess);
-    compile("split_tone",           EmbeddedShaders::splitTone);
-    compile("color_halftone",       EmbeddedShaders::colorHalftone);
-    compile("ordered_dither",       EmbeddedShaders::orderedDither);
-    compile("heat_map",             EmbeddedShaders::heatMap);
-    compile("selective_color",      EmbeddedShaders::selectiveColor);
-    compile("film_grain",           EmbeddedShaders::filmGrain);
-    compile("gamma_levels",         EmbeddedShaders::gammaLevels);
-    compile("solarize",             EmbeddedShaders::solarize);
-
-    // Pattern/Stylization
-    compile("crt_simulation",       EmbeddedShaders::crtSimulation);
-    compile("vhs_effect",           EmbeddedShaders::vhsEffect);
-    compile("ascii_art",            EmbeddedShaders::asciiArt);
-    compile("dot_matrix",           EmbeddedShaders::dotMatrix);
-    compile("crosshatch",           EmbeddedShaders::crosshatch);
-    compile("emboss",               EmbeddedShaders::emboss);
-    compile("oil_paint",            EmbeddedShaders::oilPaint);
-    compile("pencil_sketch",        EmbeddedShaders::pencilSketch);
-    compile("voronoi_glass",        EmbeddedShaders::voronoiGlass);
-    compile("cross_stitch",         EmbeddedShaders::crossStitch);
-    compile("night_vision",         EmbeddedShaders::nightVision);
-
-    // Animation
-    compile("strobe",               EmbeddedShaders::strobe);
-    compile("pulse",                EmbeddedShaders::pulse);
-    compile("slit_scan",            EmbeddedShaders::slitScan);
-
-    // Blend/Composite
-    compile("double_exposure",      EmbeddedShaders::doubleExposure);
-    compile("frosted_glass",        EmbeddedShaders::frostedGlass);
-    compile("prism_refract",        EmbeddedShaders::prismRefract);
-    compile("rain_on_glass",        EmbeddedShaders::rainOnGlass);
-    compile("hexagonalize",         EmbeddedShaders::hexagonalize);
-
-    std::cerr << "[OutputRenderer] All shaders compiled." << std::endl;
-
-    // W7(iv) outputwindow-arc: one-shot per-context program-ID log — the
-    // counterpart of the [Renderer] lines (Renderer.cpp,
-    // newOpenGLContextCreated). Overlapping ID sets confirm (disjoint sets
-    // refute) scout R1's INFERRED cross-context program-ID collision claim.
-    for (const char* name : { "passthrough", "hue_shift", "vignette" })
-        if (auto* p = shaderMgr_.getProgram(name))
-            std::cerr << "[OutputRenderer] programID(" << name << ")="
-                      << p->getProgramID() << std::endl;
+    state_.release();   // this context's textures/FBOs and its retains on the shared surfaces
 }
 
 // ============================================================
 // OutputWindow
 // ============================================================
 
-OutputWindow::OutputWindow(const FeatureBus& featureBus,
-                           MappingEngine& mappingEngine,
-                           EffectChain& effectChain,
-                           const Composition* composition)
+OutputWindow::OutputWindow(output::SharedFrameSet& frames)
     : DocumentWindow("Audio-DNA Output",
                      juce::Colours::black,
                      0), // No title bar buttons
-      renderer_(featureBus, mappingEngine, effectChain, composition)
+      presenter_(frames, glContext_)
 {
     setUsingNativeTitleBar(false);
     setTitleBarHeight(0);
+    // No shadow window around a display-sized window. This also re-adds the window to the desktop with
+    // getDesktopWindowStyleFlags() -- the override below -- so the peer is (re)created with
+    // windowIgnoresKeyPresses before the window is ever shown.
+    setDropShadowEnabled(false);
+    jassert(getPeer() != nullptr
+            && (getPeer()->getStyleFlags() & juce::ComponentPeer::windowIgnoresKeyPresses) != 0);
 
     // Add the output component directly as a child (not via content component,
     // which can leave gaps). We manage its bounds in resized().
     Component::addAndMakeVisible(outputComponent_);
-    setWantsKeyboardFocus(true);
+    setWantsKeyboardFocus(false);
 
-    renderer_.attachTo(outputComponent_);
+    glContext_.setOpenGLVersionRequired(juce::OpenGLContext::openGL4_1);
+    glContext_.setRenderer(&presenter_);
+    glContext_.setContinuousRepainting(true);   // display-link paced on macOS
+    glContext_.setComponentPaintingEnabled(false);
+    glContext_.attachTo(outputComponent_);
 }
 
 OutputWindow::~OutputWindow()
 {
-    renderer_.detach();
+    detachGL();
+}
+
+int OutputWindow::getDesktopWindowStyleFlags() const
+{
+    // The output window can NEVER become the key window: TopLevelWindow::visibilityChanged() skips its
+    // toFront(true) for this flag, and the mac peer's canBecomeKeyWindow() returns false. Clicking on it
+    // changes nothing; every shortcut keeps going to the app.
+    return DocumentWindow::getDesktopWindowStyleFlags() | juce::ComponentPeer::windowIgnoresKeyPresses;
+}
+
+void OutputWindow::detachGL()
+{
+    glContext_.detach();
 }
 
 void OutputWindow::closeButtonPressed()
 {
-    setAlwaysOnTop(false);
-    setVisible(false);
+    // Never hide-and-forget: the owner destroys the window.
+    if (onCloseRequested)
+        onCloseRequested();
 }
 
 void OutputWindow::resized()
@@ -339,7 +92,7 @@ void OutputWindow::resized()
     outputComponent_.setBounds(getLocalBounds());
 }
 
-void OutputWindow::goFullscreenOnDisplay(const juce::Displays::Display& display)
+void OutputWindow::openOnDisplay(const juce::Displays::Display& display)
 {
     auto area = display.totalArea;
 
@@ -358,24 +111,8 @@ void OutputWindow::goFullscreenOnDisplay(const juce::Displays::Display& display)
     // already at display size.
     setBounds(area);
     setVisible(true);
-    toFront(true);
+    toFront(false);   // ordered front, never made key (windowIgnoresKeyPresses)
 
     // Ensure the output component fills the window
     outputComponent_.setBounds(getLocalBounds());
-}
-
-void OutputWindow::loadImage(const juce::File& imageFile)
-{
-    renderer_.loadImage(imageFile);
-}
-
-bool OutputWindow::keyPressed(const juce::KeyPress& key)
-{
-    if (key.isKeyCode(juce::KeyPress::escapeKey))
-    {
-        setAlwaysOnTop(false);
-        setVisible(false);
-        return true;
-    }
-    return false;
 }
