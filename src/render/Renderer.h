@@ -20,6 +20,7 @@
 #include "model/Clip.h"
 #include "model/Deck.h"
 #include "model/Autopilot.h"
+#include "model/AutopilotBank.h"
 #include <mutex>
 #include <future>
 #include <unordered_map>
@@ -117,11 +118,11 @@ public:
     // P20: Set per-type autopilot config (from Composition)
     void setPerTypeAutopilotConfig(const Composition::PerTypeAutopilotConfig* config)
     {
-        autopilot_.setPerTypeConfig(config);
+        autopilots_.setPerTypeConfig(config);
     }
 
     // P23: Enable smart random autopilot (energy-aware clip selection)
-    void setSmartRandomEnabled(bool enabled) { autopilot_.setSmartRandomEnabled(enabled); }
+    void setSmartRandomEnabled(bool enabled) { autopilots_.setSmartRandomEnabled(enabled); }
 
     // Signal routing — P16: wire signals into render loop
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
@@ -466,7 +467,9 @@ private:
     CompositorEngine compositor_;
     std::atomic<Deck*> activeDeck_{nullptr};
     Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
-    Autopilot autopilot_;  // Processes beat-synced clip advancement
+    // Beat-synced clip advancement: one Autopilot per deck INDEX (s-rta-0926b plan4 T5) -- the active deck's
+    // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 37).
+    AutopilotBank autopilots_;
     std::function<void()> onAutopilotAdvanced_;  // UI refresh callback
 
     // P23: Genre/structural change detection
@@ -562,8 +565,16 @@ private:
     std::vector<std::unique_ptr<ImageSequence>> retiredImageSequences_;
     void drainRetiredMedia();
 
-    // Get video frame texture for a clip (used as compositor callback)
+    // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, true).
     GLuint getVideoFrameTexture(const Clip* clip, float dt);
+
+    // s-rta-0926b plan4 T4: ONE body for a clip's media transport -- transport sync from the clip, BPM-sync /
+    // master speed, advance, playhead / playing propagation (Pitfalls 2 and 7), in/out points. decode = true is
+    // the on-screen path (decode + upload, returns the texture, byte-for-byte today's getVideoFrameTexture);
+    // decode = false advances the CLOCK only (VideoPlayer::advanceClock, no ImageSequence texture load) and
+    // returns 0 -- for clips of a deck that is not on screen (tickMediaClock).
+    GLuint syncMedia(const Clip* clip, float dt, bool decode);
+    void tickMediaClock(const Clip* clip, float dt) { syncMedia(clip, dt, false); }
 
     // Pending image load — protected by mutex (not on hot audio path)
     std::mutex pendingImageMutex_;

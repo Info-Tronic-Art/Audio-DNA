@@ -241,11 +241,43 @@ void VideoPlayer::advanceFrame(double dt)
         return;
     }
 
-    if (!playing_.load(std::memory_order_relaxed))
+    if (!advanceTransport(dt))
         return;
 
-    if (duration_ <= 0.0)
+    // Decode frame at current time
+    if (decodeFrameAtTime(currentTime_))
+    {
+        convertFrameToRGBA();
+        frameReady_ = true;
+    }
+}
+
+void VideoPlayer::advanceClock(double dt)
+{
+    if (!open_.load(std::memory_order_relaxed))
         return;
+
+    // A pending seek lands on the clock only; the next advanceFrame()'s decodeFrameAtTime sees the gap and
+    // seeks the demuxer itself.
+    if (seekRequested_.load(std::memory_order_acquire))
+    {
+        seekRequested_.store(false, std::memory_order_relaxed);
+        double target = seekTarget_.load(std::memory_order_relaxed);
+        currentTime_ = target * duration_;
+        playheadPosition_.store(target, std::memory_order_relaxed);
+        return;
+    }
+
+    advanceTransport(dt);
+}
+
+bool VideoPlayer::advanceTransport(double dt)
+{
+    if (!playing_.load(std::memory_order_relaxed))
+        return false;
+
+    if (duration_ <= 0.0)
+        return false;
 
     float speed = speed_.load(std::memory_order_relaxed);
     bool reverse = reverse_.load(std::memory_order_relaxed);
@@ -300,13 +332,7 @@ void VideoPlayer::advanceFrame(double dt)
     // Update playhead position
     double pos = (duration_ > 0.0) ? (currentTime_ / duration_) : 0.0;
     playheadPosition_.store(std::clamp(pos, 0.0, 1.0), std::memory_order_relaxed);
-
-    // Decode frame at current time
-    if (decodeFrameAtTime(currentTime_))
-    {
-        convertFrameToRGBA();
-        frameReady_ = true;
-    }
+    return true;
 }
 
 GLuint VideoPlayer::uploadToTexture()

@@ -8,6 +8,7 @@ checked; a failed capture is a FAIL. The output dir is fresh per run.
 
 usage: probe-deck-clock.py <root> <fresh-outdir> <media-dir> [row,row,...]
 rows (B1): d_fade_finishes d_persistent_single_advance d_pending_trigger_still_cancelled
+rows (B2): d_video_keeps_time d_imageseq_keeps_time d_autopilot_keeps_time d_return_hitch
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. Reference frames are captured in the same run (probe-crossfade
 protocol); floor = max(1, 4 x noise), noise = d between two back-to-back captures of the same reference.
@@ -23,6 +24,17 @@ B1 d_persistent_single_advance (guard; needs the new fields -- N/A on the base):
   [0.35, 0.65] (compositePersistentLayers advances it; a second advance by the inactive-deck tick reads ~1.0).
 B1 d_pending_trigger_still_cancelled (guard, GREEN on both): deck 0 col0 = A, col1 = B with beatSnap; trigger col0,
   then col1 (queued), leave at once (L5 cancels it), 4 injected beat crossings: deck 0 activeClipColumn still 0.
+B2 d_video_keeps_time (RED): deck 0 L0 col0 = ramp12.mp4 (frame mean G encodes t = 12 x meanG / 255). 2 s in:
+  t0 (sanity 1.5 < t0 < 3); away 4 s; back 0.3 s: t1 - t0 in [3.5, 5.5] and /api/composition playheadPosition
+  within 0.06 of t1 / 12. Base: the video freezes while away (t1 - t0 ~ 0.5-0.7) and the field is absent.
+B2 d_imageseq_keeps_time (RED): ImageSequence [A, B] at 0.5 fps (2 s per frame). refs rA (t ~ 0.5) / rB (t ~ 2.5)
+  from the sequence itself; reload, 0.5 s in, away 2 s, back 0.3 s: frame == rB within floor. Base: ~1.0 s -> A.
+B2 d_autopilot_keeps_time (RED): deck 0 L0 autopilotEnabled, cols A B C each Beat4 / PlayNext; trigger col0, leave,
+  6 injected crossings (beatPhase 0.99 / 0.01, 100 ms apart): deck 0 activeClipColumn >= 1. Base: 0.
+B2 d_return_hitch (REPORT; FAIL above 50 ms): deck 0 L0 = ramp12_1080.mp4 (1920x1080, GOP 60); away 5 s; 7070
+  /api/state read right before the return (resets peak_frame_time_ms) and 0.3 s after: the peak (the return
+  frame's catch-up decode runs inside compositeDeck, i.e. inside frame_time_ms) is printed.
+
 Calibration: the lane report .harmony/.reports/s-rta-0926b/canvas.md (RED lines on the pre-change app, GREEN lines
 on the lane build).
 """
@@ -261,10 +273,136 @@ def d_pending_trigger_still_cancelled():
                              f"cancelled when you leave it (L5): deck 0 activeClipColumn {col} after {n} crossings")
 
 
+def ramp_video(name, key):
+    p = os.path.join(OUT, name)
+    if not os.path.exists(p):
+        r = subprocess.run(["ffmpeg", "-y", "-loglevel", "error"] + FIX["video"][key] + [p], capture_output=True, text=True)
+        if r.returncode != 0 or not os.path.exists(p):
+            no(f"ffmpeg could not make {name}: {r.stderr[:200]}")
+            return None
+    return p
+
+
+def t_of(f):
+    return 12.0 * float(f[..., 1].mean()) / 255.0
+
+
+def clip_json(c, di, li, col):
+    L = layer_json(c, di, li) or {}
+    for cj in L.get("clips", []):
+        if cj.get("column") == col:
+            return cj
+    return {}
+
+
+def d_video_keeps_time():
+    cfg = FIX["video"]
+    v = ramp_video("ramp12.mp4", "ffmpeg")
+    if v is None:
+        return
+    if not load("video", [deck(0, [layer(0, [media_clip(1, mediaType=2, mediaFile=v)])]), away_deck()]):
+        return
+    prime_away_deck()
+    trig(0, 0); time.sleep(float(cfg["before"]))
+    v0 = cap("video_v0")
+    if v0 is None:
+        return
+    t0 = t_of(v0)
+    if not (1.5 < t0 < 3.0):
+        no(f"d_video_keeps_time: oracle broken -- t0 = {t0:.2f} s after {cfg['before']} s of play"); return
+    switch(1); time.sleep(float(cfg["away"])); switch(0); time.sleep(0.3)
+    v1 = cap("video_v1")
+    cj = clip_json(comp(), 0, 0, 0)
+    if v1 is None:
+        return
+    t1 = t_of(v1); lo, hi = cfg["window"]
+    (ok if lo <= t1 - t0 <= hi else no)(
+        f"d_video_keeps_time: a video keeps playing while its deck is away (t0 {t0:.2f} s, t1 {t1:.2f} s, "
+        f"t1 - t0 = {t1 - t0:.2f} s after {cfg['away']} s away, expected in [{lo}, {hi}])")
+    ph = cj.get("playheadPosition")
+    if ph is None:
+        no("d_video_keeps_time: /api/composition has no clip playheadPosition field")
+    else:
+        (ok if abs(float(ph) - t1 / 12.0) <= float(cfg["playheadTol"]) else no)(
+            f"d_video_keeps_time: /api/composition playheadPosition {float(ph):.3f} matches the frame "
+            f"({t1 / 12.0:.3f} +- {cfg['playheadTol']})")
+
+
+def d_imageseq_keeps_time():
+    cfg = FIX["sequence"]
+    seq = media_clip(1, mediaType=5, sequenceFiles=[IMG_A, IMG_B], sequenceFps=float(cfg["fps"]))
+    if not load("seq_ref", [deck(0, [layer(0, [seq])]), away_deck()]):
+        return
+    trig(0, 0); t0 = time.time(); time.sleep(0.5)
+    rA1, rA2 = cap("seq_rA1"), cap("seq_rA2")
+    time.sleep(max(0.0, 2.5 - (time.time() - t0)))
+    rB = cap("seq_rB")
+    if rA1 is None or rA2 is None or rB is None:
+        no("d_imageseq_keeps_time: reference capture failed"); return
+    fl = floor_of(rA1, rA2)
+    print(f"      d_imageseq_keeps_time: d(rA, rB)={d(rA1, rB):.2f} FLOOR={fl:.2f}", flush=True)
+    if not load("seq", [deck(0, [layer(0, [seq])]), away_deck()]):
+        return
+    prime_away_deck()
+    trig(0, 0); time.sleep(float(cfg["before"]))
+    switch(1); time.sleep(float(cfg["away"])); switch(0); time.sleep(0.3)
+    f = cap("seq_back")
+    if f is None:
+        return
+    dfb = d(f, rB)
+    (ok if dfb <= fl else no)(f"d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away "
+                              f"(back after {cfg['away']} s: d(f, frame B)={dfb:.2f}, floor {fl:.2f}; "
+                              f"d(f, frame A)={d(f, rA1):.2f})")
+
+
+def d_autopilot_keeps_time():
+    n = int(FIX["autopilot"]["crossings"])
+    ap = dict(autopilotAction=2, autopilotDuration=3)
+    L0 = layer(0, [clip(1, IMG_A, **ap), clip(2, IMG_B, **ap), clip(3, IMG_C, **ap)], autopilotEnabled=True)
+    if not load("autopilot", [deck(0, [L0], ncols=3), away_deck()]):
+        return
+    prime_away_deck()
+    inject(beatPhase=0.5); time.sleep(0.2)
+    trig(0, 0); time.sleep(0.5)
+    switch(1); time.sleep(0.4)
+    crossings(n); time.sleep(0.3)
+    col = (layer_json(comp(), 0, 0) or {}).get("activeClipColumn")
+    (ok if isinstance(col, int) and col >= 1 else no)(
+        f"d_autopilot_keeps_time: autopilot keeps advancing a deck that is away ({n} beat crossings, Beat4 / "
+        f"PlayNext: deck 0 activeClipColumn {col}, expected >= 1)")
+
+
+def d_return_hitch():
+    cfg = FIX["hitch"]
+    v = ramp_video("ramp12_1080.mp4", "ffmpeg1080")
+    if v is None:
+        return
+    if not load("hitch", [deck(0, [layer(0, [media_clip(1, mediaType=2, mediaFile=v)])]), away_deck()]):
+        return
+    prime_away_deck()
+    trig(0, 0); time.sleep(1.5)
+    switch(1); time.sleep(float(cfg["away"]))
+    s0 = state()
+    switch(0); time.sleep(0.3)
+    s1 = state()
+    if not s0 or not s1:
+        return
+    pk = float(s1.get("peak_frame_time_ms", -1.0))
+    print(f"      d_return_hitch: peak_frame_time_ms while away {float(s0.get('peak_frame_time_ms', -1.0)):.2f}, "
+          f"across the return {pk:.2f} (fps {float(s1.get('fps', 0.0)):.1f})", flush=True)
+    (ok if 0.0 <= pk <= float(cfg["failMs"]) else no)(
+        f"d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, {cfg['away']} s away) stays under "
+        f"{cfg['failMs']} ms (peak {pk:.2f} ms; REPORT -- target <= 16)")
+
+
 def main():
     rows = [("d_fade_finishes", d_fade_finishes),
             ("d_persistent_single_advance", d_persistent_single_advance),
             ("d_pending_trigger_still_cancelled", d_pending_trigger_still_cancelled)]
+    rows += [("d_video_keeps_time", d_video_keeps_time),
+             ("d_imageseq_keeps_time", d_imageseq_keeps_time),
+             ("d_autopilot_keeps_time", d_autopilot_keeps_time),
+             ("d_return_hitch", d_return_hitch)]
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)

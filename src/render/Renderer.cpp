@@ -308,10 +308,15 @@ void Renderer::renderOpenGL()
     // while this GL context is detached (previewPanel_ hidden). See
     // MainComponent::tickFeaturePipeline().
 
-    // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap)
+    // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap). plan4 T5: the active deck's own
+    // instance (by deck index); the decks that are not on screen run theirs at the inactive-deck tick below.
     if (deckActive)
     {
-        bool clipAdvanced = autopilot_.processFrame(*deck, snap);
+        size_t activeIndex = 0;
+        if (composition_ != nullptr && !composition_->decks.empty()
+            && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
+            activeIndex = static_cast<size_t>(deck - composition_->decks.data());
+        bool clipAdvanced = autopilots_.forIndex(activeIndex).processFrame(*deck, snap);
         if (clipAdvanced && onAutopilotAdvanced_)
         {
             // Notify UI thread to refresh deck view
@@ -535,7 +540,13 @@ void Renderer::renderOpenGL()
             {
                 Deck& other = composition_->decks[di];
                 if (&other == deck) continue;
-                DeckClock::tick(other, realDt, [](const Clip*, float) {});   // B1: fades only
+                // B2 (Boris Q1: "keep playing"): media clocks run without decoding; autopilot keeps advancing.
+                DeckClock::tick(other, realDt, [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
+                if (autopilots_.forIndex(di).processFrame(other, snap) && onAutopilotAdvanced_)
+                {
+                    auto callback = onAutopilotAdvanced_;
+                    juce::MessageManager::callAsync([callback]() { callback(); });
+                }
             }
         }
 
@@ -1380,6 +1391,11 @@ ImageSequence* Renderer::getImageSequence(uint32_t clipId)
 
 GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
 {
+    return syncMedia(clip, dt, true);
+}
+
+GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode)
+{
     if (!clip)
         return 0;
 
@@ -1433,7 +1449,10 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
             player->setSpeed(effectiveClipSpeed(clip->speed, masterSpeedVal, false));
         }
 
-        player->advanceFrame(static_cast<double>(dt));
+        if (decode)
+            player->advanceFrame(static_cast<double>(dt));
+        else
+            player->advanceClock(static_cast<double>(dt));   // plan4 T4: the clock only, no decode
         clip->playheadPosition = player->getPlayheadPosition();
 
         // Propagate player state back to clip model (OneShot stops, PingPong reverses)
@@ -1454,7 +1473,7 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
             }
         }
 
-        return player->uploadToTexture();
+        return decode ? player->uploadToTexture() : 0;
     }
     else if (clip->mediaType == Clip::MediaType::ImageSequence)
     {
@@ -1526,7 +1545,8 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
             }
         }
 
-        return seq->getCurrentTexture();
+        // plan4 T4: no lazy PNG load for a deck that is not on screen.
+        return decode ? seq->getCurrentTexture() : 0;
     }
 
     return 0;

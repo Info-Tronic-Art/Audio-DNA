@@ -3,6 +3,7 @@
 #include "model/Deck.h"
 #include "render/LayerClock.h"
 #include "render/DeckClock.h"
+#include "model/AutopilotBank.h"
 #include <functional>
 #include <vector>
 
@@ -190,5 +191,66 @@ TEST_CASE("(e) LayerClock::advanceCrossfade: step = dt / duration, 0.5 s default
         layer.transitionSpeed = 1.0f;
         LayerClock::advanceCrossfade(layer, 0.5f);
         CHECK(layer.crossfadeProgress == Approx(0.0f));
+    }
+}
+
+TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (Pitfall 37)", "[deck_clock][autopilot]")
+{
+    // Two decks, layer 0 of each on autopilot Beat4 / PlayNext over three columns (test_autopilot.cpp's setup).
+    auto makeDeck = []() {
+        Deck deck; deck.initDefault();
+        for (int c = 0; c < 3; ++c)
+        {
+            Clip clip = makeClip(static_cast<uint32_t>(200 + c), Clip::MediaType::Image);
+            clip.autopilotAction = Clip::AutopilotAction::PlayNext;
+            clip.autopilotDuration = Clip::AutopilotDuration::Beat4;
+            deck.setClip(0, c, clip);
+        }
+        deck.getLayer(0)->autopilotEnabled = true;
+        deck.getLayer(0)->triggerClip(0);       // first trigger sets clip->playing
+        return deck;
+    };
+    Deck d0 = makeDeck(), d1 = makeDeck();
+    FeatureSnapshot snap;
+
+    SECTION("one Autopilot per deck index: both decks advance on the same crossings")
+    {
+        AutopilotBank bank;
+        for (int beat = 0; beat < 4; ++beat)
+        {
+            snap.beatPhase = 0.99f;
+            bank.forIndex(0).processFrame(d0, snap); bank.forIndex(1).processFrame(d1, snap);
+            snap.beatPhase = 0.01f;
+            bank.forIndex(0).processFrame(d0, snap); bank.forIndex(1).processFrame(d1, snap);
+        }
+        CHECK(bank.size() == 2);
+        CHECK(d0.getLayer(0)->activeClipColumn == 1);
+        CHECK(d1.getLayer(0)->activeClipColumn == 1);
+    }
+
+    SECTION("teeth: ONE shared Autopilot driven for both decks lets only the first see each crossing")
+    {
+        Autopilot shared;
+        for (int beat = 0; beat < 4; ++beat)
+        {
+            snap.beatPhase = 0.99f;
+            shared.processFrame(d0, snap); shared.processFrame(d1, snap);
+            snap.beatPhase = 0.01f;
+            shared.processFrame(d0, snap); shared.processFrame(d1, snap);
+        }
+        CHECK(d0.getLayer(0)->activeClipColumn == 1);
+        CHECK(d1.getLayer(0)->activeClipColumn == 0);   // the second call never sees a crossing
+    }
+
+    SECTION("config set from any thread reaches every instance handed out")
+    {
+        AutopilotBank bank;
+        Composition::PerTypeAutopilotConfig cfg;
+        cfg.perTypeEnabled = true;
+        cfg.opaqueCycleBeats = 1;                // Opaque layer 0: every beat
+        bank.setPerTypeConfig(&cfg);
+        snap.beatPhase = 0.99f; bank.forIndex(1).processFrame(d1, snap);
+        snap.beatPhase = 0.01f; bank.forIndex(1).processFrame(d1, snap);
+        CHECK(d1.getLayer(0)->activeClipColumn == 1);
     }
 }

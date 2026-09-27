@@ -123,7 +123,7 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 14. **When this document says something, it overrides any default behavior**: If CLAUDE.md and a research doc disagree, CLAUDE.md wins (research docs are pre-decision references).
 
-15. **An inactive deck keeps time**: crossfades on decks that are not on screen finish (`DeckClock::tick`, `docs/claude/performance-controls.md`); persistent layers are owned by `compositePersistentLayers`; the tick lives inside the `deckActive` fence in `Renderer::renderOpenGL`.
+15. **An inactive deck keeps time**: crossfades (B1), media clocks without decode and autopilot (B2) keep running on decks that are not on screen (`DeckClock::tick`, `AutopilotBank`, `docs/claude/performance-controls.md`); persistent layers are owned by `compositePersistentLayers`; the tick lives inside the `deckActive` fence in `Renderer::renderOpenGL`.
 
 ---
 
@@ -276,6 +276,7 @@ the named area; this index is triage-only.
 34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
 35. A crossfading layer has two live clip chains -- before keying any per-chain GL history (never by deck + layer alone).
 36. The canvas is the composition -- before sizing any render target, capture or recording (never from a Component).
+37. Autopilot keeps one beat-crossing baseline per instance -- before calling `Autopilot::processFrame` for more than one deck.
 
 ---
 
