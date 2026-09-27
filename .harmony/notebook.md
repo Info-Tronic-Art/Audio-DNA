@@ -1812,3 +1812,14 @@ hand-written functions with no shared layout model.
   (`resyncPending`): anything captured at `fire()` and only refreshed on a re-fire-while-running goes stale for the
   wait, and the pad menu / REST edits read as applied while the start ignores them.
 - Valid while these files exist in their current form.
+
+## 2026-09-27 s-rta-0927 routine-display fix round 2 | Files: src/recording/RoutineEngine.cpp, src/ui/UniversalParamControl.cpp, tests/test_param_control_routine_cue.cpp
+- A routine has TWO waits, not one: `r.pending` (fired, not started) and `r.restartRequested` (pressed again while
+  running; `r.pending` stays false the whole time). Any per-tick "follow the live settings" logic must gate on
+  `r.pending || r.restartRequested`; the restart's glides use its own rule (`scheduleRestartGlides`: never before the
+  recording's hand lets go of the knob), a waiting start's use `now`.
+- `UniversalParamControl`'s collapsed hint slot (x >= kTriangleSize+154, top 10 px) lies UNDER the child
+  `valueSlider_`, whose thumb is also drawn in the routine cue: a `createComponentSnapshot` pixel test of the hint
+  counts the thumb and false-passes (the pre-fix 50 %-alpha hint measured 14.3:1 that way). Paint the parent only
+  (`c.paint(g)` onto an image pre-filled with the panel colour) to measure the text itself.
+- Valid while these files exist in their current form.

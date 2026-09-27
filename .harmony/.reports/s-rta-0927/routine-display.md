@@ -382,3 +382,162 @@ INBOX-RECHECK: none
   LookAndFeel change. That change is app-wide but inert: there are no other `addColouredItem` callers.
 - Unused context: none.
 - Self-brief files: this report, design-final.md (colour spec), the prior hook patch and scratch logs — all useful.
+
+---
+
+## Fix round 2 (s-rta-0927, lane routine-display-fix2) — 2026-09-27 12:44-13:10
+
+STATUS: DONE_WITH_CONCERNS
+
+RESULT: Both items are fixed.
+- The MUST is fixed. A restart waiting for its boundary (a playing pad pressed again) now follows pad-menu and REST
+  edits the same way a waiting start does: Quantize, Restore first / Start from now, and Start: Ease / Jump.
+- The SHOULD is fixed. The ROUTINE hint is now the full routine cue. It measures 14.54:1 in the window pixels, up
+  from 4.54:1.
+
+The round is three commits on `lane/routine-display-0927`, on top of b6e49fa, plus this report commit.
+- Full serial ctest: 696/696.
+- The live probe is RED 15/1 on the b6e49fa build and GREEN 16/0 on the fix build and on the final hook-free
+  rebuild. The hook build was 24/0.
+- probe-routines is unchanged and green at 98/0.
+- The three design questions are left for Boris (see "Boris checks"). Not merged, not pushed.
+
+FACTS (disk-cited):
+- Commits (`git -C .claude/worktrees/rta0927-w3 log --oneline b6e49fa..HEAD`):
+  - beabbff R1 engine: a settings edit made while a restart waits reaches that restart.
+  - 14aae66 R2 hint: the ROUTINE hint reads at 14:1, not 4.5:1.
+  - 8cdfb77 probe + shots: d15 and the inspector re-shot.
+  - This report commit (report + notebook).
+- ctest (`ctest --test-dir build-lane`, serial, fix build): `100% tests passed, 0 tests failed out of 696`.
+  `ctest -N` gives `Total Tests: 696` (694 + D7 + the contrast case).
+- R1 RED. `test_routine_engine "RoutineEngine display D7*"` built against b6e49fa's engine (scratch
+  `rdisp2/red1.txt`), verbatim:
+  - `CHECK( rig.slot(0).startsOn == "beat" )` → `"bar" == "beat"`
+  - `CHECK( rig.slot(0).restarts == 1 )` → `0 == 1`
+  - `CHECK( rig.slot(0).startsOn == "4bar" )` → `"bar" == "4bar"`
+  - `CHECK( rig.slot(0).restarts == 0 )` → `1 == 0`: it restarted on the old Bar edge.
+  - `CHECK( rig.fd.count(Ev::Touch, op1) == 1 )` → `2 == 1`: Jump was chosen, but the restart still eased.
+  - `CHECK( rig.fd.count(Ev::Release, op1) == 2 )` → `1 == 2`: Jump was picked inside the glide, and the glide was not
+    let go.
+  - `CHECK( rig.fd.count(Ev::Touch, op1) == 2 )` → `1 == 2`: Ease was chosen, but the restart still jumped.
+  - `CHECK( rig.fd.firedRestores() == restores )` → `2 == 1`: Start from now was chosen, but the restart still restored.
+  - `test cases: 1 | 0 passed | 1 failed` / `assertions: 74 | 53 passed | 21 failed`.
+- R1 GREEN:
+  - D7: `All tests passed (82 assertions in 1 test case)`.
+  - The whole test_routine_engine binary: `All tests passed (1044 assertions in 30 test cases)`.
+- R2 RED. The new `test_param_control_routine_cue` case, on b6e49fa's UniversalParamControl:
+  - `CHECK( contrast >= 7.0 ) with expansion: 4.37882820501888581 >= 7.0`
+  - `ROUTINE hint peak #668B24 on #1A1A1A: 4.37883:1; hue 81.5534 deg, cue pixels 51`
+  - `test cases: 2 | 1 passed | 1 failed`
+- R2 GREEN: `ROUTINE hint peak #B2FC2D on #1A1A1A: 13.9691:1; hue 81.4493 deg, cue pixels 83` and
+  `All tests passed (14 assertions in 2 test cases)`.
+- Live gate `.harmony/probe-routine-display.sh`. Scratch logs are `rdisp2/live-b1..b3.log`. Summary lines verbatim:
+  - RED, the b6e49fa build (its build-lane binary, sha256 ff5e9edd…2fa3, copied aside with `ditto` before any build
+    in this round and run through `ROUTINE_DISPLAY_APP`):
+    - `FAIL  d15 quantize set to 4bar while the restart waits: (restartPending, startsOn, state) (True, 'bar', 'running')`
+    - `15 PASS / 1 FAIL`
+  - GREEN, the fix build (12:50:49): `PASS  d15 quantize set to 4bar while the restart waits: (restartPending, startsOn)
+    (True, '4bar')` and `16 PASS / 0 FAIL`.
+  - Hook build (Phase 1 + 2, 12:59-13:01): `24 PASS / 0 FAIL`.
+  - Final hook-free rebuild (13:05): `16 PASS / 0 FAIL`.
+- `probe-routines.sh` (ROUTINES_BUILD_DIR=build-lane ROUTINES_RECORD_PAUSE=1.8) on the fix build: `98 PASS / 0 FAIL`.
+  This was run unchanged, with no re-thresholding.
+- The ROUTINE hint in the window capture was decoded at the original crop rectangle (x 1650, y 1556, 1200x370, found
+  by exact sub-image match). The brightest label pixel on the measured background:
+  - before: `#6F8C37 on #1A1A1A -> 4.54:1` (Master and Opacity rows; this reproduces the critic);
+  - after: `#C4FD5B on #1A1A1A -> 14.54:1` (both rows).
+- Hook hygiene:
+  - The same hook patch was used (`rdisp/hook.patch`, sha256 4b55ed59…). It was applied at 12:53:28 and reverted with
+    `git apply -R` at 13:01:13.
+  - After the rebuild, `strings build-lane/.../MacOS/Audio-DNA | grep -c AUDIODNA_DEBUG_` returns `0`. The hook
+    build read 5.
+  - `git diff b6e49fa..HEAD -- src/MainComponent.cpp` is empty.
+- Lock (owner `routine-display-fix2`): taken 12:50:09 and released 12:53:09; taken 12:59:13 (after a 320 s wait) and
+  released 13:01:00; taken 13:05:35 (after a 240 s wait) and released 13:06:15. Each re-take came well over 45 s after
+  the release.
+- `.venv` was linked only inside each batch and was gone before every commit. No Audio-DNA launched by this lane is
+  running. The app seen at 12:53 was pid 28314, from rta0927-w2 (`routines-timing`).
+
+### Findings → disposition
+| # | Sev | Finding | Disposition |
+|---|-----|---------|-------------|
+| 1 | MUST | Settings edits made during a restart wait did not reach the restart | **Fixed (R1, beabbff).** `tick()` now calls `resyncPending` for `r.pending \|\| r.restartRequested`. It uses the same re-read (same slot, same uuid) and the same glide rules. A restart's glides are re-timed by the restart's own rule: never before the recording's hand lets go of the knob. That rule is now one helper, `scheduleRestartGlides`, shared with `fire()`'s re-fire branch, so the rule itself did not change. Loop needed nothing new, because the cycle end already re-reads it. The code is message-thread only. It adds no lock, and no allocation on the render or audio paths. |
+| 2 | SHOULD | The "ROUTINE" hint read at #6F8C37, 4.54:1 | **Fixed (R2, 14aae66).** The hint is now full `kRoutineCue`, the same colour as the value digits: 14.54:1 in the capture and 13.97:1 in the headless test. A connected knob's cyan source-name hint keeps its 50 % alpha. |
+
+### Boris checks (left as design questions, not changed)
+- **Pad row placement**: pad N sits directly over column N, above the column numerals, in the same grey numeral style.
+  Is that confusing live? (graphic-design SHOULD 2, carried over from round 1.)
+- **Band x / layer X without a confirm**: both stop routines, and a routine stop cannot be undone. Only a tooltip
+  says so (F5). Should either one ask first?
+- **Restart mark salience**: the "|◀" before "5/8" on a pressed-again pad. Is it seen at a glance on stage?
+
+### Files changed (b6e49fa..HEAD)
+- `src/recording/RoutineEngine.h/.cpp`:
+  - `scheduleRestartGlides` (new; `fire()` uses it);
+  - `resyncPending` also covers a waiting restart;
+  - the `tick()` gate.
+- `src/ui/UniversalParamControl.cpp`: the ROUTINE hint is drawn at full `kRoutineCue`.
+- Tests:
+  - `tests/test_routine_engine.cpp`: D7, 6 sections.
+  - `tests/test_param_control_routine_cue.cpp`: a contrast case, which paints the control's own `paint()` on #1a1a1a.
+- `.harmony/probe-routine-display.sh`: d15.
+- Docs:
+  - `docs/claude/recording.md` "Surfaces": one sentence, "…and one made while a pressed-again pad's restart waits
+    reaches that restart".
+  - `.harmony/notebook.md`: an entry on the two waits, and on the hint slot sitting under the slider thumb.
+
+### Shots (changed this round) — `.harmony/.reports/s-rta-0927/routine-display-shots/`
+- `after-03-playing-inspector.png` and `crop-after-03-playing-inspector-rows.png` were re-shot on the hook build.
+  "ROUTINE" now reads as bright as the "0.57" digits.
+- `fixround2-before-03-playing-inspector.png` and `crop-fixround2-before-03-playing-inspector-rows.png` are the
+  previous versions.
+- Every other shot is unchanged. No other pixels change in this round: d15 has no visual.
+- Both new PNGs were opened and looked at. The Output combo reads "Off".
+
+METHOD:
+- Read both critic reports (interaction-logic r2 and graphic-design r2, in the worktree's `.harmony/.reports`), the
+  lane report at b6e49fa, and every source region cited.
+- Copied the b6e49fa app aside first. Its sha was checked, and no `src` file was newer than the binary.
+- For each fix: write the test, record the RED against the b6e49fa source, fix, record the GREEN, run the full build
+  and serial ctest, then commit.
+- Live runs went through `rdisp2/live.sh`. It polls the lock every 20 s, links `.venv`, and releases only its own
+  lock. It sets `AUDIODNA_LOCK_OWNER=routine-display-fix2` and launches with `open -g` only. Captures are window-only,
+  by Quartz window id. There was no synthetic input, and no Output window was opened.
+
+CONFIDENCE + VERIFY:
+- HIGH for R1: six unit sections (RED → GREEN) plus the live REST witness d15. The resynced `ownSnap` is the field
+  `dueNow` uses on the same tick.
+- HIGH for R2: a headless contrast test and a decoded live capture.
+- VERIFY (Harmony gate):
+  - `ctest --test-dir build-lane` = 696/696;
+  - `probe-routine-display.sh` (ROUTINE_DISPLAY_BUILD_DIR=build-lane) = 16/0, and 15/1 (d15) on the b6e49fa build;
+  - Tier-4: press a playing pad again, then right-click it and pick Quantize 4 Bar (or Start: Jump). The restart
+    should wait for the four-bar line (or snap on it).
+
+UNKNOWNS / NOT DONE:
+- The three Boris checks above were not changed, by instruction.
+- d15 witnesses `startsOn` over REST, not the actual landing boundary on the live clock. Timing the landing live would
+  be flaky; D7 pins the landing.
+- tests/visual Tier-1 was not run: no shader, source or effect changed.
+
+NUANCE:
+- Rebuilds are not byte-reproducible. The final hook-free binary (sha 3aa1be5f…) differs from the GREEN-run binary
+  (sha 3d0a0284…) even though the source is the same. That is why the final rebuild was probed again (16/0).
+- d15 re-fires pad 1 when the d14 restart already landed during the 13-restart-pending shot. It retries once when the
+  restart lands between the press and the edit, and that case never counts as a pass. The RED run hit neither path:
+  it was a first-try FAIL.
+- The critic's file path in the packet (`critic-routine-display-*-r2.md` in the MAIN checkout) held only the
+  visual-design r2. The interaction-logic and graphic-design r2 reports are in the worktree's `.harmony/.reports`.
+
+HANDOFF-NEEDS: Harmony's behavioral gate, an independent Reviewer and a critic re-check, then Tier-4 by Boris,
+including the three Boris checks. This round made no MainComponent, CMakeLists.txt or tests/CMakeLists.txt changes.
+
+INBOX-RECHECK: none
+
+### PACKET QUALITY (fix round 2)
+- Clarity: CLEAR. Each item had a fix direction and a gate.
+- Missing context: the r2 critic files are in the worktree, not the main checkout. A whole-component snapshot
+  false-passes a hint contrast test, because the slider thumb in the cue colour sits in the hint slot.
+- Unused context: none.
+- Self-brief files: the lane report, both critic reports, the prior `rdisp` scratch (hook patch, live wrapper) —
+  all useful.
