@@ -20,7 +20,8 @@ public:
     // Callbacks for actions that MainComponent handles
     std::function<void(float bpm)> onTapTempo;  // Called with computed BPM from taps
     std::function<void()> onResync;
-    // Global transport: play/pause/stop the active deck's layers (see MainComponent).
+    // Global transport: play/pause the active deck's layers; Stop stops all routines, never a clip
+    // (s-rta-0926b; see MainComponent).
     std::function<void()> onPlay;
     std::function<void()> onPause;
     std::function<void()> onStop;

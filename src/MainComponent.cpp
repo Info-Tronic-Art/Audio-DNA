@@ -699,17 +699,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
     topBar_->onStop = [this] {
-        // s-rta-0926 routines (plan 4.3, ruling 5 "Stop means stop"): running and waiting routines
-        // stop too, letting go of every control they hold.
+        // s-rta-0926b (Boris 2026-09-26, "ok we can keep stop for routines only"): Stop stops every
+        // running and waiting routine, letting go of every control they hold -- and nothing else: no
+        // clip is stopped, paused or rewound. The GlobalStop binding does the same.
         routineEngine_.stopAll();
-        if (auto* deck = composition_.getActiveDeck())
-        {
-            const uint64_t group = recorderHost_.nextGroupId();
-            for (int l = 0; l < deck->getNumLayers(); ++l)
-                if (auto* layer = deck->getLayer(l))
-                    if (layer->getActiveClip())
-                        applyClipPlaying(l, layer->activeClipColumn, "stop", Origin::Human, group);
-        }
     };
 
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
@@ -7228,11 +7221,10 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             break;
 
         case Binding::Action::GlobalStop:
+            // s-rta-0926b: the "Stop" binding follows the TopBar Stop -- routines only (Boris 2026-09-26).
+            // The audio file's stop stays on the Play / Pause binding (it stops a playing file).
             if (value > 0.0f)
-            {
-                routineEngine_.stopAll();   // s-rta-0926: Stop also stops routines (plan 4.3)
-                applyAudioTransport("stop", Origin::Human);
-            }
+                routineEngine_.stopAll();
             break;
 
         case Binding::Action::TriggerRoutine:
