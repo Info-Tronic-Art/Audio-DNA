@@ -6,7 +6,8 @@
 // RoutinePad -- s-rta-0927 routine display, slice A (plan-routine-display-A.md 2.1): one of the eight pads in
 // the deck's ROUTINES row, 90x22, directly above column N. Custom-painted (a TextButton would clip at the
 // LookAndFeel's fixed 14 pt font): "1 Drop" on the left, a teal frame while waiting, a thick teal frame and a
-// teal sweep with bar ticks and "5/8" while playing, "LOOP" on an idle looping pad, a red "!" when something
+// teal sweep with bar ticks and "5/8" while playing (a "back to the start" mark left of it while a press-again
+// restart waits for its line), "LOOP" on an idle looping pad, a red "!" when something
 // could not be restored, everything at 50 % when the routine plays on another deck.
 //
 // A pad has ONE press action, Fire (restart while playing, a no-op while waiting) -- there is deliberately no

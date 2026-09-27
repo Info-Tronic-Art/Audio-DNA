@@ -1857,12 +1857,15 @@ TEST_CASE("RoutineEngine display D5: restartPending is set by a re-fire while ru
     rig.runTo(4.5);
     REQUIRE(rig.slot(0).state == "running");
     CHECK_FALSE(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).startsOn.empty());
     CHECK(rig.fire(0).empty());
     CHECK(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).startsOn == "bar");   // s-rta-0927 fix round: the grid the restart lands on (the pad's cue)
     CHECK(rig.slot(0).fireSeq == 1);   // a restart is not a new fire
     rig.runTo(8.0);
     CHECK(rig.slot(0).restarts == 1);
     CHECK_FALSE(rig.slot(0).restartPending);
+    CHECK(rig.slot(0).startsOn.empty());
 }
 
 // === s-rta-0927 fix round: a pad-menu (or REST) settings edit made while a routine WAITS reaches that very

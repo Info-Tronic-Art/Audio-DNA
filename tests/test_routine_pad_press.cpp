@@ -116,3 +116,38 @@ TEST_CASE("RoutinePad: an idle pad fires; its tooltip is the view's", "[routine]
     pad.mouseDown(pressOn(pad, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier)));
     CHECK(c.fire == 1);
 }
+
+// s-rta-0927 fix round (critic SHOULD): pressing a playing pad again used to show nothing until the restart
+// landed. A pending restart paints a "back to the start" mark (a bar and a left-pointing triangle, drawn -- no
+// glyph, Pitfall 6) in light text colour just left of the "5/8" digits.
+TEST_CASE("RoutinePad: a playing pad with a restart pending paints the restart mark left of its bar digits", "[routine][pad][restart]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    auto shoot = [](bool restartPending) {
+        RoutinePad pad(1);
+        pad.setSize(90, 22);
+        pad.setVisible(true);   // Pitfall 34
+        auto sp = spec(RoutineDeckView::State::Playing);
+        sp.bar = 1;
+        sp.barsTotal = 4;
+        sp.progress01 = 0.1f;
+        sp.restartPending = restartPending;
+        pad.setSpec(sp);
+        return pad.createComponentSnapshot(pad.getLocalBounds(), true, 1.0f);
+    };
+    // Light (text-coloured) pixels in the band left of the digits: x 50..72 (the digits end at 86).
+    auto light = [](const juce::Image& img) {
+        int n = 0;
+        for (int y = 2; y < 20; ++y)
+            for (int x = 50; x < 72; ++x)
+            {
+                const auto c = img.getPixelAt(x, y);
+                if (c.getRed() > 170 && c.getGreen() > 170 && c.getBlue() > 170)
+                    ++n;
+            }
+        return n;
+    };
+    const auto plain = shoot(false), restart = shoot(true);
+    INFO("light pixels left of the digits: plain " << light(plain) << ", restart pending " << light(restart));
+    CHECK(light(restart) >= light(plain) + 12);
+}

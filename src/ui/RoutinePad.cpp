@@ -7,7 +7,7 @@ namespace
     {
         return a.number == b.number && a.name == b.name && a.state == b.state && a.onShownDeck == b.onShownDeck
             && a.loop == b.loop && a.progress01 == b.progress01 && a.bar == b.bar && a.barsTotal == b.barsTotal
-            && a.warning == b.warning;
+            && a.warning == b.warning && a.restartPending == b.restartPending;
     }
 }
 
@@ -111,6 +111,18 @@ void RoutinePad::paintContent(juce::Graphics& g)
         g.setColour(juce::Colour(kText));
         g.setFont(mono);
         g.drawText(digits, juce::Rectangle<int>(rightX, 0, dw, h), juce::Justification::centredRight, false);
+
+        if (spec_.restartPending)
+        {
+            // s-rta-0927 fix round: pressed again -- a "back to the start" mark (a bar + a left-pointing
+            // triangle, drawn: no glyph, Pitfall 6) left of the digits until the restart lands on its line.
+            const float right = static_cast<float>(rightX - 3), cy = static_cast<float>(h) * 0.5f;
+            juce::Path mark;
+            mark.addRectangle(right - 8.0f, cy - 4.0f, 1.5f, 8.0f);
+            mark.addTriangle(right - 6.0f, cy, right, cy - 4.0f, right, cy + 4.0f);
+            g.fillPath(mark);
+            rightX -= 12;
+        }
     }
     else if (spec_.state == State::Idle && spec_.loop)
     {

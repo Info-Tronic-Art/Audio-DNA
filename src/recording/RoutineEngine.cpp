@@ -881,7 +881,8 @@ void RoutineEngine::publishStatus()
         sl.touchesComp = r.touchesComp;
         sl.restartPending = r.restartRequested;
         sl.fireSeq = r.fireSeq;
-        sl.startsOn = r.pending ? snapWord(effectiveSnap(lastForcedSnap_, r.ownSnap)) : "";
+        // s-rta-0927: the grid a waiting start -- or a pending restart (fix round: the pad's restart cue) -- lands on.
+        sl.startsOn = (r.pending || r.restartRequested) ? snapWord(effectiveSnap(lastForcedSnap_, r.ownSnap)) : "";
     }
 
     std::lock_guard<std::mutex> lock(statusMutex_);

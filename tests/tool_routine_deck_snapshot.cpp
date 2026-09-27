@@ -152,6 +152,13 @@ int main(int argc, char** argv)
         st.slots[2].preambleUnresolved = 1;
         shoot(dir, "t7-warning", st, 0, 0);
     }
+    {
+        auto st = bank();   // s-rta-0927 fix round: pad 1 pressed again while playing -- the restart mark
+        run(st.slots[0], "running", 0, { 0, 2 }, 1, 17.0);
+        st.slots[0].restartPending = true;
+        st.slots[0].startsOn = "bar";
+        shoot(dir, "t8-restart-pending", st, 0, 2);
+    }
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
     return 0;
 }

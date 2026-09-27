@@ -92,7 +92,7 @@ public:
             bool touchesComp = false;      // a target at composition level (layer -1)
             bool restartPending = false;   // re-fired while running: restarts at the next boundary
             uint32_t fireSeq = 0;          // the fire order (the engine's `fires` count at this fire)
-            std::string startsOn;          // pending only: "now" | "beat" | "bar" | "2bar" | "4bar" (effective grid)
+            std::string startsOn;          // pending or restartPending: "now" | "beat" | "bar" | "2bar" | "4bar" (effective grid)
         };
         Slot slots[kBankSize];
 

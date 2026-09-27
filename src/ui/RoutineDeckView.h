@@ -31,6 +31,7 @@ struct RoutineDeckView
         juce::String quantize;          // "off" | "beat" | "bar" | "2bar" | "4bar"
         float progress01 = 0.0f;        // Playing: position / length
         int bar = 0, barsTotal = 0;     // Playing: "5/8"
+        bool restartPending = false;    // Playing, pressed again: restarts from the top on its next line
         bool warning = false;           // something could not be restored / played: the red "!"
         juce::String tooltip;
     };
@@ -99,6 +100,16 @@ namespace routine_deck_view_detail
         if (idx >= 0 && idx < static_cast<int>(names.size()) && names[static_cast<size_t>(idx)].isNotEmpty())
             return names[static_cast<size_t>(idx)];
         return juce::String(fallback) + " " + juce::String(idx + 1);
+    }
+
+    // A pending restart's line (s-rta-0927 fix round): "Restarting from the top on the next bar."
+    inline juce::String restartText(const std::string& startsOn)
+    {
+        if (startsOn == "now")  return "Restarting from the top now.";
+        if (startsOn == "beat") return "Restarting from the top on the next beat.";
+        if (startsOn == "2bar") return "Restarting from the top on the next two-bar line.";
+        if (startsOn == "4bar") return "Restarting from the top on the next four-bar line.";
+        return "Restarting from the top on the next bar.";
     }
 
     inline juce::String startsOnText(const std::string& startsOn)
@@ -172,7 +183,12 @@ inline RoutineDeckView deriveRoutineDeckView(const RoutineEngine::Status& status
                     pad.bar = std::clamp(static_cast<int>(std::floor(s.position / kRoutineBeatsPerBar)) + 1, 1,
                                          std::max(1, pad.barsTotal));
                 }
-                if (!pad.onShownDeck)
+                pad.restartPending = s.restartPending;
+                if (pad.restartPending)
+                {
+                    tip = restartText(s.startsOn);
+                }
+                else if (!pad.onShownDeck)
                 {
                     tip = "Playing on " + nameAt(deckNames, s.deck, "Deck") + ". Switch decks to see its layers.";
                 }

@@ -121,6 +121,23 @@ TEST_CASE("RoutineDeckView playing pad: bar 5 of 8, progress, layer names, bands
     CHECK(v.bandsByLayer.at(2)[0].name == "Drop");
     CHECK(v.cornerNote.isEmpty());
 
+    CHECK_FALSE(p.restartPending);
+
+    SECTION("pressed again while playing: the pad shows the restart waiting for its line (s-rta-0927 fix round)")
+    {
+        auto t = s;
+        t.slots[0].restartPending = true;
+        t.slots[0].startsOn = "bar";
+        const auto pad = deriveRoutineDeckView(t, 0, kDecks, kLayers).pads[0];
+        CHECK(pad.state == State::Playing);
+        CHECK(pad.restartPending);
+        CHECK(pad.bar == 5);   // still playing where it is until the line
+        CHECK(pad.tooltip == "Restarting from the top on the next bar.");
+        t.slots[0].startsOn = "4bar";
+        CHECK(deriveRoutineDeckView(t, 0, kDecks, kLayers).pads[0].tooltip
+              == "Restarting from the top on the next four-bar line.");
+    }
+
     SECTION("the last beat of the last bar is still bar 8 of 8")
     {
         auto t = s;
