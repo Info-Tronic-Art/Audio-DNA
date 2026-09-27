@@ -118,26 +118,7 @@ RecordPanel::RecordPanel()
     takesRootLabel_.setFont(juce::Font(juce::FontOptions(10.0f)));
     takesRootLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
 
-    // ---- Routines strip (s-rta-0926 lane 3): a pad row + Save Routine ----
-    addAndMakeVisible(routinesLabel_);
-    routinesLabel_.setText("Routines", juce::dontSendNotification);
-    routinesLabel_.setFont(juce::Font(juce::FontOptions(11.0f)).boldened());
-    routinesLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextPrimary));
-
-    for (int i = 0; i < RoutineEngine::kBankSize; ++i)
-    {
-        auto& pad = routinePads_[static_cast<size_t>(i)];
-        addAndMakeVisible(pad);
-        pad.setComponentID("routinePad" + juce::String(i));
-        pad.onClick = [this, i] {
-            runRoutineAction([this, i] {
-                if (lastRoutineView_.pads[i].firing)
-                    return onFireRoutine ? onFireRoutine(i) : std::string();
-                return onStopRoutine ? onStopRoutine(i) : std::string();
-            });
-        };
-    }
-
+    // ---- Save Routine (s-rta-0926 lane 3; s-rta-0927: the pad row moved to the deck's ROUTINES row) ----
     addAndMakeVisible(saveRoutineLabel_);
     saveRoutineLabel_.setText("Save Routine", juce::dontSendNotification);
     saveRoutineLabel_.setFont(juce::Font(juce::FontOptions(11.0f)).boldened());
@@ -192,7 +173,7 @@ RecordPanel::RecordPanel()
     routineNoticeLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kAccentCyan));
 
     applyView(juce::Time::getMillisecondCounterHiRes() / 1000.0);   // row 1 until the first refresh
-    applyRoutines(juce::Time::getMillisecondCounterHiRes() / 1000.0);
+    applyRoutineNotice(juce::Time::getMillisecondCounterHiRes() / 1000.0);
 }
 
 void RecordPanel::setTakesRoot(const juce::File& root)
@@ -223,7 +204,7 @@ void RecordPanel::refresh(const RecorderHost::Status& status, double nowSeconds)
 {
     lastStatus_ = status;
     applyView(nowSeconds);
-    applyRoutines(nowSeconds);
+    applyRoutineNotice(nowSeconds);
 }
 
 void RecordPanel::visibilityChanged()
@@ -317,36 +298,8 @@ void RecordPanel::applyView(double nowSeconds)
     noticeLabel_.setText(v.noticeText, juce::dontSendNotification);
 }
 
-void RecordPanel::applyPad(juce::TextButton& button, const RoutineBankView::Pad& spec)
+void RecordPanel::applyRoutineNotice(double nowSeconds)
 {
-    button.setButtonText(spec.text);
-    button.setEnabled(spec.enabled);
-    button.setTooltip(spec.tooltip);
-    button.setAlpha(spec.enabled ? 1.0f : kDisabledAlpha);
-    switch (spec.tone)
-    {
-        case RoutineBankView::Tone::Playing:
-            button.setColour(juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kMeterGreen));
-            button.setColour(juce::TextButton::textColourOffId, juce::Colour(AudioDNALookAndFeel::kBackground));
-            break;
-        case RoutineBankView::Tone::Warning:
-            button.setColour(juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kMeterYellow));
-            button.setColour(juce::TextButton::textColourOffId, juce::Colours::black);
-            break;
-        case RoutineBankView::Tone::Neutral:
-            button.removeColour(juce::TextButton::buttonColourId);
-            button.removeColour(juce::TextButton::textColourOffId);
-            break;
-    }
-}
-
-void RecordPanel::applyRoutines(double nowSeconds)
-{
-    const auto status = onRoutineStatus ? onRoutineStatus() : RoutineEngine::Status{};
-    lastRoutineView_ = deriveRoutineBankView(status);
-    for (int i = 0; i < RoutineEngine::kBankSize; ++i)
-        applyPad(routinePads_[static_cast<size_t>(i)], lastRoutineView_.pads[i]);
-
     const bool live = routineNotice_.isNotEmpty() && routineNoticeAt_ >= 0.0
                     && nowSeconds - routineNoticeAt_ <= kNoticeSeconds;
     routineNoticeLabel_.setText(live ? routineNotice_ : juce::String(), juce::dontSendNotification);
@@ -370,7 +323,7 @@ void RecordPanel::runRoutineAction(const std::function<std::string()>& action)
         routineNotice_.clear();
         routineNoticeAt_ = -1.0;
     }
-    applyRoutines(juce::Time::getMillisecondCounterHiRes() / 1000.0);
+    applyRoutineNotice(juce::Time::getMillisecondCounterHiRes() / 1000.0);
 }
 
 void RecordPanel::paint(juce::Graphics& g)
@@ -429,28 +382,7 @@ void RecordPanel::resized()
 
     area.removeFromTop(kRowSpacing);
 
-    // ---- Routines strip (s-rta-0926 lane 3): 8 pads, 2 per row, then Save Routine. Two per row
-    // (not four) so a running pad's "N: <name> (bar N)" suffix has room at the app's fixed 14pt
-    // button font, which clips rather than shrinking (AudioDNALookAndFeel::drawButtonText).
-    routinesLabel_.setBounds(area.removeFromTop(kLabelHeight));
-    area.removeFromTop(2);
-
-    static constexpr int kPadsPerRow = 2;
-    for (int row = 0; row < RoutineEngine::kBankSize / kPadsPerRow; ++row)
-    {
-        auto padRow = area.removeFromTop(kControlHeight);
-        const int padWidth = padRow.getWidth() / kPadsPerRow;
-        for (int col = 0; col < kPadsPerRow; ++col)
-        {
-            const int i = row * kPadsPerRow + col;
-            auto cell = padRow.removeFromLeft(padWidth);
-            routinePads_[static_cast<size_t>(i)].setBounds(cell.reduced(1, 0));
-        }
-        area.removeFromTop(2);
-    }
-
-    area.removeFromTop(kRowSpacing);
-
+    // ---- Save Routine (s-rta-0927: the pad row that was here is the deck's ROUTINES row now) ----
     saveRoutineLabel_.setBounds(area.removeFromTop(kLabelHeight));
     area.removeFromTop(2);
 
