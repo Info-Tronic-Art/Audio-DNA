@@ -351,6 +351,25 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
   should not change aspect ratios. they should be what the composition is setup for, typically 1920x1080, 2k, 4k, or
   whatever the setting is.."
 
+- **Decks keep playing while off screen (2026-09-26):** Q "when you leave a deck, do its clips keep playing in time
+  (video 10 s in is 40 s in when you come back 30 s later; autopilot keeps going), or freeze?" -> "keep playing".
+- **Clip fit mode (2026-09-26):** a picture whose shape differs from the composition: "default stretch but there should be
+  a way to select stretch/bars/crop" -> per-clip setting Stretch (default) / Bars / Crop.
+
+- **Output displays (2026-09-26):** "yes there can be as many displays as the computer has connected, including the main
+  screen with the app" -> output to ANY number of connected displays (incl. the main screen), each showing the composition.
+- **Stop button (2026-09-26):** "ok we can keep stop for routines only" -> the TopBar Stop stops routines only (no clip rewind).
+- **Deck save/load (2026-09-26):** "we will have decks that can be loaded with deck tabs below the active deck. is save
+  next to decks more intuitive than in comp tab?" (asked for a recommendation).
+- **Persistent layers (2026-09-26):** "just keep the persistent clip in the layer strip, nowhere else. this simplifies our
+  ui" -> no extra UI for other decks' persistent layers.
+- **Routine glide (2026-09-26):** length "what do you recommend?"; loop return eases — "yes, but we should have controls for
+  jump or ease in each" -> per-routine Ease / Jump control.
+
+- **Where saving lives (2026-09-26, verbatim):** "save comp should work in comp tab in top menu and in bottom right comp
+  tab, but save deck will be in the decks tab row below the active decks" -> Save/Load Composition: menu bar Comp menu AND
+  the bottom-right Compositions browser tab; Save Deck (and deck actions): the deck tab row below the active deck.
+
 ## Rejected (Do Not Implement)
 
 - Ribbon/strip layouts

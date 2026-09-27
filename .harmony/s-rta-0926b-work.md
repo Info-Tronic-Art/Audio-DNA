@@ -112,3 +112,50 @@ merge, cmake -S . -B build + rebuild, ctest, probes GREEN, look at frames.
 - Harmony GREEN on build/ 50b4bce: render-state "PY 31 PASS / 0 FAIL"; crossfade "PY 35 PASS / 0 FAIL"; effects-parity
   (hardened) "PY 46 PASS / 0 FAIL"; manual-bpm 18/0; resync 16/0; downbeat 14/0; routines 74/0; mastersignal 22/0; step3
   94/0; tempo witness GREEN. Frame looked at: r1_temporal refA/mid02/05/08/11/refB (wipe: each side its own clip, no ghost).
+- 22:3x wave 2b launched (wf_6f166b85-e43): uitoggle (W1: LookAndFeel disabled toggles dim app-wide + Persistent enable rule
+  "persistable OR currently set"; full 3-critic panel) + probehygiene2 (W2: lock-owner check, exact-binary pgrep, cap()
+  delete-first+mtime in crossfade/render-state; all probes re-run GREEN). Pushed 0 unpushed after wave-2 gate.
+- 23:0x plan3 FINAL (plan3-final.md) ADOPTED by Harmony: A = (c) a tempo VALUE (typed / REST / OSC) never realigns; Tap +
+  Resync are the beat gestures. B = TopBar one line "Bar 1..4" (barCount % 4 + 1), "Phr X.XX" removed. C = restore GLIDE:
+  one beat ending on the boundary (quarter-beat floor), loop return + re-fire same rule, in-flight glides released at
+  any non-restoring end (the draft's grip-leak caught by the critics), cancel via Player::holds. Boris defaults: glide 1 beat;
+  loop return eases. Wave 3a launched (wf_156f9cfa-a36): X tempo-glide (opus, isolated) A then C; Y topbar-count (sonnet,
+  isolated) + micro critic. Probe header edits are probehygiene2's; lanes add rows only.
+- 23:2x plan4 FINAL (plan4-final.md) ADOPTED: commit A = canvas = Composition outputWidth x outputHeight, ONE render into
+  an offscreen canvas FBO, panel presents letter/pillar-boxed via box-filter downsample; per-deck resolutionSelector_
+  retired (test-only override kept); runtime resolution change keeps histories; render_frame captures the canvas; perf
+  gate c_perf_1080 (fps >= 58, frame_time <= 12 ms) + 4K report; fallback policy named. B1 = crossfades advance on
+  inactive decks (ships). B2 = video/imageseq clocks advance without decoding + per-deck autopilot (Boris Q1; default ON).
+  FINDINGS: F3 the second-display OutputWindow shows ONLY the legacy single image, never the composition (Boris Q3 — big);
+  F1 AddDeckCmd leaves new deck id 0 -> LayerStateKey collision with deck 0 (R2 reopened for Deck > New Deck) -> small lane;
+  F2 (INFERRED) P25 cross-deck transition captures the NEW deck as outgoing -> deck switches are cuts -> verify live, fix
+  after commit A (same renderOpenGL block); F4 capture path synchronous; Q4 portrait clips stretched today.
+  PLAN: launch the plan4 lane in W1 (warm render build) after wave 2b merges (max 3 build lanes; W1 busy with uitoggle).
+- 23:3x BORIS: Q1 decks KEEP PLAYING while off screen (plan4 B2 ON, confirmed). Q4 default STRETCH + a per-clip choice
+  Stretch / Bars / Crop (new small feature; Fable spec -> build after plan4 commit A). Asked for the full open-question list.
+- 23:4x BORIS: (1) output to ANY number of connected displays incl. the main screen -> TOP job (Fable plan5);
+  (2) TopBar Stop = routines only (drop the clip rewind) -> small commit after lane X; (3) deck save/load: asked if next to
+  the deck tabs is more intuitive than the Comp tab -> recommend tabs (+ / right-click) with the browser as the library;
+  (4) NO extra UI for other decks' persistent layers; (5) glide length -> recommend 1 beat; (6) loop ease yes + per-routine
+  Ease/Jump control -> engine flag after lane X + UI in the routine-display mockup revision.
+- 23:5x BORIS: Save/Load Composition in the top menu Comp menu AND the bottom-right Compositions tab (whose Save-Composition
+  + entry-click load are UNWIRED today); Save Deck in the deck tab row. -> plan6 (Fable design + mockup + critics):
+  deck tab row actions, comp save/load wiring, legacy Row1 toolbar retirement, F1 AddDeckCmd id fix.
+- 23:5x BORIS "go with recs": deck-tab row (+ New/Load; right-click Save/Save As/Rename/Duplicate/Remove), browser = library,
+  legacy Deck Save/Load retired; glide 1 beat; per-routine Ease/Jump. plan6 launched (wf_72a8f8b4-e1e): recon -> Fable spec
+  -> 2 seats -> Fable final (no approval mockup; built UI gets the critic panel). Running now: wave 2b (w4c5t8bnt), wave 3a
+  (wukglsh9r), routine-ux (wui4m9e4t), plan5 outputs (wf4762g01), plan6 (wutnzhihz). Queued: plan4 build lane in W1 after
+  wave 2b merges; Stop=routines-only + per-routine Ease/Jump engine flag after wave 3a; mockup revision with answers 2/4/6.
+- 23:5x routine-ux DONE (19 agents; design-final.md + mockup.html + 13 shots; visual panel r2 4/4 PASS). Design: 22 px
+  ROUTINES row of 8 pads above the column numbers; press = fire/restart (never stop); name bands on every layer strip it
+  plays with an x (remove from all its layers); layer X also removes routines from that layer; "5/8" + sweep on the pad
+  only; knobs it drives cyan + "ROUTINE"; V fader cyan (and the V-fader-doesn't-move bug fixed in slice 1); off-deck pad
+  dims. Harmony looked at 03-playing-2layers.png: faithful to the app. Revision launched (wf_09d9b827-421) with Boris's later
+  answers (glide lands on the bar per plan3, per-routine Ease/Jump, Stop=routines only, top-bar Q decided) + logic/UX
+  critics; then open the link for Boris.
+- 00:1x mockup revision: logic critic PASS; UX critic FAIL (MUST: "slice A/C" jargon in the s4 caption; SHOULD: open
+  questions on the page). Harmony fixed both in place (plain-words caption; "Still your call" block with the 8 open
+  questions + defaults), re-rendered s4 + top headless, looked at the top render. Opened mockup.html for Boris.
+- MY PACKET DEFECT: wave 2b fix-round prompt embedded the original packet's STEP 0 "git checkout -B <lane> main" — the
+  uitoggle fix builder correctly refused (it would have discarded the lane's 5 unmerged commits). HABIT: fix-round
+  prompts must strip branch-creation steps and name the exact commit to continue from.
