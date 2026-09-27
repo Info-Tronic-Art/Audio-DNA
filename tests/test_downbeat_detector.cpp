@@ -189,7 +189,8 @@ TEST_CASE("Downbeat level (manual BPM, predicted beats): the same level + counte
 {
     BPMTracker tracker(512, 1024, 48000);
     tracker.setManualMode(true);
-    tracker.setManualBPM(120.0f);                     // lockedBPM_ = 120, phase_ = 0, beatCounter_ = 0
+    tracker.setManualBPM(120.0f);                     // a request (s-rta-0926b): the first hop applies
+                                                      // lockedBPM_ = 120, phase_ = 0; beatCounter_ starts at 0
     REQUIRE(tracker.isManualMode());
 
     constexpr int kBars = 16;
