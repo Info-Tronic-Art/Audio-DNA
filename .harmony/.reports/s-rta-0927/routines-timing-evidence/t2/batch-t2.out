@@ -1,0 +1,66 @@
+13:31:42 lock acquired
+T2 run 1 start 2026-09-27 13:31:42 quiet=yes load={ 8.96 6.30 4.92 } canvas=1920x1080
+load {'ok': True}
+pre-first-use: n=23 max peak 0.00 ms at +0.005 s, frame_rings 0->0, temporal 0->0, median peak 0.00
+first-use: n=56 max peak 35.92 ms at +0.056 s, frame_rings 0->1, temporal 0->0, median peak 0.71
+steady: n=44 max peak 4.37 ms at +1.621 s, frame_rings 1->1, temporal 0->0, median peak 0.70
+fade1: n=68 max peak 35.69 ms at +0.070 s, frame_rings 1->2, temporal 0->0, median peak 0.72
+fade2: n=71 max peak 5.42 ms at +1.478 s, frame_rings 2->2, temporal 0->0, median peak 0.74
+fade1 timeline (t, peak): [(0.002, 0.6), (0.021, 0.0), (0.047, 0.0), (0.07, 35.7), (0.089, 0.7), (0.114, 0.8), (0.139, 0.7), (0.164, 0.8), (0.189, 0.7), (0.211, 0.7), (0.232, 0.7), (0.258, 0.7), (0.28, 0.8)]
+T2 run 1 end 2026-09-27 13:31:54 load={ 8.18 6.22 4.90 } compilers=[0/0]
+output windows: 0; app running after quit: no
+13:31:55 lock released
+13:32:21 lock held by: harmony 33863 1790530325 -- waiting
+13:34:21 lock held by: harmony 33863 1790530325 -- waiting
+13:36:21 lock held by: harmony 33863 1790530325 -- waiting
+13:38:21 lock held by: harmony 33863 1790530325 -- waiting
+13:40:21 lock held by: harmony 33863 1790530325 -- waiting
+13:42:21 lock held by: harmony 33863 1790530325 -- waiting
+13:44:21 lock held by: harmony 33863 1790530325 -- waiting
+13:46:21 lock held by: harmony 33863 1790530325 -- waiting
+13:48:21 lock held by: harmony 33863 1790530325 -- waiting
+13:50:21 lock held by: harmony 33863 1790530325 -- waiting
+13:52:21 lock held by: harmony 33863 1790530325 -- waiting
+13:54:21 lock held by: harmony 33863 1790530325 -- waiting
+13:56:22 lock held by: harmony 33863 1790530325 -- waiting
+13:58:22 lock held by: harmony 33863 1790530325 -- waiting
+14:00:22 lock held by: harmony 33863 1790530325 -- waiting
+14:01:42 lock acquired
+T2 run 2 start 2026-09-27 14:01:42 quiet=yes load={ 3.07 4.20 4.95 } canvas=1920x1080
+load {'ok': True}
+pre-first-use: n=24 max peak 0.00 ms at +0.003 s, frame_rings 0->0, temporal 0->0, median peak 0.00
+first-use: n=56 max peak 36.44 ms at +0.057 s, frame_rings 0->1, temporal 0->0, median peak 0.69
+steady: n=37 max peak 1.05 ms at +1.581 s, frame_rings 1->1, temporal 0->0, median peak 0.74
+fade1: n=64 max peak 36.56 ms at +0.063 s, frame_rings 1->2, temporal 0->0, median peak 0.72
+fade2: n=69 max peak 5.89 ms at +1.120 s, frame_rings 2->2, temporal 0->0, median peak 0.75
+fade1 timeline (t, peak): [(0.005, 0.7), (0.036, 0.0), (0.063, 36.6), (0.093, 0.8), (0.121, 0.7), (0.149, 0.7), (0.177, 0.7), (0.208, 0.7), (0.237, 0.7), (0.268, 0.7), (0.296, 0.8)]
+T2 run 2 end 2026-09-27 14:01:53 load={ 2.99 4.15 4.92 } compilers=[0/0]
+output windows: 0; app running after quit: no
+14:01:55 lock released
+14:02:20 lock held by: outputs-c2 70708 1790532121 -- waiting
+14:02:40 lock acquired
+T2 run 3 start 2026-09-27 14:02:40 quiet=yes load={ 3.08 4.04 4.84 } canvas=1920x1080
+load {'ok': True}
+pre-first-use: n=24 max peak 0.00 ms at +0.004 s, frame_rings 0->0, temporal 0->0, median peak 0.00
+first-use: n=64 max peak 36.18 ms at +0.067 s, frame_rings 0->1, temporal 0->0, median peak 0.68
+steady: n=39 max peak 1.55 ms at +1.579 s, frame_rings 1->1, temporal 0->0, median peak 0.72
+fade1: n=60 max peak 35.45 ms at +0.076 s, frame_rings 1->2, temporal 0->0, median peak 0.72
+fade2: n=65 max peak 2.88 ms at +0.764 s, frame_rings 2->2, temporal 0->0, median peak 0.74
+fade1 timeline (t, peak): [(0.006, 0.5), (0.03, 0.0), (0.053, 0.0), (0.076, 35.5), (0.101, 0.9), (0.129, 0.7), (0.156, 0.6), (0.184, 0.8), (0.212, 0.7), (0.238, 0.8), (0.259, 0.8), (0.284, 0.9)]
+T2 run 3 end 2026-09-27 14:02:52 load={ 3.69 4.13 4.86 } compilers=[0/0]
+output windows: 0; app running after quit: no
+14:02:53 lock released
+14:03:18 lock held by: outputs-c2 70910 1790532191 -- waiting
+14:03:38 lock acquired
+T2 run 4 start 2026-09-27 14:03:38 quiet=yes load={ 6.28 4.74 5.04 } canvas=3840x2160
+load {'ok': True}
+pre-first-use: n=22 max peak 0.00 ms at +0.006 s, frame_rings 0->0, temporal 0->0, median peak 0.00
+first-use: n=56 max peak 37.76 ms at +0.067 s, frame_rings 0->1, temporal 0->0, median peak 0.50
+steady: n=38 max peak 0.91 ms at +2.413 s, frame_rings 1->1, temporal 0->0, median peak 0.56
+fade1: n=63 max peak 38.46 ms at +0.070 s, frame_rings 1->2, temporal 0->0, median peak 0.61
+fade2: n=58 max peak 1.16 ms at +1.268 s, frame_rings 2->2, temporal 0->0, median peak 0.59
+fade1 timeline (t, peak): [(0.003, 0.6), (0.025, 0.0), (0.044, 0.0), (0.07, 38.5), (0.091, 0.6), (0.116, 0.5), (0.142, 0.6), (0.168, 0.6), (0.193, 0.6), (0.216, 0.6), (0.241, 1.0), (0.267, 0.6), (0.29, 0.6)]
+T2 run 4 end 2026-09-27 14:03:49 load={ 5.63 4.65 5.01 } compilers=[0/0]
+output windows: 0; app running after quit: no
+14:03:51 lock released
+T2_DONE
