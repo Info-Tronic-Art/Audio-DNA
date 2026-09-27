@@ -1,0 +1,18 @@
+FAIL  RoutineEngine: waits for the next bar, restores, then plays its lanes on its own beat grid  | test cases: 1 | 1 failed assertions: 7 | 6 passed | 1 failed 
+PASS  RoutineEngine: loop re-fires the restore each cycle; stop and the end of a once routine release  | All tests passed (25 assertions in 1 test case)
+FAIL  RoutineEngine: re-fire restarts on the next bar; global Quantize overrides; no beat starts at once  | test cases:  1 |  0 passed | 1 failed assertions: 38 | 35 passed | 3 failed 
+FAIL  RoutineEngine: two routines on one control -- the gesture that began later wins  | test cases:   1 |   0 passed | 1 failed assertions: 203 | 202 passed | 1 failed 
+PASS  RoutineEngine: quantize Off and Beat; 2 Bar and 4 Bar parity comes from barCount, not totalBarCount  | All tests passed (23 assertions in 1 test case)
+PASS  Binding: TriggerRoutine appends after MasterSignal and round-trips targetRoutineSlot  | All tests passed (9 assertions in 1 test case)
+PASS  RoutineEngine: two routines ending in one tick are both released and removed exactly once  | All tests passed (22 assertions in 1 test case)
+PASS  RoutineEngine::saveRefusalText: an unmetered slice is refused in whole words  | All tests passed (4 assertions in 1 test case)
+PASS  Routine: a move keeps its place in the bar when Record fell late in a bar  | All tests passed (16 assertions in 1 test case)
+FAIL  RoutineEngine glide G2: fired inside the last beat, the restore glides from the fire to the bar  | test cases: 1 | 1 failed assertions: 3 | 2 passed | 1 failed 
+FAIL  RoutineEngine glide G3: under a quarter beat to go, or Quantize Off, the glide spills a quarter beat past the start  | test cases: 1 | 1 failed assertions: 8 | 6 passed | 2 failed 
+FAIL  RoutineEngine glide G4: the recording's own move on the knob cancels the glide -- no release, no second hand  | test cases:  1 |  0 passed | 1 failed assertions: 30 | 26 passed | 4 failed 
+FAIL  RoutineEngine glide G5: a loop eases back to its start look over the last beat and lands on the loop point  | test cases: 1 | 1 failed assertions: 6 | 5 passed | 1 failed 
+FAIL  RoutineEngine glide G6: a routine that takes the knob later keeps it -- the gliding one yields and never releases  | test cases:  1 |  0 passed | 1 failed assertions: 26 | 22 passed | 4 failed 
+FAIL  RoutineEngine glide G7: a human hand refuses the glide's touch, or cuts in mid-glide  | test cases:  1 |  0 passed | 1 failed assertions: 18 | 15 passed | 3 failed 
+FAIL  RoutineEngine glide G8: a stop during the wait lets go where the glide left the knob  | test cases: 1 | 1 failed assertions: 5 | 3 passed | 2 failed 
+PASS  RoutineEngine glide G9: no beat, or no read seam -- the continuous restore lands in one call, as before  | All tests passed (28 assertions in 1 test case)
+FAIL  RoutineEngine glide G11: loop switched off inside the return glide -- the glide is let go at the end, never leaked  | test cases: 1 | 1 failed assertions: 8 | 5 passed | 3 failed 

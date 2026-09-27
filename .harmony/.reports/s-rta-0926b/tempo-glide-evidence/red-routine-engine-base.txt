@@ -1,0 +1,228 @@
+Randomness seeded to: 2977208055
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_routine_engine is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+RoutineEngine: waits for the next bar, restores, then plays its lanes on its
+               own beat grid
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:262
+...............................................................................
+
+tests/test_routine_engine.cpp:286: FAILED:
+  REQUIRE( ev.size() == 2 )
+with expansion:
+  0 == 2
+
+-------------------------------------------------------------------------------
+RoutineEngine: re-fire restarts on the next bar; global Quantize overrides; no
+               beat starts at once
+  re-fire while running restarts at the next bar edge and restores again
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:426
+...............................................................................
+
+tests/test_routine_engine.cpp:447: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 2 )
+with expansion:
+  1 == 2
+
+tests/test_routine_engine.cpp:449: FAILED:
+  CHECK( rig.fd.lastSet(op1) == Approx(0.7f) )
+with expansion:
+  0.5f == Approx( 0.69999998807907104 )
+
+tests/test_routine_engine.cpp:460: FAILED:
+  REQUIRE( ev.size() == 2 )
+with expansion:
+  3 == 2
+
+-------------------------------------------------------------------------------
+RoutineEngine: two routines on one control -- the gesture that began later wins
+  a restore that begins later also displaces a running gesture
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:619
+...............................................................................
+
+tests/test_routine_engine.cpp:641: FAILED:
+  REQUIRE( touched != rig.fd.log.end() )
+with expansion:
+  {?} != {?}
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G2: fired inside the last beat, the restore glides from the
+fire to the bar
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:950
+...............................................................................
+
+tests/test_routine_engine.cpp:965: FAILED:
+  REQUIRE( ev.size() == 2 )
+with expansion:
+  0 == 2
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G3: under a quarter beat to go, or Quantize Off, the glide
+spills a quarter beat past the start
+  fired 1/16 beat before the bar: the window is [3.9375, 4.1875]
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:988
+...............................................................................
+
+tests/test_routine_engine.cpp:999: FAILED:
+  REQUIRE( rig.fd.log.size() == mark + 3 )
+with expansion:
+  4 == 3
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G3: under a quarter beat to go, or Quantize Off, the glide
+spills a quarter beat past the start
+  Quantize Off: the glide begins inside the fire call and lands a quarter beat
+                later
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1021
+...............................................................................
+
+tests/test_routine_engine.cpp:1031: FAILED:
+  REQUIRE( rig.fd.log.size() == mark + 3 )
+with expansion:
+  4 == 3
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G4: the recording's own move on the knob cancels the glide
+-- no release, no second hand
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1049
+...............................................................................
+
+tests/test_routine_engine.cpp:1061: FAILED:
+  CHECK( rig.fd.lastSet(op1) == Approx(0.6f) )
+with expansion:
+  0.300000012f
+  ==
+  Approx( 0.60000002384185791 )
+
+tests/test_routine_engine.cpp:1077: FAILED:
+  CHECK( rig.fd.count(Ev::Release, op1) == 0 )
+with expansion:
+  1 == 0
+
+tests/test_routine_engine.cpp:1079: FAILED:
+  CHECK( rig.fd.count(Ev::Release, op1) == 1 )
+with expansion:
+  2 == 1
+
+tests/test_routine_engine.cpp:1083: FAILED:
+  CHECK( rig.fd.count(Ev::Release, op1) == 1 )
+with expansion:
+  2 == 1
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G5: a loop eases back to its start look over the last beat
+and lands on the loop point
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1087
+...............................................................................
+
+tests/test_routine_engine.cpp:1115: FAILED:
+  REQUIRE( ev.size() == 2 )
+with expansion:
+  0 == 2
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G6: a routine that takes the knob later keeps it -- the
+gliding one yields and never releases
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1161
+...............................................................................
+
+tests/test_routine_engine.cpp:1177: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 1 )
+with expansion:
+  0 == 1
+
+tests/test_routine_engine.cpp:1182: FAILED:
+  CHECK( rig.slot(0).yielded == 1 )
+with expansion:
+  0 == 1
+
+tests/test_routine_engine.cpp:1186: FAILED:
+  CHECK( rig.fd.count(Ev::Release, op1) == 0 )
+with expansion:
+  1 == 0
+
+tests/test_routine_engine.cpp:1192: FAILED:
+  CHECK( e.v == Approx(0.8f) )
+with expansion:
+  0.300000012f
+  ==
+  Approx( 0.80000001192092896 )
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G7: a human hand refuses the glide's touch, or cuts in mid-
+glide
+  a set is refused mid-glide: dropped where it is, no release
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1220
+...............................................................................
+
+tests/test_routine_engine.cpp:1229: FAILED:
+  CHECK( rig.fd.count(Ev::Set, op1) == 9 )
+with expansion:
+  0 == 9
+
+tests/test_routine_engine.cpp:1234: FAILED:
+  CHECK( rig.slot(0).preambleRefused == 1 )
+with expansion:
+  0 == 1
+
+tests/test_routine_engine.cpp:1238: FAILED:
+  CHECK( rig.fd.on(op1, mark).size() == 1 )
+with expansion:
+  2 == 1
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G8: a stop during the wait lets go where the glide left the
+knob
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1243
+...............................................................................
+
+tests/test_routine_engine.cpp:1256: FAILED:
+  CHECK( rig.fd.lastSet(op1) == Approx(0.6f) )
+with expansion:
+  nanf == Approx( 0.60000002384185791 )
+
+tests/test_routine_engine.cpp:1261: FAILED:
+  REQUIRE( ev.size() == 1 )
+with expansion:
+  0 == 1
+
+-------------------------------------------------------------------------------
+RoutineEngine glide G11: loop switched off inside the return glide -- the glide
+is let go at the end, never leaked
+-------------------------------------------------------------------------------
+tests/test_routine_engine.cpp:1327
+...............................................................................
+
+tests/test_routine_engine.cpp:1346: FAILED:
+  CHECK( rig.fd.count(Ev::Touch, op1) == 2 )
+with expansion:
+  1 == 2
+
+tests/test_routine_engine.cpp:1347: FAILED:
+  CHECK( rig.slot(0).glides == 1 )
+with expansion:
+  0 == 1
+
+tests/test_routine_engine.cpp:1358: FAILED:
+  REQUIRE( ev.size() == 1 )
+with expansion:
+  0 == 1
+
+===============================================================================
+test cases:  18 |   7 passed | 11 failed
+assertions: 479 | 454 passed | 25 failed
+
