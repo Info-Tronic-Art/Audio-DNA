@@ -93,6 +93,63 @@ TEST_CASE("a hand-built AlertWindow (Rename Deck) given the app LookAndFeel is s
     w.setLookAndFeel(nullptr);
 }
 
+TEST_CASE("AudioDNALookAndFeel::installAsDefault makes an owner-less AlertWindow/menu window draw with "
+          "the app LookAndFeel (the 12 showMessageBoxAsync calls with no associated component, and any "
+          "PopupMenu with no in-app parent -- MacroPanel/UniversalParamControl/SignalBar)",
+          "[lookandfeel][s-rta-0926b]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    AudioDNALookAndFeel laf;
+
+    // Before install: an orphan Component (no explicit LookAndFeel, no parent) -- exactly what a
+    // top-level AlertWindow/MenuWindow is at construction before it is given one -- falls to
+    // whatever the process-wide JUCE default happens to be, never this app's LookAndFeel.
+    {
+        juce::Component orphan;
+        CHECK(&orphan.getLookAndFeel() != static_cast<juce::LookAndFeel*>(&laf));
+    }
+
+    laf.installAsDefault();
+
+    juce::Component orphan;
+    CHECK(&orphan.getLookAndFeel() == static_cast<juce::LookAndFeel*>(&laf));
+
+    // Exactly the path AlertWindow::showMessageBoxAsync/showOkCancelBox take with no associated
+    // component (juce_AlertWindowHelpers.h setUpAlert: lf = LookAndFeel::getDefaultLookAndFeel()).
+    std::unique_ptr<juce::AlertWindow> aw(juce::LookAndFeel::getDefaultLookAndFeel().createAlertWindow(
+        "Save Deck", "Save failed: x.deck.json", "OK", {}, {},
+        juce::MessageBoxIconType::WarningIcon, 1, nullptr));
+    REQUIRE(aw != nullptr);
+    CHECK(&aw->getLookAndFeel() == static_cast<juce::LookAndFeel*>(&laf));
+
+    const auto shot = aw->createComponentSnapshot(aw->getLocalBounds());
+    CHECK(shot.getPixelAt(0, 0) == juce::Colour(AudioDNALookAndFeel::kPanelBorder));   // RED pre-fix: rounded/absent
+
+    laf.uninstallAsDefault();
+    juce::Component after;
+    CHECK(&after.getLookAndFeel() != static_cast<juce::LookAndFeel*>(&laf));   // cleared before laf goes out of scope
+}
+
+TEST_CASE("getTypefaceForFont keeps bold/italic distinct from the fixed default sans-serif typeface "
+          "(decks-followup-fix: installAsDefault made AlertWindow's bold title font silently lose its "
+          "bold weight, since it was resolved through this same fixed typeface)",
+          "[lookandfeel][s-rta-0926b]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    AudioDNALookAndFeel laf;
+
+    const juce::Font regular(juce::FontOptions(18.0f));
+    const juce::Font bold(juce::FontOptions(18.0f, juce::Font::bold));
+
+    auto regularFace = laf.getTypefaceForFont(regular);
+    auto boldFace = laf.getTypefaceForFont(bold);
+    REQUIRE(regularFace != nullptr);
+    REQUIRE(boldFace != nullptr);
+    // RED pre-fix: same pointer -- the fixed default typeface set by setDefaultSansSerifTypeface() in the
+    // ctor is returned unconditionally, regardless of the font's requested style.
+    CHECK(regularFace != boldFace);
+}
+
 TEST_CASE("a Label whose text colour is transparent draws no text (the AlertWindow's hidden accessibility label)",
           "[lookandfeel][s-rta-0926b]")
 {

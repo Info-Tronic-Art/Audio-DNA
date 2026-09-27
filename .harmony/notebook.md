@@ -1707,3 +1707,70 @@ hand-written functions with no shared layout model.
   50.82 before the merge; 51.86 / 48.86 / 34.29 on the merge build. One FAIL is not a verdict: rerun it before
   blaming a change.
 - Valid while: the CLAUDE.md byte cap, the canvas ring sizing and these probes exist.
+
+## 2026-09-27 s-rta-0926b decks-followup | Files: src/ui/LookAndFeel.{h,cpp}, src/MainComponent.{h,cpp}, src/ui/CompDecksBrowser.{h,cpp}
+- `juce::LookAndFeel::setDefaultLookAndFeel(&lookAndFeel_)` in MainComponent's ctor (paired with
+  `setDefaultLookAndFeel(nullptr)` in ~MainComponent(), BEFORE lookAndFeel_'s own member destruction) makes every
+  owner-less top-level window resolve to the app LookAndFeel: `Component::getLookAndFeel()` walks parentComponent,
+  then falls to `LookAndFeel::getDefaultLookAndFeel()` (juce_Component.cpp) -- this is exactly the path
+  `AlertWindow::showMessageBoxAsync`/`showOkCancelBox` take when `associatedComponent == nullptr`
+  (juce_AlertWindowHelpers.h setUpAlert), and the path a `PopupMenu`'s `MenuWindow` takes when neither the menu
+  nor any ancestor has an explicit LookAndFeel (juce_PopupMenu.cpp `findLookAndFeel`/`getLookAndFeel()` at
+  MenuWindow-ctor time, BEFORE `addChildComponent` runs) -- so this one call also fixed the 3
+  "FOUND NOT FIXED" menus from the prior fix round (MacroPanel.cpp, UniversalParamControl.cpp x2, SignalBar.cpp)
+  with no per-site change.
+- DANGLING POINTER GOTCHA: `auto* obj = juce::JSON::parse(str).getDynamicObject();` is a use-after-free --
+  `getDynamicObject()` returns a raw pointer into the temporary `var`'s ReferenceCountedObject, and the temporary
+  is destroyed at the end of the full expression (i.e. AFTER `obj` is assigned, right at the `;`), leaving `obj`
+  dangling for every use after that statement. It doesn't reliably crash or return null -- it can silently return
+  a stale-but-still-"valid"-looking answer (e.g. an `isV2DeckFile` unit test: `hasProperty("layers")` was true when
+  checked inline in the same statement, false when the exact same check ran via a real function call one line
+  later, because the heap slot had already been reused). Always keep the `var` alive as a named local first:
+  `auto parsed = juce::JSON::parse(str); auto* obj = parsed.getDynamicObject();` -- this is the pattern
+  `PresetManager::loadDeck` already uses; a new call site that skips the named local silently reproduces the bug.
+- Valid while `var`/`DynamicObject` keep this ownership model and MainComponent owns `lookAndFeel_` as a member.
+
+## 2026-09-27 s-rta-0926b decks-followup-fix | Files: src/ui/LookAndFeel.{h,cpp}, src/ui/CompDecksBrowser.cpp
+- BOLD-TITLE REGRESSION GOTCHA: `LookAndFeel::setDefaultSansSerifTypeface(ptr)` (called in
+  AudioDNALookAndFeel's ctor to pin one fixed typeface) makes `LookAndFeel::getTypefaceForFont()` return that
+  SAME fixed `Typeface::Ptr` for every default-sans-serif-named `Font`, regardless of the font's requested
+  bold/italic style (`juce_LookAndFeel.cpp`: `if (defaultTypeface != nullptr) return defaultTypeface;` --
+  no style check at all). Harmless while only this app's own (non-bold) UI used the LookAndFeel directly, but
+  installing it as the JUCE-wide default (decks-followup ITEM 1, `setDefaultLookAndFeel`) routes JUCE's OWN
+  bold requests through it too -- `AlertWindow`'s title uses `LookAndFeel_V4::getAlertWindowTitleFont()`
+  (18pt, `Font::bold`) -- so every dialog title silently lost its bold weight system-wide. Fix: override
+  `getTypefaceForFont()` and fall back to `Font::getDefaultTypefaceForFont(font)` (normal system lookup) for
+  `font.isBold() || font.isItalic()`; only the non-bold case uses the fixed typeface. Generalize: any
+  `LookAndFeel` that calls `setDefaultSansSerifTypeface()` and is later made the JUCE-wide default needs this
+  override, or ALL bold/italic text app-wide (not just AlertWindow) silently renders as regular weight.
+- MENU-SHOT PATH GOTCHA: a temporary `AUDIODNA_DEBUG_SNAP=<path>` hook must receive an ABSOLUTE path -- the
+  launched app's cwd is not the launching script's cwd (`open -g` does not inherit it), so a relative path
+  silently resolves to nowhere the caller expects and `File::createOutputStream()` fails (returns null) with
+  no crash or visible symptom other than "file never appears". Always `OUT="$(cd "$OUT" && pwd)"` before
+  building any `--env AUDIODNA_DEBUG_SNAP=$OUT/...` argument.
+- LIVE-LOCK GOTCHA: copying the same `.app` bundle to multiple scratch paths does NOT make them independently
+  launchable via `open` while one is already running -- macOS's `LSApplicationCheckIn`/launch services key off
+  the bundle's `CFBundleIdentifier`, not its filesystem path, and `open -g` on a "new" copy while another copy
+  (same bundle id) is running just silently no-ops (no new process, no error) instead of spawning a second
+  instance. Always check `/tmp/audiodna-live.lock` AND `ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"'` are both
+  clear before ANY `open` call, even against a scratch copy -- and poll/wait rather than assume a copy path
+  guarantees isolation.
+- `CompDecksBrowser::isV2DeckFile`'s real-world effect is directly screenshot-verifiable against Boris's own
+  `~/Library/AudioDNA/Decks` (READ-ONLY use is fine; never write/move/delete there) -- it holds exactly 4 real
+  legacy v1 `*.deck.json` files (`feafeda`, `tes6`, `testetst`, `try`, none with a `"layers"` key), so a
+  filter-disabled scratch build lists "Decks (4)" and the shipped filter lists "Decks (0)" / "No saved
+  compositions or decks" against the IDENTICAL real directory -- no fixture needed for this one case.
+- Valid while `AudioDNALookAndFeel` keeps `setDefaultSansSerifTypeface()` in its ctor and is the JUCE-wide
+  default, and while `~/Library/AudioDNA/Decks` keeps exactly these 4 legacy files.
+
+## 2026-09-27 s-rta-0926b followup-merge: probe-canvas needs a build-lane configured with AUDIODNA_BUILD_TEST_SERVER=ON
+**Files:** .harmony/probe-canvas.{sh,py}, CMakeLists.txt (option AUDIODNA_BUILD_TEST_SERVER, default OFF)
+**Note:**
+- A worktree build-lane configured without `-DAUDIODNA_BUILD_TEST_SERVER=ON` builds and passes ctest (667 both ways),
+  and probe-deck-tabs/fitmode/render-state/crossfade are GREEN on it (they use only the 7070 REST API). probe-canvas
+  launches with `--test-mode` and its c_runtime_change_keeps_history row talks to the TestServer on [::1]:8080; with
+  the option OFF nothing listens there, so it reports `PY 14 PASS / 4 FAIL` with `[Errno 61] Connection refused` on
+  `http://[::1]:8080` and a "frame is 1920x1080" FAIL. That is the build config, not a render regression: check
+  `grep AUDIODNA_BUILD_TEST_SERVER build-lane/CMakeCache.txt` (the main checkout's build/ is ON) before reading it
+  as one.
+- Valid while: the option defaults OFF and probe-canvas uses the 8080 TestServer.

@@ -1,0 +1,24 @@
+=== probe-deck-tabs 05:35:38 load: 2.97 2.93 3.13 compilers: 0
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/followup-merge/out/deck-tabs)
+rc=0  Audio-DNA processes now: 0
+=== probe-fitmode 05:35:50 load: 2.90 2.92 3.12 compilers: 0
+PY 10 PASS / 0 FAIL
+PROBE-FITMODE GREEN
+rc=0  Audio-DNA processes now: 0
+=== probe-canvas 05:37:02 load: 3.33 3.01 3.14 compilers: 0
+FAIL  http://[::1]:8080/api/state: HTTPConnectionPool(host='::1', port=8080): Max retries exceeded with url: /api/state (Caused by NewConnectionError("HTTPConnection(host='::1', port=8080): Failed to establish a new connection: [Errno 61] Connection refused"))
+FAIL  http://[::1]:8080/api/state: HTTPConnectionPool(host='::1', port=8080): Max retries exceeded with url: /api/state (Caused by NewConnectionError("HTTPConnection(host='::1', port=8080): Failed to establish a new connection: [Errno 61] Connection refused"))
+FAIL  http://[::1]:8080/api/state: HTTPConnectionPool(host='::1', port=8080): Max retries exceeded with url: /api/state (Caused by NewConnectionError("HTTPConnection(host='::1', port=8080): Failed to establish a new connection: [Errno 61] Connection refused"))
+FAIL  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 1920x1080 and keeps the Freeze history (d(f1 resized, f0)=0.00, tol 6.0)
+PY 14 PASS / 4 FAIL
+PROBE-CANVAS RED
+rc=1  Audio-DNA processes now: 0
+=== probe-render-state 05:38:43 load: 3.47 3.18 3.19 compilers: 0
+PY 31 PASS / 0 FAIL
+PROBE-RENDER-STATE GREEN
+rc=0  Audio-DNA processes now: 0
+=== probe-crossfade 05:44:33 load: 2.65 2.95 3.07 compilers: 0
+PY 35 PASS / 0 FAIL
+PROBE-CROSSFADE GREEN
+rc=0  Audio-DNA processes now: 0
+Audio-DNA processes at end: 0

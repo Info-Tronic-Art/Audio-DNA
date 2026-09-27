@@ -184,6 +184,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
     : testMode_(testMode), testPort_(testPort)
 {
     setLookAndFeel(&lookAndFeel_);
+    // decks-followup ITEM 1: also the JUCE-wide default, so a top-level window that never inherits
+    // MainComponent's LookAndFeel (an AlertWindow shown with no associated component, or a PopupMenu
+    // with no in-app parent) draws with it too, instead of JUCE's stock rounded LookAndFeel_V4.
+    // Cleared in ~MainComponent() before lookAndFeel_ is destroyed (see AudioDNALookAndFeel::installAsDefault).
+    lookAndFeel_.installAsDefault();
 
     // UI components
     addAndMakeVisible(openImageButton_);
@@ -2324,6 +2329,7 @@ MainComponent::~MainComponent()
     outputWindow_.reset();
     if (!testMode_)
         analysisThread_.stopThread(1000);
+    lookAndFeel_.uninstallAsDefault();   // before lookAndFeel_'s own destruction below (teardown-order assert)
     setLookAndFeel(nullptr);
 }
 
@@ -3261,8 +3267,10 @@ void MainComponent::renameDeck(int deckIndex)
         return;
     const std::string oldName = composition_.decks[static_cast<size_t>(deckIndex)].name;
 
+    // No explicit setLookAndFeel(&lookAndFeel_) needed: this top-level window falls back to the app
+    // LookAndFeel via installAsDefault() (decks-followup ITEM 1) -- verified pixel-identical to the
+    // prior per-site workaround (test_lookandfeel_square.cpp; decks-followup-shots/06-rename-dialog).
     auto* w = new juce::AlertWindow("Rename Deck", "", juce::MessageBoxIconType::NoIcon);
-    w->setLookAndFeel(&lookAndFeel_);   // a top-level window: it does not inherit MainComponent's LookAndFeel
     w->addTextEditor("name", juce::String(oldName));
     w->addButton("Rename", 1, juce::KeyPress(juce::KeyPress::returnKey));
     w->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));

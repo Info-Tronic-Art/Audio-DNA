@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <type_traits>
 
 // Deck: the clip grid — layers (rows) × columns.
 // Multiple decks can exist within a Composition, switched via deck tabs.
@@ -198,3 +199,11 @@ struct Deck
 private:
     uint32_t nextLayerId_ = 100;
 };
+
+// decks-followup ITEM 3: inspectors keep raw Clip*/Layer* across a Composition::decks reallocation
+// (New/Load/Duplicate deck). That is only safe because moving a Deck can never throw, so
+// std::vector::push_back/insert on `decks` moves each Deck's Layer vector rather than copying or
+// leaving it in a state where an old pointer could dangle mid-throw (decks.md UNKNOWNS 5).
+static_assert(std::is_nothrow_move_constructible_v<Deck>,
+              "Deck must be nothrow-move-constructible: Composition::decks reallocation moves Deck "
+              "(and its Layer/Clip buffers) while inspectors hold raw Clip*/Layer* across the call");

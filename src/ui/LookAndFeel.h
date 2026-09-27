@@ -6,6 +6,18 @@ class AudioDNALookAndFeel : public juce::LookAndFeel_V4
 public:
     AudioDNALookAndFeel();
 
+    // --- App-wide default (decks-followup ITEM 1) ---
+    // MainComponent's constructor calls installAsDefault(); its destructor calls uninstallAsDefault()
+    // BEFORE this object is destroyed (JUCE asserts if a LookAndFeel is deleted while it is still the
+    // default -- juce_LookAndFeel.cpp ~LookAndFeel()). Once installed, ANY top-level Component with no
+    // explicit LookAndFeel of its own falls back to this one (juce::Component::getLookAndFeel() walks
+    // parentComponent, then juce::LookAndFeel::getDefaultLookAndFeel()) -- so an AlertWindow shown with
+    // no associated component (juce::AlertWindow::showMessageBoxAsync, the failure alerts) and a
+    // PopupMenu with no in-app parent (MacroPanel, UniversalParamControl, SignalBar) draw square, in
+    // app colours, no rounded corners (BORIS_DECISIONS: "Rejected: Rounded corners (anywhere, ever)").
+    void installAsDefault();
+    void uninstallAsDefault();
+
     // Color constants
     static constexpr juce::uint32 kBackground    = 0xff1a1a2e;
     static constexpr juce::uint32 kSurface       = 0xff252540;
@@ -75,6 +87,16 @@ public:
 
     void drawAlertBox(juce::Graphics&, juce::AlertWindow&, const juce::Rectangle<int>& textArea,
                       juce::TextLayout&) override;
+
+    // --- Fonts ---
+    // decks-followup-fix: the ctor's setDefaultSansSerifTypeface() pins ONE fixed (regular-weight)
+    // Typeface::Ptr for every default-sans-serif-named Font, ignoring the requested style (JUCE's base
+    // LookAndFeel::getTypefaceForFont() returns it unconditionally -- see juce_LookAndFeel.cpp). That was
+    // harmless while only MainComponent's own (non-bold) UI used this LookAndFeel, but installAsDefault()
+    // (ITEM 1) also routes JUCE's OWN bold requests (AlertWindow::getAlertWindowTitleFont(), LookAndFeel_V4,
+    // 18pt bold) through it, so every dialog title silently lost its bold weight. Bold/italic requests fall
+    // back to the normal system typeface lookup instead; the regular case is unchanged.
+    juce::Typeface::Ptr getTypefaceForFont(const juce::Font&) override;
 
     // --- Label ---
     void drawLabel(juce::Graphics&, juce::Label&) override;

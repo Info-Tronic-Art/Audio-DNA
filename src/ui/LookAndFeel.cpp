@@ -56,6 +56,20 @@ AudioDNALookAndFeel::AudioDNALookAndFeel()
 }
 
 //==============================================================================
+// App-wide default
+//==============================================================================
+
+void AudioDNALookAndFeel::installAsDefault()
+{
+    juce::LookAndFeel::setDefaultLookAndFeel(this);
+}
+
+void AudioDNALookAndFeel::uninstallAsDefault()
+{
+    juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
+}
+
+//==============================================================================
 // Buttons
 //==============================================================================
 
@@ -460,6 +474,18 @@ void AudioDNALookAndFeel::drawAlertBox(juce::Graphics& g, juce::AlertWindow& ale
     textLayout.draw(g, juce::Rectangle<float>(0.0f, 30.0f, bounds.getWidth(),
                                               bounds.getHeight()
                                                   - static_cast<float>(getAlertWindowButtonHeight()) - 20.0f));
+}
+
+//==============================================================================
+// Fonts
+//==============================================================================
+
+juce::Typeface::Ptr AudioDNALookAndFeel::getTypefaceForFont(const juce::Font& font)
+{
+    if (font.isBold() || font.isItalic())
+        return juce::Font::getDefaultTypefaceForFont(font);
+
+    return juce::LookAndFeel_V4::getTypefaceForFont(font);
 }
 
 //==============================================================================

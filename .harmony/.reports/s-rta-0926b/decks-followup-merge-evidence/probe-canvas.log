@@ -1,0 +1,62 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-2/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/followup-merge/out/canvas.4iIezY
+--- c_default_shape
+PASS  c_default_shape: a composition without outputWidth/outputHeight renders a 1920x1080 canvas (render_frame PNG 1920x1080)
+PASS  c_default_shape: the clip fills the canvas (non-blank=True, d(f, A stretched to 1920x1080)=0.01, tol 6.0)
+--- c_4k_shape
+PASS  c_4k_shape: outputWidth 3840 / outputHeight 2160 renders a 3840x2160 canvas (render_frame PNG 3840x2160)
+PASS  c_4k_shape: the 4K picture is the 1080p picture at 4x the pixels (d(4K box-downsized, 1080p)=0.02, tol 6.0)
+      c_4k_shape: /api/state fps 101.9 frame_time_ms 1.40 gpu_time_ms 4.522520542144775 (load avg 3.20 3.31 3.21)
+--- c_custom_4x3
+PASS  c_custom_4x3: a 1024x768 composition renders a 1024x768 canvas (render_frame PNG 1024x768)
+PASS  c_custom_4x3: the clip fills the 4:3 canvas (d(f, A stretched to 1024x768)=0.01, tol 6.0)
+--- c_runtime_change_keeps_history
+      c_runtime_change: set_composition_params 2560x1440 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 2560,
+  "outputHeight": 1440
+}
+      c_runtime_change: set_composition_params 1920x1080 -> HTTP 200 {
+  "ok": true,
+  "masterOpacity": 1.0,
+  "masterSpeed": 1.0,
+  "outputWidth": 1920,
+  "outputHeight": 1080
+}
+      c_runtime_change: peak_frame_time_ms [('before 1440p', 13.160667419433594), ('across 1080p -> 1440p', 5.651459217071533), ('across 1440p -> 1080p', 3.008167028427124)]
+      c_runtime_change: f0 (1920, 1080) d(f0, image)=25.54 mean(image) 139.7 (Freeze 0.98's 8-bit fixed point sits up to ~25 levels under the image -- report only)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+PASS  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=0.29, tol 6.0)
+PASS  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 1920x1080 and still the same picture (d(f2, f0)=0.01, tol 8.0)
+--- c_legacy_image_fit
+PASS  c_legacy_image_fit: a 600x600 image is fitted inside the 1920x1080 canvas over black, never stretched (x 0..400 mean RGB 0.00 <= 2; x 440..1480 mean R 255.0 >= 250)
+--- c_capture_deterministic
+PASS  c_capture_deterministic: two captures with the same time decode to identical pixels ((1920, 1080), identical=True)
+--- c_capture_cost
+      c_capture_cost 1920x1080: render_frame wall 170 ms, PNG (1920, 1080); /api/state fps over the next 1.5 s: min 99.3 [103.1, 103.1, 99.3, 99.3, 99.3, 99.3] (load avg 3.79 3.44 3.25)
+      c_capture_cost 3840x2160: render_frame wall 521 ms, PNG (3840, 2160); /api/state fps over the next 1.5 s: min 74.3 [74.3, 74.3, 74.3, 116.2, 116.2, 116.2] (load avg 3.97 3.48 3.27)
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+--- c_perf_1080
+      c_perf_1080 1920x1080: fps mean 112.0 min 106.5; frame_time_ms mean 1.85 max-peak 10.96; gpu_time_ms mean 2.18 peak 8.36; temporal_buffers 1 frame_rings 2 (load avg 4.42 3.60 3.31)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 112.0 >= 58.0 and mean frame_time_ms 1.85 <= 12.0
+--- c_perf_4k
+      c_perf_4k 3840x2160: fps mean 86.7 min 85.4; frame_time_ms mean 2.00 max-peak 11.13; gpu_time_ms mean 8.24 peak 14.27; temporal_buffers 1 frame_rings 2 (load avg 4.12 3.56 3.30)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+--- f2_deck_transition
+      f2: d(refA, refB)=29.43 (deck frames (1920, 1080))
+      f2 trial 0: t=1.10s p=0.25 residual=0.11 d(f,A)=7.35 d(f,B)=22.08
+      f2 trial 0: t=2.10s p=0.50 residual=0.14 d(f,A)=14.86 d(f,B)=14.57
+      f2 trial 1: t=1.11s p=0.25 residual=0.10 d(f,A)=7.51 d(f,B)=21.92
+      f2 trial 1: t=2.11s p=0.50 residual=0.14 d(f,A)=14.92 d(f,B)=14.51
+      f2 trial 2: t=1.09s p=0.25 residual=0.11 d(f,A)=7.46 d(f,B)=21.97
+      f2 trial 2: t=2.10s p=0.50 residual=0.14 d(f,A)=14.93 d(f,B)=14.50
+PASS  f2_deck_transition: a deck switch with a 4 s transition shows the OUTGOING deck fading into the new one (p per trial [[0.25, 0.5], [0.25, 0.5], [0.25, 0.5]]; failures [])
+
+PY 15 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-CANVAS GREEN
+rc=0

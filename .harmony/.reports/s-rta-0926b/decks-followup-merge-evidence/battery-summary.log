@@ -1,0 +1,20 @@
+=== probe-deck-tabs 05:48:59 load: 4.10 3.50 3.26 compilers: 0
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/followup-merge/out/deck-tabs)
+rc=0  Audio-DNA processes now: 0
+=== probe-fitmode 05:49:12 load: 3.94 3.48 3.25 compilers: 0
+PY 10 PASS / 0 FAIL
+PROBE-FITMODE GREEN
+rc=0  Audio-DNA processes now: 0
+=== probe-canvas 05:50:23 load: 2.89 3.26 3.19 compilers: 0
+PY 15 PASS / 0 FAIL
+PROBE-CANVAS GREEN
+rc=0  Audio-DNA processes now: 0
+=== probe-render-state 05:52:04 load: 3.62 3.54 3.31 compilers: 0
+PY 31 PASS / 0 FAIL
+PROBE-RENDER-STATE GREEN
+rc=0  Audio-DNA processes now: 0
+=== probe-crossfade 05:57:55 load: 2.90 3.11 3.18 compilers: 0
+PY 35 PASS / 0 FAIL
+PROBE-CROSSFADE GREEN
+rc=0  Audio-DNA processes now: 0
+Audio-DNA processes at end: 0
