@@ -142,6 +142,17 @@ endif()
 apply_sanitizers(test_layer_state_key)
 catch_discover_tests(test_layer_state_key)
 
+# --- test_crossfade_history (s-rta-0926b render R1: at the first frame of every
+# clip-to-clip crossfade the layer's clip-chain history is handed to its
+# outgoing slot). Tests the REAL detector (render/CrossfadeHistory.h, pure, no
+# GL) that CompositorEngine::renderLayerStages calls; the GL hand-over is
+# covered live by .harmony/probe-render-state.sh rows r1_*.
+add_executable(test_crossfade_history test_crossfade_history.cpp)
+target_include_directories(test_crossfade_history PRIVATE ${SRC_DIR})
+target_link_libraries(test_crossfade_history PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_crossfade_history)
+catch_discover_tests(test_crossfade_history)
+
 # --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
 # composition-tier oracle endpoints in src/test/TestServer.cpp — see the
 # file header for exact scope). Headless: bare Composition + EffectLibrary,
