@@ -31,6 +31,18 @@
       "why": "class: both clips are the same procedural source type, which shares ONE output FBO; rendering the outgoing clip overwrote the incoming clip's texture",
       "out": { "mediaType": 4, "sourceType": "solid_color", "sourceParams": [ ["Red", "u_src_red", 1.0], ["Green", "u_src_green", 0.0], ["Blue", "u_src_blue", 0.0] ], "effects": [] },
       "in":  { "mediaType": 4, "sourceType": "solid_color", "sourceParams": [ ["Red", "u_src_red", 0.0], ["Green", "u_src_green", 0.0], ["Blue", "u_src_blue", 1.0] ], "effects": [] }
+    },
+    "k_outgoing_transform": {
+      "why": "s-rta-0926b render R3: applyTransition dropped the OUTGOING clip's transform (Position/Scale/Rotation), so the dissolve blended the unscaled clip. Every mid frame must lie on the line between the scaled OUT reference and IN",
+      "lineTol": 1.0,
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [], "extra": { "scale": 0.5 } },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [] }
+    },
+    "l_outgoing_opacity_effect": {
+      "why": "s-rta-0926b render R3: applyTransition ran the OUTGOING clip's effects before its opacity (0.5*invert(A)); while active the clip renders opacity first (invert(0.5*A)), so it changed look at transition start",
+      "lineTol": 1.0,
+      "out": { "mediaType": 1, "mediaFile": "@MEDIA@/P16_01_baseline.png", "effects": [ ["Invert", 1.0] ], "extra": { "clipOpacity": 0.5 } },
+      "in":  { "mediaType": 1, "mediaFile": "@MEDIA@/P16_02_Screen_Split_2x2.png", "effects": [] }
     }
   },
   "still": {

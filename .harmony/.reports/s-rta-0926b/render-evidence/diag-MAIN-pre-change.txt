@@ -1,0 +1,161 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/runs/diag.bgzGzg
+env: 
+=== r577
+  load r5_77: ok
+  r5 id=77 b00 PRE  t=-0.299s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b01 PRE  t=-0.249s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b02 PRE  t=-0.194s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b03 PRE  t=-0.149s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b04 PRE  t=-0.093s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b05 PRE  t=-0.040s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b06 POST t=+0.011s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b07 POST t=+0.055s d(f,A)= 20.20 rgb_mean=0.00 alpha_mean=0.00 alpha>0=0.00
+  r5 id=77 b08 POST t=+0.102s d(f,A)=  5.14 rgb_mean=15.06 alpha_mean=191.00 alpha>0=1.00
+  r5 id=77 b09 POST t=+0.158s d(f,A)=  1.41 rgb_mean=18.79 alpha_mean=239.00 alpha>0=1.00
+  r5 id=77 b10 POST t=+0.203s d(f,A)=  0.44 rgb_mean=19.76 alpha_mean=251.00 alpha>0=1.00
+  r5 id=77 b11 POST t=+0.252s d(f,A)=  0.21 rgb_mean=19.99 alpha_mean=254.00 alpha>0=1.00
+  r5 id=77 b12 POST t=+0.301s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b13 POST t=+0.359s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b14 POST t=+0.409s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b15 POST t=+0.462s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b16 POST t=+0.508s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b17 POST t=+0.564s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=77 b18 POST t=+0.608s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+=== r578
+  load r5_78: ok
+  r5 id=78 b00 PRE  t=-0.306s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b01 PRE  t=-0.251s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b02 PRE  t=-0.199s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b03 PRE  t=-0.149s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b04 PRE  t=-0.099s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b05 PRE  t=-0.046s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b06 PRE  t=-0.001s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b07 POST t=+0.058s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b08 POST t=+0.105s d(f,A)= 20.20 rgb_mean=0.00 alpha_mean=0.00 alpha>0=0.00
+  r5 id=78 b09 POST t=+0.150s d(f,A)=  5.14 rgb_mean=15.06 alpha_mean=191.00 alpha>0=1.00
+  r5 id=78 b10 POST t=+0.211s d(f,A)=  1.41 rgb_mean=18.79 alpha_mean=239.00 alpha>0=1.00
+  r5 id=78 b11 POST t=+0.267s d(f,A)=  0.44 rgb_mean=19.76 alpha_mean=251.00 alpha>0=1.00
+  r5 id=78 b12 POST t=+0.327s d(f,A)=  0.21 rgb_mean=19.99 alpha_mean=254.00 alpha>0=1.00
+  r5 id=78 b13 POST t=+0.375s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b14 POST t=+0.429s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b15 POST t=+0.475s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b16 POST t=+0.530s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b17 POST t=+0.583s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=78 b18 POST t=+0.636s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+=== r579
+  load r5_79: ok
+  r5 id=79 b00 PRE  t=-0.301s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b01 PRE  t=-0.242s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b02 PRE  t=-0.196s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b03 PRE  t=-0.145s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b04 PRE  t=-0.102s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b05 PRE  t=-0.053s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b06 POST t=+0.006s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b07 POST t=+0.055s d(f,A)=  0.00 rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b08 POST t=+0.102s d(f,A)= 20.20 rgb_mean=0.00 alpha_mean=0.00 alpha>0=0.00
+  r5 id=79 b09 POST t=+0.153s d(f,A)=  5.14 rgb_mean=15.06 alpha_mean=191.00 alpha>0=1.00
+  r5 id=79 b10 POST t=+0.200s d(f,A)=  1.41 rgb_mean=18.79 alpha_mean=239.00 alpha>0=1.00
+  r5 id=79 b11 POST t=+0.267s d(f,A)=  0.27 rgb_mean=19.93 alpha_mean=253.00 alpha>0=1.00
+  r5 id=79 b12 POST t=+0.313s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b13 POST t=+0.369s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b14 POST t=+0.412s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b15 POST t=+0.463s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b16 POST t=+0.512s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b17 POST t=+0.568s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+  r5 id=79 b18 POST t=+0.622s d(f,A)=  0.06 rgb_mean=20.14 alpha_mean=255.00 alpha>0=1.00
+=== r3
+  load r3: ok
+  r3: d(refA,refB)=21.26 d(refA,refAbug)=21.09
+  r3: t=0.38s  correct-model(refA->refB) p=0.40 resid=21.78 | bug-model(refAbug->refB) p=0.07 resid=0.09
+  r3: t=0.84s  correct-model(refA->refB) p=0.47 resid=19.01 | bug-model(refAbug->refB) p=0.19 resid=0.10
+  r3: t=1.32s  correct-model(refA->refB) p=0.55 resid=16.20 | bug-model(refAbug->refB) p=0.31 resid=0.12
+  r3: t=1.79s  correct-model(refA->refB) p=0.63 resid=13.60 | bug-model(refAbug->refB) p=0.42 resid=0.12
+  r3: t=2.25s  correct-model(refA->refB) p=0.70 resid=10.76 | bug-model(refAbug->refB) p=0.54 resid=0.10
+  r3: t=2.72s  correct-model(refA->refB) p=0.78 resid=7.99 | bug-model(refAbug->refB) p=0.66 resid=0.09
+  r3: t=3.19s  correct-model(refA->refB) p=0.85 resid=5.28 | bug-model(refAbug->refB) p=0.77 resid=0.13
+=== r3b
+  load r3b: ok
+  r3b: d(refA,refB)=225.58 d(refA, 0.5*invert(A))=127.45
+  r3b: t=0.38s  correct-model p=0.56 resid=16.25 | bug-model(0.5*invert(A)->B) p=0.07 resid=0.15
+  r3b: t=0.84s  correct-model p=0.62 resid=14.17 | bug-model(0.5*invert(A)->B) p=0.18 resid=0.15
+  r3b: t=1.31s  correct-model p=0.67 resid=12.37 | bug-model(0.5*invert(A)->B) p=0.30 resid=0.27
+  r3b: t=1.78s  correct-model p=0.73 resid=10.09 | bug-model(0.5*invert(A)->B) p=0.42 resid=0.24
+  r3b: t=2.25s  correct-model p=0.78 resid=8.08 | bug-model(0.5*invert(A)->B) p=0.54 resid=0.10
+  r3b: t=2.72s  correct-model p=0.83 resid=6.27 | bug-model(0.5*invert(A)->B) p=0.65 resid=0.29
+  r3b: t=3.18s  correct-model p=0.89 resid=4.19 | bug-model(0.5*invert(A)->B) p=0.77 resid=0.24
+=== r1
+  load r1: ok
+  r1: d(refA,refB)=29.09  (OUT fx=['Freeze'], IN fx=[Freeze])
+  r1: t=1.65s p~0.21  IN region x<64: d(f,refB)=1.29 (d(A,B) there 3.61, ratio 0.36)  OUT region x>246: d(f,refA)=9.18 (d(A,B) there 28.33, ratio 0.32)
+  r1: t=2.26s p~0.28  IN region x<122: d(f,refB)=4.50 (d(A,B) there 13.40, ratio 0.34)  OUT region x>304: d(f,refA)=8.64 (d(A,B) there 26.69, ratio 0.32)
+  r1: t=2.85s p~0.36  IN region x<178: d(f,refB)=8.12 (d(A,B) there 24.17, ratio 0.34)  OUT region x>359: d(f,refA)=8.98 (d(A,B) there 27.75, ratio 0.32)
+  r1: t=3.47s p~0.43  IN region x<236: d(f,refB)=9.97 (d(A,B) there 29.57, ratio 0.34)  OUT region x>418: d(f,refA)=9.85 (d(A,B) there 30.29, ratio 0.33)
+  r1: t=4.07s p~0.51  IN region x<294: d(f,refB)=11.04 (d(A,B) there 32.76, ratio 0.34)  OUT region x>475: d(f,refA)=10.06 (d(A,B) there 30.96, ratio 0.32)
+  r1: t=4.69s p~0.59  IN region x<352: d(f,refB)=10.49 (d(A,B) there 31.09, ratio 0.34)  OUT region x>533: d(f,refA)=9.83 (d(A,B) there 30.22, ratio 0.33)
+  r1: t=5.30s p~0.66  IN region x<410: d(f,refB)=9.58 (d(A,B) there 28.32, ratio 0.34)  OUT region x>591: d(f,refA)=9.11 (d(A,B) there 28.00, ratio 0.33)
+  r1: t=5.91s p~0.74  IN region x<468: d(f,refB)=9.44 (d(A,B) there 27.88, ratio 0.34)  OUT region x>649: d(f,refA)=5.48 (d(A,B) there 16.94, ratio 0.32)
+=== r1c
+  load r1c: ok
+  r1c: d(refA,refB)=29.23  (OUT fx=[], IN fx=[Freeze])
+  r1c: t=1.67s p~0.21  IN region x<67: d(f,refB)=0.00 (d(A,B) there 3.74, ratio 0.00)  OUT region x>248: d(f,refA)=0.00 (d(A,B) there 28.34, ratio 0.00)
+  r1c: t=2.30s p~0.29  IN region x<126: d(f,refB)=0.00 (d(A,B) there 14.57, ratio 0.00)  OUT region x>308: d(f,refA)=0.00 (d(A,B) there 26.80, ratio 0.00)
+  r1c: t=2.92s p~0.37  IN region x<185: d(f,refB)=0.00 (d(A,B) there 24.69, ratio 0.00)  OUT region x>366: d(f,refA)=0.00 (d(A,B) there 28.33, ratio 0.00)
+  r1c: t=3.53s p~0.44  IN region x<242: d(f,refB)=0.00 (d(A,B) there 30.43, ratio 0.00)  OUT region x>424: d(f,refA)=0.00 (d(A,B) there 30.59, ratio 0.00)
+  r1c: t=4.15s p~0.52  IN region x<301: d(f,refB)=0.00 (d(A,B) there 32.88, ratio 0.00)  OUT region x>483: d(f,refA)=0.00 (d(A,B) there 30.99, ratio 0.00)
+  r1c: t=4.76s p~0.59  IN region x<358: d(f,refB)=0.00 (d(A,B) there 30.80, ratio 0.00)  OUT region x>540: d(f,refA)=0.00 (d(A,B) there 30.35, ratio 0.00)
+  r1c: t=5.37s p~0.67  IN region x<416: d(f,refB)=0.00 (d(A,B) there 28.35, ratio 0.00)  OUT region x>597: d(f,refA)=0.00 (d(A,B) there 27.68, ratio 0.00)
+  r1c: t=5.96s p~0.74  IN region x<472: d(f,refB)=0.00 (d(A,B) there 28.09, ratio 0.00)  OUT region x>653: d(f,refA)=0.00 (d(A,B) there 16.16, ratio 0.00)
+=== r2
+  load r2_reference: ok
+  load r2_subject: ok
+  r2: subject frame 0: d(subject, reference)=9.45  rgb_mean=19.96 alpha_mean=255.00 alpha>0=1.00
+  r2: subject frame 1: d(subject, reference)=9.45  rgb_mean=19.96 alpha_mean=255.00 alpha>0=1.00
+  r2: subject frame 2: d(subject, reference)=9.45  rgb_mean=19.96 alpha_mean=255.00 alpha>0=1.00
+  r2: reference rgb_mean=19.58 alpha_mean=255.00 alpha>0=1.00
+  load r2_Aonly: ok
+  r2: d(A-only, reference(B))=29.23; subject frame0 fit on A->B line: p=0.33 (fraction of A)
+=== r2b
+  load r2b_reference: ok
+  load r2b_subject: ok
+  r2b: subject frame 0: d(subject, reference)=29.39  rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r2b: subject frame 1: d(subject, reference)=29.39  rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r2b: subject frame 2: d(subject, reference)=29.39  rgb_mean=20.20 alpha_mean=255.00 alpha>0=1.00
+  r2b: reference rgb_mean=19.46 alpha_mean=255.00 alpha>0=1.00
+  load r2b_Aonly: ok
+  r2b: d(A-only, reference(B))=29.41; subject frame0 fit on A->B line: p=1.00 (fraction of A)
+=== r4a
+  load r4a_reference: ok
+  load r4a_subject: ok
+  load r4a_stage_absent: ok
+  r4a: d(persistent, normal-layer reference)=28.26  d(persistent, same layer WITHOUT the stage)=0.00  d(reference, stage-absent)=28.26
+=== r4b
+  load r4b_reference: ok
+  load r4b_subject: ok
+  load r4b_stage_absent: ok
+  r4b: d(persistent, normal-layer reference)=228.25  d(persistent, same layer WITHOUT the stage)=0.00  d(reference, stage-absent)=228.25
+=== r4c
+  load r4c_reference: ok
+  load r4c_subject: ok
+  load r4c_stage_absent: ok
+  r4c: d(persistent, normal-layer reference)=30.87  d(persistent, same layer WITHOUT the stage)=0.00  d(reference, stage-absent)=30.87
+=== r4d
+  load r4d_reference: ok
+  load r4d_subject: ok
+  load r4d_stage_absent: ok
+  r4d: d(persistent, normal-layer reference)=15.02  d(persistent, same layer WITHOUT the stage)=0.00  d(reference, stage-absent)=15.02
+=== r4e
+  load r4e_reference: ok
+  load r4e_subject: ok
+  load r4e_stage_absent: ok
+  r4e: d(persistent, normal-layer reference)=9.62  d(persistent, same layer WITHOUT the stage)=0.00  d(reference, stage-absent)=9.62
+=== r4f
+  load r4f: ok
+  r4f: t=0.76s persistent frame: d(f,OUT)=20.20 d(f,IN)=19.46 fit p=0.55 resid=19.79
+  r4f: t=1.70s persistent frame: d(f,OUT)=20.20 d(f,IN)=19.46 fit p=0.55 resid=19.79
+  r4f: t=2.64s persistent frame: d(f,OUT)=20.20 d(f,IN)=19.46 fit p=0.55 resid=19.79
+  r4f: t=3.57s persistent frame: d(f,OUT)=20.20 d(f,IN)=19.46 fit p=0.55 resid=19.79
+  r4f: t=10.40s (> T=8.0) after switching BACK to deck1: d(f,OUT)=2.18 d(f,IN)=27.26 p=0.07 resid=0.09
+app terminated
+lock released: yes
+OUT=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/runs/diag.bgzGzg

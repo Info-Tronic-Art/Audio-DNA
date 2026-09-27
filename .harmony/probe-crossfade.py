@@ -21,7 +21,14 @@ CROSSFADE cases (one layer; column 0 = OUT, column 1 = IN; Dissolve over T = tra
     progress         p = d(f,A)/d(A,B) never drops by more than 0.05 frame to frame, and at least one
                      mid frame has 0.25 <= p <= 0.75
     final            d(final, B) <= FLOOR
+    on-line          (only cases with "lineTol", s-rta-0926b render R3) every mid frame lies ON the refA->refB
+                     line: least-squares residual mean|f - (A + p(B-A))| <= lineTol and 0.02 < p < 0.98.
+                     Stricter than "between": an outgoing clip rendered differently from its own reference
+                     (transform dropped, opacity/effect order swapped) sits off the line even when the
+                     10% "between" slack hides it (case l: excess 2.4-10.2 vs slack 23.6).
   FLOOR = max(1.0, 4 * noise), noise = max(d(refA1,refA2), d(refB1,refB2)) measured per case.
+  Calibration k/l (render lane, s-rta-0926b): residual 0.12-0.40 on the fixed build, 4.19-21.78 on 6e8f120
+  (build/, pre-change) -> lineTol 1.0. Clip-level extras (transform, clipOpacity) go in the case's "extra".
   Calibration (xfade lane, s-rta-0926, both builds): noise measured 0.00 on every case (static images,
   solid colours), so FLOOR = 1.0. The RED frames on the unfixed build sit at d(f,A) = 0.00 exactly
   (the outgoing clip on both dissolve inputs), 1.0 below the floor; healthy mid frames sit at
@@ -70,6 +77,7 @@ def clip_json(spec, cid):
         c["sourceType"] = spec["sourceType"]
         c["sourceParams"] = [{"name": n, "uniform": u, "value": v, "default": v} for n, u, v in spec["sourceParams"]]
     c["effects"] = [fx_json(fx) for fx in spec["effects"]]
+    c.update(spec.get("extra", {}))
     return c
 
 
@@ -122,6 +130,14 @@ def d(x, y):
     return float(np.abs(x[..., :3] - y[..., :3]).mean())
 
 
+def fit_line(f, x, y):
+    """f ~ x + p (y - x) by least squares over RGB: returns (p, mean |residual|)."""
+    dx = (y - x)[..., :3].ravel(); df = (f - x)[..., :3].ravel()
+    den = float(dx @ dx)
+    p = float(df @ dx) / den if den > 0 else 0.0
+    return p, float(np.abs(f[..., :3] - (x[..., :3] + p * (y - x)[..., :3])).mean())
+
+
 def nonblank(a, min_alpha=0.5):
     return float((a[..., 3] > 0).mean()) >= min_alpha and float(a[..., :3].std()) >= 3.0
 
@@ -157,6 +173,15 @@ def crossfade(tag, case):
             bad_between.append(f"t={tt:.2f}s dA={da:.2f} dB={db:.2f}")
     for r in rows:
         print(f"      {tag}: {r}", flush=True)
+    if "lineTol" in case:
+        tol = float(case["lineTol"]); off = []
+        for tt, f in mids:
+            p, res = fit_line(f, a1, b1)
+            print(f"      {tag}: t={tt:.2f}s on-line fit p={p:.2f} residual={res:.2f}", flush=True)
+            if not (res <= tol and 0.02 < p < 0.98):
+                off.append(f"t={tt:.2f}s p={p:.2f} res={res:.2f}")
+        (ok if mids and not off else no)(
+            f"{tag}: {len(mids) - len(off)}/{len(mids)} mid frames ON the OUT->IN line (residual <= {tol}): {off[:3]}")
     if len(mids) < 4:
         no(f"{tag}: only {len(mids)} mid-transition frames captured (need >= 4)")
     elif bad_between:

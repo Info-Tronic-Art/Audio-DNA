@@ -1,0 +1,54 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/probes/parity.GQ3Lxy
+PASS  G1 PARITY-DOCUMENTS-GAP: /api/set_effect_chain has no dryWet field (Invert dry_wet=1.0, expected unchanged 1.0 default despite the request's "dryWet": 0.5 -- closest reachable path used instead)
+PASS  G1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 18.6) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 18.6) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 18.6) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 18.6) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 18.6) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  G1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 18.6) -- the GLOBAL EffectChain path (src/effects/EffectChain.cpp), not CompositorEngine
+PASS  V1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 0 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 1 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 2 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 3 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 4 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  REF1 frame 5 non-blank (alpha>0 frac 1.000, RGB std 29.2)
+PASS  V5 frame 0 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 1 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 2 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 3 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 4 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V5 frame 5 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 0 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 1 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 2 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 3 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 4 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  REF5 frame 5 non-blank (alpha>0 frac 1.000, RGB std 11.7)
+PASS  V6 frame 0 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 1 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 2 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 3 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 4 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  V6 frame 5 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 0 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 1 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 2 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 3 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 4 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  REF6 frame 5 non-blank (alpha>0 frac 1.000, RGB std 12.1)
+PASS  PARITY V1 vs single-chain REF1: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PASS  PARITY V5 vs single-chain REF5: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+PASS  PARITY V6 vs single-chain REF6: max mean |diff| 0.00 over 6 frame pairs (tol 1.0)
+
+PY 46 PASS / 0 FAIL
+PASS  app terminated
+
+PROBE-EFFECTS-PARITY GREEN
+lock released: yes rc=0

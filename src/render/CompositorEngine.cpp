@@ -255,7 +255,7 @@ GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile)
 GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& effects, GLuint inputTex,
                                             ShaderManager& shaderMgr, FullscreenQuad& quad,
                                             float time, int w, int h,
-                                            uint32_t layerId, GLuint holdTex)
+                                            uint64_t stateKey, GLuint holdTex)
 {
     if (effects.empty() || effectLibrary_ == nullptr)
         return inputTex;
@@ -268,6 +268,17 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         const auto* def = effectLibrary_->getEffectDef(juce::String(slot.effectName));
         if (def && def->temporal) { anyTemporal = true; break; }
     }
+
+    // s-rta-0926b render lane (R5): create/resize the temporal buffer HERE,
+    // before any pass binds its target. getOrCreateTemporalBuffer's createFBO
+    // rebinds GL_TEXTURE_2D on the active unit and leaves framebuffer 0 bound;
+    // called inside a pass (after the target FBO and u_texture were bound, as it
+    // used to be), the creation frame drew into framebuffer 0, sampled the new
+    // black buffer as u_texture, and the chain's result was only the target's
+    // glClear -- a fully transparent layer for one frame (measured: first Freeze
+    // frame on a fresh layer 0/663768 non-zero pixels instead of 0.5 x image).
+    // unordered_map element references stay valid across later insertions.
+    TemporalBuffer* tempBuf = anyTemporal ? &getOrCreateTemporalBuffer(stateKey, w, h) : nullptr;
 
     GLuint currentInput = inputTex;
     // s-rta-0926 xfade: every pass below renders into pickEffectTarget(
@@ -295,7 +306,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
         if (def->shaderName == "screen_split")
         {
             const ScratchTarget split = pickEffectTarget(currentInput, holdTex);
-            GLuint splitResult = applyScreenSplit(currentInput, slot, shaderMgr, quad, layerId, w, h,
+            GLuint splitResult = applyScreenSplit(currentInput, slot, shaderMgr, quad, stateKey, w, h,
                                                   split.fbo, split.tex);
             if (splitResult != 0 && splitResult != currentInput)
             {
@@ -311,7 +322,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
             float depthParam = (slot.paramValues.size() > 0) ? slot.effParam(0) : 0.3f;
             float stutterParam = (slot.paramValues.size() > 1) ? slot.effParam(1) : 0.0f;
 
-            auto& ring = getOrCreateRingBuffer(layerId, w, h);
+            auto& ring = getOrCreateRingBuffer(stateKey, w, h);
             pushFrameToRing(ring, currentInput, shaderMgr, quad, w, h);
 
             // depth: how far back to look. Map [0,1] to [1, 30] frames
@@ -366,14 +377,14 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
             glUniform1i(texLoc, 0);
 
         // Bind temporal previous frame (unit 1) for time effects (u_prev_frame)
-        if (def->temporal)
+        // -- the buffer was created before this pass bound anything (R5 above).
+        if (def->temporal && tempBuf != nullptr)
         {
-            auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
             auto prevLoc = program->getUniformIDFromName("u_prev_frame");
             if (prevLoc >= 0)
             {
                 glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, tempBuf.tex);
+                glBindTexture(GL_TEXTURE_2D, tempBuf->tex);
                 glUniform1i(prevLoc, 1);
                 glActiveTexture(GL_TEXTURE0);
             }
@@ -451,11 +462,8 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
     // which is FALSE for an even-length chain that starts on a pool texture
     // (layer chain [Invert, Freeze] fed by a one-effect clip chain: A -> B -> A)
     // -- the save was skipped and that chain's u_prev_frame never advanced.
-    if (anyTemporal && renderedAny)
-    {
-        auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
-        saveToTemporalBuffer(tempBuf, currentInput, shaderMgr, quad, w, h);
-    }
+    if (tempBuf != nullptr && renderedAny)
+        saveToTemporalBuffer(*tempBuf, currentInput, shaderMgr, quad, w, h);
 
     return currentInput;
 }
@@ -464,7 +472,7 @@ GLuint CompositorEngine::applyClipEffects(const std::vector<Clip::EffectSlot>& e
 
 GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
                                               ShaderManager& shaderMgr, FullscreenQuad& quad,
-                                              int w, int h)
+                                              int w, int h, GLuint holdTex)
 {
     constexpr float eps = 0.001f;
     // S-RTA-0923 LANE 3 C2: read through the connection twin (LiveValue,
@@ -492,8 +500,8 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
         auto* prog = shaderMgr.getProgram("layer_transform");
         if (prog != nullptr)
         {
-            // Pool target away from srcTex (nothing is held at this point).
-            const ScratchTarget xf = pickEffectTarget(srcTex, 0);
+            // Pool target away from srcTex and from anything the caller holds.
+            const ScratchTarget xf = pickEffectTarget(srcTex, holdTex);
             glBindFramebuffer(GL_FRAMEBUFFER, xf.fbo);
             glViewport(0, 0, w, h);
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -546,7 +554,7 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     // original (non-scratch) srcTex and the true no-op remains safe.
     // (s-rta-0926 xfade: applyClipEffects now picks its targets away from its
     // input itself, so this copy is belt-and-braces, kept unchanged.)
-    const ScratchTarget op = pickEffectTarget(transformedTex, 0);
+    const ScratchTarget op = pickEffectTarget(transformedTex, holdTex);
     return applyClipOpacity(effClipOpacity, transformedTex, op.fbo, op.tex,
                             shaderMgr, quad, w, h, /*forceCopy=*/needsTransform);
 }
@@ -658,7 +666,7 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
 
 // === FX Only layer (P13.5.2) ===
 
-void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
+void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer, uint64_t stateKey,
                                           ShaderManager& shaderMgr,
                                           FullscreenQuad& quad, float time, int w, int h)
 {
@@ -666,7 +674,7 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
         return;
 
     // Apply the clip's effects to the accumulator texture
-    GLuint result = applyClipEffects(clip.effects, accumulatorTex_, shaderMgr, quad, time, w, h, layer.id);
+    GLuint result = applyClipEffects(clip.effects, accumulatorTex_, shaderMgr, quad, time, w, h, stateKey);
 
     // S167-L4b: fold the clip's own opacity in here, the FX-Only layer's
     // constant-alpha blend -- owner's ruling is that master/layer/clip
@@ -775,6 +783,73 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 
 // === Deck/Layer-based compositing ===
 
+void CompositorEngine::advanceCrossfade(Layer& layer, float dt)
+{
+    // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
+    // `speed` here is actually a DURATION in seconds (transitionSpeed
+    // is a misleading name inherited from the model -- see its slider
+    // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
+    // seconds UI), so step = dt / duration is the frame-rate-
+    // independent progress increment: cumulative progress after real
+    // elapsed time T is T / duration, completing exactly at T ==
+    // duration regardless of callback rate. Real dt (function param),
+    // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
+    // Not gated on timeOverride_/`time`, same reasoning as
+    // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
+    // is persistent per-layer state (like previousClipColumn) that
+    // already advances every real GL callback regardless of
+    // deterministic test-capture mode, so there is no
+    // render_frame byte-identical-repeat contract covering it to
+    // preserve here either -- only the rate was wrong.
+    if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
+    {
+        float speed = layer.transitionSpeed;
+        if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
+        float step = dt / speed;
+        layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
+        if (layer.crossfadeProgress >= 1.0f)
+            layer.previousClipColumn = -1; // transition complete
+    }
+}
+
+GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,
+                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                           float time, float dt, int width, int height)
+{
+    // s-rta-0926b R2: this layer's state (temporal buffers, frame rings,
+    // feedback) is keyed by deck AND layer id -- layer ids repeat across decks.
+    const uint64_t clipKey = LayerStateKey::clipChain(deckId, layer.id);
+
+    // Apply per-clip transform (position, scale, rotation) + clip opacity
+    clipTex = applyClipTransform(clip, clipTex, shaderMgr, quad, width, height);
+
+    // P13.5.1: Apply per-clip effects
+    clipTex = applyClipEffects(clip.effects, clipTex, shaderMgr, quad, time, width, height, clipKey);
+
+    // P14: Apply clip-to-clip transition if crossfading. S167-L4b
+    // DT-FIX: real measured dt (function param) -- see
+    // compositeDeck()'s header comment.
+    clipTex = applyTransition(layer, clipKey, clipTex, time, shaderMgr, quad, width, height, dt);
+
+    // P16: Apply feedback (Larsen loop) if enabled
+    if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
+    {
+        auto& fbProc = getOrCreateFeedbackProcessor(clipKey);
+        clipTex = fbProc.process(clipTex, layer.feedback, shaderMgr, quad, width, height);
+    }
+
+    // Apply per-layer effects (same mechanism as per-clip effects)
+    if (!layer.layerEffects.empty())
+    {
+        // Own temporal/ring state (LayerStateKey::layerChain): never the clip chain's.
+        clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height,
+                                   LayerStateKey::layerChain(deckId, layer.id));
+    }
+
+    // P13.5.5: Apply layer transform
+    return applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
+}
+
 GLuint CompositorEngine::compositeDeck(Deck& deck,
                                         ShaderManager& shaderMgr,
                                         FullscreenQuad& quad,
@@ -831,31 +906,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
-        // P14: Advance crossfade progress each frame. S167-L4b DT-FIX:
-        // `speed` here is actually a DURATION in seconds (transitionSpeed
-        // is a misleading name inherited from the model -- see its slider
-        // wiring in LayerInspector.cpp/LayerStrip.cpp, both duration-in-
-        // seconds UI), so step = dt / duration is the frame-rate-
-        // independent progress increment: cumulative progress after real
-        // elapsed time T is T / duration, completing exactly at T ==
-        // duration regardless of callback rate. Real dt (function param),
-        // not a hardcoded 1/60 -- see compositeDeck()'s header comment.
-        // Not gated on timeOverride_/`time`, same reasoning as
-        // lastFrameTimestampMs_'s comment in Renderer.h: crossfadeProgress
-        // is persistent per-layer state (like previousClipColumn) that
-        // already advances every real GL callback regardless of
-        // deterministic test-capture mode, so there is no
-        // render_frame byte-identical-repeat contract covering it to
-        // preserve here either -- only the rate was wrong.
-        if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
-        {
-            float speed = layer.transitionSpeed;
-            if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
-            float step = dt / speed;
-            layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
-            if (layer.crossfadeProgress >= 1.0f)
-                layer.previousClipColumn = -1; // transition complete
-        }
+        advanceCrossfade(layer, dt);
 
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr)
@@ -890,38 +941,16 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 if (clipTex == 0)
                 {
                     if (clip->hasEffects())
-                        applyFXOnlyLayer(*clip, layer, shaderMgr, quad, time, width, height);
+                        applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                                         shaderMgr, quad, time, width, height);
                     continue;
                 }
 
-                // Apply per-clip transform (position, scale, rotation)
-                clipTex = applyClipTransform(*clip, clipTex, shaderMgr, quad, width, height);
-
-                // P13.5.1: Apply per-clip effects
-                clipTex = applyClipEffects(clip->effects, clipTex, shaderMgr, quad, time, width, height, layer.id);
-
-                // P14: Apply clip-to-clip transition if crossfading. S167-L4b
-                // DT-FIX: real measured dt (function param) -- see
-                // compositeDeck()'s header comment.
-                clipTex = applyTransition(layer, clipTex, time, shaderMgr, quad, width, height, dt);
-
-                // P16: Apply feedback (Larsen loop) if enabled
-                if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
-                {
-                    auto& fbProc = getOrCreateFeedbackProcessor(layer.id);
-                    clipTex = fbProc.process(clipTex, layer.feedback, shaderMgr, quad, width, height);
-                }
-
-                // Apply per-layer effects (same mechanism as per-clip effects)
-                if (!layer.layerEffects.empty())
-                {
-                    // Own temporal/ring state (kLayerChainStateBit): never the clip chain's.
-                    clipTex = applyClipEffects(layer.layerEffects, clipTex, shaderMgr, quad, time, width, height,
-                                               layer.id | kLayerChainStateBit);
-                }
-
-                // P13.5.5: Apply layer transform
-                clipTex = applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
+                // Clip transform + opacity, clip effects, transition, feedback,
+                // layer effects, layer transform (s-rta-0926b R4: shared with
+                // compositePersistentLayers).
+                clipTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+                                            time, dt, width, height);
 
                 // P20: Save layer output for Layer Router sources
                 saveLayerOutput(layer.id, clipTex, shaderMgr, quad, width, height);
@@ -974,7 +1003,8 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
             case Layer::Type::FXOnly:
             {
                 // P13.5.2: Apply clip's effects to the accumulator (with opacity)
-                applyFXOnlyLayer(*clip, layer, shaderMgr, quad, time, width, height);
+                applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                                 shaderMgr, quad, time, width, height);
                 break;
             }
             case Layer::Type::Mask:
@@ -1035,6 +1065,12 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         if (!layer.persistent || !layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
+        // s-rta-0926b R4: a persistent layer's crossfade keeps running while its
+        // deck is inactive, exactly as it would on the active deck (it used to
+        // freeze until the deck was active again, and the layer hard-cut to the
+        // incoming clip meanwhile).
+        advanceCrossfade(layer, dt);
+
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr)
             continue;
@@ -1064,10 +1100,16 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
 
         if (clipTex == 0) continue;
 
-        // Apply clip effects
-        GLuint processedTex = applyClipEffects(clip->effects, clipTex,
-                                                shaderMgr, quad, time, width, height,
-                                                layer.id);
+        // s-rta-0926b R4: the same per-layer stages as on the active deck
+        // (clip transform + opacity, clip effects, transition, feedback, layer
+        // effects, layer transform). It used to run only the clip effects.
+        // Still different from an active-deck layer, pending a ruling
+        // (.harmony/.reports/s-rta-0926b/render.md open_forks): an Opaque
+        // persistent layer blends over the active deck (the active-deck path
+        // clears the accumulator and applies layer opacity); no Layer Router
+        // output is saved; FX Only / Mask persistent layers are skipped above.
+        GLuint processedTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+                                                time, dt, width, height);
         if (processedTex == 0) processedTex = clipTex;
 
         // Keying for transparent layers
@@ -1092,10 +1134,10 @@ GLuint CompositorEngine::applyGlobalEffects(const std::vector<Clip::EffectSlot>&
         return inputTex;                // true no-op — matches applyClipEffects' own
                                         // early-return; no GL call issued either way
 
-    // kGlobalEffectsLayerId keeps this call's temporal buffer / screen-split
-    // ring buffer from aliasing a real layer's.
+    // LayerStateKey::kGlobalEffects keeps this call's temporal buffer /
+    // screen-split ring buffer from aliasing a real layer's.
     return applyClipEffects(globalEffects, inputTex, shaderMgr, quad, time, w, h,
-                            kGlobalEffectsLayerId);
+                            LayerStateKey::kGlobalEffects);
 }
 
 void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
@@ -1286,7 +1328,7 @@ juce::String CompositorEngine::getTransitionShaderName(Layer::MixMode mode)
 
 // === Phase 14: Transition rendering ===
 
-GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float time,
+GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t stateKey, GLuint newClipTex, float time,
                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
                                           int w, int h, float dt)
 {
@@ -1339,20 +1381,22 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
     if (prevTex == 0)
         return newClipTex;
 
-    // Apply previous clip's effects too -- never writing the held incoming result.
-    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, layer.id,
+    // s-rta-0926b render lane (R3): the outgoing clip goes through the SAME
+    // per-clip stages, in the same order, as it did while it was the active
+    // clip (compositeDeck: applyClipTransform = transform + clip opacity, then
+    // applyClipEffects). This used to run effects -> opacity with no transform:
+    // an outgoing clip with Position/Scale/Rotation snapped to identity for the
+    // whole crossfade (measured: every dissolve frame fit the UNSCALED clip,
+    // residual 0.09-0.13, vs 5.3-21.8 against the clip as it was shown), and an
+    // outgoing clip with opacity < 1 and a non-linear effect changed look at
+    // transition start (0.5 x invert(A) instead of invert(0.5 x A)). Neither
+    // pass writes the held incoming result.
+    prevTex = applyClipTransform(*prevClip, prevTex, shaderMgr, quad, w, h, /*holdTex=*/newClipTex);
+    // NOTE (s-rta-0926b open fork R1): this chain keys its temporal / ring state
+    // with the SAME key as the incoming clip's chain -- per-layer history,
+    // needs a design ruling (render.md, open_forks R1).
+    prevTex = applyClipEffects(prevClip->effects, prevTex, shaderMgr, quad, time, w, h, stateKey,
                                /*holdTex=*/newClipTex);
-
-    // S167-L4b: the outgoing clip keeps its OWN opacity through the
-    // crossfade too, not just the incoming one (baked above in
-    // applyClipTransform) -- same reasoning, see that function's comment.
-    // scratchFBO_/scratchTex_ aren't touched again until after this
-    // function returns (feedback/layer-effects/layer-transform/keying all
-    // come later in compositeDeck's per-layer sequence), so they're free
-    // here as scratch.
-    // S-RTA-0923 LANE 3 C2: eff() twin read (see applyClipTransform's comment).
-    prevTex = applyClipOpacity(prevClip->eff(ClipScalar::Opacity), prevTex, scratchFBO_, scratchTex_,
-                               shaderMgr, quad, w, h);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
     juce::String shaderName = getTransitionShaderName(layer.transitionMode);
@@ -1418,21 +1462,21 @@ void CompositorEngine::updateFeedbackBuffer(ShaderManager& shaderMgr, Fullscreen
     feedbackReady_ = true;
 }
 
-FeedbackProcessor& CompositorEngine::getOrCreateFeedbackProcessor(uint32_t layerId)
+FeedbackProcessor& CompositorEngine::getOrCreateFeedbackProcessor(uint64_t stateKey)
 {
-    auto it = feedbackProcessors_.find(layerId);
+    auto it = feedbackProcessors_.find(stateKey);
     if (it != feedbackProcessors_.end())
         return *it->second;
 
     auto proc = std::make_unique<FeedbackProcessor>();
     auto& ref = *proc;
-    feedbackProcessors_[layerId] = std::move(proc);
+    feedbackProcessors_[stateKey] = std::move(proc);
     return ref;
 }
 
-CompositorEngine::TemporalBuffer& CompositorEngine::getOrCreateTemporalBuffer(uint32_t layerId, int w, int h)
+CompositorEngine::TemporalBuffer& CompositorEngine::getOrCreateTemporalBuffer(uint64_t stateKey, int w, int h)
 {
-    auto& buf = layerTemporalBuffers_[layerId];
+    auto& buf = layerTemporalBuffers_[stateKey];
     if (buf.tex != 0 && buf.width == w && buf.height == h)
         return buf;
 
@@ -1472,12 +1516,12 @@ void CompositorEngine::saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
 
 // === Frame Ring Buffer for Screen Split ===
 
-CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint32_t layerId, int w, int h)
+CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint64_t stateKey, int w, int h)
 {
     int rw = std::max(1, w / kRingDownscale);
     int rh = std::max(1, h / kRingDownscale);
 
-    auto& ring = layerRingBuffers_[layerId];
+    auto& ring = layerRingBuffers_[stateKey];
     if (ring.initialized && ring.ringWidth == rw && ring.ringHeight == rh)
         return ring;
 
@@ -1552,7 +1596,7 @@ GLuint CompositorEngine::getFrameFromRing(const FrameRingBuffer& ring, int frame
 
 GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot& slot,
                                            ShaderManager& shaderMgr, FullscreenQuad& quad,
-                                           uint32_t layerId, int w, int h,
+                                           uint64_t stateKey, int w, int h,
                                            GLuint dstFBO, GLuint dstTex)
 {
     if (effectLibrary_ == nullptr) return clipTex;
@@ -1573,7 +1617,7 @@ GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot
     int framesPerCell = static_cast<int>(std::round(60.0f * delayParam));
 
     // Get or create ring buffer, push current frame
-    auto& ring = getOrCreateRingBuffer(layerId, w, h);
+    auto& ring = getOrCreateRingBuffer(stateKey, w, h);
     pushFrameToRing(ring, clipTex, shaderMgr, quad, w, h);
 
     // Render the grid into the caller's pool target (picked away from clipTex

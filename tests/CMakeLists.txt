@@ -109,6 +109,39 @@ target_link_libraries(test_scratch_pool PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_scratch_pool)
 catch_discover_tests(test_scratch_pool)
 
+# --- test_layer_state_key (s-rta-0926b render R2: a layer's temporal buffer /
+# frame ring / feedback state is keyed by deck AND layer id -- layer ids repeat
+# across decks). Tests the REAL key function (render/LayerStateKey.h, pure, no
+# GL) against decks built by the real Deck::initDefault; the GL call sites are
+# covered live by .harmony/probe-render-state.sh.
+add_executable(test_layer_state_key
+    test_layer_state_key.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_state_key PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_state_key PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_layer_state_key PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_state_key PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_state_key)
+catch_discover_tests(test_layer_state_key)
+
 # --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
 # composition-tier oracle endpoints in src/test/TestServer.cpp — see the
 # file header for exact scope). Headless: bare Composition + EffectLibrary,

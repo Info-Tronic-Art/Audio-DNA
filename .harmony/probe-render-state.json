@@ -1,0 +1,33 @@
+{
+  "_doc": "Fixtures for .harmony/probe-render-state.sh (s-rta-0926b render lane, R2/R4/R5). @MEDIA@ is replaced at run time with the checkout's media/ dir. Effects are [name, param...]. Thresholds and calibration: docstring of .harmony/probe-render-state.py.",
+  "imageA": "@MEDIA@/P16_01_baseline.png",
+  "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
+  "tol": 1.5,
+  "r2": {
+    "_why": "deck 0 (active) layer id 0 = A + fx; deck 1 layer id 0 (persistent, Opaque/Normal, covers the frame) = B + fx. The persistent layer must not share temporal/ring state with the active deck's layer of the same id: subject == reference (same composition, active layer without the effect)",
+    "temporal": { "fx": [ ["Freeze", 0.5] ] },
+    "ring":     { "fx": [ ["Frame Stutter", 0.0, 0.0] ] }
+  },
+  "r4": {
+    "_why": "base = deck 0 layer id 0 Opaque = A; subject layer id 5 Transparent (Normal, Alpha key) = B + one stage. The subject PERSISTENT on deck 1 must render like the same layer as a NORMAL layer on deck 0",
+    "clip_transform":  { "clip": { "scale": 0.5 } },
+    "clip_opacity":    { "clip": { "clipOpacity": 0.5 } },
+    "layer_effects":   { "layer": { "layerEffects": [ ["Invert", 1.0] ] } },
+    "layer_transform": { "layer": { "layerScale": 0.5 } },
+    "feedback":        { "layer": { "feedbackEnabled": true, "feedbackAmount": 0.6, "feedbackScaleX": 0.97, "feedbackScaleY": 0.97 } }
+  },
+  "r4_transition": {
+    "_why": "deck 1 persistent layer id 5 (Transparent), OUT = A, IN = B, Dissolve over T s. Trigger IN on deck 1, leave the deck 0.3 s later: the crossfade must keep running on the persistent layer",
+    "T": 8.0
+  },
+  "r5_hold": {
+    "_why": "layer id 91 (fresh this run), col 0 = A, col 1 = A + [Screen Split, Freeze 1.0]. Freeze 1.0 outputs its history; a fresh history is cleared to transparent black. Creating it INSIDE the Freeze pass left the pass target holding only its glClear (Screen Split's grey) and that became the held history",
+    "layerId": 91,
+    "fx": [ ["Screen Split", 0.15, 0.15, 0.25, 0.0], ["Freeze", 1.0] ]
+  },
+  "r5_burst": {
+    "_why": "fresh layer ids, col 0 = A, col 1 = A + [Freeze 0.5]; back-to-back captures across the switch. No frame after the switch may be blank (the creation frame used to be fully transparent)",
+    "layerIds": [ 81, 82, 83, 84, 85 ],
+    "fx": [ ["Freeze", 0.5] ]
+  }
+}

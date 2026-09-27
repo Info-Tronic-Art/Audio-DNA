@@ -1,0 +1,54 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/probes/xfade.p5s1IR
+      k_outgoing_transform: d(A,B)=21.26 noise=0.00 FLOOR=1.00
+      k_outgoing_transform: t=0.48s dA=21.12 dB=26.44 p=0.99
+      k_outgoing_transform: t=0.81s dA=21.09 dB=24.01 p=0.99
+      k_outgoing_transform: t=1.13s dA=21.07 dB=21.64 p=0.99
+      k_outgoing_transform: t=1.46s dA=21.05 dB=19.29 p=0.99
+      k_outgoing_transform: t=1.79s dA=21.04 dB=16.91 p=0.99
+      k_outgoing_transform: t=2.12s dA=21.14 dB=14.35 p=0.99
+      k_outgoing_transform: t=2.45s dA=21.12 dB=11.92 p=0.99
+      k_outgoing_transform: t=2.78s dA=21.11 dB=9.53 p=0.99
+      k_outgoing_transform: t=3.10s dA=21.11 dB=7.21 p=0.99
+      k_outgoing_transform: t=0.48s on-line fit p=0.42 residual=21.08
+      k_outgoing_transform: t=0.81s on-line fit p=0.47 residual=19.15
+      k_outgoing_transform: t=1.13s on-line fit p=0.52 residual=17.26
+      k_outgoing_transform: t=1.46s on-line fit p=0.58 residual=15.39
+      k_outgoing_transform: t=1.79s on-line fit p=0.63 residual=13.49
+      k_outgoing_transform: t=2.12s on-line fit p=0.68 residual=11.44
+      k_outgoing_transform: t=2.45s on-line fit p=0.74 residual=9.51
+      k_outgoing_transform: t=2.78s on-line fit p=0.79 residual=7.60
+      k_outgoing_transform: t=3.10s on-line fit p=0.84 residual=5.76
+FAIL  k_outgoing_transform: 0/9 mid frames ON the OUT->IN line (residual <= 1.0): ['t=0.48s p=0.42 res=21.08', 't=0.81s p=0.47 res=19.15', 't=1.13s p=0.52 res=17.26']
+FAIL  k_outgoing_transform: 9/9 mid frames NOT between OUT and IN: ['t=0.48s dA=21.12 dB=26.44', 't=0.81s dA=21.09 dB=24.01', 't=1.13s dA=21.07 dB=21.64']
+FAIL  k_outgoing_transform: progress wrong (p=[0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0.99])
+PASS  k_outgoing_transform: final frame matches IN (d=0.00, floor 1.00)
+      l_outgoing_opacity_effect: d(A,B)=225.58 noise=0.00 FLOOR=1.00
+      l_outgoing_opacity_effect: t=0.48s dA=136.13 dB=99.44 p=0.60
+      l_outgoing_opacity_effect: t=0.80s dA=144.00 dB=90.66 p=0.64
+      l_outgoing_opacity_effect: t=1.14s dA=152.35 dB=81.38 p=0.68
+      l_outgoing_opacity_effect: t=1.46s dA=160.09 dB=72.73 p=0.71
+      l_outgoing_opacity_effect: t=1.79s dA=168.53 dB=63.35 p=0.75
+      l_outgoing_opacity_effect: t=2.12s dA=176.29 dB=54.66 p=0.78
+      l_outgoing_opacity_effect: t=2.45s dA=184.62 dB=45.41 p=0.82
+      l_outgoing_opacity_effect: t=2.78s dA=192.37 dB=36.75 p=0.85
+      l_outgoing_opacity_effect: t=3.10s dA=200.84 dB=27.33 p=0.89
+      l_outgoing_opacity_effect: t=0.48s on-line fit p=0.57 residual=15.80
+      l_outgoing_opacity_effect: t=0.80s on-line fit p=0.61 residual=14.57
+      l_outgoing_opacity_effect: t=1.14s on-line fit p=0.65 residual=12.95
+      l_outgoing_opacity_effect: t=1.46s on-line fit p=0.69 residual=11.62
+      l_outgoing_opacity_effect: t=1.79s on-line fit p=0.73 residual=10.16
+      l_outgoing_opacity_effect: t=2.12s on-line fit p=0.76 residual=8.84
+      l_outgoing_opacity_effect: t=2.45s on-line fit p=0.80 residual=7.23
+      l_outgoing_opacity_effect: t=2.78s on-line fit p=0.84 residual=5.87
+      l_outgoing_opacity_effect: t=3.10s on-line fit p=0.88 residual=4.42
+FAIL  l_outgoing_opacity_effect: 0/9 mid frames ON the OUT->IN line (residual <= 1.0): ['t=0.48s p=0.57 res=15.80', 't=0.80s p=0.61 res=14.57', 't=1.14s p=0.65 res=12.95']
+PASS  l_outgoing_opacity_effect: 9/9 mid frames strictly between OUT and IN
+PASS  l_outgoing_opacity_effect: progress moves toward IN (0.60 -> 0.89)
+PASS  l_outgoing_opacity_effect: final frame matches IN (d=0.00, floor 1.00)
+
+PY 4 PASS / 4 FAIL
+PASS  app terminated
+
+PROBE-CROSSFADE RED
+lock released: yes rc=1
