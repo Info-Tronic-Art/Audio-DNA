@@ -34,6 +34,39 @@ namespace
     // LayerStrip::mouseDown is private; it overrides juce::Component::mouseDown (public, virtual).
     void press(LayerStrip& strip, const juce::MouseEvent& e) { static_cast<juce::Component&>(strip).mouseDown(e); }
 
+    // The routine cue's hue family (s-rta-0927 fix round): 68..100 degrees, saturated -- chartreuse.
+    bool isRoutineCueHue(juce::Colour c)
+    {
+        const float hueDeg = c.getHue() * 360.0f;
+        return hueDeg >= 68.0f && hueDeg <= 100.0f && c.getSaturation() > 0.5f;
+    }
+
+    int cuePixels(const juce::Image& img, juce::Rectangle<int> area)
+    {
+        int n = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+            {
+                const auto c = img.getPixelAt(x, y);
+                if (c.getAlpha() > 20 && c.getBrightness() > 0.4f && isRoutineCueHue(c))
+                    ++n;
+            }
+        return n;
+    }
+
+    int accentCyanPixels(const juce::Image& img, juce::Rectangle<int> area)   // the app's kAccentCyan family
+    {
+        int n = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+            {
+                const auto c = img.getPixelAt(x, y);
+                if (c.getAlpha() > 20 && c.getRed() < 90 && c.getGreen() > 140 && c.getBlue() > 160)
+                    ++n;
+            }
+        return n;
+    }
+
     RoutineDeckView::Band band(int slot, const char* name, RoutineDeckView::State st = RoutineDeckView::State::Playing)
     {
         RoutineDeckView::Band b;
@@ -111,7 +144,10 @@ TEST_CASE("LayerStrip: the V fill is cyan only while a lane-rank hand grips opac
     grip.rank = static_cast<uint8_t>(Hand::Lane);   // a routine's (or a replay's) hand
     strip.syncFromModel();
     REQUIRE(v->isColourSpecified(juce::Slider::trackColourId));
-    CHECK(v->findColour(juce::Slider::trackColourId) == juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    // s-rta-0927 fix round (critic MUST): the routine cue is its own hue -- chartreuse, the 60-120 degree band no
+    // other UI element uses -- never the app-wide accent cyan every mapped knob and Mod macro already wears.
+    CHECK(isRoutineCueHue(v->findColour(juce::Slider::trackColourId)));
+    CHECK(v->findColour(juce::Slider::trackColourId) != juce::Colour(AudioDNALookAndFeel::kAccentCyan));
 
     grip.rank = static_cast<uint8_t>(Hand::HumanHeld);   // a human hand: no routine cue
     strip.syncFromModel();
@@ -184,4 +220,25 @@ TEST_CASE("LayerStrip: a routine band's x removes that routine; the rest of the 
         press(strip, leftPressAt(strip, { 212.0f, 8.0f }));
         CHECK(removed.size() == 2);
     }
+}
+
+TEST_CASE("LayerStrip: a playing band's name is painted in the routine cue hue, never the accent cyan", "[layerstrip][routine][cue]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Layer layer;
+    LayerStrip strip;
+    strip.setLayer(&layer, 0);
+    strip.setSize(250, 96);
+    strip.setVisible(true);   // Pitfall 34
+    const auto nameArea = juce::Rectangle<int>(147, 0, 57, 16);   // band 0, left of its x (thumbnail x 144..220)
+
+    const auto without = strip.createComponentSnapshot(strip.getLocalBounds(), true, 1.0f);
+    strip.setRoutineBands({ band(0, "Drop") });
+    const auto with = strip.createComponentSnapshot(strip.getLocalBounds(), true, 1.0f);
+
+    INFO("band name: cue " << cuePixels(with, nameArea) << " (without " << cuePixels(without, nameArea)
+         << "), accent cyan " << accentCyanPixels(with, nameArea));
+    CHECK(cuePixels(with, nameArea) >= 10);
+    CHECK(cuePixels(without, nameArea) == 0);
+    CHECK(accentCyanPixels(with, nameArea) == 0);
 }

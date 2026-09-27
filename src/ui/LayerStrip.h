@@ -40,7 +40,7 @@ public:
 
     // s-rta-0927 routine display (plan-routine-display-A.md 2.5): pull the V fader (opacity; eff() when
     // connected) and the S fader (the active clip's speed) from the model -- a routine, REST, MIDI or OSC
-    // write moves them -- skipping a fader under the mouse; the V fill turns cyan while a lane-rank hand
+    // write moves them -- skipping a fader under the mouse; the V fill turns kRoutineCue while a lane-rank hand
     // (a routine or a take replay) grips opacity. Called by the strip's own 30 Hz timer; public for tests.
     void syncFromModel();
 

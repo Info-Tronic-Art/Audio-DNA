@@ -1,6 +1,6 @@
 #include "ui/LayerStrip.h"
 #include "connect/ConnClock.h"
-#include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's cyan cue reads)
+#include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's routine cue reads)
 #include <algorithm>
 #include <cmath>
 
@@ -123,7 +123,7 @@ public:
         float fillHeight = bounds.getBottom() - sliderPos;
         if (fillHeight > 0.0f)
         {
-            // s-rta-0927: the strip sets trackColourId (cyan) while a routine's hand grips opacity.
+            // s-rta-0927: the strip sets trackColourId (kRoutineCue) while a routine's hand grips opacity.
             g.setColour(slider.isColourSpecified(juce::Slider::trackColourId)
                             ? slider.findColour(juce::Slider::trackColourId)
                             : juce::Colour(0xff4a7a6a));
@@ -756,13 +756,13 @@ void LayerStrip::syncFromModel()
             opacitySlider_.setValue(shown, juce::dontSendNotification);   // never fires onValueChange: no grip, no write
     }
 
-    // The routine cue: cyan while a lane-rank hand (a routine or a take replay) holds opacity.
+    // The routine cue (kRoutineCue) while a lane-rank hand (a routine or a take replay) holds opacity.
     const bool laneGrip = conn.grip.kind != ParamConnection::Grip::Kind::None
                        && conn.grip.rank == static_cast<uint8_t>(Hand::Lane);
     if (laneGrip != opacitySlider_.isColourSpecified(juce::Slider::trackColourId))
     {
         if (laneGrip)
-            opacitySlider_.setColour(juce::Slider::trackColourId, juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+            opacitySlider_.setColour(juce::Slider::trackColourId, juce::Colour(AudioDNALookAndFeel::kRoutineCue));
         else
             opacitySlider_.removeColour(juce::Slider::trackColourId);
         opacitySlider_.repaint();
@@ -821,7 +821,7 @@ void LayerStrip::paintRoutineBands(juce::Graphics& g)
             g.fillRect(b.getX(), b.getY(), b.getWidth(), 1);
         }
 
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kRoutineCue));
         g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
         g.drawText(band.name, juce::Rectangle<int>(b.getX() + 3, b.getY(), b.getWidth() - 3 - kBandHeight, b.getHeight()),
                    juce::Justification::centredLeft, true);

@@ -14,6 +14,22 @@
 
 namespace
 {
+    // s-rta-0927 fix round (critic MUST): the routine cue is chartreuse -- 68..100 degrees, saturated; the
+    // 60-120 degree band no other UI element uses -- never the accent cyan every mapped knob already wears.
+    int cuePixels(const juce::Image& img, juce::Rectangle<int> area)
+    {
+        int n = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+            {
+                const auto c = img.getPixelAt(x, y);
+                const float hueDeg = c.getHue() * 360.0f;
+                if (c.getAlpha() > 20 && c.getBrightness() > 0.4f && c.getSaturation() > 0.5f
+                    && hueDeg >= 68.0f && hueDeg <= 100.0f)
+                    ++n;
+            }
+        return n;
+    }
     // Pixels in `area` whose colour is cyan-dominant (the app's kAccentCyan #00e5ff family, any alpha > 0).
     int cyanPixels(const juce::Image& img, juce::Rectangle<int> area)
     {
@@ -48,9 +64,9 @@ namespace
         c.setSize(260, 24);
         c.setVisible(true);   // Pitfall 34
         c.bindConnection(&conn, &live);
-        c.setParamValue(0.62f);
         conn.grip.kind = kind;
         conn.grip.rank = rank;
+        c.setParamValue(0.62f);   // the inspector's 10 Hz refresh, after the hand took the control
         c.repaint();
         auto img = c.createComponentSnapshot(c.getLocalBounds(), true, 1.0f);
         conn.grip.kind = ParamConnection::Grip::Kind::None;   // never leave a grip for the destructor's release
@@ -59,7 +75,7 @@ namespace
     }
 }
 
-TEST_CASE("UniversalParamControl: a routine's (lane-rank) hand paints the digits cyan and ROUTINE in the hint slot", "[paramcontrol][routine][cue]")
+TEST_CASE("UniversalParamControl: a routine's (lane-rank) hand paints the digits in the routine cue and ROUTINE in the hint slot", "[paramcontrol][routine][cue]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     ParamConnection conn;
@@ -71,21 +87,30 @@ TEST_CASE("UniversalParamControl: a routine's (lane-rank) hand paints the digits
     const auto human = render(conn, live, static_cast<uint8_t>(Hand::HumanHeld), ParamConnection::Grip::Kind::Held);
     const auto none = render(conn, live, 0, ParamConnection::Grip::Kind::None);
 
-    INFO("digits cyan: lane " << cyanPixels(lane, digits) << ", human " << cyanPixels(human, digits)
-         << ", none " << cyanPixels(none, digits) << "; hint cyan: lane " << cyanPixels(lane, hint)
-         << ", human " << cyanPixels(human, hint) << ", none " << cyanPixels(none, hint));
-    CHECK(cyanPixels(lane, digits) >= 10);        // the value in cyan
-    CHECK(cyanPixels(human, digits) == 0);        // a human hand: the digits stay kTextPrimary
+    const auto whole = lane.getBounds();
+    INFO("digits cue: lane " << cuePixels(lane, digits) << ", human " << cuePixels(human, digits)
+         << ", none " << cuePixels(none, digits) << "; hint cue: lane " << cuePixels(lane, hint)
+         << ", human " << cuePixels(human, hint) << ", none " << cuePixels(none, hint)
+         << "; whole-row accent cyan: lane " << cyanPixels(lane, whole) << ", none " << cyanPixels(none, whole)
+         << "; whole-row cue: lane " << cuePixels(lane, whole));
+    CHECK(cuePixels(lane, digits) >= 10);         // the value in the routine cue
+    CHECK(cyanPixels(lane, digits) == 0);         // ... never the accent cyan a mapped knob wears
+    CHECK(cuePixels(human, digits) == 0);         // a human hand: the digits stay kTextPrimary
     CHECK(greyTextPixels(human, digits) >= 10);
-    CHECK(cyanPixels(none, digits) == 0);
-    CHECK(cyanPixels(lane, hint) > cyanPixels(none, hint) + 5);   // "ROUTINE" in the hint slot
-    CHECK(cyanPixels(human, hint) == cyanPixels(none, hint));
+    CHECK(cuePixels(none, digits) == 0);
+    CHECK(cuePixels(lane, hint) > cuePixels(none, hint) + 5);   // "ROUTINE" in the hint slot
+    CHECK(cuePixels(human, hint) == cuePixels(none, hint));
+    // The whole row under a routine's hand carries no accent cyan at all (the slider's thumb follows the cue);
+    // without one the thumb is the ordinary accent cyan.
+    CHECK(cyanPixels(none, whole) > 0);
+    CHECK(cyanPixels(lane, whole) == 0);
+    CHECK(cuePixels(lane, whole) > cuePixels(lane, digits) + cuePixels(lane, hint));
 
     SECTION("a decaying lane grip lights it too; a decaying human grip does not")
     {
         const auto laneDecay = render(conn, live, static_cast<uint8_t>(Hand::Lane), ParamConnection::Grip::Kind::Decaying);
         const auto humanDecay = render(conn, live, static_cast<uint8_t>(Hand::HumanDecaying), ParamConnection::Grip::Kind::Decaying);
-        CHECK(cyanPixels(laneDecay, digits) >= 10);
-        CHECK(cyanPixels(humanDecay, digits) == 0);
+        CHECK(cuePixels(laneDecay, digits) >= 10);
+        CHECK(cuePixels(humanDecay, digits) == 0);
     }
 }

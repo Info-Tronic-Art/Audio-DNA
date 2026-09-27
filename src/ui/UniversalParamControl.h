@@ -164,6 +164,8 @@ private:
     void handleSourcePickerResult(int result);
     void updateValueDisplay();
     void drawSignalTriangle(juce::Graphics& g, juce::Rectangle<float> area, bool connected);
+    // s-rta-0927: a lane-rank hand (a routine, or a take replay -- the cue is rank-based) holds the bound control.
+    bool routineHandHolds() const;
 
     juce::String paramName_ = "Parameter";
     float currentValue_ = 0.5f;
