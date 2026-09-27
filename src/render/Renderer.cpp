@@ -2103,12 +2103,23 @@ void Renderer::processPendingCapture()
         return;
     }
 
+    // s-rta-0927 plan-renderperf C0: the capture's cost is invisible to the frame timer (it runs after renderEnd),
+    // so the success line carries its own split: read (glReadPixels), convert (rows -> juce::Image), png (encode +
+    // write). Appended after "(WxH)" -- every probe greps the "Captured frame: <path>" prefix.
+    using CaptureClock = std::chrono::steady_clock;
+    const auto msSince = [](CaptureClock::time_point t) {
+        return std::chrono::duration<double, std::milli>(CaptureClock::now() - t).count();
+    };
+
     // Read pixels from the canvas
+    auto tRead = CaptureClock::now();
     std::vector<uint8_t> pixels(static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
     glReadPixels(0, 0, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    const double readMs = msSince(tRead);
 
     // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left)
+    auto tConvert = CaptureClock::now();
     juce::Image img(juce::Image::ARGB, readW, readH, false);
     {
         juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
@@ -2127,7 +2138,10 @@ void Renderer::processPendingCapture()
         }
     }
 
+    const double convertMs = msSince(tConvert);
+
     // Write PNG
+    auto tPng = CaptureClock::now();
     captureOutputPath_.getParentDirectory().createDirectory();
     juce::FileOutputStream fos(captureOutputPath_);
     bool ok = false;
@@ -2136,10 +2150,13 @@ void Renderer::processPendingCapture()
         juce::PNGImageFormat pngFormat;
         ok = pngFormat.writeImageToStream(img, fos);
     }
+    const double pngMs = msSince(tPng);
 
     if (ok)
         std::cerr << "[Eyes] Captured frame: " << captureOutputPath_.getFullPathName()
-                  << " (" << readW << "x" << readH << ")" << std::endl;
+                  << " (" << readW << "x" << readH << ")"
+                  << " read=" << juce::String(readMs, 1) << " convert=" << juce::String(convertMs, 1)
+                  << " png=" << juce::String(pngMs, 1) << " ms" << std::endl;
     else
         std::cerr << "[Eyes] Failed to write PNG: " << captureOutputPath_.getFullPathName() << std::endl;
 
