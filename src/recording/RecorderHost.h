@@ -148,7 +148,8 @@ public:
     // overdubbing (5.2 formula); (2) while recording: drain tap.popGap into facts (5.6 #2), onset
     // marker if armed and snap.onsetDetected, synthesize an exact end for any Decaying gesture idle
     // longer than the armed gripHoldMs (N7), periodic save every kCheckpointSeconds of clock t
-    // (5.6 #1); (3) while playing: pos = wall or first + asset-frame(transportFrames, 5.2 formula);
+    // (5.6 #1) OR ONE early save as soon as the clock's tempo becomes metered, whichever comes
+    // first (s-rta-0926b tempomap gap, earlyTempoSaved_); (3) while playing: pos = wall or first + asset-frame(transportFrames, 5.2 formula);
     // player.advanceTo(pos) unless finished; pos >= playEndPos_ -> Player::stop, finished latched,
     // published, then dispatch.replayFinished() (s-rta-0925 "hold, don't stop"); (4) publish Status
     // under the mutex.
@@ -316,6 +317,13 @@ private:
     double armedDeviceRate_ = 0.0;
     int armedDeviceChannels_ = 0;
     double lastCheckpointT_ = 0.0;
+    // s-rta-0926b tempomap gap: the provisional save at arm() has no tempo yet (the clock hasn't
+    // ticked), so a crash before the first periodic save (kCheckpointSeconds = 60 s) recovers a
+    // take with an empty tempoMap and Routines refuses it ("no beat grid"). Set false at arm();
+    // tick() saves once, as soon as the clock reports a METERED tempo (bpm > 0) -- Manual BPM: the
+    // very first tick (bpm is already set at arm); detected BPM: whichever tick the tracker locks
+    // -- independent of the 60 s periodic cadence. Never re-armed mid-take (one early save only).
+    bool earlyTempoSaved_ = false;
     std::optional<AudioAsset> overdubAsset_;
     std::string lastError_;
     std::string lastFinalizeError_;   // s-rta-0924b: Status::lastFinalizeError (cleared at arm)
