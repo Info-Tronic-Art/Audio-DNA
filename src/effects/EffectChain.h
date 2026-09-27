@@ -150,12 +150,14 @@ private:
     // against ANY writer: message-thread UI (EffectsRackPanel toggle/knob
     // callbacks), HTTP writes (ApiServer/TestServer set_param/
     // set_effect_chain, now marshalled to the message thread but still
-    // unsynchronized against either GL-thread reader), and MappingEngine's
+    // unsynchronized against the GL-thread reader), and MappingEngine's
     // audio-reactive writes. This is a real, pre-existing, narrower-severity
-    // race (scalar tearing, not container corruption) — now doubled by the
-    // second reader, deliberately NOT folded into this fix. Extending
+    // race (scalar tearing, not container corruption) — was doubled while
+    // OutputWindow's second reader was live; now a single-reader-vs-writers
+    // race since that reader's retirement (outputs-c1) — deliberately NOT
+    // folded into this fix. Extending
     // effectsMutex_ to cover per-field access would mean holding it through
-    // render()'s whole uniform-upload loop on BOTH GL threads (a real GL
+    // render()'s whole uniform-upload loop on the GL thread (a real GL
     // hot-path cost, unlike the narrow scan this mutex currently guards) and
     // would need every UI/API writer updated too — a bigger design pass
     // (atomics per field, or a snapshot/double-buffer scheme matching the
