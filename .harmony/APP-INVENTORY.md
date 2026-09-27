@@ -157,7 +157,7 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 | 8 | POST | /api/set_master_signal | Master Signal depth (s-rta-0925 mastersignal Step 1), via manualWrite(compScalarPath("signal")) |
 | 9 | POST | /api/switch_deck | onSwitchDeck(deck) |
 | 10 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
-| 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, downbeatDetected (level) |
+| 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, resyncBarOrigin, totalBeatCount (s-rta-0927 beat clock), downbeatDetected (level) |
 | 12 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
 | 13 | POST | /api/resync | manual Resync via `BPMTracker::requestResync()` (s-rta-0925), same funnel as the TopBar Resync button |
 | 14 | GET | /api/features | full FeatureSnapshot dump (incl. monotonic onsetCount) |

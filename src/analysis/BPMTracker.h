@@ -114,6 +114,8 @@ public:
     // never zeroed by a structural reset, a manual Resync (applyResync), or
     // the no-lock branch of updatePhrase(). See totalBarCount_ for the full rationale.
     uint32_t totalBarCount()    const { return totalBarCount_; }
+    // s-rta-0927 beat clock: whole beats completed since construction -- see totalBeatCount_.
+    uint32_t totalBeatCount()   const { return totalBeatCount_; }
     float    phrasePhase()      const { return phrasePhase_; }
     int      phraseBars()       const { return phraseBars_; }
 
@@ -263,6 +265,11 @@ private:
     // (e.g. OscillatorSignal via FeatureSnapshot::totalBarCount) read this
     // instead of barCount_.
     uint32_t totalBarCount_ = 0;
+    // s-rta-0927 beat clock (FeatureSnapshot::totalBeatCount): +1 per phase_ wrap in updatePhase(), +1 for a
+    // hard realign to phase 0 (realignPhaseToZero: confident detection, Resync, Tap, resetBeatPhase) from the
+    // SECOND half of a beat (the beat is completed), +0 from the first half (the beat restarts). A tempo VALUE
+    // (followExternalTempo) and the unlocked branch never touch it. Never reset, never rewound.
+    uint32_t totalBeatCount_ = 0;
     float    phrasePhase_ = 0.0f;      // [0, 1) sawtooth over N bars
     int      phraseBars_ = kDefaultPhraseBars; // configurable phrase length
     bool     prevDownbeatDetected_ = false;    // edge detection for bar counting
@@ -311,6 +318,9 @@ private:
 
     // Update the free-running beat phase
     void updatePhase(bool beat, float conf);
+
+    // s-rta-0927 beat clock: THE hard realign to phase 0 -- counts the beat when it is completed (phase_ >= 0.5).
+    void realignPhaseToZero();
 
     // Advance beatInBar_/beatCounter_/downbeatDetected_ off a predicted phase
     // wrap when a real onset cannot arrive -- see predictedBeatRegime_.

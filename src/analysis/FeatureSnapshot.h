@@ -125,6 +125,17 @@ struct alignas(64) FeatureSnapshot
     // stays monotonic (S168) for every counter-diffing consumer.
     uint32_t resyncBarOrigin = 0;
 
+    // s-rta-0927 beat clock: whole beats the tracker has completed since AnalysisThread started -- one per
+    // beatPhase wrap, plus one for a realign (Tap / Resync / confident detection) that lands in the SECOND
+    // half of a beat (the beat came early and is completed; a realign in the first half restarts the beat
+    // and adds nothing). Never reset, never rewound. A tempo VALUE (typed, REST/OSC set_bpm, Link, a
+    // replayed value) changes only the rate (s-rta-0926b ruling b). totalBeatCount + beatPhase is
+    // continuous beat time with no wrap to detect: a message-thread reader integrates it and loses nothing
+    // across a tick gap of any length or an analysis catch-up burst (RecorderClock). Reading beatPhase
+    // wraps at 120 Hz misreads any gap longer than half a beat (Pitfall 42). Written only by BPMTracker on
+    // the analysis thread; published every hop; /api/bpm publishes it next to totalBarCount.
+    uint32_t totalBeatCount = 0;
+
     // Bars elapsed since the last manual Resync (== totalBarCount before the first one). The one
     // fold input for OscillatorSignal / EnvelopeSignal / ConnectionShaper::beatsNow. Guarded so a
     // contradictory injected snapshot (origin > count) reads 0 bars, never a wrapped ~4e9.
@@ -164,6 +175,10 @@ static_assert(offsetof(FeatureSnapshot, resyncBarOrigin) == 320,
               "resyncBarOrigin must immediately follow onsetCount (offset 316 + 4 bytes) -- if "
               "this fails, a field was inserted/resized somewhere above and the layout needs "
               "re-auditing, not just re-numbering this constant");
+static_assert(offsetof(FeatureSnapshot, totalBeatCount) == 324,
+              "totalBeatCount must immediately follow resyncBarOrigin (offset 320 + 4 bytes) -- if "
+              "this fails, a field was inserted/resized somewhere above and the layout needs "
+              "re-auditing, not just re-numbering this constant");
 static_assert(sizeof(FeatureSnapshot) == 384,
               "resyncBarOrigin opened a new 64-byte tier (alignas 64); the next fields are free "
-              "up to offset 384 -- FeatureBus::kSnapshotWords must be 96");
+              "from offset 328 up to 384 -- FeatureBus::kSnapshotWords must be 96");

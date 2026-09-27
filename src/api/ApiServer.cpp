@@ -748,6 +748,7 @@ void ApiServer::handleGetBpm(const httplib::Request&, httplib::Response& res)
     // s-rta-0925: totalBarCount at the last MANUAL Resync (0 until the first one) -- read in the
     // same coherent snapshot so a poller can compute barsSinceResync() itself.
     obj->setProperty("resyncBarOrigin", static_cast<int>(snap.resyncBarOrigin));
+    obj->setProperty("totalBeatCount", static_cast<juce::int64>(snap.totalBeatCount));   // s-rta-0927 beat clock
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
@@ -879,6 +880,11 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("resyncBarOrigin"))
         snap.resyncBarOrigin = static_cast<uint32_t>(std::clamp(static_cast<int>(json["resyncBarOrigin"]), 0,
                                                                   std::numeric_limits<int>::max()));
+    // s-rta-0927 beat clock: same clamp precedent -- an injected moving beatPhase must move totalBeatCount
+    // with it, or the routine/take clock reads every wrap as a realign and freezes (Pitfall 42).
+    if (json.hasProperty("totalBeatCount"))
+        snap.totalBeatCount = static_cast<uint32_t>(std::clamp(static_cast<int>(json["totalBeatCount"]), 0,
+                                                                 std::numeric_limits<int>::max()));
     if (json.hasProperty("spectralCentroid")) snap.spectralCentroid = static_cast<float>(static_cast<double>(json["spectralCentroid"]));
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
