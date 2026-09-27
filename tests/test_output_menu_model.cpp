@@ -1,6 +1,7 @@
 // test_output_menu_model -- s-rta-0927 outputs-c2 = plan5 slice C2 (.harmony/.reports/s-rta-0926b/plan5-final.md
 // sections 5, 6, 7.3, 10.1): the ONE item list behind both doors to the output displays (the Output menu and the
 // TopBar "Outputs" button), the button text, the output keys, and the menu bar's Output menu built from the list.
+// outputs-c3 (plan5 C3) adds the Shift-up rule for Cmd+F / Cmd+` (Harmony ruling (b)).
 // Pure/headless: no window, no GL, no Desktop -- the code under test is src/output/OutputMenuModel.h (what
 // OutputManager::populateMenu and MainComponent::keyPressed run) and src/ui/MenuBarModel.cpp (case 6).
 #include <catch2/catch_test_macros.hpp>
@@ -218,6 +219,17 @@ TEST_CASE("the output keys (plan5 7.2-7.3), from KeyPress descriptions -- no key
         CHECK(output::classifyOutputKey(KeyPress::createFromDescription("command + F")) == OutputKey::ToggleMain);
         CHECK(output::classifyOutputKey(KeyPress::createFromDescription("command + f")) == OutputKey::ToggleMain);
         CHECK(output::classifyOutputKey(KeyPress('F')) == OutputKey::None);
+    }
+
+    SECTION("Cmd+Shift+F and Cmd+Shift+` are NOT output keys: ToggleMain and RaiseApp need Shift up "
+            "(Harmony ruling (b) on the C2 review, s-rta-0927 outputs-c3)")
+    {
+        CHECK(output::classifyOutputKey(KeyPress::createFromDescription("command + shift + F")) == OutputKey::None);
+        CHECK(output::classifyOutputKey(KeyPress::createFromDescription("command + shift + f")) == OutputKey::None);
+        const auto k = KeyPress::createFromDescription(juce::String("command + shift + ") + juce::String::charToString('`'));
+        CHECK(k.getKeyCode() == 0x60);
+        CHECK(k.getModifiers().isShiftDown());
+        CHECK(output::classifyOutputKey(k) == OutputKey::None);
     }
 
     SECTION("other chords are not output keys")

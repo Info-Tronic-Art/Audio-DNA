@@ -79,6 +79,9 @@ inline juce::String outputsButtonText(int liveCount)
 //   Cmd+`         -> RaiseApp (bring the app window back above an output that covers it).
 //   Cmd+F         -> ToggleMain (the output on the main display; Boris: "leave Cmd+F as-is").
 //   Esc           -> SwallowEscape: plain Esc no longer touches outputs (plan5 Q2) but is still consumed.
+//   RaiseApp and ToggleMain need Shift UP: Cmd+Shift+` and Cmd+Shift+F are not output keys (Harmony ruling (b) on
+//   the C2 review, s-rta-0927 outputs-c3) -- the mac peer upper-cases the key, so a Shift-blind 'F' test fired on
+//   Cmd+Shift+F too.
 // KeyPress key codes: letters upper-case; '`' = 0x60 (the mac peer upper-cases charactersIgnoringModifiers, and
 // falls back to kVK_ANSI_Grave -> '`'; '`' has no case -- juce_NSViewComponentPeer_mac.mm getKeyCodeFromEvent).
 enum class OutputKey { None, CloseAll, RaiseApp, ToggleMain, SwallowEscape };
@@ -88,9 +91,9 @@ inline OutputKey classifyOutputKey(const juce::KeyPress& key)
     const auto mod = key.getModifiers();
     if (key.isKeyCode(juce::KeyPress::escapeKey))
         return (mod.isCommandDown() && mod.isShiftDown()) ? OutputKey::CloseAll : OutputKey::SwallowEscape;
-    if (key.isKeyCode('`') && mod.isCommandDown())
+    if (key.isKeyCode('`') && mod.isCommandDown() && !mod.isShiftDown())
         return OutputKey::RaiseApp;
-    if (key.isKeyCode('F') && mod.isCommandDown())
+    if (key.isKeyCode('F') && mod.isCommandDown() && !mod.isShiftDown())
         return OutputKey::ToggleMain;
     return OutputKey::None;
 }
