@@ -1786,3 +1786,16 @@ hand-written functions with no shared layout model.
   the wrong key; a stub harness drove another lane's app).
 - Timing probes: after any change that makes captures slower (canvas-sized readback), expect edge flakes in rows whose
   windows end at the next scheduled event; give windows >= 0.1 s margin.
+
+## 2026-09-27 s-rta-0927 routine-display | Files: .harmony/probe-routine-display.sh, src/ui/LayerStrip.cpp, src/ui/RoutineDeckView.h
+- Quartz window captures (`screencapture -l <id>`) are COLOUR-MANAGED into the display profile: the app's teal
+  #4a9a8a decodes as ~(95,152,138) and cyan #00e5ff as ~(104,226,251) on this rig, so an exact-hex pixel oracle on a
+  window shot counts 0. Match the measured rendering (or both), and cut the SignalBar away (its meters are cyan and move
+  with the room's audio, +-1600 px between shots) -- probe-routine-display.sh decodes the window's left half, 15-50 %
+  down (the deck). Headless createComponentSnapshot PNGs are NOT colour-managed (exact hex).
+- A test that needs to stage only SOME new blocks of a shared file (tests/CMakeLists.txt) per commit: build the
+  intended content from `git show HEAD:<file>` + the chosen blocks, `git hash-object -w`, then
+  `git update-index --cacheinfo 100644,<sha>,<file>` -- no interactive `git add -p`, the working copy untouched.
+- `static_assert(!requires(T& p){ p.onStop; })` on a CONCRETE class is a hard compile error, not `false`; wrap it in a
+  concept (`template<class T> concept HasStop = requires(T& p){ p.onStop; };`) for a "this member must not exist" pin.
+- Valid while these files exist in their current form.
