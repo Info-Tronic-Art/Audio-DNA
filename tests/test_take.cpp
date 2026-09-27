@@ -32,14 +32,27 @@ namespace
         return k;
     }
 
-    FeatureSnapshot makeSnap(float bpm, float phase)
+    // s-rta-0927 beat clock: a snapshot publishes what BPMTracker publishes -- the phase AND the whole beats it
+    // has counted (totalBeatCount; RecorderClock integrates count + phase, Pitfall 42).
+    FeatureSnapshot makeSnap(float bpm, float phase, uint32_t count)
     {
         FeatureSnapshot s;
         s.clear();
         s.bpm = bpm;
         s.beatPhase = phase;
+        s.totalBeatCount = count;
         return s;
     }
+
+    // A tracker at 120 BPM whose continuous beat time is `beats` (count = its whole beats, phase = the rest).
+    struct SyntheticTracker
+    {
+        double beats = 0.0;
+        FeatureSnapshot snap(float bpm = 120.0f) const
+        {
+            return makeSnap(bpm, static_cast<float>(beats - std::floor(beats)), static_cast<uint32_t>(std::floor(beats)));
+        }
+    };
 
     // A recording Sink (D5) for exercising Player in isolation: records
     // every dispatch and can be told to refuse the next touch()/set() call
@@ -253,33 +266,33 @@ TEST_CASE("RecorderClock keeps beat monotonic across a resync and an unmetered g
     double lastBeat = -1.0;
     bool sawReset = false, sawUnmetered = false, sawLock = false;
 
-    auto step = [&](float bpm, float phase)
+    auto step = [&](float bpm, float phase, uint32_t count)
     {
         wall += 0.1;
         samples += 4800;
-        clock.tick(makeSnap(bpm, phase), wall, samples);
+        clock.tick(makeSnap(bpm, phase, count), wall, samples);
         const auto now = clock.now();
         REQUIRE(now.beat >= lastBeat - 1e-9);   // never decreases
         lastBeat = now.beat;
     };
 
-    clock.tick(makeSnap(120.0f, 0.0f), wall, samples);   // seeds t=0 ("start" anchor)
+    clock.tick(makeSnap(120.0f, 0.0f, 0), wall, samples);   // seeds t=0 ("start" anchor)
     lastBeat = clock.now().beat;
 
-    step(120.0f, 0.2f);
-    step(120.0f, 0.4f);
-    step(120.0f, 0.3f);   // smaller backward jump -- a resync, not a wrap
-    step(120.0f, 0.5f);
-    step(120.0f, 0.9f);
-    step(120.0f, 0.05f);  // ordinary sawtooth wrap (0.05 < 0.9 - 0.5)
+    step(120.0f, 0.2f, 0);
+    step(120.0f, 0.4f, 0);
+    step(120.0f, 0.3f, 0);   // smaller backward jump -- a resync, not a wrap
+    step(120.0f, 0.5f, 0);
+    step(120.0f, 0.9f, 0);
+    step(120.0f, 0.05f, 1);  // ordinary sawtooth wrap (0.05 < 0.9 - 0.5) -- the tracker counted the beat
 
-    step(0.0f, 0.0f);     // lock lost -- unmetered
+    step(0.0f, 0.0f, 1);     // lock lost -- unmetered
     const double frozen = clock.now().beat;
-    step(0.0f, 0.0f);
+    step(0.0f, 0.0f, 1);
     REQUIRE(clock.now().beat == Approx(frozen));   // frozen while unmetered
 
-    step(125.0f, 0.1f);   // re-locked
-    step(125.0f, 0.3f);
+    step(125.0f, 0.1f, 1);   // re-locked
+    step(125.0f, 0.3f, 1);
     REQUIRE(clock.now().beat > frozen);            // resumes advancing after relock
 
     for (const auto& anc : clock.tempo().a)
@@ -314,7 +327,7 @@ TEST_CASE("PerformanceRecorder coalesces a burst of set() calls to a bounded ges
     RecorderClock clock;
     PerformanceRecorder rec;
 
-    const FeatureSnapshot snap = makeSnap(120.0f, 0.0f);
+    const FeatureSnapshot snap = makeSnap(120.0f, 0.0f, 0);
     double wall = 0.0;
     uint64_t samples = 0;
     clock.tick(snap, wall, samples);   // seed t=0
@@ -587,19 +600,20 @@ TEST_CASE("RecorderClock stays within 0.05 beats and one block of the map over a
     RecorderClock clock;
     const float reportedBpm = 127.97f;                     // the tracker's biased reading
     const double trueBeatsPerTick = 128.0 / 60.0 / 120.0;   // true tempo, 120 Hz tick
-    double truePhase = 0.0;                                 // double accumulator, fmod 1.0
+    double trueBeats = 0.0;                                 // double accumulator: count = floor, phase = the rest
     double wall = 0.0;
     uint64_t samples = 0;
 
-    clock.tick(makeSnap(reportedBpm, 0.0f), wall, samples);   // seed t=0 ("start" anchor)
+    clock.tick(makeSnap(reportedBpm, 0.0f, 0), wall, samples);   // seed t=0 ("start" anchor)
 
     const int ticks = 120 * 2400;   // 40 minutes at 120 Hz
     for (int i = 0; i < ticks; ++i)
     {
         wall += 1.0 / 120.0;
         samples += 400;
-        truePhase = std::fmod(truePhase + trueBeatsPerTick, 1.0);
-        clock.tick(makeSnap(reportedBpm, static_cast<float>(truePhase)), wall, samples);
+        trueBeats += trueBeatsPerTick;
+        const double whole = std::floor(trueBeats);
+        clock.tick(makeSnap(reportedBpm, static_cast<float>(trueBeats - whole), static_cast<uint32_t>(whole)), wall, samples);
     }
 
     const auto now = clock.now();
@@ -628,10 +642,10 @@ TEST_CASE("RecorderClock writes no periodic anchors while unmetered", "[recorder
     RecorderClock clock;
     double wall = 0.0;
     uint64_t samples = 0;
-    clock.tick(makeSnap(120.0f, 0.0f), wall, samples);   // seed, locked
+    clock.tick(makeSnap(120.0f, 0.0f, 0), wall, samples);   // seed, locked
 
     wall += 0.1; samples += 1200;
-    clock.tick(makeSnap(120.0f, 0.2f), wall, samples);   // still locked
+    clock.tick(makeSnap(120.0f, 0.2f, 0), wall, samples);   // still locked
 
     const size_t before = clock.tempo().a.size();
 
@@ -639,7 +653,7 @@ TEST_CASE("RecorderClock writes no periodic anchors while unmetered", "[recorder
     {
         wall += 0.1;
         samples += 1200;
-        clock.tick(makeSnap(0.0f, 0.0f), wall, samples);
+        clock.tick(makeSnap(0.0f, 0.0f, 0), wall, samples);
     }
 
     REQUIRE(clock.tempo().a.size() == before + 1);   // exactly the one "unmetered" edge
@@ -658,22 +672,112 @@ TEST_CASE("RecorderClock: beat is 0 at Record and counts from there even when Re
         RecorderClock clock;
         double wall = 0.0;
         uint64_t samples = 0;
-        double phase = seedPhase;
-        clock.tick(makeSnap(120.0f, static_cast<float>(phase)), wall, samples);
+        SyntheticTracker tracker;
+        tracker.beats = seedPhase;
+        clock.tick(tracker.snap(), wall, samples);
         REQUIRE(clock.now().beat == 0.0);
 
         for (int i = 0; i < 72; ++i)   // 0.6 s at 120 Hz, 120 BPM -> 1.2 beats
         {
             wall += 1.0 / 120.0;
             samples += 400;
-            phase = std::fmod(phase + 1.0 / 60.0, 1.0);
-            clock.tick(makeSnap(120.0f, static_cast<float>(phase)), wall, samples);
+            tracker.beats += 1.0 / 60.0;
+            clock.tick(tracker.snap(), wall, samples);
         }
         INFO("seed phase " << seedPhase);
         CHECK(clock.now().t == Approx(0.6));
         CHECK(clock.now().beat == Approx(1.2).margin(1e-4));
         // D1's loader lint: |beat - map.beatAt(t)| <= 0.05.
         CHECK(std::fabs(clock.tempo().beatAt(clock.now().t) - clock.now().beat) < 0.05);
+    }
+}
+
+// === s-rta-0927 beat clock: a tick gap or a publication burst loses no beat (Pitfall 42) ===
+//
+// The message thread's 120 Hz tick can stall (a deck load held it 0.53 s in s-rta-0927's loadpost1 sample), and
+// the analysis thread can publish several hops between two ticks. The old reader detected beats as beatPhase
+// wraps (`phase < last - 0.5`), so a gap carried only its fractional part: g in [1, 1.5) lost exactly one beat, a
+// 0.5..1-beat gap containing a wrap read as a resync and froze the clock for the whole gap. RecorderClock now
+// integrates totalBeatCount + beatPhase. Ticks at 1/120 s, beats = 2 t (120 BPM), seeded at t = 0.
+
+namespace
+{
+    // Ticks `clock` every 1/120 s from just after `from` up to `to` (seconds), the tracker at beats = 2 t.
+    void tickSteady(RecorderClock& clock, SyntheticTracker& tracker, double from, double to, bool checkEach)
+    {
+        for (int i = 1; from + i / 120.0 <= to + 1e-9; ++i)
+        {
+            const double t = from + i / 120.0;
+            tracker.beats = 2.0 * t;
+            clock.tick(tracker.snap(), t, 0);
+            if (checkEach)
+                REQUIRE(clock.now().beat == Approx(2.0 * t).margin(1e-6));
+        }
+    }
+}
+
+TEST_CASE("RecorderClock: a 1.1-beat tick gap loses nothing", "[recorderclock][stall]")
+{
+    RecorderClock clock;
+    SyntheticTracker tracker;
+    clock.tick(tracker.snap(), 0.0, 0);
+    tickSteady(clock, tracker, 0.0, 1.0, false);   // beats 2.0
+    tracker.beats = 3.1;                           // the message thread slept 0.55 s
+    clock.tick(tracker.snap(), 1.55, 0);
+    CHECK(clock.now().beat == Approx(3.1).margin(1e-6));   // the old reader: 2.1 (a whole beat short)
+    tickSteady(clock, tracker, 1.55, 2.0, true);
+}
+
+TEST_CASE("RecorderClock: a 0.7-beat tick gap that begins at phase 0.5 loses nothing", "[recorderclock][stall]")
+{
+    RecorderClock clock;
+    SyntheticTracker tracker;
+    clock.tick(tracker.snap(), 0.0, 0);
+    tickSteady(clock, tracker, 0.0, 1.25, false);   // beats 2.5
+    tracker.beats = 3.2;
+    clock.tick(tracker.snap(), 1.6, 0);
+    CHECK(clock.now().beat == Approx(3.2).margin(1e-6));   // the old reader: 0.2 < 0.5 read as a resync, frozen at 2.5
+}
+
+TEST_CASE("RecorderClock: a 0.6-beat publication burst between two ticks adds 0.6", "[recorderclock][stall]")
+{
+    RecorderClock clock;
+    SyntheticTracker tracker;
+    clock.tick(tracker.snap(), 0.0, 0);
+    tickSteady(clock, tracker, 0.0, 1.35, false);   // beats 2.7
+    tracker.beats = 3.3;                             // the analysis thread caught up a backlog
+    clock.tick(tracker.snap(), 1.35 + 1.0 / 120.0, 0);
+    CHECK(clock.now().beat == Approx(3.3).margin(1e-6));   // the old reader: 0.3 < 0.7 read as a resync, frozen at 2.7
+}
+
+TEST_CASE("RecorderClock: a realign from the second half of a beat completes it, from the first half is absorbed",
+          "[recorderclock][stall]")
+{
+    // The writer's rule (BPMTracker::realignPhaseToZero) reproduces the old reader's 0.5 rule exactly.
+    SECTION("from beats 2.7: count 3, phase 0 -- the beat completed, +0.3, no anchor")
+    {
+        RecorderClock clock;
+        SyntheticTracker tracker;
+        clock.tick(tracker.snap(), 0.0, 0);
+        tickSteady(clock, tracker, 0.0, 1.35, false);   // beats 2.7
+        const double before = clock.now().beat;
+        const size_t anchors = clock.tempo().a.size();
+        clock.tick(makeSnap(120.0f, 0.0f, 3), 1.35 + 1.0 / 120.0, 0);
+        CHECK(clock.now().beat == Approx(before + 0.3).margin(1e-6));
+        CHECK(clock.tempo().a.size() == anchors);
+    }
+    SECTION("from beats 2.3: count 2, phase 0 -- the beat restarted, beat unchanged, one \"reset\" anchor")
+    {
+        RecorderClock clock;
+        SyntheticTracker tracker;
+        clock.tick(tracker.snap(), 0.0, 0);
+        tickSteady(clock, tracker, 0.0, 1.15, false);   // beats 2.3
+        const double before = clock.now().beat;
+        const size_t anchors = clock.tempo().a.size();
+        clock.tick(makeSnap(120.0f, 0.0f, 2), 1.15 + 1.0 / 120.0, 0);
+        CHECK(clock.now().beat == Approx(before).margin(1e-9));
+        REQUIRE(clock.tempo().a.size() == anchors + 1);
+        CHECK(clock.tempo().a.back().why == "reset");
     }
 }
 
