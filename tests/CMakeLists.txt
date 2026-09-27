@@ -2327,3 +2327,27 @@ target_include_directories(test_frame_ring PRIVATE ${SRC_DIR})
 target_link_libraries(test_frame_ring PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_frame_ring)
 catch_discover_tests(test_frame_ring)
+
+# --- test_pixel_convert (s-rta-0927 plan-renderperf C2): a capture's glReadPixels rows -> juce::Image conversion
+# (src/render/PixelConvert.h) writes exactly the bytes of the old per-pixel setPixelColour loop, on both JUCE image
+# backings, and the same PNG bytes. Headless juce::Image, registered like test_lookandfeel_square.
+add_executable(test_pixel_convert test_pixel_convert.cpp)
+target_include_directories(test_pixel_convert PRIVATE ${SRC_DIR})
+target_link_libraries(test_pixel_convert PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_pixel_convert PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_pixel_convert PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_pixel_convert)
+catch_discover_tests(test_pixel_convert)

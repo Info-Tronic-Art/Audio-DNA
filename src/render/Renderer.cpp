@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
+#include "render/PixelConvert.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
 #include "recording/VideoRecorder.h"
@@ -2118,24 +2119,13 @@ void Renderer::processPendingCapture()
     glReadPixels(0, 0, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     const double readMs = msSince(tRead);
 
-    // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left)
+    // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left). Row conversion, byte-identical
+    // to the old per-pixel setPixelColour loop (s-rta-0927 plan-renderperf C2; tests/test_pixel_convert.cpp).
     auto tConvert = CaptureClock::now();
     juce::Image img(juce::Image::ARGB, readW, readH, false);
     {
         juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
-        for (int y = 0; y < readH; ++y)
-        {
-            const auto* srcRow = pixels.data() + static_cast<size_t>(readH - 1 - y) * static_cast<size_t>(readW) * 4;
-            for (int x = 0; x < readW; ++x)
-            {
-                bmp.setPixelColour(x, y,
-                    juce::Colour(srcRow[x * 4],     // R
-                                 srcRow[x * 4 + 1], // G
-                                 srcRow[x * 4 + 2], // B
-                                 srcRow[x * 4 + 3]  // A
-                    ));
-            }
-        }
+        PixelConvert::rgbaBottomUpToARGB(pixels.data(), readW, readH, bmp, false);
     }
 
     const double convertMs = msSince(tConvert);
