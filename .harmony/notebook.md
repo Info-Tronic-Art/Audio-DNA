@@ -1786,3 +1786,22 @@ hand-written functions with no shared layout model.
   the wrong key; a stub harness drove another lane's app).
 - Timing probes: after any change that makes captures slower (canvas-sized readback), expect edge flakes in rows whose
   windows end at the next scheduled event; give windows >= 0.1 s margin.
+
+## 2026-09-27 s-rta-0927 routines-timing | Files: .harmony/probe-routines.sh (rt.py rows loop/stack/jump/jumploop), src/recording/{RoutineEngine,RecorderClock}.cpp, src/render/Renderer.cpp (processPendingCapture), src/render/CompositorEngine.cpp (getOrCreateRingBuffer, handOverClipHistory)
+- CORRECTION to the "methods" line above: the probe-routines timing flake is NOT caused by slower canvas captures. Measured
+  (instrumented probe copy, 5 pre-canvas b766720 + 5 post-canvas runs, 24+24 repeated starts): render_frame went 46-83 ms ->
+  98-159 ms, but the message thread is not stalled during a capture (status staleness <= 16 ms during vs 65-86 ms max
+  elsewhere) and the anchor lags are the same on both builds. The flake is the PROBE: an anchor like TJ/T6/T2 is the first
+  sample that saw "running", which lags the routine's start 0.06-0.12 s (a start that restores holds the message thread
+  40-90 ms before it publishes, + ~40 ms sampling); windows "T + 0.5 s" ended -0.02..+0.05 s from the first recorded move
+  (beat 1.17-1.24). Reproduced live: 2 of 24 Jump starts on post, 0 of 24 on pre (Fisher p ~0.5 -- noise, same margins).
+- Timing rows on a routine: select samples by the routine's PUBLISHED position (status bank[].position, read AFTER the
+  composition in snap()), never wall time after a sampled anchor. Both are written by the message thread, so a sample whose
+  status says position p read a look from position <= p. Immune to anchor lag, start stalls and beat-clock slips.
+- The routine beat clock can LOSE time when the message thread stalls: RecorderClock counts beatPhase wraps
+  (`phase < lastPhase_ - 0.5`), so a tick gap of > ~0.5 beat mis-reads or misses a wrap. Seen: 0.5 s lost after a 0.55 s
+  stall (load avg ~15, grid rows 7 FAIL x3), 0.15 s lost after a 0.14 s stall (quiet, pre-canvas; old 11j loop landing
+  FAIL). Every later routine event lands that much later in wall time. Not fixed (engine semantics) -- see the lane report.
+- A per-sample status `clockBeat` vs `ts` gives the message thread's staleness for free: w0 = min(ts - clockBeat*spb),
+  staleness = ts - (w0 + clockBeat*spb); a frozen clockBeat across samples = a stalled message thread (no profiler needed).
+- Valid while: /api/routine/status publishes clockBeat + bank[].position at the 120 Hz tick and probe-routines exists.

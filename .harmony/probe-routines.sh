@@ -10,6 +10,10 @@
 # rest of the earlier routine's gesture. s-rta-0926b routines-followup (row 11j): a routine whose restore
 # style is Jump cuts to its start look ON the bar -- at the start and at the loop return -- where the
 # default Ease glides (rows 5g/8g/9g/11g).
+# s-rta-0927 routines-timing: the windows of rows 8 ("holds 0.9"), 11 ("the later restore wins") and 11j (hard cut,
+# restored on the bar, loop hold, loop landing) select samples by the routine's PUBLISHED position (routine beats),
+# ending >= 0.1 s before the next recorded event -- not by wall time after a sampled anchor, which lags the start
+# 0.06..0.12 s (the flake of s-rta-0926b). Why: the comment above LEN in the helpers.
 #
 # RED on a pre-routines binary: every /api/routine/* route is 404 and /api/composition clips carry
 # no "effects" block; take.json meta has no startBeatInBar; a first-activation auto-play is not a
@@ -166,6 +170,49 @@ def load(path):
     with open(path) as f:
         return json.load(f)
 
+# s-rta-0927 routines-timing (T1): windows on the ROUTINE's clock, not the wall clock.
+# A probe anchor such as T6 / TJ / T2 is the first SAMPLE that saw a routine running. Measured over 16 full runs
+# (pre- and post-canvas builds alike) it lags the routine's start by 0.06..0.12 s -- a start that restores holds
+# the app's message thread 40..90 ms before it publishes "running", plus the sampler's ~40 ms cadence -- while
+# the routine's recorded moves are scheduled on its own clock. So "T + 0.5 s" ended -0.02..+0.05 s from the
+# first recorded move (beat ~1.2 = start + 0.6 s) and a sample could see the move inside the window. The beat
+# clock can also lose time when the message thread stalls (seen: 0.15 s and 0.5 s), which moves every later
+# event in wall time. The rows below therefore select samples by the routine's PUBLISHED position (routine beats
+# since the cycle began, bank[].position): snap() reads the composition BEFORE the status, and both are written
+# by the message thread, so a sample whose status says position p read a look from position <= p. A window
+# that ends at p <= event - MARGIN_BEATS ends >= 0.1 s (at 120 BPM) before the event, whatever the lag.
+LEN = 16.0            # Probe Routine's length in beats (saved as take beats [0, 16)): its loop point
+MARGIN_BEATS = 0.2    # 0.1 s at the probe's 120 BPM
+
+def rpos(r, slot, cycle=None):
+    # (cycle, position) of bank[slot] if this sample saw it running (in `cycle`, when given), else None
+    try:
+        b = r['bank'][slot]
+    except Exception:
+        return None
+    if b.get('state') != 'running' or not isinstance(b.get('position'), (int, float)):
+        return None
+    if cycle is not None and b.get('cycle') != cycle:
+        return None
+    return b.get('cycle'), b['position']
+
+def pos_window(samples, slot, lo, hi, cycle=1):
+    # samples that saw bank[slot] running in `cycle` at a published position in [lo, hi] (routine beats)
+    return [r for r in samples if rpos(r, slot, cycle) and lo <= rpos(r, slot, cycle)[1] <= hi]
+
+def first_move_beat(folder):
+    # the routine's first recorded move: the earliest L0 opacity point of the take in [0, LEN) (take beat = routine beat)
+    beats = []
+    for ln in load(folder + '/take.json').get('lanes', []):
+        k = ln.get('key', {})
+        L = k.get('layer')
+        L = L.get('i') if isinstance(L, dict) else L
+        if k.get('scope') == 'layer' and k.get('scalar') == 'opacity' and L == 0:
+            beats += [p['beat'] for p in ln.get('points', []) if isinstance(p.get('beat'), (int, float))]
+            beats += [g['curve'][0]['x'] for g in ln.get('gestures', []) if g.get('curve')]
+    beats = [b for b in beats if 0.0 <= b < LEN]
+    return min(beats) if beats else None
+
 cmd = sys.argv[1]
 
 if cmd == 'post':                         # post PATH JSON -> prints the response JSON
@@ -313,10 +360,13 @@ elif cmd == 'grid':                       # grid T1 FILE: row 7
 
 elif cmd == 'loop':                       # loop T2 FILE FIRED_AT_START: row 8
     T2, s, fired0 = float(sys.argv[2]), load(sys.argv[3]), int(sys.argv[4])
-    # plan3 C: the return glide moves L0 opacity over the cycle's last half second, so "holds 0.9" ends at +7.45.
-    pre = [r for r in s if T2 + 7.0 <= r['t'] <= T2 + 7.45]
-    print(('ok' if pre and all(near(r.get('op0'), 0.9, 0.05) for r in pre) else 'no')
-          + ' loop: end of cycle 1 holds L0 opacity 0.9 until the return glide begins (+7.0..+7.45 s, %d samples)' % len(pre))
+    # plan3 C: the return glide moves L0 opacity over the cycle's last beat (from routine beat LEN - 1).
+    # s-rta-0927 routines-timing: by routine position -- it ended at T2+7.45, 0.02..0.06 s INTO the glide
+    # (T2 lags the start 0.07..0.11 s) and passed only on the 0.05 tolerance.
+    pre = pos_window(s, 0, 14.0, LEN - 1.0 - MARGIN_BEATS)
+    print(('ok' if len(pre) >= 3 and all(near(r.get('op0'), 0.9, 0.05) for r in pre) else 'no')
+          + ' loop: end of cycle 1 holds L0 opacity 0.9 until the return glide begins (routine beats 14.0..%.1f, %d samples)'
+          % (LEN - 1.0 - MARGIN_BEATS, len(pre)))
     # 8g (plan3 C): over the cycle's last beat L0 opacity EASES 0.9 -> 1.0 and lands on the loop point.
     ret = [r.get('op0') for r in s if T2 + 7.55 <= r['t'] <= T2 + 7.92]
     between = [v for v in ret if isinstance(v, (int, float)) and 0.92 < v < 0.98]
@@ -355,8 +405,9 @@ elif cmd == 'fromnow':                    # fromnow T4 FILE: row 10
     print(('ok' if t is not None and abs(t - T4 - 0.6) <= 0.35 else 'no')
           + ' start from now: the first move lands on the grid (0.5 at +%s s, expected +0.6)' % (None if t is None else round(t - T4, 2)))
 
-elif cmd == 'stack':                      # stack T5 T6 RAMPFILE FILE: row 11
+elif cmd == 'stack':                      # stack T5 T6 RAMPFILE FILE TAKEFOLDER: row 11
     T5, T6, ramp, s = float(sys.argv[2]), float(sys.argv[3]), load(sys.argv[4]), load(sys.argv[5])
+    m0 = first_move_beat(sys.argv[6])
     rs = (ramp['x0'] - 16.0) / 2.0                    # ramp start / end, seconds after the Probe Ramp start
     re = (ramp['x1'] - 16.0) / 2.0
     lo, hi = min(ramp['y0'], ramp['y1']), max(ramp['y0'], ramp['y1'])
@@ -378,10 +429,14 @@ elif cmd == 'stack':                      # stack T5 T6 RAMPFILE FILE: row 11
     print(('ok' if len(gnum) >= 3 and gnondec and max(gnum) > 0.75 else 'no')
           + ' stack: the later restore GLIDES in over the last beat, from the ramp value toward 1.0 (T6-0.45..T6-0.05: %d samples, non-decreasing=%s, max %s > 0.75: %s)'
           % (len(gnum), gnondec, max(gnum) if gnum else None, [round(v, 3) for v in gnum]))
-    win = [r for r in s if T6 + 0.12 <= r['t'] <= T6 + 0.5]
-    print(('ok' if win and all(near(r.get('op0'), 1.0, 0.03) for r in win) else 'no')
-          + ' stack: the later restore wins -- L0 opacity holds 1.0 after Probe Routine starts, no ramp values (%s)'
-          % sorted(set(round(r.get('op0') or -1, 3) for r in win)))
+    # s-rta-0927 routines-timing: by Probe Routine's position, 0.4 beats in to MARGIN_BEATS before its first
+    # recorded move (was T6+0.12..T6+0.5 s, which ended ON that move: T6 lags the start 0.06..0.11 s).
+    win = [] if m0 is None else pos_window(s, 0, 0.4, m0 - MARGIN_BEATS)
+    print(('ok' if len(win) >= 3 and all(near(r.get('op0'), 1.0, 0.03) for r in win) else 'no')
+          + ' stack: the later restore wins -- L0 opacity holds 1.0 after Probe Routine starts, no ramp values '
+          '(routine beats 0.4..%s, first move at beat %s: %d samples, %s)'
+          % (None if m0 is None else round(m0 - MARGIN_BEATS, 3), None if m0 is None else round(m0, 3), len(win),
+             sorted(set(round(r.get('op0') or -1, 3) for r in win))))
     mid = [r for r in s if T6 + 0.95 <= r['t'] <= T5 + re + 0.9]
     print(('ok' if mid and all(near(r.get('op0'), 0.5, 0.03) for r in mid) else 'no')
           + ' stack: the earlier ramp stays quiet for the rest of its gesture and after it (L0 opacity 0.5, %d samples)' % len(mid))
@@ -407,35 +462,55 @@ elif cmd == 'glide':                      # glide T1 FILE: row 5g (plan3 C) -- t
           + ' 5g: status bank[0].glides >= 1 during the last beat and 0 from T1+0.1 on (during: %s, after: %s)'
           % (sorted(set(str(g) for g in during)), sorted(set(str(g) for g in after))))
 
-elif cmd == 'jump':                       # jump TJ FILE: row 11j (s-rta-0926b routines-followup) -- a Jump start is a cut ON the bar
+elif cmd == 'jump':                       # jump TJ FILE TAKEFOLDER: row 11j (s-rta-0926b routines-followup) -- a Jump start is a cut ON the bar
     TJ, s = float(sys.argv[2]), load(sys.argv[3])
+    m0 = first_move_beat(sys.argv[4])
     before = [r.get('op0') for r in s if r['t'] < TJ - 0.12]
     bnum = [v for v in before if isinstance(v, (int, float))]
     print(('ok' if len(before) >= 10 and all(near(v, 0.1, 0.02) for v in before) else 'no')
           + ' 11j: while the Jump routine waits -- through its whole last beat -- L0 opacity holds the hand value 0.1 (%d samples before TJ-0.12, %s..%s)'
           % (len(before), min(bnum) if bnum else None, max(bnum) if bnum else None))
-    upto = [r.get('op0') for r in s if r['t'] < TJ + 0.5]
+    # s-rta-0927 routines-timing: both windows end MARGIN_BEATS before the first recorded move BY ROUTINE POSITION
+    # (they ended at TJ+0.5 s, ON that move: TJ lags the start 0.06..0.12 s). `upto` = every sample before the
+    # first one that saw the routine past m0 - MARGIN_BEATS (the waiting samples included).
+    hi = None if m0 is None else m0 - MARGIN_BEATS
+    upto = []
+    for r in s:
+        p = rpos(r, 0, 1)
+        if hi is None or (p and p[1] > hi):
+            break
+        upto.append(r.get('op0'))
     mid = [round(v, 3) for v in upto if isinstance(v, (int, float)) and 0.15 < v < 0.95]
     print(('ok' if upto and not mid else 'no')
-          + ' 11j: a hard cut -- no sample strictly between 0.15 and 0.95 up to TJ+0.5 (%d samples, %d in between: %s)' % (len(upto), len(mid), mid))
-    after = [r.get('op0') for r in s if TJ + 0.1 <= r['t'] <= TJ + 0.5]
+          + ' 11j: a hard cut -- no sample strictly between 0.15 and 0.95 up to routine beat %s (%d samples, %d in between: %s)'
+          % (None if hi is None else round(hi, 3), len(upto), len(mid), mid))
+    after = [] if hi is None else [r.get('op0') for r in pos_window(s, 0, 0.4, hi)]
     print(('ok' if len(after) >= 3 and all(near(v, 1.0, 0.02) for v in after) else 'no')
-          + ' 11j: on the bar L0 opacity is restored to 1.0 (TJ+0.1..TJ+0.5: %d samples, %s)' % (len(after), sorted(set(round(v, 3) for v in after if isinstance(v, (int, float))))))
+          + ' 11j: on the bar L0 opacity is restored to 1.0 (routine beats 0.4..%s: %d samples, %s)'
+          % (None if hi is None else round(hi, 3), len(after), sorted(set(round(v, 3) for v in after if isinstance(v, (int, float))))))
     gl = [r['bank'][0].get('glides') for r in s if r.get('bank')]
     print(('ok' if gl and all(g == 0 for g in gl) else 'no')
           + ' 11j: status bank[0].glides stays 0 across the start (%s)' % sorted(set(str(g) for g in gl)))
 
 elif cmd == 'jumploop':                   # jumploop TJ FILE: row 11j (s-rta-0926b routines-followup) -- a Jump loop return is a cut ON the loop point
     TJ, s = float(sys.argv[2]), load(sys.argv[3])
-    pre = [r.get('op0') for r in s if TJ + 7.0 <= r['t'] <= TJ + 7.9]
+    # s-rta-0927 routines-timing: by routine position. "Holds 0.9" ended at TJ+7.9 s, ON the loop point (TJ lags
+    # the start 0.06..0.12 s) and held only because the loop tick's restore stalls the message thread ~80 ms; a
+    # beat clock that lost 0.15 s moved the loop point past "+8.15" (reppre1 run). It now ends MARGIN_BEATS before
+    # the loop point, and the landing is read off the cycle counter: the first 1.0 must be a sample of cycle 2 at
+    # most 0.5 beats (0.25 s) in -- or cycle 1's last MARGIN_BEATS (the tick that loops writes before it publishes).
+    pre = [r.get('op0') for r in pos_window(s, 0, 14.0, LEN - MARGIN_BEATS)]
     pnum = [v for v in pre if isinstance(v, (int, float))]
     print(('ok' if len(pre) >= 10 and all(near(v, 0.9, 0.02) for v in pre) else 'no')
-          + ' 11j loop: the end of cycle 1 holds L0 opacity 0.9 through its last beat -- no return glide (+7.0..+7.9 s: %d samples, %s..%s)'
-          % (len(pre), min(pnum) if pnum else None, max(pnum) if pnum else None))
-    t_land = first(s, lambda r: near(r.get('op0'), 1.0, 0.01), TJ + 7.5)
-    print(('ok' if t_land is not None and TJ + 7.9 <= t_land <= TJ + 8.15 else 'no')
-          + ' 11j loop: the return cuts to 1.0 ON the loop point (first sample within 0.01 of 1.0 at +%s s, expected +7.9..+8.15)'
-          % (None if t_land is None else round(t_land - TJ, 2)))
+          + ' 11j loop: the end of cycle 1 holds L0 opacity 0.9 through its last beat -- no return glide (routine beats 14.0..%.1f: %d samples, %s..%s)'
+          % (LEN - MARGIN_BEATS, len(pre), min(pnum) if pnum else None, max(pnum) if pnum else None))
+    land = next((r for r in s if (rpos(r, 0, 2) or (rpos(r, 0, 1) and rpos(r, 0, 1)[1] >= 15.0))
+                 and near(r.get('op0'), 1.0, 0.01)), None)
+    lp = None if land is None else (rpos(land, 0) if rpos(land, 0) else None)
+    good = lp is not None and ((lp[0] == 2 and lp[1] <= 0.5) or (lp[0] == 1 and lp[1] >= LEN - MARGIN_BEATS))
+    print(('ok' if good else 'no')
+          + ' 11j loop: the return cuts to 1.0 ON the loop point (first sample within 0.01 of 1.0 at cycle/position %s, expected cycle 2 <= 0.5 beats in; +%s s after TJ)'
+          % (None if lp is None else '%d/%.3f' % lp, None if land is None else round(land['t'] - TJ, 2)))
     between = [round(v, 3) for r in s if TJ + 7.0 <= r['t'] <= TJ + 8.3 for v in [r.get('op0')]
                if isinstance(v, (int, float)) and 0.92 < v < 0.98]
     print(('ok' if pre and not between else 'no')
@@ -749,7 +824,7 @@ print('%.3f' % t[0] if t else 'NA')")"
     else
         # T6 = the first SAMPLE that saw Probe Routine running (the start fell between the previous
         # sample and this one's status read); the stack windows keep a margin on both sides.
-        rows python3 "$RT" stack "$T5" "$T6" "$OUT/ramp.json" "$OUT/stack.json"
+        rows python3 "$RT" stack "$T5" "$T6" "$OUT/ramp.json" "$OUT/stack.json" "$TAKE_FOLDER"
     fi
     P /api/routine/stop '{"all":true}' >/dev/null
 else
@@ -810,7 +885,7 @@ else
     if [ "$TJ" = "NA" ]; then no "11j: bank[0] never became running within 2.6 s"; TJ="$(now)"; fi
     wait "$JUMP_SAMPLER"; wait "$JMID_SHOT"
     echo "(11j: predicted bar edge at TJ $(perl -e "printf '%+.3f', $T_EDGEJ - $TJ") s)"
-    rows python3 "$RT" jump "$TJ" "$OUT/jump.json"
+    rows python3 "$RT" jump "$TJ" "$OUT/jump.json" "$TAKE_FOLDER"
     grep -q '"ok":[[:space:]]*true' "$OUT/jmid.json" 2>/dev/null && [ -f "$OUT/jmid.png" ] \
         && ok "11j: render_frame wrote jmid.png 0.30 s before the bar" || no "11j: render_frame did not write jmid.png ($(cat "$OUT/jmid.json" 2>/dev/null))"
     MAD_JJ="$(mean_abs_diff "$OUT/jpre.png" "$OUT/jmid.png")"
