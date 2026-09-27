@@ -242,3 +242,164 @@ DONE_WITH_CONCERNS
 ## NEXT ACTION
 Harmony's behavioral gate + Reviewer; the two follow-up decisions under HANDOFF-NEEDS (redundant LookAndFeel
 calls in DeckView.cpp/CompDecksBrowser.cpp; PresetManager dead-code-with-test-caller).
+
+---
+
+# Fix round (lane/decks-followup-fix, continuing lane/decks-followup-0926b from c29e6d5)
+
+STATUS: DONE
+
+RESULT: All 3 review findings addressed. MUST (no code change, evidence-only): item 2's "library list less
+confusing without legacy rows" claim now has real screenshot evidence -- a filter-disabled scratch build and
+the shipped build, BOTH pointed read-only at Boris's real `~/Library/AudioDNA/Decks` (unmodified), show
+"Decks (4)" (feafeda/tes6/testetst/try -- the exact 4 legacy v1 files) before vs "Decks (0)" / "No saved
+compositions or decks" after. SHOULD 1 (cheap, fixed): `CompDecksBrowser.cpp:227`'s now-redundant
+`menu.setLookAndFeel(&getLookAndFeel())` is removed -- verified via a live before/after in-app snapshot pair
+with 0 diff pixels inside the menu's own bbox (all differing pixels are the live audio-reactive meter rows).
+SHOULD 3 (cheap, fixed): decks-followup ITEM 1 (`installAsDefault`) had an unintended side effect --
+`AudioDNALookAndFeel`'s ctor pins one fixed regular-weight typeface for every default-sans-serif Font
+regardless of requested style, and installing it as the JUCE-wide default routed JUCE's own bold
+`AlertWindow` title font through that same fixed typeface, silently losing the bold weight on every dialog
+title app-wide. Fixed with a `getTypefaceForFont()` override that falls back to normal system font matching
+for bold/italic requests; re-shot alert1/alert2 confirm the titles are bold again.
+
+FACTS (disk-cited):
+- SHOULD 1 mechanism (re-derived from JUCE source, not assumed): `juce_PopupMenu.cpp` `findLookAndFeel(menu,
+  parentWindow)` returns `parentWindow != nullptr ? &(parentWindow->getLookAndFeel()) : menu.lookAndFeel.get()`
+  -- `parentWindow` here is a PARENT SUBMENU'S MenuWindow (cascading-menu case), NOT the app's top-level
+  window (that is a separate concept: `options.getParentComponent()`, used only for `addChildComponent`/
+  Component-parenting, checked AFTER `setLookAndFeel(findLookAndFeel(...))` already ran). For a top-level
+  (non-cascading) menu with no explicit `menu.setLookAndFeel(...)`, `findLookAndFeel` returns null ->
+  `MenuWindow::getLookAndFeel()` (Component base) falls to `LookAndFeel::getDefaultLookAndFeel()` --
+  `AudioDNALookAndFeel` since ITEM 1's `installAsDefault()`. Confirmed this menu (`.withParentComponent(
+  getTopLevelComponent())`) was NOT already covered by `MainComponent::setLookAndFeel(&lookAndFeel_)` (present
+  since the project's foundation commit, `ba6dda6`) -- that call sets MainComponent's OWN LookAndFeel field,
+  but `getTopLevelComponent()` for a menu parented this way resolves to the enclosing native `DocumentWindow`,
+  a DIFFERENT component up the tree from MainComponent with no LookAndFeel of its own (matches the existing
+  plan6 notebook entry: "`.withParentComponent(getTopLevelComponent())` parents it to the DocumentWindow,
+  which has none, so it draws STOCK"). So ITEM 1's app-wide default is the ONLY thing making this line
+  redundant; it was not always so.
+- SHOULD 1 live evidence (real ~/Library/AudioDNA/Decks, read-only, unmodified -- ls before and after this
+  round is byte-identical, confirmed): two scratch builds differing ONLY in whether the line is present
+  (`filteroff-before.app`) or removed (`filteroff-after.app`), item2's filter TEMPORARILY disabled in BOTH
+  (scaffolding only, to get a non-empty Decks row to right-click -- irrelevant to the line under test). A
+  temporary env-var hook (`AUDIODNA_DEBUG_FOLLOWUP=library_menu`, fully reverted before commit --
+  `git diff --stat -- src/MainComponent.cpp` empty, `strings build-lane/.../Audio-DNA | grep -c
+  AUDIODNA_DEBUG_` = 0 on the final build) opens the Compositions tab, right-clicks row 0, and takes a
+  synchronous in-app `createComponentSnapshot` immediately after `showRowMenu()` returns (a PopupMenu
+  dismisses within ~50ms while backgrounded, per `.harmony/notebook.md` -- an external Quartz capture 4s later
+  would show nothing). Pixel diff (`PIL.ImageChops.difference`, verbatim): 2249/1816128 px differ, but ALL
+  cluster in two y-bands (`y 0-100`, `y 950-1000` -- the top signal-meter row and bottom BPM/quantize strip);
+  zero pixels differ inside the menu's own bbox (`x 190-385, y 125-220`, checked explicitly: `count inside
+  menu region: 0`). The non-zero pixels are the live audio-reactive meters, which differ between any two
+  separate live app launches with real mic input -- unrelated to the removed line.
+- SHOULD 3 RED (verbatim, tests/test_lookandfeel_square.cpp, `getTypefaceForFont` temporarily reverted to
+  `return juce::LookAndFeel_V4::getTypefaceForFont(font);` unconditionally to capture): `CHECK( regularFace !=
+  boldFace )` FAILED, expansion `0x600003bf6800 != 0x600003bf6800` (same pointer). Restored via `Edit`, then
+  `diff`+`shasum -a 256` confirmed byte-identical to the pre-mutation copy before rebuilding GREEN.
+- SHOULD 3 mechanism: `juce::AlertWindow::updateLayout()` (`juce_AlertWindow.cpp:399`) builds the title via
+  `lf.getAlertWindowTitleFont()`; `LookAndFeel_V4::getAlertWindowTitleFont()` returns `FontOptions{18.0f,
+  Font::bold}`. `LookAndFeel::getTypefaceForFont()` (`juce_LookAndFeel.cpp:127-143`): `if
+  (font.getTypefaceName() == Font::getDefaultSansSerifFontName()) { if (defaultTypeface != nullptr) return
+  defaultTypeface; ... }` -- no style check, so the bold request silently collapses to whatever fixed
+  (regular) typeface `AudioDNALookAndFeel`'s ctor pinned via `setDefaultSansSerifTypeface(...)`. Before ITEM 1
+  this never mattered for `AlertWindow` (it used JUCE's own un-customized default `LookAndFeel_V4`, whose
+  `getTypefaceForFont` is the unoverridden base and does real system font matching); after ITEM 1 it does.
+- GREEN: `test_lookandfeel_square`: `All tests passed (25 assertions in 6 test cases)`. Full serial ctest
+  (`ctest --test-dir build-lane -j1`): `100% tests passed, 0 tests failed out of 642` (641 -> 642, +1).
+- Live re-shoot (`decks-followup-fix-shots/after-fix-alert{1,2}-w1.png`): "Some Mappings Dropped" / "Save
+  Deck" titles bold again; square panel (ITEM 1's own change) unchanged.
+- Fence check: `git show --stat <shas>` for both fix commits touches only `src/ui/CompDecksBrowser.cpp` and
+  `src/ui/LookAndFeel.{h,cpp}` + `tests/test_lookandfeel_square.cpp` -- both files named in the base packet's
+  fence, no scope expansion.
+
+METHOD: STEP 0 skipped per the fix-round packet (continuing `lane/decks-followup-0926b` from `c29e6d5`, already
+checked out). Read all 3 findings, re-derived (did not assume) the exact JUCE `PopupMenu`/`AlertWindow`
+font-resolution mechanisms from `build/_deps/juce-src` before touching anything, since a wrong assumption
+here would either under-fix (leave the bug) or over-fix (silently change unrelated rendering). Per SHOULD:
+RED (or live-diff for the non-test-authored SHOULD 1) -> implement -> GREEN -> full build -> full serial
+ctest -> fence check -> commit with the RED line(s)/pixel-diff numbers in the message. MUST (evidence-only,
+no code fix needed since item2's filter was already correct): built a filter-disabled scratch app, pointed it
+(read-only) at Boris's real library directory alongside the shipped filter-enabled build, screenshotted both.
+
+CONFIDENCE + VERIFY: HIGH for all three. SHOULD 1's "0 diff pixels inside the menu bbox" is a direct,
+disk-cited numeric check, not a subjective screenshot compare. SHOULD 3's RED/GREEN is a compile-time-stable,
+deterministic pointer-identity assertion (no live-app flakiness). MUST's before/after both read the exact same
+real, unmodified directory, so the row-count difference is attributable ONLY to the filter toggle. VERIFY
+(Harmony gate): rebuild; `ctest --test-dir build-lane` = 642/642; `git show <2 shas> -- src/` shows no hook in
+either commit; `strings build-lane/.../Audio-DNA | grep -c AUDIODNA_DEBUG_` = 0 on the final build; a human
+check of `decks-followup-fix-shots/` (library-before vs library-after row counts; alert1/alert2 bold titles;
+library-menu-before vs library-menu-after visual identity).
+
+UNKNOWNS / NOT DONE:
+- The two follow-up decisions from the base report's HANDOFF-NEEDS remain open (not part of this fix-round's
+  3 findings): `DeckView.cpp`'s 2 now-redundant `menu.setLookAndFeel` calls (out of THIS packet's fence, same
+  reasoning as SHOULD 1 would apply if `DeckView.cpp` is ever put in-fence); `PresetManager` dead-code-with-
+  test-caller.
+- The live meter-row diff pixels (2249) were not further reduced (e.g. by disabling audio input for the
+  shots) -- not necessary, since the check that matters (0 diff pixels inside the menu bbox) is already exact.
+
+NUANCE:
+- SHOULD 1's before/after pair needed item2's filter DISABLED as scaffolding in BOTH builds (to get a
+  non-empty Decks row to right-click) -- this is orthogonal to the line under test and was NOT re-enabled in
+  either scratch build's "before"/"after" comparison, since re-enabling it in only one side would have
+  conflated two variables. The shipped code (committed) has the filter enabled AND the line removed; the
+  scratch builds exist only in `/private/tmp/.../scratchpad/decks-followup-fix/apps/` and were never
+  committed or left running.
+- The `AUDIODNA_DEBUG_FOLLOWUP=library_menu` hook's first attempt silently failed (no in-app snapshot file)
+  because the script passed a RELATIVE `AUDIODNA_DEBUG_SNAP` path -- the app launched via `open -g` does not
+  inherit the launching shell's cwd, so the relative path resolved nowhere the caller expected. Diagnosed with
+  a temporary `std::cerr` trace (added, used once, fully removed before the real evidence run -- never
+  shipped, confirmed via the same revert+rebuild+strings-count-0 discipline as the hook itself). Fixed by
+  resolving `OUT` to an absolute path before building any `--env AUDIODNA_DEBUG_SNAP=...` argument; recorded
+  in `.harmony/notebook.md` as a reusable gotcha.
+- A second, unrelated live-app hazard surfaced mid-session: a manual one-off debug launch was attempted while
+  ANOTHER lane ("harmony", pid 73086) held `/tmp/audiodna-live.lock` for its own Audio-DNA run -- `mkdir`
+  correctly failed, and the subsequent `open -g` on a scratch copy silently no-op'd (macOS launch services key
+  off `CFBundleIdentifier`, not filesystem path, so a second copy of the same bundle ID does not spawn an
+  independent process while one is already running) rather than interfering with it. No process was killed,
+  no signal was sent, nothing was touched; the lock's owner was never removed. Waited it out (bounded 20s
+  polls, freed after 120s) before proceeding -- recorded as a gotcha in `.harmony/notebook.md`.
+
+HANDOFF-NEEDS: Harmony's behavioral gate + an independent Reviewer.
+
+INBOX-RECHECK: none
+
+## FILES CHANGED (fix round, per commit)
+- SHOULD 1 (f30c81f): `src/ui/CompDecksBrowser.cpp` (redundant `menu.setLookAndFeel` line removed + comment).
+- SHOULD 3 (60b6747): `src/ui/LookAndFeel.h/.cpp` (`getTypefaceForFont` override), `tests/test_lookandfeel_square.cpp`
+  (new TEST_CASE).
+- This commit: `.harmony/notebook.md`, `.harmony/.reports/s-rta-0926b/decks-followup.md`,
+  `.harmony/.reports/s-rta-0926b/decks-followup-fix-shots/*` (6 PNGs, force-added).
+
+## TESTS
+New: `AudioDNALookAndFeel::getTypefaceForFont` keeps bold/italic distinct from the fixed default typeface (1
+case, 3 assertions). Full serial ctest after each commit: 642 / 642 (base 641).
+
+## SHOTS (`.harmony/.reports/s-rta-0926b/decks-followup-fix-shots/`)
+after-fix-alert1-w1 / after-fix-alert2-w1 (bold titles restored, square panel unchanged) ·
+library-before-library-w0 vs library-after-library-w0 (real ~/Library/AudioDNA/Decks: "Decks (4)" listing the
+4 actual legacy v1 files vs "Decks (0)" / "No saved compositions or decks") ·
+library-menu-before-library_menu-snapshot vs library-menu-after-library_menu-snapshot (row context menu,
+in-app snapshot, 0 diff pixels inside the menu's own bbox).
+
+## ISSUES
+None new. The two HANDOFF-NEEDS decisions from the base report (DeckView.cpp's redundant calls;
+PresetManager dead code) remain open -- outside this fix round's 3 findings.
+
+## RISKS
+None identified beyond what's in UNKNOWNS.
+
+## PACKET QUALITY
+- Clarity: CLEAR -- all 3 findings named exact files/lines/claims and were independently actionable.
+- Missing context: none -- the fix-round packet's RULES (rig, live-lock, screenshot-hook idiom) were complete
+  and matched the base report's own established idioms closely enough to reuse directly.
+- Unused context: none.
+- Self-brief files: this file (base report, read in full), `.harmony/notebook.md` (uitoggle/decks idiom,
+  plan6's LookAndFeel/PopupMenu mechanism entries -- both directly reused and extended), CLAUDE.md (worktree).
+
+## STATUS
+DONE
+
+## NEXT ACTION
+Harmony's behavioral gate + Reviewer.

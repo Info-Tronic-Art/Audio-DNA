@@ -1664,3 +1664,36 @@ hand-written functions with no shared layout model.
   `auto parsed = juce::JSON::parse(str); auto* obj = parsed.getDynamicObject();` -- this is the pattern
   `PresetManager::loadDeck` already uses; a new call site that skips the named local silently reproduces the bug.
 - Valid while `var`/`DynamicObject` keep this ownership model and MainComponent owns `lookAndFeel_` as a member.
+
+## 2026-09-27 s-rta-0926b decks-followup-fix | Files: src/ui/LookAndFeel.{h,cpp}, src/ui/CompDecksBrowser.cpp
+- BOLD-TITLE REGRESSION GOTCHA: `LookAndFeel::setDefaultSansSerifTypeface(ptr)` (called in
+  AudioDNALookAndFeel's ctor to pin one fixed typeface) makes `LookAndFeel::getTypefaceForFont()` return that
+  SAME fixed `Typeface::Ptr` for every default-sans-serif-named `Font`, regardless of the font's requested
+  bold/italic style (`juce_LookAndFeel.cpp`: `if (defaultTypeface != nullptr) return defaultTypeface;` --
+  no style check at all). Harmless while only this app's own (non-bold) UI used the LookAndFeel directly, but
+  installing it as the JUCE-wide default (decks-followup ITEM 1, `setDefaultLookAndFeel`) routes JUCE's OWN
+  bold requests through it too -- `AlertWindow`'s title uses `LookAndFeel_V4::getAlertWindowTitleFont()`
+  (18pt, `Font::bold`) -- so every dialog title silently lost its bold weight system-wide. Fix: override
+  `getTypefaceForFont()` and fall back to `Font::getDefaultTypefaceForFont(font)` (normal system lookup) for
+  `font.isBold() || font.isItalic()`; only the non-bold case uses the fixed typeface. Generalize: any
+  `LookAndFeel` that calls `setDefaultSansSerifTypeface()` and is later made the JUCE-wide default needs this
+  override, or ALL bold/italic text app-wide (not just AlertWindow) silently renders as regular weight.
+- MENU-SHOT PATH GOTCHA: a temporary `AUDIODNA_DEBUG_SNAP=<path>` hook must receive an ABSOLUTE path -- the
+  launched app's cwd is not the launching script's cwd (`open -g` does not inherit it), so a relative path
+  silently resolves to nowhere the caller expects and `File::createOutputStream()` fails (returns null) with
+  no crash or visible symptom other than "file never appears". Always `OUT="$(cd "$OUT" && pwd)"` before
+  building any `--env AUDIODNA_DEBUG_SNAP=$OUT/...` argument.
+- LIVE-LOCK GOTCHA: copying the same `.app` bundle to multiple scratch paths does NOT make them independently
+  launchable via `open` while one is already running -- macOS's `LSApplicationCheckIn`/launch services key off
+  the bundle's `CFBundleIdentifier`, not its filesystem path, and `open -g` on a "new" copy while another copy
+  (same bundle id) is running just silently no-ops (no new process, no error) instead of spawning a second
+  instance. Always check `/tmp/audiodna-live.lock` AND `ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"'` are both
+  clear before ANY `open` call, even against a scratch copy -- and poll/wait rather than assume a copy path
+  guarantees isolation.
+- `CompDecksBrowser::isV2DeckFile`'s real-world effect is directly screenshot-verifiable against Boris's own
+  `~/Library/AudioDNA/Decks` (READ-ONLY use is fine; never write/move/delete there) -- it holds exactly 4 real
+  legacy v1 `*.deck.json` files (`feafeda`, `tes6`, `testetst`, `try`, none with a `"layers"` key), so a
+  filter-disabled scratch build lists "Decks (4)" and the shipped filter lists "Decks (0)" / "No saved
+  compositions or decks" against the IDENTICAL real directory -- no fixture needed for this one case.
+- Valid while `AudioDNALookAndFeel` keeps `setDefaultSansSerifTypeface()` in its ctor and is the JUCE-wide
+  default, and while `~/Library/AudioDNA/Decks` keeps exactly these 4 legacy files.
