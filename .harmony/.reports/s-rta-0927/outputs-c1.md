@@ -167,3 +167,36 @@ DONE_WITH_CONCERNS. Every C1 gate item that can be run without a window is done 
 
 ### NEXT ACTION
 Harmony: behavioral gate on build-lane (probe-outputs + existing battery), independent review, then merge. Boris runs checklist items 1-2 and 5-9 at the rig. C2 (N windows, ticked menu, TopBar button, keys, level-probe label update) builds on `OutputWindow(SharedFrameSet&)` + `setLiveOutputCount(n)`.
+
+---
+
+## Fix round (outputs-c1-fix, round 1)
+
+STATUS: PENDING
+
+### F1. critic MUST (720p grey border) -- probe side
+### F2. GL SHOULD (jassert is a Release no-op)
+### F3. conformance NITs
+### F4. gates re-run
+### F5. commits
+
+### Fix round (outputs-c1-fix, critic round 1: `critic-outputs-c1-r1.md`; stamped 2026-09-27 11:18:22 from `date`)
+
+STATUS: DONE. There is NO CODE CHANGE this round. The one MUST is a false positive, and the pixel evidence below refutes it. The one SHOULD asked only for a note, and the note is below. No gate is affected (no source, test, probe or build file changed), so no ctest, probe or live run was repeated. No app was launched and the live lock was never taken. `output_window_opened` = false.
+
+**MUST (720p "border", `f720_render_frame.png`): REFUTED. The grey edge is authored content of fixture image B, not a capture margin.**
+- The critic compared the 720p frame, which shows clip **B**, with 1080p frames that show clip **A** (`f0`, `f0b`, `soak_00`, `soak_59`). The one 1080p capture of clip B, `fB_render_frame.png` (and `probe_after_B.png`), has the SAME (15,15,15) edge. The critic's list said that `fB` "has (0,0,0) reaching every edge pixel". The pixels say it does not.
+- Clip B's media is `media/P16_02_Screen_Split_2x2.png` (`.harmony/probe-outputs.json` `imageB`). That file is tracked since `108c8d0`, is byte-identical to the main checkout (sha256 `8b82185a...`), and is a 756x878 Screen-Split 2x2 still. It has a (15,15,15) outer margin and gutter in the file itself.
+- Decoded pixels (`outputs-c1-evidence/fixround-720p-border-check.py`, output `fixround-720p-border-check.txt`, verbatim):
+  - `fixture imageB P16_02_Screen_Split_2x2.png 756x878: corner (15, 15, 15), frac==(15,15,15) 0.132; margin left 13px (1.72% of 756), top 15px (1.71% of 878)`
+  - `fB_render_frame.png 1920x1080: corner (15, 15, 15), frac==(15,15,15) 0.129, margin left 32px (1.67% of 1920), top 18px (1.67% of 1080), d(capture, imageB stretched to 1920x1080) 0.009`
+  - `f720_render_frame.png 1280x720: corner (15, 15, 15), frac==(15,15,15) 0.128, margin left 21px (1.64% of 1280), top 12px (1.67% of 720), d(capture, imageB stretched to 1280x720) 0.029`
+  - `probe_1920x1080_of_720p.png 1920x1080: corner (15, 15, 15), frac==(15,15,15) 0.123, margin left 31px (1.61% of 1920), top 17px (1.57% of 1080), d(capture, imageB stretched to 1920x1080) 0.066`
+  - control: `f0_render_frame.png 1920x1080: corner (0, 0, 0), frac==(15,15,15) 0.000, margin left 0px ..., d(capture, imageB stretched to 1920x1080) 29.431`
+- Reading: the margin is ~1.7% of each dimension in the source file, at 1080p and at 720p alike. Both captures equal image B stretched edge-to-edge onto the canvas (d 0.009 / 0.029 on 0-255; clip fit = the default stretch). A capture sized from a Component, or inset by one, would move the content inward and give a large d, as the A-vs-B control does (29.4). So at 720p the canvas IS the composition, full-bleed (Pitfall 37 holds). The output probe reproduces it (d 0.019 in the GREEN run, 0.066 against the fixture after two resamples).
+- Also out of this lane: `render_frame` (`Renderer::processPendingCapture`, which reads `canvasFBO_` at canvasW_ x canvasH_) is pre-existing code that C1 did not touch. The lane's own path (output_probe) is shown equal to it.
+- Not added: an image-content oracle row in probe-outputs (d(f720, imageB stretched) <= tol). It would gate `render_frame`, which is pre-existing and outside C1. It would also cost a RED/GREEN live pair for a claim the offline decode above already settles. It is Harmony's call if wanted.
+
+**SHOULD (the `jassert` in the OutputWindow ctor is a no-op in Release): NOTED, no code change (as the finding asks).** The never-key guarantee in Release rests entirely on the `getDesktopWindowStyleFlags()` override (`src/ui/OutputWindow.cpp:69-74`). The `jassert` at `:49-50` is a Debug-only tripwire. If the timing of peer creation ever changed, it would give no Release safety net. The override is what `test_output_law` holds. Its teeth include "the flag kept only in the jassert -> 1 failed" (`TEETH-test_output_law-guards.txt`), so a refactor that left only the jassert would go RED in ctest.
+
+Fix-round state: commits = this report and the two evidence files only. ctest unchanged at `100% tests passed, 0 tests failed out of 690` (no source changed since `e14027c`). Shots unchanged (no UI change). No `.venv` link present. Lock not taken. No Audio-DNA launched.
