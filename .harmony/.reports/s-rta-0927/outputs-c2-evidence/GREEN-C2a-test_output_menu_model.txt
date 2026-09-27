@@ -1,0 +1,14 @@
+All available test cases:
+  buildOutputMenu: one tickable item per display, then All Outputs Off
+      [output_menu_model]
+  DisplayInfo identifies a display exactly
+      [output_menu_model]
+  the TopBar button text
+      [output_menu_model]
+  addOutputMenuItems: the PopupMenu both doors show
+      [output_menu_model]
+  the output keys (plan5 7.2-7.3), from KeyPress descriptions -- no key is ever
+  pressed
+      [output_menu_model]
+All tests passed (125 assertions in 5 test cases)
+

@@ -2288,6 +2288,24 @@ if(APPLE)
     catch_discover_tests(test_shared_frame_gl)
 endif()
 
+# --- test_output_menu_model (s-rta-0927 outputs-c2 = plan5 C2, plan5-final.md 10.1): the ONE output item list (the
+# Output menu and the TopBar "Outputs" button), the button text and the output keys (built from KeyPress
+# descriptions -- no key is ever pressed). Headless: no window, no GL, no Desktop; the code under test is
+# src/output/OutputMenuModel.h.
+add_executable(test_output_menu_model test_output_menu_model.cpp)
+target_include_directories(test_output_menu_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_output_menu_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_output_menu_model PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+apply_sanitizers(test_output_menu_model)
+catch_discover_tests(test_output_menu_model)
+
 # --- test_output_law (s-rta-0927 outputs-c1, plan5-final.md 10.1): the output window's screen-safety law asserted in
 # its SOURCE (no gate may ever open the window): normal level, never key (windowIgnoresKeyPresses), bounds before
 # visible. Reads src/ui/OutputWindow.{h,cpp} at test time; comments and literals stripped.

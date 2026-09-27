@@ -387,6 +387,10 @@ target_sources(AudioDNA PRIVATE
     src/output/SurfacePool.cpp
     src/output/OutputPresenter.h
     src/output/OutputPresenter.cpp
+    # ...one window per display, the Output menu / TopBar item list (s-rta-0927 outputs-c2)
+    src/output/OutputMenuModel.h
+    src/output/OutputManager.h
+    src/output/OutputManager.cpp
 )
 
 # Conditionally add test server sources
