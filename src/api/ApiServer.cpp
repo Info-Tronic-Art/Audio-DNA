@@ -172,6 +172,11 @@ void ApiServer::setupRoutes()
         handleSetParam(req, res);
     });
 
+    // s-rta-0926b plan-fitmode: per-clip FIELD writes (today: fitMode only).
+    server_.Post("/api/set_clip_param", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetClipParam(req, res);
+    });
+
     server_.Post("/api/set_layer_opacity", [this](const httplib::Request& req, httplib::Response& res) {
         handleSetLayerOpacity(req, res);
     });
@@ -386,6 +391,7 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
                     clipObj->setProperty("name", juce::String(clip.name));
                     clipObj->setProperty("column", static_cast<int>(ci));
                     clipObj->setProperty("playing", clip.playing);
+                    clipObj->setProperty("fitMode", static_cast<int>(clip.fitMode));   // plan-fitmode
                     clipObj->setProperty("playheadPosition", clip.playheadPosition);   // plan4 T7
                     clipObj->setProperty("mediaType", static_cast<int>(clip.mediaType));
                     clipObj->setProperty("sourceType", juce::String(clip.sourceType));
@@ -585,6 +591,44 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
 
         res.set_content(jsonOk(), "application/json");
     }
+}
+
+void ApiServer::handleSetClipParam(const httplib::Request& req, httplib::Response& res)
+{
+    // s-rta-0926b plan-fitmode: {"layer": L, "column": C, "param": "fitMode", "value": 0|1|2}. The shape
+    // is checked here on the HTTP thread; the write is marshalled to the message thread (active deck, like
+    // set_param) and the response is unconditional 'ok' once the request is well-formed -- the sibling
+    // class. Not undo-recorded, like every other per-clip field write.
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const int layer = static_cast<int>(json.getProperty("layer", -1));
+    const int column = static_cast<int>(json.getProperty("column", -1));
+    const juce::String param = json.getProperty("param", "").toString();
+    const juce::var value = json.getProperty("value", juce::var());
+
+    if (layer < 0 || column < 0)
+    {
+        res.set_content(jsonError("Missing 'layer' or 'column'"), "application/json");
+        return;
+    }
+    if (param != "fitMode")
+    {
+        res.set_content(jsonError("unknown param"), "application/json");
+        return;
+    }
+    if (!(value.isInt() || value.isInt64()) || static_cast<int>(value) < 0 || static_cast<int>(value) > 2)
+    {
+        res.set_content(jsonError("'value' must be an int 0..2 (0 Stretch, 1 Bars, 2 Crop)"), "application/json");
+        return;
+    }
+    const int mode = static_cast<int>(value);
+
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    juce::MessageManager::callAsync([this, layer, column, mode]() {
+        if (onSetClipFitMode)
+            onSetClipFitMode(layer, column, mode);
+    });
+
+    res.set_content(jsonOk(), "application/json");
 }
 
 void ApiServer::handleSetLayerOpacity(const httplib::Request& req, httplib::Response& res)

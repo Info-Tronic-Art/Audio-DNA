@@ -1,0 +1,16 @@
+{
+  "_doc": "Fixtures for .harmony/probe-fitmode.sh (s-rta-0926b plan-fitmode: per-clip Stretch / Bars / Crop). @MEDIA@ is replaced at run time with the checkout's media/ dir. Assertions + calibration: the docstring of .harmony/probe-fitmode.py.",
+  "imageA": "@MEDIA@/P16_01_baseline.png",
+  "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
+  "canvas": [ 1920, 1080 ],
+  "time": 1.0,
+  "tol": 6.0,
+  "bandTol": 2.0,
+  "centreMin": 5.0,
+  "bars": { "_why": "A is 756x878: ClipFit::barsRect(756,878,1920,1080) = {495,0,929,1080}; bands checked at x < 480 and x >= 1440", "x": 495, "w": 929, "bandL": 480, "bandR": 1440 },
+  "crop": { "_why": "ClipFit::cropRect(756,878,1920,1080) = {0,226,756,425} -> PIL box (0,226,756,651)", "box": [ 0, 226, 756, 651 ] },
+  "scaled": { "_why": "the Bars picture at clip / layer scale 0.5 about the centre: 465x540 at (728,270); the outside is checked with a 12 px margin", "x": 728, "y": 270, "w": 465, "h": 540, "margin": 12 },
+  "source": { "sourceType": "checkerboard", "sourceParams": [ [ "Columns", "u_src_columns", 0.3 ], [ "Rows", "u_src_rows", 0.3 ], [ "Color 1 Hue", "u_src_c1_hue", 0.0 ], [ "Color 2 Hue", "u_src_c2_hue", 0.5 ] ] },
+  "osc": { "host": "127.0.0.1", "port": 8000 },
+  "perf": { "_why": "three Transparent layers each = A, fitMode 1 vs fitMode 0; /api/state frame_time_ms after 3 s, 10 x 0.5 s; FINDING if the mean delta > 1 ms", "layers": 3, "warm": 3.0, "samples": 10, "every": 0.5, "findingMs": 1.0 }
+}

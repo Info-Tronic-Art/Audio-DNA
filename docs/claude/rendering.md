@@ -119,6 +119,12 @@ The fader only reaches signal→parameter connections (`ConnectionEngine`, `Macr
 
 ---
 
+### Per-clip Fit Mode (s-rta-0926b plan-fitmode)
+
+`Clip::fitMode` (`ClipFit::Mode`, `src/model/ClipFit.h`): **Stretch** (0, default -- the picture fills the canvas, today's output), **Bars** (1 -- its own shape, centred, the rest TRANSPARENT so lower layers show; over nothing it reads black), **Crop** (2 -- its own shape covering the canvas, overflow cut). Stage order: fit -> clip transform -> clip opacity -> clip effects -> transition -> feedback -> layer effects -> layer transform; the fit is the last step of `layer_transform`'s inverse UV chain (`u_fitEnabled` / `u_fitScale` = `ClipFit::scale()`), inside `CompositorEngine::applyClipTransform` -- the one pass every media clip goes through (active deck, persistent layers, the outgoing clip of a crossfade). Only Image / Video / ImageSequence are fitted: a Source renders at the canvas size (nothing to fit), Camera has no deck path, Mask layers skip the transform pass (a portrait mask still stretches). The picture's size comes from the texture (`glGetTexLevelParameteriv`), never `clipWidth/clipHeight` (Pitfall 38). Stretch, or a picture already the canvas's shape, runs no query and no extra pass. Set by the Clip inspector's Fit combo (Transform section), `POST /api/set_clip_param` and OSC `/audiodna/clip/{l}/{c}/fit`; saved as the clip JSON key `fitMode` (missing / out of range -> Stretch). Live: `.harmony/probe-fitmode.sh`.
+
+---
+
 ### Composition-Level Transform (P25)
 
 The `comp_transform` shader applies position/scale/rotation to the entire final output. Applied after the effect chain renders, before the master level dim. Uses `glBlitFramebuffer` to copy the framebuffer, then renders the transform shader.

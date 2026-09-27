@@ -1894,6 +1894,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // `fx.paramValues[pi] = value;` write was removed from
     // ApiServer::handleSetParam's clip branch; this callback is now the only
     // place that write happens, routed through manualWrite.
+    // s-rta-0926b plan-fitmode: already on the message thread (ApiServer marshals it).
+    apiServer_->onSetClipFitMode = [this](int layerIdx, int column, int mode) {
+        setClipFitMode(layerIdx, column, mode);
+    };
     apiServer_->onSetClipEffectParam = [this](int layerIdx, int column, int fxIndex, int paramIndex,
                                               const std::string& paramName, float value) {
         manualWrite(clipParamPath(composition_, composition_.activeDeckIndex, layerIdx, column, fxIndex,
@@ -2068,6 +2072,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // the callAsync wrappers below match the existing trigger/deck callbacks.
     oscHandler_.onTriggerClip = [this](int layer, int column) {
         juce::MessageManager::callAsync([this, layer, column]() { handleClipTrigger(layer, column); });
+    };
+    // s-rta-0926b plan-fitmode: MessageLoopCallback -> already on the message thread.
+    oscHandler_.onSetClipFitMode = [this](int layerIdx, int column, int mode) {
+        setClipFitMode(layerIdx, column, mode);
     };
     oscHandler_.onSwitchDeck = [this](int deckIdx) {
         juce::MessageManager::callAsync([this, deckIdx]() { handleDeckSwitch(deckIdx); });
@@ -4132,6 +4140,18 @@ void MainComponent::handleImportISF()
 }
 
 // === v2: Deck View Handlers ===
+
+void MainComponent::setClipFitMode(int layerIdx, int column, int mode)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck)
+        return;
+    auto* clip = deck->getClip(layerIdx, column);
+    if (!clip)
+        return;
+    clip->fitMode = ClipFit::clampMode(mode);
+    if (inspectorPanel_) inspectorPanel_->refresh();
+}
 
 void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin, int deckIndex, bool immediate)
 {

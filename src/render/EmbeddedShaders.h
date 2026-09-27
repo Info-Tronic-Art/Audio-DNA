@@ -3362,6 +3362,8 @@ inline const char* layer_transform = R"(
     uniform vec2 u_anchor;      // Anchor point (0-1, default 0.5,0.5)
     uniform float u_scale;      // Scale factor (1.0 = no change)
     uniform float u_rotation;   // Rotation in radians
+    uniform int u_fitEnabled;   // plan-fitmode: 0 = Stretch (every draw sets it explicitly)
+    uniform vec2 u_fitScale;    // plan-fitmode: ClipFit::scale() (Bars / Crop)
 
     void main()
     {
@@ -3383,6 +3385,12 @@ inline const char* layer_transform = R"(
 
         // Translate back from anchor space
         uv += u_anchor;
+
+        // plan-fitmode: the picture was fitted into the canvas BEFORE the transform above moved it, so the fit
+        // mapping is the LAST step of this inverse chain. Skipped entirely at 0: the Stretch path's arithmetic is
+        // untouched (byte-identical output).
+        if (u_fitEnabled != 0)
+            uv = (uv - 0.5) * u_fitScale + 0.5;
 
         // Clamp to edges — out-of-bounds is transparent
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)

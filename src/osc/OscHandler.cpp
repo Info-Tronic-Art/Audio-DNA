@@ -54,6 +54,22 @@ void OscHandler::oscMessageReceived(const juce::OSCMessage& message)
     else if (message[0].isInt32())
         value = static_cast<float>(message[0].getInt32());
 
+    // s-rta-0926b plan-fitmode: /audiodna/clip/{layer}/{column}/fit <int 0..2>. MUST precede the trigger
+    // branch below, which fires a trigger for ANY /audiodna/clip/... address with a value > 0.
+    if (address.startsWith("/audiodna/clip/") && address.endsWith("/fit"))
+    {
+        auto parts = juce::StringArray::fromTokens(address, "/", "");
+        // parts: "", "audiodna", "clip", "{layer}", "{column}", "fit"
+        if (parts.size() >= 6)
+        {
+            int layer = parts[3].getIntValue();
+            int column = parts[4].getIntValue();
+            if (onSetClipFitMode)
+                onSetClipFitMode(layer, column, static_cast<int>(value));
+        }
+        return;
+    }
+
     // /audiodna/clip/{layer}/{column}
     if (address.startsWith("/audiodna/clip/"))
     {

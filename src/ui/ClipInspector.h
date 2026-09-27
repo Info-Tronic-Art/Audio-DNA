@@ -155,6 +155,9 @@ private:
     UniversalParamControl scaleControl_;
     UniversalParamControl rotationControl_;
     UniversalParamControl anchorControl_;
+    // s-rta-0926b plan-fitmode: Stretch / Bars / Crop (first row of the Transform section)
+    juce::Label fitLabel_;
+    juce::ComboBox fitSelector_;
 
     // --- Effects ---
     EffectStackView effectStackView_;

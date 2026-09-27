@@ -2,6 +2,7 @@
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
+#include "model/ClipFit.h"
 #include <juce_core/juce_core.h>
 #include <juce_graphics/juce_graphics.h>
 #include <array>
@@ -168,6 +169,10 @@ struct Clip
     AlphaType alphaType = AlphaType::Premultiplied;
     bool channelR = true, channelG = true, channelB = true, channelA = true;
 
+    // === Fit (s-rta-0926b plan-fitmode) ===
+    using FitMode = ClipFit::Mode;
+    FitMode fitMode = FitMode::Stretch;  // how the picture meets the canvas; Source clips ignore it
+
     // === Transform (per-clip, applied before layer compositing) ===
     float positionX = 0.0f;         // Pixels offset from center
     float positionY = 0.0f;
@@ -255,6 +260,7 @@ struct Clip
         auto savedChannelR = channelR, savedChannelG = channelG;
         auto savedChannelB = channelB, savedChannelA = channelA;
         auto savedTransform = std::make_tuple(positionX, positionY, scale, rotation, anchorX, anchorY);
+        auto savedFitMode = fitMode;   // plan-fitmode: "how this clip is shown" travels with the transform
         auto savedLock = contentLocked;
         // s167-l2: the transform/opacity CONNECTIONS travel with the
         // transform/opacity values above (a media replace keeps "how this
@@ -303,6 +309,7 @@ struct Clip
         channelR = savedChannelR; channelG = savedChannelG;
         channelB = savedChannelB; channelA = savedChannelA;
         std::tie(positionX, positionY, scale, rotation, anchorX, anchorY) = savedTransform;
+        fitMode = savedFitMode;
         contentLocked = savedLock;
         scalarConns = std::move(savedScalarConns);
 
@@ -348,6 +355,7 @@ struct Clip
         playlistBlendSeconds = 1.5f;
         playlistEnabled = false;
         contentLocked = false;
+        fitMode = FitMode::Stretch;
         playing = false;
         playheadPosition = 0.0;
         beatsPlayed = 0;

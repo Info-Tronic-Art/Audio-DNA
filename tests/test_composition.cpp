@@ -231,6 +231,7 @@ TEST_CASE("Clip full field serialization roundtrip", "[composition][serializatio
     clip.channelG = true;
     clip.channelB = false;
     clip.channelA = false;
+    clip.fitMode = Clip::FitMode::Crop;   // s-rta-0926b plan-fitmode
 
     // Transform
     clip.positionX = 12.5f;
@@ -278,6 +279,7 @@ TEST_CASE("Clip full field serialization roundtrip", "[composition][serializatio
     REQUIRE(loaded.channelG == true);
     REQUIRE(loaded.channelB == false);
     REQUIRE(loaded.channelA == false);
+    REQUIRE(loaded.fitMode == Clip::FitMode::Crop);
     REQUIRE_THAT(loaded.positionX, WithinAbs(12.5f, 0.001f));
     REQUIRE_THAT(loaded.positionY, WithinAbs(-8.0f, 0.001f));
     REQUIRE_THAT(loaded.scale, WithinAbs(2.5f, 0.001f));
@@ -485,6 +487,32 @@ TEST_CASE("Composition full field serialization roundtrip", "[composition][seria
     REQUIRE_THAT(loaded.globalEffects[0].dryWet, WithinAbs(0.45f, 0.001f));
 }
 
+TEST_CASE("Clip fitMode: out-of-range loads Stretch; replaceContent keeps it; clear() resets it", "[composition][serialization]")
+{
+    // s-rta-0926b plan-fitmode section 2.2.
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("name", "fit_clip");
+    obj->setProperty("mediaType", static_cast<int>(Clip::MediaType::Image));
+    obj->setProperty("fitMode", 7);
+    Clip bad;
+    bad.fitMode = Clip::FitMode::Bars;
+    bad.fromVar(juce::var(obj));
+    REQUIRE(bad.fitMode == Clip::FitMode::Stretch);
+
+    Clip clip;
+    clip.mediaType = Clip::MediaType::Image;
+    clip.fitMode = Clip::FitMode::Bars;
+    Clip incoming;
+    incoming.mediaType = Clip::MediaType::Video;
+    incoming.fitMode = Clip::FitMode::Crop;
+    REQUIRE(clip.replaceContent(incoming));
+    REQUIRE(clip.mediaType == Clip::MediaType::Video);
+    REQUIRE(clip.fitMode == Clip::FitMode::Bars);   // "how this clip is shown" travels with the transform
+
+    clip.clear();
+    REQUIRE(clip.fitMode == Clip::FitMode::Stretch);
+}
+
 TEST_CASE("Backward compatibility: old-format presets load with struct defaults", "[composition][serialization][backcompat]")
 {
     // Old presets predate Wave 1-C and lack the new keys. fromVar must fall back to
@@ -511,6 +539,7 @@ TEST_CASE("Backward compatibility: old-format presets load with struct defaults"
         REQUIRE(clip.channelG);
         REQUIRE(clip.channelB);
         REQUIRE(clip.channelA);
+        REQUIRE(clip.fitMode == Clip::FitMode::Stretch);   // plan-fitmode: an old file shows as today
         REQUIRE_THAT(clip.scale, WithinAbs(1.0f, 0.001f));
         REQUIRE_THAT(clip.rotation, WithinAbs(0.0f, 0.001f));
         REQUIRE_THAT(clip.beatDivision, WithinAbs(4.0f, 0.001f));

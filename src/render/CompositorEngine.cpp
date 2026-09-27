@@ -540,10 +540,28 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
     const float effAnchorY   = clip.eff(ClipScalar::AnchorY);
     const float effClipOpacity = clip.eff(ClipScalar::Opacity);
 
+    // s-rta-0926b plan-fitmode. Only media with a picture of its own is fitted: a Source renders AT the
+    // canvas size (compositeDeck's sourceRenderFn_ call) and Camera has no deck path. Size = the texture's
+    // real size, never clipWidth/clipHeight (only the video open sites set those). Stretch runs today's
+    // code: no query, and fit stays {1,1}.
+    ClipFit::Scale fit;                                                   // {1,1}
+    if (clip.fitMode != ClipFit::Mode::Stretch
+        && (clip.mediaType == Clip::MediaType::Image || clip.mediaType == Clip::MediaType::Video
+            || clip.mediaType == Clip::MediaType::ImageSequence))
+    {
+        GLint tw = 0, th = 0;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, srcTex);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH,  &tw);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &th);
+        fit = ClipFit::scale(clip.fitMode, tw, th, w, h);
+    }
+    const bool fitActive = (fit.x != 1.0f || fit.y != 1.0f);             // exact: scale() returns {1,1} verbatim
+
     bool needsTransform = (std::abs(effPositionX) > eps ||
                            std::abs(effPositionY) > eps ||
                            std::abs(effScale - 1.0f) > eps ||
-                           std::abs(effRotation) > eps);
+                           std::abs(effRotation) > eps) || fitActive;
 
     GLuint transformedTex = srcTex;
 
@@ -575,6 +593,10 @@ GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
                         effScale);
             glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
                         effRotation * 3.14159265f / 180.0f);
+            // plan-fitmode: layer_transform is shared with applyLayerTransform and uniform values persist
+            // per program, so u_fitEnabled is set on EVERY draw (0 or 1), never left to the default.
+            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_fitEnabled"), fitActive ? 1 : 0);
+            glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_fitScale"), fit.x, fit.y);
 
             quad.draw();
 
@@ -710,6 +732,9 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
                 effLayerScale);
     glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
                 effLayerRotation);
+    // plan-fitmode LOAD-BEARING: the shared program keeps the last clip's u_fitEnabled = 1; a layer
+    // transform must never fit the picture a second time.
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_fitEnabled"), 0);
 
     quad.draw();
 

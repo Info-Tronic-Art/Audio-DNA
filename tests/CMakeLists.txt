@@ -48,6 +48,16 @@ target_link_libraries(test_clip_replace_media_retire PRIVATE Catch2::Catch2WithM
 apply_sanitizers(test_clip_replace_media_retire)
 catch_discover_tests(test_clip_replace_media_retire)
 
+# --- test_clip_fit (s-rta-0926b plan-fitmode: per-clip Stretch / Bars / Crop).
+# The pure header src/model/ClipFit.h (scale / barsRect / cropRect / clampMode);
+# CompositorEngine::applyClipTransform only consumes scale(). Headless, no JUCE,
+# registered like test_clip_replace_media_retire above.
+add_executable(test_clip_fit test_clip_fit.cpp)
+target_include_directories(test_clip_fit PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_fit PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_clip_fit)
+catch_discover_tests(test_clip_fit)
+
 # --- test_layer_transport_reverse (s-rta-0924 step3 S3-B follow-up: the
 # LayerTransport binding's pause->play toggle must not reset clip->reverse
 # the way TopBar's Play button intentionally does). Headless: mirrors

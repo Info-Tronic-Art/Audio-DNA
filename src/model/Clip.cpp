@@ -81,6 +81,7 @@ juce::var Clip::toVar() const
     obj->setProperty("clipWidth", clipWidth);
     obj->setProperty("clipHeight", clipHeight);
     obj->setProperty("blendOverride", static_cast<int>(blendOverride));
+    obj->setProperty("fitMode", static_cast<int>(fitMode));
     obj->setProperty("alphaType", static_cast<int>(alphaType));
     obj->setProperty("channelR", channelR);
     obj->setProperty("channelG", channelG);
@@ -251,6 +252,9 @@ void Clip::fromVar(const juce::var& v)
             channelB = static_cast<bool>(obj->getProperty("channelB"));
         if (obj->hasProperty("channelA"))
             channelA = static_cast<bool>(obj->getProperty("channelA"));
+        // s-rta-0926b plan-fitmode: an old file has no key -> Stretch; an out-of-range int -> Stretch.
+        if (obj->hasProperty("fitMode"))
+            fitMode = ClipFit::clampMode(static_cast<int>(obj->getProperty("fitMode")));
 
         // Transform (per-clip)
         if (obj->hasProperty("positionX"))
