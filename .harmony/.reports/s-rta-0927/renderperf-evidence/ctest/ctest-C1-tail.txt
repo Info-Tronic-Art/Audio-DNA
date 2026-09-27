@@ -1,0 +1,6 @@
+729/732 Test #729: readIndex equals the historical inline expression  ...    Passed    0.18 sec
+730/732 Test #730: an index readIndex returns has always been written in the current lifetime  ...    Passed    0.01 sec
+731/732 Test #731: empty ring / after reset returns -1 until the next push  ...    Passed    0.00 sec
+732/732 Test #732: syphon_check_negative  ...    Passed    0.51 sec
+100% tests passed, 0 tests failed out of 732
+Total Test time (real) =  15.18 sec

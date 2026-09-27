@@ -1,0 +1,26 @@
+### batch race 2026-09-27 18:37:45
+18:37:45 lock held by: harmony 19090 1790548232 -- waiting
+18:39:45 lock held by: harmony 19090 1790548232 -- waiting
+18:41:45 lock held by: harmony 19090 1790548232 -- waiting
+18:43:45 lock held by: harmony 19090 1790548232 -- waiting
+18:45:45 lock held by: harmony 19090 1790548232 -- waiting
+18:47:45 lock held by: harmony 19090 1790548232 -- waiting
+18:49:45 lock held by: harmony 19090 1790548232 -- waiting
+18:51:45 lock held by: source-defects 41151 1790549500 -- waiting
+18:53:46 lock held by: outputs-c3 25950 1790549525 -- waiting
+18:55:46 lock held by: outputs-c3 25950 1790549525 -- waiting
+18:57:46 lock held by: outputs-c3 25950 1790549525 -- waiting
+18:59:46 lock held by: outputs-c3 25950 1790549525 -- waiting
+19:00:06 lock acquired
+### race-redhook 19:00:06 load={ 3.89 4.67 5.24 } compilers=[0/1]
+rc=1 :: PY 3 PASS / 4 FAIL PROBE-CAPTURE-RACE RED 
+### race-greenhook 19:00:19 load={ 4.28 4.73 5.25 } compilers=[0/0]
+rc=0 :: PY 7 PASS / 0 FAIL PROBE-CAPTURE-RACE GREEN 
+### race-greenhook-2 19:00:31 load={ 4.29 4.71 5.24 } compilers=[0/0]
+rc=0 :: PY 7 PASS / 0 FAIL PROBE-CAPTURE-RACE GREEN 
+19:00:43 samples 37 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/batch.sh: line 15: 70674 Terminated: 15          $PY $SP/sampler.py $O/window-sampler.txt
+audio-dna windows 0, Output-named 0
+.venv symlink removed: yes
+19:00:43 lock released
+### batch race done 2026-09-27 19:00:43

@@ -1,0 +1,20 @@
+### batch red-base 2026-09-27 16:41:50
+16:41:50 re-acquire cooldown 36 s
+16:42:26 lock held by: beatclock 30966 1790541702 -- waiting
+16:43:47 lock acquired
+### t2-base-1 16:43:47 load={ 3.29 3.95 5.24 } compilers=[0/0]
+rc=0 :: 
+### t2-base-2 16:44:00 load={ 3.37 3.94 5.21 } compilers=[0/0]
+rc=0 :: 
+### t2-base-3 16:44:12 load={ 3.39 3.92 5.19 } compilers=[0/0]
+rc=0 :: 
+### t2-base-4k 16:44:25 load={ 3.08 3.83 5.13 } compilers=[0/0]
+rc=0 :: 
+### rstate-r1counts-base 16:44:37 load={ 3.54 3.90 5.14 } compilers=[0/0]
+rc=1 :: PY 1 PASS / 2 FAIL PROBE-RENDER-STATE RED 
+### capt-base-i 16:44:52 load={ 3.63 3.90 5.12 } compilers=[0/0]
+rc=0 :: 
+16:45:00 samples 73 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+16:45:01 lock released
+### batch red-base done 2026-09-27 16:45:01

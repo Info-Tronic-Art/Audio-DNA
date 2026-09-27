@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
+#include "render/PixelConvert.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
 #include "recording/VideoRecorder.h"
@@ -2035,12 +2036,11 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     if (width > 1920) width = 1920;
     if (height > 1080) height = 1080;
 
-    std::promise<bool> promise;
+    std::promise<CaptureRead> promise;
     auto future = promise.get_future();
 
     {
         std::lock_guard<std::mutex> lock(captureMutex_);
-        captureOutputPath_ = outputPath;
         captureWidth_ = width;
         captureHeight_ = height;
         capturePromise_ = &promise;
@@ -2067,7 +2067,64 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
         return false;
     }
 
-    return future.get();
+    // s-rta-0927 plan-renderperf C3: the GL thread read the canvas (processPendingCapture) and went on rendering;
+    // the conversion, the PNG encode and the file write happen here, on this already-waiting thread. Same pixels,
+    // same bytes (PixelConvert == the old setPixelColour loop), and the file is complete before the return (the
+    // stream's scope closes -- and flushes -- before the log line). The read arrives by value through THIS call's
+    // own future (fix round): nothing shared is read after the signal, so a second capture armed and serviced
+    // before this line cannot hand its pixels to this caller.
+    CaptureRead read = future.get();
+    if (!read.ok)
+        return false;
+    std::vector<uint8_t>& pixels = read.pixels;
+    const int readW = read.width;
+    const int readH = read.height;
+    const double readMs = read.readMs;
+    if (readW <= 0 || readH <= 0 || pixels.size() != static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4)
+    {
+        std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
+        return false;
+    }
+
+    using CaptureClock = std::chrono::steady_clock;
+    const auto msSince = [](CaptureClock::time_point t) {
+        return std::chrono::duration<double, std::milli>(CaptureClock::now() - t).count();
+    };
+
+    // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left). Row conversion, byte-identical
+    // to the old per-pixel setPixelColour loop (s-rta-0927 plan-renderperf C2; tests/test_pixel_convert.cpp).
+    auto tConvert = CaptureClock::now();
+    juce::Image img(juce::Image::ARGB, readW, readH, false);
+    {
+        juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
+        PixelConvert::rgbaBottomUpToARGB(pixels.data(), readW, readH, bmp, false);
+    }
+    const double convertMs = msSince(tConvert);
+
+    // Write PNG
+    auto tPng = CaptureClock::now();
+    outputPath.getParentDirectory().createDirectory();
+    bool ok = false;
+    {
+        juce::FileOutputStream fos(outputPath);
+        if (fos.openedOk())
+        {
+            juce::PNGImageFormat pngFormat;
+            ok = pngFormat.writeImageToStream(img, fos);
+        }
+    }
+    const double pngMs = msSince(tPng);
+
+    // C0's split: read = the GL thread's whole share; convert + png ran here.
+    if (ok)
+        std::cerr << "[Eyes] Captured frame: " << outputPath.getFullPathName()
+                  << " (" << readW << "x" << readH << ")"
+                  << " read=" << juce::String(readMs, 1) << " convert=" << juce::String(convertMs, 1)
+                  << " png=" << juce::String(pngMs, 1) << " ms" << std::endl;
+    else
+        std::cerr << "[Eyes] Failed to write PNG: " << outputPath.getFullPathName() << std::endl;
+
+    return ok;
 }
 
 void Renderer::processPendingCapture()
@@ -2097,53 +2154,28 @@ void Renderer::processPendingCapture()
     if (canvasFBO_ == 0 || readW <= 0 || readH <= 0)
     {
         std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
-        capturePromise_->set_value(false);
+        capturePromise_->set_value(CaptureRead{});
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
         return;
     }
 
-    // Read pixels from the canvas
-    std::vector<uint8_t> pixels(static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4);
+    // s-rta-0927 plan-renderperf C3: ONLY the read stays on the GL thread -- the caller of captureFrame (blocked on
+    // the promise for the whole capture anyway) converts, encodes and writes the PNG. The read is timed for C0's
+    // "[Eyes] Captured frame: ... read=" field (the capture's cost is invisible to the frame timer: it runs after
+    // renderEnd).
+    const auto tRead = std::chrono::steady_clock::now();
+    CaptureRead read;
+    read.pixels.resize(static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
-    glReadPixels(0, 0, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glReadPixels(0, 0, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, read.pixels.data());
+    read.readMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - tRead).count();
+    read.width = readW;
+    read.height = readH;
+    read.ok = true;
 
-    // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left)
-    juce::Image img(juce::Image::ARGB, readW, readH, false);
-    {
-        juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
-        for (int y = 0; y < readH; ++y)
-        {
-            const auto* srcRow = pixels.data() + static_cast<size_t>(readH - 1 - y) * static_cast<size_t>(readW) * 4;
-            for (int x = 0; x < readW; ++x)
-            {
-                bmp.setPixelColour(x, y,
-                    juce::Colour(srcRow[x * 4],     // R
-                                 srcRow[x * 4 + 1], // G
-                                 srcRow[x * 4 + 2], // B
-                                 srcRow[x * 4 + 3]  // A
-                    ));
-            }
-        }
-    }
-
-    // Write PNG
-    captureOutputPath_.getParentDirectory().createDirectory();
-    juce::FileOutputStream fos(captureOutputPath_);
-    bool ok = false;
-    if (fos.openedOk())
-    {
-        juce::PNGImageFormat pngFormat;
-        ok = pngFormat.writeImageToStream(img, fos);
-    }
-
-    if (ok)
-        std::cerr << "[Eyes] Captured frame: " << captureOutputPath_.getFullPathName()
-                  << " (" << readW << "x" << readH << ")" << std::endl;
-    else
-        std::cerr << "[Eyes] Failed to write PNG: " << captureOutputPath_.getFullPathName() << std::endl;
-
-    capturePromise_->set_value(ok);
+    // Handed to this request's own future by value -- never parked in a Renderer member (fix round).
+    capturePromise_->set_value(std::move(read));
     pendingCapture_ = false;
     capturePromise_ = nullptr;
 }

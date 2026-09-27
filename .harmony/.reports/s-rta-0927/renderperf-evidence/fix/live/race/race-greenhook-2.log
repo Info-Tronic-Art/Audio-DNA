@@ -1,0 +1,38 @@
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/apps/greenhook/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/live/race/race.uvyWvZ
+load red: (200, '{"ok":true}')
+      r0_single: ok=True wall 1535 ms, 640x360 centre red
+PASS  r0_single: a lone 640x360 capture decodes 640x360 with the red image at its centre (640x360 centre red)
+      r1_sizes: A ok=True [{
+  "ok": true,
+  "path": "/private/tmp/claude-501/-Users-] -> 640x360 centre red; B ok=True [{
+  "ok": true,
+  "path": "/private/tmp/claude-501/-Users-] -> 320x180 centre red; B sent 505 ms after A, A answered at 1518 ms, overlap=True
+PASS  r1_sizes: B was sent while A was still in flight
+PASS  r1_sizes: capture A (640x360) returns ok and its PNG decodes 640x360 (640x360 centre red)
+PASS  r1_sizes: capture B (320x180) returns ok and its PNG decodes 320x180 (320x180 centre red)
+      r2_content: load blue (200, '{"ok":true}'); A ok=True [{
+  "ok": true,
+  "path": "/private/tmp/claude-501/-Users-] -> 640x360 centre red; B ok=True [{
+  "ok": true,
+  "path": "/private/tmp/claude-501/-Users-] -> 640x360 centre blue; B sent 921 ms after A, A answered at 1527 ms, overlap=True
+PASS  r2_content: B was sent while A was still in flight
+PASS  r2_content: capture A (armed while red showed) returns ok and decodes RED -- its own frame (640x360 centre red)
+PASS  r2_content: capture B (armed after blue loaded) returns ok and decodes BLUE (640x360 centre blue)
+PY 7 PASS / 0 FAIL
+PASS  h_hook: the collect-delay hook was armed (5 captures delayed)
+PASS  no foreign render_frame traffic
+--- [Eyes] lines:
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] Captured frame: r0.png (640x360) read=1.1 convert=0.5 png=6.9 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] Captured frame: r1_A.png (640x360) read=0.4 convert=0.5 png=6.9 ms
+[Eyes] Captured frame: r1_B.png (320x180) read=0.4 convert=0.6 png=8.4 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] TESTHOOK collect delay 1500 ms
+[Eyes] Captured frame: r2_A.png (640x360) read=0.5 convert=1.4 png=12.6 ms
+[Eyes] Captured frame: r2_B.png (640x360) read=0.5 convert=0.5 png=6.9 ms
+PASS  app terminated
+
+PROBE-CAPTURE-RACE GREEN

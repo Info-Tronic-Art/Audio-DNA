@@ -1,0 +1,3 @@
+729/729 Test #729: syphon_check_negative  ...    Passed    0.66 sec
+100% tests passed, 0 tests failed out of 729
+Total Test time (real) =  15.38 sec

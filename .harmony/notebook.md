@@ -1904,3 +1904,25 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
   stall is reproducible on a quiet machine with the TEST-ONLY `POST /api/debug/stall_message_thread {"ms":550}`
   (one catch-up tick on wake), which is what probe-beatclock b2/b3 and probe-routines 7s use.
 - Valid while RecorderClock reads totalBeatCount and the stall hook exists.
+## 2026-09-27 s-rta-0927 renderperf: first-use hitches have TWO parts -- the ring (fixed) and the image upload (not)
+**Files:** src/render/CompositorEngine.cpp (pushFrameToRing, getOrCreateRingBuffer, loadKeyImage), src/render/FrameRing.h, src/render/PixelConvert.h, src/render/Renderer.cpp (captureFrame / processPendingCapture), .harmony/probe-render-state.py (r1_counts)
+**Note:**
+- Frame-ring cells are created on their first write (plan-renderperf C1). The one-time 32-48 ms frame at a layer's
+  first Screen Split / Frame Stutter use and at its first crossfade was ~26-28 ms ring creation + ~10 ms FIRST UPLOAD
+  of the clip's image (`CompositorEngine::loadKeyImage`: PNG decode + per-pixel getPixelColour copy + glTexImage2D on
+  the GL thread, cached by path). A "cold" hitch measurement mixes both: pre-upload the images on a second layer
+  first (scratch `t2warm.py` in the lane evidence) to see the ring alone. The image-upload hitch is still there.
+- probe-render-state r1_counts reads 1.4-1.7 ms in a full run (earlier rows already uploaded A and B) but 9-12 ms when
+  run alone on a fresh app -- same code, the difference is the image cache. Its bar is 16.7 ms.
+- 7070's /api/render_frame (ApiServer) ignores width/height -- only 8080 (TestServer, --test-mode) locks the canvas.
+  On 7070 size a capture with the composition's outputWidth/outputHeight.
+- A render_frame capture now costs the GL thread only glReadPixels (2-5 ms at 1080p, ~8 ms at 4K); the conversion and
+  PNG encode (~80 ms at 1080p, ~300 ms at 4K) run on the HTTP thread that waits for the answer, so the HTTP round trip
+  is unchanged. The `[Eyes] Captured frame: <path> (WxH) read= convert= png= ms` fields are the capture's own timer
+  (the frame timer never sees a capture: it runs after renderEnd).
+- Fix round: a capture's read reaches its caller BY VALUE through its own promise (`Renderer::CaptureRead`). Never
+  park a per-request result in a Renderer member. Three callers can be in flight at once (8080 render_frame, 7070
+  render_frame, snapshot threads). A result parked after the signal was taken by the wrong caller (live RED:
+  renderperf-evidence/fix). A second capture armed while the first is still pending still overwrites
+  capturePromise_, so the first times out after 5 s (older than C3; fails safely).
+- Valid while: FrameRingBuffer / loadKeyImage / captureFrame keep this shape.

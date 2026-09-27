@@ -1,0 +1,6 @@
+TIER1 base start 2026-09-27 16:22:00 load={ 4.85 7.26 8.00 } app=/Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+pytest rc=1
+8 failed, 5 passed in 1116.12s (0:18:36)
+TIER1 base end 2026-09-27 16:41:39
+app running after quit: no
+audio-dna windows 0, Output-named 0

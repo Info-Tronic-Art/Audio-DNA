@@ -1,0 +1,16 @@
+### batch c2 2026-09-27 17:22:07
+17:22:07 re-acquire cooldown 9 s
+17:22:16 lock held by: tier1-diag 59144 1790544094 -- waiting
+17:24:16 lock acquired
+### capt-C2 17:24:16 load={ 2.74 3.06 3.29 } compilers=[0/0]
+rc=0 :: 
+### canvas-C2 17:24:33 load={ 3.86 3.30 3.37 } compilers=[0/0]
+rc=0 :: PY 15 PASS / 0 FAIL PROBE-CANVAS GREEN 
+### fitmode-C2 17:26:14 load={ 3.13 3.20 3.33 } compilers=[0/0]
+rc=0 :: PY 10 PASS / 0 FAIL PROBE-FITMODE GREEN 
+### rstate-C2 17:27:24 load={ 2.94 3.11 3.27 } compilers=[0/0]
+rc=0 :: PY 32 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+17:33:14 samples 530 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+17:33:14 lock released
+### batch c2 done 2026-09-27 17:33:14

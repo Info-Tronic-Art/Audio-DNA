@@ -1,0 +1,11 @@
+T2 C1 run 2 start 2026-09-27 16:59:17 quiet=yes load={ 2.96 3.40 3.99 } canvas=1920x1080 app=SP/apps/C1/Audio-DNA.app
+load {'ok': True}
+pre-first-use: n=22 max peak 0.00 ms at +0.004 s, frame_rings 0->0, temporal 0->0, median peak 0.00
+first-use: n=58 max peak 13.34 ms at +0.030 s, frame_rings 0->1, temporal 0->0, median peak 0.72
+steady: n=40 max peak 1.54 ms at +1.672 s, frame_rings 1->1, temporal 0->0, median peak 0.71
+fade1: n=61 max peak 8.98 ms at +0.026 s, frame_rings 1->2, temporal 0->0, median peak 0.74
+fade2: n=60 max peak 1.82 ms at +1.470 s, frame_rings 2->2, temporal 0->0, median peak 0.74
+fade1 timeline (t, peak): [(0.002, 0.7), (0.026, 9.0), (0.054, 0.7), (0.079, 0.5), (0.11, 0.8), (0.135, 1.7), (0.16, 1.3), (0.186, 0.8), (0.211, 0.5), (0.236, 0.7), (0.255, 0.7), (0.281, 0.5)]
+T2 C1 run 2 end 2026-09-27 16:59:28 load={ 2.81 3.35 3.96 } compilers=[0/0]
+app running after quit: no
+audio-dna windows 0, Output-named 0

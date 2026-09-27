@@ -1,0 +1,13 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: SP/live/red-base/rstate.dgRPvl
+--- r1_counts
+      r1_counts: frame_rings 0 -> 2 (+2), temporal_buffers 0 -> 0 (+0); peak_frame_time_ms first use 37.87, first fade 39.42, second fade (no creation) 1.53; load avg 3.63 3.90 5.12
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+FAIL  r1_counts: longest frame across the layer's first use (its ring created) 37.87 ms <= 16.7 ms
+FAIL  r1_counts: longest frame across the first fade (spare ring created) 39.42 ms <= 16.7 ms
+
+PY 1 PASS / 2 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE RED

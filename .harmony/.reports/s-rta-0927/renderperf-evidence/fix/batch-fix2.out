@@ -1,0 +1,19 @@
+### batch fix2 2026-09-27 19:15:59
+19:15:59 re-acquire cooldown 45 s
+19:16:44 lock held by: source-defects 76069 1790550960 -- waiting
+19:18:44 lock held by: source-defects 76069 1790550960 -- waiting
+19:19:05 lock acquired
+### fitmode-FIX 19:19:05 load={ 2.74 3.17 3.95 } compilers=[0/0]
+rc=0 :: PY 10 PASS / 0 FAIL PROBE-FITMODE GREEN 
+### crossfade-FIX 19:20:17 load={ 2.71 3.03 3.82 } compilers=[0/0]
+rc=0 :: PY 35 PASS / 0 FAIL PROBE-CROSSFADE GREEN 
+### deckclock-FIX 19:22:43 load={ 3.02 3.12 3.74 } compilers=[0/0]
+rc=0 :: PY 10 PASS / 0 FAIL PROBE-DECK-CLOCK GREEN 
+### outputs-FIX 19:23:54 load={ 6.12 3.97 4.00 } compilers=[0/0]
+rc=0 :: PY 13 PASS / 0 FAIL PROBE-OUTPUTS GREEN 
+19:24:18 samples 310 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/batch.sh: line 15: 94204 Terminated: 15          $PY $SP/sampler.py $O/window-sampler.txt
+audio-dna windows 0, Output-named 0
+.venv symlink removed: yes
+19:24:18 lock released
+### batch fix2 done 2026-09-27 19:24:18

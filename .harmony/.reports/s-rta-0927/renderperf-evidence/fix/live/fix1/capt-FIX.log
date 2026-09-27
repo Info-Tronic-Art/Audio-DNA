@@ -1,0 +1,34 @@
+CAPT FIX start 2026-09-27 19:07:29 quiet=NO load={ 4.14 4.57 4.99 } app=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/fix/apps/fix/Audio-DNA.app
+load default: {'ok': True}; enabled global effects: []
+CAP FIX_def1 png=(1920, 1080) ok=True http_rt_ms=113.1 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP FIX_def2 png=(1920, 1080) ok=True http_rt_ms=91.8 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP FIX_t1080_1 png=(1920, 1080) ok=True http_rt_ms=100.0 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP FIX_t1080_2 png=(1920, 1080) ok=True http_rt_ms=99.4 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+CAP FIX_t1080_3 png=(1920, 1080) ok=True http_rt_ms=98.8 bytes=108555 sha256=1eb4374362b485be5007ef919a7769ac9c0fee6c0d9ab749ea03b69bd23a339e
+load (1280, 720): {'ok': True}; enabled global effects: []
+CAP FIX_720_1 png=(1280, 720) ok=True http_rt_ms=80.2 bytes=62331 sha256=eb1f5191ac13fd94e975f3f00aa1c44a61c7677f4512186aa99496d8a8fb8156
+CAP FIX_720_2 png=(1280, 720) ok=True http_rt_ms=50.1 bytes=62331 sha256=eb1f5191ac13fd94e975f3f00aa1c44a61c7677f4512186aa99496d8a8fb8156
+load (3840, 2160): {'ok': True}; enabled global effects: []
+CAP FIX_t4k_1 png=(3840, 2160) ok=True http_rt_ms=357.3 bytes=298975 sha256=650ef6677958a8b01340f22cd4ad4e50de830425db92062c6bb04cd255863ac7
+PIL def1 vs def2: shape (1080, 1920, 4) array_equal=True mean RGBA [16.83, 0.97, 12.22, 191.0] alpha min/max 191/191
+PIL 7201 vs 7202: shape (720, 1280, 4) array_equal=True mean RGBA [16.83, 0.97, 12.22, 191.0] alpha min/max 191/191
+CAPT FIX end 2026-09-27 19:07:43 load={ 4.45 4.61 5.00 } compilers=[0/0]
+app running after quit: no
+audio-dna windows 0, Output-named 0
+--- app err.log capture lines:
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_def1.png (1920x1080) read=4.1 convert=7.7 png=98.3 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_def2.png (1920x1080) read=2.4 convert=4.0 png=79.7 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_t1080_1.png (1920x1080) read=2.7 convert=4.0 png=80.4 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_t1080_2.png (1920x1080) read=2.4 convert=4.2 png=80.0 ms
+[Eyes] Processing capture: canvas 1920x1080
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_t1080_3.png (1920x1080) read=2.3 convert=3.9 png=80.1 ms
+[Eyes] Processing capture: canvas 1280x720
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_720_1.png (1280x720) read=2.8 convert=3.8 png=54.2 ms
+[Eyes] Processing capture: canvas 1280x720
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_720_2.png (1280x720) read=1.1 convert=1.8 png=37.8 ms
+[Eyes] Processing capture: canvas 3840x2160
+[Eyes] Captured frame: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/renderperf/capt/FIX/FIX_t4k_1.png (3840x2160) read=7.8 convert=28.9 png=305.7 ms

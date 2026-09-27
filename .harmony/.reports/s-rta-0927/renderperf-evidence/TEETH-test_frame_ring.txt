@@ -1,0 +1,47 @@
+=== m0 (unmutated copy: expect PASS)
+All tests passed (9 assertions in 3 test cases)
+exit=0
+18c18
+<     return (writeIndex - 1 - framesAgo + capacity * 2) % capacity;
+---
+>     return (writeIndex - 1 + framesAgo + capacity * 2) % capacity;
+=== m1 (formula - framesAgo -> + framesAgo: expect FAIL)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_frame_ring.cpp:58: FAILED:
+  CHECK( mismatches == 0 )
+with expansion:
+with messages:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_frame_ring.cpp:95: FAILED:
+  CHECK( unwritten == 0 )
+with expansion:
+with messages:
+test cases: 3 | 1 passed | 2 failed
+assertions: 9 | 7 passed | 2 failed
+exit=42
+16c16
+<     if (framesAgo > maxDelay) framesAgo = maxDelay;
+---
+>     (void)maxDelay;
+=== m3 (clamp to frameCount removed: expect FAIL)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_frame_ring.cpp:58: FAILED:
+  CHECK( mismatches == 0 )
+with expansion:
+with messages:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_frame_ring.cpp:95: FAILED:
+  CHECK( unwritten == 0 )
+with expansion:
+with messages:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_frame_ring.cpp:108: FAILED:
+  CHECK( FrameRing::readIndex(writeIndex, frameCount, 3780, kCap) == 0 )
+with expansion:
+test cases: 3 | 3 failed
+exit=42
+74c74
+<             std::fill(written.begin(), written.end(), false);
+---
+>             // mutation M2: written[] NOT cleared
+=== m2 (reset keeps written[] (test copy): expect PASS)
+All tests passed (9 assertions in 3 test cases)
+exit=0
+deliverables unchanged:
+1c996044f0d40fea3e2939388f581b762b1bc59b52d189a33bf9bcfc9157b578  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/src/render/FrameRing.h
+12e5446d0eab9c267fffde94cd7993cf0104bc7cf2768a10b166be6df55d5f37  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_frame_ring.cpp

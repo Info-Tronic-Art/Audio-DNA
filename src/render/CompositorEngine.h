@@ -146,6 +146,9 @@ public:
     // atomics, same pattern as Renderer::frameTimeMs_.
     int getTemporalBufferCount() const { return temporalBufferCount_.load(std::memory_order_relaxed); }
     int getFrameRingCount() const { return frameRingCount_.load(std::memory_order_relaxed); }
+    // s-rta-0927 plan-renderperf C1: ring cells (texture + FBO) created so far, over every ring -- cells are
+    // created on first write, so this grows by at most one per ring per frame.
+    int getFrameRingCellCount() const { return frameRingCellCount_.load(std::memory_order_relaxed); }
 
 private:
     // Accumulator FBO — the composited result
@@ -246,9 +249,14 @@ private:
     // Frame ring buffer for Screen Split / Frame Stutter.
     // Stores up to 480 previous frames downscaled by RenderGeometry::ringDownscale(canvas width) --
     // at least 1/4 (kRingDownscale), and never a cell wider than 480 px (s-rta-0926b plan4 1E):
-    // 237 MiB per ring at 1080p (ds 4) AND at 4K (ds 8), 187 MiB at 1440p (ds 6); cells above 1080p
-    // are therefore softer than the canvas. Two per (deck, layer) clip chain after a fade with
+    // 237 MiB per full ring at 1080p (ds 4) AND at 4K (ds 8), 187 MiB at 1440p (ds 6); cells above
+    // 1080p are therefore softer than the canvas. Two per (deck, layer) clip chain after a fade with
     // Split/Stutter on both sides (s-rta-0926b R1: the outgoing slot).
+    // Cells are created on FIRST WRITE (pushFrameToRing), one per pushed frame -- never in bulk: 480
+    // cells in one frame cost 35.5-38.5 ms (s-rta-0927 plan-renderperf C1). A ring reaches its full
+    // size only after 480 pushed frames, no frame creates more than one cell per ring, and a cell is
+    // never read before it is written (FrameRing::readIndex, tests/test_frame_ring.cpp). The 480 cap
+    // and ringDownscale are unchanged.
     static constexpr int kMaxRingFrames = 480;
     static constexpr int kRingDownscale = 4; // the MINIMUM downscale (1/4 resolution)
     struct FrameRingBuffer {
@@ -258,6 +266,7 @@ private:
         int ringWidth = 0;  // stored resolution (downscaled)
         int ringHeight = 0;
         int frameCount = 0;
+        int allocatedCells = 0;   // cells created so far (created on first write; accounting only)
         bool initialized = false;
     };
     std::unordered_map<uint64_t, FrameRingBuffer> layerRingBuffers_;
@@ -267,6 +276,7 @@ private:
     // s-rta-0926b R1: live counts of the two maps above (see the getters).
     std::atomic<int> temporalBufferCount_{ 0 };
     std::atomic<int> frameRingCount_{ 0 };
+    std::atomic<int> frameRingCellCount_{ 0 };   // s-rta-0927 plan-renderperf C1 (getFrameRingCellCount)
 
     // s-rta-0926b R1: one crossfade-start detector per clip chain (key:
     // LayerStateKey::clipChain). Compositor state, not a Layer field.

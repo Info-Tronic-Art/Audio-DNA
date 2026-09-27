@@ -1,0 +1,34 @@
+compile rc 0 
+link rc 0 
+20c20
+<             p.premultiply();
+---
+>             // p.premultiply();   // MUTATION
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:115: FAILED:
+  CHECK( differingRows(oracle(px, w, h, software, false), candidate(px, w, h, software, false)) == 0 )
+  NativeImageType
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:115: FAILED:
+  CHECK( differingRows(oracle(px, w, h, software, false), candidate(px, w, h, software, false)) == 0 )
+  SoftwareImageType
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:144: FAILED:
+  CHECK( differingRows(oracle(px, s[0], s[1], software, opaque), candidate(px, s[0], s[1], software, opaque)) == 0 )
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w8/tests/test_pixel_convert.cpp:160: FAILED:
+test cases:   4 |  1 passed |  3 failed
+assertions: 104 | 93 passed | 11 failed
+mutant exit 42
+deliverable PixelConvert.h sha256 before b7041a34d01d7103d190c435a3a90d7b5d4f54d5164f9b1cf0a71c5446a4caee after b7041a34d01d7103d190c435a3a90d7b5d4f54d5164f9b1cf0a71c5446a4caee unchanged

@@ -1,0 +1,24 @@
+### batch c3 2026-09-27 17:33:14
+17:33:14 re-acquire cooldown 45 s
+17:33:59 lock held by: tier1-diag 70279 1790544802 -- waiting
+17:35:39 lock acquired
+### capt-C3 17:35:39 load={ 3.66 3.21 3.23 } compilers=[0/0]
+rc=0 :: 
+### canvas-C3 17:35:56 load={ 4.32 3.38 3.29 } compilers=[0/0]
+rc=0 :: PY 15 PASS / 0 FAIL PROBE-CANVAS GREEN 
+### parity-C3 17:37:37 load={ 3.99 3.53 3.35 } compilers=[0/0]
+rc=0 :: PY 46 PASS / 0 FAIL PROBE-EFFECTS-PARITY GREEN 
+### rstate-C3 17:38:21 load={ 3.59 3.48 3.34 } compilers=[0/0]
+rc=0 :: PY 32 PASS / 0 FAIL PROBE-RENDER-STATE GREEN 
+### outputs-C3 17:44:10 load={ 2.59 3.20 3.28 } compilers=[0/0]
+rc=0 :: PY 13 PASS / 0 FAIL PROBE-OUTPUTS GREEN 
+### crossfade-C3 17:44:35 load={ 3.01 3.25 3.29 } compilers=[0/0]
+rc=0 :: PY 35 PASS / 0 FAIL PROBE-CROSSFADE GREEN 
+### fitmode-C3 17:47:01 load={ 3.45 3.37 3.33 } compilers=[0/0]
+rc=0 :: PY 10 PASS / 0 FAIL PROBE-FITMODE GREEN 
+### deckclock-C3 17:48:12 load={ 3.34 3.30 3.30 } compilers=[0/0]
+rc=0 :: PY 10 PASS / 0 FAIL PROBE-DECK-CLOCK GREEN 
+17:49:22 samples 811 Output-named Audio-DNA windows [] max on-screen layer-0 Audio-DNA windows 1
+audio-dna windows 0, Output-named 0
+17:49:23 lock released
+### batch c3 done 2026-09-27 17:49:23
