@@ -28,7 +28,9 @@
   "r5_burst": {
     "_why": "fresh layer ids, col 0 = A, col 1 = A + [Freeze 0.5]; back-to-back captures across the switch. No frame after the switch may be blank (the creation frame used to be fully transparent)",
     "layerIds": [ 81, 82, 83, 84, 85 ],
-    "fx": [ ["Freeze", 0.5] ]
+    "fx": [ ["Freeze", 0.5] ],
+    "_postSwitchS": "seconds of back-to-back captures after the switch; 2.0 holds >= 8 full-canvas (1920x1080) captures (was 0.6 s before plan4: 6-7)",
+    "postSwitchS": 2.0
   },
   "r1": {
     "_why": "one layer, OUT = col 0 = A + out, IN = col 1 = B + in, Wipe Left over T s: each region must show ONLY its own clip (ratio vs that clip alone <= bound). Ruling R1 = B': outgoing slot, copy buffer / swap ring",
