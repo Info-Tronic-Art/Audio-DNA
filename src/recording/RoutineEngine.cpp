@@ -579,9 +579,15 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
             r.player->stop(*r.sink);   // every grip released (R9)
             if (r.loop && r.lengthBeats > 0.0)
             {
-                r.startBeat += r.lengthBeats;   // exact, no drift
-                pos -= r.lengthBeats;
-                ++r.cycle;
+                // s-rta-0927 beat clock: fold EVERY whole cycle the gap covers at once. The clock now keeps every
+                // beat across a stall, so `pos` can exceed one cycle in a single tick (the old lossy clock never
+                // advanced a whole beat per tick -- this was unreachable). One restore, for the landing cycle;
+                // the skipped cycles' events never fire -- their end state IS the landing cycle's restore. One
+                // fold per tick re-fired the preamble once per skipped cycle (Pitfall 42).
+                const double cycles = std::floor(pos / r.lengthBeats);   // >= 1 here (pos >= lengthBeats)
+                r.startBeat += cycles * r.lengthBeats;   // exact, no drift
+                pos -= cycles * r.lengthBeats;
+                r.cycle += static_cast<int>(cycles);
                 r.player->start(0.0);
                 if (r.restore)   // D9: a loop restart re-fires the restore
                 {

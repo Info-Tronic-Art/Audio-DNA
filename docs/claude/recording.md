@@ -37,7 +37,9 @@ routines reaching for the same control):
   "restore" — `restoreState = false` is the per-routine "Start from now" switch, ruling 26's
   accepted exception) through the SAME `Player` preamble path replay restore already uses,
   then plays its lanes on its OWN beat clock (a `RecorderClock` shared across all running
-  routines). It either plays once and holds the last look, or loops (Boris ruling 22 — a
+  routines -- it integrates `totalBeatCount + beatPhase`, the tracker's continuous beat time, so a
+  message-thread stall loses no beats and a loop folds every whole cycle a gap covers at once;
+  Pitfall 42). It either plays once and holds the last look, or loops (Boris ruling 22 — a
   per-routine setting, re-firing the preamble each cycle).
   **The restore GLIDES** (s-rta-0926b plan3 C, Boris "glide is better"): the discrete half (clips,
   flags, play/pause — `Player::firePreambleDiscrete`) fires ON the boundary; each continuous entry

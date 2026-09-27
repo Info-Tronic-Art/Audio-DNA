@@ -1896,3 +1896,11 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
 - CLAUDE.md is 22.4 KB at main since the phase protocol moved to docs/claude/phase-protocol.md (20cede2) -- below the
   25,000 cap; the "pay for every new line" ruling was applied anyway (outputs-c2 net -16 B).
 - Valid while: OutputManager owns the output windows and the level probe discovers items by title.
+
+## 2026-09-27 s-rta-0927 beatclock | Files: src/recording/{RecorderClock,RoutineEngine}.cpp, src/analysis/BPMTracker.cpp, tests/test_{take,routine_engine}.cpp
+- A synthetic FeatureSnapshot that moves `beatPhase` must move `totalBeatCount` with it (count = floor of the continuous
+  beat): RecorderClock now integrates count + phase, so a rig (or an `/api/inject_features` body) that wraps the phase
+  with a constant count reads every wrap as a realign and FREEZES the routine/take clock (Pitfall 42). The message-thread
+  stall is reproducible on a quiet machine with the TEST-ONLY `POST /api/debug/stall_message_thread {"ms":550}`
+  (one catch-up tick on wake), which is what probe-beatclock b2/b3 and probe-routines 7s use.
+- Valid while RecorderClock reads totalBeatCount and the stall hook exists.

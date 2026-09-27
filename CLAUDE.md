@@ -221,6 +221,7 @@ the named area; this index is triage-only.
 39. `layer_transform` is one program shared by clip and layer transforms -- before adding a uniform to it or reading a picture's size.
 40. Output windows: normal level, never key -- before touching `OutputWindow`.
 41. `LayerStrip` faders must follow the model from the timer -- before adding a strip/inspector widget that shows a model value a routine, REST, MIDI or OSC can write.
+42. A beat clock integrates totalBeatCount + beatPhase, never the beatPhase wrap -- before reading beatPhase on the message thread as a clock or an edge.
 
 ---
 
