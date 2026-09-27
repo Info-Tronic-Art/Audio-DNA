@@ -124,3 +124,16 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 98/0, mastersignal 22/0, decktabs 6/0, canvas 15/0,
   deckclock 10/0, fitmode 10/0, step3 94/0, tempo witness GREEN; ctest 720/720. No Audio-DNA running; Output window
   never opened (o_no_window_opened). Pushed.
+- 14:03 probe-hardening lane dispatched (sonnet high, W6 from 8573006): Connection: close in canvas/fitmode/outputs/
+  render-state probes, probe-canvas pgrep clang++ regex, probe-manual-bpm chmod, stale comments EmbeddedShaders.h:3 +
+  EffectChain.h. Boris page .harmony/.reports/s-rta-0927/boris-checks.html written + OPENED (cue colour side-by-side,
+  pad row look-alike, no-confirm stops, restart mark, outputs C1 checklist, older defaults).
+- 14:31 probe-hardening merged -> main a302dcb (inline gate: probes GREEN on main app per lane; src diff verified
+  comment-only by Harmony), W6 removed, pushed (unpushed 0). In flight: lane T (wave-1 workflow, 1 commit), C2 (W5).
+- 14:46 lane T merged -> main 1636785 (review PASS_WITH_NITS; notebook conflict concatenated). Harmony gate: probe-routines
+  x3 on current main app running (b1yoxmr7e). Wave 3 launched (wfnmf1wzk / wf_369fe37a-523): beatclock (Fable draft ->
+  3 blind seats rt-safety/musical-timing/minimal-change -> Fable final -> opus builder W7) + renderperf (Fable plan: spare
+  ring lazy alloc + capture memcpy -> opus builder W8); pinned reviewer each, <=1 fix round. C2 still in W5.
+  Remaining queue: C3 (after C2), restore-at-routine-start 38-86 ms message-thread hold (diagnose), tests/visual Tier-1
+  red (8 failing ids, investigate), DeckView redundant setLookAndFeel, tests/CMakeLists stale comment.
+- 14:52 Harmony gate lane T: probe-routines on current main app x3 = 98/0, 98/0, 98/0 (quiet, clang=0). W2 removed. Pushed.
