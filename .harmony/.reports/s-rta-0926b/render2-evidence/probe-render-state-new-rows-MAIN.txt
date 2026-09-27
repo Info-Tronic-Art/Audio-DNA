@@ -1,0 +1,78 @@
+=== RED-MAIN-newrows-3 app=/Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app kind=rstate rows=r1_temporal,r1_control,r1_ring,r1_retrigger,r1_counts,r4_opaque_opacity,r4_opaque_overlay,r4_fxonly_persistent,r4_fxonly_medialess,r4_mask_skipped,r4_empty_active_deck start Sat Sep 26 21:28:07 EDT 2026
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/runs/rstate.wYtehs
+--- r1_temporal
+      r1_temporal: t=1.54s p~0.19 IN x<54 ratio 0.36 (d(A,B) 4.10)  OUT x>235 ratio 0.32 (d(A,B) 28.92)  [not counted]
+      r1_temporal: t=2.04s p~0.25 IN x<101 ratio 0.34 (d(A,B) 9.42)  OUT x>283 ratio 0.32 (d(A,B) 26.87)
+      r1_temporal: t=2.53s p~0.32 IN x<148 ratio 0.34 (d(A,B) 19.50)  OUT x>330 ratio 0.32 (d(A,B) 26.76)
+      r1_temporal: t=3.04s p~0.38 IN x<196 ratio 0.34 (d(A,B) 25.01)  OUT x>377 ratio 0.32 (d(A,B) 28.60)
+      r1_temporal: t=3.55s p~0.44 IN x<244 ratio 0.34 (d(A,B) 30.46)  OUT x>426 ratio 0.33 (d(A,B) 30.55)
+      r1_temporal: t=4.06s p~0.51 IN x<292 ratio 0.34 (d(A,B) 32.77)  OUT x>474 ratio 0.32 (d(A,B) 30.97)
+      r1_temporal: t=4.56s p~0.57 IN x<340 ratio 0.34 (d(A,B) 31.72)  OUT x>522 ratio 0.33 (d(A,B) 30.34)
+      r1_temporal: t=5.06s p~0.63 IN x<387 ratio 0.34 (d(A,B) 29.18)  OUT x>568 ratio 0.33 (d(A,B) 29.29)
+      r1_temporal: t=5.55s p~0.69 IN x<433 ratio 0.34 (d(A,B) 27.84)  OUT x>614 ratio 0.33 (d(A,B) 25.25)
+      r1_temporal: t=6.04s p~0.75 IN x<479 ratio 0.34 (d(A,B) 28.04)  OUT x>661 ratio 0.32 (d(A,B) 14.16)
+FAIL  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 9 counted frames, ratios <= 0.05): ['t=2.04s in 0.34 out 0.32', 't=2.53s in 0.34 out 0.32', 't=3.04s in 0.34 out 0.32']
+--- r1_control
+      r1_control: t=1.49s p~0.19 IN x<49 ratio 0.00 (d(A,B) 4.73)  OUT x>231 ratio 0.00 (d(A,B) 29.26)  [not counted]
+      r1_control: t=1.97s p~0.25 IN x<95 ratio 0.00 (d(A,B) 8.41)  OUT x>276 ratio 0.00 (d(A,B) 27.08)
+      r1_control: t=2.45s p~0.31 IN x<140 ratio 0.00 (d(A,B) 17.95)  OUT x>322 ratio 0.00 (d(A,B) 26.82)
+      r1_control: t=2.93s p~0.37 IN x<185 ratio 0.00 (d(A,B) 24.69)  OUT x>367 ratio 0.00 (d(A,B) 28.36)
+      r1_control: t=3.40s p~0.43 IN x<231 ratio 0.00 (d(A,B) 29.18)  OUT x>412 ratio 0.00 (d(A,B) 30.17)
+      r1_control: t=3.89s p~0.49 IN x<276 ratio 0.00 (d(A,B) 32.97)  OUT x>458 ratio 0.00 (d(A,B) 31.30)
+      r1_control: t=4.38s p~0.55 IN x<322 ratio 0.00 (d(A,B) 32.49)  OUT x>504 ratio 0.00 (d(A,B) 30.73)
+      r1_control: t=4.87s p~0.61 IN x<369 ratio 0.00 (d(A,B) 30.07)  OUT x>550 ratio 0.00 (d(A,B) 30.18)
+      r1_control: t=5.35s p~0.67 IN x<414 ratio 0.00 (d(A,B) 28.40)  OUT x>596 ratio 0.00 (d(A,B) 27.79)
+      r1_control: t=5.82s p~0.73 IN x<459 ratio 0.00 (d(A,B) 27.90)  OUT x>640 ratio 0.00 (d(A,B) 19.76)
+      r1_control: t=6.30s p~0.79 IN x<504 ratio 0.00 (d(A,B) 28.49)  OUT x>686 ratio 0.00 (d(A,B) 8.29)
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 10 counted frames, ratios <= 0.05): []
+--- r1_ring
+      r1_ring: t=1.53s p~0.19 IN x<54 ratio 1.00 (d(A,B) 4.13)  OUT x>235 ratio 1.00 (d(A,B) 29.22)  [not counted]
+      r1_ring: t=2.03s p~0.25 IN x<101 ratio 1.00 (d(A,B) 9.58)  OUT x>282 ratio 1.00 (d(A,B) 27.16)
+      r1_ring: t=2.54s p~0.32 IN x<149 ratio 1.00 (d(A,B) 19.97)  OUT x>330 ratio 1.00 (d(A,B) 27.05)
+      r1_ring: t=3.05s p~0.38 IN x<197 ratio 1.00 (d(A,B) 25.37)  OUT x>378 ratio 1.00 (d(A,B) 28.88)
+      r1_ring: t=3.56s p~0.44 IN x<245 ratio 1.00 (d(A,B) 30.86)  OUT x>426 ratio 1.00 (d(A,B) 30.76)
+      r1_ring: t=4.06s p~0.51 IN x<292 ratio 1.00 (d(A,B) 33.10)  OUT x>473 ratio 1.00 (d(A,B) 31.21)
+      r1_ring: t=4.56s p~0.57 IN x<340 ratio 1.00 (d(A,B) 32.03)  OUT x>521 ratio 1.00 (d(A,B) 30.58)
+      r1_ring: t=5.07s p~0.63 IN x<387 ratio 1.00 (d(A,B) 29.55)  OUT x>569 ratio 1.00 (d(A,B) 29.53)
+      r1_ring: t=5.57s p~0.70 IN x<435 ratio 1.00 (d(A,B) 28.18)  OUT x>616 ratio 1.00 (d(A,B) 25.18)
+      r1_ring: t=6.06s p~0.76 IN x<482 ratio 1.00 (d(A,B) 28.42)  OUT x>663 ratio 1.00 (d(A,B) 13.86)
+FAIL  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 9 counted frames, ratios <= 0.05): ['t=2.03s in 1.00 out 1.00', 't=2.54s in 1.00 out 1.00', 't=3.05s in 1.00 out 1.00']
+--- r1_retrigger
+      r1_retrigger: t=1.53s p~0.19 IN x<54 ratio 0.29 (d(A,B) 4.10)  OUT x>235 ratio 0.33 (d(A,B) 28.73)  [not counted]
+      r1_retrigger: t=2.04s p~0.26 IN x<102 ratio 0.32 (d(A,B) 9.63)  OUT x>283 ratio 0.33 (d(A,B) 26.69)
+      r1_retrigger: t=2.53s p~0.32 IN x<148 ratio 0.33 (d(A,B) 19.47)  OUT x>330 ratio 0.33 (d(A,B) 26.58)
+      r1_retrigger: t=3.03s p~0.38 IN x<195 ratio 0.33 (d(A,B) 24.85)  OUT x>377 ratio 0.33 (d(A,B) 28.41)
+      r1_retrigger: t=3.53s p~0.44 IN x<243 ratio 0.33 (d(A,B) 30.23)  OUT x>424 ratio 0.33 (d(A,B) 30.29)
+      r1_retrigger: t=4.02s p~0.50 IN x<289 ratio 0.33 (d(A,B) 32.64)  OUT x>470 ratio 0.33 (d(A,B) 30.83)
+      r1_retrigger: t=4.51s p~0.56 IN x<335 ratio 0.33 (d(A,B) 31.76)  OUT x>516 ratio 0.33 (d(A,B) 30.25)
+      r1_retrigger: t=5.00s p~0.62 IN x<381 ratio 0.33 (d(A,B) 29.27)  OUT x>563 ratio 0.33 (d(A,B) 29.29)
+      r1_retrigger: t=5.49s p~0.69 IN x<428 ratio 0.33 (d(A,B) 27.77)  OUT x>609 ratio 0.33 (d(A,B) 25.90)
+      r1_retrigger: t=5.98s p~0.75 IN x<474 ratio 0.33 (d(A,B) 27.81)  OUT x>655 ratio 0.34 (d(A,B) 15.43)
+FAIL  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 9 counted frames, ratios <= 0.05): ['t=2.04s in 0.32 out 0.33', 't=2.53s in 0.33 out 0.33', 't=3.03s in 0.33 out 0.33']
+--- r1_counts
+FAIL  r1_counts: /api/state has no ('frame_rings', 'temporal_buffers', 'peak_frame_time_ms') fields (['active_deck', 'effects', 'fps', 'frame_time_ms', 'master_level', 'num_decks', 'ok'])
+--- r4_opaque_opacity
+      r4_opaque_opacity: d(reference, full)=14.57 d(subject, reference)=14.57 d(subject, full)=0.00
+FAIL  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=14.57, tol 1.5)
+--- r4_opaque_overlay
+      r4_opaque_overlay: outside centre d(f, A)=0.00; centre d(f, A)=35.74
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.74 >= 5)
+--- r4_fxonly_persistent
+      r4_fxonly_persistent: d(reference, A-only)=228.68 d(subject, reference)=228.68 d(subject, A-only)=0.00
+FAIL  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=228.68, tol 1.5)
+--- r4_fxonly_medialess
+      r4_fxonly_medialess: d(reference, A-only)=228.68 d(subject, reference)=228.68 d(subject, A-only)=0.00
+FAIL  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=228.68, tol 1.5)
+--- r4_mask_skipped
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+--- r4_empty_active_deck
+      r4_empty_active_deck: reference rgb 19.46, subject rgb 0.00, d(subject, reference)=19.46
+FAIL  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=19.46, tol 1.5)
+
+PY 3 PASS / 8 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-RENDER-STATE RED
+=== end Sat Sep 26 21:31:14 EDT 2026

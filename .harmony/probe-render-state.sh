@@ -31,6 +31,9 @@ MEDIA="$ROOT/media"; [ -f "$MEDIA/P16_01_baseline.png" ] || MEDIA="$MAIN/media"
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests (set RSTATE_PY)"; exit 64; }
 [ -f "$MEDIA/P16_01_baseline.png" ] || { echo "REFUSE: media/P16_01_baseline.png not found"; exit 64; }
 pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+# s-rta-0926b render2: another process listening on 7070 (seen: a lane's stub_server.py) would either take the
+# app's REST port or answer this probe itself -- refuse rather than measure the wrong process.
+lsof -nP -iTCP:7070 -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port 7070 already has a listener: $(lsof -nP -iTCP:7070 -sTCP:LISTEN | tail -n +2 | awk '{print $1" "$2}' | head -2 | tr '\n' ' ')"; exit 64; }
 BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/rstate.XXXXXX")" || exit 64
 echo "app: $APP"; echo "out: $OUT"
 ENVARGS=(); [ -n "${RSTATE_ENV:-}" ] && ENVARGS=(--env "$RSTATE_ENV")
@@ -38,8 +41,19 @@ open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
+L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
+if [ "$UP" -eq 1 ] && [ "$L7070" != "Audio-DNA" ]; then echo "FAIL  port 7070 is answered by '$L7070', not Audio-DNA"; UP=0; fi
 if [ "$UP" -eq 1 ]; then "$PY" "$ROOT/.harmony/probe-render-state.py" "$ROOT" "$OUT" "$MEDIA" "${2:-}"; RC=$?
 else echo "FAIL  app never answered /api/health"; fi
+# s-rta-0926b render2: every render_frame this run asked for lands in $OUT. A capture anywhere else means another
+# process drove this app over REST during the run (seen: a lane harness whose stub server could not bind 7070) --
+# its effect-chain / composition writes invalidate every row, so the run is RED.
+FOREIGN="$(grep -o 'Captured frame: [^ ]*' "$OUT/err.log" 2>/dev/null | grep -vc "Captured frame: $OUT/")"
+if [ "${FOREIGN:-0}" -gt 0 ]; then
+  echo "FAIL  foreign REST traffic: $FOREIGN render_frame capture(s) outside $OUT during this run -- results INVALID"
+  grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
+  RC=1
+else echo "PASS  no foreign render_frame traffic during the run"; fi
 osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
 for _ in $(seq 1 30); do pgrep -f 'MacOS/Audio-DN[A]' >/dev/null || break; sleep 1; done
 pgrep -f 'MacOS/Audio-DN[A]' >/dev/null && { pkill -f 'MacOS/Audio-DN[A]'; sleep 2; }
