@@ -137,3 +137,17 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   Remaining queue: C3 (after C2), restore-at-routine-start 38-86 ms message-thread hold (diagnose), tests/visual Tier-1
   red (8 failing ids, investigate), DeckView redundant setLookAndFeel, tests/CMakeLists stale comment.
 - 14:52 Harmony gate lane T: probe-routines on current main app x3 = 98/0, 98/0, 98/0 (quiet, clang=0). W2 removed. Pushed.
+- 15:44 C2 lane: builder DONE 383f6bf (ctest 729; 15 probes GREEN on lane; never opened a window); r1 review PASS_WITH_NITS,
+  critics visual/UX/logic/interaction-logic all PASS (SHOULDs -> C3: mode-change reconcile + displays refresh,
+  classifyOutputKey Shift-up; native menu shortcut text = JUCE limit; Identify Displays = slice 2). Harmony looked at the
+  menu render (ticked Display 2, main flagged, All Outputs Off + chord) and the TopBar "Outputs: Off" crop. Harmony RED
+  on pre-merge main app: probe-outputs PY 10 PASS / 3 FAIL (o_state_displays). Merged -> dc7adf9 (probe-outputs comment
+  conflict: kept HEAD's; one Connection: close line). Rebuild OK; ctest 729/729. Battery running (bg9clidtz); first 10
+  probes GREEN incl. outputs 13/0. C3 launched early (wuptg6kdn / wf_782b31de-a3f, W9 from dc7adf9) with settings.json
+  safety (backup/restore sha256 or test-only path override).
+- 16:04 C2 battery: probe-canvas sat 26 min in wait_no_compiler (3 build lanes compiling) while holding the live lock -> Harmony killed its python (TERM; the .sh quits the app); canvas (+ step3 if load-flaked) re-run at a quiet moment. Rig learning: a perf-waiting probe must not hold the live lock while waiting for idle CPU.
+- 16:14 same for probe-fitmode f_perf (wait_no_compiler limit 1800 s) -> killed; canvas + fitmode (+ step3 if load-flaked) queued for a quiet re-run. Rig fix to file: perf rows must not wait while holding the live lock (skip-with-note under load, or release/re-acquire around the wait).
+- 16:20 C2 gate GREEN on main dc7adf9: outputs 13/0, routine-display 16/0, render-state 31/0, crossfade 35/0, effects-parity
+  46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 98/0, mastersignal 22/0, decktabs 6/0, deckclock 10/0,
+  step3 94/0, tempo GREEN; canvas 12/0 + fitmode 10/0 on the correctness rows (row filter; perf rows c_perf_1080/4k +
+  f_perf DEFERRED to a quiet window — 3 lanes compiling). ctest 729/729. Pushed.
