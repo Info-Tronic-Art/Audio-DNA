@@ -1241,6 +1241,10 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
     obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
+    // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
+    // nothing). Same fields as TestServer.
+    obj->setProperty("gpu_time_ms", static_cast<double>(renderer_.getGpuTimeMs()));
+    obj->setProperty("peak_gpu_time_ms", static_cast<double>(renderer_.takePeakGpuTimeMs()));
     // s-rta-0925: master_level is now the one master (composition_.eff()).
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
 

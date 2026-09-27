@@ -1,0 +1,38 @@
+{
+  "_doc": "Fixtures for .harmony/probe-canvas.sh (s-rta-0926b plan4 item 1: the composition canvas drives the picture's shape; plan4-final.md sections 2.6 / 2.8). @MEDIA@ is replaced at run time with the checkout's media/ dir. Effects are [name, param...]. Assertions + calibration: the docstring of .harmony/probe-canvas.py.",
+  "imageA": "@MEDIA@/P16_01_baseline.png",
+  "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
+  "shape": {
+    "_why": "deck 0 L0 col0 = A (Opaque). The PNG a render_frame writes must be exactly the composition's size: 1920x1080 when the JSON has no outputWidth/outputHeight (S4), 3840x2160, 1024x768.",
+    "contentTol": 6.0,
+    "fourK": [3840, 2160],
+    "custom": [1024, 768]
+  },
+  "runtime": {
+    "_why": "L0 col0 = a probe-made bright smooth-ramp image (mean ~130) + [Freeze 0.98]: the history converges in ~2.5 s; a resolution change that recreated the history black would leave 0.98^n of the picture missing n frames later (0.1 s + capture latency ~ 15-30 frames at 60-120 Hz -> 0.55-0.75 missing). Change 1080p -> 1440p -> 1080p over 8080 /api/set_composition_params (test mode). Re-tuned from the plan's 0.95 / 0.4 s, which had no teeth at 120 Hz (lane report).",
+    "fx": [["Freeze", 0.98]],
+    "to": [2560, 1440],
+    "settle": 0.1,
+    "tolChange": 6.0,
+    "tolBack": 8.0
+  },
+  "legacy": {
+    "_why": "deck 0 has a layer whose clip is never triggered (compositeDeck returns 0, no persistent content), so the legacy single image (7070 /api/load_image, a probe-made 600x600 solid red PNG) is what shows: it must be FITTED inside the 1920x1080 canvas (1080x1080 at x 420..1500) over black.",
+    "size": 600,
+    "barCols": [0, 400],
+    "imgCols": [440, 1480]
+  },
+  "perf": {
+    "_why": "plan4 2.8: L0 Opaque = A + [Freeze 0.5], L1 Transparent = B + [Screen Split 0.15 0.15 0.25 0.0], L2 Transparent = A + [Frame Stutter 0.0 0.0], all triggered; 3 s warm-up; 7070 /api/state sampled 10 x 0.5 s. GATE at 1080p: mean fps >= 58 AND mean frame_time_ms <= 12 (fallback when the base binary itself cannot reach 58 fps: fps >= CANVAS_BASE_FPS - 2). 4K: REPORT.",
+    "layers": [
+      {"type": 0, "img": "A", "fx": [["Freeze", 0.5]]},
+      {"type": 1, "img": "B", "fx": [["Screen Split", 0.15, 0.15, 0.25, 0.0]]},
+      {"type": 1, "img": "A", "fx": [["Frame Stutter", 0.0, 0.0]]}
+    ],
+    "warmup": 3.0,
+    "samples": 10,
+    "interval": 0.5,
+    "minFps": 58.0,
+    "maxFrameMs": 12.0
+  }
+}

@@ -71,7 +71,7 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 |---|---|---|---|
 | ClipInspector (`ClipInspector.h:25`) | Inspector → Clip tab (auto on clip select) | Dashboard (8 knobs + 8 source pickers); Transport (mode/loop/trigger/speed/reverse/duration); conditional Images-per-sec OR Beat-Division+Content-Beats; 8 cuepoint jump + 8 Set; Autopilot (action/duration/beat-snap); Source Parameters (UniversalParamControls); Video (opacity/W-H/blend/alpha/RGBA); Transform (pos/scale/rotation/anchor); Effects (EffectStackView); interactive timeline (in/out/playhead drag) | yes |
 | LayerInspector (`LayerInspector.h:28`) | Inspector → Layer tab | Editable name; Dashboard; Autopilot (4 dir + trigger-mode + beat-count + loops); Layer (master/persistent/ignore-column); Video (blend/opacity/W-H/auto-size); Transition (blend ~55 + duration); Keying (Transparent only, 13 modes); Dry/Wet (FX-Only only); 3D controls (ThreeD only); Transform (5 UPCs); Feedback (enable + preset + 7 sliders); Layer Effects (EffectStackView) | yes |
-| CompositionInspector (`CompositionInspector.h:23`) | Inspector → Composition tab | Dashboard; Autopilot (4 dir + duration + clip-loops + loop + master-layer); Per-Type Autopilot (enable + cycle sliders + randomize); Composition master/speed; Transform (5 UPCs); Global Effects (EffectStackView); Output resolution combo. Collapse triangles + P. buttons decorative. **Panel-wide FX drop target (2026-07-30): fx: drags land anywhere on the panel → global stack via existing undo-recorded path; multi-select = one undo entry** | yes |
+| CompositionInspector (`CompositionInspector.h:23`) | Inspector → Composition tab | Dashboard; Autopilot (4 dir + duration + clip-loops + loop + master-layer); Per-Type Autopilot (enable + cycle sliders + randomize); Composition master/speed; Transform (5 UPCs); Global Effects (EffectStackView); Output resolution combo (= the composition canvas: the preview, recordings, Syphon, render_frame and snapshots are this size, s-rta-0926b plan4). Collapse triangles + P. buttons decorative. **Panel-wide FX drop target (2026-07-30): fx: drags land anywhere on the panel → global stack via existing undo-recorded path; multi-select = one undo entry** | yes |
 | SignalInspector (`SignalInspector.h:15`) | Inspector → Signal tab | Audio: threshold/gain/falloff. Oscillator: wave-shape (5) + beat-duration (6) + amplitude + phase. Envelope: curve-type (3) + beat-duration (5) + amplitude + phase + looping/one-shot toggles + **paint-only curve editor (NOT draggable)** | yes |
 
 ### Browser tabs
@@ -170,7 +170,7 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 | 22 | POST | /api/render_frame | captureFrame() to path |
 | 23 | POST | /api/reset | clear image + source + disable all effects |
 | 24 | POST | /api/set_effect_chain | batch disable-all + enable/configure requested |
-| 25 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), effects[], decks |
+| 25 | GET | /api/state | fps, frame_time, master_level (= composition master opacity eff(), s-rta-0925), gpu_time_ms / peak_gpu_time_ms (GL timer queries, s-rta-0926b plan4), effects[], decks |
 | 26 | GET | /api/syphon | Syphon output enabled/initialized status (P22.1) |
 | 27 | POST | /api/set_syphon | toggle Syphon output publishing |
 | 28 | POST | /api/perf/record | arm: name, audio, audioFile, onsetMarkers, overdubAssetId |

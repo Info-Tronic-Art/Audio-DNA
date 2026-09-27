@@ -13,6 +13,7 @@
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
 #include "render/CompositorEngine.h"
+#include "render/RenderGeometry.h"
 #include "sources/SourceRegistry.h"
 #include "media/VideoPlayer.h"
 #include "media/ImageSequence.h"
@@ -330,29 +331,37 @@ private:
     int frameCount_ = 0;
     double fpsTimer_ = 0.0;
 
-    // Locked render resolution (0,0 = follow component size)
-    std::atomic<int> lockedWidth_{0};
-    std::atomic<int> lockedHeight_{0};
+    // TEST-ONLY canvas override (0,0 = the composition's size). Packed w << 32 | h into ONE atomic:
+    // TestServer sets it from the HTTP thread, and two separate atomics could be read half-applied on
+    // the GL thread (s-rta-0926b plan4 S2).
+    std::atomic<uint64_t> lockedSize_{0};
 
 public:
     float getFps() const { return currentFps_.load(std::memory_order_relaxed); }
     // Onset render-path fix: frames on which the render-frame onset pulse fired (see onsetPulse_).
     uint32_t getOnsetPulseFrames() const { return onsetPulseFrames_.load(std::memory_order_relaxed); }
 
-    // Set a fixed render resolution. Pass (0,0) to follow component size.
+    // TEST-ONLY canvas override (TestServer render_frame width/height): while set, the canvas is
+    // exactly w x h instead of Composition::outputWidth x outputHeight. Pass (0,0) to clear.
     void setLockedResolution(int w, int h)
     {
-        lockedWidth_.store(w, std::memory_order_relaxed);
-        lockedHeight_.store(h, std::memory_order_relaxed);
+        lockedSize_.store((static_cast<uint64_t>(static_cast<uint32_t>(w)) << 32) | static_cast<uint32_t>(h),
+                          std::memory_order_relaxed);
     }
-    int getLockedWidth() const { return lockedWidth_.load(std::memory_order_relaxed); }
-    int getLockedHeight() const { return lockedHeight_.load(std::memory_order_relaxed); }
+    int getLockedWidth() const { return static_cast<int>(static_cast<uint32_t>(lockedSize_.load(std::memory_order_relaxed) >> 32)); }
+    int getLockedHeight() const { return static_cast<int>(static_cast<uint32_t>(lockedSize_.load(std::memory_order_relaxed))); }
 
     // Render frame time tracking
     float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
     // s-rta-0926b R1: the longest single frame (same CPU-side measure as
     // frameTimeMs_, no EMA) since the previous call; reading resets it.
     float takePeakFrameTimeMs() { return peakFrameTimeMs_.exchange(0.0f, std::memory_order_relaxed); }
+
+    // s-rta-0926b plan4 A-opt: GPU time of one frame's GL work (canvas block through the present pass),
+    // from GL_TIME_ELAPSED timer queries read back one or two frames later (never blocking). 0 when the
+    // driver reports nothing. gpu = EMA like frameTimeMs_; peak = the longest since the previous read.
+    float getGpuTimeMs() const { return gpuTimeMs_.load(std::memory_order_relaxed); }
+    float takePeakGpuTimeMs() { return peakGpuTimeMs_.exchange(0.0f, std::memory_order_relaxed); }
 
     // === Frame Capture ===
 
@@ -377,13 +386,45 @@ public:
     float getTimeOverride() const { return timeOverride_.load(std::memory_order_relaxed); }
 
 private:
+    // s-rta-0926b plan4 item 1: the composition canvas. Every frame renders ONCE into canvasFBO_ at
+    // RenderGeometry::resolveCanvas(test lock, Composition::outputWidth/Height); the panel only presents
+    // it (presentCanvas, letter/pillar-boxed); recorder, Syphon and captures read it. Released in
+    // openGLContextClosing(), recreated by ensureCanvasFBO on the next frame.
+    GLuint canvasFBO_ = 0;
+    GLuint canvasTex_ = 0;
+    int canvasW_ = 0;
+    int canvasH_ = 0;
+    void ensureCanvasFBO(int width, int height);
+    // GL-thread debounce of Composition::outputWidth/Height (two plain ints written one after the other
+    // on the message thread): a new pair is used only after two identical reads, so a half-applied pair
+    // never reallocates everything for one wrong-aspect frame.
+    int candW_ = 0, candH_ = 0, stableW_ = 0, stableH_ = 0;
+    // Draw the canvas into the window framebuffer inside `present` (box-filter downsample).
+    void presentCanvas(GLuint windowFBO, const RenderGeometry::Rect& present);
+
+    // A-opt: GL_TIME_ELAPSED queries, two alternated per frame (see getGpuTimeMs()).
+    GLuint gpuQueries_[2] = { 0, 0 };
+    bool gpuQueryPending_[2] = { false, false };
+    unsigned gpuQueryFrame_ = 0;
+    std::atomic<float> gpuTimeMs_{ 0.0f };
+    std::atomic<float> peakGpuTimeMs_{ 0.0f };
+    // Harvests the older query if its result is available (never blocks), then begins this frame's
+    // query; returns false when this frame is not timed.
+    bool beginGpuTimer();
+    struct GpuTimerScope   // ends the frame's query on every exit path of renderOpenGL()
+    {
+        Renderer& r; bool active;
+        void finish();
+        ~GpuTimerScope() { finish(); }
+    };
+
     // P25: Composition-level transform FBO
     GLuint compTransformFBO_ = 0;
     GLuint compTransformTexture_ = 0;
     int compTransformWidth_ = 0;
     int compTransformHeight_ = 0;
     void ensureCompTransformFBO(int width, int height);
-    void applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH);
+    void applyCompTransform(GLuint targetFBO, float vpX, float vpY, float vpW, float vpH);
 
     // P25: Cross-deck transition state
     GLuint prevDeckFBO_ = 0;
@@ -404,7 +445,7 @@ private:
     int syphonWidth_ = 0;
     int syphonHeight_ = 0;
     void ensureSyphonFBO(int width, int height);
-    void publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH);
+    void publishSyphonFrame(GLuint srcFBO, float vpX, float vpY, float vpW, float vpH);
 
     std::atomic<float> frameTimeMs_{0.0f};
     std::atomic<float> peakFrameTimeMs_{0.0f};
@@ -551,7 +592,7 @@ private:
     std::promise<bool>* capturePromise_ = nullptr;
     juce::File snapshotDir_; // P22.7: where snapshots are saved
 
-    // Process pending capture after render. Called from renderOpenGL().
-    void processPendingCapture(float renderW, float renderH,
-                               float vpX, float vpY, float vpW, float vpH);
+    // Process pending capture after render. Called from renderOpenGL(). Reads the whole canvas
+    // (canvasFBO_, canvasW_ x canvasH_) -- s-rta-0926b plan4: captures are exactly canvas-sized.
+    void processPendingCapture();
 };

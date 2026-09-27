@@ -35,6 +35,35 @@ inline const char* passthrough = R"(
     }
 )";
 
+// s-rta-0926b plan4 item 1: present the composition canvas in the preview panel. Box-filter
+// downsample (u_taps x u_taps texels averaged around the fragment, RenderGeometry::presentTaps) so
+// a 1080p/4K canvas shown in a ~756 px panel does not alias; u_taps <= 1 = plain bilinear.
+inline const char* presentBox = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D u_texture;
+    uniform vec2 u_texelSize;
+    uniform int u_taps;
+
+    void main()
+    {
+        if (u_taps <= 1)
+        {
+            fragColor = texture(u_texture, v_texCoord);
+            return;
+        }
+        vec4 sum = vec4(0.0);
+        float c = float(u_taps - 1) * 0.5;
+        for (int j = 0; j < u_taps; ++j)
+            for (int i = 0; i < u_taps; ++i)
+                sum += texture(u_texture, v_texCoord + (vec2(float(i), float(j)) - c) * u_texelSize);
+        fragColor = sum / float(u_taps * u_taps);
+    }
+)";
+
 // Opacity blend: output with adjustable alpha for layer opacity
 inline const char* opacityBlend = R"(
     #version 410 core

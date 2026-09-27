@@ -1,6 +1,7 @@
 #include "CompositorEngine.h"
 #include "render/EmbeddedShaders.h"
 #include "render/ScratchPool.h"
+#include "render/RenderGeometry.h"
 #include <iostream>
 #include <cmath>
 
@@ -111,6 +112,53 @@ void CompositorEngine::resize(int width, int height)
     layerOutputFBOs_.clear();
     layerOutputTexStorage_.clear();
     layerOutputTextures_.clear();
+
+    // s-rta-0926b plan4 item 1 (1C): a canvas-size change keeps every picture history.
+    rescaleHistory(width, height);
+}
+
+void CompositorEngine::rescaleHistory(int width, int height)
+{
+    // Runs only from resize(), i.e. before any pass of the frame (R5-safe by construction). Temporal
+    // buffers (u_prev_frame, incl. the crossfade outgoing slots) and feedback ping-pongs are rescale-
+    // blitted -- recreating them black made Freeze / Echo / feedback pictures drop out for a hold
+    // interval. Frame rings are dropped and recreated lazily at the new size by getOrCreateRingBuffer
+    // (Screen Split / Frame Stutter cells fall back to the frames available, as on a fresh layer).
+    for (auto& [key, buf] : layerTemporalBuffers_)
+    {
+        if (buf.tex == 0)
+            continue;
+        GLuint fbo = 0, tex = 0;
+        createFBO(fbo, tex, width, height);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, buf.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glBlitFramebuffer(0, 0, buf.width, buf.height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glDeleteFramebuffers(1, &buf.fbo);
+        glDeleteTextures(1, &buf.tex);
+        buf.fbo = fbo;
+        buf.tex = tex;
+        buf.width = width;
+        buf.height = height;   // temporalBufferCount_ unchanged: one buffer replaced by one
+    }
+
+    for (auto& [key, proc] : feedbackProcessors_)
+        if (proc != nullptr)
+            proc->resizePreserving(width, height);
+
+    for (auto& [key, ring] : layerRingBuffers_)
+    {
+        if (!ring.initialized)
+            continue;
+        for (size_t i = 0; i < ring.fbos.size(); ++i)
+        {
+            if (ring.fbos[i] != 0) glDeleteFramebuffers(1, &ring.fbos[i]);
+            if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
+        }
+        ring = FrameRingBuffer{};
+        frameRingCount_.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void CompositorEngine::createFBO(GLuint& fbo, GLuint& tex, int w, int h)
@@ -1617,8 +1665,10 @@ void CompositorEngine::saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
 
 CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint64_t stateKey, int w, int h)
 {
-    int rw = std::max(1, w / kRingDownscale);
-    int rh = std::max(1, h / kRingDownscale);
+    // plan4 1E: a ring cell is never stored wider than 480 px (kRingDownscale is the minimum).
+    const int ds = RenderGeometry::ringDownscale(w);
+    int rw = std::max(1, w / ds);
+    int rh = std::max(1, h / ds);
 
     auto& ring = layerRingBuffers_[stateKey];
     if (ring.initialized && ring.ringWidth == rw && ring.ringHeight == rh)

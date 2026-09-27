@@ -441,8 +441,17 @@ struct Composition
             globalTransitionSpeed = static_cast<float>(static_cast<double>(obj->getProperty("globalTransitionSpeed")));
             bpmMultiplier = static_cast<int>(obj->getProperty("bpmMultiplier"));
             quantizeMode = static_cast<QuantizeMode>(static_cast<int>(obj->getProperty("quantizeMode")));
-            outputWidth = static_cast<int>(obj->getProperty("outputWidth"));
-            outputHeight = static_cast<int>(obj->getProperty("outputHeight"));
+            // s-rta-0926b plan4 S4: guarded like masterSpeed below -- the canvas size is the render
+            // size now, and a JSON without these keys used to load 0x0.
+            if (obj->hasProperty("outputWidth"))
+                outputWidth = static_cast<int>(obj->getProperty("outputWidth"));
+            if (obj->hasProperty("outputHeight"))
+                outputHeight = static_cast<int>(obj->getProperty("outputHeight"));
+            if (outputWidth <= 0 || outputHeight <= 0)
+            {
+                outputWidth = 1920;
+                outputHeight = 1080;
+            }
             outputDisplay = static_cast<int>(obj->getProperty("outputDisplay"));
 
             // Composition master + video (guarded for backward compatibility with old presets)

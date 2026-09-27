@@ -598,6 +598,10 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
     obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
+    // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
+    // nothing). peak_gpu_time_ms resets on read like peak_frame_time_ms.
+    obj->setProperty("gpu_time_ms", static_cast<double>(renderer_.getGpuTimeMs()));
+    obj->setProperty("peak_gpu_time_ms", static_cast<double>(renderer_.takePeakGpuTimeMs()));
     // s-rta-0925: master_level is now the one master (composition_.eff()).
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
@@ -1366,11 +1370,33 @@ void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib
         composition_.masterSpeed = static_cast<float>(static_cast<double>(obj->getProperty("masterSpeed")));
         any = true;
     }
+    // s-rta-0926b plan4 S8: the composition canvas size (test mode only) -- both keys together, ints in
+    // [16, 7680] x [16, 4320]. Same plain-int write class as masterSpeed above; the GL thread debounces
+    // the pair (Renderer::renderOpenGL's canvas block), so a half-applied write never reaches a frame.
+    if (obj->hasProperty("outputWidth") || obj->hasProperty("outputHeight"))
+    {
+        const auto wv = obj->getProperty("outputWidth");
+        const auto hv = obj->getProperty("outputHeight");
+        const bool ints = (wv.isInt() || wv.isInt64()) && (hv.isInt() || hv.isInt64());
+        const int w = ints ? static_cast<int>(wv) : 0;
+        const int h = ints ? static_cast<int>(hv) : 0;
+        if (!ints || w < 16 || w > 7680 || h < 16 || h > 4320)
+        {
+            res.status = 400;
+            res.set_content(jsonError("outputWidth and outputHeight are required together, "
+                                      "ints in [16, 7680] x [16, 4320]"), "application/json");
+            return;
+        }
+        composition_.outputWidth = w;
+        composition_.outputHeight = h;
+        any = true;
+    }
 
     if (!any)
     {
         res.status = 400;
-        res.set_content(jsonError("No known field provided (expected masterOpacity and/or masterSpeed)"),
+        res.set_content(jsonError("No known field provided (expected masterOpacity, masterSpeed "
+                                  "and/or outputWidth+outputHeight)"),
                         "application/json");
         return;
     }
@@ -1379,6 +1405,8 @@ void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib
     result->setProperty("ok", true);
     result->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
     result->setProperty("masterSpeed", static_cast<double>(composition_.masterSpeed));
+    result->setProperty("outputWidth", composition_.outputWidth);
+    result->setProperty("outputHeight", composition_.outputHeight);
     res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
 }
 
@@ -1387,6 +1415,8 @@ void TestServer::handleGetCompositionParams(const httplib::Request&, httplib::Re
     auto* obj = new juce::DynamicObject();
     obj->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
     obj->setProperty("masterSpeed", static_cast<double>(composition_.masterSpeed));
+    obj->setProperty("outputWidth", composition_.outputWidth);     // plan4 S8
+    obj->setProperty("outputHeight", composition_.outputHeight);
 
     // Per-clip clipOpacity readback — mirrors ApiServer::handleComposition's
     // decks -> layers -> clips nesting (ApiServer.cpp ~260-315), scoped to

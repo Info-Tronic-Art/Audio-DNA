@@ -66,8 +66,58 @@ void FeedbackProcessor::ensureSize(int width, int height)
     if (width == width_ && height == height_ && initialized_)
         return;
 
+    // s-rta-0926b plan4 1C: a size change keeps the picture (it used to restart from black).
+    if (initialized_)
+    {
+        resizePreserving(width, height);
+        return;
+    }
+
     releaseGL();
     initGL(width, height);
+}
+
+void FeedbackProcessor::resizePreserving(int width, int height)
+{
+    if (!initialized_)
+    {
+        initGL(width, height);
+        return;
+    }
+    if (width == width_ && height == height_)
+        return;
+
+    for (int i = 0; i < 2; ++i)
+    {
+        GLuint tex = 0, fbo = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                               GL_TEXTURE_2D, tex, 0);
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos_[i]);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glBlitFramebuffer(0, 0, width_, height_, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+        glDeleteFramebuffers(1, &fbos_[i]);
+        glDeleteTextures(1, &textures_[i]);
+        fbos_[i] = fbo;
+        textures_[i] = tex;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    width_ = width;
+    height_ = height;
 }
 
 GLuint FeedbackProcessor::process(GLuint inputTexture,

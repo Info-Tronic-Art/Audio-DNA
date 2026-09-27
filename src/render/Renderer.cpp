@@ -241,16 +241,54 @@ void Renderer::renderOpenGL()
         onsetPulseFrames_.fetch_add(1u, std::memory_order_relaxed);
     const FeatureSnapshot& snap = frameSnap_;
 
+    // === s-rta-0926b plan4 item 1: the composition canvas ===
+    // Boris 2026-09-26: "the preview and output display window in the lower left corner should not
+    // change aspect ratios. they should be what the composition is setup for". The frame renders ONCE,
+    // offscreen, into canvasFBO_ at the composition's size; the window (the lower-left panel) only
+    // presents it, letter/pillar-boxed (presentCanvas, the last pass), and every output -- recorder,
+    // Syphon, render_frame, snapshots -- reads the canvas. This block runs before the first early
+    // return, and ensureCanvasFBO runs before any pass (R5).
+    GLint defaultFBO = 0;   // the window's framebuffer: cleared to the bar colour above
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFBO);
+    GpuTimerScope gpuTimer{ *this, beginGpuTimer() };
+
+    // The PRESENT size: the target component's physical pixels.
+    auto* component = glContext_.getTargetComponent();
+    float scale = static_cast<float>(glContext_.getRenderingScale());
+    float compW = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
+    float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
+
+    {
+        // Plain-int reads of message-thread-written fields: the house class (globalTransitionSpeed and
+        // activeDeckIndex below). The debounce removes the one new hazard -- a half-applied pair (the
+        // Composition inspector writes width, then height) reallocating everything for one frame.
+        const int reqW = composition_ != nullptr ? composition_->outputWidth : 0;
+        const int reqH = composition_ != nullptr ? composition_->outputHeight : 0;
+        if (reqW != candW_ || reqH != candH_) { candW_ = reqW; candH_ = reqH; }   // first sight: wait a frame
+        else                                  { stableW_ = candW_; stableH_ = candH_; }
+    }
+    const uint64_t lockPacked = lockedSize_.load(std::memory_order_relaxed);   // ONE load: never half-applied
+    const RenderGeometry::Size canvas = RenderGeometry::resolveCanvas(
+        static_cast<int>(static_cast<uint32_t>(lockPacked >> 32)), static_cast<int>(static_cast<uint32_t>(lockPacked)),
+        stableW_, stableH_);
+    ensureCanvasFBO(canvas.w, canvas.h);
+    const float renderW = static_cast<float>(canvas.w);
+    const float renderH = static_cast<float>(canvas.h);
+    const RenderGeometry::Rect present = RenderGeometry::fitCanvas(canvas.w, canvas.h,
+                                                                   static_cast<int>(compW), static_cast<int>(compH));
+    // Undrawn canvas pixels are black.
+    glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
+    glViewport(0, 0, canvas.w, canvas.h);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     // Check if we have anything to render
     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
     {
-        // Process pending frame capture even when there's nothing to render
-        auto* comp2 = glContext_.getTargetComponent();
-        float s2 = static_cast<float>(glContext_.getRenderingScale());
-        float cw2 = comp2 ? static_cast<float>(comp2->getWidth()) * s2 : 256.0f;
-        float ch2 = comp2 ? static_cast<float>(comp2->getHeight()) * s2 : 256.0f;
-        processPendingCapture(cw2, ch2, 0, 0, cw2, ch2);
-        return; // Nothing to render yet
+        // Nothing to render yet: a pending capture gets the black canvas-sized frame.
+        processPendingCapture();
+        presentCanvas(static_cast<GLuint>(defaultFBO), present);
+        return;
     }
 
     // S166-L1: SignalRegistry::evaluateAll() moved OFF this GL callback — it
@@ -444,55 +482,7 @@ void Renderer::renderOpenGL()
     else
         scaledTime_ += static_cast<double>(realDt) * static_cast<double>(masterSpeedVal);
 
-    // Get physical pixel dimensions
-    auto* component = glContext_.getTargetComponent();
-    float scale = static_cast<float>(glContext_.getRenderingScale());
-    float compW = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
-    float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
-
-    // Check for locked resolution
-    int lockW = lockedWidth_.load(std::memory_order_relaxed);
-    int lockH = lockedHeight_.load(std::memory_order_relaxed);
-    float renderW = (lockW > 0 && lockH > 0) ? static_cast<float>(lockW) : compW;
-    float renderH = (lockW > 0 && lockH > 0) ? static_cast<float>(lockH) : compH;
-
-    // Get the default framebuffer that JUCE's context uses
-    GLint defaultFBO = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFBO);
-
-    // Compute letterboxed viewport to maintain correct aspect ratio
-    float aspectW = renderW;
-    float aspectH = renderH;
-    if (lockW <= 0 || lockH <= 0)
-    {
-        if (sourceActive)
-        {
-            // Sources use the render resolution directly (no image to aspect-match)
-            aspectW = renderW;
-            aspectH = renderH;
-        }
-        else
-        {
-            // In auto mode, use the loaded image's aspect ratio
-            int imgW = texMgr_.getImageWidth();
-            int imgH = texMgr_.getImageHeight();
-            if (imgW > 0 && imgH > 0)
-            {
-                aspectW = static_cast<float>(imgW);
-                aspectH = static_cast<float>(imgH);
-            }
-        }
-    }
-
-    float scaleX = compW / aspectW;
-    float scaleY = compH / aspectH;
-    float fitScale = std::min(scaleX, scaleY);
-    float vpW = aspectW * fitScale;
-    float vpH = aspectH * fitScale;
-    float vpX = (compW - vpW) * 0.5f;
-    float vpY = (compH - vpH) * 0.5f;
-
-    // Render the effect chain with letterbox viewport for final output
+    // Every pass below renders at the canvas size (renderW x renderH) into canvasFBO_ (plan4 item 1).
     auto renderStart = std::chrono::high_resolution_clock::now();
 
     GLuint sourceTexture = 0;
@@ -568,21 +558,31 @@ void Renderer::renderOpenGL()
                                       paramsPtr);
     }
 
+    // The legacy single image (the fallback below) is FITTED inside the canvas over black, never
+    // stretched (plan4 S2); every other source fills the canvas.
+    bool legacyImage = false;
     if (sourceTexture == 0)
     {
         sourceTexture = texMgr_.getImageTexture();
+        legacyImage = (sourceTexture != 0);
     }
 
     if (sourceTexture == 0)
     {
-        // No content — clear to black to avoid ghosting from previous frames
-        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
-        glViewport(0, 0, static_cast<int>(compW), static_cast<int>(compH));
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        // Still process pending frame capture (captures the black frame)
-        processPendingCapture(compW, compH, 0, 0, compW, compH);
+        // No content -- the canvas is already cleared to black (canvas block above). A pending
+        // capture gets that black frame.
+        processPendingCapture();
+        presentCanvas(static_cast<GLuint>(defaultFBO), present);
         return;
+    }
+
+    RenderGeometry::Rect vp{ 0, 0, canvas.w, canvas.h };
+    if (legacyImage)
+    {
+        const auto fit = RenderGeometry::fitCanvas(texMgr_.getImageWidth(), texMgr_.getImageHeight(),
+                                                   canvas.w, canvas.h);
+        if (fit.w > 0 && fit.h > 0)
+            vp = fit;
     }
 
     // P18: pass this renderer's own snapshot copy for audio-reactive
@@ -592,32 +592,29 @@ void Renderer::renderOpenGL()
                         shaderMgr_, texMgr_, quad_,
                         effectChainGLState_, snap,
                         time, renderW, renderH,
-                        static_cast<GLuint>(defaultFBO),
-                        vpX, vpY, vpW, vpH);
+                        canvasFBO_,
+                        static_cast<float>(vp.x), static_cast<float>(vp.y),
+                        static_cast<float>(vp.w), static_cast<float>(vp.h));
 
     // P25: Apply composition-level transform (position, scale, rotation)
-    applyCompTransform(static_cast<GLuint>(defaultFBO), vpX, vpY, vpW, vpH);
+    applyCompTransform(canvasFBO_, 0.0f, 0.0f, renderW, renderH);
 
     // P25: Cross-deck transition blending
     if (composition_ && deckTransitionProgress_ < 1.0f)
     {
-        int w = static_cast<int>(vpW);
-        int h = static_cast<int>(vpH);
-        if (w > 0 && h > 0 && prevDeckTexture_ != 0)
+        const int w = canvas.w;
+        const int h = canvas.h;
+        if (prevDeckTexture_ != 0)
         {
-            // Copy current framebuffer (new deck) to a temp texture
+            // Copy the canvas (new deck) to a temp texture
             ensureCompTransformFBO(w, h);
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compTransformFBO_);
-            glBlitFramebuffer(
-                static_cast<int>(vpX), static_cast<int>(vpY),
-                static_cast<int>(vpX + vpW), static_cast<int>(vpY + vpH),
-                0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
             // Draw the transition shader (old deck → new deck)
-            glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
-            glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
-                       static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+            glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
+            glViewport(0, 0, w, h);
 
             auto* prog = shaderMgr_.getProgram("deck_transition");
             if (prog)
@@ -662,19 +659,16 @@ void Renderer::renderOpenGL()
         int currentDeckIdx = composition_->activeDeckIndex;
         if (currentDeckIdx != prevActiveDeckIndex_)
         {
-            // Save the current framebuffer as the "outgoing" deck texture
-            int w = static_cast<int>(vpW);
-            int h = static_cast<int>(vpH);
-            if (w > 0 && h > 0 && deckTransitionProgress_ >= 1.0f)
+            // Save the canvas as the "outgoing" deck texture
+            const int w = canvas.w;
+            const int h = canvas.h;
+            if (deckTransitionProgress_ >= 1.0f)
             {
                 ensurePrevDeckFBO(w, h);
-                glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDeckFBO_);
-                glBlitFramebuffer(
-                    static_cast<int>(vpX), static_cast<int>(vpY),
-                    static_cast<int>(vpX + vpW), static_cast<int>(vpY + vpH),
-                    0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-                glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+                glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
             }
 
             // Start transition based on composition's transition speed
@@ -705,9 +699,9 @@ void Renderer::renderOpenGL()
     // for the composition-wide fader. Same dim-to-black technique as the
     // former masterLevel_ block just above (removed s-rta-0925: it was a
     // second, compounding multiply), glBlendColor as a constant multiplier,
-    // not an alpha-channel bake, because this runs against defaultFBO -- the
-    // actual output framebuffer -- where Syphon/recording/capture below read
-    // RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"
+    // not an alpha-channel bake, because this runs against the canvas -- the
+    // actual output picture (plan4: it used to be the window framebuffer) --
+    // where Syphon/recording/capture below read RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"
     // early-return -- masterOpacity was silently render-dead all session
     // (.harmony/probe-deck-path.sh: accepted, echoed back, changed not one
     // pixel) and a skip-when-default guard here is exactly the shape of bug
@@ -721,9 +715,8 @@ void Renderer::renderOpenGL()
         // above this block, unchanged.
         float masterOpacityVal = composition_->eff(CompScalar::Opacity);
         glEnable(GL_BLEND);
-        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
-        glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
-                   static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+        glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
+        glViewport(0, 0, canvas.w, canvas.h);
 
         auto* prog = shaderMgr_.getProgram("passthrough");
         if (prog)
@@ -742,9 +735,14 @@ void Renderer::renderOpenGL()
         glDisable(GL_BLEND);
     }
 
+    // plan4 item 1: the panel shows the finished canvas, letter/pillar-boxed (inside the measured
+    // window -- it is this frame's work). The canvas itself is untouched: the outputs below read it.
+    presentCanvas(static_cast<GLuint>(defaultFBO), present);
+    gpuTimer.finish();
+
     // P13.5.10: Use CPU-side timing instead of glFinish() which stalls the GPU pipeline.
     // This measures CPU-side render submission time, not GPU execution time.
-    // For GPU timing, use GL_TIME_ELAPSED queries (async, no stall).
+    // GPU time: the GL_TIME_ELAPSED queries of plan4 A-opt (getGpuTimeMs(), async, no stall).
     auto renderEnd = std::chrono::high_resolution_clock::now();
     double frameMs = std::chrono::duration<double, std::milli>(renderEnd - renderStart).count();
 
@@ -799,18 +797,126 @@ void Renderer::renderOpenGL()
         renderProfileCount_ = 0;
     }
 
-    // P22.6: Submit frame to video recorder (if recording)
+    // P22.6: Submit frame to video recorder (if recording). plan4 S2: it reads the
+    // canvas (submitFrame's glReadPixels reads the bound READ framebuffer).
     if (videoRecorder_ != nullptr)
-        videoRecorder_->submitFrame(static_cast<int>(renderW), static_cast<int>(renderH));
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
+        videoRecorder_->submitFrame(canvas.w, canvas.h);
+    }
 
     // P22.1: Publish the final composited frame to Syphon clients. Gated on the
     // enabled flag (set from the message thread) and initialization, so no GPU
     // work happens when Syphon is off or unavailable.
     if (syphonOutput_ != nullptr && syphonOutput_->isEnabled() && syphonOutput_->isInitialized())
-        publishSyphonFrame(static_cast<GLuint>(defaultFBO), vpX, vpY, vpW, vpH);
+        publishSyphonFrame(canvasFBO_, 0.0f, 0.0f, renderW, renderH);
 
     // Process pending frame capture (Eyes test harness + P22.7 snapshots)
-    processPendingCapture(renderW, renderH, vpX, vpY, vpW, vpH);
+    processPendingCapture();
+
+    // Leave the window framebuffer bound, as every pass used to.
+    glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+}
+
+// plan4 item 1: the canvas FBO (same shape as ensurePrevDeckFBO: RGBA8, linear, clamp); recreated
+// only on a size change. Creates GL objects and leaves framebuffer 0 bound: called at the top of the
+// frame, before any pass (R5).
+void Renderer::ensureCanvasFBO(int width, int height)
+{
+    if (canvasTex_ != 0 && canvasW_ == width && canvasH_ == height)
+        return;
+
+    if (canvasFBO_ != 0) glDeleteFramebuffers(1, &canvasFBO_);
+    if (canvasTex_ != 0) glDeleteTextures(1, &canvasTex_);
+
+    glGenTextures(1, &canvasTex_);
+    glBindTexture(GL_TEXTURE_2D, canvasTex_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glGenFramebuffers(1, &canvasFBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, canvasFBO_);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, canvasTex_, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    canvasW_ = width;
+    canvasH_ = height;
+}
+
+// plan4 item 1: the panel is a viewer. Draws the canvas into the window framebuffer inside `present`
+// (RenderGeometry::fitCanvas -- the rest of the window keeps its clear colour: the bars), box-filtered
+// down to the panel's pixels. Blend off: the canvas's RGBA is copied as is.
+void Renderer::presentCanvas(GLuint windowFBO, const RenderGeometry::Rect& present)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, windowFBO);
+    if (canvasTex_ == 0 || present.w <= 0 || present.h <= 0)
+        return;
+
+    auto* prog = shaderMgr_.getProgram("present_box");
+    const bool box = (prog != nullptr);
+    if (!box)
+        prog = shaderMgr_.getProgram("passthrough");
+    if (prog == nullptr)
+        return;
+
+    glViewport(present.x, present.y, present.w, present.h);
+    glDisable(GL_BLEND);
+    prog->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, canvasTex_);
+    auto l = prog->getUniformIDFromName("u_texture");
+    if (l >= 0) glUniform1i(l, 0);
+    if (box)
+    {
+        l = prog->getUniformIDFromName("u_texelSize");
+        if (l >= 0) glUniform2f(l, 1.0f / static_cast<float>(canvasW_), 1.0f / static_cast<float>(canvasH_));
+        l = prog->getUniformIDFromName("u_taps");
+        if (l >= 0) glUniform1i(l, RenderGeometry::presentTaps(canvasW_, present.w));
+    }
+    quad_.draw();
+}
+
+// plan4 A-opt: GPU time per frame from two alternated GL_TIME_ELAPSED queries. A query's result is read
+// only once GL_QUERY_RESULT_AVAILABLE says so -- this never blocks; a frame whose slot is still in
+// flight is simply not timed.
+bool Renderer::beginGpuTimer()
+{
+    if (gpuQueries_[0] == 0)
+        glGenQueries(2, gpuQueries_);
+    if (gpuQueries_[0] == 0)
+        return false;
+
+    const unsigned slot = gpuQueryFrame_ & 1u;
+    if (gpuQueryPending_[slot])
+    {
+        GLint available = 0;
+        glGetQueryObjectiv(gpuQueries_[slot], GL_QUERY_RESULT_AVAILABLE, &available);
+        if (available == 0)
+            return false;
+        GLuint64 ns = 0;
+        glGetQueryObjectui64v(gpuQueries_[slot], GL_QUERY_RESULT, &ns);
+        gpuQueryPending_[slot] = false;
+        const float ms = static_cast<float>(static_cast<double>(ns) / 1.0e6);
+        const float prev = gpuTimeMs_.load(std::memory_order_relaxed);
+        gpuTimeMs_.store(prev + 0.1f * (ms - prev), std::memory_order_relaxed);   // EMA like frameTimeMs_
+        if (ms > peakGpuTimeMs_.load(std::memory_order_relaxed))
+            peakGpuTimeMs_.store(ms, std::memory_order_relaxed);
+    }
+    glBeginQuery(GL_TIME_ELAPSED, gpuQueries_[slot]);
+    return true;
+}
+
+void Renderer::GpuTimerScope::finish()
+{
+    if (!active)
+        return;
+    active = false;
+    glEndQuery(GL_TIME_ELAPSED);
+    r.gpuQueryPending_[r.gpuQueryFrame_ & 1u] = true;
+    ++r.gpuQueryFrame_;
 }
 
 void Renderer::openGLContextClosing()
@@ -873,6 +979,14 @@ void Renderer::openGLContextClosing()
     // recreated context recompiles all programs, and stale program-ID-keyed
     // locations would poison lookups against the new programs.
     effectChainGLState_.release();
+
+    // plan4 item 1: the canvas dies with the context; ensureCanvasFBO recreates it on the first frame
+    // back (the canvasTex_ == 0 check). The A-opt timer queries likewise.
+    if (canvasFBO_ != 0) { glDeleteFramebuffers(1, &canvasFBO_); canvasFBO_ = 0; }
+    if (canvasTex_ != 0) { glDeleteTextures(1, &canvasTex_); canvasTex_ = 0; }
+    canvasW_ = canvasH_ = 0;
+    if (gpuQueries_[0] != 0) { glDeleteQueries(2, gpuQueries_); gpuQueries_[0] = gpuQueries_[1] = 0; }
+    gpuQueryPending_[0] = gpuQueryPending_[1] = false;
 
     // P25: Release composition transform FBO
     if (compTransformFBO_ != 0) { glDeleteFramebuffers(1, &compTransformFBO_); compTransformFBO_ = 0; }
@@ -1421,6 +1535,7 @@ void Renderer::compileAllShaders()
 
     // Core
     compile("passthrough",          EmbeddedShaders::passthrough);
+    compile("present_box",          EmbeddedShaders::presentBox);   // plan4: canvas -> panel
     compile("opacity_blend",        EmbeddedShaders::opacityBlend);
     compile("clip_opacity_blend",   EmbeddedShaders::clipOpacityBlend);
     compile("effect_dry_wet",       EmbeddedShaders::effectDryWet);
@@ -1902,27 +2017,31 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     return future.get();
 }
 
-void Renderer::processPendingCapture(float renderW, float renderH,
-                                      float vpX, float vpY, float vpW, float vpH)
+void Renderer::processPendingCapture()
 {
     // Quick check without lock (avoids lock contention on every frame)
     if (!pendingCapture_.load(std::memory_order_acquire))
+        return;
+
+    // plan4 item 1: TestServer's render_frame sets the test lock just before it requests the capture. A
+    // frame whose canvas was sized before that store must not answer it -- the next frame renders at
+    // the lock's exact size.
+    const uint64_t lockPacked = lockedSize_.load(std::memory_order_relaxed);
+    const int lockW = static_cast<int>(static_cast<uint32_t>(lockPacked >> 32));
+    const int lockH = static_cast<int>(static_cast<uint32_t>(lockPacked));
+    if (lockW > 0 && lockH > 0 && (lockW != canvasW_ || lockH != canvasH_))
         return;
 
     std::lock_guard<std::mutex> lock(captureMutex_);
     if (!pendingCapture_.load(std::memory_order_relaxed) || capturePromise_ == nullptr)
         return;
 
-    std::cerr << "[Eyes] Processing capture: " << renderW << "x" << renderH
-              << " vp=(" << vpX << "," << vpY << "," << vpW << "," << vpH << ")" << std::endl;
+    // plan4 item 1: the capture is the whole canvas, exactly its size.
+    const int readW = canvasW_;
+    const int readH = canvasH_;
+    std::cerr << "[Eyes] Processing capture: canvas " << readW << "x" << readH << std::endl;
 
-    // Determine capture area
-    int readX = static_cast<int>(vpX);
-    int readY = static_cast<int>(vpY);
-    int readW = static_cast<int>(vpW > 0 ? vpW : renderW);
-    int readH = static_cast<int>(vpH > 0 ? vpH : renderH);
-
-    if (readW <= 0 || readH <= 0)
+    if (canvasFBO_ == 0 || readW <= 0 || readH <= 0)
     {
         std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
         capturePromise_->set_value(false);
@@ -1931,9 +2050,10 @@ void Renderer::processPendingCapture(float renderW, float renderH,
         return;
     }
 
-    // Read pixels from the current framebuffer (default FBO after render)
+    // Read pixels from the canvas
     std::vector<uint8_t> pixels(static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4);
-    glReadPixels(readX, readY, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, canvasFBO_);
+    glReadPixels(0, 0, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
     // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left)
     juce::Image img(juce::Image::ARGB, readW, readH, false);
@@ -1990,7 +2110,7 @@ juce::File Renderer::takeSnapshot()
     auto filename = "snapshot_" + now.formatted("%Y%m%d_%H%M%S") + ".png";
     auto outputFile = dir.getChildFile(filename);
 
-    // Remove the 1920x1080 cap for user snapshots — use current render resolution
+    // plan4 item 1: a user snapshot is the whole composition canvas (outputWidth x outputHeight).
     bool ok = captureFrame(outputFile);
 
     if (ok)
@@ -2036,7 +2156,7 @@ void Renderer::ensureCompTransformFBO(int width, int height)
 }
 
 // P25: Apply composition-level transform (position, scale, rotation)
-void Renderer::applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH)
+void Renderer::applyCompTransform(GLuint targetFBO, float vpX, float vpY, float vpW, float vpH)
 {
     if (!composition_) return;
 
@@ -2062,7 +2182,7 @@ void Renderer::applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float
     ensureCompTransformFBO(w, h);
 
     // Copy current framebuffer content to the transform texture
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, defaultFBO);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, targetFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compTransformFBO_);
     glBlitFramebuffer(
         static_cast<int>(vpX), static_cast<int>(vpY),
@@ -2070,8 +2190,8 @@ void Renderer::applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float
         0, 0, w, h,
         GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-    // Now render the transform shader to the default FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+    // Now render the transform shader back into the target (plan4: the canvas)
+    glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
     glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
                static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -2163,9 +2283,9 @@ void Renderer::ensureSyphonFBO(int width, int height)
     syphonHeight_ = height;
 }
 
-// P22.1: Blit the final composited output (the letterboxed viewport region of
-// the default framebuffer) into the Syphon texture and publish it to clients.
-void Renderer::publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH)
+// P22.1: Blit the final composited output (plan4: the whole canvas) into the
+// Syphon texture and publish it to clients.
+void Renderer::publishSyphonFrame(GLuint srcFBO, float vpX, float vpY, float vpW, float vpH)
 {
     int w = static_cast<int>(vpW);
     int h = static_cast<int>(vpH);
@@ -2175,7 +2295,7 @@ void Renderer::publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float
     ensureSyphonFBO(w, h);
 
     // Copy the final-output region into the Syphon texture
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, defaultFBO);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, syphonFBO_);
     glBlitFramebuffer(
         static_cast<int>(vpX), static_cast<int>(vpY),
@@ -2183,9 +2303,8 @@ void Renderer::publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float
         0, 0, w, h,
         GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-    // Restore the default framebuffer so any subsequent readback (frame capture)
-    // reads from the correct target.
-    glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+    // Leave the source bound (the capture below binds its own READ framebuffer).
+    glBindFramebuffer(GL_FRAMEBUFFER, srcFBO);
 
     // Publish to connected Syphon clients (internally no-op if disabled/uninitialized)
     syphonOutput_->publishTexture(syphonTexture_, w, h);

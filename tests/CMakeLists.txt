@@ -1204,6 +1204,32 @@ endif()
 apply_sanitizers(test_comp_transform_units)
 catch_discover_tests(test_comp_transform_units)
 
+# --- test_render_geometry (s-rta-0926b plan4 item 1: the composition canvas --
+# resolveCanvas / fitCanvas / ringDownscale / presentTaps in the pure header
+# src/render/RenderGeometry.h; Renderer.cpp only consumes them). Headless,
+# no GL -- registered like test_comp_transform_units above.
+add_executable(test_render_geometry test_render_geometry.cpp)
+target_include_directories(test_render_geometry PRIVATE ${SRC_DIR})
+target_link_libraries(test_render_geometry PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_render_geometry PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_render_geometry PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_render_geometry)
+catch_discover_tests(test_render_geometry)
+
 # --- test_conn_picker (s-rta-0923 lane 3, Lane C0 scaffold: the picker ->
 # ConnSource translation, headless -- .harmony/specs/s-rta-0923-lane3-plan.md
 # sections 4.3/5. Shaped exactly like test_connection above: same source

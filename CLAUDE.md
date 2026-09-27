@@ -28,7 +28,7 @@ Runs every 2.67ms (128 samples @ 48kHz). Receives samples from JUCE's `AudioIODe
 Runs every ~10.7ms (512-sample hop @ 48kHz). Pulls device-rate samples from the ring buffer and resamples them to the fixed internal 48 kHz (`AnalysisResampler`, R13) before anything else — a bit-identical bypass when the device already runs at 48 kHz. Maintains a 2048-sample overlap window, runs FFT, and extracts all audio features in a fixed pipeline order. Pre-allocates all buffers and Aubio objects at startup — zero allocation in steady state, including at a device rate change (the resampler reconfigures a fixed-size interpolator in O(1), no aubio object is ever re-created). Budget: <2ms per hop (5x headroom). Publishes a complete `FeatureSnapshot` to the Feature Bus via atomic triple-buffer swap.
 
 **Render Thread (OpenGL, NORMAL priority, VSync)**
-Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple buffer (lock-free atomic read). Runs all active mappings (source → curve → scale → target), uploads uniforms to GPU, and renders the effect chain on a fullscreen quad with the loaded image texture. Uses ping-pong FBOs for multi-effect chains. Budget: <8ms for full chain. Communicates display values back to UI via `juce::MessageManager::callAsync()`.
+Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple buffer (lock-free atomic read). Runs all active mappings (source → curve → scale → target), uploads uniforms to GPU, and renders the effect chain on a fullscreen quad with the loaded image texture. Uses ping-pong FBOs for multi-effect chains. Budget: <8ms for full chain. Communicates display values back to UI via `juce::MessageManager::callAsync()`. It renders the composition canvas (`Composition::outputWidth x outputHeight`, default 1920x1080) ONCE per frame, offscreen; the preview and every output (recorder, Syphon, `render_frame`, snapshots) read the canvas, and the lower-left panel only presents it letterboxed (`RenderGeometry::fitCanvas`).
 
 **Message Thread (JUCE UI, NORMAL priority)**
 Runs on user events. Handles all UI interaction — sliders, buttons, file choosers, mapping editor. Writes configuration changes (effect enable/disable, parameter values, mapping settings) via `std::atomic<T>` config variables that the render and analysis threads read. Never blocks the other threads.
@@ -136,6 +136,8 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 **Transport state**: `Clip::playing` is `mutable` (render thread writes it for OneShot stop). Retriggering the same clip preserves its play/pause state. Switching to a different clip starts playing only on first activation (`hasBeenTriggered` flag). PingPong and OneShot loop modes require propagating player state back to clip model after `advanceFrame()`.
 
 **PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
+
+**Preview/Output panel never reshapes the picture**: the canvas is the composition's size and shape (Composition inspector > Output resolution); the lower-left panel shows it letter/pillar-boxed at any window size, never stretched to the panel. A window/panel resize reallocates nothing.
 
 ---
 
@@ -271,6 +273,7 @@ the named area; this index is triage-only.
 33. Effect/source-param rows are engine-driven -- before writing to `paramValues`/`sourceParams[].value` directly.
 34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
 35. A crossfading layer has two live clip chains -- before keying any per-chain GL history (never by deck + layer alone).
+36. The canvas is the composition -- before sizing any render target, capture or recording (never from a Component).
 
 ---
 

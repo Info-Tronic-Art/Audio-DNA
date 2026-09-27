@@ -339,10 +339,6 @@ private:
     };
     std::array<PresetSlot, kNumSlots> presetSlots_;
 
-    // Resolution lock
-    juce::Label viewportLabel_;
-    juce::ComboBox resolutionSelector_;
-
     // Output window
     juce::Label outputLabel_;
     juce::ComboBox displaySelector_;

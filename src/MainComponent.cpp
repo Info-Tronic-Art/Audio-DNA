@@ -327,7 +327,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
                         juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         label.setJustificationType(juce::Justification::centredRight);
     };
-    setupLabel(viewportLabel_,    "Viewport");
     setupLabel(outputLabel_,     "Output");
   #if AUDIODNA_HAS_CAMERA
     setupLabel(cameraLabel_,     "Camera");
@@ -429,72 +428,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // — no attach/visibility gating — so it survives preview detach.
     mappingTickTimer_.startTimerHz(kMappingTickHz);
 
-    // Resolution selector for preview panel
-    addAndMakeVisible(resolutionSelector_);
-    resolutionSelector_.setTextWhenNothingSelected("Res: Auto");
-    {
-        int id = 1;
-        resolutionSelector_.addItem("Auto", id++);
-
-        // Standard resolutions
-        resolutionSelector_.addItem("640x480", id++);
-        resolutionSelector_.addItem("800x600", id++);
-        resolutionSelector_.addItem("1280x720", id++);
-        resolutionSelector_.addItem("1920x1080", id++);
-        resolutionSelector_.addItem("2560x1440", id++);
-        resolutionSelector_.addItem("3840x2160", id++);
-
-        // Add connected display resolutions
-        const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
-        for (int i = 0; i < static_cast<int>(displays.size()); ++i)
-        {
-            const auto& d = displays[static_cast<size_t>(i)];
-            juce::String label = juce::String(d.totalArea.getWidth())
-                              + "x" + juce::String(d.totalArea.getHeight());
-            if (d.isMain)
-                label += " (main)";
-            else
-                label += " (display " + juce::String(i + 1) + ")";
-
-            // Only add if not already a standard resolution
-            bool isDuplicate = false;
-            for (int j = 0; j < resolutionSelector_.getNumItems(); ++j)
-            {
-                if (resolutionSelector_.getItemText(j).startsWith(
-                    juce::String(d.totalArea.getWidth()) + "x" + juce::String(d.totalArea.getHeight())))
-                {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-            if (!isDuplicate)
-                resolutionSelector_.addItem(label, id++);
-        }
-
-        resolutionSelector_.setSelectedId(1, juce::dontSendNotification);
-    }
-    resolutionSelector_.onChange = [this] {
-        juce::String text = resolutionSelector_.getText();
-        if (text == "Auto" || text.isEmpty())
-        {
-            previewPanel_.getRenderer().setLockedResolution(0, 0);
-        }
-        else
-        {
-            // Parse "WxH" or "WxH (label)"
-            auto xPos = text.indexOfChar('x');
-            if (xPos > 0)
-            {
-                int w = text.substring(0, xPos).getIntValue();
-                auto rest = text.substring(xPos + 1);
-                auto spacePos = rest.indexOfChar(' ');
-                int h = (spacePos > 0) ? rest.substring(0, spacePos).getIntValue()
-                                        : rest.getIntValue();
-                if (w > 0 && h > 0)
-                    previewPanel_.getRenderer().setLockedResolution(w, h);
-            }
-        }
-    };
+    // s-rta-0926b plan4 S5: the per-deck "Viewport" resolution lock (hidden since v2) is retired --
+    // the canvas is Composition::outputWidth x outputHeight (Composition inspector). The renderer's
+    // lock survives as the TEST-ONLY canvas override (TestServer render_frame width/height).
 
     // Display selector for output window
     addAndMakeVisible(displaySelector_);
@@ -2512,8 +2448,6 @@ void MainComponent::resized()
     outputLabel_.setVisible(false);
     fpsLabel_.setVisible(false);
     cpuLabel_.setVisible(false);
-    viewportLabel_.setVisible(false);
-    resolutionSelector_.setVisible(false);
     randomLabel_.setVisible(false);
     beatRandomToggle_.setVisible(false);
     beatCountSelector_.setVisible(false);
@@ -3592,7 +3526,8 @@ void MainComponent::openOutputOnDisplay(int displayIndex)
         outputWindow_ = std::make_unique<OutputWindow>(
             analysisThread_.getFeatureBus(),
             previewPanel_.getMappingEngine(),
-            previewPanel_.getEffectChain());
+            previewPanel_.getEffectChain(),
+            &composition_);   // plan4 S7: letterboxed to the composition's shape
 
         // Load the same image if one is loaded
         if (currentImageFile_.existsAsFile())
@@ -3723,7 +3658,6 @@ void MainComponent::saveDeck()
         deck.beatRandomCount = beatRandomCount_;
         deck.beatRandomEnabled = beatRandomToggle_.getToggleState();
         deck.audioSourceMode = audioSourceSelector_.getSelectedId();
-        deck.viewportResolution = resolutionSelector_.getSelectedId();
         deck.outputDisplay = displaySelector_.getSelectedId();
         deck.inputGain = static_cast<float>(inputGainSlider_.getValue());
         deck.showAudioPanel = true;
@@ -3806,9 +3740,8 @@ void MainComponent::loadDeck()
             slideshowBeatCounter_ = 0;
         }
 
-        // Restore UI selectors — use sendNotificationSync so handlers fire
-        if (deck.viewportResolution > 0)
-            resolutionSelector_.setSelectedId(deck.viewportResolution, juce::sendNotificationSync);
+        // Restore UI selectors — use sendNotificationSync so handlers fire.
+        // (plan4 S5: deck.viewportResolution is still read from old files but no longer applied.)
 
         // Restore audio source — trigger onChange to switch engine mode
         if (deck.audioSourceMode > 0)
@@ -6591,8 +6524,9 @@ void MainComponent::handleMenuCommand(int commandId)
 
                 VideoRecorder::Config cfg;
                 cfg.codec = VideoRecorder::Codec::H264;
-                cfg.width = 1920;
-                cfg.height = 1080;
+                // s-rta-0926b plan4 S6: a recording is the composition canvas, exactly its size.
+                cfg.width = composition_.outputWidth > 0 ? composition_.outputWidth : 1920;
+                cfg.height = composition_.outputHeight > 0 ? composition_.outputHeight : 1080;
                 cfg.fps = 30;
                 cfg.quality = 23;
 
@@ -7333,7 +7267,10 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     auto filename = "recording_" + now.formatted("%Y%m%d_%H%M%S") + ".mp4";
                     VideoRecorder::Config cfg;
                     cfg.codec = VideoRecorder::Codec::H264;
-                    cfg.width = 1920; cfg.height = 1080; cfg.fps = 30; cfg.quality = 23;
+                    // s-rta-0926b plan4 S6: the composition canvas, exactly its size.
+                    cfg.width = composition_.outputWidth > 0 ? composition_.outputWidth : 1920;
+                    cfg.height = composition_.outputHeight > 0 ? composition_.outputHeight : 1080;
+                    cfg.fps = 30; cfg.quality = 23;
                     videoRecorder_.startRecording(docsDir.getChildFile(filename), cfg);
                 }
             }
