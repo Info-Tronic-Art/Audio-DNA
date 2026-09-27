@@ -241,6 +241,16 @@ void TestServer::setupRoutes()
     server_.Post("/api/output_probe", [this](const httplib::Request& req, httplib::Response& res) {
         handleOutputProbe(req, res);
     });
+
+    // s-rta-0927 outputs-c3 (plan5 C3): Restore Last Outputs with nothing to restore, and the display-poll A/B.
+    // Neither can open a window (setOutputsTestHooks).
+    server_.Post("/api/output_restore_last", [this](const httplib::Request& req, httplib::Response& res) {
+        handleOutputRestoreLast(req, res);
+    });
+
+    server_.Post("/api/set_output_poll", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetOutputPoll(req, res);
+    });
 }
 
 // --- Endpoint Handlers ---
@@ -640,6 +650,9 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
         // s-rta-0927 outputs-c2: [{index, x, y, w, h, scale, main, live, label}] -- the Output menu's display list.
         if (outputsStateProvider_)
             outputs->setProperty("displays", outputsStateProvider_());
+        // s-rta-0927 outputs-c3 (test mode only): the output manager's counters (poll, reconcile, settings, restore).
+        if (outputsTestHooks_.stats)
+            outputs->setProperty("manager", outputsTestHooks_.stats());
         obj->setProperty("outputs", juce::var(outputs));
     }
 
@@ -1757,6 +1770,58 @@ void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Respons
     res.status = 501;
     res.set_content(jsonError("output_probe is macOS-only"), "application/json");
 #endif
+}
+
+// ---- s-rta-0927 outputs-c3 (plan5 slice C3): hot-plug / restore test hooks -- NEVER a window ----
+
+void TestServer::handleOutputRestoreLast(const httplib::Request&, httplib::Response& res)
+{
+    if (!outputsTestHooks_.stats || !outputsTestHooks_.restoreLastIfNothingToOpen)
+    {
+        res.status = 501;
+        res.set_content(jsonError("output test hooks not wired"), "application/json");
+        return;
+    }
+    // Refuse whenever restoring could open a window: this route exists only to prove that an EMPTY / absent saved
+    // set opens nothing. The message thread re-checks before it runs the menu action (MainComponent).
+    const int restorable = static_cast<int>(outputsTestHooks_.stats()["restorable"]);
+    if (restorable != 0)
+    {
+        res.status = 409;
+        res.set_content(jsonError("refused: Restore Last Outputs would open " + std::to_string(restorable)
+                                  + " output window(s) -- this test route never opens a window"),
+                        "application/json");
+        return;
+    }
+    outputsTestHooks_.restoreLastIfNothingToOpen();
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("queued", true);   // runs on the message thread; watch outputs.manager.restore_calls
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
+
+void TestServer::handleSetOutputPoll(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    auto* obj = parsed.getDynamicObject();
+    if (obj == nullptr || !obj->hasProperty("enabled"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'enabled' field"), "application/json");
+        return;
+    }
+    if (!outputsTestHooks_.setPollEnabled)
+    {
+        res.status = 501;
+        res.set_content(jsonError("output test hooks not wired"), "application/json");
+        return;
+    }
+    const bool enabled = static_cast<bool>(obj->getProperty("enabled"));
+    outputsTestHooks_.setPollEnabled(enabled);
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("poll_enabled", enabled);
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
 }
 
 void TestServer::destroyOutputProbe()

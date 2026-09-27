@@ -72,6 +72,23 @@ public:
     // Desktop::getDisplays() off the message thread). Set it BEFORE start(): HTTP threads only read it.
     void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
 
+    // s-rta-0927 outputs-c3 (plan5 C3), TEST MODE ONLY (this server; 7070 never has them). Neither route can open an
+    // output window:
+    //   /api/state.outputs.manager  -- OutputManager::statsVar() (atomics: poll ticks, reconciles, settings writes,
+    //                                  restore calls, interrupted / saved / restorable counts);
+    //   POST /api/output_restore_last -- runs the "Restore Last Outputs" menu action ONLY while nothing is
+    //                                  restorable (409 otherwise; MainComponent re-checks on the message thread):
+    //                                  the probe's proof that an empty / absent saved set opens nothing;
+    //   POST /api/set_output_poll {"enabled"} -- pauses / resumes the 30 Hz display poll (the o_poll_idle A/B).
+    // Set BEFORE start(): HTTP threads only call them.
+    struct OutputsTestHooks
+    {
+        std::function<juce::var()> stats;                  // any thread
+        std::function<void()> restoreLastIfNothingToOpen;  // posts to the message thread
+        std::function<void(bool)> setPollEnabled;          // any thread (an atomic)
+    };
+    void setOutputsTestHooks(OutputsTestHooks hooks) { outputsTestHooks_ = std::move(hooks); }
+
     TestServer(const TestServer&) = delete;
     TestServer& operator=(const TestServer&) = delete;
 
@@ -124,6 +141,9 @@ private:
     void handleSetOutputTap(const httplib::Request& req, httplib::Response& res);
     void handleOutputProbe(const httplib::Request& req, httplib::Response& res);
     void destroyOutputProbe();
+    // s-rta-0927 outputs-c3: see setOutputsTestHooks.
+    void handleOutputRestoreLast(const httplib::Request& req, httplib::Response& res);
+    void handleSetOutputPoll(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();
@@ -149,6 +169,7 @@ private:
     output::PresenterGLState probeState_;
 
     std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
+    OutputsTestHooks outputsTestHooks_;                 // set before start(); see setOutputsTestHooks
     int port_;
     httplib::Server server_;
     std::thread serverThread_;

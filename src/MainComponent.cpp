@@ -1851,6 +1851,18 @@ MainComponent::MainComponent(bool testMode, int testPort)
             previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
         testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+        // plan5 C3 (s-rta-0927 outputs-c3), test mode only: the manager's counters, "Restore Last Outputs" with
+        // nothing to restore, the poll A/B. The restore hook re-checks ON the message thread and runs the menu
+        // action's own handler only while nothing is restorable -- it can never open a window.
+        testServer_->setOutputsTestHooks({
+            [this] { return outputs_.statsVar(); },
+            [this] {
+                juce::MessageManager::callAsync([safe = juce::Component::SafePointer<MainComponent>(this)] {
+                    if (safe != nullptr && safe->outputs_.restorableCount() == 0)
+                        safe->handleMenuCommand(AudioDNAMenuBar::CommandID::kOutputRestoreLast);
+                });
+            },
+            [this](bool enabled) { outputs_.setPollEnabled(enabled); } });
         testServer_->start();
         std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;
     }
