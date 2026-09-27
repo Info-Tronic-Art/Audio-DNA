@@ -1297,6 +1297,19 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("peak_gpu_time_ms", static_cast<double>(renderer_.takePeakGpuTimeMs()));
     // s-rta-0925: master_level is now the one master (composition_.eff()).
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
+    // s-rta-0927 outputs-c1: the output frame path (additive). Same fields as TestServer.
+    {
+        auto& frames = renderer_.getSharedFrames();
+        const output::FrontFrame front = frames.front();
+        auto* outputs = new juce::DynamicObject();
+        outputs->setProperty("live", renderer_.getLiveOutputCount());
+        outputs->setProperty("tap", renderer_.isOutputTapForced());
+        outputs->setProperty("frame_gen", static_cast<juce::int64>(front.gen));
+        outputs->setProperty("frame_serial", static_cast<juce::int64>(front.serial));
+        outputs->setProperty("canvas_w", frames.frontWidth());
+        outputs->setProperty("canvas_h", frames.frontHeight());
+        obj->setProperty("outputs", juce::var(outputs));
+    }
 
     // Effects state
     juce::Array<juce::var> effectsArr;

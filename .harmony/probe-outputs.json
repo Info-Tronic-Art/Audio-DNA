@@ -1,0 +1,39 @@
+{
+  "_doc": "Fixtures for .harmony/probe-outputs.sh (s-rta-0927 outputs-c1 = plan5 slice C1: the composition canvas copied into shared IOSurface frames that every output window presents; .harmony/.reports/s-rta-0926b/plan5-final.md 10.2). @MEDIA@ is replaced at run time with the checkout's media/ dir. NO row opens an output window: the frame path is exercised offscreen through a private CGL context (8080 /api/output_probe) with the tap forced on (8080 /api/set_output_tap). Assertions: the docstring of .harmony/probe-outputs.py.",
+  "imageA": "@MEDIA@/P16_01_baseline.png",
+  "imageB": "@MEDIA@/P16_02_Screen_Split_2x2.png",
+  "canvas": [1920, 1080],
+  "settleAfterTrigger": 1.0,
+  "settleAfterTap": 0.3,
+  "matchTol": 2.0,
+  "portrait": {
+    "_why": "output_probe 1080x1920 of the 1920x1080 canvas: the picture is fitCanvas(1920,1080,1080,1920) = {0,656,1080,607} (GL rows, bottom-up) = PNG rows 657..1263; rows outside are the bars.",
+    "size": [1080, 1920],
+    "barTol": 2.0,
+    "innerTol": 6.0
+  },
+  "change": {
+    "_why": "trigger col1 = B; the probe must follow (LIVE, not a stale slot): d(probe, f0) > minDiff and d(probe, f_B) <= matchTol. d(A, B) at 1920x1080 is 29.4 (measured with PIL).",
+    "settle": 0.5,
+    "minDiff": 20.0
+  },
+  "resolution": {
+    "_why": "8080 set_composition_params 1280x720; the canvas is re-allocated (a new frame generation); a 1920x1080 probe of the 720p canvas = the 720p render_frame upscaled (bilinear).",
+    "to": [1280, 720],
+    "settle": 0.4,
+    "tol": 6.0
+  },
+  "soak": {
+    "_why": "the cross-thread / cross-context race soak: repeated probes while the main renders static A; every PNG decodes, none blank, all within matchTol of f0.",
+    "count": 60,
+    "size": [1920, 1080]
+  },
+  "tapCost": {
+    "_why": "REPORT only: 7070 /api/state frame_time_ms / peak_frame_time_ms / gpu_time_ms over `seconds` with the tap off, then on, at each canvas size. Runs only when no clang/clang++ is running; the load average is printed.",
+    "sizes": [[1920, 1080], [3840, 2160]],
+    "warmup": 2.0,
+    "seconds": 5.0,
+    "interval": 0.25
+  },
+  "outputWindowName": "Audio-DNA Output"
+}
