@@ -56,7 +56,8 @@ o_restore_empty (RED on a pre-C3 app: no settings override, no outputs.manager, 
   matches a connected display (the route would refuse; no row may ever open a window).
 o_poll_idle (RED on a pre-C3 app: no set_output_poll / outputs.manager): the 30 Hz display poll with ZERO outputs
   changes nothing. With the tap off and no compiler running (load average printed): 5 s with the poll paused
-  (8080 set_output_poll false), then 5 s with it running. Poll ticks: 0 while paused, >= minPollHz per second while
+  (8080 set_output_poll false), then 5 s with it running, on its own composition (static col0 = A: an empty app
+  reports frame_time_ms 0, so both means must be > 0). Poll ticks: 0 while paused, >= minPollHz per second while
   running (the poll is the first line of every UI timer tick); reconciles and settings writes do not move;
   outputs.live == 0 on every 7070 and 8080 sample; the displays list never changes; and 7070 frame_time_ms (mean)
   with the poll running is within frameTol (0.3 ms) of the mean with it paused.
@@ -588,6 +589,12 @@ def o_poll_idle():
         except Exception:  # noqa: BLE001
             return -1
 
+    # Its own composition (static A, like the other rows): an empty app renders nothing and reports frame_time_ms 0,
+    # which would make the A/B vacuous -- so both means must also be > 0.
+    if not load("pollidle"):
+        return
+    trig(0)
+    time.sleep(float(FIX["settleAfterTrigger"]))
     tap(False)
     code = poll(False)
     if code != 200:
@@ -630,7 +637,7 @@ def o_poll_idle():
     disp = d_off | d_on
     tol, min_hz = float(cfg["frameTol"]), float(cfg["minPollHz"])
     good = ticks_off == 0 and hz >= min_hz and rec == 0 and wr == 0 and lives == {0} and len(disp) == 1 \
-        and abs(f_on - f_off) <= tol and b_on.get("poll_enabled") is True
+        and f_off > 0 and f_on > 0 and abs(f_on - f_off) <= tol and b_on.get("poll_enabled") is True
     (ok if good else no)(
         f"o_poll_idle: poll paused {el_off:.2f} s: {ticks_off} ticks, frame_time_ms {f_off:.3f} ({n_off} samples) | "
         f"poll running {el_on:.2f} s: {ticks_on} ticks = {hz:.1f}/s (>= {min_hz}), frame_time_ms {f_on:.3f} "
