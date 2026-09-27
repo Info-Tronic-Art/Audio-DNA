@@ -1,0 +1,153 @@
+=== FINAL-xfade app=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app kind=xfade rows=all start Sat Sep 26 21:48:28 EDT 2026
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/wf_41d6317f-a47-1/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/render2/runs/xfade.bbiWlo
+      a_both_effected: d(A,B)=155.93 noise=0.00 FLOOR=1.00
+      a_both_effected: t=0.47s dA=15.66 dB=140.27 p=0.10
+      a_both_effected: t=0.79s dA=28.06 dB=127.87 p=0.18
+      a_both_effected: t=1.10s dA=40.39 dB=115.54 p=0.26
+      a_both_effected: t=1.42s dA=52.61 dB=103.32 p=0.34
+      a_both_effected: t=1.73s dA=64.76 dB=91.17 p=0.42
+      a_both_effected: t=2.04s dA=77.09 dB=78.84 p=0.49
+      a_both_effected: t=2.36s dA=89.41 dB=66.52 p=0.57
+      a_both_effected: t=2.68s dA=102.42 dB=53.51 p=0.66
+      a_both_effected: t=2.99s dA=114.00 dB=41.93 p=0.73
+      a_both_effected: t=3.31s dA=126.16 dB=29.77 p=0.81
+PASS  a_both_effected: 10/10 mid frames strictly between OUT and IN
+PASS  a_both_effected: progress moves toward IN (0.10 -> 0.81)
+PASS  a_both_effected: final frame matches IN (d=0.00, floor 1.00)
+      b_only_incoming_effected: d(A,B)=153.21 noise=0.00 FLOOR=1.00
+      b_only_incoming_effected: t=0.46s dA=15.40 dB=137.81 p=0.10
+      b_only_incoming_effected: t=0.78s dA=26.75 dB=126.46 p=0.17
+      b_only_incoming_effected: t=1.09s dA=39.52 dB=113.69 p=0.26
+      b_only_incoming_effected: t=1.40s dA=51.60 dB=101.61 p=0.34
+      b_only_incoming_effected: t=1.72s dA=62.95 dB=90.26 p=0.41
+      b_only_incoming_effected: t=2.03s dA=75.68 dB=77.53 p=0.49
+      b_only_incoming_effected: t=2.34s dA=87.04 dB=66.16 p=0.57
+      b_only_incoming_effected: t=2.65s dA=99.16 dB=54.05 p=0.65
+      b_only_incoming_effected: t=2.96s dA=111.09 dB=42.12 p=0.73
+      b_only_incoming_effected: t=3.27s dA=123.03 dB=30.18 p=0.80
+PASS  b_only_incoming_effected: 10/10 mid frames strictly between OUT and IN
+PASS  b_only_incoming_effected: progress moves toward IN (0.10 -> 0.80)
+PASS  b_only_incoming_effected: final frame matches IN (d=0.00, floor 1.00)
+      c_only_outgoing_effected: d(A,B)=32.00 noise=0.00 FLOOR=1.00
+      c_only_outgoing_effected: t=0.47s dA=3.26 dB=28.75 p=0.10
+      c_only_outgoing_effected: t=0.79s dA=5.78 dB=26.22 p=0.18
+      c_only_outgoing_effected: t=1.10s dA=8.27 dB=23.73 p=0.26
+      c_only_outgoing_effected: t=1.43s dA=10.83 dB=21.18 p=0.34
+      c_only_outgoing_effected: t=1.75s dA=13.35 dB=18.65 p=0.42
+      c_only_outgoing_effected: t=2.07s dA=15.86 dB=16.14 p=0.50
+      c_only_outgoing_effected: t=2.39s dA=18.59 dB=13.41 p=0.58
+      c_only_outgoing_effected: t=2.73s dA=21.16 dB=10.84 p=0.66
+      c_only_outgoing_effected: t=3.05s dA=23.72 dB=8.28 p=0.74
+      c_only_outgoing_effected: t=3.37s dA=26.34 dB=5.66 p=0.82
+PASS  c_only_outgoing_effected: 10/10 mid frames strictly between OUT and IN
+PASS  c_only_outgoing_effected: progress moves toward IN (0.10 -> 0.82)
+PASS  c_only_outgoing_effected: final frame matches IN (d=0.00, floor 1.00)
+      d_neither_effected: d(A,B)=29.43 noise=0.00 FLOOR=1.00
+      d_neither_effected: t=0.47s dA=3.02 dB=26.42 p=0.10
+      d_neither_effected: t=0.79s dA=5.34 dB=24.09 p=0.18
+      d_neither_effected: t=1.11s dA=7.66 dB=21.78 p=0.26
+      d_neither_effected: t=1.42s dA=9.94 dB=19.49 p=0.34
+      d_neither_effected: t=1.74s dA=12.25 dB=17.18 p=0.42
+      d_neither_effected: t=2.06s dA=14.57 dB=14.86 p=0.50
+      d_neither_effected: t=2.39s dA=17.10 dB=12.33 p=0.58
+      d_neither_effected: t=2.71s dA=19.42 dB=10.01 p=0.66
+      d_neither_effected: t=3.03s dA=21.77 dB=7.66 p=0.74
+      d_neither_effected: t=3.35s dA=24.15 dB=5.28 p=0.82
+PASS  d_neither_effected: 10/10 mid frames strictly between OUT and IN
+PASS  d_neither_effected: progress moves toward IN (0.10 -> 0.82)
+PASS  d_neither_effected: final frame matches IN (d=0.00, floor 1.00)
+      e_two_effects_each: d(A,B)=108.13 noise=0.00 FLOOR=1.00
+      e_two_effects_each: t=0.47s dA=11.02 dB=97.11 p=0.10
+      e_two_effects_each: t=0.79s dA=19.62 dB=88.51 p=0.18
+      e_two_effects_each: t=1.11s dA=28.19 dB=79.94 p=0.26
+      e_two_effects_each: t=1.42s dA=36.61 dB=71.52 p=0.34
+      e_two_effects_each: t=1.75s dA=45.24 dB=62.90 p=0.42
+      e_two_effects_each: t=2.07s dA=54.48 dB=53.65 p=0.50
+      e_two_effects_each: t=2.40s dA=62.92 dB=45.21 p=0.58
+      e_two_effects_each: t=2.72s dA=71.57 dB=36.57 p=0.66
+      e_two_effects_each: t=3.04s dA=80.16 dB=27.97 p=0.74
+      e_two_effects_each: t=3.36s dA=89.32 dB=18.81 p=0.83
+PASS  e_two_effects_each: 10/10 mid frames strictly between OUT and IN
+PASS  e_two_effects_each: progress moves toward IN (0.10 -> 0.83)
+PASS  e_two_effects_each: final frame matches IN (d=0.00, floor 1.00)
+      f_same_source_type: d(A,B)=170.00 noise=0.00 FLOOR=1.00
+      f_same_source_type: t=0.45s dA=18.00 dB=152.00 p=0.11
+      f_same_source_type: t=0.75s dA=30.67 dB=139.33 p=0.18
+      f_same_source_type: t=1.07s dA=43.33 dB=126.67 p=0.25
+      f_same_source_type: t=1.37s dA=56.67 dB=113.33 p=0.33
+      f_same_source_type: t=1.68s dA=70.00 dB=100.00 p=0.41
+      f_same_source_type: t=1.99s dA=83.33 dB=86.67 p=0.49
+      f_same_source_type: t=2.30s dA=96.00 dB=74.00 p=0.56
+      f_same_source_type: t=2.60s dA=109.33 dB=60.67 p=0.64
+      f_same_source_type: t=2.91s dA=122.00 dB=48.00 p=0.72
+      f_same_source_type: t=3.21s dA=135.33 dB=34.67 p=0.80
+PASS  f_same_source_type: 10/10 mid frames strictly between OUT and IN
+PASS  f_same_source_type: progress moves toward IN (0.11 -> 0.80)
+PASS  f_same_source_type: final frame matches IN (d=0.00, floor 1.00)
+      k_outgoing_transform: d(A,B)=21.26 noise=0.00 FLOOR=1.00
+      k_outgoing_transform: t=0.46s dA=2.02 dB=19.24 p=0.09
+      k_outgoing_transform: t=0.77s dA=3.93 dB=17.33 p=0.18
+      k_outgoing_transform: t=1.09s dA=5.32 dB=15.94 p=0.25
+      k_outgoing_transform: t=1.41s dA=7.04 dB=14.22 p=0.33
+      k_outgoing_transform: t=1.73s dA=8.86 dB=12.40 p=0.42
+      k_outgoing_transform: t=2.05s dA=10.34 dB=10.92 p=0.49
+      k_outgoing_transform: t=2.37s dA=12.12 dB=9.14 p=0.57
+      k_outgoing_transform: t=2.69s dA=13.89 dB=7.37 p=0.65
+      k_outgoing_transform: t=3.02s dA=15.50 dB=5.76 p=0.73
+      k_outgoing_transform: t=3.34s dA=17.27 dB=3.99 p=0.81
+      k_outgoing_transform: t=0.46s on-line fit p=0.10 residual=0.50
+      k_outgoing_transform: t=0.77s on-line fit p=0.18 residual=0.45
+      k_outgoing_transform: t=1.09s on-line fit p=0.25 residual=0.24
+      k_outgoing_transform: t=1.41s on-line fit p=0.33 residual=0.14
+      k_outgoing_transform: t=1.73s on-line fit p=0.41 residual=0.21
+      k_outgoing_transform: t=2.05s on-line fit p=0.49 residual=0.26
+      k_outgoing_transform: t=2.37s on-line fit p=0.57 residual=0.17
+      k_outgoing_transform: t=2.69s on-line fit p=0.65 residual=0.13
+      k_outgoing_transform: t=3.02s on-line fit p=0.73 residual=0.21
+      k_outgoing_transform: t=3.34s on-line fit p=0.81 residual=0.13
+PASS  k_outgoing_transform: 10/10 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  k_outgoing_transform: 10/10 mid frames strictly between OUT and IN
+PASS  k_outgoing_transform: progress moves toward IN (0.09 -> 0.81)
+PASS  k_outgoing_transform: final frame matches IN (d=0.00, floor 1.00)
+      l_outgoing_opacity_effect: d(A,B)=225.58 noise=0.00 FLOOR=1.00
+      l_outgoing_opacity_effect: t=0.46s dA=22.24 dB=203.34 p=0.10
+      l_outgoing_opacity_effect: t=0.78s dA=40.62 dB=184.96 p=0.18
+      l_outgoing_opacity_effect: t=1.10s dA=58.59 dB=166.99 p=0.26
+      l_outgoing_opacity_effect: t=1.42s dA=76.90 dB=148.68 p=0.34
+      l_outgoing_opacity_effect: t=1.74s dA=94.49 dB=131.09 p=0.42
+      l_outgoing_opacity_effect: t=2.06s dA=112.43 dB=113.15 p=0.50
+      l_outgoing_opacity_effect: t=2.39s dA=130.83 dB=94.75 p=0.58
+      l_outgoing_opacity_effect: t=2.70s dA=148.82 dB=76.75 p=0.66
+      l_outgoing_opacity_effect: t=3.04s dA=167.14 dB=58.44 p=0.74
+      l_outgoing_opacity_effect: t=3.37s dA=185.92 dB=39.66 p=0.82
+      l_outgoing_opacity_effect: t=0.46s on-line fit p=0.10 residual=0.19
+      l_outgoing_opacity_effect: t=0.78s on-line fit p=0.18 residual=0.16
+      l_outgoing_opacity_effect: t=1.10s on-line fit p=0.26 residual=0.28
+      l_outgoing_opacity_effect: t=1.42s on-line fit p=0.34 residual=0.15
+      l_outgoing_opacity_effect: t=1.74s on-line fit p=0.42 residual=0.25
+      l_outgoing_opacity_effect: t=2.06s on-line fit p=0.50 residual=0.19
+      l_outgoing_opacity_effect: t=2.39s on-line fit p=0.58 residual=0.16
+      l_outgoing_opacity_effect: t=2.70s on-line fit p=0.66 residual=0.29
+      l_outgoing_opacity_effect: t=3.04s on-line fit p=0.74 residual=0.14
+      l_outgoing_opacity_effect: t=3.37s on-line fit p=0.82 residual=0.21
+PASS  l_outgoing_opacity_effect: 10/10 mid frames ON the OUT->IN line (residual <= 1.0): []
+PASS  l_outgoing_opacity_effect: 10/10 mid frames strictly between OUT and IN
+PASS  l_outgoing_opacity_effect: progress moves toward IN (0.10 -> 0.82)
+PASS  l_outgoing_opacity_effect: final frame matches IN (d=0.00, floor 1.00)
+      g_drywet_second_effect: d(DRY,WET)=165.78 d(MIX,expected)=0.05
+PASS  g_drywet_second_effect: MIX frame non-blank
+PASS  g_drywet_second_effect: MIX == 0.50*DRY + 0.50*WET (d=0.05, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 0 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  h_transparent_layer_transform: subject frame 1 non-blank=True and == reference (d=0.00, tol 1.5)
+PASS  i_layer_router_self: router frame 0 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 1 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  i_layer_router_self: router frame 2 non-blank=True and holds the image (d=0.00, tol 3.0)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 0 non-blank=True and == reference (d=0.21, tol 1.5)
+PASS  j_temporal_clip_vs_layer_chain: subject frame 1 non-blank=True and == reference (d=0.21, tol 1.5)
+
+PY 35 PASS / 0 FAIL
+PASS  app terminated
+
+PROBE-CROSSFADE GREEN
+=== end Sat Sep 26 21:50:45 EDT 2026
