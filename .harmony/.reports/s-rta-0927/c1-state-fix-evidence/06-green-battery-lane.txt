@@ -1,0 +1,157 @@
+### lock acquired 13:15:14 after 100s
+### env 13:15:14: load averages: 2.67 3.20 4.15; clang running: 0
+### deckclock #1 13:15:14
+rc=0
+      d_return_hitch: peak_frame_time_ms while away 12.20, across the return 21.41 (fps 105.5)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 13:16:26: load averages: 2.89 3.19 4.07; clang running: 0
+### deckclock #2 13:16:26
+rc=0
+      d_return_hitch: peak_frame_time_ms while away 13.36, across the return 19.31 (fps 102.8)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 13:17:37: load averages: 2.86 3.19 4.00; clang running: 0
+### deckclock #3 13:17:37
+rc=0
+      d_return_hitch: peak_frame_time_ms while away 11.45, across the return 18.76 (fps 104.8)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 13:18:48: load averages: 4.03 3.39 4.01; clang running: 0
+### outputs 13:18:48
+rc=0
+13
+PROBE-OUTPUTS GREEN
+### env 13:19:12: load averages: 3.86 3.40 3.99; clang running: 0
+### canvas 13:19:12
+rc=0
+17
+PROBE-CANVAS GREEN
+### env 13:20:53: load averages: 3.49 3.41 3.93; clang running: 0
+### render-state 13:20:53
+rc=0
+33
+PROBE-RENDER-STATE GREEN
+### lock released 13:26:45
+no Audio-DNA running
+### DONE 13:26:45
+
+===== dc1
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.39, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.50 at T/2 = 2.0 s, expected in [0.35, 0.65])
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+PASS  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 6.40 s, t1 - t0 = 4.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.550 matches the frame (0.533 +- 0.06)
+PASS  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=0.00, floor 1.00; d(f, frame A)=29.43)
+PASS  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 1, expected >= 1)
+      d_return_hitch: peak_frame_time_ms while away 12.20, across the return 21.41 (fps 105.5)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 21.41 ms; REPORT -- target <= 16)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-DECK-CLOCK GREEN
+
+===== dc2
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.41, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.50 at T/2 = 2.0 s, expected in [0.35, 0.65])
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+PASS  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 6.40 s, t1 - t0 = 4.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.551 matches the frame (0.533 +- 0.06)
+PASS  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=0.00, floor 1.00; d(f, frame A)=29.43)
+PASS  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 1, expected >= 1)
+      d_return_hitch: peak_frame_time_ms while away 13.36, across the return 19.31 (fps 102.8)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 19.31 ms; REPORT -- target <= 16)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-DECK-CLOCK GREEN
+
+===== dc3
+PASS  d_fade_finishes: the fade keeps advancing while its deck is not shown (progress +0.26 between samples 1 and 3)
+PASS  d_fade_finishes: the fade is complete (progress 1.0, previousClipColumn -1) by T + 1 s while away (first complete sample (4.41, 1.0, -1))
+PASS  d_fade_finishes: back on deck 0 the incoming clip is showing, fade finished (d(f, refB)=0.00, floor 1.00; d(f, refA)=29.43)
+PASS  d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away (progress 0.49 at T/2 = 2.0 s, expected in [0.35, 0.65])
+PASS  d_pending_trigger_still_cancelled: a quantized trigger left waiting on the deck is cancelled when you leave it (L5): deck 0 activeClipColumn 0 after 4 crossings
+PASS  d_video_keeps_time: a video keeps playing while its deck is away (t0 1.98 s, t1 6.40 s, t1 - t0 = 4.42 s after 4.0 s away, expected in [3.5, 5.5])
+PASS  d_video_keeps_time: /api/composition playheadPosition 0.550 matches the frame (0.533 +- 0.06)
+PASS  d_imageseq_keeps_time: an image sequence keeps its clock while its deck is away (back after 2.0 s: d(f, frame B)=0.00, floor 1.00; d(f, frame A)=29.43)
+PASS  d_autopilot_keeps_time: autopilot keeps advancing a deck that is away (6 beat crossings, Beat4 / PlayNext: deck 0 activeClipColumn 1, expected >= 1)
+      d_return_hitch: peak_frame_time_ms while away 11.45, across the return 18.76 (fps 104.8)
+PASS  d_return_hitch: the return frame's catch-up decode (1080p, GOP 60, 5.0 s away) stays under 50.0 ms (peak 18.76 ms; REPORT -- target <= 16)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-DECK-CLOCK GREEN
+
+===== outputs
+PASS  o_probe_matches_canvas: before any publish output_probe answers 409 ok:false (HTTP 409, {'ok': False, 'error': 'nothing published yet (no live output and the tap is off)'})
+PASS  o_probe_matches_canvas: output_probe 1920x1080 == render_frame 1920x1080 (d 0.000 <= 2.0; gen 1 serial 36 slot 3 canvas 1920x1080)
+PASS  o_probe_portrait_target: 1080x1920, picture rect 1080x607 at PNG row 657 (fitCanvas 0,656,1080,607); bars mean RGB 0.000 <= 2.0; d(inner, f0 resized) 0.013 <= 6.0
+PASS  o_probe_tracks_change: after col1 = B the probe follows: d(probe, f0) 29.431 > 20.0 and d(probe, f_B) 0.000 <= 2.0 (serial 147)
+PASS  o_probe_survives_resolution_change: render_frame 1280x720 of col0 = A, d(f_720, fixture A P16_01_baseline.png stretched to 1280x720) 0.013 <= 6.0; probe canvas 1280x720, gen 1 -> 2, d(probe, f_720 upscaled) 0.013 <= 6.0
+PASS  o_probe_repeat_stable: 60 probes in 11.68 s, every PNG decoded, none blank, worst d 0.000 <= 2.0 (0 bad: [])
+PASS  o_state_outputs: http://[::1]:8080 /api/state.outputs = {'live': 0, 'tap': True, 'frame_gen': 3, 'frame_serial': 1868, 'canvas_w': 1920, 'canvas_h': 1080}
+PASS  o_state_outputs: http://127.0.0.1:7070 /api/state.outputs = {'live': 0, 'tap': True, 'frame_gen': 3, 'frame_serial': 1869, 'canvas_w': 1920, 'canvas_h': 1080}
+PASS  o_state_outputs: after set_output_tap off, 8080 outputs.tap == false ({'live': 0, 'tap': False, 'frame_gen': 3, 'frame_serial': 1870, 'canvas_w': 1920, 'canvas_h': 1080})
+PASS  o_no_window_opened: 72 Quartz samples over the run: Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1 (<= 1 = the main window); window names readable: ['Audio-DNA']
+PASS  no foreign render_frame / output_probe traffic during the run
+PASS  app terminated
+PASS  after quit: 0 Audio-DNA windows in the FULL Quartz window list (no output window survives)
+PROBE-OUTPUTS GREEN
+
+===== canvas
+PASS  c_default_shape: a composition without outputWidth/outputHeight renders a 1920x1080 canvas (render_frame PNG 1920x1080)
+PASS  c_default_shape: the clip fills the canvas (non-blank=True, d(f, A stretched to 1920x1080)=0.01, tol 6.0)
+PASS  c_4k_shape: outputWidth 3840 / outputHeight 2160 renders a 3840x2160 canvas (render_frame PNG 3840x2160)
+PASS  c_4k_shape: the 4K picture is the 1080p picture at 4x the pixels (d(4K box-downsized, 1080p)=0.02, tol 6.0)
+PASS  c_custom_4x3: a 1024x768 composition renders a 1024x768 canvas (render_frame PNG 1024x768)
+PASS  c_custom_4x3: the clip fills the 4:3 canvas (d(f, A stretched to 1024x768)=0.01, tol 6.0)
+PASS  c_runtime_change_keeps_history: the Freeze 0.98 picture f0 is non-blank
+PASS  c_runtime_change_keeps_history: 0.1 s after 1080p -> 2560x1440 the frame is 2560x1440 and keeps the Freeze history (d(f1 resized, f0)=0.29, tol 6.0)
+PASS  c_runtime_change_keeps_history: 0.1 s after going back to 1920x1080 the frame is 1920x1080 and still the same picture (d(f2, f0)=0.01, tol 8.0)
+PASS  c_legacy_image_fit: a 600x600 image is fitted inside the 1920x1080 canvas over black, never stretched (x 0..400 mean RGB 0.00 <= 2; x 440..1480 mean R 255.0 >= 250)
+PASS  c_capture_deterministic: two captures with the same time decode to identical pixels ((1920, 1080), identical=True)
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+PASS  c_perf_1080: the plan4 2.8 composition holds mean fps 117.4 >= 58.0 and mean frame_time_ms 1.46 <= 12.0
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+PASS  f2_deck_transition: a deck switch with a 4 s transition shows the OUTGOING deck fading into the new one (p per trial [[0.25, 0.5], [0.25, 0.5], [0.25, 0.5]]; failures [])
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-CANVAS GREEN
+
+===== rstate
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_temporal: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 0 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 1 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r2_ring: persistent layer id 0 (deck 1) keeps its own state vs deck 0's layer id 0 - frame 2 non-blank=True d(subject, reference)=0.00 (tol 1.5)
+PASS  r4_clip_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_clip_opacity: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_layer_effects: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_layer_transform: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_feedback: persistent layer renders like the same layer on the active deck (d=0.00, tol 1.5)
+PASS  r4_transition: persistent layer mid-crossfade frames lie between OUT and IN (4/4): []
+PASS  r4_transition: crossfade keeps advancing while the deck is inactive (p [0.09, 0.23, 0.37, 0.51])
+PASS  r4_transition: back on its deck after T + 2 s the crossfade is complete (d(f, IN)=0.00, tol 1.5)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 0 mean|RGBA|=0.00 (tol 1.5)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 1 mean|RGBA|=0.00 (tol 1.5)
+PASS  r5_hold: Freeze 1.0 on a fresh layer holds its cleared history (transparent black), never the pass target's glClear colour - frame 2 mean|RGBA|=0.00 (tol 1.5)
+PASS  r5_burst: every attempt captured >= 8 frames after the switch (short: [])
+PASS  r5_burst: no blank frame when a temporal effect first runs on a layer (5 fresh layers): []
+PASS  r1_temporal: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+PASS  r1_control: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+PASS  r1_ring: during a crossfade each clip keeps its own history (IN=B OUT=A; 8 counted frames, ratios <= 0.05): []
+PASS  r1_retrigger: during a crossfade each clip keeps its own history (re-triggered: IN=A OUT=B; 8 counted frames, ratios <= 0.05): []
+PASS  r1_counts: 5 fades on one layer (Screen Split on every clip) hold exactly 2 rings (+2) and <= 2 temporal buffers (+0)
+PASS  r1_counts: longest frame across the first fade (spare ring created) 33.79 ms <= 50.0 ms
+PASS  r4_opaque_opacity: a persistent Opaque layer at opacity 0.5 blends over the active deck like the same layer at that opacity on the deck (d=0.00, tol 1.5)
+PASS  r4_opaque_overlay: a persistent Opaque layer never hides the active deck (outside d=0.00 <= 1.5, centre d=35.73 >= 5)
+PASS  r4_fxonly_persistent: a persistent layer (type 2) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+PASS  r4_fxonly_medialess: a persistent layer (type 1) with a media-less effect clip applies its effects over the active deck like the same layer on the deck (d=0.00, tol 1.5)
+PASS  r4_mask_skipped: a persistent Mask layer stays skipped (frame == A-only, d=0.00, tol 1.5)
+PASS  r4_empty_active_deck: persistent layers render over an EMPTY active deck exactly as over a black one (d=0.00, tol 1.5)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-RENDER-STATE GREEN

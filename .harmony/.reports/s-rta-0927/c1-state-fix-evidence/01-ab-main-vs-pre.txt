@@ -1,0 +1,67 @@
+# A/B: instrumented COPY of the ORIGINAL probe (python timestamps only), full probe, alternating apps
+# main = /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app (e00b69a); pre = .claude/worktrees/rta0927-w2/build-lane (4b0c39a code)
+### lock acquired 12:33:45 after 0s
+### env 12:33:45: load averages: 5.09 4.98 5.32; clang running: 6
+### run main #1 12:33:45
+FAIL  /api/state: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+PY 9 PASS / 1 FAIL
+PROBE-DECK-CLOCK RED
+### env 12:35:01: load averages: 8.65 6.14 5.73; clang running: 6
+### run pre #1 12:35:01
+FAIL  /api/state: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+PY 9 PASS / 1 FAIL
+PROBE-DECK-CLOCK RED
+### env 12:36:15: load averages: 9.54 6.88 6.04; clang running: 6
+### run main #2 12:36:15
+      d_return_hitch: peak_frame_time_ms while away 16.17, across the return 22.52 (fps 97.2)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 12:37:30: load averages: 11.74 8.17 6.60; clang running: 6
+### run pre #2 12:37:30
+      d_return_hitch: peak_frame_time_ms while away 18.19, across the return 12.46 (fps 99.9)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 12:38:45: load averages: 11.47 8.82 6.98; clang running: 6
+### run main #3 12:38:45
+      d_return_hitch: peak_frame_time_ms while away 17.05, across the return 13.31 (fps 98.4)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### env 12:40:00: load averages: 11.49 9.41 7.35; clang running: 6
+### run pre #3 12:40:00
+      d_return_hitch: peak_frame_time_ms while away 16.86, across the return 22.98 (fps 104.5)
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+### lock released 12:41:14
+### DONE 12:41:14
+
+# idle gaps > 3 s before each request, and the outcome (gaps.py)
+main1.log requests: 108
+   # 10 POST /api/render_frame           idle  5.5051 s  reset_before_send=True  OK
+   # 60 POST /api/switch_deck            idle  4.0051 s  reset_before_send=False OK
+   # 99 POST /api/load_composition       idle 11.2191 s  reset_before_send=True  OK
+   #106 GET /api/state                   idle  5.0052 s  reset_before_send=False ERR ConnectionError: ('Connection aborted.', RemoteDisconnected(
+main2.log requests: 108
+   # 10 POST /api/render_frame           idle  5.5027 s  reset_before_send=True  OK
+   # 60 POST /api/switch_deck            idle  4.0025 s  reset_before_send=False OK
+   # 99 POST /api/load_composition       idle 11.0143 s  reset_before_send=True  OK
+   #106 GET /api/state                   idle  5.0051 s  reset_before_send=True  OK
+main3.log requests: 108
+   # 10 POST /api/render_frame           idle  5.5005 s  reset_before_send=True  OK
+   # 60 POST /api/switch_deck            idle  4.0012 s  reset_before_send=False OK
+   # 99 POST /api/load_composition       idle 10.6394 s  reset_before_send=True  OK
+   #106 GET /api/state                   idle  5.0051 s  reset_before_send=True  OK
+pre1.log requests: 108
+   # 10 POST /api/render_frame           idle  5.5011 s  reset_before_send=True  OK
+   # 60 POST /api/switch_deck            idle  4.0017 s  reset_before_send=False OK
+   # 99 POST /api/load_composition       idle 10.4328 s  reset_before_send=True  OK
+   #106 GET /api/state                   idle  5.0022 s  reset_before_send=False ERR ConnectionError: ('Connection aborted.', RemoteDisconnected(
+pre2.log requests: 108
+   # 10 POST /api/render_frame           idle  5.5051 s  reset_before_send=True  OK
+   # 60 POST /api/switch_deck            idle  4.0048 s  reset_before_send=False OK
+   # 99 POST /api/load_composition       idle 10.8224 s  reset_before_send=True  OK
+   #106 GET /api/state                   idle  5.0051 s  reset_before_send=False OK
+pre3.log requests: 108
+   # 10 POST /api/render_frame           idle  5.5005 s  reset_before_send=True  OK
+   # 60 POST /api/switch_deck            idle  4.0044 s  reset_before_send=False OK
+   # 99 POST /api/load_composition       idle 10.6322 s  reset_before_send=True  OK
+   #106 GET /api/state                   idle  5.0041 s  reset_before_send=False OK

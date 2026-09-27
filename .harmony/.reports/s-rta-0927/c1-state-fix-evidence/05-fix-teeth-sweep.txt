@@ -1,0 +1,22 @@
+# fix teeth on the clean lane build: same sweep, pooled keep-alive vs Connection: close (the fix)
+# in close mode every request logs 'Resetting dropped connection': http.client dropped the socket on the Connection: close response, so urllib3 always opens a fresh one
+### lock acquired 13:06:21 after 80s
+### env 13:06:21: load averages: 3.57 4.02 5.16; clang running: 0
+### sweep keepalive-lane 13:06:21 /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w4/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+=== keepalive-lane summary (per x: OK = reused and answered, RESET = client saw the close first, ERR = race)
+keepalive-lane x= -1.0ms  OK 4  RESET 3  ERR 1
+keepalive-lane x= +0.0ms  OK 2  RESET 5  ERR 1
+keepalive-lane x= +1.0ms  OK 2  RESET 6  ERR 0
+keepalive-lane x= +2.0ms  OK 3  RESET 5  ERR 0
+keepalive-lane x= +3.0ms  OK 1  RESET 7  ERR 0
+### env 13:09:47: load averages: 2.59 3.38 4.64; clang running: 0
+### sweep close-lane 13:09:47 /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w4/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+=== close-lane summary (per x: OK = reused and answered, RESET = client saw the close first, ERR = race)
+close-lane x= -1.0ms  OK 0  RESET 8  ERR 0
+close-lane x= +0.0ms  OK 0  RESET 8  ERR 0
+close-lane x= +1.0ms  OK 0  RESET 8  ERR 0
+close-lane x= +2.0ms  OK 0  RESET 8  ERR 0
+close-lane x= +3.0ms  OK 0  RESET 8  ERR 0
+### lock released 13:13:13
+no Audio-DNA running
+### DONE 13:13:13

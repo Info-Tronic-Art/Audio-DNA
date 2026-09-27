@@ -1,0 +1,101 @@
+# race-window sweep: POST switch_deck, idle 5.0 s + x, GET /api/state on the SAME pooled connection
+# OK = reused and answered; RESET = urllib3 saw the server's FIN and reconnected; ERR = RemoteDisconnected
+### lock acquired 12:42:15 after 0s
+### env 12:42:15: load averages: 7.66 8.71 7.37; clang running: 6
+### sweep main 12:42:15 /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+=== main summary (per x: OK = reused and answered, RESET = client saw the close first, ERR = race)
+main x= -4.0ms  OK 1  RESET 1  ERR 1
+main x= -2.0ms  OK 2  RESET 1  ERR 0
+main x= +0.0ms  OK 0  RESET 3  ERR 0
+main x= +1.0ms  OK 1  RESET 2  ERR 0
+main x= +2.0ms  OK 1  RESET 1  ERR 1
+main x= +3.0ms  OK 1  RESET 2  ERR 0
+main x= +4.0ms  OK 0  RESET 3  ERR 0
+main x= +6.0ms  OK 0  RESET 3  ERR 0
+main x= +8.0ms  OK 0  RESET 3  ERR 0
+main x=+10.0ms  OK 0  RESET 3  ERR 0
+main x=+12.0ms  OK 0  RESET 3  ERR 0
+### env 12:45:06: load averages: 7.19 8.10 7.36; clang running: 6
+### sweep pre 12:45:06 /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w2/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+=== pre summary (per x: OK = reused and answered, RESET = client saw the close first, ERR = race)
+pre x= -4.0ms  OK 3  RESET 0  ERR 0
+pre x= -2.0ms  OK 3  RESET 0  ERR 0
+pre x= +0.0ms  OK 3  RESET 0  ERR 0
+pre x= +1.0ms  OK 3  RESET 0  ERR 0
+pre x= +2.0ms  OK 2  RESET 1  ERR 0
+pre x= +3.0ms  OK 0  RESET 2  ERR 1
+pre x= +4.0ms  OK 0  RESET 3  ERR 0
+pre x= +6.0ms  OK 0  RESET 3  ERR 0
+pre x= +8.0ms  OK 0  RESET 3  ERR 0
+pre x=+10.0ms  OK 0  RESET 3  ERR 0
+pre x=+12.0ms  OK 0  RESET 3  ERR 0
+### lock released 12:47:57
+no Audio-DNA running
+### DONE 12:47:57
+
+main x= -4.0ms idle=5.0027s send_wall=1790527345.002294 -> OK
+main x= -2.0ms idle=5.0004s send_wall=1790527350.006613 -> OK
+main x= +0.0ms idle=5.0100s send_wall=1790527355.025980 -> RESET
+main x= +1.0ms idle=5.0022s send_wall=1790527360.033695 -> OK
+main x= +2.0ms idle=5.0037s send_wall=1790527365.042121 -> OK
+main x= +3.0ms idle=5.0050s send_wall=1790527370.053355 -> OK
+main x= +4.0ms idle=5.0092s send_wall=1790527375.066986 -> RESET
+main x= +6.0ms idle=5.0160s send_wall=1790527380.086996 -> RESET
+main x= +8.0ms idle=5.0143s send_wall=1790527385.106134 -> RESET
+main x=+10.0ms idle=5.0105s send_wall=1790527390.120492 -> RESET
+main x=+12.0ms idle=5.0169s send_wall=1790527395.141360 -> RESET
+main x= -4.0ms idle=5.0030s send_wall=1790527400.148504 -> ERR
+main x= -2.0ms idle=5.0054s send_wall=1790527405.164060 -> RESET
+main x= +0.0ms idle=5.0100s send_wall=1790527410.178197 -> RESET
+main x= +1.0ms idle=5.0090s send_wall=1790527415.190669 -> RESET
+main x= +2.0ms idle=5.0099s send_wall=1790527420.204137 -> ERR
+main x= +3.0ms idle=5.0130s send_wall=1790527425.219339 -> RESET
+main x= +4.0ms idle=5.0140s send_wall=1790527430.238993 -> RESET
+main x= +6.0ms idle=5.0107s send_wall=1790527435.253393 -> RESET
+main x= +8.0ms idle=5.0182s send_wall=1790527440.275474 -> RESET
+main x=+10.0ms idle=5.0200s send_wall=1790527445.300901 -> RESET
+main x=+12.0ms idle=5.0171s send_wall=1790527450.322182 -> RESET
+main x= -4.0ms idle=5.0063s send_wall=1790527455.332663 -> RESET
+main x= -2.0ms idle=4.9981s send_wall=1790527460.344521 -> OK
+main x= +0.0ms idle=5.0098s send_wall=1790527465.361607 -> RESET
+main x= +1.0ms idle=5.0105s send_wall=1790527470.375946 -> RESET
+main x= +2.0ms idle=5.0100s send_wall=1790527475.389734 -> RESET
+main x= +3.0ms idle=5.0121s send_wall=1790527480.405653 -> RESET
+main x= +4.0ms idle=5.0130s send_wall=1790527485.422319 -> RESET
+main x= +6.0ms idle=5.0105s send_wall=1790527490.441370 -> RESET
+main x= +8.0ms idle=5.0167s send_wall=1790527495.461984 -> RESET
+main x=+10.0ms idle=5.0190s send_wall=1790527500.484760 -> RESET
+main x=+12.0ms idle=5.0220s send_wall=1790527505.510211 -> RESET
+pre x= -4.0ms idle=4.9965s send_wall=1790527516.022407 -> OK
+pre x= -2.0ms idle=5.0025s send_wall=1790527521.028746 -> OK
+pre x= +0.0ms idle=5.0100s send_wall=1790527526.043102 -> OK
+pre x= +1.0ms idle=5.0016s send_wall=1790527531.048612 -> OK
+pre x= +2.0ms idle=5.0030s send_wall=1790527536.055151 -> OK
+pre x= +3.0ms idle=5.0123s send_wall=1790527541.071110 -> RESET
+pre x= +4.0ms idle=5.0140s send_wall=1790527546.092412 -> RESET
+pre x= +6.0ms idle=5.0099s send_wall=1790527551.105974 -> RESET
+pre x= +8.0ms idle=5.0118s send_wall=1790527556.121601 -> RESET
+pre x=+10.0ms idle=5.0104s send_wall=1790527561.135734 -> RESET
+pre x=+12.0ms idle=5.0136s send_wall=1790527566.153425 -> RESET
+pre x= -4.0ms idle=5.0010s send_wall=1790527571.158153 -> OK
+pre x= -2.0ms idle=5.0025s send_wall=1790527576.163722 -> OK
+pre x= +0.0ms idle=5.0036s send_wall=1790527581.170638 -> OK
+pre x= +1.0ms idle=5.0022s send_wall=1790527586.176181 -> OK
+pre x= +2.0ms idle=5.0070s send_wall=1790527591.187255 -> RESET
+pre x= +3.0ms idle=5.0080s send_wall=1790527596.199005 -> ERR
+pre x= +4.0ms idle=5.0052s send_wall=1790527601.208155 -> RESET
+pre x= +6.0ms idle=5.0078s send_wall=1790527606.219572 -> RESET
+pre x= +8.0ms idle=5.0120s send_wall=1790527611.237095 -> RESET
+pre x=+10.0ms idle=5.0150s send_wall=1790527616.255855 -> RESET
+pre x=+12.0ms idle=5.0153s send_wall=1790527621.278698 -> RESET
+pre x= -4.0ms idle=5.0006s send_wall=1790527626.288601 -> OK
+pre x= -2.0ms idle=5.0030s send_wall=1790527631.294890 -> OK
+pre x= +0.0ms idle=5.0050s send_wall=1790527636.303396 -> OK
+pre x= +1.0ms idle=5.0046s send_wall=1790527641.311375 -> OK
+pre x= +2.0ms idle=5.0070s send_wall=1790527646.321914 -> OK
+pre x= +3.0ms idle=5.0062s send_wall=1790527651.331907 -> RESET
+pre x= +4.0ms idle=5.0090s send_wall=1790527656.344830 -> RESET
+pre x= +6.0ms idle=5.0110s send_wall=1790527661.359492 -> RESET
+pre x= +8.0ms idle=5.0121s send_wall=1790527666.375582 -> RESET
+pre x=+10.0ms idle=5.0150s send_wall=1790527671.398732 -> RESET
+pre x=+12.0ms idle=5.0143s send_wall=1790527676.420252 -> RESET

@@ -1,0 +1,89 @@
+# main1 (C1 app) d_return_hitch trace
+--- d_return_hitch
+  [T 1790526891.070084] #99 >> POST /api/load_composition
+  [T 1790526891.071248] urllib3: Resetting dropped connection: 127.0.0.1
+  [T 1790526891.071733] NEWCONN local_port=60645 (connect took 0.26 ms)
+  [T 1790526891.072331] urllib3: http://127.0.0.1:7070 "POST /api/load_composition HTTP/1.1" 200 31
+  [T 1790526891.072523] #99 << 200 conn=None 11 B in 2.44 ms
+  [T 1790526892.073965] #100 >> GET /api/state
+  [T 1790526892.080223] urllib3: http://127.0.0.1:7070 "GET /api/state HTTP/1.1" 200 3498
+  [T 1790526892.080512] #100 << 200 conn=None 58352 B in 6.55 ms
+  [T 1790526892.080869] #101 >> POST /api/switch_deck
+  [T 1790526892.086369] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526892.086566] #101 << 200 conn=None 11 B in 5.70 ms
+  [T 1790526892.491641] #102 >> POST /api/trigger_clip
+  [T 1790526892.494789] urllib3: http://127.0.0.1:7070 "POST /api/trigger_clip HTTP/1.1" 200 31
+  [T 1790526892.494967] #102 << 200 conn=None 11 B in 3.33 ms
+  [T 1790526892.900048] #103 >> POST /api/switch_deck
+  [T 1790526892.904886] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526892.905088] #103 << 200 conn=None 11 B in 5.04 ms
+  [T 1790526893.310175] #104 >> POST /api/trigger_clip
+  [T 1790526893.314931] urllib3: http://127.0.0.1:7070 "POST /api/trigger_clip HTTP/1.1" 200 31
+  [T 1790526893.315137] #104 << 200 conn=None 11 B in 4.97 ms
+  [T 1790526894.816755] #105 >> POST /api/switch_deck
+  [T 1790526894.823089] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526894.823314] #105 << 200 conn=None 11 B in 6.56 ms
+  [HITCH] s0
+  [T 1790526899.828468] #106 >> GET /api/state
+  [T 1790526899.829461] #106 !! ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response')) after 1.00 ms
+FAIL  /api/state: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+  [T 1790526899.829512] #107 >> POST /api/switch_deck
+  [T 1790526899.830032] urllib3: Starting new HTTP connection (2): 127.0.0.1:7070
+  [T 1790526899.830389] NEWCONN local_port=60647 (connect took 0.26 ms)
+  [T 1790526899.831519] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526899.831682] #107 << 200 conn=None 11 B in 2.17 ms
+  [HITCH] s1
+  [T 1790526900.136787] #108 >> GET /api/state
+  [T 1790526900.144841] urllib3: http://127.0.0.1:7070 "GET /api/state HTTP/1.1" 200 3501
+  [T 1790526900.145161] #108 << 200 conn=None 58352 B in 8.38 ms
+
+PY 9 PASS / 1 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-DECK-CLOCK RED
+
+# pre1 (pre-C1 app) d_return_hitch trace
+--- d_return_hitch
+  [T 1790526965.413658] #99 >> POST /api/load_composition
+  [T 1790526965.414988] urllib3: Resetting dropped connection: 127.0.0.1
+  [T 1790526965.415428] NEWCONN local_port=60663 (connect took 0.19 ms)
+  [T 1790526965.419083] urllib3: http://127.0.0.1:7070 "POST /api/load_composition HTTP/1.1" 200 31
+  [T 1790526965.419329] #99 << 200 conn=None 11 B in 5.68 ms
+  [T 1790526966.424404] #100 >> GET /api/state
+  [T 1790526966.434256] urllib3: http://127.0.0.1:7070 "GET /api/state HTTP/1.1" 200 3441
+  [T 1790526966.434530] #100 << 200 conn=None 58211 B in 10.13 ms
+  [T 1790526966.435282] #101 >> POST /api/switch_deck
+  [T 1790526966.439164] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526966.439306] #101 << 200 conn=None 11 B in 4.03 ms
+  [T 1790526966.844380] #102 >> POST /api/trigger_clip
+  [T 1790526966.845662] urllib3: http://127.0.0.1:7070 "POST /api/trigger_clip HTTP/1.1" 200 31
+  [T 1790526966.846422] #102 << 200 conn=None 11 B in 2.05 ms
+  [T 1790526967.251490] #103 >> POST /api/switch_deck
+  [T 1790526967.253872] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526967.254037] #103 << 200 conn=None 11 B in 2.55 ms
+  [T 1790526967.658686] #104 >> POST /api/trigger_clip
+  [T 1790526967.660040] urllib3: http://127.0.0.1:7070 "POST /api/trigger_clip HTTP/1.1" 200 31
+  [T 1790526967.660227] #104 << 200 conn=None 11 B in 1.54 ms
+  [T 1790526969.165291] #105 >> POST /api/switch_deck
+  [T 1790526969.170912] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526969.171104] #105 << 200 conn=None 11 B in 5.82 ms
+  [HITCH] s0
+  [T 1790526974.173308] #106 >> GET /api/state
+  [T 1790526974.175961] #106 !! ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response')) after 2.66 ms
+FAIL  /api/state: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+  [T 1790526974.176011] #107 >> POST /api/switch_deck
+  [T 1790526974.176737] urllib3: Starting new HTTP connection (2): 127.0.0.1:7070
+  [T 1790526974.177080] NEWCONN local_port=60665 (connect took 0.22 ms)
+  [T 1790526974.178064] urllib3: http://127.0.0.1:7070 "POST /api/switch_deck HTTP/1.1" 200 31
+  [T 1790526974.178239] #107 << 200 conn=None 11 B in 2.23 ms
+  [HITCH] s1
+  [T 1790526974.483348] #108 >> GET /api/state
+  [T 1790526974.486038] urllib3: http://127.0.0.1:7070 "GET /api/state HTTP/1.1" 200 3444
+  [T 1790526974.486392] #108 << 200 conn=None 58207 B in 3.05 ms
+
+PY 9 PASS / 1 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-DECK-CLOCK RED
