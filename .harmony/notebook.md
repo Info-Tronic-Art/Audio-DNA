@@ -1896,3 +1896,28 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
 - CLAUDE.md is 22.4 KB at main since the phase protocol moved to docs/claude/phase-protocol.md (20cede2) -- below the
   25,000 cap; the "pay for every new line" ruling was applied anyway (outputs-c2 net -16 B).
 - Valid while: OutputManager owns the output windows and the level probe discovers items by title.
+
+## 2026-09-27 s-rta-0927 outputs-c3: settings.json lives in ~/Library/Audio-DNA (not Application Support); display matching needs the PREVIOUS list
+**Files:** src/model/AppSettings.{h,cpp}, src/output/OutputTargets.{h,cpp}, src/output/OutputManager.{h,cpp}, src/output/OutputMenuModel.h, src/MainComponent.cpp (appSettingsFile), .harmony/probe-outputs.{sh,py}
+**Note:**
+- JUCE's `userApplicationDataDirectory` is `~/Library` on macOS (`juce_Files_mac.mm`), so the app's settings file is
+  `~/Library/Audio-DNA/settings.json` -- NOT `~/Library/Application Support/...` (the plan and the dispatch said the
+  latter). On this rig neither exists: settings.json is written only when Boris sets a MilkDrop folder or (from C3)
+  changes an output. Check BOTH paths before/after a live run.
+- A settings-writing app under a probe: build with the test server and launch `--test-mode` with
+  `AUDIODNA_SETTINGS_FILE=<abs path>` (`open --env`); probe-outputs.sh passes `$OUT/settings.json` on EVERY run (seed
+  it with `OUTP_SETTINGS`). The err.log line `[Settings] test mode: AUDIODNA_SETTINGS_FILE = ...` proves it was honoured.
+- settings.json is read-modify-write through `AppSettings` only: a writer that builds a fresh object (the pre-C3
+  MilkDrop writer did) erases every other key.
+- Matching a display across a change by fingerprint alone is not enough: with two identical projectors, a mode change
+  on one would "move" its output onto the other. `diffOutputs` takes the PREVIOUS display list and lets the loose
+  rungs (same size moved / same top-left new mode / main) consider only displays that are new or changed; an exact
+  match may take any display. The same rule keeps an interrupted target from reopening on an untouched identical
+  display when some other display changes.
+- The mac peer upper-cases the key code, so a Shift-blind `isKeyCode('F') && isCommandDown()` also fires on
+  Cmd+Shift+F -- test `!mod.isShiftDown()` when a chord must be exactly Cmd+key.
+- One commit per plan item when the work is already in the tree: write each intermediate file version to the scratch
+  dir, stage it with `git hash-object -w` + `git update-index --cacheinfo`, then `git checkout-index --prefix=<dir>/`
+  exports the INDEX (never the working tree) for a per-commit syntax check / test build.
+- Valid while: AppSettings owns settings.json, OutputManager reconciles through diffOutputs, and probe-outputs points
+  the app at a scratch settings file.

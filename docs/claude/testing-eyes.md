@@ -12,6 +12,8 @@ See `tests/visual/TESTING.md` for the full API reference, Python client docs, an
 
 **Output frame path, offscreen (s-rta-0927 outputs-c1)**: `POST /api/set_output_tap {"enabled": bool}` forces the output tap (the main renderer publishes the canvas into the shared IOSurface frames as if an output window were live -- no window is opened). `POST /api/output_probe {"width", "height", "output_path"}` presents the newest shared frame through a PRIVATE GL context of the app with the same code the Output window uses and writes the PNG a display would show (alpha 255); response `{ok, gen, serial, slot, canvas_w, canvas_h}`, 409 when nothing was ever published. Test mode only (8080). Used by `.harmony/probe-outputs.sh`. Never test the Output window by opening it in an automated gate.
 
+**Output hot-plug / saved set, screen-safe (s-rta-0927 outputs-c3)**: 8080 `/api/state.outputs.manager` = `{poll_enabled, poll_ticks, reconciles, settings_writes, restore_calls, interrupted, saved, restorable}` (`OutputManager::statsVar`, atomics). `POST /api/output_restore_last` runs the "Restore Last Outputs" menu action's own handler ONLY while `restorable == 0` (409 otherwise; the app re-checks on the message thread) -- it can never open a window. `POST /api/set_output_poll {"enabled": bool}` pauses / resumes the 30 Hz display poll (the `o_poll_idle` A/B). In a test-server build running `--test-mode`, `AUDIODNA_SETTINGS_FILE=<absolute path>` replaces the user's settings.json; `.harmony/probe-outputs.sh` points every run at `$OUT/settings.json` (absent, or seeded from `OUTP_SETTINGS`). Test mode only (8080).
+
 ```bash
 # Build with Eyes
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DAUDIODNA_BUILD_TEST_SERVER=ON

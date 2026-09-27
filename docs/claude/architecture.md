@@ -180,7 +180,8 @@ AudioDNA/
 │   │   ├── Layer.h/cpp                   # Row of columns: type, opacity, blend/keying, layer effects, feedback
 │   │   ├── Deck.h                        # Grid of layers × columns; one active at a time
 │   │   ├── Composition.h                 # Top container: decks, master, crossfader, per-type/smart autopilot
-│   │   └── Autopilot.h/cpp               # Beat / end-of-video / per-type / smart-energy clip advancement
+│   │   ├── Autopilot.h/cpp               # Beat / end-of-video / per-type / smart-energy clip advancement
+│   │   └── AppSettings.h/cpp         ✅ # [s-rta-0927 outputs-c3] settings.json read-modify-write (milkDropPresetDir, outputs); never clobbers a key
 │   ├── signal/                          # [v2] Signal system (feeds RoutingEngine)
 │   │   ├── Signal.h + AudioSignal/OscillatorSignal/EnvelopeSignal/ClipPositionSignal.h  # Concrete signal types
 │   │   ├── ChainedSignal.h/cpp           # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated); SignalRegistry wiring removed
@@ -229,6 +230,7 @@ AudioDNA/
 │   ├── output/
 │   │   ├── OutputManager.h/.cpp     ✅ # s-rta-0927 outputs-c2: the output windows, one per display; the Output menu / TopBar "Outputs" item list
 │   │   ├── OutputMenuModel.h        ✅ # s-rta-0927 outputs-c2: pure -- buildOutputMenu, the button text, classifyOutputKey (unit-tested)
+│   │   ├── OutputTargets.h/.cpp     ✅ # s-rta-0927 outputs-c3: pure -- DisplayInfo, matchDisplay, diffOutputs (hot-plug reconcile), the settings.json "outputs" set
 │   │   └── SyphonOutput.h/.mm       ✅ # [P22] macOS Syphon server — WIRED 2026-07-17 (Wave 1-A): publishes final composited frame each frame; no-op unless built -DAUDIODNA_BUILD_SYPHON=ON + Syphon.framework
 │   │                                    #   (SyphonInput.h/.mm, SpoutOutput.h, NdiOutput.h, NdiInput.h REMOVED 2026-07-17 (Wave 0) — were orphaned/no-op stubs)
 │   ├── test/                           # Build-gated (AUDIODNA_BUILD_TEST_SERVER=ON)

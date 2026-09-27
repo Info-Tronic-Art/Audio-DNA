@@ -139,7 +139,7 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 **PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
-**Outputs**: the Output menu and the TopBar "Outputs" button are ONE item list (`OutputManager::populateMenu`); an output window never takes the keyboard; Cmd+Shift+Esc = all off, Cmd+` = app to front, Cmd+F = main display, plain Esc never touches outputs (`docs/claude/integration.md`).
+**Outputs**: the Output menu and the TopBar "Outputs" button are ONE item list (`OutputManager::populateMenu`); an output window never takes the keyboard; Cmd+Shift+Esc = all off, Cmd+` = app to front, Cmd+F = main display, plain Esc never touches outputs; the app never opens an output by itself -- the saved set (settings.json `outputs`, beside `milkDropPresetDir`, both via `AppSettings`) opens only by Output > Restore Last Outputs; an unplugged display's output returns when it is plugged back (`docs/claude/integration.md`).
 
 **Preview/Output panel never reshapes the picture**: it letter/pillar-boxes the composition canvas, never stretches it; the Resolution dropdown never names a size the canvas is not (`docs/claude/rendering.md`).
 
