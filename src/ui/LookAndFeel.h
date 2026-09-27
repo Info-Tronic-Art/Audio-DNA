@@ -87,6 +87,16 @@ public:
     void drawAlertBox(juce::Graphics&, juce::AlertWindow&, const juce::Rectangle<int>& textArea,
                       juce::TextLayout&) override;
 
+    // --- Fonts ---
+    // decks-followup-fix: the ctor's setDefaultSansSerifTypeface() pins ONE fixed (regular-weight)
+    // Typeface::Ptr for every default-sans-serif-named Font, ignoring the requested style (JUCE's base
+    // LookAndFeel::getTypefaceForFont() returns it unconditionally -- see juce_LookAndFeel.cpp). That was
+    // harmless while only MainComponent's own (non-bold) UI used this LookAndFeel, but installAsDefault()
+    // (ITEM 1) also routes JUCE's OWN bold requests (AlertWindow::getAlertWindowTitleFont(), LookAndFeel_V4,
+    // 18pt bold) through it, so every dialog title silently lost its bold weight. Bold/italic requests fall
+    // back to the normal system typeface lookup instead; the regular case is unchanged.
+    juce::Typeface::Ptr getTypefaceForFont(const juce::Font&) override;
+
     // --- Label ---
     void drawLabel(juce::Graphics&, juce::Label&) override;
 

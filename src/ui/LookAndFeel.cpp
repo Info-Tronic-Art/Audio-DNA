@@ -473,6 +473,18 @@ void AudioDNALookAndFeel::drawAlertBox(juce::Graphics& g, juce::AlertWindow& ale
 }
 
 //==============================================================================
+// Fonts
+//==============================================================================
+
+juce::Typeface::Ptr AudioDNALookAndFeel::getTypefaceForFont(const juce::Font& font)
+{
+    if (font.isBold() || font.isItalic())
+        return juce::Font::getDefaultTypefaceForFont(font);
+
+    return juce::LookAndFeel_V4::getTypefaceForFont(font);
+}
+
+//==============================================================================
 // Label
 //==============================================================================
 
