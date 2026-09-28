@@ -79,7 +79,7 @@ if [ "$MODE" = "file" ] && [ ! -f "$CLICK_WAV" ]; then
 fi
 
 : > "$ERRLOG"
-open --stdout /tmp/adna-finloop-out.log --stderr "$ERRLOG" "$APPBUNDLE"
+open -g --stdout /tmp/adna-finloop-out.log --stderr "$ERRLOG" "$APPBUNDLE"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: /api/health never answered (mic-permission prompt? screencapture -x and LOOK)"; exit 1; }
 ok "app launched, /api/health answered"
