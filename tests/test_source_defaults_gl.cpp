@@ -1,6 +1,7 @@
 // test_source_defaults_gl -- the source/effect DEFAULTS gate (s-rta-0927 source-defects,
 // .harmony/.reports/s-rta-0927/plan-source-defects.md T2): a procedural source at its REGISTERED defaults must draw a
-// visible picture, at every time a user meets and on every canvas size we ship.
+// visible picture, at every time a user meets and on every canvas size we ship -- and (s-rta-0928) the knob extremes
+// whose black was a range / math defect.
 //
 // The shipped GLSL (src/render/EmbeddedShaders.h) is compiled and rendered offscreen in a PRIVATE CGL context (no
 // window, no drawable, nothing ever shown on a screen), with the registered default of every parameter PARSED from
@@ -450,5 +451,106 @@ TEST_CASE("mandelbulb and julia_set_3d Iterations change the picture", "[source-
         }
         INFO(id << " Iterations" << seen.str());
         CHECK(best < 55.0);
+    }
+}
+
+// ---- s-rta-0928 plan-tier1: knob EXTREMES whose black frame was a range / math defect (tier1-residual-diag D2) ----
+// This rig leaves every audio uniform 0 (silence); each source below scales its colour by 0.7-0.8 + rms * k, so silence
+// is DARKER than Tier-1's injected rms 0.6 and a pass here implies the Tier-1 line passes. "Not black" is
+// tests/visual/tier1_exceptions.is_black's floor; slices and sparse folds light < 5 % of the frame, so these cases do
+// not also demand requireVisible's 5 % lit.
+namespace
+{
+void requireNotBlack(Rig& rig, const std::string& what, const char* frag, int w, int h, float t,
+                     const std::vector<Param>& ps)
+{
+    const Stats s = stats(rig.render(frag, w, h, t, ps), w, h);
+    INFO(what << " " << w << "x" << h << " t=" << t << ": mean=" << s.mean << " p99.5=" << s.p995 << " lit=" << s.lit);
+    CHECK(s.p995 >= 16.0);
+}
+} // namespace
+
+// Cross Section's 0.04-thick slab swept +-1.5 (+-2.0) of world z, past the objects (z -0.66..+1.02): both ends of the
+// knob cut empty space. The per-source factor puts both ends inside the object.
+TEST_CASE("3D fractal Cross Section cuts the object at both ends of the knob", "[source-extremes][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const std::pair<const char*, const char*> cases[] = {
+        { "mandelbulb", EmbeddedShaders::sourceMandelbulb },   { "apollonian_3d", EmbeddedShaders::sourceApollonian3D },
+        { "julia_set_3d", EmbeddedShaders::sourceJuliaSet3D }, { "menger_sponge", EmbeddedShaders::sourceMengerSponge },
+        { "burning_ship_3d", EmbeddedShaders::sourceBurningShip3D } };
+    for (const auto& [id, frag] : cases)
+    {
+        const auto ps = registryParams(id);
+        for (auto [w, h] : kSizes)
+            for (float v : { 0.0f, 0.25f, 0.75f, 1.0f })
+                requireNotBlack(rig, std::string(id) + " Cross Section " + std::to_string(v), frag, w, h, 1.13f,
+                                with(ps, "u_src_slice", v));
+    }
+}
+
+// A point-cloud IFS DE (length(z) * scale^-n; a ray draws only within 0.001 of a speck) shows nothing below a few
+// folds: Iterations 0 was 3 folds (sierpinski_tetra p99.5 2, kifs 7 at 256x256).
+TEST_CASE("sierpinski_tetra and kifs draw at Iterations 0", "[source-extremes][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const std::pair<const char*, const char*> cases[] = { { "sierpinski_tetra", EmbeddedShaders::sourceSierpinskiTetra },
+                                                          { "kifs", EmbeddedShaders::sourceKIFS } };
+    for (const auto& [id, frag] : cases)
+    {
+        const auto ps = registryParams(id);
+        for (auto [w, h] : kSizes)
+            requireNotBlack(rig, std::string(id) + " Iterations 0", frag, w, h, 1.13f, with(ps, "u_src_iterations", 0.0f));
+    }
+}
+
+// Mandelbrot mode starts at z = 0, where the polar power step's atan(0, 0) is undefined in GLSL (NaN on this GPU): no
+// pixel ever escaped, so Power >= 0.26 (power >= 2.5) was black. Julia mode (z = uv) never met z = 0.
+TEST_CASE("mandelbrot Power 2.5-4 draws in Mandelbrot mode", "[source-extremes][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("mandelbrot");
+    for (auto [w, h] : kSizes)
+        for (float v : { 0.25f, 0.5f, 0.75f, 1.0f })
+            requireVisible(rig, ("mandelbrot Power " + std::to_string(v)).c_str(), EmbeddedShaders::sourceMandelbrot,
+                           w, h, 1.13f, with(ps, "u_src_power", v));
+}
+
+// n = 7 / 8 roots: the first Newton step from near the pole z = 0 throws z to ~1e20 and cdiv's dot(b, b) overflows
+// float32 (NaN): the default Zoom 0.3 frame was black at n = 8 (256x256). Power now stops at n = 6.
+TEST_CASE("newton_fractal Power at the top of the knob draws", "[source-extremes][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("newton_fractal");
+    for (auto [w, h] : kSizes)
+        for (float v : { 0.9f, 1.0f })
+            requireVisible(rig, ("newton_fractal Power " + std::to_string(v)).c_str(),
+                           EmbeddedShaders::sourceNewtonFractal, w, h, 1.13f, with(ps, "u_src_power", v));
+}
+
+// astral_grid computed a Warp offset (yWarp) that nothing read; Warp now waves the grid lines sideways.
+TEST_CASE("astral_grid Warp changes the picture", "[source-extremes][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("astral_grid");
+    const Pixels dflt = rig.render(EmbeddedShaders::sourceAstralGrid, 256, 256, 1.13f, ps);
+    const double q = psnr(dflt, rig.render(EmbeddedShaders::sourceAstralGrid, 256, 256, 1.13f,
+                                           with(ps, "u_src_warp", 1.0f)));
+    INFO("astral_grid Warp 0 -> 1 at 256x256 t=1.13: PSNR " << q);
+    CHECK(q < 55.0);
+}
+
+// Spirograph / Lissajous Thickness 0 drew a 0.004 / 0.005-radius stroke: on 0.15-0.3 % of the pixels, p99.5 0 at both
+// sizes (reads as black on a projector). The stroke now has a floor line (identical to today from Thickness 0.25 up).
+TEST_CASE("spirograph and lissajous draw at Thickness 0", "[source-extremes][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const std::pair<const char*, const char*> cases[] = { { "spirograph", EmbeddedShaders::sourceSpirograph },
+                                                          { "lissajous", EmbeddedShaders::sourceLissajous } };
+    for (const auto& [id, frag] : cases)
+    {
+        const auto ps = registryParams(id);
+        for (auto [w, h] : kSizes)
+            requireNotBlack(rig, std::string(id) + " Thickness 0", frag, w, h, 1.13f, with(ps, "u_src_thickness", 0.0f));
     }
 }

@@ -1027,7 +1027,7 @@ Laser Scanner (6)
 
 **Test coverage:**
 - `tests/visual/test_sources.py` — auto-discovers ALL sources, sweeps every param (non-black, has-effect, no-discontinuity)
-- `tests/visual/test_fractals.py` — ~185 parametrized tests for every fractal param
+- `tests/visual/test_fractals.py` — fractal range sweeps (zoom / dive / power / 3D camera), palettes, registry; 256x256, silence (per-param checks: `test_sources.py`, s-rta-0928)
 - `tests/visual/test_audio_reactivity.py` — injected audio features change source output
 - `tests/visual/test_time_sweep.py` — animated sources change over time
 - Missing: Fluid Dynamics audio injection test, text source font rendering edge cases

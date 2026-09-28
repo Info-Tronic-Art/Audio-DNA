@@ -24,7 +24,7 @@ control API.
 (2 live, 1 orphaned, 3 popup pickers) + ~15 FileChoosers + 1 AlertWindow · 9-menu
 menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle added Wave 1-A) · **135 effects** / 11 categories / 333 params ·
 **15 transitions** (+1 deck transition) · **243 embedded shaders** · **108 sources**
-/ 19 categories / 681 params (108 GUI-selectable; 759 -> 681 s-rta-0927 source-defects: 78 controls no shader read removed) · **30 audio features** / 14-stage
+/ 19 categories / 678 params (108 GUI-selectable; 759 -> 681 s-rta-0927 source-defects: 78 controls no shader read removed; 681 -> 678 s-rta-0928 tier1: kifs Fold Type, spectrum_landscape Smoothing, band_tower Reflection removed) · **30 audio features** / 14-stage
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
 (Global bank only) · **41 registered REST routes** (all functional; 27 core control + 7 `/api/perf/*` + `POST /api/audio/source` + 6 `/api/routine/*` [s-rta-0926 routines slice 1]; counted from `src/api/ApiServer.cpp`, s-rta-0926) ·
 **14 OSC patterns** (subsystem LIVE — port 8000, 14/14 wired, Wave 1-B 2026-07-17 + `/audiodna/routine/{slot}` s-rta-0926; `/audiodna/signal` added s-rta-0925 mastersignal Step 1; `/audiodna/resync` added s-rta-0925 resync) · 21 binding actions (TriggerRoutine appended s-rta-0926) · 6 feedback presets ·

@@ -10,9 +10,10 @@
 //   - src/effects/EffectLibrary.cpp  registerEffect({"Name", "cat", "key", { {"p", "u_x", Vf}, ... } [, true]});
 // A parameter is READ iff its identifier occurs in its block outside its own `uniform <type> <name>;` line.
 // DEBT_FILED (s-rta-0927 source-defects review): READ is textual, not "changes the picture". A use that is a
-// mathematical no-op still passes -- e.g. spectrum_landscape's `energy = mix(energy, energy, u_src_smoothing);`
-// (mix(x, x, t) == x), so its Smoothing knob is dead yet lint-clean. Catching that class needs a render-based check
-// (the Tier-1 "has effect" sweep) or a follow-up static pass; this lint only proves the name is used.
+// mathematical no-op still passes -- e.g. `x = mix(x, x, u_knob);` (mix(x, x, t) == x) reads the knob and changes
+// nothing, so that knob is dead yet lint-clean (spectrum_landscape's Smoothing was one -- the Tier-1 sweep caught it,
+// removed s-rta-0928). Catching that class needs a render-based check (the Tier-1 "has effect" sweep) or a follow-up
+// static pass; this lint only proves the name is used.
 // Plus one structural rule (Pitfall 44): a helper lambda that adds params but constructs no ProceduralSource is
 // refused -- its addParam calls sit far from any shader key, which is exactly how 70 dead torus knobs hid.
 #include <catch2/catch_test_macros.hpp>

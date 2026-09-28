@@ -1,6 +1,17 @@
 # Build Instructions -- Windows / Linux / Extras
 
-> Moved from CLAUDE.md (claudemd-split). macOS build essentials + Common Build Issues stay in CLAUDE.md; this covers the other platforms plus Aubio setup and dependency policy.
+> Moved from CLAUDE.md (claudemd-split). macOS build essentials stay in CLAUDE.md; this covers the common build issues (moved s-rta-0928), the other platforms, Aubio setup and dependency policy.
+
+---
+
+### Common Build Issues
+
+| Issue | Fix |
+|-------|-----|
+| `FetchContent` download fails | Check internet connection; JUCE repo is ~200MB |
+| macOS: "OpenGL deprecated" warnings | Expected (GL 4.1 still works); suppress with `-Wno-deprecated` |
+| Linux: missing X11/ALSA headers | The `apt` packages in `docs/claude/build-other-platforms.md` (Linux) |
+| Windows: long path errors | `git config --system core.longpaths true` |
 
 ---
 

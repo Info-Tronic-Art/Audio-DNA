@@ -16,8 +16,8 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from vision_check import compute_psnr
 from tier1_exceptions import (is_black, candidate_values, T_PARAM, T_RETRY, arm_audio,
-                              BLACK_SOURCES, BLACK_AT_EXTREME, GATED_SOURCE_PARAMS,
-                              DECK_ONLY_SOURCE_PARAMS)
+                              BLACK_SOURCES, BLACK_AT_EXTREME,
+                              GATED_SOURCE_PARAMS, DECK_ONLY_SOURCE_PARAMS, AWAITING_RULING)
 
 
 def psnr_between(path1, path2):
@@ -83,6 +83,15 @@ class TestAllSourceParams:
                     app.render_frame(out, time_val=t, width=256, height=256)
                     return out
 
+                if key in AWAITING_RULING:
+                    # A known defect waiting for Boris: its ladder is not walked, but it must still reproduce --
+                    # a fixed defect leaves a stale entry, and a stale entry fails until it is removed.
+                    value = AWAITING_RULING[key][0]
+                    if not is_black(render({uniform: value}, T_PARAM, f"awaiting_{value:.2f}")):
+                        failures.append(f"{src['id']}:{param['name']} AWAITING_RULING entry is stale: {value} no "
+                                        f"longer renders black -- remove it (tier1_exceptions.py)")
+                    continue
+
                 # Render at default (with the param's gate open, if it has one). A default that is black at
                 # T_PARAM but lit at T_RETRY (a strobe's dark half) is compared at both times: a candidate
                 # that lights the dark T_PARAM frame is a change too.
@@ -104,7 +113,7 @@ class TestAllSourceParams:
                             if is_black(defaults[t]):
                                 tried.append(f"{test_val}@t{t} (black, default black)")
                                 continue
-                            if key in BLACK_AT_EXTREME:
+                            if (src["id"], uniform, test_val) in BLACK_AT_EXTREME:
                                 tried.append(f"{test_val} (black, listed)")
                                 continue
                             failures.append(
@@ -137,6 +146,15 @@ class TestAllSourceParams:
                 f"{len(failures)} source param issues found:\n{report}\n"
                 f"Full report: {report_path}"
             )
+
+
+class TestExceptionTables:
+    """s-rta-0928 E5: sierpinski_tetra's slice gates are its own entries, never the shared 3D-fractal loop's."""
+
+    def test_sierpinski_tetra_gates(self):
+        tetra = {"u_src_slice": 0.55, "u_src_zoom": 0.7, "u_src_iterations": 1.0}
+        assert GATED_SOURCE_PARAMS[("sierpinski_tetra", "u_src_slice_count")][0] == tetra
+        assert GATED_SOURCE_PARAMS[("sierpinski_tetra", "u_src_slice_dist")][0] == {**tetra, "u_src_slice_count": 0.5}
 
 
 class TestSourceParamSweep:

@@ -76,12 +76,7 @@ Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew ins
 
 ### Common Build Issues
 
-| Issue | Fix |
-|-------|-----|
-| `FetchContent` download fails | Check internet connection; JUCE repo is ~200MB |
-| macOS: "OpenGL deprecated" warnings | Expected (GL 4.1 still works); suppress with `-Wno-deprecated` |
-| Linux: missing X11/ALSA headers | The `apt` packages in `docs/claude/build-other-platforms.md` (Linux) |
-| Windows: long path errors | `git config --system core.longpaths true` |
+FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/build-other-platforms.md`.
 
 ---
 
@@ -228,6 +223,8 @@ the named area; this index is triage-only.
 46. `juce::FileOutputStream` opens an existing file at its END -- before writing any image/binary file to a path that may exist (use `PngWrite::writeReplacing`).
 47. Eyes `load_source` seeds the registry's default params (a cached source keeps its last values) -- before writing or debugging a test that loads a source through 8080.
 48. A tempo command reaches the analysis snapshot only at the next hop -- before acting on "everything sent before X" (a take's t = 0 and bar grid), compare `FeatureSnapshot::trackerRequestSeq` with `BPMTracker::postedRequestSeq()` read at X.
+49. A polar complex power at z = 0 is NaN on this GPU -- before adding a pow/atan complex step (guard the angle; render the default before/after).
+50. A point-cloud IFS DE draws sub-pixel specks -- before adding an IFS source or its Iterations / Cross Section range (iteration floor).
 
 ---
 

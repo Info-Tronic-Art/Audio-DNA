@@ -74,16 +74,16 @@ def app():
         controller.stop()
 
 
-# Tier-1 modules that capture at 256x256 (s-rta-0927 follow-ups F1, tier1-diag H2). test_performance captures at
-# 512 on the default canvas and is deliberately not in the set.
-TIER1_CANVAS_256 = {"test_sources", "test_effects", "test_audio_reactivity", "test_time_sweep"}
+# Tier-1 modules that capture at 256x256 (s-rta-0927 follow-ups F1, tier1-diag H2) and the fractal sweeps ported onto
+# them (s-rta-0928). test_performance captures at 512 on the default canvas and is deliberately not in the set.
+TIER1_CANVAS_256 = {"test_sources", "test_effects", "test_audio_reactivity", "test_time_sweep", "test_fractals"}
 
 
 @pytest.fixture(scope="module", autouse=True)
 def tier1_canvas_256(request, tmp_path_factory):
     """H2: with the composition AND the capture lock both 256x256 the canvas never resizes between captures, so
     stateful sources keep their state (ProceduralSource::resize re-creates the ping-pong FBOs; resolveCanvas).
-    Requests `app` only for the four modules: other files in tests/visual override `app` (gotchas 2026-05-18)."""
+    Requests `app` only for these modules: other files in tests/visual override `app` (gotchas 2026-05-18)."""
     name = request.module.__name__.rsplit(".", 1)[-1]
     if name not in TIER1_CANVAS_256:
         yield

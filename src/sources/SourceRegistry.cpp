@@ -519,7 +519,7 @@ void SourceRegistry::registerDefaults()
         auto s = std::make_unique<ProceduralSource>("kifs", "Kaleidoscopic IFS", "3D", "source_kifs");
         s->addParam("Scale", "u_src_scale", 0.4f);
         s->addParam("Iterations", "u_src_iterations", 0.4f);
-        s->addParam("Fold Type", "u_src_fold_type", 0.0f);
+        // "Fold Type" removed s-rta-0928: 0.33-0.67 drew black (a y/z sort before its rotation did not help), >= 0.67 equalled the first fold; u_src_fold_type stays 0
         s->addParam("Angle X", "u_src_rotation_x", 0.55f);
         s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
         s->addParam("Zoom", "u_src_zoom", 0.3f);
@@ -984,7 +984,7 @@ void SourceRegistry::registerDefaults()
         s->addParam("Camera Angle", "u_src_camera", 0.3f);
         s->addParam("Color Mode", "u_src_color_mode", 0.0f);
         s->addParam("Glow", "u_src_glow", 0.5f);
-        s->addParam("Smoothing", "u_src_smoothing", 0.5f);
+        // "Smoothing" removed s-rta-0928: mix(energy, energy, s) changed nothing (smoothing needs history)
         return s;
     });
 
@@ -1000,7 +1000,7 @@ void SourceRegistry::registerDefaults()
     registerSource("band_tower", [] {
         auto s = std::make_unique<ProceduralSource>("band_tower", "Band Tower", "Audio-Visual", "source_band_tower");
         s->addParam("Spacing", "u_src_spacing", 0.3f);
-        s->addParam("Reflection", "u_src_reflection", 0.3f);
+        // "Reflection" removed s-rta-0928: it drew only where uv.y < 0.0, off screen
         s->addParam("Color Mode", "u_src_color_mode", 0.0f);
         return s;
     });
