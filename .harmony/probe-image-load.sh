@@ -54,7 +54,9 @@ L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | h
 if [ "$UP" -eq 1 ] && [ "$L7070" != "Audio-DNA" ]; then echo "FAIL  port 7070 is answered by '$L7070', not Audio-DNA"; UP=0; fi
 if [ "$UP" -eq 1 ]; then "$PY" "$ROOT/.harmony/probe-image-load.py" "$ROOT" "$OUT" "${2:-}"; RC=$?
 else echo "FAIL  app never answered /api/health"; fi
-FOREIGN="$(grep -o 'Captured frame: [^ ]*' "$OUT/err.log" 2>/dev/null | grep -vc "Captured frame: $OUT/")"
+# The run's own snapshots (i3n: the app's Snapshots dir, listed by the .py in own-captures.txt) are not foreign.
+OWN="$OUT/own-captures.txt"; [ -f "$OWN" ] || : > "$OWN"
+FOREIGN="$(grep -o 'Captured frame: [^ ]*' "$OUT/err.log" 2>/dev/null | grep -v "Captured frame: $OUT/" | sed 's/^Captured frame: //' | grep -cvxFf "$OWN")"
 if [ "${FOREIGN:-0}" -gt 0 ]; then
   echo "FAIL  foreign REST traffic: $FOREIGN render_frame capture(s) outside $OUT during this run -- results INVALID"
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'

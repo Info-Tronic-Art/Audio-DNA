@@ -56,7 +56,8 @@ i3n_snapshot_while_pending (C2 of the adoption: a snapshot never waits for a dec
   dbox(capA, capS) >= fixtureMinD; the snapshot answers (ok, a file) within snapshotMaxMs (no 5 s wait); the snapshot
   is the picture of its moment -- the held warm picture, dbox(snap, capA) <= boxTol (it did not wait for the decode);
   the render_frame right after shows the NEW picture, dbox(capN, capS) <= boxTol (render_frame does wait: the gate).
-  Both snapshot files (in the app's Snapshots dir) are deleted by the row. RED on main (the decode runs in the frame:
+  Both snapshot files (in the app's Snapshots dir) are deleted by the row, and listed in <out>/own-captures.txt so the
+  .sh's foreign-traffic check does not count them. RED on main (the decode runs in the frame:
   the snapshot waits for it and shows the cold picture); teeth: a build whose takeSnapshot asks for a complete frame.
 i4_hold_counters: canvas 3840x2160; fillers; col 0 warm, col 1 slow cold. trig 0; 1 s; s0, trig 1, 2 s, s1.
   PASS: image_hold_frames delta >= 1 AND image_skip_frames delta == 0; images_pending(s1) == 0. Prints the frames
@@ -462,6 +463,9 @@ def snapshot(name):
         no(f"snapshot {name}: {e}"); return False, time.time() - t0, None
     dt = time.time() - t0
     f = body.get("file")
+    if isinstance(f, str):   # the .sh's foreign-traffic check skips the captures this run took itself
+        with open(os.path.join(OUT, "own-captures.txt"), "a") as fh:
+            fh.write(f + "\n")
     good = body.get("ok") is True and isinstance(f, str) and os.path.basename(f).startswith("snapshot_") \
         and f.endswith(".png") and os.path.isfile(f) and os.path.getmtime(f) >= t0 - 1.0
     return good, dt, (f if good else None)

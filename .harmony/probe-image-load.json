@@ -8,8 +8,8 @@
   "_fixtureMinD": "a fixture pair (warm picture vs cold picture) must differ by at least this much, or the row proves nothing",
   "i2mFirstMaxP": 0.08,
   "_i2mFirstMaxP": "C1 (Harmony adoption): the first frame that answers a capture after a 1 s dissolve onto a still-decoding image has dissolve progress <= this (about 4 frames at 60 Hz; without the pause it is the remaining decode time / 1 s)",
-  "snapshotMaxMs": 1000,
-  "_snapshotMaxMs": "C2 (Harmony adoption): a snapshot taken while an image decodes answers within its normal time -- a 1080p snapshot is ~0.1 s; a gated one would wait for the ~0.5 s decode (or the 5 s capture timeout). The sharp witness is the picture (i3n)",
+  "snapshotMaxMs": 500,
+  "_snapshotMaxMs": "C2 (Harmony adoption): a snapshot taken while an image decodes answers within its normal time. Calibration (renderleft-fix.md): a 1080p snapshot 76-84 ms (baseline and ungated, lane + main); gated (main's in-frame decode, or the teeth build whose snapshot asks for a complete frame) 914-1442 ms. The sharp witness is the picture (i3n)",
   "sizes": { "1080": [1920, 1080], "4k": [3840, 2160], "slow": [7680, 4320], "filler": [8192, 8192] },
   "_filler": "4 flat 8192x8192 images = 1 GiB: the R1.5 prefetch budget (CompositorEngine kImagePrefetchBudgetBytes), so the pending rows' subject images are never prefetched",
   "layers": {
