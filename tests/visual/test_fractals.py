@@ -149,7 +149,6 @@ MENGER_PARAMS = [
 KIFS_PARAMS = [
     ("kifs", "u_src_scale", 0.4, 0.7, "Scale"),
     ("kifs", "u_src_iterations", 0.4, 0.8, "Iterations"),
-    ("kifs", "u_src_fold_type", 0.0, 0.5, "Fold Type"),
     ("kifs", "u_src_rotation_x", 0.55, 0.8, "Angle X"),
     ("kifs", "u_src_rotation_y", 0.55, 0.8, "Angle Y"),
     ("kifs", "u_src_zoom", 0.3, 0.8, "Zoom"),
