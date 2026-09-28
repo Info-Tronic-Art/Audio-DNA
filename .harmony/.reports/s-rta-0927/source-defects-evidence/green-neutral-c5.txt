@@ -1,0 +1,22 @@
+NEUTRAL Dot Field size 0.3 depth 0.4 256x256 PSNR(new, base) = 1e+09
+NEUTRAL Dot Field size 0.3 depth 0.4 1920x1080 PSNR(new, base) = 1e+09
+NEUTRAL mandelbulb defaults 256x256 t=0 PSNR(new, base) = 1e+09
+NEUTRAL mandelbulb defaults 256x256 t=1.13 PSNR(new, base) = 1e+09
+NEUTRAL mandelbulb defaults 256x256 t=7 PSNR(new, base) = 1e+09
+NEUTRAL mandelbulb defaults 1920x1080 t=0 PSNR(new, base) = 1e+09
+NEUTRAL mandelbulb defaults 1920x1080 t=1.13 PSNR(new, base) = 1e+09
+NEUTRAL mandelbulb defaults 1920x1080 t=7 PSNR(new, base) = 1e+09
+NEUTRAL julia_set_3d defaults 256x256 t=0 PSNR(new, base) = 1e+09
+NEUTRAL julia_set_3d defaults 256x256 t=1.13 PSNR(new, base) = 1e+09
+NEUTRAL julia_set_3d defaults 256x256 t=7 PSNR(new, base) = 1e+09
+NEUTRAL julia_set_3d defaults 1920x1080 t=0 PSNR(new, base) = 1e+09
+NEUTRAL julia_set_3d defaults 1920x1080 t=1.13 PSNR(new, base) = 1e+09
+NEUTRAL julia_set_3d defaults 1920x1080 t=7 PSNR(new, base) = 1e+09
+NEUTRAL sierpinski defaults 256x256 t=0 PSNR(new, base) = 16.1546
+NEUTRAL sierpinski defaults 256x256 t=1.13 PSNR(new, base) = 16.1546
+NEUTRAL sierpinski defaults 256x256 t=7 PSNR(new, base) = 16.1546
+NEUTRAL sierpinski defaults 1920x1080 t=0 PSNR(new, base) = 1e+09
+NEUTRAL sierpinski defaults 1920x1080 t=1.13 PSNR(new, base) = 1e+09
+NEUTRAL sierpinski defaults 1920x1080 t=7 PSNR(new, base) = 1e+09
+NEUTRAL newton_3d t=0 256x256 PSNR(new, base) = 1e+09
+NEUTRAL newton_3d t=0 1920x1080 PSNR(new, base) = 1e+09

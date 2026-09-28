@@ -1,0 +1,2 @@
+fix: 96x54 offscreen 0..120 s step 0.05: frames 2401 black 0 flat 0 lit% min 34.9 median 80.0
+head: 96x54 offscreen 0..120 s step 0.05: frames 2401 black 0 flat 0 lit% min 35.0 median 79.2

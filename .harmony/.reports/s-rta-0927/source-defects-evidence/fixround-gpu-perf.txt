@@ -1,0 +1,11 @@
+date 2026-09-27 21:34:43 clang procs: [] Audio-DNA procs: [] load: { 2.93 3.12 3.76 }
+head: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 3.303 median 3.257 p95 3.702 max 8.396
+fix: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 5.111 median 5.177 p95 5.963 max 6.804
+head: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 3.281 median 3.259 p95 3.705 max 4.181
+fix: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 5.115 median 5.173 p95 5.929 max 6.804
+newton_base@0.55: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 83.913 median 81.654 p95 147.162 max 231.750
+newton_3d: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 56.574 median 56.097 p95 61.088 max 64.000
+load after: { 2.00 2.88 3.64 }
+--- reference sources, date 2026-09-27 21:37:04 clang procs: [] Audio-DNA procs: [] load: { 4.40 3.77 3.93 }
+mandelbulb: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 2.167 median 2.146 p95 2.455 max 7.369
+julia_set_3d: GPU ms/frame 1920x1080 over t=0..30 (240 frames): mean 1.043 median 1.036 p95 1.093 max 1.497

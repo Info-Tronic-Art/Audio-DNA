@@ -1,0 +1,119 @@
+LOCK: acquired 18:51:40
+launch: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app (18:51:40)
+app up: pids 55312 (18:51:43)
+sources: 108  health: {'status': 'ready', 'gl_version': '4.1', 'fps': 102.19506072998047, 'effects_count': 135}
+composition_params: {'masterOpacity': 1.0, 'masterSpeed': 1.0, 'outputWidth': 1920, 'outputHeight': 1080, 'decks': [{'deck': 0, 'layers': [{'layer': 0, 'clips': []}, {'layer': 1, 'clips': []}, {'layer': 2, 'clips': []}]}]}
+julia_set defaults: {'u_src_dive_speed': 0.0, 'u_src_location': 0.0, 'u_src_cx': 0.349999994039536, 'u_src_cy': 0.379999995231628, 'u_src_zoom': 0.25, 'u_src_iterations': 0.300000011920929, 'u_src_color_speed': 0.300000011920929, 'u_src_color_shift': 0.0, 'u_src_palette': 0.600000023841858}
+ROW julia_set                      256x256 t=0     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW julia_set                      256x256 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW julia_set                      256x256 t=10    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW julia_set                      1920x1080 t=0     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW julia_set                      1920x1080 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW julia_set                      1920x1080 t=10    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+burning_ship defaults: {'u_src_dive_speed': 0.0, 'u_src_location': 0.0, 'u_src_center_x': 0.550000011920929, 'u_src_center_y': 0.600000023841858, 'u_src_zoom': 0.200000002980232, 'u_src_iterations': 0.300000011920929, 'u_src_color_speed': 0.300000011920929, 'u_src_color_shift': 0.0, 'u_src_palette': 0.600000023841858}
+ROW burning_ship                   256x256 t=0     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW burning_ship                   256x256 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW burning_ship                   256x256 t=10    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW burning_ship                   1920x1080 t=0     mean=0.40 p99.5=0 lit=0.37% sd=12.0 visible=False
+ROW burning_ship                   1920x1080 t=1.13  mean=0.40 p99.5=0 lit=0.37% sd=12.0 visible=False
+ROW burning_ship                   1920x1080 t=10    mean=0.40 p99.5=0 lit=0.37% sd=12.0 visible=False
+newton_3d defaults: {'u_src_power': 0.200000002980232, 'u_src_rotation_x': 0.550000011920929, 'u_src_rotation_y': 0.550000011920929, 'u_src_zoom': 0.300000011920929, 'u_src_speed': 0.550000011920929, 'u_src_damping': 0.5, 'u_src_height': 0.5, 'u_src_color_shift': 0.0, 'u_src_trail_dist': 0.0, 'u_src_trail_fade': 0.5, 'u_src_slice_count': 0.0, 'u_src_slice_dist': 0.300000011920929, 'u_src_feedback': 0.0, 'u_src_palette': 0.600000023841858}
+ROW newton_3d                      256x256 t=0     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW newton_3d                      256x256 t=1     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW newton_3d                      256x256 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW newton_3d                      256x256 t=30    mean=53.01 p99.5=200 lit=74.88% sd=60.9 visible=True
+ROW newton_3d                      256x256 t=45    mean=48.76 p99.5=200 lit=69.61% sd=64.0 visible=True
+ROW newton_3d                      1920x1080 t=0     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW newton_3d                      1920x1080 t=1     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW newton_3d                      1920x1080 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW newton_3d                      1920x1080 t=30    mean=52.44 p99.5=200 lit=73.67% sd=61.8 visible=True
+ROW newton_3d                      1920x1080 t=45    mean=49.02 p99.5=194 lit=69.23% sd=64.4 visible=True
+sierpinski defaults: {'u_src_dive_speed': 0.0, 'u_src_mode': 0.0, 'u_src_zoom': 0.0, 'u_src_iterations': 0.5, 'u_src_rotation': 0.5, 'u_src_color_shift': 0.0, 'u_src_palette': 0.600000023841858}
+ROW sierpinski                     256x256 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW sierpinski                     512x512 t=1.13  mean=7.76 p99.5=204 lit=7.51% sd=53.8 visible=True
+ROW sierpinski                     1024x1024 t=1.13  mean=7.76 p99.5=204 lit=7.51% sd=53.8 visible=True
+ROW sierpinski                     1920x1080 t=1.13  mean=7.93 p99.5=204 lit=7.68% sd=54.3 visible=True
+ROW sierpinski      _iter0.75      1024x1024 t=1.13  mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW sierpinski      _iter0.75      1920x1080 t=1.13  mean=3.52 p99.5=204 lit=3.40% sd=37.0 visible=False
+
+== A5 crystal_cavern diagnosis: explicit defaults, lit% by time (prediction: onset 2.0-3.0 s at Speed 0.3, 4-6 s at Speed 0.0)
+crystal_cavern defaults: {'u_src_speed': 0.300000011920929, 'u_src_crystal_size': 0.5, 'u_src_reflectivity': 0.5, 'u_src_light_color': 0.0, 'u_src_fog': 0.300000011920929, 'u_src_complexity': 0.5}
+ROW crystal_cavern                 256x256 t=0     mean=10.47 p99.5=119 lit=79.69% sd=17.9 visible=True
+ROW crystal_cavern                 256x256 t=0.5   mean=9.87 p99.5=124 lit=76.80% sd=19.7 visible=True
+ROW crystal_cavern                 256x256 t=1     mean=10.22 p99.5=119 lit=82.28% sd=18.3 visible=True
+ROW crystal_cavern                 256x256 t=1.5   mean=8.40 p99.5=124 lit=58.12% sd=22.3 visible=True
+ROW crystal_cavern                 256x256 t=2     mean=3.08 p99.5=107 lit=20.47% sd=16.1 visible=True
+ROW crystal_cavern                 256x256 t=2.5   mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 256x256 t=3     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 256x256 t=4     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 256x256 t=5     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 256x256 t=10    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 256x256 t=30    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 256x256 t=60    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern  _speed0        256x256 t=0     mean=10.47 p99.5=119 lit=79.69% sd=17.9 visible=True
+ROW crystal_cavern  _speed0        256x256 t=3     mean=9.85 p99.5=119 lit=79.86% sd=18.1 visible=True
+ROW crystal_cavern  _speed0        256x256 t=4     mean=6.58 p99.5=123 lit=40.99% sd=22.7 visible=True
+ROW crystal_cavern  _speed0        256x256 t=5     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern  _speed0        256x256 t=6     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern  _speed0        256x256 t=8     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 1920x1080 t=1     mean=10.51 p99.5=124 lit=78.77% sd=21.0 visible=True
+ROW crystal_cavern                 1920x1080 t=5     mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+ROW crystal_cavern                 1920x1080 t=10    mean=0.00 p99.5=0 lit=0.00% sd=0.0 visible=False
+
+== Dot Field on the test card (legacy effect chain via set_effect; /api/reset restores the registered defaults)
+FX  none                      256x256 mean=54.07 p99.5=213 lit=41.12% sd=75.0
+FX  Invert                    256x256 mean=100.33 p99.5=178 lit=68.36% sd=73.3
+    Pitfall-28 check: Invert vs none PSNR=7.5 (finite = render_frame applies the chain)
+FX  Dot Field    _default     256x256 mean=1.80 p99.5=152 lit=1.24% sd=17.1
+FX  Dot Field    _depth0      256x256 mean=1.80 p99.5=152 lit=1.24% sd=17.1
+FX  Dot Field    _depth1      256x256 mean=1.80 p99.5=152 lit=1.24% sd=17.1
+FX  Dot Field    _size1       256x256 mean=24.02 p99.5=214 lit=14.60% sd=60.2
+    Dot Field 256x256: PSNR(default, depth 0)=inf PSNR(default, depth 1)=inf PSNR(default, size 1)=12.3
+FX  none                      1920x1080 mean=64.79 p99.5=214 lit=49.32% sd=77.5
+FX  Invert                    1920x1080 mean=120.24 p99.5=178 lit=81.93% sd=63.5
+    Pitfall-28 check: Invert vs none PSNR=6.8 (finite = render_frame applies the chain)
+FX  Dot Field    _default     1920x1080 mean=2.11 p99.5=169 lit=1.46% sd=18.6
+FX  Dot Field    _depth0      1920x1080 mean=2.11 p99.5=169 lit=1.46% sd=18.6
+FX  Dot Field    _depth1      1920x1080 mean=2.11 p99.5=169 lit=1.46% sd=18.6
+FX  Dot Field    _size1       1920x1080 mean=28.87 p99.5=214 lit=17.61% sd=64.9
+    Dot Field 1920x1080: PSNR(default, depth 0)=inf PSNR(default, depth 1)=inf PSNR(default, size 1)=11.5
+
+== twisted_torus / torus family registered params
+PARAMS twisted_torus        n=14: ['Twist', 'Stripe Count', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS striped_torus        n=14: ['Stripe Count', 'Twist', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS spiral_vortex        n=14: ['Twist', 'Stripe Count', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS checker_torus        n=14: ['Grid U', 'Grid V', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS ribbed_vortex        n=14: ['Ridge Count', 'Color Mix', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS wormhole_tunnel      n=13: ['Warp', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS wormhole             n=14: ['Warp', 'Glow', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS torus_hole           n=19: ['Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Stripe Count', 'Twist', 'Stripe Angle', 'Stripe Scale', 'Stripe Width', 'Phi Offset', 'Theta Offset', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS mandelbulb           n=16: ['Power', 'Iterations', 'Angle X', 'Angle Y', 'Zoom', 'Speed', 'Detail', 'Color Shift', 'Cross Section', 'Slice Count', 'Glow', 'Trail Distance', 'Trail Fade', 'Slice Distance', 'Feedback', 'Palette']
+PARAMS newton_3d            n=14: ['Power', 'Angle X', 'Angle Y', 'Zoom', 'Speed', 'Damping', 'Height', 'Color Shift', 'Trail Distance', 'Trail Fade', 'Slice Count', 'Slice Distance', 'Feedback', 'Palette']
+PARAMS band_tower           n=6: ['Shape', 'Spacing', 'Reflection', 'Color Mode', 'Smoothing', '3D Rotation']
+PARAMS structural_landscape n=6: ['Terrain Scale', 'History Length', 'Drama', 'Color Palette', 'Fog', 'Camera Height']
+PARAMS julia_set_3d         n=17: ['Location', 'C Real', 'C Imaginary', 'Angle X', 'Angle Y', 'Zoom', 'Speed', 'Iterations', 'Color Shift', 'Cross Section', 'Slice Count', 'Glow', 'Trail Distance', 'Trail Fade', 'Slice Distance', 'Feedback', 'Palette']
+TOTAL source params: 759 sources: 108
+t3 done; rows: 61
+--- script rc=0 (18:52:00)
+after quit: running=no (18:52:01)
+LOCK: released 18:52:01
+gap: sleeping 45 s
+LOCK: acquired 19:00:46
+launch: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app (19:00:47)
+app up: pids 72055 (19:00:50)
+sources: 108 effects: 135 19:00:50
+sources done 19:01:39
+t4 done 19:03:33
+--- script rc=0 (19:03:33)
+after quit: running=no (19:03:34)
+LOCK: released 19:03:34
+gap: sleeping 45 s
+LOCK: acquired 19:16:00
+launch: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app (19:16:00)
+app up: pids 91118 (19:16:03)
+sources: 108 effects: 135 19:16:04
+sources done 19:16:53
+t4 done 19:18:49
+--- script rc=0 (19:18:49)
+after quit: running=no (19:18:50)
+LOCK: released 19:18:50

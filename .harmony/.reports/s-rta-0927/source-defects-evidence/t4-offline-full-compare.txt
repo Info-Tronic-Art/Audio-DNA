@@ -1,0 +1,968 @@
+FULL src angular_grid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src angular_grid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src angular_grid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src angular_grid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian_3d 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian_3d 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian_3d 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src apollonian_3d 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src astral_grid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src astral_grid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src astral_grid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src astral_grid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src audio_waveform 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src audio_waveform 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src audio_waveform 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src audio_waveform 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src band_tower 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src band_tower 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src band_tower 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src band_tower 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src bump_light 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src bump_light 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src bump_light 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src bump_light 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src burning_ship 256x256 t=0 psnr_lane=7.83338 psnr_repeat=1e+09
+FULL src burning_ship 256x256 t=1.13 psnr_lane=7.83338 psnr_repeat=1e+09
+FULL src burning_ship 1920x1080 t=0 psnr_lane=6.969 psnr_repeat=1e+09
+FULL src burning_ship 1920x1080 t=1.13 psnr_lane=6.969 psnr_repeat=1e+09
+FULL src burning_ship_3d 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src burning_ship_3d 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src burning_ship_3d 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src burning_ship_3d 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cellular_automata 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cellular_automata 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cellular_automata 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cellular_automata 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checker_torus 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checker_torus 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checker_torus 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checker_torus 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checkerboard 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checkerboard 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checkerboard 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src checkerboard 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src chromatic_ring 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src chromatic_ring 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src chromatic_ring 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src chromatic_ring 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src color_gradient 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src color_gradient 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src color_gradient 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src color_gradient 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src concentric_rings 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src concentric_rings 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src concentric_rings 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src concentric_rings 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src crystal_cavern 256x256 t=0 psnr_lane=36.7611 psnr_repeat=1e+09
+FULL src crystal_cavern 256x256 t=1.13 psnr_lane=29.2741 psnr_repeat=1e+09
+FULL src crystal_cavern 1920x1080 t=0 psnr_lane=39.5154 psnr_repeat=1e+09
+FULL src crystal_cavern 1920x1080 t=1.13 psnr_lane=30.2095 psnr_repeat=1e+09
+FULL src cymatics 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cymatics 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cymatics 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src cymatics 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dna_helix 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dna_helix 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dna_helix 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dna_helix 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dot_matrix_wave 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dot_matrix_wave 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dot_matrix_wave 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dot_matrix_wave 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dual_plane_drift 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dual_plane_drift 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dual_plane_drift 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src dual_plane_drift 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src electric_arc 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src electric_arc 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src electric_arc 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src electric_arc 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fermat_spiral 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fermat_spiral 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fermat_spiral 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fermat_spiral 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fibonacci_spiral 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fibonacci_spiral 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fibonacci_spiral 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fibonacci_spiral 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire_wall 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire_wall 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire_wall 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fire_wall 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fluid_dynamics 256x256 t=0 psnr_lane=62.8035 psnr_repeat=61.8834
+FULL src fluid_dynamics 256x256 t=1.13 psnr_lane=61.3176 psnr_repeat=61.2036
+FULL src fluid_dynamics 1920x1080 t=0 psnr_lane=70.5881 psnr_repeat=71.0543
+FULL src fluid_dynamics 1920x1080 t=1.13 psnr_lane=70.1377 psnr_repeat=69.8353
+FULL src fractal_tree 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fractal_tree 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fractal_tree 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src fractal_tree 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src geometric_tunnel 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src geometric_tunnel 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src geometric_tunnel 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src geometric_tunnel 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src glitch_grid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src glitch_grid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src glitch_grid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src glitch_grid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src gravity_well 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src gravity_well 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src gravity_well 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src gravity_well 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hex_grid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hex_grid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hex_grid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hex_grid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hyperbolic_tiling 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hyperbolic_tiling 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hyperbolic_tiling 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src hyperbolic_tiling 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_corridor 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_corridor 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_corridor 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_corridor 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_zoom 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_zoom 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_zoom 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src infinite_zoom 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src julia_set 256x256 t=0 psnr_lane=9.27101 psnr_repeat=1e+09
+FULL src julia_set 256x256 t=1.13 psnr_lane=9.27101 psnr_repeat=1e+09
+FULL src julia_set 1920x1080 t=0 psnr_lane=8.67976 psnr_repeat=1e+09
+FULL src julia_set 1920x1080 t=1.13 psnr_lane=8.67976 psnr_repeat=1e+09
+FULL src julia_set_3d 256x256 t=0 psnr_lane=90.6529 psnr_repeat=1e+09
+FULL src julia_set_3d 256x256 t=1.13 psnr_lane=83.5081 psnr_repeat=1e+09
+FULL src julia_set_3d 1920x1080 t=0 psnr_lane=91.3417 psnr_repeat=1e+09
+FULL src julia_set_3d 1920x1080 t=1.13 psnr_lane=94.1103 psnr_repeat=1e+09
+FULL src kaleido_fractal 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kaleido_fractal 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kaleido_fractal 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kaleido_fractal 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kifs 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kifs 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kifs 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src kifs 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scan 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scan 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scan 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scan 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scanner 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scanner 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scanner 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src laser_scanner 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src layer_router 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src layer_router 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src layer_router 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src layer_router 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lightning_storm 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lightning_storm 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lightning_storm 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lightning_storm 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src line_generator 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src line_generator 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src line_generator 1920x1080 t=0 psnr_lane=95.3874 psnr_repeat=92.8471
+FULL src line_generator 1920x1080 t=1.13 psnr_lane=93.0373 psnr_repeat=93.5895
+FULL src line_pattern 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src line_pattern 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src line_pattern 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src line_pattern 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous_weaver 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous_weaver 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous_weaver 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src lissajous_weaver 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbrot 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbrot 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbrot 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbrot 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbulb 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbulb 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbulb 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src mandelbulb 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src menger_sponge 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src menger_sponge 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src menger_sponge 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src menger_sponge 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src metaballs 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src metaballs 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src metaballs 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src metaballs 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_interference 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_interference 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_interference 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_interference 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_lines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_lines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_lines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src moire_lines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src newton_3d 256x256 t=0 psnr_lane=11.391 psnr_repeat=1e+09
+FULL src newton_3d 256x256 t=1.13 psnr_lane=11.3814 psnr_repeat=1e+09
+FULL src newton_3d 1920x1080 t=0 psnr_lane=11.3137 psnr_repeat=1e+09
+FULL src newton_3d 1920x1080 t=1.13 psnr_lane=11.2747 psnr_repeat=1e+09
+FULL src newton_fractal 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src newton_fractal 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src newton_fractal 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src newton_fractal 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src orbit_chamber 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src orbit_chamber 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src orbit_chamber 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src orbit_chamber 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src particle_nebula 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src particle_nebula 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src particle_nebula 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src particle_nebula 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src penrose_pulse 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src penrose_pulse 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src penrose_pulse 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src penrose_pulse 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src perlin_noise 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src perlin_noise 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src perlin_noise 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src perlin_noise 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src plasma 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src plasma 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src plasma 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src plasma 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src polygon_lines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src polygon_lines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src polygon_lines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src polygon_lines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radar_sweep 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radar_sweep 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radar_sweep 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radar_sweep 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radial_burst 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radial_burst 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radial_burst 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src radial_burst 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src reaction_diffusion 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src reaction_diffusion 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src reaction_diffusion 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src reaction_diffusion 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src ribbed_vortex 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src ribbed_vortex 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src ribbed_vortex 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src ribbed_vortex 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rose_curves 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rose_curves 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rose_curves 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rose_curves 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rotating_cube_map 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rotating_cube_map 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rotating_cube_map 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src rotating_cube_map 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sacred_geometry 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sacred_geometry 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sacred_geometry 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sacred_geometry 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src scroll_plane 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src scroll_plane 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src scroll_plane 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src scroll_plane 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src shape_generator 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src shape_generator 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src shape_generator 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src shape_generator 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sierpinski 256x256 t=0 psnr_lane=16.1546 psnr_repeat=1e+09
+FULL src sierpinski 256x256 t=1.13 psnr_lane=16.1546 psnr_repeat=1e+09
+FULL src sierpinski 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sierpinski 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sierpinski_tetra 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sierpinski_tetra 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sierpinski_tetra 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sierpinski_tetra 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sine_oscillator 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sine_oscillator 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sine_oscillator 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src sine_oscillator 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src solid_color 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src solid_color 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src solid_color 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src solid_color 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_ring 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_ring 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_ring 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_ring 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_waterfall 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_waterfall 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_waterfall 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectral_waterfall 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectrum_landscape 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectrum_landscape 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectrum_landscape 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spectrum_landscape 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_pattern 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_pattern 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_pattern 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_pattern 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_tunnel 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_tunnel 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_tunnel 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_tunnel 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_vortex 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_vortex 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_vortex 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spiral_vortex 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spirograph 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spirograph 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spirograph 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src spirograph 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src star_burst 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src star_burst 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src star_burst 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src star_burst 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src starfield 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src starfield 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src starfield 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src starfield 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strange_attractor 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strange_attractor 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strange_attractor 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strange_attractor 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src striped_torus 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src striped_torus 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src striped_torus 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src striped_torus 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strobe_light 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strobe_light 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strobe_light 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src strobe_light 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src structural_landscape 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src structural_landscape 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src structural_landscape 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src structural_landscape 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src superformula 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src superformula 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src superformula 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src superformula 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src terrain_lines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src terrain_lines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src terrain_lines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src terrain_lines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_animator 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_animator 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_animator 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_animator 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_wall 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_wall 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_wall 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src text_wall 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src timbral_nebula 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src timbral_nebula 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src timbral_nebula 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src timbral_nebula 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src torus_hole 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src torus_hole 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src torus_hole 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src torus_hole 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src truchet_labyrinth 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src truchet_labyrinth 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src truchet_labyrinth 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src truchet_labyrinth 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src twisted_torus 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src twisted_torus 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src twisted_torus 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src twisted_torus 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src voronoi 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src voronoi 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src voronoi 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src voronoi 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src water_caustics 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src water_caustics 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src water_caustics 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src water_caustics 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src waveform_lines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src waveform_lines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src waveform_lines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src waveform_lines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cone 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cone 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cone 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cone 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cube 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cube 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cube 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cube 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cylinder 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cylinder 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cylinder 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_cylinder 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_icosahedron 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_icosahedron 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_icosahedron 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_icosahedron 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_sphere 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_sphere 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_sphere 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_sphere 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_torus 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_torus 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_torus 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_torus 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_wolf 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_wolf 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_wolf 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wire_wolf 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole_tunnel 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole_tunnel 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole_tunnel 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src wormhole_tunnel 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src zigzag_lines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src zigzag_lines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src zigzag_lines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL src zigzag_lines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx ASCII Art 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx ASCII Art 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx ASCII Art 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx ASCII Art 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Auto Mask 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Auto Mask 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Auto Mask 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Auto Mask 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Barrel Distort 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Barrel Distort 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Barrel Distort 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Barrel Distort 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Beat Ripple 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Beat Ripple 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Beat Ripple 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Beat Ripple 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bendoscope 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bendoscope 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bendoscope 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bendoscope 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Block Glitch 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Block Glitch 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Block Glitch 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Block Glitch 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brightness 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brightness 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brightness 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brightness 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brush Strokes 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brush Strokes 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brush Strokes 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Brush Strokes 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bulge 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bulge 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bulge 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bulge 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bump Light 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bump Light 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bump Light 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Bump Light 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx CRT 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx CRT 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx CRT 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx CRT 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cartoon Ink 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cartoon Ink 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cartoon Ink 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cartoon Ink 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Channel Delay 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Channel Delay 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Channel Delay 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Channel Delay 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Dissolve 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Dissolve 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Dissolve 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Dissolve 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Key 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Key 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Key 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chroma Key 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chromatic Aberration 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chromatic Aberration 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chromatic Aberration 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Chromatic Aberration 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Flash 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Flash 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Flash 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Flash 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Grade 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Grade 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Grade 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Grade 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Halftone 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Halftone 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Halftone 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Halftone 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Shift 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Shift 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Shift 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Color Shift 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Contrast 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Contrast 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Contrast 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Contrast 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Process 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Process 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Process 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Process 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Stitch 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Stitch 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Stitch 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cross Stitch 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Crosshatch 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Crosshatch 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Crosshatch 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Crosshatch 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cube Scatter 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cube Scatter 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cube Scatter 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cube Scatter 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cylinder Wrap 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cylinder Wrap 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cylinder Wrap 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Cylinder Wrap 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Data Corruption 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Data Corruption 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Data Corruption 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Data Corruption 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Density Wave 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Density Wave 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Density Wave 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Density Wave 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Diamond Distort 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Diamond Distort 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Diamond Distort 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Diamond Distort 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Digital Rain 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Digital Rain 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Digital Rain 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Digital Rain 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Directional Feedback 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Directional Feedback 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Directional Feedback 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Directional Feedback 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dither 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dither 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dither 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dither 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dot Field 256x256 t=0 psnr_lane=16.2586 psnr_repeat=1e+09
+FULL fx Dot Field 256x256 t=1.13 psnr_lane=16.2586 psnr_repeat=1e+09
+FULL fx Dot Field 1920x1080 t=0 psnr_lane=16.2569 psnr_repeat=1e+09
+FULL fx Dot Field 1920x1080 t=1.13 psnr_lane=16.2569 psnr_repeat=1e+09
+FULL fx Dot Matrix 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dot Matrix 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dot Matrix 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Dot Matrix 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Double Exposure 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Double Exposure 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Double Exposure 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Double Exposure 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Drop Shadow 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Drop Shadow 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Drop Shadow 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Drop Shadow 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Duotone 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Duotone 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Duotone 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Duotone 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Echo 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Echo 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Echo 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Echo 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Blur 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Blur 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Blur 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Blur 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Detect 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Detect 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Detect 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Edge Detect 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Elastic Bounce 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Elastic Bounce 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Elastic Bounce 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Elastic Bounce 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Emboss 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Emboss 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Emboss 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Emboss 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Exposure 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Exposure 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Exposure 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Exposure 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Film Grain 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Film Grain 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Film Grain 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Film Grain 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fisheye 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fisheye 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fisheye 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fisheye 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Flip 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Flip 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Flip 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Flip 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fragment Burst 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fragment Burst 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fragment Burst 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Fragment Burst 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frame Stutter 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frame Stutter 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frame Stutter 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frame Stutter 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Freeze 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Freeze 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Freeze 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Freeze 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frosted Glass 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frosted Glass 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frosted Glass 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Frosted Glass 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gamma Levels 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gamma Levels 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gamma Levels 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gamma Levels 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gaussian Blur 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gaussian Blur 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gaussian Blur 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Gaussian Blur 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Displace 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Displace 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Displace 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Displace 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Sort 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Sort 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Sort 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glitch Sort 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glow 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glow 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glow 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Glow 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Greyscale 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Greyscale 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Greyscale 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Greyscale 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Harmonic Displacement 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Harmonic Displacement 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Harmonic Displacement 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Harmonic Displacement 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Heat Map 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Heat Map 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Heat Map 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Heat Map 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hexagonalize 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hexagonalize 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hexagonalize 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hexagonalize 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hue Shift 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hue Shift 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hue Shift 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Hue Shift 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Invert 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Invert 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Invert 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Invert 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Kaleidoscope 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Kaleidoscope 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Kaleidoscope 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Kaleidoscope 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Key Palette 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Key Palette 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Key Palette 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Key Palette 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Line Cloner 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Line Cloner 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Line Cloner 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Line Cloner 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid Morph 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid Morph 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid Morph 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Liquid Morph 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Luminance Terrain 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Luminance Terrain 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Luminance Terrain 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Luminance Terrain 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Mirror 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Mirror 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Mirror 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Mirror 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Monitor Wall 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Monitor Wall 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Monitor Wall 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Monitor Wall 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Motion Blur 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Motion Blur 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Motion Blur 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Motion Blur 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Neon Edge 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Neon Edge 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Neon Edge 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Neon Edge 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Night Vision 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Night Vision 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Night Vision 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Night Vision 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Noise 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Noise 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Noise 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Noise 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Oil Paint 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Oil Paint 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Oil Paint 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Oil Paint 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Page Curl 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Page Curl 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Page Curl 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Page Curl 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Palette Remap 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Palette Remap 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Palette Remap 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Palette Remap 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Parallax Layers 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Parallax Layers 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Parallax Layers 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Parallax Layers 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pencil Sketch 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pencil Sketch 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pencil Sketch 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pencil Sketch 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Perspective Tilt 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Perspective Tilt 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Perspective Tilt 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Perspective Tilt 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pitch Chromatic Shift 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pitch Chromatic Shift 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pitch Chromatic Shift 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pitch Chromatic Shift 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Explosion 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Explosion 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Explosion 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Explosion 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Scatter 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Scatter 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Scatter 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixel Scatter 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixelate 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixelate 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixelate 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pixelate 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Point Zoom 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Point Zoom 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Point Zoom 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Point Zoom 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Polar Coords 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Polar Coords 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Polar Coords 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Polar Coords 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pop Raster 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pop Raster 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pop Raster 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pop Raster 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize Time 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize Time 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize Time 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Posterize Time 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Prism 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Prism 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Prism 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Prism 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pulse 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pulse 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pulse 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Pulse 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Quad Mirror 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Quad Mirror 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Quad Mirror 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Quad Mirror 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx RGB Split 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx RGB Split 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx RGB Split 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx RGB Split 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Radial Cloner 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Radial Cloner 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Radial Cloner 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Radial Cloner 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rain on Glass 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rain on Glass 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rain on Glass 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rain on Glass 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rhythm Slice 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rhythm Slice 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rhythm Slice 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Rhythm Slice 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple Pond 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple Pond 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple Pond 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Ripple Pond 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Saturation 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Saturation 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Saturation 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Saturation 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Scanlines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Scanlines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Scanlines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Scanlines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Screen Split 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Screen Split 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Screen Split 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Screen Split 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Selective Color 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Selective Color 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Selective Color 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Selective Color 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sepia 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sepia 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sepia 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sepia 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shake 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shake 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shake 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shake 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sharpen 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sharpen 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sharpen 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sharpen 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shear 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shear 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shear 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Shear 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Signal Destroy 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Signal Destroy 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Signal Destroy 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Signal Destroy 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sine Grid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sine Grid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sine Grid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sine Grid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slide Wrap 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slide Wrap 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slide Wrap 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slide Wrap 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slit Scan 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slit Scan 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slit Scan 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Slit Scan 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Solarize 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Solarize 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Solarize 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Solarize 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sphere Wrap 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sphere Wrap 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sphere Wrap 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Sphere Wrap 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Split Tone 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Split Tone 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Split Tone 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Split Tone 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Spot Zoom 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Spot Zoom 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Spot Zoom 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Spot Zoom 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Strobe 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Strobe 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Strobe 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Strobe 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Structural Morph 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Structural Morph 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Structural Morph 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Structural Morph 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Swirl 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Swirl 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Swirl 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Swirl 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Thermal 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Thermal 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Thermal 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Thermal 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Threshold 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Threshold 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Threshold 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Threshold 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tile Grid 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tile Grid 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tile Grid 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tile Grid 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Timbral Mosaic 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Timbral Mosaic 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Timbral Mosaic 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Timbral Mosaic 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Topographic Lines 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Topographic Lines 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Topographic Lines 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Topographic Lines 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Transient Flash 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Transient Flash 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Transient Flash 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Transient Flash 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Triangulate 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Triangulate 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Triangulate 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Triangulate 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tunnel 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tunnel 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tunnel 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Tunnel 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Twirl 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Twirl 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Twirl 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Twirl 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx UV Remap 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx UV Remap 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx UV Remap 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx UV Remap 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx VHS 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx VHS 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx VHS 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx VHS 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vibrance 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vibrance 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vibrance 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vibrance 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vignette 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vignette 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vignette 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Vignette 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voronoi Glass 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voronoi Glass 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voronoi Glass 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voronoi Glass 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voxel Matrix 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voxel Matrix 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voxel Matrix 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Voxel Matrix 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Warp Field 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Warp Field 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Warp Field 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Warp Field 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Wave 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Wave 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Wave 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Wave 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Blur 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Blur 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Blur 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Blur 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Warp 256x256 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Warp 256x256 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Warp 1920x1080 t=0 psnr_lane=1e+09 psnr_repeat=1e+09
+FULL fx Zoom Warp 1920x1080 t=1.13 psnr_lane=1e+09 psnr_repeat=1e+09

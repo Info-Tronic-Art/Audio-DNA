@@ -1,0 +1,74 @@
+Filters: "newton_3d*"
+Randomness seeded to: 1604587940
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_source_defaults_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+newton_3d draws a picture at its registered defaults and keeps it while auto-
+rotating
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:296
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 256x256 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 256x256 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 256x256 t=45: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 256x256 t=45: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 1920x1080 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 1920x1080 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 1920x1080 t=45: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 1920x1080 t=45: mean=0 p99.5=0 lit=0
+
+===============================================================================
+test cases:  1 |  0 passed | 1 failed
+assertions: 44 | 36 passed | 8 failed
+

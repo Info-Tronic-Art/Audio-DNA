@@ -1210,3 +1210,90 @@ TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip 
     REQUIRE(src.layers[0].clips[0]->id == 11u);
     REQUIRE(src.layers[1].pendingTriggerColumn == 4);
 }
+
+// s-rta-0927 source-defects (plan-source-defects.md A2): a composition saved by an older build carries source params
+// the registry no longer has (dead torus controls) and old defaults (julia_set's black-interior default). It must
+// still LOAD, and after the load-time reconcile the clip's params are the registry's current list: dead ones gone,
+// kept values + connections intact, defaults refreshed (the right-click reset target, Pitfall 8), new ones added,
+// registry order; an unknown source type untouched; a second pass changes nothing.
+TEST_CASE("compload::reconcileSourceParams brings an old file's source clips to the registry's current params", "[composition][compload][source-params]")
+{
+    auto sp = [](const char* name, const char* uni, float v, float d) {
+        Clip::SourceParam p; p.name = name; p.uniformName = uni; p.value = v; p.defaultValue = d; return p;
+    };
+    Composition old;
+    old.initDefault();
+    Deck& deck = *old.getActiveDeck();
+    Clip torus; torus.id = 1; torus.name = "tt"; torus.mediaType = Clip::MediaType::Source; torus.sourceType = "twisted_torus";
+    torus.sourceParams = { sp("Twist", "u_src_twist", 0.3f, 0.3f), sp("Stripe Count", "u_src_stripe_count", 0.9f, 0.3f),
+                           sp("Orbit", "u_src_orbit", 0.7f, 0.0f), sp("Tilt", "u_src_tilt", 0.49f, 0.49f),
+                           sp("Speed", "u_src_speed", 0.3f, 0.3f), sp("Zoom", "u_src_zoom", 0.4f, 0.4f),
+                           sp("Tube Radius", "u_src_tube_radius", 0.32f, 0.32f), sp("Pinch", "u_src_pinch", 0.5f, 0.5f),
+                           sp("Color Shift", "u_src_color_shift", 0.25f, 0.0f) };
+    torus.sourceParams.back().conn.source.kind = ConnSource::Kind::Macro;   // a connection on a KEPT param
+    torus.sourceParams.back().conn.source.macroIndex = 2;
+    Clip julia; julia.id = 2; julia.name = "js"; julia.mediaType = Clip::MediaType::Source; julia.sourceType = "julia_set";
+    julia.sourceParams = { sp("C Real", "u_src_cx", 0.35f, 0.35f), sp("Zoom", "u_src_zoom", 0.25f, 0.25f) };
+    Clip mystery; mystery.id = 3; mystery.name = "mx"; mystery.mediaType = Clip::MediaType::Source; mystery.sourceType = "gone_source";
+    mystery.sourceParams = { sp("A", "u_src_a", 0.1f, 0.2f) };
+    Clip image; image.id = 4; image.name = "img"; image.mediaType = Clip::MediaType::Image;
+    deck.setClip(0, 0, torus);
+    deck.setClip(0, 1, julia);
+    deck.setClip(1, 0, mystery);
+    deck.setClip(1, 1, image);
+
+    // Round-trip through a real file: the old file must still load and validate.
+    const auto file = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                          .getChildFile("reconcile-old-" + juce::String(juce::Time::getMillisecondCounter()) + ".json");
+    REQUIRE(old.saveToFile(file));
+    Composition incoming;
+    REQUIRE(incoming.loadFromFile(file));
+    file.deleteFile();
+    REQUIRE(compload::validateComposition(incoming).empty());
+    REQUIRE(incoming.getActiveDeck()->getClip(0, 0)->sourceParams.size() == 9);
+
+    using RP = compload::RegisteredSourceParam;
+    const std::map<std::string, std::vector<RP>> registry = {
+        { "twisted_torus", { { "Twist", "u_src_twist", 0.3f }, { "Stripe Count", "u_src_stripe_count", 0.3f },
+                             { "Speed", "u_src_speed", 0.3f }, { "Tube Radius", "u_src_tube_radius", 0.32f },
+                             { "Color Shift", "u_src_color_shift", 0.0f } } },
+        { "julia_set", { { "Dive Speed", "u_src_dive_speed", 0.0f }, { "C Real", "u_src_cx", 0.2f },
+                         { "Zoom", "u_src_zoom", 0.1f } } },
+    };
+    int lookups = 0;
+    const compload::SourceParamLookup lookup = [&](const std::string& type) -> std::optional<std::vector<RP>> {
+        ++lookups;
+        auto it = registry.find(type);
+        if (it == registry.end()) return std::nullopt;
+        return it->second;
+    };
+
+    REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 2);
+    Deck& d = *incoming.getActiveDeck();
+
+    const auto& tp = d.getClip(0, 0)->sourceParams;
+    REQUIRE(tp.size() == 5);
+    const char* want[] = { "u_src_twist", "u_src_stripe_count", "u_src_speed", "u_src_tube_radius", "u_src_color_shift" };
+    for (size_t i = 0; i < 5; ++i) REQUIRE(tp[i].uniformName == want[i]);
+    REQUIRE_THAT(tp[1].value, WithinAbs(0.9, 1e-6));          // kept value
+    REQUIRE_THAT(tp[4].value, WithinAbs(0.25, 1e-6));
+    REQUIRE(tp[4].conn.source.kind == ConnSource::Kind::Macro);  // kept connection
+    REQUIRE(tp[4].conn.source.macroIndex == 2);
+
+    const auto& jp = d.getClip(0, 1)->sourceParams;
+    REQUIRE(jp.size() == 3);
+    REQUIRE(jp[0].uniformName == "u_src_dive_speed");          // added at its default, in registry order
+    REQUIRE_THAT(jp[0].value, WithinAbs(0.0, 1e-6));
+    REQUIRE_THAT(jp[1].value, WithinAbs(0.35, 1e-6));          // the user's value survives ...
+    REQUIRE_THAT(jp[1].defaultValue, WithinAbs(0.2, 1e-6));    // ... but right-click now resets to the NEW default
+    REQUIRE_THAT(jp[2].defaultValue, WithinAbs(0.1, 1e-6));
+
+    const auto& mp = d.getClip(1, 0)->sourceParams;            // unknown type: untouched
+    REQUIRE(mp.size() == 1);
+    REQUIRE(mp[0].uniformName == "u_src_a");
+    REQUIRE_THAT(mp[0].defaultValue, WithinAbs(0.2, 1e-6));
+    REQUIRE(d.getClip(1, 1)->sourceParams.empty());            // non-source clip untouched
+
+    REQUIRE(lookups == 3);                                     // once per source TYPE, not per clip
+    REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 0);   // idempotent
+}

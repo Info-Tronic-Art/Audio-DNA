@@ -1,0 +1,76 @@
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1255:26: error: no type named 'RegisteredSourceParam' in namespace 'compload'
+ 1255 |     using RP = compload::RegisteredSourceParam;
+      |                ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1256:45: error: use of undeclared identifier 'RP'
+ 1256 |     const std::map<std::string, std::vector<RP>> registry = {
+      |                                             ^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1264:21: error: no type named 'SourceParamLookup' in namespace 'compload'
+ 1264 |     const compload::SourceParamLookup lookup = [&](const std::string& type) -> std::optional<std::vector<RP>> {
+      |           ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1264:106: error: use of undeclared identifier 'RP'
+ 1264 |     const compload::SourceParamLookup lookup = [&](const std::string& type) -> std::optional<std::vector<RP>> {
+      |                                                                                                          ^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1267:42: error: no viable conversion from returned value of type 'const nullopt_t' to function return type 'int'
+ 1267 |         if (it == registry.end()) return std::nullopt;
+      |                                          ^~~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1271:23: error: no member named 'reconcileSourceParams' in namespace 'compload'
+ 1271 |     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 2);
+      |             ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/catch_test_macros.hpp:127:92: note: expanded from macro 'REQUIRE'
+  127 |   #define REQUIRE( ... ) INTERNAL_CATCH_TEST( "REQUIRE", Catch::ResultDisposition::Normal, __VA_ARGS__  )
+      |                                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_test_macro_impl.hpp:45:40: note: expanded from macro 'INTERNAL_CATCH_TEST'
+   45 |         CATCH_INTERNAL_IGNORE_BUT_WARN(__VA_ARGS__); \
+      |                                        ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_compiler_capabilities.hpp:114:76: note: expanded from macro 'CATCH_INTERNAL_IGNORE_BUT_WARN'
+  114 | #    define CATCH_INTERNAL_IGNORE_BUT_WARN(...) (void)__builtin_constant_p(__VA_ARGS__) /* NOLINT(cppcoreguidelines-pro-type-vararg, hicpp-vararg) */
+      |                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1271:23: error: no member named 'reconcileSourceParams' in namespace 'compload'
+ 1271 |     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 2);
+      |             ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/catch_test_macros.hpp:127:92: note: expanded from macro 'REQUIRE'
+  127 |   #define REQUIRE( ... ) INTERNAL_CATCH_TEST( "REQUIRE", Catch::ResultDisposition::Normal, __VA_ARGS__  )
+      |                                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_test_macro_impl.hpp:50:70: note: expanded from macro 'INTERNAL_CATCH_TEST'
+   50 |             catchAssertionHandler.handleExpr( Catch::Decomposer() <= __VA_ARGS__ ); /* NOLINT(bugprone-chained-comparison) */ \
+      |                                                                      ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1271:23: error: no member named 'reconcileSourceParams' in namespace 'compload'
+ 1271 |     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 2);
+      |             ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/catch_test_macros.hpp:127:92: note: expanded from macro 'REQUIRE'
+  127 |   #define REQUIRE( ... ) INTERNAL_CATCH_TEST( "REQUIRE", Catch::ResultDisposition::Normal, __VA_ARGS__  )
+      |                                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_test_macro_impl.hpp:54:63: note: expanded from macro 'INTERNAL_CATCH_TEST'
+   54 |     } while( (void)0, (false) && static_cast<const bool&>( !!(__VA_ARGS__) ) ) // the expression here is never evaluated at runtime but it forces the compiler to give it a look
+      |                                                               ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1298:23: error: no member named 'reconcileSourceParams' in namespace 'compload'
+ 1298 |     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 0);   // idempotent
+      |             ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/catch_test_macros.hpp:127:92: note: expanded from macro 'REQUIRE'
+  127 |   #define REQUIRE( ... ) INTERNAL_CATCH_TEST( "REQUIRE", Catch::ResultDisposition::Normal, __VA_ARGS__  )
+      |                                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_test_macro_impl.hpp:45:40: note: expanded from macro 'INTERNAL_CATCH_TEST'
+   45 |         CATCH_INTERNAL_IGNORE_BUT_WARN(__VA_ARGS__); \
+      |                                        ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_compiler_capabilities.hpp:114:76: note: expanded from macro 'CATCH_INTERNAL_IGNORE_BUT_WARN'
+  114 | #    define CATCH_INTERNAL_IGNORE_BUT_WARN(...) (void)__builtin_constant_p(__VA_ARGS__) /* NOLINT(cppcoreguidelines-pro-type-vararg, hicpp-vararg) */
+      |                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1298:23: error: no member named 'reconcileSourceParams' in namespace 'compload'
+ 1298 |     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 0);   // idempotent
+      |             ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/catch_test_macros.hpp:127:92: note: expanded from macro 'REQUIRE'
+  127 |   #define REQUIRE( ... ) INTERNAL_CATCH_TEST( "REQUIRE", Catch::ResultDisposition::Normal, __VA_ARGS__  )
+      |                                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_test_macro_impl.hpp:50:70: note: expanded from macro 'INTERNAL_CATCH_TEST'
+   50 |             catchAssertionHandler.handleExpr( Catch::Decomposer() <= __VA_ARGS__ ); /* NOLINT(bugprone-chained-comparison) */ \
+      |                                                                      ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_composition.cpp:1298:23: error: no member named 'reconcileSourceParams' in namespace 'compload'
+ 1298 |     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 0);   // idempotent
+      |             ~~~~~~~~~~^
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/catch_test_macros.hpp:127:92: note: expanded from macro 'REQUIRE'
+  127 |   #define REQUIRE( ... ) INTERNAL_CATCH_TEST( "REQUIRE", Catch::ResultDisposition::Normal, __VA_ARGS__  )
+      |                                                                                            ^~~~~~~~~~~
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/build-lane/_deps/catch2-src/src/catch2/../catch2/internal/catch_test_macro_impl.hpp:54:63: note: expanded from macro 'INTERNAL_CATCH_TEST'
+   54 |     } while( (void)0, (false) && static_cast<const bool&>( !!(__VA_ARGS__) ) ) // the expression here is never evaluated at runtime but it forces the compiler to give it a look
+      |                                                               ^~~~~~~~~~~
+11 errors generated.

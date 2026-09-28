@@ -1,0 +1,44 @@
+== batch start 2026-09-27 21:15:55
+LOCK: acquired 21:32:17
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/prefix/Audio-DNA.app (21:32:17)
+app up: pids 15353 (21:32:21)
+sources: 108  health: {'status': 'ready', 'gl_version': '4.1', 'fps': 119.99939727783203, 'effects_count': 135}
+crystal_cavern defaults: {'u_src_speed': 0.300000011920929, 'u_src_crystal_size': 0.5, 'u_src_reflectivity': 0.5, 'u_src_light_color': 0.0, 'u_src_fog': 0.300000011920929, 'u_src_complexity': 0.5}
+ROW crystal_cavern 256x256 t=1     mean=11.52 p99.5=128 lit=71.09% sd=19.8
+ROW crystal_cavern 256x256 t=5     mean=25.61 p99.5=161 lit=87.15% sd=40.4
+ROW crystal_cavern 256x256 t=10    mean=28.73 p99.5=169 lit=83.37% sd=43.5
+ROW crystal_cavern 256x256 t=24    mean=18.33 p99.5=137 lit=52.96% sd=41.1
+ROW crystal_cavern 1920x1080 t=1     mean=11.79 p99.5=129 lit=73.18% sd=21.8
+ROW crystal_cavern 1920x1080 t=5     mean=26.58 p99.5=164 lit=87.25% sd=41.7
+ROW crystal_cavern 1920x1080 t=10    mean=25.03 p99.5=162 lit=81.21% sd=42.2 grazed-crystal box dark=85.4%
+ROW crystal_cavern 1920x1080 t=24    mean=24.41 p99.5=162 lit=81.41% sd=41.8 grazed-crystal box dark=28.6%
+
+== 20 s sweep 96x54 every 0.25 s (visible + not flat)
+SWEEP 81 frames: 0 black-or-flat
+cav done
+--- script rc=0 (21:32:24)
+after quit: running=no (21:32:25)
+LOCK: released 21:32:25
+== between batches 2026-09-27 21:32:25
+gap: sleeping 45 s
+LOCK: acquired 21:33:10
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/fixround/Audio-DNA.app (21:33:11)
+app up: pids 15636 (21:33:14)
+sources: 108  health: {'status': 'ready', 'gl_version': '4.1', 'fps': 115.9763412475586, 'effects_count': 135}
+crystal_cavern defaults: {'u_src_speed': 0.300000011920929, 'u_src_crystal_size': 0.5, 'u_src_reflectivity': 0.5, 'u_src_light_color': 0.0, 'u_src_fog': 0.300000011920929, 'u_src_complexity': 0.5}
+ROW crystal_cavern 256x256 t=1     mean=11.54 p99.5=116 lit=74.89% sd=18.0
+ROW crystal_cavern 256x256 t=5     mean=25.35 p99.5=164 lit=86.82% sd=40.2
+ROW crystal_cavern 256x256 t=10    mean=30.12 p99.5=155 lit=87.57% sd=37.9
+ROW crystal_cavern 256x256 t=24    mean=20.38 p99.5=150 lit=56.02% sd=42.3
+ROW crystal_cavern 1920x1080 t=1     mean=11.78 p99.5=123 lit=75.29% sd=20.7
+ROW crystal_cavern 1920x1080 t=5     mean=27.00 p99.5=167 lit=86.98% sd=42.9
+ROW crystal_cavern 1920x1080 t=10    mean=28.03 p99.5=157 lit=83.65% sd=41.0 grazed-crystal box dark=10.8%
+ROW crystal_cavern 1920x1080 t=24    mean=24.84 p99.5=156 lit=69.64% sd=42.7 grazed-crystal box dark=7.9%
+
+== 20 s sweep 96x54 every 0.25 s (visible + not flat)
+SWEEP 81 frames: 0 black-or-flat
+cav done
+--- script rc=0 (21:33:17)
+after quit: running=no (21:33:18)
+LOCK: released 21:33:18
+== batch end 2026-09-27 21:33:18

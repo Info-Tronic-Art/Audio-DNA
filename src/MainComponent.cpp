@@ -2942,6 +2942,27 @@ void MainComponent::openMediaForDeck(Deck& deck)
     }
 }
 
+namespace
+{
+// s-rta-0927 source-defects: the registry's CURRENT param list of a source type, for
+// compload::reconcileSourceParams on every composition/deck load. nullopt for a type the registry does not know.
+compload::SourceParamLookup sourceParamLookup(const SourceRegistry& registry)
+{
+    return [&registry](const std::string& type) -> std::optional<std::vector<compload::RegisteredSourceParam>> {
+        auto src = registry.createSource(type);
+        if (!src)
+            return std::nullopt;
+        std::vector<compload::RegisteredSourceParam> out;
+        for (int i = 0; i < src->getNumParams(); ++i)
+        {
+            const auto& p = src->getParam(i);
+            out.push_back({ p.name, p.uniformName, p.defaultValue });
+        }
+        return out;
+    };
+}
+} // namespace
+
 void MainComponent::loadComposition(const juce::File& file)
 {
     // 1. STAGE — load into a private `incoming`, never the live composition_:
@@ -2977,6 +2998,11 @@ void MainComponent::loadComposition(const juce::File& file)
     //    fresh id can never collide with a LIVE clip's id, which is what
     //    makes step 4 safe without needing L1-FU.
     compload::remintClipIds(incoming, s_nextClipId);
+
+    // 3b. RECONCILE — every Source clip's params to the registry's current list
+    //     (a file from an older build keeps controls no shader reads, and old
+    //     defaults as the right-click reset target). On `incoming`, pre-swap.
+    compload::reconcileSourceParams(incoming, sourceParamLookup(previewPanel_.getRenderer().getSourceRegistry()));
 
     // 4. OPEN NEW — open every playable clip's media under its new id and
     //    fill thumbnail/dims INTO `incoming`, BEFORE the swap (openMediaForDeck,
@@ -3120,6 +3146,9 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
     //    (or with another live deck's ids) — re-minting makes that
     //    impossible regardless of what the file's own ids were.
     compload::remintClipIds(incoming, s_nextClipId);
+
+    // 3b. RECONCILE — as loadComposition (source params to the registry's current list).
+    compload::reconcileSourceParams(incoming, sourceParamLookup(previewPanel_.getRenderer().getSourceRegistry()));
 
     // 4. OPEN NEW — shared with loadComposition's per-deck body.
     openMediaForDeck(incoming);

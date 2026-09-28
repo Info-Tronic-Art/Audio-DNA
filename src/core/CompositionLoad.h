@@ -5,7 +5,10 @@
 #include "model/Composition.h"
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <iterator>
+#include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -74,6 +77,72 @@ inline int remintClipIds(Composition& c, uint32_t& nextId)
 {
     int n = 0;
     for (auto& d : c.decks) n += remintClipIds(d, nextId);
+    return n;
+}
+
+// A procedural source's CURRENT registered parameter (what a new clip is seeded with, MainComponent's source drop).
+struct RegisteredSourceParam
+{
+    std::string name;
+    std::string uniformName;
+    float defaultValue = 0.5f;
+};
+// sourceType -> its registered params, or nullopt for a type the registry does not know (left untouched). A
+// std::function so this header stays model-only (MainComponent passes a SourceRegistry lambda; tests pass a table).
+using SourceParamLookup = std::function<std::optional<std::vector<RegisteredSourceParam>>(const std::string&)>;
+
+// s-rta-0927 source-defects (plan-source-defects.md A2): bring every Source clip's param list to the registry's
+// CURRENT list, matched by uniform name. A param the source no longer registers is dropped (a control no shader read,
+// saved by an older build: it would otherwise stay in the inspector, ClipInspector builds rows from the CLIP's list);
+// every kept param keeps its value and connection but takes the registry's name and default (right-click reset uses
+// the clip's stored default, Pitfall 8 -- an old clip would reset to an old default); a param registered since the
+// file was saved is added at its default; the order follows the registry. Returns the number of clips changed.
+inline int reconcileSourceParams(Deck& d, const SourceParamLookup& lookup)
+{
+    std::map<std::string, std::optional<std::vector<RegisteredSourceParam>>> cache;
+    int changed = 0;
+    for (auto& layer : d.layers)
+        for (auto& cell : layer.clips)
+        {
+            if (!cell.has_value() || cell->mediaType != Clip::MediaType::Source || cell->sourceType.empty())
+                continue;
+            auto it = cache.find(cell->sourceType);
+            if (it == cache.end())
+                it = cache.emplace(cell->sourceType, lookup(cell->sourceType)).first;
+            if (!it->second.has_value())
+                continue;
+            const auto& reg = *it->second;
+            auto& old = cell->sourceParams;
+            std::vector<Clip::SourceParam> next;
+            next.reserve(reg.size());
+            bool same = old.size() == reg.size();
+            for (size_t i = 0; i < reg.size(); ++i)
+            {
+                const auto& r = reg[i];
+                auto found = std::find_if(old.begin(), old.end(),
+                                          [&](const Clip::SourceParam& sp) { return sp.uniformName == r.uniformName; });
+                Clip::SourceParam sp;
+                if (found != old.end())
+                    sp = std::move(*found);
+                else
+                    sp.value = r.defaultValue;
+                if (same && (i >= old.size() || found != old.begin() + static_cast<long>(i) || sp.name != r.name
+                             || sp.defaultValue != r.defaultValue))
+                    same = false;
+                sp.name = r.name;
+                sp.uniformName = r.uniformName;
+                sp.defaultValue = r.defaultValue;
+                next.push_back(std::move(sp));
+            }
+            old = std::move(next);
+            if (!same) ++changed;
+        }
+    return changed;
+}
+inline int reconcileSourceParams(Composition& c, const SourceParamLookup& lookup)
+{
+    int n = 0;
+    for (auto& d : c.decks) n += reconcileSourceParams(d, lookup);
     return n;
 }
 

@@ -1,0 +1,23 @@
+captures: 486; deterministic on main (run1 == run2 byte-identical): 461; non-deterministic: 25
+non-deterministic on main: fx_Channel_Delay_1920x1080.png(48.5), fx_Channel_Delay_256x256.png(25.0), fx_Color_Flash_1920x1080.png(16.6), fx_Echo_1920x1080.png(24.2), fx_Echo_256x256.png(25.3), fx_Freeze_1920x1080.png(9.1), fx_Freeze_256x256.png(9.9), fx_Glitch_Displace_1920x1080.png(14.6), fx_Glitch_Sort_1920x1080.png(44.9), fx_Posterize_Time_1920x1080.png(27.8), fx_Posterize_Time_256x256.png(28.6), fx_Tunnel_1920x1080.png(7.8), fx_Wave_1920x1080.png(10.0), src_angular_grid_1920x1080.png(11.6), src_cellular_automata_1920x1080.png(7.6), src_infinite_corridor_1920x1080.png(37.5), src_julia_set_3d_1920x1080.png(63.1), src_mandelbrot_1920x1080.png(48.3), src_menger_sponge_1920x1080.png(27.3), src_metaballs_1920x1080.png(27.7), src_projectm_visualizer_1920x1080.png(46.7), src_reaction_diffusion_1920x1080.png(44.6), src_star_burst_1920x1080.png(15.9), src_strange_attractor_1920x1080.png(71.6), src_voronoi_1920x1080.png(18.4)
+deterministic captures that CHANGED on the lane build: 14
+  CHANGED fx_Dot_Field_1920x1080.png                                   PSNR main->lane = 15.225707377512538
+  CHANGED fx_Dot_Field_256x256.png                                     PSNR main->lane = 16.013456550072416
+  CHANGED src_burning_ship_1920x1080.png                               PSNR main->lane = 6.968997786575181
+  CHANGED src_burning_ship_256x256.png                                 PSNR main->lane = 7.833384229165988
+  CHANGED src_crystal_cavern_1920x1080.png                             PSNR main->lane = 30.209537668680507
+  CHANGED src_crystal_cavern_256x256.png                               PSNR main->lane = 29.2741225321127
+  CHANGED src_julia_set_1920x1080.png                                  PSNR main->lane = 8.679763442908177
+  CHANGED src_julia_set_256x256.png                                    PSNR main->lane = 9.27101144828871
+  CHANGED src_julia_set_3d_256x256.png                                 PSNR main->lane = 83.5080669053878
+  CHANGED src_line_pattern_1920x1080.png                               PSNR main->lane = 9.230154829734843
+  CHANGED src_newton_3d_1920x1080.png                                  PSNR main->lane = 11.274697770242941
+  CHANGED src_newton_3d_256x256.png                                    PSNR main->lane = 11.381430708203846
+  CHANGED src_sierpinski_256x256.png                                   PSNR main->lane = 16.154567831955177
+  CHANGED src_waveform_lines_1920x1080.png                             PSNR main->lane = 15.53737506200509
+non-deterministic captures with PSNR(main, lane) < 30: 4
+  LOW fx_Glitch_Displace_1920x1080.png                             noise=14.591610036587168 lane=14.055289070511897
+  LOW fx_Tunnel_1920x1080.png                                      noise=7.775050666771125 lane=7.775050666771125
+  LOW fx_Wave_1920x1080.png                                        noise=9.995387655726802 lane=9.995387655726802
+  LOW src_metaballs_1920x1080.png                                  noise=27.65469484118027 lane=27.65469484118027
+missing on one side: []

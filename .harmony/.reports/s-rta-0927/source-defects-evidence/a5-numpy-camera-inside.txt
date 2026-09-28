@@ -1,0 +1,6 @@
+speed 0.3 rep=False: camera-inside fraction 0.01% of 0..600 s, episodes 2, longest 0.02 s
+speed 0.3 rep=True: camera-inside fraction 2.77% of 0..600 s, episodes 387, longest 0.12 s
+speed 0.0 rep=False: camera-inside fraction 0.01% of 0..600 s, episodes 2, longest 0.04 s
+speed 0.0 rep=True: camera-inside fraction 2.68% of 0..600 s, episodes 181, longest 0.18 s
+speed 1.0 rep=False: camera-inside fraction 0.00% of 0..600 s, episodes 0, longest 0.00 s
+speed 1.0 rep=True: camera-inside fraction 2.69% of 0..600 s, episodes 691, longest 0.06 s

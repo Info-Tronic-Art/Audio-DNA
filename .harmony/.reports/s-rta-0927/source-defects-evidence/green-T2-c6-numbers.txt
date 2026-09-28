@@ -1,0 +1,4 @@
+  julia_set_3d Iterations default -> 0: PSNR 43.6524
+  julia_set_3d Iterations default -> 1: PSNR 76.5032
+  mandelbulb Iterations default -> 0: PSNR 25.919
+  mandelbulb Iterations default -> 1: PSNR 51.9932

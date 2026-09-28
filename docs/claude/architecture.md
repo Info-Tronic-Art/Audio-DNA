@@ -202,7 +202,7 @@ AudioDNA/
 │   │   ├── Command.h                     # Abstract command base — DEAD: zero concrete subclasses
 │   │   └── UndoManager.h/cpp             # History stack — DEAD: perform() never called; undo/redo keys are no-ops
 │   ├── sources/                         # [P10+] Procedural sources
-│   │   ├── SourceRegistry.h/cpp          # 108 sources across 18 categories, 759 params (ground truth)
+│   │   ├── SourceRegistry.h/cpp          # 108 sources across 18 categories, 681 params (ground truth)
 │   │   ├── ProceduralSource.h/cpp        # Shader-backed source w/ ping-pong FBOs for stateful sims
 │   │   └── ProjectMSource + ProjectMPresetManager + PresetSelector.h/cpp  # MilkDrop (build-conditional on libprojectM-4)
 │   ├── media/

@@ -1,0 +1,3 @@
+  crystal_cavern 1920x1080 t=10 grazed-crystal box: 10.8096% dark
+  crystal_cavern 1920x1080 t=24 grazed-crystal box: 7.89167% dark
+All tests passed (12 assertions in 1 test case)

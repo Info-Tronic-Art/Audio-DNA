@@ -1,0 +1,12 @@
+  burning_ship 1920x1080 t=0: mean=80.1975 p99.5=217 lit=0.738861
+  burning_ship 1920x1080 t=1.13: mean=80.1975 p99.5=217 lit=0.738861
+  burning_ship 1920x1080 t=10: mean=80.1975 p99.5=217 lit=0.738861
+  burning_ship 256x256 t=0: mean=65.5881 p99.5=217 lit=0.605148
+  burning_ship 256x256 t=1.13: mean=65.5881 p99.5=217 lit=0.605148
+  burning_ship 256x256 t=10: mean=65.5881 p99.5=217 lit=0.605148
+  julia_set 1920x1080 t=0: mean=54.1939 p99.5=217 lit=0.501428
+  julia_set 1920x1080 t=1.13: mean=54.1939 p99.5=217 lit=0.501428
+  julia_set 1920x1080 t=10: mean=54.1939 p99.5=217 lit=0.501428
+  julia_set 256x256 t=0: mean=47.3387 p99.5=217 lit=0.43808
+  julia_set 256x256 t=1.13: mean=47.3387 p99.5=217 lit=0.43808
+  julia_set 256x256 t=10: mean=47.3387 p99.5=217 lit=0.43808

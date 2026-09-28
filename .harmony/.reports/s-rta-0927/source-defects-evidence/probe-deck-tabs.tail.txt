@@ -1,0 +1,5 @@
+PASS  R5 switch_deck 2 -> activeDeck == 2 (C)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/battery/deck-tabs-out/03-active-C-w0.png (window 7351)
+PASS  R6: app quit, 0 Audio-DNA windows in the FULL window list
+
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/battery/deck-tabs-out)

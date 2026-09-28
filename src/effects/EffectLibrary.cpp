@@ -512,7 +512,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Dot Field", "3d", "dot_field", {
-        {"size", "u_dotfield_size", 0.3f},
+        {"size", "u_dotfield_size", 0.7f},
         {"spacing", "u_dotfield_spacing", 0.5f},
         {"depth", "u_dotfield_depth", 0.4f}
     }});

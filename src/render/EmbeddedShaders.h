@@ -3647,7 +3647,10 @@ inline const char* dotField = R"(
         vec4 gridColor = texture(u_texture, gridPos);
         float luma = dot(gridColor.rgb, vec3(0.299, 0.587, 0.114));
         float dist = distance(v_texCoord, gridPos);
-        float dotRadius = luma * u_dotfield_size * gridSize * 0.6;
+        // depth: how strongly brightness drives dot size -- 0.4 (the default) is linear, lower = heavier contrast,
+        // higher = flatter (exponent 2.0 at 0, 0.35 at 1)
+        float lumaS = pow(luma, exp2((0.4 - u_dotfield_depth) * 2.5));
+        float dotRadius = lumaS * u_dotfield_size * gridSize * 0.6;
         float d = smoothstep(dotRadius, dotRadius - 0.001, dist);
         fragColor = vec4(gridColor.rgb * d, d);
     }
@@ -6543,6 +6546,11 @@ inline const char* sourceSierpinski = R"(
         int zoomIter = int(zoomExp * 1.5);
         int maxIter = min(baseIter + zoomIter, 20);
         bool isCarpet = u_src_mode > 0.5;
+        // Triangle: never subdivide below one pixel (Pitfall 44). Pixel centres sit (2j+1)/(2H) apart in p, so on a
+        // canvas of height H = 2^(k-1) binary digit k is 1 in BOTH coordinates for every pixel and level k marked the
+        // whole frame a hole (256x256 at the default 9 levels rendered solid black). +0.001: log2 of an exact power of
+        // two must not floor one level low.
+        if (!isCarpet) maxIter = min(maxIter, int(log2(u_resolution.y * zoomPow) + 0.001));
         float val = 1.0;
         float iterFrac = 0.0;
         if (isCarpet) {
@@ -6697,7 +6705,9 @@ inline const char* sourceMandelbulb = R"(
         vec3 z = pos;
         float dr = 1.0, r = 0.0;
         trap = 1e10;
-        for (int i = 0; i < 12; i++) {
+        int maxIt = 4 + int(u_src_iterations * 20.0);   // Iterations: 4..24, 12 at the default 0.4
+        for (int i = 0; i < 24; i++) {
+            if (i >= maxIt) break;
             r = length(z);
             if (r > 2.0) break;
             trap = min(trap, length(z));
@@ -7188,7 +7198,9 @@ inline const char* sourceJuliaSet3D = R"(
         vec4 z = vec4(pos, 0.0);
         float dz = 1.0;
         trap = 1e10;
-        for (int i = 0; i < 10; i++) {
+        int maxIt = 2 + int(u_src_iterations * 20.0);   // Iterations: 2..22, 10 at the default 0.4
+        for (int i = 0; i < 22; i++) {
+            if (i >= maxIt) break;
             dz = 2.0 * length(z) * dz;
             z = qmul(z, z) + c;
             trap = min(trap, length(z.xyz));
@@ -7544,8 +7556,10 @@ inline const char* sourceNewton3D = R"(
         float damp = 0.5 + u_src_damping * 1.0;
         float heightScale = 0.2 + u_src_height * 1.5;
         float autoSpeed = (u_src_speed - 0.5) * 2.0;
-        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed + 0.3;
-        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        // A heightfield: the camera must stay ABOVE it (Pitfall 43). Auto-rotation orbits around the landscape
+        // (yaw only); tumbling the pitch too took the camera under the floor ~half of every cycle (black).
+        float rx = u_src_rotation_x * 6.28318 + 0.3;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed;
         mat3 rot = rotY(ry) * rotX(rx);
         float camDist = mix(5.0, 0.3, u_src_zoom);
         vec3 ro = rot * vec3(0, 1.5, camDist);
@@ -9072,6 +9086,10 @@ inline const char* sourceCrystalCavern = R"(
     float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
 
     float caveDE(vec3 p, float crystalSize) {
+        // Endless cave: the folded cluster spans |z| < ~1 and the camera flies along +z, so repeat it every 2.4
+        // along z (it used to END: black forever after ~2.3 s at the default Speed). The cluster sits inside its
+        // cell, so the repeated DE stays a valid bound.
+        p.z = mod(p.z + 1.2, 2.4) - 1.2;
         // Menger-like folded cave
         float scale = mix(1.5, 3.0, crystalSize);
         int iters = int(u_src_complexity * 4.0) + 2;
@@ -9103,10 +9121,20 @@ inline const char* sourceCrystalCavern = R"(
         float totalDist = 0.0;
         vec3 col = vec3(0.0);
         float crystalSize = u_src_crystal_size;
+        // Flying through the repeated cave the camera brushes past crystals and passes through thin ones: a crystal
+        // turns see-through as it nears the camera (fully drawn from 0.08 away), and the ray goes on through it to
+        // what lies behind. Never a flat frame (camera inside a crystal) and never a crystal cut open by a clip.
+        float trans = 1.0;      // how much of what lies further along the ray still shows
+        bool inside = false;    // passing through a crystal that was drawn see-through
 
         for (int i = 0; i < 80; i++) {
             vec3 p = ro + rd * totalDist;
             float d = caveDE(p, crystalSize);
+            if (inside) {
+                if (d >= 0.002) inside = false;
+                totalDist += max(abs(d), 0.004);
+                continue;
+            }
             if (d < 0.002) {
                 // Normal via gradient
                 vec2 e = vec2(0.001, 0.0);
@@ -9121,12 +9149,18 @@ inline const char* sourceCrystalCavern = R"(
                 float spec = pow(max(dot(reflect(rd, n), lightDir), 0.0), 16.0 + u_src_reflectivity * 48.0);
                 float hue = u_src_light_color;
                 vec3 lightCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
-                col = lightCol * (diff * 0.6 + spec * u_src_reflectivity + 0.1);
+                vec3 c = lightCol * (diff * 0.6 + spec * u_src_reflectivity + 0.1);
                 // Fog
                 float fog = exp(-totalDist * (0.1 + u_src_fog * 0.5));
-                col *= fog;
-                col *= 0.8 + u_bass * 0.4;
-                break;
+                c *= fog;
+                c *= 0.8 + u_bass * 0.4;
+                float w = smoothstep(0.0, 0.08, totalDist);
+                col += trans * w * c;
+                trans *= 1.0 - w;
+                if (trans < 0.01) break;
+                inside = true;
+                totalDist += 0.004;
+                continue;
             }
             totalDist += d;
             if (totalDist > 20.0) break;

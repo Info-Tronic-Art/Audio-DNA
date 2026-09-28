@@ -1,0 +1,125 @@
+before.sh finished (19:23:00)
+LOCK: acquired 19:24:20
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/after/Audio-DNA.app (19:24:20)
+app up: pids 98379 (19:24:23)
+sources: 108  health: {'status': 'ready', 'gl_version': '4.1', 'fps': 119.80815887451172, 'effects_count': 135}
+composition_params: {'masterOpacity': 1.0, 'masterSpeed': 1.0, 'outputWidth': 1920, 'outputHeight': 1080, 'decks': [{'deck': 0, 'layers': [{'layer': 0, 'clips': []}, {'layer': 1, 'clips': []}, {'layer': 2, 'clips': []}]}]}
+julia_set defaults: {'u_src_dive_speed': 0.0, 'u_src_location': 0.0, 'u_src_cx': 0.200000002980232, 'u_src_cy': 0.634999990463257, 'u_src_zoom': 0.100000001490116, 'u_src_iterations': 0.300000011920929, 'u_src_color_speed': 0.300000011920929, 'u_src_color_shift': 0.0, 'u_src_palette': 0.600000023841858}
+ROW julia_set                      256x256 t=0     mean=47.34 p99.5=217 lit=43.81% sd=99.8 visible=True
+ROW julia_set                      256x256 t=1.13  mean=47.34 p99.5=217 lit=43.81% sd=99.8 visible=True
+ROW julia_set                      256x256 t=10    mean=47.34 p99.5=217 lit=43.81% sd=99.8 visible=True
+ROW julia_set                      1920x1080 t=0     mean=54.19 p99.5=217 lit=50.14% sd=100.7 visible=True
+ROW julia_set                      1920x1080 t=1.13  mean=54.19 p99.5=217 lit=50.14% sd=100.7 visible=True
+ROW julia_set                      1920x1080 t=10    mean=54.19 p99.5=217 lit=50.14% sd=100.7 visible=True
+burning_ship defaults: {'u_src_dive_speed': 0.0, 'u_src_location': 0.0, 'u_src_center_x': 0.5, 'u_src_center_y': 0.5, 'u_src_zoom': 0.0, 'u_src_iterations': 0.300000011920929, 'u_src_color_speed': 0.300000011920929, 'u_src_color_shift': 0.0, 'u_src_palette': 0.600000023841858}
+ROW burning_ship                   256x256 t=0     mean=65.59 p99.5=217 lit=60.51% sd=95.3 visible=True
+ROW burning_ship                   256x256 t=1.13  mean=65.59 p99.5=217 lit=60.51% sd=95.3 visible=True
+ROW burning_ship                   256x256 t=10    mean=65.59 p99.5=217 lit=60.51% sd=95.3 visible=True
+ROW burning_ship                   1920x1080 t=0     mean=80.20 p99.5=217 lit=73.89% sd=85.1 visible=True
+ROW burning_ship                   1920x1080 t=1.13  mean=80.20 p99.5=217 lit=73.89% sd=85.1 visible=True
+ROW burning_ship                   1920x1080 t=10    mean=80.20 p99.5=217 lit=73.89% sd=85.1 visible=True
+newton_3d defaults: {'u_src_power': 0.200000002980232, 'u_src_rotation_x': 0.0, 'u_src_rotation_y': 0.550000011920929, 'u_src_zoom': 0.300000011920929, 'u_src_speed': 0.550000011920929, 'u_src_damping': 0.5, 'u_src_height': 0.5, 'u_src_color_shift': 0.0, 'u_src_trail_dist': 0.0, 'u_src_trail_fade': 0.5, 'u_src_feedback': 0.0, 'u_src_palette': 0.600000023841858}
+ROW newton_3d                      256x256 t=0     mean=45.93 p99.5=200 lit=65.48% sd=66.0 visible=True
+ROW newton_3d                      256x256 t=1     mean=45.97 p99.5=198 lit=65.51% sd=65.9 visible=True
+ROW newton_3d                      256x256 t=1.13  mean=46.03 p99.5=200 lit=65.54% sd=66.0 visible=True
+ROW newton_3d                      256x256 t=30    mean=48.15 p99.5=200 lit=67.64% sd=65.4 visible=True
+ROW newton_3d                      256x256 t=45    mean=46.07 p99.5=200 lit=65.55% sd=66.4 visible=True
+ROW newton_3d                      1920x1080 t=0     mean=46.60 p99.5=193 lit=65.78% sd=66.0 visible=True
+ROW newton_3d                      1920x1080 t=1     mean=46.94 p99.5=193 lit=66.12% sd=65.9 visible=True
+ROW newton_3d                      1920x1080 t=1.13  mean=46.95 p99.5=193 lit=66.14% sd=65.9 visible=True
+ROW newton_3d                      1920x1080 t=30    mean=46.09 p99.5=200 lit=64.22% sd=67.1 visible=True
+ROW newton_3d                      1920x1080 t=45    mean=46.79 p99.5=200 lit=66.12% sd=66.4 visible=True
+sierpinski defaults: {'u_src_dive_speed': 0.0, 'u_src_mode': 0.0, 'u_src_zoom': 0.0, 'u_src_iterations': 0.5, 'u_src_rotation': 0.5, 'u_src_color_shift': 0.0, 'u_src_palette': 0.600000023841858}
+ROW sierpinski                     256x256 t=1.13  mean=10.35 p99.5=204 lit=10.01% sd=61.2 visible=True
+ROW sierpinski                     512x512 t=1.13  mean=7.76 p99.5=204 lit=7.51% sd=53.8 visible=True
+ROW sierpinski                     1024x1024 t=1.13  mean=7.76 p99.5=204 lit=7.51% sd=53.8 visible=True
+ROW sierpinski                     1920x1080 t=1.13  mean=7.93 p99.5=204 lit=7.68% sd=54.3 visible=True
+ROW sierpinski      _iter0.75      1024x1024 t=1.13  mean=5.82 p99.5=204 lit=5.63% sd=47.0 visible=True
+ROW sierpinski      _iter0.75      1920x1080 t=1.13  mean=5.93 p99.5=204 lit=5.74% sd=47.4 visible=True
+
+== A5 crystal_cavern diagnosis: explicit defaults, lit% by time (prediction: onset 2.0-3.0 s at Speed 0.3, 4-6 s at Speed 0.0)
+crystal_cavern defaults: {'u_src_speed': 0.300000011920929, 'u_src_crystal_size': 0.5, 'u_src_reflectivity': 0.5, 'u_src_light_color': 0.0, 'u_src_fog': 0.300000011920929, 'u_src_complexity': 0.5}
+ROW crystal_cavern                 256x256 t=0     mean=11.12 p99.5=119 lit=80.79% sd=17.3 visible=True
+ROW crystal_cavern                 256x256 t=0.5   mean=11.01 p99.5=118 lit=78.74% sd=17.8 visible=True
+ROW crystal_cavern                 256x256 t=1     mean=11.52 p99.5=128 lit=71.09% sd=19.8 visible=True
+ROW crystal_cavern                 256x256 t=1.5   mean=12.14 p99.5=125 lit=67.36% sd=20.9 visible=True
+ROW crystal_cavern                 256x256 t=2     mean=12.12 p99.5=123 lit=63.22% sd=21.7 visible=True
+ROW crystal_cavern                 256x256 t=2.5   mean=13.95 p99.5=126 lit=72.68% sd=25.0 visible=True
+ROW crystal_cavern                 256x256 t=3     mean=17.29 p99.5=145 lit=81.78% sd=31.3 visible=True
+ROW crystal_cavern                 256x256 t=4     mean=21.90 p99.5=156 lit=84.42% sd=37.4 visible=True
+ROW crystal_cavern                 256x256 t=5     mean=25.61 p99.5=161 lit=87.15% sd=40.4 visible=True
+ROW crystal_cavern                 256x256 t=10    mean=28.73 p99.5=169 lit=83.37% sd=43.5 visible=True
+ROW crystal_cavern                 256x256 t=30    mean=7.07 p99.5=102 lit=35.51% sd=18.0 visible=True
+ROW crystal_cavern                 256x256 t=60    mean=18.10 p99.5=147 lit=83.69% sd=33.4 visible=True
+ROW crystal_cavern  _speed0        256x256 t=0     mean=11.12 p99.5=119 lit=80.79% sd=17.3 visible=True
+ROW crystal_cavern  _speed0        256x256 t=3     mean=11.78 p99.5=120 lit=66.89% sd=19.8 visible=True
+ROW crystal_cavern  _speed0        256x256 t=4     mean=14.10 p99.5=137 lit=65.05% sd=27.4 visible=True
+ROW crystal_cavern  _speed0        256x256 t=5     mean=12.81 p99.5=119 lit=65.33% sd=22.9 visible=True
+ROW crystal_cavern  _speed0        256x256 t=6     mean=15.58 p99.5=135 lit=77.28% sd=28.4 visible=True
+ROW crystal_cavern  _speed0        256x256 t=8     mean=20.17 p99.5=152 lit=83.23% sd=35.7 visible=True
+ROW crystal_cavern                 1920x1080 t=1     mean=11.79 p99.5=129 lit=73.18% sd=21.8 visible=True
+ROW crystal_cavern                 1920x1080 t=5     mean=26.58 p99.5=164 lit=87.25% sd=41.7 visible=True
+ROW crystal_cavern                 1920x1080 t=10    mean=25.03 p99.5=162 lit=81.21% sd=42.2 visible=True
+
+== Dot Field on the test card (legacy effect chain via set_effect; /api/reset restores the registered defaults)
+FX  none                      256x256 mean=54.07 p99.5=213 lit=41.12% sd=75.0
+FX  Invert                    256x256 mean=100.33 p99.5=178 lit=68.36% sd=73.3
+    Pitfall-28 check: Invert vs none PSNR=7.5 (finite = render_frame applies the chain)
+FX  Dot Field    _default     256x256 mean=11.44 p99.5=211 lit=7.15% sd=43.0
+FX  Dot Field    _depth0      256x256 mean=5.48 p99.5=210 lit=3.32% sd=30.9
+FX  Dot Field    _depth1      256x256 mean=19.73 p99.5=212 lit=13.14% sd=53.9
+FX  Dot Field    _size1       256x256 mean=24.02 p99.5=214 lit=14.60% sd=60.2
+    Dot Field 256x256: PSNR(default, depth 0)=18.6 PSNR(default, depth 1)=17.4 PSNR(default, size 1)=14.9
+FX  none                      1920x1080 mean=64.79 p99.5=214 lit=49.32% sd=77.5
+FX  Invert                    1920x1080 mean=120.24 p99.5=178 lit=81.93% sd=63.5
+    Pitfall-28 check: Invert vs none PSNR=6.8 (finite = render_frame applies the chain)
+FX  Dot Field    _default     1920x1080 mean=13.64 p99.5=212 lit=8.51% sd=46.6
+FX  Dot Field    _depth0      1920x1080 mean=6.51 p99.5=210 lit=3.96% sd=33.6
+FX  Dot Field    _depth1      1920x1080 mean=23.54 p99.5=213 lit=15.77% sd=58.0
+FX  Dot Field    _size1       1920x1080 mean=28.87 p99.5=214 lit=17.61% sd=64.9
+    Dot Field 1920x1080: PSNR(default, depth 0)=17.8 PSNR(default, depth 1)=16.7 PSNR(default, size 1)=14.1
+
+== twisted_torus / torus family registered params
+PARAMS twisted_torus        n=5: ['Twist', 'Stripe Count', 'Speed', 'Tube Radius', 'Color Shift']
+PARAMS striped_torus        n=5: ['Stripe Count', 'Twist', 'Speed', 'Tube Radius', 'Color Shift']
+PARAMS spiral_vortex        n=4: ['Twist', 'Stripe Count', 'Speed', 'Color Shift']
+PARAMS checker_torus        n=4: ['Grid U', 'Grid V', 'Speed', 'Color Shift']
+PARAMS ribbed_vortex        n=4: ['Ridge Count', 'Color Mix', 'Speed', 'Color Shift']
+PARAMS wormhole_tunnel      n=2: ['Speed', 'Color Shift']
+PARAMS wormhole             n=3: ['Glow', 'Speed', 'Color Shift']
+PARAMS torus_hole           n=19: ['Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Stripe Count', 'Twist', 'Stripe Angle', 'Stripe Scale', 'Stripe Width', 'Phi Offset', 'Theta Offset', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+PARAMS mandelbulb           n=15: ['Power', 'Iterations', 'Angle X', 'Angle Y', 'Zoom', 'Speed', 'Color Shift', 'Cross Section', 'Slice Count', 'Glow', 'Trail Distance', 'Trail Fade', 'Slice Distance', 'Feedback', 'Palette']
+PARAMS newton_3d            n=12: ['Power', 'Angle X', 'Angle Y', 'Zoom', 'Speed', 'Damping', 'Height', 'Color Shift', 'Trail Distance', 'Trail Fade', 'Feedback', 'Palette']
+PARAMS band_tower           n=3: ['Spacing', 'Reflection', 'Color Mode']
+PARAMS structural_landscape n=4: ['Terrain Scale', 'Drama', 'Color Palette', 'Fog']
+PARAMS julia_set_3d         n=17: ['Location', 'C Real', 'C Imaginary', 'Angle X', 'Angle Y', 'Zoom', 'Speed', 'Iterations', 'Color Shift', 'Cross Section', 'Slice Count', 'Glow', 'Trail Distance', 'Trail Fade', 'Slice Distance', 'Feedback', 'Palette']
+TOTAL source params: 681 sources: 108
+t3 done; rows: 61
+--- script rc=0 (19:24:42)
+after quit: running=no (19:24:43)
+LOCK: released 19:24:43
+gap: sleeping 45 s
+LOCK: acquired 19:46:10
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/after/Audio-DNA.app (19:46:10)
+app up: pids 7777 (19:46:15)
+sources: 108 effects: 135 19:46:15
+sources done 19:47:04
+t4 done 19:48:59
+--- script rc=0 (19:48:59)
+after quit: running=no (19:49:01)
+LOCK: released 19:49:01
+gap: sleeping 45 s
+LOCK: acquired 19:59:48
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/hookbase/Audio-DNA.app (19:59:48)
+env: AUDIODNA_TMP_SHOT=make:twisted_torus:/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/old_comp.json
+app up: pids 18685 (19:59:54)
+window 7152 'Audio-DNA' 1728 x 1079 onscreen True
+window 7153 None 0 x 0 onscreen None
+captured window 7152 3456 x 2158 -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/runs/shot-before/before_window.png 
+composition_params: {"masterOpacity": 1.0, "masterSpeed": 1.0, "outputWidth": 1920, "outputHeight": 1080, "decks": [{"deck": 0, "layers": [{"layer": 0, "clips": [{"column": 0, "clipOpacity": 1.0}]}, {"layer": 1, "clips": []}, {"layer": 2, "clips": []}]}]}
+preview render: mean=0.00 p99.5=0 lit=0.00% sd=0.0
+saved file clip L0 C0 twisted_torus: 14 params ['Twist', 'Stripe Count', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+--- script rc=0 (20:00:03)
+after quit: running=no (20:00:05)
+LOCK: released 20:00:05
+gap: sleeping 45 s

@@ -1,0 +1,545 @@
+Randomness seeded to: 642112412
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_source_defaults_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+julia_set draws a picture at its registered defaults
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:275
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  julia_set 256x256 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  julia_set 256x256 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  julia_set 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  julia_set 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  julia_set 256x256 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  julia_set 256x256 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  julia_set 1920x1080 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  julia_set 1920x1080 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  julia_set 1920x1080 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  julia_set 1920x1080 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  julia_set 1920x1080 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  julia_set 1920x1080 t=10: mean=0 p99.5=0 lit=0
+
+-------------------------------------------------------------------------------
+burning_ship draws a picture at its registered defaults
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:285
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  burning_ship 256x256 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  burning_ship 256x256 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  burning_ship 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  burning_ship 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  burning_ship 256x256 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  burning_ship 256x256 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  burning_ship 1920x1080 t=0: mean=0.397104 p99.5=0 lit=0.00366368
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.00366367669753086 >= 0.05
+with message:
+  burning_ship 1920x1080 t=0: mean=0.397104 p99.5=0 lit=0.00366368
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  burning_ship 1920x1080 t=1.13: mean=0.397104 p99.5=0 lit=0.00366368
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.00366367669753086 >= 0.05
+with message:
+  burning_ship 1920x1080 t=1.13: mean=0.397104 p99.5=0 lit=0.00366368
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  burning_ship 1920x1080 t=10: mean=0.397104 p99.5=0 lit=0.00366368
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.00366367669753086 >= 0.05
+with message:
+  burning_ship 1920x1080 t=10: mean=0.397104 p99.5=0 lit=0.00366368
+
+-------------------------------------------------------------------------------
+newton_3d draws a picture at its registered defaults and keeps it while auto-
+rotating
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:296
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 256x256 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 256x256 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 1920x1080 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 1920x1080 t=0: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  newton_3d 1920x1080 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  newton_3d 1920x1080 t=1.13: mean=0 p99.5=0 lit=0
+
+-------------------------------------------------------------------------------
+sierpinski draws a picture on power-of-two canvases
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:308
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  sierpinski 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  sierpinski 256x256 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  sierpinski iter 0.75 1024x1024 t=1.13: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  sierpinski iter 0.75 1024x1024 t=1.13: mean=0 p99.5=0 lit=0
+
+-------------------------------------------------------------------------------
+crystal_cavern keeps drawing the cave as the camera flies
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:323
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 256x256 t=5: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 256x256 t=5: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 256x256 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 256x256 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 256x256 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 256x256 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 256x256 t=60: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 256x256 t=60: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 1920x1080 t=5: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 1920x1080 t=5: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 1920x1080 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 1920x1080 t=10: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 1920x1080 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 1920x1080 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern 1920x1080 t=60: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern 1920x1080 t=60: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern speed 0 256x256 t=5: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern speed 0 256x256 t=5: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern speed 0 256x256 t=8: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern speed 0 256x256 t=8: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:267: FAILED:
+  CHECK( s.p995 >= 16.0 )
+with expansion:
+  0.0 >= 16.0
+with message:
+  crystal_cavern speed 0 256x256 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:268: FAILED:
+  CHECK( s.lit >= 0.05 )
+with expansion:
+  0.0 >= 0.05
+with message:
+  crystal_cavern speed 0 256x256 t=30: mean=0 p99.5=0 lit=0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:347: FAILED:
+  CHECK( black == 0 )
+with expansion:
+  358 (0x166) == 0
+with message:
+  96x54 sweep 0..20 s step 0.05: 358 black, 0 flat frames; t=2.15(black lit=0
+  sd=0) t=2.2(black lit=0 sd=0) t=2.25(black lit=0 sd=0) t=2.3(black lit=0 sd=
+  0) t=2.35(black lit=0 sd=0) t=2.4(black lit=0 sd=0) t=2.45(black lit=0 sd=0)
+  t=2.5(black lit=0 sd=0) t=2.55(black lit=0 sd=0) t=2.6(black lit=0 sd=0) t=2.
+  65(black lit=0 sd=0) t=2.7(black lit=0 sd=0)
+
+-------------------------------------------------------------------------------
+Dot Field is visible at its registered defaults and every control changes the
+picture
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:379
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:389: FAILED:
+  CHECK( s.mean >= 5.0 )
+with expansion:
+  1.65179443359375 >= 5.0
+with message:
+  Dot Field 256x256 defaults: mean=1.65179 p99.5=203 lit=0.0150299
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:396: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with messages:
+  Dot Field 256x256 defaults: mean=1.65179 p99.5=203 lit=0.0150299
+  Dot Field 256x256 'depth' 0.4 -> 0: PSNR 1e+09
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:396: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with messages:
+  Dot Field 256x256 defaults: mean=1.65179 p99.5=203 lit=0.0150299
+  Dot Field 256x256 'depth' 0.4 -> 1: PSNR 1e+09
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:389: FAILED:
+  CHECK( s.mean >= 5.0 )
+with expansion:
+  1.65519772376543206 >= 5.0
+with message:
+  Dot Field 1920x1080 defaults: mean=1.6552 p99.5=203 lit=0.0149851
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:396: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with messages:
+  Dot Field 1920x1080 defaults: mean=1.6552 p99.5=203 lit=0.0149851
+  Dot Field 1920x1080 'depth' 0.4 -> 0: PSNR 1e+09
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:396: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with messages:
+  Dot Field 1920x1080 defaults: mean=1.6552 p99.5=203 lit=0.0149851
+  Dot Field 1920x1080 'depth' 0.4 -> 1: PSNR 1e+09
+
+-------------------------------------------------------------------------------
+mandelbulb and julia_set_3d Iterations change the picture
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:404
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:417: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with message:
+  mandelbulb Iterations default -> 0: PSNR 1e+09
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:417: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with message:
+  mandelbulb Iterations default -> 1: PSNR 1e+09
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:417: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with message:
+  julia_set_3d Iterations default -> 0: PSNR 1e+09
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:417: FAILED:
+  CHECK( q < 55.0 )
+with expansion:
+  1000000000.0 < 55.0
+with message:
+  julia_set_3d Iterations default -> 1: PSNR 1e+09
+
+===============================================================================
+test cases:    7 |    0 passed |  7 failed
+assertions: 1530 | 1461 passed | 69 failed
+
