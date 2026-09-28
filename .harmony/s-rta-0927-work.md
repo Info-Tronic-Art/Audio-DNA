@@ -224,3 +224,11 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   params drop their connections on load (informational). Merged -> f630336 (tests/CMakeLists append-only conflict
   resolved: HEAD + lane block). Rebuild OK; ctest 774/774. Battery running (b0x25v8yc). W10 removed.
 - 22:21 source-defects gate GREEN on main f630336: all 17 probes 0 FAIL, tempo GREEN (bpm 120); ctest 774/774. Pushed.
+- 22:31 BORIS: "finish current tasks then start eos". No new work. Finishing: followups lane (W11), tempo0-diag; then the deferred quiet perf rows (canvas c_perf_1080/4k, fitmode f_perf) and EOS (eos-secondary).
+- 00:07 tempo0-diag DONE (.harmony/.reports/s-rta-0927/tempo0-diag.md): ANOMALY EXPLAINED — a PRE-EXISTING race (not the beat
+  clock: 2/20 post vs 2/14 pre, Fisher p=1.0; a 2026-09-26 take already shows it): /api/set_bpm is applied on the
+  analysis thread's next pass (~10.7 ms); a Record that arms first reads bpm 0 into the take's start entry (4/34 = 12%)
+  and 26% of takes get an unknown bar grid (startBeatInBar not captured). Scripted/remote clients only (REST/OSC/MIDI
+  pad bound to both). Replay timing ~unaffected; routine cutting from beat 0 / "bars 1..N" is REFUSED. Fix A proposed
+  (Record t=0 waits two analysis hops, first tick sets startBeatInBar; RecorderHost gate + 50 ms fallback) -> NEXT
+  SESSION (Boris: no new work). Also found: TempoMap::sampleAt wrong on short takes (older defect). W12 removed.

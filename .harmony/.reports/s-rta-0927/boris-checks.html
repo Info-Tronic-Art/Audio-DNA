@@ -41,19 +41,39 @@ Neither can be undone. Both have a tooltip now, but a tooltip only shows if you 
 <figure><img src="routine-display-shots/crop-after-13-restart-pending-routines-row.png"><figcaption>Pad 1 with the restart mark</figcaption></figure>
 <div class="q">Visible enough from where you stand? <span class="def">Default: as is.</span></div>
 
-<h2>5. Projector output (part 1 built: one display at a time)</h2>
-<p>No test ever opens the output window on your screens, so these need you, the app and a second display:</p>
+<h2>5. Projector output — all three parts built (any number of displays)</h2>
+<p>No test ever opens an output window on your screens, so these need you, the app and a second display:</p>
 <ol>
-  <li>Plug in a second display. Output menu, pick it. It shows exactly what the lower-left preview shows, same black bars, sharp, right size.</li>
-  <li>Turn it off. Nothing stays on any screen.</li>
-  <li>Click on the output picture, then use your usual keys (clip keys, Cmd+F, the menu). They all still work. The picture never takes the keyboard.</li>
-  <li>With the output on, open the big signal bar (the preview hides). The projector keeps the last picture, frozen. Close the bar and it moves again. Same when you minimise the app.</li>
-  <li>Quit with the output open (Cmd+Q). Every screen is clean.</li>
-  <li>Top edge of the projector: do you see a see-through menu-bar strip? If yes, System Settings &gt; Control Center &gt; "Automatically hide and show the menu bar: Always" removes it.</li>
-  <li>Laptop at 120 Hz and projector at 60 Hz, fast motion: smooth, no stutter, no horizontal tear line.</li>
-  <li>TopBar fps with the output on vs off: the cost in your own numbers.</li>
+  <li>Plug in a second display. Output menu (or the TopBar <b>Outputs: Off</b> button — same list): tick <b>Display 2 (…)</b>. It shows exactly what the lower-left preview shows, same black bars, sharp, right size. The TopBar now reads <b>Outputs: 1</b>.</li>
+  <li>Untick it, or pick <b>All Outputs Off</b>: it disappears and nothing stays on any screen.</li>
+  <li>Tick <b>Display 1 (…, main)</b> — the laptop. The picture covers the app. <b>Cmd+`</b> (the key under Esc) brings the app back on top; <b>Cmd+Shift+Esc</b> closes every output. <b>Plain Esc no longer closes outputs</b> (muscle-memory change).</li>
+  <li>With the picture covering the laptop, click on it, then use your usual keys (clip keys, Cmd+F, the menu). They all still work — the picture never takes the keyboard. Cmd+F now toggles the laptop-screen output only.</li>
+  <li>Pull the projector cable while it plays: the picture is gone within a blink, nothing black stays anywhere. Plug it back: it returns on the projector by itself. Change the projector's resolution while it plays: it stays, resized.</li>
+  <li>With an output on, open the big signal bar (the preview hides): the projector keeps the last picture, frozen; close the bar and it moves again. Same when you minimise.</li>
+  <li>Quit with outputs on (Cmd+Q): every screen clean. Launch again: <b>nothing opens by itself</b>; Output &gt; <b>Restore Last Outputs</b> brings the set back with one click (greyed when nothing saved is connected). Unticking a display makes the app forget it for Restore — quit with outputs ON to keep them.</li>
+  <li>Top edge of the projector: a see-through menu-bar strip? If yes: System Settings &gt; Control Center &gt; "Automatically hide and show the menu bar: Always".</li>
+  <li>Laptop 120 Hz + projector 60 Hz, fast motion: smooth, no tear line. TopBar fps with 1, 2, 3 outputs: the cost in your own numbers.</li>
 </ol>
-<p class="sub">Part 2 (any number of displays, a tick per display in the Output menu, Cmd+Shift+Esc closes all) is being built now. Part 3 (unplug/replug, "Restore Last Outputs") follows.</p>
+
+<h2>6. Routines after a freeze — catch up or skip?</h2>
+<p>Routines no longer drift late after the app hiccups (fixed today). If the app freezes for a moment while a routine plays, the moves it missed now all fire at once when it resumes, so the look is right again straight away.</p>
+<div class="q">Catch up (fire the missed moves at once) or skip them? <span class="def">Default: catch up.</span> Skipping is a one-line switch.</div>
+<p class="sub">Separate, rarer case: if the audio device itself pauses, the whole beat grid moves with it (the TopBar bar count too). Changing that is a bigger tempo-tracker decision — filed, not changed.</p>
+
+<h2>7. Sources that used to start black — new starting pictures</h2>
+<p>Julia set, Burning Ship and Newton 3D were black at their starting values; Crystal Cavern went black after ~2.5 s (the camera flew out of the cave); Sierpinski vanished at small sizes; Dot Field was nearly invisible when first added. All fixed. Please look at the new starting pictures:</p>
+<div class="row">
+  <figure><img src="source-defects-shots/pair_julia_set_1920x1080_t0.png" style="max-width:620px"><figcaption>Julia set: before / after</figcaption></figure>
+  <figure><img src="source-defects-shots/pair_burning_ship_1920x1080_t0.png" style="max-width:620px"><figcaption>Burning Ship: before / after</figcaption></figure>
+</div>
+<div class="row" style="margin-top:12px">
+  <figure><img src="source-defects-shots/pair_newton_3d_1920x1080_t30.png" style="max-width:620px"><figcaption>Newton 3D at 30 s: before / after (now orbits instead of tumbling under the floor)</figcaption></figure>
+  <figure><img src="source-defects-shots/pair_crystal_cavern_256x256_t10.png" style="max-width:520px"><figcaption>Crystal Cavern at 10 s: before / after (an endless cave)</figcaption></figure>
+</div>
+<div class="q">Do these read as good starting points? <span class="def">Default: as built.</span> Crystal Cavern now looks like "a wall of glossy balls" to one critic — keep, or rework the look later? It also costs ~5 ms per frame at 1080p (was ~3 ms while it showed nothing).</div>
+<div class="q">78 knobs that did nothing were removed (e.g. 70 "torus" knobs on 7 sources where only one source used them). Keep them removed, or make them work later? <span class="def">Default: removed.</span> Old compositions still open.</div>
+<div class="q">Dot Field "depth" now does something (a brightness-contrast control) instead of nothing. OK? <span class="def">Default: yes.</span></div>
+<div class="q">Knobs like Thickness / Count / Size at 0 still draw nothing (legitimate). Keep "0 = nothing", or force a minimum? <span class="def">Default: keep.</span></div>
 
 <h2>Still open from earlier (defaults in force)</h2>
 <ul>

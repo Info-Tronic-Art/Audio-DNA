@@ -1966,3 +1966,26 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
   settings.json was created and deleted within the run, leaving an empty `~/Library/Audio-DNA/`, removed). Guard a
   write with REQUIRE on the path first, and sandbox `defaultFile()` in every mutant copy.
 **Valid while:** AppSettings owns settings.json and appSettingsFile() routes test mode through testModeFile.
+
+## s-rta-0927 (Harmony main loop) — methods worth repeating
+- **Never SendMessage a RUNNING workflow agent.** It does not deliver into the running agent: it resumes a SECOND,
+  concurrent executor from the same transcript (same agentId) — two writers on one worktree (lane O: two fix
+  executors committed on one branch). TaskStop on that id then kills the WORKFLOW copy, leaving the resumed copy (which
+  may never have seen the message) as the writer. Standalone Agent-tool agents are different: a SendMessage is QUEUED
+  and drained at their next tool round (safe). To steer a workflow stage: put it in the NEXT stage's prompt, or stop the
+  workflow and resume from an edited script.
+- **Live-lock fairness.** A lane that re-acquires /tmp/audiodna-live.lock right after releasing starves every 20 s poller
+  (waits of 40-60 min observed). Rule now in every packet: wait >= 45 s after releasing before re-acquiring.
+- **Perf rows must not wait while holding the lock.** probe-canvas c_perf_* and probe-fitmode f_perf wait up to 30-60 min
+  for no clang while holding the live lock. While lanes compile, run canvas/fitmode with their row filter (2nd .sh arg =
+  comma list of rows, perf rows omitted) and run the perf rows at a quiet moment.
+- **A refutation needs power.** At a ~5% per-attempt race, 3 OK samples refute nothing; a 1-in-3-runs flake needs >= 5 runs
+  per arm before calling a regression or a theory refuted (s-rta-0927: keep-alive race wrongly "refuted", then proven by a
+  server-side log).
+- **Before calling a picture wrong, look at the input.** probe fixture B (media/P16_02_Screen_Split_2x2.png) is itself a
+  2x2 grid on a #0F0F0F frame — a render_frame of B looks like a tiling bug and is not.
+- **tests/CMakeLists.txt merge conflicts are usually two lanes appending at EOF.** Resolve = HEAD's file + the other lane's
+  appended block from `git diff $(git merge-base HEAD lane) lane -- tests/CMakeLists.txt` (check the diff has no `-`
+  lines first); never hand-merge the interleaved hunks.
+- **Probe HTTP clients use Connection: close.** cpp-httplib closes a keep-alive connection idle for 5 s and drains + drops a
+  request that lands in that instant (RemoteDisconnected); requests never retries it (c1-state-fix.md).
