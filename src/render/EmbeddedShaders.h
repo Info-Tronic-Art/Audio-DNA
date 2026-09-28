@@ -2964,7 +2964,7 @@ inline const char* sourceMandelbrot = R"(
                 z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
             } else {
                 float r = length(z);
-                float theta = atan(z.y, z.x);
+                float theta = (dot(z, z) == 0.0) ? 0.0 : atan(z.y, z.x);   // atan(0, 0) is NaN here; 0^p = 0 -> z = c
                 float rn = pow(r, power);
                 z = rn * vec2(cos(power * theta), sin(power * theta)) + c;
             }
@@ -5975,7 +5975,7 @@ inline const char* sourceLissajous = R"(
         float rx = float(int(u_src_ratio_x * 7.0) + 1);
         float ry = float(int(u_src_ratio_y * 7.0) + 1);
         float ph = u_src_phase * 6.28318 + u_time * u_src_speed * 0.5;
-        float thick = 0.005 + u_src_thickness * 0.03;
+        float thick = max(0.005 + u_src_thickness * 0.03, 0.01 + u_src_thickness * 0.01);   // floor: Thickness 0 visible; as before from 0.25
         float minDist = 100.0;
         for (int i = 0; i < 200; i++) {
             float t = float(i) / 200.0 * 6.28318;
@@ -6009,7 +6009,7 @@ inline const char* sourceSpirograph = R"(
         float R = 0.6;
         float r = 0.1 + u_src_inner * 0.4;
         float d = 0.1 + u_src_offset * 0.5;
-        float thick = 0.004 + u_src_thickness * 0.02;
+        float thick = max(0.004 + u_src_thickness * 0.02, 0.0085 + u_src_thickness * 0.002);   // floor: Thickness 0 visible; as before from 0.25
         float phase = u_time * u_src_speed * 0.3;
         float minDist = 100.0;
         for (int i = 0; i < 300; i++) {
@@ -6463,7 +6463,7 @@ inline const char* sourceNewtonFractal = R"(
         uv = uv / zoom + nCenter;
         // Power: 3 to 8 with quadratic sensitivity
         float rawPow = u_src_power;
-        int n = int(rawPow * rawPow * 5.0) + 3;
+        int n = int(min(rawPow * rawPow * 5.0, 3.0)) + 3;   // n <= 6: 7-8 overflow near the pole
         float damp = 0.5 + u_src_damping * 1.0;
         vec2 z = uv;
         int maxIter = 50 + int(zoomExp * 6.0);
@@ -6754,7 +6754,7 @@ inline const char* sourceMandelbulb = R"(
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
 
         // Cross-section: single or multi-slice
-        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        float sliceZ = (u_src_slice - 0.5) * 1.4;   // ends inside the object (s-rta-0928)
         bool useSlice = abs(u_src_slice - 0.5) > 0.01;
         int sliceCount = int(u_src_slice_count * 4.0) + 1;
         float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
@@ -6915,7 +6915,7 @@ inline const char* sourceMengerSponge = R"(
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
 
-        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        float sliceZ = (u_src_slice - 0.5) * 2.0;   // ends inside the object (s-rta-0928)
         bool useSlice = abs(u_src_slice - 0.5) > 0.01;
         int sliceCount = int(u_src_slice_count * 4.0) + 1;
         float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
@@ -7060,7 +7060,7 @@ inline const char* sourceKIFS = R"(
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
         float sc = 1.5 + u_src_scale * 2.0;
-        int iters = int(u_src_iterations * 10.0) + 3;
+        int iters = max(int(u_src_iterations * 10.0) + 3, int(u_src_iterations * 5.0) + 5);   // >= 5 folds; 7 at 0.4 as before
         float foldType = u_src_fold_type;
         float off = u_src_offset;
         float autoSpeed = (u_src_speed - 0.5) * 2.0;
@@ -7255,7 +7255,7 @@ inline const char* sourceJuliaSet3D = R"(
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
 
-        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        float sliceZ = (u_src_slice - 0.5) * 1.7;   // ends inside the object (s-rta-0928)
         bool useSlice = abs(u_src_slice - 0.5) > 0.01;
         int sliceCount = int(u_src_slice_count * 4.0) + 1;
         float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
@@ -7406,7 +7406,7 @@ inline const char* sourceBurningShip3D = R"(
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
 
-        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        float sliceZ = (u_src_slice - 0.5) * 1.2;   // ends inside the object (s-rta-0928)
         bool useSlice = abs(u_src_slice - 0.5) > 0.01;
         int sliceCount = int(u_src_slice_count * 4.0) + 1;
         float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
@@ -7687,7 +7687,7 @@ inline const char* sourceSierpinskiTetra = R"(
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        int iters = int(u_src_iterations * 12.0) + 3;
+        int iters = max(int(u_src_iterations * 12.0) + 3, int(u_src_iterations * 4.0) + 7);   // >= 7 folds (point-cloud DE); 9 at 0.5 as before
         float autoSpeed = (u_src_speed - 0.5) * 2.0;
         float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
         float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
@@ -7850,7 +7850,7 @@ inline const char* sourceApollonian3D = R"(
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
 
-        float sliceZ = (u_src_slice - 0.5) * 4.0;
+        float sliceZ = (u_src_slice - 0.5) * 1.8;   // ends inside the object (s-rta-0928)
         bool useSlice = abs(u_src_slice - 0.5) > 0.01;
         int sliceCount = int(u_src_slice_count * 4.0) + 1;
         float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
@@ -9411,7 +9411,7 @@ inline const char* sourceAstralGrid = R"(
         float yWarp = sin(z * 0.5 + u_time) * warpAmt * (0.5 + u_bass * 1.0);
         // Grid lines
         float gridS = 0.5 + u_src_grid_size * 2.0;
-        vec2 gp = vec2(x, z) / gridS;
+        vec2 gp = vec2(x + yWarp, z) / gridS;   // Warp: the grid lines wave sideways
         vec2 gridDist = abs(fract(gp) - 0.5);
         float lineW = 0.03 * depth;
         float gridLine = smoothstep(lineW, 0.0, min(gridDist.x, gridDist.y));
