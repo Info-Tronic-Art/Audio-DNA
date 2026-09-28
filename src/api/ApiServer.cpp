@@ -1174,7 +1174,8 @@ void ApiServer::handleRenderFrame(const httplib::Request& req, httplib::Response
     }
 
     // s-rta-0928 R1 (C2): render_frame waits for a frame with no image still decoding; a snapshot does not.
-    bool ok = renderer_.captureFrame(juce::File(outputPath), time, 0, 0, true);
+    bool ok = renderer_.captureFrame(juce::File(outputPath), time, 0, 0, true,
+                                     Renderer::CaptureEncoding::Fast);   // R3: the fast PNG writer
     if (ok)
         res.set_content(jsonOk(), "application/json");
     else

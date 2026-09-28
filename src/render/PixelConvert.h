@@ -43,4 +43,25 @@ inline void argbToGlRgbaBottomUp(const juce::Image::BitmapData& src, uint8_t* ds
         }
     }
 }
+// s-rta-0928 renderleft R3: GL RGBA8 rows (bottom-up) -> PNG scanlines (top-down, each row = filter byte 0 + w*4
+// straight RGBA). Per pixel the bytes JUCE's PNG writer emits for the capture's juce::Image: the image stores
+// premultiply(gl) (rgbaBottomUpToARGB), the writer emits unpremultiply(that) (juce_PNGLoader.cpp writeImageToStream).
+// out holds h * (1 + w*4) bytes. Proof: tests/test_png_fast.cpp.
+inline void rgbaBottomUpToPngScanlines(const uint8_t* gl, int w, int h, uint8_t* out) noexcept
+{
+    const size_t stride = 1 + static_cast<size_t>(w) * 4;
+    for (int y = 0; y < h; ++y)
+    {
+        const uint8_t* src = gl + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
+        uint8_t* dst = out + static_cast<size_t>(y) * stride;
+        *dst++ = 0;   // filter: none
+        for (int x = 0; x < w; ++x, src += 4)
+        {
+            juce::PixelARGB p(src[3], src[0], src[1], src[2]);
+            p.premultiply();
+            p.unpremultiply();
+            *dst++ = p.getRed(); *dst++ = p.getGreen(); *dst++ = p.getBlue(); *dst++ = p.getAlpha();
+        }
+    }
+}
 } // namespace PixelConvert

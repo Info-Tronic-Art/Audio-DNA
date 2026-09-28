@@ -597,7 +597,8 @@ void TestServer::handleRenderFrame(const httplib::Request& req, httplib::Respons
 
     // s-rta-0928 R2: captureFrame sets the TEST-ONLY canvas lock for this capture and restores the previous one, under
     // its capture flight lock (two concurrent calls at different sizes used to race on the lock here).
-    bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height, true);   // complete frame (R1, C2)
+    bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height, true,   // complete frame (R1, C2)
+                                     Renderer::CaptureEncoding::Fast);                    // R3: the fast PNG writer
 
     if (ok)
     {

@@ -7,6 +7,7 @@
     "_why": "R3 ships only if the 1080p PNG encode is >= 2x faster and the round trip >= 25% shorter than on main (the calibration run)",
     "pngRatio": 0.5,
     "rtRatio": 0.75,
-    "calib": null
+    "calib": { "png1080_ms": 81.4, "rt1080_ms": 97.4, "png4k_ms": 303.6, "rt4k_ms": 334.7,
+               "_from": "main 6db8d67 (code 233eae7), CAPT_CALIBRATE=1 run 2026-09-28 10:24:48, load avg 5.13 8.11 8.98 (no compiler running), medians of 5 x 1080p / 2 x 4K" }
   }
 }

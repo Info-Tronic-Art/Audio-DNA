@@ -2181,7 +2181,7 @@ void Renderer::initEffectChain()
 // === Frame Capture (Eyes test harness) ===
 
 bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
-                            int width, int height, bool completeFrame)
+                            int width, int height, bool completeFrame, CaptureEncoding enc)
 {
     std::promise<CaptureRead> promise;
     auto future = promise.get_future();
@@ -2258,25 +2258,42 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left). Row conversion, byte-identical
     // to the old per-pixel setPixelColour loop (s-rta-0927 plan-renderperf C2; tests/test_pixel_convert.cpp).
-    auto tConvert = CaptureClock::now();
-    juce::Image img(juce::Image::ARGB, readW, readH, false);
+    double convertMs = 0.0, pngMs = 0.0;
+    bool ok = false;
+    if (enc == CaptureEncoding::Fast)
     {
-        juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
-        PixelConvert::rgbaBottomUpToARGB(pixels.data(), readW, readH, bmp, false);
+        // s-rta-0928 R3: PNG scanlines straight from the GL rows (the bytes JUCE's writer would emit), zlib level 1.
+        auto tConvert = CaptureClock::now();
+        std::vector<uint8_t> scan(static_cast<size_t>(readH) * (1 + static_cast<size_t>(readW) * 4));
+        PixelConvert::rgbaBottomUpToPngScanlines(pixels.data(), readW, readH, scan.data());
+        convertMs = msSince(tConvert);
+        auto tPng = CaptureClock::now();
+        ok = PngWrite::writeScanlinesReplacing(scan.data(), readW, readH, outputPath, PngWrite::kFastPngLevel);
+        pngMs = msSince(tPng);
     }
-    const double convertMs = msSince(tConvert);
+    else
+    {
+        auto tConvert = CaptureClock::now();
+        juce::Image img(juce::Image::ARGB, readW, readH, false);
+        {
+            juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
+            PixelConvert::rgbaBottomUpToARGB(pixels.data(), readW, readH, bmp, false);
+        }
+        convertMs = msSince(tConvert);
 
-    // Write PNG
-    auto tPng = CaptureClock::now();
-    const bool ok = PngWrite::writeReplacing(img, outputPath);   // replaces an existing file (F2)
-    const double pngMs = msSince(tPng);
+        // Write PNG
+        auto tPng = CaptureClock::now();
+        ok = PngWrite::writeReplacing(img, outputPath);   // replaces an existing file (F2)
+        pngMs = msSince(tPng);
+    }
 
     // C0's split: read = the GL thread's whole share; convert + png ran here.
     if (ok)
         std::cerr << "[Eyes] Captured frame: " << outputPath.getFullPathName()
                   << " (" << readW << "x" << readH << ")"
                   << " read=" << juce::String(readMs, 1) << " convert=" << juce::String(convertMs, 1)
-                  << " png=" << juce::String(pngMs, 1) << " ms" << std::endl;
+                  << " png=" << juce::String(pngMs, 1) << " ms"
+                  << (enc == CaptureEncoding::Fast ? " enc=fast" : " enc=archive") << std::endl;
     else
         std::cerr << "[Eyes] Failed to write PNG: " << outputPath.getFullPathName() << std::endl;
 

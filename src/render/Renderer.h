@@ -408,8 +408,12 @@ public:
     // a frame with NO image still decoding (a layer holding or skipping), so a capture right after a load or a
     // trigger shows the picture, never the placeholder; the 5 s timeout bounds it. false = a user snapshot: this
     // frame, as it is (never waits for a decode).
+    // enc (s-rta-0928 R3): Fast = zlib level 1, filter 0 (render_frame: same decoded pixels, ~4x faster encode);
+    // Archive = JUCE's PNG writer (snapshots -- the user's files).
+    enum class CaptureEncoding { Archive, Fast };
     bool captureFrame(const juce::File& outputPath, float timeOverride = -1.0f,
-                      int width = 0, int height = 0, bool completeFrame = false);
+                      int width = 0, int height = 0, bool completeFrame = false,
+                      CaptureEncoding enc = CaptureEncoding::Archive);
 
     // P22.7: Take a snapshot (PNG) to the snapshots directory.
     // Returns the saved file path, or empty on failure.
