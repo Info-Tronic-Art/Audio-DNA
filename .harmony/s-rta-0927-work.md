@@ -210,3 +210,17 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   3 immediate re-runs: 120.0 x3. Established: one-off, post-beatclock (the 20:21 run with beatclock merged had 120.0).
   Not established: cause (startup race between record start and BPMTracker bpm init? beatclock's new BPMTracker fields?).
   Discriminating test: witness x20 on main vs a pre-beatclock build (1636785). Diag dispatched.
+- 20:55 source-defects builder DONE 4654438 (ctest 751; julia 0 -> 43.8/50.1% lit, burning 0/0.37 -> 60.5/73.9%, newton
+  64-68% incl. t=30, sierpinski 256 0 -> 10%, crystal repeats (t=10 83% lit), Dot Field mean 1.8 -> 11.4; 78 dead
+  controls removed (759 -> 681 params), 3 implemented; T4: 14 changed of 486, 12 intended). Harmony LOOKED: julia pair
+  (black -> full fractal), crystal t=10 pair (black -> sphere cave; a flat vertical strip at the left edge — watch the
+  critics). found_not_fixed: Pitfall 28 stale (render_frame DOES apply the legacy set_effect chain); render_frame at the
+  composition size not reproducible (25/486 captures differ run to run; capture does not wait for a frame at the
+  requested time) -> harness; fluid_dynamics/line_generator nondeterministic offline.
+- 21:48 source-defects: r1 visual FAIL (crystal near-clip flat disc — was on 86% of the flight) -> fix round 9ba79b3 (near
+  fade; RED 85% dark box -> 10.8%) -> r2 all PASS. Harmony decision: ACCEPT crystal_cavern GPU cost 3.26 -> 5.18 ms per
+  1080p frame (it fixes a black screen; the old cost was a mostly-empty render) -> loose end "optimise crystal_cavern
+  march". Open follow-ups: striped_torus u_src_camera never wired to a knob; lint READ is textual (DEBT_FILED); removed
+  params drop their connections on load (informational). Merged -> f630336 (tests/CMakeLists append-only conflict
+  resolved: HEAD + lane block). Rebuild OK; ctest 774/774. Battery running (b0x25v8yc). W10 removed.
+- 22:21 source-defects gate GREEN on main f630336: all 17 probes 0 FAIL, tempo GREEN (bpm 120); ctest 774/774. Pushed.
