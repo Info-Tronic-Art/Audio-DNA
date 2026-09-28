@@ -201,3 +201,12 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   rebuild OK; ctest 749/749; battery running (bsf5edcpz). W8 removed; W11 created for the follow-ups lane.
 - 20:10 C3 fix round 1e5a00c: persistWanted keeps saved targets (RED/teeth); test mode without AUDIODNA_SETTINGS_FILE -> scratch file ~/Library/Caches/Audio-DNA/test-mode-settings.json, never the real one (11 of 12 test-mode probes had read the real path). r2: review PASS_WITH_NITS, both critics PASS. Open (Harmony ruling: LOOSE END, low): menu command id -> display index resolved at click (hot-plug while a menu is open can retarget; fix = fingerprint at menu build); appSettingsFile call-site has no ctest.
 - 20:22 renderperf gate GREEN on main 5267a0c: all 17 probes 0 FAIL (render-state 32/0 incl. the 16.7 ms r1_counts bar; canvas/fitmode correctness rows), tempo GREEN; ctest 749/749. Pushed.
+- 20:27 C3: Harmony RED on pre-merge main: probe-outputs PY 13/3 (o_restore_empty, o_poll_idle: outputs.manager missing). Merged -> 8c4c1a1 (tests/CMakeLists conflict: both appended blocks kept, HEAD's file + C3's appended block; notebook concatenated). Rebuild OK; ctest 764/764. Battery running (bsmutpxyk). W9 removed.
+- 20:50 C3 gate GREEN on main 8c4c1a1: outputs 17/0, routine-display 16/0, beatclock 6/0, render-state 32/0, crossfade 35/0,
+  effects-parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 105/0, mastersignal 22/0, decktabs 6/0,
+  canvas 12/0, deckclock 10/0, fitmode 10/0, step3 94/0; ctest 764/764; real settings.json still ABSENT. PLAN5 C1+C2+C3
+  ALL ON MAIN. Pushed.
+- 20:50 ANOMALY (open): the battery's tempo witness wrote a take whose start tempo entry had "bpm": 0.0 (sample 128512);
+  3 immediate re-runs: 120.0 x3. Established: one-off, post-beatclock (the 20:21 run with beatclock merged had 120.0).
+  Not established: cause (startup race between record start and BPMTracker bpm init? beatclock's new BPMTracker fields?).
+  Discriminating test: witness x20 on main vs a pre-beatclock build (1636785). Diag dispatched.
