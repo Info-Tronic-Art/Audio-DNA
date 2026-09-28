@@ -222,7 +222,7 @@ def comp_state():
         return None
 
 
-def wait_active(li, col, limit=2.0):
+def wait_active(li, col, limit=10.0):
     t0 = time.time()
     while time.time() - t0 < limit:
         c = comp_state()
@@ -339,6 +339,9 @@ def la():
     return "load avg %.2f %.2f %.2f" % os.getloadavg()
 
 
+# A composition load decodes every cell's thumbnail on the MESSAGE thread (ClipCell::updateThumbnail, F15): with the
+# fillers that holds it for seconds, and a REST trigger (callAsync) runs only after it. Every trigger below therefore
+# waits until the model shows it (wait_active) before the row's clock starts.
 def filler_layer():
     """A hidden layer 0 holding 4 flat 8192x8192 images = 1 GiB of textures. From R1.5 a composition load prefetches its
     images in order (layer 0 first) only while < 1 GiB is resident: once these four are resident, the subject layer's
@@ -391,7 +394,7 @@ def i2m(tag):
     W, H = SIZES["1080"]; lid = LID[tag]; cold = f"{tag}_cold.png"
     if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(cold))], speed=1.0)])], (W, H)):
         return
-    wait_fillers(tag); trig(1, 0); time.sleep(1.0)
+    wait_fillers(tag); trig(1, 0); wait_active(1, 0, 30.0); time.sleep(1.0)
     capA = cap(tag + "_A")
     trig(1, 1)
     seen = wait_active(1, 1)
@@ -415,7 +418,7 @@ def capture_after_trigger(tag, col1_clip):
     W, H = SIZES["1080"]; lid = LID[tag]
     if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), col1_clip])])], (W, H)):
         return
-    wait_fillers(tag); trig(1, 0); time.sleep(1.0)
+    wait_fillers(tag); trig(1, 0); wait_active(1, 0, 30.0); time.sleep(1.0)
     capA = cap(tag + "_A")
     trig(1, 1)
     seen = wait_active(1, 1)
@@ -435,7 +438,7 @@ def i4(tag):
     W, H = SIZES["4k"]; lid = LID[tag]
     if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(f"{tag}_cold.png"))])])], (W, H)):
         return
-    wait_fillers(tag); trig(1, 0); time.sleep(1.0)
+    wait_fillers(tag); trig(1, 0); wait_active(1, 0, 30.0); time.sleep(1.0)
     s0 = state(); trig(1, 1); time.sleep(2.0); s1 = state()
     keys = ("image_hold_frames", "image_skip_frames", "images_pending")
     if any(counter(sx, k) is None for sx in (s0, s1) for k in keys):
@@ -453,7 +456,7 @@ def i4m(tag):
     mask = layer(lid, [clip(2, mpath("mask_warm.png")), clip(3, mpath(f"{tag}_cold.png"))], ltype=4)
     if not load(tag, [deck(0, [filler_layer(), base, mask], ncols=4)], (W, H)):
         return
-    wait_fillers(tag); trig(1, 0); trig(2, 0); time.sleep(1.0)
+    wait_fillers(tag); trig(1, 0); trig(2, 0); wait_active(2, 0, 30.0); time.sleep(1.0)
     s0 = state(); trig(2, 1); time.sleep(2.0); s1 = state()
     keys = ("image_hold_frames", "image_skip_frames")
     if any(counter(sx, k) is None for sx in (s0, s1) for k in keys):
@@ -549,20 +552,22 @@ def main():
         make_fixtures(); return
     W1 = SIZES["1080"]
     seq3 = [mpath(f"i3s_seq{j:02d}.png") for j in range(3)]
+    # Perf rows first: the pending rows below load 1 GiB of filler textures, and the frames after their release are
+    # not the frames the perf rows measure.
     rows = [("i1_layer_1080", lambda: row_layer("i1_layer_1080", "1080", 0.0)),
             ("i1_layer_4k", lambda: row_layer("i1_layer_4k", "4k", 0.0)),
             ("i2_fade_1080", lambda: row_layer("i2_fade_1080", "1080", 1.0)),
             ("i2_fade_4k", lambda: row_layer("i2_fade_4k", "4k", 1.0)),
+            ("i5_legacy_retrigger", lambda: i5("i5_legacy_retrigger")),
+            ("i6_sequence_1080", lambda: i6("i6_sequence_1080")),
+            ("i7_prefetch_retain", lambda: i7("i7_prefetch_retain")),
             ("i2m_fade_start", lambda: i2m("i2m_fade_start")),
             ("i3_capture_after_trigger", lambda: capture_after_trigger(
                 "i3_capture_after_trigger", clip(2, mpath("i3_capture_after_trigger_cold.png")))),
             ("i3s_capture_after_seq_trigger", lambda: capture_after_trigger(
                 "i3s_capture_after_seq_trigger", seq_clip(2, seq3, 0.1))),
             ("i4_hold_counters", lambda: i4("i4_hold_counters")),
-            ("i4m_mask_hold", lambda: i4m("i4m_mask_hold")),
-            ("i5_legacy_retrigger", lambda: i5("i5_legacy_retrigger")),
-            ("i6_sequence_1080", lambda: i6("i6_sequence_1080")),
-            ("i7_prefetch_retain", lambda: i7("i7_prefetch_retain"))]
+            ("i4m_mask_hold", lambda: i4m("i4m_mask_hold"))]
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)
