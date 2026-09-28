@@ -220,7 +220,7 @@ TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (P
         {
             snap.beatPhase = 0.99f;
             bank.forIndex(0).processFrame(d0, snap); bank.forIndex(1).processFrame(d1, snap);
-            snap.beatPhase = 0.01f;
+            snap.beatPhase = 0.01f; snap.totalBeatCount++;
             bank.forIndex(0).processFrame(d0, snap); bank.forIndex(1).processFrame(d1, snap);
         }
         CHECK(bank.size() == 2);
@@ -235,7 +235,7 @@ TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (P
         {
             snap.beatPhase = 0.99f;
             shared.processFrame(d0, snap); shared.processFrame(d1, snap);
-            snap.beatPhase = 0.01f;
+            snap.beatPhase = 0.01f; snap.totalBeatCount++;
             shared.processFrame(d0, snap); shared.processFrame(d1, snap);
         }
         CHECK(d0.getLayer(0)->activeClipColumn == 1);
@@ -250,7 +250,7 @@ TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (P
         cfg.opaqueCycleBeats = 1;                // Opaque layer 0: every beat
         bank.setPerTypeConfig(&cfg);
         snap.beatPhase = 0.99f; bank.forIndex(1).processFrame(d1, snap);
-        snap.beatPhase = 0.01f; bank.forIndex(1).processFrame(d1, snap);
+        snap.beatPhase = 0.01f; snap.totalBeatCount++; bank.forIndex(1).processFrame(d1, snap);
         CHECK(d1.getLayer(0)->activeClipColumn == 1);
     }
 }

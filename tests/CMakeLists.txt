@@ -679,6 +679,8 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+# s-rta-0927 follow-ups F3: the [autopilot][law] case reads the beat-crossing readers' sources (precedent test_output_law)
+target_compile_definitions(test_autopilot PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_autopilot)
 catch_discover_tests(test_autopilot)
 
