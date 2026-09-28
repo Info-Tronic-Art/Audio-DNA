@@ -190,3 +190,14 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   35/0, effects-parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 105/0, mastersignal 22/0, decktabs 6/0,
   canvas 12/0 + fitmode 10/0 (correctness rows; perf deferred), deckclock 10/0, step3 94/0, tempo GREEN; ctest 742/742.
   Pushed.
+- 19:12 C3 builder DONE 44f24a9 (ctest 741 on its base; 15/15 probes GREEN; o_poll_idle +0.093 ms; o_restore_empty; settings
+  safety = TEST-ONLY AUDIODNA_SETTINGS_FILE honoured only in test-server build + --test-mode; real settings.json paths were
+  ABSENT). Disclosed rig breach: one Bash began with cd /tmp (ctest binaries; no file changed). found_not_fixed: clamshell
+  main-display loss; cable swap within one reconcile; real macOS event order = Boris check 4. Reviews running. Renderperf
+  r1 FAIL -> fix round running (per-capture read handoff).
+- 19:19 C3 r1: menu critic PASS; interaction-logic FAIL MUST (persistWanted writes live+interrupted only -> drops not-yet-restored saved displays from disk on the first write) + SHOULD (menu id -> display index resolved at click time; a hot-plug while the menu is open can renumber). Fix round auto.
+- 20:00 renderperf: r1 FAIL (MUST: concurrent captures could swap pixels) -> fix round b7ce184 -> r2 PASS. Harmony RED on
+  pre-merge main: probe-render-state r1_counts first use 39.37 / first fade 72.40 ms > 16.7 (PY 30/2). Merged -> 5267a0c;
+  rebuild OK; ctest 749/749; battery running (bsf5edcpz). W8 removed; W11 created for the follow-ups lane.
+- 20:10 C3 fix round 1e5a00c: persistWanted keeps saved targets (RED/teeth); test mode without AUDIODNA_SETTINGS_FILE -> scratch file ~/Library/Caches/Audio-DNA/test-mode-settings.json, never the real one (11 of 12 test-mode probes had read the real path). r2: review PASS_WITH_NITS, both critics PASS. Open (Harmony ruling: LOOSE END, low): menu command id -> display index resolved at click (hot-plug while a menu is open can retarget; fix = fingerprint at menu build); appSettingsFile call-site has no ctest.
+- 20:22 renderperf gate GREEN on main 5267a0c: all 17 probes 0 FAIL (render-state 32/0 incl. the 16.7 ms r1_counts bar; canvas/fitmode correctness rows), tempo GREEN; ctest 749/749. Pushed.
