@@ -1,0 +1,42 @@
+gap: sleeping 32 s
+LOCK: acquired 20:50:13
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/hookbase2/Audio-DNA.app (20:50:13)
+env: AUDIODNA_TMP_SHOT=make:twisted_torus:/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/old_comp2.json
+app up: pids 63889 (20:50:17)
+window 7540 None 0 x 0 onscreen None
+window 7539 'Audio-DNA' 1728 x 1079 onscreen True
+captured window 7539 3456 x 2158 -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/runs/shot2-before/before_window.png 
+composition_params: {"masterOpacity": 1.0, "masterSpeed": 1.0, "outputWidth": 1920, "outputHeight": 1080, "decks": [{"deck": 0, "layers": [{"layer": 0, "clips": [{"column": 0, "clipOpacity": 1.0}]}, {"layer": 1, "clips": []}, {"layer": 2, "clips": []}]}]}
+preview render: mean=0.00 p99.5=0 lit=0.00% sd=0.0
+saved file clip L0 C0 twisted_torus: 14 params ['Twist', 'Stripe Count', 'Orbit', 'Tilt', 'Speed', 'Zoom', 'Lens Shape', 'Lens Rotate', 'Depth Fade', 'Tube Radius', 'Pinch', 'Heart', 'Shading', 'Color Shift']
+--- script rc=0 (20:50:25)
+after quit: running=no (20:50:26)
+LOCK: released 20:50:26
+gap: sleeping 45 s
+LOCK: acquired 20:51:11
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/hookafter2/Audio-DNA.app (20:51:11)
+env: AUDIODNA_TMP_SHOT=make:twisted_torus:/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/new_comp2.json
+app up: pids 65685 (20:51:16)
+window 7549 None 0 x 0 onscreen None
+window 7548 'Audio-DNA' 1728 x 1079 onscreen True
+captured window 7548 3456 x 2158 -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/runs/shot2-after-new/after_new_window.png 
+composition_params: {"masterOpacity": 1.0, "masterSpeed": 1.0, "outputWidth": 1920, "outputHeight": 1080, "decks": [{"deck": 0, "layers": [{"layer": 0, "clips": [{"column": 0, "clipOpacity": 1.0}]}, {"layer": 1, "clips": []}, {"layer": 2, "clips": []}]}]}
+preview render: mean=0.00 p99.5=0 lit=0.00% sd=0.0
+saved file clip L0 C0 twisted_torus: 5 params ['Twist', 'Stripe Count', 'Speed', 'Tube Radius', 'Color Shift']
+--- script rc=0 (20:51:23)
+after quit: running=no (20:51:24)
+LOCK: released 20:51:25
+gap: sleeping 44 s
+LOCK: acquired 20:52:09
+launch: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/apps/hookafter2/Audio-DNA.app (20:52:09)
+env: AUDIODNA_TMP_SHOT=load:/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/old_comp2.json
+app up: pids 68207 (20:52:13)
+window 7558 None 0 x 0 onscreen None
+window 7557 'Audio-DNA' 1728 x 1079 onscreen True
+captured window 7557 3456 x 2158 -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/runs/shot2-after-oldfile/after_oldfile_window.png 
+composition_params: {"masterOpacity": 1.0, "masterSpeed": 1.0, "outputWidth": 1920, "outputHeight": 1080, "decks": [{"deck": 0, "layers": [{"layer": 0, "clips": [{"column": 0, "clipOpacity": 1.0}]}, {"layer": 1, "clips": []}, {"layer": 2, "clips": []}]}]}
+preview render: mean=114.81 p99.5=217 lit=52.91% sd=108.3
+--- script rc=0 (20:52:20)
+after quit: running=no (20:52:22)
+LOCK: released 20:52:22
+shots2 done (20:52:22)

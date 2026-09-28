@@ -1,0 +1,14 @@
+  Dot Field 1920x1080 'depth' 0.4 -> 0: PSNR 17.6449
+  Dot Field 1920x1080 'depth' 0.4 -> 1: PSNR 14.8859
+  Dot Field 1920x1080 'size' 0.7 -> 0: PSNR 15.4607
+  Dot Field 1920x1080 'size' 0.7 -> 1: PSNR 14.9956
+  Dot Field 1920x1080 'spacing' 0.5 -> 0: PSNR 13.8316
+  Dot Field 1920x1080 'spacing' 0.5 -> 1: PSNR 13.2557
+  Dot Field 1920x1080 defaults: mean=11.3696 p99.5=249 lit=0.0910648
+  Dot Field 256x256 'depth' 0.4 -> 0: PSNR 17.655
+  Dot Field 256x256 'depth' 0.4 -> 1: PSNR 14.8878
+  Dot Field 256x256 'size' 0.7 -> 0: PSNR 15.4664
+  Dot Field 256x256 'size' 0.7 -> 1: PSNR 14.9959
+  Dot Field 256x256 'spacing' 0.5 -> 0: PSNR 13.831
+  Dot Field 256x256 'spacing' 0.5 -> 1: PSNR 13.2681
+  Dot Field 256x256 defaults: mean=11.3581 p99.5=249 lit=0.0910187

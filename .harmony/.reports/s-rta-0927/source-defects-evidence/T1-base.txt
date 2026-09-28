@@ -1,0 +1,124 @@
+Randomness seeded to: 3402897794
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_shader_param_lint is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+every registered source and effect parameter is read by its shader
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_shader_param_lint.cpp:115
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_shader_param_lint.cpp:213: FAILED:
+  CHECK( structural.empty() )
+with expansion:
+  false
+with messages:
+  parsed 628 source params, 333 effect params
+  1 structural + 22 dead parameter(s):
+    STRUCTURE SourceRegistry.cpp:644 helper lambda 'addTorusControls' adds
+  params but constructs no ProceduralSource (no shader key in scope)
+    DEAD source:source_mandelbulb 'Iterations' (u_src_iterations) -- never read
+  by sourceMandelbulb (registered at line 482)
+    DEAD source:source_mandelbulb 'Detail' (u_src_detail) -- never read by
+  sourceMandelbulb (registered at line 487)
+    DEAD source:source_julia_set_3d 'Iterations' (u_src_iterations) -- never
+  read by sourceJuliaSet3D (registered at line 551)
+    DEAD source:source_newton_3d 'Slice Count' (u_src_slice_count) -- never
+  read by sourceNewton3D (registered at line 595)
+    DEAD source:source_newton_3d 'Slice Distance' (u_src_slice_dist) -- never
+  read by sourceNewton3D (registered at line 596)
+    DEAD source:source_apollonian_3d 'Orbit' (u_src_orbit) -- never read by
+  sourceApollonian3D (registered at line 646)
+    DEAD source:source_apollonian_3d 'Tilt' (u_src_tilt) -- never read by
+  sourceApollonian3D (registered at line 647)
+    DEAD source:source_apollonian_3d 'Lens Shape' (u_src_lens_shape) -- never
+  read by sourceApollonian3D (registered at line 651)
+    DEAD source:source_apollonian_3d 'Lens Rotate' (u_src_lens_rotate) -- never
+  read by sourceApollonian3D (registered at line 652)
+    DEAD source:source_apollonian_3d 'Depth Fade' (u_src_depth_fade) -- never
+  read by sourceApollonian3D (registered at line 653)
+    DEAD source:source_apollonian_3d 'Tube Radius' (u_src_tube_radius) -- never
+  read by sourceApollonian3D (registered at line 655)
+    DEAD source:source_apollonian_3d 'Pinch' (u_src_pinch) -- never read by
+  sourceApollonian3D (registered at line 657)
+    DEAD source:source_apollonian_3d 'Heart' (u_src_heart) -- never read by
+  sourceApollonian3D (registered at line 658)
+    DEAD source:source_apollonian_3d 'Shading' (u_src_shading) -- never read by
+  sourceApollonian3D (registered at line 660)
+    DEAD source:source_wormhole_tunnel 'Warp' (u_src_warp) -- never read by
+  sourceWormholeTunnel (registered at line 698)
+    DEAD source:source_wormhole 'Warp' (u_src_warp) -- never read by
+  sourceWormhole (registered at line 713)
+    DEAD source:source_band_tower 'Shape' (u_src_shape) -- never read by
+  sourceBandTower (registered at line 1019)
+    DEAD source:source_band_tower 'Smoothing' (u_src_smoothing) -- never read
+  by sourceBandTower (registered at line 1023)
+    DEAD source:source_band_tower '3D Rotation' (u_src_rotation_3d) -- never
+  read by sourceBandTower (registered at line 1024)
+    DEAD source:source_structural_landscape 'History Length' (u_src_history) --
+  never read by sourceStructuralLandscape (registered at line 1042)
+    DEAD source:source_structural_landscape 'Camera Height' (u_src_camera) --
+  never read by sourceStructuralLandscape (registered at line 1046)
+    DEAD effect:Dot Field 'depth' (u_dotfield_depth) -- never read by dotField
+  (registered at line 514)
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_shader_param_lint.cpp:214: FAILED:
+  CHECK( dead.empty() )
+with expansion:
+  false
+with messages:
+  parsed 628 source params, 333 effect params
+  1 structural + 22 dead parameter(s):
+    STRUCTURE SourceRegistry.cpp:644 helper lambda 'addTorusControls' adds
+  params but constructs no ProceduralSource (no shader key in scope)
+    DEAD source:source_mandelbulb 'Iterations' (u_src_iterations) -- never read
+  by sourceMandelbulb (registered at line 482)
+    DEAD source:source_mandelbulb 'Detail' (u_src_detail) -- never read by
+  sourceMandelbulb (registered at line 487)
+    DEAD source:source_julia_set_3d 'Iterations' (u_src_iterations) -- never
+  read by sourceJuliaSet3D (registered at line 551)
+    DEAD source:source_newton_3d 'Slice Count' (u_src_slice_count) -- never
+  read by sourceNewton3D (registered at line 595)
+    DEAD source:source_newton_3d 'Slice Distance' (u_src_slice_dist) -- never
+  read by sourceNewton3D (registered at line 596)
+    DEAD source:source_apollonian_3d 'Orbit' (u_src_orbit) -- never read by
+  sourceApollonian3D (registered at line 646)
+    DEAD source:source_apollonian_3d 'Tilt' (u_src_tilt) -- never read by
+  sourceApollonian3D (registered at line 647)
+    DEAD source:source_apollonian_3d 'Lens Shape' (u_src_lens_shape) -- never
+  read by sourceApollonian3D (registered at line 651)
+    DEAD source:source_apollonian_3d 'Lens Rotate' (u_src_lens_rotate) -- never
+  read by sourceApollonian3D (registered at line 652)
+    DEAD source:source_apollonian_3d 'Depth Fade' (u_src_depth_fade) -- never
+  read by sourceApollonian3D (registered at line 653)
+    DEAD source:source_apollonian_3d 'Tube Radius' (u_src_tube_radius) -- never
+  read by sourceApollonian3D (registered at line 655)
+    DEAD source:source_apollonian_3d 'Pinch' (u_src_pinch) -- never read by
+  sourceApollonian3D (registered at line 657)
+    DEAD source:source_apollonian_3d 'Heart' (u_src_heart) -- never read by
+  sourceApollonian3D (registered at line 658)
+    DEAD source:source_apollonian_3d 'Shading' (u_src_shading) -- never read by
+  sourceApollonian3D (registered at line 660)
+    DEAD source:source_wormhole_tunnel 'Warp' (u_src_warp) -- never read by
+  sourceWormholeTunnel (registered at line 698)
+    DEAD source:source_wormhole 'Warp' (u_src_warp) -- never read by
+  sourceWormhole (registered at line 713)
+    DEAD source:source_band_tower 'Shape' (u_src_shape) -- never read by
+  sourceBandTower (registered at line 1019)
+    DEAD source:source_band_tower 'Smoothing' (u_src_smoothing) -- never read
+  by sourceBandTower (registered at line 1023)
+    DEAD source:source_band_tower '3D Rotation' (u_src_rotation_3d) -- never
+  read by sourceBandTower (registered at line 1024)
+    DEAD source:source_structural_landscape 'History Length' (u_src_history) --
+  never read by sourceStructuralLandscape (registered at line 1042)
+    DEAD source:source_structural_landscape 'Camera Height' (u_src_camera) --
+  never read by sourceStructuralLandscape (registered at line 1046)
+    DEAD effect:Dot Field 'depth' (u_dotfield_depth) -- never read by dotField
+  (registered at line 514)
+
+===============================================================================
+test cases:    1 |    0 passed | 1 failed
+assertions: 1401 | 1399 passed | 2 failed
+

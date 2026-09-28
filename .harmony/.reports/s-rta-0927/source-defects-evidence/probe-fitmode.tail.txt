@@ -1,0 +1,5 @@
+PY 10 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-FITMODE GREEN

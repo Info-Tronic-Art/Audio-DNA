@@ -1,0 +1,2432 @@
+[
+{
+"name": "fx_ASCII_Art_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_ASCII_Art_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Auto_Mask_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Auto_Mask_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Barrel_Distort_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Barrel_Distort_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Beat_Ripple_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Beat_Ripple_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Bendoscope_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Bendoscope_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Block_Glitch_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Block_Glitch_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Brightness_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Brightness_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Brush_Strokes_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Brush_Strokes_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Bulge_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Bulge_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Bump_Light_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Bump_Light_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_CRT_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_CRT_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cartoon_Ink_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cartoon_Ink_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Channel_Delay_1920x1080.png",
+"noise": 48.532281273359644,
+"lane": Infinity
+},
+{
+"name": "fx_Channel_Delay_256x256.png",
+"noise": 24.988933592947884,
+"lane": Infinity
+},
+{
+"name": "fx_Chroma_Dissolve_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Chroma_Dissolve_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Chroma_Key_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Chroma_Key_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Chromatic_Aberration_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Chromatic_Aberration_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Flash_1920x1080.png",
+"noise": 16.628960494536653,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Flash_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Grade_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Grade_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Halftone_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Halftone_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Shift_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Color_Shift_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Contrast_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Contrast_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cross_Process_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cross_Process_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cross_Stitch_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cross_Stitch_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Crosshatch_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Crosshatch_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cube_Scatter_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cube_Scatter_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cylinder_Wrap_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Cylinder_Wrap_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Data_Corruption_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Data_Corruption_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Density_Wave_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Density_Wave_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Diamond_Distort_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Diamond_Distort_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Digital_Rain_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Digital_Rain_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Directional_Feedback_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Directional_Feedback_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Dither_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Dither_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Dot_Field_1920x1080.png",
+"noise": Infinity,
+"lane": 15.225707377512538
+},
+{
+"name": "fx_Dot_Field_256x256.png",
+"noise": Infinity,
+"lane": 16.013456550072416
+},
+{
+"name": "fx_Dot_Matrix_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Dot_Matrix_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Double_Exposure_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Double_Exposure_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Drop_Shadow_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Drop_Shadow_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Duotone_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Duotone_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Echo_1920x1080.png",
+"noise": 24.228896727707937,
+"lane": Infinity
+},
+{
+"name": "fx_Echo_256x256.png",
+"noise": 25.266821474333888,
+"lane": Infinity
+},
+{
+"name": "fx_Edge_Blur_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Edge_Blur_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Edge_Detect_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Edge_Detect_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Elastic_Bounce_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Elastic_Bounce_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Emboss_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Emboss_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Exposure_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Exposure_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Film_Grain_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Film_Grain_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Fisheye_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Fisheye_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Flip_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Flip_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Fragment_Burst_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Fragment_Burst_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Frame_Stutter_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Frame_Stutter_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Freeze_1920x1080.png",
+"noise": 9.127928119112543,
+"lane": Infinity
+},
+{
+"name": "fx_Freeze_256x256.png",
+"noise": 9.850906958833326,
+"lane": Infinity
+},
+{
+"name": "fx_Frosted_Glass_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Frosted_Glass_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Gamma_Levels_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Gamma_Levels_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Gaussian_Blur_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Gaussian_Blur_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Glitch_Displace_1920x1080.png",
+"noise": 14.591610036587168,
+"lane": 14.055289070511897
+},
+{
+"name": "fx_Glitch_Displace_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Glitch_Sort_1920x1080.png",
+"noise": 44.859094866889336,
+"lane": 44.859094866889336
+},
+{
+"name": "fx_Glitch_Sort_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Glow_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Glow_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Greyscale_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Greyscale_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Harmonic_Displacement_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Harmonic_Displacement_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Heat_Map_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Heat_Map_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Hexagonalize_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Hexagonalize_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Hue_Shift_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Hue_Shift_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Invert_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Invert_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Kaleidoscope_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Kaleidoscope_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Key_Palette_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Key_Palette_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Line_Cloner_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Line_Cloner_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Liquid_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Liquid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Liquid_Morph_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Liquid_Morph_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Luminance_Terrain_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Luminance_Terrain_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Mirror_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Mirror_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Monitor_Wall_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Monitor_Wall_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Motion_Blur_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Motion_Blur_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Neon_Edge_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Neon_Edge_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Night_Vision_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Night_Vision_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Noise_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Noise_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Oil_Paint_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Oil_Paint_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Page_Curl_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Page_Curl_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Palette_Remap_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Palette_Remap_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Parallax_Layers_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Parallax_Layers_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pencil_Sketch_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pencil_Sketch_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Perspective_Tilt_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Perspective_Tilt_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pitch_Chromatic_Shift_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pitch_Chromatic_Shift_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pixel_Explosion_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pixel_Explosion_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pixel_Scatter_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pixel_Scatter_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pixelate_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pixelate_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Point_Zoom_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Point_Zoom_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Polar_Coords_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Polar_Coords_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pop_Raster_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pop_Raster_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Posterize_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Posterize_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Posterize_Time_1920x1080.png",
+"noise": 27.823639245622434,
+"lane": Infinity
+},
+{
+"name": "fx_Posterize_Time_256x256.png",
+"noise": 28.561103479097014,
+"lane": Infinity
+},
+{
+"name": "fx_Prism_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Prism_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pulse_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Pulse_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Quad_Mirror_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Quad_Mirror_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_RGB_Split_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_RGB_Split_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Radial_Cloner_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Radial_Cloner_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Rain_on_Glass_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Rain_on_Glass_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Rhythm_Slice_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Rhythm_Slice_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Ripple_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Ripple_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Ripple_Pond_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Ripple_Pond_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Saturation_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Saturation_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Scanlines_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Scanlines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Screen_Split_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Screen_Split_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Selective_Color_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Selective_Color_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sepia_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sepia_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Shake_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Shake_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sharpen_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sharpen_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Shear_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Shear_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Signal_Destroy_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Signal_Destroy_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sine_Grid_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sine_Grid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Slide_Wrap_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Slide_Wrap_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Slit_Scan_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Slit_Scan_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Solarize_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Solarize_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sphere_Wrap_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Sphere_Wrap_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Split_Tone_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Split_Tone_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Spot_Zoom_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Spot_Zoom_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Strobe_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Strobe_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Structural_Morph_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Structural_Morph_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Swirl_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Swirl_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Thermal_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Thermal_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Threshold_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Threshold_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Tile_Grid_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Tile_Grid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Timbral_Mosaic_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Timbral_Mosaic_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Topographic_Lines_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Topographic_Lines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Transient_Flash_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Transient_Flash_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Triangulate_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Triangulate_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Tunnel_1920x1080.png",
+"noise": 7.775050666771125,
+"lane": 7.775050666771125
+},
+{
+"name": "fx_Tunnel_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Twirl_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Twirl_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_UV_Remap_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_UV_Remap_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_VHS_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_VHS_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Vibrance_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Vibrance_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Vignette_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Vignette_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Voronoi_Glass_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Voronoi_Glass_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Voxel_Matrix_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Voxel_Matrix_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Warp_Field_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Warp_Field_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Wave_1920x1080.png",
+"noise": 9.995387655726802,
+"lane": 9.995387655726802
+},
+{
+"name": "fx_Wave_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Zoom_Blur_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Zoom_Blur_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Zoom_Warp_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "fx_Zoom_Warp_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_angular_grid_1920x1080.png",
+"noise": 11.577095444283692,
+"lane": Infinity
+},
+{
+"name": "src_angular_grid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_apollonian_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_apollonian_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_apollonian_3d_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_apollonian_3d_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_astral_grid_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_astral_grid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_audio_waveform_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_audio_waveform_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_band_tower_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_band_tower_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_bump_light_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_bump_light_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_burning_ship_1920x1080.png",
+"noise": Infinity,
+"lane": 6.968997786575181
+},
+{
+"name": "src_burning_ship_256x256.png",
+"noise": Infinity,
+"lane": 7.833384229165988
+},
+{
+"name": "src_burning_ship_3d_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_burning_ship_3d_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_cellular_automata_1920x1080.png",
+"noise": 7.601587918351803,
+"lane": Infinity
+},
+{
+"name": "src_cellular_automata_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_checker_torus_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_checker_torus_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_checkerboard_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_checkerboard_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_chromatic_ring_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_chromatic_ring_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_color_gradient_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_color_gradient_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_concentric_rings_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_concentric_rings_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_crystal_cavern_1920x1080.png",
+"noise": Infinity,
+"lane": 30.209537668680507
+},
+{
+"name": "src_crystal_cavern_256x256.png",
+"noise": Infinity,
+"lane": 29.2741225321127
+},
+{
+"name": "src_cymatics_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_cymatics_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_dna_helix_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_dna_helix_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_dot_matrix_wave_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_dot_matrix_wave_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_dual_plane_drift_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_dual_plane_drift_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_electric_arc_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_electric_arc_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fermat_spiral_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fermat_spiral_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fibonacci_spiral_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fibonacci_spiral_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fire_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fire_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fire_wall_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fire_wall_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fluid_dynamics_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fluid_dynamics_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fractal_tree_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_fractal_tree_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_geometric_tunnel_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_geometric_tunnel_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_glitch_grid_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_glitch_grid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_gravity_well_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_gravity_well_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_hex_grid_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_hex_grid_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_hyperbolic_tiling_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_hyperbolic_tiling_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_infinite_corridor_1920x1080.png",
+"noise": 37.48178104990322,
+"lane": Infinity
+},
+{
+"name": "src_infinite_corridor_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_infinite_zoom_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_infinite_zoom_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_julia_set_1920x1080.png",
+"noise": Infinity,
+"lane": 8.679763442908177
+},
+{
+"name": "src_julia_set_256x256.png",
+"noise": Infinity,
+"lane": 9.27101144828871
+},
+{
+"name": "src_julia_set_3d_1920x1080.png",
+"noise": 63.1007500997337,
+"lane": 94.11026947368839
+},
+{
+"name": "src_julia_set_3d_256x256.png",
+"noise": Infinity,
+"lane": 83.5080669053878
+},
+{
+"name": "src_kaleido_fractal_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_kaleido_fractal_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_kifs_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_kifs_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_laser_scan_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_laser_scan_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_laser_scanner_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_laser_scanner_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_layer_router_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_layer_router_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_lightning_storm_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_lightning_storm_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_line_generator_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_line_generator_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_line_pattern_1920x1080.png",
+"noise": Infinity,
+"lane": 9.230154829734843
+},
+{
+"name": "src_line_pattern_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_lissajous_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_lissajous_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_lissajous_weaver_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_lissajous_weaver_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_mandelbrot_1920x1080.png",
+"noise": 48.28609335871744,
+"lane": Infinity
+},
+{
+"name": "src_mandelbrot_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_mandelbulb_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_mandelbulb_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_menger_sponge_1920x1080.png",
+"noise": 27.293207901259485,
+"lane": Infinity
+},
+{
+"name": "src_menger_sponge_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_metaballs_1920x1080.png",
+"noise": 27.65469484118027,
+"lane": 27.65469484118027
+},
+{
+"name": "src_metaballs_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_moire_interference_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_moire_interference_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_moire_lines_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_moire_lines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_newton_3d_1920x1080.png",
+"noise": Infinity,
+"lane": 11.274697770242941
+},
+{
+"name": "src_newton_3d_256x256.png",
+"noise": Infinity,
+"lane": 11.381430708203846
+},
+{
+"name": "src_newton_fractal_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_newton_fractal_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_orbit_chamber_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_orbit_chamber_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_particle_nebula_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_particle_nebula_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_penrose_pulse_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_penrose_pulse_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_perlin_noise_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_perlin_noise_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_plasma_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_plasma_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_polygon_lines_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_polygon_lines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_projectm_visualizer_1920x1080.png",
+"noise": 46.65164352530559,
+"lane": 42.52546023980757
+},
+{
+"name": "src_projectm_visualizer_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_radar_sweep_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_radar_sweep_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_radial_burst_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_radial_burst_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_reaction_diffusion_1920x1080.png",
+"noise": 44.641754556724294,
+"lane": 84.94321598243496
+},
+{
+"name": "src_reaction_diffusion_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_ribbed_vortex_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_ribbed_vortex_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_rose_curves_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_rose_curves_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_rotating_cube_map_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_rotating_cube_map_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sacred_geometry_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sacred_geometry_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_scroll_plane_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_scroll_plane_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_shape_generator_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_shape_generator_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sierpinski_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sierpinski_256x256.png",
+"noise": Infinity,
+"lane": 16.154567831955177
+},
+{
+"name": "src_sierpinski_tetra_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sierpinski_tetra_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sine_oscillator_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_sine_oscillator_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_solid_color_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_solid_color_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spectral_ring_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spectral_ring_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spectral_waterfall_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spectral_waterfall_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spectrum_landscape_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spectrum_landscape_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spiral_pattern_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spiral_pattern_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spiral_tunnel_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spiral_tunnel_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spiral_vortex_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spiral_vortex_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spirograph_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_spirograph_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_star_burst_1920x1080.png",
+"noise": 15.884084975395913,
+"lane": Infinity
+},
+{
+"name": "src_star_burst_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_starfield_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_starfield_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_strange_attractor_1920x1080.png",
+"noise": 71.6367926285297,
+"lane": 85.05867244869955
+},
+{
+"name": "src_strange_attractor_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_striped_torus_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_striped_torus_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_strobe_light_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_strobe_light_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_structural_landscape_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_structural_landscape_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_superformula_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_superformula_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_terrain_lines_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_terrain_lines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_text_animator_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_text_animator_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_text_wall_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_text_wall_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_timbral_nebula_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_timbral_nebula_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_torus_hole_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_torus_hole_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_truchet_labyrinth_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_truchet_labyrinth_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_twisted_torus_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_twisted_torus_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_voronoi_1920x1080.png",
+"noise": 18.359714902519006,
+"lane": Infinity
+},
+{
+"name": "src_voronoi_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_water_caustics_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_water_caustics_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_waveform_lines_1920x1080.png",
+"noise": Infinity,
+"lane": 15.53737506200509
+},
+{
+"name": "src_waveform_lines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_cone_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_cone_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_cube_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_cube_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_cylinder_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_cylinder_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_icosahedron_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_icosahedron_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_sphere_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_sphere_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_torus_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_torus_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_wolf_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wire_wolf_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wormhole_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wormhole_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wormhole_tunnel_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_wormhole_tunnel_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_zigzag_lines_1920x1080.png",
+"noise": Infinity,
+"lane": Infinity
+},
+{
+"name": "src_zigzag_lines_256x256.png",
+"noise": Infinity,
+"lane": Infinity
+}
+]

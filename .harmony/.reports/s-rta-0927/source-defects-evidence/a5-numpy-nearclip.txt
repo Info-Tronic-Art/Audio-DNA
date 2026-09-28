@@ -1,0 +1,5 @@
+inside-times sample: [np.float64(0.84), np.float64(1.4), np.float64(6.28), np.float64(6.3), np.float64(9.5), np.float64(9.52), np.float64(10.06), np.float64(10.08), np.float64(10.1), np.float64(10.2), np.float64(10.22), np.float64(10.3)]
+near=0.0: hit% 100 100 100 100 100 100 100 100 100 100 100 100 | flat(at start)% 100 100 100 100 100 100 100 100 100 100 100 100
+near=0.05: hit% 90 90 85 85 83 84 84 85 86 87 88 87 | flat(at start)% 0 5 0 0 0 8 0 6 8 7 12 0
+near=0.08: hit% 90 89 85 85 83 83 84 85 86 86 87 86 | flat(at start)% 0 1 0 0 0 0 0 0 0 1 2 8
+near=0.12: hit% 90 89 85 85 83 83 84 85 86 86 87 85 | flat(at start)% 5 3 0 1 3 6 7 10 9 4 5 3

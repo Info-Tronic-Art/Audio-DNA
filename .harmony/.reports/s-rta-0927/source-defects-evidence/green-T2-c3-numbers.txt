@@ -1,0 +1,4 @@
+  sierpinski 1920x1080 t=1.13: mean=7.93473 p99.5=204 lit=0.0767877
+  sierpinski 256x256 t=1.13: mean=10.345 p99.5=204 lit=0.100113
+  sierpinski 512x512 t=1.13: mean=7.75875 p99.5=204 lit=0.0750847
+  sierpinski iter 0.75 1024x1024 t=1.13: mean=5.81906 p99.5=204 lit=0.0563135

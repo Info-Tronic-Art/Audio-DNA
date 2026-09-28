@@ -1,0 +1,16 @@
+  96x54 sweep 0..20 s step 0.05: 0 black, 0 flat frames;
+  crystal_cavern 1920x1080 t=0: mean=11.1603 p99.5=119 lit=0.806782
+  crystal_cavern 1920x1080 t=1.13: mean=11.6131 p99.5=122 lit=0.745323
+  crystal_cavern 1920x1080 t=10: mean=25.0339 p99.5=162 lit=0.812077
+  crystal_cavern 1920x1080 t=30: mean=10.0591 p99.5=118 lit=0.510997
+  crystal_cavern 1920x1080 t=5: mean=26.5818 p99.5=164 lit=0.872533
+  crystal_cavern 1920x1080 t=60: mean=17.7299 p99.5=146 lit=0.801536
+  crystal_cavern 256x256 t=0: mean=11.1208 p99.5=119 lit=0.807922
+  crystal_cavern 256x256 t=1.13: mean=11.5814 p99.5=120 lit=0.714264
+  crystal_cavern 256x256 t=10: mean=28.7303 p99.5=169 lit=0.833679
+  crystal_cavern 256x256 t=30: mean=7.06767 p99.5=102 lit=0.355133
+  crystal_cavern 256x256 t=5: mean=25.6083 p99.5=161 lit=0.87146
+  crystal_cavern 256x256 t=60: mean=18.1028 p99.5=147 lit=0.836853
+  crystal_cavern speed 0 256x256 t=30: mean=10.0334 p99.5=120 lit=0.632996
+  crystal_cavern speed 0 256x256 t=5: mean=12.8112 p99.5=119 lit=0.65329
+  crystal_cavern speed 0 256x256 t=8: mean=20.1682 p99.5=152 lit=0.832321

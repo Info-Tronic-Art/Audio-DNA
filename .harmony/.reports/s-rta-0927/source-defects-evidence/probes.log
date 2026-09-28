@@ -1,0 +1,21 @@
+LOCK: acquired 20:22:06
+===== effects-parity (20:22:06)
+exit 0
+PY 46 PASS / 0 FAIL
+PROBE-EFFECTS-PARITY GREEN
+===== crossfade (20:22:51)
+exit 0
+PY 35 PASS / 0 FAIL
+PROBE-CROSSFADE GREEN
+LOCK: released 20:25:18
+gap: sleeping 45 s
+LOCK: acquired 20:26:03
+===== fitmode (20:26:03)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-FITMODE GREEN
+===== deck-tabs (20:27:15)
+exit 0
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/srcdef/battery/deck-tabs-out)
+LOCK: released 20:27:26
+probes done (20:27:26); .venv symlink removed: yes
