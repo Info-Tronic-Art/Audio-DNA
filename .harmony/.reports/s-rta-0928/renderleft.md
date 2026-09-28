@@ -204,3 +204,29 @@ DONE_WITH_CONCERNS
 
 ### NEXT ACTION
 Harmony: an independent review of the lane, then the behavioral gate, then the merge.
+
+## Fix round (renderleft-fix, 2026-09-28 14:00-14:25)
+Commits on lane/renderleft-0928 after 5f1536f: 15f1ff8 (pitfalls 48-50), abefe7e (C1 sequences + row i2ms), 7f56369 (row i3n),
+a3691e1 (imagePaths dedup), f6b7e0a (i3n own-snapshot exclusion + bound), then the report commit. Full detail:
+.harmony/.reports/s-rta-0928/renderleft-fix.md. FSP = scratchpad/renderleft-fix.
+- MUST 1 (pitfalls 48/49/50 lost in the rebase) -- VERIFIED and FIXED. On 5f1536f, pitfalls.md went from 47 to 51. The
+  three entries are restored verbatim from 15c5f8d (lines 105-110). `git diff 15c5f8d -- docs/claude/pitfalls.md` now shows
+  only this lane's lines: the 37 and 46 amendments, plus the new 52 and 53. Content check (FSP/patchcmp.sh): for every file, the lane's patch
+  before the first rebase (6db8d67..79bafe7) was compared with its patch now (15c5f8d..tree). Result: 29 files SAME; the four docs (CLAUDE.md, pitfalls.md,
+  rendering.md, testing-eyes.md) the same apart from the renumbering 48/49 -> 52/53; probe-image-load.py differs only in the intended restore-lane comment.
+- MUST 2 (C1 skipped image sequences) -- VERIFIED and FIXED. `incomingImagePending` returned false for a non-Image
+  clip. New `ImageSequence::firstFramePending() const` = getCurrentTexture's *pending rule, read only; Renderer provides it
+  (`setSequencePendingProvider`); incomingImagePending asks it for ImageSequence. New row i2ms_seq_fade_start:
+  - RED on the pre-fix lane app (5f1536f code): `FAIL  i2ms_seq_fade_start: the dissolve starts when the image lands (first answered frame p 0.578 <= 0.08)` (run 2: p 0.553).
+  - RED on main: p 0.262 / 0.261 (the in-frame decode's dt).
+  - GREEN x2: `PASS  i2ms_seq_fade_start: the dissolve starts when the image lands (first answered frame p 0.000 <= 0.08)`.
+  - I looked at the mid-dissolve frame f2 (p 0.20-0.24): the warm orange blends into the gradient.
+- MUST 3 (C2 snapshot row missing) -- VERIFIED (no such row) and ADDED: i3n_snapshot_while_pending.
+  - RED on main: `FAIL ... answers (ok True) in 1422 ms <= 500` + `FAIL ... the held picture ... (dbox(snap, capA) 76.72 <= 3.0)`.
+  - Teeth (takeSnapshot with completeFrame=true; restore sha equal): 887 ms, snapshot = the cold picture -> 2 FAIL.
+  - GREEN (final x2, and the pre-fix lane app, which already did C2 right): 72-84 ms, dbox(snap, held) 0.00; render_frame right after waits 665-739 ms and shows the new picture.
+- SHOULD 4 (imagePaths O(n^2)) -- VERIFIED, FIXED (unordered_set seen-set; order unchanged; compload::imagePaths passes).
+- Gates on the final app (FSP/apps/final = HEAD code):
+  - probe-image-load `PY 37 PASS / 0 FAIL` + `PROBE-IMAGE-LOAD GREEN` x2 (load 4.0-7.5).
+  - probe-crossfade `PY 35 PASS / 0 FAIL` GREEN (main 35/0).
+  - ctest serial -j1 `100% tests passed, 0 tests failed out of 846`.
