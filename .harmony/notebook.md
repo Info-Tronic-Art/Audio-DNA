@@ -1998,3 +1998,23 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
 **Files:** src/render/Renderer.cpp (captureFrame, processPendingCapture, renderOpenGL top), src/render/Renderer.h, tests/visual/conftest.py
 **Note:** A capture used to be answered by whatever frame was in flight when it was armed; that frame had read `timeOverride_` BEFORE captureFrame stored it, so it rendered at the previous time. Invisible while every 8080 capture resized the canvas (the resize forced a new frame); exposed the moment the composition equals the capture lock (Tier-1's 256x256 fixture): strobe_light x20 at t = 2.0 gave 2 different pictures, plasma x20 gave 4. `captureArmSeq_` / `frameArmSeq_` now make a capture wait for a frame that started after it was armed. Any time-dependent pixel test through render_frame relies on this; do not reorder the override store after the arm.
 **Valid while:** captures are serviced by the GL thread from processPendingCapture.
+
+## 2026-09-28 s-rta-0928 tempo: a two-request ordering race is nearly certain live behind the stall hook
+**Files:** .harmony/probe-tempo-start.sh, src/recording/RecorderHost.cpp (startDue), src/analysis/BPMTracker.cpp
+**Note:** Queue both requests behind the TEST-ONLY `/api/debug/stall_message_thread` (40 ms) and they run back to back: the
+command -> Record race lost 15/20 (W2) and 20/20 (W3) on the unmodified app vs ~12-26 % with plain curl. Count a live row as
+a gate only if it fails >= 5/20 on the unmodified app. "Everything sent before X" on the analysis side =
+`FeatureSnapshot::trackerRequestSeq >= BPMTracker::postedRequestSeq()` read at X (Pitfall 48); never read the bus right after
+a tempo command. Teeth by in-place mutation + restore: make compares mtimes at 1-s resolution — `touch` the restored file
+after a >= 1 s pause and rebuild before trusting the next run.
+**Valid while:** tempo commands are applied by the analysis thread at the next hop.
+
+## 2026-09-28 s-rta-0928 Harmony methods: `VAR=x . lib.sh` does not keep VAR; a Fable quota wall kills plan stages
+**Files:** scratchpad lib/lock.sh (session helper), workflow scripts
+**Note:** (1) bash drops a prefix assignment on "." after sourcing: functions called later saw LANE empty, so the lock owner
+was written blank and release compared "" = "" (any lane could free another's lock). Pin the name with a real assignment
+inside the sourced file (LOCK_LANE="$LANE") and refuse a blank release; exercise a shared helper end-to-end (source, then
+call a function in the same shell, print the owner line) before handing it to lanes. (2) "You've reached your Fable limit"
+kills architect agents mid-run (no partial plan on disk); a diagnosis stage before it survives — resume the workflow from its
+run id with the plan stage re-pinned (diag replays from cache). Record the tier deviation and tell Boris.
+**Valid while:** lanes share one live-app lock through a sourced helper; architects run on a quota-limited tier.
