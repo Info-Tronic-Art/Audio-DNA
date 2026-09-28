@@ -68,6 +68,11 @@ void BPMTracker::processRawBPM(float rawBpm, float conf, bool beat)
 
 void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
 {
+    // s-rta-0928 (Pitfall 48): latch the request sequence BEFORE any request is read -- never move it below.
+    // Every request whose raise this load sees (acquire / release) wrote before it, so the reads that follow
+    // see it: the snapshot this hop publishes never claims a request it has not read.
+    appliedRequestSeq_ = requestSeq_.load(std::memory_order_acquire);
+
     // s-rta-0926b: a tempo request (setManualBPM / followExternalTempo) posted since the last
     // hop is applied HERE, before this hop's phase advance -- the moment the old direct write
     // from the message thread took effect. One relaxed load per hop; the exchange only when pending.
@@ -555,7 +560,8 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
 void BPMTracker::requestResync()
 {
     resyncRequests_.fetch_add(1, std::memory_order_relaxed);   // the counter change IS the message; nothing else
-}                                                              // is published from the requesting thread
+    raiseRequestSeq();                                         // is published from the requesting thread
+}                                                              // (s-rta-0928: raised AFTER the write)
 
 void BPMTracker::applyResync()   // analysis thread only -- called last in feedDownbeatFeatures()
 {
@@ -595,6 +601,7 @@ void BPMTracker::postTempoRequest(float bpm, bool realign)   // any thread -- wr
         const bool keepRealign = (prev & kTempoPending) && (prev & kTempoRealign);
         next = kTempoPending | ((realign || keepRealign) ? kTempoRealign : 0) | bits;
     } while (!tempoRequest_.compare_exchange_weak(prev, next, std::memory_order_relaxed));
+    raiseRequestSeq();   // s-rta-0928: AFTER the write (Pitfall 48)
 }
 
 void BPMTracker::applyTempoRequest(float bpm, bool realign)   // analysis thread only -- from runPipeline()
@@ -625,6 +632,7 @@ void BPMTracker::resetBeatPhase()
 void BPMTracker::setManualMode(bool enabled)
 {
     manualMode_.store(enabled, std::memory_order_relaxed);
+    raiseRequestSeq();   // s-rta-0928: AFTER the write (Pitfall 48)
 }
 
 // === P23: Smart BPM Recovery ===

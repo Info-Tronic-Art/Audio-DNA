@@ -136,6 +136,17 @@ struct alignas(64) FeatureSnapshot
     // the analysis thread; published every hop; /api/bpm publishes it next to totalBarCount.
     uint32_t totalBeatCount = 0;
 
+    // s-rta-0928 take start (Pitfall 48): BPMTracker::appliedRequestSeq() of the hop that published this
+    // snapshot. Every tempo / Tap / Resync / manual-mode request whose post raised the tracker's request
+    // sequence to <= this value is reflected in bpm, beatPhase, totalBeatCount, trackerState and beatInBar
+    // here. Monotonic, wraps at 2^32 -- compare with a signed difference. 0 before any request and in test
+    // mode (no analysis thread). A sync token, not an audio feature: no UI readout.
+    uint32_t trackerRequestSeq = 0;
+
+    // trackerState value meaning LOCKED (== BPMTracker::STATE_LOCKED; static_assert in AnalysisThread.cpp): the
+    // recording layer tests the lock without including BPMTracker.h (aubio).
+    static constexpr uint8_t kTrackerLocked = 2;
+
     // Bars elapsed since the last manual Resync (== totalBarCount before the first one). The one
     // fold input for OscillatorSignal / EnvelopeSignal / ConnectionShaper::beatsNow. Guarded so a
     // contradictory injected snapshot (origin > count) reads 0 bars, never a wrapped ~4e9.
@@ -179,6 +190,9 @@ static_assert(offsetof(FeatureSnapshot, totalBeatCount) == 324,
               "totalBeatCount must immediately follow resyncBarOrigin (offset 320 + 4 bytes) -- if "
               "this fails, a field was inserted/resized somewhere above and the layout needs "
               "re-auditing, not just re-numbering this constant");
+static_assert(offsetof(FeatureSnapshot, trackerRequestSeq) == 328,
+              "trackerRequestSeq must immediately follow totalBeatCount (offset 324 + 4 bytes) in the free "
+              "tail tier -- if this fails, re-audit the layout");
 static_assert(sizeof(FeatureSnapshot) == 384,
               "resyncBarOrigin opened a new 64-byte tier (alignas 64); the next fields are free "
-              "from offset 328 up to 384 -- FeatureBus::kSnapshotWords must be 96");
+              "from offset 332 up to 384 -- FeatureBus::kSnapshotWords must be 96");

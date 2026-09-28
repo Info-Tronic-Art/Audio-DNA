@@ -266,3 +266,118 @@ TEST_CASE("a raced take recorded before the fix still loads and behaves identica
     CHECK(pastZero.error.empty());
     CHECK(takeBeatOfBar(*take, 1) == 0.0);
 }
+
+// === the analysis side: BPMTracker's request sequence (Pitfall 48) ===
+
+namespace
+{
+    void hopOnly(BPMTracker& tr)
+    {
+        tr.processRawBPM(0.0f, 0.0f, false);
+        tr.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    }
+
+    std::string readSource(const char* relative)
+    {
+        return juce::File(juce::String(AUDIODNA_SRC_DIR)).getChildFile(relative).loadFileAsString().toStdString();
+    }
+}
+
+TEST_CASE("every request raises the posted sequence; the next hop latches it", "[bpm][request-seq]")
+{
+    BPMTracker tr(512, 1024, 48000);
+    CHECK(tr.postedRequestSeq() == 0u);
+    CHECK(tr.appliedRequestSeq() == 0u);
+
+    tr.followExternalTempo(120.0f);
+    CHECK(tr.postedRequestSeq() == 1u);
+    CHECK(tr.appliedRequestSeq() == 0u);
+    CHECK(tr.bpm() == 0.0f);                       // a request, not a write
+    hopOnly(tr);
+    CHECK(tr.appliedRequestSeq() == 1u);
+    CHECK(tr.bpm() == Approx(120.0f));
+
+    tr.setManualMode(true);
+    CHECK(tr.postedRequestSeq() == 2u);
+    hopOnly(tr);
+    CHECK(tr.appliedRequestSeq() == 2u);
+
+    tr.setManualBPM(100.0f);
+    CHECK(tr.postedRequestSeq() == 3u);
+    hopOnly(tr);
+    CHECK(tr.appliedRequestSeq() == 3u);
+    CHECK(tr.bpm() == Approx(100.0f));
+    CHECK(tr.beatPhase() == Approx(512.0 / 28800.0));   // realigned, then one manual advance
+
+    tr.requestResync();
+    CHECK(tr.postedRequestSeq() == 4u);
+    tr.processRawBPM(0.0f, 0.0f, false);
+    CHECK(tr.appliedRequestSeq() == 4u);
+    tr.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    CHECK(tr.beatInBar() == 0);
+    CHECK(tr.beatPhase() == 0.0f);
+
+    tr.setManualMode(false);
+    CHECK(tr.postedRequestSeq() == 5u);
+    hopOnly(tr);
+    CHECK(tr.appliedRequestSeq() == 5u);
+
+    // An early return posts nothing and raises nothing.
+    tr.setManualBPM(0.0f);
+    tr.followExternalTempo(-1.0f);
+    CHECK(tr.postedRequestSeq() == 5u);
+}
+
+TEST_CASE("a request posted after the hop's latch is claimed by the next hop, never this one", "[bpm][request-seq]")
+{
+    BPMTracker tr(512, 1024, 48000);
+    tr.setManualMode(true);
+    tr.followExternalTempo(120.0f);
+    int guard = 0;
+    do
+    {
+        hopOnly(tr);
+        REQUIRE(++guard < 2000);
+    } while (tr.beatInBar() == 0);
+
+    // A tempo value posted between runPipeline (the latch) and the end of the hop.
+    tr.processRawBPM(0.0f, 0.0f, false);
+    const uint32_t L = tr.appliedRequestSeq();
+    tr.followExternalTempo(90.0f);
+    tr.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    CHECK(tr.appliedRequestSeq() == L);
+    CHECK(tr.bpm() == Approx(120.0f));
+    tr.processRawBPM(0.0f, 0.0f, false);
+    CHECK(tr.appliedRequestSeq() == L + 1);
+    CHECK(tr.bpm() == Approx(90.0f));
+    tr.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+
+    guard = 0;
+    while (tr.beatInBar() == 0)
+    {
+        hopOnly(tr);
+        REQUIRE(++guard < 2000);
+    }
+
+    // A Resync posted after the latch IS applied at the end of the same hop -- but not claimed (conservative:
+    // a waiter waits one more hop, never less).
+    tr.processRawBPM(0.0f, 0.0f, false);
+    const uint32_t M = tr.appliedRequestSeq();
+    tr.requestResync();
+    tr.feedDownbeatFeatures(0.0f, 0.0f, 0.0f, 0);
+    CHECK(tr.beatInBar() == 0);
+    CHECK(tr.appliedRequestSeq() == M);
+}
+
+TEST_CASE("[lint] AnalysisThread publishes the request sequence before it publishes the snapshot", "[tempo-start][lint]")
+{
+    // A structural lint (a source-text scan), not behaviour proof: the live probe-tempo-start.sh W1-W3 prove
+    // the published sequence reaches the recorder.
+    const std::string src = readSource("analysis/AnalysisThread.cpp");
+    REQUIRE_FALSE(src.empty());
+    const auto copy = src.find("snap->trackerRequestSeq = bpmTracker_->appliedRequestSeq();");
+    const auto publish = src.find("featureBusWriter_.publishWrite();");
+    REQUIRE(publish != std::string::npos);
+    CHECK(copy != std::string::npos);
+    CHECK(copy < publish);
+}
