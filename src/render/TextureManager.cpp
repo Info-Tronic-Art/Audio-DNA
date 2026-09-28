@@ -2,6 +2,7 @@
 #include "render/LUTLoader.h"
 #include <vector>
 #include <iostream>
+#include <chrono>
 
 using namespace juce::gl;
 
@@ -14,14 +15,21 @@ bool TextureManager::loadImage(const juce::File& imageFile)
 {
     std::cerr << "[TextureManager] loading: " << imageFile.getFullPathName() << std::endl;
 
+    // s-rta-0928 R1.0: the decode / convert / upload split of the legacy single image (GL thread).
+    const auto t0 = std::chrono::steady_clock::now();
     auto image = juce::ImageFileFormat::loadFrom(imageFile);
     if (!image.isValid())
     {
         std::cerr << "[TextureManager] FAILED to decode image" << std::endl;
         return false;
     }
+    const double decodeMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
 
-    return uploadImage(image);
+    const bool ok = uploadImage(image);
+    std::cerr << "[Image] legacy " << imageFile.getFullPathName() << " (" << image.getWidth() << "x"
+              << image.getHeight() << ") decode=" << juce::String(decodeMs, 1) << " convert="
+              << juce::String(lastConvertMs_, 1) << " upload=" << juce::String(lastUploadMs_, 1) << " ms" << std::endl;
+    return ok;
 }
 
 bool TextureManager::uploadImage(const juce::Image& image)
@@ -32,6 +40,7 @@ bool TextureManager::uploadImage(const juce::Image& image)
     int w = image.getWidth();
     int h = image.getHeight();
 
+    const auto tConvert = std::chrono::steady_clock::now();   // s-rta-0928 R1.0 (loadImage's split line)
     // Convert to ARGB and extract pixels into a clean RGBA buffer for OpenGL.
     auto argbImage = image.convertedToFormat(juce::Image::ARGB);
     juce::Image::BitmapData bitmapData(argbImage, juce::Image::BitmapData::readOnly);
@@ -55,6 +64,12 @@ bool TextureManager::uploadImage(const juce::Image& image)
         }
     }
 
+    const auto tUpload = std::chrono::steady_clock::now();
+    lastConvertMs_ = std::chrono::duration<double, std::milli>(tUpload - tConvert).count();
+    const auto uploadDone = [this, tUpload] {
+        lastUploadMs_ = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - tUpload).count();
+    };
+
     // If texture exists at same size, just update it (glTexSubImage2D is faster)
     if (imageTexID_ != 0 && imageWidth_ == w && imageHeight_ == h)
     {
@@ -62,6 +77,7 @@ bool TextureManager::uploadImage(const juce::Image& image)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h,
                         GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
         glBindTexture(GL_TEXTURE_2D, 0);
+        uploadDone();
         return true;
     }
 
@@ -87,6 +103,7 @@ bool TextureManager::uploadImage(const juce::Image& image)
                  GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
 
     glBindTexture(GL_TEXTURE_2D, 0);
+    uploadDone();
 
     std::cerr << "[TextureManager] texture uploaded, ID=" << imageTexID_
               << ", size=" << w << "x" << h << std::endl;

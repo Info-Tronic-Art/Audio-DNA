@@ -6,6 +6,7 @@
 #include "render/LayerClock.h"
 #include <iostream>
 #include <cmath>
+#include <chrono>
 
 using namespace juce::gl;
 
@@ -247,16 +248,21 @@ GLuint CompositorEngine::loadKeyImage(const juce::File& imageFile)
     if (it != textureCache_.end())
         return it->second;
 
+    // s-rta-0928 R1.0: the decode / convert / upload split of this GL-thread load (one line per new image).
+    using ImgClock = std::chrono::steady_clock;
+    const auto msSince = [](ImgClock::time_point t) {
+        return std::chrono::duration<double, std::milli>(ImgClock::now() - t).count();
+    };
+    const auto tDecode = ImgClock::now();
     juce::Image img = juce::ImageFileFormat::loadFrom(imageFile);
     if (!img.isValid())
         return 0;
 
     // Convert to RGBA
     img = img.convertedToFormat(juce::Image::ARGB);
+    const double decodeMs = msSince(tDecode);
 
-    GLuint tex = 0;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
+    const auto tConvert = ImgClock::now();
 
     // JUCE stores ARGB with premultiplied alpha in BGRA byte order
     // We need to convert to GL_RGBA
@@ -285,12 +291,21 @@ GLuint CompositorEngine::loadKeyImage(const juce::File& imageFile)
         std::memcpy(flipped.data() + static_cast<size_t>(y) * rowBytes,
                      rgba.data() + static_cast<size_t>((h - 1 - y)) * rowBytes,
                      rowBytes);
+    const double convertMs = msSince(tConvert);
 
+    const auto tUpload = ImgClock::now();
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, flipped.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    const double uploadMs = msSince(tUpload);
+    std::cerr << "[Image] loadKeyImage " << path << " (" << w << "x" << h << ") decode=" << juce::String(decodeMs, 1)
+              << " convert=" << juce::String(convertMs, 1) << " upload=" << juce::String(uploadMs, 1) << " ms"
+              << std::endl;
 
     textureCache_[path] = tex;
     return tex;

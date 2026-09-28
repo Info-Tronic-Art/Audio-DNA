@@ -58,4 +58,8 @@ private:
     GLuint fboTextures_[2] = {0, 0};
     int fboWidth_ = 0;
     int fboHeight_ = 0;
+
+    // s-rta-0928 R1.0: uploadImage's convert / upload split, read by loadImage's timing line (GL thread only).
+    double lastConvertMs_ = 0.0;
+    double lastUploadMs_ = 0.0;
 };

@@ -630,6 +630,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
     obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
+    // s-rta-0928 R1.0: the longest WHOLE render callback since the previous read (resets on read).
+    obj->setProperty("peak_callback_ms", static_cast<double>(renderer_.takePeakCallbackMs()));
     // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
     // nothing). peak_gpu_time_ms resets on read like peak_frame_time_ms.
     obj->setProperty("gpu_time_ms", static_cast<double>(renderer_.getGpuTimeMs()));

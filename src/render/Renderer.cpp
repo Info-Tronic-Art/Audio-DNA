@@ -163,6 +163,19 @@ void Renderer::newOpenGLContextCreated()
 
 void Renderer::renderOpenGL()
 {
+    // s-rta-0928 R1.0: the WHOLE callback (every return), incl. the work before renderStart (pending legacy image,
+    // camera upload, autopilot) and after renderEnd (recorder, Syphon, capture read) that peak_frame_time_ms misses.
+    struct CallbackPeak
+    {
+        std::atomic<float>& peak;
+        std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+        ~CallbackPeak()
+        {
+            const float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            if (ms > peak.load(std::memory_order_relaxed)) peak.store(ms, std::memory_order_relaxed);
+        }
+    } callbackPeak{ peakCallbackMs_ };
+
     // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
     frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
 

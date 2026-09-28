@@ -1,0 +1,12 @@
+{
+  "_doc": "Thresholds for .harmony/probe-capture.sh (s-rta-0928 renderleft R2 / R3). Rows and calibration: the docstring of .harmony/probe-capture.py.",
+  "maxCallS": 3.0,
+  "_maxCallS": "a concurrent capture must be answered well inside the 5 s capture timeout (serial service of 4 1080p captures is ~0.5 s)",
+  "cr2Sizes": [ [640, 360], [320, 180] ],
+  "cr3": {
+    "_why": "R3 ships only if the 1080p PNG encode is >= 2x faster and the round trip >= 25% shorter than on main (the calibration run)",
+    "pngRatio": 0.5,
+    "rtRatio": 0.75,
+    "calib": null
+  }
+}

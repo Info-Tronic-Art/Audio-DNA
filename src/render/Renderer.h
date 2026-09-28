@@ -369,6 +369,10 @@ public:
     // s-rta-0926b R1: the longest single frame (same CPU-side measure as
     // frameTimeMs_, no EMA) since the previous call; reading resets it.
     float takePeakFrameTimeMs() { return peakFrameTimeMs_.exchange(0.0f, std::memory_order_relaxed); }
+    // s-rta-0928 R1.0: the longest WHOLE renderOpenGL() callback (every return path) since the previous call;
+    // reading resets it. Unlike peak_frame_time_ms it includes the work before renderStart (the pending legacy
+    // image, the camera upload, autopilot) and after renderEnd (recorder, Syphon, the capture read).
+    float takePeakCallbackMs() { return peakCallbackMs_.exchange(0.0f, std::memory_order_relaxed); }
 
     // s-rta-0926b plan4 A-opt: GPU time of one frame's GL work (canvas block through the present pass),
     // from GL_TIME_ELAPSED timer queries read back one or two frames later (never blocking). 0 when the
@@ -469,6 +473,7 @@ private:
 
     std::atomic<float> frameTimeMs_{0.0f};
     std::atomic<float> peakFrameTimeMs_{0.0f};
+    std::atomic<float> peakCallbackMs_{0.0f};   // s-rta-0928 R1.0 (takePeakCallbackMs)
     double renderProfileAccum_ = 0.0;
     int renderProfileCount_ = 0;
     static constexpr int kRenderProfileInterval = 300; // Log every N frames (~5s at 60fps)

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstring>
+#include <chrono>
 
 using namespace juce::gl;
 
@@ -239,11 +240,19 @@ GLuint ImageSequence::loadImageToTexture(int frameIndex)
     if (frameIndex < 0 || frameIndex >= static_cast<int>(files_.size()))
         return 0;
 
+    // s-rta-0928 R1.0: the decode / convert / upload split of a sequence frame's GL-thread load.
+    using ImgClock = std::chrono::steady_clock;
+    const auto msSince = [](ImgClock::time_point t) {
+        return std::chrono::duration<double, std::milli>(ImgClock::now() - t).count();
+    };
+    const auto tDecode = ImgClock::now();
     auto img = juce::ImageFileFormat::loadFrom(files_[static_cast<size_t>(frameIndex)]);
     if (!img.isValid())
         return 0;
 
     img = img.convertedToFormat(juce::Image::ARGB);
+    const double decodeMs = msSince(tDecode);
+    const auto tConvert = ImgClock::now();
     int w = img.getWidth();
     int h = img.getHeight();
 
@@ -265,6 +274,8 @@ GLuint ImageSequence::loadImageToTexture(int frameIndex)
         }
     }
 
+    const double convertMs = msSince(tConvert);
+    const auto tUpload = ImgClock::now();
     GLuint tex = 0;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -273,6 +284,9 @@ GLuint ImageSequence::loadImageToTexture(int frameIndex)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    std::cerr << "[Image] sequence " << files_[static_cast<size_t>(frameIndex)].getFileName() << " (" << w << "x" << h
+              << ") decode=" << juce::String(decodeMs, 1) << " convert=" << juce::String(convertMs, 1)
+              << " upload=" << juce::String(msSince(tUpload), 1) << " ms" << std::endl;
 
     textures_[static_cast<size_t>(frameIndex)] = tex;
     textureWidths_[static_cast<size_t>(frameIndex)] = w;
