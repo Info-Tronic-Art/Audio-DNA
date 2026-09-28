@@ -1534,7 +1534,11 @@ void Renderer::drainRetiredMedia()
     // re-runs close() (also idempotent).
 }
 
-// s-rta-0928b seqvram: frame top, GL thread. Sums every open sequence's texture bytes and publishes the totals.
+// s-rta-0928b seqvram: frame top, GL thread. Sums every open sequence's texture bytes; only when the total is over
+// SeqVram::kBudgetBytes, trims the sequences NOT drawn in the previous frame (inactive decks / columns) to their current
+// + shown frames, least-recently drawn first, until it is not. Drawn sequences are never trimmed here: each shrinks to
+// its own allowance in getCurrentTexture (floors win, H10). The total seeds this frame's grants (syncMedia keeps it
+// running, H3). GL deletes only in the pressure trim, under imageSeqMutex_ (as getCurrentTexture uploads under it).
 void Renderer::scanSequenceVram()
 {
     ++seqFrameSerial_;
@@ -1542,12 +1546,30 @@ void Renderer::scanSequenceVram()
     int slots = 0, open = 0;
     {
         std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        std::vector<ImageSequence*> idle;
         for (auto& [id, seq] : imageSequences_)
         {
             total += seq->residentBytes();
-            slots += seq->residentSlots();
             ++open;
+            if (seq->lastDrawnSerial() + 1 < seqFrameSerial_ && seq->residentSlots() > 2)
+                idle.push_back(seq.get());
         }
+        if (total > SeqVram::kBudgetBytes && !idle.empty())
+        {
+            std::sort(idle.begin(), idle.end(), [](const ImageSequence* a, const ImageSequence* b) {
+                return a->lastDrawnSerial() < b->lastDrawnSerial();
+            });
+            for (auto* seq : idle)
+            {
+                if (total <= SeqVram::kBudgetBytes)
+                    break;
+                const size_t before = seq->residentBytes();
+                seq->trimToMinimum(&seqStats_);
+                total -= before - std::min(before, seq->residentBytes());
+            }
+        }
+        for (auto& [id, seq] : imageSequences_)
+            slots += seq->residentSlots();
     }
     seqResidentTotal_ = total;
     seqStats_.residentBytes.store(static_cast<int64_t>(total), std::memory_order_relaxed);
@@ -1737,12 +1759,19 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
 
         // plan4 T4: no lazy PNG load for a deck that is not on screen. s-rta-0928 R1.4: the frames decode off the GL
         // thread (look-ahead); a sequence with nothing to show yet is PENDING, and counts for the render_frame gate
-        // (C3: the same framePendingImages counter the compositor's images bump).
+        // (C3: the same framePendingImages counter the compositor's images bump). s-rta-0928b seqvram: the sequence
+        // gets a SeqVram::Grant (its window's allowance).
         if (!decode)
             return 0;
         bool seqPending = false;
-        const SeqVram::Grant grant{ 0, seqFrameSerial_, &seqStats_ };
+        // s-rta-0928b seqvram: the allowance = the free share of the sequence budget as the frame stands (a RUNNING
+        // total, H3: the frame-top sum, updated after each drawn sequence), never below the floor.
+        const size_t mine = seq->residentBytes();
+        const size_t others = seqResidentTotal_ - std::min(seqResidentTotal_, mine);
+        const SeqVram::Grant grant{ SeqVram::allowance(others, seq->minWindowBytes()), seqFrameSerial_, &seqStats_,
+                                    clip->inPoint, clip->outPoint };
         const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, grant, &seqPending);
+        seqResidentTotal_ = others + seq->residentBytes();
         if (seqPending)
         {
             compositor_.notePendingImage();

@@ -225,12 +225,17 @@ inline Plan plan(const Transport& t, const std::vector<int>& dist, const std::ve
     return out;
 }
 
-// A decoded result is still wanted iff its frame is cur, lastShown, or inside the window (dist < allowanceFrames).
-inline bool wanted(const std::vector<int>& dist, int j, int cur, int lastShown, int allowanceFrames)
+// A decoded result is still wanted iff its frame is cur, lastShown, inside the window (dist < allowanceFrames), or it
+// fits without an eviction (fits = resident frames + results already kept this call < allowanceFrames): a sequence under
+// its allowance keeps what it decoded -- the in-point frame the playhead passed while its first decode ran stays for a
+// retrigger -- while a far result in a full window is dropped, not uploaded (R-4).
+inline bool wanted(const std::vector<int>& dist, int j, int cur, int lastShown, int allowanceFrames, bool fits)
 {
-    if (j == cur || j == lastShown)
+    if (j < 0 || j >= static_cast<int>(dist.size()))
+        return false;
+    if (j == cur || j == lastShown || fits)
         return true;
-    return j >= 0 && j < static_cast<int>(dist.size()) && dist[static_cast<size_t>(j)] < allowanceFrames;
+    return dist[static_cast<size_t>(j)] < allowanceFrames;
 }
 
 // A per-sequence table of equal-size GL textures (GL-thread owned; the caller does the GL calls the returned Act names).

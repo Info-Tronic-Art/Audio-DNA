@@ -285,8 +285,9 @@ private:
     ImageDecode::Decoder imageDecoder_{ 3 };
     ImageTexCache::UploadBudget uploadBudget_;
     // s-rta-0928b seqvram (GL thread; the stats are read by /api/state): every image sequence's texture bytes summed at
-    // the frame top (scanSequenceVram) and the frame serial the grants carry. No new mutex (Sacred Rule 2): the scan
-    // is one more O(#sequences) critical section on imageSeqMutex_, which syncMedia already takes per drawn clip.
+    // the frame top (scanSequenceVram: totals + the idle trim under pressure, SeqVram.h), kept RUNNING through the
+    // frame's grants (H3), and the frame serial the grants carry. No new mutex (Sacred Rule 2): the scan is one more
+    // O(#sequences) critical section on imageSeqMutex_, which syncMedia already takes per drawn clip.
     SeqVram::Stats seqStats_;
     uint64_t seqFrameSerial_ = 0;
     size_t seqResidentTotal_ = 0;

@@ -195,18 +195,95 @@ TEST_CASE("(8b) H10 floors win: settled total <= max(budget, sum of drawn floors
     }
 }
 
-TEST_CASE("(9) wanted: a result outside the window is stale unless it is cur or lastShown", "[seq_vram][s-rta-0928b]")
+TEST_CASE("(9) wanted: in a full window a result outside it is stale unless it is cur or lastShown", "[seq_vram][s-rta-0928b]")
 {
     const auto t = tr(300, 150, true, Mode::Loop);
     const auto d = dist(t);
-    CHECK(wanted(d, 151, 150, 149, 10));
-    CHECK(wanted(d, 159, 150, 149, 10));
-    CHECK_FALSE(wanted(d, 160, 150, 149, 10));
-    CHECK_FALSE(wanted(d, 148, 150, 149, 10));
-    CHECK(wanted(d, 149, 150, 149, 10));   // lastShown
-    CHECK(wanted(d, 150, 150, 149, 10));   // cur
-    CHECK_FALSE(wanted(d, 300, 150, 149, 10));
-    CHECK_FALSE(wanted(d, -1, 150, 149, 10));
+    CHECK(wanted(d, 151, 150, 149, 10, false));
+    CHECK(wanted(d, 159, 150, 149, 10, false));
+    CHECK_FALSE(wanted(d, 160, 150, 149, 10, false));
+    CHECK_FALSE(wanted(d, 148, 150, 149, 10, false));
+    CHECK(wanted(d, 149, 150, 149, 10, false));   // lastShown
+    CHECK(wanted(d, 150, 150, 149, 10, false));   // cur
+    CHECK_FALSE(wanted(d, 300, 150, 149, 10, true));
+    CHECK_FALSE(wanted(d, -1, 150, 149, 10, true));
+    // under the allowance a result is kept wherever it lies (it needs no eviction)
+    CHECK(wanted(d, 148, 150, 149, 10, true));
+    CHECK(wanted(d, 20, 150, 149, 10, true));
+}
+
+TEST_CASE("(9b) lap 1: the in-point frame decoded after the playhead moved on is kept for a retrigger", "[seq_vram][s-rta-0928b]")
+{
+    // 60 Hz render frames, a 30 fps Loop of 300 frames, allowance 129, decode latency 2 render frames, one upload per
+    // frame (the UploadBudget at 1080p): frame 0 is requested at cur 0 and arrives at cur 1 -- 299 steps ahead. It must
+    // be uploaded (the window has room), stay resident through lap 1 (Belady evicts the frames just passed), and be
+    // resident when a retrigger seeks to it at cur 131 (probe-seq-vram v4).
+    const int n = 300, cap = 129, lat = 2;
+    std::vector<uint8_t> res(n, 0), req(n, 0), fail(n, 0);
+    std::vector<int> d;
+    Slots slots;
+    std::deque<std::pair<int, int>> inflight;
+    std::vector<int> ready;
+    int lastShown = -1, out = 0, cur = 0;
+    uint32_t tex = 1;
+    for (int rf = 0; cur != 131 || rf % 2 != 0; ++rf)
+    {
+        const auto t = tr(n, cur, true, Mode::Loop);
+        distances(t, d);
+        while (!inflight.empty() && inflight.front().second <= rf)
+        {
+            ready.push_back(inflight.front().first);
+            inflight.pop_front();
+            --out;
+        }
+        int resident = 0;
+        for (auto r : res)
+            resident += r;
+        int inc = 0;
+        for (auto it = ready.begin(); it != ready.end();)
+        {
+            if (!wanted(d, *it, cur, lastShown, cap, resident + inc < cap))
+            {
+                req[static_cast<size_t>(*it)] = 0;
+                it = ready.erase(it);
+                continue;
+            }
+            ++inc;
+            ++it;
+        }
+        const auto p = plan(t, d, res, req, fail, lastShown, cap, inc, kMaxOutstanding - out);
+        for (int j : p.evict)
+        {
+            slots.release(j);
+            res[static_cast<size_t>(j)] = 0;
+            req[static_cast<size_t>(j)] = 0;
+        }
+        if (!ready.empty())
+        {
+            const auto a = slots.acquire(ready.front(), 1, 1, cap);
+            REQUIRE(a.act != Slots::Act::Full);
+            if (a.act == Slots::Act::Create)
+                slots.bind(a.slot, tex++);
+            res[static_cast<size_t>(ready.front())] = 1;
+            ready.erase(ready.begin());
+        }
+        for (int j : p.request)
+        {
+            req[static_cast<size_t>(j)] = 1;
+            inflight.emplace_back(j, rf + lat);
+            ++out;
+        }
+        if (res[static_cast<size_t>(cur)] != 0)
+            lastShown = cur;
+        if (rf % 2 == 1)
+            cur = (cur + 1) % n;
+    }
+    int resident = 0;
+    for (auto r : res)
+        resident += r;
+    CHECK(resident == cap);   // the window is full: evictions have run
+    for (int j = 0; j < 8; ++j)
+        CHECK(res[static_cast<size_t>(j)] == 1);
 }
 
 TEST_CASE("(10) Slots: create, full, reuse, respecify, shrink, releaseAll, bytes", "[seq_vram][s-rta-0928b]")
@@ -411,10 +488,13 @@ struct Model
             --outstanding;
         }
         int incoming = 0;
+        int count = 0;
+        for (auto r : resident)
+            count += r;
         for (auto it = ready.begin(); it != ready.end();)
         {
             if (resident[static_cast<size_t>(*it)] != 0) { it = ready.erase(it); continue; }
-            if (!wanted(d, *it, cur, lastShown, cap)) { requested[static_cast<size_t>(*it)] = 0; it = ready.erase(it); continue; }
+            if (!wanted(d, *it, cur, lastShown, cap, count + incoming < cap)) { requested[static_cast<size_t>(*it)] = 0; it = ready.erase(it); continue; }
             ++incoming;
             ++it;
         }

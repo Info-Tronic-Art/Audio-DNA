@@ -23,7 +23,8 @@ unconditionally: a clip without "speed" plays at 0).
 Expected frame: the playhead (/api/composition) read right BEFORE and right AFTER the capture brackets it: the code's
 frame index must lie in [int(p0 * n) - tol, int(p1 * n) + tol] (mod n; PingPong: either direction).
 Several layers in one capture (v9, v7b): each layer is scaled to 1/3 about anchor (0 / 0.5 / 1, 0.5) -- side by side,
-the rest of each layer transparent (layer_transform clears to alpha 0).
+the rest of each layer transparent (layer_transform clears to alpha 0); every layer above the first is Transparent
+(type 1, keying Alpha), since an Opaque layer replaces everything below it.
 Counters: /api/state seq_* (a missing key FAILs the row: "the app predates it"). Perf rows wait until no compiler
 runs and print the load average.
 """
@@ -139,14 +140,16 @@ def img_clip(cid, path):
 
 
 def layer(lid, clips, speed=0.0, **extra):
-    l = {"name": f"L{lid}", "id": lid, "opacity": 1.0, "visible": True, "blendMode": 0, "type": 0,
+    l = {"name": f"L{lid}", "id": lid, "opacity": 1.0, "visible": True, "blendMode": 0, "type": 0, "keyingMode": 0,
          "transitionSpeed": speed, "layerEffects": [], "clips": clips}
     l.update(extra); return l
 
 
-def third(i):
-    """layer transform: 1/3 size about anchor (0 / 0.5 / 1, 0.5) -> the i-th third of the canvas, centred vertically."""
-    return {"layerScale": 1.0 / 3.0, "layerAnchorX": [0.0, 0.5, 1.0][i], "layerAnchorY": 0.5}
+def third(i, stacked):
+    """layer transform: 1/3 size about anchor (0 / 0.5 / 1, 0.5) -> the i-th third of the canvas, centred vertically.
+    A layer above another is Transparent (type 1, keying Alpha): an Opaque layer replaces everything below it, even where
+    its transform left alpha 0."""
+    return {"layerScale": 1.0 / 3.0, "layerAnchorX": [0.0, 0.5, 1.0][i], "layerAnchorY": 0.5, "type": 1 if stacked else 0}
 
 
 def third_rect(i, W, H):
@@ -351,6 +354,22 @@ class Poller:
     def window(self, sec):
         self.start(); time.sleep(sec); return self.stop()
 
+    def argmax(self, k):
+        """(time, value) of the largest k in the window (None when absent)."""
+        v = [(r[0], r[1][k]) for r in self.rows if r[1].get(k) is not None]
+        return max(v, key=lambda x: x[1]) if v else None
+
+    def steps(self, k, t0):
+        """[(seconds after t0, new value)] each time counter k changed during the window."""
+        out, last = [], None
+        for t, d in self.rows:
+            v = d.get(k)
+            if v is not None and last is not None and v != last:
+                out.append((round(t - t0, 3), v))
+            if v is not None:
+                last = v
+        return out
+
     def maxes(self):
         out = {}
         for k in self.KEYS:
@@ -387,15 +406,15 @@ def show(tag, s):
             f"shown {s['seq_frames_shown']}")
 
 
-def wait_window_full(tag, min_textures=125, limit=10.0):
-    """Until seq_evictions > 0 and seq_textures >= min_textures (a full window in lap 1); None on timeout (e.g. an app
-    that never evicts)."""
+def wait_window_full(tag, base, min_textures=125, limit=10.0):
+    """Until this row's evictions (seq_evictions - base: the counter is cumulative over the run) > 0 and seq_textures >=
+    min_textures (a full window in lap 1); None on timeout (e.g. an app that never evicts)."""
     t0 = time.time(); s = None
     while time.time() - t0 < limit:
         s = state()
         if s is None or "seq_evictions" not in s:
             return None
-        if s["seq_evictions"] > 0 and s["seq_textures"] >= min_textures:
+        if s["seq_evictions"] - base > 0 and s["seq_textures"] >= min_textures:
             print(f"      {tag}: window full after {time.time() - t0:.1f} s ({show(tag, s)})", flush=True)
             return time.time() - t0
         time.sleep(0.05)
@@ -465,18 +484,23 @@ def v4(tag):
     lid = LID[tag]; n = 300
     if not load(tag, [deck(0, [layer(lid, [seq_clip(1, frames("L300"), 30.0)])])], W1):
         return
+    base = state()
     time.sleep(1.0); trig(0, 0); wait_active(0, 0, 0)
-    wait_window_full(tag, 125, 10.0)
-    s0 = state()
+    wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
+    pol = Poller(); pol.start(); time.sleep(0.1)
+    s0 = state(); p0 = playhead(0, 0, 0); tt = time.time()
     trig(0, 0)   # the SAME column: a retrigger -> seekTo(inPoint) = frame 0
     time.sleep(0.5)
     s1 = state()
+    pol.stop()
     f, pbs = cap_with_playheads(tag, [(0, 0, 0)])
     if not has_seq(tag, s0, s1):
         return
     late, pend = d(s0, s1, "seq_late_frames"), d(s0, s1, "seq_pending_frames")
-    print(f"      {tag}: retrigger at textures {s0['seq_textures']}: late {late}, pending {pend}; after: {show(tag, s1)}; "
-          f"{la()}", flush=True)
+    print(f"      {tag}: retrigger at frame {None if p0 is None else int(p0 * n)}, textures {s0['seq_textures']}: late {late}, "
+          f"pending {pend}; late steps (s after the trigger, total) {pol.steps('seq_late_frames', tt)}; uploads "
+          f"{pol.steps('seq_uploads', tt)}; stale {pol.steps('seq_stale_drops', tt)}; after: {show(tag, s1)}; {la()}",
+          flush=True)
     (ok if pend == 0 else no)(f"{tag}: (a) pending frames after the retrigger {pend} == 0")
     (ok if late == 0 else no)(f"{tag}: (b) late frames after the retrigger {late} == 0 (the in-point frames were kept)")
     check_code(tag, "(c)", f, pbs[0], "L300", 0, n, 2)
@@ -512,14 +536,15 @@ def v8(tag):
     c0 = seq_clip(1, frames("L300"), 30.0); c1 = seq_clip(2, frames("M300"), 30.0)
     if not load(tag, [deck(0, [layer(lid, [c0, c1], speed=2.0)])], W1):
         return
+    base = state()
     time.sleep(1.0); trig(0, 0); wait_active(0, 0, 0)
-    wait_window_full(tag, 125, 10.0)
+    wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
     if not wait_no_compiler(tag):
         return
-    s0 = state(); pol = Poller(); pol.start()
+    s0 = state(); pol = Poller(); pol.start(); tt = time.time()
     trig(0, 1); wait_active(0, 0, 1)
     time.sleep(1.0)
-    fm = cap(tag + "_mid")
+    tc = time.time(); fm = cap(tag + "_mid"); tce = time.time()
     sm = state()
     time.sleep(3.0)
     m = pol.stop()
@@ -530,7 +555,10 @@ def v8(tag):
     pend, pend_after = d(s0, s1, "seq_pending_frames"), d(sm, s1, "seq_pending_frames")
     late = d(s0, s1, "seq_late_frames")
     pf, pc = m.get("peak_frame_time_ms"), m.get("peak_callback_ms")
-    print(f"      {tag}: fade: pending {pend} ({pend_after} after mid-fade), late {late}, max frame {pf}, max callback {pc}; "
+    amc = pol.argmax("peak_callback_ms")
+    print(f"      {tag}: fade: pending {pend} ({pend_after} after mid-fade), late {late}, max frame {pf}, max callback {pc} "
+          f"at {None if amc is None else round(amc[0] - tt, 3)} s after the trigger (mid capture {tc - tt:.3f}-{tce - tt:.3f} s); "
+          f"evictions {pol.steps('seq_evictions', tt)[-3:]}; late steps {pol.steps('seq_late_frames', tt)}; "
           f"s0 {show(tag, s0)}; s1 {show(tag, s1)}; {la()}", flush=True)
     (ok if pend <= 6 and pend_after == 0 else no)(
         f"{tag}: (a) pending frames over the fade {pend} <= 6 and {pend_after} == 0 after the incoming chain shows")
@@ -550,7 +578,8 @@ def v8(tag):
 def v9(tag):
     lids = LID[tag]; n = 150
     subsets = [("L300", 0), ("L300", 150), ("M300", 0)]
-    lay = [layer(lids[i], [seq_clip(i + 1, frames(sn, lo, lo + n), 15.0)], **third(i)) for i, (sn, lo) in enumerate(subsets)]
+    lay = [layer(lids[i], [seq_clip(i + 1, frames(sn, lo, lo + n), 15.0)], **third(i, i > 0))
+           for i, (sn, lo) in enumerate(subsets)]
     if not load(tag, [deck(0, lay)], W1):
         return
     time.sleep(1.0)
@@ -603,7 +632,8 @@ def v7(tag):
 def v7b(tag):
     ids = LID[tag]; n = 300
     d0 = deck(0, [layer(ids[i], [seq_clip(i + 1, frames(sn), 30.0)]) for i, sn in enumerate(("L300", "M300", "L300"))])
-    d1 = deck(1, [layer(ids[3 + i], [seq_clip(10 + i, frames(sn), 30.0)], **third(2 * i)) for i, sn in enumerate(("M300", "L300"))])
+    d1 = deck(1, [layer(ids[3 + i], [seq_clip(10 + i, frames(sn), 30.0)], **third(2 * i, i > 0))
+                  for i, sn in enumerate(("M300", "L300"))])
     if not load(tag, [d0, d1], W1):
         return
     time.sleep(1.0)
