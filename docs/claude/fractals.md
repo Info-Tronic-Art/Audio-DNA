@@ -42,7 +42,9 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 - Right-click reset: `src/ui/ClipInspector.cpp` line ~769 — `setDefaultValue(sp.defaultValue)`
 
 **Test infrastructure:**
-- `tests/visual/test_fractals.py` — ~185 parametrized tests: every param on every fractal
+- `tests/visual/test_fractals.py` — the fractal range sweeps (zoom / dive / power / 3D camera), palettes and registry at
+  Tier-1 conditions (256x256, `is_black`, silence); every param of every fractal is Tier-1 `test_sources` (s-rta-0928);
+  knob extremes: `tests/test_source_defaults_gl.cpp [source-extremes]` (ctest)
 - `tests/visual/shader_preview.html` — Browser-based WebGL shader preview with sliders
 - `tests/visual/vj_controller.py` — `load_source()`, `update_source_params()`, `list_sources()`
 - Run tests: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -v`
@@ -52,10 +54,10 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 | Source ID | Name | Key Params | Notes |
 |-----------|------|------------|-------|
 | `kaleido_fractal` | Kaleidoscopic Fractal | Iterations, Fold Angle, Zoom, Rotation, Color Shift, Palette | Fold-based IFS |
-| `mandelbrot` | Mandelbrot / Julia | Dive Speed, Location (10 presets), Zoom, Center X/Y, Julia Mix, Max Iter, Power (2-4), Color Speed/Shift, Palette | Power > 4 goes black |
+| `mandelbrot` | Mandelbrot / Julia | Dive Speed, Location (10 presets), Zoom, Center X/Y, Julia Mix, Max Iter, Power (2-4), Color Speed/Shift, Palette | Power >= 2.5 = polar step, z = 0 guarded; manual zoom target = Center X/Y (deep zoom at the default center is black: Boris B1) |
 | `julia_set` | Julia Set | Dive Speed (morphs c), Location (10 c-presets), C Real/Imag, Zoom, Iterations, Color Speed/Shift, Palette | Dive = c morphing, not just zoom |
 | `burning_ship` | Burning Ship | Dive Speed, Location (6 presets), Center X/Y, Zoom, Iterations, Color Speed/Shift, Palette | Center default (-0.75, -0.5) |
-| `newton_fractal` | Newton Fractal | Dive Speed, Power (3-8), Zoom, Damping, Color Shift, Palette | Dive targets root boundary |
+| `newton_fractal` | Newton Fractal | Dive Speed, Power (3-6), Zoom, Damping, Color Shift, Palette | Dive targets root boundary |
 | `sierpinski` | Sierpinski | Dive Speed, Mode (triangle/carpet), Zoom, Iterations, Rotation, Color Shift, Palette | Triangle = modular arithmetic |
 | `apollonian` | Apollonian Gasket | Dive Speed, Zoom, Iterations, Rotation, Color Shift, Palette | Zoom direction: uv /= zoom |
 
@@ -66,7 +68,7 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 | Zoom | `u_src_zoom` | Camera 5.0→0.3 | 0.3 | Far outside → inside fractal |
 | Speed | `u_src_speed` | -1→+1 rotation | 0.55 | Auto-rotate, 0.5=stopped |
 | Angle X/Y | `u_src_rotation_x/y` | 0-2pi | 0.55 | Camera orbit angle |
-| Cross Section | `u_src_slice` | z-plane pos | 0.5 | 0.5=off, else slices |
+| Cross Section | `u_src_slice` | z-plane pos: ends at the object's edge -- mandelbulb +-0.7, apollonian_3d +-0.9, julia_set_3d +-0.85, menger +-1.0, burning_ship_3d +-0.6; kifs +-2.0 / sierpinski_tetra +-1.5 unchanged (dust slices, Boris B3) | 0.5 | 0.5=off, else slices |
 | Slice Count | `u_src_slice_count` | 1-5 planes | 0.0 | Multi-slice |
 | Slice Distance | `u_src_slice_dist` | 0.1-0.9 spacing | 0.3 | Between slices |
 | Glow | `u_src_glow` | volumetric glow | 0.0 | Halo around surface |
@@ -80,11 +82,11 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 |-----------|------|-------------|
 | `mandelbulb` | Mandelbulb | Power (2-16 quadratic), Iterations (4-24 DE steps, 12 at 0.4) |
 | `menger_sponge` | Menger Sponge | Iterations, Twist |
-| `kifs` | Kaleidoscopic IFS | Scale, Iterations, Fold Type, Offset |
+| `kifs` | Kaleidoscopic IFS | Scale, Iterations (5-13 folds, 7 at 0.4), Offset (Fold Type removed s-rta-0928) |
 | `julia_set_3d` | Julia Set 3D | Location (6 quaternion presets), C Real/Imag, Iterations (2-22 DE steps, 10 at 0.4) |
 | `burning_ship_3d` | Burning Ship 3D | Power (2-16) |
 | `newton_3d` | Newton 3D | Power, Damping, Height -- a heightfield: NO Cross Section / Slice Count / Slice Distance / Glow; default Angle X 0.0, auto-rotate is yaw-only (Pitfall 43) |
-| `sierpinski_tetra` | Sierpinski Tetrahedron | Iterations |
+| `sierpinski_tetra` | Sierpinski Tetrahedron | Iterations (7-15 folds, 9 at 0.5) |
 | `apollonian_3d` | Apollonian 3D | Scale, Iterations |
 
 **Design rules (see Common Pitfalls 8-12 in `docs/claude/pitfalls.md` for details):**

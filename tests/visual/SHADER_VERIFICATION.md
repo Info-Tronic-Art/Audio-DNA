@@ -36,22 +36,27 @@ Two ctest gates run with the unit tests (no app, no window) and catch the two de
 kept missing (s-rta-0927 source-defects):
 - `test_shader_param_lint`: every registered source/effect param's uniform is READ by its GLSL (a dead knob fails;
   so does a param-adding helper lambda that constructs no source). READ is textual: a no-op use such as
-  `mix(x, x, u_param)` still passes (DEBT_FILED -- spectrum_landscape Smoothing is one), so the "has effect" sweep
-  above stays the check that a knob changes the picture.
+  `mix(x, x, u_param)` still passes (DEBT_FILED -- spectrum_landscape Smoothing was one, removed s-rta-0928), so the
+  "has effect" sweep above stays the check that a knob changes the picture.
 - `test_source_defaults_gl`: the fixed-black sources (julia_set, burning_ship, newton_3d incl. t = 30 / 45,
   sierpinski on power-of-two canvases, crystal_cavern over 20 s with a grazed crystal drawn, never cut open) and Dot
   Field render visible pictures at their REGISTERED defaults (parsed from the registry), offscreen in a private CGL
-  context, pixels decoded.
+  context, pixels decoded; `[source-extremes]` (s-rta-0928) pins the knob extremes that were black by a range / math
+  defect (3D Cross Section ends, IFS Iterations 0, mandelbrot Power 2.5-4, newton Power top, spirograph / lissajous
+  Thickness 0, astral_grid Warp) -- in silence, at 256x256 and 1920x1080.
 
 Harness rules (s-rta-0927 follow-ups F1, `.harmony/.reports/s-rta-0927/tier1-diag.md`, `followups.md`): captures
 run at `t = 1.13` (`T_PARAM`; integer times are no-ops for `sin(2*pi*k*t)` / `fract(k*t)` shaders), and a default that
 is black there but lit at `T_RETRY = 2.0` (a strobe's dark half) is checked at both; a capture is answered only by a
 frame that read its time override (Renderer::captureFrame); `load_source` seeds the registry defaults (Pitfall 47);
-the four 256x256 modules pin the composition to 256x256 (`conftest.py`), so a capture never resizes the canvas and
+the 256x256 modules (incl. test_fractals) pin the composition to 256x256 (`conftest.py`), so a capture never resizes the canvas and
 resets a stateful source; a constant non-zero feature set (`FEATURES_ACTIVE`) is injected for the non-black / params
 / time-sweep checks, so audio-native sources and effects are not black in silence (both renders of a param share
 it). Known exceptions and gates live in `tests/visual/tier1_exceptions.py`, each with its reason (a gated param is
-still tested, with its gate open); an app defect is never listed there -- it keeps the test red.
+still tested, with its gate open). The tables: BLACK_AT_EXTREME = a (source, param, VALUE) whose shader term provably
+draws nothing there; GATED = a param tested with the gate that makes it act; AWAITING_RULING / SWEEP_AWAITING_RULING =
+known app defects waiting for Boris (s-rta-0928), STRICT -- the listed value must still render black, so a fix makes
+the entry stale and the test fails until it is removed. Any other app defect is never listed -- it keeps the test red.
 
 ```bash
 # Sources:
@@ -240,7 +245,7 @@ tests/visual/
 ├── vision_check.py                # PSNR/SSIM comparison
 ├── shader_preview.html            # Browser WebGL tester
 ├── test_render_pipeline.py        # Core render/effect/feature tests
-├── test_fractals.py               # Fractal-specific param tests (hardcoded)
+├── test_fractals.py               # Fractal range sweeps (zoom / dive / power / 3D camera), palettes, registry; 256x256, silence
 ├── test_sources.py                # ALL sources auto-discovered param sweep
 ├── test_effects.py                # ALL effects auto-discovered param sweep
 ├── test_range_quality.py          # 11-position range quality with CSV reports
