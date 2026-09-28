@@ -135,6 +135,7 @@ void Renderer::newOpenGLContextCreated()
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
     compositor_.setEffectLibrary(&effectLibrary_);
+    compositor_.setImageDecoder(&imageDecoder_, &uploadBudget_);   // s-rta-0928 R1.2
 
     // Wire source rendering into compositor. S167-L4b: ignores the `time`
     // CompositorEngine passes (that's wall-clock, shared with clip effects/
@@ -178,6 +179,12 @@ void Renderer::renderOpenGL()
 
     // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
     frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
+
+    // s-rta-0928 R1.2: this frame's image bookkeeping, then the decoded images uploaded -- EVERY frame, before any
+    // pass and before any early return (B2), within the frame's upload budget. No decode here, ever.
+    compositor_.beginFrame();
+    uploadBudget_.reset();
+    compositor_.pumpImages();
 
     // Release any media players closeMediaForClip() retired from the message
     // thread (media-leak fix, L1) — the only place this runs, since this
@@ -2046,7 +2053,7 @@ void Renderer::initEffectChain()
 // === Frame Capture (Eyes test harness) ===
 
 bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
-                            int width, int height)
+                            int width, int height, bool completeFrame)
 {
     std::promise<CaptureRead> promise;
     auto future = promise.get_future();
@@ -2074,6 +2081,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     {
         std::lock_guard<std::mutex> lock(captureMutex_);
         capturePromise_ = &promise;
+        pendingCaptureComplete_ = completeFrame;
         pendingCaptureSeq_ = captureArmSeq_.fetch_add(1, std::memory_order_acq_rel) + 1;
         pendingCapture_.store(true, std::memory_order_release);
     }
@@ -2167,6 +2175,11 @@ void Renderer::processPendingCapture()
         return;
     // Armed after this frame started: this frame may have rendered at the previous time. The next frame answers.
     if (frameArmSeq_ < pendingCaptureSeq_)
+        return;
+    // s-rta-0928 R1: a frame that held or skipped a layer (an image still decoding) never answers a render_frame --
+    // render_frame right after a load or trigger shows the picture, never the placeholder. The decode always ends
+    // (every job delivers a result) and the caller's 5 s timeout is the backstop. A user snapshot does not wait (C2).
+    if (pendingCaptureComplete_ && (compositor_.framePendingImages() > 0 || legacyPendingThisFrame_))
         return;
 
     // plan4 item 1: the capture is the whole canvas, exactly its size.

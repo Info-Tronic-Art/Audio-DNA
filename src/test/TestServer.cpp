@@ -597,7 +597,7 @@ void TestServer::handleRenderFrame(const httplib::Request& req, httplib::Respons
 
     // s-rta-0928 R2: captureFrame sets the TEST-ONLY canvas lock for this capture and restores the previous one, under
     // its capture flight lock (two concurrent calls at different sizes used to race on the lock here).
-    bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height);
+    bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height, true);   // complete frame (R1, C2)
 
     if (ok)
     {
@@ -629,6 +629,19 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
     // s-rta-0928 R1.0: the longest WHOLE render callback since the previous read (resets on read).
     obj->setProperty("peak_callback_ms", static_cast<double>(renderer_.takePeakCallbackMs()));
+    // s-rta-0928 R1.2: clip images decoded off the GL thread -- frames a layer held its last picture / drew nothing
+    // while its image decoded (cumulative), images still decoding, resident image textures (count, MB), the longest
+    // single upload since the previous read (resets on read), and frames whose image pump ran (B2: every frame).
+    {
+        auto& comp = renderer_.getCompositor();
+        obj->setProperty("image_hold_frames", static_cast<juce::int64>(comp.getImageHoldFrames()));
+        obj->setProperty("image_skip_frames", static_cast<juce::int64>(comp.getImageSkipFrames()));
+        obj->setProperty("images_pending", comp.getImagesPending());
+        obj->setProperty("image_textures", comp.getImageTextureCount());
+        obj->setProperty("image_texture_mb", comp.getImageTextureMB());
+        obj->setProperty("peak_image_upload_ms", static_cast<double>(comp.takePeakImageUploadMs()));
+        obj->setProperty("image_pump_frames", static_cast<juce::int64>(comp.getImagePumpFrames()));
+    }
     // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
     // nothing). peak_gpu_time_ms resets on read like peak_frame_time_ms.
     obj->setProperty("gpu_time_ms", static_cast<double>(renderer_.getGpuTimeMs()));

@@ -4,6 +4,8 @@
 #include "render/FullscreenQuad.h"
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
+#include "render/ImageDecode.h"
+#include "render/ImageTexCache.h"
 #include "effects/Effect.h"
 #include "effects/EffectChain.h"
 #include "mapping/MappingEngine.h"
@@ -271,6 +273,14 @@ private:
     FullscreenQuad quad_;
     ShaderManager shaderMgr_{glContext_};
     TextureManager texMgr_;
+    // s-rta-0928 R1: every image file is decoded + converted OFF the GL thread (3 low-priority threads, no GL call);
+    // the GL thread only uploads, within ONE per-frame budget shared by every image path. Destroyed after ~Renderer's
+    // detach(): its destructor drops queued jobs and waits for the running decodes (<= 5 s); jobs hold no `this`.
+    ImageDecode::Decoder imageDecoder_{ 3 };
+    ImageTexCache::UploadBudget uploadBudget_;
+    // R1.3: the legacy single image still decoding while a frame needs it (the capture gate reads it). Declared in
+    // R1.2 (B1); false until R1.3 sets it.
+    bool legacyPendingThisFrame_ = false;
     EffectChain effectChain_;
     // THIS renderer's per-GL-context EffectChain state (uniform location
     // cache + temporal prevFrame FBO) — see EffectChainGLState in
@@ -388,8 +398,12 @@ public:
     // timeOverride: if >= 0, overrides u_time for deterministic rendering.
     // Concurrent callers are served one at a time; width/height > 0 set the TEST-ONLY canvas lock for this
     // capture and restore the previous lock (s-rta-0928 R2).
+    // completeFrame (s-rta-0928 R1, C2 of the Harmony adoption): true = render_frame (7070 / 8080) -- answered only by
+    // a frame with NO image still decoding (a layer holding or skipping), so a capture right after a load or a
+    // trigger shows the picture, never the placeholder; the 5 s timeout bounds it. false = a user snapshot: this
+    // frame, as it is (never waits for a decode).
     bool captureFrame(const juce::File& outputPath, float timeOverride = -1.0f,
-                      int width = 0, int height = 0);
+                      int width = 0, int height = 0, bool completeFrame = false);
 
     // P22.7: Take a snapshot (PNG) to the snapshots directory.
     // Returns the saved file path, or empty on failure.
@@ -634,6 +648,7 @@ private:
     // (GL thread only); processPendingCapture answers only when frameArmSeq_ >= pendingCaptureSeq_ (captureMutex_).
     std::atomic<uint64_t> captureArmSeq_{0};
     uint64_t pendingCaptureSeq_ = 0;
+    bool pendingCaptureComplete_ = false;   // s-rta-0928 R1 (C2): the armed capture waits for a frame with nothing pending
     uint64_t frameArmSeq_ = 0;
     // s-rta-0927 plan-renderperf C3: the GL thread only reads the canvas; the caller of captureFrame -- already
     // blocked on the promise -- converts, encodes and writes the PNG. The read travels to ITS OWN caller by value,

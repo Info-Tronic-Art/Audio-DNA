@@ -7,6 +7,7 @@
 #include "render/PixelConvert.h"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 #include <chrono>
 
 using namespace juce::gl;
@@ -36,12 +37,17 @@ void CompositorEngine::releaseGL()
     deleteFBO(transitionFBO_, transitionTex_);
     deleteFBO(feedbackFBO_, feedbackTex_);
 
-    for (auto& [path, tex] : textureCache_)
-    {
+    // s-rta-0928 R1.2: every image texture goes with the context; late results for the cleared entries Drop and the
+    // next frame's lookup requests them again.
+    for (GLuint tex : imageCache_.clearAll())
         if (tex != 0)
             glDeleteTextures(1, &tex);
-    }
-    textureCache_.clear();
+    readyImages_.clear();
+    lastMaskImageTex_.clear();
+    layerOutputOwner_.clear();
+    imagesPending_.store(0, std::memory_order_relaxed);
+    imageTexCount_.store(0, std::memory_order_relaxed);
+    imageTexBytes_.store(0, std::memory_order_relaxed);
 
     // Release per-layer feedback processors
     for (auto& [id, proc] : feedbackProcessors_)
@@ -117,6 +123,7 @@ void CompositorEngine::resize(int width, int height)
     layerOutputFBOs_.clear();
     layerOutputTexStorage_.clear();
     layerOutputTextures_.clear();
+    layerOutputOwner_.clear();   // s-rta-0928 R1.2: nothing to hold after a resize
 
     // s-rta-0926b plan4 item 1 (1C): a canvas-size change keeps every picture history.
     rescaleHistory(width, height);
@@ -215,11 +222,12 @@ void CompositorEngine::ensureLayerOutputFBO(uint32_t layerId, int w, int h)
     layerOutputTextures_[layerId] = tex;
 }
 
-void CompositorEngine::saveLayerOutput(uint32_t layerId, GLuint srcTex,
+void CompositorEngine::saveLayerOutput(uint32_t layerId, uint32_t deckId, GLuint srcTex,
                                         ShaderManager& shaderMgr, FullscreenQuad& quad,
                                         int w, int h)
 {
     ensureLayerOutputFBO(layerId, w, h);
+    layerOutputOwner_[layerId] = LayerOutputOwner{ deckId, frameSerial_ };   // s-rta-0928 R1.2 (the hold)
 
     // s-rta-0926 xfade class sweep: a Layer Router clip routed to its OWN
     // layer hands back this layer's saved output as srcTex. The texture
@@ -242,65 +250,127 @@ void CompositorEngine::saveLayerOutput(uint32_t layerId, GLuint srcTex,
     quad.draw();
 }
 
-GLuint CompositorEngine::loadKeyImage(const juce::File& imageFile)
+// === s-rta-0928 R1.2: clip images decoded off the GL thread ===
+
+GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile, bool* pending)
 {
-    auto path = imageFile.getFullPathName().toStdString();
-    auto it = textureCache_.find(path);
-    if (it != textureCache_.end())
-        return it->second;
-
-    // s-rta-0928 R1.0: the decode / convert / upload split of this GL-thread load (one line per new image).
-    using ImgClock = std::chrono::steady_clock;
-    const auto msSince = [](ImgClock::time_point t) {
-        return std::chrono::duration<double, std::milli>(ImgClock::now() - t).count();
-    };
-    const auto tDecode = ImgClock::now();
-    juce::Image img = juce::ImageFileFormat::loadFrom(imageFile);
-    if (!img.isValid())
-        return 0;
-
-    // Convert to RGBA
-    img = img.convertedToFormat(juce::Image::ARGB);
-    const double decodeMs = msSince(tDecode);
-
-    const auto tConvert = ImgClock::now();
-
-    // JUCE stores ARGB with premultiplied alpha in BGRA byte order; GL wants straight RGBA rows, bottom-up. s-rta-0928
-    // R1.1: one row pass, byte-identical to the old getPixelColour loop + flip copy (tests/test_pixel_convert.cpp).
-    int w = img.getWidth();
-    int h = img.getHeight();
-    std::vector<uint8_t> flipped(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
+    if (pending != nullptr)
+        *pending = false;
+    if (decoder_ == nullptr)
     {
-        const juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
-        PixelConvert::argbToGlRgbaBottomUp(bmp, flipped.data(), true);
+        jassertfalse;   // setImageDecoder was never called: nothing can decode
+        return 0;
     }
-    const double convertMs = msSince(tConvert);
+    const auto path = imageFile.getFullPathName().toStdString();
+    const auto l = imageCache_.lookup(path);
+    if (l.request)
+        decoder_->request(imageFile, ImageDecode::Layout::StraightRGBA, 0, std::nullopt, imageBox_);
+    if (l.pending)
+    {
+        ++pendingImagesThisFrame_;
+        if (pending != nullptr)
+            *pending = true;
+        return 0;
+    }
+    return l.tex;
+}
 
-    const auto tUpload = ImgClock::now();
+// The GL calls of the old loadKeyImage, exactly (the bytes are the old loop's: tests/test_image_decode.cpp).
+GLuint CompositorEngine::uploadImageTexture(const ImageDecode::Result& r)
+{
     GLuint tex = 0;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, flipped.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, r.w, r.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, r.rgba.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    const double uploadMs = msSince(tUpload);
-    std::cerr << "[Image] loadKeyImage " << path << " (" << w << "x" << h << ") decode=" << juce::String(decodeMs, 1)
-              << " convert=" << juce::String(convertMs, 1) << " upload=" << juce::String(uploadMs, 1) << " ms"
-              << std::endl;
-
-    textureCache_[path] = tex;
     return tex;
 }
 
-GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile)
+void CompositorEngine::deleteImageTexture(GLuint tex)
 {
-    auto path = imageFile.getFullPathName().toStdString();
-    auto it = textureCache_.find(path);
-    if (it != textureCache_.end())
-        return it->second;
-    return loadKeyImage(imageFile);
+    if (tex == 0)
+        return;
+    glDeleteTextures(1, &tex);
+    for (auto& [key, t] : lastMaskImageTex_)
+        if (t == tex)
+            t = 0;
+}
+
+void CompositorEngine::pumpImages()
+{
+    if (!glInitialized_ || decoder_ == nullptr || uploadBudget_ == nullptr)
+        return;
+    imagePumpFrames_.fetch_add(1, std::memory_order_relaxed);
+
+    drained_.clear();
+    if (imageBox_->tryDrain(drained_))
+        for (auto& r : drained_)
+            readyImages_.push_back(ReadyImage{ std::move(r), false });
+
+    if (!readyImages_.empty())
+    {
+        // Demand (a frame is waiting for it) before prefetch; stable, so arrival order holds within each class.
+        std::stable_partition(readyImages_.begin(), readyImages_.end(),
+                              [this](const ReadyImage& ri) { return imageCache_.isDemand(ri.r.path); });
+        std::vector<ReadyImage> keep;
+        for (auto& ri : readyImages_)
+        {
+            if (!ri.accepted)
+            {
+                const auto act = imageCache_.onResult(ri.r.path, ri.r.kind, ri.r.stamp);
+                if (act != ImageTexCache::Act::Upload)
+                    continue;   // Drop / MarkFailed: no GL work
+                ri.accepted = true;
+            }
+            else if (!imageCache_.awaitingUpload(ri.r.path))
+                continue;       // dropped meanwhile (context loss / eviction)
+            const size_t bytes = ri.r.rgba.size();
+            if (!uploadBudget_->take(bytes))
+            {
+                keep.push_back(std::move(ri));   // B3: the bytes wait for a later frame, never re-decoded
+                continue;
+            }
+            const auto t0 = std::chrono::steady_clock::now();
+            const GLuint tex = uploadImageTexture(ri.r);
+            const float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            if (ms > peakImageUploadMs_.load(std::memory_order_relaxed))
+                peakImageUploadMs_.store(ms, std::memory_order_relaxed);
+            deleteImageTexture(imageCache_.onUploaded(ri.r.path, tex, ri.r.w, ri.r.h, ri.r.stamp, bytes));
+        }
+        readyImages_.swap(keep);
+    }
+
+    imagesPending_.store(imageCache_.pendingCount(), std::memory_order_relaxed);
+    imageTexCount_.store(imageCache_.residentCount(), std::memory_order_relaxed);
+    imageTexBytes_.store(static_cast<int64_t>(imageCache_.residentBytes()), std::memory_order_relaxed);
+}
+
+GLuint CompositorEngine::heldLayerOutput(uint32_t layerId, uint32_t deckId) const
+{
+    const auto o = layerOutputOwner_.find(layerId);
+    if (o == layerOutputOwner_.end() || o->second.deckId != deckId || o->second.frame + 1 != frameSerial_)
+        return 0;
+    const auto t = layerOutputTexStorage_.find(layerId);
+    return t != layerOutputTexStorage_.end() ? t->second : 0;
+}
+
+void CompositorEngine::touchLayerOutput(uint32_t layerId, uint32_t deckId)
+{
+    layerOutputOwner_[layerId] = LayerOutputOwner{ deckId, frameSerial_ };
+}
+
+bool CompositorEngine::incomingImagePending(const Layer& layer, const Clip* clip) const
+{
+    if (clip == nullptr || clip->mediaType != Clip::MediaType::Image)
+        return false;
+    if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+        return false;   // not fading: nothing to pause
+    if (layer.type != Layer::Type::Opaque && layer.type != Layer::Type::Transparent && layer.type != Layer::Type::Mask)
+        return false;   // FX Only / 3D never show the clip's media
+    return imageCache_.notResident(clip->mediaFile.getFullPathName().toStdString());
 }
 
 // === Per-clip effect chain rendering (P13.5.1) ===
@@ -964,9 +1034,11 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
-        advanceCrossfade(layer, dt);
-
         const Clip* clip = layer.getActiveClip();
+        // C1 (s-rta-0928): a crossfade onto an image that is still decoding waits for it (the layer holds meanwhile).
+        if (!incomingImagePending(layer, clip))
+            advanceCrossfade(layer, dt);
+
         if (clip == nullptr)
             continue;
 
@@ -978,9 +1050,10 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
             {
                 // Get clip texture — image, procedural source, video, or image sequence
                 GLuint clipTex = 0;
+                bool pending = false;   // s-rta-0928 R1.2: the picture is still decoding (NOT "no media")
                 if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
                 {
-                    clipTex = getKeyTexture(clip->mediaFile);
+                    clipTex = getKeyTexture(clip->mediaFile, &pending);
                 }
                 else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
                 {
@@ -995,23 +1068,41 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     clipTex = videoFrameFn_(clip, dt);
                 }
 
-                // If no media but clip has effects, apply as FX-only (affects layers below)
-                if (clipTex == 0)
+                if (pending)
                 {
-                    if (clip->hasEffects())
-                        applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
-                                         shaderMgr, quad, time, width, height);
-                    continue;
+                    // s-rta-0928 R1: the picture is still decoding -- never "no media" (that would run the clip's
+                    // effects as FX Only, below). Hold this layer's LAST picture (its Layer Router output from the
+                    // previous frame); the layer's current keying/opacity still apply below, and no effect, ring,
+                    // feedback or transition runs on the stand-in. Nothing to hold -> the layer draws nothing.
+                    clipTex = heldLayerOutput(layer.id, deck.id);
+                    if (clipTex == 0)
+                    {
+                        imageSkipFrames_.fetch_add(1, std::memory_order_relaxed);
+                        continue;
+                    }
+                    imageHoldFrames_.fetch_add(1, std::memory_order_relaxed);
+                    touchLayerOutput(layer.id, deck.id);
                 }
+                else
+                {
+                    // If no media but clip has effects, apply as FX-only (affects layers below)
+                    if (clipTex == 0)
+                    {
+                        if (clip->hasEffects())
+                            applyFXOnlyLayer(*clip, layer, LayerStateKey::clipChain(deck.id, layer.id),
+                                             shaderMgr, quad, time, width, height);
+                        continue;
+                    }
 
-                // Clip transform + opacity, clip effects, transition, feedback,
-                // layer effects, layer transform (s-rta-0926b R4: shared with
-                // compositePersistentLayers).
-                clipTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
-                                            time, dt, width, height);
+                    // Clip transform + opacity, clip effects, transition, feedback,
+                    // layer effects, layer transform (s-rta-0926b R4: shared with
+                    // compositePersistentLayers).
+                    clipTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+                                                time, dt, width, height);
 
-                // P20: Save layer output for Layer Router sources
-                saveLayerOutput(layer.id, clipTex, shaderMgr, quad, width, height);
+                    // P20: Save layer output for Layer Router sources
+                    saveLayerOutput(layer.id, deck.id, clipTex, shaderMgr, quad, width, height);
+                }
 
                 if (layer.type == Layer::Type::Transparent)
                 {
@@ -1069,8 +1160,9 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
             {
                 // P13.5.3: Use clip content as luminance mask on accumulator
                 GLuint clipTex = 0;
+                bool pending = false;   // s-rta-0928 R1.2
                 if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
-                    clipTex = getKeyTexture(clip->mediaFile);
+                    clipTex = getKeyTexture(clip->mediaFile, &pending);
                 else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
                 {
                     const auto* params = clip->sourceParams.empty() ? nullptr : &clip->sourceParams;
@@ -1083,6 +1175,24 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     // a hardcoded 1/60 -- see compositeDeck()'s header comment.
                     clipTex = videoFrameFn_(clip, dt);
                 }
+
+                // s-rta-0928 R1.2: a Mask whose image still decodes holds its last IMAGE mask; nothing to hold -> no
+                // mask this frame.
+                const uint64_t maskKey = LayerStateKey::clipChain(deck.id, layer.id);
+                if (pending)
+                {
+                    const auto held = lastMaskImageTex_.find(maskKey);
+                    const GLuint heldTex = held != lastMaskImageTex_.end() ? held->second : 0;
+                    if (heldTex != 0)
+                    {
+                        imageHoldFrames_.fetch_add(1, std::memory_order_relaxed);
+                        applyMaskLayer(*clip, heldTex, shaderMgr, quad, width, height);
+                    }
+                    else
+                        imageSkipFrames_.fetch_add(1, std::memory_order_relaxed);
+                    break;
+                }
+                lastMaskImageTex_[maskKey] = (clip->mediaType == Clip::MediaType::Image) ? clipTex : 0;
 
                 if (clipTex != 0)
                     applyMaskLayer(*clip, clipTex, shaderMgr, quad, width, height);
@@ -1180,10 +1290,12 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         // s-rta-0926b R4: a persistent layer's crossfade keeps running while its
         // deck is inactive, exactly as it would on the active deck (it used to
         // freeze until the deck was active again, and the layer hard-cut to the
-        // incoming clip meanwhile).
-        advanceCrossfade(layer, dt);
-
+        // incoming clip meanwhile). C1 (s-rta-0928): except while its incoming
+        // image is still decoding.
         const Clip* clip = layer.getActiveClip();
+        if (!incomingImagePending(layer, clip))
+            advanceCrossfade(layer, dt);
+
         if (clip == nullptr)
             continue;
 
@@ -1204,9 +1316,10 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         }
 
         GLuint clipTex = 0;
+        bool pending = false;   // s-rta-0928 R1.2
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
         {
-            clipTex = getKeyTexture(clip->mediaFile);
+            clipTex = getKeyTexture(clip->mediaFile, &pending);
         }
         else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
         {
@@ -1220,6 +1333,14 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
             // hardcoded 1/60 -- see compositePersistentLayers()'s header
             // comment (CompositorEngine.h).
             clipTex = videoFrameFn_(clip, dt);
+        }
+
+        // s-rta-0928 R1.2: a persistent layer whose image still decodes draws nothing this frame (it saves no Layer
+        // Router output to hold) -- never "no media" (the FX-only branch below).
+        if (pending)
+        {
+            imageSkipFrames_.fetch_add(1, std::memory_order_relaxed);
+            continue;
         }
 
         // A media-less clip with effects on an Opaque/Transparent layer applies
@@ -1432,10 +1553,13 @@ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcT
 
 // === Phase 14: Clip texture helper ===
 
-GLuint CompositorEngine::getClipTexture(const Clip& clip, float time, int w, int h, float dt)
+GLuint CompositorEngine::getClipTexture(const Clip& clip, float time, int w, int h, float dt, bool* pending)
 {
+    if (pending != nullptr)
+        *pending = false;
+    // s-rta-0928 R1.2: a pending OUTGOING image returns 0 -- applyTransition shows the incoming clip alone.
     if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
-        return getKeyTexture(clip.mediaFile);
+        return getKeyTexture(clip.mediaFile, pending);
 
     if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty() && sourceRenderFn_)
     {
