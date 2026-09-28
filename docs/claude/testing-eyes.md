@@ -65,7 +65,7 @@ cd tests/visual && pytest test_render_pipeline.py -v
 | `POST /api/set_effect` | `{"name": "...", "enabled": true, "params": {...}}` |
 | `POST /api/set_effect_chain` | `{"effects": [{"name": "...", "params": {...}}, ...]}` |
 | `POST /api/inject_features` | `{"rms": 0.8, "beatPhase": 0.5, ...}` |
-| `POST /api/render_frame` | `{"output_path": "...", "time": 1.0}` — deterministic capture |
+| `POST /api/render_frame` | `{"output_path": "...", "time": 1.0}` — deterministic capture; concurrent calls (8080 and 7070) are served one at a time, each at its own width/height (Pitfall 52) |
 | `GET /api/state` | Full engine state (all effects, params, FPS) |
 | `POST /api/reset` | Clear everything for next test |
 

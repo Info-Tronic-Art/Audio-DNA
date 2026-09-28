@@ -594,15 +594,9 @@ void TestServer::handleRenderFrame(const httplib::Request& req, httplib::Respons
     int height = obj->hasProperty("height")
         ? static_cast<int>(obj->getProperty("height")) : 0;
 
-    // Set locked resolution if requested
-    if (width > 0 && height > 0)
-        renderer_.setLockedResolution(width, height);
-
+    // s-rta-0928 R2: captureFrame sets the TEST-ONLY canvas lock for this capture and restores the previous one, under
+    // its capture flight lock (two concurrent calls at different sizes used to race on the lock here).
     bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height);
-
-    // Restore unlocked resolution
-    if (width > 0 && height > 0)
-        renderer_.setLockedResolution(0, 0);
 
     if (ok)
     {

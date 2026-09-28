@@ -2048,12 +2048,23 @@ void Renderer::initEffectChain()
 bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
                             int width, int height)
 {
-    // Clamp dimensions to safe max (avoid huge allocations)
-    if (width > 1920) width = 1920;
-    if (height > 1080) height = 1080;
-
     std::promise<CaptureRead> promise;
     auto future = promise.get_future();
+
+    // s-rta-0928 R2: one capture at a time, from arm to read. A second caller used to overwrite capturePromise_ (the
+    // first then timed out after 5 s and its timeout path cleared the second's pending capture), restore the time
+    // override LIFO-wrong (live frames froze at the other caller's time) and race the TEST-ONLY canvas lock
+    // (TestServer set / cleared it outside this function). The flight lock owns all three; it is never taken on the
+    // GL thread, and it is released before the convert + PNG below, so concurrent callers still overlap that work.
+    std::unique_lock<std::timed_mutex> flight(captureFlight_, std::defer_lock);
+    if (!flight.try_lock_for(std::chrono::seconds(5)))
+    {
+        std::cerr << "[Eyes] Frame capture timed out after 5s (another capture in flight)" << std::endl;
+        return false;
+    }
+    const uint64_t prevLock = lockedSize_.load(std::memory_order_relaxed);
+    if (width > 0 && height > 0)
+        setLockedResolution(width, height);   // moved from TestServer (R2); restored below on both exits
 
     // Set time override for this frame -- BEFORE arming: the frame that answers must have read it (captureArmSeq_)
     float prevTime = timeOverride_.load(std::memory_order_relaxed);
@@ -2062,8 +2073,6 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     {
         std::lock_guard<std::mutex> lock(captureMutex_);
-        captureWidth_ = width;
-        captureHeight_ = height;
         capturePromise_ = &promise;
         pendingCaptureSeq_ = captureArmSeq_.fetch_add(1, std::memory_order_acq_rel) + 1;
         pendingCapture_.store(true, std::memory_order_release);
@@ -2081,6 +2090,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
         std::lock_guard<std::mutex> lock(captureMutex_);
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
+        lockedSize_.store(prevLock, std::memory_order_relaxed);
         return false;
     }
 
@@ -2091,6 +2101,8 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     // own future (fix round): nothing shared is read after the signal, so a second capture armed and serviced
     // before this line cannot hand its pixels to this caller.
     CaptureRead read = future.get();
+    lockedSize_.store(prevLock, std::memory_order_relaxed);
+    flight.unlock();   // R2: the next caller arms now; this one converts + encodes below, off the flight
     if (!read.ok)
         return false;
     std::vector<uint8_t>& pixels = read.pixels;

@@ -386,7 +386,8 @@ public:
     // thread renders and saves the frame. Returns true on success.
     // Must NOT be called from the GL thread (deadlock).
     // timeOverride: if >= 0, overrides u_time for deterministic rendering.
-    // width/height: if > 0, temporarily sets locked resolution.
+    // Concurrent callers are served one at a time; width/height > 0 set the TEST-ONLY canvas lock for this
+    // capture and restore the previous lock (s-rta-0928 R2).
     bool captureFrame(const juce::File& outputPath, float timeOverride = -1.0f,
                       int width = 0, int height = 0);
 
@@ -621,8 +622,10 @@ private:
     std::atomic<float> timeOverride_{-1.0f};
     std::mutex captureMutex_;
     std::atomic<bool> pendingCapture_{false};
-    int captureWidth_ = 0;
-    int captureHeight_ = 0;
+    // s-rta-0928 R2: caller side only -- one capture from arm to read (the time override, the TEST-ONLY canvas lock,
+    // the promise). Never taken on the GL thread. Released before the convert + PNG encode, so concurrent callers
+    // still overlap their PNG work.
+    std::timed_mutex captureFlight_;
     // s-rta-0927 followups F1: a capture is answered only by a frame that STARTED after it was armed, i.e. a frame
     // that read timeOverride_ after captureFrame stored it. Without this, a capture armed mid-frame on a canvas that
     // is already at the requested size was answered by the in-flight frame, rendered at the PREVIOUS time (live:
