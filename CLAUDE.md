@@ -228,6 +228,7 @@ the named area; this index is triage-only.
 51. A deck-grid refresh never decodes a file (image thumbnails come from DeckView's ClipThumbnails) -- before touching ClipCell/LayerStrip thumbnails.
 52. One capture at a time: `captureFrame` owns the time override and the test canvas lock -- before calling it concurrently or setting either around it.
 53. Images decode off the GL thread: a pending image is never 0 / no media (the FX-only trap); render_frame waits for a complete frame -- before touching getKeyTexture or a clip-texture branch.
+NN. A sequence's textures are a bounded recycled window (SeqVram; the shown frame is never evicted) -- before touching ImageSequence textures or a media class's per-frame GL objects.
 
 ---
 
