@@ -252,7 +252,8 @@ GLuint ImageSequence::uploadFrame(const ImageDecode::Result& r, int idx)
     return tex;
 }
 
-GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget, bool* pending)
+GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget,
+                                        const SeqVram::Grant& grant, bool* pending)
 {
     if (pending != nullptr)
         *pending = false;
@@ -290,25 +291,56 @@ GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexC
             continue;
         }
         uploadFrame(*it, idx);
+        if (grant.stats != nullptr)
+            grant.stats->uploads.fetch_add(1, std::memory_order_relaxed);
         it = ready_.erase(it);
     }
 
+    // s-rta-0928b seqvram: a returned frame index that differs from the previous one is a frame shown.
+    auto shown = [&](int f) {
+        if (f != lastReturned_ && grant.stats != nullptr)
+            grant.stats->framesShown.fetch_add(1, std::memory_order_relaxed);
+        lastReturned_ = f;
+    };
     const int idx = std::clamp(currentFrameIndex_, 0, n - 1);
     if (textures_[static_cast<size_t>(idx)] != 0)
     {
         lastShown_ = idx;
         requestAhead(decoder, idx);
+        shown(idx);
         return textures_[static_cast<size_t>(idx)];
     }
     requestFrame(decoder, idx);
     requestAhead(decoder, idx);
     if (lastShown_ >= 0 && lastShown_ < n && textures_[static_cast<size_t>(lastShown_)] != 0)
+    {
+        if (grant.stats != nullptr)
+            grant.stats->lateFrames.fetch_add(1, std::memory_order_relaxed);
+        shown(lastShown_);
         return textures_[static_cast<size_t>(lastShown_)];   // late frame: the last one repeats
+    }
     if (failed_[static_cast<size_t>(idx)] != 0)
         return 0;   // nothing shown and this frame is broken: no media
     if (pending != nullptr)
         *pending = true;
+    if (grant.stats != nullptr)
+        grant.stats->pendingFrames.fetch_add(1, std::memory_order_relaxed);
     return 0;
+}
+
+// s-rta-0928b seqvram: every resident frame's texture (one per frame index on this build).
+size_t ImageSequence::residentBytes() const
+{
+    size_t bytes = 0;
+    for (size_t i = 0; i < textures_.size() && i < textureWidths_.size() && i < textureHeights_.size(); ++i)
+        if (textures_[i] != 0)
+            bytes += static_cast<size_t>(textureWidths_[i]) * static_cast<size_t>(textureHeights_[i]) * 4u;
+    return bytes;
+}
+
+int ImageSequence::residentSlots() const
+{
+    return static_cast<int>(std::count_if(textures_.begin(), textures_.end(), [](GLuint t) { return t != 0; }));
 }
 
 // The same rule as getCurrentTexture's *pending, read only. The per-frame vectors may still be empty (never drawn, or
@@ -346,6 +378,7 @@ void ImageSequence::releaseGL()
     ready_.clear();
     outstanding_ = 0;
     lastShown_ = -1;
+    lastReturned_ = -1;
 }
 
 juce::Image ImageSequence::getThumbnail(int maxWidth, int maxHeight)

@@ -4,6 +4,7 @@
 #include <juce_opengl/juce_opengl.h>
 #include "render/ImageDecode.h"
 #include "render/ImageTexCache.h"
+#include "media/SeqVram.h"
 #include <vector>
 #include <string>
 #include <mutex>
@@ -70,13 +71,19 @@ public:
     // look-ahead of the next kLookAhead frames in the play direction; the GL thread only uploads, within the frame's
     // upload budget. A current frame not resident yet shows the last frame shown (as a late video frame would);
     // *pending is set only when nothing has been shown yet. A frame that fails to decode is never re-requested (the
-    // last frame repeats). Returns 0 if no frame available.
-    GLuint getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget, bool* pending);
+    // last frame repeats). Returns 0 if no frame available. s-rta-0928b seqvram: the grant carries the seq_* counters
+    // (SeqVram::Stats) this call bumps.
+    GLuint getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget,
+                             const SeqVram::Grant& grant, bool* pending);
 
     // s-rta-0928 renderleft-fix (C1 for sequences): true when getCurrentTexture would report *pending as the state
     // stands -- nothing shown yet and the current frame not resident (and not failed). No decode, no request, no
     // upload: CompositorEngine asks it BEFORE advancing a crossfade onto this sequence (GL thread only).
     bool firstFramePending() const;
+
+    // s-rta-0928b seqvram (GL thread): the texture bytes / textures this sequence holds now.
+    size_t residentBytes() const;
+    int residentSlots() const;
 
     // Release all GL textures. Call from openGLContextClosing().
     void releaseGL();
@@ -124,6 +131,7 @@ private:
     int outstanding_ = 0;                        // requested, result not yet arrived
     int lastShown_ = -1;
     uint32_t openGen_ = 0;
+    int lastReturned_ = -1;                      // s-rta-0928b seqvram: the frame index returned last (seq_frames_shown)
     void ensureFrameState();
     void requestFrame(ImageDecode::Decoder& decoder, int idx);
     void requestAhead(ImageDecode::Decoder& decoder, int idx);

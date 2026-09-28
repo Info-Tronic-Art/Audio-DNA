@@ -1,0 +1,23 @@
+{
+  "_doc": "Fixtures + thresholds for .harmony/probe-seq-vram.sh (s-rta-0928b seqvram). Rows and calibration: the docstring of .harmony/probe-seq-vram.py; plan + Harmony adoption: .harmony/.reports/s-rta-0928b/plan-seqvram.md. Fixture images are generated per run into <out>/media and deleted after the quit.",
+  "budgetMB": 1024,
+  "_budgetMB": "SeqVram::kBudgetBytes (all image sequences together)",
+  "slackMB": 8,
+  "frameMB1080": 7.91,
+  "frameMB4k": 31.64,
+  "minWindowFrames": 8,
+  "_minWindowFrames": "SeqVram::kMinWindowFrames: a drawn sequence never holds fewer (floors win, H10)",
+  "shownTol": 3,
+  "_shownTol": "frames-shown delta tolerance around fps x window seconds",
+  "lateMaxAfterJump": 12,
+  "_lateMaxAfterJump": "a hold of the shown frame for a decode (render frames at 60 Hz), not a freeze",
+  "boxTol": 3.0,
+  "_boxTol": "dbox(X, Y): both arrays box-averaged in 16x16 blocks, then mean |diff| over RGB (0..255)",
+  "peakMaxMs": 16.7,
+  "_peakMaxMs": "one 60 Hz frame period",
+  "layers": {
+    "v1_memory_1080": 81, "v2_smooth_loop_1080": 82, "v4_retrigger_hit": 83, "v6_budget_share": [84, 85],
+    "v8_crossfade_two_long": 86, "v9_three_decoding": [87, 88, 89], "v7_deck_keeps_time": [90, 91],
+    "v7b_trim_spike": [92, 93, 94, 95, 96], "v3_smooth_pingpong_4k": 97, "v10_floors_win": [98, 99, 100, 101, 102]
+  }
+}

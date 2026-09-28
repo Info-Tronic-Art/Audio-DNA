@@ -309,6 +309,8 @@ void Renderer::renderOpenGL()
     // function is guaranteed to execute on the GL thread with a context
     // current.
     drainRetiredMedia();
+    // s-rta-0928b seqvram: the image sequences' texture bytes, every frame, before any early return.
+    scanSequenceVram();
 
     // Handle pending image load or clear (from message thread). s-rta-0928 R1.3: O(1) -- the decode runs off the GL
     // thread and only when a frame needs the legacy image (resolveLegacy below).
@@ -1532,6 +1534,28 @@ void Renderer::drainRetiredMedia()
     // re-runs close() (also idempotent).
 }
 
+// s-rta-0928b seqvram: frame top, GL thread. Sums every open sequence's texture bytes and publishes the totals.
+void Renderer::scanSequenceVram()
+{
+    ++seqFrameSerial_;
+    size_t total = 0;
+    int slots = 0, open = 0;
+    {
+        std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        for (auto& [id, seq] : imageSequences_)
+        {
+            total += seq->residentBytes();
+            slots += seq->residentSlots();
+            ++open;
+        }
+    }
+    seqResidentTotal_ = total;
+    seqStats_.residentBytes.store(static_cast<int64_t>(total), std::memory_order_relaxed);
+    seqStats_.residentSlots.store(slots, std::memory_order_relaxed);
+    seqStats_.openCount.store(open, std::memory_order_relaxed);
+    seqStats_.overBudget.store(total > SeqVram::kBudgetBytes ? 1 : 0, std::memory_order_relaxed);
+}
+
 VideoPlayer* Renderer::getVideoPlayer(uint32_t clipId)
 {
     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
@@ -1717,7 +1741,8 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         if (!decode)
             return 0;
         bool seqPending = false;
-        const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, &seqPending);
+        const SeqVram::Grant grant{ 0, seqFrameSerial_, &seqStats_ };
+        const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, grant, &seqPending);
         if (seqPending)
         {
             compositor_.notePendingImage();
