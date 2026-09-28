@@ -107,10 +107,12 @@ public:
         // (ConnectionEngine::Context::gripHoldMs).
         float gripHoldMs = 250.0f;
 
-        // s-rta-0926 routines (plan-routines-s1-final.md 3.6): where in its bar Record was pressed
-        // (snap.beatInBar + snap.beatPhase while the tracker is locked), written to take.json's
-        // meta at every save. -1 = unknown (not written).
-        double startBeatInBar = -1.0;
+        // s-rta-0928 take start (Pitfall 48): BPMTracker::postedRequestSeq() read at Record. The take's t = 0 --
+        // its "start" anchor, beat 0 and meta.startBeatInBar (where beat 0 sits in its bar, plan-routines 3.6) --
+        // is the first tick whose snapshot carries every tempo / Tap / Resync / manual-mode request sent before
+        // Record (FeatureSnapshot::trackerRequestSeq >= this), or kStartWaitFallbackSeconds after the first tick.
+        // nullopt = the first tick (headless tests, test mode). The tap and the provisional save stay at arm.
+        std::optional<uint32_t> startAfterTrackerRequest;
     };
     struct ArmResult { bool ok = false; std::string error; std::string assetId; juce::File takeFolder; };
     // Sequence (5.1): beginAsset -> tap.start(store.wavFile(id)) [refuse + abandonAsset on failure] ->
@@ -143,10 +145,14 @@ public:
     // deliveredSamples: AudioEngine::getDeliveredSamples(). transportFrames: AudioTransportSource::
     // getNextReadPosition() when the audio transport is the clock (play-with-audio, overdub), else
     // nullopt. deviceRate: for the 5.2 asset-frame conversion AND A5's rate-mismatch publish. Does,
-    // in order: (1) clock.tick(snap, wallNow, sampleForClock) where sampleForClock = deliveredSamples
+    // in order: (1) the start gate (s-rta-0928, Pitfall 48: the clock's FIRST tick -- t = 0 -- waits for
+    // the snapshot that carries ArmOptions::startAfterTrackerRequest, else kStartWaitFallbackSeconds after
+    // the first tick), then clock.tick(snap, wallNow, sampleForClock) where sampleForClock = deliveredSamples
     // normally, or the asset frame (llround(transportFrames * asset.rate / deviceRate)) while
-    // overdubbing (5.2 formula); (2) while recording: drain tap.popGap into facts (5.6 #2), onset
-    // marker if armed and snap.onsetDetected, synthesize an exact end for any Decaying gesture idle
+    // overdubbing (5.2 formula); (2) while recording: drain tap.popGap into facts (5.6 #2) from the first
+    // tick after arm; onset markers (baseline at the first tick after arm; emitted, and an onset seen while
+    // t = 0 waited stamped t = 0, once the clock has started), and -- only once the clock has started --
+    // synthesize an exact end for any Decaying gesture idle
     // longer than the armed gripHoldMs (N7), periodic save every kCheckpointSeconds of clock t
     // (5.6 #1) OR ONE early save as soon as the clock's tempo becomes metered, whichever comes
     // first (s-rta-0926b tempomap gap, earlyTempoSaved_); (3) while playing: pos = wall or first + asset-frame(transportFrames, 5.2 formula);
@@ -272,6 +278,11 @@ public:
     void shutdown(const Composition& comp, AudioTap& tap);
 
     static constexpr double kCheckpointSeconds = 60.0;   // 5.6 #1 periodic Take::save
+    // s-rta-0928 (HARMONY ADOPTION A1): the longest t = 0 waits after the first tick for the snapshot that carries
+    // the tracker requests sent before Record. The legitimate wait is one device-buffer period + ~2 ms + one tick
+    // (~21 ms at <= 512 frames, ~95 ms at 4096 @ 44.1 kHz); 0.25 s gives > 2x margin. It only matters when a
+    // command is in flight AND hops stop (no device / a stall).
+    static constexpr double kStartWaitFallbackSeconds = 0.25;
 
 private:
     struct HostSink;                                     // implements Sink; forwards to `dispatch`; skips `audio`
@@ -285,12 +296,20 @@ private:
     // builds. `tap` is nullptr for the no-audio (5.5) branch; overdub ignores `tap` entirely (R-A6).
     AudioRef liveAudioRef(AudioTap* tap) const;
     // s-rta-0926 tempomap: the ONE place a take about to be saved gets the facts the host owns --
-    // markers, the audio reference, the clock's tempo map, and the arm-time meta (recordedAt, app,
-    // startBeatInBar). Used by all three save sites (provisional at arm, periodic in tick, final at
+    // markers, the audio reference, the clock's tempo map, and the meta (recordedAt, app, startBeatInBar --
+    // from the t = 0 snapshot, s-rta-0928; -1 before t = 0). Used by all three save sites (provisional at arm, periodic in tick, final at
     // disarm); each site adds only what differs (duration/durationBeats, checkpointEnd). Pre-fix the
     // tempo map was copied at none of them, so every live take.json had "tempoMap": [] and
     // sliceRoutine refused every real take ("no beat grid").
     Take takeForSave(Take base, AudioRef audio) const;
+
+    // s-rta-0928 take start (Pitfall 48). startDue: true when this tick may be t = 0 (nothing awaited, the
+    // snapshot carries the awaited request, or the fallback); otherwise remembers the tick for a Stop before
+    // t = 0. startClock: the clock's first tick + startBeatInBar_ from the same snapshot.
+    bool startDue(const FeatureSnapshot& snap, double wallNow, uint64_t sample);
+    void startClock(const FeatureSnapshot& snap, double wallNow, uint64_t sample);
+    // T2 onset markers for an onsetCount (the delta since onsetCountBaseline_, capped per call).
+    void emitOnsetMarkers(uint32_t onsetCount);
 
     AudioStore store_;
     RecorderClock clock_;
@@ -313,7 +332,8 @@ private:
     std::string appVersion_;
     std::string armRecordedAt_;
     float armedGripHoldMs_ = 250.0f;
-    double armedStartBeatInBar_ = -1.0;   // s-rta-0926: ArmOptions::startBeatInBar -> meta at every save
+    double startBeatInBar_ = -1.0;   // s-rta-0928: where beat 0 sits in its bar, from the t = 0 snapshot
+                                      // (LOCKED only); -1 until t = 0 or unknown -> meta at every save
     double armedDeviceRate_ = 0.0;
     int armedDeviceChannels_ = 0;
     double lastCheckpointT_ = 0.0;
@@ -324,6 +344,25 @@ private:
     // very first tick (bpm is already set at arm); detected BPM: whichever tick the tracker locks
     // -- independent of the 60 s periodic cadence. Never re-armed mid-take (one early save only).
     bool earlyTempoSaved_ = false;
+
+    // s-rta-0928 take start (Pitfall 48; ArmOptions::startAfterTrackerRequest). Message thread only.
+    std::optional<uint32_t> startAfterTrackerRequest_;
+    std::optional<double> startWaitSinceWall_;           // wallNow of the first waiting tick
+    // The last waiting tick, for a Stop before t = 0 -- exactly the snapshot fields startClock (RecorderClock's
+    // first tick + startBeatInBar_) and the onset markers read (HARMONY ADOPTION A4: a small POD, not a held
+    // FeatureSnapshot -- alignas(64) would over-align RecorderHost and MainComponent).
+    struct StartWaitTick
+    {
+        double wall = 0.0;
+        uint64_t sample = 0;
+        float bpm = 0.0f;
+        float beatPhase = 0.0f;
+        uint32_t totalBeatCount = 0;
+        uint32_t onsetCount = 0;
+        uint8_t trackerState = 0;
+        uint8_t beatInBar = 0;
+    };
+    std::optional<StartWaitTick> startWaitLast_;
     std::optional<AudioAsset> overdubAsset_;
     std::string lastError_;
     std::string lastFinalizeError_;   // s-rta-0924b: Status::lastFinalizeError (cleared at arm)
@@ -361,6 +400,11 @@ private:
     // markers stamps all n with that tick's clock time (marker()'s existing tick-time "late point"
     // semantics, spec D10.3 T1); the probe's grid pairing tolerates this. Reset wherever per-take
     // state resets (arm() / markers_ clear).
+    //
+    // s-rta-0928 (Pitfall 48, HARMONY ADOPTION A5): the baseline is still the first tick after arm, but no
+    // marker is emitted before the clock's t = 0 (it would carry the unstarted clock's sample 0); the
+    // delta that accumulated while t = 0 waited for a tracker request is emitted on the t = 0 tick, stamped
+    // t = 0 at that tick's sample -- none is lost to the wait.
     //
     // KNOWN LIMITATION (reviewer finding, s-rta-0924 cleanup lane): the baseline-establishing
     // snapshot -- the first one tick() observes after arm() -- always emits zero markers by

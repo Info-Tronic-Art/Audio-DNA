@@ -5273,13 +5273,14 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
     if (opts.overdubAssetId.isNotEmpty())
         armOpts.overdubAssetId = opts.overdubAssetId.toStdString();
     armOpts.gripHoldMs = composition_.gripHoldMs;
-    // s-rta-0926 routines (plan 3.6): where in its bar Record was pressed, so "bars 33 to 40" of the
-    // take can be cut later. Only while the tracker is locked; otherwise the take says "unknown".
-    {
-        const FeatureSnapshot armSnap = analysisThread_.getFeatureBus().read();
-        if (armSnap.trackerState == BPMTracker::STATE_LOCKED)
-            armOpts.startBeatInBar = static_cast<double>(armSnap.beatInBar) + static_cast<double>(armSnap.beatPhase);
-    }
+    // s-rta-0928 take start (Pitfall 48): every tempo / Tap / Resync / manual-mode command that ran before this
+    // Record is a BPMTracker request the analysis thread applies at its next hop. The take's t = 0 -- and
+    // where beat 0 sits in its bar (plan-routines 3.6), read from the same snapshot -- waits for the
+    // snapshot that carries them (RecorderHost::tick). Test mode never starts the analysis
+    // thread (the TestServer writes the bus): nothing to wait for there.
+    if (!testMode_)
+        if (auto* tracker = analysisThread_.getBpmTracker())
+            armOpts.startAfterTrackerRequest = tracker->postedRequestSeq();
 
     auto result = recorderHost_.arm(composition_, audioEngine_.getAudioTap(), armOpts);
     if (!result.ok)

@@ -22,7 +22,9 @@
 #include "analysis/FeatureSnapshot.h"
 #include "analysis/BPMTracker.h"
 #include <cmath>
+#include <iostream>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -86,6 +88,7 @@ namespace
         s.resyncBarOrigin = tr.resyncBarOrigin();
         s.totalBeatCount = tr.totalBeatCount();
         s.phrasePhase = tr.phrasePhase();
+        s.trackerRequestSeq = tr.appliedRequestSeq();   // AnalysisThread.cpp's copy (Pitfall 48)
         return s;
     }
 
@@ -135,9 +138,10 @@ namespace
             o.takeFolder = takeFolder.dir;
             o.audio = false;
             o.appVersion = "0.1.0";
-            // Today's rule: the bus read ONCE at arm, only while LOCKED.
-            if (busAtArm.trackerState == BPMTracker::STATE_LOCKED)
-                o.startBeatInBar = static_cast<double>(busAtArm.beatInBar) + static_cast<double>(busAtArm.beatPhase);
+            // s-rta-0928: the request sequence posted before Record (perfRecord outside test mode). The bus at
+            // arm is no longer read: the take's start and bar grid come from the snapshot that carries it.
+            (void) busAtArm;
+            o.startAfterTrackerRequest = tr.postedRequestSeq();
             return host.arm(comp, tap, o);
         }
 
@@ -380,4 +384,192 @@ TEST_CASE("[lint] AnalysisThread publishes the request sequence before it publis
     REQUIRE(publish != std::string::npos);
     CHECK(copy != std::string::npos);
     CHECK(copy < publish);
+}
+
+// === the recorder side: the start gate (RecorderHost) ===
+
+namespace
+{
+    FeatureSnapshot snapOf(uint32_t seq, float bpm, bool locked, uint8_t beatInBar = 0, float phase = 0.0f,
+                           uint32_t onsetCount = 0)
+    {
+        FeatureSnapshot s;
+        s.clear();
+        s.trackerRequestSeq = seq;
+        s.bpm = bpm;
+        s.trackerState = locked ? FeatureSnapshot::kTrackerLocked : 0;
+        s.beatInBar = beatInBar;
+        s.beatPhase = phase;
+        s.onsetCount = onsetCount;
+        return s;
+    }
+
+    uint64_t sampleAt(double wall) { return static_cast<uint64_t>(std::llround(wall * 48000.0)); }
+
+    // A bare host: no tracker, snapshots built by hand.
+    struct Gate
+    {
+        TempDir storeRoot{ "gstore" };
+        TempDir takeFolder{ "gtake" };
+        AudioStore store{ storeRoot.dir };
+        RecorderHost host{ store };
+        AudioTap tap;
+        Composition comp = makeComposition();
+        FakeDispatch fd;
+
+        explicit Gate(std::optional<uint32_t> awaited, bool onsetMarkers = false)
+        {
+            fd.wire(host, &comp);
+            RecorderHost::ArmOptions o;
+            o.takeFolder = takeFolder.dir;
+            o.audio = false;
+            o.appVersion = "0.1.0";
+            o.onsetMarkers = onsetMarkers;
+            o.startAfterTrackerRequest = awaited;
+            REQUIRE(host.arm(comp, tap, o).ok);
+        }
+        void tick(const FeatureSnapshot& s, double wall) { host.tick(s, wall, sampleAt(wall), tap, std::nullopt, 48000.0); }
+        Take stopAndLoad()
+        {
+            REQUIRE(host.disarm(comp, tap).ok);
+            LoadStats stats;
+            auto t = Take::load(takeFolder.dir, stats);
+            REQUIRE(t.has_value());
+            return *t;
+        }
+    };
+
+    // Captures std::cerr for the scope (the host's "take start:" lines).
+    struct CerrCapture
+    {
+        std::ostringstream text;
+        std::streambuf* old;
+        CerrCapture() : old(std::cerr.rdbuf(text.rdbuf())) {}
+        ~CerrCapture() { std::cerr.rdbuf(old); }
+    };
+}
+
+TEST_CASE("nothing in flight -> t = 0 on the first tick; startBeatInBar from that tick", "[tempo-start][gate]")
+{
+    std::optional<uint32_t> awaited;
+    SECTION("nothing awaited") { awaited = std::nullopt; }
+    SECTION("the first tick already carries the awaited request") { awaited = 7u; }
+
+    Gate g(awaited);
+    const uint32_t seq = awaited.value_or(0u);
+    g.tick(snapOf(seq, 120.0f, true, 3, 0.84f), 5.0);
+    g.tick(snapOf(seq, 120.0f, true, 3, 0.84f), 5.05);
+    CHECK(g.host.status().t == Approx(0.05));
+    const Take take = g.stopAndLoad();
+    REQUIRE(take.tempo.a.size() >= 1);
+    CHECK(take.tempo.a[0].why == "start");
+    CHECK(take.tempo.a[0].bpm == Approx(120.0f));
+    CHECK(take.tempo.a[0].sample == sampleAt(5.0));
+    CHECK(take.meta.startBeatInBar == Approx(3.84));
+}
+
+TEST_CASE("waits for the snapshot that carries the request", "[tempo-start][gate]")
+{
+    Gate g(5u);
+    g.tick(snapOf(4, 0.0f, false), 10.000);
+    g.tick(snapOf(4, 0.0f, false), 10.008);
+    CHECK(g.host.status().t == 0.0);
+    g.tick(snapOf(5, 120.0f, true, 1, 0.25f), 10.017);
+    g.tick(snapOf(5, 120.0f, true, 1, 0.25f), 10.025);
+    CHECK(g.host.status().t == Approx(0.008));
+    const Take take = g.stopAndLoad();
+    REQUIRE(take.tempo.a.size() == 1);
+    CHECK(take.tempo.a[0].why == "start");
+    CHECK(take.tempo.a[0].bpm == Approx(120.0f));
+    CHECK(take.tempo.a[0].sample == sampleAt(10.017));
+    CHECK(take.meta.startBeatInBar == Approx(1.25));
+}
+
+TEST_CASE("no hop carries the request -> t = 0 by the fallback", "[tempo-start][fallback]")
+{
+    CerrCapture err;
+    const double fb = RecorderHost::kStartWaitFallbackSeconds;
+    Gate g(5u);
+    // Never on the exact boundary in doubles.
+    for (double w : { 10.0, 10.0 + 0.4 * fb, 10.0 + 0.8 * fb, 10.0 + fb - 0.01 })
+    {
+        g.tick(snapOf(4, 0.0f, false), w);
+        CHECK(g.host.status().t == 0.0);
+    }
+    CHECK(err.text.str().find("take start:") == std::string::npos);
+    const double start = 10.0 + fb + 0.025;
+    g.tick(snapOf(4, 0.0f, false), start);                         // the fallback starts the take here
+    CHECK(err.text.str().find("take start:") != std::string::npos);
+    g.tick(snapOf(5, 120.0f, true), start + 0.010);                 // the request lands late: a "lock" anchor
+    const Take take = g.stopAndLoad();
+    REQUIRE(take.tempo.a.size() == 2);
+    CHECK(take.tempo.a[0].why == "start");
+    CHECK(take.tempo.a[0].t == 0.0);
+    CHECK(take.tempo.a[0].bpm == 0.0f);
+    CHECK(take.tempo.a[0].sample == sampleAt(start));
+    CHECK(take.tempo.a[1].why == "lock");
+    CHECK(take.tempo.a[1].t == Approx(0.010));
+    CHECK(take.tempo.a[1].bpm == Approx(120.0f));
+    CHECK(take.meta.startBeatInBar == -1.0);
+}
+
+TEST_CASE("a Stop before t = 0 still gives the take its start", "[tempo-start][stop]")
+{
+    Gate g(5u);
+    g.tick(snapOf(4, 128.0f, true, 2, 0.5f), 20.000);
+    g.tick(snapOf(4, 128.0f, true, 2, 0.5f), 20.008);
+    const Take take = g.stopAndLoad();
+    REQUIRE(take.tempo.a.size() == 1);
+    CHECK(take.tempo.a[0].why == "start");
+    CHECK(take.tempo.a[0].bpm == Approx(128.0f));
+    CHECK(take.tempo.a[0].sample == sampleAt(20.008));
+    CHECK(take.meta.startBeatInBar == Approx(2.5));
+    CHECK(take.meta.duration == 0.0);
+}
+
+TEST_CASE("the sequence compare survives 2^32", "[tempo-start][wrap]")
+{
+    Gate g(0xFFFFFFFEu);
+    g.tick(snapOf(0xFFFFFFFDu, 120.0f, true), 30.000);
+    g.tick(snapOf(0xFFFFFFFDu, 120.0f, true), 30.008);
+    CHECK(g.host.status().t == 0.0);
+    g.tick(snapOf(1u, 120.0f, true), 30.016);                      // wrapped past 0xFFFFFFFE: carries it
+    g.tick(snapOf(1u, 120.0f, true), 30.024);
+    CHECK(g.host.status().t == Approx(0.008));
+}
+
+TEST_CASE("onset markers: none lost to the wait, none stamped before t = 0 (Pitfall 30)", "[tempo-start][onset]")
+{
+    // HARMONY ADOPTION A5: the onset baseline is the FIRST tick after arm (as before); an onset seen while
+    // t = 0 waits is emitted at t = 0, stamped with the start tick's clock (t 0, its sample) -- never dropped,
+    // never sample 0.
+    Gate g(5u, true);
+    g.tick(snapOf(4, 0.0f, false, 0, 0.0f, 10), 40.000);           // baseline 10
+    g.tick(snapOf(4, 0.0f, false, 0, 0.0f, 11), 40.004);           // an onset while waiting
+    g.tick(snapOf(5, 120.0f, true, 0, 0.0f, 11), 40.008);          // t = 0
+    g.tick(snapOf(5, 120.0f, true, 0, 0.0f, 12), 40.016);          // an onset after t = 0
+    const Take take = g.stopAndLoad();
+    REQUIRE(take.markers.size() == 2);
+    CHECK(take.markers[0].s.t == 0.0);
+    CHECK(take.markers[0].s.sample == sampleAt(40.008));
+    CHECK(take.markers[1].s.t == Approx(0.008));
+    CHECK(take.markers[1].s.sample == sampleAt(40.016));
+}
+
+TEST_CASE("[lint] perfRecord arms with the request sequence, not an arm-time bus read", "[tempo-start][lint]")
+{
+    // A structural lint (a source-text scan), not behaviour proof: MainComponent.cpp is compiled by no ctest.
+    // The arm -> postedRequestSeq wire and the startBeatInBar source are proven only by the live
+    // probe-tempo-start.sh W1-W3 on the built app.
+    const std::string src = readSource("MainComponent.cpp");
+    const auto from = src.find("std::string MainComponent::perfRecord(");
+    const auto to = src.find("std::string MainComponent::perfStop(");
+    REQUIRE(from != std::string::npos);
+    REQUIRE(to != std::string::npos);
+    REQUIRE(from < to);
+    const std::string body = src.substr(from, to - from);
+    CHECK(body.find("postedRequestSeq()") != std::string::npos);
+    CHECK(body.find("testMode_") != std::string::npos);
+    CHECK(body.find("startBeatInBar") == std::string::npos);
+    CHECK(body.find("getFeatureBus().read()") == std::string::npos);
 }
