@@ -1065,7 +1065,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 {
                     // S167-L4b DT-FIX: real measured dt (function param), not
                     // a hardcoded 1/60 -- see compositeDeck()'s header comment.
-                    clipTex = videoFrameFn_(clip, dt);
+                    clipTex = videoFrameFn_(clip, dt, &pending);   // R1.4: a sequence with nothing to show yet
                 }
 
                 if (pending)
@@ -1173,7 +1173,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 {
                     // S167-L4b DT-FIX: real measured dt (function param), not
                     // a hardcoded 1/60 -- see compositeDeck()'s header comment.
-                    clipTex = videoFrameFn_(clip, dt);
+                    clipTex = videoFrameFn_(clip, dt, &pending);   // R1.4
                 }
 
                 // s-rta-0928 R1.2: a Mask whose image still decodes holds its last IMAGE mask; nothing to hold -> no
@@ -1332,7 +1332,7 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
             // S167-L4b DT-FIX: real measured dt (function param), not a
             // hardcoded 1/60 -- see compositePersistentLayers()'s header
             // comment (CompositorEngine.h).
-            clipTex = videoFrameFn_(clip, dt);
+            clipTex = videoFrameFn_(clip, dt, &pending);   // R1.4
         }
 
         // s-rta-0928 R1.2: a persistent layer whose image still decodes draws nothing this frame (it saves no Layer
@@ -1569,7 +1569,7 @@ GLuint CompositorEngine::getClipTexture(const Clip& clip, float time, int w, int
 
     if ((clip.mediaType == Clip::MediaType::Video ||
          clip.mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
-        return videoFrameFn_(&clip, dt);
+        return videoFrameFn_(&clip, dt, pending);
 
     return 0;
 }

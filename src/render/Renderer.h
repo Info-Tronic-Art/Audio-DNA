@@ -610,15 +610,16 @@ private:
     std::vector<std::unique_ptr<ImageSequence>> retiredImageSequences_;
     void drainRetiredMedia();
 
-    // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, true).
-    GLuint getVideoFrameTexture(const Clip* clip, float dt);
+    // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, true, pending).
+    GLuint getVideoFrameTexture(const Clip* clip, float dt, bool* pending);
 
     // s-rta-0926b plan4 T4: ONE body for a clip's media transport -- transport sync from the clip, BPM-sync /
     // master speed, advance, playhead / playing propagation (Pitfalls 2 and 7), in/out points. decode = true is
     // the on-screen path (decode + upload, returns the texture, byte-for-byte today's getVideoFrameTexture);
     // decode = false advances the CLOCK only (VideoPlayer::advanceClock, no ImageSequence texture load) and
     // returns 0 -- for clips of a deck that is not on screen (tickMediaClock).
-    GLuint syncMedia(const Clip* clip, float dt, bool decode);
+    // pending (s-rta-0928 R1.4): an image sequence whose current frame -- and every earlier one -- is still decoding.
+    GLuint syncMedia(const Clip* clip, float dt, bool decode, bool* pending = nullptr);
     void tickMediaClock(const Clip* clip, float dt) { syncMedia(clip, dt, false); }
 
     // s-rta-0928 R1.3: the legacy single image (the fallback picture when no deck layer and no source draws).

@@ -260,8 +260,8 @@ void Renderer::newOpenGLContextCreated()
     });
 
     // Wire video frame provider into compositor
-    compositor_.setVideoFrameProvider([this](const Clip* clip, float dt) -> GLuint {
-        return getVideoFrameTexture(clip, dt);
+    compositor_.setVideoFrameProvider([this](const Clip* clip, float dt, bool* pending) -> GLuint {
+        return getVideoFrameTexture(clip, dt, pending);
     });
 
     // P22.1: Initialize the Syphon server on the GL thread. The Syphon server
@@ -1547,13 +1547,15 @@ ImageSequence* Renderer::getImageSequence(uint32_t clipId)
     return (it != imageSequences_.end()) ? it->second.get() : nullptr;
 }
 
-GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
+GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt, bool* pending)
 {
-    return syncMedia(clip, dt, true);
+    return syncMedia(clip, dt, true, pending);
 }
 
-GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode)
+GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pending)
 {
+    if (pending != nullptr)
+        *pending = false;
     if (!clip)
         return 0;
 
@@ -1703,8 +1705,20 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode)
             }
         }
 
-        // plan4 T4: no lazy PNG load for a deck that is not on screen.
-        return decode ? seq->getCurrentTexture() : 0;
+        // plan4 T4: no lazy PNG load for a deck that is not on screen. s-rta-0928 R1.4: the frames decode off the GL
+        // thread (look-ahead); a sequence with nothing to show yet is PENDING, and counts for the render_frame gate
+        // (C3: the same framePendingImages counter the compositor's images bump).
+        if (!decode)
+            return 0;
+        bool seqPending = false;
+        const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, &seqPending);
+        if (seqPending)
+        {
+            compositor_.notePendingImage();
+            if (pending != nullptr)
+                *pending = true;
+        }
+        return tex;
     }
 
     return 0;

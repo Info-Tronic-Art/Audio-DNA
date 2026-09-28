@@ -99,9 +99,10 @@ public:
 
     // Callback to get the current video frame texture for a clip.
     // The Renderer advances video playback and uploads frames; this just returns the texture.
-    // Parameters: clip pointer, dt (frame delta time)
+    // Parameters: clip pointer, dt (frame delta time), pending (s-rta-0928 R1.4: set when an image sequence has
+    // nothing to show yet -- its first frame still decodes; never set for video)
     // Returns GL texture ID, or 0 if no frame ready.
-    using VideoFrameFn = std::function<GLuint(const Clip* clip, float dt)>;
+    using VideoFrameFn = std::function<GLuint(const Clip* clip, float dt, bool* pending)>;
 
     // Set the video frame callback (provided by Renderer)
     void setVideoFrameProvider(VideoFrameFn fn) { videoFrameFn_ = std::move(fn); }
