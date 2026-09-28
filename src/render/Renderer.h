@@ -54,11 +54,17 @@ public:
     void attachTo(juce::Component& component);
     void detach();
 
-    // Load an image file to display. Thread-safe (queues for GL thread).
+    // Load an image file to display. Thread-safe (queues for GL thread). s-rta-0928 R1.3: O(1) -- the file is decoded
+    // off the GL thread and uploaded only when a frame actually shows the legacy single image (no deck picture, no
+    // source); a re-load of the resident file costs a stat. The last loadImage / clearImage call wins.
     void loadImage(const juce::File& imageFile);
 
     // Clear the loaded image so the renderer shows black. Thread-safe.
     void clearImage();
+
+    // s-rta-0928 R1.3: decode this file ahead (off the GL thread) so a later loadImage of it shows at once -- the
+    // slideshow's next image. Thread-safe; the newest call replaces an unconsumed one.
+    void prefetchLegacyImage(const juce::File& imageFile);
 
     // Set a procedural source to render (instead of an image). Thread-safe.
     void setActiveSource(const std::string& sourceType,
@@ -278,8 +284,8 @@ private:
     // detach(): its destructor drops queued jobs and waits for the running decodes (<= 5 s); jobs hold no `this`.
     ImageDecode::Decoder imageDecoder_{ 3 };
     ImageTexCache::UploadBudget uploadBudget_;
-    // R1.3: the legacy single image still decoding while a frame needs it (the capture gate reads it). Declared in
-    // R1.2 (B1); false until R1.3 sets it.
+    // R1.3: the legacy single image still decoding while a frame needs it (the capture gate reads it). Reset at the
+    // top of every frame; set by resolveLegacy.
     bool legacyPendingThisFrame_ = false;
     EffectChain effectChain_;
     // THIS renderer's per-GL-context EffectChain state (uniform location
@@ -615,11 +621,28 @@ private:
     GLuint syncMedia(const Clip* clip, float dt, bool decode);
     void tickMediaClock(const Clip* clip, float dt) { syncMedia(clip, dt, false); }
 
-    // Pending image load — protected by mutex (not on hot audio path)
+    // s-rta-0928 R1.3: the legacy single image (the fallback picture when no deck layer and no source draws).
+    // Written under pendingImageMutex_ by any thread: the latest request (gen increases per call; last call wins) and
+    // the latest prefetch path.
     std::mutex pendingImageMutex_;
-    juce::File pendingImageFile_;
-    bool hasPendingImage_ = false;
-    bool pendingClearImage_ = false;
+    struct LegacyRequest { juce::File file; bool clear = false; uint64_t gen = 0; };
+    LegacyRequest legacyReq_;
+    juce::File legacyPrefetch_;
+    // GL thread only. The decode runs on imageDecoder_ (PremultipliedRGBA = TextureManager::uploadImage's bytes), at most
+    // one demand decode in flight (the newest request is issued when it completes); prefetch results are parked.
+    static constexpr uint64_t kLegacyPrefetchTag = ~uint64_t{ 0 };
+    uint64_t legacyHandledGen_ = 0;    // the request gen this thread has taken
+    uint64_t legacyWantGen_ = 0;       // the gen of the wanted file (0 = nothing wanted)
+    juce::File legacyWant_;            // the wanted file
+    bool legacyWantDone_ = true;       // it is resident (or it failed: the old picture stays, as before)
+    uint64_t legacyInFlightGen_ = 0;   // tag of the demand decode in flight (0 = none)
+    std::string legacyPrefetchInFlight_;
+    std::optional<ImageDecode::Result> legacyReady_, legacyParked_;
+    std::string legacyResidentPath_;
+    ImageTexCache::Stamp legacyResidentStamp_;
+    std::shared_ptr<ImageDecode::Mailbox> legacyBox_ = std::make_shared<ImageDecode::Mailbox>();
+    void takeLegacyRequests();   // the frame top: O(1), no decode
+    void resolveLegacy();        // only where a frame needs the legacy image: request / adopt / upload, or pending
 
     // Camera frame queue
     std::mutex cameraFrameMutex_;

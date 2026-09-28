@@ -3921,6 +3921,8 @@ void MainComponent::openImageFolder()
         // Load first image
         auto first = slideshowImages_[0];
         previewPanel_.loadImage(first);
+        // s-rta-0928 R1.3: decode the next one ahead (off the GL thread), so the first advance shows at once.
+        previewPanel_.getRenderer().prefetchLegacyImage(slideshowImages_[1 % slideshowImages_.size()]);
 
         fileLabel_.setText("Folder: " + dir.getFileName() + " ("
                           + juce::String(slideshowImages_.size()) + " images)",
@@ -3947,6 +3949,9 @@ void MainComponent::advanceSlideshow()
 
             auto img = slideshowImages_[slideshowIndex_];
             previewPanel_.loadImage(img);
+            // s-rta-0928 R1.3: decode the next one ahead (off the GL thread).
+            previewPanel_.getRenderer().prefetchLegacyImage(
+                slideshowImages_[(slideshowIndex_ + 1) % slideshowImages_.size()]);
         }
     }
 }

@@ -12,13 +12,14 @@ public:
     TextureManager() = default;
     ~TextureManager();
 
-    // Load an image file into the main image texture.
-    // Returns true on success. Must be called on the GL thread.
-    bool loadImage(const juce::File& imageFile);
-
-    // Upload a JUCE Image directly (for camera frames).
+    // Upload a JUCE Image directly (for camera frames): the convert (PixelConvert, premultiplied) + uploadPixels.
     // Must be called on the GL thread.
     bool uploadImage(const juce::Image& image);
+
+    // s-rta-0928 R1.3: upload GL-ready RGBA8 rows (bottom-up, premultiplied, w*4 per row) into the main image texture
+    // -- the GL half of uploadImage, verbatim (glTexSubImage2D at the same size, else a new texture). The legacy single
+    // image's bytes come from ImageDecode (decoded off the GL thread). Must be called on the GL thread.
+    bool uploadPixels(const uint8_t* rgba, int w, int h);
 
     // Create (or resize) the two FBO textures for ping-pong rendering.
     void createFBOs(int width, int height);
@@ -58,8 +59,4 @@ private:
     GLuint fboTextures_[2] = {0, 0};
     int fboWidth_ = 0;
     int fboHeight_ = 0;
-
-    // s-rta-0928 R1.0: uploadImage's convert / upload split, read by loadImage's timing line (GL thread only).
-    double lastConvertMs_ = 0.0;
-    double lastUploadMs_ = 0.0;
 };

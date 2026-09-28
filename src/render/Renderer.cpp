@@ -63,14 +63,126 @@ void Renderer::loadImage(const juce::File& imageFile)
 {
     std::cerr << "[Renderer] loadImage: " << imageFile.getFullPathName() << std::endl;
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
-    pendingImageFile_ = imageFile;
-    hasPendingImage_ = true;
+    legacyReq_ = LegacyRequest{ imageFile, false, legacyReq_.gen + 1 };
 }
 
 void Renderer::clearImage()
 {
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
-    pendingClearImage_ = true;
+    legacyReq_ = LegacyRequest{ juce::File(), true, legacyReq_.gen + 1 };
+}
+
+void Renderer::prefetchLegacyImage(const juce::File& imageFile)
+{
+    std::lock_guard<std::mutex> lock(pendingImageMutex_);
+    legacyPrefetch_ = imageFile;
+}
+
+// s-rta-0928 R1.3: the frame top -- take the newest request and prefetch path, sort the arrived decode results. O(1)
+// apart from moving results; never decodes (it used to decode + convert + upload here, on EVERY trigger or selection
+// of an image clip, even in deck mode where this picture is not shown -- outside the frame timer, F2).
+void Renderer::takeLegacyRequests()
+{
+    LegacyRequest req;
+    juce::File prefetch;
+    {
+        std::lock_guard<std::mutex> lock(pendingImageMutex_);
+        req = legacyReq_;
+        prefetch = legacyPrefetch_;
+        legacyPrefetch_ = juce::File();
+    }
+
+    std::vector<ImageDecode::Result> got;
+    legacyBox_->tryDrain(got);
+    for (auto& r : got)
+    {
+        if (r.tag == kLegacyPrefetchTag)
+        {
+            if (r.path == legacyPrefetchInFlight_)
+                legacyPrefetchInFlight_.clear();
+            if (r.kind == ImageTexCache::Kind::Decoded && r.path != legacyResidentPath_)
+                legacyParked_ = std::move(r);
+            continue;
+        }
+        if (r.tag != legacyInFlightGen_)
+            continue;                  // stale (a context loss reset the gens)
+        legacyInFlightGen_ = 0;
+        if (r.tag == legacyWantGen_ && !legacyWantDone_)
+            legacyReady_ = std::move(r);
+        // else: an older request's result -- the newest is issued by resolveLegacy
+    }
+
+    if (req.gen != legacyHandledGen_)
+    {
+        legacyHandledGen_ = req.gen;
+        legacyReady_.reset();
+        if (req.clear)
+        {
+            texMgr_.release();
+            legacyResidentPath_.clear();
+            legacyWant_ = juce::File();
+            legacyWantGen_ = 0;
+            legacyWantDone_ = true;
+        }
+        else
+        {
+            legacyWant_ = req.file;      // lazy: decoded + uploaded only when a frame needs it (resolveLegacy)
+            legacyWantGen_ = req.gen;
+            legacyWantDone_ = false;
+        }
+    }
+
+    const auto pp = prefetch.getFullPathName().toStdString();
+    if (prefetch != juce::File() && pp != legacyResidentPath_ && pp != legacyPrefetchInFlight_
+        && !(legacyParked_ && legacyParked_->path == pp))
+    {
+        legacyPrefetchInFlight_ = pp;
+        imageDecoder_.request(prefetch, ImageDecode::Layout::PremultipliedRGBA, kLegacyPrefetchTag, std::nullopt,
+                              legacyBox_);
+    }
+}
+
+// s-rta-0928 R1.3: called ONLY where a frame shows the legacy single image (no deck picture, no source). A wanted file
+// that is not resident is requested (one demand decode in flight), adopted from the prefetch, or uploaded when its
+// bytes are here (within the frame's upload budget). Until then legacyPendingThisFrame_ holds a render_frame back and
+// the current texture (the previous picture) or black shows. Unchanged (the resident file, same stamp) and Failed
+// (the old picture stays, as a failed load always did) end the request.
+void Renderer::resolveLegacy()
+{
+    if (legacyWantDone_ || legacyWantGen_ == 0)
+        return;
+    const auto path = legacyWant_.getFullPathName().toStdString();
+    if (!legacyReady_ && legacyParked_ && legacyParked_->path == path)
+    {
+        legacyReady_ = std::move(legacyParked_);
+        legacyParked_.reset();
+    }
+    if (legacyReady_)
+    {
+        if (legacyReady_->kind == ImageTexCache::Kind::Decoded)
+        {
+            if (!uploadBudget_.take(legacyReady_->rgba.size()))
+            {
+                legacyPendingThisFrame_ = true;   // this frame's budget is spent: the next frame uploads
+                return;
+            }
+            texMgr_.uploadPixels(legacyReady_->rgba.data(), legacyReady_->w, legacyReady_->h);
+            legacyResidentPath_ = legacyReady_->path;
+            legacyResidentStamp_ = legacyReady_->stamp;
+        }
+        legacyReady_.reset();
+        legacyWantDone_ = true;
+        return;
+    }
+    if (legacyInFlightGen_ == 0)
+    {
+        std::optional<ImageTexCache::Stamp> known;
+        if (path == legacyResidentPath_ && texMgr_.hasImage())
+            known = legacyResidentStamp_;   // a re-load of the resident file: a stat, no decode
+        legacyInFlightGen_ = legacyWantGen_;
+        imageDecoder_.request(legacyWant_, ImageDecode::Layout::PremultipliedRGBA, legacyWantGen_, known, legacyBox_);
+    }
+    legacyPendingThisFrame_ = true;
 }
 
 void Renderer::queueCameraFrame(const juce::Image& frame)
@@ -192,24 +304,10 @@ void Renderer::renderOpenGL()
     // current.
     drainRetiredMedia();
 
-    // Handle pending image load or clear (from message thread)
-    {
-        std::lock_guard<std::mutex> lock(pendingImageMutex_);
-        if (pendingClearImage_)
-        {
-            texMgr_.release();
-            pendingClearImage_ = false;
-            hasPendingImage_ = false;
-        }
-        else if (hasPendingImage_)
-        {
-            std::cerr << "[Renderer] Processing pending image..." << std::endl;
-            bool ok = texMgr_.loadImage(pendingImageFile_);
-            std::cerr << "[Renderer] Image load " << (ok ? "OK" : "FAILED")
-                      << ", hasImage=" << texMgr_.hasImage() << std::endl;
-            hasPendingImage_ = false;
-        }
-    }
+    // Handle pending image load or clear (from message thread). s-rta-0928 R1.3: O(1) -- the decode runs off the GL
+    // thread and only when a frame needs the legacy image (resolveLegacy below).
+    legacyPendingThisFrame_ = false;
+    takeLegacyRequests();
 
     // Handle pending camera frame
     {
@@ -342,6 +440,10 @@ void Renderer::renderOpenGL()
     glViewport(0, 0, canvas.w, canvas.h);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // s-rta-0928 R1.3: nothing else can draw -- the legacy image is needed (decoded / uploaded lazily).
+    if (!sourceActive && !deckActive)
+        resolveLegacy();
 
     // Check if we have anything to render
     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
@@ -648,6 +750,7 @@ void Renderer::renderOpenGL()
     bool legacyImage = false;
     if (sourceTexture == 0)
     {
+        resolveLegacy();   // s-rta-0928 R1.3: this frame shows the legacy image
         sourceTexture = texMgr_.getImageTexture();
         legacyImage = (sourceTexture != 0);
     }
@@ -1073,6 +1176,17 @@ void Renderer::openGLContextClosing()
     shaderMgr_.releaseAll();
     texMgr_.release();
     quad_.release();
+
+    // s-rta-0928 R1.3: the legacy texture died with texMgr_ (as before: nothing re-loads it on the next context);
+    // in-flight results are dropped by their stale tags.
+    legacyResidentPath_.clear();
+    legacyWant_ = juce::File();
+    legacyWantGen_ = 0;
+    legacyWantDone_ = true;
+    legacyInFlightGen_ = 0;
+    legacyPrefetchInFlight_.clear();
+    legacyReady_.reset();
+    legacyParked_.reset();
 }
 
 ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)

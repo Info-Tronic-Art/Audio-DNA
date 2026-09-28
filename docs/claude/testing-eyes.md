@@ -61,7 +61,7 @@ cd tests/visual && pytest test_render_pipeline.py -v
 | Endpoint | What it does |
 |---|---|
 | `GET /api/health` | Check app is ready |
-| `POST /api/load_image` | `{"filepath": "..."}` |
+| `POST /api/load_image` | `{"filepath": "..."}` -- decoded off the GL thread; the handler's 100 ms sleep is no longer load-bearing: the next `render_frame` waits for the picture (Pitfall 53) |
 | `POST /api/set_effect` | `{"name": "...", "enabled": true, "params": {...}}` |
 | `POST /api/set_effect_chain` | `{"effects": [{"name": "...", "params": {...}}, ...]}` |
 | `POST /api/inject_features` | `{"rms": 0.8, "beatPhase": 0.5, ...}` |
