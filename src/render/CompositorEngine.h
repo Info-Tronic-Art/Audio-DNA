@@ -17,6 +17,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 // CompositorEngine: multi-layer compositing for v2 deck mode.
 //
@@ -70,6 +71,16 @@ public:
     // results (try_lock -- never blocks), upload them within the frame's budget (demand before prefetch; a result that
     // misses the budget keeps its bytes for a later frame), evict / prefetch (R1.5).
     void pumpImages();
+
+    // s-rta-0928 R1.5: the composition's image set, in prefetch order (compload::imagePaths), from any thread (a
+    // mutex-guarded slot that REPLACES an unconsumed set). The next pumpImages releases the textures of images not in
+    // it and prefetches the rest -- one decode in flight, up to kImagePrefetchBudgetBytes of resident images.
+    void postImageSet(std::vector<std::string> ordered)
+    {
+        std::lock_guard<std::mutex> lock(imageSetMutex_);
+        postedImageSet_ = std::move(ordered);
+        hasPostedImageSet_ = true;
+    }
 
     // Images this frame needed but could not show yet (a layer held or skipped). A capture that waits for a complete
     // frame (render_frame) is never answered by a frame where this is > 0 (Renderer::processPendingCapture).
@@ -246,6 +257,12 @@ private:
     std::vector<ImageDecode::Result> drained_;   // scratch for Mailbox::tryDrain (GL thread)
     ImageDecode::Decoder* decoder_ = nullptr;
     ImageTexCache::UploadBudget* uploadBudget_ = nullptr;
+    // R1.5: the posted image set (postImageSet; the GL thread takes it with try_lock) and the prefetch budget --
+    // ASSUMED 1 GiB of resident image textures (~30 4K or ~120 1080p stills); demand loads are never refused.
+    std::mutex imageSetMutex_;
+    std::vector<std::string> postedImageSet_;
+    bool hasPostedImageSet_ = false;
+    static constexpr size_t kImagePrefetchBudgetBytes = size_t{ 1 } << 30;
     GLuint uploadImageTexture(const ImageDecode::Result& r);
     void deleteImageTexture(GLuint tex);
 

@@ -305,6 +305,20 @@ void CompositorEngine::pumpImages()
         return;
     imagePumpFrames_.fetch_add(1, std::memory_order_relaxed);
 
+    // R1.5: a composition swap posted its image set -- release the images it no longer has (today they were never
+    // released), queue the rest for prefetch / re-validation.
+    {
+        std::unique_lock<std::mutex> lock(imageSetMutex_, std::try_to_lock);
+        if (lock.owns_lock() && hasPostedImageSet_)
+        {
+            std::vector<std::string> set = std::move(postedImageSet_);
+            hasPostedImageSet_ = false;
+            lock.unlock();
+            for (GLuint tex : imageCache_.applyImageSet(set))
+                deleteImageTexture(tex);
+        }
+    }
+
     drained_.clear();
     if (imageBox_->tryDrain(drained_))
         for (auto& r : drained_)
@@ -342,6 +356,11 @@ void CompositorEngine::pumpImages()
         }
         readyImages_.swap(keep);
     }
+
+    // R1.5: one prefetch job in flight (the other decoder threads stay free for a frame's demand).
+    if (auto job = imageCache_.nextPrefetch(kImagePrefetchBudgetBytes))
+        decoder_->request(juce::File(juce::String(job->path)), ImageDecode::Layout::StraightRGBA, 0, job->known,
+                          imageBox_);
 
     imagesPending_.store(imageCache_.pendingCount(), std::memory_order_relaxed);
     imageTexCount_.store(imageCache_.residentCount(), std::memory_order_relaxed);

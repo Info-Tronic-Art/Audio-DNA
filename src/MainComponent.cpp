@@ -2859,6 +2859,9 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     auto& renderer = previewPanel_.getRenderer();
     for (auto id : compload::idsRetired(before, after))
         renderer.closeMediaForClip(id);
+    // s-rta-0928 R1.5: prefetch the new composition's images off the GL thread (active deck, active clips first) and
+    // release the textures of images it no longer has -- at the next frame start, before any pass.
+    renderer.getCompositor().postImageSet(compload::imagePaths(composition_));
 
     // Loading/replacing/appending is not itself undoable. clear() only
     // touches command history (never the model) — a stale command left alive

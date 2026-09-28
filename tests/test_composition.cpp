@@ -1297,3 +1297,33 @@ TEST_CASE("compload::reconcileSourceParams brings an old file's source clips to 
     REQUIRE(lookups == 3);                                     // once per source TYPE, not per clip
     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 0);   // idempotent
 }
+
+TEST_CASE("compload::imagePaths: active deck first, active clips first, then the other columns and decks; deduplicated",
+          "[composition][compload][s-rta-0928]")
+{
+    auto img = [](const char* path) {
+        Clip c;
+        c.mediaType = Clip::MediaType::Image;
+        c.mediaFile = juce::File(path);
+        return c;
+    };
+    Composition comp;
+    Deck d0, d1;
+    d0.name = "D0"; d1.name = "D1";
+    Layer a, b, c;
+    a.clips = { img("/i/a0.png"), img("/i/a1.png"), img("/i/a2.png") };
+    a.activeClipColumn = 2;
+    b.clips = { std::nullopt, img("/i/b1.png"), img("/i/a0.png") };    // a duplicate of a0
+    b.activeClipColumn = 1;
+    Clip src; src.mediaType = Clip::MediaType::Source; src.sourceType = "plasma";
+    Clip none; none.mediaType = Clip::MediaType::Image;                 // no file: skipped
+    c.clips = { img("/i/c0.png"), src, none };
+    d0.layers = { c };
+    d1.layers = { a, b };
+    comp.decks = { d0, d1 };
+    comp.activeDeckIndex = 1;
+
+    const auto p = compload::imagePaths(comp);
+    const std::vector<std::string> expect = { "/i/a2.png", "/i/b1.png", "/i/a0.png", "/i/a1.png", "/i/c0.png" };
+    CHECK(p == expect);
+}
