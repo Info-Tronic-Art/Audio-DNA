@@ -9121,14 +9121,20 @@ inline const char* sourceCrystalCavern = R"(
         float totalDist = 0.0;
         vec3 col = vec3(0.0);
         float crystalSize = u_src_crystal_size;
-        // Flying through the repeated cave the camera passes through thin crystal walls: every ray would hit at
-        // distance 0 and the frame would flash one flat colour. Start the march just past the wall -- only while the
-        // camera is within 0.08 of a surface (identical otherwise).
-        if (caveDE(ro, crystalSize) < 0.08) totalDist = 0.08;
+        // Flying through the repeated cave the camera brushes past crystals and passes through thin ones: a crystal
+        // turns see-through as it nears the camera (fully drawn from 0.08 away), and the ray goes on through it to
+        // what lies behind. Never a flat frame (camera inside a crystal) and never a crystal cut open by a clip.
+        float trans = 1.0;      // how much of what lies further along the ray still shows
+        bool inside = false;    // passing through a crystal that was drawn see-through
 
         for (int i = 0; i < 80; i++) {
             vec3 p = ro + rd * totalDist;
             float d = caveDE(p, crystalSize);
+            if (inside) {
+                if (d >= 0.002) inside = false;
+                totalDist += max(abs(d), 0.004);
+                continue;
+            }
             if (d < 0.002) {
                 // Normal via gradient
                 vec2 e = vec2(0.001, 0.0);
@@ -9143,12 +9149,18 @@ inline const char* sourceCrystalCavern = R"(
                 float spec = pow(max(dot(reflect(rd, n), lightDir), 0.0), 16.0 + u_src_reflectivity * 48.0);
                 float hue = u_src_light_color;
                 vec3 lightCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
-                col = lightCol * (diff * 0.6 + spec * u_src_reflectivity + 0.1);
+                vec3 c = lightCol * (diff * 0.6 + spec * u_src_reflectivity + 0.1);
                 // Fog
                 float fog = exp(-totalDist * (0.1 + u_src_fog * 0.5));
-                col *= fog;
-                col *= 0.8 + u_bass * 0.4;
-                break;
+                c *= fog;
+                c *= 0.8 + u_bass * 0.4;
+                float w = smoothstep(0.0, 0.08, totalDist);
+                col += trans * w * c;
+                trans *= 1.0 - w;
+                if (trans < 0.01) break;
+                inside = true;
+                totalDist += 0.004;
+                continue;
             }
             totalDist += d;
             if (totalDist > 20.0) break;

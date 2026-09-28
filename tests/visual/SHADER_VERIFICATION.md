@@ -34,8 +34,9 @@ kept missing (s-rta-0927 source-defects):
 - `test_shader_param_lint`: every registered source/effect param's uniform is READ by its GLSL (a dead knob fails;
   so does a param-adding helper lambda that constructs no source).
 - `test_source_defaults_gl`: the fixed-black sources (julia_set, burning_ship, newton_3d incl. t = 30 / 45,
-  sierpinski on power-of-two canvases, crystal_cavern over 20 s) and Dot Field render visible pictures at their
-  REGISTERED defaults (parsed from the registry), offscreen in a private CGL context, pixels decoded.
+  sierpinski on power-of-two canvases, crystal_cavern over 20 s with a grazed crystal drawn, never cut open) and Dot
+  Field render visible pictures at their REGISTERED defaults (parsed from the registry), offscreen in a private CGL
+  context, pixels decoded.
 
 ```bash
 # Sources:

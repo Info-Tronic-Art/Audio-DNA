@@ -348,6 +348,35 @@ TEST_CASE("crystal_cavern keeps drawing the cave as the camera flies", "[source-
     CHECK(flat == 0);
 }
 
+// A5 fix round -- a crystal the camera grazes is drawn as a crystal (shaded, turning see-through as it nears the
+// camera), never as a flat dark cut disc. A clip that started every ray 0.08 ahead while the camera was within 0.08
+// of a crystal (86% of the flight at the defaults) cut the grazed crystal open: its inside showed as a dark disc at
+// ambient level. Pinned to the two default 1920x1080 frames where the disc was seen: t = 10 (camera 0.012 from a
+// crystal right of centre -- the reviewed evidence frame) and t = 24 (0.004). Inside each disc's box (top-down pixel
+// coordinates) at most half the pixels may be dark (max channel < 40); the cut disc was 85% / 90% dark.
+TEST_CASE("crystal_cavern draws a grazed crystal and never a cut-open dark disc", "[source-defaults][gl]")
+{
+    Rig rig; REQUIRE_GL(rig);
+    const auto ps = registryParams("crystal_cavern");
+    struct Box { float t; int x0, y0, x1, y1; };
+    for (const Box b : { Box { 10.0f, 1560, 440, 1900, 800 }, Box { 24.0f, 1300, 340, 1600, 620 } })
+    {
+        const int w = 1920, h = 1080;
+        const Pixels px = rig.render(EmbeddedShaders::sourceCrystalCavern, w, h, b.t, ps);
+        size_t n = 0, dark = 0;
+        for (int y = b.y0; y < b.y1; ++y)
+            for (int x = b.x0; x < b.x1; ++x)
+            {
+                const uint8_t* p = &px[(static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) + static_cast<size_t>(x)) * 4];
+                if (std::max({ int(p[0]), int(p[1]), int(p[2]) }) < 40) ++dark;
+                ++n;
+            }
+        const double frac = double(dark) / double(n);
+        INFO("crystal_cavern 1920x1080 t=" << b.t << " grazed-crystal box: " << frac * 100.0 << "% dark");
+        CHECK(frac < 0.5);
+    }
+}
+
 // A3 -- Dot Field on first add is a visible effect (Pitfalls 17/27), and its "depth" control does something.
 namespace
 {
