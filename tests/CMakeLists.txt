@@ -2351,3 +2351,44 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_pixel_convert)
 catch_discover_tests(test_pixel_convert)
+
+# --- s-rta-0927 outputs-c3 (plan5 slice C3, plan5-final.md 9 / 10.1): hot-plug + the wanted output set. Pure,
+# headless, juce_core only.
+# test_output_plan: matchDisplay / diffOutputs (unplug, replug -> reopen, move, MODE change) / sameTargets /
+# settings.json "outputs" -- the code OutputManager::reconcile() and "Restore Last Outputs" run.
+add_executable(test_output_plan
+    test_output_plan.cpp
+    ${SRC_DIR}/output/OutputTargets.cpp
+)
+target_include_directories(test_output_plan PRIVATE ${SRC_DIR})
+target_link_libraries(test_output_plan PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_output_plan PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+apply_sanitizers(test_output_plan)
+catch_discover_tests(test_output_plan)
+
+# test_app_settings: settings.json read-modify-write (the MilkDrop folder and the output set never clobber each
+# other; unknown keys kept; a corrupt file is rewritten valid). Temp files only -- never the user's settings.
+add_executable(test_app_settings
+    test_app_settings.cpp
+    ${SRC_DIR}/model/AppSettings.cpp
+    ${SRC_DIR}/output/OutputTargets.cpp
+)
+target_include_directories(test_app_settings PRIVATE ${SRC_DIR})
+target_link_libraries(test_app_settings PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_app_settings PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+apply_sanitizers(test_app_settings)
+catch_discover_tests(test_app_settings)

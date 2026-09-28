@@ -17,6 +17,10 @@
 #   OUTP_APP  app bundle to launch (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app)
 #   OUTP_PY   python with PIL+numpy+requests+pyobjc Quartz (default: <root>/.venv, else the main checkout's .venv)
 #   OUTP_ENV  optional VAR=value passed to the app via open --env
+#   OUTP_SETTINGS  optional settings.json to SEED the run's scratch settings file with (copied to $OUT/settings.json
+#             before launch). EVERY run points the app at $OUT/settings.json (open --env AUDIODNA_SETTINGS_FILE=...;
+#             honoured only by a test-server build in --test-mode, s-rta-0927 outputs-c3), so an app under this probe
+#             never reads or writes the user's real settings file; absent unless seeded.
 # Every run captures into a FRESH dir: mktemp -d "<out-base>/outputs.XXXXXX" (out-base default /tmp).
 # PROBE RIG GATE (probehygiene2): refuses (exit 64) unless /tmp/audiodna-live.lock/owner exists; if
 # AUDIODNA_LOCK_OWNER is set, it must match the owner file's first field. Process matching by the kernel's
@@ -47,14 +51,17 @@ for PORT in 7070 8080; do
 done
 BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/outputs.XXXXXX")" || exit 64
 echo "app: $APP"; echo "out: $OUT"
-ENVARGS=(); [ -n "${OUTP_ENV:-}" ] && ENVARGS=(--env "$OUTP_ENV")
+SETTINGS_FILE="$OUT/settings.json"
+if [ -n "${OUTP_SETTINGS:-}" ]; then cp "$OUTP_SETTINGS" "$SETTINGS_FILE" || { echo "REFUSE: cannot seed $SETTINGS_FILE"; exit 64; }; fi
+echo "settings: $SETTINGS_FILE ($([ -f "$SETTINGS_FILE" ] && echo "seeded, sha256 $(shasum -a 256 "$SETTINGS_FILE" | cut -c1-16)" || echo absent))"
+ENVARGS=(--env "AUDIODNA_SETTINGS_FILE=$SETTINGS_FILE"); [ -n "${OUTP_ENV:-}" ] && ENVARGS+=(--env "$OUTP_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP" --args --test-mode
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
 L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
 if [ "$UP" -eq 1 ] && [ "$L7070" != "Audio-DNA" ]; then echo "FAIL  port 7070 is answered by '$L7070', not Audio-DNA"; UP=0; fi
-if [ "$UP" -eq 1 ]; then "$PY" "$ROOT/.harmony/probe-outputs.py" "$ROOT" "$OUT" "$MEDIA" "${2:-}"; RC=$?
+if [ "$UP" -eq 1 ]; then OUTP_SETTINGS_FILE="$SETTINGS_FILE" "$PY" "$ROOT/.harmony/probe-outputs.py" "$ROOT" "$OUT" "$MEDIA" "${2:-}"; RC=$?
 else echo "FAIL  app never answered /api/health"; fi
 # Every render_frame / output_probe this run asked for lands in $OUT. One anywhere else means another process drove
 # this app over REST during the run -- its writes invalidate every row, so the run is RED.

@@ -134,7 +134,8 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
         case 6: // Output
         {
             // plan5 C2: one tickable item per connected display (kOutputFullscreenBase + i), then "All Outputs Off"
-            // (kOutputDisabled) -- from OutputManager, the same list as the TopBar "Outputs" button.
+            // (kOutputDisabled), then (C3) "Restore Last Outputs" (kOutputRestoreLast) -- from OutputManager, the
+            // same list as the TopBar "Outputs" button.
             if (populateOutputItems)
                 populateOutputItems(menu);
 

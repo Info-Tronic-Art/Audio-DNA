@@ -1,0 +1,24 @@
+[lock] ACQUIRED 19:49:08 (outputs-c3-fix 9464 1790552948)
+===== deck-tabs (19:49:08)
+exit 0
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/fix/battery/deck-tabs-out)
+===== canvas (19:49:23)
+exit 0
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+PY 15 PASS / 0 FAIL
+PROBE-CANVAS GREEN
+===== fitmode (19:51:07)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-FITMODE GREEN
+===== deck-clock (19:52:21)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+window sampler 19:49:08..19:53:35: 1018 samples, Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1, names seen ['Audio-DNA']
+[lock] RELEASED 19:53:35
+ABSENT  /Users/boriskarpman/Library/Audio-DNA
+ABSENT  /Users/boriskarpman/Library/Audio-DNA/settings.json
+ABSENT  /Users/boriskarpman/Library/Application Support/Audio-DNA/settings.json
+(no test-mode-settings file written)

@@ -1,0 +1,31 @@
+deliverable sha256 BEFORE:
+39fdf29a46f60d0ff1799d24d6c760cd7f554d336f603a50fc08a88d6478f62b  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/src/model/AppSettings.cpp
+real settings paths BEFORE:
+ABSENT  /Users/boriskarpman/Library/Audio-DNA
+ABSENT  /Users/boriskarpman/Library/Audio-DNA/settings.json
+ABSENT  /Users/boriskarpman/Library/Application Support/Audio-DNA/settings.json
+# TEETH (SHOULD fix): test_app_settings vs COPIES of src/model/AppSettings.cpp (Sun Sep 27 19:28:23 EDT 2026)
+--- mutant: control (unmodified copy)
+All tests passed (16 assertions in 1 test case)
+--- mutant: PRE-CHANGE semantics transplanted: not absolute -> AppSettings::defaultFile() (the pre-fix appSettingsFile fallback)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:118: FAILED:
+with expansion:
+  AUDIODNA_SETTINGS_FILE = ''
+test cases: 1 | 1 failed
+assertions: 2 | 1 passed | 1 failed
+--- mutant: a fresh scratch file on every call (not one per run)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:127: FAILED:
+  CHECK( AppSettings::testModeFile({}) == f )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:128: FAILED:
+  CHECK( static_cast<int>(AppSettings(AppSettings::testModeFile({})).read("probe")) == 7 )
+with expansion:
+test cases:  1 |  0 passed | 1 failed
+assertions: 16 | 14 passed | 2 failed
+deliverable sha256 AFTER:
+39fdf29a46f60d0ff1799d24d6c760cd7f554d336f603a50fc08a88d6478f62b  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/src/model/AppSettings.cpp
+real settings paths AFTER:
+ABSENT  /Users/boriskarpman/Library/Audio-DNA
+ABSENT  /Users/boriskarpman/Library/Audio-DNA/settings.json
+ABSENT  /Users/boriskarpman/Library/Application Support/Audio-DNA/settings.json
+sandboxed fake-real file after the runs: ls: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/fix/teeth2/fake-real: No such file or directory

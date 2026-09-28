@@ -1,0 +1,87 @@
+[perf] no compiler running (17:56:28); load averages: 2.51 3.46 3.52
+LOCK: acquired 17:56:28 (outputs-c3 89419 1790546188)
+=== RED (hardened row): pre-change app Sun Sep 27 17:56:28 EDT 2026
+rc=1
+=== GREEN (hardened row): lane app Sun Sep 27 17:56:56 EDT 2026
+rc=0
+=== SEEDED (hardened row): lane app Sun Sep 27 17:57:38 EDT 2026
+rc=0
+LOCK: released 17:57:59
+== RED-C3d-probe-outputs-preC3-app-final
+FAIL  o_poll_idle: 8080 /api/state.outputs.manager missing (outputs = {'live': 0, 'tap': True, 'frame_gen': 3, 'frame_serial': 1855, 'canvas_w': 1920, 'canvas_h': 1080, 'displays': [{'index': 0, 'x': 0, 'y': 0, 'w': 1728, 'h': 1117, 'scale': 2.0, 'main': True, 'live': False, 'label': 'Display 1 (1728x1117, main)'}]})
+PY 13 PASS / 3 FAIL
+PROBE-OUTPUTS RED
+== GREEN-C3d-probe-outputs-lane-final
+      o_poll_idle: load avg 4.51 3.85 3.66
+PASS  o_poll_idle: poll paused 5.00 s: 0 ticks, frame_time_ms 1.232 (18 samples) | poll running 5.28 s: 154 ticks = 29.2/s (>= 20.0), frame_time_ms 1.324 (19 samples) | delta +0.093 ms (|d| <= 0.3); reconciles +0, settings writes +0, outputs.live values seen [0], distinct displays lists 1 (load avg 4.33 3.84 3.66)
+PY 17 PASS / 0 FAIL
+PROBE-OUTPUTS GREEN
+== GREEN-C3d-probe-outputs-lane-seeded-settings-final
+      o_poll_idle: load avg 4.41 3.88 3.67
+PASS  o_poll_idle: poll paused 5.22 s: 0 ticks, frame_time_ms 1.210 (19 samples) | poll running 5.15 s: 150 ticks = 29.1/s (>= 20.0), frame_time_ms 1.080 (19 samples) | delta -0.130 ms (|d| <= 0.3); reconciles +0, settings writes +0, outputs.live values seen [0], distinct displays lists 1 (load avg 5.02 4.03 3.73)
+PY 8 PASS / 0 FAIL
+PROBE-OUTPUTS GREEN
+######## batch: render-state crossfade effects-parity canvas deck-clock (17:57:59)
+LOCK: acquired 18:18:26 (outputs-c3 92168 1790547506)
+===== render-state (18:18:26)
+exit 0
+PY 31 PASS / 0 FAIL
+PROBE-RENDER-STATE GREEN
+===== crossfade (18:24:16)
+exit 0
+PY 35 PASS / 0 FAIL
+PROBE-CROSSFADE GREEN
+===== effects-parity (18:26:42)
+exit 0
+PY 46 PASS / 0 FAIL
+PROBE-EFFECTS-PARITY GREEN
+===== canvas (18:27:27)
+exit 0
+PASS  c_capture_cost: REPORT row (numbers above; never FAILs)
+PASS  c_perf_4k: REPORT row (numbers above; never FAILs)
+PY 15 PASS / 0 FAIL
+PROBE-CANVAS GREEN
+===== deck-clock (18:29:08)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-DECK-CLOCK GREEN
+LOCK: released 18:30:19
+######## batch: fitmode deck-tabs step3 mastersignal routines (18:30:19)
+LOCK: acquired 18:52:05 (outputs-c3 25950 1790549525)
+===== fitmode (18:52:05)
+exit 0
+PY 10 PASS / 0 FAIL
+PROBE-FITMODE GREEN
+===== deck-tabs (18:53:57)
+exit 0
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/deck-tabs-out)
+===== step3 (18:54:08)
+exit 0
+94 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio)
+===== mastersignal (18:58:04)
+exit 0
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/mastersignal)
+===== routines (18:58:21)
+exit 0
+98 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/routines/run-20260927-185822-67631)
+LOCK: released 18:59:53
+######## batch: resync onset-render downbeat-level manual-bpm routine-display (18:59:53)
+LOCK: acquired 19:03:38 (outputs-c3 70033 1790550218)
+===== resync (19:03:38)
+exit 0
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/resync)
+===== onset-render (19:03:59)
+exit 0
+13 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/onset-render)
+===== downbeat-level (19:04:51)
+exit 0
+14 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/downbeat-level)
+===== manual-bpm (19:05:35)
+exit 0
+22 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/manual-bpm/run-20260927-190535-78337)
+===== routine-display (19:06:41)
+exit 0
+16 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/battery/routine-display)
+LOCK: released 19:07:20
+battery done (19:07:20); .venv symlink removed: yes
+window sampler 17:56:28..19:07:20: 16321 samples, Output-named Audio-DNA windows [], max on-screen Audio-DNA layer-0 windows 1, names seen ['Audio-DNA']

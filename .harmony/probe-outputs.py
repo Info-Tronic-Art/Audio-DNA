@@ -11,7 +11,7 @@ PIL+numpy; every probe/capture response is checked (a failed one is a FAIL). The
 
 usage: probe-outputs.py <root> <fresh-outdir> <media-dir> [row,row,...]
 rows: o_probe_matches_canvas o_probe_portrait_target o_probe_tracks_change o_probe_survives_resolution_change
-      o_probe_repeat_stable o_state_outputs o_state_displays o_no_window_opened o_tap_cost
+      o_probe_repeat_stable o_state_outputs o_state_displays o_restore_empty o_poll_idle o_no_window_opened o_tap_cost
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. Fixtures A = media/P16_01_baseline.png, B =
 media/P16_02_Screen_Split_2x2.png (d(A, B) = 29.4 at 1920x1080). Composition: 1920x1080, deck 0 L0 (Opaque, no
@@ -45,6 +45,22 @@ o_state_displays (RED on a pre-C2 app: no `displays`; s-rta-0927 outputs-c2 = pl
   (tests/visual/test_output_window_level.py `_pick_main_fullscreen_item`, imported -- never run: its main() is
   replaced by a raise before use) must pick the main entry's label: the Boris-supervised level probe can find the
   item it opens.
+o_restore_empty (RED on a pre-C3 app: no settings override, no outputs.manager, no route; s-rta-0927 outputs-c3 =
+  plan5 C3): the app reads its settings from the run's scratch file (err.log carries the test-mode
+  AUDIODNA_SETTINGS_FILE line -- never the user's real settings.json); 8080 /api/state.outputs.manager reports
+  saved == the scratch file's target count (0 when absent) and restorable == 0; 8080 POST /api/output_restore_last
+  (test mode; it REFUSES with 409 whenever restoring could open a window, and the app re-checks on the message
+  thread) runs the "Restore Last Outputs" menu action's own handler: restore_calls advances by exactly 1, outputs.live
+  stays 0 on 8080 and 7070, saved and settings_writes are unchanged, the scratch settings file is byte-identical
+  (sha256, or still absent), and the window sampler has seen no Output window. NEVER run with a seeded target that
+  matches a connected display (the route would refuse; no row may ever open a window).
+o_poll_idle (RED on a pre-C3 app: no set_output_poll / outputs.manager): the 30 Hz display poll with ZERO outputs
+  changes nothing. With the tap off and no compiler running (load average printed): 5 s with the poll paused
+  (8080 set_output_poll false), then 5 s with it running, on its own composition (static col0 = A: an empty app
+  reports frame_time_ms 0, so both means must be > 0). Poll ticks: 0 while paused, >= minPollHz per second while
+  running (the poll is the first line of every UI timer tick); reconciles and settings writes do not move;
+  outputs.live == 0 on every 7070 and 8080 sample; the displays list never changes; and 7070 frame_time_ms (mean)
+  with the poll running is within frameTol (0.3 ms) of the mean with it paused.
 o_no_window_opened (guard, THE LAW): a Quartz window-list sampler (every 0.25 s for the whole run) never sees an
   Audio-DNA window named like the Output window, and never more than ONE on-screen Audio-DNA window at layer 0
   (the main window) -- the second check needs no window-name permission. The .sh adds the after-quit census.
@@ -487,6 +503,148 @@ def o_state_displays():
            f"{type(e).__name__}: {e}")
 
 
+def sha256_of(path):
+    import hashlib
+    if not path or not os.path.isfile(path):
+        return None
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def manager():
+    """8080 /api/state.outputs.manager (test mode, plan5 C3) -> (dict | None, outputs dict)."""
+    o = (state(T8) or {}).get("outputs") or {}
+    m = o.get("manager")
+    return (m if isinstance(m, dict) else None), o
+
+
+def o_restore_empty():
+    sf = os.environ.get("OUTP_SETTINGS_FILE", "")
+    before = sha256_of(sf)
+    try:
+        err = open(os.path.join(OUT, "err.log"), errors="replace").read()
+    except OSError:
+        err = ""
+    honoured = bool(sf) and f"[Settings] test mode: AUDIODNA_SETTINGS_FILE = {sf}" in err
+    (ok if honoured else no)(
+        f"o_restore_empty: the app reads and writes its settings in the run's scratch file {sf} "
+        f"({'err.log: AUDIODNA_SETTINGS_FILE honoured' if honoured else 'NOT honoured: no test-mode settings line in err.log'})")
+    seeded = 0
+    if before is not None:
+        try:
+            seeded = len(((json.load(open(sf)).get("outputs") or {}).get("targets")) or [])
+        except Exception:  # noqa: BLE001
+            seeded = -1
+    m0, o0 = manager()
+    if m0 is None:
+        no(f"o_restore_empty: 8080 /api/state.outputs.manager missing (outputs = {o0})")
+        return
+    (ok if m0.get("saved") == seeded and m0.get("restorable") == 0 and o0.get("live") == 0 else no)(
+        f"o_restore_empty: before: manager {m0}, outputs.live {o0.get('live')} (scratch settings "
+        f"{'absent' if before is None else 'seeded, ' + str(seeded) + ' target(s)'}: want saved == {seeded}, "
+        f"restorable == 0, live == 0)")
+    try:
+        r = S.post(T8 + "/api/output_restore_last", json={}, timeout=6)
+        code = r.status_code
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else r.text[:120]
+    except Exception as e:  # noqa: BLE001
+        code, body = -1, str(e)
+    if code != 200:
+        no(f"o_restore_empty: POST /api/output_restore_last -> HTTP {code} {str(body)[:160]}")
+        return
+    want = int(m0.get("restore_calls", 0)) + 1
+    t_end = time.time() + 3.0
+    m1 = m0
+    while time.time() < t_end:
+        m1, _ = manager()
+        if m1 is not None and int(m1.get("restore_calls", 0)) >= want:
+            break
+        time.sleep(0.1)
+    time.sleep(0.5)   # a window (there must be none) would be on screen by now
+    m1, o1 = manager()
+    o7 = (state(A) or {}).get("outputs") or {}
+    after = sha256_of(sf)
+    good = m1 is not None and int(m1.get("restore_calls", 0)) == want and o1.get("live") == 0 and o7.get("live") == 0 \
+        and m1.get("saved") == m0.get("saved") and m1.get("settings_writes") == m0.get("settings_writes") \
+        and m1.get("restorable") == 0 and after == before and not WATCH.named_output and WATCH.max_layer0 <= 1
+    (ok if good else no)(
+        f"o_restore_empty: Restore Last Outputs ran (HTTP {code} {body}; restore_calls {m0.get('restore_calls')} -> "
+        f"{(m1 or {}).get('restore_calls')}) and opened NOTHING: outputs.live 8080 {o1.get('live')} / 7070 "
+        f"{o7.get('live')}, saved {m0.get('saved')} -> {(m1 or {}).get('saved')}, settings_writes "
+        f"{m0.get('settings_writes')} -> {(m1 or {}).get('settings_writes')}, scratch settings "
+        f"{'absent -> absent' if before is None and after is None else (before or 'absent')[:12] + ' -> ' + (after or 'absent')[:12]}, "
+        f"Output-named windows so far {sorted(set(WATCH.named_output))}, max layer-0 windows {WATCH.max_layer0}")
+
+
+def o_poll_idle():
+    cfg = FIX["pollIdle"]
+    m0, o0 = manager()
+    if m0 is None:
+        no(f"o_poll_idle: 8080 /api/state.outputs.manager missing (outputs = {o0})")
+        return
+
+    def poll(on):
+        try:
+            return S.post(T8 + "/api/set_output_poll", json={"enabled": bool(on)}, timeout=6).status_code
+        except Exception:  # noqa: BLE001
+            return -1
+
+    # Its own composition (static A, like the other rows): an empty app renders nothing and reports frame_time_ms 0,
+    # which would make the A/B vacuous -- so both means must also be > 0.
+    if not load("pollidle"):
+        return
+    trig(0)
+    time.sleep(float(FIX["settleAfterTrigger"]))
+    tap(False)
+    code = poll(False)
+    if code != 200:
+        no(f"o_poll_idle: POST /api/set_output_poll -> HTTP {code}")
+        return
+    if not wait_no_compiler("o_poll_idle", int(cfg["compilerWaitS"])):
+        no("o_poll_idle: frame time NOT measured (a compiler kept running)")
+        poll(True)
+        return
+    print(f"      o_poll_idle: {loadavg()}", flush=True)
+
+    def window():
+        time.sleep(float(cfg["settle"]))
+        ma, _ = manager()
+        ft, lives, disp = [], set(), set()
+        t0 = time.time()
+        while time.time() - t0 < float(cfg["seconds"]):
+            s7 = state(A) or {}
+            ft.append(float(s7.get("frame_time_ms", 0)))
+            lives.add((s7.get("outputs") or {}).get("live"))
+            o8 = (state(T8) or {}).get("outputs") or {}
+            lives.add(o8.get("live"))
+            disp.add(json.dumps(o8.get("displays"), sort_keys=True))
+            time.sleep(float(cfg["interval"]))
+        el = time.time() - t0
+        mb, _ = manager()
+        return float(np.mean(ft)) if ft else 0.0, ma or {}, mb or {}, el, lives, disp, len(ft)
+
+    f_off, a_off, b_off, el_off, l_off, d_off, n_off = window()
+    poll(True)
+    f_on, a_on, b_on, el_on, l_on, d_on, n_on = window()
+    m_end, _ = manager()
+    m_end = m_end or {}
+    ticks_off = int(b_off.get("poll_ticks", 0)) - int(a_off.get("poll_ticks", 0))
+    ticks_on = int(b_on.get("poll_ticks", 0)) - int(a_on.get("poll_ticks", 0))
+    hz = ticks_on / el_on if el_on > 0 else 0.0
+    rec = int(m_end.get("reconciles", 0)) - int(m0.get("reconciles", 0))
+    wr = int(m_end.get("settings_writes", 0)) - int(m0.get("settings_writes", 0))
+    lives = l_off | l_on
+    disp = d_off | d_on
+    tol, min_hz = float(cfg["frameTol"]), float(cfg["minPollHz"])
+    good = ticks_off == 0 and hz >= min_hz and rec == 0 and wr == 0 and lives == {0} and len(disp) == 1 \
+        and f_off > 0 and f_on > 0 and abs(f_on - f_off) <= tol and b_on.get("poll_enabled") is True
+    (ok if good else no)(
+        f"o_poll_idle: poll paused {el_off:.2f} s: {ticks_off} ticks, frame_time_ms {f_off:.3f} ({n_off} samples) | "
+        f"poll running {el_on:.2f} s: {ticks_on} ticks = {hz:.1f}/s (>= {min_hz}), frame_time_ms {f_on:.3f} "
+        f"({n_on} samples) | delta {f_on - f_off:+.3f} ms (|d| <= {tol}); reconciles +{rec}, settings writes +{wr}, "
+        f"outputs.live values seen {sorted(lives, key=str)}, distinct displays lists {len(disp)} ({loadavg()})")
+
+
 def o_no_window_opened():
     WATCH.stop_ev.set()
     WATCH.join(timeout=3)
@@ -535,7 +693,8 @@ def o_tap_cost():
 
 
 ROWS = [o_probe_matches_canvas, o_probe_portrait_target, o_probe_tracks_change, o_probe_survives_resolution_change,
-        o_probe_repeat_stable, o_state_outputs, o_state_displays, o_tap_cost, o_no_window_opened]
+        o_probe_repeat_stable, o_state_outputs, o_state_displays, o_restore_empty, o_poll_idle, o_tap_cost,
+        o_no_window_opened]
 
 if __name__ == "__main__":
     WATCH.start()

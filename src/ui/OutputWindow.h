@@ -37,6 +37,12 @@ public:
     // Asked to close (by the OS or a future UI): the owner destroys the window.
     std::function<void()> onCloseRequested;
 
+    // The display list changed: JUCE calls parentSizeChanged() on every window after Displays::refresh() (the
+    // screen-change notification). The owner only SCHEDULES its reconcile here -- a window is never destroyed
+    // inside one of its own callbacks (plan5 C3 section 9, s-rta-0927 outputs-c3).
+    void parentSizeChanged() override;
+    std::function<void()> onDisplaysChanged;
+
 private:
     // Presents the shared frames: ONE blit per refresh of this window's display (display-link paced).
     class Presenter : public juce::OpenGLRenderer

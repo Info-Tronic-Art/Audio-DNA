@@ -198,30 +198,38 @@ int main(int argc, char* argv[])
     }
 
     // The output item list the model builds for a FAKE 3-display set (main flagged, Display 2 live), as the TopBar
-    // button's PopupMenu, and the whole Output menu of the menu bar built from the same list.
+    // button's PopupMenu, and the whole Output menu of the menu bar built from the same list. s-rta-0927 outputs-c3:
+    // the list ends with "Restore Last Outputs" -- rendered DISABLED (nothing restorable: the first launch, an empty
+    // or absent saved set) and ENABLED (a saved output whose display is connected and free).
     {
         using C = AudioDNAMenuBar::CommandID;
         const std::vector<output::DisplayInfo> fake { { 0, 0, 1728, 1117, 2.0, true },
                                                       { 1728, 0, 1920, 1080, 1.0, false },
                                                       { -3840, 0, 3840, 2160, 1.0, false } };
-        const auto items = output::buildOutputMenu(fake, { false, true, false }, 1, C::kOutputFullscreenBase,
-                                                   C::kOutputDisabled);
-        juce::PopupMenu topBarMenu;
-        output::addOutputMenuItems(topBarMenu, items, C::kOutputDisabled);
-        printMenu("TopBar Outputs button menu (fake 3-display set):", topBarMenu);
-        if (!writeMenu(topBarMenu, laf, outDir.getChildFile("outputs-menu-fake3-headless.png")))
+        for (const bool canRestore : { false, true })
         {
-            std::cerr << "failed to write outputs-menu-fake3-headless.png\n";
-            ok = false;
-        }
-        AudioDNAMenuBar bar;
-        bar.populateOutputItems = [&items](juce::PopupMenu& m) { output::addOutputMenuItems(m, items, C::kOutputDisabled); };
-        const auto outputMenu = bar.getMenuForIndex(6, "Output");
-        printMenu("Menu bar > Output (fake 3-display set):", outputMenu);
-        if (!writeMenu(outputMenu, laf, outDir.getChildFile("output-menubar-fake3-headless.png")))
-        {
-            std::cerr << "failed to write output-menubar-fake3-headless.png\n";
-            ok = false;
+            const juce::String state = canRestore ? "restore-on" : "restore-off";
+            const auto items = output::buildOutputMenu(fake, { false, true, false }, 1, C::kOutputFullscreenBase,
+                                                       C::kOutputDisabled, C::kOutputRestoreLast, canRestore);
+            juce::PopupMenu topBarMenu;
+            output::addOutputMenuItems(topBarMenu, items, C::kOutputDisabled);
+            printMenu("TopBar Outputs button menu (fake 3-display set, " + state + "):", topBarMenu);
+            const auto topName = "outputs-menu-fake3-" + state + "-headless.png";
+            if (!writeMenu(topBarMenu, laf, outDir.getChildFile(topName)))
+            {
+                std::cerr << "failed to write " << topName << "\n";
+                ok = false;
+            }
+            AudioDNAMenuBar bar;
+            bar.populateOutputItems = [&items](juce::PopupMenu& m) { output::addOutputMenuItems(m, items, C::kOutputDisabled); };
+            const auto outputMenu = bar.getMenuForIndex(6, "Output");
+            printMenu("Menu bar > Output (fake 3-display set, " + state + "):", outputMenu);
+            const auto barName = "output-menubar-fake3-" + state + "-headless.png";
+            if (!writeMenu(outputMenu, laf, outDir.getChildFile(barName)))
+            {
+                std::cerr << "failed to write " << barName << "\n";
+                ok = false;
+            }
         }
 
         // This machine's REAL displays (juce::Desktop -- a read, no window), nothing live: the titles the app's
@@ -230,7 +238,8 @@ int main(int argc, char* argv[])
         for (const auto& d : juce::Desktop::getInstance().getDisplays().displays)
             real.push_back({ d.totalArea.getX(), d.totalArea.getY(), d.totalArea.getWidth(), d.totalArea.getHeight(),
                              d.scale, d.isMain });
-        const auto realItems = output::buildOutputMenu(real, {}, 0, C::kOutputFullscreenBase, C::kOutputDisabled);
+        const auto realItems = output::buildOutputMenu(real, {}, 0, C::kOutputFullscreenBase, C::kOutputDisabled,
+                                                       C::kOutputRestoreLast, false);
         AudioDNAMenuBar realBar;
         realBar.populateOutputItems = [&realItems](juce::PopupMenu& m) {
             output::addOutputMenuItems(m, realItems, C::kOutputDisabled);
@@ -241,6 +250,6 @@ int main(int argc, char* argv[])
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
 
     if (ok)
-        std::cout << "wrote 10 PNGs to " << outDir.getFullPathName() << "\n";
+        std::cout << "wrote 12 PNGs to " << outDir.getFullPathName() << "\n";
     return ok ? 0 : 1;
 }

@@ -1,0 +1,10 @@
+# RED by absence: the lane's tests/test_output_plan.cpp compiled with the target's flags against MAIN's src (git archive dc7adf9 -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/main-tree/src). Sun Sep 27 16:09:12 EDT 2026
+$ /usr/bin/c++ -fsyntax-only -std=c++20 -DJUCE_DISPLAY_SPLASH_SCREEN=0 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_USE_CURL=0 -DJUCE_WEB_BROWSER=0 -DNDEBUG=1 <includes with -I/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/main-tree/src> /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:7:10: fatal error: 'output/OutputTargets.h' file not found
+1 error generated.
+exit=1
+# RED by absence: the lane's tests/test_app_settings.cpp compiled with the target's flags against MAIN's src (git archive dc7adf9 -> /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/main-tree/src). Sun Sep 27 16:09:12 EDT 2026
+$ /usr/bin/c++ -fsyntax-only -std=c++20 -DJUCE_DISPLAY_SPLASH_SCREEN=0 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_USE_CURL=0 -DJUCE_WEB_BROWSER=0 -DNDEBUG=1 <includes with -I/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/main-tree/src> /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:9:10: fatal error: 'model/AppSettings.h' file not found
+1 error generated.
+exit=1

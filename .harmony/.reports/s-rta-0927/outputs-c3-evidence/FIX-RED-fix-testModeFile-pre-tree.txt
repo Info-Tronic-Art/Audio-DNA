@@ -1,0 +1,5 @@
+# RED (SHOULD, test-mode settings fallback): test_app_settings (new case) vs the pre-change src (Sun Sep 27 19:28:22 EDT 2026)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:110:28: error: no member named 'testModeFile' in 'AppSettings'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:110:28: error: no member named 'testModeFile' in 'AppSettings'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:110:28: error: no member named 'testModeFile' in 'AppSettings'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_app_settings.cpp:117:41: error: no member named 'testModeFile' in 'AppSettings'

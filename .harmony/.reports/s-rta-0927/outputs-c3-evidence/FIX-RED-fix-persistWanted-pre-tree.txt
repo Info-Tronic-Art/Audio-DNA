@@ -1,0 +1,28 @@
+# RED (MUST, persistWanted): new tests vs the PRE-CHANGE tree = git archive 44f24a9 src (Sun Sep 27 19:23:45 EDT 2026)
+## 1. test_output_law (new row) with AUDIODNA_SRC_DIR = pre-change src
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:297: FAILED:
+  CHECK( persist.find("wantedSet(") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:298: FAILED:
+  CHECK( persist.find("saved_)") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:305: FAILED:
+  CHECK( body.find("forgetSaved(") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:305: FAILED:
+  CHECK( body.find("forgetSaved(") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:305: FAILED:
+  CHECK( body.find("forgetSaved(") != std::string::npos )
+with expansion:
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:309: FAILED:
+  CHECK( attach.find("lastWanted_=saved_;") != std::string::npos )
+with expansion:
+test cases:  1 | 1 failed
+assertions: 11 | 5 passed | 6 failed
+## 2. test_output_plan (new case) compiled against the pre-change src/output/OutputTargets.h
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:178:43: error: no member named 'wantedSet' in namespace 'output'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:178:43: error: no member named 'wantedSet' in namespace 'output'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:178:43: error: no member named 'wantedSet' in namespace 'output'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:182:43: error: no member named 'wantedSet' in namespace 'output'
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_plan.cpp:182:43: error: no member named 'wantedSet' in namespace 'output'

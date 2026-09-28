@@ -45,8 +45,8 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
 | Main window (`Main.cpp:40`) | App launch; maximized to primary display, resizable 1280×720–3840×2160 | Hosts all main-window panels; global keyboard shortcuts; Finder file-drop target | yes |
-| Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state); Output menu top = one tickable "Display N (WxH[, main])" item per connected display + "All Outputs Off" (s-rta-0927 outputs-c2, `OutputManager::populateMenu`). Undo/Redo LIVE + dynamic (Undo v1 COMPLETE steps 1-9, 2026-07-19→25): "Undo <desc>"/"Redo <desc>" text, enable state tracks stacks, rebuilds via onHistoryChanged | yes |
-| OutputWindow (`src/ui/OutputWindow.h`) | Output menu → tick "Display N (…)" / TopBar "Outputs" button (same list) / Cmd+F (main display) — one window per display, any number (`OutputManager`, s-rta-0927 outputs-c2) | Borderless window at NORMAL level on a chosen display, never key (`windowIgnoresKeyPresses`); presents the composition canvas (shared IOSurface frames, letterboxed) -- s-rta-0927 outputs-c1; All Outputs Off / Cmd+Shift+Esc closes every output, Cmd+` raises the app window, plain Escape no longer closes (outputs-c2); no on-surface controls | yes |
+| Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state); Output menu top = one tickable "Display N (WxH[, main])" item per connected display + "All Outputs Off" (s-rta-0927 outputs-c2, `OutputManager::populateMenu`) + "Restore Last Outputs" (outputs-c3: opens the saved output set on the displays connected now; greyed when nothing to open; the app never opens an output by itself). Undo/Redo LIVE + dynamic (Undo v1 COMPLETE steps 1-9, 2026-07-19→25): "Undo <desc>"/"Redo <desc>" text, enable state tracks stacks, rebuilds via onHistoryChanged | yes |
+| OutputWindow (`src/ui/OutputWindow.h`) | Output menu → tick "Display N (…)" / TopBar "Outputs" button (same list) / Cmd+F (main display) — one window per display, any number (`OutputManager`, s-rta-0927 outputs-c2) | Borderless window at NORMAL level on a chosen display, never key (`windowIgnoresKeyPresses`); presents the composition canvas (shared IOSurface frames, letterboxed) -- s-rta-0927 outputs-c1; All Outputs Off / Cmd+Shift+Esc closes every output, Cmd+` raises the app window, plain Escape no longer closes (outputs-c2); hot-plug (outputs-c3): an unplugged display's output closes and reopens when the display returns, a moved / re-moded display keeps its output; the wanted set is saved in settings.json "outputs" and reopened only by Output > Restore Last Outputs; no on-surface controls | yes |
 | PreferencesDialog (`PreferencesDialog.h:8`) | Audio-DNA menu → Preferences / About; modal, 3 tabs | See Prefs tab rows below | yes |
 
 ### Main-window panels (v2)
@@ -198,7 +198,7 @@ Both mutate via `juce::MessageManager::callAsync` to the message thread. The 5 m
 when unwired; `handleRoutineStatus` (row 41) is synchronous, reading only `RoutineEngine::status()`
 (a mutex-guarded copy, safe from any thread) -- never the composition's routine vectors.
 
-Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 28 endpoints -- recounted s-rta-0927 from `server_.Get/Post` in `setupRoutes`, incl. outputs-c1's `set_output_tap` + `output_probe`) is gated by
+Eyes TEST server (`src/test/TestServer.cpp`, port 8080, 30 endpoints -- recounted s-rta-0927 from `server_.Get/Post` in `setupRoutes`, incl. outputs-c1's `set_output_tap` + `output_probe` and outputs-c3's `output_restore_last` + `set_output_poll`) is gated by
 `AUDIODNA_BUILD_TEST_SERVER=ON` + `--test-mode` (OFF by default) — separate surface.
 
 TEST-ONLY build path on the production port (not a counted row): `POST /api/debug/stall_message_thread
@@ -286,12 +286,12 @@ Source: lanes 2 + 4.
 Source: lane-5 §3.
 
 - **Keyboard shortcuts** (`MainComponent::keyPressed :1591`): Shift+Cmd+I inspector,
-  Shift+Cmd+K keyboard-bind, Shift+Cmd+M MIDI-learn, Cmd+Shift+Esc all outputs off, Cmd+` app to front, Escape swallowed (no output effect, outputs-c2), Cmd+Z /
+  Shift+Cmd+K keyboard-bind, Shift+Cmd+M MIDI-learn, Cmd+Shift+Esc all outputs off, Cmd+` app to front (Shift up), Escape swallowed (no output effect, outputs-c2), Cmd+Z /
   Cmd+Shift+Z undo/redo (**LIVE for ALL structural edits incl. triggers** — Undo v1
   COMPLETE steps 1-9: drops, replace/lock/clear, drag move/swap, layer/deck/column
   ops, effect stacks ×3 scopes, clip/column triggers with same-layer merge;
   autopilot/remote-autonomous paths excluded by design), Cmd+S save preset, Cmd+F
-  toggle the output on the main display, Cmd+O load preset. Non-Cmd keys → BindingManager; key-up →
+  toggle the output on the main display (Shift up: Cmd+Shift+F is not an output key, outputs-c3), Cmd+O load preset. Non-Cmd keys → BindingManager; key-up →
   momentary bindings.
 - **Tooltips**: `juce::TooltipWindow` (600ms); coverage sparse (TopBar, ClipInspector,
   LayerInspector only); toggle in Preferences → General now actually enables/disables

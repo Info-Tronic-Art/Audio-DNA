@@ -1,0 +1,5 @@
+Sun Sep 27 19:54:03 EDT 2026
+ABSENT  /Users/boriskarpman/Library/Audio-DNA
+ABSENT  /Users/boriskarpman/Library/Audio-DNA/settings.json
+ABSENT  /Users/boriskarpman/Library/Application Support/Audio-DNA/settings.json
+(no test-mode-settings file in ~/Library/Caches/Audio-DNA)

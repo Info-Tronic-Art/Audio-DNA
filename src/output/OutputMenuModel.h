@@ -7,26 +7,11 @@
 // its /api/state view are built from buildOutputMenu(), so the two doors and the REST view cannot disagree.
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "output/OutputTargets.h"   // DisplayInfo (one definition, plan5 C3)
 #include <vector>
 
 namespace output
 {
-// A display as the output code identifies it: Displays::Display::totalArea (logical points), scale and isMain.
-// JUCE's Display has no id and no name, so a live output is matched to a display by this exact fingerprint.
-struct DisplayInfo
-{
-    int x = 0, y = 0, w = 0, h = 0;
-    double scale = 1.0;
-    bool isMain = false;
-};
-
-inline bool operator==(const DisplayInfo& a, const DisplayInfo& b) noexcept
-{
-    return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h && a.scale == b.scale && a.isMain == b.isMain;
-}
-
-inline bool operator!=(const DisplayInfo& a, const DisplayInfo& b) noexcept { return !(a == b); }
-
 struct OutputMenuItem
 {
     juce::String label;
@@ -45,14 +30,19 @@ inline juce::String displayLabel(int index, const DisplayInfo& d)
 
 inline const char* allOutputsOffLabel() { return "All Outputs Off"; }
 inline const char* allOutputsOffShortcut() { return "Cmd+Shift+Esc"; }
+inline const char* restoreLastOutputsLabel() { return "Restore Last Outputs"; }
 
 // One tickable item per connected display (tick = an output is live on it; id = fullscreenBase + index), then
 // "All Outputs Off" (id = allOffId). `live` may be shorter than `displays` (missing entries read as not live).
 // "All Outputs Off" is enabled iff any output window is live: a ticked display OR liveWindows > 0 -- the
-// window count, because a window whose display went away (no reconcile before plan5 C3) ticks no item but
-// must still be closable from the panic item.
+// window count, so a window is always closable from the panic item even in the instant between a display change
+// and the reconcile that follows it (plan5 C3).
+// With restoreId != 0 (plan5 C3) the list ends with "Restore Last Outputs" (id = restoreId), enabled iff restoring
+// would open at least one output now (canRestore) -- greyed out when the saved set is empty or none of its displays
+// is connected and free.
 inline std::vector<OutputMenuItem> buildOutputMenu(const std::vector<DisplayInfo>& displays, const std::vector<bool>& live,
-                                                   int liveWindows, int fullscreenBase, int allOffId)
+                                                   int liveWindows, int fullscreenBase, int allOffId,
+                                                   int restoreId = 0, bool canRestore = false)
 {
     std::vector<OutputMenuItem> items;
     bool anyLive = liveWindows > 0;
@@ -63,10 +53,13 @@ inline std::vector<OutputMenuItem> buildOutputMenu(const std::vector<DisplayInfo
         items.push_back({ displayLabel(static_cast<int>(i), displays[i]), fullscreenBase + static_cast<int>(i), on, true, {} });
     }
     items.push_back({ allOutputsOffLabel(), allOffId, false, anyLive, allOutputsOffShortcut() });
+    if (restoreId != 0)
+        items.push_back({ restoreLastOutputsLabel(), restoreId, false, canRestore, {} });
     return items;
 }
 
-// The items into a PopupMenu (both doors): the display items, a separator, then "All Outputs Off".
+// The items into a PopupMenu (both doors): the display items, a separator, then "All Outputs Off" (and, from C3,
+// "Restore Last Outputs" right below it).
 inline void addOutputMenuItems(juce::PopupMenu& menu, const std::vector<OutputMenuItem>& items, int allOffId)
 {
     for (const auto& it : items)
@@ -94,6 +87,9 @@ inline juce::String outputsButtonText(int liveCount)
 //   Cmd+`         -> RaiseApp (bring the app window back above an output that covers it).
 //   Cmd+F         -> ToggleMain (the output on the main display; Boris: "leave Cmd+F as-is").
 //   Esc           -> SwallowEscape: plain Esc no longer touches outputs (plan5 Q2) but is still consumed.
+//   RaiseApp and ToggleMain need Shift UP: Cmd+Shift+` and Cmd+Shift+F are not output keys (Harmony ruling (b) on
+//   the C2 review, s-rta-0927 outputs-c3) -- the mac peer upper-cases the key, so a Shift-blind 'F' test fired on
+//   Cmd+Shift+F too.
 // KeyPress key codes: letters upper-case; '`' = 0x60 (the mac peer upper-cases charactersIgnoringModifiers, and
 // falls back to kVK_ANSI_Grave -> '`'; '`' has no case -- juce_NSViewComponentPeer_mac.mm getKeyCodeFromEvent).
 enum class OutputKey { None, CloseAll, RaiseApp, ToggleMain, SwallowEscape };
@@ -103,9 +99,9 @@ inline OutputKey classifyOutputKey(const juce::KeyPress& key)
     const auto mod = key.getModifiers();
     if (key.isKeyCode(juce::KeyPress::escapeKey))
         return (mod.isCommandDown() && mod.isShiftDown()) ? OutputKey::CloseAll : OutputKey::SwallowEscape;
-    if (key.isKeyCode('`') && mod.isCommandDown())
+    if (key.isKeyCode('`') && mod.isCommandDown() && !mod.isShiftDown())
         return OutputKey::RaiseApp;
-    if (key.isKeyCode('F') && mod.isCommandDown())
+    if (key.isKeyCode('F') && mod.isCommandDown() && !mod.isShiftDown())
         return OutputKey::ToggleMain;
     return OutputKey::None;
 }

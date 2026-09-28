@@ -1,0 +1,36 @@
+# RED: the classifyOutputKey Shift rows (test_output_menu_model) BEFORE the Shift fix; classifyOutputKey is main's (git diff dc7adf9 -- src/output/OutputMenuModel.h touches nothing inside it). Sun Sep 27 16:08:08 EDT 2026
+Filters: "the output keys*"
+Randomness seeded to: 1258479445
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_output_menu_model is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+the output keys (plan5 7.2-7.3), from KeyPress descriptions -- no key is ever
+pressed
+  Cmd+Shift+F and Cmd+Shift+` are NOT output keys: ToggleMain and RaiseApp need
+  Shift up (Harmony ruling (b) on the C2 review, s-rta-0927 outputs-c3)
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:286
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:288: FAILED:
+  CHECK( output::classifyOutputKey(KeyPress::createFromDescription("command + shift + F")) == OutputKey::None )
+with expansion:
+  3 == 0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:289: FAILED:
+  CHECK( output::classifyOutputKey(KeyPress::createFromDescription("command + shift + f")) == OutputKey::None )
+with expansion:
+  3 == 0
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_menu_model.cpp:293: FAILED:
+  CHECK( output::classifyOutputKey(k) == OutputKey::None )
+with expansion:
+  2 == 0
+
+===============================================================================
+test cases:  1 |  0 passed | 1 failed
+assertions: 21 | 18 passed | 3 failed
+

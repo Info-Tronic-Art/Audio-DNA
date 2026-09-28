@@ -36,5 +36,14 @@
     "seconds": 5.0,
     "interval": 0.25
   },
+  "pollIdle": {
+    "_why": "o_poll_idle (s-rta-0927 outputs-c3 = plan5 C3 gate 3): the 30 Hz display poll with zero outputs must change nothing. A/B inside one run: 5 s with the poll paused (8080 set_output_poll false), then 5 s running; frameTol = the plan's 0.3 ms; minPollHz = two thirds of the 30 Hz UI timer (the poll is the first line of every tick; JUCE timer jitter). Waits for every compiler to finish (at most compilerWaitS) before measuring.",
+    "settle": 1.0,
+    "seconds": 5.0,
+    "interval": 0.25,
+    "frameTol": 0.3,
+    "minPollHz": 20.0,
+    "compilerWaitS": 900
+  },
   "outputWindowName": "Audio-DNA Output"
 }

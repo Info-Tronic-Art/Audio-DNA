@@ -1,0 +1,20 @@
+# TEETH: test_output_law's Q1 row on mutated COPIES of the lane's src (/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/92434c6b-4aab-4138-83af-d5f37c430398/scratchpad/outputs3/teeth/src; one binary, AUDIODNA_SRC_DIR read at run time). Sun Sep 27 16:10:18 EDT 2026
+--- control (unmodified copy)
+All tests passed (87 assertions in 14 test cases)
+
+--- mutant: attachSettings opens the saved set at launch (calls restoreLast)
+output law: nothing opens an output at launch -- Restore Last Outputs is the
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:281: FAILED:
+test cases: 14 | 13 passed | 1 failed
+--- mutant: the constructor reconciles (could reopen)
+output law: nothing opens an output at launch -- Restore Last Outputs is the
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:281: FAILED:
+test cases: 14 | 13 passed | 1 failed
+--- mutant: MainComponent restores at startup (a second restoreLast call, next to attachSettings)
+output law: nothing opens an output at launch -- Restore Last Outputs is the
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:265: FAILED:
+test cases: 14 | 13 passed | 1 failed
+--- mutant: the menu case does something else first
+output law: nothing opens an output at launch -- Restore Last Outputs is the
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w9/tests/test_output_law.cpp:270: FAILED:
+test cases: 14 | 13 passed | 1 failed

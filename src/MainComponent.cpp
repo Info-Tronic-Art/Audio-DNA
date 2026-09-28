@@ -10,6 +10,7 @@
 #include "core/CompositionLoad.h"
 #include "recording/PerfStateCapture.h"
 #include "recording/RoutineSlice.h"
+#include "model/AppSettings.h"
 #include <algorithm>
 
 static uint32_t s_nextClipId = 1000;
@@ -62,6 +63,31 @@ namespace
     {
         return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
                    .getChildFile("Audio-DNA").getChildFile("milkdrop_userdata.json");
+    }
+
+    // s-rta-0927 outputs-c3 (plan5 C3): the machine's settings.json -- read and written ONLY through AppSettings
+    // (read-modify-write: "milkDropPresetDir" and "outputs" never clobber each other). TEST-ONLY override: in a
+    // test-server build (AUDIODNA_TEST_SERVER) running --test-mode, an absolute path in AUDIODNA_SETTINGS_FILE
+    // replaces it, and without one a scratch file does (AppSettings::testModeFile) -- a test-mode app never reads or
+    // writes the user's real settings file. Anywhere else the variable is ignored.
+    juce::File appSettingsFile(bool testMode)
+    {
+#if AUDIODNA_TEST_SERVER
+        if (testMode)
+        {
+            const auto path = juce::SystemStats::getEnvironmentVariable("AUDIODNA_SETTINGS_FILE", {});
+            const auto file = AppSettings::testModeFile(path);
+            if (juce::File::isAbsolutePath(path))
+                std::cerr << "[Settings] test mode: AUDIODNA_SETTINGS_FILE = " << path << std::endl;
+            else
+                std::cerr << "[Settings] test mode: AUDIODNA_SETTINGS_FILE unset or not absolute -- scratch settings "
+                          << file.getFullPathName() << " (never the real settings.json)" << std::endl;
+            return file;
+        }
+#else
+        juce::ignoreUnused(testMode);
+#endif
+        return AppSettings::defaultFile();
     }
 
     // s-rta-0923 lane 3 (plan section 3.4): ControlPath builders for
@@ -1755,6 +1781,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // plan5 C2: the Output menu's display items + "All Outputs Off" are OutputManager's item list; a change in the
     // live outputs relabels the TopBar button and rebuilds the native menu (the ticks).
     menuBarModel_->populateOutputItems = [this](juce::PopupMenu& m) { outputs_.populateMenu(m); };
+    // plan5 C3: the saved output set is LOADED here (settings.json "outputs") -- it opens nothing: the app never
+    // opens an output at launch or on a composition/deck load; only Output > Restore Last Outputs does (Q1).
+    outputs_.attachSettings(appSettingsFile(testMode_));
     outputs_.onLiveCountChanged = [this](int liveCount) {
         if (topBar_) topBar_->setLiveOutputCount(liveCount);
         if (menuBarModel_) menuBarModel_->menuItemsChanged();
@@ -1824,6 +1853,18 @@ MainComponent::MainComponent(bool testMode, int testPort)
             previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
         testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+        // plan5 C3 (s-rta-0927 outputs-c3), test mode only: the manager's counters, "Restore Last Outputs" with
+        // nothing to restore, the poll A/B. The restore hook re-checks ON the message thread and runs the menu
+        // action's own handler only while nothing is restorable -- it can never open a window.
+        testServer_->setOutputsTestHooks({
+            [this] { return outputs_.statsVar(); },
+            [this] {
+                juce::MessageManager::callAsync([safe = juce::Component::SafePointer<MainComponent>(this)] {
+                    if (safe != nullptr && safe->outputs_.restorableCount() == 0)
+                        safe->handleMenuCommand(AudioDNAMenuBar::CommandID::kOutputRestoreLast);
+                });
+            },
+            [this](bool enabled) { outputs_.setPollEnabled(enabled); } });
         testServer_->start();
         std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;
     }
@@ -2202,26 +2243,13 @@ void MainComponent::setTooltipsEnabled(bool enabled)
 
 juce::String MainComponent::loadMilkDropPresetDirSetting() const
 {
-    auto file = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-                    .getChildFile("Audio-DNA").getChildFile("settings.json");
-    if (!file.existsAsFile())
-        return {};
-
-    auto parsed = juce::JSON::parse(file.loadFileAsString());
-    if (auto* obj = parsed.getDynamicObject())
-        return obj->getProperty("milkDropPresetDir").toString();
-    return {};
+    return AppSettings(appSettingsFile(testMode_)).read(AppSettings::kMilkDropPresetDir).toString();
 }
 
 void MainComponent::saveMilkDropPresetDirSetting(const juce::String& dir) const
 {
-    auto settingsDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-                            .getChildFile("Audio-DNA");
-    settingsDir.createDirectory();
-
-    auto* obj = new juce::DynamicObject();
-    obj->setProperty("milkDropPresetDir", dir);
-    settingsDir.getChildFile("settings.json").replaceWithText(juce::JSON::toString(juce::var(obj)));
+    // plan5 C3: read-modify-write -- the "outputs" key (OutputManager) survives this write, and vice versa.
+    AppSettings(appSettingsFile(testMode_)).update(AppSettings::kMilkDropPresetDir, dir);
 }
 
 void MainComponent::setMilkDropPresetDir(const juce::String& dir)
@@ -3662,6 +3690,10 @@ void MainComponent::tickFeaturePipeline()
 
 void MainComponent::timerCallback()
 {
+    // plan5 C3: the hot-plug backstop, on EVERY tick (30 Hz) -- reconciles the outputs only when the display list
+    // differs from the last one seen; otherwise a cached comparison, nothing else.
+    outputs_.pollDisplays();
+
     // Update FPS/CPU labels at ~4Hz (every 8th call at 30Hz)
     if (++uiUpdateCounter_ >= 8)
     {
@@ -6557,6 +6589,9 @@ void MainComponent::handleMenuCommand(int commandId)
         // --- Output menu ---
         case C::kOutputDisabled:   // "All Outputs Off" (plan5 C2)
             outputs_.closeAll();
+            break;
+        case C::kOutputRestoreLast:   // "Restore Last Outputs" (plan5 C3) -- the ONLY way the saved set opens
+            outputs_.restoreLast();
             break;
         case C::kOutputSnapshot:
         {
