@@ -163,6 +163,9 @@ void Renderer::newOpenGLContextCreated()
 
 void Renderer::renderOpenGL()
 {
+    // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
+    frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
+
     // Release any media players closeMediaForClip() retired from the message
     // thread (media-leak fix, L1) — the only place this runs, since this
     // function is guaranteed to execute on the GL thread with a context
@@ -2039,18 +2042,19 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     std::promise<CaptureRead> promise;
     auto future = promise.get_future();
 
+    // Set time override for this frame -- BEFORE arming: the frame that answers must have read it (captureArmSeq_)
+    float prevTime = timeOverride_.load(std::memory_order_relaxed);
+    if (timeOverride >= 0.0f)
+        timeOverride_.store(timeOverride, std::memory_order_relaxed);
+
     {
         std::lock_guard<std::mutex> lock(captureMutex_);
         captureWidth_ = width;
         captureHeight_ = height;
         capturePromise_ = &promise;
+        pendingCaptureSeq_ = captureArmSeq_.fetch_add(1, std::memory_order_acq_rel) + 1;
         pendingCapture_.store(true, std::memory_order_release);
     }
-
-    // Set time override for this frame
-    float prevTime = timeOverride_.load(std::memory_order_relaxed);
-    if (timeOverride >= 0.0f)
-        timeOverride_.store(timeOverride, std::memory_order_relaxed);
 
     // Wait for GL thread to process (max 5 seconds)
     auto status = future.wait_for(std::chrono::seconds(5));
@@ -2135,6 +2139,9 @@ void Renderer::processPendingCapture()
 
     std::lock_guard<std::mutex> lock(captureMutex_);
     if (!pendingCapture_.load(std::memory_order_relaxed) || capturePromise_ == nullptr)
+        return;
+    // Armed after this frame started: this frame may have rendered at the previous time. The next frame answers.
+    if (frameArmSeq_ < pendingCaptureSeq_)
         return;
 
     // plan4 item 1: the capture is the whole canvas, exactly its size.
