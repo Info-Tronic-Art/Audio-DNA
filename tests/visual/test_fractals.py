@@ -1,29 +1,26 @@
 """
-Eyes Visual Tests — Comprehensive Fractal Source Validation
+Eyes Visual Tests -- fractal range sweeps (zoom / dive / power / 3D camera), palettes, registry.
 
-Tests EVERY control on EVERY fractal source. Each parameter is tested by:
-1. Loading the source with default params
-2. Rendering a baseline frame
-3. Changing ONE parameter to a different value
-4. Rendering a comparison frame
-5. Verifying the frame is not all-black (the fractal is visible)
-6. Verifying PSNR < threshold (the parameter actually changed the output)
+s-rta-0928 (plan-tier1 section 3, tier1-residual-diag D5): the two classes Tier-1 duplicates are RETIRED --
+TestSourceLoadsAndRenders (Tier-1 test_sources::test_all_sources_non_black renders all 108 sources, these 15 incl.)
+and TestEveryParamHasEffect (Tier-1 test_sources::test_all_params_have_effect covers every registered param of these
+sources with the candidate ladder, gates, audio and the 256 canvas; the one check it did not repeat, julia_set C Real
+0.8 -- c inside M's cardioid fills the frame -- is on the Boris list, B1). What stays are the multi-position sweeps
+no other test fails on, the palette check and the registry check.
+
+Conditions: Tier-1's -- a 256x256 composition AND capture (conftest.TIER1_CANVAS_256 lists this module), black =
+tier1_exceptions.is_black (p99.5 of the per-pixel max channel < 16). SILENCE by design: no arm_audio; conftest's
+per-test reset publishes a cleared snapshot. A sweep id listed in tier1_exceptions.SWEEP_AWAITING_RULING is a known
+defect waiting for Boris: a strict xfail carrying its reason (an unexpected pass fails the run).
 """
 
 import os
 import pytest
 import cv2
-import numpy as np
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from vision_check import compute_psnr
-
-
-def frame_is_not_black(path, threshold=5.0):
-    img = cv2.imread(path)
-    if img is None:
-        return False
-    return float(np.mean(img)) > threshold
+from tier1_exceptions import is_black, SWEEP_AWAITING_RULING
 
 
 def frames_are_different(path1, path2, max_psnr=55.0):
@@ -36,7 +33,8 @@ def frames_are_different(path1, path2, max_psnr=55.0):
 
 
 # ============================================================
-# PARAMETER TESTS: (source_id, param_uniform, default, test_val, name)
+# PARAMETER TUPLES: (source_id, param_uniform, default, test_val, name) -- data for test_range_quality.py (Tier 2);
+# fields 2-3 are historical and unused.
 # ============================================================
 
 KALEIDO_PARAMS = [
@@ -259,43 +257,18 @@ ALL_SOURCES = [
 ]
 
 
-class TestSourceLoadsAndRenders:
-    """Every fractal must render a visible frame at defaults."""
-
-    @pytest.mark.parametrize("source_id", ALL_SOURCES)
-    def test_renders_non_black(self, app, tmp_path, source_id):
-        app.load_source(source_id)
-        out = str(tmp_path / f"{source_id}_default.png")
-        result = app.render_frame(out, time_val=1.0, width=512, height=512)
-        assert result["ok"] is True, f"Render failed for {source_id}"
-        assert frame_is_not_black(out), f"{source_id} renders all-black at defaults"
+SIZE = 256   # Tier-1 capture; conftest.TIER1_CANVAS_256 pins the composition to it for this module
 
 
-class TestEveryParamHasEffect:
-    """Every parameter must produce a visible change when modified."""
-
-    @pytest.mark.parametrize(
-        "source_id,param,default_val,test_val,desc",
-        ALL_PARAM_TESTS,
-        ids=[f"{t[0]}:{t[4]}" for t in ALL_PARAM_TESTS],
-    )
-    def test_param_changes_output(self, app, tmp_path, source_id, param, default_val, test_val, desc):
-        # Default render
-        app.load_source(source_id)
-        default_out = str(tmp_path / f"{source_id}_{desc}_def.png")
-        app.render_frame(default_out, time_val=1.0, width=512, height=512)
-
-        # Changed render
-        app.load_source(source_id)
-        app.update_source_params({param: test_val})
-        changed_out = str(tmp_path / f"{source_id}_{desc}_chg.png")
-        app.render_frame(changed_out, time_val=1.0, width=512, height=512)
-
-        assert frame_is_not_black(default_out), f"{source_id} default is all-black"
-        assert frame_is_not_black(changed_out), f"{source_id} with {desc}={test_val} is all-black"
-        assert frames_are_different(default_out, changed_out), (
-            f"{source_id}:{desc} change {default_val}->{test_val} had no visible effect"
-        )
+def sweep(source_ids, uniform, values):
+    """(source_id, value) params; an id listed in SWEEP_AWAITING_RULING is a strict xfail carrying its reason."""
+    out = []
+    for s in source_ids:
+        for v in values:
+            reason = SWEEP_AWAITING_RULING.get((s, uniform, v))
+            out.append(pytest.param(s, v, id=f"{s}-{v}",
+                                    marks=[pytest.mark.xfail(strict=True, reason=reason)] if reason else []))
+    return out
 
 
 class TestZoomLooping:
@@ -306,14 +279,13 @@ class TestZoomLooping:
         "sierpinski", "apollonian",
     ]
 
-    @pytest.mark.parametrize("source_id", ZOOM_SOURCES_2D)
-    @pytest.mark.parametrize("zoom_val", [0.0, 0.25, 0.5, 0.75, 1.0])
+    @pytest.mark.parametrize("source_id,zoom_val", sweep(ZOOM_SOURCES_2D, "u_src_zoom", [0.0, 0.25, 0.5, 0.75, 1.0]))
     def test_2d_zoom_not_black(self, app, tmp_path, source_id, zoom_val):
         app.load_source(source_id)
         app.update_source_params({"u_src_zoom": zoom_val})
         out = str(tmp_path / f"{source_id}_z{zoom_val}.png")
-        app.render_frame(out, time_val=0.0, width=512, height=512)
-        assert frame_is_not_black(out), f"{source_id} zoom={zoom_val} is all-black"
+        app.render_frame(out, time_val=0.0, width=SIZE, height=SIZE)
+        assert not is_black(out), f"{source_id} zoom={zoom_val} is all-black"
 
 
 class TestDiveSpeedNotBlack:
@@ -321,26 +293,25 @@ class TestDiveSpeedNotBlack:
 
     DIVE_SOURCES = ["mandelbrot", "julia_set", "burning_ship", "newton_fractal"]
 
-    @pytest.mark.parametrize("source_id", DIVE_SOURCES)
-    @pytest.mark.parametrize("dive_val", [0.1, 0.3, 0.5, 0.7, 1.0])
+    @pytest.mark.parametrize("source_id,dive_val", sweep(DIVE_SOURCES, "u_src_dive_speed", [0.1, 0.3, 0.5, 0.7, 1.0]))
     def test_dive_not_black(self, app, tmp_path, source_id, dive_val):
         app.load_source(source_id)
         app.update_source_params({"u_src_dive_speed": dive_val})
         out = str(tmp_path / f"{source_id}_dive{dive_val}.png")
-        app.render_frame(out, time_val=5.0, width=512, height=512)
-        assert frame_is_not_black(out), f"{source_id} dive={dive_val} at t=5 is all-black"
+        app.render_frame(out, time_val=5.0, width=SIZE, height=SIZE)
+        assert not is_black(out), f"{source_id} dive={dive_val} at t=5 is all-black"
 
 
 class TestPowerNotBlack:
     """Power at all positions must not go black."""
 
-    @pytest.mark.parametrize("power_val", [0.0, 0.25, 0.5, 0.75, 1.0])
-    def test_mandelbrot_power(self, app, tmp_path, power_val):
-        app.load_source("mandelbrot")
+    @pytest.mark.parametrize("source_id,power_val", sweep(["mandelbrot"], "u_src_power", [0.0, 0.25, 0.5, 0.75, 1.0]))
+    def test_mandelbrot_power(self, app, tmp_path, source_id, power_val):
+        app.load_source(source_id)
         app.update_source_params({"u_src_power": power_val})
         out = str(tmp_path / f"mb_power{power_val}.png")
-        app.render_frame(out, time_val=0.0, width=512, height=512)
-        assert frame_is_not_black(out), f"Mandelbrot power={power_val} is all-black"
+        app.render_frame(out, time_val=0.0, width=SIZE, height=SIZE)
+        assert not is_black(out), f"Mandelbrot power={power_val} is all-black"
 
 
 class Test3DZoomRange:
@@ -351,14 +322,13 @@ class Test3DZoomRange:
         "julia_set_3d", "burning_ship_3d", "sierpinski_tetra", "apollonian_3d",
     ]
 
-    @pytest.mark.parametrize("source_id", SOURCES_3D)
-    @pytest.mark.parametrize("zoom_val", [0.0, 0.3, 0.6, 0.9])
+    @pytest.mark.parametrize("source_id,zoom_val", sweep(SOURCES_3D, "u_src_zoom", [0.0, 0.3, 0.6, 0.9]))
     def test_3d_zoom_not_black(self, app, tmp_path, source_id, zoom_val):
         app.load_source(source_id)
         app.update_source_params({"u_src_zoom": zoom_val})
         out = str(tmp_path / f"{source_id}_z{zoom_val}.png")
-        app.render_frame(out, time_val=1.0, width=512, height=512)
-        assert frame_is_not_black(out), f"{source_id} zoom={zoom_val} is all-black"
+        app.render_frame(out, time_val=1.0, width=SIZE, height=SIZE)
+        assert not is_black(out), f"{source_id} zoom={zoom_val} is all-black"
 
 
 class TestPaletteVariety:
@@ -373,7 +343,7 @@ class TestPaletteVariety:
             app.load_source(source_id)
             app.update_source_params({"u_src_palette": pal})
             out = str(tmp_path / f"{source_id}_p{pal}.png")
-            app.render_frame(out, time_val=1.0, width=512, height=512)
+            app.render_frame(out, time_val=1.0, width=SIZE, height=SIZE)
             frames.append(out)
 
         diff_count = 0
