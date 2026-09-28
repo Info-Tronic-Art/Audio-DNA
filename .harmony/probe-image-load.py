@@ -19,8 +19,7 @@ decode, like a photo or worse) yet identifiable after box averaging. Every path 
 i4m) put a hidden layer 0 of four flat 8192x8192 "fillers" (1 GiB of textures) before the subject layer: from R1.5 a
 composition load prefetches its images in order only while < 1 GiB is resident, so once the fillers are resident the
 subject's images are never prefetched and the first trigger of the slow cold image takes the demand path (pending ->
-hold) whatever the message-thread timing (a load decodes every cell's thumbnail on the message thread: ~1 s for an
-8K image, F15). The row waits until the fillers are resident (no wait on an app without prefetch: they are never
+hold) whatever the message-thread timing. The row waits until the fillers are resident (no wait on an app without prefetch: they are never
 decoded), triggers col 0 (warm) on layer 1, 1 s, then the cold image.
 Metrics: peak(s, k) = the /api/state key (reset on read) -- a missing key FAILs the row ("k absent: the app predates
 it"); windows are polled every 15 ms keeping the max. dbox(X, Y) = both arrays box-averaged in 16x16 blocks, then
@@ -339,9 +338,9 @@ def la():
     return "load avg %.2f %.2f %.2f" % os.getloadavg()
 
 
-# A composition load decodes every cell's thumbnail on the MESSAGE thread (ClipCell::updateThumbnail, F15): with the
-# fillers that holds it for seconds, and a REST trigger (callAsync) runs only after it. Every trigger below therefore
-# waits until the model shows it (wait_active) before the row's clock starts.
+# A REST trigger runs on the message thread (callAsync); anything that holds that thread delays it (before the
+# s-rta-0928 restore lane, a load decoded every cell thumbnail there -- seconds with the fillers). Every trigger below
+# therefore waits until the model shows it (wait_active) before the row's clock starts.
 def filler_layer():
     """A hidden layer 0 holding 4 flat 8192x8192 images = 1 GiB of textures. From R1.5 a composition load prefetches its
     images in order (layer 0 first) only while < 1 GiB is resident: once these four are resident, the subject layer's
