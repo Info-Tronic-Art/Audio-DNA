@@ -8,15 +8,15 @@ render_frame response is checked; the output dir is fresh per run.
 usage: probe-image-load.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-image-load.py <root> <fresh-outdir> [row,row,...]
 rows: i1_layer_1080 i1_layer_4k i2_fade_1080 i2_fade_4k i2m_fade_start i2ms_seq_fade_start i3_capture_after_trigger
-      i3s_capture_after_seq_trigger i4_hold_counters i4m_mask_hold i5_legacy_retrigger i6_sequence_1080
-      i7_prefetch_retain
+      i3s_capture_after_seq_trigger i3n_snapshot_while_pending i4_hold_counters i4m_mask_hold i5_legacy_retrigger
+      i6_sequence_1080 i7_prefetch_retain
 
 Fixtures (<out>/media, numpy seed 928, PIL compress_level 1): "warm" = a flat colour PNG (shown first, so it is
 resident before the measured window); "cold" = a noisy gradient R = 255x/W, G = 255y/H, B = base (128, or a
 per-frame shift for sequences) + uniform noise in [-64, 64] per channel, alpha 255 -- hard to compress (a slow
 decode, like a photo or worse) yet identifiable after box averaging. Every path is new to the app instance.
-"Slow cold" = the same at 7680x4320 (a ~0.4-0.5 s decode). The rows that must SEE a pending image (i2m, i3, i3s, i4,
-i4m) put a hidden layer 0 of four flat 8192x8192 "fillers" (1 GiB of textures) before the subject layer: from R1.5 a
+"Slow cold" = the same at 7680x4320 (a ~0.4-0.5 s decode). The rows that must SEE a pending image (i2m, i3, i3s, i3n,
+i4, i4m) put a hidden layer 0 of four flat 8192x8192 "fillers" (1 GiB of textures) before the subject layer: from R1.5 a
 composition load prefetches its images in order only while < 1 GiB is resident, so once the fillers are resident the
 subject's images are never prefetched and the first trigger of the slow cold image takes the demand path (pending ->
 hold) whatever the message-thread timing. The row waits until the fillers are resident (no wait on an app without prefetch: they are never
@@ -50,6 +50,14 @@ i3_capture_after_trigger (guard + teeth): canvas 1920x1080; fillers; col 0 warm 
   teeth: the R1.2 build without the capture gate FAILs (capN is the held picture).
 i3s_capture_after_seq_trigger (C3 of the adoption): as i3 with col 1 = a fresh ImageSequence of 3 1080p frames at
   sequenceFps 0.1 (frame 0 shown for 10 s). PASS on main (synchronous decode); teeth: the no-gate build.
+i3n_snapshot_while_pending (C2 of the adoption: a snapshot never waits for a decode): canvas 1920x1080; fillers; col 0
+  warm, col 1 slow cold. trig 0, 1 s, capA; a baseline /api/snapshot (nothing pending) timed tB; trig 1; poll until
+  activeClipColumn == 1; /api/snapshot at once, timed tS; then render_frame capN, timed tN; 2 s; capS. PASS: fixture
+  dbox(capA, capS) >= fixtureMinD; the snapshot answers (ok, a file) within snapshotMaxMs (no 5 s wait); the snapshot
+  is the picture of its moment -- the held warm picture, dbox(snap, capA) <= boxTol (it did not wait for the decode);
+  the render_frame right after shows the NEW picture, dbox(capN, capS) <= boxTol (render_frame does wait: the gate).
+  Both snapshot files (in the app's Snapshots dir) are deleted by the row. RED on main (the decode runs in the frame:
+  the snapshot waits for it and shows the cold picture); teeth: a build whose takeSnapshot asks for a complete frame.
 i4_hold_counters: canvas 3840x2160; fillers; col 0 warm, col 1 slow cold. trig 0; 1 s; s0, trig 1, 2 s, s1.
   PASS: image_hold_frames delta >= 1 AND image_skip_frames delta == 0; images_pending(s1) == 0. Prints the frames
   held. RED on main: fields absent.
@@ -86,8 +94,8 @@ FIX = json.load(open(os.path.join(ROOT, ".harmony", "probe-image-load.json")))
 PEAK = float(FIX["peakMaxMs"]); TOL = float(FIX["boxTol"]); FMIN = float(FIX["fixtureMinD"])
 SIZES = {k: tuple(v) for k, v in FIX["sizes"].items()}
 LID = FIX["layers"]
-PENDING_ROWS = ("i2m_fade_start", "i3_capture_after_trigger", "i3s_capture_after_seq_trigger", "i4_hold_counters",
-                "i4m_mask_hold")
+PENDING_ROWS = ("i2m_fade_start", "i3_capture_after_trigger", "i3s_capture_after_seq_trigger",
+                "i3n_snapshot_while_pending", "i4_hold_counters", "i4m_mask_hold")
 MEDIA = os.path.join(OUT, "media")
 PASS = FAIL = 0
 S = requests.Session()
@@ -134,7 +142,8 @@ def fixture_plan():
     WS, HS = SIZES["slow"]
     for r, (w, h) in (("i1_layer_1080", (W1, H1)), ("i1_layer_4k", (W4, H4)), ("i2_fade_1080", (W1, H1)),
                       ("i2_fade_4k", (W4, H4)), ("i2m_fade_start", (WS, HS)), ("i3_capture_after_trigger", (WS, HS)),
-                      ("i4_hold_counters", (WS, HS)), ("i4m_mask_hold", (WS, HS))):
+                      ("i4_hold_counters", (WS, HS)), ("i4m_mask_hold", (WS, HS)),
+                      ("i3n_snapshot_while_pending", (WS, HS))):
         plan[r] = {f"{r}_cold.png": (w, h, "cold", LID[r])}
     plan["i5_legacy_retrigger"] = {f"i5_cold{j}.png": (W1, H1, "cold", 500 + j) for j in range(2)}
     plan["i3s_capture_after_seq_trigger"] = {f"i3s_seq{j:02d}.png": (W1, H1, "seq", j) for j in range(3)}
@@ -444,6 +453,54 @@ def capture_after_trigger(tag, col1_clip):
     (ok if dNS <= TOL else no)(f"{tag}: render_frame right after the trigger shows the NEW picture (dbox {dNS:.2f} <= {TOL})")
 
 
+def snapshot(name):
+    """POST /api/snapshot (7070): (ok, seconds, file). The file is the app's own (its Snapshots dir); the caller deletes it."""
+    t0 = time.time()
+    try:
+        body = S.post(A + "/api/snapshot", json={}, timeout=30).json()
+    except Exception as e:  # noqa: BLE001
+        no(f"snapshot {name}: {e}"); return False, time.time() - t0, None
+    dt = time.time() - t0
+    f = body.get("file")
+    good = body.get("ok") is True and isinstance(f, str) and os.path.basename(f).startswith("snapshot_") \
+        and f.endswith(".png") and os.path.isfile(f) and os.path.getmtime(f) >= t0 - 1.0
+    return good, dt, (f if good else None)
+
+
+def i3n(tag):
+    W, H = SIZES["1080"]; lid = LID[tag]; cold = f"{tag}_cold.png"
+    if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(cold))])])], (W, H)):
+        return
+    wait_fillers(tag); trig(1, 0); wait_active(1, 0, 30.0); time.sleep(1.0)
+    capA = cap(tag + "_A")
+    okB, tB, fB = snapshot(tag + "_B")
+    trig(1, 1)
+    seen = wait_active(1, 1)
+    okS, tS, fS = snapshot(tag + "_S")
+    snap = np.asarray(Image.open(fS).convert("RGBA")).astype(np.float32) if okS else None
+    t0 = time.time(); capN = cap(tag + "_N"); tN = time.time() - t0
+    time.sleep(2.0)
+    capS = cap(tag + "_S")
+    for f in (fB, fS):
+        if f:
+            os.remove(f)
+    if capA is None or capN is None or capS is None or seen is None or not okB:
+        no(f"{tag}: capture / baseline snapshot failed or the trigger was never seen ({seen}, baseline {okB})"); return
+    dAS = dbox(capA, capS)
+    (ok if dAS >= FMIN else no)(f"{tag}: fixture -- the two pictures differ (dbox {dAS:.2f} >= {FMIN})")
+    bar = float(FIX["snapshotMaxMs"])
+    (ok if okS and tS * 1000 <= bar else no)(f"{tag}: a snapshot while the cold image decodes answers "
+                                             f"(ok {okS}) in {tS * 1000:.0f} ms <= {bar:.0f} (baseline {tB * 1000:.0f} ms)")
+    if snap is not None:
+        dSA, dSS = dbox(snap, capA), dbox(snap, capS)
+        print(f"      {tag}: trigger seen after {seen * 1000:.0f} ms; snapshot {tS * 1000:.0f} ms, render_frame after it "
+              f"{tN * 1000:.0f} ms; dbox(snap, held) {dSA:.2f}, dbox(snap, cold) {dSS:.2f}", flush=True)
+        (ok if dSA <= TOL else no)(f"{tag}: the snapshot is the picture of its moment -- the held picture, it did not "
+                                   f"wait for the decode (dbox(snap, capA) {dSA:.2f} <= {TOL})")
+    dNS = dbox(capN, capS)
+    (ok if dNS <= TOL else no)(f"{tag}: render_frame right after it waits and shows the NEW picture (dbox {dNS:.2f} <= {TOL})")
+
+
 def i4(tag):
     W, H = SIZES["4k"]; lid = LID[tag]
     if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(f"{tag}_cold.png"))])])], (W, H)):
@@ -578,6 +635,7 @@ def main():
                 "i3_capture_after_trigger", clip(2, mpath("i3_capture_after_trigger_cold.png")))),
             ("i3s_capture_after_seq_trigger", lambda: capture_after_trigger(
                 "i3s_capture_after_seq_trigger", seq_clip(2, seq3, 0.1))),
+            ("i3n_snapshot_while_pending", lambda: i3n("i3n_snapshot_while_pending")),
             ("i4_hold_counters", lambda: i4("i4_hold_counters")),
             ("i4m_mask_hold", lambda: i4m("i4m_mask_hold"))]
     for name, fn in rows:
