@@ -311,6 +311,23 @@ GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexC
     return 0;
 }
 
+// The same rule as getCurrentTexture's *pending, read only. The per-frame vectors may still be empty (never drawn, or
+// after releaseGL): then nothing is resident and nothing has failed, so a non-empty open sequence is pending.
+bool ImageSequence::firstFramePending() const
+{
+    if (!open_.load(std::memory_order_relaxed) || files_.empty())
+        return false;
+    const int n = static_cast<int>(files_.size());
+    if (static_cast<int>(textures_.size()) != n || static_cast<int>(failed_.size()) != n)
+        return true;
+    const auto idx = static_cast<size_t>(std::clamp(currentFrameIndex_, 0, n - 1));
+    if (textures_[idx] != 0)
+        return false;
+    if (lastShown_ >= 0 && lastShown_ < n && textures_[static_cast<size_t>(lastShown_)] != 0)
+        return false;
+    return failed_[idx] == 0;
+}
+
 void ImageSequence::releaseGL()
 {
     for (auto& tex : textures_)

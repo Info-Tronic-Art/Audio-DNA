@@ -7,7 +7,7 @@ render_frame response is checked; the output dir is fresh per run.
 
 usage: probe-image-load.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-image-load.py <root> <fresh-outdir> [row,row,...]
-rows: i1_layer_1080 i1_layer_4k i2_fade_1080 i2_fade_4k i2m_fade_start i3_capture_after_trigger
+rows: i1_layer_1080 i1_layer_4k i2_fade_1080 i2_fade_4k i2m_fade_start i2ms_seq_fade_start i3_capture_after_trigger
       i3s_capture_after_seq_trigger i4_hold_counters i4m_mask_hold i5_legacy_retrigger i6_sequence_1080
       i7_prefetch_retain
 
@@ -40,6 +40,10 @@ i2m_fade_start (C1 of the Harmony adoption; RED on main not required -- the defe
   PASS: fixture dbox(capA, capS) >= fixtureMinD; p(f0) <= i2mFirstMaxP (the dissolve starts when the image lands, it
   never jumps ahead by the decode time); p(f0) <= p(f1) <= p(f2) <= p(f3) + 0.01. Teeth: a build without the
   crossfade pause FAILs p(f0).
+i2ms_seq_fade_start (renderleft-fix: C1 for an image sequence): as i2m with col 1 = a fresh ImageSequence of 3 slow
+  cold frames (7680x4320, sequenceFps 0.1: frame 0 shows for 10 s). No fillers (a sequence is never prefetched: its first
+  frame always takes the demand path). PASS as i2m. RED on the lane head 5f1536f (C1 paused image clips only: the dissolve
+  runs on while the first frame decodes and jumps ahead by the decode time).
 i3_capture_after_trigger (guard + teeth): canvas 1920x1080; fillers; col 0 warm flat, col 1 slow cold. trig 0, 1 s,
   capA; trig 1; poll /api/composition every 5 ms until activeClipColumn == 1 (<= 2 s); capN at once; 2 s; capS.
   PASS: fixture dbox(capA, capS) >= fixtureMinD; row dbox(capN, capS) <= boxTol. PASS on main (synchronous decode);
@@ -134,6 +138,7 @@ def fixture_plan():
         plan[r] = {f"{r}_cold.png": (w, h, "cold", LID[r])}
     plan["i5_legacy_retrigger"] = {f"i5_cold{j}.png": (W1, H1, "cold", 500 + j) for j in range(2)}
     plan["i3s_capture_after_seq_trigger"] = {f"i3s_seq{j:02d}.png": (W1, H1, "seq", j) for j in range(3)}
+    plan["i2ms_seq_fade_start"] = {f"i2ms_seq{j:02d}.png": (WS, HS, "seq", 10 + j) for j in range(3)}
     plan["i6_sequence_1080"] = {f"i6_seq{j:02d}.png": (W1, H1, "seq", j) for j in range(int(FIX["sequence"]["frames"]))}
     plan["i7_prefetch_retain"] = {f"i7_cold{j}.png": (W1, H1, "cold", 700 + j) for j in range(6)}
     FW, FH = SIZES["filler"]
@@ -389,14 +394,20 @@ def row_layer(tag, size, speed):
         (ok if dd <= TOL else no)(f"{tag}: (c) the picture is the cold image after 1.5 s: dbox {dd:.2f} <= {TOL}")
 
 
-def i2m(tag):
-    W, H = SIZES["1080"]; lid = LID[tag]; cold = f"{tag}_cold.png"
-    if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(cold))], speed=1.0)])], (W, H)):
+def i2m(tag, col1_clip=None, fillers=True):
+    W, H = SIZES["1080"]; lid = LID[tag]
+    if col1_clip is None:
+        col1_clip = clip(2, mpath(f"{tag}_cold.png"))
+    subject = layer(lid, [clip(1, mpath("warm.png")), col1_clip], speed=1.0)
+    if not load(tag, [deck(0, [filler_layer(), subject] if fillers else [subject])], (W, H)):
         return
-    wait_fillers(tag); trig(1, 0); wait_active(1, 0, 30.0); time.sleep(1.0)
+    li = 1 if fillers else 0
+    if fillers:
+        wait_fillers(tag)
+    trig(li, 0); wait_active(li, 0, 30.0); time.sleep(1.0)
     capA = cap(tag + "_A")
-    trig(1, 1)
-    seen = wait_active(1, 1)
+    trig(li, 1)
+    seen = wait_active(li, 1)
     fs = [cap(f"{tag}_f{i}") for i in range(4)]
     time.sleep(2.0)
     capS = cap(tag + "_S")
@@ -551,6 +562,7 @@ def main():
         make_fixtures(); return
     W1 = SIZES["1080"]
     seq3 = [mpath(f"i3s_seq{j:02d}.png") for j in range(3)]
+    seq2ms = [mpath(f"i2ms_seq{j:02d}.png") for j in range(3)]
     # Perf rows first: the pending rows below load 1 GiB of filler textures, and the frames after their release are
     # not the frames the perf rows measure.
     rows = [("i1_layer_1080", lambda: row_layer("i1_layer_1080", "1080", 0.0)),
@@ -561,6 +573,7 @@ def main():
             ("i6_sequence_1080", lambda: i6("i6_sequence_1080")),
             ("i7_prefetch_retain", lambda: i7("i7_prefetch_retain")),
             ("i2m_fade_start", lambda: i2m("i2m_fade_start")),
+            ("i2ms_seq_fade_start", lambda: i2m("i2ms_seq_fade_start", seq_clip(2, seq2ms, 0.1), fillers=False)),
             ("i3_capture_after_trigger", lambda: capture_after_trigger(
                 "i3_capture_after_trigger", clip(2, mpath("i3_capture_after_trigger_cold.png")))),
             ("i3s_capture_after_seq_trigger", lambda: capture_after_trigger(

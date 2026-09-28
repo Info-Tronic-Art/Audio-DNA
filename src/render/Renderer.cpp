@@ -263,6 +263,12 @@ void Renderer::newOpenGLContextCreated()
     compositor_.setVideoFrameProvider([this](const Clip* clip, float dt, bool* pending) -> GLuint {
         return getVideoFrameTexture(clip, dt, pending);
     });
+    // renderleft-fix: C1's crossfade pause for an image sequence whose first frame still decodes (no side effect).
+    compositor_.setSequencePendingProvider([this](const Clip* clip) -> bool {
+        std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        auto it = imageSequences_.find(clip->id);
+        return it != imageSequences_.end() && it->second->firstFramePending();
+    });
 
     // P22.1: Initialize the Syphon server on the GL thread. The Syphon server
     // needs the underlying NSOpenGLContext, which JUCE exposes via getRawContext().

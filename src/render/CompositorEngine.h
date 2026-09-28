@@ -118,6 +118,11 @@ public:
     // Set the video frame callback (provided by Renderer)
     void setVideoFrameProvider(VideoFrameFn fn) { videoFrameFn_ = std::move(fn); }
 
+    // s-rta-0928 renderleft-fix (C1 for sequences): true when an ImageSequence clip has nothing to show yet (its
+    // first frame still decodes) -- ImageSequence::firstFramePending, no side effect. Provided by Renderer.
+    using SequencePendingFn = std::function<bool(const Clip* clip)>;
+    void setSequencePendingProvider(SequencePendingFn fn) { sequencePendingFn_ = std::move(fn); }
+
     // === Deck/Layer-based compositing ===
     // Composite all layers in the deck and return the result texture.
     // Returns 0 if no layers have active clips.
@@ -279,7 +284,8 @@ private:
     // texture is deleted.
     std::unordered_map<uint64_t, GLuint> lastMaskImageTex_;
     // C1 (Harmony adoption): a crossfade onto an image that is still decoding does not advance -- the dissolve starts
-    // when the picture lands. True only while the layer fades and its incoming image is not resident. No side effect.
+    // when the picture lands. True only while the layer fades and its incoming image is not resident, or its incoming
+    // image sequence has nothing to show yet (renderleft-fix). No side effect.
     bool incomingImagePending(const Layer& layer, const Clip* clip) const;
 
     std::atomic<int64_t> imageHoldFrames_{ 0 };
@@ -292,6 +298,7 @@ private:
 
     SourceRenderFn sourceRenderFn_;
     VideoFrameFn videoFrameFn_;
+    SequencePendingFn sequencePendingFn_;
     EffectLibrary* effectLibrary_ = nullptr;
 
     // Audio feature snapshot for audio-reactive effects. Owned VALUE (R7,

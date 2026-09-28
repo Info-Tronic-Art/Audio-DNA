@@ -383,12 +383,15 @@ void CompositorEngine::touchLayerOutput(uint32_t layerId, uint32_t deckId)
 
 bool CompositorEngine::incomingImagePending(const Layer& layer, const Clip* clip) const
 {
-    if (clip == nullptr || clip->mediaType != Clip::MediaType::Image)
+    if (clip == nullptr ||
+        (clip->mediaType != Clip::MediaType::Image && clip->mediaType != Clip::MediaType::ImageSequence))
         return false;
     if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
         return false;   // not fading: nothing to pause
     if (layer.type != Layer::Type::Opaque && layer.type != Layer::Type::Transparent && layer.type != Layer::Type::Mask)
         return false;   // FX Only / 3D never show the clip's media
+    if (clip->mediaType == Clip::MediaType::ImageSequence)   // renderleft-fix: a sequence's first frame, the same rule
+        return sequencePendingFn_ && sequencePendingFn_(clip);
     return imageCache_.notResident(clip->mediaFile.getFullPathName().toStdString());
 }
 

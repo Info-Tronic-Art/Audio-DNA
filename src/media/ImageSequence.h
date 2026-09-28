@@ -73,6 +73,11 @@ public:
     // last frame repeats). Returns 0 if no frame available.
     GLuint getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget, bool* pending);
 
+    // s-rta-0928 renderleft-fix (C1 for sequences): true when getCurrentTexture would report *pending as the state
+    // stands -- nothing shown yet and the current frame not resident (and not failed). No decode, no request, no
+    // upload: CompositorEngine asks it BEFORE advancing a crossfade onto this sequence (GL thread only).
+    bool firstFramePending() const;
+
     // Release all GL textures. Call from openGLContextClosing().
     void releaseGL();
 

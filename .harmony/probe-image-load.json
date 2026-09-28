@@ -12,7 +12,8 @@
   "_filler": "4 flat 8192x8192 images = 1 GiB: the R1.5 prefetch budget (CompositorEngine kImagePrefetchBudgetBytes), so the pending rows' subject images are never prefetched",
   "layers": {
     "i1_layer_1080": 61, "i1_layer_4k": 71, "i2_fade_1080": 62, "i2_fade_4k": 72, "i2m_fade_start": 73,
-    "i3_capture_after_trigger": 63, "i3s_capture_after_seq_trigger": 74, "i4_hold_counters": 64,
+    "i3_capture_after_trigger": 63, "i3s_capture_after_seq_trigger": 74,
+    "i2ms_seq_fade_start": 75, "i4_hold_counters": 64,
     "i4m_mask_hold": 69, "i5_legacy_retrigger": 65, "i6_sequence_1080": 66, "i7_prefetch_retain": 67
   },
   "sequence": { "frames": 12, "fps": 10.0 },
