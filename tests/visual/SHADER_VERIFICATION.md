@@ -32,7 +32,9 @@ For **every source** and **every effect**, sweep each parameter at 5 positions (
 Two ctest gates run with the unit tests (no app, no window) and catch the two defect classes the live sweep
 kept missing (s-rta-0927 source-defects):
 - `test_shader_param_lint`: every registered source/effect param's uniform is READ by its GLSL (a dead knob fails;
-  so does a param-adding helper lambda that constructs no source).
+  so does a param-adding helper lambda that constructs no source). READ is textual: a no-op use such as
+  `mix(x, x, u_param)` still passes (DEBT_FILED -- spectrum_landscape Smoothing is one), so the "has effect" sweep
+  above stays the check that a knob changes the picture.
 - `test_source_defaults_gl`: the fixed-black sources (julia_set, burning_ship, newton_3d incl. t = 30 / 45,
   sierpinski on power-of-two canvases, crystal_cavern over 20 s with a grazed crystal drawn, never cut open) and Dot
   Field render visible pictures at their REGISTERED defaults (parsed from the registry), offscreen in a private CGL

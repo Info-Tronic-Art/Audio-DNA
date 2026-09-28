@@ -9,6 +9,10 @@
 //                                    "source_..." literal (the ProceduralSource constructor's shader argument)
 //   - src/effects/EffectLibrary.cpp  registerEffect({"Name", "cat", "key", { {"p", "u_x", Vf}, ... } [, true]});
 // A parameter is READ iff its identifier occurs in its block outside its own `uniform <type> <name>;` line.
+// DEBT_FILED (s-rta-0927 source-defects review): READ is textual, not "changes the picture". A use that is a
+// mathematical no-op still passes -- e.g. spectrum_landscape's `energy = mix(energy, energy, u_src_smoothing);`
+// (mix(x, x, t) == x), so its Smoothing knob is dead yet lint-clean. Catching that class needs a render-based check
+// (the Tier-1 "has effect" sweep) or a follow-up static pass; this lint only proves the name is used.
 // Plus one structural rule (Pitfall 44): a helper lambda that adds params but constructs no ProceduralSource is
 // refused -- its addParam calls sit far from any shader key, which is exactly how 70 dead torus knobs hid.
 #include <catch2/catch_test_macros.hpp>
