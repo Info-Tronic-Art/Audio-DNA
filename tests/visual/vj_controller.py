@@ -246,6 +246,17 @@ class VJAppController:
         repeating remove_mapping(0) until it reports 0."""
         return self._post("/api/remove_mapping", {"index": index})
 
+    def set_composition_params(self, **fields) -> dict:
+        """Set composition fields (test mode): masterOpacity, masterSpeed and/or
+        outputWidth + outputHeight (both together, ints in [16, 7680] x [16, 4320])."""
+        return self._post("/api/set_composition_params", fields)
+
+    def get_composition_params(self) -> dict:
+        """Get masterOpacity, masterSpeed, outputWidth, outputHeight (+ per-clip opacity)."""
+        r = requests.get(f"{self.base_url}/api/composition_params", timeout=10)
+        r.raise_for_status()
+        return r.json()
+
     def _post(self, path: str, data: dict) -> dict:
         """Send a POST request with JSON body."""
         r = requests.post(f"{self.base_url}{path}", json=data, timeout=15)
