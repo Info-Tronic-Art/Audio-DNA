@@ -89,6 +89,8 @@ outputs on every display and the routines display in the layers.
    caller. GL-thread share per capture: 1080p 94-110 ms (read 2.3-4.5 + convert 12.5-20.9 + png 78.6-84.3) -> read
    2.3-5.0 ms; 4K 372 ms (7.9 + 68.4 + 296.2) -> 7.6 ms. The HTTP round trip is unchanged (~95-116 ms at 1080p, ~350 ms
    at 4K): the PNG is still encoded before the response. PBO readback: out of scope (plan-renderperf).
+   renderperf found_not_fixed #4 FIXED (s-rta-0927 followups F2): a capture to an existing path appended a second PNG
+   (decoders returned the old picture); `PngWrite::writeReplacing` deletes first, same-second snapshots get `_2` (Pitfall 46).
 5. [OPEN, Boris] Fit "Bars": see-through (shipped) vs solid black; deck defaults; outputs Q1-Q7; routines mockup 8.
 6. [OPEN, low] Resolution control has presets + "Custom (W x H)" display only (no free numeric entry). Interactive paths
    (tab right-click, dialogs, Fit/Resolution picks, Undo Remove click) were never driven live (no synthetic input) —

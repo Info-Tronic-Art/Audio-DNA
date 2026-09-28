@@ -2,6 +2,7 @@
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
 #include "render/PixelConvert.h"
+#include "render/PngWrite.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
 #include "recording/VideoRecorder.h"
@@ -2103,16 +2104,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     // Write PNG
     auto tPng = CaptureClock::now();
-    outputPath.getParentDirectory().createDirectory();
-    bool ok = false;
-    {
-        juce::FileOutputStream fos(outputPath);
-        if (fos.openedOk())
-        {
-            juce::PNGImageFormat pngFormat;
-            ok = pngFormat.writeImageToStream(img, fos);
-        }
-    }
+    const bool ok = PngWrite::writeReplacing(img, outputPath);   // replaces an existing file (F2)
     const double pngMs = msSince(tPng);
 
     // C0's split: read = the GL thread's whole share; convert + png ran here.
@@ -2193,7 +2185,8 @@ juce::File Renderer::takeSnapshot()
     // Generate timestamped filename
     auto now = juce::Time::getCurrentTime();
     auto filename = "snapshot_" + now.formatted("%Y%m%d_%H%M%S") + ".png";
-    auto outputFile = dir.getChildFile(filename);
+    // Two snapshots in one second: the second gets snapshot_..._2.png instead of overwriting the first (F2).
+    auto outputFile = dir.getChildFile(filename).getNonexistentSibling(false);
 
     // plan4 item 1: a user snapshot is the whole composition canvas (outputWidth x outputHeight).
     bool ok = captureFrame(outputFile);

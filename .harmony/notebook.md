@@ -1966,3 +1966,8 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
   settings.json was created and deleted within the run, leaving an empty `~/Library/Audio-DNA/`, removed). Guard a
   write with REQUIRE on the path first, and sandbox `defaultFile()` in every mutant copy.
 **Valid while:** AppSettings owns settings.json and appSettingsFile() routes test mode through testModeFile.
+
+## 2026-09-27 — a JUCE FileOutputStream on an existing path appends (s-rta-0927 followups F2)
+**Files:** src/render/PngWrite.h, src/render/Renderer.cpp (captureFrame, takeSnapshot), src/test/TestServer.cpp (output_probe)
+**Note:** `juce::FileOutputStream` opens an existing file at its END (O_RDWR + lseek SEEK_END), so any "write to path" that can hit an existing file must delete first or use `File::replaceWith*`. A PNG appended after an old PNG decodes as the OLD image in every decoder -- a silent stale-capture bug, invisible unless the test reuses a path. All PNG writes go through `PngWrite::writeReplacing` (Pitfall 46; `tests/test_png_write.cpp`). renderperf found_not_fixed #4 FIXED.
+**Valid while:** JUCE's posix openHandle seeks to end (the `[pngwrite][juce-appends]` teeth case says when that stops).

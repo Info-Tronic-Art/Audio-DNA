@@ -14,6 +14,7 @@
 #include "model/Clip.h"
 #include "effects/EffectLibrary.h"
 #include "output/OutputPresenter.h"
+#include "render/PngWrite.h"
 #include <juce_core/juce_core.h>
 #if JUCE_MAC
  #include <OpenGL/OpenGL.h>   // after juce_gl.h (via Renderer.h): the output probe's private CGL context
@@ -1765,14 +1766,7 @@ void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Respons
                 bmp.setPixelColour(x, y, juce::Colour(row[x * 4], row[x * 4 + 1], row[x * 4 + 2], static_cast<uint8_t>(255)));
         }
     }
-    outFile.getParentDirectory().createDirectory();
-    outFile.deleteFile();
-    bool ok = false;
-    {
-        juce::FileOutputStream fos(outFile);
-        if (fos.openedOk())
-            ok = juce::PNGImageFormat().writeImageToStream(img, fos);
-    }
+    const bool ok = PngWrite::writeReplacing(img, outFile);
     if (!ok)
     {
         res.status = 500;
