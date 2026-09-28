@@ -5,6 +5,7 @@
 #include <juce_events/juce_events.h>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 namespace
 {
@@ -157,7 +158,7 @@ Take RecorderHost::takeForSave(Take base, AudioRef audio) const
     base.tempo = clock_.tempo();
     base.meta.recordedAt = armRecordedAt_;
     base.meta.app = appVersion_;
-    base.meta.startBeatInBar = armedStartBeatInBar_;
+    base.meta.startBeatInBar = startBeatInBar_;
     return base;
 }
 
@@ -172,7 +173,10 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
     }
 
     armedGripHoldMs_ = opts.gripHoldMs > 0.0f ? opts.gripHoldMs : 250.0f;
-    armedStartBeatInBar_ = opts.startBeatInBar;
+    startBeatInBar_ = -1.0;   // s-rta-0928: from the t = 0 snapshot (startClock)
+    startAfterTrackerRequest_ = opts.startAfterTrackerRequest;
+    startWaitSinceWall_.reset();
+    startWaitLast_.reset();
     armedDeviceRate_ = opts.deviceRate;
     armedDeviceChannels_ = opts.deviceChannels;
     audioMode_ = opts.audioMode;
@@ -267,8 +271,10 @@ RecorderHost::ArmResult RecorderHost::arm(const Composition& comp, AudioTap& tap
 
     // R-A1 provisional save (5.6 #1). Built from a COPY of the in-progress Take (current() is
     // read-only) plus this arm's audio/meta -- the same shape every later periodic/final save writes.
-    // The clock is fresh here (no tick yet), so its tempo map is still empty; the "start" anchor
-    // arrives with the first tick and reaches take.json at the next periodic save or at disarm.
+    // The clock is fresh here (no tick yet), so its tempo map is still empty and startBeatInBar unknown
+    // until t = 0 (s-rta-0928: the first tick, or later when a tracker request was in flight at Record);
+    // the "start" anchor and the bar grid reach take.json at the early tempo save (a metered start),
+    // the next periodic save, or disarm.
     const Take provisional = takeForSave(recorder_.current(), liveAudioRef(tapWasStarted_ ? &tap : nullptr));
 
     res.ok = true;   // audio is running (or intentionally not requested) -- arm succeeds even if the
@@ -298,6 +304,26 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
     {
         res.error = "not recording";
         return res;
+    }
+
+    // s-rta-0928: a take stopped while its t = 0 still waited starts from the last tick it saw -- a take that
+    // saw a tick always has a "start" anchor (one stopped before any tick keeps an empty map, as before).
+    if (!clock_.started() && startWaitLast_.has_value())
+    {
+        std::cerr << "[RecorderHost] take start: stopped before tracker request " << startAfterTrackerRequest_.value_or(0)
+                  << " reached the analysis snapshot; started from the last tick" << std::endl;
+        const StartWaitTick& w = *startWaitLast_;
+        FeatureSnapshot snap;
+        snap.clear();
+        snap.bpm = w.bpm;
+        snap.beatPhase = w.beatPhase;
+        snap.totalBeatCount = w.totalBeatCount;
+        snap.onsetCount = w.onsetCount;
+        snap.trackerState = w.trackerState;
+        snap.beatInBar = w.beatInBar;
+        startClock(snap, w.wall, w.sample);
+        if (onsetMarkers_ && onsetCountBaseline_.has_value())
+            emitOnsetMarkers(w.onsetCount);   // A5: an onset seen while t = 0 waited, stamped t = 0
     }
 
     AudioRef finalRef;
@@ -385,6 +411,8 @@ RecorderHost::StopResult RecorderHost::disarm(const Composition& comp, AudioTap&
     markers_.clear();
     onsetCountBaseline_.reset();
     lastWriteWall_.clear();
+    startWaitSinceWall_.reset();
+    startWaitLast_.reset();
 
     publishStatus();
     return res;
@@ -432,10 +460,15 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
     // (2) recording-side bookkeeping.
     if (recording_)
     {
-        // Fix plan F1: the clock ticks only while a take records -- arm() re-creates it, so the first
-        // tick here is the take's t = 0. Nothing reads the clock while idle (publishStatus, marker,
-        // capture and disarm all require recording_), and an idle clock would only grow its TempoMap.
-        clock_.tick(snap, wallNow, sampleForClock);
+        // Fix plan F1: the clock ticks only while a take records -- arm() re-creates it. Nothing reads the
+        // clock while idle (publishStatus, marker, capture and disarm all require recording_), and an idle
+        // clock would only grow its TempoMap.
+        // s-rta-0928 take start (Pitfall 48): its FIRST tick (t = 0, the "start" anchor, meta.startBeatInBar)
+        // waits for the snapshot that carries every tracker request sent before Record -- or the fallback.
+        if (clock_.started())
+            clock_.tick(snap, wallNow, sampleForClock);
+        else if (startDue(snap, wallNow, sampleForClock))
+            startClock(snap, wallNow, sampleForClock);
 
         if (tapWasStarted_)
         {
@@ -476,42 +509,41 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
                 // onsets that happened before this arm.
                 onsetCountBaseline_ = snap.onsetCount;
             }
-            else
+            else if (clock_.started())
             {
-                const uint32_t delta = snap.onsetCount - *onsetCountBaseline_;  // unsigned, wrap-safe
-                if (delta > 0)
-                {
-                    const uint32_t n = std::min(delta, kMaxOnsetMarkersPerTick);
-                    for (uint32_t i = 0; i < n; ++i)
-                        marker("onset");
-                    onsetCountBaseline_ = *onsetCountBaseline_ + n;   // advance by n only -- any
-                                                                       // excess (delta > n) is picked
-                                                                       // up on a later tick, never lost
-                }
+                // s-rta-0928 (A5): markers stamp with the clock -- none before t = 0; the delta that
+                // accumulated while t = 0 waited is emitted on the t = 0 tick (stamped t = 0), never lost.
+                emitOnsetMarkers(snap.onsetCount);
             }
         }
 
-        synthesizeIdleDecayingEnds(wallNow);
-
-        const auto now = clock_.now();
-        const bool periodicDue = now.t - lastCheckpointT_ >= kCheckpointSeconds;
-        // s-rta-0926b tempomap gap: fire once, independent of the periodic cadence, the first
-        // tick whose clock reports a metered tempo (bpm > 0) -- see earlyTempoSaved_'s comment.
-        const bool earlyTempoDue = !earlyTempoSaved_ && now.bpm > 0.0f;
-        if (periodicDue || earlyTempoDue)
+        // Everything below stamps with the clock (s-rta-0928): nothing before t = 0 -- a synthesized end
+        // would carry the unstarted clock's sample 0. A Decaying gesture that expired while t = 0 waited is
+        // ended on the t = 0 tick; the saves have nothing to add before it.
+        if (clock_.started())
         {
-            // R-A3: recorder_.current() copied, plus audio/meta/checkpoint0 (checkpoint0 already
-            // lives inside current() -- setCheckpoint0() wrote it straight into the recorder's
-            // in-progress take_ at arm time).
-            Take snapshot = takeForSave(recorder_.current(), liveAudioRef(tapWasStarted_ ? &tap : nullptr));
-            snapshot.meta.duration = now.t;
-            snapshot.meta.durationBeats = now.beat;
-            if (!snapshot.save(takeFolder_) && dispatch.notify)
-                dispatch.notify(periodicDue ? "periodic take save failed" : "tempo take save failed");
-            if (periodicDue)
-                lastCheckpointT_ = now.t;
-            if (earlyTempoDue)
-                earlyTempoSaved_ = true;
+            synthesizeIdleDecayingEnds(wallNow);
+
+            const auto now = clock_.now();
+            const bool periodicDue = now.t - lastCheckpointT_ >= kCheckpointSeconds;
+            // s-rta-0926b tempomap gap: fire once, independent of the periodic cadence, the first
+            // tick whose clock reports a metered tempo (bpm > 0) -- see earlyTempoSaved_'s comment.
+            const bool earlyTempoDue = !earlyTempoSaved_ && now.bpm > 0.0f;
+            if (periodicDue || earlyTempoDue)
+            {
+                // R-A3: recorder_.current() copied, plus audio/meta/checkpoint0 (checkpoint0 already
+                // lives inside current() -- setCheckpoint0() wrote it straight into the recorder's
+                // in-progress take_ at arm time).
+                Take snapshot = takeForSave(recorder_.current(), liveAudioRef(tapWasStarted_ ? &tap : nullptr));
+                snapshot.meta.duration = now.t;
+                snapshot.meta.durationBeats = now.beat;
+                if (!snapshot.save(takeFolder_) && dispatch.notify)
+                    dispatch.notify(periodicDue ? "periodic take save failed" : "tempo take save failed");
+                if (periodicDue)
+                    lastCheckpointT_ = now.t;
+                if (earlyTempoDue)
+                    earlyTempoSaved_ = true;
+            }
         }
     }
 
@@ -557,6 +589,59 @@ void RecorderHost::tick(const FeatureSnapshot& snap, double wallNow, uint64_t de
     // message-thread caller would.
     if (finishedEdge && dispatch.replayFinished)
         dispatch.replayFinished();
+}
+
+bool RecorderHost::startDue(const FeatureSnapshot& snap, double wallNow, uint64_t sample)
+{
+    if (!startAfterTrackerRequest_.has_value())
+        return true;                                            // nothing awaited: the first tick is t = 0
+    // Signed difference: the sequence wraps at 2^32 (C++20: the conversion is modular).
+    if (static_cast<int32_t>(snap.trackerRequestSeq - *startAfterTrackerRequest_) >= 0)
+        return true;                                            // carries every request sent before Record
+    if (!startWaitSinceWall_.has_value())
+        startWaitSinceWall_ = wallNow;
+    if (wallNow - *startWaitSinceWall_ >= kStartWaitFallbackSeconds)
+    {
+        std::cerr << "[RecorderHost] take start: tracker request " << *startAfterTrackerRequest_
+                  << " not in the analysis snapshot after "
+                  << static_cast<int>(kStartWaitFallbackSeconds * 1000.0) << " ms (it carries "
+                  << snap.trackerRequestSeq << "); the take starts from the latest snapshot" << std::endl;
+        return true;
+    }
+    StartWaitTick w;                                            // for a Stop before t = 0 (disarm)
+    w.wall = wallNow;
+    w.sample = sample;
+    w.bpm = snap.bpm;
+    w.beatPhase = snap.beatPhase;
+    w.totalBeatCount = snap.totalBeatCount;
+    w.onsetCount = snap.onsetCount;
+    w.trackerState = snap.trackerState;
+    w.beatInBar = snap.beatInBar;
+    startWaitLast_ = w;
+    return false;
+}
+
+void RecorderHost::startClock(const FeatureSnapshot& snap, double wallNow, uint64_t sample)
+{
+    clock_.tick(snap, wallNow, sample);   // the first tick: t = 0 and the "start" anchor (RecorderClock.cpp)
+    // plan-routines 3.6's rule, now from the SAME snapshot as beat 0 (it was MainComponent's arm-time read).
+    startBeatInBar_ = snap.trackerState == FeatureSnapshot::kTrackerLocked
+        ? static_cast<double>(snap.beatInBar) + static_cast<double>(snap.beatPhase)
+        : -1.0;
+}
+
+void RecorderHost::emitOnsetMarkers(uint32_t onsetCount)
+{
+    const uint32_t delta = onsetCount - *onsetCountBaseline_;  // unsigned, wrap-safe
+    if (delta > 0)
+    {
+        const uint32_t n = std::min(delta, kMaxOnsetMarkersPerTick);
+        for (uint32_t i = 0; i < n; ++i)
+            marker("onset");
+        onsetCountBaseline_ = *onsetCountBaseline_ + n;   // advance by n only -- any
+                                                           // excess (delta > n) is picked
+                                                           // up on a later tick, never lost
+    }
 }
 
 void RecorderHost::synthesizeIdleDecayingEnds(double wallNow)

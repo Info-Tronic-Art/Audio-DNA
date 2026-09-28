@@ -48,6 +48,7 @@ public:
     void tick(const FeatureSnapshot& snap, double wallNow, uint64_t deliveredSamples);
 
     ClockStamp now() const { return current_; }
+    bool started() const { return haveTicked_; }   // s-rta-0928: false until the first tick (t = 0)
     const TempoMap& tempo() const { return tempo_; }
 
 private:

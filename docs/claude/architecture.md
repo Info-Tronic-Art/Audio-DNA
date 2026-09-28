@@ -27,6 +27,7 @@
 | `bpm` | `float` | BPM | Current tempo estimate |
 | `beatPhase` | `float` | [0, 1) | Sawtooth synced to beat |
 | `totalBeatCount` | `uint32_t` | count | Whole beats the tracker completed (s-rta-0927 beat clock): +1 per `beatPhase` wrap, +1 for a realign from the second half of a beat; never reset. `totalBeatCount + beatPhase` is continuous beat time -- a message-thread clock integrates it, never the wrap (Pitfall 42) |
+| `trackerRequestSeq` | `uint32_t` | count | s-rta-0928: the BPMTracker request sequence this snapshot reflects -- every tempo / Tap / Resync / manual-mode request that raised the sequence to <= this is in bpm / beatPhase / trackerState / beatInBar here; wraps at 2^32 (signed-difference compare); 0 in test mode. Record's t = 0 waits for it (Pitfall 48) |
 | `trackerState` | `uint8_t` | 0-2 | BPM lock state: 0=searching, 1=locking, 2=locked |
 | `beatInBar` | `uint8_t` | 0-3 | Which beat in the bar (0=downbeat) |
 | `barPhase` | `float` | [0, 1) | Bar-level sawtooth over 4 beats |

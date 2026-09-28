@@ -164,6 +164,15 @@ public:
     void setManualMode(bool enabled);
     bool isManualMode() const { return manualMode_; }
 
+    // s-rta-0928 (Pitfall 48): the request SEQUENCE. Every request above -- setManualBPM, followExternalTempo,
+    // setManualMode, requestResync -- raises it by one (release) AFTER its own write; runPipeline() latches it
+    // (acquire) as its FIRST statement, BEFORE it reads any request. A snapshot published with
+    // appliedRequestSeq() == N therefore reflects every request that raised the sequence to <= N (a later one
+    // may be reflected too -- never the reverse). "Everything sent before X" = FeatureSnapshot::trackerRequestSeq
+    // >= postedRequestSeq() read at X (signed difference; wraps at 2^32).
+    uint32_t postedRequestSeq() const { return requestSeq_.load(std::memory_order_relaxed); }   // any thread
+    uint32_t appliedRequestSeq() const { return appliedRequestSeq_; }                           // analysis thread
+
     // Reset beat phase to 0. s-rta-0925: no longer called from the manual-Resync
     // path (superseded by requestResync()/applyResync(), which also fixes the
     // phantom-bar/level-contract defects a bare beat-phase reset had) -- kept as
@@ -290,6 +299,12 @@ private:
     // low 32 bits: the requested BPM's float bits
     std::atomic<uint64_t> tempoRequest_{0};
     static_assert(std::atomic<uint64_t>::is_always_lock_free, "tempo requests must be lock-free");
+
+    // === s-rta-0928: request sequence (see postedRequestSeq) ===
+    std::atomic<uint32_t> requestSeq_{0};   // raised by every request, release, AFTER its write
+    uint32_t appliedRequestSeq_ = 0;        // analysis thread: latched at the start of runPipeline
+    static_assert(std::atomic<uint32_t>::is_always_lock_free, "the request sequence must be lock-free");
+    void raiseRequestSeq() { requestSeq_.fetch_add(1, std::memory_order_release); }
     void postTempoRequest(float bpm, bool realign);    // any thread
     void applyTempoRequest(float bpm, bool realign);   // analysis thread only
 

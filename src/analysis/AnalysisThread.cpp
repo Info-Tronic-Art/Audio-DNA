@@ -19,6 +19,8 @@
 // AnalysisThread's hop size (they're fed straight into the same hopBuffer).
 static_assert(AnalysisResampler::kMaxOutputHop == AnalysisThread::kHopSize,
               "AnalysisResampler's output hop must match AnalysisThread::kHopSize");
+static_assert(BPMTracker::STATE_LOCKED == FeatureSnapshot::kTrackerLocked,
+              "RecorderHost reads trackerState through FeatureSnapshot::kTrackerLocked");
 
 AnalysisThread::AnalysisThread(RingBuffer<float>& ringBuffer, const std::atomic<double>* sourceRateCell)
     : juce::Thread("AnalysisThread"),
@@ -206,6 +208,7 @@ void AnalysisThread::run()
         snap->totalBarCount    = bpmTracker_->totalBarCount(); // S168
         snap->resyncBarOrigin  = bpmTracker_->resyncBarOrigin(); // s-rta-0925
         snap->totalBeatCount   = bpmTracker_->totalBeatCount(); // s-rta-0927 beat clock
+        snap->trackerRequestSeq = bpmTracker_->appliedRequestSeq();   // s-rta-0928: the requests this snapshot reflects (Pitfall 48)
         snap->phrasePhase      = bpmTracker_->phrasePhase();
 
         stageEnd = std::chrono::high_resolution_clock::now();
