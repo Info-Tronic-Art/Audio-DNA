@@ -80,14 +80,14 @@ BLACK_AT_TIMES = {
 # Admission (both required): (a) the shader term is provably zero-output at that value, AND (b) the ladder proved
 # the param has an effect at another candidate. Anything else is an app defect: no entry, named in the report.
 BLACK_AT_EXTREME = {
-    ("fire_wall", "u_src_density"): "GLSL: EmbeddedShaders.h:9709 heightMask *= u_src_density * 1.5 -- 0 at 0.0, so "
+    ("fire_wall", "u_src_density"): "GLSL: EmbeddedShaders.h:9743 heightMask *= u_src_density * 1.5 -- 0 at 0.0, so "
                                     "fire = n * heightMask = 0 and the (default hot) palette mix(vec3(0.0), ..., 0) "
                                     "is black",
-    ("concentric_rings", "u_src_width"): "GLSL: EmbeddedShaders.h:4768-4769 width = u_src_width * 0.5 = 0 -> "
+    ("concentric_rings", "u_src_width"): "GLSL: EmbeddedShaders.h:4771-4772 width = u_src_width * 0.5 = 0 -> "
                                          "mask = smoothstep(0.0, -0.02, ring) = 0 for every ring >= 0",
-    ("metaballs", "u_src_size"): "GLSL: EmbeddedShaders.h:4860 blobSize = u_src_size * 0.1 = 0 -> field = 0 -> "
+    ("metaballs", "u_src_size"): "GLSL: EmbeddedShaders.h:4863 blobSize = u_src_size * 0.1 = 0 -> field = 0 -> "
                                  "mask = smoothstep(threshold >= 1.0, ..., 0.0) = 0",
-    ("line_pattern", "u_src_width"): "GLSL: EmbeddedShaders.h:4745-4746 width = u_src_width * 0.5 = 0 -> "
+    ("line_pattern", "u_src_width"): "GLSL: EmbeddedShaders.h:4748-4749 width = u_src_width * 0.5 = 0 -> "
                                      "mask = smoothstep(0.0, -0.02, lineVal) = 0 for every lineVal >= 0",
 }
 
@@ -141,7 +141,7 @@ for _s in ("mandelbulb", "apollonian_3d", "sierpinski_tetra", "julia_set_3d", "k
     GATED_SOURCE_PARAMS[(_s, "u_src_slice_dist")] = ({"u_src_slice": 0.55, "u_src_slice_count": 0.5}, _MULTI)
     GATED_SOURCE_PARAMS[(_s, "u_src_trail_fade")] = ({"u_src_trail_dist": 0.6}, _TRAIL)
 GATED_SOURCE_PARAMS[("torus_hole", "u_src_lens_rotate")] = (
-    {"u_src_lens_shape": 0.5}, "EmbeddedShaders.h:8402-8409: the lens is rotated, stretched by 1 + lens_shape * 2, "
+    {"u_src_lens_shape": 0.5}, "EmbeddedShaders.h:8416-8423: the lens is rotated, stretched by 1 + lens_shape * 2, "
                                "rotated back -- at Lens Shape 0 (circular) the rotation is the identity")
 
 # (source_id, uniform) the params test skips: the param only acts on the compositor's feedback buffer.

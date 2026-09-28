@@ -86,8 +86,10 @@ outputs on every display and the routines display in the layers.
    (load_source seeds them, Pitfall 47), deterministic time (a capture waits for a frame that read the override), a
    256x256 composition, a p99.5 black metric, t = 1.13 + a candidate ladder, injected features, gates and a justified
    exceptions module. Before (main 8c4c1a1): 8 of 13 ids FAILED (516 source-param lines, 41 effect-param, 24 black
-   sources, 81 time-sweep); after: 5 FAILED, every remaining line an app defect named in
-   .harmony/.reports/s-rta-0927/followups.md (most fixed by lane/source-defects-0927, not merged) + 2 harness gaps.
+   sources, 81 time-sweep); main f630336 (source-defects merged, old harness): 7 FAILED; after (lane on f630336):
+   12 of 13 PASSED -- only test_sources::test_all_params_have_effect is red, 30 lines named in
+   .harmony/.reports/s-rta-0927/followups.md: 20 "goes black at an extreme" that are no provable zero (Boris call:
+   policy entry or app range), 6 no-effect app items, 4 harness gate gaps.
 4. [FIXED s-rta-0927 renderperf C2+C3] Capture cost (plan4 F4): only glReadPixels stays on the GL thread; the byte-
    identical row conversion (PixelConvert, test_pixel_convert + live sha256 A/B) and the PNG encode run on the waiting
    caller. GL-thread share per capture: 1080p 94-110 ms (read 2.3-4.5 + convert 12.5-20.9 + png 78.6-84.3) -> read
