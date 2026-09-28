@@ -720,7 +720,10 @@ TEST_CASE("RecorderClock stays within 0.05 beats and one block of the map over a
     const auto now = clock.now();
     REQUIRE(now.beat == Approx(5120.0).margin(0.5));
     REQUIRE(std::fabs(clock.tempo().beatAt(now.t) - now.beat) < 0.05);
-    REQUIRE(std::fabs(static_cast<double>(clock.tempo().sampleAt(now.t))
+    // nominalRate 48000 matches this test's own 400 samples/tick @ 120 Hz; not exercised here --
+    // every periodic segment spans >= 1 s (32 beats @ 120 BPM), so sampleAt uses its own slope
+    // (plan-sampleat A1/A4), never the nominalRate fallback.
+    REQUIRE(std::fabs(static_cast<double>(clock.tempo().sampleAt(now.t, 48000.0))
                        - static_cast<double>(now.sample)) <= 400.0);
 
     int periodicCount = 0;

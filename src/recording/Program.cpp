@@ -422,7 +422,8 @@ namespace
     // clock a stampless gesture is EXACT (curve x is already in beats), so it is no longer reported
     // as `invalid` there -- reporting only, the converted x is bit-identical.
     void compileLanes(const std::map<ControlPath, Lane>& lanes, const TempoMap& tempo, const Composition& comp,
-                      DriveClock clock, std::optional<Range> range, Program& program, double& maxAt)
+                      DriveClock clock, std::optional<Range> range, Program& program, double& maxAt,
+                      double nominalRate)
     {
         auto pickAt = [&](const Stamp& s, double beat) -> double
         {
@@ -448,7 +449,7 @@ namespace
             {
                 case DriveClock::Beat:   return beatX;
                 case DriveClock::Wall:   return tempo.tAt(beatX);
-                case DriveClock::Sample: return static_cast<double>(tempo.sampleAt(tempo.tAt(beatX)));
+                case DriveClock::Sample: return static_cast<double>(tempo.sampleAt(tempo.tAt(beatX), nominalRate));
             }
             return beatX;
         };
@@ -542,7 +543,7 @@ namespace
 }
 
 std::shared_ptr<const Program> compile(const Take& take, const Composition& comp,
-                                        DriveClock clock, std::optional<Range> range)
+                                        DriveClock clock, std::optional<Range> range, double nominalRate)
 {
     auto program = std::make_shared<Program>();
     program->clock = clock;
@@ -554,7 +555,7 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
     buildPreamble(take.checkpoint0, comp, *program);
 
     double maxAt = 0.0;
-    compileLanes(take.lanes, take.tempo, comp, clock, range, *program, maxAt);
+    compileLanes(take.lanes, take.tempo, comp, clock, range, *program, maxAt, nominalRate);
 
     program->length = maxAt;
     return program;
@@ -598,7 +599,7 @@ std::shared_ptr<const Program> compileRoutine(const Routine& routine, const Comp
     // A routine carries no tempo map: on the Beat clock pickAt reads p.beat and convertBeatX is the
     // identity, so the empty map is never read.
     double maxAt = 0.0;
-    compileLanes(routine.lanes, TempoMap{}, comp, DriveClock::Beat, std::nullopt, *program, maxAt);
+    compileLanes(routine.lanes, TempoMap{}, comp, DriveClock::Beat, std::nullopt, *program, maxAt, 0.0);
 
     program->length = routine.lengthBeats;   // the routine's own end (whole bars), NOT maxAt
     return program;

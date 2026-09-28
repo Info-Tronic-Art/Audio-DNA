@@ -129,8 +129,12 @@ struct Program
 // parallel Stamp (Lane.h Gesture::stamps, D1/D7) via the same per-clock
 // pick discrete points use -- the take's TempoMap is only the reported
 // fallback (CompileReport::invalid) for a gesture with no parallel stamps.
+// `nominalRate` is the resolved asset's sample rate, threaded through to
+// that fallback's TempoMap::sampleAt on the Sample clock (s-rta-0928b
+// plan-sampleat); unused on Wall/Beat and by every stamped gesture.
 std::shared_ptr<const Program> compile(const Take& take, const Composition& comp,
-                                        DriveClock clock, std::optional<Range> range = {});
+                                        DriveClock clock, std::optional<Range> range = {},
+                                        double nominalRate = 0.0);
 
 // compileRoutine -- s-rta-0926 routines slice 1 (plan-routines-s1-final.md 3.4): a routine's
 // Program. Always DriveClock::Beat (x = beats since the fire boundary), `loop` from the routine,

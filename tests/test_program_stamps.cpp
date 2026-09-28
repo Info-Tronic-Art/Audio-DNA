@@ -30,8 +30,12 @@ namespace
 
     // Tempo map = exactly what RecorderClock writes for a steady take: one
     // anchor at 120 BPM. tAt(4) == 2.0, tAt(8) == 4.0 (TempoMap.cpp linear
-    // math); sampleAt(t) == 0 for every t with only one anchor (single-anchor
-    // rate is 0 -- TempoMap.cpp:90-107).
+    // math). A single-anchor map has no segment to derive a slope from, so
+    // sampleAt(t, nominalRate) extrapolates at nominalRate for every t
+    // (TempoMap.cpp:81-108, s-rta-0928b plan-sampleat A1) -- not exercised
+    // by the two cases below, since both gestures carry parallel stamps and
+    // compile() reads x straight off the stamp (see the stampless-fallback
+    // TEST_CASEs below for the Sample-clock nominalRate path).
     void setSteadyTempo(Take& take)
     {
         take.tempo.a = { { 0.0, 0.0, 0, 120.0f, "start" } };
@@ -134,4 +138,65 @@ TEST_CASE("Program::compile falls back to the tempo map and reports it when a ge
     REQUIRE(program->report.invalid.size() == 1);
     REQUIRE(program->report.invalid.front().key == key);
     REQUIRE(program->report.invalid.front().reason.find("stamps") != std::string::npos);
+}
+
+// === s-rta-0928b plan-sampleat: TempoMap::sampleAt's nominalRate fallback (FILED by tempo.md
+// section 8, executed here) -- Program.cpp:451 (convertBeatX) is the only caller, reached only by
+// a stampless gesture on the Sample clock. A2 exercises it through compile(); A3/A4 exercise
+// TempoMap::sampleAt directly. ===
+
+TEST_CASE("Program::compile's Sample-clock fallback uses nominalRate for a single-anchor tempo map", "[program][compile][stamps][tempomap]")
+{
+    // plan-sampleat A2: a single-anchor map has no segment to derive its own slope from, so the
+    // fallback must extrapolate at nominalRate (48 kHz here) rather than freezing at the anchor's
+    // sample. Before the fix, all three points below compiled to 150016 (the anchor's own sample).
+    Composition comp;
+    comp.initDefault();
+
+    const ControlPath key = makeOpacityKey();
+
+    Take take;
+    take.nextSeq = 1;
+    take.tempo.a = { { 0.0, 0.0, 150016, 120.0f, "start" } };
+
+    Lane lane;
+    lane.key = key;
+    lane.kind = Lane::Kind::Continuous;
+    lane.gestures = { makeGesture(/*withStamps*/ false) };   // beats {0, 4, 8}, no stamps
+    take.lanes[key] = lane;
+
+    auto program = compile(take, comp, DriveClock::Sample, {}, /*nominalRate*/ 48000.0);
+    REQUIRE(program->continuous.size() == 1);
+    const auto& cg = program->continuous.front().gestures.front();
+    REQUIRE(cg.curve.pts[0].x == Approx(150016.0).margin(1e-9));
+    REQUIRE(cg.curve.pts[1].x == Approx(246016.0).margin(1e-9));
+    REQUIRE(cg.curve.pts[2].x == Approx(342016.0).margin(1e-9));
+}
+
+TEST_CASE("TempoMap::sampleAt uses nominalRate under 1 s, its own slope at 1 s or more", "[tempomap]")
+{
+    // plan-sampleat A3: a short segment's own delivered-sample slope is noisy -- the diagnosis's
+    // 12 ms start/lock pair extrapolated at ~85,000 samples/s (tempo0-diag.md line 17). Below,
+    // the unconditional old slope would be (151037-150016)/0.012 = ~85,083 samples/s; the >= 1 s
+    // rule instead falls back to nominalRate.
+    {
+        TempoMap tempo;
+        tempo.a = {
+            { 0.0,   0.0, 150016, 0.0f,   "start" },
+            { 0.012, 0.0, 151037, 120.0f, "lock"  },
+        };
+        REQUIRE(static_cast<double>(tempo.sampleAt(1.0, /*nominalRate*/ 48000.0))
+                == Approx(151037.0 + 0.988 * 48000.0).margin(1.0));
+    }
+
+    // plan-sampleat A4: a segment spanning >= 1 s still uses its OWN slope (44,100 samples/s
+    // here), never nominalRate (48,000) -- the rule is not "always nominal".
+    {
+        TempoMap tempo;
+        tempo.a = {
+            { 0.0, 0.0, 0,     120.0f, "start"    },
+            { 2.0, 0.0, 88200, 120.0f, "periodic" },
+        };
+        REQUIRE(tempo.sampleAt(1.0, /*nominalRate*/ 48000.0) == 44100);
+    }
 }
