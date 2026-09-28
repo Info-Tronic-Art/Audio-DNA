@@ -1,0 +1,171 @@
+{
+  "format": "audiodna-take",
+  "version": 3,
+  "minReader": 3,
+  "features": [
+    "lanes",
+    "tempoMap",
+    "checkpoint0"
+  ],
+  "meta": {
+    "recordedAt": "2026-09-27T20:48:51.239-04:00",
+    "app": "0.1.0",
+    "duration": 1.546147208326147,
+    "durationBeats": 3.0720001347363
+  },
+  "audio": {
+    "segments": [],
+    "mode": "",
+    "gapDetection": false,
+    "gaps": [],
+    "unreliableFrom": null
+  },
+  "tempoMap": [
+    {
+      "t": 0.0,
+      "beat": 0.0,
+      "sample": 128512,
+      "bpm": 0.0,
+      "why": "start"
+    },
+    {
+      "t": 0.01203954165976,
+      "beat": 0.0,
+      "sample": 129536,
+      "bpm": 120.0,
+      "why": "lock"
+    }
+  ],
+  "checkpoint0": {
+    "activeDeckIndex": 0,
+    "quantizeMode": 0,
+    "bpm": 0.0,
+    "audioAction": "stop",
+    "decks": [
+      {
+        "deck": "Deck 1",
+        "layers": [
+          {
+            "layer": "Layer 1",
+            "activeClipColumn": -1,
+            "previousClipColumn": -1,
+            "crossfadeProgress": 1.0,
+            "pendingTriggerColumn": -1,
+            "pendingTriggerSnapOverride": 0,
+            "opacity": 1.0,
+            "visible": true,
+            "bypassed": false,
+            "solo": false,
+            "muted": false,
+            "autopilotEnabled": false,
+            "effectParams": [],
+            "clips": [],
+            "i": 0
+          },
+          {
+            "layer": "Layer 2",
+            "activeClipColumn": -1,
+            "previousClipColumn": -1,
+            "crossfadeProgress": 1.0,
+            "pendingTriggerColumn": -1,
+            "pendingTriggerSnapOverride": 0,
+            "opacity": 1.0,
+            "visible": true,
+            "bypassed": false,
+            "solo": false,
+            "muted": false,
+            "autopilotEnabled": false,
+            "effectParams": [],
+            "clips": [],
+            "i": 1
+          },
+          {
+            "layer": "Layer 3",
+            "activeClipColumn": -1,
+            "previousClipColumn": -1,
+            "crossfadeProgress": 1.0,
+            "pendingTriggerColumn": -1,
+            "pendingTriggerSnapOverride": 0,
+            "opacity": 1.0,
+            "visible": true,
+            "bypassed": false,
+            "solo": false,
+            "muted": false,
+            "autopilotEnabled": false,
+            "effectParams": [],
+            "clips": [],
+            "i": 2
+          }
+        ],
+        "i": 0
+      }
+    ]
+  },
+  "checkpointEnd": {
+    "activeDeckIndex": 0,
+    "quantizeMode": 0,
+    "bpm": 120.0,
+    "audioAction": "stop",
+    "decks": [
+      {
+        "deck": "Deck 1",
+        "layers": [
+          {
+            "layer": "Layer 1",
+            "activeClipColumn": -1,
+            "previousClipColumn": -1,
+            "crossfadeProgress": 1.0,
+            "pendingTriggerColumn": -1,
+            "pendingTriggerSnapOverride": 0,
+            "opacity": 1.0,
+            "visible": true,
+            "bypassed": false,
+            "solo": false,
+            "muted": false,
+            "autopilotEnabled": false,
+            "effectParams": [],
+            "clips": [],
+            "i": 0
+          },
+          {
+            "layer": "Layer 2",
+            "activeClipColumn": -1,
+            "previousClipColumn": -1,
+            "crossfadeProgress": 1.0,
+            "pendingTriggerColumn": -1,
+            "pendingTriggerSnapOverride": 0,
+            "opacity": 1.0,
+            "visible": true,
+            "bypassed": false,
+            "solo": false,
+            "muted": false,
+            "autopilotEnabled": false,
+            "effectParams": [],
+            "clips": [],
+            "i": 1
+          },
+          {
+            "layer": "Layer 3",
+            "activeClipColumn": -1,
+            "previousClipColumn": -1,
+            "crossfadeProgress": 1.0,
+            "pendingTriggerColumn": -1,
+            "pendingTriggerSnapOverride": 0,
+            "opacity": 1.0,
+            "visible": true,
+            "bypassed": false,
+            "solo": false,
+            "muted": false,
+            "autopilotEnabled": false,
+            "effectParams": [],
+            "clips": [],
+            "i": 2
+          }
+        ],
+        "i": 0
+      }
+    ]
+  },
+  "markers": [],
+  "lanes": []
+}

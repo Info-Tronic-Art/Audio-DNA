@@ -2458,3 +2458,59 @@ target_link_libraries(test_shader_param_lint PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_shader_param_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_shader_param_lint)
 catch_discover_tests(test_shader_param_lint)
+
+# --- test_tempo_start (s-rta-0928 take start race, .harmony/.reports/s-rta-0928/plan-tempo.md): a tempo / Tap /
+# Resync command sent just before Record must be in the take's "start" anchor and bar grid -- the
+# FeatureSnapshot::trackerRequestSeq handshake. test_recorder_host's link set + RoutineSlice.cpp + the REAL
+# BPMTracker (aubio) that scripts the race; two [lint] cases scan AnalysisThread.cpp and MainComponent.cpp,
+# which no ctest compiles.
+add_executable(test_tempo_start
+    test_tempo_start.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+    ${SRC_DIR}/recording/Player.cpp
+    ${SRC_DIR}/recording/RecorderClock.cpp
+    ${SRC_DIR}/recording/PerformanceRecorder.cpp
+    ${SRC_DIR}/recording/AudioTap.cpp
+    ${SRC_DIR}/recording/AudioStore.cpp
+    ${SRC_DIR}/recording/RecorderHost.cpp
+    ${SRC_DIR}/recording/PerfStateCapture.cpp
+    ${SRC_DIR}/recording/RoutineSlice.cpp
+    ${SRC_DIR}/analysis/BPMTracker.cpp
+)
+target_include_directories(test_tempo_start PRIVATE ${SRC_DIR})
+target_link_libraries(test_tempo_start PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_cryptography
+    Aubio::Aubio
+)
+target_compile_definitions(test_tempo_start PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    AUDIODNA_SRC_DIR="${SRC_DIR}"
+)
+if(NOT MSVC)
+    target_compile_options(test_tempo_start PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_tempo_start)
+catch_discover_tests(test_tempo_start)
