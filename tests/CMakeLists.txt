@@ -2352,6 +2352,30 @@ endif()
 apply_sanitizers(test_pixel_convert)
 catch_discover_tests(test_pixel_convert)
 
+# --- test_png_write (s-rta-0927 follow-ups F2): a capture/snapshot written to an existing path REPLACES it
+# (src/render/PngWrite.h). juce::FileOutputStream opens an existing file at its END, so a bare stream write appended
+# a second PNG and decoders returned the old picture. Headless juce::Image, registered like test_pixel_convert.
+add_executable(test_png_write test_png_write.cpp)
+target_include_directories(test_png_write PRIVATE ${SRC_DIR})
+target_link_libraries(test_png_write PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_png_write PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_png_write PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_png_write)
+catch_discover_tests(test_png_write)
+
 # --- s-rta-0927 outputs-c3 (plan5 slice C3, plan5-final.md 9 / 10.1): hot-plug + the wanted output set. Pure,
 # headless, juce_core only.
 # test_output_plan: matchDisplay / diffOutputs (unplug, replug -> reopen, move, MODE change) / sameTargets /
