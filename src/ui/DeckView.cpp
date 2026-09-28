@@ -2,6 +2,7 @@
 
 DeckView::DeckView()
 {
+    thumbnails_.onLanded = [this] { refresh(); };   // s-rta-0928: a thumbnail landed -- waiting cells re-pull
     setOpaque(false);
 
     // Grid viewport for scrollable content
@@ -145,6 +146,7 @@ void DeckView::rebuildGrid()
 
         // Layer strip
         auto strip = std::make_unique<LayerStrip>();
+        strip->setThumbnails(&thumbnails_);
         strip->setLayer(layer, layerIdx);
 
         // Wire callbacks
@@ -183,6 +185,7 @@ void DeckView::rebuildGrid()
         {
             auto cell = std::make_unique<ClipCell>();
             cell->setGridPosition(layerIdx, col);
+            cell->setThumbnails(&thumbnails_);
             cell->setClip(layer->getClipAt(col));
             cell->setActive(layer->activeClipColumn == col);
 

@@ -2514,3 +2514,78 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_tempo_start)
 catch_discover_tests(test_tempo_start)
+
+# --- test_clip_thumbnails (s-rta-0928 restore, plan-restore.md Step 4; restore-diag.md cause 1): ClipThumbnails, the
+# deck grid's image-thumbnail store -- get() never decodes on the calling thread, one decode per file off-thread, a
+# failure waits for a new mtime, an evicted entry comes back, a late completion after the store is gone does nothing,
+# a pending path costs no stat(). Header-only store; juce_gui_basics for ScopedJuceInitialiser_GUI.
+add_executable(test_clip_thumbnails test_clip_thumbnails.cpp)
+target_include_directories(test_clip_thumbnails PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_thumbnails PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_clip_thumbnails PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_clip_thumbnails PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_clip_thumbnails)
+catch_discover_tests(test_clip_thumbnails)
+
+# --- test_deck_thumbnails (s-rta-0928 restore, plan-restore.md Steps 5-6; restore-diag.md cause 1): a DeckView refresh
+# never decodes an image on the calling (message) thread; each image file decodes once, off-thread, shared by every
+# cell and strip; an unchanged cell re-derives nothing. Headless JUCE widgets: test_layer_strip_follows_model's
+# sources + DeckView.cpp / ClipCell.cpp / RoutinePad.cpp (each addition the ONE .cpp that defines a symbol the
+# linker named, never MainComponent.cpp/Renderer.cpp).
+add_executable(test_deck_thumbnails
+    test_deck_thumbnails.cpp
+    ${SRC_DIR}/ui/DeckView.cpp
+    ${SRC_DIR}/ui/ClipCell.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_deck_thumbnails PRIVATE ${SRC_DIR})
+target_link_libraries(test_deck_thumbnails PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_deck_thumbnails PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_deck_thumbnails PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_deck_thumbnails)
+catch_discover_tests(test_deck_thumbnails)

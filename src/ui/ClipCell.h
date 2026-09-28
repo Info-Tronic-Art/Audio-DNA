@@ -3,6 +3,8 @@
 #include "model/Clip.h"
 #include "ui/LookAndFeel.h"
 
+class ClipThumbnails;
+
 // ClipCell: a single cell in the deck grid (layer × column intersection).
 // Two interaction zones:
 //   - Thumbnail area: click = trigger/retrigger clip
@@ -38,9 +40,13 @@ public:
     void setClip(Clip* clip);
     Clip* getClip() const { return clip_; }
 
+    // s-rta-0928: where an Image clip's thumbnail comes from (DeckView's store; set before setClip).
+    void setThumbnails(ClipThumbnails* store) { thumbs_ = store; }
+
     // Set active state (cyan border highlight — this clip is playing)
     void setActive(bool active);
     bool isActive() const { return active_; }
+    bool hasThumbnail() const { return thumbnail_.isValid(); }   // tests
 
     // Set selected state (white border highlight — user has selected for inspection)
     void setSelected(bool selected);
@@ -66,7 +72,7 @@ public:
     std::function<void(int layerIndex, int column, const std::string& presetPath)> onMilkDropDrop; // Single MilkDrop preset
     std::function<void(int layerIndex, int column, const std::vector<std::string>& presetPaths)> onMilkDropPlaylistDrop; // Multi-preset playlist
 
-    // Load/update thumbnail from clip's media file
+    // Update the thumbnail from the clip's media -- never decodes (s-rta-0928)
     void updateThumbnail();
 
 private:
@@ -84,6 +90,10 @@ private:
     bool sourceDragHover_ = false;
 
     juce::Image thumbnail_;
+    // s-rta-0928: what thumbnail_ was made from -- re-derived only when this changes.
+    ClipThumbnails* thumbs_ = nullptr;
+    Clip::MediaType shownType_ = Clip::MediaType::None;
+    juce::String shownPath_;
 
     static constexpr int kNameBarHeight = 20;
 

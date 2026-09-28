@@ -1,4 +1,5 @@
 #include "ui/LayerStrip.h"
+#include "ui/ClipThumbnails.h"
 #include "connect/ConnClock.h"
 #include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's routine cue reads)
 #include <algorithm>
@@ -937,36 +938,27 @@ void LayerStrip::updateButtonStates()
 
 void LayerStrip::updateThumbnail()
 {
-    thumbnail_ = juce::Image();
-    if (!layer_) return;
-
-    auto* clip = layer_->getActiveClip();
-    if (!clip) return;
-
+    // s-rta-0928 (restore-diag.md): NEVER decodes -- the ClipCell rule (an Image clip's picture from DeckView's
+    // ClipThumbnails, a video / sequence's from Clip::thumbnail); rescaled / placeholder drawn only when the active
+    // clip's source or the square's size changed (it used to re-decode or re-rescale on every refresh).
+    const Clip* clip = layer_ != nullptr ? layer_->getActiveClip() : nullptr;
     int sz = thumbnailBounds_.getHeight();
     if (sz < 1) sz = 64;
-
-    // Use cached thumbnail from clip if available (video, image sequence)
-    if (clip->thumbnail.isValid())
-    {
-        thumbnail_ = clip->thumbnail.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
-        repaint(thumbnailBounds_);
+    const auto type = clip != nullptr ? clip->mediaType : Clip::MediaType::None;
+    const bool fxOnly = clip != nullptr && clip->hasEffects() && !clip->hasMedia();
+    const juce::Image cached = clip != nullptr ? clip->thumbnail : juce::Image();
+    const juce::String path = (type == Clip::MediaType::Image && !cached.isValid()) ? clip->mediaFile.getFullPathName()
+                                                                                    : juce::String();
+    if (type == shownType_ && fxOnly == shownFxOnly_ && sz == shownSize_ && path == shownPath_ && cached == shownCached_
+        && (path.isEmpty() || thumbnail_.isValid()))
         return;
-    }
-
-    if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
-    {
-        auto img = juce::ImageFileFormat::loadFrom(clip->mediaFile);
-        if (img.isValid())
-        {
-            thumbnail_ = img.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
-            repaint(thumbnailBounds_);
-            return;
-        }
-    }
-
-    // Generate placeholder thumbnails for Source and FX-only clips
-    if (clip->mediaType == Clip::MediaType::Source || (clip->hasEffects() && !clip->hasMedia()))
+    shownType_ = type; shownFxOnly_ = fxOnly; shownSize_ = sz; shownPath_ = path; shownCached_ = cached;
+    thumbnail_ = juce::Image();
+    const juce::Image source = cached.isValid() ? cached
+                             : (path.isNotEmpty() && thumbs_ != nullptr) ? thumbs_->get(clip->mediaFile) : juce::Image();
+    if (source.isValid())
+        thumbnail_ = source.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
+    else if (type == Clip::MediaType::Source || fxOnly)
     {
         thumbnail_ = juce::Image(juce::Image::ARGB, sz, sz, true);
         juce::Graphics g(thumbnail_);
@@ -986,7 +978,6 @@ void LayerStrip::updateThumbnail()
             g.drawText("FX", thumbnail_.getBounds(), juce::Justification::centred);
         }
     }
-
     repaint(thumbnailBounds_);
 }
 
