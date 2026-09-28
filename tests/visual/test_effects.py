@@ -16,8 +16,9 @@ import numpy as np
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from vision_check import compute_psnr
-from tier1_exceptions import (candidate_values, T_PARAM, arm_audio,
-                              LEGACY_CHAIN_EFFECTS, ANIMATED_INPUT_EFFECTS)
+from tier1_exceptions import (candidate_values, T_PARAM, T_RETRY, arm_audio, FEATURES_ACTIVE,
+                              LEGACY_CHAIN_EFFECTS, LEGACY_CHAIN_PARAMS, ANIMATED_INPUT_EFFECTS,
+                              GATED_EFFECT_PARAMS)
 
 FIXTURES_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "fixtures")
@@ -69,6 +70,10 @@ class TestAllEffectsRender:
             app.set_effect(fx["name"], enabled=True)
             out = str(tmp_path / f"fx_{fx['name'].replace(' ', '_')}.png")
             result = app.render_frame(out, time_val=T_PARAM, width=256, height=256)
+            if result.get("ok") and brightness(out) < 3.0:
+                # One retry at another time before failing: a strobing effect is dark for part of its period
+                out = str(tmp_path / f"fx_{fx['name'].replace(' ', '_')}_t2.png")
+                result = app.render_frame(out, time_val=T_RETRY, width=256, height=256)
             if not result.get("ok"):
                 failures.append(f"{fx['name']}: render failed")
             elif brightness(out) < 3.0:
@@ -101,25 +106,37 @@ class TestAllEffectParams:
             for param in fx.get("params", []):
                 param_name = param["name"]
                 default_val = param.get("default", 0.5)
+                if (fx["name"], param_name) in LEGACY_CHAIN_PARAMS:
+                    continue
+                gate = GATED_EFFECT_PARAMS.get((fx["name"], param_name), ({}, ""))[0]
 
-                # Render at default
+                def arm():
+                    # FEATURES_ACTIVE, plus the structural state that opens this param's gate (if any)
+                    if gate:
+                        app.inject_features({**FEATURES_ACTIVE, **gate})
+                    else:
+                        arm_audio(app)
+
+                # Render at default (a black default -- Strobe's dark half at T_PARAM -- is compared as is:
+                # a candidate that lights it is a change)
                 app.reset()
-                arm_audio(app)
+                arm()
                 load_input(fx["name"])
                 app.set_effect(fx["name"], enabled=True, params={param_name: default_val})
                 def_path = str(tmp_path / f"fx_{fx['name']}_{param_name}_def.png".replace(" ", "_"))
-                app.render_frame(def_path, time_val=T_PARAM, width=256, height=256)
+                t = T_PARAM
+                app.render_frame(def_path, time_val=t, width=256, height=256)
 
                 # Walk the candidate ladder until one visibly changes the output
                 tried = []
                 changed = False
                 for test_val in candidate_values(default_val):
                     app.reset()
-                    arm_audio(app)
+                    arm()
                     load_input(fx["name"])
                     app.set_effect(fx["name"], enabled=True, params={param_name: test_val})
                     test_path = str(tmp_path / f"fx_{fx['name']}_{param_name}_test_{test_val:.2f}.png".replace(" ", "_"))
-                    app.render_frame(test_path, time_val=T_PARAM, width=256, height=256)
+                    app.render_frame(test_path, time_val=t, width=256, height=256)
                     psnr = psnr_between(def_path, test_path)
                     tried.append(f"{test_val} (PSNR={psnr:.1f})")
                     if psnr <= 55.0:   # the old pass rule (fail only when PSNR > 55)

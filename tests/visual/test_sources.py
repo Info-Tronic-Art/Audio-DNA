@@ -15,8 +15,9 @@ import numpy as np
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from vision_check import compute_psnr
-from tier1_exceptions import (is_black, candidate_values, T_PARAM, arm_audio,
-                              BLACK_SOURCES, BLACK_AT_EXTREME)
+from tier1_exceptions import (is_black, candidate_values, T_PARAM, T_RETRY, arm_audio,
+                              BLACK_SOURCES, BLACK_AT_EXTREME, GATED_SOURCE_PARAMS,
+                              DECK_ONLY_SOURCE_PARAMS)
 
 
 def psnr_between(path1, path2):
@@ -49,7 +50,7 @@ class TestAllSourcesRender:
                 # One retry at another time before failing: a strobing source is dark for half its period
                 # (strobe_light: 255 at t = 0/2/10, black at 0.5/1/3/5 -- diag E3). Generic, no name needed.
                 out = str(tmp_path / f"{src['id']}_default_t2.png")
-                result = app.render_frame(out, time_val=2.0, width=256, height=256)
+                result = app.render_frame(out, time_val=T_RETRY, width=256, height=256)
             if not result.get("ok"):
                 failures.append(f"{src['id']}: render failed")
             elif is_black(out):
@@ -69,36 +70,55 @@ class TestAllSourceParams:
             for param in src.get("params", []):
                 uniform = param["uniform"]
                 default_val = param.get("default", 0.5)
-
-                # Render at default
-                app.load_source(src["id"])
-                def_path = str(tmp_path / f"{src['id']}_{uniform}_def.png")
-                app.render_frame(def_path, time_val=T_PARAM, width=256, height=256)
-                if is_black(def_path):
-                    failures.append(f"{src['id']}:{param['name']} default is black")
+                key = (src["id"], uniform)
+                if key in DECK_ONLY_SOURCE_PARAMS:
                     continue
+                gate = GATED_SOURCE_PARAMS.get(key, ({}, ""))[0]
+
+                def render(values, t, tag):
+                    app.load_source(src["id"])
+                    if values:
+                        app.update_source_params(values)
+                    out = str(tmp_path / f"{src['id']}_{uniform}_{tag}_t{t:.2f}.png")
+                    app.render_frame(out, time_val=t, width=256, height=256)
+                    return out
+
+                # Render at default (with the param's gate open, if it has one). A default that is black at
+                # T_PARAM but lit at T_RETRY (a strobe's dark half) is compared at both times: a candidate
+                # that lights the dark T_PARAM frame is a change too.
+                defaults = {T_PARAM: render(gate, T_PARAM, "def")}
+                if is_black(defaults[T_PARAM]):
+                    defaults[T_RETRY] = render(gate, T_RETRY, "def")
+                    if is_black(defaults[T_RETRY]):
+                        failures.append(f"{src['id']}:{param['name']} default is black")
+                        continue
+                times = [T_RETRY, T_PARAM] if T_RETRY in defaults else [T_PARAM]
 
                 # Walk the candidate ladder until one visibly changes the output
                 tried = []
                 passed = False
                 for test_val in candidate_values(default_val):
-                    app.load_source(src["id"])
-                    app.update_source_params({uniform: test_val})
-                    test_path = str(tmp_path / f"{src['id']}_{uniform}_test_{test_val:.2f}.png")
-                    app.render_frame(test_path, time_val=T_PARAM, width=256, height=256)
-                    if is_black(test_path):
-                        if (src["id"], uniform) in BLACK_AT_EXTREME:
-                            tried.append(f"{test_val} (black, listed)")
-                            continue
-                        failures.append(
-                            f"{src['id']}:{param['name']} goes black at {test_val}"
-                        )
-                        passed = None
-                        break
-                    psnr = psnr_between(def_path, test_path)
-                    tried.append(f"{test_val} (PSNR={psnr:.1f})")
-                    if psnr <= 55.0:   # the old pass rule (fail only when PSNR > 55)
-                        passed = True
+                    for t in times:
+                        test_path = render({**gate, uniform: test_val}, t, f"test_{test_val:.2f}")
+                        if is_black(test_path):
+                            if is_black(defaults[t]):
+                                tried.append(f"{test_val}@t{t} (black, default black)")
+                                continue
+                            if key in BLACK_AT_EXTREME:
+                                tried.append(f"{test_val} (black, listed)")
+                                continue
+                            failures.append(
+                                f"{src['id']}:{param['name']} goes black at {test_val}"
+                            )
+                            passed = None
+                            break
+                        psnr = psnr_between(defaults[t], test_path)
+                        tried.append(f"{test_val} (PSNR={psnr:.1f})" if len(times) == 1
+                                     else f"{test_val}@t{t} (PSNR={psnr:.1f})")
+                        if psnr <= 55.0:   # the old pass rule (fail only when PSNR > 55)
+                            passed = True
+                            break
+                    if passed is not False:
                         break
                 if passed is False:
                     failures.append(

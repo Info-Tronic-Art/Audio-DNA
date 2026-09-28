@@ -207,7 +207,7 @@ the named area; this index is triage-only.
 25. VideoRecorder triple-buffer has no mutex on GL thread -- before touching `VideoRecorder::submitFrame()`.
 26. Syphon uses `__has_include` for compile-time detection -- before changing Syphon build/detection logic.
 27. Effect defaults must be visible on first add -- before setting any new effect's primary param default.
-28. Eyes render_frame doesn't apply effect chain -- before relying on Eyes captures to verify effect rendering.
+28. Eyes `set_effect` drives the legacy effect chain, not the deck compositor -- before relying on Eyes captures to verify clip/layer/global or frame-history effects.
 29. Two rate domains, never assume they are the same (R13) -- before comparing device-rate and analysis-rate sample counts.
 30. Render-side onset consumers must act on the `onsetCount` delta -- before reading `onsetDetected` on the render side.
 31. Bodyless POST must be answered immediately -- before touching the cpp-httplib version/config.
@@ -226,6 +226,7 @@ the named area; this index is triage-only.
 44. Fractal subdivision depth is capped by the canvas (a dyadic canvas aliases every pixel into a hole) -- before adding or deepening a digit/IFS-per-level source.
 45. A registered parameter must be read by its shader (`test_shader_param_lint`; helper lambdas hide dead params; old files reconcile on load) -- before adding a source/effect param or a param-adding helper.
 46. `juce::FileOutputStream` opens an existing file at its END -- before writing any image/binary file to a path that may exist (use `PngWrite::writeReplacing`).
+47. Eyes `load_source` seeds the registry's default params (a cached source keeps its last values) -- before writing or debugging a test that loads a source through 8080.
 
 ---
 

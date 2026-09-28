@@ -25,8 +25,11 @@ Shaders compile but produce broken visuals. C++ tests can't catch: black screens
 
 For **every source** and **every effect**, sweep each parameter at 5 positions (0.0, 0.25, 0.5, 0.75, 1.0):
 
-1. **Not black**: `mean(pixels) > 5` at every position
-2. **Has effect**: Changing the param changes the output (PSNR < 55 vs default)
+1. **Not black**: the brightest 0.5 % of pixels (per-pixel max channel) reach 16 -- `tier1_exceptions.is_black`; a
+   mean threshold called sparse line art "black" (effects keep `mean < 3`)
+2. **Has effect**: Changing the param changes the output (PSNR <= 55 vs default) at one of the candidates
+   `[0.0 if default > 0.3 else 1.0, 0.5, 0.25, the opposite extreme, 0.1]` -- the old value first, then the fallbacks
+   for periodic (2*pi / fract), quantised, toggle-at-0.5 and symmetric-angle params (`candidate_values`)
 3. **No discontinuity**: Adjacent steps have PSNR > 8 (no jump-cuts)
 
 Two ctest gates run with the unit tests (no app, no window) and catch the two defect classes the live sweep
@@ -39,6 +42,16 @@ kept missing (s-rta-0927 source-defects):
   sierpinski on power-of-two canvases, crystal_cavern over 20 s with a grazed crystal drawn, never cut open) and Dot
   Field render visible pictures at their REGISTERED defaults (parsed from the registry), offscreen in a private CGL
   context, pixels decoded.
+
+Harness rules (s-rta-0927 follow-ups F1, `.harmony/.reports/s-rta-0927/tier1-diag.md`, `followups.md`): captures
+run at `t = 1.13` (`T_PARAM`; integer times are no-ops for `sin(2*pi*k*t)` / `fract(k*t)` shaders), and a default that
+is black there but lit at `T_RETRY = 2.0` (a strobe's dark half) is checked at both; a capture is answered only by a
+frame that read its time override (Renderer::captureFrame); `load_source` seeds the registry defaults (Pitfall 47);
+the four 256x256 modules pin the composition to 256x256 (`conftest.py`), so a capture never resizes the canvas and
+resets a stateful source; a constant non-zero feature set (`FEATURES_ACTIVE`) is injected for the non-black / params
+/ time-sweep checks, so audio-native sources and effects are not black in silence (both renders of a param share
+it). Known exceptions and gates live in `tests/visual/tier1_exceptions.py`, each with its reason (a gated param is
+still tested, with its gate open); an app defect is never listed there -- it keeps the test red.
 
 ```bash
 # Sources:
