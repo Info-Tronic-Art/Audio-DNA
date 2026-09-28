@@ -7,7 +7,7 @@ render_frame response is checked; the output dir is fresh per run.
 
 usage: probe-image-load.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-image-load.py <root> <fresh-outdir> [row,row,...]
-rows: i1_layer_1080 i1_layer_4k i2_fade_1080 i2_fade_4k i2m_fade_start_4k i3_capture_after_trigger
+rows: i1_layer_1080 i1_layer_4k i2_fade_1080 i2_fade_4k i2m_fade_start i3_capture_after_trigger
       i3s_capture_after_seq_trigger i4_hold_counters i4m_mask_hold i5_legacy_retrigger i6_sequence_1080
       i7_prefetch_retain
 
@@ -15,6 +15,13 @@ Fixtures (<out>/media, numpy seed 928, PIL compress_level 1): "warm" = a flat co
 resident before the measured window); "cold" = a noisy gradient R = 255x/W, G = 255y/H, B = base (128, or a
 per-frame shift for sequences) + uniform noise in [-64, 64] per channel, alpha 255 -- hard to compress (a slow
 decode, like a photo or worse) yet identifiable after box averaging. Every path is new to the app instance.
+"Slow cold" = the same at 7680x4320 (a ~0.4-0.5 s decode). The rows that must SEE a pending image (i2m, i3, i3s, i4,
+i4m) put a hidden layer 0 of four flat 8192x8192 "fillers" (1 GiB of textures) before the subject layer: from R1.5 a
+composition load prefetches its images in order only while < 1 GiB is resident, so once the fillers are resident the
+subject's images are never prefetched and the first trigger of the slow cold image takes the demand path (pending ->
+hold) whatever the message-thread timing (a load decodes every cell's thumbnail on the message thread: ~1 s for an
+8K image, F15). The row waits until the fillers are resident (no wait on an app without prefetch: they are never
+decoded), triggers col 0 (warm) on layer 1, 1 s, then the cold image.
 Metrics: peak(s, k) = the /api/state key (reset on read) -- a missing key FAILs the row ("k absent: the app predates
 it"); windows are polled every 15 ms keeping the max. dbox(X, Y) = both arrays box-averaged in 16x16 blocks, then
 mean |diff| over RGB (Y is resized to X's shape first when they differ) -- robust to a half-pixel shift, and it
@@ -28,23 +35,23 @@ i1_layer_{1080,4k}: canvas = size; col 0 warm flat, col 1 cold noisy gradient at
   (b) peak_callback_ms absent.
 i2_fade_{1080,4k}: as i1 with transitionSpeed 1.0 (a 1 s dissolve onto the cold image). PASS as i1 (a)(b); (c)
   after 1.5 s the picture is the cold image.
-i2m_fade_start_4k (C1 of the Harmony adoption; RED on main not required -- the defect it guards appears only with an
-  async decode): 4K canvas, col 0 warm, col 1 cold 4K, 1 s dissolve. capA (warm, settled); trig 1; poll
+i2m_fade_start (C1 of the Harmony adoption; RED on main not required -- the defect it guards appears only with an
+  async decode): 1920x1080 canvas, fillers, col 0 warm, col 1 slow cold, 1 s dissolve. trig 0; 1 s; capA (warm); trig 1; poll
   /api/composition until activeClipColumn == 1; f0 at once, f1..f3 back to back; 2 s; capS (cold, settled).
   PASS: fixture dbox(capA, capS) >= fixtureMinD; p(f0) <= i2mFirstMaxP (the dissolve starts when the image lands, it
   never jumps ahead by the decode time); p(f0) <= p(f1) <= p(f2) <= p(f3) + 0.01. Teeth: a build without the
   crossfade pause FAILs p(f0).
-i3_capture_after_trigger (guard + teeth): canvas 1920x1080; col 0 warm flat, col 1 cold 3840x2160. trig 0, 1.5 s,
+i3_capture_after_trigger (guard + teeth): canvas 1920x1080; fillers; col 0 warm flat, col 1 slow cold. trig 0, 1 s,
   capA; trig 1; poll /api/composition every 5 ms until activeClipColumn == 1 (<= 2 s); capN at once; 2 s; capS.
   PASS: fixture dbox(capA, capS) >= fixtureMinD; row dbox(capN, capS) <= boxTol. PASS on main (synchronous decode);
   teeth: the R1.2 build without the capture gate FAILs (capN is the held picture).
 i3s_capture_after_seq_trigger (C3 of the adoption): as i3 with col 1 = a fresh ImageSequence of 3 1080p frames at
   sequenceFps 0.1 (frame 0 shown for 10 s). PASS on main (synchronous decode); teeth: the no-gate build.
-i4_hold_counters: canvas 3840x2160; col 0 warm, col 1 cold 4K. After col 0 settles: s0, trig 1, 1.5 s, s1.
+i4_hold_counters: canvas 3840x2160; fillers; col 0 warm, col 1 slow cold. trig 0; 1 s; s0, trig 1, 2 s, s1.
   PASS: image_hold_frames delta >= 1 AND image_skip_frames delta == 0; images_pending(s1) == 0. Prints the frames
   held. RED on main: fields absent.
 i4m_mask_hold: 4K; layer 0 Opaque = a warm colour image; layer 1 Mask (type 4): col 0 warm mask (left half white),
-  col 1 cold 4K mask. trig both col 0, settle, s0, trig(1, 1), 1.5 s, s1. PASS: hold delta >= 1 AND skip delta == 0.
+  col 1 slow cold mask (after the fillers layer). trig both col 0, 1 s, s0, trig the mask's col 1, 2 s, s1. PASS: hold delta >= 1 AND skip delta == 0.
   No picture check: a held frame never answers a render_frame (the capture gate), so the counters ARE the witness.
 i5_legacy_retrigger: canvas 1920x1080; cols = 2 cold 1080p images; trig 0, 1 s, trig 1, 1 s (both resident);
   quiet; 6 triggers 0,1,0,1,0,1 every 0.5 s while polling. PASS: max peak_callback_ms <= peakMaxMs (prints max
@@ -76,6 +83,8 @@ FIX = json.load(open(os.path.join(ROOT, ".harmony", "probe-image-load.json")))
 PEAK = float(FIX["peakMaxMs"]); TOL = float(FIX["boxTol"]); FMIN = float(FIX["fixtureMinD"])
 SIZES = {k: tuple(v) for k, v in FIX["sizes"].items()}
 LID = FIX["layers"]
+PENDING_ROWS = ("i2m_fade_start", "i3_capture_after_trigger", "i3s_capture_after_seq_trigger", "i4_hold_counters",
+                "i4m_mask_hold")
 MEDIA = os.path.join(OUT, "media")
 PASS = FAIL = 0
 S = requests.Session()
@@ -119,14 +128,18 @@ def flat(w, h, rgb):
 def fixture_plan():
     W1, H1 = SIZES["1080"]; W4, H4 = SIZES["4k"]
     plan = {}
+    WS, HS = SIZES["slow"]
     for r, (w, h) in (("i1_layer_1080", (W1, H1)), ("i1_layer_4k", (W4, H4)), ("i2_fade_1080", (W1, H1)),
-                      ("i2_fade_4k", (W4, H4)), ("i2m_fade_start_4k", (W4, H4)), ("i3_capture_after_trigger", (W4, H4)),
-                      ("i4_hold_counters", (W4, H4)), ("i4m_mask_hold", (W4, H4))):
+                      ("i2_fade_4k", (W4, H4)), ("i2m_fade_start", (WS, HS)), ("i3_capture_after_trigger", (WS, HS)),
+                      ("i4_hold_counters", (WS, HS)), ("i4m_mask_hold", (WS, HS))):
         plan[r] = {f"{r}_cold.png": (w, h, "cold", LID[r])}
     plan["i5_legacy_retrigger"] = {f"i5_cold{j}.png": (W1, H1, "cold", 500 + j) for j in range(2)}
     plan["i3s_capture_after_seq_trigger"] = {f"i3s_seq{j:02d}.png": (W1, H1, "seq", j) for j in range(3)}
     plan["i6_sequence_1080"] = {f"i6_seq{j:02d}.png": (W1, H1, "seq", j) for j in range(int(FIX["sequence"]["frames"]))}
     plan["i7_prefetch_retain"] = {f"i7_cold{j}.png": (W1, H1, "cold", 700 + j) for j in range(6)}
+    FW, FH = SIZES["filler"]
+    for r in PENDING_ROWS:
+        plan.setdefault(r, {}).update({f"filler{k}.png": (FW, FH, "filler", k) for k in range(4)})
     return plan
 
 
@@ -144,6 +157,8 @@ def make_fixtures():
             write_png(name, flat(w, h, (40, 160, 200)))
         elif kind == "mask":
             a = flat(w, h, (0, 0, 0)); a[:, : w // 2, :3] = 255; write_png(name, a)
+        elif kind == "filler":
+            write_png(name, flat(w, h, (30 + 40 * k, 90, 160 - 30 * k)))
         elif kind == "seq":
             write_png(name, noisy(w, h, 300 + k, base_b=(23 * k) % 256))
         else:
@@ -324,6 +339,27 @@ def la():
     return "load avg %.2f %.2f %.2f" % os.getloadavg()
 
 
+def filler_layer():
+    """A hidden layer 0 holding 4 flat 8192x8192 images = 1 GiB of textures. From R1.5 a composition load prefetches its
+    images in order (layer 0 first) only while < 1 GiB is resident: once these four are resident, the subject layer's
+    images (layer 1+) are NOT prefetched -- the first trigger of the cold image takes the demand path (pending -> hold)
+    whatever the message-thread timing. On an app without prefetch they are never decoded (the layer is hidden)."""
+    return layer(900, [clip(900 + k, mpath(f"filler{k}.png")) for k in range(4)], visible=False)
+
+
+def wait_fillers(tag, limit=15.0):
+    t0 = time.time(); s = None
+    while time.time() - t0 < limit:
+        s = state()
+        if s is None or "image_textures" not in s:
+            return   # no prefetch in this app (main / R1.0-R1.1): nothing to wait for
+        if s["image_textures"] >= 4 and s["images_pending"] == 0:
+            print(f"      {tag}: fillers resident after {time.time() - t0:.1f} s ({s['image_texture_mb']:.0f} MB)", flush=True)
+            return
+        time.sleep(0.1)
+    print(f"      {tag}: fillers not all resident after {limit} s: {None if s is None else (s.get('image_textures'), s.get('images_pending'))}", flush=True)
+
+
 # ---------------------------------------------------------------- rows
 def row_layer(tag, size, speed):
     W, H = SIZES[size]; lid = LID[tag]; cold = f"{tag}_cold.png"
@@ -352,13 +388,13 @@ def row_layer(tag, size, speed):
 
 
 def i2m(tag):
-    W, H = SIZES["4k"]; lid = LID[tag]; cold = f"{tag}_cold.png"
-    if not load(tag, [deck(0, [layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(cold))], speed=1.0)])], (W, H)):
+    W, H = SIZES["1080"]; lid = LID[tag]; cold = f"{tag}_cold.png"
+    if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(cold))], speed=1.0)])], (W, H)):
         return
-    time.sleep(1.0); trig(0, 0); time.sleep(1.5)
+    wait_fillers(tag); trig(1, 0); time.sleep(1.0)
     capA = cap(tag + "_A")
-    trig(0, 1)
-    seen = wait_active(0, 1)
+    trig(1, 1)
+    seen = wait_active(1, 1)
     fs = [cap(f"{tag}_f{i}") for i in range(4)]
     time.sleep(2.0)
     capS = cap(tag + "_S")
@@ -377,12 +413,12 @@ def i2m(tag):
 
 def capture_after_trigger(tag, col1_clip):
     W, H = SIZES["1080"]; lid = LID[tag]
-    if not load(tag, [deck(0, [layer(lid, [clip(1, mpath("warm.png")), col1_clip])])], (W, H)):
+    if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), col1_clip])])], (W, H)):
         return
-    time.sleep(1.0); trig(0, 0); time.sleep(1.5)
+    wait_fillers(tag); trig(1, 0); time.sleep(1.0)
     capA = cap(tag + "_A")
-    trig(0, 1)
-    seen = wait_active(0, 1)
+    trig(1, 1)
+    seen = wait_active(1, 1)
     t0 = time.time(); capN = cap(tag + "_N"); tn = time.time() - t0
     time.sleep(2.0)
     capS = cap(tag + "_S")
@@ -397,10 +433,10 @@ def capture_after_trigger(tag, col1_clip):
 
 def i4(tag):
     W, H = SIZES["4k"]; lid = LID[tag]
-    if not load(tag, [deck(0, [layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(f"{tag}_cold.png"))])])], (W, H)):
+    if not load(tag, [deck(0, [filler_layer(), layer(lid, [clip(1, mpath("warm.png")), clip(2, mpath(f"{tag}_cold.png"))])])], (W, H)):
         return
-    time.sleep(1.0); trig(0, 0); time.sleep(1.5)
-    s0 = state(); trig(0, 1); time.sleep(1.5); s1 = state()
+    wait_fillers(tag); trig(1, 0); time.sleep(1.0)
+    s0 = state(); trig(1, 1); time.sleep(2.0); s1 = state()
     keys = ("image_hold_frames", "image_skip_frames", "images_pending")
     if any(counter(sx, k) is None for sx in (s0, s1) for k in keys):
         no(f"{tag}: /api/state has no {keys} (the app predates them)"); return
@@ -415,10 +451,10 @@ def i4m(tag):
     W, H = SIZES["4k"]; lid = LID[tag]
     base = layer(lid - 1, [clip(1, mpath("warm2.png"))])
     mask = layer(lid, [clip(2, mpath("mask_warm.png")), clip(3, mpath(f"{tag}_cold.png"))], ltype=4)
-    if not load(tag, [deck(0, [base, mask], ncols=2)], (W, H)):
+    if not load(tag, [deck(0, [filler_layer(), base, mask], ncols=4)], (W, H)):
         return
-    time.sleep(1.0); trig(0, 0); trig(1, 0); time.sleep(1.5)
-    s0 = state(); trig(1, 1); time.sleep(1.5); s1 = state()
+    wait_fillers(tag); trig(1, 0); trig(2, 0); time.sleep(1.0)
+    s0 = state(); trig(2, 1); time.sleep(2.0); s1 = state()
     keys = ("image_hold_frames", "image_skip_frames")
     if any(counter(sx, k) is None for sx in (s0, s1) for k in keys):
         no(f"{tag}: /api/state has no {keys} (the app predates them)"); return
@@ -517,7 +553,7 @@ def main():
             ("i1_layer_4k", lambda: row_layer("i1_layer_4k", "4k", 0.0)),
             ("i2_fade_1080", lambda: row_layer("i2_fade_1080", "1080", 1.0)),
             ("i2_fade_4k", lambda: row_layer("i2_fade_4k", "4k", 1.0)),
-            ("i2m_fade_start_4k", lambda: i2m("i2m_fade_start_4k")),
+            ("i2m_fade_start", lambda: i2m("i2m_fade_start")),
             ("i3_capture_after_trigger", lambda: capture_after_trigger(
                 "i3_capture_after_trigger", clip(2, mpath("i3_capture_after_trigger_cold.png")))),
             ("i3s_capture_after_seq_trigger", lambda: capture_after_trigger(
