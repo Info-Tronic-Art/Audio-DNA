@@ -1125,6 +1125,7 @@ TEST_CASE("RoutineEngine glide G5: a loop eases back to its start look over the 
     CHECK(rig.fd.lastSet(op1) == Approx(0.65f));
     rig.runTo(7.9375);
     const float gestureLast = rig.fd.lastSet(op0);    // where the recording's own hand left op0
+    CHECK(gestureLast < 0.9f);   // the last tick inside the gesture caught it short of its recorded end
     CHECK(rig.fd.count(Ev::Touch, op0) == 2);         // the start's glide + cycle 1's gesture
     const size_t at8 = rig.fd.log.size();
     rig.runTo(8.0);                                   // the loop point
@@ -1134,12 +1135,14 @@ TEST_CASE("RoutineEngine glide G5: a loop eases back to its start look over the 
         checkEvent(ev1[0], Ev::Set, op1);
         CHECK(ev1[0].v == Approx(0.4f));
         checkEvent(ev1[1], Ev::Release, op1);
-        const auto ev0 = rig.fd.on(op0, at8);         // op0 was held to the end: a quarter-beat spill after it
-        REQUIRE(ev0.size() == 3);
-        checkEvent(ev0[0], Ev::Release, op0);         // the gesture's end first
-        checkEvent(ev0[1], Ev::Touch, op0);
-        checkEvent(ev0[2], Ev::Set, op0);
-        CHECK(ev0[2].v == Approx(gestureLast));
+        const auto ev0 = rig.fd.on(op0, at8);         // op0 held to the end: its end lands, then a quarter-beat spill
+        REQUIRE(ev0.size() == 4);
+        checkEvent(ev0[0], Ev::Set, op0);             // s-rta-0928: the gesture's recorded end (0.9) first ...
+        CHECK(ev0[0].v == Approx(0.9f));
+        checkEvent(ev0[1], Ev::Release, op0);         // ... then it lets go
+        checkEvent(ev0[2], Ev::Touch, op0);
+        checkEvent(ev0[3], Ev::Set, op0);
+        CHECK(ev0[3].v == Approx(0.9f));              // the glide starts where the recording left op0: its end
         const auto s = rig.slot(0);
         CHECK(s.cycle == 2);
         CHECK(s.preambleFired == 4);
@@ -1516,13 +1519,15 @@ TEST_CASE("RoutineEngine restore style J2: a Jump loop snaps back ON the loop po
         checkEvent(ev1[1], Ev::Set, op1);
         CHECK(ev1[1].v == Approx(0.4f));
         checkEvent(ev1[2], Ev::Release, op1);
-        const auto ev0 = rig.fd.on(op0, at8);         // held to the end: released, then set straight to 0.1
-        REQUIRE(ev0.size() == 4);                     // Ease (G5): Release, Touch, Set(gestureLast) -- a spill
-        checkEvent(ev0[0], Ev::Release, op0);
-        checkEvent(ev0[1], Ev::Touch, op0);
-        checkEvent(ev0[2], Ev::Set, op0);
-        CHECK(ev0[2].v == Approx(0.1f));
-        checkEvent(ev0[3], Ev::Release, op0);
+        const auto ev0 = rig.fd.on(op0, at8);         // held to the end: its end lands and lets go, then set straight to 0.1
+        REQUIRE(ev0.size() == 5);                     // s-rta-0928: Set(0.9) (the gesture's end), Release, then the Jump restore
+        checkEvent(ev0[0], Ev::Set, op0);
+        CHECK(ev0[0].v == Approx(0.9f));
+        checkEvent(ev0[1], Ev::Release, op0);
+        checkEvent(ev0[2], Ev::Touch, op0);
+        checkEvent(ev0[3], Ev::Set, op0);
+        CHECK(ev0[3].v == Approx(0.1f));
+        checkEvent(ev0[4], Ev::Release, op0);
         const auto s = rig.slot(0);
         CHECK(s.cycle == 2);
         CHECK(s.preambleFired == 4);
@@ -2244,4 +2249,94 @@ TEST_CASE("RoutineEngine: a looping routine folds every whole cycle a tick gap c
     CHECK(rig.fd.firedLanePoints(clipKey, 3) == 2);
     CHECK(rig.slot(0).cycle == 4);
     CHECK(rig.fd.count(Ev::Touch, op1) == 2);
+}
+
+// s-rta-0928 (restore-diag.md cause 2): a stall that steps over a whole recorded move (touched and closed in ONE tick)
+// used to touch and release it unwritten -- the knob stayed where it was. The move's end value now lands before the
+// release. The diag's 450 ms arm: a 0.26-beat one-write gesture, a 0.456 s (0.91-beat) tick gap across it.
+TEST_CASE("RoutineEngine: a tick gap that steps over a whole recorded move still lands it", "[routine][engine][stall]")
+{
+    const ControlPath op0 = opacityKey(0);
+    Routine r = makeRoutine("m", 8.0, Clip::BeatSnapMode::Off, false);
+    r.lanes[op0] = continuousLane(op0, { gesture(1.173, 0.5f, 1.707, 0.5f) });
+
+    Rig rig;
+    addToBank(rig.comp, r, 0);
+    rig.tick();
+    rig.runTo(4.0);
+    CHECK(rig.fire(0).empty());                       // Off: starts now, startBeat 4.0
+    CHECK(rig.slot(0).state == "running");
+    rig.runTo(4.9375);
+    const size_t mark = rig.fd.log.size();
+
+    SECTION("the gap spans the whole move")
+    {
+        rig.beat = 5.85;                              // routine position 0.94 -> 1.85
+        rig.tick();
+        const auto ev = rig.fd.on(op0, mark);
+        REQUIRE(ev.size() == 3);
+        checkEvent(ev[0], Ev::Touch, op0);
+        checkEvent(ev[1], Ev::Set, op0);
+        CHECK(ev[1].v == Approx(0.5f));
+        checkEvent(ev[2], Ev::Release, op0);
+        CHECK(rig.fd.lastSet(op0) == Approx(0.5f));
+        CHECK(rig.slot(0).yielded == 0);
+    }
+    SECTION("control: the gap lands inside the move")
+    {
+        rig.beat = 5.25;                              // routine position 1.25: inside [1.173, 1.707]
+        rig.tick();
+        rig.runTo(5.75);
+        CHECK(rig.fd.lastSet(op0) == Approx(0.5f));
+        CHECK(rig.fd.count(Ev::Release, op0) == 1);
+    }
+}
+
+// s-rta-0928 (Harmony adoption D5): the end value a gesture close now writes passes the owner check like any in-gesture
+// write. Routine A holds layer 0's opacity over [0, 4]; routine B (fired after A, so ticked after it) begins a gesture on
+// the same knob one tick before A's end. A's end-value write is REFUSED -- no write, no release of B's grip -- and counts
+// as A's one yield, exactly as a refused in-gesture write does in the D9 stacking tests above.
+TEST_CASE("RoutineEngine: a gesture's end value is refused when a later routine took the knob just before it",
+          "[routine][engine][stacking][stall]")
+{
+    Rig rig;
+    const ControlPath key = opacityKey(0);
+    Routine a = makeRoutine("A", 16.0, Clip::BeatSnapMode::Bar, false);
+    a.lanes[key] = continuousLane(key, { gesture(0.0, 0.2f, 4.0, 0.2f) });
+    Routine b = makeRoutine("B", 16.0, Clip::BeatSnapMode::Bar, false);
+    b.lanes[key] = continuousLane(key, { gesture(3.9375, 0.8f, 6.0, 0.8f) });
+    addToBank(rig.comp, a, 0);
+    addToBank(rig.comp, b, 1);
+    rig.tick();
+    CHECK(rig.fire(0).empty());
+    CHECK(rig.fire(1).empty());
+    rig.runTo(4.0);                                   // both start on bar 11, same tick
+    rig.runTo(7.875);
+    CHECK(rig.fd.lastSet(key) == Approx(0.2f));       // A's hand until B begins
+    const size_t atB = rig.fd.log.size();
+    rig.runTo(7.9375);                                // routine beat 3.9375: A writes 0.2, then B touches and writes 0.8
+    {
+        const auto ev = rig.fd.on(key, atB);
+        REQUIRE(ev.size() == 3);
+        checkEvent(ev[0], Ev::Set, key);
+        CHECK(ev[0].v == Approx(0.2f));
+        checkEvent(ev[1], Ev::Touch, key);
+        checkEvent(ev[2], Ev::Set, key);
+        CHECK(ev[2].v == Approx(0.8f));
+    }
+    CHECK(rig.slot(0).yielded == 0);
+    const size_t atEnd = rig.fd.log.size();
+    rig.runTo(8.0);                                   // A's end: its end value 0.2 is refused -- B's write only
+    {
+        const auto ev = rig.fd.on(key, atEnd);
+        REQUIRE(ev.size() == 1);
+        checkEvent(ev[0], Ev::Set, key);
+        CHECK(ev[0].v == Approx(0.8f));
+    }
+    CHECK(rig.slot(0).yielded == 1);                  // A yielded once (the stacking tests' count)
+    CHECK(rig.slot(1).yielded == 0);
+    CHECK(rig.fd.count(Ev::Release, key) == 0);       // A never lets go of B's grip
+    rig.runTo(10.0);                                  // B's end: its own end value, then its release
+    CHECK(rig.fd.lastSet(key) == Approx(0.8f));
+    CHECK(rig.fd.count(Ev::Release, key) == 1);
 }

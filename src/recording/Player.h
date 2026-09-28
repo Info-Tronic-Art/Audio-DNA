@@ -48,7 +48,9 @@ public:
     // epsilon, any decrease triggers it. A caller that wants a deliberate
     // FORWARD jump WITHOUT catch-up (D3's exactly-once semantics fire
     // every skipped discrete event as a burst otherwise) MUST call
-    // `seek()` explicitly first.
+    // `seek()` explicitly first. A gesture whose end `pos` has reached
+    // lands its end value (the curve at x1) before its release -- a stall
+    // never drops a recorded move's final state (s-rta-0928).
     void advanceTo(double pos, Sink& sink);
 
     // Re-seats every cursor at `pos` without firing anything and without

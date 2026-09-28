@@ -127,7 +127,8 @@ struct RoutineEngine::SlotSink : Sink
         auto it = eng.laneOwner_.find(key);
         if (it != eng.laneOwner_.end() && it->second != slot)
         {
-            ++yielded;   // once per gesture: the Player never calls set() again for a displaced gesture
+            ++yielded;   // once per gesture: a refused set() -- in-gesture, or the end value a gesture close writes
+                         // (s-rta-0928) -- displaces it, and the Player never calls set() again for a displaced gesture
             return false;
         }
         if (!eng.dispatch.set)
