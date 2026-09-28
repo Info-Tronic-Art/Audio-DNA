@@ -118,11 +118,14 @@ namespace
         bool refuseTouch = false;
         bool refuseSet = false;
         int reads = 0;                         // s-rta-0926b routines-followup: `read` calls (a Jump routine makes none)
+        int preambleFireSleepMs = 0;           // s-rta-0928: a restore's discrete fire takes this long (H1)
 
         void wire(RoutineEngine& eng)
         {
             eng.dispatch.fire = [this](const Fired& f) {
                 log.push_back({ Ev::Fire, f.key, static_cast<float>(f.p.v), f.p.origin });
+                if (preambleFireSleepMs > 0 && f.p.origin == Origin::Preamble)
+                    juce::Thread::sleep(preambleFireSleepMs);
                 return true;
             };
             eng.dispatch.touch = [this](const ControlPath& k, const std::string&) {
@@ -2339,4 +2342,57 @@ TEST_CASE("RoutineEngine: a gesture's end value is refused when a later routine 
     rig.runTo(10.0);                                  // B's end: its own end value, then its release
     CHECK(rig.fd.lastSet(key) == Approx(0.8f));
     CHECK(rig.fd.count(Ev::Release, key) == 1);
+}
+
+// s-rta-0928 (restore-diag.md): /api/routine/status bank[].holdMs / holdMsMax -- how long a start and every loop
+// return held the engine (the message thread), measured on the engine's steady clock around the restore and that
+// tick's replay. A restore whose discrete fire takes 20 ms must publish >= 20 ms.
+TEST_CASE("RoutineEngine: a start and every loop return publish how long they held the engine", "[routine][engine][hold]")
+{
+    const ControlPath clipKey = layerKey(0, "activeClip");
+    Routine r = makeRoutine("h", 4.0, Clip::BeatSnapMode::Bar, true);
+    r.restoreStyle = Routine::RestoreStyle::Jump;     // no glides: the whole restore lands in the boundary tick
+    Routine::PreambleEntry restoreClip; restoreClip.key = clipKey; restoreClip.v = 2;
+    r.preamble = { restoreClip };
+
+    SECTION("restore on: the start and the loop return each hold >= the restore's 20 ms")
+    {
+        Rig rig;
+        addToBank(rig.comp, r, 0);
+        rig.fd.preambleFireSleepMs = 20;
+        rig.tick();
+        CHECK(rig.fire(0).empty());
+        CHECK(rig.slot(0).state == "pending");
+        CHECK(rig.slot(0).holdMs == -1.0);
+        CHECK(rig.slot(0).holdMsMax == -1.0);
+        rig.runTo(4.0);                               // the start, on bar 11
+        {
+            const auto s = rig.slot(0);
+            CHECK(s.state == "running");
+            CHECK(s.holdMs >= 20.0);
+            CHECK(s.holdMs < 2000.0);
+            CHECK(s.holdMsMax == s.holdMs);
+        }
+        rig.runTo(8.0);                               // the loop return
+        {
+            const auto s = rig.slot(0);
+            CHECK(s.cycle == 2);
+            CHECK(s.holdMs >= 20.0);
+            CHECK(s.holdMsMax >= s.holdMs);
+        }
+    }
+    SECTION("restore off: the start holds under the restore's 20 ms")
+    {
+        r.restoreState = false;
+        Rig rig;
+        addToBank(rig.comp, r, 0);
+        rig.fd.preambleFireSleepMs = 20;
+        rig.tick();
+        CHECK(rig.fire(0).empty());
+        rig.runTo(4.0);
+        const auto s = rig.slot(0);
+        CHECK(s.state == "running");
+        CHECK(s.holdMs >= 0.0);
+        CHECK(s.holdMs < 20.0);
+    }
 }
