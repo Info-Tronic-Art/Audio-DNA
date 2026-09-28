@@ -46,8 +46,13 @@ public:
 
     // sample(t): linear between the bracketing anchors' own (t, sample)
     // readings (D10's delivered-sample counter is the source, not a
-    // device-rate computation -- the anchors already carry real readings).
-    uint64_t sampleAt(double t) const;
+    // device-rate computation -- the anchors already carry real readings) --
+    // but only when that segment spans >= 1 s of t. A shorter segment (a 12
+    // ms start/lock pair can imply ~85,000 samples/s) or a single-anchor map
+    // (no segment to measure at all) extrapolates at `nominalRate` instead
+    // (the resolved asset's sample rate; s-rta-0928b plan-sampleat A1,
+    // FILED by tempo.md section 8).
+    uint64_t sampleAt(double t, double nominalRate) const;
 
     juce::var toVar() const;
     static TempoMap fromVar(const juce::var& v);

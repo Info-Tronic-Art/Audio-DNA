@@ -780,7 +780,10 @@ RecorderHost::PlayResult RecorderHost::play(PlayMode mode, const Composition& co
     }
 
     const DriveClock clock = (mode == PlayMode::WithAudio) ? DriveClock::Sample : DriveClock::Wall;
-    program_ = compile(*loadedTake_, comp, clock);
+    // nominalRate: the resolved asset's rate, for the Sample-clock's stampless-gesture fallback
+    // (plan-sampleat A1) -- always present here, since WithAudio already refused above unless
+    // loadedAudio_ is Resolved/ResolvedUnverified; unused on the Wall clock.
+    program_ = compile(*loadedTake_, comp, clock, {}, loadedAudio_.asset.rate);
     sink_ = std::make_unique<HostSink>(*this, mode);
     player_ = std::make_unique<Player>(program_);
 

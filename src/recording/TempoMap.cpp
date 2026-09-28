@@ -78,7 +78,7 @@ double TempoMap::tAt(double beat) const
     return anc.t + (beat - anc.beat) * (60.0 / static_cast<double>(anc.bpm));
 }
 
-uint64_t TempoMap::sampleAt(double t) const
+uint64_t TempoMap::sampleAt(double t, double nominalRate) const
 {
     if (a.empty()) return 0;
     const size_t lo = bracketByTime(a, t);
@@ -86,20 +86,23 @@ uint64_t TempoMap::sampleAt(double t) const
 
     // Rate from the segment this anchor starts (anc -> next), or from the
     // PRECEDING segment if this is the last anchor -- holds the last known
-    // rate rather than freezing to a flat line beyond the take's end.
-    double rate = 0.0;
+    // rate rather than freezing to a flat line beyond the take's end. Used
+    // only when that segment spans >= 1 s of t; a shorter segment, or a
+    // single-anchor map (neither branch below ever triggers), extrapolates
+    // at `nominalRate` instead (plan-sampleat A1 -- never rate 0).
+    double rate = nominalRate;
     if (lo + 1 < a.size())
     {
         const TempoAnchor& next = a[lo + 1];
         const double dt = next.t - anc.t;
-        if (dt > 1e-9)
+        if (dt >= 1.0)
             rate = (static_cast<double>(next.sample) - static_cast<double>(anc.sample)) / dt;
     }
     else if (lo > 0)
     {
         const TempoAnchor& prev = a[lo - 1];
         const double dt = anc.t - prev.t;
-        if (dt > 1e-9)
+        if (dt >= 1.0)
             rate = (static_cast<double>(anc.sample) - static_cast<double>(prev.sample)) / dt;
     }
 
