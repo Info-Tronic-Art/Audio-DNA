@@ -6,6 +6,8 @@
 #include "ui/RoutineDeckView.h"
 #include <vector>
 
+class ClipThumbnails;
+
 // LayerStrip: Resolume-style layer header — flat, dense, machine-like.
 //
 // Layout:
@@ -36,8 +38,11 @@ public:
     void setLayer(Layer* layer, int index);
     Layer* getLayer() const { return layer_; }
     int getLayerIndex() const { return layerIndex_; }
+    bool hasThumbnail() const { return thumbnail_.isValid(); }   // tests
 
     void refresh();
+    // s-rta-0928: where an Image clip's thumbnail comes from (DeckView's store; set before setLayer).
+    void setThumbnails(ClipThumbnails* store) { thumbs_ = store; }
 
     // s-rta-0927 routine display (plan-routine-display-A.md 2.5): pull the V fader (opacity; eff() when
     // connected) and the S fader (the active clip's speed) from the model -- a routine, REST, MIDI or OSC
@@ -128,6 +133,13 @@ private:
     // Thumbnail (painted manually)
     juce::Image thumbnail_;
     juce::Rectangle<int> thumbnailBounds_;
+    // s-rta-0928: what thumbnail_ was made from -- re-derived (rescaled / placeholder drawn) only when this changes.
+    ClipThumbnails* thumbs_ = nullptr;
+    Clip::MediaType shownType_ = Clip::MediaType::None;
+    bool shownFxOnly_ = false;
+    int shownSize_ = 0;
+    juce::String shownPath_;
+    juce::Image shownCached_;   // the Clip::thumbnail it rescaled (identity; holding it rules out a reused address)
 
     // Name + clip name + transport display (painted manually)
     juce::Rectangle<int> nameBounds_;

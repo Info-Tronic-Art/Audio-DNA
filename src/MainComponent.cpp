@@ -5813,6 +5813,8 @@ juce::var MainComponent::routineStatusVar() const
         p->setProperty("skipped", sl.skipped);
         p->setProperty("yielded", sl.yielded);
         p->setProperty("glides", sl.glides);   // s-rta-0926b plan3 C: restore glides started, not yet released
+        p->setProperty("holdMs", sl.holdMs);         // s-rta-0928: the last start / loop return's message-thread hold (ms; -1 none)
+        p->setProperty("holdMsMax", sl.holdMsMax);   // ... and the longest this run
         // s-rta-0927 routine display: where a pending/running routine plays (idle: -1 / [] / false / 0 / "")
         p->setProperty("deck", sl.deck);
         juce::Array<juce::var> layers;

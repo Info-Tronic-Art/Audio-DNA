@@ -187,7 +187,7 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 | 38 | POST | /api/routine/stop | `{"slot":N}` or `{"all":true}` — stop() / stopAll(), releases every grip the routine holds |
 | 39 | POST | /api/routine/set | edit a saved routine's `loop`/`restoreState`/`quantize`/`name` (any subset) |
 | 40 | POST | /api/routine/remove | free a bank pad; erases the routine unless another pad still references it |
-| 41 | GET | /api/routine/status | clock beat, per-slot state (empty/idle/pending/running), lanes/preamble/stacking counters, lastSaved/lastError |
+| 41 | GET | /api/routine/status | clock beat, per-slot state (empty/idle/pending/running), lanes/preamble/stacking counters, holdMs/holdMsMax (s-rta-0928), lastSaved/lastError |
 | 42 | POST | /api/set_clip_param | per-clip field write, active deck: `{"layer","column","param":"fitMode","value":0\|1\|2}` (Stretch/Bars/Crop; other params -> "unknown param"); message thread, ok:true once well-formed, not undo-recorded; `/api/composition` reads `fitMode` back per clip (s-rta-0926b plan-fitmode) |
 
 The 7 `handlePerfRecord`/`handlePerfStop`/`handlePerfLoad`/`handlePerfPlay`/`handlePerfStopPlay`/

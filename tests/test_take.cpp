@@ -63,6 +63,7 @@ namespace
         std::vector<std::pair<ControlPath, std::string>> touches;
         std::vector<std::pair<ControlPath, float>> sets;
         std::vector<ControlPath> releases;
+        std::string order;   // s-rta-0928: 'T' / 'S' / 'R' per touch / set / release, in call order
         bool refuseNextTouch = false;
         bool refuseNextSet = false;
 
@@ -71,6 +72,7 @@ namespace
         bool touch(const ControlPath& k, const std::string& grip) override
         {
             touches.emplace_back(k, grip);
+            order += 'T';
             if (refuseNextTouch) { refuseNextTouch = false; return false; }
             return true;
         }
@@ -78,11 +80,12 @@ namespace
         bool set(const ControlPath& k, float v) override
         {
             sets.emplace_back(k, v);
+            order += 'S';
             if (refuseNextSet) { refuseNextSet = false; return false; }
             return true;
         }
 
-        void release(const ControlPath& k) override { releases.push_back(k); }
+        void release(const ControlPath& k) override { releases.push_back(k); order += 'R'; }
     };
 }
 
@@ -589,6 +592,104 @@ TEST_CASE("Player::stop releases every held gesture", "[player]")
     const size_t setsBefore = sink.sets.size();
     player.advanceTo(0.7, sink);   // stopped -- no further dispatch at all
     REQUIRE(sink.sets.size() == setsBefore);
+}
+
+// === s-rta-0928 (restore-diag.md cause 2): a tick past a gesture's end lands its END value before the release -- a
+//     stall that steps over a whole recorded move, or over its tail, never drops the move's final state ===
+
+namespace
+{
+    // One continuous opacity lane on layer 0 carrying `gestures`, beat-driven.
+    std::shared_ptr<Program> stallProgram(std::vector<ContLane::G> gestures)
+    {
+        ControlPath key = layerKey(0, "scalar"); key.scalar = "opacity";
+        ContLane cl; cl.key = key; cl.gestures = std::move(gestures);
+        auto prog = std::make_shared<Program>();
+        prog->clock = DriveClock::Beat;
+        prog->continuous.push_back(cl);
+        return prog;
+    }
+
+    ContLane::G flatGesture(double x0, double x1, float v)
+    {
+        ContLane::G g; g.grip = "held"; g.x0 = x0; g.x1 = x1;
+        g.curve.pts = { { x0, v, Breakpoint::Interp::Linear }, { x1, v, Breakpoint::Interp::Linear } };
+        return g;
+    }
+}
+
+TEST_CASE("Player: a gesture stepped over in one advanceTo lands its end value, then releases", "[player][stall]")
+{
+    Player player(stallProgram({ flatGesture(1.173, 1.707, 0.5f) }));   // a one-write REST gesture (restore-diag F5)
+    FakeSink sink;
+    player.start(0.0);
+    player.advanceTo(0.92, sink);
+    player.advanceTo(1.85, sink);   // the stall steps over the whole move
+
+    REQUIRE(sink.touches.size() == 1);
+    REQUIRE(sink.sets.size() == 1);
+    CHECK(sink.sets[0].second == Approx(0.5f));
+    REQUIRE(sink.releases.size() == 1);
+    CHECK(sink.order == "TSR");
+}
+
+TEST_CASE("Player: several gestures stepped over in one call land in order; the last wins", "[player][stall]")
+{
+    Player player(stallProgram({ flatGesture(1.0, 1.2, 0.3f), flatGesture(1.4, 1.6, 0.7f) }));
+    FakeSink sink;
+    player.start(0.0);
+    player.advanceTo(0.5, sink);
+    player.advanceTo(2.0, sink);
+
+    REQUIRE(sink.sets.size() == 2);
+    CHECK(sink.sets[0].second == Approx(0.3f));
+    CHECK(sink.sets[1].second == Approx(0.7f));
+    CHECK(sink.order == "TSRTSR");
+}
+
+TEST_CASE("Player: a stall over a gesture's tail lands the recorded end, not the last tick's value", "[player][stall]")
+{
+    ContLane::G g; g.grip = "held"; g.x0 = 0.0; g.x1 = 1.0;
+    g.curve.pts = { { 0.0, 0.0f, Breakpoint::Interp::Linear }, { 1.0, 1.0f, Breakpoint::Interp::Linear } };
+    Player player(stallProgram({ g }));
+    FakeSink sink;
+    player.start(0.0);
+    player.advanceTo(0.5, sink);
+    player.advanceTo(1.4, sink);   // the stall steps over the ramp's second half
+
+    REQUIRE_FALSE(sink.sets.empty());
+    CHECK(sink.sets.back().second == Approx(1.0f));
+    CHECK(sink.releases.size() == 1);
+}
+
+TEST_CASE("Player: a refused touch on a stepped-over gesture writes and releases nothing", "[player][stall]")
+{
+    Player player(stallProgram({ flatGesture(1.173, 1.707, 0.5f) }));
+    FakeSink sink;
+    player.start(0.0);
+    player.advanceTo(0.92, sink);
+    sink.refuseNextTouch = true;
+    player.advanceTo(1.85, sink);
+
+    CHECK(sink.touches.size() == 1);
+    CHECK(sink.sets.empty());
+    CHECK(sink.releases.empty());
+}
+
+TEST_CASE("Player: a refused END write releases nothing", "[player][stall]")
+{
+    ContLane::G g; g.grip = "held"; g.x0 = 0.0; g.x1 = 1.0;
+    g.curve.pts = { { 0.0, 0.0f, Breakpoint::Interp::Linear }, { 1.0, 1.0f, Breakpoint::Interp::Linear } };
+    Player player(stallProgram({ g }));
+    FakeSink sink;
+    player.start(0.0);
+    player.advanceTo(0.5, sink);
+    sink.refuseNextSet = true;   // another hand has the knob by the end
+    player.advanceTo(1.2, sink);
+
+    REQUIRE(sink.sets.size() == 2);
+    CHECK(sink.sets.back().second == Approx(1.0f));
+    CHECK(sink.releases.empty());
 }
 
 // === Lane E: RecorderClock periodic tempo anchor (review fix c) + Player

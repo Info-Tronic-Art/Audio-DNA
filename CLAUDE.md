@@ -225,6 +225,7 @@ the named area; this index is triage-only.
 48. A tempo command reaches the analysis snapshot only at the next hop -- before acting on "everything sent before X" (a take's t = 0 and bar grid), compare `FeatureSnapshot::trackerRequestSeq` with `BPMTracker::postedRequestSeq()` read at X.
 49. A polar complex power at z = 0 is NaN on this GPU -- before adding a pow/atan complex step (guard the angle; render the default before/after).
 50. A point-cloud IFS DE draws sub-pixel specks -- before adding an IFS source or its Iterations / Cross Section range (iteration floor).
+51. A deck-grid refresh never decodes a file (image thumbnails come from DeckView's ClipThumbnails) -- before touching ClipCell/LayerStrip thumbnails.
 
 ---
 

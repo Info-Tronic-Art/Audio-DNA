@@ -84,6 +84,10 @@ public:
             int skipped = 0;         // discrete fires the app refused at fire time (a layer/clip gone)
             int yielded = 0;         // gestures displaced by ANOTHER routine's later begin (never silent)
             int glides = 0;          // plan3 C: restore glides started and not yet released
+            // s-rta-0928 (restore-diag.md): how long this routine's last start / loop return / restart held the message
+            // thread inside the engine -- its restore (both halves) and that tick's replay -- and the longest this run, in
+            // ms; -1 before its first start. probe-routines rows 5h / 8h / 11h hold it to 16 ms.
+            double holdMs = -1.0, holdMsMax = -1.0;
             // s-rta-0927 routine display (slice A): where a pending/running routine plays -- computed ONCE
             // at fire from its compiled program's RESOLVED targets (never ControlPath::layer), so a
             // rebound-by-name lane reports the layer it really drives. -1 / empty while idle.

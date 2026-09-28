@@ -3,6 +3,7 @@
 #include "model/Composition.h"
 #include "model/Deck.h"
 #include "ui/ClipCell.h"
+#include "ui/ClipThumbnails.h"
 #include "ui/LayerStrip.h"
 #include "ui/LookAndFeel.h"
 #include "ui/DeckTabRow.h"
@@ -33,6 +34,10 @@ public:
 
     // Refresh display state (active clips, button states, etc.)
     void refresh();
+
+    // s-rta-0928: the grid's image thumbnails, decoded off the message thread; every ClipCell / LayerStrip pulls from
+    // it. Public for tests (setBackendsForTests before setComposition).
+    ClipThumbnails& getThumbnails() { return thumbnails_; }
 
     // Callbacks — forwarded from child components
     std::function<void(int layerIndex, int column)> onClipTriggered;
@@ -103,6 +108,7 @@ public:
 
 private:
     Composition* composition_ = nullptr;
+    ClipThumbnails thumbnails_;   // declared before the strips / cells: destroyed after them
 
     // Grid components
     std::vector<std::unique_ptr<LayerStrip>> layerStrips_;

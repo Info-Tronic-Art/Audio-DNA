@@ -4,6 +4,7 @@
 #include "analysis/FeatureSnapshot.h"
 #include <juce_events/juce_events.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 static_assert(RoutineEngine::kBankSize == Composition::kRoutineBankSize,
@@ -24,6 +25,12 @@ static_assert(static_cast<int>(RoutineSnap::Off)     == static_cast<int>(Clip::B
 namespace
 {
     RoutineSnap toSnap(Clip::BeatSnapMode m) { return static_cast<RoutineSnap>(m); }
+
+    // s-rta-0928: Status::Slot::holdMs -- the engine's own steady clock, never the beat clock.
+    double msSince(std::chrono::steady_clock::time_point t0)
+    {
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    }
 
     std::string counted(int n, const char* one, const char* many)
     {
@@ -127,7 +134,8 @@ struct RoutineEngine::SlotSink : Sink
         auto it = eng.laneOwner_.find(key);
         if (it != eng.laneOwner_.end() && it->second != slot)
         {
-            ++yielded;   // once per gesture: the Player never calls set() again for a displaced gesture
+            ++yielded;   // once per gesture: a refused set() -- in-gesture, or the end value a gesture close writes
+                         // (s-rta-0928) -- displaces it, and the Player never calls set() again for a displaced gesture
             return false;
         }
         if (!eng.dispatch.set)
@@ -184,6 +192,7 @@ struct RoutineEngine::Running
     int glideCycle = 0;                        // the cycle whose loop return has been scheduled
     int glideRefused = 0;                      // this restore's glides a human hand refused (the start notice)
     bool glideScheduled = false;               // the continuous half of the NEXT restore belongs to `glides`
+    double holdMs = -1.0, holdMsMax = -1.0;    // s-rta-0928: Status::Slot::holdMs / holdMsMax
     // s-rta-0927 routine display: the footprint, computed ONCE at fire (never per tick), and the fire order.
     int deck = -1;
     std::vector<int> layers;
@@ -395,6 +404,7 @@ void RoutineEngine::releaseGlides(Running& r)
 
 void RoutineEngine::startNow(Running& r)
 {
+    const auto holdStart = std::chrono::steady_clock::now();
     r.startBeat = clock_.now().beat;
     r.startedTotalBar = lastTotalBar_;
     r.position = 0.0;
@@ -456,6 +466,8 @@ void RoutineEngine::startNow(Running& r)
         msg += "; " + counted(static_cast<int>(report.unresolved.size()), "timeline points", "timelines point")
              + " at a layer or clip that no longer exists";
     notify(msg + ".");
+    r.holdMs = msSince(holdStart);
+    r.holdMsMax = std::max(r.holdMsMax, r.holdMs);
 }
 
 // plan3 C: a requested restart's restore glides onto ITS boundary, never touching a knob while the recording's own
@@ -565,6 +577,7 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
         double pos = beat - r.startBeat;
         if (pos >= r.lengthBeats)
         {
+            const auto holdStart = std::chrono::steady_clock::now();
             // Everything due up to the end first, so a point just before it is never skipped.
             r.player->advanceTo(r.lengthBeats, *r.sink);
 
@@ -614,6 +627,8 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
                     r.player->advanceTo(pos, *r.sink);
                 }
                 r.position = pos;
+                r.holdMs = msSince(holdStart);
+                r.holdMsMax = std::max(r.holdMsMax, r.holdMs);
             }
             else
             {
@@ -902,6 +917,8 @@ void RoutineEngine::publishStatus()
         sl.yielded = r.sink->yielded;
         sl.glides = static_cast<int>(std::count_if(r.glides.begin(), r.glides.end(),
                                                    [](const Glide& g) { return g.started; }));
+        sl.holdMs = r.holdMs;
+        sl.holdMsMax = r.holdMsMax;
         sl.deck = r.deck;
         sl.layers = r.layers;
         sl.touchesComp = r.touchesComp;

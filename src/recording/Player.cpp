@@ -143,8 +143,8 @@ void Player::advanceTo(double pos, Sink& sink)
 
         // A while loop, not an if: a coarse dt can open AND close one or
         // more short gestures within a single advanceTo() call, and each
-        // one still gets its touch()/release() pair (D3/D5) -- never
-        // silently skipped.
+        // one still gets its touch() / end-value set() / release() (D3/D5)
+        // -- never silently skipped.
         while (cur.gestureIndex < lane.gestures.size())
         {
             const ContLane::G& g = lane.gestures[cur.gestureIndex];
@@ -161,7 +161,11 @@ void Player::advanceTo(double pos, Sink& sink)
 
             if (pos >= g.x1)
             {
-                if (!cur.displaced)
+                // s-rta-0928 (restore-diag.md cause 2): the gesture's END lands before it lets go. A tick past x1 -- a
+                // stall that stepped over the whole gesture (touched and closed in this one call) or over its tail --
+                // leaves the knob where the recording did, never where the last tick caught it (or untouched). A refused
+                // write means another hand has the knob: release nothing (the in-gesture rule, below).
+                if (!cur.displaced && sink.set(lane.key, g.curve.eval(g.x1)))
                     sink.release(lane.key);
                 cur.inGesture = false;
                 cur.displaced = false;

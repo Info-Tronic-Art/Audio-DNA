@@ -16,6 +16,14 @@
 # 0.06..0.12 s (the flake of s-rta-0926b). Why: the comment above LEN in the helpers.
 # s-rta-0927 beat clock (row 7s): row 7's grid again with a 550 ms message-thread stall at +1.0 s (the TEST-ONLY
 # POST /api/debug/stall_message_thread; SKIP in a binary without it) -- the routine clock loses no beat across it.
+# s-rta-0928 restore (restore-diag.md; holdMs measures the two diagnosed causes only -- a GREEN is not "no restore hold
+# exists"): rows 5h / 8h / 11h read /api/routine/status bank[0].holdMs (the Ease start) / holdMsMax (the Ease start + its
+# loop return; the Jump start + its loop return) and hold them to 16 ms. RED on a binary before the ClipThumbnails fix:
+# ~50-67 ms (every deck refresh decoded each image thumbnail on the message thread, once per discrete restore entry);
+# on a binary before holdMs: "absent". Row 7m stalls the message thread 600 ms across the routine's first recorded move
+# (TEST-ONLY stall hook; SKIP without it): the move must still land (L0 opacity 0.5 after the stall). RED before the
+# Player fix: every sample stays 1.0 (the move was touched and released unwritten -- restore-diag cause 2). A stall
+# that did not span the move is "inconclusive" (a FAIL, never a PASS), retried once.
 #
 # RED on a pre-routines binary: every /api/routine/* route is 404 and /api/composition clips carry
 # no "effects" block; take.json meta has no startBeatInBar; a first-activation auto-play is not a
@@ -214,6 +222,18 @@ def first_move_beat(folder):
             beats += [g['curve'][0]['x'] for g in ln.get('gestures', []) if g.get('curve')]
     beats = [b for b in beats if 0.0 <= b < LEN]
     return min(beats) if beats else None
+
+def first_move_span(folder):
+    # s-rta-0928 (row 7m): [x0, x1] of the routine's first recorded L0 opacity gesture (first_move_beat's lane)
+    spans = []
+    for ln in load(folder + '/take.json').get('lanes', []):
+        k = ln.get('key', {})
+        L = k.get('layer')
+        L = L.get('i') if isinstance(L, dict) else L
+        if k.get('scope') == 'layer' and k.get('scalar') == 'opacity' and L == 0:
+            spans += [(g['curve'][0]['x'], g['curve'][-1]['x']) for g in ln.get('gestures', []) if g.get('curve')]
+    spans = [sp for sp in spans if 0.0 <= sp[0] < LEN]
+    return min(spans) if spans else None
 
 cmd = sys.argv[1]
 
@@ -519,6 +539,60 @@ elif cmd == 'jumploop':                   # jumploop TJ FILE: row 11j (s-rta-092
     print(('ok' if pre and not between else 'no')
           + ' 11j loop: no sample strictly between 0.92 and 0.98 around the loop point (+7.0..+8.3 s: %s)' % between)
 
+elif cmd == 'stallat':                    # stallat LO MS SECS OUT: row 7m -- stall the message thread once bank[0] reaches LO
+    lo, ms, secs, outp = float(sys.argv[2]), int(sys.argv[3]), float(sys.argv[4]), sys.argv[5]
+    p_before, end = None, time.time() + 3.0
+    while time.time() < end:
+        s = get('/api/routine/status')
+        try:
+            b = s['bank'][0]
+            if b['state'] == 'running' and b['position'] >= lo:
+                p_before = b['position']; break
+        except Exception:
+            pass
+        time.sleep(0.01)
+    out = {'p_before': p_before, 't_stall': time.time(), 'ms': ms, 'samples': []}
+    if p_before is not None:
+        out['stall'] = post('/api/debug/stall_message_thread', {'ms': ms})
+        end = time.time() + secs
+        while time.time() < end:
+            row = {'t': time.time()}
+            st = get('/api/routine/status')
+            c = get('/api/composition')
+            try:
+                b = st['bank'][0]
+                row['pos'] = b['position'] if b['state'] == 'running' else None
+            except Exception:
+                row['pos'] = None
+            try:
+                row['op0'] = c['decks'][0]['layers'][0]['opacity']
+            except Exception:
+                row['op0'] = None
+            out['samples'].append(row)
+            time.sleep(0.04)
+    with open(outp, 'w') as f:
+        json.dump(out, f)
+    print('(7m: stall of %d ms posted at routine position %s; %d samples)' % (ms, p_before, len(out['samples'])))
+
+elif cmd == 'movestall':                  # movestall JSON TAKE_FOLDER: row 7m -- the stepped-over move still lands
+    d, span = load(sys.argv[2]), first_move_span(sys.argv[3])
+    pb = d.get('p_before')
+    s = d.get('samples', [])
+    pa = next((r['pos'] for r in s if isinstance(r.get('pos'), (int, float)) and pb is not None and r['pos'] > pb + 0.5), None)
+    if span is None or pb is None or pa is None or not (pb < span[0] and pa > span[1]):
+        print('no 7m: inconclusive -- the stall did not span the first move (p_before %s, p_after %s, move %s)'
+              % (pb, None if pa is None else round(pa, 3), None if span is None else '[%.3f, %.3f]' % span))
+    else:
+        after = [r.get('op0') for r in s if isinstance(r.get('pos'), (int, float)) and pa <= r['pos'] <= 5.0]
+        good = len(after) >= 3 and all(near(v, 0.5, 0.05) for v in after)
+        vals = sorted(set(round(v, 3) if isinstance(v, (int, float)) else v for v in after), key=str)
+        if good:
+            print('ok 7m: a %d ms stall across the first move (positions %.3f -> %.3f over [%.3f, %.3f]) still lands it: L0 opacity 0.5 at %d samples in %.3f..5.0'
+                  % (d.get('ms', 0), pb, pa, span[0], span[1], len(after), pa))
+        else:
+            print('no 7m: a %d ms stall across the first move (positions %.3f -> %.3f over [%.3f, %.3f]) did NOT land it: L0 opacity %s at %d samples in %.3f..5.0 (expected 0.5 +/- 0.05; every sample 1.0 = the move was touched and released unwritten -- restore-diag cause 2)'
+                  % (d.get('ms', 0), pb, pa, span[0], span[1], vals, len(after), pa))
+
 elif cmd == 'restartglide':               # restartglide FILE: row 9g (plan3 C) -- the restart's restore glides too
     s = load(sys.argv[2])
     TR = first(s, lambda r: bool(r.get('bank')) and r['bank'][0].get('restarts') == 1, 0)
@@ -709,6 +783,12 @@ for f in preambleUnresolved preambleRefused unresolved; do
     V="$(rstat "d['bank'][0]['$f']")"
     [ "$V" = "0" ] && ok "fire: $f == 0" || no "fire: $f == $V"
 done
+# 5h (s-rta-0928 restore): the Ease start's restore held the message thread <= 16 ms (bank[0].holdMs; the diagnosed
+# causes only -- a GREEN is not "no restore hold exists"). num_leq rejects "absent" and the -1.000 of "never started".
+HOLD5="$(rstat "'%.3f' % d['bank'][0]['holdMs'] if isinstance(d['bank'][0].get('holdMs'), (int, float)) else 'absent'")"
+num_leq "$HOLD5" 16 \
+    && ok "5h: the Ease start's restore held the message thread $HOLD5 ms <= 16 ms (bank[0].holdMs -- the diagnosed causes only: a GREEN is not 'no restore hold exists')" \
+    || no "5h: the Ease start held the message thread $HOLD5 ms (bank[0].holdMs; expected 0..16 -- RED: every deck refresh decoded each image thumbnail on the message thread, restore-diag.md)"
 PF1="$(rstat "d['bank'][0]['preambleFired']")"
 [ "$PF1" -ge 5 ] 2>/dev/null && ok "fire: preambleFired == $PF1 (>= 5)" || no "fire: preambleFired == $PF1 (expected >= 5)"
 
@@ -749,8 +829,30 @@ if echo "$STALL_HOOK" | grep -q '"ok": true'; then
     rows python3 "$RT" grid "$T1s" "$OUT/grid-stall.json" 7s
     P /api/routine/stop '{"all":true}' >/dev/null
     sleep 0.3
+    # --- 7m (s-rta-0928 restore, restore-diag cause 2): a 600 ms message-thread stall across the routine's FIRST
+    # recorded move (L0 opacity 0.5, a ~0.5-beat gesture at routine beat ~1.2) -- the resume tick steps over the whole
+    # gesture, and the move must still land. 600 ms = 1.2 beats: from position 0.80..0.95 the resume lands at ~2.0-2.2,
+    # past the move's end and before the next L0 opacity event. A stall that did not span the move is inconclusive
+    # (a FAIL), retried once.
+    for ATT7M in 1 2; do
+        P /api/routine/fire '{"slot":0}' >/dev/null
+        T7m="$(python3 "$RT" wait 0 running 2.6)"
+        if [ "$T7m" = "NA" ]; then no "7m: bank[0] never became running within 2.6 s"; break; fi
+        python3 "$RT" stallat 0.80 600 3.5 "$OUT/movestall-$ATT7M.json"
+        R7M="$(python3 "$RT" movestall "$OUT/movestall-$ATT7M.json" "$TAKE_FOLDER" 2>&1)"
+        P /api/routine/stop '{"all":true}' >/dev/null
+        sleep 0.3
+        if [ "$ATT7M" = "1" ] && echo "$R7M" | grep -q "inconclusive"; then
+            echo "(7m attempt 1: $R7M -- retrying once)"
+            sleep 1.0
+            continue
+        fi
+        rows echo "$R7M"
+        break
+    done
 else
     echo "SKIP: 7s -- no TEST-ONLY stall hook in this binary ($STALL_HOOK)"
+    echo "SKIP: 7m -- no TEST-ONLY stall hook in this binary"
 fi
 
 # --- 5g. the start's restore glides onto the bar (plan3 C) -----------------------------
@@ -781,6 +883,12 @@ if [ "$T2" = "NA" ]; then no "loop: never running"; T2="$(now)"; fi
 PF_LOOP0="$(rstat "d['bank'][0]['preambleFired']")"
 python3 "$RT" sample "$(perl -e "printf '%.2f', 9.3 - ($(now) - $T2)")" "$OUT/loop.json"
 rows python3 "$RT" loop "$T2" "$OUT/loop.json" "$PF_LOOP0"
+# 8h (s-rta-0928 restore): the Ease start and every loop return held <= 16 ms (bank[0].holdMsMax; the diagnosed causes only)
+HOLD8="$(rstat "'%.3f' % d['bank'][0]['holdMsMax'] if isinstance(d['bank'][0].get('holdMsMax'), (int, float)) else 'absent'")"
+CYC8="$(rstat "d['bank'][0]['cycle']")"
+[ "$CYC8" -ge 2 ] 2>/dev/null && num_leq "$HOLD8" 16 \
+    && ok "8h: the Ease start and every loop return (cycle $CYC8) held <= 16 ms (bank[0].holdMsMax $HOLD8 -- the diagnosed causes only: a GREEN is not 'no restore hold exists')" \
+    || no "8h: the Ease start / loop return held the message thread $HOLD8 ms at cycle $CYC8 (bank[0].holdMsMax; expected cycle >= 2 and 0..16 -- RED: every deck refresh decoded each image thumbnail on the message thread, restore-diag.md)"
 P /api/routine/stop '{"slot":0}' >/dev/null
 T_STOP="$(now)"; IDLE=""
 for _ in $(seq 1 8); do [ "$(rstat "d['bank'][0]['state']")" = "idle" ] && { IDLE=1; break; }; sleep 0.025; done
@@ -921,6 +1029,12 @@ else
         || no "11j: 0.30 s before the bar the frame has moved -- mad(jpre, jmid) = $MAD_JJ (expected <= $MAD_REST: a Jump waits for the bar)"
     python3 "$RT" sample "$(perl -e "printf '%.2f', 8.5 - ($(now) - $TJ)")" "$OUT/jumploop.json" >/dev/null
     rows python3 "$RT" jumploop "$TJ" "$OUT/jumploop.json"
+    # 11h (s-rta-0928 restore): the Jump start and its loop return held <= 16 ms (holdMsMax; the diagnosed causes only)
+    HOLD11="$(rstat "'%.3f' % d['bank'][0]['holdMsMax'] if isinstance(d['bank'][0].get('holdMsMax'), (int, float)) else 'absent'")"
+    CYC11="$(rstat "d['bank'][0]['cycle']")"
+    [ "$CYC11" -ge 2 ] 2>/dev/null && num_leq "$HOLD11" 16 \
+        && ok "11h: the Jump start and its loop return (cycle $CYC11) held <= 16 ms (holdMsMax $HOLD11 -- the diagnosed causes only: a GREEN is not 'no restore hold exists')" \
+        || no "11h: the Jump start / loop return held the message thread $HOLD11 ms at cycle $CYC11 (holdMsMax; expected cycle >= 2 and 0..16 -- RED: every deck refresh decoded each image thumbnail on the message thread, restore-diag.md)"
 fi
 P /api/routine/stop '{"all":true}' >/dev/null
 
