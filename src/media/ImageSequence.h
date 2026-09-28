@@ -2,6 +2,8 @@
 #include <juce_core/juce_core.h>
 #include <juce_graphics/juce_graphics.h>
 #include <juce_opengl/juce_opengl.h>
+#include "render/ImageDecode.h"
+#include "render/ImageTexCache.h"
 #include <vector>
 #include <string>
 #include <mutex>
@@ -64,10 +66,17 @@ public:
     // Advance the playhead by dt seconds. Call once per render frame.
     void advanceFrame(double dt);
 
-    // Get the GL texture for the current frame.
-    // Loads the image and uploads to GL on first access (lazy loading).
-    // Returns 0 if no frame available.
-    GLuint getCurrentTexture();
+    // Get the GL texture for the current frame. s-rta-0928 R1.4: frames decode OFF the GL thread (decoder), with a
+    // look-ahead of the next kLookAhead frames in the play direction; the GL thread only uploads, within the frame's
+    // upload budget. A current frame not resident yet shows the last frame shown (as a late video frame would);
+    // *pending is set only when nothing has been shown yet. A frame that fails to decode is never re-requested (the
+    // last frame repeats). Returns 0 if no frame available.
+    GLuint getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget, bool* pending);
+
+    // s-rta-0928 renderleft-fix (C1 for sequences): true when getCurrentTexture would report *pending as the state
+    // stands -- nothing shown yet and the current frame not resident (and not failed). No decode, no request, no
+    // upload: CompositorEngine asks it BEFORE advancing a crossfade onto this sequence (GL thread only).
+    bool firstFramePending() const;
 
     // Release all GL textures. Call from openGLContextClosing().
     void releaseGL();
@@ -104,6 +113,19 @@ private:
     bool pingPongForward_ = true;
     int currentFrameIndex_ = 0;
 
-    // Load a single image to GL texture. Must be on GL thread.
-    GLuint loadImageToTexture(int frameIndex);
+    // s-rta-0928 R1.4: off-GL-thread decode state (GL thread only, like textures_). Jobs deliver into box_ through a
+    // weak_ptr (a retired sequence drops them); tag = openGen_ << 32 | frame index (a re-open drops the old ones).
+    static constexpr int kLookAhead = 3;
+    static constexpr int kMaxOutstanding = 4;
+    std::shared_ptr<ImageDecode::Mailbox> box_ = std::make_shared<ImageDecode::Mailbox>();
+    std::vector<ImageDecode::Result> ready_;     // decoded, waiting for upload budget
+    std::vector<uint8_t> requested_;             // per frame: a job was issued (or it failed)
+    std::vector<uint8_t> failed_;                // per frame: did not decode
+    int outstanding_ = 0;                        // requested, result not yet arrived
+    int lastShown_ = -1;
+    uint32_t openGen_ = 0;
+    void ensureFrameState();
+    void requestFrame(ImageDecode::Decoder& decoder, int idx);
+    void requestAhead(ImageDecode::Decoder& decoder, int idx);
+    GLuint uploadFrame(const ImageDecode::Result& r, int idx);
 };

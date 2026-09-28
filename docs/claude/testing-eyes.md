@@ -61,11 +61,11 @@ cd tests/visual && pytest test_render_pipeline.py -v
 | Endpoint | What it does |
 |---|---|
 | `GET /api/health` | Check app is ready |
-| `POST /api/load_image` | `{"filepath": "..."}` |
+| `POST /api/load_image` | `{"filepath": "..."}` -- decoded off the GL thread; the handler's 100 ms sleep is no longer load-bearing: the next `render_frame` waits for the picture (Pitfall 53) |
 | `POST /api/set_effect` | `{"name": "...", "enabled": true, "params": {...}}` |
 | `POST /api/set_effect_chain` | `{"effects": [{"name": "...", "params": {...}}, ...]}` |
 | `POST /api/inject_features` | `{"rms": 0.8, "beatPhase": 0.5, ...}` |
-| `POST /api/render_frame` | `{"output_path": "...", "time": 1.0}` — deterministic capture |
+| `POST /api/render_frame` | `{"output_path": "...", "time": 1.0}` — deterministic capture; concurrent calls (8080 and 7070) are served one at a time, each at its own width/height (Pitfall 52); answered only by a frame with no image still decoding -- a capture right after a trigger or load shows the new picture (Pitfall 53); written by the fast PNG writer (zlib level 1, filter 0: same decoded pixels as JUCE's writer, different file bytes; the app log line ends `enc=fast`) -- compare captures by DECODED pixels, never by file hash; `/api/snapshot` keeps JUCE's writer (`enc=archive`) |
 | `GET /api/state` | Full engine state (all effects, params, FPS) |
 | `POST /api/reset` | Clear everything for next test |
 

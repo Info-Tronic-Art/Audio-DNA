@@ -22,4 +22,46 @@ inline void rgbaBottomUpToARGB(const uint8_t* rgba, int w, int h, juce::Image::B
         }
     }
 }
+
+// s-rta-0928 renderleft R1.1 -- the reverse direction: JUCE ARGB BitmapData (premultiplied B,G,R,A) -> GL RGBA8 rows,
+// bottom-up, tightly packed w*4. unpremultiply = the bytes of the old getPixelColour loops
+// (CompositorEngine::loadKeyImage, ImageSequence::loadImageToTexture: straight RGBA); false =
+// TextureManager::uploadImage's raw swizzle (premultiplied RGBA). Proof: tests/test_pixel_convert.cpp.
+inline void argbToGlRgbaBottomUp(const juce::Image::BitmapData& src, uint8_t* dst, bool unpremultiply) noexcept
+{
+    jassert(src.pixelFormat == juce::Image::ARGB && src.pixelStride == 4);
+    const int w = src.width, h = src.height;
+    for (int y = 0; y < h; ++y)
+    {
+        const auto* in = reinterpret_cast<const juce::PixelARGB*>(src.getLinePointer(y));
+        uint8_t* out = dst + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
+        for (int x = 0; x < w; ++x, out += 4)
+        {
+            juce::PixelARGB p = in[x];
+            if (unpremultiply) p.unpremultiply();
+            out[0] = p.getRed(); out[1] = p.getGreen(); out[2] = p.getBlue(); out[3] = p.getAlpha();
+        }
+    }
+}
+// s-rta-0928 renderleft R3: GL RGBA8 rows (bottom-up) -> PNG scanlines (top-down, each row = filter byte 0 + w*4
+// straight RGBA). Per pixel the bytes JUCE's PNG writer emits for the capture's juce::Image: the image stores
+// premultiply(gl) (rgbaBottomUpToARGB), the writer emits unpremultiply(that) (juce_PNGLoader.cpp writeImageToStream).
+// out holds h * (1 + w*4) bytes. Proof: tests/test_png_fast.cpp.
+inline void rgbaBottomUpToPngScanlines(const uint8_t* gl, int w, int h, uint8_t* out) noexcept
+{
+    const size_t stride = 1 + static_cast<size_t>(w) * 4;
+    for (int y = 0; y < h; ++y)
+    {
+        const uint8_t* src = gl + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
+        uint8_t* dst = out + static_cast<size_t>(y) * stride;
+        *dst++ = 0;   // filter: none
+        for (int x = 0; x < w; ++x, src += 4)
+        {
+            juce::PixelARGB p(src[3], src[0], src[1], src[2]);
+            p.premultiply();
+            p.unpremultiply();
+            *dst++ = p.getRed(); *dst++ = p.getGreen(); *dst++ = p.getBlue(); *dst++ = p.getAlpha();
+        }
+    }
+}
 } // namespace PixelConvert

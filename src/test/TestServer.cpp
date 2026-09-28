@@ -14,6 +14,7 @@
 #include "model/Clip.h"
 #include "effects/EffectLibrary.h"
 #include "output/OutputPresenter.h"
+#include "render/PixelConvert.h"
 #include "render/PngWrite.h"
 #include <juce_core/juce_core.h>
 #if JUCE_MAC
@@ -594,15 +595,10 @@ void TestServer::handleRenderFrame(const httplib::Request& req, httplib::Respons
     int height = obj->hasProperty("height")
         ? static_cast<int>(obj->getProperty("height")) : 0;
 
-    // Set locked resolution if requested
-    if (width > 0 && height > 0)
-        renderer_.setLockedResolution(width, height);
-
-    bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height);
-
-    // Restore unlocked resolution
-    if (width > 0 && height > 0)
-        renderer_.setLockedResolution(0, 0);
+    // s-rta-0928 R2: captureFrame sets the TEST-ONLY canvas lock for this capture and restores the previous one, under
+    // its capture flight lock (two concurrent calls at different sizes used to race on the lock here).
+    bool ok = renderer_.captureFrame(juce::File(outputPath), timeVal, width, height, true,   // complete frame (R1, C2)
+                                     Renderer::CaptureEncoding::Fast);                    // R3: the fast PNG writer
 
     if (ok)
     {
@@ -629,7 +625,24 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     // previous /api/state read (reading resets it).
     obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
     obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
+    // s-rta-0928 R5 (C4): ring cells created so far, over every ring (cells are created on first write).
+    obj->setProperty("frame_ring_cells", renderer_.getCompositor().getFrameRingCellCount());
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
+    // s-rta-0928 R1.0: the longest WHOLE render callback since the previous read (resets on read).
+    obj->setProperty("peak_callback_ms", static_cast<double>(renderer_.takePeakCallbackMs()));
+    // s-rta-0928 R1.2: clip images decoded off the GL thread -- frames a layer held its last picture / drew nothing
+    // while its image decoded (cumulative), images still decoding, resident image textures (count, MB), the longest
+    // single upload since the previous read (resets on read), and frames whose image pump ran (B2: every frame).
+    {
+        auto& comp = renderer_.getCompositor();
+        obj->setProperty("image_hold_frames", static_cast<juce::int64>(comp.getImageHoldFrames()));
+        obj->setProperty("image_skip_frames", static_cast<juce::int64>(comp.getImageSkipFrames()));
+        obj->setProperty("images_pending", comp.getImagesPending());
+        obj->setProperty("image_textures", comp.getImageTextureCount());
+        obj->setProperty("image_texture_mb", comp.getImageTextureMB());
+        obj->setProperty("peak_image_upload_ms", static_cast<double>(comp.takePeakImageUploadMs()));
+        obj->setProperty("image_pump_frames", static_cast<juce::int64>(comp.getImagePumpFrames()));
+    }
     // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
     // nothing). peak_gpu_time_ms resets on read like peak_frame_time_ms.
     obj->setProperty("gpu_time_ms", static_cast<double>(renderer_.getGpuTimeMs()));
@@ -1756,15 +1769,12 @@ void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Respons
 
     // What the display shows: the window blits with blending off, so displayed RGB = canvas RGB; alpha forced
     // to 255. Vertical flip: GL rows are bottom-up.
+    // s-rta-0928 R5 (C4): the row conversion, byte-identical to the old per-pixel setPixelColour(..., 255) loop
+    // (tests/test_pixel_convert.cpp "forceOpaque matches the output_probe loop" -- its oracle IS that loop).
     juce::Image img(juce::Image::ARGB, w, h, false);
     {
         juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
-        for (int y = 0; y < h; ++y)
-        {
-            const auto* row = pixels.data() + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
-            for (int x = 0; x < w; ++x)
-                bmp.setPixelColour(x, y, juce::Colour(row[x * 4], row[x * 4 + 1], row[x * 4 + 2], static_cast<uint8_t>(255)));
-        }
+        PixelConvert::rgbaBottomUpToARGB(pixels.data(), w, h, bmp, true);
     }
     const bool ok = PngWrite::writeReplacing(img, outFile);
     if (!ok)

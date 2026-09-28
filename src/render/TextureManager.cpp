@@ -1,5 +1,6 @@
 #include "TextureManager.h"
 #include "render/LUTLoader.h"
+#include "render/PixelConvert.h"
 #include <vector>
 #include <iostream>
 
@@ -10,20 +11,6 @@ TextureManager::~TextureManager()
     jassert(imageTexID_ == 0 && fbos_[0] == 0);
 }
 
-bool TextureManager::loadImage(const juce::File& imageFile)
-{
-    std::cerr << "[TextureManager] loading: " << imageFile.getFullPathName() << std::endl;
-
-    auto image = juce::ImageFileFormat::loadFrom(imageFile);
-    if (!image.isValid())
-    {
-        std::cerr << "[TextureManager] FAILED to decode image" << std::endl;
-        return false;
-    }
-
-    return uploadImage(image);
-}
-
 bool TextureManager::uploadImage(const juce::Image& image)
 {
     if (!image.isValid())
@@ -32,35 +19,30 @@ bool TextureManager::uploadImage(const juce::Image& image)
     int w = image.getWidth();
     int h = image.getHeight();
 
-    // Convert to ARGB and extract pixels into a clean RGBA buffer for OpenGL.
+    // Convert to ARGB and extract pixels into a clean RGBA buffer for OpenGL: the raw premultiplied bytes, swizzled
+    // B,G,R,A -> R,G,B,A and flipped. s-rta-0928 R1.1: one row pass, byte-identical to the old swizzle loop
+    // (tests/test_pixel_convert.cpp).
     auto argbImage = image.convertedToFormat(juce::Image::ARGB);
-    juce::Image::BitmapData bitmapData(argbImage, juce::Image::BitmapData::readOnly);
-
-    std::vector<uint8_t> rgbaPixels(static_cast<size_t>(w * h * 4));
-
-    for (int y = 0; y < h; ++y)
+    std::vector<uint8_t> rgbaPixels(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
     {
-        // Flip Y: OpenGL texture origin is bottom-left, image is top-left
-        auto* srcRow = bitmapData.getLinePointer(h - 1 - y);
-        auto* dstRow = &rgbaPixels[static_cast<size_t>(y * w * 4)];
-
-        for (int x = 0; x < w; ++x)
-        {
-            auto* srcPixel = srcRow + x * 4;
-            auto* dstPixel = dstRow + x * 4;
-            dstPixel[0] = srcPixel[2]; // R
-            dstPixel[1] = srcPixel[1]; // G
-            dstPixel[2] = srcPixel[0]; // B
-            dstPixel[3] = srcPixel[3]; // A
-        }
+        const juce::Image::BitmapData bitmapData(argbImage, juce::Image::BitmapData::readOnly);
+        PixelConvert::argbToGlRgbaBottomUp(bitmapData, rgbaPixels.data(), false);
     }
+
+    return uploadPixels(rgbaPixels.data(), w, h);
+}
+
+bool TextureManager::uploadPixels(const uint8_t* rgbaPixels, int w, int h)
+{
+    if (rgbaPixels == nullptr || w <= 0 || h <= 0)
+        return false;
 
     // If texture exists at same size, just update it (glTexSubImage2D is faster)
     if (imageTexID_ != 0 && imageWidth_ == w && imageHeight_ == h)
     {
         glBindTexture(GL_TEXTURE_2D, imageTexID_);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h,
-                        GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
+                        GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels);
         glBindTexture(GL_TEXTURE_2D, 0);
         return true;
     }
@@ -84,7 +66,7 @@ bool TextureManager::uploadImage(const juce::Image& image)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels.data());
+                 GL_RGBA, GL_UNSIGNED_BYTE, rgbaPixels);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 

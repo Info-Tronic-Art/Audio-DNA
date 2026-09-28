@@ -2859,6 +2859,9 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     auto& renderer = previewPanel_.getRenderer();
     for (auto id : compload::idsRetired(before, after))
         renderer.closeMediaForClip(id);
+    // s-rta-0928 R1.5: prefetch the new composition's images off the GL thread (active deck, active clips first) and
+    // release the textures of images it no longer has -- at the next frame start, before any pass.
+    renderer.getCompositor().postImageSet(compload::imagePaths(composition_));
 
     // Loading/replacing/appending is not itself undoable. clear() only
     // touches command history (never the model) — a stale command left alive
@@ -3921,6 +3924,8 @@ void MainComponent::openImageFolder()
         // Load first image
         auto first = slideshowImages_[0];
         previewPanel_.loadImage(first);
+        // s-rta-0928 R1.3: decode the next one ahead (off the GL thread), so the first advance shows at once.
+        previewPanel_.getRenderer().prefetchLegacyImage(slideshowImages_[1 % slideshowImages_.size()]);
 
         fileLabel_.setText("Folder: " + dir.getFileName() + " ("
                           + juce::String(slideshowImages_.size()) + " images)",
@@ -3947,6 +3952,9 @@ void MainComponent::advanceSlideshow()
 
             auto img = slideshowImages_[slideshowIndex_];
             previewPanel_.loadImage(img);
+            // s-rta-0928 R1.3: decode the next one ahead (off the GL thread).
+            previewPanel_.getRenderer().prefetchLegacyImage(
+                slideshowImages_[(slideshowIndex_ + 1) % slideshowImages_.size()]);
         }
     }
 }

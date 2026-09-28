@@ -69,6 +69,10 @@ R1 counts (memory bound, /api/state): a FRESH layer id, 6 columns alternating A/
   (FAIL); C1 (cells created on first write): 1.35-1.66 ms in 3 full runs (both images already uploaded by earlier
   rows) and 9.02 / 11.75 ms with the row alone on a fresh app -- that residual is the first upload of image A / B
   (CompositorEngine::loadKeyImage decodes on the GL thread), not the ring.
+R1 cells (s-rta-0928 R5 = C4 of plan-renderperf): a fresh layer id, col 0 = A + [Screen Split 0.15 0.15 0.25 0]; s0;
+  trig 0; 0.3 s s1; 1.0 s s2. PASS: (1) 1 <= cells(s1) - cells(s0) < 480; (2) the growth s1 -> s2 is > 0 and at most
+  1.3 x (t2 - t1) x fps + 5 (one cell per ring per frame); (3) cells(s2) - cells(s0) <= 480 x the new rings.
+  Calibration: main has no frame_ring_cells field (FAIL); lane: .harmony/.reports/s-rta-0928/renderleft.md.
 R4-opaque (persistent Opaque layer over the active deck): base deck 0 layer 0 Opaque = A.
   r4_opaque_opacity subject = deck 1 layer id 5 Opaque, persistent, Normal, opacity 0.5, clip B (covers the
     frame); reference = the same layer as a NORMAL Transparent (Alpha key) layer on deck 0 above A; full =
@@ -482,6 +486,30 @@ def r1_counts(spec):
         f"r1_counts: longest frame across the first fade (spare ring created) {pk:.2f} ms <= {bar} ms")
 
 
+def r1_cells(spec):
+    """s-rta-0928 R5 (C4): /api/state frame_ring_cells = ring cells created so far, over every ring. Cells are created
+    on first write (one per ring per frame), so a fresh ring's count grows at most by the frames rendered."""
+    lid = int(spec["layerId"])
+    if not load("r1_cells", [deck(0, [layer(lid, [clip(10, IMG_A, spec["fx"])])])]):
+        return
+    s0 = state()
+    trig(0, 0); time.sleep(0.3)
+    s1 = state(); t1 = time.time()
+    time.sleep(1.0)
+    s2 = state(); t2 = time.time()
+    if any(sx is None or "frame_ring_cells" not in sx for sx in (s0, s1, s2)):
+        no(f"r1_cells: /api/state has no frame_ring_cells ({sorted((s0 or {}).keys())[:12]})"); return
+    c1 = s1["frame_ring_cells"] - s0["frame_ring_cells"]; c2 = s2["frame_ring_cells"] - s0["frame_ring_cells"]
+    fps = max(float(s1.get("fps", 0) or 0), float(s2.get("fps", 0) or 0))
+    rings = s2["frame_rings"] - s0["frame_rings"]
+    hi = c1 + 1.3 * (t2 - t1) * fps + 5
+    print(f"      r1_cells: cells +{c1} after 0.3 s, +{c2} after 1.3 s (fps {fps:.1f}, bound {hi:.0f}); rings +{rings}",
+          flush=True)
+    (ok if 1 <= c1 < 480 else no)(f"r1_cells: a fresh ring creates cells on first write (+{c1} in 0.3 s, 1..479)")
+    (ok if c1 < c2 <= hi else no)(f"r1_cells: at most one cell per ring per frame (+{c1} < +{c2} <= {hi:.0f})")
+    (ok if c2 <= 480 * rings else no)(f"r1_cells: never more than 480 cells per ring (+{c2} <= 480 x {rings})")
+
+
 def base_only():
     return layer(0, [clip(1, IMG_A)])
 
@@ -614,6 +642,7 @@ def main():
     for k in ("temporal", "control", "ring", "retrigger"):
         rows.append((f"r1_{k}", (lambda k=k: r1_wipe(f"r1_{k}", FIX["r1"][k]))))
     rows += [("r1_counts", lambda: r1_counts(FIX["r1"]["counts"])),
+             ("r1_cells", lambda: r1_cells(FIX["r1"]["cells"])),
              ("r4_opaque_opacity", lambda: r4_opaque_opacity(FIX["r4_opaque"])),
              ("r4_opaque_overlay", lambda: r4_opaque_overlay(FIX["r4_opaque"])),
              ("r4_fxonly_persistent", lambda: r4_fxonly("r4_fxonly_persistent", FIX["r4_fxonly"], 2)),

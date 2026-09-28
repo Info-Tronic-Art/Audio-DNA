@@ -160,3 +160,138 @@ TEST_CASE("PNG bytes identical", "[pixel_convert][s-rta-0927]")
     REQUIRE(a.getDataSize() == b.getDataSize());
     CHECK(std::memcmp(a.getData(), b.getData(), a.getDataSize()) == 0);
 }
+
+// ---- s-rta-0928 renderleft R1.1: the reverse direction, image -> GL rows (PixelConvert::argbToGlRgbaBottomUp) ----
+// A decoded image's pixels become GL RGBA8 rows (bottom-up) with the row function instead of the three old loops. The
+// uploaded bytes must not change by one byte: each case runs the OLD loop, copied verbatim, as the oracle.
+namespace
+{
+// The OLD loop of CompositorEngine::loadKeyImage (6db8d67), verbatim: getPixelColour -> straight RGBA, top-down, then
+// the flip copy. ImageSequence::loadImageToTexture writes the same bytes (the same getPixelColour loop, flipped as it
+// writes).
+std::vector<uint8_t> oldLoadKeyImageLoop(const juce::Image& img)
+{
+    int w = img.getWidth();
+    int h = img.getHeight();
+    std::vector<uint8_t> rgba(static_cast<size_t>(w * h * 4));
+
+    juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
+    for (int y = 0; y < h; ++y)
+    {
+        for (int x = 0; x < w; ++x)
+        {
+            auto pixel = bmp.getPixelColour(x, y);
+            size_t idx = static_cast<size_t>((y * w + x) * 4);
+            rgba[idx + 0] = pixel.getRed();
+            rgba[idx + 1] = pixel.getGreen();
+            rgba[idx + 2] = pixel.getBlue();
+            rgba[idx + 3] = pixel.getAlpha();
+        }
+    }
+
+    // Flip Y for OpenGL (bottom-up)
+    std::vector<uint8_t> flipped(rgba.size());
+    size_t rowBytes = static_cast<size_t>(w * 4);
+    for (int y = 0; y < h; ++y)
+        std::memcpy(flipped.data() + static_cast<size_t>(y) * rowBytes,
+                     rgba.data() + static_cast<size_t>((h - 1 - y)) * rowBytes,
+                     rowBytes);
+    return flipped;
+}
+
+// The OLD loop of TextureManager::uploadImage (6db8d67), verbatim: the raw premultiplied bytes swizzled B,G,R,A ->
+// R,G,B,A, flipped.
+std::vector<uint8_t> oldUploadImageLoop(const juce::Image& image)
+{
+    int w = image.getWidth();
+    int h = image.getHeight();
+    auto argbImage = image.convertedToFormat(juce::Image::ARGB);
+    juce::Image::BitmapData bitmapData(argbImage, juce::Image::BitmapData::readOnly);
+
+    std::vector<uint8_t> rgbaPixels(static_cast<size_t>(w * h * 4));
+
+    for (int y = 0; y < h; ++y)
+    {
+        // Flip Y: OpenGL texture origin is bottom-left, image is top-left
+        auto* srcRow = bitmapData.getLinePointer(h - 1 - y);
+        auto* dstRow = &rgbaPixels[static_cast<size_t>(y * w * 4)];
+
+        for (int x = 0; x < w; ++x)
+        {
+            auto* srcPixel = srcRow + x * 4;
+            auto* dstPixel = dstRow + x * 4;
+            dstPixel[0] = srcPixel[2]; // R
+            dstPixel[1] = srcPixel[1]; // G
+            dstPixel[2] = srcPixel[0]; // B
+            dstPixel[3] = srcPixel[3]; // A
+        }
+    }
+    return rgbaPixels;
+}
+
+// An image holding `px` (straight RGBA, top-down) as JUCE stores it (premultiplied), written with setPixelColour.
+juce::Image imageOf(const std::vector<uint8_t>& px, int w, int h, bool software)
+{
+    auto img = makeImage(w, h, software);
+    juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+        {
+            const auto* p = px.data() + (static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)) * 4;
+            bmp.setPixelColour(x, y, juce::Colour(p[0], p[1], p[2], p[3]));
+        }
+    return img;
+}
+
+std::vector<uint8_t> newRows(const juce::Image& img, bool unpremultiply)
+{
+    std::vector<uint8_t> out(static_cast<size_t>(img.getWidth()) * static_cast<size_t>(img.getHeight()) * 4, 0xAB);
+    const juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
+    PixelConvert::argbToGlRgbaBottomUp(bmp, out.data(), unpremultiply);
+    return out;
+}
+} // namespace
+
+TEST_CASE("straight == loadKeyImage's getPixelColour loop + flip (and ImageSequence's)", "[pixel_convert][s-rta-0928]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    int w = 0, h = 0;
+    const auto px = everyAlpha(w, h);
+    for (bool software : { false, true })
+    {
+        INFO((software ? "SoftwareImageType" : "NativeImageType"));
+        const auto img = imageOf(px, w, h, software);
+        CHECK(newRows(img, true) == oldLoadKeyImageLoop(img));
+    }
+}
+
+TEST_CASE("premultiplied == TextureManager::uploadImage's swizzle", "[pixel_convert][s-rta-0928]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    int w = 0, h = 0;
+    const auto px = everyAlpha(w, h);
+    for (bool software : { false, true })
+    {
+        INFO((software ? "SoftwareImageType" : "NativeImageType"));
+        const auto img = imageOf(px, w, h, software);
+        CHECK(newRows(img, false) == oldUploadImageLoop(img));
+    }
+}
+
+TEST_CASE("image -> GL rows, odd sizes 131x77, 1x1, 1x9, 9x1, both layouts", "[pixel_convert][s-rta-0928]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    const int sizes[][2] = { { 131, 77 }, { 1, 1 }, { 1, 9 }, { 9, 1 } };
+    uint32_t seed = 928u;
+    for (const auto& s : sizes)
+    {
+        const auto px = lcg(s[0], s[1], seed++);
+        for (bool software : { false, true })
+        {
+            INFO(s[0] << "x" << s[1] << (software ? " software" : " native"));
+            const auto img = imageOf(px, s[0], s[1], software);
+            CHECK(newRows(img, true) == oldLoadKeyImageLoop(img));
+            CHECK(newRows(img, false) == oldUploadImageLoop(img));
+        }
+    }
+}

@@ -2589,3 +2589,62 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_deck_thumbnails)
 catch_discover_tests(test_deck_thumbnails)
+
+# --- s-rta-0928 renderleft R1.2: clip images decoded OFF the GL thread.
+# test_image_tex_cache: the pure bookkeeping (src/render/ImageTexCache.h) -- Pending / Resident / Failed, one request per
+# miss, results for dropped entries dropped, the per-frame upload budget (a result that misses it keeps its bytes),
+# R1.5 prefetch (P = 1, budget, re-validation). Headless, no GL, no JUCE (registered like test_frame_ring).
+add_executable(test_image_tex_cache test_image_tex_cache.cpp)
+target_include_directories(test_image_tex_cache PRIVATE ${SRC_DIR})
+target_link_libraries(test_image_tex_cache PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_image_tex_cache)
+catch_discover_tests(test_image_tex_cache)
+
+# test_image_decode: src/render/ImageDecode.h decodes + converts on a juce::ThreadPool with NO GL context; the bytes are
+# the old GL-thread loops' (their loops are the oracle); a dead mailbox drops the result; destroying a busy decoder drops
+# its queue. Headless juce::Image, registered like test_png_write.
+add_executable(test_image_decode test_image_decode.cpp)
+target_include_directories(test_image_decode PRIVATE ${SRC_DIR})
+target_link_libraries(test_image_decode PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_image_decode PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_image_decode PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_image_decode)
+catch_discover_tests(test_image_decode)
+
+# --- s-rta-0928 renderleft R3: the fast PNG writer render_frame uses (src/render/PngWrite.h writeScanlinesReplacing +
+# PixelConvert::rgbaBottomUpToPngScanlines): the scanlines are the JUCE writer's row bytes, the file parses (CRCs,
+# IDAT inflates to the scanlines), decodes to JUCE's own picture, and replaces an existing file. [.bench] (hidden):
+# JUCE's writer vs zlib levels 0/1/2 (+ 6 with filter 0) at 1080p / 4K. Headless juce::Image, like test_png_write.
+add_executable(test_png_fast test_png_fast.cpp)
+target_include_directories(test_png_fast PRIVATE ${SRC_DIR})
+target_link_libraries(test_png_fast PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_png_fast PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_png_fast PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_png_fast)
+catch_discover_tests(test_png_fast)

@@ -63,14 +63,126 @@ void Renderer::loadImage(const juce::File& imageFile)
 {
     std::cerr << "[Renderer] loadImage: " << imageFile.getFullPathName() << std::endl;
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
-    pendingImageFile_ = imageFile;
-    hasPendingImage_ = true;
+    legacyReq_ = LegacyRequest{ imageFile, false, legacyReq_.gen + 1 };
 }
 
 void Renderer::clearImage()
 {
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
-    pendingClearImage_ = true;
+    legacyReq_ = LegacyRequest{ juce::File(), true, legacyReq_.gen + 1 };
+}
+
+void Renderer::prefetchLegacyImage(const juce::File& imageFile)
+{
+    std::lock_guard<std::mutex> lock(pendingImageMutex_);
+    legacyPrefetch_ = imageFile;
+}
+
+// s-rta-0928 R1.3: the frame top -- take the newest request and prefetch path, sort the arrived decode results. O(1)
+// apart from moving results; never decodes (it used to decode + convert + upload here, on EVERY trigger or selection
+// of an image clip, even in deck mode where this picture is not shown -- outside the frame timer, F2).
+void Renderer::takeLegacyRequests()
+{
+    LegacyRequest req;
+    juce::File prefetch;
+    {
+        std::lock_guard<std::mutex> lock(pendingImageMutex_);
+        req = legacyReq_;
+        prefetch = legacyPrefetch_;
+        legacyPrefetch_ = juce::File();
+    }
+
+    std::vector<ImageDecode::Result> got;
+    legacyBox_->tryDrain(got);
+    for (auto& r : got)
+    {
+        if (r.tag == kLegacyPrefetchTag)
+        {
+            if (r.path == legacyPrefetchInFlight_)
+                legacyPrefetchInFlight_.clear();
+            if (r.kind == ImageTexCache::Kind::Decoded && r.path != legacyResidentPath_)
+                legacyParked_ = std::move(r);
+            continue;
+        }
+        if (r.tag != legacyInFlightGen_)
+            continue;                  // stale (a context loss reset the gens)
+        legacyInFlightGen_ = 0;
+        if (r.tag == legacyWantGen_ && !legacyWantDone_)
+            legacyReady_ = std::move(r);
+        // else: an older request's result -- the newest is issued by resolveLegacy
+    }
+
+    if (req.gen != legacyHandledGen_)
+    {
+        legacyHandledGen_ = req.gen;
+        legacyReady_.reset();
+        if (req.clear)
+        {
+            texMgr_.release();
+            legacyResidentPath_.clear();
+            legacyWant_ = juce::File();
+            legacyWantGen_ = 0;
+            legacyWantDone_ = true;
+        }
+        else
+        {
+            legacyWant_ = req.file;      // lazy: decoded + uploaded only when a frame needs it (resolveLegacy)
+            legacyWantGen_ = req.gen;
+            legacyWantDone_ = false;
+        }
+    }
+
+    const auto pp = prefetch.getFullPathName().toStdString();
+    if (prefetch != juce::File() && pp != legacyResidentPath_ && pp != legacyPrefetchInFlight_
+        && !(legacyParked_ && legacyParked_->path == pp))
+    {
+        legacyPrefetchInFlight_ = pp;
+        imageDecoder_.request(prefetch, ImageDecode::Layout::PremultipliedRGBA, kLegacyPrefetchTag, std::nullopt,
+                              legacyBox_);
+    }
+}
+
+// s-rta-0928 R1.3: called ONLY where a frame shows the legacy single image (no deck picture, no source). A wanted file
+// that is not resident is requested (one demand decode in flight), adopted from the prefetch, or uploaded when its
+// bytes are here (within the frame's upload budget). Until then legacyPendingThisFrame_ holds a render_frame back and
+// the current texture (the previous picture) or black shows. Unchanged (the resident file, same stamp) and Failed
+// (the old picture stays, as a failed load always did) end the request.
+void Renderer::resolveLegacy()
+{
+    if (legacyWantDone_ || legacyWantGen_ == 0)
+        return;
+    const auto path = legacyWant_.getFullPathName().toStdString();
+    if (!legacyReady_ && legacyParked_ && legacyParked_->path == path)
+    {
+        legacyReady_ = std::move(legacyParked_);
+        legacyParked_.reset();
+    }
+    if (legacyReady_)
+    {
+        if (legacyReady_->kind == ImageTexCache::Kind::Decoded)
+        {
+            if (!uploadBudget_.take(legacyReady_->rgba.size()))
+            {
+                legacyPendingThisFrame_ = true;   // this frame's budget is spent: the next frame uploads
+                return;
+            }
+            texMgr_.uploadPixels(legacyReady_->rgba.data(), legacyReady_->w, legacyReady_->h);
+            legacyResidentPath_ = legacyReady_->path;
+            legacyResidentStamp_ = legacyReady_->stamp;
+        }
+        legacyReady_.reset();
+        legacyWantDone_ = true;
+        return;
+    }
+    if (legacyInFlightGen_ == 0)
+    {
+        std::optional<ImageTexCache::Stamp> known;
+        if (path == legacyResidentPath_ && texMgr_.hasImage())
+            known = legacyResidentStamp_;   // a re-load of the resident file: a stat, no decode
+        legacyInFlightGen_ = legacyWantGen_;
+        imageDecoder_.request(legacyWant_, ImageDecode::Layout::PremultipliedRGBA, legacyWantGen_, known, legacyBox_);
+    }
+    legacyPendingThisFrame_ = true;
 }
 
 void Renderer::queueCameraFrame(const juce::Image& frame)
@@ -135,6 +247,7 @@ void Renderer::newOpenGLContextCreated()
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
     compositor_.setEffectLibrary(&effectLibrary_);
+    compositor_.setImageDecoder(&imageDecoder_, &uploadBudget_);   // s-rta-0928 R1.2
 
     // Wire source rendering into compositor. S167-L4b: ignores the `time`
     // CompositorEngine passes (that's wall-clock, shared with clip effects/
@@ -147,8 +260,14 @@ void Renderer::newOpenGLContextCreated()
     });
 
     // Wire video frame provider into compositor
-    compositor_.setVideoFrameProvider([this](const Clip* clip, float dt) -> GLuint {
-        return getVideoFrameTexture(clip, dt);
+    compositor_.setVideoFrameProvider([this](const Clip* clip, float dt, bool* pending) -> GLuint {
+        return getVideoFrameTexture(clip, dt, pending);
+    });
+    // renderleft-fix: C1's crossfade pause for an image sequence whose first frame still decodes (no side effect).
+    compositor_.setSequencePendingProvider([this](const Clip* clip) -> bool {
+        std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        auto it = imageSequences_.find(clip->id);
+        return it != imageSequences_.end() && it->second->firstFramePending();
     });
 
     // P22.1: Initialize the Syphon server on the GL thread. The Syphon server
@@ -163,8 +282,27 @@ void Renderer::newOpenGLContextCreated()
 
 void Renderer::renderOpenGL()
 {
+    // s-rta-0928 R1.0: the WHOLE callback (every return), incl. the work before renderStart (pending legacy image,
+    // camera upload, autopilot) and after renderEnd (recorder, Syphon, capture read) that peak_frame_time_ms misses.
+    struct CallbackPeak
+    {
+        std::atomic<float>& peak;
+        std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+        ~CallbackPeak()
+        {
+            const float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            if (ms > peak.load(std::memory_order_relaxed)) peak.store(ms, std::memory_order_relaxed);
+        }
+    } callbackPeak{ peakCallbackMs_ };
+
     // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
     frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
+
+    // s-rta-0928 R1.2: this frame's image bookkeeping, then the decoded images uploaded -- EVERY frame, before any
+    // pass and before any early return (B2), within the frame's upload budget. No decode here, ever.
+    compositor_.beginFrame();
+    uploadBudget_.reset();
+    compositor_.pumpImages();
 
     // Release any media players closeMediaForClip() retired from the message
     // thread (media-leak fix, L1) — the only place this runs, since this
@@ -172,24 +310,10 @@ void Renderer::renderOpenGL()
     // current.
     drainRetiredMedia();
 
-    // Handle pending image load or clear (from message thread)
-    {
-        std::lock_guard<std::mutex> lock(pendingImageMutex_);
-        if (pendingClearImage_)
-        {
-            texMgr_.release();
-            pendingClearImage_ = false;
-            hasPendingImage_ = false;
-        }
-        else if (hasPendingImage_)
-        {
-            std::cerr << "[Renderer] Processing pending image..." << std::endl;
-            bool ok = texMgr_.loadImage(pendingImageFile_);
-            std::cerr << "[Renderer] Image load " << (ok ? "OK" : "FAILED")
-                      << ", hasImage=" << texMgr_.hasImage() << std::endl;
-            hasPendingImage_ = false;
-        }
-    }
+    // Handle pending image load or clear (from message thread). s-rta-0928 R1.3: O(1) -- the decode runs off the GL
+    // thread and only when a frame needs the legacy image (resolveLegacy below).
+    legacyPendingThisFrame_ = false;
+    takeLegacyRequests();
 
     // Handle pending camera frame
     {
@@ -322,6 +446,10 @@ void Renderer::renderOpenGL()
     glViewport(0, 0, canvas.w, canvas.h);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // s-rta-0928 R1.3: nothing else can draw -- the legacy image is needed (decoded / uploaded lazily).
+    if (!sourceActive && !deckActive)
+        resolveLegacy();
 
     // Check if we have anything to render
     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
@@ -628,6 +756,7 @@ void Renderer::renderOpenGL()
     bool legacyImage = false;
     if (sourceTexture == 0)
     {
+        resolveLegacy();   // s-rta-0928 R1.3: this frame shows the legacy image
         sourceTexture = texMgr_.getImageTexture();
         legacyImage = (sourceTexture != 0);
     }
@@ -1053,6 +1182,17 @@ void Renderer::openGLContextClosing()
     shaderMgr_.releaseAll();
     texMgr_.release();
     quad_.release();
+
+    // s-rta-0928 R1.3: the legacy texture died with texMgr_ (as before: nothing re-loads it on the next context);
+    // in-flight results are dropped by their stale tags.
+    legacyResidentPath_.clear();
+    legacyWant_ = juce::File();
+    legacyWantGen_ = 0;
+    legacyWantDone_ = true;
+    legacyInFlightGen_ = 0;
+    legacyPrefetchInFlight_.clear();
+    legacyReady_.reset();
+    legacyParked_.reset();
 }
 
 ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)
@@ -1413,13 +1553,15 @@ ImageSequence* Renderer::getImageSequence(uint32_t clipId)
     return (it != imageSequences_.end()) ? it->second.get() : nullptr;
 }
 
-GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
+GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt, bool* pending)
 {
-    return syncMedia(clip, dt, true);
+    return syncMedia(clip, dt, true, pending);
 }
 
-GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode)
+GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pending)
 {
+    if (pending != nullptr)
+        *pending = false;
     if (!clip)
         return 0;
 
@@ -1569,8 +1711,20 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode)
             }
         }
 
-        // plan4 T4: no lazy PNG load for a deck that is not on screen.
-        return decode ? seq->getCurrentTexture() : 0;
+        // plan4 T4: no lazy PNG load for a deck that is not on screen. s-rta-0928 R1.4: the frames decode off the GL
+        // thread (look-ahead); a sequence with nothing to show yet is PENDING, and counts for the render_frame gate
+        // (C3: the same framePendingImages counter the compositor's images bump).
+        if (!decode)
+            return 0;
+        bool seqPending = false;
+        const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, &seqPending);
+        if (seqPending)
+        {
+            compositor_.notePendingImage();
+            if (pending != nullptr)
+                *pending = true;
+        }
+        return tex;
     }
 
     return 0;
@@ -2033,14 +2187,25 @@ void Renderer::initEffectChain()
 // === Frame Capture (Eyes test harness) ===
 
 bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
-                            int width, int height)
+                            int width, int height, bool completeFrame, CaptureEncoding enc)
 {
-    // Clamp dimensions to safe max (avoid huge allocations)
-    if (width > 1920) width = 1920;
-    if (height > 1080) height = 1080;
-
     std::promise<CaptureRead> promise;
     auto future = promise.get_future();
+
+    // s-rta-0928 R2: one capture at a time, from arm to read. A second caller used to overwrite capturePromise_ (the
+    // first then timed out after 5 s and its timeout path cleared the second's pending capture), restore the time
+    // override LIFO-wrong (live frames froze at the other caller's time) and race the TEST-ONLY canvas lock
+    // (TestServer set / cleared it outside this function). The flight lock owns all three; it is never taken on the
+    // GL thread, and it is released before the convert + PNG below, so concurrent callers still overlap that work.
+    std::unique_lock<std::timed_mutex> flight(captureFlight_, std::defer_lock);
+    if (!flight.try_lock_for(std::chrono::seconds(5)))
+    {
+        std::cerr << "[Eyes] Frame capture timed out after 5s (another capture in flight)" << std::endl;
+        return false;
+    }
+    const uint64_t prevLock = lockedSize_.load(std::memory_order_relaxed);
+    if (width > 0 && height > 0)
+        setLockedResolution(width, height);   // moved from TestServer (R2); restored below on both exits
 
     // Set time override for this frame -- BEFORE arming: the frame that answers must have read it (captureArmSeq_)
     float prevTime = timeOverride_.load(std::memory_order_relaxed);
@@ -2049,9 +2214,8 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     {
         std::lock_guard<std::mutex> lock(captureMutex_);
-        captureWidth_ = width;
-        captureHeight_ = height;
         capturePromise_ = &promise;
+        pendingCaptureComplete_ = completeFrame;
         pendingCaptureSeq_ = captureArmSeq_.fetch_add(1, std::memory_order_acq_rel) + 1;
         pendingCapture_.store(true, std::memory_order_release);
     }
@@ -2068,6 +2232,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
         std::lock_guard<std::mutex> lock(captureMutex_);
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
+        lockedSize_.store(prevLock, std::memory_order_relaxed);
         return false;
     }
 
@@ -2078,6 +2243,8 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     // own future (fix round): nothing shared is read after the signal, so a second capture armed and serviced
     // before this line cannot hand its pixels to this caller.
     CaptureRead read = future.get();
+    lockedSize_.store(prevLock, std::memory_order_relaxed);
+    flight.unlock();   // R2: the next caller arms now; this one converts + encodes below, off the flight
     if (!read.ok)
         return false;
     std::vector<uint8_t>& pixels = read.pixels;
@@ -2097,25 +2264,42 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left). Row conversion, byte-identical
     // to the old per-pixel setPixelColour loop (s-rta-0927 plan-renderperf C2; tests/test_pixel_convert.cpp).
-    auto tConvert = CaptureClock::now();
-    juce::Image img(juce::Image::ARGB, readW, readH, false);
+    double convertMs = 0.0, pngMs = 0.0;
+    bool ok = false;
+    if (enc == CaptureEncoding::Fast)
     {
-        juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
-        PixelConvert::rgbaBottomUpToARGB(pixels.data(), readW, readH, bmp, false);
+        // s-rta-0928 R3: PNG scanlines straight from the GL rows (the bytes JUCE's writer would emit), zlib level 1.
+        auto tConvert = CaptureClock::now();
+        std::vector<uint8_t> scan(static_cast<size_t>(readH) * (1 + static_cast<size_t>(readW) * 4));
+        PixelConvert::rgbaBottomUpToPngScanlines(pixels.data(), readW, readH, scan.data());
+        convertMs = msSince(tConvert);
+        auto tPng = CaptureClock::now();
+        ok = PngWrite::writeScanlinesReplacing(scan.data(), readW, readH, outputPath, PngWrite::kFastPngLevel);
+        pngMs = msSince(tPng);
     }
-    const double convertMs = msSince(tConvert);
+    else
+    {
+        auto tConvert = CaptureClock::now();
+        juce::Image img(juce::Image::ARGB, readW, readH, false);
+        {
+            juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
+            PixelConvert::rgbaBottomUpToARGB(pixels.data(), readW, readH, bmp, false);
+        }
+        convertMs = msSince(tConvert);
 
-    // Write PNG
-    auto tPng = CaptureClock::now();
-    const bool ok = PngWrite::writeReplacing(img, outputPath);   // replaces an existing file (F2)
-    const double pngMs = msSince(tPng);
+        // Write PNG
+        auto tPng = CaptureClock::now();
+        ok = PngWrite::writeReplacing(img, outputPath);   // replaces an existing file (F2)
+        pngMs = msSince(tPng);
+    }
 
     // C0's split: read = the GL thread's whole share; convert + png ran here.
     if (ok)
         std::cerr << "[Eyes] Captured frame: " << outputPath.getFullPathName()
                   << " (" << readW << "x" << readH << ")"
                   << " read=" << juce::String(readMs, 1) << " convert=" << juce::String(convertMs, 1)
-                  << " png=" << juce::String(pngMs, 1) << " ms" << std::endl;
+                  << " png=" << juce::String(pngMs, 1) << " ms"
+                  << (enc == CaptureEncoding::Fast ? " enc=fast" : " enc=archive") << std::endl;
     else
         std::cerr << "[Eyes] Failed to write PNG: " << outputPath.getFullPathName() << std::endl;
 
@@ -2142,6 +2326,11 @@ void Renderer::processPendingCapture()
         return;
     // Armed after this frame started: this frame may have rendered at the previous time. The next frame answers.
     if (frameArmSeq_ < pendingCaptureSeq_)
+        return;
+    // s-rta-0928 R1: a frame that held or skipped a layer (an image still decoding) never answers a render_frame --
+    // render_frame right after a load or trigger shows the picture, never the placeholder. The decode always ends
+    // (every job delivers a result) and the caller's 5 s timeout is the backstop. A user snapshot does not wait (C2).
+    if (pendingCaptureComplete_ && (compositor_.framePendingImages() > 0 || legacyPendingThisFrame_))
         return;
 
     // plan4 item 1: the capture is the whole canvas, exactly its size.

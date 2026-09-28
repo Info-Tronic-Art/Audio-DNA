@@ -1,0 +1,23 @@
+{
+  "_doc": "Fixtures + thresholds for .harmony/probe-image-load.sh (s-rta-0928 renderleft R1). Rows and calibration: the docstring of .harmony/probe-image-load.py. Fixture images are generated per run into <out>/media (numpy seed 928, PIL compress_level 1): every path is new to the app instance.",
+  "peakMaxMs": 16.7,
+  "_peakMaxMs": "one 60 Hz frame period: a callback under it cannot drop a frame",
+  "boxTol": 3.0,
+  "_boxTol": "dbox(X, Y): both arrays box-averaged in 16x16 blocks, then mean |diff| over RGB (0..255)",
+  "fixtureMinD": 20.0,
+  "_fixtureMinD": "a fixture pair (warm picture vs cold picture) must differ by at least this much, or the row proves nothing",
+  "i2mFirstMaxP": 0.08,
+  "_i2mFirstMaxP": "C1 (Harmony adoption): the first frame that answers a capture after a 1 s dissolve onto a still-decoding image has dissolve progress <= this (about 4 frames at 60 Hz; without the pause it is the remaining decode time / 1 s)",
+  "snapshotMaxMs": 500,
+  "_snapshotMaxMs": "C2 (Harmony adoption): a snapshot taken while an image decodes answers within its normal time. Calibration (renderleft-fix.md): a 1080p snapshot 76-84 ms (baseline and ungated, lane + main); gated (main's in-frame decode, or the teeth build whose snapshot asks for a complete frame) 914-1442 ms. The sharp witness is the picture (i3n)",
+  "sizes": { "1080": [1920, 1080], "4k": [3840, 2160], "slow": [7680, 4320], "filler": [8192, 8192] },
+  "_filler": "4 flat 8192x8192 images = 1 GiB: the R1.5 prefetch budget (CompositorEngine kImagePrefetchBudgetBytes), so the pending rows' subject images are never prefetched",
+  "layers": {
+    "i1_layer_1080": 61, "i1_layer_4k": 71, "i2_fade_1080": 62, "i2_fade_4k": 72, "i2m_fade_start": 73,
+    "i3_capture_after_trigger": 63, "i3s_capture_after_seq_trigger": 74,
+    "i2ms_seq_fade_start": 75, "i3n_snapshot_while_pending": 76, "i4_hold_counters": 64,
+    "i4m_mask_hold": 69, "i5_legacy_retrigger": 65, "i6_sequence_1080": 66, "i7_prefetch_retain": 67
+  },
+  "sequence": { "frames": 12, "fps": 10.0 },
+  "prefetchTimeoutS": 15.0
+}

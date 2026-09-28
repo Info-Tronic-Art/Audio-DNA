@@ -7,6 +7,8 @@
 #include "render/FeedbackProcessor.h"
 #include "render/LayerStateKey.h"
 #include "render/CrossfadeHistory.h"
+#include "render/ImageTexCache.h"
+#include "render/ImageDecode.h"
 #include "effects/EffectLibrary.h"
 #include "effects/Effect.h"
 #include "analysis/FeatureSnapshot.h"
@@ -15,6 +17,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 // CompositorEngine: multi-layer compositing for v2 deck mode.
 //
@@ -46,12 +49,55 @@ public:
     // Set the effect library for creating per-clip effect instances.
     void setEffectLibrary(EffectLibrary* lib) { effectLibrary_ = lib; }
 
-    // Load an image for a specific key/clip. Call from message thread (queued).
-    // Returns the GL texture ID, or 0 on failure.
-    GLuint loadKeyImage(const juce::File& imageFile);
+    // s-rta-0928 R1.2: a clip image's texture, NEVER decoded here. Resident -> the texture; not resident yet -> 0 with
+    // *pending = true (a decode job runs on the Renderer's ImageDecode::Decoder; pumpImages uploads the result at a
+    // later frame's start) -- the caller must NOT treat that 0 as "no media" (FX-only trap, F14); a file that failed
+    // to decode -> 0, not pending (no media, today's semantics). GL thread.
+    GLuint getKeyTexture(const juce::File& imageFile, bool* pending = nullptr);
 
-    // Get or create a texture for a key/clip's image file (cached).
-    GLuint getKeyTexture(const juce::File& imageFile);
+    // s-rta-0928 R1.2: the decoder (a Renderer member, outlives this engine's GL state) and the per-frame upload budget
+    // shared by every image path. Call from newOpenGLContextCreated.
+    void setImageDecoder(ImageDecode::Decoder* decoder, ImageTexCache::UploadBudget* budget)
+    {
+        decoder_ = decoder;
+        uploadBudget_ = budget;
+    }
+
+    // s-rta-0928 R1.2: once per frame, first thing (renderOpenGL): the frame serial the hold reads, and this frame's
+    // pending-image count (the capture gate) reset.
+    void beginFrame() { ++frameSerial_; pendingImagesThisFrame_ = 0; }
+
+    // s-rta-0928 R1.2: GL thread, once per frame before any pass (B2: every frame, whatever renders): drain the decoded
+    // results (try_lock -- never blocks), upload them within the frame's budget (demand before prefetch; a result that
+    // misses the budget keeps its bytes for a later frame), evict / prefetch (R1.5).
+    void pumpImages();
+
+    // s-rta-0928 R1.5: the composition's image set, in prefetch order (compload::imagePaths), from any thread (a
+    // mutex-guarded slot that REPLACES an unconsumed set). The next pumpImages releases the textures of images not in
+    // it and prefetches the rest -- one decode in flight, up to kImagePrefetchBudgetBytes of resident images.
+    void postImageSet(std::vector<std::string> ordered)
+    {
+        std::lock_guard<std::mutex> lock(imageSetMutex_);
+        postedImageSet_ = std::move(ordered);
+        hasPostedImageSet_ = true;
+    }
+
+    // Images this frame needed but could not show yet (a layer held or skipped). A capture that waits for a complete
+    // frame (render_frame) is never answered by a frame where this is > 0 (Renderer::processPendingCapture).
+    int framePendingImages() const { return pendingImagesThisFrame_; }
+    void notePendingImage() { ++pendingImagesThisFrame_; }
+
+    // s-rta-0928 R1.2: /api/state (any thread; relaxed atomics written on the GL thread).
+    int64_t getImageHoldFrames() const { return imageHoldFrames_.load(std::memory_order_relaxed); }
+    int64_t getImageSkipFrames() const { return imageSkipFrames_.load(std::memory_order_relaxed); }
+    int getImagesPending() const { return imagesPending_.load(std::memory_order_relaxed); }
+    int getImageTextureCount() const { return imageTexCount_.load(std::memory_order_relaxed); }
+    double getImageTextureMB() const
+    {
+        return static_cast<double>(imageTexBytes_.load(std::memory_order_relaxed)) / (1024.0 * 1024.0);
+    }
+    float takePeakImageUploadMs() { return peakImageUploadMs_.exchange(0.0f, std::memory_order_relaxed); }
+    int64_t getImagePumpFrames() const { return imagePumpFrames_.load(std::memory_order_relaxed); }
 
     // Callback to render a procedural source by its type ID.
     // Returns the GL texture ID of the rendered source, or 0 on failure.
@@ -64,12 +110,18 @@ public:
 
     // Callback to get the current video frame texture for a clip.
     // The Renderer advances video playback and uploads frames; this just returns the texture.
-    // Parameters: clip pointer, dt (frame delta time)
+    // Parameters: clip pointer, dt (frame delta time), pending (s-rta-0928 R1.4: set when an image sequence has
+    // nothing to show yet -- its first frame still decodes; never set for video)
     // Returns GL texture ID, or 0 if no frame ready.
-    using VideoFrameFn = std::function<GLuint(const Clip* clip, float dt)>;
+    using VideoFrameFn = std::function<GLuint(const Clip* clip, float dt, bool* pending)>;
 
     // Set the video frame callback (provided by Renderer)
     void setVideoFrameProvider(VideoFrameFn fn) { videoFrameFn_ = std::move(fn); }
+
+    // s-rta-0928 renderleft-fix (C1 for sequences): true when an ImageSequence clip has nothing to show yet (its
+    // first frame still decodes) -- ImageSequence::firstFramePending, no side effect. Provided by Renderer.
+    using SequencePendingFn = std::function<bool(const Clip* clip)>;
+    void setSequencePendingProvider(SequencePendingFn fn) { sequencePendingFn_ = std::move(fn); }
 
     // === Deck/Layer-based compositing ===
     // Composite all layers in the deck and return the result texture.
@@ -195,11 +247,58 @@ private:
     bool glInitialized_ = false;
     bool hasActiveLayers_ = false;
 
-    // Texture cache: file path → GL texture ID
-    std::unordered_map<std::string, GLuint> textureCache_;
+    // s-rta-0928 R1.2: clip images, decoded OFF the GL thread (ImageDecode) -- the cache's bookkeeping is pure
+    // (ImageTexCache, tests/test_image_tex_cache.cpp); this engine makes the GL calls it names. The GL thread only
+    // uploads, in pumpImages. Textures: freed at releaseGL (context loss) and, from R1.5, when a composition swap
+    // drops their image.
+    ImageTexCache::Cache imageCache_;
+    std::shared_ptr<ImageDecode::Mailbox> imageBox_ = std::make_shared<ImageDecode::Mailbox>();
+    struct ReadyImage
+    {
+        ImageDecode::Result r;
+        bool accepted = false;   // onResult said Upload; the bytes wait for a frame with upload budget (B3)
+    };
+    std::vector<ReadyImage> readyImages_;
+    std::vector<ImageDecode::Result> drained_;   // scratch for Mailbox::tryDrain (GL thread)
+    ImageDecode::Decoder* decoder_ = nullptr;
+    ImageTexCache::UploadBudget* uploadBudget_ = nullptr;
+    // R1.5: the posted image set (postImageSet; the GL thread takes it with try_lock) and the prefetch budget --
+    // ASSUMED 1 GiB of resident image textures (~30 4K or ~120 1080p stills); demand loads are never refused.
+    std::mutex imageSetMutex_;
+    std::vector<std::string> postedImageSet_;
+    bool hasPostedImageSet_ = false;
+    static constexpr size_t kImagePrefetchBudgetBytes = size_t{ 1 } << 30;
+    GLuint uploadImageTexture(const ImageDecode::Result& r);
+    void deleteImageTexture(GLuint tex);
+
+    // The hold (R1-a): while a layer's image decodes, an active-deck Opaque/Transparent layer shows its LAST picture --
+    // its Layer Router output (layerOutputTexStorage_) saved by the previous frame for the same deck. Owner = which
+    // deck saved it and in which frame (frameSerial_); anything older, or another deck's, is nothing to hold.
+    uint64_t frameSerial_ = 0;
+    int pendingImagesThisFrame_ = 0;
+    struct LayerOutputOwner { uint32_t deckId = 0; uint64_t frame = 0; };
+    std::unordered_map<uint32_t, LayerOutputOwner> layerOutputOwner_;
+    GLuint heldLayerOutput(uint32_t layerId, uint32_t deckId) const;
+    void touchLayerOutput(uint32_t layerId, uint32_t deckId);
+    // A Mask layer holds its last IMAGE mask (cache-owned texture; key LayerStateKey::clipChain). Purged when the
+    // texture is deleted.
+    std::unordered_map<uint64_t, GLuint> lastMaskImageTex_;
+    // C1 (Harmony adoption): a crossfade onto an image that is still decoding does not advance -- the dissolve starts
+    // when the picture lands. True only while the layer fades and its incoming image is not resident, or its incoming
+    // image sequence has nothing to show yet (renderleft-fix). No side effect.
+    bool incomingImagePending(const Layer& layer, const Clip* clip) const;
+
+    std::atomic<int64_t> imageHoldFrames_{ 0 };
+    std::atomic<int64_t> imageSkipFrames_{ 0 };
+    std::atomic<int> imagesPending_{ 0 };
+    std::atomic<int> imageTexCount_{ 0 };
+    std::atomic<int64_t> imageTexBytes_{ 0 };
+    std::atomic<float> peakImageUploadMs_{ 0.0f };
+    std::atomic<int64_t> imagePumpFrames_{ 0 };
 
     SourceRenderFn sourceRenderFn_;
     VideoFrameFn videoFrameFn_;
+    SequencePendingFn sequencePendingFn_;
     EffectLibrary* effectLibrary_ = nullptr;
 
     // Audio feature snapshot for audio-reactive effects. Owned VALUE (R7,
@@ -397,8 +496,8 @@ private:
                         ShaderManager& shaderMgr, FullscreenQuad& quad,
                         int w, int h);
 
-    // Get texture for any clip (image, source, video, or image sequence)
-    GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt);
+    // Get texture for any clip (image, source, video, or image sequence). *pending: see getKeyTexture.
+    GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt, bool* pending = nullptr);
 
     // Does this clip give its layer something to draw -- media that exists, or
     // effects to apply (FX Only)? The rule compositeDeck uses to decide whether
@@ -449,8 +548,9 @@ private:
     // Create/get a layer output FBO/texture pair
     void ensureLayerOutputFBO(uint32_t layerId, int w, int h);
 
-    // Save the current clip texture into the layer's output storage
-    void saveLayerOutput(uint32_t layerId, GLuint srcTex,
+    // Save the current clip texture into the layer's output storage (and record deckId + this frame as its owner:
+    // the picture a pending image holds, R1.2)
+    void saveLayerOutput(uint32_t layerId, uint32_t deckId, GLuint srcTex,
                          ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
 
 public:

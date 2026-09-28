@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace compload
@@ -175,6 +176,39 @@ inline std::vector<uint32_t> playableClipIds(const Composition& c)
                 if (cell.has_value() && cell->isPlayable()) ids.push_back(cell->id);
     std::sort(ids.begin(), ids.end());
     return ids;
+}
+
+// s-rta-0928 renderleft R1.5: every Image clip's file path (full path, non-empty mediaFile), in the order the renderer
+// should prefetch them: the active deck first -- within each layer its active clip first, then the other columns --
+// then the other decks in index order. Deduplicated, the first occurrence kept.
+inline std::vector<std::string> imagePaths(const Composition& c)
+{
+    std::vector<std::string> out;
+    std::unordered_set<std::string> seen;   // dedup in O(1) per clip (renderleft-fix)
+    auto add = [&](const Clip& clip) {
+        if (clip.mediaType != Clip::MediaType::Image || clip.mediaFile == juce::File())
+            return;
+        auto p = clip.mediaFile.getFullPathName().toStdString();
+        if (p.empty() || !seen.insert(p).second)
+            return;
+        out.push_back(std::move(p));
+    };
+    auto visitDeck = [&](const Deck& d) {
+        for (const auto& l : d.layers)
+            if (const Clip* a = l.getActiveClip())
+                add(*a);
+        for (const auto& l : d.layers)
+            for (size_t ci = 0; ci < l.clips.size(); ++ci)
+                if (l.clips[ci].has_value() && static_cast<int>(ci) != l.activeClipColumn)
+                    add(*l.clips[ci]);
+    };
+    const int active = c.activeDeckIndex;
+    if (active >= 0 && active < static_cast<int>(c.decks.size()))
+        visitDeck(c.decks[static_cast<size_t>(active)]);
+    for (size_t di = 0; di < c.decks.size(); ++di)
+        if (static_cast<int>(di) != active)
+            visitDeck(c.decks[di]);
+    return out;
 }
 
 // before \ after: the media ids a model mutation orphaned (what must be closed).

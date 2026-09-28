@@ -46,6 +46,12 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
     textures_.resize(files_.size(), 0);
     textureWidths_.resize(files_.size(), 0);
     textureHeights_.resize(files_.size(), 0);
+    // s-rta-0928 R1.4: a new open -- results of earlier requests are dropped by their generation
+    ++openGen_;
+    requested_.assign(files_.size(), 0);
+    failed_.assign(files_.size(), 0);
+    ready_.clear();
+    lastShown_ = -1;
 
     // Get dimensions from first image
     auto firstImg = juce::ImageFileFormat::loadFrom(files_[0]);
@@ -187,18 +193,139 @@ void ImageSequence::advanceFrame(double dt)
     playheadPosition_.store(std::clamp(pos, 0.0, 1.0), std::memory_order_relaxed);
 }
 
-GLuint ImageSequence::getCurrentTexture()
+void ImageSequence::ensureFrameState()
 {
+    const size_t n = files_.size();
+    if (textures_.size() != n) { textures_.resize(n, 0); textureWidths_.resize(n, 0); textureHeights_.resize(n, 0); }
+    if (requested_.size() != n) requested_.assign(n, 0);
+    if (failed_.size() != n) failed_.assign(n, 0);
+}
+
+void ImageSequence::requestFrame(ImageDecode::Decoder& decoder, int idx)
+{
+    const auto i = static_cast<size_t>(idx);
+    if (requested_[i] != 0 || textures_[i] != 0 || failed_[i] != 0 || outstanding_ >= kMaxOutstanding)
+        return;
+    requested_[i] = 1;
+    ++outstanding_;
+    decoder.request(files_[i], ImageDecode::Layout::StraightRGBA,
+                    (static_cast<uint64_t>(openGen_) << 32) | static_cast<uint32_t>(idx), std::nullopt, box_);
+}
+
+// The next kLookAhead frames in the play direction: Loop wraps, PingPong follows its current direction, OneShot stops
+// at the end.
+void ImageSequence::requestAhead(ImageDecode::Decoder& decoder, int idx)
+{
+    const int n = static_cast<int>(files_.size());
+    const auto mode = loopMode_.load(std::memory_order_relaxed);
+    bool forward = !reverse_.load(std::memory_order_relaxed);
+    if (mode == LoopMode::PingPong && !pingPongForward_)
+        forward = !forward;
+    int j = idx;
+    for (int k = 0; k < kLookAhead; ++k)
+    {
+        j += forward ? 1 : -1;
+        if (j >= n || j < 0)
+        {
+            if (mode != LoopMode::Loop)
+                break;
+            j = (j + n) % n;
+        }
+        requestFrame(decoder, j);
+    }
+}
+
+// The GL calls of the old loadImageToTexture, exactly.
+GLuint ImageSequence::uploadFrame(const ImageDecode::Result& r, int idx)
+{
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, r.w, r.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, r.rgba.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    textures_[static_cast<size_t>(idx)] = tex;
+    textureWidths_[static_cast<size_t>(idx)] = r.w;
+    textureHeights_[static_cast<size_t>(idx)] = r.h;
+    return tex;
+}
+
+GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexCache::UploadBudget& budget, bool* pending)
+{
+    if (pending != nullptr)
+        *pending = false;
     if (!open_.load(std::memory_order_relaxed) || files_.empty())
         return 0;
+    ensureFrameState();   // also after releaseGL (context loss), which empties the per-frame vectors
+    const int n = static_cast<int>(files_.size());
 
-    int idx = std::clamp(currentFrameIndex_, 0, static_cast<int>(files_.size()) - 1);
+    // Arrived frames of this open: upload within the frame's budget (the rest wait, never re-decoded).
+    std::vector<ImageDecode::Result> got;
+    if (box_->tryDrain(got))
+        for (auto& r : got)
+        {
+            outstanding_ = std::max(0, outstanding_ - 1);
+            ready_.push_back(std::move(r));
+        }
+    for (auto it = ready_.begin(); it != ready_.end();)
+    {
+        const uint32_t gen = static_cast<uint32_t>(it->tag >> 32);
+        const int idx = static_cast<int>(static_cast<uint32_t>(it->tag));
+        if (gen != openGen_ || idx < 0 || idx >= n || textures_[static_cast<size_t>(idx)] != 0)
+        {
+            it = ready_.erase(it);
+            continue;
+        }
+        if (it->kind != ImageTexCache::Kind::Decoded)
+        {
+            failed_[static_cast<size_t>(idx)] = 1;   // never re-requested: the last frame repeats (R-7)
+            it = ready_.erase(it);
+            continue;
+        }
+        if (!budget.take(it->rgba.size()))
+        {
+            ++it;
+            continue;
+        }
+        uploadFrame(*it, idx);
+        it = ready_.erase(it);
+    }
 
-    // Lazy load: create texture on first access
-    if (textures_[static_cast<size_t>(idx)] == 0)
-        return loadImageToTexture(idx);
+    const int idx = std::clamp(currentFrameIndex_, 0, n - 1);
+    if (textures_[static_cast<size_t>(idx)] != 0)
+    {
+        lastShown_ = idx;
+        requestAhead(decoder, idx);
+        return textures_[static_cast<size_t>(idx)];
+    }
+    requestFrame(decoder, idx);
+    requestAhead(decoder, idx);
+    if (lastShown_ >= 0 && lastShown_ < n && textures_[static_cast<size_t>(lastShown_)] != 0)
+        return textures_[static_cast<size_t>(lastShown_)];   // late frame: the last one repeats
+    if (failed_[static_cast<size_t>(idx)] != 0)
+        return 0;   // nothing shown and this frame is broken: no media
+    if (pending != nullptr)
+        *pending = true;
+    return 0;
+}
 
-    return textures_[static_cast<size_t>(idx)];
+// The same rule as getCurrentTexture's *pending, read only. The per-frame vectors may still be empty (never drawn, or
+// after releaseGL): then nothing is resident and nothing has failed, so a non-empty open sequence is pending.
+bool ImageSequence::firstFramePending() const
+{
+    if (!open_.load(std::memory_order_relaxed) || files_.empty())
+        return false;
+    const int n = static_cast<int>(files_.size());
+    if (static_cast<int>(textures_.size()) != n || static_cast<int>(failed_.size()) != n)
+        return true;
+    const auto idx = static_cast<size_t>(std::clamp(currentFrameIndex_, 0, n - 1));
+    if (textures_[idx] != 0)
+        return false;
+    if (lastShown_ >= 0 && lastShown_ < n && textures_[static_cast<size_t>(lastShown_)] != 0)
+        return false;
+    return failed_[idx] == 0;
 }
 
 void ImageSequence::releaseGL()
@@ -214,6 +341,11 @@ void ImageSequence::releaseGL()
     textures_.clear();
     textureWidths_.clear();
     textureHeights_.clear();
+    // s-rta-0928 R1.4: every frame is requested again on the next context (ensureFrameState re-sizes).
+    requested_.clear();
+    ready_.clear();
+    outstanding_ = 0;
+    lastShown_ = -1;
 }
 
 juce::Image ImageSequence::getThumbnail(int maxWidth, int maxHeight)
@@ -232,51 +364,4 @@ juce::Image ImageSequence::getThumbnail(int maxWidth, int maxHeight)
     int thumbH = std::max(1, static_cast<int>(static_cast<float>(img.getHeight()) * scale));
 
     return img.rescaled(thumbW, thumbH, juce::Graphics::lowResamplingQuality);
-}
-
-GLuint ImageSequence::loadImageToTexture(int frameIndex)
-{
-    if (frameIndex < 0 || frameIndex >= static_cast<int>(files_.size()))
-        return 0;
-
-    auto img = juce::ImageFileFormat::loadFrom(files_[static_cast<size_t>(frameIndex)]);
-    if (!img.isValid())
-        return 0;
-
-    img = img.convertedToFormat(juce::Image::ARGB);
-    int w = img.getWidth();
-    int h = img.getHeight();
-
-    // Convert JUCE ARGB → GL RGBA and flip Y
-    std::vector<uint8_t> rgba(static_cast<size_t>(w * h * 4));
-    juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
-
-    for (int y = 0; y < h; ++y)
-    {
-        int flippedY = h - 1 - y;
-        for (int x = 0; x < w; ++x)
-        {
-            auto pixel = bmp.getPixelColour(x, y);
-            size_t idx = static_cast<size_t>((flippedY * w + x) * 4);
-            rgba[idx + 0] = pixel.getRed();
-            rgba[idx + 1] = pixel.getGreen();
-            rgba[idx + 2] = pixel.getBlue();
-            rgba[idx + 3] = pixel.getAlpha();
-        }
-    }
-
-    GLuint tex = 0;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    textures_[static_cast<size_t>(frameIndex)] = tex;
-    textureWidths_[static_cast<size_t>(frameIndex)] = w;
-    textureHeights_[static_cast<size_t>(frameIndex)] = h;
-
-    return tex;
 }
