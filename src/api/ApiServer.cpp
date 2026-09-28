@@ -1302,6 +1302,8 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     // previous /api/state read (reading resets it). Same fields as TestServer.
     obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
     obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
+    // s-rta-0928 R5 (C4): ring cells created so far, over every ring (cells are created on first write).
+    obj->setProperty("frame_ring_cells", renderer_.getCompositor().getFrameRingCellCount());
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
     // s-rta-0928 R1.0: the longest WHOLE render callback since the previous read (resets on read).
     obj->setProperty("peak_callback_ms", static_cast<double>(renderer_.takePeakCallbackMs()));

@@ -14,6 +14,7 @@
 #include "model/Clip.h"
 #include "effects/EffectLibrary.h"
 #include "output/OutputPresenter.h"
+#include "render/PixelConvert.h"
 #include "render/PngWrite.h"
 #include <juce_core/juce_core.h>
 #if JUCE_MAC
@@ -623,6 +624,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     // previous /api/state read (reading resets it).
     obj->setProperty("temporal_buffers", renderer_.getCompositor().getTemporalBufferCount());
     obj->setProperty("frame_rings", renderer_.getCompositor().getFrameRingCount());
+    // s-rta-0928 R5 (C4): ring cells created so far, over every ring (cells are created on first write).
+    obj->setProperty("frame_ring_cells", renderer_.getCompositor().getFrameRingCellCount());
     obj->setProperty("peak_frame_time_ms", static_cast<double>(renderer_.takePeakFrameTimeMs()));
     // s-rta-0928 R1.0: the longest WHOLE render callback since the previous read (resets on read).
     obj->setProperty("peak_callback_ms", static_cast<double>(renderer_.takePeakCallbackMs()));
@@ -1752,15 +1755,12 @@ void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Respons
 
     // What the display shows: the window blits with blending off, so displayed RGB = canvas RGB; alpha forced
     // to 255. Vertical flip: GL rows are bottom-up.
+    // s-rta-0928 R5 (C4): the row conversion, byte-identical to the old per-pixel setPixelColour(..., 255) loop
+    // (tests/test_pixel_convert.cpp "forceOpaque matches the output_probe loop" -- its oracle IS that loop).
     juce::Image img(juce::Image::ARGB, w, h, false);
     {
         juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
-        for (int y = 0; y < h; ++y)
-        {
-            const auto* row = pixels.data() + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
-            for (int x = 0; x < w; ++x)
-                bmp.setPixelColour(x, y, juce::Colour(row[x * 4], row[x * 4 + 1], row[x * 4 + 2], static_cast<uint8_t>(255)));
-        }
+        PixelConvert::rgbaBottomUpToARGB(pixels.data(), w, h, bmp, true);
     }
     const bool ok = PngWrite::writeReplacing(img, outFile);
     if (!ok)

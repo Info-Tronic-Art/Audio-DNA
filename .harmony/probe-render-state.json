@@ -42,6 +42,10 @@
     "counts": {
       "_why": "fresh layer id, 6 cols alternating A/B each with fx, faded through with T s: exactly +2 frame rings (the layer's + its outgoing slot). peakMaxMs bars the layer's first use AND its first fade: one 60 Hz frame period: a hitch under it cannot drop a frame; RED on 1636785 35.5-38.5 ms (routines-timing T2), GREEN expected <= 6 ms (the 2nd fade's 1.2-5.9 ms = the same work without creation) -- s-rta-0927 plan-renderperf C1 (frame-ring cells created on first write)",
       "layerId": 71, "T": 1.0, "fx": [ ["Screen Split", 0.15, 0.15, 0.25, 0.0] ], "peakMaxMs": 16.7
+    },
+    "cells": {
+      "_why": "s-rta-0928 R5 (C4): /api/state frame_ring_cells counts ring cells created so far; a fresh ring grows by at most one cell per frame and never past 480",
+      "layerId": 72, "fx": [ ["Screen Split", 0.15, 0.15, 0.25, 0.0] ]
     }
   },
   "r4_opaque": {
