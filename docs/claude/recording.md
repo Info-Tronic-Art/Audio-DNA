@@ -60,6 +60,16 @@ routines reaching for the same control):
   the boundary at the start, every loop return and a restart, `read` never called), saved with the show
   (a file without it loads as ease), set by `POST /api/routine/set {"restoreStyle": ...}` and reported as
   `/api/routine/status` `bank[].restoreStyle`.
+  **Restore cost (s-rta-0928).** A start / loop return / restart restores synchronously in its tick. Its discrete half
+  refreshes the deck grid once per entry, and a refresh never decodes a file: image thumbnails come from `DeckView`'s
+  `ClipThumbnails` (`src/ui/ClipThumbnails.h`), decoded once per file off the message thread, and a cell or strip
+  re-derives its thumbnail only when its source changed (Pitfall NN). Before this, one refresh per entry decoded every
+  image thumbnail on the deck: 54 ms on the probe deck, 178 ms with one 4K still, k x (cells + layers) x decode in
+  general. `/api/routine/status` `bank[].holdMs` / `holdMsMax` = how long the last start / loop return held the message
+  thread inside the engine, and the longest this run (ms, -1 before the first); probe-routines rows 5h / 8h / 11h hold it
+  to 16 ms. **A move always lands its end:** when a tick passes a recorded gesture's end -- including a stall that
+  stepped over the whole gesture or its tail -- `Player::advanceTo` writes the gesture's final value before it lets go
+  (routines and take replay alike; a refused write releases nothing); probe-routines row 7m.
 - **Stop**: `POST /api/routine/stop` (`{"slot":N}` or `{"all":true}`) releases every grip the
   routine holds. The TopBar Stop (`[]`, tooltip "Stop all routines") and the `GlobalStop` key/MIDI
   binding stop every running and waiting routine and nothing else — no clip is stopped, paused or

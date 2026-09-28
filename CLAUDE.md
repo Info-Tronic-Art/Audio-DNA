@@ -228,6 +228,7 @@ the named area; this index is triage-only.
 46. `juce::FileOutputStream` opens an existing file at its END -- before writing any image/binary file to a path that may exist (use `PngWrite::writeReplacing`).
 47. Eyes `load_source` seeds the registry's default params (a cached source keeps its last values) -- before writing or debugging a test that loads a source through 8080.
 48. A tempo command reaches the analysis snapshot only at the next hop -- before acting on "everything sent before X" (a take's t = 0 and bar grid), compare `FeatureSnapshot::trackerRequestSeq` with `BPMTracker::postedRequestSeq()` read at X.
+NN. A deck-grid refresh never decodes a file (image thumbnails come from DeckView's ClipThumbnails) -- before touching ClipCell/LayerStrip thumbnails.
 
 ---
 
