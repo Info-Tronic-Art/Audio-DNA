@@ -81,6 +81,13 @@ requests.post(f"{BASE}/api/load_source", json={"source_type": "perlin_noise"})
 requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/source_test.png", "time": 1.0})
 ```
 
+`load_source` seeds the registry's full default param list and overlays any `params` you pass (Pitfall 47) --
+without the seed the session-cached source instance kept whatever the previous caller set, across `load_source`
+and `/api/reset`. `update_source_params` REPLACES the list with the given subset; since the instance already holds
+the defaults, "load, then update one param" renders defaults + that param. The Tier-1 modules that capture at
+256x256 pin the composition to 256x256 for their module (`conftest.py` `tier1_canvas_256`): with the composition and
+the capture lock the same size the canvas never resizes between captures, so stateful sources keep their state.
+
 #### Probe rig rules (`.harmony/probe-*.sh`, distinct from Eyes above)
 
 The production-mode live probes in `.harmony/probe-*.sh` (not the `--test-mode` Eyes harness) each

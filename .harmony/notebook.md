@@ -1989,3 +1989,12 @@ each). Idle gaps > ~5.02 s or < ~4.99 s never race: urllib3 sees the FIN and rec
   lines first); never hand-merge the interleaved hunks.
 - **Probe HTTP clients use Connection: close.** cpp-httplib closes a keep-alive connection idle for 5 s and drains + drops a
   request that lands in that instant (RemoteDisconnected); requests never retries it (c1-state-fix.md).
+## 2026-09-27 — a JUCE FileOutputStream on an existing path appends (s-rta-0927 followups F2)
+**Files:** src/render/PngWrite.h, src/render/Renderer.cpp (captureFrame, takeSnapshot), src/test/TestServer.cpp (output_probe)
+**Note:** `juce::FileOutputStream` opens an existing file at its END (O_RDWR + lseek SEEK_END), so any "write to path" that can hit an existing file must delete first or use `File::replaceWith*`. A PNG appended after an old PNG decodes as the OLD image in every decoder -- a silent stale-capture bug, invisible unless the test reuses a path. All PNG writes go through `PngWrite::writeReplacing` (Pitfall 46; `tests/test_png_write.cpp`). renderperf found_not_fixed #4 FIXED.
+**Valid while:** JUCE's posix openHandle seeks to end (the `[pngwrite][juce-appends]` teeth case says when that stops).
+
+## 2026-09-27 — render_frame's time override needs the capture to wait for a fresh frame (s-rta-0927 followups F1)
+**Files:** src/render/Renderer.cpp (captureFrame, processPendingCapture, renderOpenGL top), src/render/Renderer.h, tests/visual/conftest.py
+**Note:** A capture used to be answered by whatever frame was in flight when it was armed; that frame had read `timeOverride_` BEFORE captureFrame stored it, so it rendered at the previous time. Invisible while every 8080 capture resized the canvas (the resize forced a new frame); exposed the moment the composition equals the capture lock (Tier-1's 256x256 fixture): strobe_light x20 at t = 2.0 gave 2 different pictures, plasma x20 gave 4. `captureArmSeq_` / `frameArmSeq_` now make a capture wait for a frame that started after it was armed. Any time-dependent pixel test through render_frame relies on this; do not reorder the override store after the arm.
+**Valid while:** captures are serviced by the GL thread from processPendingCapture.

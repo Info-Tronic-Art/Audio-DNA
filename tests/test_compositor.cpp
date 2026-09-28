@@ -90,7 +90,7 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
             // Simulate beat crossing: phase wraps from ~1.0 to ~0.0
             snap.beatPhase = 0.99f;
             autopilot.processFrame(deck, snap);
-            snap.beatPhase = 0.01f;
+            snap.beatPhase = 0.01f; snap.totalBeatCount++;
             autopilot.processFrame(deck, snap);
         }
         REQUIRE(layer->activeClipColumn == 0); // Still on first clip
@@ -103,7 +103,7 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         {
             snap.beatPhase = 0.99f;
             autopilot.processFrame(deck, snap);
-            snap.beatPhase = 0.01f;
+            snap.beatPhase = 0.01f; snap.totalBeatCount++;
             autopilot.processFrame(deck, snap);
         }
         // Should have advanced to column 1
@@ -123,7 +123,7 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         {
             snap.beatPhase = 0.99f;
             autopilot.processFrame(deck, snap);
-            snap.beatPhase = 0.01f;
+            snap.beatPhase = 0.01f; snap.totalBeatCount++;
             autopilot.processFrame(deck, snap);
         }
         REQUIRE(layer->activeClipColumn == 2); // column 1 skipped (cleared)

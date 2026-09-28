@@ -4,6 +4,7 @@
 #include "model/Deck.h"
 #include "model/Composition.h"
 #include "analysis/FeatureSnapshot.h"
+#include "features/OnsetPulse.h"
 #include <cstdint>
 #include <unordered_map>
 
@@ -51,9 +52,9 @@ private:
     void smartAdvanceClip(Layer& layer, int currentCol,
                           int numColumns, const FeatureSnapshot& snapshot) const;
 
-    // Track beats for each layer
-    float lastBeatPhase_ = 0.0f;
-    bool lastOnBeat_ = false;
+    // Whole beats since this instance's previous frame -- the FeatureSnapshot::totalBeatCount delta (Pitfall 42),
+    // one baseline per instance (Pitfall 38)
+    OnsetPulse beatCrossings_;
 
     // P20: Per-type autopilot config (owned by Composition, not us)
     const Composition::PerTypeAutopilotConfig* perTypeConfig_ = nullptr;

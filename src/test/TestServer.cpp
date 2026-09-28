@@ -14,10 +14,12 @@
 #include "model/Clip.h"
 #include "effects/EffectLibrary.h"
 #include "output/OutputPresenter.h"
+#include "render/PngWrite.h"
 #include <juce_core/juce_core.h>
 #if JUCE_MAC
  #include <OpenGL/OpenGL.h>   // after juce_gl.h (via Renderer.h): the output probe's private CGL context
 #endif
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -758,18 +760,44 @@ void TestServer::handleLoadSource(const httplib::Request& req, httplib::Response
         return;
     }
 
-    // Build params list from JSON if provided
+    // Seed the registry's full default list -- what a UI clip carries (MainComponent.cpp source-drop path) -- then
+    // overlay the request's values. Without the seed the cached instance keeps whatever the previous caller set:
+    // Renderer::renderOpenGL passes nullptr for an empty list and renderSource applies nothing (s-rta-0927
+    // tier1-diag H1). createSource() is GL-free; handleListSources already calls it on this thread.
     std::vector<Clip::SourceParam> params;
+    if (auto src = sourceRegistry_.createSource(sourceType))
+    {
+        for (int i = 0; i < src->getNumParams(); ++i)
+        {
+            const auto& p = src->getParam(i);
+            Clip::SourceParam sp;
+            sp.name = p.name;
+            sp.uniformName = p.uniformName;
+            sp.value = p.defaultValue;
+            sp.defaultValue = p.defaultValue;
+            params.push_back(sp);
+        }
+    }
     if (obj->hasProperty("params"))
     {
         if (auto* paramsObj = obj->getProperty("params").getDynamicObject())
         {
             for (auto& prop : paramsObj->getProperties())
             {
-                Clip::SourceParam sp;
-                sp.uniformName = prop.name.toString().toStdString();
-                sp.value = static_cast<float>(static_cast<double>(prop.value));
-                params.push_back(sp);
+                const std::string uniform = prop.name.toString().toStdString();
+                const float value = static_cast<float>(static_cast<double>(prop.value));
+                auto it = std::find_if(params.begin(), params.end(),
+                                       [&](const Clip::SourceParam& s) { return s.uniformName == uniform; });
+                if (it != params.end())
+                    it->value = value;
+                else
+                {
+                    // Unknown name: appended as before; renderSource ignores a uniform the source does not have.
+                    Clip::SourceParam sp;
+                    sp.uniformName = uniform;
+                    sp.value = value;
+                    params.push_back(sp);
+                }
             }
         }
     }
@@ -1738,14 +1766,7 @@ void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Respons
                 bmp.setPixelColour(x, y, juce::Colour(row[x * 4], row[x * 4 + 1], row[x * 4 + 2], static_cast<uint8_t>(255)));
         }
     }
-    outFile.getParentDirectory().createDirectory();
-    outFile.deleteFile();
-    bool ok = false;
-    {
-        juce::FileOutputStream fos(outFile);
-        if (fos.openedOk())
-            ok = juce::PNGImageFormat().writeImageToStream(img, fos);
-    }
+    const bool ok = PngWrite::writeReplacing(img, outFile);
     if (!ok)
     {
         res.status = 500;

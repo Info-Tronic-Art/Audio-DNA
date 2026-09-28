@@ -82,13 +82,21 @@ outputs on every display and the routines display in the layers.
    use) created a 480-cell frame ring in one frame: option C (plan-renderperf.md), ring cells created on first write.
    t2 peaks (1080p x3 + 4K): dc7adf9 32.7-47.7 ms -> 9.0-14.2 ms cold, 1.7-5.4 ms with both images pre-uploaded (the
    cold residual is the image's first upload, loadKeyImage); r1_counts bar 50 -> 16.7 ms on first use AND first fade.
-3. [OPEN] tests/visual Tier-1 (test mode) is RED on main: ~167 failures that predate tonight (the canvas lane added none,
-   fixed one). Needs its own investigation lane.
+3. [HARNESS FIXED s-rta-0927 followups F1; app residual OPEN] tests/visual Tier-1: the harness now renders true defaults
+   (load_source seeds them, Pitfall 47), deterministic time (a capture waits for a frame that read the override), a
+   256x256 composition, a p99.5 black metric, t = 1.13 + a candidate ladder, injected features, gates and a justified
+   exceptions module. Before (main 8c4c1a1): 8 of 13 ids FAILED (516 source-param lines, 41 effect-param, 24 black
+   sources, 81 time-sweep); main f630336 (source-defects merged, old harness): 7 FAILED; after (lane on f630336):
+   12 of 13 PASSED -- only test_sources::test_all_params_have_effect is red, 30 lines named in
+   .harmony/.reports/s-rta-0927/followups.md: 20 "goes black at an extreme" that are no provable zero (Boris call:
+   policy entry or app range), 6 no-effect app items, 4 harness gate gaps.
 4. [FIXED s-rta-0927 renderperf C2+C3] Capture cost (plan4 F4): only glReadPixels stays on the GL thread; the byte-
    identical row conversion (PixelConvert, test_pixel_convert + live sha256 A/B) and the PNG encode run on the waiting
    caller. GL-thread share per capture: 1080p 94-110 ms (read 2.3-4.5 + convert 12.5-20.9 + png 78.6-84.3) -> read
    2.3-5.0 ms; 4K 372 ms (7.9 + 68.4 + 296.2) -> 7.6 ms. The HTTP round trip is unchanged (~95-116 ms at 1080p, ~350 ms
    at 4K): the PNG is still encoded before the response. PBO readback: out of scope (plan-renderperf).
+   renderperf found_not_fixed #4 FIXED (s-rta-0927 followups F2): a capture to an existing path appended a second PNG
+   (decoders returned the old picture); `PngWrite::writeReplacing` deletes first, same-second snapshots get `_2` (Pitfall 46).
 5. [OPEN, Boris] Fit "Bars": see-through (shipped) vs solid black; deck defaults; outputs Q1-Q7; routines mockup 8.
 6. [OPEN, low] Resolution control has presets + "Custom (W x H)" display only (no free numeric entry). Interactive paths
    (tab right-click, dialogs, Fit/Resolution picks, Undo Remove click) were never driven live (no synthetic input) —
@@ -143,7 +151,8 @@ outputs on every display and the routines display in the layers.
 6. [OPEN, low] Master Signal: no Composition-inspector Signal knob (picker-connect UI); checkpoint0 does not capture
    masterSignal/masterOpacity (replay snap-back won't restore them).
 7. [BEHAVIOUR CHANGE, told Boris] recording over a replay whose audio ends → that recording saves and stops there.
-8. [OPEN, low] Tier-1 effects pytest not run after the render changes (Eyes render_frame skips the effect chain).
+8. [CLOSED s-rta-0927 followups F1] Tier-1 effects pytest ran on the lane (render_frame DOES render the legacy effect
+   chain: test card + Invert PSNR 7.5; Pitfall 28 corrected).
 9. WARN fable-usage-audit: LAW11-LOG-GAP — Fable architect dispatches with no DISPATCH_LOG rows (a foreign-repo
    secondary cannot write Harmony_Main DISPATCH_LOG); 7 Fable plans on disk, all followed (critic-passed, built).
 10. Carried: JUCE 8.0.8 bump before any wired interface; pre-45667cb takes' timestamps; reversed-clip pad check;

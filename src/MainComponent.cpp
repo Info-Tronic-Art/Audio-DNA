@@ -263,7 +263,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     addAndMakeVisible(syncButton_);
     syncButton_.onClick = [this] {
         beatCounter_ = 0;
-        lastBeatPhase_ = 0.0f;
+        beatCrossings_.reset();
         // Flash the button briefly
         syncButton_.setColour(juce::TextButton::buttonColourId,
                               juce::Colour(AudioDNALookAndFeel::kAccentCyan));
@@ -3916,7 +3916,7 @@ void MainComponent::openImageFolder()
 
         slideshowIndex_ = 0;
         slideshowBeatCounter_ = 0;
-        lastSlideshowBeatPhase_ = 0.0f;
+        slideshowBeatCrossings_.reset();
 
         // Load first image
         auto first = slideshowImages_[0];
@@ -3933,14 +3933,13 @@ void MainComponent::advanceSlideshow()
     if (slideshowImages_.isEmpty())
         return;
 
-    // Read beat phase
+    // Beats since the previous tick: the totalBeatCount delta, never the beatPhase wrap (Pitfall 42)
     const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
-    float phase = snap.beatPhase;
+    const uint32_t beats = slideshowBeatCrossings_.consume(snap.totalBeatCount);
 
-    // Detect beat wrap
-    if (phase < lastSlideshowBeatPhase_ - 0.5f)
+    if (beats > 0)
     {
-        ++slideshowBeatCounter_;
+        slideshowBeatCounter_ += static_cast<int>(beats);
         if (slideshowBeatCounter_ >= slideshowBeats_)
         {
             slideshowBeatCounter_ = 0;
@@ -3950,7 +3949,6 @@ void MainComponent::advanceSlideshow()
             previewPanel_.loadImage(img);
         }
     }
-    lastSlideshowBeatPhase_ = phase;
 }
 
 #if AUDIODNA_HAS_CAMERA
@@ -4094,19 +4092,15 @@ void MainComponent::randomizeAllEffects()
 
 void MainComponent::beatSyncRandomize()
 {
-    // Read current beat phase from the feature bus
+    // Beats since the previous tick: the totalBeatCount delta, never the beatPhase wrap (Pitfall 42)
     const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
-    float phase = snap.beatPhase;
+    const uint32_t beats = beatCrossings_.consume(snap.totalBeatCount);
 
-    // Detect beat: phase wrapped around (went from high to low)
-    bool beatDetected = (phase < lastBeatPhase_ - 0.5f);
-    lastBeatPhase_ = phase;
-
-    if (!beatDetected)
+    if (beats == 0)
         return;
 
     // === Global effects randomize (existing behavior) ===
-    ++beatCounter_;
+    beatCounter_ += static_cast<int>(beats);
     if (beatRandomToggle_.getToggleState() && beatCounter_ >= beatRandomCount_)
     {
         beatCounter_ = 0;
@@ -5179,7 +5173,7 @@ void MainComponent::applyTempoCommand(const std::string& action, float bpm, Orig
     else if (action == "resync")
     {
         beatCounter_ = 0;
-        lastBeatPhase_ = 0.0f;
+        beatCrossings_.reset();
         if (tracker) tracker->requestResync();
     }
     else if (action == "link")

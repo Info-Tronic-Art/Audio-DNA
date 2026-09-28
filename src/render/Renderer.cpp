@@ -2,6 +2,7 @@
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
 #include "render/PixelConvert.h"
+#include "render/PngWrite.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
 #include "recording/VideoRecorder.h"
@@ -162,6 +163,9 @@ void Renderer::newOpenGLContextCreated()
 
 void Renderer::renderOpenGL()
 {
+    // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
+    frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
+
     // Release any media players closeMediaForClip() retired from the message
     // thread (media-leak fix, L1) — the only place this runs, since this
     // function is guaranteed to execute on the GL thread with a context
@@ -392,6 +396,9 @@ void Renderer::renderOpenGL()
     }
 
     // P20.5: Process MilkDrop preset playlist cycling (beat-synced preset advance within clips)
+    // Beats since the previous frame -- the totalBeatCount delta, taken ONCE per frame so every playlist layer sees
+    // it (the old per-layer wrap baseline let only the first layer see a crossing; Pitfalls 38 / 42).
+    const uint32_t playlistBeats = playlistBeatCrossings_.consume(snap.totalBeatCount);
     if (deckActive)
     {
         for (int li = 0; li < deck->getNumLayers(); ++li)
@@ -404,13 +411,9 @@ void Renderer::renderOpenGL()
             if (!clip->hasPresetPlaylist()) continue;
             if (clip->presetPlaylist.size() <= 1) continue;
 
-            // Detect beat crossing
-            bool beatCrossing = (snap.beatPhase < lastPlaylistBeatPhase_ - 0.5f);
-            lastPlaylistBeatPhase_ = snap.beatPhase;
-
-            if (beatCrossing)
+            if (playlistBeats > 0)
             {
-                clip->presetBeatsPlayed++;
+                clip->presetBeatsPlayed += static_cast<int>(playlistBeats);
 
                 int targetBeats = clip->playlistTriggerBeats;
                 if (clip->playlistTrigger == Clip::PlaylistTrigger::Bars)
@@ -2039,18 +2042,19 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     std::promise<CaptureRead> promise;
     auto future = promise.get_future();
 
+    // Set time override for this frame -- BEFORE arming: the frame that answers must have read it (captureArmSeq_)
+    float prevTime = timeOverride_.load(std::memory_order_relaxed);
+    if (timeOverride >= 0.0f)
+        timeOverride_.store(timeOverride, std::memory_order_relaxed);
+
     {
         std::lock_guard<std::mutex> lock(captureMutex_);
         captureWidth_ = width;
         captureHeight_ = height;
         capturePromise_ = &promise;
+        pendingCaptureSeq_ = captureArmSeq_.fetch_add(1, std::memory_order_acq_rel) + 1;
         pendingCapture_.store(true, std::memory_order_release);
     }
-
-    // Set time override for this frame
-    float prevTime = timeOverride_.load(std::memory_order_relaxed);
-    if (timeOverride >= 0.0f)
-        timeOverride_.store(timeOverride, std::memory_order_relaxed);
 
     // Wait for GL thread to process (max 5 seconds)
     auto status = future.wait_for(std::chrono::seconds(5));
@@ -2103,16 +2107,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     // Write PNG
     auto tPng = CaptureClock::now();
-    outputPath.getParentDirectory().createDirectory();
-    bool ok = false;
-    {
-        juce::FileOutputStream fos(outputPath);
-        if (fos.openedOk())
-        {
-            juce::PNGImageFormat pngFormat;
-            ok = pngFormat.writeImageToStream(img, fos);
-        }
-    }
+    const bool ok = PngWrite::writeReplacing(img, outputPath);   // replaces an existing file (F2)
     const double pngMs = msSince(tPng);
 
     // C0's split: read = the GL thread's whole share; convert + png ran here.
@@ -2144,6 +2139,9 @@ void Renderer::processPendingCapture()
 
     std::lock_guard<std::mutex> lock(captureMutex_);
     if (!pendingCapture_.load(std::memory_order_relaxed) || capturePromise_ == nullptr)
+        return;
+    // Armed after this frame started: this frame may have rendered at the previous time. The next frame answers.
+    if (frameArmSeq_ < pendingCaptureSeq_)
         return;
 
     // plan4 item 1: the capture is the whole canvas, exactly its size.
@@ -2193,7 +2191,8 @@ juce::File Renderer::takeSnapshot()
     // Generate timestamped filename
     auto now = juce::Time::getCurrentTime();
     auto filename = "snapshot_" + now.formatted("%Y%m%d_%H%M%S") + ".png";
-    auto outputFile = dir.getChildFile(filename);
+    // Two snapshots in one second: the second gets snapshot_..._2.png instead of overwriting the first (F2).
+    auto outputFile = dir.getChildFile(filename).getNonexistentSibling(false);
 
     // plan4 item 1: a user snapshot is the whole composition canvas (outputWidth x outputHeight).
     bool ok = captureFrame(outputFile);

@@ -551,7 +551,7 @@ private:
     SyphonOutput* syphonOutput_ = nullptr;
 
     // P20.5: Playlist cycling state tracking
-    float lastPlaylistBeatPhase_ = 0.0f;
+    OnsetPulse playlistBeatCrossings_;   // totalBeatCount delta, consumed once per frame (Pitfall 42)
     uint8_t lastPlaylistStructState_ = 0;
 
     // Video players — keyed by clip ID
@@ -618,6 +618,15 @@ private:
     std::atomic<bool> pendingCapture_{false};
     int captureWidth_ = 0;
     int captureHeight_ = 0;
+    // s-rta-0927 followups F1: a capture is answered only by a frame that STARTED after it was armed, i.e. a frame
+    // that read timeOverride_ after captureFrame stored it. Without this, a capture armed mid-frame on a canvas that
+    // is already at the requested size was answered by the in-flight frame, rendered at the PREVIOUS time (live:
+    // strobe_light x20 at t = 2.0 gave 2 different pictures, plasma x20 at t = 1.13 gave 4). captureFrame stores the
+    // override, then bumps captureArmSeq_ (release); renderOpenGL loads it (acquire) first thing into frameArmSeq_
+    // (GL thread only); processPendingCapture answers only when frameArmSeq_ >= pendingCaptureSeq_ (captureMutex_).
+    std::atomic<uint64_t> captureArmSeq_{0};
+    uint64_t pendingCaptureSeq_ = 0;
+    uint64_t frameArmSeq_ = 0;
     // s-rta-0927 plan-renderperf C3: the GL thread only reads the canvas; the caller of captureFrame -- already
     // blocked on the promise -- converts, encodes and writes the PNG. The read travels to ITS OWN caller by value,
     // inside the promise (fix round): no shared state outlives the signal, so two captures in flight (8080, 7070,

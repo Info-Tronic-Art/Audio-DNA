@@ -41,10 +41,10 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
     }
 
     // === Beat-based mode: only process on beat crossings ===
-    bool beatCrossed = (snapshot.beatPhase < lastBeatPhase_ - 0.5f);
-    lastBeatPhase_ = snapshot.beatPhase;
-
-    if (!beatCrossed)
+    // The totalBeatCount delta, never the beatPhase wrap: 0 or 1 at frame rate, > 1 only across a stall, whose
+    // whole beats a wrap reader lost (Pitfall 42).
+    const uint32_t beats = beatCrossings_.consume(snapshot.totalBeatCount);
+    if (beats == 0)
         return anyAdvanced;
 
     // Process any beat-snapped pending triggers on beat crossing
@@ -73,8 +73,8 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
                       // a non-playable active clip (Source/Image/Camera) falls through
                       // to beat-based advancement instead of freezing.
 
-        // Increment beats played on this clip
-        clip->beatsPlayed++;
+        // Add the beats played on this clip since the previous frame
+        clip->beatsPlayed += static_cast<int>(beats);
 
         // P20: Use per-type timing if enabled, otherwise use per-clip/layer timing
         int targetBeats;

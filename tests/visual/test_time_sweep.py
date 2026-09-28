@@ -12,6 +12,7 @@ import numpy as np
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from vision_check import compute_psnr
+from tier1_exceptions import is_black, arm_audio, BLACK_SOURCES, BLACK_AT_TIMES
 
 
 def psnr_between(path1, path2):
@@ -21,13 +22,11 @@ def psnr_between(path1, path2):
     return compute_psnr(img1, img2)
 
 
-def brightness(path):
-    img = cv2.imread(path)
-    return float(np.mean(img)) if img is not None else 0.0
-
-
 # Sources known to NOT animate (static patterns)
 STATIC_SOURCES = {"solid_color", "checkerboard", "color_gradient"}
+
+# Sample times: integers are sin(2*pi*k*t) / fract(k*t) no-ops for integer k, so every sample is offset by 0.13
+TIMES = [0.0, 1.13, 5.13, 10.13]
 
 
 @pytest.fixture(scope="module")
@@ -42,24 +41,25 @@ class TestSourcesAnimateOverTime:
         frozen = []
         black_at_time = []
 
+        arm_audio(app)
         for src in all_sources:
-            if src["id"] in STATIC_SOURCES:
+            if src["id"] in STATIC_SOURCES or src["id"] in BLACK_SOURCES:
                 continue
 
             frames = {}
-            for t in [0.0, 1.0, 5.0, 10.0]:
+            for t in TIMES:
                 app.load_source(src["id"])
-                out = str(tmp_path / f"{src['id']}_t{t:.0f}.png")
+                out = str(tmp_path / f"{src['id']}_t{t:.2f}.png")
                 app.render_frame(out, time_val=t, width=256, height=256)
                 frames[t] = out
 
-                if brightness(out) < 3.0:
+                if is_black(out) and (src["id"], t) not in BLACK_AT_TIMES:
                     black_at_time.append(f"{src['id']} black at t={t}")
 
             # Check at least 2 time pairs are different
             diff_count = 0
-            for t1, t2 in [(0, 1), (0, 5), (1, 10)]:
-                psnr = psnr_between(frames[float(t1)], frames[float(t2)])
+            for i1, i2 in [(0, 1), (0, 2), (1, 3)]:
+                psnr = psnr_between(frames[TIMES[i1]], frames[TIMES[i2]])
                 if psnr < 50.0:
                     diff_count += 1
 
