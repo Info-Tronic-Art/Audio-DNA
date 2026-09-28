@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace compload
@@ -183,11 +184,12 @@ inline std::vector<uint32_t> playableClipIds(const Composition& c)
 inline std::vector<std::string> imagePaths(const Composition& c)
 {
     std::vector<std::string> out;
+    std::unordered_set<std::string> seen;   // dedup in O(1) per clip (renderleft-fix)
     auto add = [&](const Clip& clip) {
         if (clip.mediaType != Clip::MediaType::Image || clip.mediaFile == juce::File())
             return;
         auto p = clip.mediaFile.getFullPathName().toStdString();
-        if (p.empty() || std::find(out.begin(), out.end(), p) != out.end())
+        if (p.empty() || !seen.insert(p).second)
             return;
         out.push_back(std::move(p));
     };
