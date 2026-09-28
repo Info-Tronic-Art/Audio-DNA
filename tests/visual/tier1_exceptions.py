@@ -166,7 +166,9 @@ GATED_SOURCE_PARAMS[("moire_interference", "u_src_offset_y")] = (
 GATED_SOURCE_PARAMS[("shape_generator", "u_src_rotation")] = (
     {"u_src_shape": 0.2}, "EmbeddedShaders.h:4960 the default Shape 0 is sdCircle, which a rotation leaves unchanged; "
                           "the box (Shape 0.143-0.286) shows it")
-GATED_SOURCE_PARAMS[("newton_3d", "u_src_trail_fade")] = ({"u_src_trail_dist": 0.6}, _TRAIL)   # S6a: 0.6 or 1.0
+# newton_3d: Trail Distance 1.0 (5 trails), not the loop's 0.6 -- the wider margin of the two (S6a replay: PASS via 0.0
+# at PSNR 49.6 vs 50.9 at 0.6; limit 55)
+GATED_SOURCE_PARAMS[("newton_3d", "u_src_trail_fade")] = ({"u_src_trail_dist": 1.0}, _TRAIL)
 _TETRA = {"u_src_slice": 0.55, "u_src_zoom": 0.7, "u_src_iterations": 1.0}
 _TETRA_WHY = ("; sierpinski_tetra's slice draws nothing at its own Zoom 0.3 / Iterations 0.5 (AWAITING_RULING Cross "
               "Section, B3), so the gate also moves the camera in (Zoom 0.7) and deepens the IFS (15 folds)")
@@ -217,4 +219,16 @@ AWAITING_RULING = {
 # (source_id, uniform, value) -> reason: test_fractals.py sweep ids black by a B1 defect at the sweep's own conditions
 # (silence, 256x256). Each is marked pytest.mark.xfail(strict=True): it runs, reports XFAIL with this reason, and an
 # unexpected pass FAILS the run -- remove the entry then. Filled from the lane's own first ported run (plan-tier1 S6a).
-SWEEP_AWAITING_RULING = {}
+_SW_MB = (_B1 + "mandelbrot's default center (-0.5, 0) (EmbeddedShaders.h:2934) is inside the main cardioid: from "
+          "Zoom 0.25 (:2940) the frame is all interior, painted black (:2980-2985)")
+_SW_BS = (_B1 + "burning_ship's default center (-0.75, -0.5) (EmbeddedShaders.h:6385) is inside the ship's body: "
+          "black (:6409) from Zoom 0.30 (:6391)")
+_SW_JD = (_B1 + "julia_set's Dive morphs c through the presets (EmbeddedShaders.h:6281-6290): at t = 5 / Dive 0.7 "
+          "c = (-0.056, 0.489) is inside M's main cardioid while the dive zooms in on the origin (:6258): all "
+          "interior (tier1-residual-diag D5, numpy 100 %)")
+# Exactly the 8 ids the lane's first ported run (SWEEP_AWAITING_RULING empty, lane app) failed, all p99.5 0.
+SWEEP_AWAITING_RULING = {
+    **{("mandelbrot", "u_src_zoom", v): _SW_MB for v in (0.25, 0.5, 0.75, 1.0)},
+    **{("burning_ship", "u_src_zoom", v): _SW_BS for v in (0.5, 0.75, 1.0)},
+    ("julia_set", "u_src_dive_speed", 0.7): _SW_JD,
+}
