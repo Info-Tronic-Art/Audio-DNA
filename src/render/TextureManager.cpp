@@ -1,5 +1,6 @@
 #include "TextureManager.h"
 #include "render/LUTLoader.h"
+#include "render/PixelConvert.h"
 #include <vector>
 #include <iostream>
 #include <chrono>
@@ -41,27 +42,14 @@ bool TextureManager::uploadImage(const juce::Image& image)
     int h = image.getHeight();
 
     const auto tConvert = std::chrono::steady_clock::now();   // s-rta-0928 R1.0 (loadImage's split line)
-    // Convert to ARGB and extract pixels into a clean RGBA buffer for OpenGL.
+    // Convert to ARGB and extract pixels into a clean RGBA buffer for OpenGL: the raw premultiplied bytes, swizzled
+    // B,G,R,A -> R,G,B,A and flipped. s-rta-0928 R1.1: one row pass, byte-identical to the old swizzle loop
+    // (tests/test_pixel_convert.cpp).
     auto argbImage = image.convertedToFormat(juce::Image::ARGB);
-    juce::Image::BitmapData bitmapData(argbImage, juce::Image::BitmapData::readOnly);
-
-    std::vector<uint8_t> rgbaPixels(static_cast<size_t>(w * h * 4));
-
-    for (int y = 0; y < h; ++y)
+    std::vector<uint8_t> rgbaPixels(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
     {
-        // Flip Y: OpenGL texture origin is bottom-left, image is top-left
-        auto* srcRow = bitmapData.getLinePointer(h - 1 - y);
-        auto* dstRow = &rgbaPixels[static_cast<size_t>(y * w * 4)];
-
-        for (int x = 0; x < w; ++x)
-        {
-            auto* srcPixel = srcRow + x * 4;
-            auto* dstPixel = dstRow + x * 4;
-            dstPixel[0] = srcPixel[2]; // R
-            dstPixel[1] = srcPixel[1]; // G
-            dstPixel[2] = srcPixel[0]; // B
-            dstPixel[3] = srcPixel[3]; // A
-        }
+        const juce::Image::BitmapData bitmapData(argbImage, juce::Image::BitmapData::readOnly);
+        PixelConvert::argbToGlRgbaBottomUp(bitmapData, rgbaPixels.data(), false);
     }
 
     const auto tUpload = std::chrono::steady_clock::now();

@@ -1,6 +1,7 @@
 // ImageSequence.cpp — Treats a set of images as a playable video clip.
 
 #include "ImageSequence.h"
+#include "render/PixelConvert.h"
 #include <algorithm>
 #include <iostream>
 #include <cstring>
@@ -256,22 +257,12 @@ GLuint ImageSequence::loadImageToTexture(int frameIndex)
     int w = img.getWidth();
     int h = img.getHeight();
 
-    // Convert JUCE ARGB → GL RGBA and flip Y
-    std::vector<uint8_t> rgba(static_cast<size_t>(w * h * 4));
-    juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
-
-    for (int y = 0; y < h; ++y)
+    // Convert JUCE ARGB → GL RGBA (straight) and flip Y. s-rta-0928 R1.1: one row pass, byte-identical to the old
+    // getPixelColour loop (tests/test_pixel_convert.cpp).
+    std::vector<uint8_t> rgba(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
     {
-        int flippedY = h - 1 - y;
-        for (int x = 0; x < w; ++x)
-        {
-            auto pixel = bmp.getPixelColour(x, y);
-            size_t idx = static_cast<size_t>((flippedY * w + x) * 4);
-            rgba[idx + 0] = pixel.getRed();
-            rgba[idx + 1] = pixel.getGreen();
-            rgba[idx + 2] = pixel.getBlue();
-            rgba[idx + 3] = pixel.getAlpha();
-        }
+        const juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
+        PixelConvert::argbToGlRgbaBottomUp(bmp, rgba.data(), true);
     }
 
     const double convertMs = msSince(tConvert);

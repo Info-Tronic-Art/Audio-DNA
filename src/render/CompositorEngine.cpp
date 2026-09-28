@@ -4,6 +4,7 @@
 #include "render/RenderGeometry.h"
 #include "render/FrameRing.h"
 #include "render/LayerClock.h"
+#include "render/PixelConvert.h"
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -264,33 +265,15 @@ GLuint CompositorEngine::loadKeyImage(const juce::File& imageFile)
 
     const auto tConvert = ImgClock::now();
 
-    // JUCE stores ARGB with premultiplied alpha in BGRA byte order
-    // We need to convert to GL_RGBA
+    // JUCE stores ARGB with premultiplied alpha in BGRA byte order; GL wants straight RGBA rows, bottom-up. s-rta-0928
+    // R1.1: one row pass, byte-identical to the old getPixelColour loop + flip copy (tests/test_pixel_convert.cpp).
     int w = img.getWidth();
     int h = img.getHeight();
-    std::vector<uint8_t> rgba(static_cast<size_t>(w * h * 4));
-
-    juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
-    for (int y = 0; y < h; ++y)
+    std::vector<uint8_t> flipped(static_cast<size_t>(w) * static_cast<size_t>(h) * 4);
     {
-        for (int x = 0; x < w; ++x)
-        {
-            auto pixel = bmp.getPixelColour(x, y);
-            size_t idx = static_cast<size_t>((y * w + x) * 4);
-            rgba[idx + 0] = pixel.getRed();
-            rgba[idx + 1] = pixel.getGreen();
-            rgba[idx + 2] = pixel.getBlue();
-            rgba[idx + 3] = pixel.getAlpha();
-        }
+        const juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readOnly);
+        PixelConvert::argbToGlRgbaBottomUp(bmp, flipped.data(), true);
     }
-
-    // Flip Y for OpenGL (bottom-up)
-    std::vector<uint8_t> flipped(rgba.size());
-    size_t rowBytes = static_cast<size_t>(w * 4);
-    for (int y = 0; y < h; ++y)
-        std::memcpy(flipped.data() + static_cast<size_t>(y) * rowBytes,
-                     rgba.data() + static_cast<size_t>((h - 1 - y)) * rowBytes,
-                     rowBytes);
     const double convertMs = msSince(tConvert);
 
     const auto tUpload = ImgClock::now();

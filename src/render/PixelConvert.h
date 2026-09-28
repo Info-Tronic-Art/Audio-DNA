@@ -22,4 +22,25 @@ inline void rgbaBottomUpToARGB(const uint8_t* rgba, int w, int h, juce::Image::B
         }
     }
 }
+
+// s-rta-0928 renderleft R1.1 -- the reverse direction: JUCE ARGB BitmapData (premultiplied B,G,R,A) -> GL RGBA8 rows,
+// bottom-up, tightly packed w*4. unpremultiply = the bytes of the old getPixelColour loops
+// (CompositorEngine::loadKeyImage, ImageSequence::loadImageToTexture: straight RGBA); false =
+// TextureManager::uploadImage's raw swizzle (premultiplied RGBA). Proof: tests/test_pixel_convert.cpp.
+inline void argbToGlRgbaBottomUp(const juce::Image::BitmapData& src, uint8_t* dst, bool unpremultiply) noexcept
+{
+    jassert(src.pixelFormat == juce::Image::ARGB && src.pixelStride == 4);
+    const int w = src.width, h = src.height;
+    for (int y = 0; y < h; ++y)
+    {
+        const auto* in = reinterpret_cast<const juce::PixelARGB*>(src.getLinePointer(y));
+        uint8_t* out = dst + static_cast<size_t>(h - 1 - y) * static_cast<size_t>(w) * 4;
+        for (int x = 0; x < w; ++x, out += 4)
+        {
+            juce::PixelARGB p = in[x];
+            if (unpremultiply) p.unpremultiply();
+            out[0] = p.getRed(); out[1] = p.getGreen(); out[2] = p.getBlue(); out[3] = p.getAlpha();
+        }
+    }
+}
 } // namespace PixelConvert
