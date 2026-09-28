@@ -1,0 +1,31 @@
+Filters: "crystal_cavern draws a grazed crystal and never a cut-open dark disc"
+Randomness seeded to: 3846067376
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_source_defaults_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+crystal_cavern draws a grazed crystal and never a cut-open dark disc
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:357
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:376: FAILED:
+  CHECK( frac < 0.5 )
+with expansion:
+  0.8539460784313726 < 0.5
+with message:
+  crystal_cavern 1920x1080 t=10 grazed-crystal box: 85.3946% dark
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0927-w10/tests/test_source_defaults_gl.cpp:376: FAILED:
+  CHECK( frac < 0.5 )
+with expansion:
+  0.90355952380952376 < 0.5
+with message:
+  crystal_cavern 1920x1080 t=24 grazed-crystal box: 90.356% dark
+
+===============================================================================
+test cases:  1 |  0 passed | 1 failed
+assertions: 12 | 10 passed | 2 failed
+

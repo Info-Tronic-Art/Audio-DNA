@@ -151,3 +151,96 @@ DONE_WITH_CONCERNS
 
 ### NEXT ACTION
 Harmony: behavioral gate (the pictures via 8080 + the inspector shot) and reviewer on 47da170..HEAD; bring the 7 Boris checks; hand the two render_frame findings to the harness lane.
+
+---
+
+# Fix round (source-defects-fix, 2026-09-27 21:00-21:36)
+
+STATUS: DONE_WITH_CONCERNS
+RESULT: I checked all five review findings. Two are fully confirmed, and I fixed the MUST: crystal_cavern no longer draws a flat dark cut disc where the camera grazes a crystal (9ba79b3). The other confirmed finding, the lint's "READ" check being only textual, is now written into the lint and SHADER_VERIFICATION.md as DEBT_FILED (a433f45). SHOULD 3 is half confirmed: striped_torus's camera uniform is live but has no knob. Its spectrum_landscape half is wrong: that source's knob is wired. SHOULD 2 (the look) and SHOULD 4 (dropped connections) are confirmed; they need a decision from Boris, not code. Concerns: the fix costs +1.9 ms GPU per 1080p frame. Also, a close crystal now fades to see-through, which is a new look Boris should see (check 5, replaced below).
+FACTS:
+- Fix-round commits on `lane/source-defects-0927`: 9ba79b3 (crystal_cavern near fade + T2 case), a433f45 (DEBT_FILED note); this report + evidence = the next commit. Source: `git log 4654438..HEAD`.
+- The previous 0.08 near-clip was active for 85.99% of the flight, not "only while grazing". The numpy camera path over 0..120 s at the defaults gives camera DE < 0.08 for 85.99% of the time, < 0 for 1.45%, and DE 0.0117 at t = 10. Source: `source-defects-evidence/fixround-camera-distance.txt`.
+- New T2 case "crystal_cavern draws a grazed crystal and never a cut-open dark disc". On the previous shader it fails: "grazed-crystal box: 85.3946% dark" (t = 10) / "90.356% dark" (t = 24), `test cases: 1 | 0 passed | 1 failed`, `assertions: 12 | 10 passed | 2 failed`. On the fix: 10.8096% / 7.89167%, `All tests passed (12 assertions in 1 test case)`. Source: `fixround-RED-graze-prev-shader.txt`, `fixround-GREEN-graze.txt`.
+- Whole T2 on HEAD: `All tests passed (1540 assertions in 8 test cases)`. The existing 20 s sweep: `96x54 sweep 0..20 s step 0.05: 0 black, 0 flat frames`. T1 lint: `All tests passed (1389 assertions in 1 test case)`. Full ctest serial: `100% tests passed, 0 tests failed out of 752`. Source: `fixround-T2-final.txt`, `fixround-T1-lint.txt`, `fixround-ctest-final.summary`.
+- Live on 8080 (explicit registered defaults, decoded PNGs), grazed-crystal box dark at 1920x1080, previous lane app -> fix-round app: t = 10: 85.4% -> 10.8%; t = 24: 28.6% (INVALID, see NUANCE) -> 7.9%. Live-vs-offscreen PSNR: inf for prev t = 10 and for fix t = 10 / 24. Source: `fixround-live.log`.
+- GPU time at 1920x1080 over t = 0..30 (240 frames, GL timer queries, private CGL context, no clang and no Audio-DNA running, load 2.93 -> 2.00): previous shader median 3.257 / 3.259 ms, fix 5.177 / 5.173 ms (two passes each). Source: `fixround-gpu-perf.txt`.
+METHOD: I checked each finding against the source and the pixels before changing anything. I ported the camera path and caveDE to numpy to see how often the clip was active. I built a scratch offscreen explorer (the T2 rig plus a shader-from-file loop; `fixround-explore-rig.cpp`) and compared 4 candidates over 0..30 s and one inside-a-crystal episode: the previous shader, no clip, "exit the crystal only when inside", and three near-fade widths. I wrote the T2 case, got RED on the previous shader, edited the shader, then got GREEN. I built the app and froze copies of the previous and the fix-round apps. I ran one live batch per app under `/tmp/audiodna-live.lock` as `source-defects-fix` (launched with `open -g ... --args --test-mode`, quit via osascript), then re-shot the evidence.
+CONFIDENCE+VERIFY: high for the MUST. The GREEN numbers are identical live and offscreen (PSNR inf), and the fix block's code equals the prototype I measured (comments aside, checked by script). VERIFY: `build-lane/tests/test_source_defaults_gl "crystal_cavern draws a grazed crystal and never a cut-open dark disc" -s`; `ctest --test-dir build-lane -j1`; look at `source-defects-shots/fixround_pair_crystal_cavern_1920x1080_t10.png`.
+UNKNOWNS/NOT-DONE: Tier-1 pytest was not run (same reason as the main round: the harness lane owns it). Existing probes were not re-run: no probe or test other than T2 names crystal_cavern (grep of scripts/ and tests/), and the fix changes only that shader block. The SHOULDs got no code: 2 needs a decision, 3 needs a follow-up, 4 is informational.
+NUANCE: The live 1080p capture of the PREVIOUS app at t = 24 came back at another time phase (a different view: PSNR 16.5 vs the offscreen t = 24; shown in `fixround_prev_live_WRONG_TIME_PHASE_crystal_cavern_1920x1080_t24.png`). This is the render_frame capture-timing issue already under ISSUES. So its 28.6% is not a t = 24 measurement. That pair uses the deterministic offscreen render of the previous shader instead, labelled as such. RED at t = 24 rests on the offscreen gate (90.4%); live RED rests on t = 10 (85.4%, byte-identical to offscreen).
+HANDOFF-NEEDS: Harmony: behavioral gate + reviewer on 4654438..HEAD. Boris: replaced check 5 and new check 8 (below). Follow-ups: the striped_torus camera knob, and the newton_3d cost (ISSUES).
+
+INBOX-RECHECK: none
+
+## Findings: verdicts
+
+| # | Sev | Finding | Verdict | Action |
+|---|---|---|---|---|
+| 1 | SHOULD | lint "READ" is textual; `mix(energy, energy, u_src_smoothing)` passes | VERIFIED. `EmbeddedShaders.h:10582` is in `sourceSpectrumLandscape` (block starts 10561); spectrum_landscape registers Smoothing (`SourceRegistry.cpp:987`); `isRead()` (`tests/test_shader_param_lint.cpp`) accepts any non-declaration use | DEBT_FILED in the lint header + `tests/visual/SHADER_VERIFICATION.md` (a433f45). No code change: pre-existing and outside A2 |
+| 2 | MUST | crystal_cavern near-clip renders a flat dark disc in place of a crystal (t = 10, 1080p) | VERIFIED, and worse than stated. The clip was on 86% of the flight (not only while grazing), so every crystal nearer than 0.08 vanished and any crystal the 0.08 sphere cut showed its inside at ambient level. Offscreen and live at t = 10: 85.4% of the crystal's box dark | FIXED 9ba79b3 (below) |
+| 3 | SHOULD | crystal_cavern reads as tiled / boxy | VERIFIED as a look. Same sphere field, same camera; the fix does not change the composition | Product decision: existing Boris check 5 alternative stands; no code |
+| 4 | SHOULD | striped_torus `u_src_camera` is live but unwired; "check sourceSpectrumLandscape which has the same" | striped_torus VERIFIED (`EmbeddedShaders.h:7943` declared, read at 7960 `camAngle = u_src_camera`; no `u_src_camera` in its registry block, `SourceRegistry.cpp:640-648`; pre-change registry had none either). spectrum_landscape REFUTED: it registers "Camera Angle" -> `u_src_camera` (`SourceRegistry.cpp:984`), read at `EmbeddedShaders.h:10586` | Filed as follow-up (below); not implemented (new control = scope) |
+| 5 | SHOULD | a saved connection on one of the 78 removed params is dropped on load | VERIFIED: `compload::reconcileSourceParams` (`src/core/CompositionLoad.h:100-140`) rebuilds `sourceParams` from the registry list, so a removed param's `SourceParam` (with its connection) is discarded. No picture changes (the param never reached the shader) | Informational; no load-notice pattern exists to hook. Kept under RISKS |
+
+## The MUST fix (9ba79b3): near fade instead of near-clip
+- `src/render/EmbeddedShaders.h` `sourceCrystalCavern` only. Every ray now marches from the camera. A crystal hit at distance `d` is drawn with weight `smoothstep(0, 0.08, d)`, composited front to back, and the ray continues through the crystal to what lies behind it. It stops once less than 1% of the ray still shows. Every hit 0.08 or more away is drawn exactly as before (weight exactly 1). A crystal the camera brushes past turns see-through as it nears, with no hard edge. A camera inside a crystal sees through it: no flat frame, no cut face.
+- Why not the other candidates (`fixround-variants-contact.png`, `fixround-variant-flatness.txt`):
+  - No clip at all flashes the whole frame one flat colour whenever the camera is inside a crystal: the frames at 6.3, 9.5, 10.1, 19.9, 20.0 and 23.8 s were 100% flat blocks. `fixround-inside-episode-head-repnoclip-exit.png`, middle column.
+  - "Step out only when inside" is cheaper (median about 4.0 ms), but at normal flight a shadowed crystal then fills up to 92% of the frame at ambient level (t = 20.1). That is the same "flat dark" complaint.
+- The frame composition away from the camera is unchanged. Offscreen 0..120 s (2401 frames, 96x54): fix 0 black / 0 flat, lit median 80.0% (previous 79.2%).
+- Cost (INFERRED cause: rays now also march the first 0.08 and pass through near crystals): GPU median 3.26 -> 5.18 ms per 1920x1080 frame. For scale, same rig: mandelbulb 2.1, julia_set_3d 1.0, newton_3d 56.1 (ISSUES).
+
+### Tests (verbatim)
+| Test | Previous shader (4654438) | Fix round (HEAD) |
+|---|---|---|
+| T2 "crystal_cavern draws a grazed crystal and never a cut-open dark disc" | `test cases:  1 \|  0 passed \| 1 failed` / `assertions: 12 \| 10 passed \| 2 failed` (85.3946% / 90.356% dark) | `All tests passed (12 assertions in 1 test case)` (10.8096% / 7.89167%) |
+| T2 whole file | -- | `All tests passed (1540 assertions in 8 test cases)` |
+| T1 lint (after the comment edit) | -- | `All tests passed (1389 assertions in 1 test case)` |
+| ctest serial | -- | `100% tests passed, 0 tests failed out of 752` |
+
+### Live rows (8080, explicit defaults; previous lane app -> fix-round app; `fixround-live.log`)
+| size | t | previous | fix round |
+|---|---|---|---|
+| 256 | 1 / 5 / 10 / 24 | lit 71.1 / 87.2 / 83.4 / 53.0% | lit 74.9 / 86.8 / 87.6 / 56.0% |
+| 1920x1080 | 1 / 5 | lit 73.2 / 87.3% | lit 75.3 / 87.0% |
+| 1920x1080 | 10 | lit 81.2%, grazed-crystal box 85.4% dark | lit 83.7%, box 10.8% dark |
+| 1920x1080 | 24 | (wrong time phase, see NUANCE) | lit 69.6%, box 7.9% dark |
+| 96x54 sweep 0..20 s every 0.25 s | -- | 0 black-or-flat of 81 | 0 black-or-flat of 81 |
+
+### Re-shot evidence (`source-defects-shots/`)
+- `after_crystal_cavern_{256x256,1920x1080}_t{1,5,10}.png` and their `pair_*.png`: re-shot on the fix-round build. BEFORE is still the main app, black from t = 2.5.
+- NEW `fixround_pair_crystal_cavern_1920x1080_t10.png`: previous lane build vs fix round, both live, with the grazed crystal's box drawn. The flat disc becomes a lit crystal with its highlight.
+- NEW `fixround_pair_crystal_cavern_1920x1080_t24.png`: the previous shader rendered OFFSCREEN, labelled, vs the fix round live.
+- NEW raw captures: `fixround_prev_*`, `fixround_fix_*`, and `fixround_prev_live_WRONG_TIME_PHASE_*` (kept for the record).
+
+## BORIS CHECKS (fix round; the default already ships)
+5 (REPLACES check 5 above). Crystal Cavern is an endless fly-through. A crystal the camera brushes past now fades to see-through as it gets close, instead of showing a dark cut-open disc. Very close crystals look like glass ghosts for a moment. Alternatives: keep one cave and drift the camera inside it, or push the camera away from crystals so nothing ever gets that close. Both are a new look, which is your call.
+8 (NEW). Crystal Cavern now costs about 5.2 ms of GPU per 1080p frame instead of 3.3 ms. That is the price of drawing close crystals properly. It is fine on its own. If you stack it under heavy effects, a cheaper version is possible: close crystals just vanish, with no fade.
+
+## ISSUES / FOUND-NOT-FIXED (fix round)
+- FOLLOW-UP (review SHOULD 4): striped_torus's shader has a working `u_src_camera` (0 = side vortex, 1 = top-down hole) that no knob sets, so it always renders 0. Exposing it means adding a "Camera" param with default 0.0, which leaves today's picture unchanged. Deferred as a new control.
+- DEBT_FILED (review SHOULD 1): spectrum_landscape Smoothing is a dead knob that the lint cannot see: `mix(energy, energy, u_src_smoothing)`. Fixing it means implementing temporal smoothing, or removing the knob.
+- NEW (measured, pre-existing, not this lane's regression): newton_3d costs about 56 ms of GPU per 1920x1080 frame at the lane defaults, roughly 18 fps. The pre-change shader at its pre-change defaults costs 81.7 ms median (p95 147). Source: `fixround-gpu-perf.txt`. It deserves its own perf pass.
+- render_frame at 1920x1080 returned another time phase once more: the previous app at t = 24, PSNR 16.5 vs offscreen. This is the harness finding already listed above.
+- Process: every `git commit` in this worktree prints `[graphify hook] launching background rebuild`. That is a repo hook I did not add, and it compiles nothing (no clang during the perf run).
+
+## RISKS (fix round)
+- A user-visible look change: close crystals are now translucent (Boris check 5).
+- +1.9 ms GPU per 1080p frame for this one source (Boris check 8).
+- The T2 grazed-crystal case pins two frames and two boxes. A deliberate change to the camera or the cave will need new frames or boxes. The case says so in its comment.
+
+## METRICS (fix round)
+2 commits + this report. 1 new T2 case. Offscreen: about 5,000 explorer renders (7 variants), 3 GPU timing runs. Live: 2 app runs (prev, fix), each holding the lock for about 1 min. ctest serial x2 (752/752 both).
+
+## PACKET QUALITY (fix round)
+- Clarity: CLEAR.
+- Missing context: finding 4's spectrum_landscape claim was wrong (that knob is wired). Finding 2 understated the clip's reach (86% of the flight, not only grazing).
+- Unused context: none.
+- Self-brief files: the main-round scratch rigs (cavern_fix.py numpy port, T2 rig, lc.py / live.sh) were all reused.
+
+### STATUS
+DONE_WITH_CONCERNS
+
+### NEXT ACTION
+Harmony: behavioral gate + reviewer on 4654438..HEAD (look at `fixround_pair_crystal_cavern_1920x1080_t10.png`). Take Boris checks 5 (replaced) and 8 to Boris. File the striped_torus camera knob and the newton_3d cost as follow-ups.
