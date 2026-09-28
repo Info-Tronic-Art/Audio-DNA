@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Audio-DNA — only you can check (s-rta-0928)</title>
+<style>
+  body{background:#111;color:#ddd;font:14px/1.5 -apple-system,Helvetica,Arial,sans-serif;margin:0;padding:24px 32px;max-width:1280px}
+  h1{font-size:20px;margin:0 0 4px;color:#fff} h2{font-size:16px;margin:32px 0 6px;color:#fff;border-top:1px solid #2a2a2a;padding-top:18px}
+  .sub{color:#888;margin-bottom:12px} .q{background:#1a1a1a;border-left:3px solid #4a9a8a;padding:8px 12px;margin:10px 0}
+  .def{color:#9fd49a} .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start} figure{margin:0}
+  figcaption{color:#aaa;font-size:12px;margin-top:4px} img{border:1px solid #2a2a2a;max-width:100%;display:block}
+  ol li,ul li{margin:4px 0} code{background:#1c1c1c;padding:0 4px} .note{color:#e0b060}
+</style></head><body>
+<h1>Only you can check — session s-rta-0928</h1>
+<div class="sub">Every item already has a default built in. Say nothing and the default stays. This page is updated in place; refresh to see changes.</div>
+
+<h2>1. Fractal Zoom goes black for most of the knob (Mandelbrot, Burning Ship, Julia) — your call</h2>
+<p>At the starting centre, turning <b>Zoom</b> up dives into the black inside of the set. On Mandelbrot everything past about 0.2
+is solid black; on the three sources it is 60-75% of the knob. This session did <b>not</b> change it, because the fix changes what
+Zoom / Center / Dive mean. The tests list these black stretches strictly, so the moment it is fixed they flag themselves for removal.</p>
+<figure><img src="boris-shots/mandelbrot-zoom-strip.png"><figcaption>Mandelbrot, starting centre, Zoom 0 → 0.75 (today)</figcaption></figure>
+<ol>
+  <li><b>Dive toward edge detail</b> — the zoom heads for the colourful edge instead of the black inside; the picture at Zoom 0 does not change, so every saved show looks the same until you turn Zoom. <span class="def">(Recommended)</span></li>
+  <li>Move the starting centre onto the edge — also fixes it, but the starting picture changes.</li>
+  <li>Keep as is.</li>
+</ol>
+<div class="q">Which one? <span class="def">Default until you say: keep as is (nothing changed).</span></div>
+
+<h2>2. Two more fractal knobs that still show little or nothing — your call</h2>
+<ul>
+  <li><b>Cross Section</b> on Sierpinski Tetrahedron shows nothing, and on Kaleidoscopic IFS only faint specks. Options: bigger specks inside the slice (recommended) / remove those two slice knobs / keep.</li>
+  <li><b>Spirograph Inner Radius</b> blinks to black at 8 of its 25 positions, because the curve is drawn as dots. Option: draw it as connected lines (changes the starting look) / keep.</li>
+</ul>
+<div class="q">Defaults: keep both as they are, listed in the tests as waiting for you.</div>
+
+<h2>3. Fractal and source knobs that were fixed or removed (look when you next use them)</h2>
+<p>Starting pictures are unchanged: every source's saved default renders byte-for-byte the same as before.</p>
+<ul>
+  <li><b>Fixed:</b> Cross Section on Mandelbulb, Apollonian, Julia 3D, Menger Sponge, Burning Ship 3D now shows a slice at both ends; Iterations at the bottom on Tetrahedron / IFS; Mandelbrot Power above 1/4; Newton Power stops at 6 roots; Astral Grid <b>Warp</b> now bends the grid (it did nothing); Spirograph / Lissajous Thickness at 0 is now a hairline.</li>
+  <li><b>Removed</b> (did nothing or went black): Kaleidoscopic IFS "Fold Type" (a one-line repair was tried first and failed), Band Tower "Reflection", Spectrum Landscape "Smoothing". Old shows load fine without them.</li>
+  <li><b>Faint on a projector?</b> The design critic flagged two of the fixed extremes as faint: IFS Iterations at 0 and Spirograph/Lissajous Thickness at 0. They draw now, but dimly.</li>
+</ul>
+<div class="row">
+  <figure><img src="boris-shots/sheet_g6_mandelbulb.png" style="max-width:600px"><figcaption>Mandelbulb Cross Section: top row before (black at both ends), bottom row now</figcaption></figure>
+  <figure><img src="boris-shots/sheet_g6hd_spirograph.png" style="max-width:600px"><figcaption>Spirograph Thickness, before / now</figcaption></figure>
+</div>
+<div class="q">Anything that reads wrong on stage? <span class="def">Default: as shipped.</span></div>
+
+<h2>4. Routines: no more freeze at a routine start or loop point</h2>
+<p>A routine that switched a layer back to a photo used to freeze the whole UI for 40-180 ms at every start and every loop point
+(the grid re-read every photo from disk each time). Now thumbnails are read once, in the background: the measured freeze is 0.2 ms.</p>
+<figure><img src="boris-shots/grid-thumbnails.png" style="max-width:900px"><figcaption>The grid on the new build — thumbnails in the cells and layer strips</figcaption></figure>
+<ul>
+  <li>Try: load a show whose grid holds several big photos (one 4K still). Thumbnails should appear within a blink.</li>
+  <li>Try: fire a looping routine that switches a layer back to a photo, with Start: Ease and then Start: Jump. The grid, meters and faders should keep moving at every start and loop point.</li>
+  <li>A photo never shown before this session shows the empty-cell look for about 10-60 ms, once.</li>
+  <li><b>Small feel change:</b> when a recorded move runs right up to the loop end, the Ease glide back now starts from the recording's own end value (0.9 in the test) instead of the last sampled value (0.886). A move that a freeze used to skip now always lands.</li>
+</ul>
+<div class="q">Feels right? <span class="def">Default: as shipped.</span></div>
+
+<h2>5. Tap / type a tempo, press Record straight away</h2>
+<p>Nothing to see on screen. Before: if a tempo was set and Record pressed within ~10 ms (a script, OSC, a MIDI pad doing both),
+the take sometimes started "before the tempo was known", and cutting a routine from bar 1 was refused. Now the take always starts with that tempo.</p>
+<div class="q">Try if you like: set a BPM and press Record at once, stop after a few seconds, save a routine from bar 1. It should save.</div>
+
+<h2>6. New pictures appearing — photos now load in the background (landed)</h2>
+<p>Before: the first time a photo was shown, the <b>whole output froze</b> while it was read: about 36 ms at 1080p and 136 ms at 4K
+(two to eight dropped frames). Re-triggering a photo from the grid froze it again every time. Now photos are read in the background:
+the longest frame stays at 1-6 ms.</p>
+<ul>
+  <li>A photo that has never been shown now <b>holds the layer's last picture</b> for about 5 frames (1080p) or 15 frames (4K) while it loads, instead of the whole output freezing.</li>
+  <li>A dissolve onto such a photo (or an image sequence) now <b>starts when it lands</b> (up to about 0.1 s late at 4K), then runs its full length. Before, it jumped half-way.</li>
+  <li>Loading a composition now reads all its photos in the background (up to 1 GB); switching compositions frees the old ones.</li>
+  <li>Save Snapshot never waits for a loading photo; it saves what is on screen at that moment.</li>
+  <li>Slideshow: the next photo is read ahead, so the beat advance should not stutter. <i>Nobody could check this with the real UI; please look.</i></li>
+</ul>
+<div class="q">Does the short hold on a brand-new photo, and the slightly late dissolve start, feel right? <span class="def">Default: as shipped (hold, no freeze).</span></div>
+
+<h2>7. Session note</h2>
+<p>The Fable planning quota ran out early this session, so the four plans were written by Opus instead. Each was still attacked
+by two independent reviewers before building and checked live afterwards. To get Fable back for planning, top up with <code>/usage-credits</code>.</p>
+</body></html>

@@ -3,75 +3,108 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0927 (2026-09-27 09:12 → 2026-09-28 ~00:50). The newest
-dated section is at the END of this file ("# >>> SESSION s-rta-0927"); read it first, then the SCREEN-SAFETY LAW section.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0928 (2026-09-28 08:16 → ~15:45). The newest dated
+section is at the END of this file ("# >>> SESSION s-rta-0928"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
-"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo). CLAUDE.md is a ~23 KB core (25,000-byte
-cap — pay for any addition by moving text into docs/claude/*.md) + docs/claude/*.md (trigger table says which doc to read).
-Ultracode: use workflows.
+"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo). CLAUDE.md is a ~24.5 KB core (25,000-byte
+cap, ~500 B left — pay for any addition by moving text into docs/claude/*.md) + docs/claude/*.md (trigger table).
+Ultracode: use workflows. Law #11: plans by Fable (architect, max) — if Fable says "You've reached your Fable limit",
+re-pin to opus max, record the deviation, tell Boris (this session did; see its log).
 
-STATE: s-rta-0927 shipped 10 merges (all gated live by Harmony, RED-first on the pre-merge app): plan5 outputs COMPLETE
-(C1 canvas on an output via IOSurface frames, never-key normal-level window; C2 any number of displays, ticked Output menu,
-TopBar "Outputs: N", Cmd+Shift+Esc panic, plain Esc no longer closes outputs; C3 hot-plug reconcile, replug returns,
-Restore Last Outputs, settings via read-modify-write AppSettings, test mode never touches the real settings.json);
-routines display slice A (pads above the columns, name bands, faders follow the model, chartreuse routine cue); beat clock
-never loses time across a stall (FeatureSnapshot::totalBeatCount; autopilot/playlist/slideshow/randomize too); render perf
-(first-crossfade hitch 33-72 -> 9-14 ms, capture GL cost ~100 -> ~3 ms); black-at-default sources fixed + 78 dead controls
-removed; Tier-1 visual tests 8/13 FAILED -> 12/13 PASSED; PNG writes replace. ctest 784/784; everything pushed.
-RIG FACTS (binding): NO Bluetooth audio. NO Xcode (Command Line Tools only).
+STATE: s-rta-0928 shipped 4 merges, all gated live by Harmony RED-first on the pre-merge app, + final battery 21/21 GREEN:
+(1) take start-tempo race fixed exactly (FeatureSnapshot::trackerRequestSeq handshake, Pitfall 48; probe-tempo-start W1-W4 +
+W6 witness x20 = 0 bpm-0, 0 unknown grids); (2) Tier-1 residual closed (30 lines -> 0: 12 one-line shader fixes with
+defaults byte-identical, 3 dead knobs removed, value-keyed exceptions, strict AWAITING_RULING ledger for Boris; test_fractals
+93 passed / 8 xfailed; Pitfalls 49/50); (3) routine start / loop return no longer freezes the UI (ClipThumbnails off-thread
+store: 57-65 ms -> 0.2 ms; a stall no longer skips a recorded move; holdMs on /api/routine/status; Pitfall 51);
+(4) images decode off the GL thread (cold image 36/136 ms -> 1-6 ms; a pending image holds the layer's last picture, a
+dissolve waits for it; one capture at a time; render_frame PNG 81 -> 10 ms; probe-image-load, probe-capture; Pitfalls 52/53).
+ctest 846/846. Everything pushed. RIG FACTS (binding): NO Bluetooth audio. NO Xcode (Command Line Tools only).
 
 START HERE, in order:
-1. Take start-tempo race (.harmony/.reports/s-rta-0927/tempo0-diag.md): when set_bpm and Record arrive within ~10 ms
-   (REST/OSC/MIDI pad), the take's start entry reads bpm 0 (4/34) or no bar position (9/34) -> "bars 1..N" routine cuts are
-   refused. Fable plan (fix A: Record's t=0 waits two analysis hops + a 50 ms fallback, startBeatInBar from the first tick;
-   vs B: set_bpm answers after publish) -> build -> probe row: tempo witness x20 = 0 bpm-0, 0 unknown bar grids.
-2. Tier-1 residual (followups.md F1): test_sources::test_all_params_have_effect has 30 named lines — 20 "goes black at an
-   extreme" (Boris policy vs range; default: exception entries with reasons), 6 app params that change nothing
-   (astral_grid Warp, band_tower Reflection, spectrum_landscape Smoothing, wire_wolf / wire_icosahedron Density,
-   moire_interference Offset Y — same implement-vs-remove rule as source-defects), 4 harness gate gaps; plus
-   tests/visual/test_fractals.py smoke (139F/135P on main) untriaged.
-3. Render leftovers (renderperf.md found_not_fixed): loadKeyImage decodes + uploads a new image on the GL thread
-   (9-14 ms, now the whole cold first-use hitch); concurrent captures can overwrite capturePromise_; PNG encode dominates the
-   HTTP capture round trip.
-4. Routine start/loop restore holds the message thread 38-86 ms (routines-timing.md found_not_fixed) — diagnose first.
-5. Boris answers pending (page .harmony/.reports/s-rta-0927/boris-checks.html; defaults in force). Loose ends below.
+1. Unattributed idle message-thread blocks of 17-28 ms at ~15 Hz with NO routine running (restore-diag.md §7.1; the restore
+   lane's T2 floor). A UI stall always present. DIAGNOSE FIRST with the heartbeat protocol: tools preserved in
+   .harmony/.reports/s-rta-0928/restore-tools/ (instr.diff, drive.py, run1.sh, analyze.py — they hard-code the s-rta-0928
+   scratchpad; copy to your scratchpad and fix the paths). Bisect by instrumentation, >= 5 runs per arm.
+2. ImageSequence keeps every frame's texture for its lifetime (300-frame 1080p ~2.5 GB VRAM) — renderleft FNF. Plan + build
+   (a bounded window / eviction), RED-first on memory counters.
+3. Remaining media decodes on hot threads: video decodes on the GL thread (F16); ImageSequence::open / openMediaForDeck decode
+   frame 0 on the message thread; sequence first-frame thumbnails decode on the message thread at load/drop/append; per-frame
+   existsAsFile() per image clip on the GL thread; ClipCell::paint stats every image/video file every paint. Diagnose-rank,
+   then plan.
+4. TempoMap::sampleAt single-anchor rate 0 (Program.cpp stampless Sample-clock fallback) — recipe + RED in
+   .harmony/.reports/s-rta-0928/tempo.md FNF (committed with the tempo merge).
+5. Boris answers pending (page .harmony/.reports/s-rta-0928/boris-checks.html, opened for him; defaults in force): TOP =
+   fractal Zoom black for 60-75% of travel (B1, recommend "dive toward edge detail, Zoom 0 unchanged"); B3 slices; B4
+   spirograph; photo hold / late dissolve feel; restore glide-from change. Older pages s-rta-0927 / earlier still open.
 
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build
 lanes); remove each worktree the turn it merges; worktree lanes COMMIT their reports (git add -f) or return them in full.
-Packets: NEVER lldb/debugserver/gdb on ANY binary; never full-screen screencapture (Quartz window id only); no synthetic
-input (UI states via REST / composition files / TEMPORARY env-var hook, reverted + rebuilt + strings check = 0); fence each
-lane; reviewer/critic packets PIN worktree + branch + commit; FIX-ROUND prompts continue from a named commit (no STEP 0).
+Packets: NEVER lldb/debugserver/gdb/dtrace/Instruments/sample on ANY binary; never full-screen screencapture (Quartz window id
+only); no synthetic input (UI states via REST / composition files / TEMPORARY env-var hook, reverted + rebuilt + strings check
+= 0); fence each lane; reviewer/critic packets PIN worktree + branch + commit; FIX-ROUND prompts continue from a named commit.
 Live app: ONE at a time via /tmp/audiodna-live.lock (mkdir; owner "<name> $$ <epoch>"; release only if you own it; after
-releasing wait >= 45 s before re-acquiring); every probe REFUSES without the lock; a failed mkdir means WAIT. Probe HTTP
-clients use Connection: close (cpp-httplib keep-alive drop). While lanes compile, run probe-canvas / probe-fitmode with the
-row filter (2nd arg, perf rows omitted) — perf rows wait for idle CPU while holding the lock; run them at a quiet moment.
-NEVER SendMessage a running WORKFLOW agent (it forks a second executor on the same worktree); steer via the next stage.
-Test mode: launch `open -g <App> --args --test-mode`; it uses a scratch settings file, never ~/Library/Application
-Support/Audio-DNA/settings.json. Render gates DECODE PIXELS; LOOK at one frame; check the INPUT fixture before calling a
-picture wrong (fixture B is itself a 2x2 grid). A flake verdict needs >= 5 runs per arm. tests/CMakeLists merge conflicts =
-two lanes appending at EOF: HEAD's file + the lane's appended block. Commit your own notes before merging (a dirty file
-makes git merge refuse — do not filter merge output through grep). Probe env: STEP3/RESYNC/DOWNBEAT/MANUALBPM/ROUTINES
-_BUILD_DIR=build (+ ROUTINES_RECORD_PAUSE=1.8). After a merge touching CMakeLists: cmake -S . -B build. Main-loop habits:
-never `cd`; stamp logs from `date`; syntax-check workflow scripts before launch (no raw backtick inside a template literal);
-copy a worktree file to scratch before Reading it. Reviews/critics are not the verdict — the live gate is.
-COUNTS: run them — ctest 784/784 at close; unpushed 0.
+releasing wait >= 45 s). Shared lock helper: .harmony/.reports/s-rta-0928/gate-scripts/lock.sh — source it as
+`LANE=<name> . lock.sh` (it pins LOCK_LANE by a real assignment; bash drops a prefix assignment on "." after sourcing).
+Probe HTTP clients use Connection: close. NEVER SendMessage a running WORKFLOW agent (it forks a second executor). Test mode:
+`open -g <App> --args --test-mode`. Render gates DECODE PIXELS; LOOK at one frame; check the INPUT fixture first. A flake
+verdict needs >= 5 runs per arm. MERGE SEQUENCE: commit your notes -> RED of the lane's new rows on the PRE-MERGE binary ->
+merge -> cmake -S . -B build + build -> ctest -> GREEN. Lanes that rebase onto a moving main can DROP other lanes' doc lines
+(renderleft lost Pitfalls 48-50; the reviewer caught it): reviewers check `git diff <main>..<lane> -- docs` is additive.
+Pitfall numbers: lanes write "NN" until merge; Harmony assigns the next free number. Probe env: STEP3/RESYNC/DOWNBEAT/
+MANUALBPM/ROUTINES_BUILD_DIR=build (+ ROUTINES_RECORD_PAUSE=1.8); FINLOOP_BUILD_DIR=build; ONSET_BUILD_DIR=build;
+TEMPOSTART_APP / IMGLOAD_APP / CAPT_APP override the app. Battery script: gate-scripts/final.sh (adapt paths). Main-loop
+habits: never `cd`; stamp logs from `date`; syntax-check workflow scripts (gate-scripts/check.sh) before launch; the reusable
+build-lane workflow is gate-scripts/build-lane.js (args: lane, wt, branch, plan, notes, reviews, critic). Reviews/critics
+are not the verdict — the live gate is.
+COUNTS: run them — ctest 846/846 at close; unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0927 -->
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0928 -->
 BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
-SHIPPED: outputs on any number of displays (menu ticks, TopBar button, panic key, unplug/replug, Restore Last Outputs) ·
-routines display in the layers (pads, name bands, chartreuse cue) · beat clock never drifts after a stall (routines,
-autopilot, slideshow) · first-crossfade hitch and capture cost cut · black-at-default fractals/cave fixed, 78 dead knobs
-gone · visual test suite mostly green · snapshot overwrite fixed.
+SHIPPED: tempo set just before Record now always lands in the take (routine cuts from bar 1 work) · visual test suite fully
+green (30 knob lines fixed / removed / listed for Boris) · no UI freeze at a routine start or loop point · new photos load in
+the background (no output freeze; dissolves wait for the photo) · captures never time out, render_frame 5x faster.
 IN-FLIGHT: none. Tree clean, everything pushed, no worktrees.
-NEXT: (1) take start-tempo race fix · (2) Tier-1 last red test (30 named lines) · (3) image-upload hitch + capture
-leftovers · (4) routine restore UI hitch · (5) Boris answers.
+NEXT: (1) the always-present 17-28 ms UI stalls (diagnose) · (2) image-sequence memory · (3) video / sequence decodes still on
+hot threads · (4) TempoMap::sampleAt · (5) Boris answers (fractal Zoom first).
 BLOCKERS: none (all Boris questions have defaults).
-YOU ARE HERE: the show structure is built end to end (decks, canvas, routines, outputs); what remains is correctness
-polish and Boris's hands-on checks at his rig (projector, feel).
+YOU ARE HERE: show structure built end to end; this session removed the known freezes and races; what remains is the
+remaining hot-thread decodes, one unexplained idle stall, and Boris's hands-on checks at his rig.
 
-## LOOSE-ENDS LEDGER — s-rta-0927 (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0928 (CURRENT)
+
+1. [OPEN, START 1] Idle message-thread blocks 17-28 ms at ~15 Hz, no routine running (restore-diag.md §7.1); it sets the
+   heartbeat T2 floor (2 of 22 card events above the bar were INFERRED background). Tools: .reports/s-rta-0928/restore-tools/.
+2. [OPEN, START 2] ImageSequence keeps every frame's texture (300-frame 1080p ~2.5 GB).
+3. [OPEN, START 3] Hot-thread decodes/stats: video decode on the GL thread (F16); ImageSequence::open + openMediaForDeck frame 0
+   on the message thread; sequence first-frame thumbnails on the message thread; existsAsFile() per image clip per frame (GL
+   thread); ClipCell::paint stats per paint; a missing/undecodable image stat'ed once per refresh; ClipThumbnails::get double
+   stat on a cache miss (nit); deck-mode image trigger posts a pointless legacy load (O(1)).
+4. [OPEN, START 4] TempoMap::sampleAt single-anchor rate 0 (tempo.md FNF). Also R9: checkpoint0.bpm is the arm-time bpm
+   (informational). probe-step3.sh:1143 still has a bare `open` (opt-in crash test only).
+5. [OPEN, low] Render: R4 ~2 ms first-use / first-fade excess at 4K (E3 removes 54-78 %, bar 70 % x3 not met, filed with its
+   table in renderleft.md); i5 went over its bar twice (16.85 / 20.73 ms) in the OLD row order on the pre-restore base, never
+   since — cause UNKNOWN (established: not in final order, not in the eviction diagnostic; cheapest test: re-run the old row
+   order x5 on main); no direct ctest for ImageSequence::firstFramePending (r2 SHOULD).
+6. [OPEN, low] Tier-1: reaction_diffusion Diffusion A PSNR 55.1 once on the base app (limit 55), untouched source, no flake
+   verdict (needs 5 runs/arm); mandelbrot Power 0-0.24 is one picture; test_no_discontinuities only warns (190+ warnings);
+   lissajous at exactly t=0 1080 half brightness (B4 family).
+7. [OPEN, Boris] Page .harmony/.reports/s-rta-0928/boris-checks.html (opened): B1 fractal Zoom black 60-75 % of travel
+   (strict AWAITING_RULING entries), B3 tetra/IFS slices, B4 spirograph dots, faint IFS Iterations 0 / Thickness 0 extremes
+   (critic), removed knobs (IFS Fold Type, Band Tower Reflection, Spectrum Landscape Smoothing), restore: thumbnails appear
+   within a blink / glide-from = recorded end value, photo hold 5/15 frames + late dissolve start, slideshow stutter check.
+   Older pages (s-rta-0927 etc.) still open with defaults.
+8. WARN fable-usage-audit: 4 architect dispatches did not run on Fable — cause = the recorded deviation (Fable quota
+   exhausted 08:45; plans re-pinned to opus max), NOT the silent-fallback failure; LAW11-LOG-GAP 6 architect dispatches, 0
+   DISPATCH_LOG rows (a foreign-repo secondary cannot write Harmony_Main's DISPATCH_LOG). All 4 plans + adoptions on disk.
+9. Session-index — skipped (foreign-repo lane, no transport yet).
+10. Carried: JUCE 8.0.8 bump before any wired interface; settings.local.json disables clangd-rta/graphify-rta (Boris);
+    .harmony/.harmony-version and AGENTS.md dirty/untracked at boot — not this session's, left untouched. Items 5, 6, 8 of the
+    s-rta-0927 ledger below (outputs low items, crystal_cavern cost, manual slideshow check) still stand.
+
+## (HISTORICAL, s-rta-0927 — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0927
 
 1. [OPEN] Take start-tempo race (START HERE 1): tempo0-diag.md. Also: TempoMap::sampleAt is wrong on short takes (older).
 2. [OPEN] Tier-1: 30 named residual lines in test_sources::test_all_params_have_effect (START HERE 2); test_fractals.py
@@ -3168,3 +3201,48 @@ deleted it once mid-run; absent before and after).
 
 ## COUNTS — run them, never inherit them
 ctest 784/784. Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-0928 (2026-09-28 08:16 → ~15:45, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+All four technical START-HERE items of s-rta-0927 closed and merged (tempo race, Tier-1 residual, routine restore hitch,
+render leftovers), each: diagnosis (where needed) -> OPUS plan (Fable quota exhausted at 08:45 — recorded deviation) -> 2 blind
+attack seats -> Harmony adoption rulings -> opus builder lane -> pinned reviewers (+ critic for Tier-1) -> Harmony RED on the
+pre-merge app + GREEN on merged main. Session log: .harmony/sessions/2026-09-28-s-rta-0928-secondary.md; running log
+.harmony/s-rta-0928-work.md; plans/reports/evidence .harmony/.reports/s-rta-0928/.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate on merged main; each new row RED on the pre-merge app first)
+ctest 784 -> 846/846. RED-first by Harmony: tempo witness x20 4/20 bpm-0 + 5/20 unknown grid; probe-tempo-start W1 FAIL, W2
+3/20, W3 0/20; tier1 test_fractals (lane harness) 4 failed; probe-routines (pre-restore copy) 105/4 (5h/8h/11h absent, 7m
+opacity stays 1.0); probe-image-load 11/15 FAIL (cold image 35.95 / 135.69 ms, sequence 48.68 ms, i2m p 0.500), probe-capture
+3/6 FAIL (3 of 4 concurrent captures 5.01 s, png 81 ms), i2ms p 0.258, i3n snapshot 1423 ms. FINAL battery on main
+(14:40-15:31, load 3-6): outputs 17/0, routine-display 16/0, beatclock 6/0, render-state 35/0, crossfade 35/0,
+effects-parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 109/0, mastersignal 22/0, decktabs 6/0, canvas
+15/0, deckclock 10/0, fitmode 10/0, step3 94/0, tempo-start 10/0 (W6 x20 0+0), image-load 37/0, capture 9/0, finalize-loop
+8/0 (40 cycles), onset-render 13/0; Tier-1 test_sources 4, test_effects 3, test_audio_reactivity 4, test_time_sweep 1,
+test_performance 2 = 13/13 PASSED; test_fractals 93 passed / 8 xfailed. Frames looked at: mandelbulb Cross Section sheet
+(before black at both ends, after a slice everywhere), Mandelbrot zoom strip (black past ~0.2), routine-display grid with
+thumbnails on the merged build.
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-0928/boris-checks.html, opened for him)
+- Fractal Zoom policy (B1, top), B3 slices, B4 spirograph; faint extremes; removed knobs.
+- Photo hold (5 frames 1080p / 15 frames 4K) and the late dissolve start on a never-seen photo; slideshow stutter (no UI drive
+  possible here); composition-load background reading (up to 1 GB).
+- Thumbnails appearing "within a blink" on a real show with 4K stills; no freeze at routine starts / loop points; the
+  loop-end Ease glide now starting from the recorded end value.
+- Tempo set + Record at once -> routine from bar 1 saves (nothing visible).
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. Lock helper `VAR=x . lib.sh` sourcing dropped the lane name (blank owner; "" = "" release). Fixed; notebook.
+2. A `cd` in a read command. 3. Rebuilt main before my own RED of the restore rows on the pre-merge binary (recovered with the
+lane's pre-merge copy); the MERGE SEQUENCE in the birth prompt now puts RED before cmake.
+Also recorded (not mine, caught by review): the renderleft lane's 3x rebase dropped Pitfalls 48-50 from pitfalls.md — the
+birth prompt now tells reviewers to check doc diffs are additive.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was `open -g` (production or --test-mode), main window only; probe-finalize-loop's bare `open` was fixed to
+`open -g` before the final battery. The Output window was never opened by any gate (0 Output-named windows after every
+batch, Quartz window lists). At close: no Audio-DNA process, the live lock free, no worktrees. No full-screen capture taken.
+
+## COUNTS — run them, never inherit them
+ctest 846/846. Unpushed 0 after the close commit.

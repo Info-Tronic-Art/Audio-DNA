@@ -2018,3 +2018,13 @@ call a function in the same shell, print the owner line) before handing it to la
 kills architect agents mid-run (no partial plan on disk); a diagnosis stage before it survives — resume the workflow from its
 run id with the plan stage re-pinned (diag replays from cache). Record the tier deviation and tell Boris.
 **Valid while:** lanes share one live-app lock through a sourced helper; architects run on a quota-limited tier.
+
+## 2026-09-28 s-rta-0928 merge craft: RED before rebuild; a rebasing lane can drop other lanes' doc lines
+**Files:** .harmony/HANDOFF.md birth prompt (MERGE SEQUENCE), docs/claude/pitfalls.md, CLAUDE.md
+**Note:** (1) Once main's build/ is rebuilt after a merge, the pre-merge binary is gone — run your own RED of the lane's new
+rows BEFORE cmake (or keep a copy: `cp -R build/.../Audio-DNA.app <scratch>/pre-merge/`). (2) Four lanes each appended a
+pitfall at the same spot; the lane that rebased 3x onto a moving main silently lost Pitfalls 48-50 (a blind conflict
+resolver). A reviewer caught it by diffing the docs against main. Lanes write "NN" and Harmony numbers at merge; reviewers
+check `git diff <main>..<lane> -- docs CLAUDE.md` removes nothing it did not mean to. (3) The live-app lock is the session's
+real bottleneck with 3 lanes: batches rotate fairly (20 s poll + 45 s cooldown) but a Tier-1 hold is ~18 min.
+**Valid while:** lanes append to shared docs and share one live-app lock.

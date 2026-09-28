@@ -66,3 +66,25 @@ Prior scratchpad (s-rta-0927) still on disk; copied battery.sh, tempo-witness.sh
 3. 13:31 Rebuilt main after the restore merge BEFORE running my own RED of the new probe-routines rows on the pre-merge app (the lane's RED exists; mine did not). Recovered with the lane's saved pre-merge app copy. Habit: RED on the pre-merge binary BEFORE the rebuild — put the RED step in the merge script ahead of cmake.
 - 13:36 MERGED restore 80e3e53 (conflicts CLAUDE.md + pitfalls.md = two lanes appending; kept both, restore NN -> Pitfall 51, recording.md ref fixed). main rebuilt 13:31; ctest 820/820. GATE restore: RED on pre-restore app copy (734f011) probe-routines 105/4 (5h/8h/11h absent, 7m L0 opacity stays 1.0); GREEN main 109/0 (5h 0.195, 8h 0.376, 11h 0.209 ms; 7m lands 0.5); routine-display 16/0.
 - 13:36 Looked at routine-display 02-waiting on merged main: image cells + L1/L3 strips show the test-card thumbnail. W4 removed.
+- 13:54 renderleft build DONE @ 5f1536f (rebased on 15c5f8d; lane ctest 846/846): i1 1080 38.8 -> 1.3-4.2 ms, i5 34 -> 4-6, i6 46 -> 4.3; render_frame png 81 -> 9.9 ms (4K 304 -> 39), RT 97 -> 26; cr1 3/4 timeouts -> 4/4 in 0.14 s; quit +0.13 s max; R4 filed. Reviews running. Harmony RED of new probes on pre-merge app started.
+- 13:56 Harmony RED renderleft probes on pre-merge main app (15c5f8d code, load 2.2): image-load 11/15 FAIL (i1 35.95/135.69 ms, i2 35.92/135.72, i6 48.68, i2m first frame p 0.500, new state fields absent); capture 3/6 FAIL (cr1 3 of 4 at 5.01 s; cr2 640x360 5.01 s; cr3 png 81.0 ms, RT 93.1).
+- 14:02 renderleft r1 reviews FAIL: MUST C1 pause excludes ImageSequence; MUST C2 snapshot-while-pending row missing; MUST pitfalls.md lost 48-50 bodies in the lane's rebase; SHOULD O(n^2) imagePaths dedup. Fix round running (workflow).
+- 14:13 Boris page written + opened: .harmony/.reports/s-rta-0928/boris-checks.html (zoom B1 strip, B3/B4, fixed/removed knobs, restore feel, tempo, renderleft hold (pending update), Fable note).
+- 14:24 renderleft fix round DONE @ ea47823: pitfalls 48-50 restored (verified 46-53 on branch), C1 pause covers ImageSequence (firstFramePending peek), i3n_snapshot_while_pending row added (snapshotMaxMs 500; gated calibration 887-1442 ms vs ungated 72-84), imagePaths O(n). Lane ctest 846/846. r2 reviews running.
+- 14:38 renderleft r2: PASS + PASS_WITH_NITS (SHOULD: direct ctest for ImageSequence::firstFramePending -> loose end). Harmony RED of fix-round rows on pre-merge main app: i2ms first frame p 0.258 FAIL; i3n snapshot 1423 ms FAIL (+ not the held picture).
+- 14:40 MERGED renderleft 0ab3996; main rebuilt 14:39; ctest 846/846; pitfalls 48-53 present; CLAUDE.md 24,482 B. W2 removed (no worktrees left). Fixed probe-finalize-loop bare open -> open -g (committed). FINAL battery started (gate/final.sh).
+- 14:41 Untracked 3 tests/visual/__pycache__ .pyc (gitignored already; pytest rewrote them). Boris page sec 6 updated (renderleft landed).
+
+## Loose ends collected from the four lanes (for the handoff)
+tempo: TempoMap::sampleAt single-anchor rate 0 (Program.cpp:451 stampless Sample-clock fallback; recipe in tempo.md FNF);
+  probe-step3.sh:1143 bare open (opt-in crash test only); R9 checkpoint0.bpm = arm-time bpm (informational).
+restore: unattributed idle message-thread blocks 17-28 ms at ~15 Hz (no routine needed; sets T2 floor); sequence first-frame
+  thumbnails decode on the message thread at load/drop/append; ClipCell::paint stats every image/video file every paint; a
+  missing/undecodable image is stat'ed once per refresh; ClipThumbnails::get double stat on a cache miss (nit).
+tier1: Boris B1 zoom / B3 slices / B4 spirograph (strict ledger); reaction_diffusion Diffusion A PSNR 55.1 once on base (no flake
+  verdict); mandelbrot Power 0-0.24 one picture; test_no_discontinuities only warns (190+); lissajous t=0 1080 half brightness (B4 family).
+renderleft: video still decodes on the GL thread (F16); ImageSequence keeps every frame's texture (300-frame 1080p ~2.5 GB);
+  existsAsFile() per image clip per frame on the GL thread; deck-mode image trigger posts a pointless legacy load; ImageSequence::open
+  / openMediaForDeck decode frame 0 on the message thread; R4 ~2 ms 4K warm excess (E3 removes 54-78 %, bar 70 % x3 not met);
+  i5 over bar twice (16.85/20.73 ms) in the OLD row order on the pre-restore base, not reproduced since — cause unknown;
+  no direct ctest for ImageSequence::firstFramePending (r2 SHOULD).

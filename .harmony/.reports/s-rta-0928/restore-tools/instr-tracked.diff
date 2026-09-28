@@ -1,0 +1,547 @@
+diff --git a/src/MainComponent.cpp b/src/MainComponent.cpp
+index 79a4632..1c77627 100644
+--- a/src/MainComponent.cpp
++++ b/src/MainComponent.cpp
+@@ -11,6 +11,7 @@
+ #include "recording/PerfStateCapture.h"
+ #include "recording/RoutineSlice.h"
+ #include "model/AppSettings.h"
++#include "diag/DiagTrace.h"
+ #include <algorithm>
+ 
+ static uint32_t s_nextClipId = 1000;
+@@ -1941,6 +1942,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
+         // the ONE thing that differs: it bypasses handleClipTrigger's beat-snap/quantize queue,
+         // because a restore is not a performance trigger.
+         const bool immediate = (f.p.origin == Origin::Preamble);
++        diag::Scope dgFire(immediate ? "mc.fire.preamble" : "mc.fire.replay", -1);
++        std::fprintf(stderr, "[EV] %.3f dispatch.fire %s layer=%d col=%d v=%d action=%s\n", diag::nowMs(),
++                     control.c_str(), f.target.layer, f.target.col, static_cast<int>(f.p.v), f.p.action.c_str());
+         if (control == "activeClip")
+         {
+             if (f.target.layer < 0) return false;
+@@ -2040,6 +2044,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
+     };
+     routineEngine_.dispatch.notify  = [this](const std::string& msg) {
+         std::cerr << "[Routine] " << msg << std::endl;
++        DIAG_SCOPE_MIN("mc.routineNotice", -1);
+         if (browserPanel_)
+             browserPanel_->getRecordPanel().setNotice(msg, recorderHost_.status());
+     };
+@@ -2223,6 +2228,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
+     // Register as key listener on top-level component to catch keys globally
+     addKeyListener(this);
+     setSize(1280, 800);
++    diag::heartbeat().start();
++    std::fprintf(stderr, "[DG] heartbeat started at %.3f\n", diag::nowMs());
+ }
+ 
+ void MainComponent::setTooltipsEnabled(bool enabled)
+@@ -2275,6 +2282,7 @@ void MainComponent::setMilkDropPresetDir(const juce::String& dir)
+ 
+ MainComponent::~MainComponent()
+ {
++    diag::heartbeat().stop();
+     // Shutdown bundle piece 2 (2026-07-30, follow-up to cc5c0c3): stop the
+     // HTTP servers FIRST, before detaching the GL renderer below. Closes a
+     // disputed race class: ApiServer/TestServer route handlers reach into
+@@ -3612,6 +3620,7 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int
+ bool MainComponent::manualWrite(const ControlPath& p, float v, GripKind k, Origin o)
+ {
+     jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
++    DIAG_SCOPE_MIN("mc.manualWrite", 0.1);
+     auto ref = resolveControl(composition_, globalMacroBank_, p);
+     bool ok = ref.has_value() && manualWriteCore(*ref, v, handFor(o, k), k, connNow(), composition_.gripHoldMs);
+     if (onManualWrite) onManualWrite(p, v, k, o, ok);
+@@ -3620,6 +3629,7 @@ bool MainComponent::manualWrite(const ControlPath& p, float v, GripKind k, Origi
+ 
+ void MainComponent::manualRelease(const ControlPath& p, Origin o)
+ {
++    DIAG_SCOPE_MIN("mc.manualRelease", 0.1);
+     if (auto ref = resolveControl(composition_, globalMacroBank_, p))
+         manualReleaseCore(*ref, handFor(o, GripKind::Held));
+     if (onManualRelease) onManualRelease(p, o);
+@@ -3628,6 +3638,7 @@ void MainComponent::manualRelease(const ControlPath& p, Origin o)
+ bool MainComponent::manualTouch(const ControlPath& p, GripKind k, Origin o)
+ {
+     jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
++    DIAG_SCOPE_MIN("mc.manualTouch", 0.1);
+     auto ref = resolveControl(composition_, globalMacroBank_, p);
+     bool ok = ref.has_value() && manualTouchCore(*ref, handFor(o, k), k, connNow(), composition_.gripHoldMs);
+     if (onManualTouch) onManualTouch(p, k, o, ok);
+@@ -3636,6 +3647,7 @@ bool MainComponent::manualTouch(const ControlPath& p, GripKind k, Origin o)
+ 
+ void MainComponent::tickFeaturePipeline()
+ {
++    DIAG_SCOPE_MIN("mc.tickFeaturePipeline", 1.0);
+     const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+ 
+     // S166-L1: SignalRegistry is confined to the message thread — this is
+@@ -3643,7 +3655,7 @@ void MainComponent::tickFeaturePipeline()
+     // reads the registry's cached values (macros below, SignalBar's own
+     // repaint timer). GL threads no longer evaluate; see Signal.h and
+     // SignalRegistry::evaluateAll.
+-    signalRegistry_.evaluateAll(snap);
++    { DIAG_SCOPE_MIN("tfp.signalRegistry", 0.5); signalRegistry_.evaluateAll(snap); }
+ 
+     // Master Signal (s-rta-0925 mastersignal Step 1): ONE read per tick,
+     // hoisted ABOVE all three consumers below (v1 MappingEngine, MacroBank,
+@@ -3655,7 +3667,7 @@ void MainComponent::tickFeaturePipeline()
+     // can still reach 0 one tick later.
+     const float signalDepth = composition_.eff(CompScalar::Signal);
+ 
+-    previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain(), signalDepth);
++    { DIAG_SCOPE_MIN("tfp.mappingEngine", 0.5); previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain(), signalDepth); }
+ 
+     // L9 (modulation-freeze fix, 2026-09-05): drive the shared global
+     // MacroBank and every Inspector's signal/macro-driven effect-param
+@@ -3665,7 +3677,7 @@ void MainComponent::tickFeaturePipeline()
+     // EffectStackView::tickModulation(). MacroBank updates first so
+     // tickModulation()'s getMacroValue() reads this tick's value rather than
+     // the previous one.
+-    globalMacroBank_.updateValues(signalRegistry_, signalDepth);
++    { DIAG_SCOPE_MIN("tfp.macroBank", 0.5); globalMacroBank_.updateValues(signalRegistry_, signalDepth); }
+ 
+     // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B1, critic A3): the
+     // recorder's clock tick + Player::advanceTo run BEFORE the connection
+@@ -3684,6 +3696,7 @@ void MainComponent::tickFeaturePipeline()
+         std::optional<int64_t> transportFrames;
+         if (recorderHost_.needsTransportFrames())
+             transportFrames = audioEngine_.getTransportSource().getNextReadPosition();
++        DIAG_SCOPE_MIN("tfp.recorderHost", 0.5);
+         recorderHost_.tick(snap, now, audioEngine_.getDeliveredSamples(),
+                            audioEngine_.getAudioTap(), transportFrames,
+                            audioEngine_.getCurrentSampleRate());
+@@ -3712,13 +3725,14 @@ void MainComponent::tickFeaturePipeline()
+     lastConnTick_ = now;
+     ConnectionEngine::Context ctx{ signalRegistry_, globalMacroBank_, snap, dt, now,
+                                    composition_.gripHoldMs, composition_.handBackGlideMs, signalDepth };
+-    connectionEngine_.tick(composition_, ctx);
++    { DIAG_SCOPE_MIN("tfp.connectionEngine", 0.5); connectionEngine_.tick(composition_, ctx); }
+ 
+-    if (inspectorPanel_) inspectorPanel_->tickModulation();
++    { DIAG_SCOPE_MIN("tfp.tickModulation", 0.5); if (inspectorPanel_) inspectorPanel_->tickModulation(); }
+ }
+ 
+ void MainComponent::timerCallback()
+ {
++    DIAG_SCOPE_MIN("mc.timerCallback", 1.0);
+     // plan5 C3: the hot-plug backstop, on EVERY tick (30 Hz) -- reconciles the outputs only when the display list
+     // differs from the last one seen; otherwise a cached comparison, nothing else.
+     outputs_.pollDisplays();
+@@ -3744,6 +3758,7 @@ void MainComponent::timerCallback()
+         }
+ 
+         // s-rta-0924b step 4: the Record tab's ~4 Hz refresh (spec row 4).
++        DIAG_SCOPE_MIN("tc.recordPanelRefresh", 0.5);
+         if (browserPanel_)
+             browserPanel_->getRecordPanel().refresh(recorderHost_.status(),
+                                                     juce::Time::getMillisecondCounterHiRes() / 1000.0);
+@@ -3755,7 +3770,7 @@ void MainComponent::timerCallback()
+ 
+     // Refresh inspector at ~10Hz to show signal-driven values
+     if (uiUpdateCounter_ % 3 == 0 && inspectorPanel_)
+-        inspectorPanel_->refresh();
++    { DIAG_SCOPE_MIN("tc.inspectorRefresh", 0.5); inspectorPanel_->refresh(); }
+ 
+     // P21: Ableton Link sync — update cached state and feed BPM tracker
+     // (s-rta-0926b bpm2: never enabled in a default build -- LinkSync::isAvailable() is false)
+@@ -3783,6 +3798,7 @@ void MainComponent::timerCallback()
+     // (one status() copy per tick, pushed -- never DeckView::refresh()).
+     if (deckView_)
+     {
++        DIAG_SCOPE_MIN("tc.routineView", 0.5);
+         std::vector<juce::String> deckNames, layerNames;
+         for (const auto& d : composition_.decks)
+             deckNames.push_back(juce::String(d.name));
+@@ -4226,6 +4242,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
+     // by coordinate. Autopilot never reaches this handler (it calls
+     // Layer::triggerClip directly from the GL thread), so autopilot triggers
+     // create no commands.
++    DIAG_SCOPE_MIN("mc.handleClipTrigger", -1);
+     const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(*layer);
+     std::optional<bool> playBefore;
+     if (const Clip* tc = layer->getClipAt(column)) playBefore = tc->playing;
+@@ -4241,6 +4258,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
+         // it is putting the model back the way it was at Record, not a performance trigger. Mirrors
+         // Layer::triggerClip's own empty-cell branch (Layer.h:215-221) since triggerClipImmediate
+         // alone would leave activeClipColumn pointing at an empty cell.
++        DIAG_SCOPE_MIN("hct.triggerClipImmediate", -1);
+         if (layer->getClipAt(column))
+             layer->triggerClipImmediate(column);
+         else
+@@ -4322,12 +4340,14 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
+ 
+         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+         {
++            DIAG_SCOPE_MIN("hct.imagePreview", -1);
+             previewPanel_.getRenderer().clearActiveSource();
+             previewPanel_.loadImage(clip->mediaFile);
+             fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+         }
+         else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
+         {
++            DIAG_SCOPE_MIN("hct.sourcePreview", -1);
+             previewPanel_.getRenderer().setActiveSource(clip->sourceType);
+             previewPanel_.getRenderer().clearImage();
+             fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+@@ -4367,7 +4387,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
+     }
+ 
+     if (deckView_)
+-        deckView_->refresh();
++    { DIAG_SCOPE_MIN("hct.deckViewRefresh", -1); deckView_->refresh(); }
+     }
+ 
+     // Push the trigger command unless it changed nothing (spec §3: retrigger of
+diff --git a/src/recording/Player.cpp b/src/recording/Player.cpp
+index 1c6e559..76aa7fe 100644
+--- a/src/recording/Player.cpp
++++ b/src/recording/Player.cpp
+@@ -1,6 +1,7 @@
+ #include "recording/Player.h"
+ #include <juce_core/juce_core.h>
+ #include <algorithm>
++#include "diag/DiagTrace.h"
+ 
+ Player::Player(std::shared_ptr<const Program> program)
+     : prog_(std::move(program))
+@@ -128,6 +129,7 @@ void Player::advanceTo(double pos, Sink& sink)
+     if (!running_) return;
+     if (pos < pos_)
+         seek(pos, sink);   // a backwards jump is never a stall (R8/addendum item 2)
++    const double diagFrom = pos_;
+     pos_ = pos;
+ 
+     while (nextDiscrete_ < prog_->discrete.size() && prog_->discrete[nextDiscrete_].at <= pos)
+@@ -157,6 +159,9 @@ void Player::advanceTo(double pos, Sink& sink)
+                 const bool accepted = sink.touch(lane.key, g.grip);
+                 cur.inGesture = true;
+                 cur.displaced = !accepted;
++                if (pos >= g.x1)
++                    std::fprintf(stderr, "[EV] %.3f gestureSkipped lane=%zu x0=%.3f x1=%.3f from=%.3f to=%.3f accepted=%d y1=%.3f\n",
++                                 diag::nowMs(), i, g.x0, g.x1, diagFrom, pos, accepted ? 1 : 0, g.curve.eval(g.x1));
+             }
+ 
+             if (pos >= g.x1)
+diff --git a/src/recording/RoutineEngine.cpp b/src/recording/RoutineEngine.cpp
+index d7d2063..7a8d6cb 100644
+--- a/src/recording/RoutineEngine.cpp
++++ b/src/recording/RoutineEngine.cpp
+@@ -5,6 +5,7 @@
+ #include <juce_events/juce_events.h>
+ #include <algorithm>
+ #include <cmath>
++#include "diag/DiagTrace.h"
+ 
+ static_assert(RoutineEngine::kBankSize == Composition::kRoutineBankSize,
+               "the engine's bank is the composition's routine bank");
+@@ -395,6 +396,8 @@ void RoutineEngine::releaseGlides(Running& r)
+ 
+ void RoutineEngine::startNow(Running& r)
+ {
++    DIAG_SCOPE_MIN("eng.startNow", -1);
++    diag::event("startNow", r.slot, r.restore ? 1 : 0, r.jump ? 1 : 0, r.glideScheduled ? 1 : 0);
+     r.startBeat = clock_.now().beat;
+     r.startedTotalBar = lastTotalBar_;
+     r.position = 0.0;
+@@ -410,7 +413,8 @@ void RoutineEngine::startNow(Running& r)
+     if (r.restore)
+     {
+         // The discrete half (clips, flags, play/pause) fires ON the boundary, before the continuous half lands.
+-        const int discreteRefused = r.player->firePreambleDiscrete(*r.sink);
++        int discreteRefused = 0;
++        { DIAG_SCOPE_MIN("eng.start.firePreambleDiscrete", -1); discreteRefused = r.player->firePreambleDiscrete(*r.sink); }
+         r.preambleFired += static_cast<int>(r.program->preamble.size()) - discreteRefused;
+         r.preambleRefused += discreteRefused;
+         refused = discreteRefused;
+@@ -425,13 +429,14 @@ void RoutineEngine::startNow(Running& r)
+                     g.t1 = now + kRestoreGlideMinBeats;
+                 }
+             }
+-            stepGlides(r);   // due glides land and let go here; spills go on
++            { DIAG_SCOPE_MIN("eng.start.stepGlides", -1); stepGlides(r); }   // due glides land and let go here; spills go on
+             refused += r.glideRefused;
+         }
+         else
+         {
+             // No `read` wired or no beat when it was fired: the continuous restore lands in one call, as before.
+-            const int continuousRefused = r.player->firePreambleContinuous(*r.sink);
++            int continuousRefused = 0;
++            { DIAG_SCOPE_MIN("eng.start.firePreambleContinuous", -1); continuousRefused = r.player->firePreambleContinuous(*r.sink); }
+             r.preambleFired += static_cast<int>(r.program->preambleContinuous.size()) - continuousRefused;
+             r.preambleRefused += continuousRefused;
+             refused += continuousRefused;
+@@ -442,7 +447,7 @@ void RoutineEngine::startNow(Running& r)
+         releaseGlides(r);
+     }
+     r.glideRefused = 0;
+-    r.player->advanceTo(0.0, *r.sink);
++    { DIAG_SCOPE_MIN("eng.start.advanceTo0", -1); r.player->advanceTo(0.0, *r.sink); }
+ 
+     // The start notice carries no bar number (plan3 B.2 (3): the TopBar's count is 1-2-3-4).
+     const auto& report = r.program->report;
+@@ -455,7 +460,7 @@ void RoutineEngine::startNow(Running& r)
+     if (!report.unresolved.empty())
+         msg += "; " + counted(static_cast<int>(report.unresolved.size()), "timeline points", "timelines point")
+              + " at a layer or clip that no longer exists";
+-    notify(msg + ".");
++    { DIAG_SCOPE_MIN("eng.start.notify", -1); notify(msg + "."); }
+ }
+ 
+ // plan3 C: a requested restart's restore glides onto ITS boundary, never touching a knob while the recording's own
+@@ -512,12 +517,21 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+                          RoutineSnap forcedSnap, bool beatAvailable)
+ {
+     ROUTINE_ENGINE_ASSERT_MESSAGE_THREAD();
++    DIAG_SCOPE_MIN("eng.tick", 0.5);
+     lastForcedSnap_ = forcedSnap;   // s-rta-0927: a pending slot's `startsOn`
+ 
+     // Plan 4.2 step 1: the `sample` argument is unused here; the TempoMap it grows is bounded and
+     // never read.
+     clock_.tick(snap, wallNow, 0);
+     const double beat = clock_.now().beat;
++    {
++        static double diagLastWall = 0.0, diagLastBeat = 0.0;
++        if (diagLastWall > 0.0 && (wallNow - diagLastWall) > 0.040)
++            std::fprintf(stderr, "[EV] %.3f tickGap wallMs=%.1f beat %.3f -> %.3f\n", diag::nowMs(),
++                         (wallNow - diagLastWall) * 1000.0, diagLastBeat, beat);
++        diagLastWall = wallNow;
++        diagLastBeat = beat;
++    }
+ 
+     // Step 2: edges, then the trackers. The Bar edge is totalBarCount's change; the Beat edge (s-rta-0927
+     // beat clock) is totalBeatCount's change -- the tracker's beat, the rule a Beat-quantized clip uses,
+@@ -549,14 +563,14 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+             if (dueNow(mode, beatEdge, barEdge))
+                 startNow(r);
+             else
+-                stepGlides(r);   // plan3 C: the restore glides in over the last beat of the wait
++            { DIAG_SCOPE_MIN("eng.pend.stepGlides", 0.25); stepGlides(r); }   // plan3 C: the restore glides in over the last beat of the wait
+             continue;
+         }
+ 
+         if (r.restartRequested && dueNow(mode, beatEdge, barEdge))
+         {
+             // Retrigger = restart at the next boundary (D9, clip retrigger semantics).
+-            r.player->stop(*r.sink);
++            { DIAG_SCOPE_MIN("eng.restart.playerStop", -1); r.player->stop(*r.sink); }
+             ++r.restarts;
+             startNow(r);
+             continue;
+@@ -566,7 +580,9 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+         if (pos >= r.lengthBeats)
+         {
+             // Everything due up to the end first, so a point just before it is never skipped.
+-            r.player->advanceTo(r.lengthBeats, *r.sink);
++            DIAG_SCOPE_MIN("eng.loopEnd", -1);
++            diag::event("loopEnd", r.slot, r.loop ? 1 : 0, r.restore ? 1 : 0, r.glideScheduled ? 1 : 0);
++            { DIAG_SCOPE_MIN("eng.end.advanceToEnd", -1); r.player->advanceTo(r.lengthBeats, *r.sink); }
+ 
+             // loop / restore / restore-style edits made while running land at the end (plan 5.1 `set`).
+             if (const Routine* live = comp.routineInSlot(r.slot); live != nullptr && live->uuid == r.uuid)
+@@ -576,7 +592,7 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+                 r.jump = live->restoreStyle == Routine::RestoreStyle::Jump;
+             }
+ 
+-            r.player->stop(*r.sink);   // every grip released (R9)
++            { DIAG_SCOPE_MIN("eng.end.playerStop", -1); r.player->stop(*r.sink); }   // every grip released (R9)
+             if (r.loop && r.lengthBeats > 0.0)
+             {
+                 // s-rta-0927 beat clock: fold EVERY whole cycle the gap covers at once. The clock now keeps every
+@@ -596,17 +612,19 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+                     const bool glidePath = r.glideScheduled;
+                     if (!r.restartRequested)
+                         r.glideScheduled = false;
+-                    const int discreteRefused = r.player->firePreambleDiscrete(*r.sink);
++                    int discreteRefused = 0;
++                    { DIAG_SCOPE_MIN("eng.loop.firePreambleDiscrete", -1); discreteRefused = r.player->firePreambleDiscrete(*r.sink); }
+                     r.preambleFired += static_cast<int>(r.program->preamble.size()) - discreteRefused;
+                     r.preambleRefused += discreteRefused;
+                     if (!glidePath)
+                     {
+-                        const int continuousRefused = r.player->firePreambleContinuous(*r.sink);
++                        int continuousRefused = 0;
++                        { DIAG_SCOPE_MIN("eng.loop.firePreambleContinuous", -1); continuousRefused = r.player->firePreambleContinuous(*r.sink); }
+                         r.preambleFired += static_cast<int>(r.program->preambleContinuous.size()) - continuousRefused;
+                         r.preambleRefused += continuousRefused;
+                     }
+-                    r.player->advanceTo(pos, *r.sink);
+-                    stepGlides(r);   // due return glides land here (their t1 is this new startBeat); spills go on
++                    { DIAG_SCOPE_MIN("eng.loop.advanceTo", -1); r.player->advanceTo(pos, *r.sink); }
++                    { DIAG_SCOPE_MIN("eng.loop.stepGlides", -1); stepGlides(r); }   // due return glides land here (their t1 is this new startBeat); spills go on
+                 }
+                 else
+                 {
+@@ -629,7 +647,7 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+             continue;
+         }
+ 
+-        r.player->advanceTo(pos, *r.sink);
++        { DIAG_SCOPE_MIN("eng.run.advanceTo", 0.25); r.player->advanceTo(pos, *r.sink); }
+         r.position = pos;
+ 
+         // plan3 C: once per cycle, when its last beat begins, the loop return is scheduled against the LIVE
+@@ -653,17 +671,19 @@ void RoutineEngine::tick(const FeatureSnapshot& snap, double wallNow, const Comp
+                 });
+             }
+         }
+-        stepGlides(r);   // after advanceTo: a same-tick Player touch cancels the glide before it writes
++        { DIAG_SCOPE_MIN("eng.run.stepGlides", 0.25); stepGlides(r); }   // after advanceTo: a same-tick Player touch cancels the glide before it writes
+     }
+     std::erase_if(running_, [](const Running& r) { return r.done; });
+ 
+-    refreshBank(comp);
+-    publishStatus();
++    { DIAG_SCOPE_MIN("eng.refreshBank", 0.25); refreshBank(comp); }
++    { DIAG_SCOPE_MIN("eng.publishStatus", 0.25); publishStatus(); }
+ }
+ 
+ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap forcedSnap, bool beatAvailable)
+ {
+     ROUTINE_ENGINE_ASSERT_MESSAGE_THREAD();
++    DIAG_SCOPE_MIN("eng.fire", -1);
++    diag::event("fire", slot);
+     lastForcedSnap_ = forcedSnap;   // s-rta-0927: a pending slot's `startsOn`
+ 
+     refreshBank(comp);
+@@ -714,7 +734,7 @@ std::string RoutineEngine::fire(const Composition& comp, int slot, RoutineSnap f
+     r.slot = slot;
+     r.uuid = routine->uuid;
+     r.name = routine->name.empty() ? "Routine " + std::to_string(slot + 1) : routine->name;
+-    r.program = compileRoutine(*routine, comp);   // targets resolved once, on the active deck (D2)
++    { DIAG_SCOPE_MIN("eng.fire.compileRoutine", -1); r.program = compileRoutine(*routine, comp); }   // targets resolved once, on the active deck (D2)
+     r.player = std::make_unique<Player>(r.program);
+     r.sink = std::make_unique<SlotSink>(*this, slot);
+     r.ownSnap = toSnap(routine->quantize);
+diff --git a/src/ui/ClipCell.cpp b/src/ui/ClipCell.cpp
+index b891f59..261b056 100644
+--- a/src/ui/ClipCell.cpp
++++ b/src/ui/ClipCell.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/ClipCell.h"
++#include "diag/DiagTrace.h"
+ 
+ namespace
+ {
+@@ -16,6 +17,7 @@ ClipCell::ClipCell()
+ 
+ void ClipCell::paint(juce::Graphics& g)
+ {
++    DIAG_SCOPE_MIN("paint.ClipCell", 0.25);
+     auto bounds = getLocalBounds().toFloat();
+ 
+     // Cell background — dark, flat
+@@ -405,6 +407,7 @@ void ClipCell::updateThumbnail()
+ 
+     if (clip_->mediaType == Clip::MediaType::Image && clip_->mediaFile.existsAsFile())
+     {
++        DIAG_SCOPE_MIN("cc.updateThumbnail.decodeImage", -1);
+         auto img = juce::ImageFileFormat::loadFrom(clip_->mediaFile);
+         if (img.isValid())
+             thumbnail_ = img.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+diff --git a/src/ui/DeckView.cpp b/src/ui/DeckView.cpp
+index 16bb060..e0baf3d 100644
+--- a/src/ui/DeckView.cpp
++++ b/src/ui/DeckView.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/DeckView.h"
++#include "diag/DiagTrace.h"
+ 
+ DeckView::DeckView()
+ {
+@@ -35,6 +36,7 @@ DeckView::DeckView()
+ 
+ void DeckView::paint(juce::Graphics& g)
+ {
++    DIAG_SCOPE_MIN("paint.DeckView", 0.25);
+     g.fillAll(juce::Colour(0xff1a1a1a));
+ 
+     // s-rta-0927: the ROUTINES row's corner cell -- the label, then the corner note after it.
+@@ -257,6 +259,7 @@ void DeckView::rebuildGrid()
+ 
+ void DeckView::refresh()
+ {
++    DIAG_SCOPE_MIN("dv.refresh", 0.1);
+     if (!composition_) return;
+     auto* deck = composition_->getActiveDeck();
+     if (!deck) return;
+@@ -269,7 +272,7 @@ void DeckView::refresh()
+         auto* layer = deck->getLayer(layerIdx);
+         if (!layer) continue;
+ 
+-        layerStrips_[static_cast<size_t>(displayRow)]->refresh();
++        { DIAG_SCOPE_MIN("dv.refresh.layerStrip", 0.1); layerStrips_[static_cast<size_t>(displayRow)]->refresh(); }
+ 
+         auto& layerCells = clipCells_[static_cast<size_t>(displayRow)];
+         for (size_t col = 0; col < layerCells.size(); ++col)
+@@ -538,6 +541,7 @@ void DeckView::showDeckTabMenu(int deckIndex)
+ 
+ void DeckView::setRoutineView(const RoutineDeckView& view)
+ {
++    DIAG_SCOPE_MIN("dv.setRoutineView", 0.25);
+     for (int i = 0; i < RoutineEngine::kBankSize; ++i)
+         routinePads_[static_cast<size_t>(i)]->setSpec(view.pads[i]);
+     if (view.cornerNote != routineCornerNote_)
+diff --git a/src/ui/InspectorPanel.cpp b/src/ui/InspectorPanel.cpp
+index ab04b41..b0d5cae 100644
+--- a/src/ui/InspectorPanel.cpp
++++ b/src/ui/InspectorPanel.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/InspectorPanel.h"
++#include "diag/DiagTrace.h"
+ 
+ InspectorPanel::InspectorPanel()
+ {
+@@ -179,6 +180,7 @@ void InspectorPanel::tickModulation()
+ 
+ void InspectorPanel::refresh()
+ {
++    DIAG_SCOPE_MIN("ip.refresh", 0.5);
+     switch (activeTab_)
+     {
+         case Tab::Clip:        clipInspector_.refresh(); break;
+diff --git a/src/ui/LayerStrip.cpp b/src/ui/LayerStrip.cpp
+index 0f033ae..bf9eef3 100644
+--- a/src/ui/LayerStrip.cpp
++++ b/src/ui/LayerStrip.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/LayerStrip.h"
++#include "diag/DiagTrace.h"
+ #include "connect/ConnClock.h"
+ #include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's routine cue reads)
+ #include <algorithm>
+@@ -500,6 +501,7 @@ LayerStrip::LayerStrip()
+ 
+ void LayerStrip::paint(juce::Graphics& g)
+ {
++    DIAG_SCOPE_MIN("paint.LayerStrip", 0.25);
+     auto bounds = getLocalBounds();
+ 
+     g.setColour(juce::Colour(kStripBg));
+@@ -956,6 +958,7 @@ void LayerStrip::updateThumbnail()
+ 
+     if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+     {
++        DIAG_SCOPE_MIN("ls.updateThumbnail.decodeImage", -1);
+         auto img = juce::ImageFileFormat::loadFrom(clip->mediaFile);
+         if (img.isValid())
+         {
+diff --git a/src/ui/RecordPanel.cpp b/src/ui/RecordPanel.cpp
+index 3e22b3e..2daa2aa 100644
+--- a/src/ui/RecordPanel.cpp
++++ b/src/ui/RecordPanel.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/RecordPanel.h"
++#include "diag/DiagTrace.h"
+ 
+ RecordPanel::RecordPanel()
+ {
+@@ -189,6 +190,7 @@ void RecordPanel::setTakesRoot(const juce::File& root)
+ 
+ void RecordPanel::setNotice(const std::string& text, const RecorderHost::Status& raisedIn)
+ {
++    DIAG_SCOPE_MIN("rp.setNotice", -1);
+     notice_ = juce::String(text);
+     noticeAt_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+     noticeKey_ = noticeKeyOf(raisedIn);
