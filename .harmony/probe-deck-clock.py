@@ -23,14 +23,16 @@ B1 d_persistent_single_advance (guard; needs the new fields -- N/A on the base):
   Transparent fading col0 -> col1 over T = 4 s while deck 1 is shown: crossfadeProgress T/2 after the switch is in
   [0.35, 0.65] (compositePersistentLayers advances it; a second advance by the inactive-deck tick reads ~1.0).
 B1 d_pending_trigger_still_cancelled (guard, GREEN on both): deck 0 col0 = A, col1 = B with beatSnap; trigger col0,
-  then col1 (queued), leave at once (L5 cancels it), 4 injected beat crossings: deck 0 activeClipColumn still 0.
+  then col1 (queued), leave at once (L5 cancels it), 4 injected beat crossings (totalBeatCount moves with the phase
+  -- Pitfall 42): deck 0 activeClipColumn still 0.
 B2 d_video_keeps_time (RED): deck 0 L0 col0 = ramp12.mp4 (frame mean G encodes t = 12 x meanG / 255). 2 s in:
   t0 (sanity 1.5 < t0 < 3); away 4 s; back 0.3 s: t1 - t0 in [3.5, 5.5] and /api/composition playheadPosition
   within 0.06 of t1 / 12. Base: the video freezes while away (t1 - t0 ~ 0.5-0.7) and the field is absent.
 B2 d_imageseq_keeps_time (RED): ImageSequence [A, B] at 0.5 fps (2 s per frame). refs rA (t ~ 0.5) / rB (t ~ 2.5)
   from the sequence itself; reload, 0.5 s in, away 2 s, back 0.3 s: frame == rB within floor. Base: ~1.0 s -> A.
 B2 d_autopilot_keeps_time (RED): deck 0 L0 autopilotEnabled, cols A B C each Beat4 / PlayNext; trigger col0, leave,
-  6 injected crossings (beatPhase 0.99 / 0.01, 100 ms apart): deck 0 activeClipColumn >= 1. Base: 0.
+  6 injected crossings (beatPhase 0.99 / 0.01, 100 ms apart; totalBeatCount moves with the phase -- Pitfall 42):
+  deck 0 activeClipColumn >= 1. Base: 0.
 B2 d_return_hitch (REPORT; FAIL above 50 ms): deck 0 L0 = ramp12_1080.mp4 (1920x1080, GOP 60); away 5 s; 7070
   /api/state read right before the return (resets peak_frame_time_ms) and 0.3 s after: the peak (the return
   frame's catch-up decode runs inside compositeDeck, i.e. inside frame_time_ms) is printed.
@@ -137,10 +139,17 @@ def inject(**kw):
     return S.post(A + "/api/inject_features", json=kw, timeout=6)
 
 
+# The unwrapped beat count the injected phase sawtooth carries: every beat-crossing reader (Autopilot, projectM
+# playlist, slideshow, beat randomize) takes the totalBeatCount delta, not the phase wrap (Pitfall 42's rule).
+BEAT = 0
+
+
 def crossings(n):
+    global BEAT
     for _ in range(n):
-        inject(beatPhase=0.99); time.sleep(0.1)
-        inject(beatPhase=0.01); time.sleep(0.1)
+        inject(beatPhase=0.99, totalBeatCount=BEAT); time.sleep(0.1)
+        BEAT += 1
+        inject(beatPhase=0.01, totalBeatCount=BEAT); time.sleep(0.1)
 
 
 def comp():
@@ -269,7 +278,7 @@ def d_pending_trigger_still_cancelled():
                                  ncols=2), away_deck()]):
         return
     prime_away_deck()
-    inject(beatPhase=0.5); time.sleep(0.2)
+    inject(beatPhase=0.5, totalBeatCount=BEAT); time.sleep(0.2)
     trig(0, 0); time.sleep(0.5)
     trig(0, 1); time.sleep(0.15); switch(1); time.sleep(0.4)
     crossings(n); time.sleep(0.3)
@@ -368,7 +377,7 @@ def d_autopilot_keeps_time():
     if not load("autopilot", [deck(0, [L0], ncols=3), away_deck()]):
         return
     prime_away_deck()
-    inject(beatPhase=0.5); time.sleep(0.2)
+    inject(beatPhase=0.5, totalBeatCount=BEAT); time.sleep(0.2)
     trig(0, 0); time.sleep(0.5)
     switch(1); time.sleep(0.4)
     crossings(n); time.sleep(0.3)

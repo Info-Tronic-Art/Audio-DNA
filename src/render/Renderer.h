@@ -551,7 +551,7 @@ private:
     SyphonOutput* syphonOutput_ = nullptr;
 
     // P20.5: Playlist cycling state tracking
-    float lastPlaylistBeatPhase_ = 0.0f;
+    OnsetPulse playlistBeatCrossings_;   // totalBeatCount delta, consumed once per frame (Pitfall 42)
     uint8_t lastPlaylistStructState_ = 0;
 
     // Video players — keyed by clip ID

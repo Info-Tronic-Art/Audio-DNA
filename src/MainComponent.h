@@ -4,6 +4,7 @@
 #include "audio/AudioEngine.h"
 #include "audio/RingBuffer.h"
 #include "analysis/AnalysisThread.h"
+#include "features/OnsetPulse.h"
 #include "ui/LookAndFeel.h"
 #include "ui/WaveformDisplay.h"
 #include "ui/AudioReadoutPanel.h"
@@ -281,7 +282,7 @@ private:
     int slideshowIndex_ = 0;
     int slideshowBeats_ = 8;         // Beats per image
     int slideshowBeatCounter_ = 0;
-    float lastSlideshowBeatPhase_ = 0.0f;
+    OnsetPulse slideshowBeatCrossings_;   // totalBeatCount delta (Pitfall 42)
     juce::Label audioSourceLabel_;
     juce::TextButton savePresetButton_{"Save"};
     juce::TextButton loadPresetButton_{"Load"};
@@ -328,7 +329,7 @@ private:
     juce::ComboBox beatCountSelector_;
     int beatRandomCount_ = 4;       // Randomize every N beats
     int beatCounter_ = 0;           // Counts beats since last randomize
-    float lastBeatPhase_ = 0.0f;    // Track beat phase for edge detection
+    OnsetPulse beatCrossings_;      // Beats since the previous tick: totalBeatCount delta (Pitfall 42)
     int uiUpdateCounter_ = 0;       // Throttle UI label updates
 
     // Fast save

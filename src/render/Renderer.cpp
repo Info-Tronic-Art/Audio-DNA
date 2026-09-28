@@ -393,6 +393,9 @@ void Renderer::renderOpenGL()
     }
 
     // P20.5: Process MilkDrop preset playlist cycling (beat-synced preset advance within clips)
+    // Beats since the previous frame -- the totalBeatCount delta, taken ONCE per frame so every playlist layer sees
+    // it (the old per-layer wrap baseline let only the first layer see a crossing; Pitfalls 38 / 42).
+    const uint32_t playlistBeats = playlistBeatCrossings_.consume(snap.totalBeatCount);
     if (deckActive)
     {
         for (int li = 0; li < deck->getNumLayers(); ++li)
@@ -405,13 +408,9 @@ void Renderer::renderOpenGL()
             if (!clip->hasPresetPlaylist()) continue;
             if (clip->presetPlaylist.size() <= 1) continue;
 
-            // Detect beat crossing
-            bool beatCrossing = (snap.beatPhase < lastPlaylistBeatPhase_ - 0.5f);
-            lastPlaylistBeatPhase_ = snap.beatPhase;
-
-            if (beatCrossing)
+            if (playlistBeats > 0)
             {
-                clip->presetBeatsPlayed++;
+                clip->presetBeatsPlayed += static_cast<int>(playlistBeats);
 
                 int targetBeats = clip->playlistTriggerBeats;
                 if (clip->playlistTrigger == Clip::PlaylistTrigger::Bars)
