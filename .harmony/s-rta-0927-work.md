@@ -232,3 +232,10 @@ Dirty at boot (not ours, leave): .harmony/.harmony-version, AGENTS.md (untracked
   pad bound to both). Replay timing ~unaffected; routine cutting from beat 0 / "bars 1..N" is REFUSED. Fix A proposed
   (Record t=0 waits two analysis hops, first tick sets startBeatInBar; RecorderHost gate + 50 ms fallback) -> NEXT
   SESSION (Boris: no new work). Also found: TempoMap::sampleAt wrong on short takes (older defect). W12 removed.
+- 00:42 followups: review PASS_WITH_NITS; Harmony ACCEPTED D2 (capture answered by a frame armed after the request; reviewer
+  read it line by line: correct, minimal; makes captures deterministic). Merged -> 233eae7 (first attempt refused: my
+  uncommitted notebook — committed notes, re-merged, notebook concatenated). ctest 784/784. FINAL battery (quiet, perf rows
+  included) ALL GREEN: canvas 15/0 (1080p 114.8 fps, 4K 90.3 fps), outputs 17/0, routines 105/0, step3 94/0, tempo 120.
+- 00:42 EOS (eos-secondary): session log .harmony/sessions/2026-09-28-s-rta-0927-secondary.md; idea harvest: no Boris ideas
+  this session (directives only); notebook methods appended; handoff rewritten (birth prompt, WHERE WE ARE, ledger
+  s-rta-0927, session section at END). Screen: no Audio-DNA process, 0 Audio-DNA windows (Quartz), lock free.

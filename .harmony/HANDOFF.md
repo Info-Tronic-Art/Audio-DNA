@@ -3,75 +3,106 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0926b (2026-09-26 18:37 → 2026-09-27 ~06:15). The newest
-dated section is at the END of this file ("# >>> SESSION s-rta-0926b"); read it first, then the SCREEN-SAFETY LAW section.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0927 (2026-09-27 09:12 → 2026-09-28 ~00:50). The newest
+dated section is at the END of this file ("# >>> SESSION s-rta-0927"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
-"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo). CLAUDE.md is a ~25 KB core +
-docs/claude/*.md (trigger table says which doc to read before touching an area). Ultracode: use workflows.
+"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo). CLAUDE.md is a ~23 KB core (25,000-byte
+cap — pay for any addition by moving text into docs/claude/*.md) + docs/claude/*.md (trigger table says which doc to read).
+Ultracode: use workflows.
 
-STATE: s-rta-0926b shipped 14 merges (all gated live by Harmony, RED-first): render correctness (layer state keyed by
-deck+layer, crossfade history slot, persistent layers render fully), tempo (thread-safe requests; a typed/REST/OSC tempo
-never moves the beat; Link never realigns; Link toggle disabled in builds without Link), routines (glide into place over the
-last beat, per-routine Ease/Jump, TopBar Stop = routines only), TopBar Bar 1-4, recorder early tempo save, decks (unique
-ids, tab row + / right-click, safe library with Trash, composition save/open in menu + Compositions tab), canvas (the
-composition resolution drives the picture everywhere; decks keep playing off screen; deck switch really fades; per-clip
-Fit Stretch/Bars/Crop), app-wide square dialogs/menus, probe rig hardening. ctest 667/667; everything pushed.
+STATE: s-rta-0927 shipped 10 merges (all gated live by Harmony, RED-first on the pre-merge app): plan5 outputs COMPLETE
+(C1 canvas on an output via IOSurface frames, never-key normal-level window; C2 any number of displays, ticked Output menu,
+TopBar "Outputs: N", Cmd+Shift+Esc panic, plain Esc no longer closes outputs; C3 hot-plug reconcile, replug returns,
+Restore Last Outputs, settings via read-modify-write AppSettings, test mode never touches the real settings.json);
+routines display slice A (pads above the columns, name bands, faders follow the model, chartreuse routine cue); beat clock
+never loses time across a stall (FeatureSnapshot::totalBeatCount; autopilot/playlist/slideshow/randomize too); render perf
+(first-crossfade hitch 33-72 -> 9-14 ms, capture GL cost ~100 -> ~3 ms); black-at-default sources fixed + 78 dead controls
+removed; Tier-1 visual tests 8/13 FAILED -> 12/13 PASSED; PNG writes replace. ctest 784/784; everything pushed.
 RIG FACTS (binding): NO Bluetooth audio. NO Xcode (Command Line Tools only).
 
 START HERE, in order:
-1. [START HERE — long task, begin at session start] BUILD plan5: the composition on ANY number of connected displays
-   (.harmony/.reports/s-rta-0926b/plan5-final.md — adopted; slices C1 one display through today's paths (fixes: the
-   Output window shows only the legacy single image today) -> C2 N windows + menu/TopBar + keys -> C3 hot-plug +
-   persistence + restore). Borderless NORMAL-level windows, never always-on-top/kiosk/native fullscreen, never able to
-   take the keyboard; panic Shift+Cmd+Esc. NO gate ever opens an output window on Boris's displays: offscreen GL ctest +
-   Boris's supervised checklist (plan §12). Boris Q1-Q7 (plan §16) unanswered -> defaults ship (one-click restore; plain Esc
-   no longer closes outputs; screens not saved in files; no windowed output now; auto-return on replug; frozen while the
-   signal bar is open is OK; no partial-canvas outputs now) — relay once, then build.
-2. Routine timing rows flake since the canvas merge (loose end 1): discriminate first (probe-routines x5 on b766720 vs x5
-   on main + render_frame durations), then fix windows (end >= 0.1 s before the first recorded move) and/or async capture.
-3. Routines DISPLAY slice A (.harmony/.reports/s-rta-0926b/routine-ux/design-final.md + ADDENDUM + mockup.html): Fable
-   build plan -> build (8 pads above the column numbers, name bands on every layer it plays, cyan ROUTINE cue, V fader
-   follows, pad settings incl. Start: Ease/Jump). Boris's 8 "Still your call" questions (top of mockup.html) — defaults
-   ship if unanswered.
-4. Boris answers pending (defaults in force): Fit "Bars" see-through (default) vs solid black; deck defaults (New Deck = 3
-   empty layers, Load Deck adds a tab, Duplicate "<name> copy"); outputs Q1-Q7; routines 8.
-5. Loose ends 2-8 below (spare-ring hitch at 1080p, tests/visual Tier-1 red since before tonight, capture cost F4, ...).
+1. Take start-tempo race (.harmony/.reports/s-rta-0927/tempo0-diag.md): when set_bpm and Record arrive within ~10 ms
+   (REST/OSC/MIDI pad), the take's start entry reads bpm 0 (4/34) or no bar position (9/34) -> "bars 1..N" routine cuts are
+   refused. Fable plan (fix A: Record's t=0 waits two analysis hops + a 50 ms fallback, startBeatInBar from the first tick;
+   vs B: set_bpm answers after publish) -> build -> probe row: tempo witness x20 = 0 bpm-0, 0 unknown bar grids.
+2. Tier-1 residual (followups.md F1): test_sources::test_all_params_have_effect has 30 named lines — 20 "goes black at an
+   extreme" (Boris policy vs range; default: exception entries with reasons), 6 app params that change nothing
+   (astral_grid Warp, band_tower Reflection, spectrum_landscape Smoothing, wire_wolf / wire_icosahedron Density,
+   moire_interference Offset Y — same implement-vs-remove rule as source-defects), 4 harness gate gaps; plus
+   tests/visual/test_fractals.py smoke (139F/135P on main) untriaged.
+3. Render leftovers (renderperf.md found_not_fixed): loadKeyImage decodes + uploads a new image on the GL thread
+   (9-14 ms, now the whole cold first-use hitch); concurrent captures can overwrite capturePromise_; PNG encode dominates the
+   HTTP capture round trip.
+4. Routine start/loop restore holds the message thread 38-86 ms (routines-timing.md found_not_fixed) — diagnose first.
+5. Boris answers pending (page .harmony/.reports/s-rta-0927/boris-checks.html; defaults in force). Loose ends below.
 
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build
 lanes); remove each worktree the turn it merges; worktree lanes COMMIT their reports (git add -f) or return them in full.
 Packets: NEVER lldb/debugserver/gdb on ANY binary; never full-screen screencapture (Quartz window id only); no synthetic
-input (UI states for shots via REST / composition files / the TEMPORARY env-var hook idiom, reverted + rebuilt + strings
-check = 0); fence each lane; critic/reviewer packets PIN worktree + branch + commit; FIX-ROUND prompts must NOT repeat a
-packet's STEP 0 branch reset — name the commit to continue from. Live app: ONE at a time via /tmp/audiodna-live.lock
-(mkdir; owner "<name> $$ <epoch>"; release only if you own it); every probe now REFUSES without the lock
-(AUDIODNA_LOCK_OWNER must match when set); a failed mkdir means WAIT — never `open` another copy (same bundle id reaches
-the running app); a stub server that fails to bind 7070 must exit. Render gates DECODE PIXELS; LOOK at one frame; every new
-probe RED on the pre-change build first. Probe env: STEP3_BUILD_DIR=build, RESYNC_BUILD_DIR=build, DOWNBEAT_BUILD_DIR=build,
-MANUALBPM_BUILD_DIR=build, ROUTINES_BUILD_DIR=build + ROUTINES_RECORD_PAUSE=1.8; canvas/deck-clock/fitmode/deck-tabs default
-to build/. T2 rows in probe-step3 fail if another app plays audio (Stremio did) — re-run quiet. After a merge touching
-CMakeLists: cmake -S . -B build. Main-loop habits: never `cd` (absolute paths / git -C / script files); zsh does not split a
-command held in a variable (use bash -c or functions); stamp logs from `date`; syntax-check workflow scripts before launch;
-copy a worktree file to scratch before Reading it (a Read inside a worktree injects its CLAUDE.md). Reviews/critics are not
-the verdict — the live gate is.
-COUNTS: run them — ctest 667/667 at close; unpushed 0.
+input (UI states via REST / composition files / TEMPORARY env-var hook, reverted + rebuilt + strings check = 0); fence each
+lane; reviewer/critic packets PIN worktree + branch + commit; FIX-ROUND prompts continue from a named commit (no STEP 0).
+Live app: ONE at a time via /tmp/audiodna-live.lock (mkdir; owner "<name> $$ <epoch>"; release only if you own it; after
+releasing wait >= 45 s before re-acquiring); every probe REFUSES without the lock; a failed mkdir means WAIT. Probe HTTP
+clients use Connection: close (cpp-httplib keep-alive drop). While lanes compile, run probe-canvas / probe-fitmode with the
+row filter (2nd arg, perf rows omitted) — perf rows wait for idle CPU while holding the lock; run them at a quiet moment.
+NEVER SendMessage a running WORKFLOW agent (it forks a second executor on the same worktree); steer via the next stage.
+Test mode: launch `open -g <App> --args --test-mode`; it uses a scratch settings file, never ~/Library/Application
+Support/Audio-DNA/settings.json. Render gates DECODE PIXELS; LOOK at one frame; check the INPUT fixture before calling a
+picture wrong (fixture B is itself a 2x2 grid). A flake verdict needs >= 5 runs per arm. tests/CMakeLists merge conflicts =
+two lanes appending at EOF: HEAD's file + the lane's appended block. Commit your own notes before merging (a dirty file
+makes git merge refuse — do not filter merge output through grep). Probe env: STEP3/RESYNC/DOWNBEAT/MANUALBPM/ROUTINES
+_BUILD_DIR=build (+ ROUTINES_RECORD_PAUSE=1.8). After a merge touching CMakeLists: cmake -S . -B build. Main-loop habits:
+never `cd`; stamp logs from `date`; syntax-check workflow scripts before launch (no raw backtick inside a template literal);
+copy a worktree file to scratch before Reading it. Reviews/critics are not the verdict — the live gate is.
+COUNTS: run them — ctest 784/784 at close; unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0926b -->
-BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs).
-SHIPPED: render fixes (crossfade history, persistent layers, deck-keyed state) · tempo never jumps from a typed/sent BPM;
-Link honest · routines glide in on the bar, Ease/Jump per routine, Stop = routines only · TopBar Bar 1-4 · early tempo
-save · deck tabs + / right-click, safe library (Trash), composition save/open in menu + Compositions tab · canvas: the
-composition resolution shapes the picture everywhere, decks keep playing off screen, deck switch fades, Fit
-Stretch/Bars/Crop · square dialogs/menus app-wide · probe rig hardened.
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0927 -->
+BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
+SHIPPED: outputs on any number of displays (menu ticks, TopBar button, panic key, unplug/replug, Restore Last Outputs) ·
+routines display in the layers (pads, name bands, chartreuse cue) · beat clock never drifts after a stall (routines,
+autopilot, slideshow) · first-crossfade hitch and capture cost cut · black-at-default fractals/cave fixed, 78 dead knobs
+gone · visual test suite mostly green · snapshot overwrite fixed.
 IN-FLIGHT: none. Tree clean, everything pushed, no worktrees.
-NEXT: (1) outputs to any number of displays (plan5, long) · (2) routine timing flake since canvas · (3) routines display
-slice A · (4) Boris's pending answers.
+NEXT: (1) take start-tempo race fix · (2) Tier-1 last red test (30 named lines) · (3) image-upload hitch + capture
+leftovers · (4) routine restore UI hitch · (5) Boris answers.
 BLOCKERS: none (all Boris questions have defaults).
-YOU ARE HERE: the show structure is in place (decks, canvas, routines engine); the two big visible pieces left are
-outputs on every display and the routines display in the layers.
+YOU ARE HERE: the show structure is built end to end (decks, canvas, routines, outputs); what remains is correctness
+polish and Boris's hands-on checks at his rig (projector, feel).
 
-## LOOSE-ENDS LEDGER — s-rta-0926b (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0927 (CURRENT)
+
+1. [OPEN] Take start-tempo race (START HERE 1): tempo0-diag.md. Also: TempoMap::sampleAt is wrong on short takes (older).
+2. [OPEN] Tier-1: 30 named residual lines in test_sources::test_all_params_have_effect (START HERE 2); test_fractals.py
+   untriaged; the param lint's READ is textual (DEBT_FILED, a no-op use counts as read).
+3. [OPEN] Render: loadKeyImage GL-thread upload 9-14 ms; capturePromise_ overwrite on concurrent captures; PNG encode in the
+   capture round trip; at 4K first use/fade still 3.7-3.8 ms (canvas-size FBO allocs, inferred).
+4. [OPEN] Routine start/loop restore holds the message thread 38-86 ms. Audio-device clock pause moves the whole beat grid
+   (tracker-level, Boris). Catch-up burst after a freeze = default (Boris may pick skip; one line).
+5. [OPEN, low] Outputs: menu command id -> display index resolved at click (a hot-plug while the menu is open can retarget;
+   fix = fingerprint at menu build); appSettingsFile call-site has no ctest; clamshell main-display loss and a cable swap
+   within one reconcile (R-b); native Output menu shows no Cmd+Shift+Esc text (JUCE); Identify Displays / Test Card and
+   windowed output = plan5 slice 2. Real window behaviour = Boris checklist (page section 5).
+6. [OPEN, low] Sources: crystal_cavern costs 5.2 ms/frame at 1080p (was 3.3 while black) — optimise the march; its look
+   ("wall of glossy balls") is Boris's call; striped_torus u_src_camera never wired to a knob; removed params drop their
+   connections on load (informational).
+7. [OPEN, Boris] Page .harmony/.reports/s-rta-0927/boris-checks.html (opened for him): routine cue chartreuse vs cyan,
+   pad row look-alike, no-confirm stops, restart mark, outputs checklist, catch-up vs skip, new source starting pictures,
+   removed knobs, Dot Field depth, "0 = nothing" policy; older: Fit Bars see-through vs black, deck defaults, outputs Q1-Q7.
+8. [OPEN, low] Manual slideshow / beat-randomize check needs UI (Boris); probe-deck-path.sh launches the app directly and
+   never calls load_source; routine notices show only in the Record tab; Undo of layer X restores the clip, not routines
+   (design); DeckView's menu.setLookAndFeel calls may be redundant; stale comments test_topbar_link_toggle.cpp:63 and
+   tests/CMakeLists.txt near tool_uitoggle_snapshot (retired tool_routine_strip_snapshot).
+9. WARN fable-usage-audit: LAW11-LOG-GAP — 6 architect dispatches (17 Fable turns), 0 DISPATCH_LOG rows (a foreign-repo
+   secondary cannot write Harmony_Main's DISPATCH_LOG); all 6 plans on disk under .harmony/.reports/s-rta-0927/ and followed.
+10. Session-index — skipped (foreign-repo lane, no transport yet).
+11. Carried: JUCE 8.0.8 bump before any wired interface; settings.local.json disables clangd-rta/graphify-rta (Boris);
+    .harmony/.harmony-version and AGENTS.md dirty/untracked at boot — not this session's, left untouched.
+12. PERF (quiet, final battery 00:34, load ~3.8): c_perf_1080 114.8 fps mean (frame 1.46 ms, GPU 2.08 ms); c_perf_4k 90.3 fps
+    (GPU 8.54 ms); fitmode f_perf GREEN. Earlier gates this session ran canvas/fitmode correctness rows only while lanes compiled.
+
+## (HISTORICAL, s-rta-0926b — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0926b
 
 1. [OPEN] Routine timing rows flake since the canvas merge: probe-routines 97/1 (stack "later restore wins" saw [0.5,1.0])
    and a re-run 96/2 (11j Jump rows saw a 0.5 sample in TJ+0.1..TJ+0.5); other re-runs 98/0. The windows end at the
@@ -3089,3 +3120,51 @@ left. No full-screen capture was taken (window-only Quartz captures + in-app sna
 
 ## COUNTS — run them, never inherit them
 ctest 667/667. Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-0927 (2026-09-27 09:12 → 2026-09-28 ~00:50, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+All three START-HERE items closed (plan5 outputs C1+C2+C3 built; the routine timing flake was the probe; routines display
+slice A built) plus four lanes found on the way (beat clock stall loss, render hitch + capture cost, black-at-default
+sources + dead controls, Tier-1 harness + PNG overwrite + beat-crossing readers). Boris: "finish current tasks then start
+eos". Session log: .harmony/sessions/2026-09-28-s-rta-0927-secondary.md; running log .harmony/s-rta-0927-work.md;
+plans/reports/evidence .harmony/.reports/s-rta-0927/.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate on merged main; each new probe RED on the pre-merge app first)
+ctest 667 -> 784/784. RED-first by Harmony: probe-outputs 1/9 (C1), 10/3 (C2), 13/3 (C3); probe-routine-display 4/13;
+probe-beatclock b1 FAIL (b2/b3 skip; builder's commit-1 app -0.98/-0.71); probe-render-state r1_counts 39.37/72.40 ms >
+16.7. Full battery after every merge; final battery on main 233eae7 (00:19-00:42, quiet): outputs 17/0, routine-display 16/0, beatclock 6/0, render-state 32/0,
+crossfade 35/0, effects-parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 105/0, mastersignal 22/0,
+decktabs 6/0, canvas 15/0 (incl. perf 1080p 114.8 fps, 4K 90.3 fps), deckclock 10/0, fitmode 10/0, step3 94/0, tempo witness
+GREEN (bpm 120). Frames looked at: output probe portrait/720p vs render_frame,
+routine pads/bands cyan vs chartreuse, Output menu + TopBar button, julia/crystal before/after. Every lane: pinned
+independent reviewer(s); every UI lane: critic panel (fix rounds: outputs-c1 probe row, routine display x2, C3
+persistWanted, renderperf capture race, crystal near-clip). Anomalies chased to cause: the "4 copies at 720p" (fixture B is
+a 2x2 screenshot), deck-clock RemoteDisconnected (cpp-httplib keep-alive drop, server-side log), take start bpm 0 (set_bpm
+vs Record race, pre-existing).
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-0927/boris-checks.html, opened for him)
+- Outputs at his rig: picture on a projector = the preview; laptop-screen output + Cmd+` + Cmd+Shift+Esc; the picture never
+  takes the keyboard; cable pull / replug / resolution change; frozen while the signal bar is open; quit clean; nothing
+  opens at launch + Restore Last Outputs; menu-bar strip on the projector; 120/60 Hz smoothness; fps per output.
+- Routines display feel: pads above the columns (look-alike with the column numbers?), chartreuse vs cyan, band x / layer X
+  stop without confirm, restart mark salience; catch-up vs skip after a freeze.
+- New starting pictures of julia / burning ship / newton / crystal cavern; removed knobs; Dot Field depth.
+- The Output window was never opened by any gate (law); real hot-plug event order is unverified without a window.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. Launched the wave-1 workflow before syntax-checking it. 2. SendMessage to running workflow agents forked concurrent
+executors (two writers on one worktree), and my TaskStop killed the copy that held my rulings — the routine cue was
+recoloured against my ruling (kept on the merits, Boris decides). 3. Called the keep-alive theory "refuted" on 3 samples and
+C1 a "regression" on n=1 — both wrong. 4. Read fixture B as a render bug before checking the input. 5. A merge silently
+refused (my notes uncommitted; grep hid the error). 6. Estimated one timestamp ("09:2x") before correcting it from `date`.
+Rules for each are in the birth prompt's rig rules and .harmony/notebook.md (s-rta-0927 methods).
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was `open -g` (production or --test-mode), main window only; the Output window was never opened by any gate
+(o_no_window_opened in every probe-outputs run; Quartz window lists). At close: no Audio-DNA process, the live lock free, no
+worktrees. No full-screen capture was taken. The real settings.json does not exist (a C3 fix-round mutant created and
+deleted it once mid-run; absent before and after).
+
+## COUNTS — run them, never inherit them
+ctest 784/784. Unpushed 0 after the close commit.
