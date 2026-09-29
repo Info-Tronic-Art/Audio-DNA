@@ -26,8 +26,8 @@ the lock is never held while waiting for quiet). Every launch prints the load av
 g2: seq24 (one layer, a 24-frame 320x180 PNG sequence, 30 fps loop) triggered, playingS: >= minTransportRepaints
   transport repaints and (adoption I2) strip paints whose painted playhead pixel moved / ticks whose playhead pixel moved
   >= minPaintAdvanceRatio; then the card loaded + triggered, settleS, playingS: <= idleMaxTransportRepaints.
-Identity (Harmony ruling K2, fix round 2 -- it replaces J3's anti-aliased-edge clause; rows v1 / v1b / v2 /
-v3): every differing pixel differs by <= identity.maxDelta (1/255) per channel, ANYWHERE; a pixel differing by more,
+Identity (Harmony ruling K2, fix round 2 -- it replaces J3's anti-aliased-edge clause; rows v1 / v1b / v2 / v3 / v3p /
+v4): every differing pixel differs by <= identity.maxDelta (1/255) per channel, ANYWHERE; a pixel differing by more,
 outside the row's declared live-content masks, is a violation. Each line prints the differing count, the max delta and
 the violating count. v0 proves the rule rejects a 1-px shift.
 Pixel rows (window-only captures `screencapture -x -o -l <Quartz window id>` of the largest on-screen Audio-DNA window,
@@ -55,6 +55,15 @@ peer_layer_backed == 1 is asserted in c0):
      it) and ui_restore_frames_max <= restoreFramesMax; teeth arm ADNA_UI_NATIVE_LAYERS_TEETH=asynchide (the plan
      body's late hide) must read covered > 0.
   v3 (SHOULD) BEFORE vs AFTER, production, card: masks SignalBar, WaveformDisplay, TopBar row; the rest K2 identity.
+  v3p (Harmony ruling K3) production, card, v3p.runs launch pairs: BEFORE's (main's) idle look vs AFTER's idle look,
+     masked only where production draws live content -- the fps mask, the SignalBar, the WaveformDisplay and the TopBar's
+     beat wheel / bar readout / tempo + tracker-state labels (topbar_rect x + v3p.topbarLiveFromLeftPt, v3p.
+     topbarLiveWidthPt wide: TopBar::resized lays them out at fixed offsets 326..512 pt from its left); the rest K2.
+  v4 (Harmony ruling K3) AFTER, test mode, card, v4.runs launches: the idle look vs the look after POST
+     /api/debug/ui_repaint_all (a whole-MainComponent pass, as a resize or leaving binding / MIDI-learn mode draws),
+     outside the fps mask: K2. The window's FIRST display pass draws the Files grid's folder emoji (<= 66/255) and three
+     TopBar slider thumbs (<= 29/255) differently from every later pass (fix round 1, J1), so this row reads RED on any
+     build whose idle look still carries first-pass pixels there.
 Exit 0 iff no FAIL (SKIP / TAINTED are not PASS: they exit 2).
 """
 import json, os, re, statistics as st, subprocess, sys, time
@@ -67,7 +76,8 @@ A = "http://127.0.0.1:7070"
 ROOT, OUT = sys.argv[1], sys.argv[2]
 ALL_ROWS = ["c0_preflight", "i1_idle_card", "i2_idle_many16", "g2_strip_playhead", "g4_routine", "g5_driven",
             "x1_within_build_off", "v0_capture_teeth", "v1_identity_test_mode", "v1n_noise_floor", "v1b_native_vs_inpeer",
-            "v2_identity_fallback", "v2b_fallback_frames", "v3_identity_production_masked"]
+            "v2_identity_fallback", "v2b_fallback_frames", "v3_identity_production_masked",
+            "v3p_production_idle_identity", "v4_full_pass_identity"]
 DEFAULT_ROWS = [r for r in ALL_ROWS if r not in ("x1_within_build_off", "v1b_native_vs_inpeer")]
 ROWS = [r for r in (sys.argv[3].split(",") if len(sys.argv) > 3 and sys.argv[3] else DEFAULT_ROWS) if r]
 for r in ROWS:
@@ -540,7 +550,7 @@ def compare(a, b, geo, name, masks=()):
 
 
 def identity(a, b, geo, name, masks=()):
-    """Harmony ruling K2 (rows v1 / v1b / v2 / v3): identical = every differing pixel (outside masks) differs
+    """Harmony ruling K2 (rows v1 / v1b / v2 / v3 / v3p / v4): identical = every differing pixel (outside masks) differs
     by <= identity.maxDelta per channel, anywhere. -> (n differing px, max delta, n violating px, violation clusters).
     Saves a diff PNG: violations magenta, tolerated pixels yellow."""
     if a.shape != b.shape:
@@ -1010,6 +1020,74 @@ def live_meters_info(row, tag, a, b, geo, u, res):
     info(f"{row} {tag} with the live meters masked too (SignalBar, waveform): {k2(r)}")
 
 
+def topbar_live_mask(u):
+    """Production-only live content inside the TopBar: the beat wheel, the bar readout and the tempo + tracker-state
+    labels (TopBar::resized: fixed offsets 326..512 pt from the TopBar's left), full TopBar height."""
+    t, c = u["topbar_rect"], CFG["v3p"]
+    return (t[0] + c["topbarLiveFromLeftPt"], t[1], c["topbarLiveWidthPt"], t[3])
+
+
+def row_v3p():
+    """Harmony ruling K3: PRODUCTION, card -- main's idle look vs the lane's idle look, masked only where production
+    draws live content (fps readout, SignalBar, WaveformDisplay, the TopBar's beat / tempo readouts): K2 identity."""
+    if not APPB or not os.path.isdir(APPB):
+        skip("v3p_production_idle_identity: no BEFORE app"); return
+    if compilers() > 0:
+        skip("v3p_production_idle_identity: TAINTED"); return
+    runs = int(CFG["v3p"]["runs"])
+    res = []
+    for k in range(1, runs + 1):
+        shots, geo, u = {}, None, None
+        for tag, app in (("before", APPB), ("after", APP)):
+            pid, _ = launch(app, f"v3p/r{k}-{tag}")
+            if pid is None:
+                quit_app(); no(f"v3p_production_idle_identity: launch r{k} {tag}"); return
+            setup("card"); time.sleep(CFG["v"]["settleS"])
+            shots[tag] = capture(f"v3p-r{k}-{tag}")
+            if tag == "after":
+                geo, u = geo_for(*shots[tag])
+            quit_app()
+        if geo is None or shots["before"][0] is None:
+            skip(f"v3p_production_idle_identity r{k}: no capture / geometry"); return
+        r3 = identity(shots["before"][0], shots["after"][0], geo, f"v3p-r{k}",
+                      masks=(fps_mask(u), u["signalbar_rect"], u["waveform_rect"], topbar_live_mask(u)))
+        print(f"    v3p r{k}: BEFORE idle vs AFTER idle outside the live-content masks -- {k2(r3)}", flush=True)
+        res.append(r3)
+    (ok if all(r[2] == 0 for r in res) else no)(
+        f"v3p_production_idle_identity (K3): production, card -- main's idle look vs this build's idle look outside the "
+        f"fps / SignalBar / waveform / TopBar beat+tempo masks, {runs} launch pairs: "
+        + " | ".join(f"r{i + 1} {k2(r)}" for i, r in enumerate(res)))
+
+
+def row_v4():
+    """Harmony ruling K3: test mode, card -- this build's idle look vs its look after POST /api/debug/ui_repaint_all (a
+    whole-MainComponent pass), outside the fps mask: K2 identity, v4.runs launches."""
+    if compilers() > 0:
+        skip("v4_full_pass_identity: TAINTED"); return
+    runs = int(CFG["v4"]["runs"])
+    res = []
+    for k in range(1, runs + 1):
+        pid, _ = launch(APP, f"v4/r{k}", test=True)
+        if pid is None:
+            quit_app(); no(f"v4_full_pass_identity: launch r{k}"); return
+        setup("card"); time.sleep(CFG["v"]["settleS"])
+        a = capture(f"v4-r{k}-idle")
+        geo, u = geo_for(*a)
+        rp = post("/api/debug/ui_repaint_all")
+        time.sleep(1.0)
+        b = capture(f"v4-r{k}-fullpass")
+        quit_app()
+        if geo is None or a[0] is None or b[0] is None:
+            skip(f"v4_full_pass_identity r{k}: no capture / geometry"); return
+        r3 = identity(a[0], b[0], geo, f"v4-r{k}", masks=(fps_mask(u),))
+        print(f"    v4 r{k}: ui_repaint_all {rp} | idle vs after the full pass outside the fps mask -- {k2(r3)}", flush=True)
+        live_meters_info("v4", f"r{k}", a[0], b[0], geo, u, r3)
+        res.append(r3)
+    (ok if all(r[2] == 0 for r in res) else no)(
+        f"v4_full_pass_identity (K3): test mode, card -- idle look vs after a whole-MainComponent pass outside the fps "
+        f"mask, {runs} launches: " + " | ".join(f"r{i + 1} {k2(r)}" for i, r in enumerate(res)))
+
+
 # ---------------------------------------------------------------- main
 print(f"rows: {','.join(ROWS)} | app {APP} | before {APPB or '-'} | {load_avg()}", flush=True)
 for row in ROWS:
@@ -1058,6 +1136,10 @@ for row in ROWS:
         row_v2b()
     elif row == "v3_identity_production_masked":
         row_v3()
+    elif row == "v3p_production_idle_identity":
+        row_v3p()
+    elif row == "v4_full_pass_identity":
+        row_v4()
 quit_app()
 json.dump({"pass": PASS, "fail": FAIL, "skip": SKIP, "summary": SUMMARY}, open(os.path.join(OUT, "summary.json"), "w"),
           indent=1)
