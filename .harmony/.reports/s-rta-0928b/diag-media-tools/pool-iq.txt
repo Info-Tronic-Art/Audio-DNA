@@ -1,0 +1,174 @@
+== q0_ ['q0_1', 'q0_2', 'q0_3', 'q0_4', 'q0_5']
+  S drop_img4k               hook.total                   0.000 / 9.919 / 15.463 (n=10)
+  S drop_img4k               mc.applyFileDrop             0.016 / 0.063 / 0.063 (n=5)
+  S drop_img4k               us.fence.mutation            0.008 / 0.024 / 0.076 (n=10)
+  S drop_img4k               us.fence.wait                4.506 / 8.174 / 11.621 (n=10)
+  S drop_seq300              amfd.thumbDecode             13.009 / 14.080 / 14.080 (n=5)
+  S drop_seq300              hook.total                   0.000 / 39.950 / 42.010 (n=10)
+  S drop_seq300              mc.applyMultiFileDrop        27.069 / 31.540 / 31.540 (n=5)
+  S drop_seq300              seq.open.frame0Decode        11.197 / 13.644 / 13.644 (n=5)
+  S drop_seq300              seq.open.statLoop            1.234 / 1.643 / 1.643 (n=5)
+  S drop_seq300              seq.open.total               13.154 / 16.482 / 16.482 (n=5)
+  S drop_seq300              us.fence.mutation            0.008 / 27.481 / 31.547 (n=10)
+  S drop_seq300              us.fence.wait                2.969 / 7.984 / 9.998 (n=10)
+  S drop_v1080               hook.total                   0.000 / 49.663 / 54.972 (n=10)
+  S drop_v1080               mc.applyFileDrop             28.915 / 33.251 / 33.251 (n=5)
+  S drop_v1080               rd.closeMedia.video          1.853 / 2.192 / 2.192 (n=5)
+  S drop_v1080               us.fence.mutation            2.201 / 30.229 / 33.256 (n=10)
+  S drop_v1080               us.fence.wait                5.718 / 10.865 / 11.369 (n=10)
+  S drop_v1080               vp.getThumbnail              8.388 / 8.777 / 8.777 (n=5)
+  S drop_v1080               vp.open.firstFrame           10.783 / 11.848 / 11.848 (n=5)
+  S drop_v1080               vp.open.total                20.683 / 24.625 / 24.625 (n=5)
+  S drop_v4k                 hook.total                   0.001 / 124.264 / 124.747 (n=10)
+  S drop_v4k                 mc.applyFileDrop             106.601 / 108.955 / 108.955 (n=5)
+  S drop_v4k                 us.fence.mutation            0.002 / 107.393 / 108.961 (n=10)
+  S drop_v4k                 us.fence.wait                4.839 / 9.800 / 9.966 (n=10)
+  S drop_v4k                 vp.getThumbnail              30.822 / 32.047 / 32.047 (n=5)
+  S drop_v4k                 vp.open.firstFrame           42.103 / 46.601 / 46.601 (n=5)
+  S drop_v4k                 vp.open.total                75.756 / 76.869 / 76.869 (n=5)
+  S load_empty0              mc.loadComposition           7.824 / 11.172 / 11.172 (n=5)
+  S load_empty0              mc.openMediaForDeck          0.001 / 0.001 / 0.001 (n=5)
+  S load_empty0              mc.swapCompositionModel      5.581 / 8.832 / 8.832 (n=5)
+  S load_empty0              us.fence.mutation            0.002 / 0.003 / 0.003 (n=5)
+  S load_empty0              us.fence.wait                5.222 / 8.490 / 8.490 (n=5)
+  S load_empty1              mc.loadComposition           11.785 / 18.827 / 18.827 (n=5)
+  S load_empty1              mc.openMediaForDeck          0.000 / 0.000 / 0.000 (n=5)
+  S load_empty1              mc.swapCompositionModel      5.199 / 13.388 / 13.388 (n=5)
+  S load_empty1              rd.closeMedia.video          2.020 / 2.450 / 2.450 (n=5)
+  S load_empty1              us.fence.mutation            0.011 / 0.014 / 0.014 (n=5)
+  S load_empty1              us.fence.wait                2.706 / 10.490 / 10.490 (n=5)
+  S load_seq                 mc.loadComposition           128.437 / 134.360 / 134.360 (n=5)
+  S load_seq                 mc.openMediaForDeck          121.821 / 124.472 / 124.472 (n=5)
+  S load_seq                 mc.swapCompositionModel      3.699 / 5.983 / 5.983 (n=5)
+  S load_seq                 omd.seqClip                  25.958 / 98.472 / 98.508 (n=10)
+  S load_seq                 omd.seqThumbDecode           10.467 / 40.839 / 40.952 (n=10)
+  S load_seq                 seq.open.frame0Decode        14.004 / 55.689 / 55.745 (n=10)
+  S load_seq                 seq.open.statLoop            1.152 / 1.478 / 1.481 (n=10)
+  S load_seq                 seq.open.total               15.749 / 57.868 / 58.183 (n=10)
+  S load_seq                 us.fence.mutation            0.002 / 0.002 / 0.002 (n=5)
+  S load_seq                 us.fence.wait                3.223 / 5.489 / 5.489 (n=5)
+  F idle_empty               cb=0.614 / 0.826 / 6.952 (n=3001) iv=8.292 / 11.557 / 23.292 (n=2996) ex_us=None
+  F loaded_seq_idle          cb=0.560 / 0.692 / 3.348 (n=1216) iv=8.319 / 11.494 / 16.964 (n=1211) ex_us=None
+  F seqpng_play              cb=0.698 / 2.915 / 7.787 (n=6607) iv=8.323 / 11.714 / 24.917 (n=6602) ex_us=None
+  F seqpng_seqjpg_play       cb=0.814 / 2.733 / 6.712 (n=6607) iv=8.299 / 11.628 / 18.964 (n=6602) ex_us=None
+  F drop_seq300              cb=0.730 / 1.365 / 8.408 (n=1792) iv=8.321 / 11.647 / 19.177 (n=1787) ex_us=None
+  F drop_v4k                 cb=0.725 / 1.335 / 6.469 (n=1219) iv=8.324 / 11.689 / 16.064 (n=1214) ex_us=None
+  F drop_v1080               cb=0.720 / 1.256 / 6.745 (n=1221) iv=8.325 / 11.592 / 15.885 (n=1216) ex_us=None
+  F drop_img4k               cb=0.719 / 1.285 / 3.460 (n=1215) iv=8.320 / 11.662 / 14.835 (n=1210) ex_us=None
+  F idle_empty_end           cb=0.590 / 0.815 / 5.945 (n=1403) iv=8.316 / 12.027 / 35.195 (n=1398) ex_us=None
+== q1_ ['q1_1', 'q1_2', 'q1_3', 'q1_4', 'q1_5']
+  S drop_img4k               hook.total                   0.001 / 15.731 / 17.288 (n=10)
+  S drop_img4k               mc.applyFileDrop             0.019 / 0.036 / 0.036 (n=5)
+  S drop_img4k               us.fence.mutation            0.007 / 0.027 / 0.042 (n=10)
+  S drop_img4k               us.fence.wait                4.129 / 8.719 / 10.903 (n=10)
+  S drop_seq300              amfd.thumbDecode             0.000 / 0.000 / 0.000 (n=5)
+  S drop_seq300              hook.total                   0.001 / 27.356 / 32.079 (n=10)
+  S drop_seq300              mc.applyMultiFileDrop        14.823 / 15.232 / 15.232 (n=5)
+  S drop_seq300              seq.open.frame0Decode        11.889 / 12.259 / 12.259 (n=5)
+  S drop_seq300              seq.open.statLoop            1.168 / 1.431 / 1.431 (n=5)
+  S drop_seq300              seq.open.total               14.093 / 14.274 / 14.274 (n=5)
+  S drop_seq300              us.fence.mutation            0.007 / 15.218 / 15.237 (n=10)
+  S drop_seq300              us.fence.wait                3.759 / 10.224 / 10.573 (n=10)
+  S drop_v1080               hook.total                   0.000 / 34.319 / 47.165 (n=10)
+  S drop_v1080               mc.applyFileDrop             23.031 / 26.048 / 26.048 (n=5)
+  S drop_v1080               rd.closeMedia.video          1.785 / 2.266 / 2.266 (n=5)
+  S drop_v1080               us.fence.mutation            2.273 / 23.815 / 26.052 (n=10)
+  S drop_v1080               us.fence.wait                4.307 / 7.223 / 11.307 (n=10)
+  S drop_v1080               vp.open.firstFrame           12.151 / 14.690 / 14.690 (n=5)
+  S drop_v1080               vp.open.total                23.017 / 26.033 / 26.033 (n=5)
+  S drop_v4k                 hook.total                   0.001 / 86.361 / 90.497 (n=10)
+  S drop_v4k                 mc.applyFileDrop             71.673 / 80.341 / 80.341 (n=5)
+  S drop_v4k                 us.fence.mutation            0.003 / 72.185 / 80.345 (n=10)
+  S drop_v4k                 us.fence.wait                3.412 / 7.026 / 12.027 (n=10)
+  S drop_v4k                 vp.open.firstFrame           43.642 / 44.088 / 44.088 (n=5)
+  S drop_v4k                 vp.open.total                71.656 / 80.326 / 80.326 (n=5)
+  S load_empty0              mc.loadComposition           5.327 / 7.778 / 7.778 (n=5)
+  S load_empty0              mc.openMediaForDeck          0.001 / 0.003 / 0.003 (n=5)
+  S load_empty0              mc.swapCompositionModel      3.087 / 5.502 / 5.502 (n=5)
+  S load_empty0              us.fence.mutation            0.002 / 0.006 / 0.006 (n=5)
+  S load_empty0              us.fence.wait                2.709 / 5.165 / 5.165 (n=5)
+  S load_empty1              mc.loadComposition           13.013 / 13.514 / 13.514 (n=5)
+  S load_empty1              mc.openMediaForDeck          0.000 / 0.000 / 0.000 (n=5)
+  S load_empty1              mc.swapCompositionModel      7.470 / 8.342 / 8.342 (n=5)
+  S load_empty1              rd.closeMedia.video          1.432 / 2.714 / 2.714 (n=5)
+  S load_empty1              us.fence.mutation            0.012 / 0.039 / 0.039 (n=5)
+  S load_empty1              us.fence.wait                4.954 / 6.807 / 6.807 (n=5)
+  S load_seq                 mc.loadComposition           79.612 / 82.036 / 82.036 (n=5)
+  S load_seq                 mc.openMediaForDeck          70.422 / 74.899 / 74.899 (n=5)
+  S load_seq                 mc.swapCompositionModel      3.666 / 6.792 / 6.792 (n=5)
+  S load_seq                 omd.seqClip                  14.477 / 61.044 / 61.177 (n=10)
+  S load_seq                 seq.open.frame0Decode        12.569 / 58.229 / 58.524 (n=10)
+  S load_seq                 seq.open.statLoop            1.181 / 1.732 / 1.792 (n=10)
+  S load_seq                 seq.open.total               14.473 / 61.039 / 61.172 (n=10)
+  S load_seq                 us.fence.mutation            0.002 / 0.002 / 0.002 (n=5)
+  S load_seq                 us.fence.wait                3.127 / 6.287 / 6.287 (n=5)
+  F idle_empty               cb=0.605 / 0.829 / 11.653 (n=2985) iv=8.305 / 11.803 / 20.818 (n=2980) ex_us=None
+  F loaded_seq_idle          cb=0.558 / 0.678 / 7.309 (n=1209) iv=8.329 / 11.720 / 16.064 (n=1204) ex_us=None
+  F seqpng_play              cb=0.704 / 2.921 / 11.567 (n=6604) iv=8.310 / 11.704 / 36.313 (n=6599) ex_us=None
+  F seqpng_seqjpg_play       cb=0.761 / 2.831 / 8.893 (n=6603) iv=8.288 / 11.690 / 17.855 (n=6598) ex_us=None
+  F drop_seq300              cb=0.718 / 1.232 / 3.485 (n=1813) iv=8.313 / 11.492 / 17.280 (n=1808) ex_us=None
+  F drop_v4k                 cb=0.719 / 1.268 / 4.826 (n=1223) iv=8.322 / 11.334 / 15.134 (n=1218) ex_us=None
+  F drop_v1080               cb=0.729 / 1.366 / 252.647 (n=1150) iv=8.314 / 11.818 / 266.670 (n=1145) ex_us=None
+  F drop_img4k               cb=0.729 / 1.809 / 17.625 (n=1183) iv=8.321 / 11.812 / 129.916 (n=1178) ex_us=None
+  F idle_empty_end           cb=0.611 / 0.851 / 7.246 (n=1405) iv=8.307 / 11.982 / 37.204 (n=1400) ex_us=None
+== i0_ ['i0_1', 'i0_2', 'i0_3', 'i0_4', 'i0_5']
+  S load_empty0              mc.loadComposition           6.280 / 6.883 / 6.883 (n=5)
+  S load_empty0              mc.openMediaForDeck          0.001 / 0.001 / 0.001 (n=5)
+  S load_empty0              mc.swapCompositionModel      4.117 / 4.622 / 4.622 (n=5)
+  S load_empty0              us.fence.mutation            0.002 / 0.006 / 0.006 (n=5)
+  S load_empty0              us.fence.wait                3.768 / 4.275 / 4.275 (n=5)
+  S load_empty1              mc.loadComposition           19.949 / 49.836 / 49.836 (n=5)
+  S load_empty1              mc.openMediaForDeck          0.000 / 0.000 / 0.000 (n=5)
+  S load_empty1              mc.swapCompositionModel      17.074 / 47.273 / 47.273 (n=5)
+  S load_empty1              rd.closeMedia.video          0.606 / 1.881 / 3.759 (n=71)
+  S load_empty1              us.fence.mutation            0.006 / 0.006 / 0.006 (n=5)
+  S load_empty1              us.fence.wait                4.235 / 31.281 / 31.281 (n=5)
+  S load_mixed               mc.loadComposition           404.141 / 407.442 / 407.442 (n=5)
+  S load_mixed               mc.openMediaForDeck          396.462 / 400.966 / 400.966 (n=5)
+  S load_mixed               mc.swapCompositionModel      4.906 / 9.886 / 9.886 (n=5)
+  S load_mixed               omd.videoClip                23.921 / 27.007 / 36.627 (n=80)
+  S load_mixed               us.fence.mutation            0.002 / 0.005 / 0.005 (n=5)
+  S load_mixed               us.fence.wait                3.896 / 8.735 / 8.735 (n=5)
+  S load_mixed               vp.getThumbnail              7.629 / 7.988 / 11.534 (n=80)
+  S load_mixed               vp.open.firstFrame           10.045 / 11.104 / 15.271 (n=80)
+  S load_mixed               vp.open.total                16.265 / 19.123 / 25.075 (n=80)
+  V video_x4_mixed           adv_dec=2.079 / 2.158 / 2.977 (n=3018) adv_nodec=1.369 / 1.425 / 2.278 (n=6350) conv=0.478 / 0.501 / 0.572 (n=3018) flip=0.378 / 0.398 / 0.457 (n=3018) upl=1.352 / 1.411 / 2.277 (n=9368) ndec=1.000 / 1.000 / 1.000 (n=3018)
+  F idle_empty               cb=0.609 / 0.824 / 6.447 (n=3008) iv=8.293 / 11.488 / 17.809 (n=3003) ex_us=None
+  F loaded_mixed_idle        cb=0.416 / 0.637 / 1.872 (n=3017) iv=8.325 / 11.800 / 15.438 (n=3012) ex_us=None
+  F img4k_x4                 cb=0.478 / 0.744 / 8.357 (n=3021) iv=8.303 / 12.030 / 16.725 (n=3016) ex_us=4.200 / 6.800 / 23.600 (n=3021)
+  F refresh_x20              cb=0.475 / 0.742 / 1.616 (n=624) iv=8.291 / 12.026 / 12.819 (n=619) ex_us=4.200 / 7.000 / 17.200 (n=624)
+  F repaint_x10              cb=0.485 / 0.753 / 3.812 (n=1276) iv=8.303 / 12.058 / 13.001 (n=1271) ex_us=4.400 / 7.000 / 22.200 (n=1276)
+  F img_triggers             cb=0.479 / 0.749 / 1.982 (n=3063) iv=8.311 / 12.082 / 17.426 (n=3058) ex_us=4.200 / 6.800 / 16.400 (n=3063)
+  F video_x4_mixed           cb=6.230 / 9.139 / 11.321 (n=2341) iv=9.918 / 13.454 / 25.356 (n=2336) ex_us=30.000 / 37.000 / 134.000 (n=2341)
+  F idle_empty_end           cb=0.606 / 0.844 / 4.150 (n=1410) iv=8.301 / 11.649 / 27.726 (n=1405) ex_us=None
+== i1_ ['i1_1', 'i1_2', 'i1_3', 'i1_4', 'i1_5']
+  S load_empty0              mc.loadComposition           7.247 / 11.868 / 11.868 (n=5)
+  S load_empty0              mc.openMediaForDeck          0.001 / 0.001 / 0.001 (n=5)
+  S load_empty0              mc.swapCompositionModel      5.022 / 9.542 / 9.542 (n=5)
+  S load_empty0              us.fence.mutation            0.002 / 0.003 / 0.003 (n=5)
+  S load_empty0              us.fence.wait                4.629 / 9.168 / 9.168 (n=5)
+  S load_empty1              mc.loadComposition           20.381 / 37.571 / 37.571 (n=5)
+  S load_empty1              mc.openMediaForDeck          0.000 / 0.000 / 0.000 (n=5)
+  S load_empty1              mc.swapCompositionModel      17.943 / 35.256 / 35.256 (n=5)
+  S load_empty1              rd.closeMedia.video          0.591 / 1.463 / 2.370 (n=69)
+  S load_empty1              us.fence.mutation            0.006 / 0.006 / 0.006 (n=5)
+  S load_empty1              us.fence.wait                6.147 / 24.147 / 24.147 (n=5)
+  S load_mixed               mc.loadComposition           407.490 / 413.642 / 413.642 (n=5)
+  S load_mixed               mc.openMediaForDeck          398.736 / 399.718 / 399.718 (n=5)
+  S load_mixed               mc.swapCompositionModel      6.596 / 11.914 / 11.914 (n=5)
+  S load_mixed               omd.videoClip                23.898 / 26.612 / 37.860 (n=80)
+  S load_mixed               us.fence.mutation            0.002 / 0.003 / 0.003 (n=5)
+  S load_mixed               us.fence.wait                5.547 / 10.852 / 10.852 (n=5)
+  S load_mixed               vp.getThumbnail              7.607 / 7.841 / 11.510 (n=80)
+  S load_mixed               vp.open.firstFrame           10.024 / 11.153 / 16.595 (n=80)
+  S load_mixed               vp.open.total                16.261 / 18.834 / 26.320 (n=80)
+  V video_x4_mixed           adv_dec=2.080 / 2.157 / 10.231 (n=3009) adv_nodec=1.367 / 1.420 / 5.109 (n=6454) conv=0.478 / 0.501 / 4.608 (n=3009) flip=0.378 / 0.398 / 2.802 (n=3009) upl=1.351 / 1.409 / 8.749 (n=9463) ndec=1.000 / 1.000 / 1.000 (n=3009)
+  F idle_empty               cb=0.608 / 0.806 / 6.468 (n=3006) iv=8.290 / 11.697 / 16.948 (n=3001) ex_us=None
+  F load_mixed               cb=0.402 / 0.402 / 0.402 (n=1) iv=None ex_us=None
+  F loaded_mixed_idle        cb=0.428 / 0.643 / 2.779 (n=3020) iv=8.329 / 11.723 / 16.739 (n=3015) ex_us=None
+  F img4k_x4                 cb=0.465 / 0.736 / 2.638 (n=3019) iv=8.298 / 12.048 / 14.345 (n=3014) ex_us=None
+  F refresh_x20              cb=0.475 / 0.747 / 1.755 (n=629) iv=8.293 / 12.087 / 12.890 (n=624) ex_us=None
+  F repaint_x10              cb=0.468 / 0.739 / 1.553 (n=1271) iv=8.297 / 12.055 / 12.799 (n=1266) ex_us=None
+  F img_triggers             cb=0.467 / 0.751 / 2.467 (n=3065) iv=8.295 / 12.020 / 16.906 (n=3060) ex_us=None
+  F video_x4_mixed           cb=6.187 / 9.122 / 25.622 (n=2367) iv=9.776 / 13.190 / 31.901 (n=2362) ex_us=None
+  F idle_empty_end           cb=0.614 / 0.841 / 3.370 (n=1407) iv=8.283 / 11.722 / 35.208 (n=1402) ex_us=None

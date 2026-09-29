@@ -1,0 +1,767 @@
+diff --git a/src/MainComponent.cpp b/src/MainComponent.cpp
+index 2e66b7f..109f39e 100644
+--- a/src/MainComponent.cpp
++++ b/src/MainComponent.cpp
+@@ -11,6 +11,7 @@
+ #include "recording/PerfStateCapture.h"
+ #include "recording/RoutineSlice.h"
+ #include "model/AppSettings.h"
++#include "diag/DiagTrace.h"
+ #include <algorithm>
+ 
+ static uint32_t s_nextClipId = 1000;
+@@ -2223,6 +2224,29 @@ MainComponent::MainComponent(bool testMode, int testPort)
+     // Register as key listener on top-level component to catch keys globally
+     addKeyListener(this);
+     setSize(1280, 800);
++    diag::heartbeat().start();
++    std::fprintf(stderr, "[DG] heartbeat started at %.3f (DIAGMEDIA)\n", diag::nowMs());
++    // DIAGMEDIA temporary hook: /api/diag/media (DIAG_MEDIA_HOOK=1) -> the same message-thread handlers a Finder
++    // drop reaches (DeckView::onFileDropped / onMultiFileDropped), a grid refresh or a grid repaint.
++    diag::mediaHook() = [safe = juce::Component::SafePointer<MainComponent>(this)](const std::string& body) {
++        juce::MessageManager::callAsync([safe, body] {
++            auto* self = safe.getComponent();
++            if (self == nullptr) return;
++            auto v = juce::JSON::parse(juce::String(body));
++            const auto op = v.getProperty("op", "").toString();
++            const int L = static_cast<int>(v.getProperty("layer", 0));
++            const int C = static_cast<int>(v.getProperty("col", 0));
++            std::vector<juce::File> files;
++            if (auto* arr = v.getProperty("files", juce::var()).getArray())
++                for (auto& f : *arr) files.push_back(juce::File(f.toString()));
++            std::fprintf(stderr, "[EV] %.3f hook %s %d %d %d 0\n", diag::nowMs(), op.toRawUTF8(), L, C, (int) files.size());
++            diag::Scope dgHook("hook.total", -1);
++            if (op == "drop" && files.size() == 1) { self->handleFileDrop(L, C, files[0]); if (self->deckView_) self->deckView_->clearSelection(); }
++            else if (op == "drop" && files.size() > 1) { self->handleMultiFileDrop(L, C, files); if (self->deckView_) self->deckView_->clearSelection(); }
++            else if (op == "refresh" && self->deckView_) { for (int i = 0; i < std::max(1, C); ++i) self->deckView_->refresh(); }
++            else if (op == "repaint" && self->deckView_) { self->deckView_->repaint(); }
++        });
++    };
+ }
+ 
+ void MainComponent::setTooltipsEnabled(bool enabled)
+@@ -2275,6 +2299,8 @@ void MainComponent::setMilkDropPresetDir(const juce::String& dir)
+ 
+ MainComponent::~MainComponent()
+ {
++    diag::mediaHook() = nullptr;
++    diag::heartbeat().stop();
+     // Shutdown bundle piece 2 (2026-07-30, follow-up to cc5c0c3): stop the
+     // HTTP servers FIRST, before detaching the GL renderer below. Closes a
+     // disputed race class: ApiServer/TestServer route handlers reach into
+@@ -2833,6 +2859,7 @@ void MainComponent::refreshUiAfterModelSwap()
+ 
+ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
+ {
++    DIAG_SCOPE_MIN("mc.swapCompositionModel", -1);
+     // s-rta-0926 routines (plan R7): a running routine's Player holds coordinates into the OLD
+     // model -- stop every routine (releasing its grips on the old model) before it is replaced.
+     routineEngine_.stopAll();
+@@ -2912,6 +2939,8 @@ void MainComponent::openComposition()
+ // for why this must run on the STAGED deck, before any fence/swap.
+ void MainComponent::openMediaForDeck(Deck& deck)
+ {
++    DIAG_SCOPE_MIN("mc.openMediaForDeck", -1);
++    static const bool dgNoThumb = diag::flag("DIAG_NO_THUMB");
+     auto& renderer = previewPanel_.getRenderer();
+     for (auto& layer : deck.layers)
+     {
+@@ -2922,6 +2951,7 @@ void MainComponent::openMediaForDeck(Deck& deck)
+             if (clip.mediaType == Clip::MediaType::Video)
+             {
+                 if (!clip.mediaFile.existsAsFile()) continue;   // non-fatal: skip, continue
++                diag::Scope dgClip("omd.videoClip", -1);
+                 if (renderer.openVideoForClip(clip.id, clip.mediaFile))
+                 {
+                     if (auto* p = renderer.getVideoPlayer(clip.id))
+@@ -2929,14 +2959,17 @@ void MainComponent::openMediaForDeck(Deck& deck)
+                         clip.hasAlpha = p->hasAlpha();
+                         clip.clipWidth = p->getWidth();
+                         clip.clipHeight = p->getHeight();
+-                        clip.thumbnail = p->getThumbnail(90, 72);
++                        if (!dgNoThumb) clip.thumbnail = p->getThumbnail(90, 72);
+                     }
+                 }
+             }
+             else // ImageSequence
+             {
+                 if (clip.sequenceFiles.empty()) continue;
++                diag::Scope dgClip("omd.seqClip", -1);
+                 renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
++                if (dgNoThumb) continue;
++                diag::Scope dgT("omd.seqThumbDecode", -1);
+                 auto first = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
+                 if (first.isValid())
+                     clip.thumbnail = first.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+@@ -2968,6 +3001,7 @@ compload::SourceParamLookup sourceParamLookup(const SourceRegistry& registry)
+ 
+ void MainComponent::loadComposition(const juce::File& file)
+ {
++    DIAG_SCOPE_MIN("mc.loadComposition", -1);
+     // 1. STAGE — load into a private `incoming`, never the live composition_:
+     //    a well-formed-but-wrong-shape file (FX preset, lone deck) would
+     //    otherwise "succeed" via fromVar, leaving every hasProperty-guarded
+@@ -4206,6 +4240,7 @@ void MainComponent::setClipFitMode(int layerIdx, int column, int mode)
+ 
+ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin, int deckIndex, bool immediate)
+ {
++    DIAG_SCOPE_MIN("mc.handleClipTrigger", -1);
+     // s-rta-0923/0924 step 3 (plan section 3.3 B2): deckIndex < 0 means "the
+     // active deck" (every pre-existing caller); a Replay dispatch passes the
+     // Fired's resolved target deck explicitly, which may not be the active
+@@ -4846,6 +4881,8 @@ void MainComponent::refreshAfterUndoRedo(bool affectsLayerOrder)
+ std::optional<MainComponent::CellEdit>
+ MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
+ {
++    DIAG_SCOPE_MIN("mc.applyFileDrop", -1);
++    static const bool dgNoThumb = diag::flag("DIAG_NO_THUMB");
+     auto* deck = composition_.getActiveDeck();
+     if (!deck) return std::nullopt;
+ 
+@@ -4887,7 +4924,7 @@ MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
+                 clip.hasAlpha = player->hasAlpha();
+                 clip.clipWidth = player->getWidth();
+                 clip.clipHeight = player->getHeight();
+-                clip.thumbnail = player->getThumbnail(90, 72);
++                if (!dgNoThumb) clip.thumbnail = player->getThumbnail(90, 72);
+             }
+         }
+     }
+@@ -4920,6 +4957,8 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
+ std::optional<MainComponent::CellEdit>
+ MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
+ {
++    DIAG_SCOPE_MIN("mc.applyMultiFileDrop", -1);
++    static const bool dgNoThumb = diag::flag("DIAG_NO_THUMB");
+     auto* deck = composition_.getActiveDeck();
+     if (!deck) return std::nullopt;
+ 
+@@ -4954,7 +4993,8 @@ MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<
+                   + " (" + std::to_string(clip.sequenceFiles.size()) + " frames)";
+ 
+         // Thumbnail from first image
+-        auto firstImg = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
++        diag::Scope dgT("amfd.thumbDecode", -1);
++        auto firstImg = dgNoThumb ? juce::Image() : juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
+         if (firstImg.isValid())
+             clip.thumbnail = firstImg.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+     }
+diff --git a/src/api/ApiServer.cpp b/src/api/ApiServer.cpp
+index ec004e7..833bb2a 100644
+--- a/src/api/ApiServer.cpp
++++ b/src/api/ApiServer.cpp
+@@ -1,4 +1,5 @@
+ #include "api/ApiServer.h"
++#include "diag/DiagTrace.h"
+ #include "render/Renderer.h"
+ #include "features/FeatureBus.h"
+ #include "features/OnsetPulse.h"
+@@ -285,6 +286,12 @@ void ApiServer::setupRoutes()
+     // needs no --test-mode): sleeps the MESSAGE thread for `ms` (1..2000) -- the deterministic stall
+     // probe-beatclock.sh and probe-routines row 7s use as their RED. Answers at once.
+     server_.Post("/api/debug/stall_message_thread", [this](const httplib::Request& req, httplib::Response& res) { handleDebugStallMessageThread(req, res); });
++    // DIAGMEDIA temporary: the diag-media lane's drop / refresh hook (env DIAG_MEDIA_HOOK=1).
++    server_.Post("/api/diag/media", [](const httplib::Request& req, httplib::Response& res) {
++        const bool on = diag::flag("DIAG_MEDIA_HOOK") && diag::mediaHook() != nullptr;
++        if (on) diag::mediaHook()(req.body);
++        res.set_content(on ? "{\"ok\":true}" : "{\"ok\":false}", "application/json");
++    });
+ #endif
+ 
+     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
+diff --git a/src/core/UndoService.cpp b/src/core/UndoService.cpp
+index e170578..1ab6038 100644
+--- a/src/core/UndoService.cpp
++++ b/src/core/UndoService.cpp
+@@ -1,4 +1,5 @@
+ #include "core/UndoService.h"
++#include "diag/DiagTrace.h"
+ #include "render/Renderer.h"
+ #include "ui/DeckView.h"
+ #include <juce_events/juce_events.h>   // MessageManager (guarded jassert, like UndoManager)
+@@ -86,8 +87,10 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
+     // deck. With setComponentPaintingEnabled(false) the GL thread never takes
+     // the message-manager lock, so blocking here from the message thread cannot
+     // deadlock (validated empirically, Undo v1 build step 1).
+-    renderer_->getContext().executeOnGLThread([](juce::OpenGLContext&) {}, true);
++    { DIAG_SCOPE_MIN("us.fence.wait", -1);
++    renderer_->getContext().executeOnGLThread([](juce::OpenGLContext&) {}, true); }
+ 
++    DIAG_SCOPE_MIN("us.fence.mutation", -1);
+     if (mutation)
+         mutation();
+ 
+diff --git a/src/media/ImageSequence.cpp b/src/media/ImageSequence.cpp
+index c81d4e6..25c9538 100644
+--- a/src/media/ImageSequence.cpp
++++ b/src/media/ImageSequence.cpp
+@@ -1,6 +1,7 @@
+ // ImageSequence.cpp — Treats a set of images as a playable video clip.
+ 
+ #include "ImageSequence.h"
++#include "diag/DiagTrace.h"
+ #include <algorithm>
+ #include <iostream>
+ #include <cstring>
+@@ -16,6 +17,7 @@ ImageSequence::~ImageSequence()
+ 
+ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
+ {
++    diag::Scope dgOpen("seq.open.total", -1);
+     close();
+ 
+     if (imageFiles.empty())
+@@ -23,6 +25,7 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
+ 
+     // Filter to supported image formats and sort alphabetically
+     files_.clear();
++    { diag::Scope dgStat("seq.open.statLoop", -1);
+     for (const auto& f : imageFiles)
+     {
+         auto ext = f.getFileExtension().toLowerCase();
+@@ -32,7 +35,7 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
+             if (f.existsAsFile())
+                 files_.push_back(f);
+         }
+-    }
++    } }
+ 
+     if (files_.empty())
+         return false;
+@@ -54,6 +57,7 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
+     lastShown_ = -1;
+ 
+     // Get dimensions from first image
++    diag::Scope dgF0("seq.open.frame0Decode", -1);
+     auto firstImg = juce::ImageFileFormat::loadFrom(files_[0]);
+     if (firstImg.isValid())
+     {
+@@ -238,6 +242,7 @@ void ImageSequence::requestAhead(ImageDecode::Decoder& decoder, int idx)
+ // The GL calls of the old loadImageToTexture, exactly.
+ GLuint ImageSequence::uploadFrame(const ImageDecode::Result& r, int idx)
+ {
++    struct DgU { double t0; ~DgU() { diag::gl().seqUpl++; diag::gl().seqUplMs += diag::nowMs() - t0; } } dgU{ diag::nowMs() };
+     GLuint tex = 0;
+     glGenTextures(1, &tex);
+     glBindTexture(GL_TEXTURE_2D, tex);
+@@ -352,6 +357,7 @@ juce::Image ImageSequence::getThumbnail(int maxWidth, int maxHeight)
+ {
+     if (files_.empty())
+         return {};
++    diag::Scope dgThumb("seq.getThumbnail", -1);
+ 
+     auto img = juce::ImageFileFormat::loadFrom(files_[0]);
+     if (!img.isValid())
+diff --git a/src/media/VideoPlayer.cpp b/src/media/VideoPlayer.cpp
+index d6c62a0..f446d40 100644
+--- a/src/media/VideoPlayer.cpp
++++ b/src/media/VideoPlayer.cpp
+@@ -4,6 +4,7 @@
+ // and uploads to an OpenGL texture for compositing.
+ 
+ #include "VideoPlayer.h"
++#include "diag/DiagTrace.h"
+ #include <cstring>
+ #include <algorithm>
+ #include <iostream>
+@@ -52,6 +53,7 @@ bool VideoPlayer::open(const juce::File& file)
+ 
+     auto path = file.getFullPathName().toStdString();
+ 
++    diag::Scope dgOpen("vp.open.total", -1);
+     // Open input
+     if (avformat_open_input(&formatCtx_, path.c_str(), nullptr, nullptr) < 0)
+     {
+@@ -173,6 +175,7 @@ bool VideoPlayer::open(const juce::File& file)
+     frameBufferHeight_ = height_;
+ 
+     // Decode first frame
++    diag::Scope dgFirst("vp.open.firstFrame", -1);
+     currentTime_ = 0.0;
+     playheadPosition_.store(0.0, std::memory_order_relaxed);
+     decodeNextFrame();
+@@ -342,6 +345,11 @@ GLuint VideoPlayer::uploadToTexture()
+ 
+     if (frameBuffer_.empty() || frameBufferWidth_ <= 0 || frameBufferHeight_ <= 0)
+         return 0;
++    static const bool dgOnlyNew = diag::flag("DIAG_VID_UPLOAD_ONLY_NEW");
++    if (dgOnlyNew && textureCreated_ && !dgNewFrame_)
++        return texture_;   // counterfactual arm: re-upload only a newly decoded frame
++    dgNewFrame_ = false;
++    struct DgUpl { double t0; ~DgUpl() { diag::gl().vidUpl++; diag::gl().vidUplMs += diag::nowMs() - t0; } } dgUpl{ diag::nowMs() };
+ 
+     if (!textureCreated_)
+     {
+@@ -381,6 +389,7 @@ juce::Image VideoPlayer::getThumbnail(int maxWidth, int maxHeight)
+ {
+     if (!open_.load(std::memory_order_relaxed) || frameBuffer_.empty())
+         return {};
++    diag::Scope dgThumb("vp.getThumbnail", -1);
+ 
+     // Create JUCE Image from the current RGBA frame buffer
+     juce::Image img(juce::Image::ARGB, frameBufferWidth_, frameBufferHeight_, false);
+@@ -476,6 +485,8 @@ bool VideoPlayer::seekToTimestamp(double timeSec)
+ 
+     auto* stream = formatCtx_->streams[videoStreamIndex_];
+     int64_t timestamp = static_cast<int64_t>(timeSec / timeBase_);
++    const double dgT0 = diag::nowMs();
++    struct DgSeek { double t0; ~DgSeek() { diag::gl().vidSeek++; diag::gl().vidSeekMs += diag::nowMs() - t0; } } dgSeek{ dgT0 };
+ 
+     int ret = av_seek_frame(formatCtx_, videoStreamIndex_, timestamp,
+                             AVSEEK_FLAG_BACKWARD);
+@@ -495,6 +506,7 @@ bool VideoPlayer::decodeNextFrame()
+ {
+     if (!formatCtx_ || !codecCtx_ || !decodedFrame_ || !packet_)
+         return false;
++    struct DgDec { double t0; ~DgDec() { diag::gl().vidDec++; diag::gl().vidDecMs += diag::nowMs() - t0; } } dgDec{ diag::nowMs() };
+ 
+     while (true)
+     {
+@@ -532,13 +544,18 @@ void VideoPlayer::convertFrameToRGBA()
+ {
+     if (!decodedFrame_ || !rgbaFrame_ || !swsCtx_)
+         return;
++    dgNewFrame_ = true;
+ 
++    const double dgC0 = diag::nowMs();
+     // Convert to RGBA
+     sws_scale(swsCtx_,
+               decodedFrame_->data, decodedFrame_->linesize,
+               0, height_,
+               rgbaFrame_->data, rgbaFrame_->linesize);
+ 
++    const double dgC1 = diag::nowMs();
++    diag::gl().vidConv++; diag::gl().vidConvMs += dgC1 - dgC0;
++    struct DgFlip { double t0; ~DgFlip() { diag::gl().vidFlipMs += diag::nowMs() - t0; } } dgFlip{ dgC1 };
+     // Flip vertically for OpenGL (bottom-to-top)
+     // rgbaFrame_ data is top-to-bottom, we need bottom-to-top
+     int rowBytes = width_ * 4;
+diff --git a/src/media/VideoPlayer.h b/src/media/VideoPlayer.h
+index 6052910..656d491 100644
+--- a/src/media/VideoPlayer.h
++++ b/src/media/VideoPlayer.h
+@@ -131,6 +131,7 @@ private:
+     int frameBufferWidth_ = 0;
+     int frameBufferHeight_ = 0;
+     bool frameReady_ = false;
++    bool dgNewFrame_ = true;   // DIAGMEDIA temporary
+ 
+     // GL texture
+     GLuint texture_ = 0;
+diff --git a/src/render/CompositorEngine.cpp b/src/render/CompositorEngine.cpp
+index 5973bbb..420491a 100644
+--- a/src/render/CompositorEngine.cpp
++++ b/src/render/CompositorEngine.cpp
+@@ -1,4 +1,5 @@
+ #include "CompositorEngine.h"
++#include "diag/DiagTrace.h"
+ #include "render/EmbeddedShaders.h"
+ #include "render/ScratchPool.h"
+ #include "render/RenderGeometry.h"
+@@ -1073,7 +1074,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+                 // Get clip texture — image, procedural source, video, or image sequence
+                 GLuint clipTex = 0;
+                 bool pending = false;   // s-rta-0928 R1.2: the picture is still decoding (NOT "no media")
+-                if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
++                if (clip->mediaType == Clip::MediaType::Image && diag::timedExists(clip->mediaFile))
+                 {
+                     clipTex = getKeyTexture(clip->mediaFile, &pending);
+                 }
+@@ -1183,7 +1184,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+                 // P13.5.3: Use clip content as luminance mask on accumulator
+                 GLuint clipTex = 0;
+                 bool pending = false;   // s-rta-0928 R1.2
+-                if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
++                if (clip->mediaType == Clip::MediaType::Image && diag::timedExists(clip->mediaFile))
+                     clipTex = getKeyTexture(clip->mediaFile, &pending);
+                 else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
+                 {
+@@ -1231,11 +1232,11 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
+ 
+ bool CompositorEngine::clipHasContent(const Clip& clip)
+ {
+-    if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
++    if (clip.mediaType == Clip::MediaType::Image && diag::timedExists(clip.mediaFile))
+         return true;
+     if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty())
+         return true;
+-    if (clip.mediaType == Clip::MediaType::Video && clip.mediaFile.existsAsFile())
++    if (clip.mediaType == Clip::MediaType::Video && diag::timedExists(clip.mediaFile))
+         return true;
+     if (clip.mediaType == Clip::MediaType::ImageSequence && !clip.sequenceFiles.empty())
+         return true;
+@@ -1339,7 +1340,7 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
+ 
+         GLuint clipTex = 0;
+         bool pending = false;   // s-rta-0928 R1.2
+-        if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
++        if (clip->mediaType == Clip::MediaType::Image && diag::timedExists(clip->mediaFile))
+         {
+             clipTex = getKeyTexture(clip->mediaFile, &pending);
+         }
+@@ -1580,7 +1581,7 @@ GLuint CompositorEngine::getClipTexture(const Clip& clip, float time, int w, int
+     if (pending != nullptr)
+         *pending = false;
+     // s-rta-0928 R1.2: a pending OUTGOING image returns 0 -- applyTransition shows the incoming clip alone.
+-    if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
++    if (clip.mediaType == Clip::MediaType::Image && diag::timedExists(clip.mediaFile))
+         return getKeyTexture(clip.mediaFile, pending);
+ 
+     if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty() && sourceRenderFn_)
+diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
+index 8ce4aab..3a8b5cf 100644
+--- a/src/render/Renderer.cpp
++++ b/src/render/Renderer.cpp
+@@ -1,4 +1,5 @@
+ #include "Renderer.h"
++#include "diag/DiagTrace.h"
+ #include "render/EmbeddedShaders.h"
+ #include "render/DeckClock.h"
+ #include "render/PixelConvert.h"
+@@ -294,6 +295,21 @@ void Renderer::renderOpenGL()
+             if (ms > peak.load(std::memory_order_relaxed)) peak.store(ms, std::memory_order_relaxed);
+         }
+     } callbackPeak{ peakCallbackMs_ };
++    // DIAGMEDIA: one [GF] line per frame (every return path), the per-frame media accumulators.
++    struct DgFrame
++    {
++        double t0 = diag::nowMs();
++        ~DgFrame()
++        {
++            auto& a = diag::gl();
++            std::fprintf(stderr, "[GF] %.3f %.3f %.3f %.3f %d | v %d %d %d %d %.3f %.3f %.3f %.3f %d %.3f %.3f %.3f | e %d %.3f | s %d %d %.3f %.3f | p %.3f\n",
++                         t0, diag::nowMs() - t0, a.fwMs, a.compMs, a.deckActive,
++                         a.vidCalls, a.vidDec, a.vidSeek, a.vidConv, a.vidAdvMs, a.vidDecMs, a.vidSeekMs, a.vidConvMs,
++                         a.vidUpl, a.vidUplMs, a.vidFlipMs, a.vidLockMs,
++                         a.exists, a.existsMs, a.seqCalls, a.seqUpl, a.seqMs, a.seqUplMs, a.pumpMs);
++            a.reset();
++        }
++    } dgFrame;
+ 
+     // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
+     frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
+@@ -302,7 +318,7 @@ void Renderer::renderOpenGL()
+     // pass and before any early return (B2), within the frame's upload budget. No decode here, ever.
+     compositor_.beginFrame();
+     uploadBudget_.reset();
+-    compositor_.pumpImages();
++    { const double dgP0 = diag::nowMs(); compositor_.pumpImages(); diag::gl().pumpMs = diag::nowMs() - dgP0; }
+ 
+     // Release any media players closeMediaForClip() retired from the message
+     // thread (media-leak fix, L1) — the only place this runs, since this
+@@ -356,6 +372,7 @@ void Renderer::renderOpenGL()
+     // Check for active deck compositing
+     Deck* deck = activeDeck_.load(std::memory_order_acquire);
+     bool deckActive = (deck != nullptr);
++    diag::gl().deckActive = deckActive ? 1 : 0;
+ 
+     // Read latest audio features (R5: coherent caller-owned value copy).
+     // Onset render-path fix: read the bus FIRST (before the early return below) so idle
+@@ -667,9 +684,11 @@ void Renderer::renderOpenGL()
+     {
+         // P18: provide audio snapshot to compositor for audio-reactive effects
+         compositor_.setLatestSnapshot(snap);
++        const double dgC0 = diag::nowMs();
+         sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time, realDt,
+                                                    static_cast<int>(renderW),
+                                                    static_cast<int>(renderH));
++        diag::gl().compMs = diag::nowMs() - dgC0;
+ 
+         // P21: Composite persistent layers from non-active decks
+         if (composition_)
+@@ -907,6 +926,7 @@ void Renderer::renderOpenGL()
+     // GPU time: the GL_TIME_ELAPSED queries of plan4 A-opt (getGpuTimeMs(), async, no stall).
+     auto renderEnd = std::chrono::high_resolution_clock::now();
+     double frameMs = std::chrono::duration<double, std::milli>(renderEnd - renderStart).count();
++    diag::gl().fwMs = frameMs;
+ 
+     // EMA smoothing for UI display
+     float prevMs = frameTimeMs_.load(std::memory_order_relaxed);
+@@ -1447,6 +1467,7 @@ bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
+     // contract.
+     closeMediaForClip(clipId);
+ 
++    DIAG_SCOPE_MIN("rd.openVideo.insertLock", 0.2);
+     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+     videoPlayers_[clipId] = std::move(player);
+     return true;
+@@ -1483,6 +1504,7 @@ void Renderer::closeMediaForClip(uint32_t clipId)
+     // current (see the GL-THREAD DESTROY GUARD comment on the retire members
+     // in Renderer.h). drainRetiredMedia() does the actual GL-thread release.
+     {
++        DIAG_SCOPE_MIN("rd.closeMedia.video", 0.2);
+         std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+         auto it = videoPlayers_.find(clipId);
+         if (it != videoPlayers_.end())
+@@ -1534,6 +1556,7 @@ void Renderer::drainRetiredMedia()
+ 
+ VideoPlayer* Renderer::getVideoPlayer(uint32_t clipId)
+ {
++    DIAG_SCOPE_MIN("rd.getVideoPlayer.lockwait", 0.2);
+     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+     auto it = videoPlayers_.find(clipId);
+     return (it != videoPlayers_.end()) ? it->second.get() : nullptr;
+@@ -1574,12 +1597,31 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
+ 
+     if (clip->mediaType == Clip::MediaType::Video)
+     {
++        const double dgL0 = diag::nowMs();
+         std::lock_guard<std::mutex> lock(videoPlayerMutex_);
++        diag::gl().vidLockMs += diag::nowMs() - dgL0;
+         auto it = videoPlayers_.find(clip->id);
+         if (it == videoPlayers_.end())
+             return 0;
+ 
+         auto* player = it->second.get();
++        // DIAGMEDIA: one [GV] line per decoding call (the per-call split), from the accumulator deltas.
++        struct DgVid
++        {
++            const Clip* c; const VideoPlayer* p; bool decode; diag::GlAcc before = diag::gl(); double t0 = diag::nowMs();
++            ~DgVid()
++            {
++                auto& a = diag::gl();
++                const double adv = diag::nowMs() - t0;
++                if (decode) { a.vidCalls++; a.vidAdvMs += adv; }
++                std::fprintf(stderr, "[GV] %.3f %u %dx%d %d %.3f %d %d %.3f %.3f %.3f %.3f %d %.3f %.4f\n", t0, c->id,
++                             p->getWidth(), p->getHeight(), decode ? 1 : 0, adv, a.vidDec - before.vidDec,
++                             a.vidSeek - before.vidSeek, a.vidDecMs - before.vidDecMs, a.vidSeekMs - before.vidSeekMs,
++                             a.vidConvMs - before.vidConvMs, a.vidFlipMs - before.vidFlipMs, a.vidUpl - before.vidUpl,
++                             a.vidUplMs - before.vidUplMs, p->getPlayheadPosition());
++            }
++        } dgVid{ clip, player, decode };
++        static const bool dgNoDecode = diag::flag("DIAG_VID_NODECODE");
+ 
+         // Sync transport state from clip (only set playing if clip wants to play,
+         // don't override if player stopped due to OneShot boundary)
+@@ -1615,7 +1657,7 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
+             player->setSpeed(effectiveClipSpeed(clip->speed, masterSpeedVal, false));
+         }
+ 
+-        if (decode)
++        if (decode && !dgNoDecode)
+             player->advanceFrame(static_cast<double>(dt));
+         else
+             player->advanceClock(static_cast<double>(dt));   // plan4 T4: the clock only, no decode
+@@ -1717,7 +1759,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
+         if (!decode)
+             return 0;
+         bool seqPending = false;
++        const double dgS0 = diag::nowMs();
+         const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, &seqPending);
++        diag::gl().seqCalls++; diag::gl().seqMs += diag::nowMs() - dgS0;
+         if (seqPending)
+         {
+             compositor_.notePendingImage();
+diff --git a/src/ui/ClipCell.cpp b/src/ui/ClipCell.cpp
+index 24d7c97..5552127 100644
+--- a/src/ui/ClipCell.cpp
++++ b/src/ui/ClipCell.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/ClipCell.h"
++#include "diag/DiagTrace.h"
+ #include "ui/ClipThumbnails.h"
+ 
+ namespace
+@@ -17,6 +18,15 @@ ClipCell::ClipCell()
+ 
+ void ClipCell::paint(juce::Graphics& g)
+ {
++    // DIAGMEDIA: one [CP] line per paint -- duration and the missing-file stat's cost.
++    static const bool dgNoPaintStat = diag::flag("DIAG_NO_PAINTSTAT");
++    struct DgPaint { double t0 = diag::nowMs(); int n = 0; double statMs = 0; int kind = 0;
++        ~DgPaint() { std::fprintf(stderr, "[CP] %.3f %.4f %d %.4f %d\n", t0, diag::nowMs() - t0, n, statMs, kind); } } dgPaint;
++    if (clip_ != nullptr) dgPaint.kind = static_cast<int>(clip_->mediaType);
++    auto dgStat = [&](const juce::File& f) {
++        if (dgNoPaintStat) return true;
++        const double s0 = diag::nowMs(); const bool r = f.existsAsFile();
++        dgPaint.n++; dgPaint.statMs += diag::nowMs() - s0; return r; };
+     auto bounds = getLocalBounds().toFloat();
+ 
+     // Cell background — dark, flat
+@@ -203,7 +213,7 @@ void ClipCell::paint(juce::Graphics& g)
+     // P24.7: Missing file indicator (red border + "!" marker)
+     if (clip_ && clip_->hasMedia() &&
+         (clip_->mediaType == Clip::MediaType::Image || clip_->mediaType == Clip::MediaType::Video) &&
+-        clip_->mediaFile != juce::File() && !clip_->mediaFile.existsAsFile())
++        clip_->mediaFile != juce::File() && !dgStat(clip_->mediaFile))
+     {
+         auto b = getLocalBounds().toFloat();
+         g.setColour(juce::Colour(0xffcc3333));
+diff --git a/src/ui/DeckView.cpp b/src/ui/DeckView.cpp
+index 19c2ba3..430a400 100644
+--- a/src/ui/DeckView.cpp
++++ b/src/ui/DeckView.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/DeckView.h"
++#include "diag/DiagTrace.h"
+ 
+ DeckView::DeckView()
+ {
+@@ -260,6 +261,7 @@ void DeckView::rebuildGrid()
+ 
+ void DeckView::refresh()
+ {
++    DIAG_SCOPE_MIN("dv.refresh", -1);
+     if (!composition_) return;
+     auto* deck = composition_->getActiveDeck();
+     if (!deck) return;
+diff --git a/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0928b-media/src/diag/DiagTrace.h b/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0928b-media/src/diag/DiagTrace.h
+new file mode 100644
+index 0000000..2941b36
+--- /dev/null
++++ b/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0928b-media/src/diag/DiagTrace.h
+@@ -0,0 +1,154 @@
++#pragma once
++// TEMPORARY DIAGNOSTIC INSTRUMENTATION (lane diag-media, s-rta-0928b) -- never committed.
++// steady_clock scopes + a message-thread heartbeat + GL per-frame media accumulators, written to stderr.
++// Marker strings: DIAGMEDIA
++#include <atomic>
++#include <chrono>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <functional>
++#include <string>
++#include <thread>
++#include <juce_events/juce_events.h>
++
++namespace diag
++{
++    inline std::chrono::steady_clock::time_point origin()
++    {
++        static const auto o = std::chrono::steady_clock::now();
++        return o;
++    }
++    inline double nowMs()
++    {
++        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - origin()).count();
++    }
++    inline int& depth()
++    {
++        thread_local int d = 0;
++        return d;
++    }
++    // DIAGMEDIA env flags: read once per name (counterfactual arms: the same binary, a behaviour switched off).
++    inline bool flag(const char* name)
++    {
++        const char* v = std::getenv(name);
++        return v != nullptr && v[0] == '1';
++    }
++    // A scope logs "[DG] start_ms depth name dur_ms" when dur >= minMs (always when minMs < 0).
++    struct Scope
++    {
++        const char* name;
++        double minMs;
++        double t0;
++        int d;
++        explicit Scope(const char* n, double min = 0.25) : name(n), minMs(min), t0(nowMs()), d(depth()++) {}
++        ~Scope()
++        {
++            --depth();
++            const double dur = nowMs() - t0;
++            if (minMs < 0.0 || dur >= minMs)
++                std::fprintf(stderr, "[DG] %.3f %d %s %.3f\n", t0, d, name, dur);
++        }
++    };
++    inline void event(const char* what, int a = 0, int b = 0, int c = 0, int e = 0)
++    {
++        std::fprintf(stderr, "[EV] %.3f %s %d %d %d %d\n", nowMs(), what, a, b, c, e);
++    }
++
++    // GL-thread per-frame accumulators (thread_local: only the GL thread renders; the message thread's copies are
++    // separate and never printed).
++    struct GlAcc
++    {
++        int vidCalls = 0, vidDec = 0, vidSeek = 0, vidUpl = 0, vidConv = 0;
++        double vidAdvMs = 0, vidDecMs = 0, vidSeekMs = 0, vidConvMs = 0, vidFlipMs = 0, vidUplMs = 0, vidLockMs = 0;
++        int exists = 0; double existsMs = 0;
++        int seqCalls = 0, seqUpl = 0; double seqMs = 0, seqUplMs = 0;
++        double fwMs = -1, compMs = -1, pumpMs = 0; int deckActive = -1;
++        void reset() { *this = GlAcc{}; }
++    };
++    inline GlAcc& gl()
++    {
++        thread_local GlAcc a;
++        return a;
++    }
++    // A timed stat on the GL thread (S4): existsAsFile() with its cost in the frame accumulator.
++    template <class F>
++    inline bool timedExists(const F& file)
++    {
++        static const bool off = flag("DIAG_NO_EXISTS");
++        if (off)
++            return true;   // counterfactual arm: every fixture exists, so the result is the same
++        const double t0 = nowMs();
++        const bool r = file.existsAsFile();
++        gl().exists++;
++        gl().existsMs += nowMs() - t0;
++        return r;
++    }
++
++    // REST hook (/api/diag/media, TEST-ONLY build + DIAG_MEDIA_HOOK=1): MainComponent installs the handler.
++    inline std::function<void(const std::string&)>& mediaHook()
++    {
++        static std::function<void(const std::string&)> h;
++        return h;
++    }
++
++    // Heartbeat: one callAsync ping in flight at a time; when served, the latency (serve - post) is
++    // logged if >= 2 ms; the next ping is posted 2 ms after the previous one was served.
++    struct Heartbeat
++    {
++        std::atomic<bool> running { false };
++        std::atomic<bool> served { true };
++        std::atomic<double> postT { 0.0 };
++        std::thread th;
++        long n = 0;
++        double maxLat = 0.0;
++
++        void start()
++        {
++            running = true;
++            th = std::thread([this] {
++                double lastSummary = nowMs();
++                while (running.load())
++                {
++                    if (served.load())
++                    {
++                        served = false;
++                        postT = nowMs();
++                        juce::MessageManager::callAsync([this] {
++                            const double t = nowMs();
++                            const double lat = t - postT.load();
++                            ++n;
++                            if (lat > maxLat) maxLat = lat;
++                            if (lat >= 2.0)
++                                std::fprintf(stderr, "[HB] %.3f %.3f\n", postT.load(), lat);
++                            served = true;
++                        });
++                    }
++                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
++                    const double t = nowMs();
++                    if (t - lastSummary > 10000.0)
++                    {
++                        std::fprintf(stderr, "[HBS] %.3f n=%ld max=%.3f\n", t, n, maxLat);
++                        lastSummary = t;
++                    }
++                }
++            });
++        }
++        void stop()
++        {
++            running = false;
++            if (th.joinable())
++                th.join();
++        }
++    };
++    inline Heartbeat& heartbeat()
++    {
++        static Heartbeat* hb = new Heartbeat();   // leaked: a late callAsync never touches freed memory
++        return *hb;
++    }
++}
++
++#define DIAG_CAT2(a, b) a##b
++#define DIAG_CAT(a, b) DIAG_CAT2(a, b)
++#define DIAG_SCOPE(name) diag::Scope DIAG_CAT(diagScope_, __LINE__)(name)
++#define DIAG_SCOPE_MIN(name, ms) diag::Scope DIAG_CAT(diagScope_, __LINE__)(name, ms)

@@ -633,3 +633,39 @@ Plan authored by Fable (tier: fable). Attacked by two blind seats: attack-seqvra
   probe-image-load in this lane.
 - H17 Pitfall text stays "NN" (Harmony assigns 54 at merge). The lane does not touch HANDOFF.md or APP-INVENTORY.md.
   Reviewers check `git diff main..lane -- docs CLAUDE.md` removes nothing it did not mean to.
+
+## HARMONY ADOPTION ADDENDUM — fix round (s-rta-0928b, 20:47) — rulings on the lane's R-A / R-B / R-C and the r1 reviews
+Evidence: lane report seqvram.md (d2b4411), review-seqvram-gl-r1.md (FAIL: 1 MUST), review-seqvram-gates-r1.md (FAIL: 2 MUST,
+1 SHOULD). Accepted as re-derived from code: D1 (PingPong distances), D2 (Transport models syncMedia's real in/out behaviour —
+out-point only; Loop and PingPong jump to in), D4 (wanted() keeps a result when it fits), D6, D8.
+- F1 (R-A, ADOPT the idle-age rule) A sequence is IDLE only after it has not been drawn for >= kIdleFrames = 60 consecutive
+  frame serials (~0.5 s at 120 Hz). A Pitfall 53 pending hold (CompositorEngine.cpp ~1093, which skips the outgoing chain for
+  1-3 frames at a crossfade start) therefore never makes the outgoing chain idle. CompositorEngine stays untouched. ctest: a
+  pure helper (e.g. SeqVram::isIdle(lastDrawn, serial)) with the boundary cases 59 / 60.
+- F2 (R-B, ADOPT a per-frame GL delete budget) kMaxDeletesPerFrame = 8 glDeleteTextures per render frame, SHARED by the
+  frame-top trim, every per-sequence shrink, AND the retire drain (drainRetiredMedia -> a retired sequence releases at most the
+  remaining budget per frame and stays on the retired list until empty). Context loss (openGLContextClosing) still releases
+  everything at once. Slots evicted beyond the budget stay allocated as FREE slots (counted in seq_texture_mb, reusable) and are
+  deleted on later frames while over the budget. Report the per-frame delete count (new counter seq_deletes, cumulative).
+- F3 (R-C, ADOPT: drawn sequences outrank idle ones) The grant for a drawn sequence counts idle sequences' bytes above their
+  2-frame minimum as RECLAIMABLE: allowance = max(floor, kBudgetBytes - (drawn others' bytes) - (idle sequences' minimum
+  bytes)). As the drawn sequence grows the total exceeds the budget and the frame-top scan trims idle sequences (least
+  recently drawn first) under F2's delete budget. Under the budget with no drawn sequence wanting memory, idle sequences stay
+  warm (R-7 unchanged). H10 floors-win unchanged.
+- F4 (GL SHOULD / D7, ADOPT) Check slot feasibility (acquire) BEFORE budget.take(), so a Full never spends the frame's upload
+  budget. The probe prints seq_upload_deferred in every row.
+- F5 (gates SHOULD-1, ADOPT) v8_crossfade_two_long gains (b') max peak_callback_ms over the fade <= 16.7 (the frame-top scan
+  runs outside the frame timer). PASS required on 5 of 5 consecutive runs on the fixed app; RED arm = the lane head d2b4411
+  app, 5 runs, recorded verbatim (the lane measured 3/7 at 22-24 ms).
+- F6 (R-B gate, ADOPT) Promote the scratch row v7c_one_per_deck into the probe: one 300-frame 1080p sequence per deck, switch
+  when deck 0's window is full; PASS: max peak_callback_ms over the 2 s after the switch <= 16.7 on 5 of 5 runs, and
+  seq_texture_mb <= 1024 + 16 after 5 s. RED arm = d2b4411 app, 5 runs (the lane measured 5/5 at ~22 ms).
+- F7 (R-C gate, ADOPT) v8 gains (f): within 3 s after the fade completes the incoming sequence holds >= 64 textures (read a
+  per-layer count if one exists; else seq_textures minus the outgoing's minimum) and late == 0 over the next 2 s; RED arm =
+  d2b4411 app (the lane measured the incoming held at its 8-frame floor).
+- F8 Retire drain: add one report-only row v11_retire (after v1's state, load an empty composition; print max peak_callback_ms
+  and seq_deletes over 2 s). Not asserted this round (the composition swap has its own fence costs; the media-open lane owns
+  those).
+- F9 Every other row stays as adopted; GREEN = the full probe PASS on 2 consecutive runs + F5/F6 5 of 5; ctest serial; the
+  existing probes image-load 37/0, crossfade 35/0 re-run once on the final app. Docs: the rendering.md sentence and pitfall NN
+  text gain the idle-age rule, the delete budget and "drawn outranks idle" in <= 3 lines; CLAUDE.md untouched beyond the NN line.
