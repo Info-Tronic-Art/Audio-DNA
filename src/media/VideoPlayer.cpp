@@ -157,6 +157,17 @@ bool VideoPlayer::open(const juce::File& file)
                   codecpar->codec_id == AV_CODEC_ID_HAP);
     hasAlpha_.store(alpha, std::memory_order_relaxed);
 
+    // A pixel format still unknown here (no frame decodes: an H.264 .mp4 cut to its header, an interrupted copy or
+    // download) would reach sws_getContext as AV_PIX_FMT_NONE -- a libswscale assertion that aborts the whole app.
+    // Fail the open instead: no player, "no media" (fix round 2; tests/test_video_player_open.cpp).
+    if (codecCtx_->pix_fmt == AV_PIX_FMT_NONE)
+    {
+        std::cerr << "[VideoPlayer] Unknown pixel format (no frame decodes: a truncated or corrupt file): " << path
+                  << " -- no media" << std::endl;
+        freeFfmpeg();
+        return false;
+    }
+
     // Set up swscale for conversion to RGBA
     auto dstFmt = AV_PIX_FMT_RGBA;
     swsCtx_ = sws_getContext(width_, height_, codecCtx_->pix_fmt,

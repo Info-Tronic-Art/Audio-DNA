@@ -70,7 +70,8 @@ w9_crossfade_onto_broken (W3): transitionSpeed 2.0; col 0 = a1080, col 1 = a bro
   mdat payload). Arms: hap_cut (HAP .mov cut to its header: open() succeeds -- HAP's pixel format is known without a
   frame -- and the decode reaches EOF before any frame), hap_zero (HAP payload zeroed: every packet fails to decode).
   NOT an arm: an H.264 .mp4 cut to its header ABORTS the app in VideoPlayer::open() (no pixel format without a frame ->
-  sws_getContext(AV_PIX_FMT_NONE) -> a libswscale assertion, SIGABRT; fix round 1 finding, filed). Per arm: trig 0; 2 s; s0; trig 1 (the fade onto the broken clip starts); poll
+  sws_getContext(AV_PIX_FMT_NONE) -> a libswscale assertion, SIGABRT; fix round 1 finding) -- fix round 2 makes open()
+  fail (no media) and gates it with a headless ctest (tests/test_video_player_open.cpp), never a live arm. Per arm: trig 0; 2 s; s0; trig 1 (the fade onto the broken clip starts); poll
   crossfadeProgress; s1. PASS (a) crossfadeProgress reaches 1 within fadeS + 0.5 s of the trigger (C1 does not wait on a
   player that will never show a frame); (b) render_frame answers (ok, a fresh PNG) within the app's own 5 s; (c)
   video_pending_frames grows by 0 over the 1 s after the fade (FAILED is "no media", not pending). RED on the lane head 90cdf55: the broken

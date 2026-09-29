@@ -2670,3 +2670,34 @@ target_include_directories(test_video_ring PRIVATE ${SRC_DIR})
 target_link_libraries(test_video_ring PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_video_ring)
 catch_discover_tests(test_video_ring)
+
+# --- s-rta-0928b video fix round 2: the REAL VideoPlayer (src/media/VideoPlayer.cpp + FFmpeg), headless, no GL context.
+# A video whose pixel format is unknown before a frame decodes (an H.264 .mp4 cut to its header) fails open() cleanly
+# instead of aborting in sws_getContext (each open runs in a forked child: the RED is an assertion, not a crashed
+# runner); a valid tiny H.264 still opens. Fixtures: tests/fixtures/video_h264_cut_header.mp4, video_h264_64x64.mp4.
+add_executable(test_video_player_open
+    test_video_player_open.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_video_player_open PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_player_open PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+target_compile_definitions(test_video_player_open PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_video_player_open PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_video_player_open)
+catch_discover_tests(test_video_player_open)
