@@ -144,6 +144,7 @@ private:
     // presentSharedFrame() the Output window uses, and writes the PNG a display would show.
     void handleSetOutputTap(const httplib::Request& req, httplib::Response& res);
     void handleOutputProbe(const httplib::Request& req, httplib::Response& res);
+    void handleGlContextCycle(const httplib::Request& req, httplib::Response& res);   // s-rta-0929 vupload
     void destroyOutputProbe();
     // s-rta-0927 outputs-c3: see setOutputsTestHooks.
     void handleOutputRestoreLast(const httplib::Request& req, httplib::Response& res);

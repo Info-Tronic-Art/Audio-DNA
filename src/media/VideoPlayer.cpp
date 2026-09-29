@@ -479,6 +479,10 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
             if (stats_) ++stats_->holdFrames;
             break;
     }
+    // s-rta-0929 vupload: a HOLD (Held / Late) of a shown player with no picture -- texture 0 with *pending false: the
+    // compositor runs the clip's effects FX-only over the layers below (Pitfall 53's trap). The witness; must stay 0.
+    if (texture_ == 0 && stats_)
+        ++stats_->holdNoTexture;
     return texture_;
 }
 

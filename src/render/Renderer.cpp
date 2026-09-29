@@ -11,6 +11,10 @@
 #include <chrono>
 #include <string>
 #include <random>
+#if JUCE_MAC
+ #include <pthread.h>
+ #include <sys/qos.h>   // s-rta-0929 vupload: the render thread's QoS (gl_thread_qos)
+#endif
 
 using namespace juce::gl;
 Renderer::Renderer(const FeatureBus& featureBus)
@@ -226,6 +230,7 @@ void Renderer::updateActiveSourceParamsFor(const std::string& sourceType,
 
 void Renderer::newOpenGLContextCreated()
 {
+    glContextGen_.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 vupload: the context-cycle witness
     std::cerr << "[Renderer] GL context created. Version: "
               << glGetString(GL_VERSION) << std::endl;
 
@@ -310,6 +315,15 @@ void Renderer::renderOpenGL()
     compositor_.beginFrame();
     uploadBudget_.reset();
     videoStats_.pendingNow.store(0, std::memory_order_relaxed);   // s-rta-0928b video: videos_pending is per frame
+    {
+        // s-rta-0929 vupload: the previous frame's video uploads (video_max_uploads_per_frame) and this thread's QoS.
+        const int64_t uploads = videoStats_.uploads.load(std::memory_order_relaxed);
+        VideoStats::noteMax(videoStats_.maxUploadsPerFrame, static_cast<int>(uploads - videoUploadsAtFrameTop_));
+        videoUploadsAtFrameTop_ = uploads;
+#if JUCE_MAC
+        glThreadQos_.store(static_cast<int>(qos_class_self()), std::memory_order_relaxed);
+#endif
+    }
     compositor_.pumpImages();
 
     // Release any media players closeMediaForClip() retired from the message

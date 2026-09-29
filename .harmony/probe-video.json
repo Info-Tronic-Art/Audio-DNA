@@ -35,19 +35,37 @@
   "bandRows": { "1080": 64, "4k": 128 },
   "keyframesG250": [0.0, 8.333],
   "keyframesG30": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+  "w1cLoads": 3,
+  "w1cPeakMedianMaxMs": 4.0,
+  "w1cFpsMin": 118.5,
+  "w1cUploadsMin": 595,
+  "_w1c": "s-rta-0929 vupload (plan-vupload.md 4.7 / 5): w1c = w1's four a1080 players triggered by ONE trigger_column (all four clocks on one render frame: the bunched uploads of diag-vfps). Main (pre-lane, diag agg/main-reference): per-load median peak_callback_ms 6.30-6.47 (15/15), fps 112.7-115.8 -> RED; the cap-2 arm 119.8 fps, render p90 3.48 ms, 604 uploads. (c)'s 595 is the anti-naive-cap guard: a cap of 1 upload per frame read 586 (~3 % skipped). The (b) merge verdict pools the DATA lines of two .sh runs (6 loads). Adoption VU12 Q4: 4.0 ms is the bar on the FINAL app (a P1-only intermediate is INFO).",
+  "w1dLoads": 2,
+  "_w1d": "adoption VU9: 8 x a1080 by one trigger_column, INFO for fps / max uploads per render frame; late 0 and hold_no_texture 0 asserted (VU5)",
+  "w2cLoads": 2,
+  "fps4kBlitMin": null,
+  "_fps4kBlitMin": "plan-vupload.md 4.9: set ONLY from the interleaved A/B (.harmony/probe-vupload-ab.sh, >= 5 launches per arm, quiet): floor(min(lane launch medians)) - 3 iff that is >= max(pre-lane launch medians) + 8; else null (INFO) -- never a knife-edge",
+  "w10MaxDiff": 1,
+  "w10Fixtures": [["a1080_g250.mp4", 300, 150], ["pr1080.mov", 300, 150], ["pr4444a_1080.mov", 60, 45], ["hapa_1080.mov", 60, 45], ["x265_10_1080.mp4", 300, 150]],
+  "_w10": "per fixture [name, frames, N]: captures of frame 0 and frame N (speed 0) diffed per pixel against the pre-lane app's captures ($VIDEO_REF_DIR), max |diff| <= w10MaxDiff (K2 = 1/255, the audit's MUST). The alpha fixtures are 2 s (60 frames: ProRes 4444 / HAP Alpha 1080p are 1.5-2 MB a frame) and intra-only, so N = 45; the long-GOP ones use frame 150 (mid-GOP).",
   "layers": {
     "w1_steady_1080x4": [91, 92, 93, 94], "w2_steady_4kx4": [91, 92, 93, 94], "w3_retrigger_midgop_1080": 95,
     "w3b_retrigger_midgop_4k": 96, "w4_deck_return_1080": 97, "w4_away": 98, "w5_correctness_gop30": 99,
     "w6_crossfade_two_players": 100, "w7_message_thread_no_wait": [101, 102, 103, 104], "w7_images": 105,
     "w8_prores_steady": 106, "w4b_idle_mid_catchup": 107, "w6b_retrigger_mid_fade": 108,
-    "w9_crossfade_onto_broken": 109
+    "w9_crossfade_onto_broken": 109,
+    "w1c_column_trigger_1080x4": [110, 111, 112, 113], "w1d_column_trigger_1080x8": [114, 115, 116, 117, 118, 119, 120, 121],
+    "w2c_steady_4kx4_blit": [122, 123, 124, 125], "w10_pixel_identity": [130, 131]
   },
   "fixtures": {
     "a1080_g250.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250" },
     "b1080_g250.mp4": { "size": "1920x1080", "band": 64, "base": 512, "src": "testsrc2,negate", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250" },
     "g30_1080.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "30", "-keyint_min", "30", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG30" },
     "a4k_g250.mp4": { "size": "3840x2160", "band": 128, "base": 0, "src": "testsrc2", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250" },
-    "pr1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"], "keys": null }
+    "pr1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"], "keys": null },
+    "pr4444a_1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "dur": 2, "alpha": true, "enc": ["-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuva444p10le"], "keys": null },
+    "hapa_1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "dur": 2, "alpha": true, "enc": ["-c:v", "hap", "-format", "hap_alpha"], "keys": null },
+    "x265_10_1080.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "needEncoder": "libx265", "enc": ["-c:v", "libx265", "-preset", "ultrafast", "-x265-params", "keyint=250:min-keyint=250:scenecut=0:log-level=error", "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1"], "keys": null }
   },
   "_b1080": "b1080 is the NEGATED testsrc2 picture (plus code bit 9): a crossfade mid-point is then a blend distinguishable from both A and B (w6 (c)); the band is drawn after the negate, so it decodes like A's",
   "warm": [256, 144, [200, 120, 40]]

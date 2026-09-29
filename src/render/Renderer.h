@@ -425,6 +425,10 @@ public:
     // reading resets it. Unlike peak_frame_time_ms it includes the work before renderStart (the pending legacy
     // image, the camera upload, autopilot) and after renderEnd (recorder, Syphon, the capture read).
     float takePeakCallbackMs() { return peakCallbackMs_.exchange(0.0f, std::memory_order_relaxed); }
+    // s-rta-0929 vupload (TestServer): GL contexts created so far, and the QoS class of the thread that ran the latest
+    // renderOpenGL (-1 before the first frame; macOS only).
+    uint64_t getGlContextGen() const { return glContextGen_.load(std::memory_order_relaxed); }
+    int getGlThreadQos() const { return glThreadQos_.load(std::memory_order_relaxed); }
     // s-rta-0928b seqvram: the image sequences' texture memory and frame counters (/api/state seq_*).
     const SeqVram::Stats& getSeqStats() const { return seqStats_; }
 
@@ -537,6 +541,9 @@ private:
     std::atomic<float> frameTimeMs_{0.0f};
     std::atomic<float> peakFrameTimeMs_{0.0f};
     std::atomic<float> peakCallbackMs_{0.0f};   // s-rta-0928 R1.0 (takePeakCallbackMs)
+    std::atomic<uint64_t> glContextGen_{0};     // s-rta-0929 vupload: ++ per newOpenGLContextCreated
+    std::atomic<int> glThreadQos_{-1};          // s-rta-0929 vupload: qos_class_self() of the render thread, per frame
+    int64_t videoUploadsAtFrameTop_ = 0;        // s-rta-0929 vupload: video_max_uploads_per_frame (GL thread)
     double renderProfileAccum_ = 0.0;
     int renderProfileCount_ = 0;
     static constexpr int kRenderProfileInterval = 300; // Log every N frames (~5s at 60fps)
