@@ -12,7 +12,7 @@ NUANCE: (a) VU14: the kWriterLookAhead fix (90b2ca9) is ADOPTED. Plan section 6'
 HANDOFF-NEEDS: none
 
 ### SUMMARY
-P1 budget, P2 QoS, P3 IOSurface + blit + fences, P4a held slot + context-loss re-upload, P4b idle purge, with RED harness, ctests, probes, docs; four council-driven additions (VU2 fence-fail, VU8 exemptions, VU10 race test, VU11 QoS everywhere) and one measured fix (writer look-ahead geometry, VU7).
+P1 budget, P2 QoS (reverted in fix round 1, VU15), P3 IOSurface + blit + fences, P4a held slot + context-loss re-upload, P4b idle purge, with RED harness, ctests, probes, docs; four council-driven additions (VU2 fence-fail, VU8 exemptions, VU10 race test, VU11 QoS everywhere) and one measured fix (writer look-ahead geometry, VU7).
 
 ### RED / GREEN table (raw numbers)
 | gate | pre-lane (main 3e15613) / RED app | lane |
@@ -66,7 +66,8 @@ nothing to cut. The ctest seam (VideoPlayerTestAccess, fenceWaitOverride_) is us
 none.
 
 ### RISKS
-- (medium) w7 (b) tail: the lane's message-thread trigger round trip has a heavier tail under load (2 FAILs over 30 ms in about 22 launches vs 0 in 15). A candidate cause is the QoS-raised render thread competing with the main thread (plan risk 7), or simply 20-40 % more frames rendered per second. Mitigation: rule on it; an attribution run over more launches under a controlled load.
+- (RESOLVED in fix round 1) w7 (b) tail: VU15 attributed it to the QoS-raised render thread (rule (a)), and P2 was reverted (8952f97). REVERT's w7 tail matches main's.
+- (low, fix round 1) Without the QoS raise, w1c (b)'s margin is thin: one launch landed exactly on 118.5 (pooled 6 loads 119.2). The w2c 4K numbers in the table above were measured WITH QoS and were not re-measured.
 - (low) With the budget only (no blit) and a long render frame, a held content frame can be passed over. It is stated in the docs and bounded by maxDefer; 0 skips on the final app.
 - (low) rss does not always show purged IOSurface pages (plan risk 5); phys_footprint does (-284 to -318 MB).
 
