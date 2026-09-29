@@ -110,8 +110,8 @@ public:
 
     // Callback to get the current video frame texture for a clip.
     // The Renderer advances video playback and uploads frames; this just returns the texture.
-    // Parameters: clip pointer, dt (frame delta time), pending (s-rta-0928 R1.4: set when an image sequence has
-    // nothing to show yet -- its first frame still decodes; never set for video)
+    // Parameters: clip pointer, dt (frame delta time), pending (R1.4 / s-rta-0928b video: set when an image sequence
+    // has nothing to show yet -- its first frame still decodes -- or a video has never shown a frame)
     // Returns GL texture ID, or 0 if no frame ready.
     using VideoFrameFn = std::function<GLuint(const Clip* clip, float dt, bool* pending)>;
 
@@ -119,9 +119,10 @@ public:
     void setVideoFrameProvider(VideoFrameFn fn) { videoFrameFn_ = std::move(fn); }
 
     // s-rta-0928 renderleft-fix (C1 for sequences): true when an ImageSequence clip has nothing to show yet (its
-    // first frame still decodes) -- ImageSequence::firstFramePending, no side effect. Provided by Renderer.
-    using SequencePendingFn = std::function<bool(const Clip* clip)>;
-    void setSequencePendingProvider(SequencePendingFn fn) { sequencePendingFn_ = std::move(fn); }
+    // first frame still decodes) -- ImageSequence::firstFramePending -- or (s-rta-0928b video) a Video clip whose player
+    // has never shown a frame -- VideoPlayer::neverShown. No side effect. Provided by Renderer.
+    using MediaPendingFn = std::function<bool(const Clip* clip)>;
+    void setMediaPendingProvider(MediaPendingFn fn) { mediaPendingFn_ = std::move(fn); }
 
     // === Deck/Layer-based compositing ===
     // Composite all layers in the deck and return the result texture.
@@ -298,7 +299,7 @@ private:
 
     SourceRenderFn sourceRenderFn_;
     VideoFrameFn videoFrameFn_;
-    SequencePendingFn sequencePendingFn_;
+    MediaPendingFn mediaPendingFn_;
     EffectLibrary* effectLibrary_ = nullptr;
 
     // Audio feature snapshot for audio-reactive effects. Owned VALUE (R7,

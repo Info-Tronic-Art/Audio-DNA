@@ -264,7 +264,14 @@ void Renderer::newOpenGLContextCreated()
         return getVideoFrameTexture(clip, dt, pending);
     });
     // renderleft-fix: C1's crossfade pause for an image sequence whose first frame still decodes (no side effect).
-    compositor_.setSequencePendingProvider([this](const Clip* clip) -> bool {
+    // s-rta-0928b video: and for a video that has never shown a frame (GL thread; the lock is the O(1) lookup).
+    compositor_.setMediaPendingProvider([this](const Clip* clip) -> bool {
+        if (clip->mediaType == Clip::MediaType::Video)
+        {
+            std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+            auto it = videoPlayers_.find(clip->id);
+            return it != videoPlayers_.end() && it->second->neverShown();
+        }
         std::lock_guard<std::mutex> lock(imageSeqMutex_);
         auto it = imageSequences_.find(clip->id);
         return it != imageSequences_.end() && it->second->firstFramePending();
@@ -1437,9 +1444,17 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
 bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
 {
     auto player = std::make_unique<VideoPlayer>();
+    player->setStats(&videoStats_);   // s-rta-0928b video counters
     if (!player->open(videoFile))
         return false;
-    player->setStats(&videoStats_);   // s-rta-0928b video counters
+    return installVideoPlayer(clipId, std::move(player));
+}
+
+bool Renderer::installVideoPlayer(uint32_t clipId, std::unique_ptr<VideoPlayer> player)
+{
+    if (!player)
+        return false;
+    VideoPlayer* raw = player.get();
 
     // Retire whatever media (video OR image-sequence) currently occupies
     // this clip id through closeMediaForClip()'s existing GL-thread-drained
@@ -1453,9 +1468,15 @@ bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
     // contract.
     closeMediaForClip(clipId);
 
-    std::lock_guard<std::mutex> lock(videoPlayerMutex_);
-    videoPlayers_[clipId] = std::move(player);
-    videoStats_.players.store(static_cast<int>(videoPlayers_.size()), std::memory_order_relaxed);
+    {
+        const auto waitStart = std::chrono::steady_clock::now();   // s-rta-0928b video: msg_video_lock_wait_max_ms
+        std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+        noteMsgVideoLockWait(waitStart);
+        videoPlayers_[clipId] = std::move(player);
+        videoStats_.players.store(static_cast<int>(videoPlayers_.size()), std::memory_order_relaxed);
+    }
+    // After the insert: the GL thread may already draw it (a draw before the thread runs shows frame 0 from open()).
+    raw->start();
     return true;
 }
 
@@ -1489,6 +1510,8 @@ void Renderer::closeMediaForClip(uint32_t clipId)
     // here would run ~VideoPlayer()/an eventual releaseGL() with no context
     // current (see the GL-THREAD DESTROY GUARD comment on the retire members
     // in Renderer.h). drainRetiredMedia() does the actual GL-thread release.
+    // s-rta-0928b video: VideoPlayer::close() only signals the decode thread (returns at once); the FFmpeg contexts
+    // are freed by the thread itself, and the player is destroyed once that thread has exited.
     {
         const auto waitStart = std::chrono::steady_clock::now();   // s-rta-0928b video: msg_video_lock_wait_max_ms
         std::lock_guard<std::mutex> lock(videoPlayerMutex_);
@@ -1561,6 +1584,20 @@ void Renderer::drainRetiredMedia(bool contextClosing)
     }
     seqRetiredBytes_ = leftBytes;
     seqRetiredSlots_ = leftSlots;
+    // s-rta-0928b video (R-9): a player is destroyed only once its decode thread has exited (no join on this thread);
+    // its texture is released at once. One still exiting goes back to the list for the next frame.
+    {
+        std::vector<std::unique_ptr<VideoPlayer>> exiting;
+        for (auto& player : videoToRetire)
+            if (!player->threadDone())
+                exiting.push_back(std::move(player));
+        if (!exiting.empty())
+        {
+            std::lock_guard<std::mutex> lock(retiredMediaMutex_);
+            for (auto& player : exiting)
+                retiredVideoPlayers_.push_back(std::move(player));
+        }
+    }
     // videoToRetire/seqToRetire go out of scope here, destroying each player/
     // sequence (the released ones; the moved-from entries are null). VideoPlayer's destructor re-runs
     // close()+releaseGL() (both already-idempotent no-ops at this point); ImageSequence's destructor
@@ -1680,12 +1717,16 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
 
     if (clip->mediaType == Clip::MediaType::Video)
     {
-        std::lock_guard<std::mutex> lock(videoPlayerMutex_);
-        auto it = videoPlayers_.find(clip->id);
-        if (it == videoPlayers_.end())
-            return 0;
-
-        auto* player = it->second.get();
+        // s-rta-0928b video (R-10): videoPlayerMutex_ guards the LOOKUP only. The raw pointer stays valid for the rest
+        // of this frame: a player is destroyed only by drainRetiredMedia() on this thread.
+        VideoPlayer* player = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+            auto it = videoPlayers_.find(clip->id);
+            if (it == videoPlayers_.end())
+                return 0;
+            player = it->second.get();
+        }
 
         // Sync transport state from clip (only set playing if clip wants to play,
         // don't override if player stopped due to OneShot boundary)
@@ -1745,7 +1786,19 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             }
         }
 
-        return decode ? player->uploadToTexture() : 0;
+        if (!decode)
+            return 0;
+        // s-rta-0928b video: picks the newest ring frame <= the clock, uploads only a new one, never waits. A player
+        // that has never shown a frame is PENDING (Pitfall 53): the render_frame gate's counter (C3), as sequences do.
+        bool videoPending = false;
+        const GLuint tex = player->uploadToTexture(&videoPending);
+        if (videoPending)
+        {
+            compositor_.notePendingImage();
+            if (pending != nullptr)
+                *pending = true;
+        }
+        return tex;
     }
     else if (clip->mediaType == Clip::MediaType::ImageSequence)
     {

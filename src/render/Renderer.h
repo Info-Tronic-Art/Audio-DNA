@@ -213,6 +213,10 @@ public:
     // 2026-09).
     bool openVideoForClip(uint32_t clipId, const juce::File& videoFile);
 
+    // s-rta-0928b video: retire the old id, insert, start the decode thread (message thread). The seam for an
+    // asynchronous open (part M): VideoPlayer::open() on a pool thread, then this on the message thread.
+    bool installVideoPlayer(uint32_t clipId, std::unique_ptr<VideoPlayer> player);
+
     // Open an image sequence for a clip. Returns true on success.
     // Call from message thread. Same retire-before-replace guarantee as
     // openVideoForClip above — safe to call even when clipId already has
@@ -648,10 +652,12 @@ private:
 
     // s-rta-0926b plan4 T4: ONE body for a clip's media transport -- transport sync from the clip, BPM-sync /
     // master speed, advance, playhead / playing propagation (Pitfalls 2 and 7), in/out points. decode = true is
-    // the on-screen path (decode + upload, returns the texture, byte-for-byte today's getVideoFrameTexture);
+    // the on-screen path (a video: a frame request to the player's decode thread + the upload of the newest ring
+    // frame <= its clock, the GL thread never decodes -- s-rta-0928b; returns the texture);
     // decode = false advances the CLOCK only (VideoPlayer::advanceClock, no ImageSequence texture load) and
     // returns 0 -- for clips of a deck that is not on screen (tickMediaClock).
-    // pending (s-rta-0928 R1.4): an image sequence whose current frame -- and every earlier one -- is still decoding.
+    // pending (s-rta-0928 R1.4): an image sequence whose current frame -- and every earlier one -- is still decoding,
+    // or a video that has never shown a frame (s-rta-0928b).
     GLuint syncMedia(const Clip* clip, float dt, bool decode, bool* pending = nullptr);
     void tickMediaClock(const Clip* clip, float dt) { syncMedia(clip, dt, false); }
 
