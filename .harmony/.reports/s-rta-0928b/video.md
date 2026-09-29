@@ -319,3 +319,169 @@ belongs to the mediaopen lane, which holds the lock.
 lane/video = 90cdf55 + 05c8f75 + df042c7 + this report commit; git status clean except build-lane/ (kept); .venv link
 removed; lock released by this lane at 00:35:23; no app launched by this lane is running; outwins at release
 `audio-dna windows 0, Output-named 0`. The system dialog (id 15048) is still on screen, waiting for Boris.
+
+## Fix round 2 (lane-name video-fix2; Harmony findings on 1fbd307)
+STATUS: PARTIAL -- the crash is fixed and gated (ctest RED -> GREEN), w9 is GREEN live on the fixed app, and every
+live gate owed by fix round 1 has now run. Two fps rows are still not GREEN. Neither is re-thresholded; both need a
+Harmony ruling (details below). The SHOULD finding was STOPPED because its premise is wrong (evidence below).
+RESULT: 81dc7b0: VideoPlayer::open() fails cleanly ("no media") on AV_PIX_FMT_NONE instead of aborting the app. New
+ctest `test_video_player_open`: the real VideoPlayer + FFmpeg, each open in a forked child. ctest 886 / 886 serial.
+Live runs on the fixed app (apps/fr2 = 81dc7b0):
+- w9: GREEN.
+- regressions: image-load, crossfade and deck-clock all GREEN.
+- full probe-video twice: `PY 55 PASS / 2 FAIL` and `PY 56 PASS / 1 FAIL`.
+- w1 (a): passes 4 of 5 runs in only 1 of 4 row runs. Overall 11 of 20 runs reach >= 110 fps (main: 0 of 5).
+- w2 (a2): fails by 0.1 fps whenever the stills scene reaches the 120 Hz cap (3 of 4 launches).
+FACTS: logs under scratchpad/video/runs/fr2-*.log, reg/fr2-*.log, fr2/{red-open,green-open}.log, ctest-fr2.log; batch
+outputs fr2/{b1,b2,b3,r2,full1,full2}.out (each has a start / end `date` stamp and the on-screen dialog list).
+METHOD: pre-change app = build-lane at 1fbd307, copied to apps/pre2 before any edit (sha256 8a3fc014d230730a ==
+apps/w3); fixed app apps/fr2 (sha256 1d6f0d205514ba29); main app = main checkout build (sha256 35f5fe752c877425,
+built 2026-09-28 22:48). The RED for the new ctest is the same test compiled against 1fbd307's VideoPlayer.cpp.
+CONFIDENCE + VERIFY: high for the guard (RED signal 6 -> GREEN, control case), w9 (GREEN in 3 live runs: b1, full-1,
+full-2) and the regressions; the fps rows are measured, not judged -- see "Open for Harmony". Verify: `ctest --test-dir
+build-lane -j1`; under the lock `VIDEO_APP=<scratch>/apps/fr2/Audio-DNA.app bash .harmony/probe-video.sh <out>`.
+UNKNOWNS / NOT DONE: w1 (a) and w2 (a2) not GREEN (rulings needed); SHOULD 4 not built (premise wrong).
+NUANCE: the fix-round-1 crash dialog (Quartz id 15048) was still on screen at 00:55:48. It was gone at 00:59:10, the
+end of batch b1. This lane sent no input and did not dismiss it. No new dialog appeared in any batch of this round
+(checked before and after each one).
+HANDOFF-NEEDS: Harmony -- rulings on w1 (a) and w2 (a2) (below); a ruling on found_not_fixed 1 (open() reads a
+never-decodable file to EOF on the message thread, pre-existing on main).
+INBOX-RECHECK: none
+
+### Ruling -> commit -> RED -> GREEN
+| finding | commit | RED (raw, verbatim) | GREEN (raw, verbatim) |
+|---|---|---|---|
+| MUST 3: H.264 cut to its header aborts the app (pix_fmt NONE -> sws_getContext) | 81dc7b0 | test built on 1fbd307's VideoPlayer.cpp: `test_video_player_open.cpp:67: FAILED:` / `REQUIRE( r.exited )` / `with expansion:` / `false` / `r.signal := 6` (child log: `Assertion desc failed at libswscale/swscale_internal.h:758`) | `All tests passed (10 assertions in 2 test cases)`; ctest `100% tests passed, 0 tests failed out of 886` |
+| MUST 1: w9 live on the fixed app (W3's second acceptance item) | (df042c7, evidence only) | fix round 1, 90cdf55 app: `FAIL  w9_crossfade_onto_broken[hap_cut.mov]: (a) crossfadeProgress reached 1 at None s <= 2 + 0.5 s` (+ 5 more, quoted above) | fr2 app: `PASS  w9_crossfade_onto_broken[hap_cut.mov]: (a) crossfadeProgress reached 1 at 2.04 s <= 2 + 0.5 s (progress 1.00; C1 does not wait on it)` ... `PY 6 PASS / 0 FAIL`, `PROBE-VIDEO GREEN` (all 6 lines below) |
+| MUST 2: w1 x5 lane + main | (05c8f75, evidence only) | main: `FAIL  w1_steady_1080x4: (a) median fps >= 110 in 0 of 5 runs (>= 4): [95.3, 96.8, 88.8, 93.8, 96.3]` | fr2, 4 row runs: `FAIL ... in 2 of 5 runs (>= 4): [108.4, 103.3, 120.0, 96.5, 120.0]`; `FAIL ... in 3 of 5 runs (>= 4): [119.0, 107.4, 113.4, 120.0, 108.1]`; `PASS  w1_steady_1080x4: (a) median fps >= 110 in 4 of 5 runs (>= 4): [119.7, 101.5, 120.0, 117.1, 120.0]`; `FAIL ... in 2 of 5 runs (>= 4): [119.7, 102.0, 99.0, 120.0, 104.1]` -- NOT GREEN |
+| MUST 2: w2 (a) / (a2) printed | (05c8f75, evidence only) | main: `FAIL  w2_steady_4kx4: (a) median fps 32.7 >= 80 (W1: the upload-bound floor)`, `FAIL  w2_steady_4kx4: (a2) median fps 32.7 >= this launch's 4 x 4K stills fps 114.0 - 30 = 84.0` | fr2 b1: `PASS  w2_steady_4kx4: (a) median fps 89.3 >= 80 (W1: the upload-bound floor)`, `PASS  w2_steady_4kx4: (a2) median fps 89.3 >= this launch's 4 x 4K stills fps 109.6 - 30 = 79.6`; full-1 / full-2 / b3: `FAIL  w2_steady_4kx4: (a2) median fps 89.9 >= this launch's 4 x 4K stills fps 120.0 - 30 = 90.0` ((a) PASS 89.9 each time) -- NOT GREEN |
+| MUST 2: full probe-video x2 | -- | main (lane report): `PY 14 PASS / 39 FAIL` | full-1 `PY 55 PASS / 2 FAIL` (w1 (a), w2 (a2)); full-2 `PY 56 PASS / 1 FAIL` (w2 (a2)) -- every other row PASS in both |
+| MUST 2: 3 regression probes | -- | (re-runs of existing GREEN probes) | `PY 37 PASS / 0 FAIL PROBE-IMAGE-LOAD GREEN`; `PY 35 PASS / 0 FAIL PROBE-CROSSFADE GREEN`; `PY 10 PASS / 0 FAIL PROBE-DECK-CLOCK GREEN` (d_return_hitch peak 5.90 ms) |
+| SHOULD 4: decode-error spin | -- | STOPPED: the premise is wrong (below) | -- |
+
+w9 GREEN on the fixed app (runs/fr2-g-w9.log, verbatim):
+```
+PASS  w9_crossfade_onto_broken[hap_cut.mov]: (a) crossfadeProgress reached 1 at 2.04 s <= 2 + 0.5 s (progress 1.00; C1 does not wait on it)
+PASS  w9_crossfade_onto_broken[hap_cut.mov]: (b) render_frame answered in 0.03 s (ok True, fresh PNG True)
+PASS  w9_crossfade_onto_broken[hap_cut.mov]: (c) video_pending_frames grew by 0 over the 1 s after the fade == 0 (no media, not pending)
+PASS  w9_crossfade_onto_broken[hap_zero.mov]: (a) crossfadeProgress reached 1 at 2.03 s <= 2 + 0.5 s (progress 1.00; C1 does not wait on it)
+PASS  w9_crossfade_onto_broken[hap_zero.mov]: (b) render_frame answered in 0.01 s (ok True, fresh PNG True)
+PASS  w9_crossfade_onto_broken[hap_zero.mov]: (c) video_pending_frames grew by 0 over the 1 s after the fade == 0 (no media, not pending)
+PY 6 PASS / 0 FAIL
+```
+w9 also PASSed 6 / 6 in both full runs (fade done at 2.03 / 2.04 s, render_frame 0.02-0.03 s).
+- Decoded pixels: both captures after the fade are 1920x1080, mean 0.0, max 0. I looked at the hap_zero capture: all
+  black. That is the expected picture: the only layer's clip is "no media" once the fade ends. The warm-up capture
+  decodes to mean 120.0.
+- The app log shows `[VideoPlayer] No first frame (EOF before any frame): .../hap_cut.mov -- no media`, and the same
+  line for hap_zero.mov.
+- On main, w9 (a) and (b) also pass (fade 2.01 s, render_frame 0.02 s). Main never waited on a broken video: it drew
+  a black upload. Only (c) fails on main, because the field is absent. So W3 restores main's behaviour; the lane
+  before W3 was the regression.
+
+### What changed (81dc7b0)
+- `src/media/VideoPlayer.cpp` open(): the guard sits just before the sws context is built. It runs
+  `if (codecCtx_->pix_fmt == AV_PIX_FMT_NONE)`, logs `[VideoPlayer] Unknown pixel format (no frame decodes: a
+  truncated or corrupt file): <path> -- no media`, then `freeFfmpeg(); return false`. Renderer::openVideoForClip then
+  installs no player, and a failed open leaves the clip's current media untouched (the existing contract).
+- `tests/test_video_player_open.cpp` + a `tests/CMakeLists.txt` target. It links VideoPlayer.cpp, juce_core,
+  juce_opengl and FFmpeg::FFmpeg, and never calls GL.
+  - Case 1 opens `tests/fixtures/video_h264_cut_header.mp4` (1,539 B: fix round 1's cut_header.mp4, ffprobe
+    `pix_fmt=unknown`) in a forked child. The child must exit normally with "open() false".
+  - Case 2 is the control: `video_h264_64x64.mp4` (3,464 B, testsrc2 64x64 x264) must open at 64 x 64.
+  - Each open runs in a child, so a RED is an assertion here, never a crashed runner. The ruling asked for exactly
+    this: never a live row.
+- Docs:
+  - rendering.md: the "KNOWN CRASH (filed, not fixed)" sentence now says the open fails ("no media").
+  - Pitfall NN: "never hand sws_getContext an AV_PIX_FMT_NONE", and the new test is listed under Guards.
+  - probe-video.{json,py} w9 notes: fixed, gated headless, still never a live arm.
+- CLAUDE.md: untouched (24,731 B).
+
+### SHOULD 4 STOPPED -- the premise does not hold (evidence)
+The finding says that decodeLoop's decode-error branch (`if (!atEof_) { noteNoFirstFrame(...); continue; }`) spins
+the decode thread through a never-decodable stream such as hap_zero. That is not what the code does.
+- For hap_zero, decodeNextFrame reads the whole file inside ONE call and returns at EOF. Its inner loop continues
+  past every failed packet: either `avcodec_send_packet` fails (`if (ret < 0) continue;`) or `receive_frame` keeps
+  answering EAGAIN. Which of the two is INFERRED (not instrumented); the EOF return is VERIFIED by the log line below.
+  The decodeLoop branch is only reached when `avcodec_receive_frame` returns a non-EAGAIN error.
+- Live evidence: the fixed app logs `No first frame (EOF before any frame): .../hap_zero.mov`, not "(a decode error
+  before any frame)" (runs/video.oTynyx/err.log).
+- Headless measurement: a temporary case in test_video_player_open, removed afterwards. The file is restored from a
+  saved copy and `git diff --stat` is empty. It used zeroed 64x64 HAP files muxed with libavformat (2 KB packets) and
+  drove advanceFrame + uploadToTexture at 120 Hz for 1 s after start():
+
+| file | open() wall / CPU | CPU over the next 1 s (whole process) |
+|---|---|---|
+| 3,000 packets (6 MB) | 14.5 / 14.9 ms | 2.3-2.9 ms |
+| 30,000 packets (61 MB) | 146.1 / 158.2 ms | 3.0-3.1 ms |
+| 150,000 packets (307 MB) | 646.6 / 688.8 ms | 3.1 ms |
+
+- So there is no decode-thread spin after start(). The thread sits at EOF in its `wait(20)` loop, and the player is
+  FAILED (pending 0, neverShown 0).
+- The real cost is different: `open()` reads the whole file on the MESSAGE thread (~4.7 us per packet), and the
+  decode thread reads it once more at every Loop wrap. That is filed below; I added no backoff for it.
+
+### Open for Harmony (fps rows; not re-thresholded)
+- w1 (a), 50 ms polls, W2's rule: across 4 row runs on the fixed app, the fps is bimodal.
+
+| row run | runs >= 110 fps | medians |
+|---|---|---|
+| b1 | 2 of 5 | 108.4 / 103.3 / 120.0 / 96.5 / 120.0 |
+| full-1 | 3 of 5 | 119.0 / 107.4 / 113.4 / 120.0 / 108.1 |
+| full-2 | 4 of 5 | 119.7 / 101.5 / 120.0 / 117.1 / 120.0 |
+| b3 | 2 of 5 | 119.7 / 102.0 / 99.0 / 120.0 / 104.1 |
+
+  - That is 11 of 20 runs. The low runs sit at 96-108, the high runs at 117-120.
+  - Main 0 of 5 (88.8-96.8). Fix round 1 on the 90cdf55 app: 4 of 5.
+  - (b)-(e) PASS in every row run: 0 GL decodes, uploads 601-610, late 0.
+  - W2's premise (the 15 ms poller perturbs the reading) therefore does not explain all of it. At 50 ms polls the
+    lane still reads ~120 or ~100 per fresh load. In the slow runs the p90 callback is ~6.4-6.6 ms, against ~4.6-5.0
+    ms in the 120 runs.
+  - Load averages were 3.1-6.1 throughout (other sessions: WindowServer, other lanes' apps between my holds, one
+    compiler that full-1 waited out), so the machine was never "quiet" in the ruling's sense.
+  - INFERRED, not tested: which core cluster the GL / decode threads land on per launch.
+- w2 (a2): the 4 x 4K video reads 89.3 / 89.9 / 89.9 / 89.9 fps across the 4 launches.
+  - The same launch's 4 x 4K STILLS read 109.6 in b1 and 120.0 in the other three (the 120 Hz display cap).
+  - When the stills hit the cap, (a2) demands >= 90.0 and fails by 0.1. (a) >= 80 passes every time.
+  - The ceiling is unchanged since fix round 1 (84-90). Whether (a2) holds depends on whether the stills scene
+    reaches vsync that launch.
+
+### found_not_fixed (this round)
+1. `open()` reads a never-decodable file to EOF on the message thread (decodeNextFrame's send_packet `continue`
+   loop).
+   - Measured: 146 ms for a 61 MB zeroed HAP, 647 ms for 307 MB (table above). The decode thread then repeats the
+     read once per Loop wrap.
+   - Pre-existing: main 328301d open() calls the same decodeNextFrame (VideoPlayer.cpp:178 on main). Main's GL thread
+     also re-ran it from decodeFrameAtTime.
+   - Candidate for a ruling: bound consecutive send_packet failures inside decodeNextFrame, then return false. This
+     changes open() for files whose first few packets are bad, so it needs a ruling and its own gate.
+2. w1 (a) / w2 (a2) as above.
+3. Carried from fix round 1: W4 items (context-loss FX-only frames, reverse long-GOP rate, RSS trim); W1 follow-up
+   (zero-copy upload).
+
+### Deviations
+- One command began with `cd /dev/null` (a typo: it fails at once and changed nothing). That still breaks the
+  "never cd" rule.
+- The two RED runs of the new ctest each left a crash report,
+  `~/Library/Logs/DiagnosticReports/test_video_player_open-2026-09-29-0052{47,51}.ips` (the child's SIGABRT). No
+  dialog appeared: a CLI binary gets none. The GREEN build writes none.
+- The prototype for SHOULD 4 was appended to my own new test file, built, run, then removed by copying back the saved
+  file (`git diff --stat` empty). Its 6-307 MB scratch .mov files were deleted.
+- .venv link removed before each commit; build-lane kept.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- A ctest that must survive an FFmpeg abort runs each open in a fork()ed child and asserts WIFEXITED. Catch2's signal
+  handler prints a duplicate FAILED block from the child, and each RED run leaves a .ips crash report (no dialog for
+  a CLI binary) | tests/test_video_player_open.cpp
+- A never-decodable stream (zeroed HAP payload) never yields a frame or a receive_frame error, so decodeNextFrame's
+  inner `continue` reads the WHOLE file in one call (in open() that is the message thread, ~4.7 us per packet). The decodeLoop's
+  decode-error branch is reached only for receive_frame errors | src/media/VideoPlayer.cpp decodeNextFrame
+- w2 (a2) = the same launch's 4 x 4K stills fps - 30: the stills scene reads 109.6 or 120.0 (vsync cap) by launch, so
+  the bar moves between 79.6 and 90.0 while the video reads ~89-90 | .harmony/probe-video.py w2
+
+## Rig state at the end of fix round 2
+- lane/video = 1fbd307 + 81dc7b0 (fix) + this report commit.
+- git status clean except build-lane/ (kept); .venv link removed.
+- The lock was released by this lane after each batch; the last release was at 01:32:01.
+- No app launched by this lane is running; outwins after every batch: `audio-dna windows 0, Output-named 0`.
+- No system dialog on screen at 01:32:01.
