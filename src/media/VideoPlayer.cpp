@@ -462,9 +462,9 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
     }
     deferredFrames_ = 0;
 
-    // Frames the clock moved away from (reverse / ping-pong) are freed once they are more than a ring's worth of
-    // frames ahead: forward play never gets that far ahead, and they would otherwise keep the writer out.
-    const auto p = ring_.pick(currentTime_, gen, 0.5 * frameDur_, (kSlots + 1) * frameDur_);
+    // Frames the clock moved away from (reverse / ping-pong) are freed once they are more than the writer's look-ahead
+    // (+1) frames ahead: forward play never gets that far ahead, and they would otherwise keep the writer out.
+    const auto p = ring_.pick(currentTime_, gen, 0.5 * frameDur_, (kWriterLookAhead + 1) * frameDur_);
     if (stats_ && p.skipped > 0)
         stats_->framesSkipped += p.skipped;
 
@@ -670,9 +670,10 @@ void VideoPlayer::decodeLoop()
     // plan-video R-5: today's GL-thread rules, moved here and made non-blocking for the GL thread.
     VideoRing::Policy pol;
     pol.skipNonRefInCatchUp = kSkipNonRefInCatchUp;
-    // The writer runs up to kSlots frames ahead of the clock (the old decode ran at most one): "behind" must exceed
-    // that look-ahead, or forward play of a < 30 fps clip (3 frames > 0.1 s) would re-seek after every third frame.
-    pol.reseekBehindSec = std::max(pol.reseekBehindSec, (kSlots + 1) * frameDur_);
+    // The writer runs up to kWriterLookAhead frames ahead of the shown frame (the old decode ran at most one): "behind"
+    // must exceed that look-ahead, or forward play of a slow clip (a 24 fps clip: 3 frames > 0.1 s) would re-seek after
+    // every few frames -- and no more than it (+1 frame), or reverse play re-seeks later than it needs to.
+    pol.reseekBehindSec = std::max(pol.reseekBehindSec, (kWriterLookAhead + 1) * frameDur_);
     if (stats_) ++stats_->threadsAwake;
 
     while (!thread_.threadShouldExit())

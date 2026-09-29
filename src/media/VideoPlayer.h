@@ -173,6 +173,11 @@ private:
     // slots are BGRA IOSurfaces (surf_, base addresses in slotBytes_, released in the destructor); otherwise RGBA
     // malloc'd blocks (freed in the destructor).
     static constexpr int kSlots = 3;
+    // s-rta-0929 vupload: the frame on screen keeps its slot (retire_), so the writer runs at most kSlots - 1 frames
+    // ahead of it. The reseek distance ("behind") and the reader's ahead-drop line are measured from that look-ahead
+    // (+1 frame of margin) -- (kSlots + 1) frames, main's pre-held-slot value, made reverse play re-seek one frame later
+    // per cycle (u7: 25 % fewer uploads / seeks; kSlots 4 regressed the same way).
+    static constexpr int kWriterLookAhead = kSlots - 1;
     std::array<uint8_t*, kSlots> slotBytes_{};
     VideoRing::Ring<kSlots> ring_;
     UploadPath path_ = UploadPath::Malloc;
