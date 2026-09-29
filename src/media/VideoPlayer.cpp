@@ -5,6 +5,12 @@
 // compositing on the GL thread (s-rta-0928b video; plan-video.md).
 
 #include "VideoPlayer.h"
+#if JUCE_MAC
+ #include <OpenGL/OpenGL.h>          // after juce_gl.h (via VideoPlayer.h)
+ #include <OpenGL/CGLIOSurface.h>
+ #include <IOSurface/IOSurfaceRef.h>
+ #include <CoreFoundation/CoreFoundation.h>
+#endif
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -35,12 +41,21 @@ VideoPlayer::~VideoPlayer()
     close();
     thread_.stopThread(3000);
     freeFfmpeg();
-    for (auto*& s : slotBytes_)
-    {
-        std::free(s);
-        s = nullptr;
-    }
     releaseGL();
+    for (size_t i = 0; i < slotBytes_.size(); ++i)
+    {
+#if JUCE_MAC
+        if (surf_[i] != nullptr)
+        {
+            CFRelease(static_cast<IOSurfaceRef>(surf_[i]));   // s-rta-0929 vupload P3: the slot is an IOSurface
+            surf_[i] = nullptr;
+            slotBytes_[i] = nullptr;
+            continue;
+        }
+#endif
+        std::free(slotBytes_[i]);
+        slotBytes_[i] = nullptr;
+    }
 }
 
 int64_t VideoPlayer::nowMs()
@@ -169,8 +184,21 @@ bool VideoPlayer::open(const juce::File& file)
         return false;
     }
 
-    // Set up swscale for conversion to RGBA
-    auto dstFmt = AV_PIX_FMT_RGBA;
+    // s-rta-0929 vupload P3: the ring's slots are decided BEFORE the sws context (its destination format depends on it):
+    // BGRA IOSurfaces on macOS (the blit path), else -- non-Apple, a failed IOSurfaceCreate, or the TEST-ONLY lever --
+    // RGBA malloc'd blocks.
+#if AUDIODNA_TEST_SERVER
+    if (const char* force = std::getenv("ADNA_VIDEO_FORCE_FALLBACK"))   // TEST-ONLY (test-server builds): w10's arms
+        forcePath_ = std::strcmp(force, "malloc") == 0 ? UploadPath::Malloc
+                   : std::strcmp(force, "client") == 0 ? UploadPath::Client : forcePath_;
+#endif
+    const bool surfaces = forcePath_ != UploadPath::Malloc && createSurfaces();
+    path_ = surfaces ? (forcePath_ == UploadPath::Client ? UploadPath::Client : UploadPath::Blit) : UploadPath::Malloc;
+    if (!surfaces && forcePath_ != UploadPath::Malloc && stats_ != nullptr)
+        ++stats_->surfaceFallbacks;
+
+    // Set up swscale for conversion to RGBA (BGRA into an IOSurface: the same values, the byte order GL_BGRA reads)
+    auto dstFmt = surfaces ? AV_PIX_FMT_BGRA : AV_PIX_FMT_RGBA;
     swsCtx_ = sws_getContext(width_, height_, codecCtx_->pix_fmt,
                               width_, height_, dstFmt,
                               SWS_BILINEAR, nullptr, nullptr, nullptr);
@@ -181,17 +209,20 @@ bool VideoPlayer::open(const juce::File& file)
         return false;
     }
 
-    // The ring's slots: width * height * 4 bytes each, page-lazy (RSS grows when a slot is first written).
-    rowBytes_ = width_ * 4;
-    const size_t slotSize = static_cast<size_t>(rowBytes_) * static_cast<size_t>(height_);
-    for (auto*& s : slotBytes_)
+    if (!surfaces)
     {
-        s = static_cast<uint8_t*>(std::malloc(slotSize));
-        if (s == nullptr)
+        // The ring's slots: width * height * 4 bytes each, page-lazy (RSS grows when a slot is first written).
+        rowBytes_ = width_ * 4;
+        const size_t slotSize = static_cast<size_t>(rowBytes_) * static_cast<size_t>(height_);
+        for (auto*& s : slotBytes_)
         {
-            std::cerr << "[VideoPlayer] Failed to allocate a frame slot" << std::endl;
-            freeFfmpeg();
-            return false;
+            s = static_cast<uint8_t*>(std::malloc(slotSize));
+            if (s == nullptr)
+            {
+                std::cerr << "[VideoPlayer] Failed to allocate a frame slot" << std::endl;
+                freeFfmpeg();
+                return false;
+            }
         }
     }
 
@@ -225,6 +256,7 @@ bool VideoPlayer::open(const juce::File& file)
               << ", " << duration_ << "s"
               << ", codec=" << avcodec_get_name(codecpar->codec_id)
               << ", alpha=" << (alpha ? "yes" : "no")
+              << ", upload=" << (path_ == UploadPath::Blit ? "iosurface-blit" : path_ == UploadPath::Client ? "iosurface-client" : "malloc")
               << ", thumb=" << thumbMs << " ms)" << std::endl;
 
     return true;
@@ -403,6 +435,7 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
         return texture_;   // hold after close, as before
     if (firstDrawMs_ < 0)
         firstDrawMs_ = nowMs();   // W3: the first draw request starts the first-frame timeout
+    pollFences();   // P3: a slot whose blit has completed goes back to the writer (the held one stays)
 
     // s-rta-0929 vupload P1: the per-frame upload budget is asked BEFORE the pick (peek: no state change), so a refused
     // player leaves the ring exactly as it was and HOLDS its shown frame -- never pending, never late (R-4, R-6). Exempt
@@ -453,7 +486,7 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
         }
         lastShownPts_ = p.pts;
         // P4a: this slot is now the one ON SCREEN (held); the previously shown one goes back to the writer.
-        const int prev = retire_.shown(p.slot, false);
+        const int prev = retire_.shown(p.slot, fence_[static_cast<size_t>(p.slot)] != nullptr);
         if (prev >= 0)
         {
             ring_.release(prev);
@@ -505,6 +538,13 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
 
 void VideoPlayer::uploadSlot(int slot)
 {
+    if (path_ == UploadPath::Blit && blitSlot(slot))
+        return;
+    if (path_ != UploadPath::Malloc)
+    {
+        clientUploadSurface(slot);
+        return;
+    }
     // Client-memory upload: glTexImage2D once, then glTexSubImage2D (both copy before they return). The slot stays the
     // reader's until a newer frame is shown (retire_), so the same slot can be uploaded again after a context loss.
     const uint8_t* bytes = slotBytes_[static_cast<size_t>(slot)];
@@ -532,6 +572,16 @@ void VideoPlayer::uploadSlot(int slot)
 
 void VideoPlayer::releaseGL()
 {
+    // P3 (adoption VU3, SharedFrameSet::releaseGL's rule): every GL handle deleted AND zeroed -- a stale name from a dead
+    // context would make the lazy creation skip. The fences are dropped, never glDeleteSync'd: a sync dies with its
+    // context; the fenced slots go back to the writer below (retire_.contextLost).
+    for (size_t i = 0; i < rectTex_.size(); ++i)
+    {
+        if (readFbo_[i] != 0) { glDeleteFramebuffers(1, &readFbo_[i]); readFbo_[i] = 0; }
+        if (rectTex_[i] != 0) { glDeleteTextures(1, &rectTex_[i]); rectTex_[i] = 0; }
+        fence_[i] = nullptr;
+    }
+    if (dstFbo_ != 0) { glDeleteFramebuffers(1, &dstFbo_); dstFbo_ = 0; }
     // P4a: the held slot (the frame on screen) is KEPT -- the next context's first draw re-uploads it.
     std::array<int, kSlots> toRelease{};
     const int n = retire_.contextLost(toRelease);
@@ -782,8 +832,208 @@ void VideoPlayer::convertInto(int slot)
     // Bottom-up (GL order) in one pass: the destination starts at the slot's last row with a negative stride (sws
     // honours it -- plan-video F14, re-verified at 320x180 / 1080p / 4K for yuv420p and yuv422p10le). No flip, no
     // allocation.
+    // s-rta-0929 vupload P3: an IOSurface slot is written under its lock (the CPU-write / GPU-read protocol).
+#if JUCE_MAC
+    auto* surface = static_cast<IOSurfaceRef>(surf_[static_cast<size_t>(slot)]);
+    if (surface != nullptr)
+        IOSurfaceLock(surface, 0, nullptr);
+#endif
     uint8_t* dst[4] = { slotBytes_[static_cast<size_t>(slot)] + static_cast<size_t>(height_ - 1) * static_cast<size_t>(rowBytes_),
                         nullptr, nullptr, nullptr };
     int dstStride[4] = { -rowBytes_, 0, 0, 0 };
     sws_scale(swsCtx_, decodedFrame_->data, decodedFrame_->linesize, 0, height_, dst, dstStride);
+#if JUCE_MAC
+    if (surface != nullptr)
+        IOSurfaceUnlock(surface, 0, nullptr);
+#endif
+}
+
+// ---- s-rta-0929 vupload P3: IOSurface ring slots + one blit per new frame (plan-vupload.md 4.4 + adoption VU2 / VU3) ----
+
+bool VideoPlayer::createSurfaces()
+{
+#if JUCE_MAC
+    // SurfacePool.cpp's recipe: BGRA, 4 bytes per element (the codebase's IOSurface precedent). bytesPerRow may be padded
+    // (63 px -> 256 B): the conversion and the client-upload fallback both use rowBytes_.
+    const int32_t w = width_, h = height_, bpe = 4;
+    const uint32_t pixelFormat = 'BGRA';
+    CFNumberRef nw = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &w);
+    CFNumberRef nh = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &h);
+    CFNumberRef nb = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &bpe);
+    CFNumberRef nf = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixelFormat);
+    const void* keys[] = { kIOSurfaceWidth, kIOSurfaceHeight, kIOSurfaceBytesPerElement, kIOSurfacePixelFormat };
+    const void* values[] = { nw, nh, nb, nf };
+    CFDictionaryRef props = CFDictionaryCreate(kCFAllocatorDefault, keys, values, 4, &kCFTypeDictionaryKeyCallBacks,
+                                               &kCFTypeDictionaryValueCallBacks);
+    bool ok = true;
+    size_t bpr = 0;
+    for (size_t i = 0; i < surf_.size() && ok; ++i)
+    {
+        IOSurfaceRef sf = IOSurfaceCreate(props);
+        surf_[i] = sf;
+        ok = sf != nullptr && (i == 0 || IOSurfaceGetBytesPerRow(sf) == bpr);
+        if (sf != nullptr && i == 0)
+            bpr = IOSurfaceGetBytesPerRow(sf);
+    }
+    CFRelease(props);
+    CFRelease(nw); CFRelease(nh); CFRelease(nb); CFRelease(nf);
+    if (!ok || bpr < static_cast<size_t>(width_) * 4)
+    {
+        for (auto*& sf : surf_)
+            if (sf != nullptr) { CFRelease(static_cast<IOSurfaceRef>(sf)); sf = nullptr; }
+        std::cerr << "[VideoPlayer] IOSurface slots unavailable (" << width_ << "x" << height_
+                  << "): the malloc + glTexSubImage2D path" << std::endl;
+        return false;
+    }
+    rowBytes_ = static_cast<int>(bpr);
+    for (size_t i = 0; i < surf_.size(); ++i)   // stable for the surface's life (IOSurfaceGetBaseAddress)
+        slotBytes_[i] = static_cast<uint8_t*>(IOSurfaceGetBaseAddress(static_cast<IOSurfaceRef>(surf_[i])));
+    return true;
+#else
+    return false;
+#endif
+}
+
+void VideoPlayer::ensureTexture()
+{
+    if (textureCreated_)
+        return;
+    glGenTextures(1, &texture_);
+    glBindTexture(GL_TEXTURE_2D, texture_);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width_, height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    textureCreated_ = true;
+}
+
+void VideoPlayer::fallBack(const char* why)
+{
+    // The blit could not be set up (a CGL bind error, an incomplete FBO): this player uploads its surface bytes with
+    // glTexSubImage2D from now on (VU3). Once per player, counted (video_surface_fallbacks), one log line.
+    path_ = UploadPath::Client;
+    if (!fallbackCounted_)
+    {
+        fallbackCounted_ = true;
+        if (stats_ != nullptr)
+            ++stats_->surfaceFallbacks;
+        std::cerr << "[VideoPlayer] IOSurface blit unavailable (" << why << "): " << sourceFile_.getFullPathName()
+                  << " -- glTexSubImage2D of the surface" << std::endl;
+    }
+}
+
+void VideoPlayer::clientUploadSurface(int slot)
+{
+#if JUCE_MAC
+    // The BGRA surface bytes, rows rowBytes_ apart (padded for odd widths), under a read-only lock.
+    auto* surface = static_cast<IOSurfaceRef>(surf_[static_cast<size_t>(slot)]);
+    ensureTexture();
+    glBindTexture(GL_TEXTURE_2D, texture_);
+    IOSurfaceLock(surface, kIOSurfaceLockReadOnly, nullptr);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, rowBytes_ / 4);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
+                    slotBytes_[static_cast<size_t>(slot)]);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, nullptr);
+#else
+    (void) slot;
+#endif
+}
+
+bool VideoPlayer::blitSlot(int slot)
+{
+#if JUCE_MAC
+    const auto i = static_cast<size_t>(slot);
+    GLint prevRead = 0, prevDraw = 0;
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevRead);
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prevDraw);
+    auto restore = [&] {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(prevRead));
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(prevDraw));
+    };
+    if (rectTex_[i] == 0)
+    {
+        // Once per slot per context: a rectangle texture on the slot's IOSurface (the storage IS the surface: CPU
+        // writes under IOSurfaceLock are what the GPU reads) and a read FBO on it (checked once, VU3).
+        glGenTextures(1, &rectTex_[i]);
+        glBindTexture(GL_TEXTURE_RECTANGLE, rectTex_[i]);
+        const CGLError err = CGLTexImageIOSurface2D(CGLGetCurrentContext(), GL_TEXTURE_RECTANGLE, GL_RGBA8, width_, height_,
+                                                    GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
+                                                    static_cast<IOSurfaceRef>(surf_[i]), 0);
+        glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+        if (err != kCGLNoError)
+        {
+            restore();
+            fallBack(("CGLTexImageIOSurface2D error " + std::to_string(static_cast<int>(err))).c_str());
+            return false;
+        }
+        glGenFramebuffers(1, &readFbo_[i]);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo_[i]);
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, rectTex_[i], 0);
+        if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            restore();
+            fallBack("the slot's read FBO is incomplete");
+            return false;
+        }
+    }
+    if (dstFbo_ == 0)
+    {
+        ensureTexture();
+        glGenFramebuffers(1, &dstFbo_);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFbo_);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
+        if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            restore();
+            fallBack("the texture's draw FBO is incomplete");
+            return false;
+        }
+    }
+    // One GPU copy, rect (BGRA storage, RGBA8) -> texture_ (RGBA8): the same values, alpha included. The slot is
+    // bottom-up like texture_, so the 1:1 copy keeps the orientation. The scissor test would clip a blit.
+    const GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+    if (scissor)
+        glDisable(GL_SCISSOR_TEST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo_[i]);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFbo_);
+    glBlitFramebuffer(0, 0, width_, height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    restore();
+    if (scissor)
+        glEnable(GL_SCISSOR_TEST);
+    // The slot may be written again only once the GPU has read it: fenced; no glFlush (the same context polls it).
+    if (fence_[i] != nullptr)
+        glDeleteSync(static_cast<GLsync>(fence_[i]));
+    fence_[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    return true;
+#else
+    (void) slot;
+    return false;
+#endif
+}
+
+void VideoPlayer::pollFences()
+{
+    // Timeout 0: never waits (Pitfall 56). Signaled -> the slot goes back to the writer unless it is the one on screen.
+    // GL_WAIT_FAILED (adoption VU2, SharedFrameSet.cpp's rule): that copy's state is unknown -- the fence is deleted and
+    // the slot released like a signaled one (never stuck Reading), counted (video_fence_failed).
+    for (size_t i = 0; i < fence_.size(); ++i)
+    {
+        if (fence_[i] == nullptr)
+            continue;
+        const GLenum r = fenceWaitOverride_ != nullptr ? static_cast<GLenum>(fenceWaitOverride_(fence_[i]))
+                                                       : glClientWaitSync(static_cast<GLsync>(fence_[i]), 0, 0);
+        if (r == GL_TIMEOUT_EXPIRED)
+            continue;
+        glDeleteSync(static_cast<GLsync>(fence_[i]));
+        fence_[i] = nullptr;
+        if (r == GL_WAIT_FAILED && stats_ != nullptr)
+            ++stats_->fenceFailed;
+        if (retire_.signaled(static_cast<int>(i)))
+        {
+            ring_.release(static_cast<int>(i));
+            releasedThisFrame_ = true;
+        }
+    }
 }

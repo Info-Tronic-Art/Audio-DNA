@@ -2774,6 +2774,9 @@ target_link_libraries(test_video_player_open PRIVATE
     juce::juce_opengl
     FFmpeg::FFmpeg
 )
+if(APPLE)   # s-rta-0929 vupload P3: VideoPlayer.cpp calls IOSurface / CGL (the ring slots are IOSurfaces)
+    target_link_libraries(test_video_player_open PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
 target_compile_definitions(test_video_player_open PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -3019,6 +3022,9 @@ target_link_libraries(test_media_opener PRIVATE
     juce::juce_opengl
     FFmpeg::FFmpeg
 )
+if(APPLE)   # s-rta-0929 vupload P3: VideoPlayer.cpp calls IOSurface / CGL
+    target_link_libraries(test_media_opener PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
 target_compile_definitions(test_media_opener PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0

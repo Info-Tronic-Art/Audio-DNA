@@ -44,7 +44,7 @@
   "_w1d": "adoption VU9: 8 x a1080 by one trigger_column, INFO for fps / max uploads per render frame; late 0 and hold_no_texture 0 asserted (VU5)",
   "w2cLoads": 2,
   "fps4kBlitMin": null,
-  "_fps4kBlitMin": "plan-vupload.md 4.9: set ONLY from the interleaved A/B (.harmony/probe-vupload-ab.sh, >= 5 launches per arm, quiet): floor(min(lane launch medians)) - 3 iff that is >= max(pre-lane launch medians) + 8; else null (INFO) -- never a knife-edge",
+  "_fps4kBlitMin": "plan-vupload.md 4.9: set ONLY from the interleaved A/B (.harmony/probe-vupload-ab.sh, >= 5 launches per arm, quiet): floor(min(lane launch medians)) - 3 iff that is >= max(pre-lane launch medians) + 8; else null (INFO) -- never a knife-edge. Measured s-rta-0929 16:14-16:18 (5 rounds x 2 arms interleaved, no compiler, load avg 5.3-7.7; A = main 3e15613, B = the plan-item-u4 app 874c0bf8): A [84.88, 88.89, 89.41, 89.95, 90.36], B [100.16, 102.64, 103.19, 103.68, 104.22] -> floor(100.16) - 3 = 97 < 90.36 + 8 = 98.36: stays null (INFO); +13.8 fps median",
   "w10MaxDiff": 1,
   "w10Fixtures": [["a1080_g250.mp4", 300, 150], ["pr1080.mov", 300, 150], ["pr4444a_1080.mov", 60, 45], ["hapa_1080.mov", 60, 45], ["x265_10_1080.mp4", 300, 150]],
   "_w10": "per fixture [name, frames, N]: captures of frame 0 and frame N (speed 0) diffed per pixel against the pre-lane app's captures ($VIDEO_REF_DIR), max |diff| <= w10MaxDiff (K2 = 1/255, the audit's MUST). The alpha fixtures are 2 s (60 frames: ProRes 4444 / HAP Alpha 1080p are 1.5-2 MB a frame) and intra-only, so N = 45; the long-GOP ones use frame 150 (mid-GOP).",
