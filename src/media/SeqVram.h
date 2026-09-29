@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 // SeqVram: the texture memory of image sequences (s-rta-0928b seqvram, .harmony/.reports/s-rta-0928b/plan-seqvram.md).
@@ -34,6 +35,9 @@ constexpr int kFar = 1 << 30;   // distance of a frame the trajectory never reac
 // Fix round F1: a sequence is IDLE only after kIdleFrames consecutive frames without a draw (~0.5 s at 120 Hz) -- a
 // Pitfall 53 pending hold skips a fading layer's outgoing chain for 1-3 frames, which never makes it idle.
 constexpr int kIdleFrames = 60;
+// Fix round F2: glDeleteTextures per render frame, SHARED by the frame-top idle trim, every sequence's shrink and the
+// retire drain (one bulk delete of ~127 1080p textures stalled the render callback ~22 ms). Context loss releases all.
+constexpr int kMaxDeletesPerFrame = 8;
 
 struct Stats   // relaxed atomics, written on the GL thread, read by /api/state
 {
@@ -45,8 +49,17 @@ struct Stats   // relaxed atomics, written on the GL thread, read by /api/state
     std::atomic<int64_t> evictions{ 0 };
     std::atomic<int64_t> staleDrops{ 0 };      // a decoded result no longer inside the window, dropped unuploaded
     std::atomic<int64_t> uploadDeferred{ 0 };  // H1: no slot free this frame, the result waits in ready_
-    std::atomic<int64_t> residentBytes{ 0 };   // every sequence's allocated texture bytes (frame top)
+    std::atomic<int64_t> deletes{ 0 };         // F2: glDeleteTextures of the per-frame paths (trim, shrink, retire drain)
+    std::atomic<int64_t> residentBytes{ 0 };   // every sequence's allocated texture bytes (frame top; retired included)
     std::atomic<int> openCount{ 0 }, residentSlots{ 0 }, overBudget{ 0 };
+};
+
+// F2: the frame's glDeleteTextures allowance (GL thread; the Renderer resets it at the frame top).
+struct DeleteBudget
+{
+    int left = kMaxDeletesPerFrame;
+    void reset() { left = kMaxDeletesPerFrame; }
+    void spend(size_t n) { left = std::max(0, left - static_cast<int>(n)); }
 };
 
 struct Grant
@@ -55,6 +68,7 @@ struct Grant
     uint64_t frameSerial = 0;
     Stats* stats = nullptr;
     float inPoint = 0.0f, outPoint = 1.0f;   // H6: the clip's in/out points (normalized), for the trajectory
+    DeleteBudget* deletes = nullptr;         // F2: the frame's shared delete budget (null = unlimited)
 };
 
 // This sequence may hold: the free budget, never less than its floor.
@@ -251,6 +265,8 @@ inline bool wanted(const std::vector<int>& dist, int j, int cur, int lastShown, 
 // A per-sequence table of equal-size GL textures (GL-thread owned; the caller does the GL calls the returned Act names).
 // Evicting frees a slot (no GL call); shrink() hands back free slots beyond a smaller allowance; releaseAll() hands back
 // every texture and empties the table (H2: a new context never reuses an old name). Out-of-range slots are no-ops (H1).
+// F2: shrink() and releaseSome() hand back at most maxDeletes textures -- the rest stay allocated (a free slot is
+// reusable and still counted) until a later frame's delete budget takes them.
 class Slots
 {
 public:
@@ -305,8 +321,8 @@ public:
             slots_[static_cast<size_t>(s)].frame = -1;
     }
 
-    // Textures of FREE slots removed until size() <= cap (to delete); occupied slots stay.
-    std::vector<uint32_t> shrink(int cap)
+    // Textures of FREE slots removed until size() <= cap (to delete), at most maxDeletes of them; occupied slots stay.
+    std::vector<uint32_t> shrink(int cap, int maxDeletes = std::numeric_limits<int>::max())
     {
         std::vector<uint32_t> gone;
         for (int i = size() - 1; i >= 0 && size() > std::max(0, cap); --i)
@@ -315,7 +331,11 @@ public:
             if (s.frame >= 0)
                 continue;
             if (s.tex != 0)
+            {
+                if (static_cast<int>(gone.size()) >= maxDeletes)
+                    break;
                 gone.push_back(s.tex);
+            }
             slots_.erase(slots_.begin() + i);
         }
         return gone;
@@ -328,6 +348,24 @@ public:
             if (s.tex != 0)
                 gone.push_back(s.tex);
         slots_.clear();
+        return gone;
+    }
+
+    // F2, the retire drain: up to maxDeletes textures (occupied or not) from the end of the table (to delete); the table
+    // is empty once every texture was handed back.
+    std::vector<uint32_t> releaseSome(int maxDeletes)
+    {
+        std::vector<uint32_t> gone;
+        while (!slots_.empty())
+        {
+            if (slots_.back().tex != 0)
+            {
+                if (static_cast<int>(gone.size()) >= maxDeletes)
+                    return gone;
+                gone.push_back(slots_.back().tex);
+            }
+            slots_.pop_back();
+        }
         return gone;
     }
 

@@ -92,10 +92,15 @@ public:
     int residentSlots() const;
     uint64_t lastDrawnSerial() const { return lastDrawnSerial_; }
     size_t minWindowBytes() const { return static_cast<size_t>(SeqVram::kMinWindowFrames) * frameBytesHint_; }
-    void trimToMinimum(SeqVram::Stats* stats);
+    // Fix round F2: deletes at most deletes.left textures (the frame's shared budget); spare slots it could not delete
+    // stay allocated (free) for a later call.
+    void trimToMinimum(SeqVram::Stats* stats, SeqVram::DeleteBudget& deletes);
 
     // Release all GL textures. Call from openGLContextClosing().
     void releaseGL();
+    // Fix round F2, the retire drain (GL thread): deletes at most deletes.left textures; true once none is left (then
+    // the rest of releaseGL's state is cleared too).
+    bool releaseGLWithin(SeqVram::DeleteBudget& deletes, SeqVram::Stats* stats);
 
     // Get the list of loaded files (for serialization/display)
     const std::vector<juce::File>& getFiles() const { return files_; }
@@ -147,5 +152,6 @@ private:
     void requestFrame(ImageDecode::Decoder& decoder, int idx);
     bool uploadFrame(const ImageDecode::Result& r, int idx, int cap, SeqVram::Stats* stats);   // false: no slot (H1)
     void evictFrame(int idx, SeqVram::Stats* stats);
+    void deleteTextures(const std::vector<uint32_t>& gone, SeqVram::DeleteBudget* deletes, SeqVram::Stats* stats);
     SeqVram::Transport transport(int cur, const SeqVram::Grant& grant) const;
 };

@@ -292,6 +292,12 @@ private:
     uint64_t seqFrameSerial_ = 0;
     size_t seqResidentTotal_ = 0;
     void scanSequenceVram();
+    // Fix round F2: the frame's glDeleteTextures budget (SeqVram::kMaxDeletesPerFrame), reset at the frame top and
+    // SHARED by the retire drain, the idle trim and every drawn sequence's shrink; the retired sequences' textures not
+    // deleted yet (drainRetiredMedia) are reported with the live ones.
+    SeqVram::DeleteBudget seqDeletes_;
+    size_t seqRetiredBytes_ = 0;
+    int seqRetiredSlots_ = 0;
     // R1.3: the legacy single image still decoding while a frame needs it (the capture gate reads it). Reset at the
     // top of every frame; set by resolveLegacy.
     bool legacyPendingThisFrame_ = false;
@@ -622,7 +628,9 @@ private:
     std::mutex retiredMediaMutex_;
     std::vector<std::unique_ptr<VideoPlayer>> retiredVideoPlayers_;
     std::vector<std::unique_ptr<ImageSequence>> retiredImageSequences_;
-    void drainRetiredMedia();
+    // contextClosing: every texture now (the context dies). Otherwise (every frame) a retired image sequence deletes at
+    // most the frame's remaining seqDeletes_ and stays on the list until it holds none (fix round F2).
+    void drainRetiredMedia(bool contextClosing = false);
 
     // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, true, pending).
     GLuint getVideoFrameTexture(const Clip* clip, float dt, bool* pending);

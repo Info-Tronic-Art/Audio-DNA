@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstring>
+#include <limits>
 
 using namespace juce::gl;
 
@@ -355,9 +356,10 @@ GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexC
                                     kMaxOutstanding - outstanding_);
     for (int j : plan.evict)
         evictFrame(j, stats);
+    //    F2: at most the frame's shared delete budget; the spare slots left over stay free and go on later frames.
     if (slots_.size() > cap)
-        for (GLuint tex : slots_.shrink(cap))
-            glDeleteTextures(1, &tex);
+        deleteTextures(slots_.shrink(cap, grant.deletes != nullptr ? grant.deletes->left : std::numeric_limits<int>::max()),
+                       grant.deletes, stats);
 
     // 4. Upload within the frame's budget (the rest wait, never re-decoded; no slot this frame -> wait too, H1).
     for (auto it = ready_.begin(); it != ready_.end();)
@@ -403,9 +405,10 @@ GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexC
     return 0;
 }
 
-// s-rta-0928b seqvram: the Renderer's pressure trim of a sequence that was not drawn last frame (an inactive deck or
-// column): every resident frame but the current and the shown one is evicted, the spare slots are deleted.
-void ImageSequence::trimToMinimum(SeqVram::Stats* stats)
+// s-rta-0928b seqvram: the Renderer's pressure trim of an IDLE sequence (not drawn for SeqVram::kIdleFrames frames: an
+// inactive deck or column): every resident frame but the current and the shown one is evicted, the spare slots are
+// deleted within the frame's shared budget (F2; the rest stay free until a later trim).
+void ImageSequence::trimToMinimum(SeqVram::Stats* stats, SeqVram::DeleteBudget& deletes)
 {
     const int n = static_cast<int>(textures_.size());
     if (n == 0)
@@ -414,8 +417,18 @@ void ImageSequence::trimToMinimum(SeqVram::Stats* stats)
     for (int j = 0; j < n; ++j)
         if (textures_[static_cast<size_t>(j)] != 0 && j != cur && j != lastShown_)
             evictFrame(j, stats);
-    for (GLuint tex : slots_.shrink(2))
+    deleteTextures(slots_.shrink(2, deletes.left), &deletes, stats);
+}
+
+// F2: the textures a slot operation handed back, deleted and counted against the frame's budget (seq_deletes).
+void ImageSequence::deleteTextures(const std::vector<uint32_t>& gone, SeqVram::DeleteBudget* deletes, SeqVram::Stats* stats)
+{
+    for (GLuint tex : gone)
         glDeleteTextures(1, &tex);
+    if (deletes != nullptr)
+        deletes->spend(gone.size());
+    if (stats != nullptr)
+        stats->deletes.fetch_add(static_cast<int64_t>(gone.size()), std::memory_order_relaxed);
 }
 
 // s-rta-0928b seqvram: the allocated slots (free ones included) = the VRAM this sequence holds.
@@ -459,6 +472,16 @@ void ImageSequence::releaseGL()
     outstanding_ = 0;
     lastShown_ = -1;
     lastReturned_ = -1;
+}
+
+// s-rta-0928b seqvram F2: a retired sequence releases its textures over several frames, within the frame's budget.
+bool ImageSequence::releaseGLWithin(SeqVram::DeleteBudget& deletes, SeqVram::Stats* stats)
+{
+    deleteTextures(slots_.releaseSome(deletes.left), &deletes, stats);
+    if (slots_.size() > 0)
+        return false;
+    releaseGL();   // no texture left: clears the per-frame state (nothing to delete)
+    return true;
 }
 
 juce::Image ImageSequence::getThumbnail(int maxWidth, int maxHeight)

@@ -595,3 +595,59 @@ TEST_CASE("(13) F1: a sequence is idle only after kIdleFrames frames without a d
     CHECK_FALSE(isIdle(0, 1 + 59));
     CHECK_FALSE(isIdle(200, 100));                        // a serial behind the last draw is never idle
 }
+
+TEST_CASE("(14) F2: shrink and releaseSome hand back at most maxDeletes textures a call", "[seq_vram][s-rta-0928b]")
+{
+    CHECK(kMaxDeletesPerFrame == 8);
+    DeleteBudget b;
+    CHECK(b.left == 8);
+    b.spend(3);
+    CHECK(b.left == 5);
+    b.spend(10);
+    CHECK(b.left == 0);
+    b.reset();
+    CHECK(b.left == 8);
+
+    // an idle trim of a full 129-slot window (cur + lastShown stay): at most 8 deletes a frame, done in 16 frames
+    Slots s;
+    for (int f = 0; f < 129; ++f)
+        s.bind(s.acquire(f, 1920, 1080, 129).slot, static_cast<uint32_t>(f + 1));
+    for (int f = 0; f < 129; ++f)
+        if (f != 64 && f != 63)
+            s.release(f);
+    int frames = 0;
+    while (s.size() > 2)
+    {
+        DeleteBudget frame;
+        const auto gone = s.shrink(2, frame.left);
+        frame.spend(gone.size());
+        REQUIRE(gone.size() <= static_cast<size_t>(kMaxDeletesPerFrame));
+        REQUIRE(!gone.empty());
+        ++frames;
+        // the slots not deleted yet stay allocated (free, counted, reusable)
+        CHECK(s.allocatedBytes() == static_cast<size_t>(s.size()) * k1080);
+    }
+    CHECK(frames == 16);   // 127 spare slots / 8 a frame
+    CHECK(s.slotOf(64) >= 0);
+    CHECK(s.slotOf(63) >= 0);
+    CHECK(s.shrink(2, 0).empty());
+
+    // a budget of 0 deletes nothing; a free slot left over is reused, never re-created
+    Slots r;
+    for (int f = 0; f < 4; ++f)
+        r.bind(r.acquire(f, 64, 64, 4).slot, static_cast<uint32_t>(10 + f));
+    r.release(3);
+    CHECK(r.shrink(1, 0).empty());
+    CHECK(r.size() == 4);
+    CHECK(r.acquire(7, 64, 64, 1).act == Slots::Act::Reuse);
+
+    // the retire drain: occupied or not, at most maxDeletes a call; empty at the end, and the next acquire creates
+    CHECK(r.releaseSome(3) == std::vector<uint32_t>{ 13, 12, 11 });
+    CHECK(r.size() == 1);
+    CHECK(r.releaseSome(0).empty());
+    CHECK(r.size() == 1);
+    CHECK(r.releaseSome(8) == std::vector<uint32_t>{ 10 });
+    CHECK(r.size() == 0);
+    CHECK(r.allocatedBytes() == 0u);
+    CHECK(r.acquire(0, 64, 64, 4).act == Slots::Act::Create);
+}

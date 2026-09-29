@@ -307,7 +307,9 @@ void Renderer::renderOpenGL()
     // Release any media players closeMediaForClip() retired from the message
     // thread (media-leak fix, L1) — the only place this runs, since this
     // function is guaranteed to execute on the GL thread with a context
-    // current.
+    // current. s-rta-0928b seqvram F2: the frame's texture-delete budget first (the drain, the idle trim and the
+    // sequences' shrinks share it).
+    seqDeletes_.reset();
     drainRetiredMedia();
     // s-rta-0928b seqvram: the image sequences' texture bytes, every frame, before any early return.
     scanSequenceVram();
@@ -1144,7 +1146,7 @@ void Renderer::openGLContextClosing()
     // ID that belonged to THIS (by then destroyed) context — the same
     // per-context-state class of bug EffectChainGLState::release() exists to
     // avoid (see the notebook 2026-08-02 entry on that class).
-    drainRetiredMedia();
+    drainRetiredMedia(true);
 
     compositor_.releaseGL();
 
@@ -1508,7 +1510,7 @@ void Renderer::closeMediaForClip(uint32_t clipId)
     }
 }
 
-void Renderer::drainRetiredMedia()
+void Renderer::drainRetiredMedia(bool contextClosing)
 {
     // GL-thread only — called every frame from renderOpenGL() AND once more
     // from openGLContextClosing() (round 2 fix, so nothing retired-but-
@@ -1527,10 +1529,35 @@ void Renderer::drainRetiredMedia()
         seqToRetire.swap(retiredImageSequences_);
     }
     for (auto& player : videoToRetire) player->releaseGL();
-    for (auto& seq : seqToRetire) seq->releaseGL();
+    // s-rta-0928b seqvram F2: a retired sequence deletes at most the frame's remaining texture-delete budget; one that
+    // still holds textures goes back on the list (ahead of anything retired meanwhile) for the next frames. Context
+    // close releases everything now.
+    std::vector<std::unique_ptr<ImageSequence>> seqLeft;
+    size_t leftBytes = 0;
+    int leftSlots = 0;
+    for (auto& seq : seqToRetire)
+    {
+        if (contextClosing)
+            seq->releaseGL();
+        else if (!seq->releaseGLWithin(seqDeletes_, &seqStats_))
+        {
+            leftBytes += seq->residentBytes();
+            leftSlots += seq->residentSlots();
+            seqLeft.push_back(std::move(seq));
+        }
+    }
+    if (!seqLeft.empty())
+    {
+        std::lock_guard<std::mutex> lock(retiredMediaMutex_);
+        for (auto& seq : retiredImageSequences_)
+            seqLeft.push_back(std::move(seq));
+        retiredImageSequences_.swap(seqLeft);
+    }
+    seqRetiredBytes_ = leftBytes;
+    seqRetiredSlots_ = leftSlots;
     // videoToRetire/seqToRetire go out of scope here, destroying each player/
-    // sequence. VideoPlayer's destructor re-runs close()+releaseGL() (both
-    // already-idempotent no-ops at this point); ImageSequence's destructor
+    // sequence (the released ones; the moved-from entries are null). VideoPlayer's destructor re-runs
+    // close()+releaseGL() (both already-idempotent no-ops at this point); ImageSequence's destructor
     // re-runs close() (also idempotent).
 }
 
@@ -1562,10 +1589,12 @@ void Renderer::scanSequenceVram()
             });
             for (auto* seq : idle)
             {
-                if (total <= SeqVram::kBudgetBytes)
+                // F2: the trim deletes within the frame's shared budget; the evicted slots it cannot delete stay
+                // allocated (free) and go on later frames while the total is still over the budget.
+                if (total <= SeqVram::kBudgetBytes || seqDeletes_.left <= 0)
                     break;
                 const size_t before = seq->residentBytes();
-                seq->trimToMinimum(&seqStats_);
+                seq->trimToMinimum(&seqStats_, seqDeletes_);
                 total -= before - std::min(before, seq->residentBytes());
             }
         }
@@ -1573,8 +1602,9 @@ void Renderer::scanSequenceVram()
             slots += seq->residentSlots();
     }
     seqResidentTotal_ = total;
-    seqStats_.residentBytes.store(static_cast<int64_t>(total), std::memory_order_relaxed);
-    seqStats_.residentSlots.store(slots, std::memory_order_relaxed);
+    // Reported: the live sequences plus the retired ones still releasing (F2); the grants and the pressure use the live.
+    seqStats_.residentBytes.store(static_cast<int64_t>(total + seqRetiredBytes_), std::memory_order_relaxed);
+    seqStats_.residentSlots.store(slots + seqRetiredSlots_, std::memory_order_relaxed);
     seqStats_.openCount.store(open, std::memory_order_relaxed);
     seqStats_.overBudget.store(total > SeqVram::kBudgetBytes ? 1 : 0, std::memory_order_relaxed);
 }
@@ -1770,7 +1800,7 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         const size_t mine = seq->residentBytes();
         const size_t others = seqResidentTotal_ - std::min(seqResidentTotal_, mine);
         const SeqVram::Grant grant{ SeqVram::allowance(others, seq->minWindowBytes()), seqFrameSerial_, &seqStats_,
-                                    clip->inPoint, clip->outPoint };
+                                    clip->inPoint, clip->outPoint, &seqDeletes_ };
         const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, grant, &seqPending);
         seqResidentTotal_ = others + seq->residentBytes();
         if (seqPending)

@@ -1339,6 +1339,8 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
         obj->setProperty("seq_evictions", static_cast<juce::int64>(sq.evictions.load(std::memory_order_relaxed)));
         obj->setProperty("seq_stale_drops", static_cast<juce::int64>(sq.staleDrops.load(std::memory_order_relaxed)));
         obj->setProperty("seq_upload_deferred", static_cast<juce::int64>(sq.uploadDeferred.load(std::memory_order_relaxed)));
+        // fix round F2: glDeleteTextures of the per-frame paths (idle trim, shrink, retire drain), <= 8 per frame
+        obj->setProperty("seq_deletes", static_cast<juce::int64>(sq.deletes.load(std::memory_order_relaxed)));
     }
     // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
     // nothing). Same fields as TestServer.
