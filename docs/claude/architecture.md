@@ -324,7 +324,8 @@ inside a `juce::Viewport`) or repaints a rect only when its pixels change (`Laye
 (a child of the top-level window, a `TooltipWindow`, a child of MainComponent added after startup, or registered with
 `addOverlay`); while one crosses a native panel, that panel paints in-peer exactly as before (the switch is synchronous;
 the layer comes back only after it drew). The layer's backing store is its own: the parent's background under a
-non-opaque panel (the waveform's rounded corners) is painted by the peer and composited under the layer.
+non-opaque panel (the waveform's rounded corners) is painted by the peer and composited under the layer (and repainted
+by the peer when the layer returns from a fallback).
 Witnesses: `GET /api/debug/ui_paint` (TEST_SERVER builds), `.harmony/probe-idle-paint.sh`.
 
 ### Naming Conventions
