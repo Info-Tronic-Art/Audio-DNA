@@ -485,3 +485,61 @@ the decode thread through a never-decodable stream such as hap_zero. That is not
 - The lock was released by this lane after each batch; the last release was at 01:32:01.
 - No app launched by this lane is running; outwins after every batch: `audio-dna windows 0, Output-named 0`.
 - No system dialog on screen at 01:32:01.
+
+## Rebase (lane/video onto main a56f835, post lane/mediaopen merge)
+Old head c1120bf (fix round 2 report), based on 328301d. `git rebase main` replayed conflicts on the shared files
+(ApiServer.cpp, CLAUDE.md, pitfalls.md, tests/CMakeLists.txt) across 5 of the 12 lane commits (every commit touching
+those files) -- too many repeats of the same hunks -- so per the task's fallback this used `git merge main` instead:
+one conflict set, resolved once. New head **fb04d7c** (`Merge branch 'main' into lane/video`).
+
+### Conflicts and resolution (keep both lanes' additions, never drop either)
+| file | resolution |
+|---|---|
+| `src/api/ApiServer.cpp` | kept both `/api/state` blocks: video lane's `video_*` / `gl_video_*` / `msg_video_lock_wait_max_ms` fields, then mediaopen's `fence_hold_frames` / `fence_black_frames` / `media` / TEST-ONLY heartbeat fields, in that order (matches the file's existing top-to-bottom field order). No behavior change -- pure block ordering. |
+| `src/test/TestServer.cpp` | auto-merged clean by git (no conflict markers) -- both lanes' additions coexist. |
+| `tests/CMakeLists.txt` | the two lanes each appended a target block after `test_seq_vram` and their tails interleaved (`if(NOT MSVC) ... endif()` from `test_video_player_open` collided with the same idiom from `test_image_sequence_open`). Took main's whole appended block verbatim first (`test_fenced_ptr_slot`, `test_image_sequence_open`, `test_media_presence`, `test_hot_thread_io_lint`), then the lane's whole appended block verbatim after it (`test_video_ring`, `test_video_player_open`) -- never hand-merged interleaved hunks. Confirmed both blocks are byte-identical to each side's pre-merge file via `git show <side>:tests/CMakeLists.txt`. |
+| `docs/claude/pitfalls.md` | auto-merged clean (main's #55 mediaopen entry and the lane's `NN` entry land at different points in the file). Renumbered the lane's `NN.` to **56.** (main already used 55 for mediaopen). |
+| `docs/claude/rendering.md` | both lanes' paragraphs kept, ordered to match the pitfall numbers: "Media opens and the fence" (Pitfall 55) first, "Video playback" (Pitfall 56) second; fixed the lane paragraph's internal `Pitfall NN` cross-reference to `Pitfall 56`. |
+| `CLAUDE.md` | both index lines kept: `55. A fenced frame holds the canvas...` then `56. Video decodes off the GL thread...` (renumbered from the lane's `NN.`). File size 24,725 B, comfortably under the 25,000 B budget -- no compression needed on either lane's line (main had already compressed rules 45/48/51/53 to make room for its own #55 before this merge). |
+
+No other files conflicted; `CompositorEngine.{h,cpp}`, `Renderer.{h,cpp}` auto-merged cleanly. Only conflict-resolution
+edits were made -- no behavior changed beyond ordering/renumbering.
+
+### Build + ctest
+`cmake -B build-lane -DCMAKE_BUILD_TYPE=Release -DAUDIODNA_BUILD_TEST_SERVER=ON -DAUDIODNA_BUILD_SYPHON=ON` with
+`FETCHCONTENT_SOURCE_DIR_*` pointed at `/Users/boriskarpman/projects/RealTimeAudio/build/_deps` (already configured
+that way in the existing `build-lane/CMakeCache.txt`; reconfigure + `cmake --build build-lane --config Release -j`
+picked up the merged `tests/CMakeLists.txt` and built clean, 0 errors (1 benign JUCE splash-screen pragma warning).
+`ctest --test-dir build-lane -j1`: **897/897 passed (100%)**, 19.82 s -- main's 880 plus the video lane's 17 new
+cases (`test_video_ring`, `test_video_player_open`).
+
+### Live probes (once each, under the shared `/tmp/audiodna-live.lock`, `LANE=video-rebase`)
+- `VIDEO_APP=<build-lane app> bash .harmony/probe-video.sh`: **PY 54 PASS / 3 FAIL** (PROBE-VIDEO RED). All 3 fails are
+  pre-existing, already-documented non-GREEN items from this lane's own fix-round-2 report, not new regressions from
+  the merge (the merge changed no runtime code): `w1_steady_1080x4 (a)` median fps >= 110 in 3 of 5 runs
+  (bimodal fps, documented "medium confidence" in the report's CONFIDENCE+VERIFY line); `w2_steady_4kx4 (a2)` 89.2
+  vs a same-launch stills-fps-relative floor of 90.0 (documented HANDOFF-NEEDS item "a ruling on w2 (a)"); and
+  `w7_message_thread_no_wait (b)` one of five trigger round trips at 31.7 ms vs a 30 ms budget while
+  `msg_video_lock_wait_max_ms` stayed 0.00 (the fixed lock-wait metric passed; the 1.7 ms overshoot on the raw RTT
+  is consistent with scheduler load -- `acquire_quiet_lock` had just waited out concurrent `clang`/`clang++` compiles
+  from other sessions on this shared machine, and every probe's own printed `load avg` stayed 5-9). Not re-run per
+  the no-thrash rule; left for Harmony's call.
+- `MEDIAOPEN_APP=<build-lane app> bash .harmony/probe-media-open.sh`: **PY 38 PASS / 0 FAIL** (PROBE-MEDIA-OPEN GREEN).
+- `SEQVRAM_APP=<build-lane app> bash .harmony/probe-seq-vram.sh`: **PY 66 PASS / 0 FAIL** (PROBE-SEQ-VRAM GREEN).
+
+Each probe run reported `no foreign render_frame traffic` and `app terminated`; the lock was acquired and released
+cleanly around each (`acquire_quiet_lock` waited out both local `clang`/`clang++` activity and, twice, a concurrent
+lane holding the lock under the name `idlepaint` before proceeding). Zero `UserNotificationCenter` windows on screen
+after the run (checked via `Quartz.CGWindowListCopyWindowInfo` through the project `.venv`); no crash dialog seen.
+The rig otherwise followed probe-video.sh / probe-media-open.sh / probe-seq-vram.sh's own screen-safe rig (no `cd`,
+`open -g` only via the helper, no Output window, no synthetic input).
+
+### Rig state at the end of the rebase
+- lane/video = fb04d7c (merge commit) + this report commit.
+- `git status` clean except `build-lane/` (kept, untracked).
+- The lock was released by this lane (`video-rebase`) after each of the 3 probes; last release 02:10:09.
+- No app launched by this lane is running after the run; an `audio-dna windows 2` reading at final check belongs to
+  a different, concurrently active lane/session on this shared machine (its own probe was mid-run under the
+  `idlepaint` lock name at the time) -- not touched, per the rule against acting on another lane's process.
+- No `UserNotificationCenter` window and no dialog was observed at any point in this rebase.
+- Not merged into main; not pushed.
