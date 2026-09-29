@@ -13,8 +13,10 @@ usage: probe-vupload.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-vupload.py <root> <fresh-outdir> [row,row,...]
 rows (run order): u2_gl_thread_qos u4a_context_cycle u4b_idle_ring_trim u6_crossfade_video u7_reverse_pingpong
 
-u2_gl_thread_qos: 8080 /api/state gl_thread_qos == 33 (QOS_CLASS_USER_INTERACTIVE; the render thread samples
-  qos_class_self() every frame). RED on the pre-lane app: absent; on an app before plan item u2 (P2): 21 (DEFAULT).
+u2_gl_thread_qos: INFO "QoS not applied (VU15)": prints 8080 /api/state gl_thread_qos (the render thread samples
+  qos_class_self() every frame; 21 = DEFAULT). The lane's P2 raise to USER_INTERACTIVE (33) was reverted by adoption
+  addendum 2 VU15 rule (a): w7's message-thread trigger round trips > 20 ms, 10 x 3 interleaved launches: main 2, P2 on
+  11, P2 off 2 (of 50 each).
 u4a_context_cycle: 1080p canvas, 4 x a1080 layers -- layer 0 (bottom) at "speed": 0.0 (frame 0 held: no newer frame
   ever reaches its clock), layers 1-3 playing -- ONE trigger_column, 2 s, s0; for each detached_ms in cycleDetachedMs
   [POST 8080 /api/debug/gl_context_cycle {"detached_ms": N} (0 = re-attach at once; 500 = the preview hidden long enough
@@ -27,7 +29,7 @@ u4a_context_cycle: 1080p canvas, 4 x a1080 layers -- layer 0 (bottom) at "speed"
   cycles); (c) video_pending_frames delta s0 -> s3 == 0 and
   videos_pending 0 at s3; (d) the top layer's code within its playhead bracket; (e) VU5: video_late_frames delta over the
   steady window s2 -> s3 == 0 (the late frames across a cycle -- the stalled frames while every shader recompiles -- are
-  printed as INFO); (f) VU11: gl_thread_qos == 33 after the cycles (the QoS is re-applied by every new context).
+  printed as INFO); (f) INFO: gl_thread_qos after the cycles (was VU11's == 33 before the VU15 revert).
 u4b_idle_ring_trim: 4K canvas, deck 0 = 4 x a4k, deck 1 = warm.png; trigger_column; 3 s; s0 (8080 phys_footprint_mb,
   `ps -o rss=` of the app, video_slots_purged); switch_deck 1; trimWaitS; s1; switch_deck 0; (the return) s2; cap; a 5 s
   window; s3 (the return: settle_late, returnSettleS more, settle_late again -- four 4K catch-ups end at different
@@ -100,16 +102,16 @@ def late_hold(tag, s0, s1, what):
         check(h == 0, f"{tag}: (VU5) video_hold_no_texture delta over {what} {h} == 0")
 
 
-def qos_check(tag, label):
-    st = tstate(); q = pv.field(tag, st, "gl_thread_qos")
-    if q is not None:
-        check(q == 33, f"{tag}: {label} gl_thread_qos {q} == 33 (QOS_CLASS_USER_INTERACTIVE; 21 = DEFAULT)")
+def qos_info(tag, label):
+    """INFO since VU15: the render thread's QoS raise (P2) was reverted -- printed, never judged."""
+    q = pv.counter(tstate(), "gl_thread_qos")
+    info(f"{tag}: {label} gl_thread_qos {q} -- QoS not applied (VU15) (21 = DEFAULT, 33 = USER_INTERACTIVE)")
     return q
 
 
 # ---------------------------------------------------------------- rows
 def u2(tag):
-    q = qos_check(tag, "the render thread's")
+    q = qos_info(tag, "the render thread's")
     pv.data(tag, qos=q)
 
 
@@ -175,7 +177,7 @@ def u4a(tag):
     lt = pv.delta(tag, s2, s3, "video_late_frames")
     if lt is not None:
         check(lt == 0, f"{tag}: (e) VU5 video_late_frames delta over the 2 s steady window after the cycles {lt} == 0")
-    qos_check(tag, "(f) VU11 after the cycles:")
+    qos_info(tag, "(f) after the cycles:")
 
 
 def u4b(tag):

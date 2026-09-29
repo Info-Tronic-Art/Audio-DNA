@@ -1,5 +1,4 @@
 #include "OutputWindow.h"
-#include "render/GLThreadQos.h"
 #include <iostream>
 
 using namespace juce::gl;
@@ -14,7 +13,6 @@ void OutputWindow::Presenter::newOpenGLContextCreated()
     // contexts render on ONE shared thread: a blocking swap here would stall the main render. Each output
     // context is paced by its own display's display link instead.
     context_.setSwapInterval(0);
-    raiseRenderThreadQos();   // s-rta-0929 vupload P2 / VU11: that shared thread at QoS USER_INTERACTIVE from every context
 }
 
 void OutputWindow::Presenter::renderOpenGL()

@@ -1,8 +1,9 @@
 #!/bin/bash
 # probe-vupload.sh -- s-rta-0929 vupload (.harmony/.reports/s-rta-0929/plan-vupload.md 4.7 + HARMONY ADOPTION VU5-VU11).
-# Live witness of the video upload path's TEST-MODE rows: the GL render thread runs at QoS USER_INTERACTIVE (u2, re-checked
-# after a context cycle), a GL context loss never leaves a playing clip without its picture (u4a: video_hold_no_texture
-# stays 0 across TEST-ONLY /api/debug/gl_context_cycle detach + re-attach cycles), an idle player's free ring slots are
+# Live witness of the video upload path's TEST-MODE rows: the GL render thread's QoS class (u2, INFO since VU15 reverted
+# the USER_INTERACTIVE raise; also printed after u4a's context cycles), a GL context loss never leaves a playing clip
+# without its picture (u4a: video_hold_no_texture stays 0 across TEST-ONLY /api/debug/gl_context_cycle detach + re-attach
+# cycles), an idle player's free ring slots are
 # purged and come back with a correct picture (u4b), a crossfade under a column trigger keeps both chains' pictures (u6),
 # and reverse / ping-pong play (u7, compared across apps by .harmony/probe-vupload-ab.sh). Rows, fixtures and calibration:
 # the docstring of .harmony/probe-vupload.py; thresholds: .harmony/probe-vupload.json.
