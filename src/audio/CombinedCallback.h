@@ -38,12 +38,42 @@ public:
 
     AudioTap& tap() { return audioTap_; }
 
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929 asyncload (plan-asyncload.md 5.7 / R9, TEST-ONLY build path): the audio-callback witnesses of
+    // /api/state "load" -- the longest gap between two callback arrivals since the last read (reset on read), the
+    // callback count and the last period in samples. The callback's cost: one mach_absolute_time read (a commpage
+    // read, no syscall) and three relaxed atomics; no allocation, lock, syscall or exception (Sacred Rule 1). Absent
+    // from a build without AUDIODNA_BUILD_TEST_SERVER.
+    double takeGapMaxMs()
+    {
+        const int64_t t = gapMaxTicks_.exchange(0, std::memory_order_relaxed);
+        return static_cast<double>(t) * 1000.0 / static_cast<double>(juce::Time::getHighResolutionTicksPerSecond());
+    }
+    uint64_t callbacks() const { return callbacks_.load(std::memory_order_relaxed); }
+    int periodSamples() const { return periodSamples_.load(std::memory_order_relaxed); }
+#endif
+
     void audioDeviceIOCallbackWithContext(
         const float* const* inputChannelData, int numInputChannels,
         float* const* outputChannelData, int numOutputChannels,
         int numSamples,
         const juce::AudioIODeviceCallbackContext& context) override
     {
+#if AUDIODNA_TEST_SERVER
+        // s-rta-0929 asyncload (TEST-ONLY): the inter-arrival gap witness (see takeGapMaxMs).
+        {
+            const int64_t now = juce::Time::getHighResolutionTicks();
+            if (lastTicks_ != 0)
+            {
+                const int64_t gap = now - lastTicks_;
+                if (gap > gapMaxTicks_.load(std::memory_order_relaxed))
+                    gapMaxTicks_.store(gap, std::memory_order_relaxed);
+            }
+            lastTicks_ = now;
+            callbacks_.fetch_add(1, std::memory_order_relaxed);
+            periodSamples_.store(numSamples, std::memory_order_relaxed);
+        }
+#endif
         // "What the app listens to" -- computed once (D10.1's restructure),
         // then fed to BOTH the analysis callback and the tap. Preserves the
         // pre-existing mic/file behaviour exactly; only the shape changed
@@ -141,6 +171,9 @@ public:
 
     void audioDeviceAboutToStart(juce::AudioIODevice* device) override
     {
+#if AUDIODNA_TEST_SERVER
+        lastTicks_ = 0;   // s-rta-0929 asyncload: a restart's first callback measures no gap (callback quiesced here)
+#endif
         player_.audioDeviceAboutToStart(device);
         analysisCallback_.audioDeviceAboutToStart(device);
 
@@ -171,4 +204,14 @@ private:
 
     std::atomic<uint64_t> deliveredSamples_{0};
     AudioTap audioTap_;
+#if AUDIODNA_TEST_SERVER
+    int64_t lastTicks_ = 0;                        // the callback's own (and audioDeviceAboutToStart's, quiesced)
+    std::atomic<int64_t> gapMaxTicks_{ 0 };
+    std::atomic<uint64_t> callbacks_{ 0 };
+    std::atomic<int> periodSamples_{ 0 };
+    // s-rta-0929 asyncload (adoption AL8 b): every counter the audio callback touches is lock-free.
+    static_assert(std::atomic<int64_t>::is_always_lock_free, "audio-callback witness must be lock-free");
+    static_assert(std::atomic<uint64_t>::is_always_lock_free, "audio-callback witness must be lock-free");
+    static_assert(std::atomic<int>::is_always_lock_free, "audio-callback witness must be lock-free");
+#endif
 };

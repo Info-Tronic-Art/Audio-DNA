@@ -73,6 +73,8 @@ public:
     void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
     // s-rta-0928b mediaopen: /api/state.media (MainComponent::mediaStateVar: atomics only). Set it BEFORE start().
     void setMediaStateProvider(std::function<juce::var()> provider) { mediaStateProvider_ = std::move(provider); }
+    // s-rta-0929 asyncload: /api/state.load (MainComponent::loadWitnessVar). Before start().
+    void setLoadWitnessProvider(std::function<juce::var()> provider) { loadWitnessProvider_ = std::move(provider); }
 
     // s-rta-0927 outputs-c3 (plan5 C3), TEST MODE ONLY (this server; 7070 never has them). Neither route can open an
     // output window:
@@ -172,6 +174,7 @@ private:
 
     std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
     std::function<juce::var()> mediaStateProvider_;     // set before start(); see setMediaStateProvider
+    std::function<juce::var()> loadWitnessProvider_;    // set before start(); see setLoadWitnessProvider
     OutputsTestHooks outputsTestHooks_;                 // set before start(); see setOutputsTestHooks
     int port_;
     httplib::Server server_;

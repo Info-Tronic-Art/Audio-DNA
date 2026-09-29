@@ -227,7 +227,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
     fileLabel_.setColour(juce::Label::textColourId,
                          juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    fileLabel_.setText("No file loaded", juce::dontSendNotification);
+    setFileLabel("No file loaded");
 
     addAndMakeVisible(savePresetButton_);
     addAndMakeVisible(loadPresetButton_);
@@ -306,8 +306,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (sel == 1)
         {
             audioEngine_.setSourceMode(AudioEngine::SourceMode::MicInput);
-            fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(),
-                              juce::dontSendNotification);
+            setFileLabel("Mic: " + audioEngine_.getDeviceStatus());
         }
         else if (sel == 2)
         {
@@ -326,14 +325,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     if (audioEngine_.loadFile(file))
                     {
                         currentAudioFile_ = file;
-                        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+                        setFileLabel(file.getFileName());
                         applyAudioTransport("play", Origin::Human);
                     }
                 });
             }
             else
             {
-                fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
+                setFileLabel(currentAudioFile_.getFileName());
                 applyAudioTransport("play", Origin::Human);
             }
         }
@@ -402,10 +401,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 {
                     // Preset-retarget-fix W5: no modal on this performance
                     // surface — flag dropped mappings inline in the label.
-                    fileLabel_.setText("Slot " + juce::String(capturedSlot + 1) + ": "
+                    setFileLabel("Slot " + juce::String(capturedSlot + 1) + ": "
                                       + s.loadedFile.getFileNameWithoutExtension()
-                                      + (stats.dropped > 0 ? " (check mappings)" : ""),
-                                      juce::dontSendNotification);
+                                      + (stats.dropped > 0 ? " (check mappings)" : ""));
                     if (effectsRackPanel_)
                         effectsRackPanel_->refreshFromChain();
                 }
@@ -480,12 +478,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
     audioEngine_.onError = [this](const juce::String& msg) {
         juce::MessageManager::callAsync([this, msg] {
-            fileLabel_.setText(msg, juce::dontSendNotification);
+            setFileLabel(msg);
         });
     };
 
     if (!audioEngine_.hasAudioDevice())
-        fileLabel_.setText("No audio device found", juce::dontSendNotification);
+        setFileLabel("No audio device found");
     else
     {
         // R13: the analysis thread resamples the device stream to its fixed
@@ -535,8 +533,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (sel == 1)
         {
             audioEngine_.setSourceMode(AudioEngine::SourceMode::MicInput);
-            fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(),
-                              juce::dontSendNotification);
+            setFileLabel("Mic: " + audioEngine_.getDeviceStatus());
         }
         else if (sel == 2)
         {
@@ -554,14 +551,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     if (audioEngine_.loadFile(file))
                     {
                         currentAudioFile_ = file;
-                        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+                        setFileLabel(file.getFileName());
                         applyAudioTransport("play", Origin::Human);
                     }
                 });
             }
             else
             {
-                fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
+                setFileLabel(currentAudioFile_.getFileName());
                 applyAudioTransport("play", Origin::Human);
             }
         }
@@ -725,13 +722,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
             {
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
-                fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+                setFileLabel(clip->mediaFile.getFileName());
             }
             else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
             {
                 previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
                 previewPanel_.getRenderer().clearImage();
-                fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+                setFileLabel(juce::String(clip->sourceType));
             }
         }
     };
@@ -1550,7 +1547,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
     browserPanel_->getFilesBrowser().onFileActivated = [this](const juce::File& file) {
         previewPanel_.loadImage(file);
-        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+        setFileLabel(file.getFileName());
     };
     // s-rta-0924b step 4 (Lane S4-B): the Record tab drives the recorder through
     // the SAME perf* funnel the /api/perf/* endpoints use -- it never touches
@@ -1629,7 +1626,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // Load source into preview renderer
         previewPanel_.getRenderer().setActiveSource(sourceId.toStdString(), clip.sourceParams);
         previewPanel_.getRenderer().clearImage();
-        fileLabel_.setText(juce::String(sourceId), juce::dontSendNotification);
+        setFileLabel(juce::String(sourceId));
 
         if (deckView_) deckView_->rebuildGrid();
 
@@ -1779,8 +1776,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
                 // Extract display name from path
                 juce::File presetFile(path);
-                fileLabel_.setText("MilkDrop: " + presetFile.getFileNameWithoutExtension(),
-                                   juce::dontSendNotification);
+                setFileLabel("MilkDrop: " + presetFile.getFileNameWithoutExtension());
             }
         };
 
@@ -1871,6 +1867,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             testPort_);
         testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
         testServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
+        testServer_->setLoadWitnessProvider([this] { return loadWitnessVar(); });   // s-rta-0929 asyncload, before start()
         // plan5 C3 (s-rta-0927 outputs-c3), test mode only: the manager's counters, "Restore Last Outputs" with
         // nothing to restore, the poll A/B. The restore hook re-checks ON the message thread and runs the menu
         // action's own handler only while nothing is restorable -- it can never open a window.
@@ -1906,7 +1903,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onTriggerClip = [this](int layer, int column) { handleClipTrigger(layer, column); };
     apiServer_->onTriggerColumn = [this](int column) { handleColumnTrigger(column); };
     apiServer_->onSwitchDeck = [this](int deckIdx) { handleDeckSwitch(deckIdx); };
-    apiServer_->onLoadComposition = [this](juce::File f) { loadComposition(f); };
+    apiServer_->onLoadComposition = [this](juce::File f, std::shared_ptr<LoadTicket> t) { loadComposition(f, std::move(t)); };
     apiServer_->onSnapshot = [this]() {
         auto& renderer = previewPanel_.getRenderer();
         std::thread([&renderer]() { renderer.takeSnapshot(); }).detach();
@@ -2134,6 +2131,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
 #endif
     apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
     apiServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
+    apiServer_->setLoadWitnessProvider([this] { return loadWitnessVar(); });   // s-rta-0929 asyncload, before start()
+    // s-rta-0929 asyncload: the TEST-ONLY load routes' targets (the routes exist only in a TEST_SERVER build).
+    apiServer_->onDebugLoadDeck = [this](juce::File f) { appendDeckFromFile(f); };
+    apiServer_->onDebugDuplicateDeck = [this](int deckIndex) { duplicateDeck(deckIndex); };
+    apiServer_->onDebugCancelLoad = [this] { cancelStagedOpen(LoadTicket::Outcome::Superseded); };
+    apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
         debugDropFiles(layer, column, files);
@@ -2369,6 +2372,12 @@ MainComponent::~MainComponent()
     // join.
     if (apiServer_)
         apiServer_->stop();
+
+    // s-rta-0929 asyncload (AL6): AFTER the HTTP servers stop (ApiServer::stop() already finished every load ticket
+    // Cancelled -- the server's sweep wins at quit, so this finish is a no-op compare-exchange), BEFORE the renderer
+    // detaches: the staged load's adopted players go to the retire list detach() drains, queued opens are dropped and an
+    // in-flight one lands on nobody (mediaOpener_'s destructor, member order, waits <= 5 s for it or leaks its pool).
+    cancelStagedOpen(LoadTicket::Outcome::Cancelled);
 
     // s-rta-0923/0924 step 3 (critic A4/N9): flush/finalize/save any
     // in-progress take (or stop playback) BEFORE the audio device closes.
@@ -2775,7 +2784,7 @@ void MainComponent::openImage()
             return;
 
         previewPanel_.loadImage(file);
-        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+        setFileLabel(file.getFileName());
     });
 }
 
@@ -2802,8 +2811,7 @@ void MainComponent::savePreset()
                                        previewPanel_.getEffectChain(),
                                        previewPanel_.getMappingEngine()))
         {
-            fileLabel_.setText("Saved: " + saveFile.getFileName(),
-                              juce::dontSendNotification);
+            setFileLabel("Saved: " + saveFile.getFileName());
         }
     });
 }
@@ -2829,8 +2837,7 @@ void MainComponent::loadPreset()
                                        previewPanel_.getMappingEngine(),
                                        &stats))
         {
-            fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(),
-                              juce::dontSendNotification);
+            setFileLabel("Loaded: " + file.getFileNameWithoutExtension());
             if (effectsRackPanel_)
                 effectsRackPanel_->refreshFromChain();
             // Loading a composition is not itself undoable — drop stale history.
@@ -2933,6 +2940,11 @@ void MainComponent::refreshUiAfterModelSwap()
 
 void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
 {
+    // s-rta-0929 asyncload: a staged load never outlives the model it was staged against (New Composition; a staged
+    // load's own completion has already moved staged_ out, so this is then a no-op).
+    cancelStagedOpen(LoadTicket::Outcome::Superseded);
+    ++modelEpoch_;   // AL7: a queued Duplicate's source deck id belongs to the model it was read in
+
     // s-rta-0926 routines (plan R7): a running routine's Player holds coordinates into the OLD
     // model -- stop every routine (releasing its grips on the old model) before it is replaced.
     routineEngine_.stopAll();
@@ -3005,45 +3017,227 @@ void MainComponent::openComposition()
     });
 }
 
-// L3 STEP 3 (2026-09): per-clip media-open loop, factored out of
-// loadComposition's OPEN NEW step so appendDeckFromFile (below) can share it
-// verbatim rather than duplicate it. Mirrors prepareFileDrop's video block and
-// prepareMultiFileDrop's sequence block — see loadComposition's step 4 comment
-// for why this must run on the STAGED deck, before any fence/swap.
-void MainComponent::openMediaForDeck(Deck& deck)
+// s-rta-0929 asyncload (plan-asyncload.md 5.4 + HARMONY ADOPTION; Pitfall NN): the three loads (loadComposition,
+// appendDeckFromFile, duplicateDeck) STAGE a private model on this thread (parse, validate, re-mint, reconcile -- as
+// before), then beginStagedOpen seeds presence and hands one MediaOpener job per present video clip to the pool; each
+// landing writes dims / alpha / thumbnail into the STAGED clip (a live Clip write would race the GL thread) and installs
+// the player under its re-minted id (its decode thread parks until the first draw: frame 0 is ready at the cut); the
+// last landing runs finishStagedLoad -- the staged sequences opened (no I/O) BEFORE the swap, then exactly the old
+// swap / InsertDeckCmd / label code. An empty batch (no present video) completes inside beginStagedOpen, on this
+// message, as before. The live composition keeps playing -- and answering triggers, edits and REST (R2) -- until the cut.
+void MainComponent::setFileLabel(const juce::String& text)
 {
-    // s-rta-0928b mediaopen: seed Clip::mediaMissing on the STAGED deck (a stat per Image / Video clip, here at load, so
-    // the first frames after the swap behave as the per-frame stat did); MediaPresence's sweep keeps it current.
-    presence::seed(deck);
-    auto& renderer = previewPanel_.getRenderer();
-    for (auto& layer : deck.layers)
+    if (staged_ != nullptr && staged_->label.divert(text.toStdString()))
+        return;   // AL5: held for a cancel; the label keeps "Loading <name>..."
+    fileLabel_.setText(text, juce::dontSendNotification);
+}
+
+void MainComponent::publishLoadWitness()
+{
+    stagedNow_.store(staged_ != nullptr ? 1 : 0, std::memory_order_relaxed);
+    stagedPlayers_.store(staged_ != nullptr ? static_cast<int>(staged_->adopted.ids.size()) : 0, std::memory_order_relaxed);
+    queuedNow_.store(static_cast<int>(loadQueue_.size()), std::memory_order_relaxed);
+}
+
+Clip* MainComponent::findStagedClip(uint32_t clipId)
+{
+    if (!staged_)
+        return nullptr;
+    auto inDeck = [clipId](Deck& deck) -> Clip* {
+        for (auto& layer : deck.layers)
+            for (auto& cell : layer.clips)
+                if (cell.has_value() && cell->id == clipId)
+                    return &*cell;
+        return nullptr;
+    };
+    if (staged_->kind == stagedload::Kind::Composition)
     {
-        for (auto& cell : layer.clips)
+        for (auto& deck : staged_->comp.decks)
+            if (auto* c = inDeck(deck))
+                return c;
+        return nullptr;
+    }
+    return inDeck(staged_->deck);
+}
+
+void MainComponent::beginStagedOpen(std::unique_ptr<StagedLoad> staged)
+{
+    cancelStagedOpen(LoadTicket::Outcome::Superseded);   // one staged load at a time (a Composition supersedes)
+    staged_ = std::move(staged);
+    std::vector<MediaOpener::Job> jobs;
+    auto collect = [this, &jobs](Deck& deck) {
         {
-            if (!cell.has_value() || !cell->isPlayable()) continue;
-            Clip& clip = *cell;
-            if (clip.mediaType == Clip::MediaType::Video)
-            {
-                if (clip.mediaMissing) continue;   // non-fatal: skip, continue (the seed's stat)
-                if (renderer.openVideoForClip(clip.id, clip.mediaFile))
-                {
-                    if (auto* p = renderer.getVideoPlayer(clip.id))
-                    {
-                        clip.hasAlpha = p->hasAlpha();
-                        clip.clipWidth = p->getWidth();
-                        clip.clipHeight = p->getHeight();
-                        clip.thumbnail = p->getThumbnail(90, 72);
-                    }
-                }
-            }
-            else // ImageSequence
-            {
-                if (clip.sequenceFiles.empty()) continue;
-                // s-rta-0928b mediaopen: no I/O -- open() stats and decodes nothing, and the grid pulls the sequence's
-                // thumbnail from ClipThumbnails (its first file, off-thread) instead of a frame-0 decode here.
-                renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
-            }
+            // s-rta-0928b mediaopen: seed Clip::mediaMissing on the STAGED deck (a stat per Image / Video clip); the
+            // sweep keeps it current once the deck is live.
+            LoadTiming::Scope t(loadTiming_, LoadTiming::Prep);
+            presence::seed(deck);
         }
+        for (auto& layer : deck.layers)
+            for (auto& cell : layer.clips)
+                if (cell.has_value() && cell->isPlayable() && cell->mediaType == Clip::MediaType::Video
+                    && !cell->mediaMissing)   // a missing file: no job (R8), as the old :3027 skip
+                    jobs.push_back({ cell->id, cell->mediaFile });
+    };
+    if (staged_->kind == stagedload::Kind::Composition)
+        for (auto& deck : staged_->comp.decks)
+            collect(deck);
+    else
+        collect(staged_->deck);
+    if (!jobs.empty())
+    {
+        const auto loading = staged_->label.hold(fileLabel_.getText().toStdString(),
+                                                 stagedload::loadingLabel(staged_->kind, staged_->name.toStdString()));
+        fileLabel_.setText(juce::String::fromUTF8(loading.c_str()), juce::dontSendNotification);
+    }
+    publishLoadWitness();
+    // `this` captures: mediaOpener_ is a member destroyed before `this`, and every landing reaches it through its
+    // WeakReference. An empty batch runs finishStagedLoad before begin() returns. Nothing is touched after begin().
+    mediaOpener_.begin(std::move(jobs),
+                       [this](uint32_t id, std::unique_ptr<VideoPlayer> p) { onStagedLanded(id, std::move(p)); },
+                       [this] { finishStagedLoad(); });
+}
+
+void MainComponent::onStagedLanded(uint32_t clipId, std::unique_ptr<VideoPlayer> player)
+{
+    const auto t0 = LoadTiming::Clock::now();
+    Clip* clip = findStagedClip(clipId);
+    if (clip != nullptr && player != nullptr)   // a null player = open() failed: the clip keeps its file defaults (R8)
+    {
+        clip->hasAlpha = player->hasAlpha();
+        clip->clipWidth = player->getWidth();
+        clip->clipHeight = player->getHeight();
+        clip->thumbnail = player->getThumbnail(90, 72);
+        previewPanel_.getRenderer().installVideoPlayer(clipId, std::move(player));   // its thread parks: nothing draws it
+        staged_->adopted.add(clipId);
+    }
+    // (no staged clip: cannot happen while the batch is live -- the player dies here, unpublished)
+    const double ms = LoadTiming::msSince(t0);
+    loadTiming_.add(LoadTiming::Opens, ms);
+    loadTiming_.noteOpen(ms);
+    publishLoadWitness();
+}
+
+void MainComponent::finishStagedLoad()
+{
+    auto s = std::move(staged_);
+    if (!s)
+        return;
+    s->label.clear();
+    publishLoadWitness();
+    auto& renderer = previewPanel_.getRenderer();
+    {
+        // The staged SEQUENCES open now (no I/O since mediaopen), under their ids, BEFORE the swap: the GL thread finds
+        // them at the first frame after the cut (R12: a cancelled batch never opened one).
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Seq);
+        auto openSeqs = [&renderer, &s](Deck& deck) {
+            for (auto& layer : deck.layers)
+                for (auto& cell : layer.clips)
+                    if (cell.has_value() && cell->isPlayable() && cell->mediaType == Clip::MediaType::ImageSequence
+                        && !cell->sequenceFiles.empty())
+                    {
+                        renderer.openImageSequenceForClip(cell->id, cell->sequenceFiles, cell->sequenceFps);
+                        s->adopted.add(cell->id);
+                    }
+        };
+        if (s->kind == stagedload::Kind::Composition)
+            for (auto& deck : s->comp.decks)
+                openSeqs(deck);
+        else
+            openSeqs(s->deck);
+    }
+    const auto done = juce::String::fromUTF8(stagedload::doneLabel(s->kind, s->name.toStdString()).c_str());
+    if (s->kind == stagedload::Kind::Composition)
+    {
+        // 6. SWAP -- fenced; closes orphaned media by set difference, clears undo history, nulls the inspectors,
+        //    rebuilds the grid (see swapCompositionModel / refreshUiAfterModelSwap above).
+        {
+            LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
+            swapCompositionModel([this, &s] { composition_ = std::move(s->comp); });
+        }
+        // 7. LABEL
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
+        setFileLabel(done);
+        if (browserPanel_)
+            browserPanel_->getCompDecksBrowser().refresh();
+    }
+    else
+    {
+        // 6. APPEND -- one undoable InsertDeckCmd (plan6 §5 A1-d), not a whole-model swap: an append retires no media
+        //    (nothing to close), must not stop running routines, and must not wipe undo history. The command fences
+        //    the push_back (Composition::appendDeck reallocates `decks`, which the GL thread walks lock-free --
+        //    renderOpenGL()'s P21 persistent-layer loop), mints a fresh deck id, makes the deck active
+        //    (withDeckDetached re-points the renderer), and cancels any pending quantized trigger on the deck being
+        //    left (restored on undo). Undo disposes the appended deck's media; redo reopens it.
+        const bool dup = s->kind == stagedload::Kind::DeckDuplicate;
+        const char* what = dup ? "Duplicate Deck" : "Load Deck";
+        {
+            LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
+            std::vector<std::unique_ptr<Command>> children;
+            children.push_back(std::make_unique<InsertDeckCmd>(
+                makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
+                std::move(s->deck), what));
+            pushCommands(std::move(children), what);
+        }
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
+        if (deckView_) deckView_->rebuildGrid();   // rebuilds the deck tabs too (setupDeckTabs)
+        if (auto* active = composition_.getActiveDeck())
+            refreshPreviewFromActiveClip(*active);
+        // 7. LABEL
+        setFileLabel(done);
+        if (!dup && browserPanel_)
+            browserPanel_->getCompDecksBrowser().refresh();
+    }
+    loadTiming_.end();
+    if (s->ticket)
+        s->ticket->finish(LoadTicket::Outcome::Done);
+    s.reset();
+    pumpLoadQueue();
+}
+
+void MainComponent::cancelStagedOpen(LoadTicket::Outcome why)
+{
+    mediaOpener_.cancel();   // never waits: queued opens dropped, an in-flight one lands Stale
+    if (!staged_)
+        return;   // (a staged load's own completion: the queue it may leave is pumped by finishStagedLoad)
+    auto s = std::move(staged_);
+    loadQueue_.clear();      // AL7: whatever retires a staged load drops the requests queued behind it
+    auto& renderer = previewPanel_.getRenderer();
+    for (auto id : s->adopted.takeAll())
+        renderer.closeMediaForClip(id);   // the GL-drained retire list (their threads were parked, nothing drew them)
+    if (s->label.held())
+    {
+        const auto shown = s->label.release(fileLabel_.getText().toStdString());
+        fileLabel_.setText(juce::String::fromUTF8(shown.c_str()), juce::dontSendNotification);
+    }
+    if (s->ticket)
+        s->ticket->finish(why);
+    publishLoadWitness();
+}
+
+void MainComponent::pumpLoadQueue()
+{
+    // AL7: prepare the next queued Append / Duplicate against the NOW-live composition (a request whose preparation
+    // fails, or a Duplicate whose source deck is gone, is skipped). A batch with no video completes inside
+    // stageDeck*, which pumps again -- bounded by the queue (<= 8).
+    while (staged_ == nullptr)
+    {
+        auto q = loadQueue_.pop();
+        publishLoadWitness();
+        if (!q)
+            return;
+        if (q->kind == stagedload::Kind::DeckAppend)
+        {
+            stageDeckAppend(juce::File(juce::String::fromUTF8(q->file.c_str())));
+            continue;
+        }
+        std::vector<uint32_t> ids;
+        for (const auto& d : composition_.decks)
+            ids.push_back(d.id);
+        const int idx = stagedload::resolveDuplicateSource(q->epoch, modelEpoch_, ids, q->deckId);
+        if (idx < 0)
+            setFileLabel(juce::String::fromUTF8(stagedload::sourceGoneLabel(q->name).c_str()));
+        else
+            stageDeckDuplicate(idx);
     }
 }
 
@@ -3068,26 +3262,34 @@ compload::SourceParamLookup sourceParamLookup(const SourceRegistry& registry)
 }
 } // namespace
 
-void MainComponent::loadComposition(const juce::File& file)
+void MainComponent::loadComposition(const juce::File& file, std::shared_ptr<LoadTicket> ticket)
 {
     // 1. STAGE — load into a private `incoming`, never the live composition_:
     //    a well-formed-but-wrong-shape file (FX preset, lone deck) would
     //    otherwise "succeed" via fromVar, leaving every hasProperty-guarded
     //    field at its OLD value — a stale hybrid of two compositions.
+    loadTiming_.begin();   // s-rta-0929 asyncload: the load's cost split (/api/state load.timing)
     Composition incoming;
-    if (!incoming.loadFromFile(file))
+    bool parsed = false;
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Parse);
+        parsed = incoming.loadFromFile(file);
+    }
+    if (!parsed)
     {
         if (!testMode_)
             juce::AlertWindow::showMessageBoxAsync(
                 juce::MessageBoxIconType::WarningIcon,
                 "Open Composition",
                 file.getFileName() + ": could not read/parse file");
-        return;   // Live state untouched.
+        if (ticket) ticket->finish(LoadTicket::Outcome::Failed);   // s-rta-0929 asyncload
+        return;   // Live state untouched (a staged load stays staged).
     }
 
     // 2. VALIDATE — refuse (no decks / a deck with no layers) or repair
     //    (activeDeckIndex out of range, numColumns/padding) — on `incoming`
     //    only. Live state untouched either way.
+    const auto tPrep = LoadTiming::Clock::now();
     if (auto reason = compload::validateComposition(incoming); !reason.empty())
     {
         if (!testMode_)
@@ -3095,6 +3297,7 @@ void MainComponent::loadComposition(const juce::File& file)
                 juce::MessageBoxIconType::WarningIcon,
                 "Open Composition",
                 file.getFileName() + ": " + reason);
+        if (ticket) ticket->finish(LoadTicket::Outcome::Failed);   // s-rta-0929 asyncload
         return;
     }
 
@@ -3108,32 +3311,24 @@ void MainComponent::loadComposition(const juce::File& file)
     //     (a file from an older build keeps controls no shader reads, and old
     //     defaults as the right-click reset target). On `incoming`, pre-swap.
     compload::reconcileSourceParams(incoming, sourceParamLookup(previewPanel_.getRenderer().getSourceRegistry()));
+    loadTiming_.add(LoadTiming::Prep, LoadTiming::msSince(tPrep));
 
-    // 4. OPEN NEW — open every playable clip's media under its new id and
-    //    fill thumbnail/dims INTO `incoming`, BEFORE the swap (openMediaForDeck,
-    //    shared with Step 3's appendDeckFromFile). Must happen pre-swap: a
-    //    post-swap write into a live Clip would race the GL thread (juce::Image
-    //    ref-count assignment = torn-read/crash class), and the output keeps
-    //    showing the OLD comp for the whole file-probe duration instead of
-    //    blacking out.
-    for (auto& deck : incoming.decks)
-        openMediaForDeck(deck);
-
+    // 4. STAGE THE OPENS (s-rta-0929 asyncload; was: every video opened here, on this thread) -- the videos open on
+    //    MediaOpener's pool into `incoming`'s clips (never a live Clip: a post-swap write would race the GL thread);
+    //    the output keeps showing the OLD comp until the last one lands; then finishStagedLoad swaps (step 6) and
+    //    labels (step 7). AL7: a Composition supersedes everything staged or queued before it.
     // 5. NAME — design decision: composition name = file base name on Load
     //    (and Save As), so the browser row, the inspector label, and Collect
     //    Media's folder name all agree. Write on `incoming`, not the live
     //    object.
     incoming.name = file.getFileNameWithoutExtension().toStdString();
-
-    // 6. SWAP — fenced; closes orphaned media by set difference, clears undo
-    //    history, nulls the inspectors, rebuilds the grid (see
-    //    swapCompositionModel/refreshUiAfterModelSwap above).
-    swapCompositionModel([this, &incoming] { composition_ = std::move(incoming); });
-
-    // 7. LABEL
-    fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
-    if (browserPanel_)
-        browserPanel_->getCompDecksBrowser().refresh();
+    auto s = std::make_unique<StagedLoad>();
+    s->kind = stagedload::Kind::Composition;
+    s->comp = std::move(incoming);
+    s->name = file.getFileNameWithoutExtension();
+    s->ticket = std::move(ticket);
+    loadQueue_.clear();
+    beginStagedOpen(std::move(s));
 }
 
 void MainComponent::saveComposition()
@@ -3143,8 +3338,7 @@ void MainComponent::saveComposition()
     {
         if (composition_.saveToFile(composition_.filePath))
         {
-            fileLabel_.setText("Saved: " + composition_.filePath.getFileName(),
-                              juce::dontSendNotification);
+            setFileLabel("Saved: " + composition_.filePath.getFileName());
             if (browserPanel_)
                 browserPanel_->getCompDecksBrowser().refresh();
         }
@@ -3191,7 +3385,7 @@ void MainComponent::saveCompositionAs()
             // plain Save cannot find it.
             composition_.filePath = saveFile;
             composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
-            fileLabel_.setText("Saved: " + saveFile.getFileName(), juce::dontSendNotification);
+            setFileLabel("Saved: " + saveFile.getFileName());
             if (browserPanel_)
                 browserPanel_->getCompDecksBrowser().refresh();
         }
@@ -3213,12 +3407,35 @@ void MainComponent::saveCompositionAs()
 // InsertDeckCmd instead of a whole-model swap.
 void MainComponent::appendDeckFromFile(const juce::File& file)
 {
+    // s-rta-0929 asyncload (AL7): behind a staged load this request waits its turn (FIFO) and is prepared when dequeued.
+    const auto name = file.getFileNameWithoutExtension().toStdString();
+    switch (stagedload::admit(stagedload::Kind::DeckAppend, staged_ != nullptr, loadQueue_.size()))
+    {
+        case stagedload::Admit::Enqueue:
+            loadQueue_.push({ stagedload::Kind::DeckAppend, file.getFullPathName().toStdString(), 0, 0, name });
+            publishLoadWitness();
+            return;
+        case stagedload::Admit::Refuse:
+            setFileLabel(juce::String::fromUTF8(stagedload::queueFullLabel(name).c_str()));
+            return;
+        case stagedload::Admit::Begin:
+        case stagedload::Admit::Supersede:
+            break;
+    }
+    stageDeckAppend(file);
+}
+
+void MainComponent::stageDeckAppend(const juce::File& file)
+{
     // 1. STAGE + shape-check — a deck file's top level is `Deck::toVar()`'s
     //    shape ("layers"/"numColumns"/"name"/"id"), not a composition's
     //    ("decks") or an FX preset's. Refuse before touching the model:
     //    Deck::fromVar's own hasProperty-less getProperty calls would
     //    otherwise happily default-construct an empty/wrong Deck from either.
+    loadTiming_.begin();   // s-rta-0929 asyncload: the load's cost split (/api/state load.timing)
+    const auto tParse = LoadTiming::Clock::now();
     auto parsed = juce::JSON::parse(file.loadFileAsString());
+    loadTiming_.add(LoadTiming::Parse, LoadTiming::msSince(tParse));
     auto* obj = parsed.getDynamicObject();
     if (!obj || !obj->hasProperty("layers"))
     {
@@ -3227,9 +3444,10 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
                 juce::MessageBoxIconType::WarningIcon,
                 "Load Deck",
                 file.getFileName() + ": not a deck file");
-        return;   // Live state untouched.
+        return;   // Live state untouched (a queued request behind it is pumped by the caller).
     }
 
+    const auto tPrep = LoadTiming::Clock::now();
     Deck incoming;
     incoming.fromVar(parsed);
 
@@ -3254,10 +3472,9 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
 
     // 3b. RECONCILE — as loadComposition (source params to the registry's current list).
     compload::reconcileSourceParams(incoming, sourceParamLookup(previewPanel_.getRenderer().getSourceRegistry()));
+    loadTiming_.add(LoadTiming::Prep, LoadTiming::msSince(tPrep));
 
-    // 4. OPEN NEW — shared with loadComposition's per-deck body.
-    openMediaForDeck(incoming);
-
+    // 4. (s-rta-0929 asyncload) the videos open on MediaOpener's pool into `incoming` -- beginStagedOpen below.
     // 5. NAME — ALWAYS the file's base name (plan6 §6.4): the library row the
     //    user clicked IS the file name, and Save Deck As enforces name == file.
     //    The library link (Deck::sourceFile, runtime only) lets Save Deck
@@ -3265,28 +3482,13 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
     incoming.name = file.getFileNameWithoutExtension().toStdString();
     incoming.sourceFile = file;
 
-    // 6. APPEND — one undoable InsertDeckCmd (plan6 §5 A1-d), not a whole-model
-    //    swap: an append retires no media (nothing to close), must not stop
-    //    running routines, and must not wipe undo history. The command fences
-    //    the push_back (Composition::appendDeck reallocates `decks`, which the
-    //    GL thread walks lock-free — renderOpenGL()'s P21 persistent-layer
-    //    loop), mints a fresh deck id, makes the deck active (withDeckDetached
-    //    re-points the renderer), and cancels any pending quantized trigger on
-    //    the deck being left (restored on undo). Undo disposes the appended
-    //    deck's media; redo reopens it.
-    std::vector<std::unique_ptr<Command>> children;
-    children.push_back(std::make_unique<InsertDeckCmd>(
-        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
-        std::move(incoming), "Load Deck"));
-    pushCommands(std::move(children), "Load Deck");
-    if (deckView_) deckView_->rebuildGrid();   // rebuilds the deck tabs too (setupDeckTabs)
-    if (auto* active = composition_.getActiveDeck())
-        refreshPreviewFromActiveClip(*active);
-
-    // 7. LABEL
-    fileLabel_.setText("Loaded deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
-    if (browserPanel_)
-        browserPanel_->getCompDecksBrowser().refresh();
+    // 6-7. APPEND + LABEL at the completion (finishStagedLoad): one undoable InsertDeckCmd "Load Deck", the grid, the
+    //      preview, "Loaded deck: <name>", the browser.
+    auto s = std::make_unique<StagedLoad>();
+    s->kind = stagedload::Kind::DeckAppend;
+    s->deck = std::move(incoming);
+    s->name = file.getFileNameWithoutExtension();
+    beginStagedOpen(std::move(s));
 }
 
 // plan6 §6.4 — the deck tab row's handlers. Message thread; each guards its
@@ -3389,7 +3591,7 @@ bool MainComponent::writeDeckFile(const Deck& deck, const juce::File& file)
 {
     if (file.replaceWithText(juce::JSON::toString(deck.toVar())))
     {
-        fileLabel_.setText("Saved deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+        setFileLabel("Saved deck: " + file.getFileNameWithoutExtension());
         if (browserPanel_)
             browserPanel_->getCompDecksBrowser().refresh();
         return true;
@@ -3437,23 +3639,42 @@ void MainComponent::duplicateDeck(int deckIndex)
     if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
         return;
 
+    // s-rta-0929 asyncload (AL7): behind a staged load this request waits its turn (FIFO), naming its source deck by id
+    // (+ the model epoch), and is prepared -- the value copy made -- when dequeued.
+    const auto& src = composition_.decks[static_cast<size_t>(deckIndex)];
+    switch (stagedload::admit(stagedload::Kind::DeckDuplicate, staged_ != nullptr, loadQueue_.size()))
+    {
+        case stagedload::Admit::Enqueue:
+            loadQueue_.push({ stagedload::Kind::DeckDuplicate, {}, src.id, modelEpoch_, src.name });
+            publishLoadWitness();
+            return;
+        case stagedload::Admit::Refuse:
+            setFileLabel(juce::String::fromUTF8(stagedload::queueFullLabel(src.name).c_str()));
+            return;
+        case stagedload::Admit::Begin:
+        case stagedload::Admit::Supersede:
+            break;
+    }
+    stageDeckDuplicate(deckIndex);
+}
+
+void MainComponent::stageDeckDuplicate(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+
     // A value copy under "<name> copy" with every clip re-minted (a clip id is
     // live in at most ONE cell — makeClipMediaDisposeHook's FUTURE-FRAGILE
     // note) and no queued trigger; media opened on the staged copy under its
-    // new ids BEFORE the fenced append (like loadComposition's step 4).
-    Deck copy = compload::duplicateDeck(composition_.decks[static_cast<size_t>(deckIndex)], s_nextClipId);
-    const juce::String copyName(copy.name);
-    openMediaForDeck(copy);
-
-    std::vector<std::unique_ptr<Command>> children;
-    children.push_back(std::make_unique<InsertDeckCmd>(
-        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
-        std::move(copy), "Duplicate Deck"));
-    pushCommands(std::move(children), "Duplicate Deck");
-    if (deckView_) deckView_->rebuildGrid();
-    if (auto* active = composition_.getActiveDeck())
-        refreshPreviewFromActiveClip(*active);
-    fileLabel_.setText("Duplicated deck: " + copyName, juce::dontSendNotification);
+    // new ids BEFORE the fenced append (s-rta-0929 asyncload: on MediaOpener's pool).
+    loadTiming_.begin();   // s-rta-0929 asyncload: the load's cost split (/api/state load.timing)
+    const auto tPrep = LoadTiming::Clock::now();
+    auto s = std::make_unique<StagedLoad>();
+    s->kind = stagedload::Kind::DeckDuplicate;
+    s->deck = compload::duplicateDeck(composition_.decks[static_cast<size_t>(deckIndex)], s_nextClipId);
+    s->name = juce::String(s->deck.name);   // "<name> copy" (the label's name, R13)
+    loadTiming_.add(LoadTiming::Prep, LoadTiming::msSince(tPrep));
+    beginStagedOpen(std::move(s));
 }
 
 // Remove ANY deck (a tab's menu names it; the Deck menu passes the active one).
@@ -3509,7 +3730,7 @@ void MainComponent::removeDeck(int deckIndex)
 
     if (deckView_)
         deckView_->showUndoHint("Undo Remove \"" + name + "\"");
-    fileLabel_.setText("Removed deck \"" + name + "\"", juce::dontSendNotification);
+    setFileLabel("Removed deck \"" + name + "\"");
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
@@ -3696,7 +3917,7 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
                 currentAudioFile_ = file;
                 audioSourceSelector_.setSelectedId(2, juce::dontSendNotification);
                 audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
-                fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+                setFileLabel(file.getFileName());
                 applyAudioTransport("play", Origin::Human);
             }
         }
@@ -3704,7 +3925,7 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
                  ext == ".gif" || ext == ".bmp" || ext == ".tiff")
         {
             previewPanel_.loadImage(file);
-            fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+            setFileLabel(file.getFileName());
         }
     }
 }
@@ -3827,6 +4048,11 @@ void MainComponent::timerCallback()
     // plan5 C3: the hot-plug backstop, on EVERY tick (30 Hz) -- reconciles the outputs only when the display list
     // differs from the last one seen; otherwise a cached comparison, nothing else.
     outputs_.pollDisplays();
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929 asyncload (R9): CoreAudio's own processor-overload count (kAudioDeviceProcessorOverload), sampled here.
+    if (auto* dev = audioEngine_.getDeviceManager().getCurrentAudioDevice())
+        audioXruns_.store(dev->getXRunCount(), std::memory_order_relaxed);
+#endif
 
     // Update FPS/CPU labels at ~4Hz (every 8th call at 30Hz)
     if (++uiUpdateCounter_ >= 8)
@@ -3917,7 +4143,7 @@ void MainComponent::fastSave()
                                    previewPanel_.getEffectChain(),
                                    previewPanel_.getMappingEngine()))
     {
-        fileLabel_.setText("Saved: " + fileName, juce::dontSendNotification);
+        setFileLabel("Saved: " + fileName);
         ++fastSaveCounter_;
 
         // Refresh all slot dropdown menus
@@ -3946,10 +4172,9 @@ void MainComponent::loadSlotPreset(int slot, const juce::File& file)
     {
         // Preset-retarget-fix W5: no modal on this performance surface —
         // flag dropped mappings inline in the label instead.
-        fileLabel_.setText("Slot " + juce::String(slot + 1) + ": "
+        setFileLabel("Slot " + juce::String(slot + 1) + ": "
                           + file.getFileNameWithoutExtension()
-                          + (stats.dropped > 0 ? " (check mappings)" : ""),
-                          juce::dontSendNotification);
+                          + (stats.dropped > 0 ? " (check mappings)" : ""));
         if (effectsRackPanel_)
             effectsRackPanel_->refreshFromChain();
     }
@@ -4015,7 +4240,7 @@ void MainComponent::openImageFolder()
 
         if (slideshowImages_.isEmpty())
         {
-            fileLabel_.setText("No images found in folder", juce::dontSendNotification);
+            setFileLabel("No images found in folder");
             return;
         }
 
@@ -4029,9 +4254,8 @@ void MainComponent::openImageFolder()
         // s-rta-0928 R1.3: decode the next one ahead (off the GL thread), so the first advance shows at once.
         previewPanel_.getRenderer().prefetchLegacyImage(slideshowImages_[1 % slideshowImages_.size()]);
 
-        fileLabel_.setText("Folder: " + dir.getFileName() + " ("
-                          + juce::String(slideshowImages_.size()) + " images)",
-                          juce::dontSendNotification);
+        setFileLabel("Folder: " + dir.getFileName() + " ("
+                          + juce::String(slideshowImages_.size()) + " images)");
     });
 }
 
@@ -4091,7 +4315,7 @@ void MainComponent::openCamera(int deviceIndex)
 
     if (cameraDevice_ == nullptr)
     {
-        fileLabel_.setText("Camera failed to open", juce::dontSendNotification);
+        setFileLabel("Camera failed to open");
         return;
     }
 
@@ -4100,7 +4324,7 @@ void MainComponent::openCamera(int deviceIndex)
     // Add a listener that receives frames
     cameraDevice_->addListener(this);
 
-    fileLabel_.setText("Camera: " + devices[deviceIndex], juce::dontSendNotification);
+    setFileLabel("Camera: " + devices[deviceIndex]);
 }
 
 void MainComponent::closeCamera()
@@ -4434,13 +4658,13 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         {
             previewPanel_.getRenderer().clearActiveSource();
             previewPanel_.loadImage(clip->mediaFile);
-            fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+            setFileLabel(clip->mediaFile.getFileName());
         }
         else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
         {
             previewPanel_.getRenderer().setActiveSource(clip->sourceType);
             previewPanel_.getRenderer().clearImage();
-            fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+            setFileLabel(juce::String(clip->sourceType));
         }
         else if (clip->mediaType == Clip::MediaType::Video && clip->mediaFile.existsAsFile())
         {
@@ -4452,7 +4676,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
             // Video clips rendered via compositor — clear single-image path
             renderer.clearActiveSource();
             renderer.clearImage();
-            fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+            setFileLabel(clip->mediaFile.getFileName());
         }
         else if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
         {
@@ -4464,8 +4688,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
             renderer.clearActiveSource();
             renderer.clearImage();
             auto frameCount = static_cast<int>(clip->sequenceFiles.size());
-            fileLabel_.setText(juce::String(clip->name) + " (" + juce::String(frameCount) + " frames)",
-                              juce::dontSendNotification);
+            setFileLabel(juce::String(clip->name) + " (" + juce::String(frameCount) + " frames)");
         }
     }
     else
@@ -4473,7 +4696,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         // No active clip — clear preview
         previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
-        fileLabel_.setText("", juce::dontSendNotification);
+        setFileLabel("");
     }
 
     if (deckView_)
@@ -4637,7 +4860,7 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             {
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
-                fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+                setFileLabel(clip->mediaFile.getFileName());
                 foundActiveClip = true;
                 break;
             }
@@ -4645,7 +4868,7 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             {
                 previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
                 previewPanel_.getRenderer().clearImage();
-                fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+                setFileLabel(juce::String(clip->sourceType));
                 foundActiveClip = true;
                 break;
             }
@@ -4656,7 +4879,7 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     {
         previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
-        fileLabel_.setText("", juce::dontSendNotification);
+        setFileLabel("");
     }
     }
 }
@@ -4692,7 +4915,7 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
             {
                 previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
-                fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+                setFileLabel(clip->mediaFile.getFileName());
                 foundActiveClip = true;
                 break;
             }
@@ -4700,7 +4923,7 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
             {
                 previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
                 previewPanel_.getRenderer().clearImage();
-                fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+                setFileLabel(juce::String(clip->sourceType));
                 foundActiveClip = true;
                 break;
             }
@@ -4711,7 +4934,7 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
     {
         previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
-        fileLabel_.setText("", juce::dontSendNotification);
+        setFileLabel("");
     }
 }
 
@@ -5035,6 +5258,35 @@ juce::var MainComponent::mediaStateVar() const
     auto* obj = new juce::DynamicObject();
     obj->setProperty("presence_sweeps", presence_.sweeps());
     obj->setProperty("presence_changed", presence_.changes());
+    return juce::var(obj);
+}
+
+juce::var MainComponent::loadWitnessVar() const
+{
+    // s-rta-0929 asyncload: /api/state "load" (any thread: MediaOpener's atomics, the staged-load mirrors, LoadTiming's
+    // mutex-guarded copy). staged_players = players adopted by the staged load, not yet live (video_players counts them).
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("opens_pending", mediaOpener_.pending());
+    obj->setProperty("open_batches", static_cast<juce::int64>(mediaOpener_.batches()));
+    obj->setProperty("opens_stale", static_cast<juce::int64>(mediaOpener_.stale()));
+    obj->setProperty("opens_failed", static_cast<juce::int64>(mediaOpener_.failed()));
+    obj->setProperty("opens_dropped", static_cast<juce::int64>(mediaOpener_.dropped()));
+    obj->setProperty("staged", stagedNow_.load(std::memory_order_relaxed));
+    obj->setProperty("staged_players", stagedPlayers_.load(std::memory_order_relaxed));
+    obj->setProperty("queued", queuedNow_.load(std::memory_order_relaxed));
+    obj->setProperty("timing", loadTiming_.var());
+#if AUDIODNA_TEST_SERVER
+    // TEST-ONLY audio witnesses (plan R9): CoreAudio's overload count, the callback's inter-arrival gap (reset on read)
+    // and period, and the analysis ring's overruns.
+    auto& ae = const_cast<AudioEngine&>(audioEngine_);
+    obj->setProperty("audio_xruns", audioXruns_.load(std::memory_order_relaxed));
+    obj->setProperty("audio_callbacks", static_cast<juce::int64>(ae.audioCallbacks()));
+    obj->setProperty("audio_callback_gap_max_ms", ae.takeAudioGapMaxMs());
+    const double rate = ae.sourceSampleRateCell().load(std::memory_order_acquire);
+    const int period = ae.audioPeriodSamples();
+    obj->setProperty("audio_callback_period_ms", rate > 0.0 ? 1000.0 * period / rate : 0.0);
+    obj->setProperty("analysis_ring_overruns", static_cast<juce::int64>(ae.ringOverruns()));
+#endif
     return juce::var(obj);
 }
 
@@ -5370,9 +5622,9 @@ void MainComponent::setAudioSourceModeSynced(AudioEngine::SourceMode mode)
     if (topBar_)
         topBar_->getAudioSourceSelector().setSelectedId(id, juce::dontSendNotification);
     if (mode == AudioEngine::SourceMode::MicInput)
-        fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(), juce::dontSendNotification);
+        setFileLabel("Mic: " + audioEngine_.getDeviceStatus());
     else if (currentAudioFile_.existsAsFile())
-        fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
+        setFileLabel(currentAudioFile_.getFileName());
 }
 
 std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)

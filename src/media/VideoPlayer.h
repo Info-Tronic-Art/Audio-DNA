@@ -35,8 +35,10 @@ public:
     VideoPlayer();
     ~VideoPlayer();
 
-    // Open a video file. Returns true on success. Call from message thread, once per player (every open is a new
-    // player). Starts NO thread: the whole synchronous prepare touches only this object (the part-M seam).
+    // Open a video file. Returns true on success. Call once per player (every open is a new player), before start():
+    // from the message thread, or from MediaOpener's pool thread on an unpublished player (nothing else may hold it;
+    // s-rta-0929 asyncload, adoption AL4). Starts NO thread: the whole synchronous prepare touches only this object (the
+    // part-M seam).
     bool open(const juce::File& file);
 
     // Start the decode thread (Renderer::installVideoPlayer, after the player is in the map). Message thread.

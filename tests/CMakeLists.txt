@@ -2923,3 +2923,67 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_clip_inspector_paint_key)
 catch_discover_tests(test_clip_inspector_paint_key)
+
+# --- s-rta-0929 asyncload (plan-asyncload.md 5.8 test 1): LoadTicket -- the waitable outcome of one composition load
+# (POST /api/load_composition waits on it; the message thread finishes it once; ApiServer::stop() cancels it). juce_core.
+add_executable(test_load_ticket test_load_ticket.cpp)
+target_include_directories(test_load_ticket PRIVATE ${SRC_DIR})
+target_link_libraries(test_load_ticket PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_load_ticket PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_load_ticket PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_load_ticket)
+catch_discover_tests(test_load_ticket)
+
+# --- s-rta-0929 asyncload (plan-asyncload.md 5.8 test 2 + adoptions AL5 / AL7): src/core/StagedLoad.h -- the staged
+# load's batch ledger, file-label texts and hold, adopted media ids, and the Append / Duplicate FIFO. Pure (no JUCE).
+add_executable(test_staged_load test_staged_load.cpp)
+target_include_directories(test_staged_load PRIVATE ${SRC_DIR})
+target_link_libraries(test_staged_load PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_staged_load)
+catch_discover_tests(test_staged_load)
+
+# --- s-rta-0929 asyncload (plan-asyncload.md 5.8 test 3 + adoptions AL3 / AL8 a): MediaOpener -- the REAL VideoPlayer
+# (src/media/VideoPlayer.cpp + FFmpeg) opened on the 2-thread "MediaOpen" pool, headless, no GL context; landings through
+# an injected poster this test drains. Batch / failed open / cancel while running (Stale) / cancel while queued
+# (dropped) / empty batch / a pool-thread thumbnail equals a this-thread one. Fixture: tests/fixtures/video_h264_64x64.mp4.
+add_executable(test_media_opener
+    test_media_opener.cpp
+    ${SRC_DIR}/core/MediaOpener.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_media_opener PRIVATE ${SRC_DIR})
+target_link_libraries(test_media_opener PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+target_compile_definitions(test_media_opener PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_media_opener PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_media_opener)
+catch_discover_tests(test_media_opener)
