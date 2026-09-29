@@ -6,7 +6,7 @@
 
 ## Effects Library
 
-135 effects across 11 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
+135 effects across 11 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`. Shaders compiled from files are hot-reloadable from disk (`ShaderManager`); the embedded set is not.
 
 ### Effect Categories (135 total)
 
