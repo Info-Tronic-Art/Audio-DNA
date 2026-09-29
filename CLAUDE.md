@@ -138,7 +138,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **Preview/Output panel never reshapes the picture**: it letter/pillar-boxes the composition canvas, never stretches it; the Resolution dropdown never names a size the canvas is not (`docs/claude/rendering.md`).
 
-**Periodic repaints**: a timed `repaint()` costs the whole window (Pitfall NN): an always-animating widget draws in its own layer (`NativeLayerHost`) or repaints only on change.
+**Periodic repaints**: a timed `repaint()` costs the whole window (Pitfall 57): an always-animating widget draws in its own layer (`NativeLayerHost`) or repaints only on change.
 
 **Deck tab row**: '+' = New / Load Deck; right-click a tab = its menu (Save / Save As / Rename / Duplicate / Remove + 10-s Undo), never a deck switch: `DeckTabButton` intercepts `isPopupMenu()` (a JUCE Button fires `onClick` on ANY mouse button); `docs/claude/performance-controls.md`.
 
