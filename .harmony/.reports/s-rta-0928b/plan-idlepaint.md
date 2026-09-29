@@ -707,3 +707,61 @@ approach (A)-(E), F4, F6, the rejected list. Rulings:
   every CLAUDE.md byte (seqvram and video each added a line).
 - I12 A critic panel seat (visual + UX + logic) reviews the before/after captures before Harmony's gate; Boris's LOOK list
   (3.4) goes on his page.
+
+## HARMONY ADOPTION ADDENDUM — fix round (s-rta-0928b, 04:15) — rulings on idlepaint.md @ 42871bd + r1 reviews / critic
+r1: juce PASS_WITH_NITS, gates PASS_WITH_NITS, critic FAIL (1 MUST). The workflow's automatic fix round was stopped by Harmony
+before it wrote anything (worktree verified clean at 42871bd).
+- J1 (critic MUST — ADOPT, root cause first) After a whole-MainComponent repaint (window resize; leaving binding mode
+  MainComponent.cpp:1840; leaving MIDI-learn :1844) text / icon glyphs across most of the window re-render with different
+  anti-aliased edges (up to 91/255, ~36k px, lane evidence S/exp1-014023-after) and, with the idle union gone, the altered
+  look PERSISTS. DIAGNOSE DEFINITIVELY (instrument and run; captures decoded) before any fix: which render is which (startup /
+  idle state vs after the full pass, on main AND on the lane), and which rendering input differs between them — suspects to
+  test one at a time with TEMPORARY env toggles: font smoothing / AllowsFontSmoothing state of the CG context, subpixel glyph
+  positioning / quantization, the peer layer's opacity or contentsFormat, drawsAsynchronously tiling, the drawRect rect (full
+  vs partial), the native subviews' effect on the peer layer (compare the lane with the native layers disabled). Include
+  main: after a resize, does main show the same altered text in regions its idle union never re-covers (e.g. the top bar)?
+  Then fix at the ROOT so a full pass renders the same pixels as the steady state. FORBIDDEN: any periodic or background
+  repaint that re-covers the window (it re-creates the stall). If the cause is inside JUCE/AppKit and needs a JUCE patch,
+  STOP and report the evidence (Harmony rules). Gate: new row v4_full_pass_identity — main app at idle vs the lane app after
+  POST ui_repaint_all (and after a REST window resize if one exists): every differing pixel <= 1/255 at AA edges (J3); RED on
+  the 42871bd app (the 91/255 case), GREEN after, 2 runs each (the diff is deterministic; say if it is not).
+- J2 (g4 CPU 163 > 150, RULED) The user-visible bar passes (window max 19.3 -> 5.4 ms). g4's CPU becomes an INFO line printing
+  main's and the lane's ms/s; the lever (per-strip SignalBar repaints, then folding the band / V-fader repaints) is FILED, not
+  built this round — unless J1's fix naturally lowers it.
+- J3 (identity tolerance, RULED — the plan's strict array_equal was a prediction the noise floor disproved: main vs main reads
+  33 px @ 1/255 in 1 of 2 runs) Identity = every differing pixel differs by <= 1/255 per channel AND sits at an anti-aliased
+  edge (a pixel whose 3x3 neighbourhood spans > 32 levels); rows v1 / v1b / v2 / v4 use it and print counts + max diff.
+- J4 (juce SHOULD portability) do the pre-merge check the reviewer named if it is cheap; else file it.
+- J5 Rebase onto main (it moved: 3919ea5 + docs) before your final gates; pitfall text stays "NN" (Harmony numbers it 57).
+
+## HARMONY ADOPTION ADDENDUM 2 — fix round 2 (s-rta-0928b, 05:29) — rulings on the J1 diagnosis (idlepaint.md @ b1307c7)
+The J1 diagnosis is ACCEPTED: the pixels a whole-window pass changes are the window's FIRST display pass (pass n=1, off screen at
+startup) rasterising the folder emoji (<= 66/255) and three TopBar slider thumbs (<= 29/255) differently; every later pass
+draws the steady look; text differs by <= 1/255; the root cause is inside AppKit / Core Animation (INFERRED) with every input
+observable through public API equal. The r2 round was stopped by Harmony during its review stage (worktree verified clean).
+- K1 (FIX, ADOPT the lane's option ii) ONE full repaint of the main window shortly after the first display pass (the lane's
+  measured `kick`: a single one-shot, e.g. ~150-300 ms after the window is first shown / first drawRect), so every region
+  carries the steady look that main shows in production (main's 30 Hz union repaints everything). It is a single pass, never
+  periodic, never repeated — J1's "no periodic / background repaint" is satisfied. Document the reason in code (the first
+  display pass rasterises emoji and ellipse rims differently; a later pass is the steady look).
+- K2 (identity criterion, REVISED) Identity = every differing pixel differs by <= 1/255 per channel, ANYWHERE (1/255 is
+  invisible; J3's "only at an anti-aliased edge" clause was over-strict — it failed 8 strip-corner pixels at 1/255). Any pixel
+  differing by > 1/255 outside the declared live-content masks (fps readout) = FAIL. Apply to v1 / v1b / v2 / v3 / v4.
+- K3 (gate) v4_full_pass_identity = the lane's idle look (after K1) vs the lane after POST ui_repaint_all: identity (K2). RED
+  on the b1307c7 app (the emoji / slider classes, <= 66/255), GREEN after. Add v3p: PRODUCTION mode, main's idle look vs the
+  lane's idle look (masked live content): identity (K2), 2 runs.
+- K4 Everything else as fix round 1 (J2 INFO, i1 / i2 / g4 window max, v2b covered 0) — re-run i1 and i2 (5 launches) on the
+  final app to prove K1 did not bring the stall back; ctest serial; report appended as "Fix round 2".
+
+## HARMONY ADOPTION ADDENDUM 3 (s-rta-0928b, 06:25) — K1 WITHDRAWN on measured evidence (idlepaint.md @ d072ec3)
+The lane measured in PRODUCTION that main's idle union never repaints the Files grid / TopBar slider regions either: main idle
+vs the lane idle = 0 px (v3p PASS); main after one repaint vs the lane after one repaint = 0 px (a temporary main hook); a
+later pass changes exactly the J1 classes in BOTH builds. So the lane is pixel-identical to main in both states, and K1 would
+have made the lane DIFFER from main's idle look. Rulings:
+- L1 K1 WITHDRAWN (no code). The first-display-pass rasterisation class (folder emoji <= 66/255, slider rims <= 29/255) is a
+  pre-existing AppKit / Core Animation behaviour, identical in main — FILED (curiosity; no user-visible change from this lane).
+- L2 v4_full_pass_identity becomes an INFO row (it documents the first-pass class; it is not a lane-vs-main identity).
+  v3p_production_idle_identity (main idle vs lane idle, production, K2) is THE identity gate; v1 / v1b / v2 / v3 under K2 as
+  committed (fd456e5).
+- L3 The critic's r1 MUST ("the altered look persists after a full repaint, invisible on main") is REFUTED by the production
+  measurement above: main persists the same look after the same pass. Evidence: S/fix2/p1 pairs in idlepaint.md Fix round 2.
