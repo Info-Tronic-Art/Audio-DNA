@@ -2780,3 +2780,48 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_video_player_open)
 catch_discover_tests(test_video_player_open)
+
+# --- test_layer_strip_transport_view (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 3 + adoptions I2 / I3): the layer
+# strip's transport rect repaints only when what it paints changes (LayerStrip::transportViewOf), the playhead read at the
+# tick is the one painted, the routine band hairline repaints only when its painted width changes, and the tick still
+# pulls the faders from the model (Pitfall 41). The test_layer_strip_follows_model harness and link closure.
+add_executable(test_layer_strip_transport_view
+    test_layer_strip_transport_view.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_strip_transport_view PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_strip_transport_view PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_layer_strip_transport_view PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_strip_transport_view PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_strip_transport_view)
+catch_discover_tests(test_layer_strip_transport_view)

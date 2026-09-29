@@ -50,6 +50,22 @@ public:
     // (a routine or a take replay) grips opacity. Called by the strip's own 30 Hz timer; public for tests.
     void syncFromModel();
 
+    // s-rta-0928b idlepaint (Pitfall NN): what the transport rect paints (paint(): the in/out region + the playhead line).
+    // The strip repaints the rect only when this changes -- an Image clip's strip is silent at idle, a playing sequence's
+    // repaints as its playhead crosses a pixel. Pure; public for tests/test_layer_strip_transport_view.cpp.
+    struct TransportView
+    {
+        bool showsClip = false;
+        float inPoint = 0.0f, outPoint = 0.0f;
+        int playheadX = 0;
+        bool operator==(const TransportView&) const = default;
+    };
+    static TransportView transportViewOf(const Layer* layer, juce::Rectangle<int> transportBounds);
+
+    // The strip's 30 Hz timer body (public for tests): the transport rect and the routine band hairline repaint only
+    // when what they paint changed; syncFromModel() runs every tick (Pitfall 41).
+    void timerTick();
+
     // s-rta-0927 routine display (2.2): the routines playing / waiting on this layer, newest first, at most
     // two (RoutineDeckView bandsToDraw). Painted over the top of the thumbnail with the name, a progress
     // hairline and an x that takes the WHOLE routine off every layer it plays on (onRoutineRemove).
@@ -145,6 +161,12 @@ private:
     juce::Rectangle<int> nameBounds_;
     juce::Rectangle<int> clipNameBounds_;
     juce::Rectangle<int> transportBounds_; // playhead display above the name
+    // s-rta-0928b idlepaint (adoption I2): the transport as last read from the model -- ONE read of the playhead per
+    // update, and paint() draws exactly this (it never re-reads the model), so the compare and the pixels agree.
+    TransportView transportView_;
+    int lastPaintedPlayheadX_ = -1;       // the I2 witness (uipaint layerStripPlayheadPaints)
+    void updateTransportView();           // read, compare, repaint the transport rect on change
+    int bandHairlineW_[2] { -1, -1 };     // adoption I3: the band hairline widths last asked to be painted
     juce::String layerName_;
     juce::String clipName_;
 
