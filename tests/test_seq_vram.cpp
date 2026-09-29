@@ -651,3 +651,25 @@ TEST_CASE("(14) F2: shrink and releaseSome hand back at most maxDeletes textures
     CHECK(r.allocatedBytes() == 0u);
     CHECK(r.acquire(0, 64, 64, 4).act == Slots::Act::Create);
 }
+
+TEST_CASE("(15) F3: a drawn sequence's grant counts idle sequences' bytes above their minimum as reclaimable", "[seq_vram][s-rta-0928b]")
+{
+    const size_t floor = kMinWindowFrames * k1080;
+    const auto frames = [](size_t n) { return n * k1080; };
+    // after a fade: the incoming (8 frames) is drawn; the outgoing (121 frames) is NOT idle yet (drawn within 60 frames)
+    // -> it counts in full: the incoming stays at its floor
+    CHECK(allowanceFrames(drawnAllowance(frames(129), frames(8), 0, 0, floor), k1080) == kMinWindowFrames);
+    // 60 frames later the outgoing is idle: only its 2-frame minimum counts -> the incoming may grow to 127 frames
+    CHECK(drawnAllowance(frames(129), frames(8), frames(121), frames(2), floor) == kBudgetBytes - frames(2));
+    CHECK(allowanceFrames(drawnAllowance(frames(129), frames(8), frames(121), frames(2), floor), k1080) == 127);
+    // a drawn other (50) + an idle one (60, minimum 2): budget - 52 frames
+    CHECK(drawnAllowance(frames(118), frames(8), frames(60), frames(2), floor) == kBudgetBytes - frames(52));
+    // the same scene without any idle sequence: budget - 110 frames (the old rule)
+    CHECK(drawnAllowance(frames(118), frames(8), 0, 0, floor) == kBudgetBytes - frames(110));
+    // floors win (H10): drawn others over the budget -> the floor
+    CHECK(drawnAllowance(frames(200), frames(8), frames(10), frames(2), floor) == floor);
+    // nothing else: the whole budget
+    CHECK(drawnAllowance(frames(8), frames(8), 0, 0, floor) == kBudgetBytes);
+    // inconsistent sums never underflow: idle > the others -> only the idle minimum counts
+    CHECK(drawnAllowance(frames(10), frames(8), frames(50), frames(2), floor) == kBudgetBytes - frames(2));
+}

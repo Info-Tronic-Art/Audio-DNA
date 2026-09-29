@@ -298,6 +298,10 @@ private:
     SeqVram::DeleteBudget seqDeletes_;
     size_t seqRetiredBytes_ = 0;
     int seqRetiredSlots_ = 0;
+    // Fix round F3 (drawn sequences outrank idle ones): the idle sequences' bytes and their trimmed minimum, from the
+    // frame-top scan; a sequence idle at the frame top and drawn now leaves both sums at its grant.
+    size_t seqIdleBytes_ = 0;
+    size_t seqIdleMinBytes_ = 0;
     // R1.3: the legacy single image still decoding while a frame needs it (the capture gate reads it). Reset at the
     // top of every frame; set by resolveLegacy.
     bool legacyPendingThisFrame_ = false;

@@ -92,6 +92,8 @@ public:
     int residentSlots() const;
     uint64_t lastDrawnSerial() const { return lastDrawnSerial_; }
     size_t minWindowBytes() const { return static_cast<size_t>(SeqVram::kMinWindowFrames) * frameBytesHint_; }
+    // Fix round F3: the bytes trimToMinimum leaves (current + shown frame) -- an idle sequence's unreclaimable part.
+    size_t trimmedBytes() const { return std::min(residentBytes(), 2u * frameBytesHint_); }
     // Fix round F2: deletes at most deletes.left textures (the frame's shared budget); spare slots it could not delete
     // stay allocated (free) for a later call.
     void trimToMinimum(SeqVram::Stats* stats, SeqVram::DeleteBudget& deletes);

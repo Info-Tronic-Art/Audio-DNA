@@ -52,6 +52,7 @@ struct Stats   // relaxed atomics, written on the GL thread, read by /api/state
     std::atomic<int64_t> deletes{ 0 };         // F2: glDeleteTextures of the per-frame paths (trim, shrink, retire drain)
     std::atomic<int64_t> residentBytes{ 0 };   // every sequence's allocated texture bytes (frame top; retired included)
     std::atomic<int> openCount{ 0 }, residentSlots{ 0 }, overBudget{ 0 };
+    std::atomic<int> drawnSlots{ 0 };          // F3: the slots of the sequences that are not idle (frame top)
 };
 
 // F2: the frame's glDeleteTextures allowance (GL thread; the Renderer resets it at the frame top).
@@ -82,6 +83,16 @@ inline size_t allowance(size_t othersBytes, size_t minBytes)
 inline bool isIdle(uint64_t lastDrawnSerial, uint64_t frameSerial)
 {
     return frameSerial > lastDrawnSerial && frameSerial - 1 - lastDrawnSerial >= static_cast<uint64_t>(kIdleFrames);
+}
+
+// F3: a DRAWN sequence's allowance -- drawn sequences outrank idle ones. The idle sequences' bytes above their minimum
+// (what trimToMinimum leaves) are reclaimable: only the drawn others' bytes and the idle ones' minimum count against
+// the budget. totalBytes = every sequence (mine included); idleBytes / idleMinBytes = the idle ones (mine excluded).
+inline size_t drawnAllowance(size_t totalBytes, size_t mineBytes, size_t idleBytes, size_t idleMinBytes, size_t minBytes)
+{
+    const size_t notMine = totalBytes - std::min(totalBytes, mineBytes);
+    const size_t drawnOthers = notMine - std::min(notMine, idleBytes);
+    return allowance(drawnOthers + idleMinBytes, minBytes);
 }
 
 // The allowance in frames of frameBytes; kMinWindowFrames while the frame size is unknown (H5: never a guess).

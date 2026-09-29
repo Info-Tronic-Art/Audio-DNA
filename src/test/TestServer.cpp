@@ -662,6 +662,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
         obj->setProperty("seq_upload_deferred", static_cast<juce::int64>(sq.uploadDeferred.load(std::memory_order_relaxed)));
         // fix round F2: glDeleteTextures of the per-frame paths (idle trim, shrink, retire drain), <= 8 per frame
         obj->setProperty("seq_deletes", static_cast<juce::int64>(sq.deletes.load(std::memory_order_relaxed)));
+        // fix round F3: the textures of the sequences drawn within the last kIdleFrames frames (not idle)
+        obj->setProperty("seq_drawn_textures", sq.drawnSlots.load(std::memory_order_relaxed));
     }
     // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
     // nothing). peak_gpu_time_ms resets on read like peak_frame_time_ms.

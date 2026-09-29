@@ -1566,12 +1566,12 @@ void Renderer::drainRetiredMedia(bool contextClosing)
 // hold skips a fading layer's outgoing chain for 1-3 frames -- that chain is not idle) to their current + shown frames,
 // least-recently drawn first, until it is not. Drawn sequences are never trimmed here: each shrinks to
 // its own allowance in getCurrentTexture (floors win, H10). The total seeds this frame's grants (syncMedia keeps it
-// running, H3). GL deletes only in the pressure trim, under imageSeqMutex_ (as getCurrentTexture uploads under it).
+// running, H3); the idle sequences' bytes above their minimum are reclaimable in a drawn sequence's grant (F3). GL deletes only in the pressure trim, under imageSeqMutex_ (as getCurrentTexture uploads under it).
 void Renderer::scanSequenceVram()
 {
     ++seqFrameSerial_;
-    size_t total = 0;
-    int slots = 0, open = 0;
+    size_t total = 0, idleBytes = 0, idleMin = 0;
+    int slots = 0, open = 0, idleSlots = 0;
     {
         std::lock_guard<std::mutex> lock(imageSeqMutex_);
         std::vector<ImageSequence*> idle;
@@ -1579,7 +1579,7 @@ void Renderer::scanSequenceVram()
         {
             total += seq->residentBytes();
             ++open;
-            if (SeqVram::isIdle(seq->lastDrawnSerial(), seqFrameSerial_) && seq->residentSlots() > 2)
+            if (SeqVram::isIdle(seq->lastDrawnSerial(), seqFrameSerial_))
                 idle.push_back(seq.get());
         }
         if (total > SeqVram::kBudgetBytes && !idle.empty())
@@ -1593,15 +1593,26 @@ void Renderer::scanSequenceVram()
                 // allocated (free) and go on later frames while the total is still over the budget.
                 if (total <= SeqVram::kBudgetBytes || seqDeletes_.left <= 0)
                     break;
+                if (seq->residentSlots() <= 2)
+                    continue;
                 const size_t before = seq->residentBytes();
                 seq->trimToMinimum(&seqStats_, seqDeletes_);
                 total -= before - std::min(before, seq->residentBytes());
             }
         }
+        for (auto* seq : idle)
+        {
+            idleBytes += seq->residentBytes();
+            idleMin += seq->trimmedBytes();
+            idleSlots += seq->residentSlots();
+        }
         for (auto& [id, seq] : imageSequences_)
             slots += seq->residentSlots();
     }
     seqResidentTotal_ = total;
+    seqIdleBytes_ = idleBytes;
+    seqIdleMinBytes_ = idleMin;
+    seqStats_.drawnSlots.store(slots - idleSlots, std::memory_order_relaxed);
     // Reported: the live sequences plus the retired ones still releasing (F2); the grants and the pressure use the live.
     seqStats_.residentBytes.store(static_cast<int64_t>(total + seqRetiredBytes_), std::memory_order_relaxed);
     seqStats_.residentSlots.store(slots + seqRetiredSlots_, std::memory_order_relaxed);
@@ -1796,11 +1807,19 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             return 0;
         bool seqPending = false;
         // s-rta-0928b seqvram: the allowance = the free share of the sequence budget as the frame stands (a RUNNING
-        // total, H3: the frame-top sum, updated after each drawn sequence), never below the floor.
+        // total, H3: the frame-top sum, updated after each drawn sequence), never below the floor. F3: the idle
+        // sequences' bytes above their minimum are reclaimable (the frame-top scan trims them once the total is over);
+        // a sequence idle at the frame top and drawn now is no longer idle.
         const size_t mine = seq->residentBytes();
+        if (SeqVram::isIdle(seq->lastDrawnSerial(), seqFrameSerial_))
+        {
+            seqIdleBytes_ -= std::min(seqIdleBytes_, mine);
+            seqIdleMinBytes_ -= std::min(seqIdleMinBytes_, seq->trimmedBytes());
+        }
         const size_t others = seqResidentTotal_ - std::min(seqResidentTotal_, mine);
-        const SeqVram::Grant grant{ SeqVram::allowance(others, seq->minWindowBytes()), seqFrameSerial_, &seqStats_,
-                                    clip->inPoint, clip->outPoint, &seqDeletes_ };
+        const SeqVram::Grant grant{ SeqVram::drawnAllowance(seqResidentTotal_, mine, seqIdleBytes_, seqIdleMinBytes_,
+                                                            seq->minWindowBytes()),
+                                    seqFrameSerial_, &seqStats_, clip->inPoint, clip->outPoint, &seqDeletes_ };
         const GLuint tex = seq->getCurrentTexture(imageDecoder_, uploadBudget_, grant, &seqPending);
         seqResidentTotal_ = others + seq->residentBytes();
         if (seqPending)
