@@ -15,7 +15,7 @@
 
 @implementation ADNANativeLayerView
 - (BOOL) isFlipped { return YES; }                                   // the peer's convention -> JUCE coordinates
-- (BOOL) isOpaque  { return self.owner != nullptr && self.owner->layerIsOpaque(); }
+- (BOOL) isOpaque  { return self.owner != nullptr && self.owner->targetIsOpaque(); }
 - (NSView*) hitTest: (NSPoint) p { (void) p; return nil; }         // every mouse / drag event reaches the JUCE peer view
 - (BOOL) acceptsFirstResponder { return NO; }                        // never key
 - (BOOL) isAccessibilityElement { return NO; }
@@ -217,30 +217,13 @@ void NativeLayerHost::drawLayer(void* cgv, float w, float h)
         NSView* super = [impl_->view superview];
         c.peerLayerBacked = (super != nil && [super wantsLayer] && [super layer] != nil) ? 1 : 0;
     }
-    auto* parent = target_.getParentComponent();
-    const bool paintParent = parent != nullptr && !target_.isOpaque();
-    if (!target_.isOpaque() && !paintParent)
+    if (!target_.isOpaque())
         CGContextClearRect(cg, CGContextGetClipBoundingBox(cg));                     // (peer: drawRectWithContext)
     const auto height = target_.getHeight();
     CGContextConcatCTM(cg, CGAffineTransformMake(1, 0, 0, -1, 0, height));            // (peer: renderRect)
     juce::CoreGraphicsContext context(cg, (float) height);
     {
         juce::Graphics g(context);
-        if (paintParent)
-        {
-            // What the peer paints beneath a non-opaque widget (Component::paintComponentAndChildren: the parent's own
-            // paint(), then the child over it in the same context): the layer is opaque and the widget's translucent
-            // edges (the waveform's rounded corners) blend over the parent's pixels here, as in the peer -- not in the
-            // window server (measured: corner max delta vs in-peer 3 -> 2).
-            juce::Graphics::ScopedSaveState ss(g);
-            g.setOrigin(-target_.getPosition());
-            if (g.reduceClipRegion(target_.getBounds()))
-            {
-                c.inLayerDraw.fetch_add(1, std::memory_order_relaxed);
-                parent->paint(g);
-                c.inLayerDraw.fetch_sub(1, std::memory_order_relaxed);
-            }
-        }
         if (teethShift_)
             g.setOrigin(1, 0);                                                        // probe v0's teeth
         target_.paintEntireComponent(g, false);                                       // = paintWithinParentContext

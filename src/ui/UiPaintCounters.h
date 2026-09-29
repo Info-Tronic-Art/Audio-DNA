@@ -14,8 +14,7 @@ struct Counters {
     std::atomic<uint64_t> layerStripPlayheadTicks { 0 };       // strip ticks whose playhead pixel moved (adoption I2)
     std::atomic<uint64_t> layerStripPlayheadPaints { 0 };      // strip paints whose painted playhead pixel moved (I2)
     std::atomic<uint64_t> layerStripBandRepaints { 0 };        // routine band hairline repaint() calls (adoption I3)
-    std::atomic<uint64_t> mainComponentPaints { 0 };           // MainComponent::paint calls ~= peer passes (not layer draws)
-    std::atomic<int>      inLayerDraw { 0 };                   // > 0 while a native layer paints its parent's background
+    std::atomic<uint64_t> mainComponentPaints { 0 };           // MainComponent::paint calls ~= peer passes
     std::atomic<uint64_t> topBarPaints { 0 };                  // TopBar::paint calls
     std::atomic<uint64_t> clipInspectorRepaints { 0 };         // ClipInspector::refresh repaint() calls
     // TEST_SERVER builds (adoption I1 / I4): per vblank, a native layer was still showing while an in-peer overlay
