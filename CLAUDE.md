@@ -229,7 +229,7 @@ the named area; this index is triage-only.
 52. One capture at a time: `captureFrame` owns the time override and the test canvas lock -- before calling it concurrently or setting either around it.
 53. Images decode off the GL thread: pending is never no media (the FX-only trap); render_frame waits for a complete frame -- before touching getKeyTexture or a clip-texture branch.
 54. A sequence's textures are a bounded recycled window (SeqVram; the shown frame is never evicted) -- before touching ImageSequence textures or a media class's per-frame GL objects.
-NN. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
+55. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
 
 ---
 
