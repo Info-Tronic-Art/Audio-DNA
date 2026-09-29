@@ -16,6 +16,7 @@
 #include "routing/RoutingEngine.h"
 #include "render/CompositorEngine.h"
 #include "render/RenderGeometry.h"
+#include "render/FencedPtrSlot.h"
 #include "sources/SourceRegistry.h"
 #include "media/VideoPlayer.h"
 #include "media/ImageSequence.h"
@@ -108,8 +109,17 @@ public:
 
     // Set the active deck for compositor rendering. Thread-safe.
     // Pass nullptr to disable deck compositing (reverts to single-image mode).
-    void setActiveDeck(Deck* deck) { activeDeck_.store(deck, std::memory_order_release); }
-    Deck* getActiveDeck() const { return activeDeck_.load(std::memory_order_acquire); }
+    // s-rta-0928b mediaopen (adoption P3): the deck pointer and the withDeckDetached fence share ONE atomic word
+    // (FencedPtrSlot): setActiveDeck stores the deck UNFENCED -- the fence's restore ends the fence with it.
+    void setActiveDeck(Deck* deck) { activeDeck_.set(deck); }
+    Deck* getActiveDeck() const { return activeDeck_.get(); }
+    // s-rta-0928b mediaopen: UndoService::withDeckDetached begins its fence here -- no deck AND fenced, in one store
+    // (it ends it with setActiveDeck(restored)). A frame that finds the renderer fenced and deck-less is counted:
+    // fence_hold_frames when it re-presents the canvas as the previous frame left it, fence_black_frames when it
+    // falls to the "nothing to render" path (a black frame on every output).
+    void detachActiveDeckFenced() { activeDeck_.detachFenced(); }
+    int64_t getFenceHoldFrames() const { return fenceHoldFrames_.load(std::memory_order_relaxed); }
+    int64_t getFenceBlackFrames() const { return fenceBlackFrames_.load(std::memory_order_relaxed); }
 
     // P21: Set composition pointer for persistent layer rendering across decks.
     void setComposition(Composition* comp) { composition_ = comp; }
@@ -542,7 +552,10 @@ private:
 
     // Compositor
     CompositorEngine compositor_;
-    std::atomic<Deck*> activeDeck_{nullptr};
+    FencedPtrSlot<Deck> activeDeck_;   // s-rta-0928b mediaopen: the deck + the withDeckDetached fence, one word
+    // s-rta-0928b mediaopen: fenced deck-less frames -- hold = re-presented the canvas; black = could not (no canvas yet)
+    // or did not hold, and fell to the "nothing to render" path.
+    std::atomic<int64_t> fenceHoldFrames_{ 0 }, fenceBlackFrames_{ 0 };
     Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
     // Beat-synced clip advancement: one Autopilot per deck INDEX (s-rta-0926b plan4 T5) -- the active deck's
     // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 38).

@@ -63,7 +63,10 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
     }
 
     Deck* saved = renderer_->getActiveDeck();
-    renderer_->setActiveDeck(nullptr);
+    // s-rta-0928b mediaopen: no deck AND fenced, in ONE store (Renderer's FencedPtrSlot, adoption P3). The GL thread
+    // counts a fenced deck-less frame (fence_hold_frames / fence_black_frames); restoreDeck's setActiveDeck below ends
+    // the fence in the same single store that restores the deck.
+    renderer_->detachActiveDeckFenced();
 
     // RAII: guarantees the renderer's active deck is re-pointed on EVERY exit
     // path (normal or exceptional) — same reasoning as fenceReset above.

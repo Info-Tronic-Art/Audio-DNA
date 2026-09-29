@@ -284,3 +284,68 @@ TEST_CASE("DeckView B2: an unchanged cell re-derives nothing; a changed strip re
     CHECK(store.lookups() == lookups + 1);            // only L0's strip: its active clip's source changed
     CHECK(rig.dec.calls() == 4);                      // that file is already decoded
 }
+
+TEST_CASE("DeckView B3: a SEQUENCE cell's thumbnail comes from ClipThumbnails (its first file), decoded once off-thread",
+          "[thumbnails][deck][mediaopen]")
+{
+    // s-rta-0928b mediaopen (plan-mediaopen.md 4.5): a sequence used to get its Clip::thumbnail from a frame-0 decode on
+    // the message thread (the drop / load path); the grid now pulls it from the image store, keyed by the first file.
+    // A cell whose Clip::thumbnail is valid (a video's, made at open) re-derives nothing.
+    juce::ScopedJuceInitialiser_GUI gui;
+    ScratchDir scratch;
+    std::vector<juce::File> frames;
+    for (int i = 0; i < 3; ++i)
+        frames.push_back(scratch.makePng("seq" + juce::String(i) + ".png", juce::Colour::fromHSV(0.3f * i, 0.8f, 0.9f, 1.0f)));
+
+    Composition comp;
+    comp.initDefault();                               // 3 layers x 12 columns
+    auto& deck = comp.decks[0];
+    Clip seq;
+    seq.id = 301;
+    seq.mediaType = Clip::MediaType::ImageSequence;
+    seq.sequenceFiles = frames;
+    deck.setClip(0, 0, seq);
+    deck.layers[0].activeClipColumn = 0;
+    Clip cachedSeq = seq;                             // a clip that already carries its picture
+    cachedSeq.id = 302;
+    cachedSeq.sequenceFiles = { scratch.dir.getChildFile("other0.png") };
+    cachedSeq.thumbnail = juce::Image(juce::Image::ARGB, ClipThumbnails::kWidth, ClipThumbnails::kHeight, true);
+    deck.setClip(1, 0, cachedSeq);
+
+    ManualPoster post;
+    CountingDecoder dec;
+    DeckView dv;
+    dv.getThumbnails().setBackendsForTests(dec.decoder(), post.poster());
+    dv.setSize(1400, 600);
+    dv.setComposition(&comp);
+    for (int i = 0; i < 10; ++i)
+        dv.refresh();
+
+    std::vector<ClipCell*> all;
+    collect(dv, all);
+    ClipCell* seqCell = nullptr;
+    ClipCell* cachedCell = nullptr;
+    for (auto* c : all)
+    {
+        if (c->getClip() == nullptr) continue;
+        if (c->getClip()->id == 301) seqCell = c;
+        if (c->getClip()->id == 302) cachedCell = c;
+    }
+    REQUIRE(seqCell != nullptr);
+    REQUIRE(cachedCell != nullptr);
+    CHECK(cachedCell->hasThumbnail());                // the cached picture, at once
+
+    REQUIRE(post.waitFor(1));
+    CHECK(dec.calls() == 1);                          // ONE decode: the sequence's first file (the cached clip: none)
+    CHECK(dec.callsOn(juce::Thread::getCurrentThreadId()) == 0);
+    CHECK_FALSE(seqCell->hasThumbnail());             // not landed yet
+    CHECK(post.drain() == 1);
+    CHECK(seqCell->hasThumbnail());                   // RED on main: a sequence cell derived nothing from the store
+    for (const auto* s : strips(dv))
+        if (s->getLayerIndex() == 0)
+            CHECK(s->hasThumbnail());                 // L0's strip shows its active sequence too
+
+    for (int i = 0; i < 10; ++i)
+        dv.refresh();
+    CHECK(dec.calls() == 1);
+}

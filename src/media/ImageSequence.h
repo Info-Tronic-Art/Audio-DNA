@@ -26,7 +26,8 @@ public:
     ~ImageSequence();
 
     // Load images from a list of files. Sorts alphabetically.
-    // Returns true if at least one image was loaded. Call from message thread.
+    // Returns true if at least one path has an image extension. s-rta-0928b mediaopen: any thread; does NO file I/O
+    // (no stat, no decode) -- a file that is missing decodes Failed when its frame comes up and the previous frame repeats.
     bool open(const std::vector<juce::File>& imageFiles);
 
     // Load all images from a directory (PNG/JPG/JPEG/BMP/TIFF).
@@ -42,8 +43,6 @@ public:
     float getFps() const { return fps_.load(std::memory_order_relaxed); }
 
     double getDuration() const;
-    int getWidth() const { return width_; }
-    int getHeight() const { return height_; }
 
     // === Transport (same interface as VideoPlayer) ===
 
@@ -61,6 +60,7 @@ public:
     void setPlaying(bool playing) { playing_.store(playing, std::memory_order_relaxed); }
     bool isPlaying() const { return playing_.load(std::memory_order_relaxed); }
 
+    // s-rta-0928b mediaopen: any thread; a request consumed by the next advanceFrame (GL thread), as VideoPlayer's.
     void seekTo(double normalizedPosition);
     double getPlayheadPosition() const { return playheadPosition_.load(std::memory_order_relaxed); }
 
@@ -107,9 +107,6 @@ public:
     // Get the list of loaded files (for serialization/display)
     const std::vector<juce::File>& getFiles() const { return files_; }
 
-    // Get a thumbnail from the first frame
-    juce::Image getThumbnail(int maxWidth, int maxHeight);
-
     ImageSequence(const ImageSequence&) = delete;
     ImageSequence& operator=(const ImageSequence&) = delete;
 
@@ -119,11 +116,8 @@ private:
     SeqVram::Slots slots_;                  // s-rta-0928b seqvram: the recycled textures (owns every GL name)
     std::vector<int> dist_;                 // scratch: SeqVram::distances of this frame
     std::vector<uint8_t> residentFlags_;    // scratch: textures_[j] != 0
-    size_t frameBytesHint_ = 0;             // w * h * 4 of a frame (open()'s frame 0, then the first upload); 0 = unknown
+    size_t frameBytesHint_ = 0;             // w * h * 4 of a frame (set by the first upload); 0 = unknown
     uint64_t lastDrawnSerial_ = 0;          // the Renderer's frame serial of the last getCurrentTexture
-
-    int width_ = 0;                         // Width of first image (representative)
-    int height_ = 0;
 
     // Transport state
     std::atomic<bool> open_{false};
@@ -133,6 +127,9 @@ private:
     std::atomic<LoopMode> loopMode_{LoopMode::Loop};
     std::atomic<bool> playing_{true};
     std::atomic<double> playheadPosition_{0.0};
+    // s-rta-0928b mediaopen: seekTo's request (any thread) and its target; consumed at the top of advanceFrame.
+    std::atomic<bool> seekRequested_{false};
+    std::atomic<double> seekTarget_{0.0};
 
     // Current position in seconds
     double currentTime_ = 0.0;
