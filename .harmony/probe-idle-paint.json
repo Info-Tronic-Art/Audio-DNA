@@ -1,0 +1,24 @@
+{
+  "comment": "probe-idle-paint thresholds (s-rta-0928b idlepaint, plan-idlepaint.md 3.2 + HARMONY ADOPTION I1-I8). Never re-threshold: a FAIL is a finding.",
+  "launches": 5,
+  "settleS": 6.0,
+  "idleS": 30.0,
+  "pollMs": 500,
+  "heartbeatPeriodMs": 4,
+  "winMaxMedMs": 8.0,
+  "cpuMainMsPerS": 150.0,
+  "g1": { "layerDrawsPerS": [24.0, 36.0], "topBarPaintsPerS": [12.0, 26.0] },
+  "g2": { "playingS": 5.0, "minTransportRepaints": 40, "idleMaxTransportRepaints": 2, "minPaintAdvanceRatio": 0.95 },
+  "g4": { "bpm": 120.0 },
+  "x1": { "launches": 3 },
+  "v": {
+    "settleS": 5.0, "settleManyS": 8.0,
+    "fpsMaskRightPt": 200,
+    "cornerClusters": 4, "cornerClusterMaxPx": 12, "cornerMaxDelta": 2,
+    "menuX": 600, "menuY": 60, "panelW": 300, "panelH": 140,
+    "modePollS": 1.0
+  },
+  "v2b": { "cycles": 5, "restoreFramesMax": 2 },
+  "seq24": { "frames": 24, "w": 320, "h": 180, "fps": 30.0 },
+  "many16": { "w": 3840, "h": 2160 }
+}

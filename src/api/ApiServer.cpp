@@ -13,6 +13,9 @@
 #include "routing/RoutingEngine.h"
 #include "binding/BindingManager.h"
 #include "connect/ScalarParams.h"
+#if AUDIODNA_TEST_SERVER
+#include "ui/UiPaintCounters.h"
+#endif
 #include <juce_core/juce_core.h>
 #include <algorithm>
 #include <iostream>
@@ -289,6 +292,12 @@ void ApiServer::setupRoutes()
     // and a Finder drop by path (the handlers ClipCell::filesDropped reaches). Both answer at once.
     server_.Post("/api/debug/heartbeat", [this](const httplib::Request& req, httplib::Response& res) { handleDebugHeartbeat(req, res); });
     server_.Post("/api/debug/drop_files", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDropFiles(req, res); });
+    // s-rta-0928b idlepaint (TEST-ONLY, same build path): the UI paint counters (read on the HTTP thread from atomics, no
+    // message-thread hop), a parented test PopupMenu, forced native-layer fallback, a whole-MainComponent repaint.
+    server_.Get("/api/debug/ui_paint", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiPaint(req, res); });
+    server_.Post("/api/debug/ui_test_menu", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiTestMenu(req, res); });
+    server_.Post("/api/debug/ui_native_fallback", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiNativeFallback(req, res); });
+    server_.Post("/api/debug/ui_repaint_all", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiRepaintAll(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -1738,6 +1747,107 @@ void ApiServer::handleDebugDropFiles(const httplib::Request& req, httplib::Respo
     obj->setProperty("ok", true);
     obj->setProperty("files", static_cast<int>(files.size()));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// s-rta-0928b idlepaint (TEST-ONLY): the UI paint counters, cumulative, read from relaxed atomics on the HTTP thread.
+void ApiServer::handleDebugUiPaint(const httplib::Request&, httplib::Response& res)
+{
+    auto& c = uipaint::counters();
+    const auto rl = std::memory_order_relaxed;
+    auto rect = [rl](const std::atomic<int> (&r)[4]) {
+        juce::Array<juce::var> a;
+        for (const auto& v : r) a.add(v.load(rl));
+        return juce::var(a);
+    };
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("waveform_layer_draws", static_cast<juce::int64>(c.layerDraws[uipaint::Waveform].load(rl)));
+    obj->setProperty("signalbar_layer_draws", static_cast<juce::int64>(c.layerDraws[uipaint::SignalBar].load(rl)));
+    obj->setProperty("waveform_mode", c.layerMode[uipaint::Waveform].load(rl));
+    obj->setProperty("signalbar_mode", c.layerMode[uipaint::SignalBar].load(rl));
+    obj->setProperty("layer_fallbacks", static_cast<juce::int64>(c.layerFallbacks.load(rl)));
+    obj->setProperty("layer_strip_transport_repaints", static_cast<juce::int64>(c.layerStripTransportRepaints.load(rl)));
+    obj->setProperty("layer_strip_playhead_ticks", static_cast<juce::int64>(c.layerStripPlayheadTicks.load(rl)));
+    obj->setProperty("layer_strip_playhead_paints", static_cast<juce::int64>(c.layerStripPlayheadPaints.load(rl)));
+    obj->setProperty("layer_strip_band_repaints", static_cast<juce::int64>(c.layerStripBandRepaints.load(rl)));
+    obj->setProperty("main_component_paints", static_cast<juce::int64>(c.mainComponentPaints.load(rl)));
+    obj->setProperty("top_bar_paints", static_cast<juce::int64>(c.topBarPaints.load(rl)));
+    obj->setProperty("clip_inspector_repaints", static_cast<juce::int64>(c.clipInspectorRepaints.load(rl)));
+    obj->setProperty("ui_overlay_covered_frames", static_cast<juce::int64>(c.overlayCoveredFrames.load(rl)));
+    obj->setProperty("ui_restore_frames_last", c.restoreFramesLast.load(rl));
+    obj->setProperty("ui_restore_frames_max", c.restoreFramesMax.load(rl));
+    obj->setProperty("peer_layer_backed", c.peerLayerBacked.load(rl));
+    obj->setProperty("main_w", c.mainW.load(rl));
+    obj->setProperty("main_h", c.mainH.load(rl));
+    obj->setProperty("signalbar_rect", rect(c.signalBarRect));
+    obj->setProperty("waveform_rect", rect(c.waveformRect));
+    obj->setProperty("topbar_rect", rect(c.topBarRect));
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// s-rta-0928b idlepaint (TEST-ONLY): {"on": bool, "x": int, "y": int, "kind": "menu" | "panel"} (MainComponent
+// coordinates) -> the parented test overlay (onDebugUiTestMenu) on the message thread.
+void ApiServer::handleDebugUiTestMenu(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("on"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("on (bool) required"), "application/json");
+        return;
+    }
+    if (!onDebugUiTestMenu)
+    {
+        res.status = 503;
+        res.set_content(jsonError("ui_test_menu not wired"), "application/json");
+        return;
+    }
+    const bool on = static_cast<bool>(json["on"]);
+    const int x = static_cast<int>(json.getProperty("x", 0));
+    const int y = static_cast<int>(json.getProperty("y", 0));
+    const juce::String kind = json.getProperty("kind", "menu").toString();
+    if (kind != "menu" && kind != "panel")
+    {
+        res.status = 400;
+        res.set_content(jsonError("kind must be \"menu\" or \"panel\""), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this, on, x, y, kind]() { onDebugUiTestMenu(on, x, y, kind); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0928b idlepaint (TEST-ONLY): {"on": bool} -> the native-layer panels paint in-peer (on) or in their layers.
+void ApiServer::handleDebugUiNativeFallback(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("on"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("on (bool) required"), "application/json");
+        return;
+    }
+    if (!onDebugUiNativeFallback)
+    {
+        res.status = 503;
+        res.set_content(jsonError("ui_native_fallback not wired"), "application/json");
+        return;
+    }
+    const bool on = static_cast<bool>(json["on"]);
+    juce::MessageManager::callAsync([this, on]() { onDebugUiNativeFallback(on); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0928b idlepaint (TEST-ONLY): repaint the whole MainComponent (the non-idle full-window pass, adoption I7).
+void ApiServer::handleDebugUiRepaintAll(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugUiRepaintAll)
+    {
+        res.status = 503;
+        res.set_content(jsonError("ui_repaint_all not wired"), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this]() { onDebugUiRepaintAll(); });
+    res.set_content(jsonOk(), "application/json");
 }
 #endif
 

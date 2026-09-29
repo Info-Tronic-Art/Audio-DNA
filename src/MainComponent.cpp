@@ -11,6 +11,7 @@
 #include "recording/PerfStateCapture.h"
 #include "recording/RoutineSlice.h"
 #include "model/AppSettings.h"
+#include "ui/UiPaintCounters.h"
 #include <algorithm>
 
 static uint32_t s_nextClipId = 1000;
@@ -2137,6 +2138,46 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
         debugDropFiles(layer, column, files);
     };
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0928b idlepaint (TEST-ONLY routes): an in-peer overlay parented to the top-level window at MainComponent
+    // point (x, y) -- a 3-item PopupMenu (the mandated withParentComponent pattern) or a plain test panel (a background
+    // app's PopupMenu is dismissed within ~50 ms); a whole-MainComponent repaint.
+    apiServer_->onDebugUiTestMenu = [this](bool on, int x, int y, const juce::String& kind) {
+        if (!on)
+        {
+            juce::PopupMenu::dismissAllActiveMenus();
+            debugOverlayPanel_.reset();
+            return;
+        }
+        if (kind == "panel")
+        {
+            struct Panel final : juce::Component
+            {
+                void paint(juce::Graphics& g) override
+                {
+                    g.fillAll(juce::Colour(0xff7a3a8a));
+                    g.setColour(juce::Colours::white);
+                    g.drawRect(getLocalBounds(), 2);
+                    g.setFont(juce::Font(juce::FontOptions(14.0f)));
+                    g.drawText("probe-idle-paint overlay", getLocalBounds(), juce::Justification::centred, false);
+                }
+            };
+            auto* top = getTopLevelComponent();
+            debugOverlayPanel_ = std::make_unique<Panel>();
+            debugOverlayPanel_->setBounds(juce::Rectangle<int>(300, 140).withPosition(top->getLocalPoint(this, juce::Point<int>(x, y))));
+            top->addAndMakeVisible(*debugOverlayPanel_);
+            return;
+        }
+        juce::PopupMenu m;
+        m.addItem(1, "Test item one");
+        m.addItem(2, "Test item two");
+        m.addItem(3, "Test item three");
+        m.showMenuAsync(juce::PopupMenu::Options().withParentComponent(getTopLevelComponent())
+                            .withTargetScreenArea(juce::Rectangle<int>(1, 1).withPosition(localPointToGlobal(juce::Point<int>(x, y)))),
+                        [](int) {});
+    };
+    apiServer_->onDebugUiRepaintAll = [this] { repaint(); };
+#endif
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks, then start listening (below).
@@ -2369,6 +2410,7 @@ MainComponent::~MainComponent()
 
 void MainComponent::paint(juce::Graphics& g)
 {
+    uipaint::counters().mainComponentPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0928b idlepaint witness
     g.fillAll(juce::Colour(AudioDNALookAndFeel::kBackground));
 
     // Draw input level meter
@@ -2505,6 +2547,7 @@ void MainComponent::resized()
         if (inspectorPanel_) inspectorPanel_->setVisible(false);
         if (browserPanel_) browserPanel_->setVisible(false);
         if (timingWindow_) timingWindow_->setVisible(false);
+        recordUiGeometry();
         return;
     }
 
@@ -2678,6 +2721,23 @@ void MainComponent::resized()
         if (midiLearnOverlay_->isLearnModeActive())
             midiLearnOverlay_->toFront(false);
     }
+    recordUiGeometry();
+}
+
+void MainComponent::recordUiGeometry()
+{
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0928b idlepaint (TEST-ONLY): where the panels are, for probe-idle-paint's window-capture mapping.
+    auto& c = uipaint::counters();
+    auto put = [](std::atomic<int> (&r)[4], juce::Rectangle<int> b) {
+        r[0] = b.getX(); r[1] = b.getY(); r[2] = b.getWidth(); r[3] = b.getHeight();
+    };
+    c.mainW = getWidth();
+    c.mainH = getHeight();
+    put(c.signalBarRect, signalBar_ != nullptr ? signalBar_->getBounds() : juce::Rectangle<int>());
+    put(c.waveformRect, waveformDisplay_.getBounds());
+    put(c.topBarRect, topBar_ != nullptr ? topBar_->getBounds() : juce::Rectangle<int>());
+#endif
 }
 
 

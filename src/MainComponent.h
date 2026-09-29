@@ -475,6 +475,9 @@ private:
     // the active deck: ClipCell::classifyDrop + ClipCell::dispatchDrop onto the SAME DeckView callbacks a cell's
     // filesDropped reaches (DeckView.cpp:200-211). Message thread.
     void debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files);
+    // s-rta-0928b idlepaint (TEST_SERVER builds; a no-op otherwise): MainComponent's size and the SignalBar /
+    // WaveformDisplay / TopBar bounds into uipaint::counters() for GET /api/debug/ui_paint. Called by resized().
+    void recordUiGeometry();
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     // s-rta-0928b mediaopen: a drop is PREPARED outside the GL fence -- the clip id minted, the media opened under it,
     // dims / alpha / thumbnail read (a video's open + thumbnail used to run INSIDE UndoService::withDeckDetached: the
@@ -589,6 +592,7 @@ private:
     int testPort_ = 8080;
 #if AUDIODNA_TEST_SERVER
     std::unique_ptr<TestServer> testServer_;
+    std::unique_ptr<juce::Component> debugOverlayPanel_;   // s-rta-0928b idlepaint: POST /api/debug/ui_test_menu "panel"
 #endif
 #if AUDIODNA_BUILD_INSPECTOR
     std::unique_ptr<melatonin::Inspector> melatoninInspector_;
