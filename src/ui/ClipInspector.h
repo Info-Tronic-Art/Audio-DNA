@@ -57,6 +57,23 @@ public:
 
     void refresh();
 
+    // s-rta-0928b idlepaint (Pitfall NN): EVERY input paint() / paintTimeline() / paintSectionHeader() read. refresh()
+    // (10 Hz) repaints only when it changes; the child widgets repaint themselves. A superset is fine; a missing field
+    // is a stale inspector -- add, never remove. Public for tests/test_clip_inspector_paint_key.cpp.
+    struct PaintKey
+    {
+        const Clip* clip = nullptr;
+        bool fxDrop = false;
+        std::string name;
+        int mediaType = 0, transportMode = 0;
+        bool playable = false;
+        double playhead = 0.0;
+        float inPoint = 0.0f, outPoint = 0.0f, beatDivision = 0.0f;
+        int sourceParamControls = 0, sectionHeights = 0, width = 0, height = 0;
+        bool operator==(const PaintKey&) const = default;
+    };
+    PaintKey paintKeyNow() const;
+
     // L9 (modulation-freeze fix, 2026-09-05): compute+apply signal/macro-
     // driven values for the effect stack AND this inspector's own Source-clip
     // param loop — the two things refresh() used to compute only while the
@@ -182,6 +199,8 @@ private:
     void itemDragExit(const SourceDetails& details) override;
     void itemDropped(const SourceDetails& details) override;
     bool fxDropHighlight_ = false;
+    PaintKey lastPaintKey_;               // s-rta-0928b idlepaint: what the last refresh() repaint showed
+    bool paintKeyValid_ = false;
 
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);

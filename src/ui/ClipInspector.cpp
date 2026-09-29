@@ -1,4 +1,5 @@
 #include "ui/ClipInspector.h"
+#include "ui/UiPaintCounters.h"
 
 ClipInspector::ClipInspector()
 {
@@ -787,6 +788,7 @@ void ClipInspector::resized()
 void ClipInspector::setClip(Clip* clip, EffectScope scope)
 {
     clip_ = clip;
+    paintKeyValid_ = false;   // s-rta-0928b idlepaint: the next refresh() repaints
     if (clip)
     {
         effectStackView_.setEffects(&clip->effects, scope);
@@ -976,7 +978,42 @@ void ClipInspector::refresh()
             }
         }
     }
-    repaint();
+    // s-rta-0928b idlepaint (Pitfall NN): a 10 Hz repaint of the whole inspector joined the peer's union every time;
+    // repaint only when something paint() shows changed (the children repaint themselves).
+    const auto key = paintKeyNow();
+    if (!paintKeyValid_ || !(key == lastPaintKey_))
+    {
+        lastPaintKey_ = key;
+        paintKeyValid_ = true;
+        repaint();
+        uipaint::counters().clipInspectorRepaints.fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
+ClipInspector::PaintKey ClipInspector::paintKeyNow() const
+{
+    PaintKey k;
+    k.clip = clip_;
+    k.fxDrop = fxDropHighlight_;
+    k.width = getWidth();
+    k.height = getHeight();
+    if (clip_ == nullptr)
+        return k;
+    k.name = clip_->name;
+    k.mediaType = static_cast<int>(clip_->mediaType);
+    k.transportMode = static_cast<int>(clip_->transportMode);
+    k.playable = clip_->isPlayable();
+    k.playhead = clip_->playheadPosition;
+    k.inPoint = clip_->inPoint;
+    k.outPoint = clip_->outPoint;
+    k.beatDivision = clip_->beatDivision;
+    k.sourceParamControls = static_cast<int>(sourceParamControls_.size());
+    int h = clipOpacityControl_.getPreferredHeight() + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
+          + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight() + anchorControl_.getPreferredHeight();
+    for (const auto& pc : sourceParamControls_)
+        h += pc->getPreferredHeight();
+    k.sectionHeights = h;   // paint() places its section headers with these
+    return k;
 }
 
 void ClipInspector::updateFitCaption()
