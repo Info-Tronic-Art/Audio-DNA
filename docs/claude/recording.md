@@ -103,7 +103,7 @@ routines reaching for the same control):
   (`RoutineEngine::stopOnLayer`). Driven every 30 Hz tick from `RoutineEngine::Status` (`deck`,
   `layers`, `fireSeq`, `startsOn`, `restartPending`, `touchesComp` -- also on `/api/routine/status`)
   through `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`); a pad repaints only when its painted state changes
-  (`RoutinePad::paintKeyOf` -- the sweep in pixels, Pitfall NN), a band only when its hairline width changes. The
+  (`RoutinePad::paintKeyOf` -- the sweep in pixels, Pitfall 59), a band only when its hairline width changes. The
   Record tab keeps only Save
   Routine (its old pad row is gone). Live: `.harmony/probe-routine-display.sh`.
   **The UI pattern (moved verbatim from CLAUDE.md "UI Patterns", s-rta-0929 asyncload -- CLAUDE.md keeps a pointer):**

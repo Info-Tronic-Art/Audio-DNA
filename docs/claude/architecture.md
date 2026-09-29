@@ -321,7 +321,7 @@ repainted since the last vblank and JUCE paints every component inside it (Pitfa
 a timer either owns a layer (`NativeLayerHost::attach` in MainComponent's constructor -- SignalBar, WaveformDisplay; never
 inside a `juce::Viewport`) or repaints a rect only when its pixels change (`LayerStrip::transportViewOf`,
 `ClipInspector::paintKeyNow`, `RoutinePad::paintKeyOf` -- compare what you paint, never the float you read; Pitfall
-NN). Native layers are above JUCE content: every in-peer overlay must be one `OverlayWatch` sees
+59). Native layers are above JUCE content: every in-peer overlay must be one `OverlayWatch` sees
 (a child of the top-level window, a `TooltipWindow`, a child of MainComponent added after startup, or registered with
 `addOverlay`); while one crosses a native panel, that panel paints in-peer exactly as before (the switch is synchronous;
 the layer comes back only after it drew). The layer's backing store is its own: the parent's background under a
