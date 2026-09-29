@@ -468,3 +468,45 @@ I LOOKED at v5-after-P1.png (F5):
 - Self-brief files: plan-g4cpu.md + addendum 2, g4cpu.md, the c2 draft, and the probe sources. All useful.
 
 INBOX-RECHECK: none
+
+## Rebase (g4cpu-rebase)
+
+**Merge commit:** `3b6ff75` -- `merge(s-rta-0929 g4cpu-rebase): main into lane/g4cpu — tests/CMakeLists.txt kept both lanes' registrations` (parents: `380efed` lane/g4cpu, `3e15613` main). Trial merge (`git merge --no-commit --no-ff main`) auto-merged every file except one.
+
+**Conflict resolution -- `tests/CMakeLists.txt` (3 hunks, same logical block):** g4cpu's `test_routine_pad_paint_key` registration (add_executable / include dirs / link libs / compile defs / compile options / apply_sanitizers / catch_discover_tests) was appended at the same file location as asyncload's three new registrations (`test_load_ticket`, `test_staged_load`, `test_media_opener`). Kept BOTH sides verbatim, in this order: `test_routine_pad_paint_key` (g4cpu, complete block, unmodified) then `test_load_ticket` / `test_staged_load` / `test_media_opener` (asyncload, complete block, unmodified) -- nothing dropped, nothing duplicated. Verified post-resolution: no `<<<<<<<`/`=======`/`>>>>>>>` markers anywhere in the merged tree; each of the 4 `add_executable(test_routine_pad_paint_key|test_load_ticket|test_staged_load|test_media_opener` names appears exactly once; `catch_discover_tests(` count is 99 (one per registered executable).
+
+**Semantic sanity on the auto-merged files (no conflict, checked anyway):**
+- `docs/claude/pitfalls.md`: index (CLAUDE.md) has `57.` then `58.`; the body has both g4cpu's amended Pitfall 57 entry (the mac-peer union fix) and its follow-on `NN.` detail entry (left as `NN`, per instruction -- Harmony numbers it at merge), plus asyncload's Pitfall 58 (`A load is staged...`), already numbered, at the tail. The body's `55, 57, NN, 56, 58` ordering (56 physically after 57/NN) is pre-existing in both `HEAD` and `main` before this merge (confirmed via `git show HEAD:...` / `git show main:...`) -- not a merge artifact.
+- `docs/claude/recording.md`: both lanes touched the same "Surfaces" sentence (`through deriveRoutineDeckView...`). Merged result keeps g4cpu's clause (`; a pad repaints only when its painted state changes (RoutinePad::paintKeyOf -- the sweep in pixels, Pitfall NN)`) in the same sentence, immediately followed by asyncload's whole new "UI pattern (moved verbatim from CLAUDE.md...)" / "Routine pads and bands" paragraph -- both lanes' additions present, nothing clobbered.
+- `src/MainComponent.cpp/.h`, `src/api/ApiServer.cpp/.h`: auto-merged clean (no markers); confirmed by a full clean build below (both lanes' code compiles and links).
+
+**Build:** `cmake -S WT -B WT/build-lane` (rc=0, warnings only: FetchContent_Populate deprecation notice for syphon, pre-existing) then `cmake --build WT/build-lane -j3` (rc=0, all targets built incl. `test_routine_pad_paint_key`, `test_load_ticket`, `test_staged_load`, `test_media_opener`, `AudioDNA`).
+
+**ctest count line (verbatim):**
+```
+100% tests passed, 0 tests failed out of 947
+
+Total Test time (real) =  26.29 sec
+```
+
+**Probe summary lines (verbatim, `.harmony/probe-idle-paint.sh /tmp "g4_routine,v5_routine_identity,i1_idle_card"`, merged app under `AUDIODNA_LOCK_OWNER=g4cpu-rebase`, BEFORE = main checkout's `build/AudioDNA_artefacts/Release/Audio-DNA.app`):**
+```
+PASS  g4_routine (a loop routine on 3 layers, adoption I3): window max median 4.7 ms [4.4-5.0] (<= 8.0) | main CPU median 143.5 ms/s [141.3-146.2] (INFO, ruling J2)
+PASS  v5_routine_identity P1 (routine position 6.5 beats): BEFORE vs AFTER outside the fps mask and the SignalBar -- 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s)
+PASS  v5_routine_identity P2 (routine position 10.5 beats): BEFORE vs AFTER outside the fps mask and the SignalBar -- 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s)
+PASS  v5_routine_identity cue: routine-cue pixels in the strip column (V fill + band name), BEFORE P1 / P2, AFTER P1 / P2: 12213 / 14973 / 12213 / 14973 (each >= 300: a routine plays in every frame)
+PASS  v5_routine_identity teeth: AFTER P1 vs P2 -- 9 violation cluster(s): 3 in the pad row (bbox 40 pt wide, >= 15), 6 in the strip column (>= 1), 0 elsewhere (== 0; the preview is masked: INFO below)
+PASS  i1_idle_card (IDLE-HB-card): window max median 4.0 ms [3.5-4.4] (<= 8.0) AND main CPU median 110.9 ms/s [109.9-110.9] (<= 150.0)
+
+11 PASS / 0 FAIL / 0 SKIP (16:34:31, load 5.06 5.76 5.55)
+PASS  app terminated
+
+PROBE-IDLE-PAINT GREEN
+```
+(g4_routine's r2/r3 launches were flagged `TAINTED (compiler seen) -- re-run` mid-run -- an unrelated background compiler process, not the merged code; the probe re-launched r6/r7 to compensate and the row still PASSed on its own gates.)
+
+**Load averages:** start `load: { 5.44 5.49 5.18 }`; end (after quit) `load 5.06 5.76 5.55`. Load rose mid-run (peak ~7.7 1-min avg during v5's two-app launch) then settled by the end of i1_idle_card -- consistent with the rig's own launch/compile background noise noted elsewhere in this report, not a merged-code effect (i1's own CPU/window-max gates, which are load-normalized via the 5-launch median, PASSed).
+
+**Post-run rig state:** `outwins` -> `audio-dna windows 0, Output-named 0`. Lock released (`16:34:31 lock released`). `WT/.venv` symlink removed before commit (see below). Tree clean except `build-lane/`.
+
+**End state:** WT clean except `build-lane/` (untracked); no app running; lock released; `main` not touched, not pushed to.
