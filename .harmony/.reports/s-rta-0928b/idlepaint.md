@@ -454,3 +454,198 @@ Harmony rules on:
 - the v3 flake.
 
 Then the critic re-review of J1 with the main+hook evidence, and the merge (Pitfall NN -> 57).
+
+---
+
+# Fix round 2 (workflow lane-name idlepaint-fix1) -- Harmony rulings K1-K4 (plan-idlepaint.md "HARMONY ADOPTION ADDENDUM 2 -- fix round 2")
+
+The packet asked for a section named "Fix round 1". Addendum 2 is the newest text and names it "Fix round 2", and this file already has a "Fix round 1", so this section is "Fix round 2".
+
+STATUS: PARTIAL
+
+RESULT: K2, K3's two new rows and K4 are done. K1 is STOPPED, because its premise is false; I measured this in production. Main's production idle look is NOT the steady look:
+- Main keeps its first-pass pixels in the Files grid (folder emoji) and on three TopBar slider thumbs for as long as it runs. They did not change over 22 s.
+- A one-shot whole repaint in main (the scratch main + hook build) changes exactly those pixels.
+
+So K1 would make the lane DIFFER from main in production. A built K1 arm shows it:
+- v4 goes GREEN.
+- v3p, v1 S1-S3 and v3 go RED, each on the same 13,507 px above 1/255 (max 66) in every run.
+
+v4 and v3p cannot both be GREEN on any build, short of changing what AppKit's first pass draws:
+- v4 GREEN needs the lane's idle look to be the steady look.
+- v3p GREEN needs the lane's idle look to equal main's, and main's is the first-pass look.
+
+No app code changed this round. The final app is b1307c7's code. The K1 patch is ready (below) if Harmony rules for it.
+
+FACTS:
+- Commits on lane/idlepaint (b1307c7 ->):
+  - fd456e5 K2
+  - 8d8bc40 K3 rows
+  - this report
+- `git diff b1307c7 -- src tests CMakeLists.txt` is empty.
+- The final `build-lane` binary (sha256 7ff3fe59...) and the saved b1307c7 copy (`S/fix2/app-b1307c7.app`, c711b56b...) differ in 260 bytes. All of them are at offsets >= 18234024, past the LC_CODE_SIGNATURE dataoff 18091376, so only the signature differs.
+- `strings` "ADNA_TEMP|J1DIAG" on the final binary gives 0.
+- ctest serial `ctest --test-dir WT/build-lane -j1` -> "100% tests passed, 0 tests failed out of 920" (`S/fix2/ctest.log`, 06:17:38).
+- Logs (S = the scratchpad idlepaint dir): `S/fix2/runs/{R1,K1,F1,F2,F3,F4,F5}.log`, the premise check `S/fix2/p1/{main,mh,lane}/s*.png` + `S/fix2/reg.py`, and the Mod 1 check `S/fix2/mod1/`.
+
+METHOD:
+- RED first: the b1307c7 app was copied (`S/fix2/app-b1307c7.app`) before any change and run as R1.
+- The K1 arm is b1307c7 + `S/fix2/k1.patch` (verbatim below), built in build-lane and copied to `S/fix2/app-k1.app` (sha256 288e8d16...). The edit was then undone with `git apply -R` of my own patch and build-lane was rebuilt (byte check above).
+- Every capture is window-only by Quartz window id. I looked at sample frames by eye: the K1 arm's folder icons against main's (`S/fix2/look-v3p-k1.png`), the downscaled v3p diff (`S/fix2/look-v3p-k1-diff-small.png`) and the Mod 1 crops (`S/fix2/crop-119.png`).
+
+CONFIDENCE+VERIFY:
+- High. Every pixel row is deterministic: 13,507 / max 66 in all 11 runs where the class appears.
+- Re-prove the premise with `bash S/fix2/pbatch.sh`.
+- Re-prove the rows with `bash S/fix2/vbatch.sh <tag> <app> v4_full_pass_identity,v3p_production_idle_identity`.
+
+UNKNOWNS / NOT DONE:
+- K1: not applied (STOPPED).
+- v4: RED on the final app, as on main.
+- The Core Animation step behind the first-pass look is still INFERRED (fix round 1).
+- Why the test-mode Mod 1 meter moves in 3 of 26 probe-sequence captures but in 0 of 60 fresh-launch captures: unknown.
+
+NUANCE: v1 S2 FAILs under K2 on the final app, 160 px at max 119. It is NOT the lane:
+- It is the SignalBar's "Mod 1" meter (a sine of the snapshot's beatPhase, SignalRegistry.cpp:65 / OscillatorSignal.h:59-71). Its fill's top edge sits at a slightly different height in the BEFORE (main) capture.
+- With the SignalBar and waveform masked, the same pair reads 43 px, max 1, 0 violations.
+
+HANDOFF-NEEDS: Harmony rulings on:
+- (a) K1 versus main identity: options A / B / C below;
+- (b) whether test-mode identity rows declare the SignalBar's live meters (Mod 1) as live content, or the probe freezes beatPhase.
+
+INBOX-RECHECK: none
+
+## Fix round 2 -- ruling -> commit -> RED -> GREEN
+
+| ruling | commit | RED (raw line) | GREEN (raw line) |
+|---|---|---|---|
+| K2 identity (<= 1/255 anywhere) for v1 / v1b / v2 / v3 | fd456e5 | the same code under J3 (fix round 1 G4): `FAIL  v1_identity_test_mode S1 (default): BEFORE vs AFTER outside the fps mask -- 1251 px differ (max delta 1), 8 violate J3 (> 1/255 or off an anti-aliased edge) in 6 cluster(s)`. Teeth, R1 on the b1307c7 app: `PASS  v0_capture_teeth (K2): the K2 identity rule rejects the 1-px shift -- 25859 px differ (max delta 189), 25545 violate K2 (> 1/255) in 81 cluster(s) (> 0)` | R1: `PASS  v1_identity_test_mode S1 (default): BEFORE vs AFTER outside the fps mask -- 1251 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)`; F5: `PASS  v1b_native_vs_inpeer SignalBar: native layer vs forced in-peer at a frozen driven state -- 8 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)`; F3: `PASS  v2_identity_fallback: A vs B outside the overlay's rect -- 8 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s); the overlay IS visible over the SignalBar (75608 px changed there)`; F3: `PASS  v3_identity_production_masked: BEFORE vs AFTER outside the SignalBar / waveform / TopBar row -- 33 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)`. The exception is v1 S2 (NUANCE; details under "Gates on the final app") |
+| K3 v4_full_pass_identity | 8d8bc40 | R1 on the b1307c7 app: `FAIL  v4_full_pass_identity (K3): test mode, card -- idle look vs after a whole-MainComponent pass outside the fps mask, 2 launches: r1 35553 px differ (max delta 119), 13667 violate K2 (> 1/255) in 33 cluster(s) \| r2 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)`. r1's extra 160 px / 119 is the Mod 1 meter | K1 arm only: `PASS  v4_full_pass_identity (K3): test mode, card -- idle look vs after a whole-MainComponent pass outside the fps mask, 2 launches: r1 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s) \| r2 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s)`. The final app FAILs (K1 stopped): `r1 35393 px differ (max delta 66), 13507 violate K2 ... \| r2 35393 px differ (max delta 66), 13507 violate K2` |
+| K3 v3p_production_idle_identity | 8d8bc40 | No RED exists: on the b1307c7 app it PASSes (R1): `PASS  v3p_production_idle_identity (K3): production, card -- main's idle look vs this build's idle look outside the fps / SignalBar / waveform / TopBar beat+tempo masks, 2 launch pairs: r1 33 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s) \| r2 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s)`. It turns RED only with K1: `FAIL  v3p_production_idle_identity (K3): ... r1 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s) \| r2 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)` | final app (F3): `PASS  v3p_production_idle_identity (K3): ... r1 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s) \| r2 33 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)` |
+| K1 one-shot repaint after the first pass | none: STOPPED (wrong premise, evidence below) | -- | -- |
+| K4 re-runs on the final app | none | -- | the i1 / i2 / g4 / v2b lines below |
+
+## K1 -- why it is stopped (the premise, measured in PRODUCTION)
+
+K1's stated reason: "so every region carries the steady look that main shows in production (main's 30 Hz union repaints everything)". Every production launch below (no `--test-mode`) loaded the card fixture. Regions are in points (x2 in capture px): folders = the Files grid, sliders = the TopBar Fade / Master Signal / Master thumbs, fps = the fps readout. Each cell reads changed px / max delta. Script: `S/fix2/pbatch.sh`, held 05:32:29-05:33:39.
+
+| pair (`S/fix2/p1/...`) | folders | sliders | reading |
+|---|---|---|---|
+| main s0 (+11.4 s) vs main s1 (+22.2 s) | 0/0 | 0/0 | main never repaints those regions at idle in production (fps 186/91 = live) |
+| main+hook s0 vs s1 (one repaint at 13 s after the first paint, `ADNA_TEMP_KICK_MS=13000`; stderr `J1DIAG main kick repaint`) | 24507/66 | 1648/29 | one later pass changes exactly the J1 classes, in main |
+| main+hook s1 vs s2 (+4 s) | 0/0 | 0/0 | the changed look persists |
+| main s1 vs lane b1307c7 s0 (idle) | 0/0 | 0/0 | the lane's idle look == main's |
+| main s1 vs lane b1307c7 s2 (after ui_repaint_all) | 24507/66 | 1648/29 | a full pass moves the lane away from main |
+| main+hook s2 vs lane s2 (both after a pass) | 0/0 | 0/0 | the steady look is the same in both builds |
+
+So main's union does not repaint everything: the fix-round-1 test-mode finding holds in production too. With K1, the lane's idle look equals main's look after a resize, not main's idle look. The rows confirm it on the K1 arm (log K1, 05:44:24-05:47:03):
+- v4 PASS
+- v3p FAIL
+- v1 S1 / S2 / S3 FAIL: `37178 / 35503 / 35484 px differ (max delta 66), 13508 / 13507 / 13507 violate K2`
+- v3 FAIL: `33356 px differ (max delta 66), 13168 violate K2 (> 1/255) in 22 cluster(s)`
+- The meters-masked INFO lines are unchanged (13,507), so the class is the emoji / thumbs, not the meters.
+
+By eye (`S/fix2/look-v3p-k1.png`): with K1 the folder icons are the slightly larger and crisper steady rendering. Main shows the softer first-pass icons. The difference is small but visible when zoomed.
+
+The K1 patch (built and measured as the K1 arm, then removed; `S/fix2/k1.patch`):
+```diff
+--- a/src/MainComponent.cpp
++++ b/src/MainComponent.cpp
+@@ void MainComponent::paint(juce::Graphics& g)
+     uipaint::counters().mainComponentPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0928b idlepaint witness
++#if JUCE_MAC
++    // s-rta-0928b idlepaint K1: the window's FIRST display pass rasterises colour-emoji glyphs and ellipse rims (the
++    // Files grid's folder icons, the TopBar slider thumbs) a little differently from every later pass (AppKit / Core
++    // Animation, fix round 1 J1). ONE whole repaint shortly after it gives every region the look any later pass draws.
++    // A single one-shot -- never periodic (a timed repaint costs the whole window, Pitfall NN).
++    if (!firstPassRepaintScheduled_)
++    {
++        firstPassRepaintScheduled_ = true;
++        juce::Timer::callAfterDelay(250, [safe = juce::Component::SafePointer<MainComponent>(this)] {
++            if (safe != nullptr)
++                safe->repaint();
++        });
++    }
++#endif
+     g.fillAll(juce::Colour(AudioDNALookAndFeel::kBackground));
+--- a/src/MainComponent.h
++++ b/src/MainComponent.h
+     void recordUiGeometry();
++    bool firstPassRepaintScheduled_ = false;   // s-rta-0928b idlepaint K1: the one-shot repaint after the first pass
+```
+It does not bring the stall back. i1 on the K1 arm (F4): `PASS  i1_idle_card (IDLE-HB-card): window max median 4.4 ms [4.1-4.9] (<= 8.0) AND main CPU median 112.3 ms/s [111.3-114.3] (<= 150.0)`.
+
+Options for Harmony:
+- A (the lane's state now): keep lane idle == main idle. v4 stays RED, and it is main's own behaviour (the table above).
+- B: apply the K1 patch (one commit) and rebase v1 / v3 / v3p on a main reference drawn after one full pass. The scratch main + hook build (`S/app-mainhook`, `ADNA_TEMP_KICK_MS`) is that reference. Users would then see the steady icons from launch: what main shows today after any resize.
+- C: an AppKit investigation lane into why pass 1 differs.
+
+## Gates on the final app (= b1307c7 code)
+
+Perf arms ran with 5 launches each, the lock taken via `acquire_quiet_lock`, and no compiler running. Load averages (3.6-6.8) are printed on every launch in the logs.
+
+| row | raw line | log |
+|---|---|---|
+| c0 | `PASS  c0_preflight: the peer NSView is layer-backed (peer_layer_backed 1, adoption I8)`; heartbeat and capture PASS | F1 |
+| i1 (K4) | `PASS  i1_idle_card (IDLE-HB-card): window max median 4.5 ms [4.2-5.5] (<= 8.0) AND main CPU median 114.2 ms/s [112.9-114.6] (<= 150.0)` | F1 |
+| g1 / g3 | `PASS  g1_anim_rates` (wf / sb 29.1-29.2/s, top 14.9/s, modes [0, 0], 0 fallbacks); `INFO  g3_peer_quiet: MainComponent paints/s 14.9, 14.9, 14.9, 14.9, 14.9 \| ClipInspector repaints/s 0.00, 0.00, 0.00, 0.00, 0.00` | F1 |
+| i2 (K4) | `PASS  i2_idle_many16 (IDLE-HB-many16): window max median 4.4 ms [3.9-4.6] (<= 8.0) AND main CPU median 111.2 ms/s [109.6-112.6] (<= 150.0)` | F1 |
+| g4 (K4) | `PASS  g4_routine (a loop routine on 3 layers, adoption I3): window max median 5.6 ms [5.1-6.0] (<= 8.0) \| main CPU median 158.2 ms/s [156.9-158.9] (INFO, ruling J2)`; `INFO  g4_routine CPU (INFO, ruling J2): main-thread CPU median BEFORE 327.5 ms/s [323.1-328.2] \| AFTER 158.2 ms/s [156.9-158.9] (i1's 150.0 ms/s is not applied to g4)` | F2 |
+| v2b (K4) | `PASS  v2b_fallback_frames (I1, under g4's routine: running): 10 fallbacks over 5 panel + menu cycles, a layer showed over an overlay in 0 vblank(s) (== 0)`; `PASS  v2b_fallback_frames (I4): the layer is back <= 2 vblanks after the overlay closed (max 1)`; teeth `PASS ... covered 11 vblank(s) (> 0)` | F3 |
+| v0 | `PASS  v0_capture_teeth: the comparator catches a 1-px shift of the layers: 78 cluster(s) in the SignalBar, 2 in the waveform, 0 elsewhere (25859 px, max delta 189)`; K2 teeth PASS | F3 |
+| v1 S1 / S3 / S4 | `PASS ... S1 (default) ... 1251 px differ (max delta 1), 0 violate K2`; `PASS ... S3 (many16) ... 92 px differ (max delta 1), 0 violate K2`; `PASS ... S4 ... the waveform rect + 8 px BEFORE vs AFTER -- 0 px differ` | F3 |
+| v1 S2 | `FAIL  v1_identity_test_mode S2 (card): BEFORE vs AFTER outside the fps mask -- 237 px differ (max delta 119), 160 violate K2 (> 1/255) in 1 cluster(s)` with `INFO  v1 S2 with the live meters masked too (SignalBar, waveform): 43 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)`. The same happened in R1 on the b1307c7 app | F3, R1 |
+| v1b | SignalBar `8 px differ (max delta 1), 0 violate K2` PASS, waveform `28 px differ (max delta 1), 0 violate K2` PASS, round trips 0 px. Ran on the fix-round-1 TEMPORARY freeze-hook copy `S/app-hook2` (42871bd code = b1307c7 code + hook); no hook in the tree | F5 |
+| v2 | modes PASS, A vs B PASS (8 px at 1/255), A vs C 0 px PASS, covered 0, restore max 1, real PopupMenu PASS | F3 |
+| v3 | PASS (K2), 33 px at 1/255 | F3 |
+| v3p | PASS (table above) | F3 |
+| v4 | FAIL, 13,507 px / max 66 in both launches (K1 stopped) | F3 |
+
+## The Mod 1 meter class (v1 S2, v4 r1 in R1)
+
+- Where: the SignalBar strip "Mod 1" (x 352-371 pt), the top edge of its cyan fill (value label "0.50"): 160 px, max 119/255. Crops: `S/fix2/crop-119.png`.
+- Which captures: the odd ones were main's v1 BEFORE S2 (R1 and F3) and the lane's v4 r1 full-pass capture (R1). That is 3 of 26 test-mode card-state captures across R1 / K1 / F3, in both apps. The lane capture changed within one launch, so this is live content, not a lane change.
+- Dedicated check (`S/fix2/mod1.py`, 5 fresh test-mode launches per arm, 6 captures 1 s apart each): 0 of 30 captures moved, main and lane alike. It shows up only inside the probe's longer state sequences. I did not find the trigger (UNKNOWN).
+- No re-threshold. The INFO line (fd456e5) prints the pair again with the live meters masked, so the class is visible apart from the rest.
+
+## Rig (fix round 2)
+
+- 8 lock holds, each <= 7.5 min: p1 05:32:29-05:33:39, R1 -05:41:02, K1 05:44:24-05:47:03, F1 -05:55:18, F2 -06:03:18, F4 -06:07:40, F3 -06:12:32, F5 06:13:17-06:16:36. The helper enforced >= 45 s between holds.
+- 78 launches, all `open -g`. `outwins` gave "audio-dna windows 0, Output-named 0" after every hold.
+- No synthetic input, no debugger, no full-screen capture, no Output window. No system dialog appeared.
+- Builds ran only between holds: the K1 arm at 05:42:36-05:42:51, the revert rebuild, and the final full build at 06:17:12-06:17:16.
+- The two commits (each starts a graphify python rebuild) landed at 05:44:12 and 05:44:19, just before K1's hold, which ran pixel rows only. The first perf hold began at 05:47:51, and every perf hold used `acquire_quiet_lock`.
+- The `.venv` symlink was created per hold and removed at each release; it was absent at both commits.
+- TEMPORARY code: the K1 arm edit was removed with `git apply -R`. The main+hook build and the freeze-hook copy are scratch only. `git status` shows only `build-lane/`.
+
+## Work-log rows (fix round 2, for Harmony)
+
+- K1: STOPPED, wrong premise. In production, main's idle look carries the first-pass emoji (24,507 px / 66) and slider thumbs (1,648 / 29) and never repaints them. A K1 arm makes v4 GREEN and v3p / v1 / v3 RED (13,507 px / 66).
+- K2 fd456e5: v1 S1 / S3, v1b, v2, v3 PASS at 1/255. v1 S2 FAILs on the Mod 1 meter class (main's capture).
+- K3 8d8bc40: v4 RED on b1307c7 and on final (GREEN only with K1); v3p PASS on b1307c7 and on final (RED with K1).
+- K4: i1 4.5 ms / 114.2 ms/s, i2 4.4 / 111.2, g4 5.6 ms (CPU INFO 158.2 vs main 327.5), v2b covered 0 / restore max 1.
+- ctest 920/920.
+
+## Notebook lines (fix round 2, for Harmony to append)
+
+- `## 2026-09-29 main's 30 Hz union never repaints the Files grid or the right TopBar sliders, in production too | main's production idle look keeps the window's first-pass emoji / slider-thumb pixels (unchanged over 22 s); one later pass changes them in main as in the lane -- "match main" and "a full pass changes nothing" are mutually exclusive until AppKit's first pass is understood | discovered: S/fix2/p1 + S/fix2/reg.py`
+- `## 2026-09-29 the SignalBar's Mod 1 meter is live in test mode | Mod 1 = 0.5 + 0.5 sin(2 pi beatPhase) (SignalRegistry.cpp:65, OscillatorSignal.h:59-71); its fill edge moved 119/255 in 3 of 26 probe-sequence captures (never in 30 fresh-launch captures) -- mask or freeze it before calling a test-mode diff a rendering change | discovered: S/fix2/crop-119.png`
+
+## PACKET QUALITY (fix round 2)
+
+- Clarity: HAD_TO_INFER.
+  - The section title: the packet says "Fix round 1", the addendum says "Fix round 2". I followed the addendum.
+  - K1's stated premise ("main's 30 Hz union repaints everything") contradicts fix round 1's test-mode measurement. I re-measured it in production before building, then STOPPED K1 per the packet's wrong-premise rule. The patch and both measured arms are handed over, not improvised around.
+  - v3p's "masked live content": I declared the fps mask, SignalBar, waveform and the TopBar beat / tempo readouts. The readouts are placed from TopBar::resized's fixed offsets 326..512 pt: probe-idle-paint.json v3p.topbarLiveFromLeftPt 322 / WidthPt 196.
+- Missing context: none beyond the premise.
+- Unused context: none.
+- Self-brief files: the plan's three adoption sections, this report's r1 and fix-round-1 sections, and the fix-round-1 scratch evidence (j1-b5, app-mainhook). All useful.
+
+### STATUS
+PARTIAL
+
+### NEXT ACTION
+Harmony rules on:
+- K1 option A / B / C;
+- the test-mode Mod 1 meter (declare it live content, or freeze beatPhase in the probe).
+
+Then the critic re-review and the merge (Pitfall NN -> 57).
