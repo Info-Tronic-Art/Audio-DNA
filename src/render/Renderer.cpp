@@ -377,9 +377,31 @@ void Renderer::renderOpenGL()
         onsetPulseFrames_.fetch_add(1u, std::memory_order_relaxed);
     const FeatureSnapshot& snap = frameSnap_;
 
-    // s-rta-0928b mediaopen: a frame inside a withDeckDetached fence (the model is being mutated) with no deck.
+    // s-rta-0928b mediaopen: inside a withDeckDetached fence the model is being mutated -- HOLD the canvas exactly as
+    // the previous frame left it (nothing has touched canvasFBO_ yet this frame), re-present it, re-publish it to the
+    // outputs. No capture is answered (a held frame is not this frame's picture; the fence lasts 1-2 frames), no
+    // recorder / Syphon frame (as the two early returns below), no deck-transition detection (the first unfenced
+    // frame detects it with the held picture as the outgoing one), no canvas-size debounce step, no composite (no
+    // history key is touched: Pitfall 35). It used to fall to the "nothing to render" path and show one black frame
+    // per fenced frame on every output (5-14 on a video drop, diag-media S2). The present geometry is the canvas
+    // block's (compW / compH below), recomputed here because this path returns before it.
     if (fenced && !deckActive)
-        fenceBlackFrames_.fetch_add(1, std::memory_order_relaxed);   // falls to the "nothing to render" path below
+    {
+        if (canvasTex_ != 0 && canvasW_ > 0 && canvasH_ > 0)
+        {
+            fenceHoldFrames_.fetch_add(1, std::memory_order_relaxed);
+            GLint heldFBO = 0;   // the window's framebuffer (cleared to the bar colour above)
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &heldFBO);
+            auto* heldComponent = glContext_.getTargetComponent();
+            const float heldScale = static_cast<float>(glContext_.getRenderingScale());
+            const int heldW = heldComponent != nullptr ? static_cast<int>(static_cast<float>(heldComponent->getWidth()) * heldScale) : 1;
+            const int heldH = heldComponent != nullptr ? static_cast<int>(static_cast<float>(heldComponent->getHeight()) * heldScale) : 1;
+            publishToOutputs(canvasW_, canvasH_);
+            presentCanvas(static_cast<GLuint>(heldFBO), RenderGeometry::fitCanvas(canvasW_, canvasH_, heldW, heldH));
+            return;
+        }
+        fenceBlackFrames_.fetch_add(1, std::memory_order_relaxed);   // nothing to hold yet: today's black frame, counted
+    }
 
     // === s-rta-0926b plan4 item 1: the composition canvas ===
     // Boris 2026-09-26: "the preview and output display window in the lower left corner should not
