@@ -11,7 +11,8 @@ rows (run order; default = all but x1 / v1b): c0_preflight i1_idle_card i2_idle_
       v2b_fallback_frames v3_identity_production_masked
 Gate rows (PASS = window max median <= winMaxMedMs AND main-thread CPU <= cpuMainMsPerS, medians over `launches`):
   i1 card fixture (probe-routines.json), i2 many16 (4 layers x 4 Image clips over 16 PIL-made 3840x2160 JPEGs),
-  g4 a loop routine playing on 3 layers at a manual 120 BPM (adoption I3). g1 (animation rates: waveform / signal-bar
+  g4 a loop routine playing on 3 layers at a manual 120 BPM (adoption I3): the window max only -- its main-thread CPU is
+  an INFO line, BEFORE (main, 5 more launches) vs AFTER (Harmony ruling J2). g1 (animation rates: waveform / signal-bar
   layer draws per s, TopBar paints per s, modes native, 0 fallbacks) and g3 (INFO: MainComponent paints/s, ClipInspector
   repaints/s) ride on i1's launches. g5 (REPORT-ONLY, I6): the card at a manual 120 BPM (beat wheel, bar display and
   beat-phase meters move) with the live input driving the waveform -- the panels' paint cost does not depend on the
@@ -415,7 +416,9 @@ def run_arm(row, app, fixture, n, env=(), bpm=None):
     return got
 
 
-def gate(row, runs, label):
+def gate(row, runs, label, cpu_gate=True):
+    """PASS = window max median <= winMaxMedMs AND (cpu_gate) main CPU median <= cpuMainMsPerS. g4 passes
+    cpu_gate=False (Harmony ruling J2): its CPU is an INFO line (BEFORE vs AFTER), the window max stays the gate."""
     if runs is None:
         skip(f"{row}: TAINTED (a compiler ran) -- re-run on a quiet machine"); return
     if len(runs) < N:
@@ -429,6 +432,12 @@ def gate(row, runs, label):
            f"[{fmt(min(cpu) if cpu else None)}-{fmt(max(cpu) if cpu else None)}]")
         return
     med_wm = st.median(wm)
+    if not cpu_gate:
+        (ok if med_wm <= CFG["winMaxMedMs"] else no)(
+            f"{row} ({label}): window max median {med_wm:.1f} ms [{min(wm):.1f}-{max(wm):.1f}] (<= {CFG['winMaxMedMs']}) "
+            f"| main CPU median {fmt(med_cpu)} ms/s [{fmt(min(cpu) if cpu else None)}-{fmt(max(cpu) if cpu else None)}] "
+            f"(INFO, ruling J2)")
+        return
     line = (f"{row} ({label}): window max median {med_wm:.1f} ms [{min(wm):.1f}-{max(wm):.1f}] (<= {CFG['winMaxMedMs']}) "
             f"AND main CPU median {fmt(med_cpu)} ms/s [{fmt(min(cpu))}-{fmt(max(cpu))}] (<= {CFG['cpuMainMsPerS']})")
     (ok if med_wm <= CFG["winMaxMedMs"] and med_cpu is not None and med_cpu <= CFG["cpuMainMsPerS"] else no)(line)
@@ -980,7 +989,17 @@ for row in ROWS:
         row_i(row, "many16", "IDLE-HB-many16")
     elif row == "g4_routine":
         runs = run_arm(row, APP, "routine", N, bpm=CFG["g4"]["bpm"])
-        gate(row, runs, "a loop routine on 3 layers, adoption I3")
+        gate(row, runs, "a loop routine on 3 layers, adoption I3", cpu_gate=False)
+        # Ruling J2: g4's main-thread CPU is an INFO line, BEFORE (main) vs AFTER, both measured here. The lever (the
+        # SignalBar repaints only the strips whose value changed; the routine's band / V-fader repaints leave the
+        # TopBar pass) is filed, not built.
+        before = run_arm("g4_routine_before", APPB, "routine", N, bpm=CFG["g4"]["bpm"]) \
+            if APPB and os.path.isdir(APPB) else None
+        med = lambda rs: fmt(st.median([r["cpu_main"] for r in rs if r["cpu_main"] is not None])) if rs else "-"
+        rng = lambda rs: ("[" + fmt(min(r["cpu_main"] for r in rs)) + "-" + fmt(max(r["cpu_main"] for r in rs)) + "]") \
+            if rs and all(r["cpu_main"] is not None for r in rs) else ""
+        info(f"g4_routine CPU (INFO, ruling J2): main-thread CPU median BEFORE {med(before)} ms/s {rng(before)} | AFTER "
+             f"{med(runs)} ms/s {rng(runs)} (i1's {CFG['cpuMainMsPerS']} ms/s is not applied to g4)")
         if runs and "band_repaints" in runs[0]:
             info("g4_routine: band repaints/s " + ", ".join(f"{r['band_repaints']:.1f}" for r in runs)
                  + " | strip transport repaints/s " + ", ".join(f"{r['strip_repaints']:.1f}" for r in runs)
