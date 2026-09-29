@@ -14,11 +14,11 @@
   "v": {
     "settleS": 5.0, "settleManyS": 8.0,
     "fpsMaskRightPt": 200,
-    "cornerClusters": 4, "cornerClusterMaxPx": 12, "cornerMaxDelta": 2,
     "menuX": 600, "menuY": 60, "panelW": 300, "panelH": 140,
     "modePollS": 1.0
   },
   "v2b": { "cycles": 5, "restoreFramesMax": 2 },
+  "identity": { "comment": "Harmony ruling J3 (fix round 1): v1 / v1b / v2 -- a differing pixel is tolerated iff <= maxDelta per channel AND its 3x3 neighbourhood spans > edgeSpan levels", "maxDelta": 1, "edgeSpan": 32 },
   "seq24": { "frames": 24, "w": 320, "h": 180, "fps": 30.0 },
   "many16": { "w": 3840, "h": 2160 }
 }

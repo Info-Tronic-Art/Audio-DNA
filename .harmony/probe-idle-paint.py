@@ -26,6 +26,9 @@ the lock is never held while waiting for quiet). Every launch prints the load av
 g2: seq24 (one layer, a 24-frame 320x180 PNG sequence, 30 fps loop) triggered, playingS: >= minTransportRepaints
   transport repaints and (adoption I2) strip paints whose painted playhead pixel moved / ticks whose playhead pixel moved
   >= minPaintAdvanceRatio; then the card loaded + triggered, settleS, playingS: <= idleMaxTransportRepaints.
+Identity (Harmony ruling J3, rows v1 / v1b / v2): every differing pixel differs by <= identity.maxDelta (1/255) per
+channel AND sits at an anti-aliased edge (its 3x3 neighbourhood spans > identity.edgeSpan levels in either capture);
+each line prints the differing count, the max delta and the violating count. v0 proves the rule rejects a 1-px shift.
 Pixel rows (window-only captures `screencapture -x -o -l <Quartz window id>` of the largest on-screen Audio-DNA window,
 decoded with PIL + numpy; MainComponent -> capture mapping from GET /api/debug/ui_paint: the title-bar height is the
 window's Quartz height minus MainComponent's height, measured every run -- adoption I8; the precondition
@@ -33,11 +36,10 @@ peer_layer_backed == 1 is asserted in c0):
   v0 teeth: AFTER with ADNA_UI_NATIVE_LAYERS_TEETH=shift vs AFTER (test mode, card): the comparator must find diffs in
      BOTH panel rects and nowhere else outside the allowed set.
   v1 BEFORE vs AFTER, --test-mode (meters and waveform static): S1 default, S2 card, S3 many16, S4 = S3 after POST
-     /api/debug/ui_repaint_all on AFTER (the full-window pass, adoption I7). Allowed: the TopBar row's right fpsMaskRightPt
-     (fps / DSP labels) + <= cornerClusters clusters <= cornerClusterMaxPx inside the waveform rect's corners with max
-     delta <= cornerMaxDelta (the rounded corners: anti-aliasing of a curved edge in a separate layer). Every cluster's
-     bbox + max delta printed, a diff PNG saved. S4 is scoped to the waveform rect + 8 px (I7's subject); a whole-
-     MainComponent pass re-renders never-repainted text slightly differently in both builds -- its count is INFO.
+     /api/debug/ui_repaint_all on AFTER (the full-window pass, adoption I7). Masked: the TopBar row's right
+     fpsMaskRightPt (fps / DSP labels); the rest J3 identity (a diff PNG saved). S4 is scoped to the waveform rect + 8 px
+     (I7's subject); the whole-window S4 count is INFO: the window's first display pass draws emoji / slider-thumb /
+     text edges a little differently from every later pass, in both builds (fix round 1, J1).
   v1n (INFO) the comparator's noise floor: the BEFORE app against itself, two launches, S1-S3.
   v1b (adoption I5) AFTER, test mode, card, inject_features non-trivial meters (+ the TEMPORARY waveform-freeze hook
      ADNA_TEMP_WAVE_FREEZE=1 when the build carries it -- else the waveform half is SKIP): native capture, forced in-peer
@@ -514,8 +516,9 @@ def clusters(mask):
     return out, False
 
 
-def compare(a, b, geo, name, masks=(), corner_rect=None):
-    """-> (n diff px outside masks, clusters, max delta, list of disallowed clusters). Saves a diff PNG."""
+def compare(a, b, geo, name, masks=()):
+    """-> (n diff px outside masks, clusters, max delta, clusters). Saves a diff PNG. Exact comparison (v0 / v1b's
+    meters-moved / v2's in-bar count / v3); the identity rows use identity() (ruling J3)."""
     if a.shape != b.shape:
         return None
     d = np.abs(a.astype(np.int16) - b.astype(np.int16)).max(axis=2)
@@ -528,26 +531,59 @@ def compare(a, b, geo, name, masks=(), corner_rect=None):
         vis = np.zeros_like(a); vis[m] = (255, 0, 255)
         Image.fromarray(np.where(m[..., None], vis, (a // 3)).astype(np.uint8)).save(
             os.path.join(OUT, "shots", f"diff-{name}.png"))
-    bad = []
-    corners_used = 0
-    cr = geo.px(corner_rect) if corner_rect is not None else None
     for c in cl:
         x0, y0, x1, y1, n = c
         md = int(d[y0:y1 + 1, x0:x1 + 1][m[y0:y1 + 1, x0:x1 + 1]].max())
-        allowed = False
-        if cr is not None and not big and corners_used < CFG["v"]["cornerClusters"] \
-                and (x1 - x0 + 1) <= CFG["v"]["cornerClusterMaxPx"] and (y1 - y0 + 1) <= CFG["v"]["cornerClusterMaxPx"] \
-                and md <= CFG["v"]["cornerMaxDelta"]:
-            cs = CFG["v"]["cornerClusterMaxPx"]
-            near = [(cr[0], cr[1]), (cr[0] + cr[2], cr[1]), (cr[0], cr[1] + cr[3]), (cr[0] + cr[2], cr[1] + cr[3])]
-            if any(abs(x0 - nx) <= cs and abs(y0 - ny) <= cs for nx, ny in near):
-                allowed = True
-                corners_used += 1
-        print(f"    {name}: cluster bbox ({x0},{y0})-({x1},{y1}) px {n} max delta {md}"
-              + (" [allowed: waveform corner]" if allowed else ""), flush=True)
-        if not allowed:
-            bad.append(c)
-    return int(m.sum()), cl, (int(d[m].max()) if m.any() else 0), bad
+        print(f"    {name}: cluster bbox ({x0},{y0})-({x1},{y1}) px {n} max delta {md}", flush=True)
+    return int(m.sum()), cl, (int(d[m].max()) if m.any() else 0), cl
+
+
+def edge_mask(img):
+    """J3: a pixel sits at an anti-aliased edge when its 3x3 neighbourhood spans more than identity.edgeSpan levels
+    (max - min over the 9 pixels, in any channel)."""
+    x = img.astype(np.int16)
+    h, w = x.shape[:2]
+    p = np.pad(x, ((1, 1), (1, 1), (0, 0)), mode="edge")
+    mx, mn = x.copy(), x.copy()
+    for dy in range(3):
+        for dx in range(3):
+            q = p[dy:dy + h, dx:dx + w]
+            np.maximum(mx, q, out=mx); np.minimum(mn, q, out=mn)
+    return (mx - mn).max(axis=2) > CFG["identity"]["edgeSpan"]
+
+
+def identity(a, b, geo, name, masks=()):
+    """Harmony ruling J3 (rows v1 / v1b / v2): identical = every differing pixel (outside masks) differs by <= identity.
+    maxDelta per channel AND sits at an anti-aliased edge (edge_mask of either capture). -> (n differing px, max delta,
+    n violating px, violation clusters). Saves a diff PNG: violations magenta, tolerated edge pixels yellow."""
+    if a.shape != b.shape:
+        return None
+    d = np.abs(a.astype(np.int16) - b.astype(np.int16)).max(axis=2)
+    m = d > 0
+    for r in masks:
+        x, y, w, h = geo.px(r)
+        m[max(0, y):y + h, max(0, x):x + w] = False
+    edge = edge_mask(a) | edge_mask(b)
+    viol = m & ((d > CFG["identity"]["maxDelta"]) | ~edge)
+    if m.any():
+        vis = (a // 3).astype(np.uint8)
+        vis[m & ~viol] = (255, 255, 0)
+        vis[viol] = (255, 0, 255)
+        Image.fromarray(vis).save(os.path.join(OUT, "shots", f"diff-{name}.png"))
+    cl, big = clusters(viol)
+    for c in cl[:20]:
+        x0, y0, x1, y1, n = c
+        print(f"    {name}: J3 violation cluster bbox ({x0},{y0})-({x1},{y1}) px {n} max delta "
+              f"{int(d[y0:y1 + 1, x0:x1 + 1][viol[y0:y1 + 1, x0:x1 + 1]].max())}", flush=True)
+    if len(cl) > 20:
+        print(f"    {name}: ... {len(cl) - 20} more violation clusters", flush=True)
+    return int(m.sum()), (int(d[m].max()) if m.any() else 0), int(viol.sum()), cl
+
+
+def j3(res):
+    n, md, nv, cl = res
+    return (f"{n} px differ (max delta {md}), {nv} violate J3 (> {CFG['identity']['maxDelta']}/255 or off an "
+            f"anti-aliased edge) in {len(cl)} cluster(s)")
 
 
 def fps_mask(u):
@@ -745,6 +781,8 @@ def row_v0():
     (ok if in_sb and in_wf and not outside else no)(
         f"v0_capture_teeth: the comparator catches a 1-px shift of the layers: {len(in_sb)} cluster(s) in the SignalBar, "
         f"{len(in_wf)} in the waveform, {len(outside)} elsewhere ({n} px, max delta {md})")
+    r3 = identity(t[0], p[0], geo, "v0-j3", masks=(fps_mask(u),))
+    (ok if r3[2] > 0 else no)(f"v0_capture_teeth (J3): the J3 identity rule rejects the 1-px shift -- {j3(r3)} (> 0)")
 
 
 def row_v1():
@@ -757,23 +795,24 @@ def row_v1():
     if geo is None or any(b.get(s, (None,))[0] is None or a.get(s, (None,))[0] is None for s in ("S1", "S2", "S3", "S4")):
         skip("v1_identity_test_mode: missing capture or geometry"); return
     for s in ("S1", "S2", "S3"):
-        n, cl, md, bad = compare(b[s][0], a[s][0], geo, f"v1-{s}", masks=(fps_mask(u),), corner_rect=u["waveform_rect"])
+        r3 = identity(b[s][0], a[s][0], geo, f"v1-{s}", masks=(fps_mask(u),))
         what = {"S1": "default", "S2": "card", "S3": "many16"}[s]
-        (ok if not bad else no)(f"v1_identity_test_mode {s} ({what}): BEFORE vs AFTER -- {n} differing px outside the "
-                                f"fps mask in {len(cl)} cluster(s), {len(bad)} not allowed, max delta {md}")
+        (ok if r3[2] == 0 else no)(f"v1_identity_test_mode {s} ({what}): BEFORE vs AFTER outside the fps mask -- {j3(r3)}")
     # S4 (adoption I7): after POST /api/debug/ui_repaint_all (a whole-MainComponent pass) the waveform's corners are
-    # still right. Scoped to the waveform rect + 8 px: a whole-MainComponent repaint re-renders the text of regions JUCE
-    # had not repainted since startup a little differently (glyph-edge AA, both builds; the BEFORE app cannot be driven
-    # to such a pass) -- the whole-window count is INFO.
+    # still right. Scoped to the waveform rect + 8 px. The whole-window line is INFO: the window's FIRST display pass
+    # draws the Files grid's folder emoji (<= 66/255), three TopBar slider thumbs (<= 29/255) and text (1/255) a little
+    # differently from every later pass, in BOTH builds; a later whole-window pass (a resize, leaving binding / MIDI-learn
+    # mode) replaces them in both, and main's 30 Hz union never covered those regions (fix round 1, J1 -- the BEFORE app
+    # cannot be driven to such a pass, so BEFORE S4 still shows its first-pass pixels there).
     wr = u["waveform_rect"]
     around = (wr[0] - 8, wr[1] - 8, wr[2] + 16, wr[3] + 16)
     outside = [(0, 0, u["main_w"], around[1]), (0, around[1] + around[3], u["main_w"], u["main_h"] + 100),
                (0, around[1], around[0], around[3]), (around[0] + around[2], around[1], u["main_w"], around[3])]
-    n, cl, md, bad = compare(b["S4"][0], a["S4"][0], geo, "v1-S4-waveform", masks=outside, corner_rect=wr)
-    (ok if not bad else no)(f"v1_identity_test_mode S4 (many16 after a full-window repaint, I7): the waveform rect + 8 px "
-                            f"BEFORE vs AFTER -- {n} differing px in {len(cl)} cluster(s), {len(bad)} not allowed, max delta {md}")
-    d = np.abs(b["S4"][0].astype(np.int16) - a["S4"][0].astype(np.int16)).max(axis=2) > 0
-    info(f"v1_identity_test_mode S4 whole window: {int(d.sum())} px differ (text re-rendered by the full pass)")
+    r3 = identity(b["S4"][0], a["S4"][0], geo, "v1-S4-waveform", masks=outside)
+    (ok if r3[2] == 0 else no)(f"v1_identity_test_mode S4 (many16 after a full-window repaint, I7): the waveform rect + 8 px "
+                               f"BEFORE vs AFTER -- {j3(r3)}")
+    r3 = identity(b["S4"][0], a["S4"][0], geo, "v1-S4-window", masks=(fps_mask(u),))
+    info(f"v1_identity_test_mode S4 whole window (BEFORE's first-pass pixels vs AFTER's full pass, J1): {j3(r3)}")
 
 
 def row_v1n():
@@ -795,9 +834,8 @@ def row_v1n():
     for s in ("S1", "S2", "S3"):
         if b1.get(s, (None,))[0] is None or b2.get(s, (None,))[0] is None:
             skip(f"v1n_noise_floor {s}: missing capture"); continue
-        n, cl, md, bad = compare(b1[s][0], b2[s][0], geo, f"v1n-{s}", masks=(fps_mask(u),), corner_rect=u["waveform_rect"])
-        info(f"v1n_noise_floor {s}: BEFORE vs BEFORE (two launches) -- {n} differing px outside the fps mask in "
-             f"{len(cl)} cluster(s), max delta {md}")
+        r3 = identity(b1[s][0], b2[s][0], geo, f"v1n-{s}", masks=(fps_mask(u),))
+        info(f"v1n_noise_floor {s}: BEFORE vs BEFORE (two launches) outside the fps mask -- {j3(r3)}")
 
 
 def row_v1b():
@@ -840,12 +878,11 @@ def row_v1b():
         if name == "waveform" and not wave_driven:
             skip("v1b_native_vs_inpeer waveform: not driven (the TEMPORARY freeze hook is absent from this build)")
             continue
-        n, cl, md, bad = compare(n1[0], f[0], geo, f"v1b-{name}", masks=region_only(rect),
-                                 corner_rect=wf if name == "waveform" else None)
-        (ok if went and not bad else no)(f"v1b_native_vs_inpeer {name}: native layer vs forced in-peer at a frozen driven "
-                                         f"state -- {n} px differ, {len(bad)} not allowed, max delta {md}")
-        n, cl, md, bad = compare(n1[0], n2[0], geo, f"v1b-{name}-again", masks=region_only(rect))
-        (ok if back and n == 0 else no)(f"v1b_native_vs_inpeer {name}: native again after the round trip -- {n} px differ")
+        r3 = identity(n1[0], f[0], geo, f"v1b-{name}", masks=region_only(rect))
+        (ok if went and r3[2] == 0 else no)(f"v1b_native_vs_inpeer {name}: native layer vs forced in-peer at a frozen "
+                                            f"driven state -- {j3(r3)}")
+        r3 = identity(n1[0], n2[0], geo, f"v1b-{name}-again", masks=region_only(rect))
+        (ok if back and r3[2] == 0 else no)(f"v1b_native_vs_inpeer {name}: native again after the round trip -- {j3(r3)}")
 
 
 def row_v2():
@@ -875,14 +912,14 @@ def row_v2():
                                           f"{v['modePollS']} s ({went}), waveform stays native ({wf_mode})")
     (ok if back else no)(f"v2_identity_fallback: overlay gone -> signalbar_mode 0 within {v['modePollS']} s ({back})")
     R = (x - 10, y - 10, v["panelW"] + 20, v["panelH"] + 20)
-    n, cl, md, bad = compare(a[0], b[0], geo, "v2-AB", masks=(fps_mask(u), R))
+    r3 = identity(a[0], b[0], geo, "v2-AB", masks=(fps_mask(u), R))
     n_in, cl_in, _, _ = compare(a[0], b[0], geo, "v2-AB-in-bar",
                                 masks=(fps_mask(u), (0, 0, u["main_w"], u["signalbar_rect"][1]),
                                        (0, u["signalbar_rect"][1] + u["signalbar_rect"][3], u["main_w"], u["main_h"])))
-    (ok if n == 0 and n_in > 0 else no)(f"v2_identity_fallback: A vs B differ only inside the overlay's rect ({n} px "
-                                        f"outside) and the overlay IS visible over the SignalBar ({n_in} px changed there)")
-    n, cl, md, bad = compare(a[0], c[0], geo, "v2-AC", masks=(fps_mask(u),))
-    (ok if n == 0 else no)(f"v2_identity_fallback: A == C after the overlay closed ({n} px differ, max delta {md})")
+    (ok if r3[2] == 0 and n_in > 0 else no)(f"v2_identity_fallback: A vs B outside the overlay's rect -- {j3(r3)}; the "
+                                            f"overlay IS visible over the SignalBar ({n_in} px changed there)")
+    r3 = identity(a[0], c[0], geo, "v2-AC", masks=(fps_mask(u),))
+    (ok if r3[2] == 0 else no)(f"v2_identity_fallback: A vs C after the overlay closed -- {j3(r3)}")
     (ok if u2.get("ui_overlay_covered_frames") == 0 else no)(
         f"v2_identity_fallback: ui_overlay_covered_frames {u2.get('ui_overlay_covered_frames')} (== 0), restore frames "
         f"last {u2.get('ui_restore_frames_last')} max {u2.get('ui_restore_frames_max')}")
