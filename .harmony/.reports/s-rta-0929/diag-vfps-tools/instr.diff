@@ -1,0 +1,884 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 119bc13..cbf6e62 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -416,6 +416,7 @@ if(APPLE)
+     target_sources(AudioDNA PRIVATE
+         src/output/SyphonOutput.mm
+         src/ui/NativeLayerHost.mm
++        src/diag/DiagVfps.mm
+     )
+ endif()
+ 
+diff --git a/src/Main.cpp b/src/Main.cpp
+index a34fc91..c58b45a 100644
+--- a/src/Main.cpp
++++ b/src/Main.cpp
+@@ -1,5 +1,6 @@
+ #include <juce_gui_basics/juce_gui_basics.h>
+ #include "MainComponent.h"
++#include "diag/DiagVfps.h"   // DIAG-VFPS TEMPORARY
+ 
+ class AudioDNAApplication : public juce::JUCEApplication
+ {
+@@ -23,12 +24,14 @@ public:
+                 testPort = arg.fromFirstOccurrenceOf("=", false, false).getIntValue();
+         }
+ 
++        dvf::startAll();   // DIAG-VFPS TEMPORARY
+         mainWindow_ = std::make_unique<MainWindow>(getApplicationName(), testMode, testPort);
+     }
+ 
+     void shutdown() override
+     {
+         mainWindow_.reset();
++        dvf::stopAll();   // DIAG-VFPS TEMPORARY
+     }
+ 
+     void systemRequestedQuit() override
+diff --git a/src/media/VideoPlayer.cpp b/src/media/VideoPlayer.cpp
+index 8084254..d530da9 100644
+--- a/src/media/VideoPlayer.cpp
++++ b/src/media/VideoPlayer.cpp
+@@ -5,6 +5,10 @@
+ // compositing on the GL thread (s-rta-0928b video; plan-video.md).
+ 
+ #include "VideoPlayer.h"
++#include "diag/DiagVfps.h"   // DIAG-VFPS TEMPORARY
++#include <pthread.h>
++#include <sys/qos.h>
++#include <thread>   // DIAG-VFPS TEMPORARY
+ #include <cstdlib>
+ #include <cstring>
+ #include <algorithm>
+@@ -34,6 +38,8 @@ VideoPlayer::~VideoPlayer()
+     close();
+     thread_.stopThread(3000);
+     freeFfmpeg();
++    for (int i = 0; i < 3; ++i)   // DIAG-VFPS TEMPORARY (c4a): the slots are IOSurfaces, never malloc'd
++        if (dvfSurf_[i] != nullptr) { dvf::surfRelease(dvfSurf_[i]); dvfSurf_[i] = nullptr; slotBytes_[static_cast<size_t>(i)] = nullptr; }
+     for (auto*& s : slotBytes_)
+     {
+         std::free(s);
+@@ -169,7 +175,7 @@ bool VideoPlayer::open(const juce::File& file)
+     }
+ 
+     // Set up swscale for conversion to RGBA
+-    auto dstFmt = AV_PIX_FMT_RGBA;
++    auto dstFmt = (dvf::arms().bgra != 0 || dvf::arms().client != 0 || dvf::arms().iosurf != 0) ? AV_PIX_FMT_BGRA : AV_PIX_FMT_RGBA;   // DIAG-VFPS TEMPORARY (c2/c3/c4a)
+     swsCtx_ = sws_getContext(width_, height_, codecCtx_->pix_fmt,
+                               width_, height_, dstFmt,
+                               SWS_BILINEAR, nullptr, nullptr, nullptr);
+@@ -183,6 +189,18 @@ bool VideoPlayer::open(const juce::File& file)
+     // The ring's slots: width * height * 4 bytes each, page-lazy (RSS grows when a slot is first written).
+     rowBytes_ = width_ * 4;
+     const size_t slotSize = static_cast<size_t>(rowBytes_) * static_cast<size_t>(height_);
++    if (dvf::arms().iosurf != 0)   // DIAG-VFPS TEMPORARY (c4a): IOSurface slots
++    {
++        for (int i = 0; i < 3; ++i)
++        {
++            int bpr = 0; uint8_t* base = nullptr;
++            dvfSurf_[i] = dvf::surfCreate(width_, height_, &bpr, &base);
++            if (dvfSurf_[i] == nullptr || bpr < rowBytes_) { std::cerr << "[DIAG-VFPS] IOSurface create failed" << std::endl; freeFfmpeg(); return false; }
++            slotBytes_[static_cast<size_t>(i)] = base;
++            rowBytes_ = bpr;
++        }
++    }
++    else
+     for (auto*& s : slotBytes_)
+     {
+         s = static_cast<uint8_t*>(std::malloc(slotSize));
+@@ -402,6 +420,12 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
+         return texture_;   // hold after close, as before
+     if (firstDrawMs_ < 0)
+         firstDrawMs_ = nowMs();   // W3: the first draw request starts the first-frame timeout
++    if (dvf::arms().iosurf != 0)   // DIAG-VFPS TEMPORARY (c4a)
++        dvfPollFences();
++    // DIAG-VFPS TEMPORARY (Q1 counterfactual ADNA_VFPS_UPCAP): over this frame's upload cap -> hold (pick next frame).
++    if (dvf::arms().upcap > 0 && dvf::frame().uploadN >= static_cast<uint64_t>(dvf::arms().upcap) && shown_.everShown
++        && textureCreated_)
++        return texture_;
+ 
+     // Frames the clock moved away from (reverse / ping-pong) are freed once they are more than a ring's worth of
+     // frames ahead: forward play never gets that far ahead, and they would otherwise keep the writer out.
+@@ -416,26 +440,14 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
+         {
+             const auto uploadStart = std::chrono::steady_clock::now();
+             const uint8_t* bytes = slotBytes_[static_cast<size_t>(p.slot)];
+-            if (!textureCreated_)
+-            {
+-                glGenTextures(1, &texture_);
+-                glBindTexture(GL_TEXTURE_2D, texture_);
+-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+-                             width_, height_,
+-                             0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+-                textureCreated_ = true;
+-            }
+-            else
+-            {
+-                glBindTexture(GL_TEXTURE_2D, texture_);
+-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+-                                width_, height_,
+-                                GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+-            }
++            // DIAG-VFPS TEMPORARY: the upload goes through the diag dispatcher (the shipped path when no arm is set).
++            const uint64_t dvfT0 = dvf::now();
++            texture_ = dvfUpload(bytes, p.slot, !textureCreated_);
++            textureCreated_ = true;
++            const uint64_t dvfT1 = dvf::now();
++            dvf::frame().uploadTicks += dvfT1 - dvfT0;
++            ++dvf::frame().uploadN;
++            dvf::rec(13, (double) dvfT0, (double) (dvfT1 - dvfT0), (double) (reinterpret_cast<uintptr_t>(this) & 0xffff), (double) width_, 0.0);
+             shown_.onUpload(p.seq);
+             if (stats_)
+             {
+@@ -445,6 +457,16 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
+             }
+         }
+         lastShownPts_ = p.pts;
++        if (dvf::arms().iosurf != 0)   // DIAG-VFPS TEMPORARY (c4a): released when the blit's fence signals (dvfPollFences)
++        {
++        }
++        else if (dvf::arms().client != 0)   // DIAG-VFPS TEMPORARY (c3): client storage reads the slot's bytes later -- hold it
++        {
++            if (dvfHeldSlot_ >= 0 && dvfHeldSlot_ != p.slot)
++                ring_.release(dvfHeldSlot_);
++            dvfHeldSlot_ = p.slot;
++        }
++        else
+         ring_.release(p.slot);   // client-memory glTex*Image2D copies before it returns: the slot is free now
+         releasedThisFrame_ = true;
+         return texture_;
+@@ -484,6 +506,21 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
+ 
+ void VideoPlayer::releaseGL()
+ {
++    if (dvf::arms().client != 0)   // DIAG-VFPS TEMPORARY: texture_ aliases one of the per-slot textures
++    {
++        glDeleteTextures(3, dvfClientTex_);
++        dvfClientTex_[0] = dvfClientTex_[1] = dvfClientTex_[2] = 0;
++        texture_ = 0;
++    }
++    if (dvfPbo_[0] != 0) { glDeleteBuffers(2, dvfPbo_); dvfPbo_[0] = dvfPbo_[1] = 0; }   // DIAG-VFPS TEMPORARY
++    if (dvf::arms().iosurf == 2) { texture_ = 0; if (dvfShownSlot_ >= 0) ring_.release(dvfShownSlot_); dvfShownSlot_ = -1; }   // DIAG-VFPS TEMPORARY
++    for (int i = 0; i < 3; ++i)   // DIAG-VFPS TEMPORARY (c4a)
++    {
++        if (dvfFence_[i] != nullptr) { glDeleteSync(dvfFence_[i]); dvfFence_[i] = nullptr; ring_.release(i); }
++        if (dvfRectFbo_[i] != 0) { glDeleteFramebuffers(1, &dvfRectFbo_[i]); dvfRectFbo_[i] = 0; }
++        if (dvfRectTex_[i] != 0) { glDeleteTextures(1, &dvfRectTex_[i]); dvfRectTex_[i] = 0; }
++    }
++    if (dvfDstFbo_ != 0) { glDeleteFramebuffers(1, &dvfDstFbo_); dvfDstFbo_ = 0; }
+     if (texture_ != 0)
+     {
+         glDeleteTextures(1, &texture_);
+@@ -561,6 +598,11 @@ void VideoPlayer::park()
+ 
+ void VideoPlayer::decodeLoop()
+ {
++    if (dvf::arms().qos == 1)   // DIAG-VFPS TEMPORARY: the H2 counterfactual
++        pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
++    else if (dvf::arms().qos == 3)
++        pthread_set_qos_class_self_np(QOS_CLASS_UTILITY, 0);
++    dvf::rec(20, (double) dvf::now(), (double) qos_class_self(), (double) (reinterpret_cast<uintptr_t>(this) & 0xffff), (double) width_);
+     // plan-video R-5: today's GL-thread rules, moved here and made non-blocking for the GL thread.
+     VideoRing::Policy pol;
+     pol.skipNonRefInCatchUp = kSkipNonRefInCatchUp;
+@@ -591,7 +633,10 @@ void VideoPlayer::decodeLoop()
+                                     ? AVDISCARD_NONREF
+                                     : AVDISCARD_DEFAULT;
+ 
+-        if (!decodeNextFrame())
++        const uint64_t dvfD0 = dvf::now();   // DIAG-VFPS TEMPORARY
++        const bool dvfGot = decodeNextFrame();
++        const uint64_t dvfD1 = dvf::now();
++        if (!dvfGot)
+         {
+             if (!atEof_)
+             {
+@@ -608,6 +653,7 @@ void VideoPlayer::decodeLoop()
+             continue;
+         }
+         onDecoded(g, pol);
++        dvf::rec(21, (double) dvfD0, (double) (dvfD1 - dvfD0), (double) (dvf::now() - dvfD1), (double) (reinterpret_cast<uintptr_t>(this) & 0xffff), 0.0);   // DIAG-VFPS TEMPORARY
+     }
+ 
+     freeFfmpeg();   // the thread owns the contexts: nobody else touches them after start()
+@@ -632,8 +678,11 @@ void VideoPlayer::onDecoded(uint32_t gen, const VideoRing::Policy& pol)
+     }
+ 
+     int s;
++    const uint64_t dvfW0 = dvf::now();   // DIAG-VFPS TEMPORARY
++    bool dvfWaited = false;
+     while ((s = ring_.acquireWrite()) < 0)   // the ring is full: the reader frees a slot and notifies
+     {
++        dvfWaited = true;
+         if (thread_.threadShouldExit() || gen_.load(std::memory_order_acquire) != gen)
+             return;   // exiting, or a seek arrived: this frame is stale
+         if (VideoRing::idleStep(nowMs(), lastDrawMs_.load(std::memory_order_acquire), pol) == VideoRing::Idle::Park)
+@@ -646,7 +695,15 @@ void VideoPlayer::onDecoded(uint32_t gen, const VideoRing::Policy& pol)
+             return;   // the clock moved away (reverse play): the top of the loop re-seeks
+         thread_.wait(20);
+     }
++    if (dvfWaited && dvf::arms().decStagger > 0)   // DIAG-VFPS TEMPORARY (Q1): de-synchronise the 4 decoders' bursts
++    {
++        static std::atomic<int> dvfNextIdx { 0 };
++        static thread_local int dvfIdx = dvfNextIdx.fetch_add(1);
++        std::this_thread::sleep_for(std::chrono::milliseconds(dvf::arms().decStagger * (dvfIdx % 4)));
++    }
++    const uint64_t dvfS0 = dvf::now();   // DIAG-VFPS TEMPORARY
+     convertInto(s);
++    dvf::rec(22, (double) dvfS0, (double) (dvf::now() - dvfS0), (double) (dvfS0 - dvfW0), (double) (reinterpret_cast<uintptr_t>(this) & 0xffff), 0.0);
+     ring_.publish(s, pts, gen, ++seq_);
+     newestPts_ = pts;
+     haveNewest_ = true;
+@@ -730,5 +787,158 @@ void VideoPlayer::convertInto(int slot)
+     uint8_t* dst[4] = { slotBytes_[static_cast<size_t>(slot)] + static_cast<size_t>(height_ - 1) * static_cast<size_t>(rowBytes_),
+                         nullptr, nullptr, nullptr };
+     int dstStride[4] = { -rowBytes_, 0, 0, 0 };
++    if (dvfSurf_[slot] != nullptr) dvf::surfLock(dvfSurf_[slot]);   // DIAG-VFPS TEMPORARY (c4a)
+     sws_scale(swsCtx_, decodedFrame_->data, decodedFrame_->linesize, 0, height_, dst, dstStride);
++    if (dvfSurf_[slot] != nullptr) dvf::surfUnlock(dvfSurf_[slot]);
++}
++
++// DIAG-VFPS TEMPORARY: the upload dispatcher. No arm = the shipped path (GL_RGBA / GL_UNSIGNED_BYTE, one texture).
++GLuint VideoPlayer::dvfUpload(const uint8_t* bytes, int slot, bool create)
++{
++    const auto& a = dvf::arms();
++    const bool bgra = a.bgra != 0 || a.client != 0;
++    const GLenum fmt = bgra ? GL_BGRA : GL_RGBA;
++    const GLenum type = (a.bgra == 1 || a.client != 0) ? GL_UNSIGNED_INT_8_8_8_8_REV : GL_UNSIGNED_BYTE;
++    auto params = []
++    {
++        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++    };
++    auto logErr = [this](const char* where)
++    {
++        const GLenum e = glGetError();
++        if (e != GL_NO_ERROR && !dvfErrLogged_)
++        {
++            dvfErrLogged_ = true;
++            dvf::rec(16, (double) dvf::now(), (double) e);
++            std::cerr << "[DIAG-VFPS] GL error 0x" << std::hex << e << std::dec << " at " << where << std::endl;
++        }
++    };
++    if (a.iosurf == 2)   // DIAG-VFPS TEMPORARY: the slot's IOSurface IS the texture (no upload, no blit)
++    {
++        if (dvfRectTex_[slot] == 0)
++        {
++            glGenTextures(1, &dvfRectTex_[slot]);
++            const int e = dvf::surfBind2D(dvfSurf_[slot], dvfRectTex_[slot], width_, height_);
++            if (e != 0) { dvf::rec(16, (double) dvf::now(), 2000.0 + e); std::cerr << "[DIAG-VFPS] CGLTexImageIOSurface2D(2D) " << e << std::endl; }
++        }
++        if (dvfShownSlot_ >= 0 && dvfShownSlot_ != slot)
++        {
++            if (dvfFence_[dvfShownSlot_] != nullptr) glDeleteSync(dvfFence_[dvfShownSlot_]);
++            dvfFence_[dvfShownSlot_] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);   // released by dvfPollFences
++        }
++        dvfShownSlot_ = slot;
++        logErr("iosurf2");
++        return dvfRectTex_[slot];
++    }
++    if (a.iosurf != 0)
++    {
++        GLint rd = 0, dr = 0;
++        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &rd);
++        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &dr);
++        if (dvfRectTex_[slot] == 0)
++        {
++            glGenTextures(1, &dvfRectTex_[slot]);
++            const int e = dvf::surfBindRect(dvfSurf_[slot], dvfRectTex_[slot], width_, height_);
++            if (e != 0) { dvf::rec(16, (double) dvf::now(), 1000.0 + e); std::cerr << "[DIAG-VFPS] CGLTexImageIOSurface2D " << e << std::endl; }
++            glGenFramebuffers(1, &dvfRectFbo_[slot]);
++            glBindFramebuffer(GL_READ_FRAMEBUFFER, dvfRectFbo_[slot]);
++            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, dvfRectTex_[slot], 0);
++        }
++        if (create)
++        {
++            glGenTextures(1, &texture_);
++            glBindTexture(GL_TEXTURE_2D, texture_);
++            params();
++            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width_, height_, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nullptr);
++            glGenFramebuffers(1, &dvfDstFbo_);
++            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dvfDstFbo_);
++            glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
++        }
++        glBindFramebuffer(GL_READ_FRAMEBUFFER, dvfRectFbo_[slot]);
++        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dvfDstFbo_);
++        glBlitFramebuffer(0, 0, width_, height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
++        glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(rd));
++        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(dr));
++        if (dvfFence_[slot] != nullptr) glDeleteSync(dvfFence_[slot]);
++        dvfFence_[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
++        logErr("iosurf");
++        return texture_;
++    }
++    if (a.client != 0)
++    {
++        GLuint& t = dvfClientTex_[slot];
++        glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
++        if (t == 0)
++        {
++            glGenTextures(1, &t);
++            glBindTexture(GL_TEXTURE_2D, t);
++            params();
++            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_STORAGE_HINT_APPLE, GL_STORAGE_SHARED_APPLE);
++            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width_, height_, 0, fmt, type, bytes);
++        }
++        else
++        {
++            glBindTexture(GL_TEXTURE_2D, t);
++            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, fmt, type, bytes);
++        }
++        glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_FALSE);
++        logErr("client");
++        return t;
++    }
++    if (create)
++    {
++        glGenTextures(1, &texture_);
++        glBindTexture(GL_TEXTURE_2D, texture_);
++        params();
++        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width_, height_, 0, fmt, type, bytes);
++        logErr("create");
++        return texture_;
++    }
++    glBindTexture(GL_TEXTURE_2D, texture_);
++    if (a.noUpload != 0)
++        return texture_;   // c1: reuse the first upload
++    if (a.pbo != 0)
++    {
++        const GLsizeiptr size = static_cast<GLsizeiptr>(rowBytes_) * height_;
++        if (dvfPbo_[0] == 0)
++            glGenBuffers(2, dvfPbo_);
++        dvfPboIdx_ ^= 1;
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, dvfPbo_[dvfPboIdx_]);
++        glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW);   // orphan
++        const uint64_t m0 = dvf::now();
++        if (void* dst = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT))
++        {
++            std::memcpy(dst, bytes, static_cast<size_t>(size));
++            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
++        }
++        dvf::frame().memcpyTicks += dvf::now() - m0;
++        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, fmt, type, nullptr);
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
++        logErr("pbo");
++        return texture_;
++    }
++    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, fmt, type, bytes);
++    logErr("sub");
++    return texture_;
++}
++
++// DIAG-VFPS TEMPORARY (c4a): a slot whose blit has completed on the GPU goes back to the writer.
++void VideoPlayer::dvfPollFences()
++{
++    for (int i = 0; i < 3; ++i)
++    {
++        if (dvfFence_[i] == nullptr)
++            continue;
++        const GLenum r = glClientWaitSync(dvfFence_[i], 0, 0);
++        if (r == GL_ALREADY_SIGNALED || r == GL_CONDITION_SATISFIED)
++        {
++            glDeleteSync(dvfFence_[i]);
++            dvfFence_[i] = nullptr;
++            ring_.release(i);
++            releasedThisFrame_ = true;
++        }
++    }
+ }
+diff --git a/src/media/VideoPlayer.h b/src/media/VideoPlayer.h
+index f082ddf..bfa5987 100644
+--- a/src/media/VideoPlayer.h
++++ b/src/media/VideoPlayer.h
+@@ -202,6 +202,21 @@ private:
+ 
+     VideoStats* stats_ = nullptr;
+ 
++    // DIAG-VFPS TEMPORARY: counterfactual upload arms (ADNA_VFPS_CLIENT / _PBO).
++    GLuint dvfClientTex_[3] = { 0, 0, 0 };
++    int dvfHeldSlot_ = -1;
++    GLuint dvfPbo_[2] = { 0, 0 };
++    int dvfPboIdx_ = 0;
++    bool dvfErrLogged_ = false;
++    GLuint dvfUpload(const uint8_t* bytes, int slot, bool create);   // DIAG-VFPS TEMPORARY
++    void* dvfSurf_[3] = { nullptr, nullptr, nullptr };               // DIAG-VFPS TEMPORARY (c4a)
++    GLuint dvfRectTex_[3] = { 0, 0, 0 };
++    GLuint dvfRectFbo_[3] = { 0, 0, 0 };
++    GLuint dvfDstFbo_ = 0;
++    GLsync dvfFence_[3] = { nullptr, nullptr, nullptr };
++    int dvfShownSlot_ = -1;   // IOSURF=2: the slot whose texture is on screen
++    void dvfPollFences();
++
+     // R-13 levers (named, each with its trigger in plan-video.md): V5 -- NONREF skipping in a catch-up is ON.
+     static constexpr bool kSkipNonRefInCatchUp = true;
+     static constexpr juce::Thread::Priority kDecodeThreadPriority = juce::Thread::Priority::normal;
+diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
+index f6b7fc8..9c76e80 100644
+--- a/src/render/Renderer.cpp
++++ b/src/render/Renderer.cpp
+@@ -11,6 +11,9 @@
+ #include <chrono>
+ #include <string>
+ #include <random>
++#include "diag/DiagVfps.h"   // DIAG-VFPS TEMPORARY
++#include <pthread.h>
++#include <sys/qos.h>
+ 
+ using namespace juce::gl;
+ Renderer::Renderer(const FeatureBus& featureBus)
+@@ -302,6 +305,37 @@ void Renderer::renderOpenGL()
+         }
+     } callbackPeak{ peakCallbackMs_ };
+ 
++    // DIAG-VFPS TEMPORARY: one record set per frame (every return path).
++    struct DvfFrameScope
++    {
++        uint64_t t0 = dvf::now();
++        int c0 = dvf::cpu();
++        uint64_t cpuNs0 = dvf::on() ? dvf::threadCpuNs() : 0;
++        uint64_t tRs = 0, tComp = 0, tChain = 0, tPres = 0;
++        ~DvfFrameScope()
++        {
++            if (!dvf::on()) return;
++            const auto& f = dvf::frame();
++            dvf::rec(10, (double) t0, (double) dvf::now(), (double) c0, (double) dvf::cpu(), 0.0);
++            dvf::rec(11, (double) t0, (double) f.uploadN, (double) f.uploadTicks, (double) f.videoSyncTicks, (double) f.memcpyTicks);
++            dvf::rec(12, (double) t0, (double) tRs, (double) tComp, (double) tChain, (double) tPres);
++            dvf::rec(17, (double) t0, (double) cpuNs0, (double) dvf::threadCpuNs());
++        }
++    } dvfScope;
++    dvf::frame() = dvf::Frame{};
++    {
++        static bool dvfQosDone = false;   // DIAG-VFPS TEMPORARY: the H2 counterfactual (ADNA_VFPS_QOS)
++        if (!dvfQosDone)
++        {
++            dvfQosDone = true;
++            if (dvf::arms().qos == 1 || dvf::arms().qos == 4) pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
++            else if (dvf::arms().qos == 2) pthread_set_qos_class_self_np(QOS_CLASS_UTILITY, 0);
++            dvf::rec(15, (double) dvf::now(), (double) qos_class_self(), (double) dvf::arms().qos);
++        }
++        if ((frameCount_ & 127) == 0)
++            dvf::swapInterval.store(glContext_.getSwapInterval());
++    }
++
+     // Before anything reads timeOverride_: which captures were armed when this frame started (captureArmSeq_).
+     frameArmSeq_ = captureArmSeq_.load(std::memory_order_acquire);
+ 
+@@ -700,6 +734,7 @@ void Renderer::renderOpenGL()
+ 
+     // Every pass below renders at the canvas size (renderW x renderH) into canvasFBO_ (plan4 item 1).
+     auto renderStart = std::chrono::high_resolution_clock::now();
++    dvfScope.tRs = dvf::now();   // DIAG-VFPS TEMPORARY
+ 
+     GLuint sourceTexture = 0;
+ 
+@@ -782,6 +817,7 @@ void Renderer::renderOpenGL()
+         }
+     }
+ 
++    dvfScope.tComp = dvf::now();   // DIAG-VFPS TEMPORARY
+     if (sourceTexture == 0 && sourceActive)
+     {
+         // Render the procedural source to get a texture. S167-L4b: scaledTime_,
+@@ -936,12 +972,14 @@ void Renderer::renderOpenGL()
+     // s-rta-0927 outputs-c1: the canvas is final here (the deck transition above is its last writer) -- copy it
+     // once into the shared frames the output windows present. Inside the measured window: its cost shows in
+     // frame_time_ms / gpu_time_ms. No-op (zero cost) when no output is live.
++    dvfScope.tChain = dvf::now();   // DIAG-VFPS TEMPORARY
+     publishToOutputs(canvas.w, canvas.h);
+ 
+     // plan4 item 1: the panel shows the finished canvas, letter/pillar-boxed (inside the measured
+     // window -- it is this frame's work). The canvas itself is untouched: the outputs below read it.
+     presentCanvas(static_cast<GLuint>(defaultFBO), present);
+     gpuTimer.finish();
++    dvfScope.tPres = dvf::now();   // DIAG-VFPS TEMPORARY
+ 
+     // P13.5.10: Use CPU-side timing instead of glFinish() which stalls the GPU pipeline.
+     // This measures CPU-side render submission time, not GPU execution time.
+@@ -1113,6 +1151,7 @@ bool Renderer::beginGpuTimer()
+         glGetQueryObjectui64v(gpuQueries_[slot], GL_QUERY_RESULT, &ns);
+         gpuQueryPending_[slot] = false;
+         const float ms = static_cast<float>(static_cast<double>(ns) / 1.0e6);
++        dvf::rec(14, (double) dvf::now(), (double) ns / 1.0e6, (double) gpuQueryFrame_);   // DIAG-VFPS TEMPORARY
+         const float prev = gpuTimeMs_.load(std::memory_order_relaxed);
+         gpuTimeMs_.store(prev + 0.1f * (ms - prev), std::memory_order_relaxed);   // EMA like frameTimeMs_
+         if (ms > peakGpuTimeMs_.load(std::memory_order_relaxed))
+@@ -1746,6 +1785,7 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
+ 
+     if (clip->mediaType == Clip::MediaType::Video)
+     {
++        struct DvfSync { uint64_t t0 = dvf::now(); ~DvfSync() { dvf::frame().videoSyncTicks += dvf::now() - t0; } } dvfSync;   // DIAG-VFPS TEMPORARY
+         // s-rta-0928b video (R-10): videoPlayerMutex_ guards the LOOKUP only. The raw pointer stays valid for the rest
+         // of this frame: a player is destroyed only by drainRetiredMedia() on this thread.
+         VideoPlayer* player = nullptr;
+diff --git a/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0929-vfps/src/diag/DiagVfps.h b/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0929-vfps/src/diag/DiagVfps.h
+new file mode 100644
+index 0000000..0e1005b
+--- /dev/null
++++ b/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0929-vfps/src/diag/DiagVfps.h
+@@ -0,0 +1,54 @@
++#pragma once
++// DIAG-VFPS TEMPORARY DIAGNOSTIC INSTRUMENTATION (lane diag-vfps) -- never committed.
++// A lock-free record ring drained by a background thread to $ADNA_VFPS_FILE (TSV), a per-thread CPU / QoS sampler,
++// display / window state samples, and the JUCE DiagVfpsHook (display-link ticks, swapBuffers, render-thread waits).
++// Counterfactual switches (env): ADNA_VFPS_QOS, ADNA_VFPS_NOUPLOAD, ADNA_VFPS_BGRA, ADNA_VFPS_CLIENT, ADNA_VFPS_PBO.
++// Everything is inert unless the matching env var is set.
++#include <atomic>
++#include <cstdint>
++#include <cstdlib>
++
++namespace dvf
++{
++    uint64_t now() noexcept;                   // mach_absolute_time ticks
++    bool on() noexcept;
++    int cpu() noexcept;                        // pthread_cpu_number_np of the calling thread (-1 = unknown)
++    uint64_t threadCpuNs() noexcept;           // CLOCK_THREAD_CPUTIME_ID of the calling thread
++    void rec(int kind, double t, double a = 0, double b = 0, double c = 0, double d = 0) noexcept;
++    void startAll();                           // message thread, before the main window
++    void stopAll();
++    inline int envInt(const char* v) { const char* e = std::getenv(v); return e != nullptr ? std::atoi(e) : 0; }
++
++    // Counterfactual arms (read once).
++    struct Arms
++    {
++        int qos = 0;          // 1: GL USER_INTERACTIVE + decode threads USER_INITIATED; 2: GL UTILITY; 3: decode threads UTILITY only;
++                              // 4: GL USER_INTERACTIVE only (decoders unchanged)
++        int noUpload = 0;     // c1: 1 = after a player's first upload, reuse its texture (no glTexSubImage2D)
++        int bgra = 0;         // c2: 1 = sws -> BGRA, GL_BGRA + GL_UNSIGNED_INT_8_8_8_8_REV; 2 = BGRA + GL_UNSIGNED_BYTE
++        int client = 0;       // c3: 1 = Apple client storage + shared storage hint, one texture per ring slot (BGRA REV)
++        int pbo = 0;          // c3b: 1 = PBO (orphan + map + memcpy on the GL thread) then glTexSubImage2D from it
++        int upcap = 0;        // Q1: at most N video uploads per render frame (a player over the cap holds one more frame)
++        int iosurf = 0;       // c4a: IOSurface ring slots + CGLTexImageIOSurface2D rectangle textures + a GPU blit per new frame
++        int decStagger = 0;   // Q1: N ms x (player index mod 4) sleep before a ring-full-woken conversion (de-syncs the decoders)
++    };
++    const Arms& arms();
++
++    // GL-thread frame accumulators (only the GL thread touches them).
++    struct Frame
++    {
++        uint64_t uploadTicks = 0, uploadN = 0, memcpyTicks = 0;
++        uint64_t videoSyncTicks = 0;   // Renderer::syncMedia video branch (lookup + advance + uploadToTexture)
++        uint64_t uploadBytes = 0;
++    };
++    Frame& frame();
++    extern std::atomic<int> swapInterval;
++
++    // c4a helpers (IOSurface / CGL live in the .mm): a BGRA IOSurface, its lock, and its binding to a rectangle texture.
++    void* surfCreate(int w, int h, int* bytesPerRow, uint8_t** base);
++    void surfLock(void* s);
++    void surfUnlock(void* s);
++    void surfRelease(void* s);
++    int surfBindRect(void* s, unsigned tex, int w, int h);   // 0 = kCGLNoError
++    int surfBind2D(void* s, unsigned tex, int w, int h);     // GL_TEXTURE_2D target (IOSURF=2); 0 = kCGLNoError
++}
+diff --git a/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0929-vfps/src/diag/DiagVfps.mm b/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0929-vfps/src/diag/DiagVfps.mm
+new file mode 100644
+index 0000000..0499db6
+--- /dev/null
++++ b/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0929-vfps/src/diag/DiagVfps.mm
+@@ -0,0 +1,297 @@
++// DIAG-VFPS TEMPORARY DIAGNOSTIC INSTRUMENTATION (lane diag-vfps) -- never committed.
++#include "diag/DiagVfps.h"
++#include <juce_events/juce_events.h>
++#import <Foundation/Foundation.h>
++#import <AppKit/AppKit.h>
++#include <CoreVideo/CoreVideo.h>
++#include <IOSurface/IOSurface.h>
++#include <OpenGL/OpenGL.h>
++#include <OpenGL/CGLIOSurface.h>
++#include <OpenGL/gl3.h>
++#include <mach/mach.h>
++#include <mach/mach_time.h>
++#include <pthread.h>
++#include <sys/qos.h>
++#include <cstdio>
++#include <cstring>
++#include <set>
++#include <string>
++#include <thread>
++
++namespace dvf
++{
++std::atomic<int> swapInterval { -1 };
++
++namespace
++{
++    struct Rec
++    {
++        std::atomic<uint64_t> seq { 0 };
++        double t = 0, a = 0, b = 0, c = 0, d = 0;
++        int kind = 0, thr = 0, cpu = -1;
++    };
++    constexpr uint64_t kN = 1u << 20;
++    Rec* ring = nullptr;
++    std::atomic<uint64_t> head { 0 };
++    uint64_t tail = 0;
++    std::atomic<bool> enabled { false };
++    std::atomic<bool> running { false };
++    FILE* out = nullptr;
++    std::thread drainTh;
++    uint64_t lost = 0;
++    Arms theArms;
++    Frame theFrame;
++    CVDisplayLinkRef probeLink = nullptr;
++
++    void hookFn(int kind, double a, double b, double c, double d)
++    {
++        rec(kind, a, b, c, d, 0.0);
++        if (kind == 2 || kind == 3)   // the GL render thread: its CPU time at this point (kind 7)
++            rec(7, (double) now(), (double) threadCpuNs(), (double) kind);
++    }
++
++    void drainOnce()
++    {
++        for (;;)
++        {
++            Rec& r = ring[tail & (kN - 1)];
++            const uint64_t s = r.seq.load(std::memory_order_acquire);
++            if (s == tail + 1)
++            {
++                std::fprintf(out, "R\t%d\t%d\t%d\t%.0f\t%.6f\t%.6f\t%.6f\t%.6f\n", r.kind, r.thr, r.cpu, r.t, r.a, r.b, r.c, r.d);
++                ++tail;
++            }
++            else if (s > tail + 1)
++            {
++                ++lost; ++tail;
++            }
++            else
++                break;
++        }
++    }
++
++    void sampleThreads(uint64_t t)
++    {
++        thread_act_array_t th = nullptr;
++        mach_msg_type_number_t n = 0;
++        if (task_threads(mach_task_self(), &th, &n) != KERN_SUCCESS)
++            return;
++        for (mach_msg_type_number_t i = 0; i < n; ++i)
++        {
++            thread_extended_info_data_t info {};
++            mach_msg_type_number_t cnt = THREAD_EXTENDED_INFO_COUNT;
++            thread_identifier_info_data_t idi {};
++            mach_msg_type_number_t cnt2 = THREAD_IDENTIFIER_INFO_COUNT;
++            if (thread_info(th[i], THREAD_EXTENDED_INFO, (thread_info_t) &info, &cnt) == KERN_SUCCESS
++                && thread_info(th[i], THREAD_IDENTIFIER_INFO, (thread_info_t) &idi, &cnt2) == KERN_SUCCESS)
++            {
++                char nm[80];
++                std::snprintf(nm, sizeof(nm), "%s", info.pth_name[0] ? info.pth_name : "-");
++                for (char* c = nm; *c; ++c) if (*c == '\t' || *c == ' ') *c = '_';
++                qos_class_t qos = QOS_CLASS_UNSPECIFIED;
++                int rel = 0;
++                if (pthread_t pt = pthread_from_mach_thread_np(th[i]))
++                    pthread_get_qos_class_np(pt, &qos, &rel);
++                std::fprintf(out, "C\t%llu\t%llu\t%u\t%llu\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n", (unsigned long long) t,
++                             (unsigned long long) idi.thread_id, (unsigned) th[i],
++                             (unsigned long long) (info.pth_user_time + info.pth_system_time),
++                             info.pth_curpri, info.pth_priority, info.pth_policy, (int) qos, rel, info.pth_run_state, nm);
++            }
++            mach_port_deallocate(mach_task_self(), th[i]);
++        }
++        vm_deallocate(mach_task_self(), (vm_address_t) th, n * sizeof(thread_act_t));
++        double la[3] = { 0, 0, 0 };
++        getloadavg(la, 3);
++        std::fprintf(out, "L\t%llu\t%.2f\t%.2f\t%.2f\t%llu\n", (unsigned long long) t, la[0], la[1], la[2], (unsigned long long) lost);
++    }
++
++    void sampleDisplay()
++    {
++        dispatch_async(dispatch_get_main_queue(), ^{
++            if (out == nullptr || ! running.load())
++                return;
++            const uint64_t t = now();
++            NSScreen* scr = [NSScreen mainScreen];
++            NSWindow* win = nil;
++            for (NSWindow* w in [NSApp windows])
++                if ([w isVisible]) { win = w; break; }
++            NSScreen* wscr = win != nil ? [win screen] : scr;
++            double maxFps = 0, minRI = 0, maxRI = 0, gran = 0;
++            if (@available(macOS 12.0, *))
++            {
++                maxFps = (double) [wscr maximumFramesPerSecond];
++                minRI = [wscr minimumRefreshInterval];
++                maxRI = [wscr maximumRefreshInterval];
++                gran = [wscr displayUpdateGranularity];
++            }
++            const auto disp = (CGDirectDisplayID) [[[wscr deviceDescription] objectForKey: @"NSScreenNumber"] unsignedIntValue];
++            double modeHz = -1;
++            if (CGDisplayModeRef m = CGDisplayCopyDisplayMode(disp)) { modeHz = CGDisplayModeGetRefreshRate(m); CGDisplayModeRelease(m); }
++            double cvNominal = -1;
++            if (probeLink == nullptr)
++                CVDisplayLinkCreateWithCGDisplay(disp, &probeLink);
++            if (probeLink != nullptr)
++            {
++                const CVTime p = CVDisplayLinkGetNominalOutputVideoRefreshPeriod(probeLink);
++                if ((p.flags & kCVTimeIsIndefinite) == 0 && p.timeScale != 0)
++                    cvNominal = (double) p.timeValue / (double) p.timeScale;
++            }
++            const bool appActive = [NSApp isActive];
++            const bool appVisible = ([NSApp occlusionState] & NSApplicationOcclusionStateVisible) != 0;
++            const bool key = win != nil && [win isKeyWindow];
++            const bool mainW = win != nil && [win isMainWindow];
++            const bool winVisible = win != nil && ([win occlusionState] & NSWindowOcclusionStateVisible) != 0;
++            const int thermal = (int) [[NSProcessInfo processInfo] thermalState];
++            const bool lowPower = [[NSProcessInfo processInfo] isLowPowerModeEnabled];
++            std::fprintf(out, "D\t%llu\tdisp=%u\tmaxFps=%.1f\tminRI=%.6f\tmaxRI=%.6f\tgran=%.6f\tmodeHz=%.2f\tcvNominal=%.6f\t"
++                              "appActive=%d\tappVisible=%d\tkey=%d\tmain=%d\twinVisible=%d\tthermal=%d\tlowPower=%d\tswapInterval=%d\t"
++                              "win=%.0fx%.0f\tscale=%.1f\n",
++                         (unsigned long long) t, (unsigned) disp, maxFps, minRI, maxRI, gran, modeHz, cvNominal,
++                         appActive, appVisible, key, mainW, winVisible, thermal, lowPower, swapInterval.load(),
++                         win != nil ? [win frame].size.width : 0.0, win != nil ? [win frame].size.height : 0.0,
++                         win != nil ? [win backingScaleFactor] : 0.0);
++        });
++    }
++
++    void calibrate(qos_class_t q, const char* name)
++    {
++        std::thread([q, name] {
++            pthread_set_qos_class_self_np(q, 0);
++            std::set<int> seen;
++            for (int i = 0; i < 60; ++i)
++            {
++                const uint64_t t0 = now();
++                volatile double x = 0;
++                while (now() - t0 < 24000) x = x + 1.0;   // ~1 ms spin
++                seen.insert(cpu());
++                std::this_thread::sleep_for(std::chrono::milliseconds(2));
++            }
++            std::string s;
++            for (int c : seen) s += std::to_string(c) + ",";
++            rec(90, (double) now(), (double) q);
++            if (out != nullptr)
++                std::fprintf(out, "K\t%s\tqos=%d\tcpus=%s\n", name, (int) q, s.c_str());
++        }).detach();
++    }
++}
++
++uint64_t now() noexcept { return mach_absolute_time(); }
++bool on() noexcept { return enabled.load(std::memory_order_relaxed); }
++int cpu() noexcept { size_t c = 0; return pthread_cpu_number_np(&c) == 0 ? (int) c : -1; }
++uint64_t threadCpuNs() noexcept { return clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID); }
++const Arms& arms() { return theArms; }
++Frame& frame() { return theFrame; }
++
++void rec(int kind, double t, double a, double b, double c, double d) noexcept
++{
++    if (! enabled.load(std::memory_order_relaxed))
++        return;
++    const uint64_t i = head.fetch_add(1, std::memory_order_relaxed);
++    Rec& r = ring[i & (kN - 1)];
++    r.t = t; r.a = a; r.b = b; r.c = c; r.d = d; r.kind = kind;
++    r.thr = (int) pthread_mach_thread_np(pthread_self());
++    r.cpu = cpu();
++    r.seq.store(i + 1, std::memory_order_release);
++}
++
++void startAll()
++{
++    theArms.qos = envInt("ADNA_VFPS_QOS");
++    theArms.noUpload = envInt("ADNA_VFPS_NOUPLOAD");
++    theArms.bgra = envInt("ADNA_VFPS_BGRA");
++    theArms.client = envInt("ADNA_VFPS_CLIENT");
++    theArms.pbo = envInt("ADNA_VFPS_PBO");
++    theArms.upcap = envInt("ADNA_VFPS_UPCAP");
++    theArms.iosurf = envInt("ADNA_VFPS_IOSURF");
++    theArms.decStagger = envInt("ADNA_VFPS_DECSTAGGER");
++    const char* path = std::getenv("ADNA_VFPS_FILE");
++    if (path == nullptr || path[0] == 0)
++        return;
++    out = std::fopen(path, "w");
++    if (out == nullptr)
++        return;
++    std::setvbuf(out, nullptr, _IOFBF, 1 << 20);
++    ring = new Rec[kN];
++    mach_timebase_info_data_t tb {};
++    mach_timebase_info(&tb);
++    std::fprintf(out, "H\t%u\t%u\t%llu\tpid=%d\tqos=%d\tnoUpload=%d\tbgra=%d\tclient=%d\tpbo=%d\tmainQos=%d\tupcap=%d\tiosurf=%d\tdecStagger=%d\n", tb.numer, tb.denom,
++                 (unsigned long long) now(), (int) getpid(), theArms.qos, theArms.noUpload, theArms.bgra, theArms.client,
++                 theArms.pbo, (int) qos_class_self(), theArms.upcap, theArms.iosurf, theArms.decStagger);
++    enabled = true;
++    running = true;
++    juce::DiagVfpsHook::fn = &hookFn;
++    calibrate(QOS_CLASS_BACKGROUND, "background");
++    calibrate(QOS_CLASS_USER_INTERACTIVE, "userInteractive");
++
++    drainTh = std::thread([] {
++        pthread_setname_np("dvf.drain");
++        pthread_set_qos_class_self_np(QOS_CLASS_UTILITY, 0);
++        uint64_t lastSample = 0, lastDisp = 0;
++        while (running.load())
++        {
++            std::this_thread::sleep_for(std::chrono::milliseconds(50));
++            drainOnce();
++            const uint64_t t = now();
++            if (t - lastSample >= 24000000ull / 4)   // 250 ms
++            {
++                sampleThreads(t);
++                lastSample = t;
++            }
++            if (t - lastDisp >= 24000000ull * 2)     // 2 s
++            {
++                sampleDisplay();
++                lastDisp = t;
++            }
++            std::fflush(out);
++        }
++        drainOnce();
++        std::fflush(out);
++    });
++}
++
++void* surfCreate(int w, int h, int* bytesPerRow, uint8_t** base)
++{
++    NSDictionary* props = @{ (id) kIOSurfaceWidth: @(w), (id) kIOSurfaceHeight: @(h), (id) kIOSurfaceBytesPerElement: @4,
++                             (id) kIOSurfacePixelFormat: @((unsigned) 'BGRA') };
++    IOSurfaceRef s = IOSurfaceCreate((CFDictionaryRef) props);
++    if (s == nullptr)
++        return nullptr;
++    *bytesPerRow = (int) IOSurfaceGetBytesPerRow(s);
++    IOSurfaceLock(s, 0, nullptr);
++    *base = (uint8_t*) IOSurfaceGetBaseAddress(s);
++    IOSurfaceUnlock(s, 0, nullptr);
++    return (void*) s;
++}
++void surfLock(void* s) { IOSurfaceLock((IOSurfaceRef) s, 0, nullptr); }
++void surfUnlock(void* s) { IOSurfaceUnlock((IOSurfaceRef) s, 0, nullptr); }
++void surfRelease(void* s) { if (s != nullptr) CFRelease((IOSurfaceRef) s); }
++int surfBindRect(void* s, unsigned tex, int w, int h)
++{
++    glBindTexture(GL_TEXTURE_RECTANGLE, tex);
++    const CGLError e = CGLTexImageIOSurface2D(CGLGetCurrentContext(), GL_TEXTURE_RECTANGLE, GL_RGBA8, w, h, GL_BGRA,
++                                              GL_UNSIGNED_INT_8_8_8_8_REV, (IOSurfaceRef) s, 0);
++    glBindTexture(GL_TEXTURE_RECTANGLE, 0);
++    return (int) e;
++}
++int surfBind2D(void* s, unsigned tex, int w, int h)
++{
++    glBindTexture(GL_TEXTURE_2D, tex);
++    const CGLError e = CGLTexImageIOSurface2D(CGLGetCurrentContext(), GL_TEXTURE_2D, GL_RGBA8, w, h, GL_BGRA,
++                                              GL_UNSIGNED_INT_8_8_8_8_REV, (IOSurfaceRef) s, 0);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++    return (int) e;
++}
++
++void stopAll()
++{
++    if (! running.load())
++        return;
++    juce::DiagVfpsHook::fn = nullptr;
++    running = false;
++    if (drainTh.joinable()) drainTh.join();
++    enabled = false;
++}
++}

@@ -1,0 +1,9 @@
+13:06:33 load start { 9.83 8.00 6.88 }
+sw1:  2.27 real 4.26 user 0.06 sys 
+sw1_rgba:  2.24 real 4.96 user 0.10 sys 
+sw1_bgra:  2.23 real 4.97 user 0.09 sys 
+vt1_vld:  2.43 real 0.15 user 0.11 sys 
+vt1_rgba:  2.68 real 0.97 user 0.17 sys 
+sw4: wall 3.62 s for 4 x 300 frames; per-proc:  3.58 real 5.07 user 0.12 sys| 3.52 real 5.09 user 0.13 sys| 3.33 real 5.11 user 0.13 sys| 3.59 real 5.06 user 0.12 sys|
+vt4: wall 3.6 s for 4 x 300 frames; per-proc:  3.56 real 0.13 user 0.11 sys| 3.56 real 0.14 user 0.11 sys| 3.56 real 0.13 user 0.11 sys| 3.55 real 0.13 user 0.11 sys|
+13:06:52 load end { 11.99 8.63 7.13 }
