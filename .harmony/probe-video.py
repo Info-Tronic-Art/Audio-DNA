@@ -117,6 +117,8 @@ w10_pixel_identity (last): per fixture in w10Fixtures (a1080 yuv420p, pr1080 yuv
   the row == 0 and video_late_frames delta == 0 over each settled capture window (a seek's catch-up before it is a
   legitimate hold: 78 late frames over the row on the pre-lane app). VU4: the same row on an app launched with
   VIDEO_ENV=ADNA_VIDEO_FORCE_FALLBACK=malloc (TEST-ONLY hook, AUDIODNA_TEST_SERVER builds) diffs the malloc path.
+  VU17: .harmony/probe-video-w10-all.sh <ref-dir> runs this row on the blit / client / malloc paths in ONE invocation
+  (three launches, the same reference) and asserts each arm's "upload=" witness in its err.log.
 """
 import json, os, statistics, subprocess, sys, threading, time
 
