@@ -252,3 +252,18 @@ Work-log rows (.harmony/s-rta-0929-work.md):
 - Unused context: the c3 / c4 build specs (not built, per G1 and the c1 numbers).
 - Self-brief files: plan-g4cpu.md + adoption, both attack files, probe-idle-paint.{sh,py,json}, idlepaint.md (the v2b
   history), and the UI sources. All useful.
+
+
+---------------------------------------------------------------------------------------------------------------------
+## Fix round 1 (g4cpu-fix, answering critic-g4cpu-r1) -- full report: .harmony/.reports/s-rta-0929/g4cpu-fix.md
+- MUST 1 ("CPU drops" is false at HEAD): correct about the tree. This lane makes NO CPU claim; c2 is still STOPPED
+  pending section 6. The look claim is reframed as: the TEST-ONLY instrumentation (c1 + g4cpu-fix) changes no pixels.
+- MUST 2 / SHOULD 5: v5_routine_identity is built (commit 2df6876, a default row; TEST_SERVER-only `preview_rect`).
+  RED on main: teeth "absent". GREEN (this build vs main): P1 (6.5 beats) and P2 (10.5) 0 px differ, max delta 0.
+  The routine cue is present in all 4 frames (12213 / 14973 px). The teeth show 9 clusters, all in the pad row (sweep,
+  digit) or the strip column (V fill tops, hairlines). Region diff PNGs are in scratchpad g4cpu-fix/evidence/.
+- Not done: the bound-knob region. Showing a routine-held UniversalParamControl needs a layer selection, which has no
+  REST / composition path; it needs a TEMPORARY hook in both builds. c1's only change there is one counter line after
+  repaint().
+- SHOULD 3 (a synthetic G3 test): conditional on a future hard gate, not built. SHOULD 4: no fix required.
+- ctest serial 920/920 (13:52). Screen safety: 0 Output windows, 0 dialogs after every batch.
