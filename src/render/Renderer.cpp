@@ -3,6 +3,7 @@
 #include "render/DeckClock.h"
 #include "render/PixelConvert.h"
 #include "render/PngWrite.h"
+#include "render/GLThreadQos.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
 #include "recording/VideoRecorder.h"
@@ -230,6 +231,7 @@ void Renderer::updateActiveSourceParamsFor(const std::string& sourceType,
 
 void Renderer::newOpenGLContextCreated()
 {
+    raiseRenderThreadQos();   // s-rta-0929 vupload P2: JUCE's render thread at QoS USER_INTERACTIVE (GLThreadQos.h)
     glContextGen_.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 vupload: the context-cycle witness
     std::cerr << "[Renderer] GL context created. Version: "
               << glGetString(GL_VERSION) << std::endl;
