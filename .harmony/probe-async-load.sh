@@ -67,8 +67,11 @@ launch() {  # launch <phase>
 }
 quit_check() {  # quit_check <phase>: the graceful quit must end the app within 30 s, no .ips, no dialog
   local t0; t0=$(date +%s)
-  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+  # in the background: a hung app never answers the Apple event and osascript would block ~120 s before the 30 s clock
+  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1 &
+  local osa=$!
   for _ in $(seq 1 30); do adna_running || break; sleep 1; done
+  kill "$osa" 2>/dev/null; wait "$osa" 2>/dev/null
   local dt=$(( $(date +%s) - t0 ))
   if adna_running; then echo "FAIL  $1: the app is still running $dt s after the quit (killed)"; adna_kill; sleep 3; RC=1
   else echo "PASS  $1: app terminated $dt s after the quit"; fi

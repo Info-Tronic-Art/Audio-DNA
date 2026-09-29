@@ -4,6 +4,9 @@
 #include <juce_core/juce_core.h>
 #include <thread>
 #include <atomic>
+#include <memory>
+#include <mutex>
+#include "core/LoadTicket.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -66,8 +69,10 @@ public:
     std::function<void(int deckIndex)> onSwitchDeck;
     // POST /api/load_composition (S166): fires only after this handler has
     // already confirmed the file exists and passes validateComposition —
-    // see handleLoadComposition.
-    std::function<void(juce::File)> onLoadComposition;
+    // see handleLoadComposition. s-rta-0929 asyncload (plan R1): the load is STAGED (its videos open off the message
+    // thread); the handler waits on the ticket (bounded, kLoadWaitMs) and answers {"ok":true} only once the staged swap
+    // is done -- so "load then act" on one connection sees the new composition, as it always did.
+    std::function<void(juce::File, std::shared_ptr<LoadTicket>)> onLoadComposition;
     std::function<void()> onSnapshot;
     std::function<void(float bpm)> onSetBpm;
     // POST /api/resync (s-rta-0925): manual Resync, same funnel as the TopBar button /
@@ -282,6 +287,12 @@ private:
     std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
     std::function<juce::var()> mediaStateProvider_;     // set before start(); see setMediaStateProvider
     std::function<juce::var()> loadWitnessProvider_;    // set before start(); see setLoadWitnessProvider
+    // s-rta-0929 asyncload: every load ticket a handler may be waiting on. stop() finishes them all Cancelled (and
+    // refuses new ones) BEFORE httplib joins its workers -- a worker blocked in a wait would hang the quit.
+    static constexpr int kLoadWaitMs = 60000;
+    std::mutex ticketsMutex_;
+    std::vector<std::weak_ptr<LoadTicket>> tickets_;
+    bool ticketsClosed_ = false;   // guarded by ticketsMutex_
     int port_;
     // R6 (featurebus-thread-safety-design.md): production = not registered
     // (ctor flag from testMode_) so inject_features 404s outside test mode.

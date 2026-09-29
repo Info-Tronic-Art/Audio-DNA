@@ -26,7 +26,7 @@ a2_load_16x4k: load W (layer 0 col 0 = a playing 1080p clip, triggered); 1 s; qu
   16 x 4K load V16 on a thread; wait for its answer; /api/composition at once; s1. PASS: (a) max stall <= stallMaxMs;
   (b) ok:true within swapMaxS AND the composition read right after the answer is V16 with 16 clips; (c) fence_black +0,
   hold <= holdMaxPerCut; (d) the OLD clip kept uploading (>= uploadsMinPerS x window) and its playhead moved during the
-  window (window = answer - post; < 0.3 s = not measurable, printed); (e) every V16 clip clipWidth 3840, thumbnailW > 0;
+  window (window = answer - post; < 0.1 s = not measurable, printed); (e) every V16 clip clipWidth 3840, thumbnailW > 0;
   (f) trigger (0,0): video_pending_frames +0 and dbox(cap, ref4k) <= boxTol; (g) audio_xruns +0, analysis_ring_overruns
   +0, gap max <= audioGapFactor x period; (h) video_late_frames +<= lateMaxPerLoad; (i) load.timing printed (the commit-1
   gate: opens_ms / total_ms >= 0.8). RED on the commit-1 app: (a) ~1000+, (b) (the answer precedes the load).
@@ -34,9 +34,12 @@ a2b_load_16x1080: a2 with 16 x 1080p ((e) clipWidth 1920, ref1080).
 a3_cancel_by_newer_load: load W2 (image comp base / top); s0; post V32; at +cancelDelayS post W3 (image comp); PASS:
   (a) V32 answers ok:false "superseded by a newer load" within cancelAnswerMaxS of W3's post; (b) W3 ok:true within
   swapMaxS and on screen; (c) ui_text "Loaded: <W3>"; (d) open_batches +2 (stale / dropped printed); (e) after 1 s
-  video_players == 0; (f) max stall <= stallMaxMs.
+  video_players == 0; (f) max stall <= stallMaxMs; (g) then V32b superseded by V16b (16 x 1080p videos): every V16b
+  clip has clipWidth 1920 + a thumbnail and video_players == 16 (the old batch's in-flight landings are Stale, never
+  counted toward the new batch -- teeth T1).
 a3b_explicit_cancel: load W2; s0; post V32; at +cancelDelayS POST /api/debug/cancel_load. PASS: (a) V32 answers
-  "superseded..." within cancelAnswerMaxS of the cancel; (b) W2 still on screen; (c) ui_text "Loaded: <W2>" (restored);
+  "superseded..." within cancelAnswerMaxS of the cancel; (b) W2 still on screen; (c) ui_text == the text it read just
+  before the post (restored; the row's trigger of base.png wrote "base.png");
   (d) after 1 s video_players == 0; (e) fence_black +0.
 a3c_cancel_with_sequences: a3b with V32S = V32 + a layer of two 300-frame sequences; (f) seq_open unchanged after 1 s.
 a4_load_then_trigger: load W2 (base col 0 triggered, top col 1); 1 s; s0; post V32; at +triggerDelayS trigger (0, 1)
@@ -46,14 +49,17 @@ a4_load_then_trigger: load W2 (base col 0 triggered, top col 1); 1 s; s0; post V
   screen; (f1) ui_text right after the trigger reads "Loading <V32>..." (AL5); (f2) a second window: post V32b, trigger
   (0,1), cancel_load -> ui_text == the trigger's text (top's file name), not "Loaded: <W2b>".
 a5_duplicate_deck: load D (deck "A": 4 x 4K, col 0 triggered); 1 s; quiet; heartbeat; s0; POST duplicate_deck {0};
-  +0.05 s ui_text; poll numDecks == 2. PASS: (a) "Loading A copy..." then "Duplicated deck: A copy"; (b) activeDeck 1;
+  ui_text at once (its message queues behind the duplicate's); poll numDecks == 2. PASS: (a) "Loading A copy..." then
+  "Duplicated deck: A copy"; (b) activeDeck 1;
   (c) video_pending_frames +0, videos_pending max 0 in the window, fence_black +0, hold <= holdMaxPerCut; (d) the copy's
   active clip on screen (dbox ref4k); (e) max stall <= stallMaxMs; (f) video_players == 8.
-a5b_duplicate_twice (AL7): load D; two duplicate_deck {0} posts 0.05 s apart. PASS: numDecks 3 (deck names = today's:
+a5b_duplicate_twice (AL7): load D; two duplicate_deck {0} posts 0.05 s apart (as ruled), then again back to back
+  (a 4 x 4K flat-colour duplicate is staged for only ~35 ms, so only a back-to-back pair is sure to land INSIDE the
+  window); a ui_text barrier after the second post, then /api/state. PASS (each pair): numDecks 3 (deck names = today's:
   "A", "A copy", "A copy" -- compload::duplicateDeck names a copy "<src> copy"), activeDeck 2, video_players 12, label
-  "Duplicated deck: A copy".
-a6_append_deck: load W2; s0; POST load_deck {deck16.json}; +0.05 s ui_text; poll numDecks == 2. PASS: (a) max stall;
-  (b) numDecks 2 within swapMaxS, activeDeck 1, ui_text "Loaded deck: deck16"; (c) deck 1's 16 clips clipWidth 3840;
+  "Duplicated deck: A copy"; back to back: load.queued == 1 at the barrier (the second click queued, AL7).
+a6_append_deck: load W2; s0; POST load_deck {deck16.json}; ui_text at once; poll numDecks == 2. PASS: (a) max stall;
+  (b) numDecks 2 within swapMaxS, activeDeck 1, ui_text "Loading deck16..." at once then "Loaded deck: deck16"; (c) deck 1's 16 clips clipWidth 3840;
   (d) fence_black +0; (e) audio as a2 (g).
 a7_failure_mid_batch: V16F = V16 with cell 7 = a header-only H.264 (open() fails) and cell 9's file deleted before the
   load. PASS: (a) ok:true within swapMaxS; (b) cell 7 keeps the file defaults (clipWidth 1920, thumbnailW 0), cell 9
@@ -412,6 +418,25 @@ def hb_on():
         return None, str(e)
 
 
+def ui_paints():
+    try:
+        b = S.get(A + "/api/debug/ui_paint", timeout=6).json()
+        return b.get("main_component_paints"), b.get("top_bar_paints")
+    except Exception:  # noqa: BLE001
+        return None, None
+
+
+def win_onscreen():
+    """(on-screen Audio-DNA windows, all Audio-DNA windows) from the Quartz window list (no capture)."""
+    try:
+        import Quartz  # noqa: WPS433
+        wl = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionAll, Quartz.kCGNullWindowID)
+        a = [w for w in wl if "Audio-DNA" in str(w.get("kCGWindowOwnerName", "")) and w.get("kCGWindowLayer", 0) == 0]
+        return len([w for w in a if w.get("kCGWindowIsOnscreen")]), len(a)
+    except Exception:  # noqa: BLE001
+        return None, None
+
+
 def unc_windows():
     try:
         import Quartz  # noqa: WPS433
@@ -422,7 +447,7 @@ def unc_windows():
 
 
 class Poller:
-    """Reads /api/state every pollMs in a thread (and /api/composition every 4th poll); peak_message_stall_ms and the
+    """Reads /api/state every pollMs in a thread (and /api/composition every 2nd poll); peak_message_stall_ms and the
     audio gap reset on read, so the max over reads is the max over the window."""
     def __init__(self):
         self.rows = []; self.comps = []; self._run = False
@@ -437,9 +462,10 @@ class Poller:
                 self.rows.append({"t": time.time(), "stall": d.get("peak_message_stall_ms"),
                                   "uploads": d.get("video_uploads"), "late": d.get("video_late_frames"),
                                   "pending_frames": d.get("video_pending_frames"), "pending_now": d.get("videos_pending"),
-                                  "gap": ld.get("audio_callback_gap_max_ms")})
+                                  "gap": ld.get("audio_callback_gap_max_ms"), "queued": ld.get("queued"),
+                                  "staged": ld.get("staged")})
                 n += 1
-                if n % 4 == 0:
+                if n % 2 == 0:
                     c = s.get(A + "/api/composition", timeout=6).json()
                     L = layer_json(0, 0, c) or {}
                     col = L.get("activeClipColumn")
@@ -460,6 +486,14 @@ class Poller:
     def stop(self):
         self._run = False; self._th.join()
         return self
+
+    def when_max(self, key, t_ref):
+        """(value, seconds after t_ref of the read that saw the max) -- where in the window a stall landed."""
+        rows = [r for r in self.rows if r.get(key) is not None]
+        if not rows:
+            return None, None
+        r = max(rows, key=lambda x: x[key])
+        return r[key], round(r["t"] - t_ref, 3)
 
     def max(self, key):
         v = [r[key] for r in self.rows if r.get(key) is not None]
@@ -551,6 +585,7 @@ def a2(tag, width, vid, ref):
         return
     hb_on(); time.sleep(0.3)
     s0 = state()
+    p0 = ui_paints()
     pol = Poller().start()
     time.sleep(0.1)
     j = AsyncLoad(tag + "_V16", [layer(lv, [vclip(k + 1, vid(k)) for k in range(int(FIX["w16"]))])], int(FIX["w16"])).start()
@@ -564,7 +599,11 @@ def a2(tag, width, vid, ref):
     info(f"{tag}: answer {j.good} {j.reason!r} after {w if w is None else round(w, 3)} s; V16 on screen "
          f"{shown is not None}; {la()}")
     st = stall_max(tag, pol, s1)
-    info(f"{tag}: max message stall {st} ms")
+    mv, mt = pol.when_max("stall", j.t_post)
+    p1 = ui_paints()
+    info(f"{tag}: max message stall {st} ms (the poll that saw {mv} ran {mt} s after the post; answer at "
+         f"{None if w is None else round(w, 3)} s); window passes (main_component_paints) {p0[0]} -> {p1[0]}, "
+         f"Audio-DNA windows on screen {win_onscreen()}")
     if st is not None:
         (ok if st <= STALL else no)(f"{tag}: (a) longest message-thread stall {st:.1f} ms <= {STALL}")
     L_at = layer_json(0, 0, c_at_answer) if c_at_answer else None
@@ -576,16 +615,17 @@ def a2(tag, width, vid, ref):
     if dh is not None:
         (ok if db == 0 else no)(f"{tag}: (c) no deck-less black frame (fence_black +{db} == 0)")
         (ok if dh <= HOLD else no)(f"{tag}: (c) the cut's fence holds <= {HOLD} frames (+{dh})")
-    if w is not None and w >= 0.3:
+    if w is not None and w >= 0.1:
         u0 = pol.at(j.t_post, "uploads"); u1 = pol.at(j.t_answer, "uploads", after=False)
         du = None if u0 is None or u1 is None else u1 - u0
-        poss = [r["pos"] for r in pol.comps if j.t_post <= r["t"] <= j.t_answer and r["lid"] == lw and r["pos"] is not None]
+        poss = [r["pos"] for r in pol.comps if j.t_post - 0.15 <= r["t"] <= j.t_answer and r["lid"] == lw and r["pos"] is not None]
         need = float(FIX["uploadsMinPerS"]) * w
         info(f"{tag}: window {w:.3f} s: old clip uploads +{du} (need >= {need:.1f}); old playheads {poss[:3]}..{poss[-2:]}")
         (ok if du is not None and du >= need else no)(f"{tag}: (d) the OLD show kept uploading frames (+{du} >= {need:.1f})")
-        (ok if len(poss) >= 2 and len(set(poss)) >= 2 else no)(f"{tag}: (d) the OLD clip's playhead moved in the window ({len(poss)} reads)")
+        (ok if len(poss) >= 2 and len(set(poss)) >= 2 else no)(
+            f"{tag}: (d) the OLD clip's playhead moved from 0.15 s before the post to the answer ({len(poss)} reads)")
     else:
-        info(f"{tag}: (d) window {w} s < 0.3 s: the old show's animation is not measurable (the answer came at once)")
+        info(f"{tag}: (d) window {w} s < 0.1 s: the old show's animation is not measurable (the answer came at once)")
     c = comp_state()
     cl = clips_of(layer_json(0, 0, c))
     good_e = len(cl) == int(FIX["w16"]) and all(x.get("clipWidth") == width and (x.get("thumbnailW") or 0) > 0 for x in cl)
@@ -610,6 +650,30 @@ def a2(tag, width, vid, ref):
         info(f"{tag}: (i) timing {json.dumps(tm)}; opens_ms / total_ms = {None if r is None else round(r, 3)}")
     else:
         info(f"{tag}: (i) no load.timing")
+
+
+def d1(tag):
+    """DIAGNOSTIC (no PASS / FAIL): the message-thread stall of a 16-cell IMAGE composition load (no video open) --
+    what the rebuilt grid alone costs at a cut; printed with the window passes and the on-screen state."""
+    L = 77; lw, lv = L * 10 + 1, L * 10 + 2
+    if not load(tag + "_W", [layer(lw, [vclip(1, mpath("w_play.mp4"))])], wait_lid=lw):
+        return
+    trig(0, 0); wait_active(0, 0); time.sleep(1.0)
+    hb_on(); time.sleep(0.3)
+    state()
+    p0 = ui_paints()
+    pol = Poller().start()
+    time.sleep(0.1)
+    j = AsyncLoad(tag + "_I16", [layer(lv, [iclip(k + 1, mpath("base.png")) for k in range(16)])], 16).start()
+    j.join(75)
+    wait_layer_id(0, lv, 15.0)
+    time.sleep(0.6)
+    pol.stop(); s1 = state()
+    mv, mt = pol.when_max("stall", j.t_post)
+    p1 = ui_paints()
+    tm = lstate(s1).get("timing")
+    info(f"{tag}: 16 image cells: answer after {j.wall()} s; max stall {max(mv or 0, s1.get('peak_message_stall_ms') or 0)} ms "
+         f"(seen {mt} s after the post); window passes {p0[0]} -> {p1[0]}; on screen {win_onscreen()}; timing {tm}")
 
 
 def image_comp(tag, lid, top=True):
@@ -655,6 +719,22 @@ def a3(tag):
     st = stall_max(tag, pol, s1)
     if st is not None:
         (ok if st <= STALL else no)(f"{tag}: (f) longest message-thread stall {st:.1f} ms <= {STALL}")
+    # (g) a newer load WITH videos supersedes a staged one: the old batch's in-flight landings must not count toward the
+    # new batch (every new clip lands its own player, dims and thumbnail)
+    lv2, lv3 = L * 10 + 4, L * 10 + 5
+    j3 = AsyncLoad(tag + "_V32b", [layer(lv2, [vclip(k + 1, v4k(k)) for k in range(int(FIX["w32"]))])], int(FIX["w32"])).start()
+    time.sleep(float(FIX["cancelDelayS"]))
+    j4 = AsyncLoad(tag + "_V16b", [layer(lv3, [vclip(k + 1, v1080(k)) for k in range(16)])], 16).start()
+    j3.join(10); j4.join(75)
+    wait_layer_id(0, lv3, 15.0); time.sleep(1.0)
+    c = comp_state(); s2 = state()
+    cl = clips_of(layer_json(0, 0, c))
+    good = len(cl) == 16 and all(x.get("clipWidth") == 1920 and (x.get("thumbnailW") or 0) > 0 for x in cl)
+    info(f"{tag}: (g) V32b {j3.good} {j3.reason!r}; V16b {j4.good} after {j4.wall()} s; clips "
+         f"{[(x.get('clipWidth'), x.get('thumbnailW')) for x in cl]}; video_players {s2.get('video_players')}")
+    (ok if j4.good and good and s2.get("video_players") == 16 else no)(
+        f"{tag}: (g) a video load superseding a staged one lands all 16 of its own clips (dims + thumbnail) and players "
+        f"(video_players {s2.get('video_players')} == 16)")
 
 
 def cancel_row(tag, with_seq):
@@ -669,6 +749,7 @@ def cancel_row(tag, with_seq):
     if with_seq:
         nf = int(FIX["seqFrames"])
         layers.append(layer(lv + 1, [sclip(101, seq_files("seqA", nf), 30), sclip(102, seq_files("seqB", nf), 30)]))
+    ui_before, _ = ui_text()   # the label before staging (the trigger above wrote base.png's name)
     j = AsyncLoad(tag + "_V32", layers, int(FIX["w32"])).start()
     time.sleep(float(FIX["cancelDelayS"]))
     t_c = time.time()
@@ -685,8 +766,8 @@ def cancel_row(tag, with_seq):
         f"{tag}: (a) V32 answers 'superseded by a newer load' within {CANCEL} s of the cancel (got {j.good} {j.reason!r}, {dt})")
     lid = (layer_json(0, 0, c) or {}).get("id")
     (ok if lid == lw2 else no)(f"{tag}: (b) nothing swapped: W2 still on screen (layer id {lid} == {lw2})")
-    want = "Loaded: " + tag + "_W2"
-    (ok if ut == want else no)(f"{tag}: (c) the label is restored to {want!r} (got {ut!r} / {why})")
+    want = ui_before
+    (ok if ut is not None and ut == want else no)(f"{tag}: (c) the label is restored to the text before staging {want!r} (got {ut!r} / {why})")
     vp = s1.get("video_players")
     (ok if vp == 0 else no)(f"{tag}: (d) the cancelled batch's players are retired (video_players {vp} == 0)")
     dh, db = fence_deltas(tag, s0, s1)
@@ -778,8 +859,7 @@ def a5(tag):
     time.sleep(0.1)
     t0 = time.time()
     code_ = post("/api/debug/duplicate_deck", {"deck": 0})
-    time.sleep(0.05)
-    ui_mid, _ = ui_text()
+    ui_mid, _ = ui_text()   # at once: its message queues behind the duplicate's, ahead of the opens' landings
     t, _ = wait_until(lambda: num_decks() == 2, SWAP + 5.0)
     t_dup = None if t is None else time.time() - t0
     time.sleep(0.3)
@@ -787,7 +867,9 @@ def a5(tag):
     pol.stop(); s1 = state()
     c = comp_state()
     x = cap(tag)
-    info(f"{tag}: duplicate_deck {code_}; 2 decks after {t_dup} s; label mid {ui_mid!r}, end {ui_end!r}; {la()}")
+    mv, mt = pol.when_max("stall", t0)
+    info(f"{tag}: duplicate_deck {code_}; 2 decks after {t_dup} s; label mid {ui_mid!r}, end {ui_end!r}; stall max "
+         f"{mv} seen {mt} s after the post; {la()}")
     (ok if ui_mid == "Loading A copy..." and ui_end == "Duplicated deck: A copy" else no)(
         f"{tag}: (a) the label reads 'Loading A copy...' then 'Duplicated deck: A copy' (got {ui_mid!r} -> {ui_end!r})")
     (ok if (c or {}).get("activeDeck") == 1 and t_dup is not None and t_dup <= SWAP else no)(
@@ -809,23 +891,36 @@ def a5(tag):
 
 
 def a5b(tag):
-    L = LID[tag]; lw = L * 10 + 1
-    if not load(tag + "_D", deck_a(tag, lw), 4, deck_name="A", wait_lid=lw):
-        return
-    trig(0, 0); wait_active(0, 0); time.sleep(0.5)
-    c1 = post("/api/debug/duplicate_deck", {"deck": 0})
-    time.sleep(0.05)
-    c2 = post("/api/debug/duplicate_deck", {"deck": 0})
-    t, _ = wait_until(lambda: num_decks() == 3, 2 * SWAP + 5.0)
-    time.sleep(0.5)
-    c = comp_state(); s1 = state(); ut, _ = ui_text()
-    names = [d.get("name") for d in (c or {}).get("decks", [])]
-    info(f"{tag}: posts {c1}/{c2}; 3 decks after {t} s; names {names}; activeDeck {(c or {}).get('activeDeck')}; "
-         f"video_players {s1.get('video_players')}; label {ut!r}")
-    (ok if names == ["A", "A copy", "A copy"] else no)(f"{tag}: two Duplicate clicks = two copies, in order (names {names})")
-    (ok if (c or {}).get("activeDeck") == 2 else no)(f"{tag}: the second copy is active ({(c or {}).get('activeDeck')} == 2)")
-    (ok if s1.get("video_players") == 12 else no)(f"{tag}: each copy has its own players (video_players {s1.get('video_players')} == 12)")
-    (ok if ut == "Duplicated deck: A copy" else no)(f"{tag}: the label reads 'Duplicated deck: A copy' (got {ut!r})")
+    L = LID[tag]
+    for k, (gap, label) in enumerate(((0.05, "0.05 s apart"), (0.0, "back to back"))):
+        lw = L * 10 + 1 + k
+        if not load(f"{tag}_D{k}", deck_a(tag, lw), 4, deck_name="A", wait_lid=lw):
+            return
+        trig(0, 0); wait_active(0, 0); time.sleep(0.5)
+        pol = Poller().start()
+        time.sleep(0.05)
+        c1 = post("/api/debug/duplicate_deck", {"deck": 0})
+        if gap:
+            time.sleep(gap)
+        c2 = post("/api/debug/duplicate_deck", {"deck": 0})
+        _, _ = ui_text()                        # a message-thread barrier: both duplicate messages have run
+        sq = lstate(state())
+        t, _ = wait_until(lambda: num_decks() == 3, 2 * SWAP + 5.0)
+        time.sleep(0.5)
+        pol.stop()
+        c = comp_state(); s1 = state(); ut, _ = ui_text()
+        names = [d.get("name") for d in (c or {}).get("decks", [])]
+        qmax = max([sq.get("queued") or 0] + [r.get("queued") or 0 for r in pol.rows])
+        info(f"{tag} ({label}): posts {c1}/{c2}; 3 decks after {t} s; names {names}; activeDeck "
+             f"{(c or {}).get('activeDeck')}; video_players {s1.get('video_players')}; label {ut!r}; queued after the "
+             f"2nd click {sq.get('queued')} (staged {sq.get('staged')}), max {qmax}")
+        (ok if names == ["A", "A copy", "A copy"] else no)(f"{tag} ({label}): two Duplicate clicks = two copies, in order (names {names})")
+        (ok if (c or {}).get("activeDeck") == 2 else no)(f"{tag} ({label}): the second copy is active ({(c or {}).get('activeDeck')} == 2)")
+        (ok if s1.get("video_players") == 12 else no)(f"{tag} ({label}): each copy has its own players (video_players {s1.get('video_players')} == 12)")
+        (ok if ut == "Duplicated deck: A copy" else no)(f"{tag} ({label}): the label reads 'Duplicated deck: A copy' (got {ut!r})")
+        if gap == 0.0:
+            (ok if sq.get("queued") == 1 else no)(
+                f"{tag} ({label}): the second click QUEUED behind the staged first (load.queued {sq.get('queued')} == 1 at the barrier)")
 
 
 def a6(tag):
@@ -842,20 +937,22 @@ def a6(tag):
     time.sleep(0.1)
     t0 = time.time()
     code_ = post("/api/debug/load_deck", {"path": mpath("deck16.json")})
-    time.sleep(0.05)
-    ui_mid, _ = ui_text()
+    ui_mid, _ = ui_text()   # at once (see a5)
     t, _ = wait_until(lambda: num_decks() == 2, SWAP + 5.0)
     t_app = None if t is None else time.time() - t0
     time.sleep(0.3)
     ui_end, _ = ui_text()
     pol.stop(); s1 = state()
     c = comp_state()
-    info(f"{tag}: load_deck {code_}; 2 decks after {t_app} s; label mid {ui_mid!r}, end {ui_end!r}; {la()}")
+    mv, mt = pol.when_max("stall", t0)
+    info(f"{tag}: load_deck {code_}; 2 decks after {t_app} s; label mid {ui_mid!r}, end {ui_end!r}; stall max {mv} "
+         f"seen {mt} s after the post; {la()}")
     st = stall_max(tag, pol, s1)
     if st is not None:
         (ok if st <= STALL else no)(f"{tag}: (a) longest message-thread stall {st:.1f} ms <= {STALL}")
     (ok if t_app is not None and t_app <= SWAP and (c or {}).get("activeDeck") == 1 and ui_end == "Loaded deck: deck16" else no)(
         f"{tag}: (b) 2 decks within {SWAP} s ({t_app}), activeDeck 1 ({(c or {}).get('activeDeck')}), label 'Loaded deck: deck16' ({ui_end!r})")
+    (ok if ui_mid == "Loading deck16..." else no)(f"{tag}: (b) the label reads 'Loading deck16...' while the deck is staged (got {ui_mid!r})")
     cl = clips_of(layer_json(0, 1, c))
     (ok if len(cl) == 16 and all(x.get("clipWidth") == 3840 for x in cl) else no)(
         f"{tag}: (c) the appended deck's 16 clips have clipWidth 3840 ({len(cl)} clips)")
@@ -942,6 +1039,7 @@ def main():
         "a5b_duplicate_twice": lambda: a5b("a5b_duplicate_twice"),
         "a6_append_deck": lambda: a6("a6_append_deck"),
         "a7_failure_mid_batch": lambda: a7("a7_failure_mid_batch"),
+        "d1_grid_16_images": lambda: d1("d1_grid_16_images"),   # diagnostic, not in the default order
     }
     order = ["a1_witness_fields", "a2_load_16x4k", "a2b_load_16x1080", "a3_cancel_by_newer_load", "a3b_explicit_cancel",
              "a3c_cancel_with_sequences", "a4_load_then_trigger", "a5_duplicate_deck", "a5b_duplicate_twice",

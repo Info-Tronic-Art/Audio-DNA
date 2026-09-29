@@ -105,6 +105,18 @@ void ApiServer::stop()
     if (!running_.load(std::memory_order_relaxed))
         return;
 
+    // s-rta-0929 asyncload: release every POST /api/load_composition waiter FIRST (Cancelled) and refuse new ones --
+    // httplib joins its workers below, and the message thread (which would finish a ticket) does not pump during
+    // ~MainComponent. Never waits for the message thread.
+    {
+        std::lock_guard<std::mutex> lk(ticketsMutex_);
+        ticketsClosed_ = true;
+        for (auto& w : tickets_)
+            if (auto t = w.lock())
+                t->finish(LoadTicket::Outcome::Cancelled);
+        tickets_.clear();
+    }
+
     server_.stop();
     if (serverThread_.joinable())
         serverThread_.join();
@@ -1061,15 +1073,45 @@ void ApiServer::handleLoadComposition(const httplib::Request& req, httplib::Resp
         return;
     }
 
-    if (onLoadComposition)
+    if (!onLoadComposition)
     {
-        // `this`-capture safety: see handleSetParam's clip-effect branch note.
-        juce::MessageManager::callAsync([this, f]() {
-            onLoadComposition(f);
-        });
+        res.set_content(jsonOk(), "application/json");
+        return;
     }
 
-    res.set_content(jsonOk(), "application/json");
+    // s-rta-0929 asyncload (plan R1): answer only once the staged swap is done (or the load failed / was superseded /
+    // the app quit) -- the ticket the message thread finishes. Bounded: kLoadWaitMs.
+    auto ticket = std::make_shared<LoadTicket>();
+    {
+        std::lock_guard<std::mutex> lk(ticketsMutex_);
+        if (ticketsClosed_)
+        {
+            res.set_content(jsonFail("cancelled"), "application/json");
+            return;
+        }
+        tickets_.erase(std::remove_if(tickets_.begin(), tickets_.end(),
+                                      [](const std::weak_ptr<LoadTicket>& w) { return w.expired(); }),
+                       tickets_.end());
+        tickets_.push_back(ticket);
+    }
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
+    const bool posted = juce::MessageManager::callAsync([this, f, ticket]() {
+        onLoadComposition(f, ticket);
+    });
+    if (!posted)   // the quit began: the message thread will never run it
+    {
+        ticket->finish(LoadTicket::Outcome::Cancelled);
+        res.set_content(jsonFail("cancelled"), "application/json");
+        return;
+    }
+    switch (ticket->wait(kLoadWaitMs))
+    {
+        case LoadTicket::Outcome::Done:       res.set_content(jsonOk(), "application/json"); break;
+        case LoadTicket::Outcome::Failed:     res.set_content(jsonFail("could not load"), "application/json"); break;
+        case LoadTicket::Outcome::Superseded: res.set_content(jsonFail("superseded by a newer load"), "application/json"); break;
+        case LoadTicket::Outcome::Cancelled:  res.set_content(jsonFail("cancelled"), "application/json"); break;
+        case LoadTicket::Outcome::Pending:    res.set_content(jsonFail("timed out"), "application/json"); break;
+    }
 }
 
 void ApiServer::handleSetEffect(const httplib::Request& req, httplib::Response& res)
