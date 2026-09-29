@@ -1,0 +1,69 @@
+--- /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/rta0928b-seqvram/.harmony/probe-seq-vram.py	2026-09-28 18:54:27
++++ scratch altroot/.harmony/probe-seq-vram.py (v8 timeline detail, SEQVRAM_FIXED_WAIT A/B, v7c_one_per_deck)	2026-09-28 20:07:40
+@@ -67,7 +67,7 @@
+ ROW_SETS = {"v1_memory_1080": ("L300",), "v2_smooth_loop_1080": ("L300",), "v4_retrigger_hit": ("L300",),
+             "v6_budget_share": ("L300",), "v8_crossfade_two_long": ("L300", "M300"),
+             "v9_three_decoding": ("L300", "M300"), "v7_deck_keeps_time": ("L300",),
+-            "v7b_trim_spike": ("L300", "M300"), "v3_smooth_pingpong_4k": ("Q40",), "v10_floors_win": ("Q40",)}
++            "v7b_trim_spike": ("L300", "M300"), "v7c_one_per_deck": ("L300", "M300"), "v3_smooth_pingpong_4k": ("Q40",), "v10_floors_win": ("Q40",)}
+ 
+ 
+ def mpath(name):
+@@ -538,7 +538,10 @@
+         return
+     base = state()
+     time.sleep(1.0); trig(0, 0); wait_active(0, 0, 0)
+-    wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
++    if os.environ.get("SEQVRAM_FIXED_WAIT"):   # SCRATCH A/B ONLY: fade at the same lap-1 playhead on every build
++        time.sleep(float(os.environ["SEQVRAM_FIXED_WAIT"])); print(f"      {tag}: fixed wait, fade at playhead {playhead(0, 0, 0)}", flush=True)
++    else:
++        wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
+     if not wait_no_compiler(tag):
+         return
+     s0 = state(); pol = Poller(); pol.start(); tt = time.time()
+@@ -559,6 +562,9 @@
+     print(f"      {tag}: fade: pending {pend} ({pend_after} after mid-fade), late {late}, max frame {pf}, max callback {pc} "
+           f"at {None if amc is None else round(amc[0] - tt, 3)} s after the trigger (mid capture {tc - tt:.3f}-{tce - tt:.3f} s); "
+           f"evictions {pol.steps('seq_evictions', tt)[-3:]}; late steps {pol.steps('seq_late_frames', tt)}; "
++          f"[0-0.3 s: evictions {[x for x in pol.steps('seq_evictions', tt) if x[0] < 0.3]} textures {[x for x in pol.steps('seq_textures', tt) if x[0] < 0.3]} "
++          f"uploads {[x for x in pol.steps('seq_uploads', tt) if x[0] < 0.3]} stale {[x for x in pol.steps('seq_stale_drops', tt) if x[0] < 0.3]} "
++          f"pending {[x for x in pol.steps('seq_pending_frames', tt) if x[0] < 0.3]} callback>10 {[(round(r[0]-tt,3), round(r[1]['peak_callback_ms'],1)) for r in pol.rows if (r[1].get('peak_callback_ms') or 0) > 10]}] "
+           f"s0 {show(tag, s0)}; s1 {show(tag, s1)}; {la()}", flush=True)
+     (ok if pend <= 6 and pend_after == 0 else no)(
+         f"{tag}: (a) pending frames over the fade {pend} <= 6 and {pend_after} == 0 after the incoming chain shows")
+@@ -670,6 +676,26 @@
+     (ok if s1["seq_texture_mb"] <= BUDGET + 16 else no)(f"{tag}: (b) after 5 s {s1['seq_texture_mb']:.1f} MB <= {BUDGET + 16}")
+     for i, sn in enumerate(("M300", "L300")):
+         check_code(tag, f"(c) deck 1 layer {i}", f, pbs[i], sn, 0, n, 2, rect=third_rect(2 * i, *W1), check_pixels=False)
++
++
++def v7c(tag):   # SCRATCH ONLY: one 300-frame 1080p sequence per deck; switch when deck 0's window is full
++    ids = LID["v7b_trim_spike"]; n = 300
++    d0 = deck(0, [layer(ids[0], [seq_clip(1, frames("L300"), 30.0)])])
++    d1 = deck(1, [layer(ids[3], [seq_clip(10, frames("M300"), 30.0)])])
++    if not load(tag, [d0, d1], W1):
++        return
++    base = state(); time.sleep(1.0); trig(0, 0); wait_active(0, 0, 0)
++    wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
++    time.sleep(0.5)
++    s0 = state(); pol = Poller(); pol.start(); tt = time.time()
++    switch(1); wait_deck(1); trig(0, 0)
++    time.sleep(4.0)
++    m = pol.stop(); s1 = state()
++    amc = pol.argmax("peak_callback_ms")
++    print(f"      {tag}: switch: max frame {m.get('peak_frame_time_ms')}, max callback {m.get('peak_callback_ms')} at "
++          f"{None if amc is None else round(amc[0] - tt, 3)} s; evictions {[x for x in pol.steps('seq_evictions', tt) if x[0] < 1.0][:6]} "
++          f"textures {[x for x in pol.steps('seq_textures', tt) if x[0] < 1.0][:8]} callback>10 {[(round(r[0]-tt,3), round(r[1]['peak_callback_ms'],1)) for r in pol.rows if (r[1].get('peak_callback_ms') or 0) > 10]}; "
++          f"s0 {show(tag, s0)}; s1 {show(tag, s1)}; {la()}", flush=True)
+ 
+ 
+ def v3(tag):
+@@ -727,7 +753,7 @@
+         make_fixtures(); return
+     rows = [("v1_memory_1080", v1), ("v2_smooth_loop_1080", v2), ("v4_retrigger_hit", v4), ("v6_budget_share", v6),
+             ("v8_crossfade_two_long", v8), ("v9_three_decoding", v9), ("v7_deck_keeps_time", v7),
+-            ("v7b_trim_spike", v7b), ("v3_smooth_pingpong_4k", v3), ("v10_floors_win", v10)]
++            ("v7b_trim_spike", v7b), ("v3_smooth_pingpong_4k", v3), ("v10_floors_win", v10), ("v7c_one_per_deck", v7c)]
+     for name, fn in rows:
+         if ONLY is None or name in ONLY:
+             print(f"--- {name} ({time.strftime('%H:%M:%S')})", flush=True)
