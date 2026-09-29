@@ -224,7 +224,7 @@ PARTIAL. Items 1-5 are delivered and every adopted gate is GREEN. R-A and R-B ne
 - The teeth build was in place on Renderer.cpp. The source was restored from a copy: pre = post sha256 `dbcc461b2ec993e69670d41296a9b74344ac48f1db5f206494cc8d71a794d6de` EQUAL, and `git diff` was empty. After `sleep 1; touch` the rebuild matches the fixed app up to the code signature.
 - Every batch ran under acquire_quiet_lock and held the lock for at most ~9 min. Batch list: red 21:25-21:28, green1 21:35-21:38, green2 21:51-21:55, full 21:59-22:05, ab 22:09-22:14, full2 22:16-22:22, others 22:24-22:29.
 - After every run: `adna after run: []` and `audio-dna windows 0, Output-named 0`. No Output window was ever opened. There was no `.venv` symlink (the probes got the python explicitly), no env-var hook, no synthetic input and no debugger. No `cd` was used.
-- At the end: git status is clean apart from build-lane/. The lock is not held by seqvram (at 22:29 it was owned by `video`). The Audio-DNA running at the end is the video lane's (pid 89605, under its lock), not mine.
+- At the end: git status is clean apart from build-lane/. At 22:29 the lock and a running Audio-DNA (pid 89605) belonged to the video lane. At the final check after the report commit: no lock, no Audio-DNA running, `audio-dna windows 0, Output-named 0`.
 
 ### NOTEBOOK NOTES (for Harmony to append)
 - 2026-09-28 A "not idle within N frames" counter (seq_drawn_textures) still includes a fade's outgoing chain for N frames after the fade. Gate the incoming only after that grace period. A first-sample-above-threshold read passes vacuously | discovered: `.harmony/probe-seq-vram.py` v8 (f).
