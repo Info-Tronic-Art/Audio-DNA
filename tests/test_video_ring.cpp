@@ -374,6 +374,73 @@ TEST_CASE("peek: stale-generation frames are never chosen (and not freed); nothi
     CHECK(z.peek(0.0, 1, 0.5 * kFd).slot == -1);   // empty
 }
 
+TEST_CASE("dropReady: every Ready slot -> Free; Reading and Writing untouched", "[video_ring][s-rta-0929]")
+{
+    Ring<3> r;
+    publishOne(r, 0.0, 1, 1);
+    publishOne(r, 1 * kFd, 1, 2);
+    const auto p = r.pick(0.0, 1, 0.5 * kFd);      // slot of pts 0 -> Reading, pts 1 fd stays Ready
+    REQUIRE(p.slot >= 0);
+    const int w = r.acquireWrite();                 // the third -> Writing
+    REQUIRE(w >= 0);
+    CHECK(r.dropReady() == 1);
+    CHECK(stateOf(r, p.slot) == SlotState::Reading);
+    CHECK(stateOf(r, w) == SlotState::Writing);
+    CHECK(r.readyCount() == 0);
+    CHECK(r.dropReady() == 0);
+}
+
+TEST_CASE("Retire (a): without fences the previously shown slot is released when a newer frame is shown", "[video_ring][s-rta-0929]")
+{
+    VideoRing::Retire<3> t;
+    CHECK(t.shown(0, false) == -1);
+    CHECK(t.held == 0);
+    CHECK(t.shown(1, false) == 0);
+    CHECK(t.held == 1);
+    CHECK(t.shown(1, false) == -1);                 // the same slot again (a re-upload): nothing to release
+}
+
+TEST_CASE("Retire (b): a fenced slot waits for its fence; the held slot is never released by a signal", "[video_ring][s-rta-0929]")
+{
+    VideoRing::Retire<3> t;
+    t.shown(0, true);
+    CHECK(t.shown(1, true) == -1);                  // 0 is still fenced: not yet
+    CHECK(t.signaled(0));                           // 0's fence signals -> release now
+    CHECK_FALSE(t.signaled(1));                     // 1 is the held one: stays (its fence is done)
+    CHECK(t.held == 1);
+    CHECK(t.shown(2, true) == 1);                   // 1's fence already signaled: released at once
+    t.shown(0, true);                               // 2 fenced when 0 is shown
+    CHECK(t.signaled(2));
+}
+
+TEST_CASE("Retire (c)(e): a context loss releases the fenced slots but never the held one; no fence survives", "[video_ring][s-rta-0929]")
+{
+    VideoRing::Retire<3> t;
+    t.shown(0, true);
+    t.shown(1, true);                               // held 1, 0 fenced
+    std::array<int, 3> out{ -1, -1, -1 };
+    const int n = t.contextLost(out);
+    REQUIRE(n == 1);
+    CHECK(out[0] == 0);
+    CHECK(t.held == 1);                             // the next context's picture
+    CHECK_FALSE(t.fenced[0]);
+    CHECK_FALSE(t.fenced[1]);
+    CHECK_FALSE(t.fenced[2]);
+    std::array<int, 3> again{ -1, -1, -1 };
+    CHECK(t.contextLost(again) == 0);               // nothing left to release; held still 1
+    CHECK(t.held == 1);
+}
+
+TEST_CASE("Retire (d): a signal on an unfenced slot releases nothing", "[video_ring][s-rta-0929]")
+{
+    VideoRing::Retire<3> t;
+    CHECK_FALSE(t.signaled(2));
+    t.shown(0, false);
+    CHECK_FALSE(t.signaled(0));
+    CHECK_FALSE(t.signaled(-1));
+    CHECK_FALSE(t.signaled(3));
+}
+
 TEST_CASE("VU10 stress: a writer publishing between peek() and pick() -- pick never returns an older frame or none, and every upload was admitted or charged exactly once",
           "[video_ring][s-rta-0929]")
 {

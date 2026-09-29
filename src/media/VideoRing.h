@@ -149,6 +149,16 @@ public:
     // Reader: Reading -> Free. No-op on any other state (defined behaviour, not an assert-only path).
     void release(int slot) { cas(slot, SlotState::Reading, SlotState::Free); }
 
+    // s-rta-0929 vupload P4b (plan R-14): every Ready slot -> Free (the reader's idle trim; Reading / Writing untouched).
+    // Returns how many.
+    int dropReady()
+    {
+        int n = 0;
+        for (int i = 0; i < N; ++i)
+            n += cas(i, SlotState::Ready, SlotState::Free) ? 1 : 0;
+        return n;
+    }
+
     int readyCount() const { return count(SlotState::Ready); }
     int freeCount() const { return count(SlotState::Free); }
     const SlotHeader& header(int i) const { return slots_[static_cast<size_t>(i)]; }
@@ -170,6 +180,57 @@ private:
         int n = 0;
         for (const auto& s : slots_)
             n += (s.state.load(std::memory_order_acquire) == static_cast<uint8_t>(st)) ? 1 : 0;
+        return n;
+    }
+};
+
+// s-rta-0929 vupload P3 / P4a: the reader's ownership of its slots beyond the pick (the GL calls are the caller's).
+// The frame ON SCREEN keeps its slot Reading until a newer frame is shown (`held`): after a GL context loss the next
+// context re-uploads it, so a playing clip always has a picture (never texture 0). A slot whose GPU copy (an IOSurface
+// blit) may still be running is `fenced`: it goes back to the writer only when its fence signals, or when the context
+// dies (its fences die with it). The held slot is never released by a fence or a context loss.
+template <int N>
+struct Retire
+{
+    int held = -1;                  // the slot of the frame on screen (-1 = none yet)
+    std::array<bool, N> fenced{};   // a GPU copy from this slot was issued and is not yet known complete
+
+    // A new frame is shown from `slot` (its copy issued now; fenced iff hasFence). Returns the previously held slot to
+    // release NOW (-1 = none, the same slot, or it is still fenced: it is released when its fence signals).
+    int shown(int slot, bool hasFence)
+    {
+        const int prev = held;
+        held = slot;
+        if (slot >= 0 && slot < N)
+            fenced[static_cast<size_t>(slot)] = hasFence;
+        if (prev < 0 || prev == slot || fenced[static_cast<size_t>(prev)])
+            return -1;
+        return prev;
+    }
+
+    // The caller saw slot's fence signal (or fail: GL_WAIT_FAILED is treated alike -- adoption VU2, never stuck
+    // Reading). True = release the slot now (it is not the held one).
+    bool signaled(int slot)
+    {
+        if (slot < 0 || slot >= N || !fenced[static_cast<size_t>(slot)])
+            return false;
+        fenced[static_cast<size_t>(slot)] = false;
+        return slot != held;
+    }
+
+    // The context died: every fence with it. Fills `out` with the slots to release now (fenced, not held); the held slot
+    // stays (the picture of the next context). Returns the count.
+    int contextLost(std::array<int, N>& out)
+    {
+        int n = 0;
+        for (int i = 0; i < N; ++i)
+        {
+            if (!fenced[static_cast<size_t>(i)])
+                continue;
+            fenced[static_cast<size_t>(i)] = false;
+            if (i != held)
+                out[static_cast<size_t>(n++)] = i;
+        }
         return n;
     }
 };

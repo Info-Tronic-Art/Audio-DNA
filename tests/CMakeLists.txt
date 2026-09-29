@@ -2790,6 +2790,44 @@ endif()
 apply_sanitizers(test_video_player_open)
 catch_discover_tests(test_video_player_open)
 
+# --- s-rta-0929 vupload (plan-vupload.md 4.8 + adoption VU1-VU3 / VU8): the REAL VideoPlayer uploading into a PRIVATE CGL
+# 4.1 core context (the test_shared_frame_gl shape: no window, SKIPs loudly without a pixel format); no decode thread --
+# the test is the writer (VideoPlayerTestAccess). Frame-0 identity vs a test-side FFmpeg + sws decode (yuv420p H.264, a
+# 63 x 37 rawvideo rgba, HAP Alpha), and the shown slot re-uploaded after releaseGL (a context loss). Fixtures:
+# tests/fixtures/video_h264_64x64.mp4, video_rawrgba_63x37.mov, video_hapa_64x64.mov.
+if(APPLE)
+    add_executable(test_video_player_gl
+        test_video_player_gl.cpp
+        ${SRC_DIR}/media/VideoPlayer.cpp
+    )
+    target_include_directories(test_video_player_gl PRIVATE ${SRC_DIR})
+    target_link_libraries(test_video_player_gl PRIVATE
+        Catch2::Catch2WithMain
+        juce::juce_core
+        juce::juce_opengl
+        FFmpeg::FFmpeg
+        "-framework OpenGL"
+        "-framework IOSurface"
+        "-framework CoreFoundation"
+    )
+    target_compile_definitions(test_video_player_gl PRIVATE
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+        GL_SILENCE_DEPRECATION
+        TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    )
+    if(NOT MSVC)
+        target_compile_options(test_video_player_gl PRIVATE
+            -Wno-old-style-cast
+            -Wno-conversion
+            -Wno-sign-conversion
+        )
+    endif()
+    apply_sanitizers(test_video_player_gl)
+    catch_discover_tests(test_video_player_gl)
+endif()
+
 # --- test_layer_strip_transport_view (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 3 + adoptions I2 / I3): the layer
 # strip's transport rect repaints only when what it paints changes (LayerStrip::transportViewOf), the playhead read at the
 # tick is the one painted, the routine band hairline repaints only when its painted width changes, and the tick still

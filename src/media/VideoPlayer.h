@@ -130,6 +130,8 @@ public:
     VideoPlayer& operator=(const VideoPlayer&) = delete;
 
 private:
+    friend struct VideoPlayerTestAccess;   // tests/test_video_player_gl.cpp: the test is the writer (no decode thread)
+
     // The most recently opened file (for id-stable content-swap detection).
     juce::File sourceFile_;
 
@@ -169,6 +171,9 @@ private:
     bool discontinuity_ = false;       // a Loop wrap inside advanceTransport (-> a generation bump)
     int deferredFrames_ = 0;           // s-rta-0929 vupload P1: render frames the ready frame has been held by the budget
     uint32_t shownGen_ = 0;            // P1 / VU8: the request generation of the last uploaded frame (a new one is exempt)
+    // s-rta-0929 vupload P4a: the slot of the frame ON SCREEN stays Reading until a newer frame is shown (retire_.held),
+    // so after a GL context loss the first draw re-uploads it -- a shown player never returns texture 0.
+    VideoRing::Retire<kSlots> retire_;
 
     // Transport state (atomics for cross-thread access)
     std::atomic<bool> open_{false};
@@ -236,6 +241,7 @@ private:
     bool seekToTimestamp(double timeSec);
     bool decodeNextFrame();
     void convertInto(int slot);                                    // sws_scale bottom-up (negative stride) into a slot
+    void uploadSlot(int slot);                                     // GL thread: slot -> texture_ (created on first use)
     void freeFfmpeg();                                             // idempotent
     void makeThumbnail();                                          // open(): the first frame -> <= 90x72
     static int64_t nowMs();

@@ -442,27 +442,7 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
                 budget->charge();   // VU10: published between the peek and the pick -- this step's upload, counted
             shownGen_ = gen;
             const auto uploadStart = std::chrono::steady_clock::now();
-            const uint8_t* bytes = slotBytes_[static_cast<size_t>(p.slot)];
-            if (!textureCreated_)
-            {
-                glGenTextures(1, &texture_);
-                glBindTexture(GL_TEXTURE_2D, texture_);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-                             width_, height_,
-                             0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
-                textureCreated_ = true;
-            }
-            else
-            {
-                glBindTexture(GL_TEXTURE_2D, texture_);
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                                width_, height_,
-                                GL_RGBA, GL_UNSIGNED_BYTE, bytes);
-            }
+            uploadSlot(p.slot);
             shown_.onUpload(p.seq);
             if (stats_)
             {
@@ -472,10 +452,20 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
             }
         }
         lastShownPts_ = p.pts;
-        ring_.release(p.slot);   // client-memory glTex*Image2D copies before it returns: the slot is free now
-        releasedThisFrame_ = true;
+        // P4a: this slot is now the one ON SCREEN (held); the previously shown one goes back to the writer.
+        const int prev = retire_.shown(p.slot, false);
+        if (prev >= 0)
+        {
+            ring_.release(prev);
+            releasedThisFrame_ = true;
+        }
         return texture_;
     }
+
+    // P4a: a GL context loss deleted the texture -- the held slot (still Reading) is the picture on the FIRST draw of the
+    // new context, before any newer frame is at or before the clock (a paused / speed-0 / just-returned clip).
+    if (!textureCreated_ && retire_.held >= 0)
+        uploadSlot(retire_.held);
 
     // W3: never shown -> FAILED once the decode thread gave up before any frame or the first frame is overdue.
     if (!shown_.everShown)
@@ -513,8 +503,42 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
     return texture_;
 }
 
+void VideoPlayer::uploadSlot(int slot)
+{
+    // Client-memory upload: glTexImage2D once, then glTexSubImage2D (both copy before they return). The slot stays the
+    // reader's until a newer frame is shown (retire_), so the same slot can be uploaded again after a context loss.
+    const uint8_t* bytes = slotBytes_[static_cast<size_t>(slot)];
+    if (!textureCreated_)
+    {
+        glGenTextures(1, &texture_);
+        glBindTexture(GL_TEXTURE_2D, texture_);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                     width_, height_,
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+        textureCreated_ = true;
+    }
+    else
+    {
+        glBindTexture(GL_TEXTURE_2D, texture_);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+                        width_, height_,
+                        GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+    }
+}
+
 void VideoPlayer::releaseGL()
 {
+    // P4a: the held slot (the frame on screen) is KEPT -- the next context's first draw re-uploads it.
+    std::array<int, kSlots> toRelease{};
+    const int n = retire_.contextLost(toRelease);
+    for (int i = 0; i < n; ++i)
+        ring_.release(toRelease[static_cast<size_t>(i)]);
+    if (n > 0)
+        releasedThisFrame_ = true;
     if (texture_ != 0)
     {
         glDeleteTextures(1, &texture_);
