@@ -1,11 +1,12 @@
 #pragma once
 #include <juce_core/juce_core.h>
 #include <juce_opengl/juce_opengl.h>
+#include <array>
 #include <string>
-#include <vector>
-#include <mutex>
 #include <atomic>
 #include <memory>
+#include "media/VideoRing.h"
+#include "media/VideoStats.h"
 
 // Forward declarations for FFmpeg types (C linkage)
 struct AVFormatContext;
@@ -19,24 +20,34 @@ struct SwsContext;
 // Supports: MP4, MOV, QuickTime (H.264/H.265/ProRes), HAP/HAP Alpha, AVI.
 // Alpha: HAP Alpha provides full RGBA. Other codecs may or may not have alpha.
 //
-// Threading model:
-//   - open()/close() called from message thread
-//   - advanceFrame()/uploadToTexture() called from GL thread each frame
-//   - Transport state (speed, reverse, loop) set from message thread via atomics
-//
-// The player decodes one frame ahead and holds it in a CPU-side buffer.
-// uploadToTexture() pushes the decoded frame to a GL texture (glTexSubImage2D).
+// Threading model (s-rta-0928b video: no video frame is decoded, converted or flipped on the GL thread):
+//   - message thread: open() (the FFmpeg contexts, the ring's 3 slots, frame 0 into slot 0, the thumbnail),
+//     start() (the decode thread), close() (signals the thread, returns at once), getThumbnail(), and the
+//     transport setters (atomics; seekTo from any thread is a request).
+//   - GL thread: advanceFrame() / advanceClock() (the transport clock; a seek or Loop wrap bumps the request
+//     generation), uploadToTexture() (picks the newest ring frame <= the clock, uploads it only when it is new,
+//     never waits), releaseGL(), neverShown().
+//   - decode thread (after start()): everything FFmpeg -- seek, decode, sws into a ring slot. It owns the contexts
+//     and frees them itself on exit; drainRetiredMedia destroys a retired player only once it has exited.
 class VideoPlayer
 {
 public:
     VideoPlayer();
     ~VideoPlayer();
 
-    // Open a video file. Returns true on success. Call from message thread.
+    // Open a video file. Returns true on success. Call from message thread, once per player (every open is a new
+    // player). Starts NO thread: the whole synchronous prepare touches only this object (the part-M seam).
     bool open(const juce::File& file);
 
-    // Close and release all resources. Call from message thread.
+    // Start the decode thread (Renderer::installVideoPlayer, after the player is in the map). Message thread.
+    void start();
+
+    // Stop decoding: signals the decode thread and returns at once (the thread frees the FFmpeg contexts itself);
+    // a never-started player frees them here. Call from message thread.
     void close();
+
+    // No decode thread runs (never started, or exited) -- drainRetiredMedia's destroy gate.
+    bool threadDone() const { return !thread_.isThreadRunning(); }
 
     bool isOpen() const { return open_.load(std::memory_order_relaxed); }
     bool hasAlpha() const { return hasAlpha_.load(std::memory_order_relaxed); }
@@ -71,7 +82,7 @@ public:
     void setPlaying(bool playing) { playing_.store(playing, std::memory_order_relaxed); }
     bool isPlaying() const { return playing_.load(std::memory_order_relaxed); }
 
-    // Seek to normalized position [0, 1]. Thread-safe.
+    // Seek to normalized position [0, 1]. Thread-safe (a request the GL thread applies to its clock).
     void seekTo(double normalizedPosition);
 
     // Get current playhead position [0, 1]. Thread-safe.
@@ -79,28 +90,35 @@ public:
 
     // === Frame Access (GL thread only) ===
 
-    // Advance the playhead by dt seconds (scaled by speed/reverse/loop).
-    // Decodes the next frame into the CPU buffer if needed.
-    // Call once per render frame from GL thread.
+    // Advance the playhead by dt seconds (scaled by speed/reverse/loop), post the wanted time to the decode thread
+    // (a seek or a Loop wrap bumps the request generation) and wake it when it needs to run. Never decodes.
     void advanceFrame(double dt);
 
-    // s-rta-0926b plan4 T3: advance the playhead exactly like advanceFrame() -- same transport math, the loop
-    // wrap's demuxer seek included (cheap, no decode) -- but decode and convert NOTHING. For a clip whose deck is
-    // not on screen: the clock keeps running and the next advanceFrame() catches up (decodeFrameAtTime seeks /
-    // decodes forward, bounded per call). A pending seek request is applied to the clock only. GL thread.
+    // s-rta-0926b plan4 T3 (rule 15): advance the playhead exactly like advanceFrame() -- same transport math -- but
+    // post nothing and wake nothing: for a clip whose deck is not on screen the decode thread idles, and the next
+    // advanceFrame() makes it re-seek and catch up while the layer holds its last frame. A seek or wrap still bumps
+    // the request generation (the ring's frames are stale). GL thread.
     void advanceClock(double dt);
 
-    // Upload the current decoded frame to a GL texture.
-    // Creates the texture on first call, reuses thereafter.
-    // Returns the GL texture ID, or 0 if no frame is ready.
-    // Must be called on the GL thread.
-    GLuint uploadToTexture();
+    // Pick the newest ring frame with pts <= the clock (+ half a frame) of the current request generation and upload
+    // it when it is new (glTexImage2D once, then glTexSubImage2D). Nothing picked: the texture of the last shown frame
+    // (a HOLD; *pending = false), or 0 with *pending = true when this player has never shown a frame -- unless its first
+    // frame FAILED (ADDENDUM W3: the decode thread gave up before any frame, or none came within kFirstFrameTimeoutMs
+    // of the first call): then 0 with *pending = false, "no media". Never waits. Must be called on the GL thread.
+    GLuint uploadToTexture(bool* pending);
 
-    // Release the GL texture. Call from openGLContextClosing().
+    // GL thread: no frame uploaded yet and not FAILED (the C1 crossfade pause provider). A GL release does not make it
+    // true again.
+    bool neverShown() const { return open_.load(std::memory_order_relaxed) && !shown_.everShown && !firstFrameFailed_; }
+
+    // Release the GL texture. Call from openGLContextClosing() / drainRetiredMedia() (GL thread).
     void releaseGL();
 
-    // Get a thumbnail image (first frame). Call after open(), from message thread.
+    // A thumbnail image (the first frame, made in open()). Call after open(), from message thread.
     juce::Image getThumbnail(int maxWidth, int maxHeight);
+
+    // s-rta-0928b video: the Renderer's counters (/api/state). nullptr = none (the default). Before start().
+    void setStats(VideoStats* s) { stats_ = s; }
 
     VideoPlayer(const VideoPlayer&) = delete;
     VideoPlayer& operator=(const VideoPlayer&) = delete;
@@ -109,32 +127,40 @@ private:
     // The most recently opened file (for id-stable content-swap detection).
     juce::File sourceFile_;
 
-    // FFmpeg state
+    // FFmpeg state -- the message thread's in open() (and in close() for a never-started player), the decode
+    // thread's after start().
     AVFormatContext* formatCtx_ = nullptr;
     AVCodecContext* codecCtx_ = nullptr;
     AVFrame* decodedFrame_ = nullptr;
-    AVFrame* rgbaFrame_ = nullptr;
     AVPacket* packet_ = nullptr;
     SwsContext* swsCtx_ = nullptr;
     int videoStreamIndex_ = -1;
 
-    // Video properties
+    // Video properties (written in open(), read-only after)
     int width_ = 0;
     int height_ = 0;
+    int rowBytes_ = 0;
     double duration_ = 0.0;
     double frameRate_ = 30.0;
+    double frameDur_ = 1.0 / 30.0;
     int totalFrames_ = 0;
     double timeBase_ = 0.0;   // Stream time base in seconds per tick
 
-    // CPU frame buffer (RGBA or RGB, flipped for OpenGL)
-    std::vector<uint8_t> frameBuffer_;
-    int frameBufferWidth_ = 0;
-    int frameBufferHeight_ = 0;
-    bool frameReady_ = false;
+    // The ring: 3 RGBA slots of width * height * 4 bytes (malloc'd in open(), freed in the destructor), each written
+    // bottom-up (GL order) by sws_scale with a negative destination stride; the headers are the lock-free protocol.
+    static constexpr int kSlots = 3;
+    std::array<uint8_t*, kSlots> slotBytes_{};
+    VideoRing::Ring<kSlots> ring_;
 
-    // GL texture
+    // GL texture + GL-thread-only picking state
     GLuint texture_ = 0;
     bool textureCreated_ = false;
+    VideoRing::ShownState shown_;      // V1: everShown survives releaseGL
+    double lastShownPts_ = -1.0;
+    int64_t firstDrawMs_ = -1;         // W3: the first uploadToTexture call (-1 = never drawn)
+    bool firstFrameFailed_ = false;    // W3: VideoRing::firstFrameFailed, re-judged while nothing has been shown
+    bool releasedThisFrame_ = false;
+    bool discontinuity_ = false;       // a Loop wrap inside advanceTransport (-> a generation bump)
 
     // Transport state (atomics for cross-thread access)
     std::atomic<bool> open_{false};
@@ -149,27 +175,60 @@ private:
     std::atomic<bool> seekRequested_{false};
     std::atomic<double> seekTarget_{0.0};
 
-    // Current decode position in seconds
+    // GL -> decode thread: the wanted time, the request generation (a seek / wrap = a discontinuity), the last draw.
+    std::atomic<double> wantTime_{0.0};
+    std::atomic<uint32_t> gen_{0};
+    std::atomic<int64_t> lastDrawMs_{0};
+
+    // decode thread -> GL thread (W3): the decode thread reached EOF, or a decode error, before any frame decoded.
+    std::atomic<bool> firstFrameGaveUp_{false};
+
+    // Current transport position in seconds (GL thread)
     double currentTime_ = 0.0;
     bool pingPongForward_ = true;
 
+    // Decode-thread-only state
+    double newestPts_ = -1.0;          // the newest PUBLISHED frame (decide()'s reference)
+    bool haveNewest_ = false;
+    double lastDecodedPts_ = -1.0;     // the newest DECODED frame (the NONREF predicate during a catch-up)
+    bool haveDecoded_ = false;
+    uint32_t myGen_ = 0;
+    uint64_t seq_ = 0;
+    bool drained_ = false;
+    bool atEof_ = false;               // decodeNextFrame() stopped at the end of the stream (not a decode error)
+    bool everDecoded_ = false;         // a frame of this file ever decoded (open()'s frame 0 included) -- W3
+
+    juce::Image thumbnail_;            // made in open() (message thread)
+
+    VideoStats* stats_ = nullptr;
+
+    // R-13 levers (named, each with its trigger in plan-video.md): V5 -- NONREF skipping in a catch-up is ON.
+    static constexpr bool kSkipNonRefInCatchUp = true;
+    static constexpr juce::Thread::Priority kDecodeThreadPriority = juce::Thread::Priority::normal;
+
+    struct DecodeThread final : juce::Thread
+    {
+        explicit DecodeThread(VideoPlayer& o) : juce::Thread("VideoDecode"), owner(o) {}
+        void run() override { owner.decodeLoop(); }
+        VideoPlayer& owner;
+    };
+    DecodeThread thread_{ *this };
+
     // plan4 T3: the transport math shared by advanceFrame() and advanceClock() -- speed / reverse / loop /
-    // ping-pong / one-shot, the loop wrap's seekToTimestamp, the playhead store. Returns false when the clock
-    // did not run (not playing, or no duration) -- advanceFrame() then decodes nothing, as before.
+    // ping-pong / one-shot, the playhead store. A Loop wrap sets discontinuity_ (s-rta-0928b: was a demuxer seek on
+    // the GL thread). Returns false when the clock did not run (not playing, or no duration).
     bool advanceTransport(double dt);
 
-    // Decode the frame at the current time position
-    bool decodeFrameAtTime(double timeSec);
-
-    // Seek to a specific timestamp in the stream
+    // Decode thread
+    void decodeLoop();
+    void onDecoded(uint32_t gen, const VideoRing::Policy& pol);   // drop, or convert into a slot and publish
+    void drainDecoder(uint32_t gen, const VideoRing::Policy& pol); // EOF: the frames frame-threading held back
+    void park();                                                   // wait until notified (threadsAwake accounting)
+    void noteNoFirstFrame(const char* why);                        // W3: EOF / a decode error before any frame
     bool seekToTimestamp(double timeSec);
-
-    // Decode the next frame from the stream
     bool decodeNextFrame();
-
-    // Convert decoded frame to RGBA and store in frameBuffer_
-    void convertFrameToRGBA();
-
-    // Mutex for protecting FFmpeg state during open/close
-    std::mutex ffmpegMutex_;
+    void convertInto(int slot);                                    // sws_scale bottom-up (negative stride) into a slot
+    void freeFfmpeg();                                             // idempotent
+    void makeThumbnail();                                          // open(): the first frame -> <= 90x72
+    static int64_t nowMs();
 };

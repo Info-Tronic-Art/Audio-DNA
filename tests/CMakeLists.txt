@@ -2738,3 +2738,45 @@ target_link_libraries(test_hot_thread_io_lint PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_hot_thread_io_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_hot_thread_io_lint)
 catch_discover_tests(test_hot_thread_io_lint)
+
+# --- s-rta-0928b video: src/media/VideoRing.h -- the lock-free frame ring between a VideoPlayer's decode thread (one
+# writer) and the GL thread (one reader): pick / skip / stale-generation / reverse-play frees, the tolerance, release /
+# abandon no-ops, the decode thread's policy (decide / shouldPublish / NONREF / the V2 idle park), judge + the V1
+# shown-before rule + the W3 failed first frame (no media, not pending), and a two-thread stress run (200,000 frames,
+# no torn slot, no double owner). Headless, no GL, no JUCE, no FFmpeg (registered like test_frame_ring).
+add_executable(test_video_ring test_video_ring.cpp)
+target_include_directories(test_video_ring PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_ring PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_video_ring)
+catch_discover_tests(test_video_ring)
+
+# --- s-rta-0928b video fix round 2: the REAL VideoPlayer (src/media/VideoPlayer.cpp + FFmpeg), headless, no GL context.
+# A video whose pixel format is unknown before a frame decodes (an H.264 .mp4 cut to its header) fails open() cleanly
+# instead of aborting in sws_getContext (each open runs in a forked child: the RED is an assertion, not a crashed
+# runner); a valid tiny H.264 still opens. Fixtures: tests/fixtures/video_h264_cut_header.mp4, video_h264_64x64.mp4.
+add_executable(test_video_player_open
+    test_video_player_open.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_video_player_open PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_player_open PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+target_compile_definitions(test_video_player_open PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_video_player_open PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_video_player_open)
+catch_discover_tests(test_video_player_open)

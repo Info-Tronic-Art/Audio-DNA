@@ -94,7 +94,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 ### Shader Rules
 
-5. **Every new effect is a GLSL file in `/shaders`**: Never hardcode effect logic in C++. One `.frag` file per effect. Shaders are hot-reloadable from disk. **NOTE (actual shipped model)**: the 135 shipped effects are embedded as inline strings in `src/render/EmbeddedShaders.h` and compiled at startup — the `shaders/` dir of legacy duplicate disk files was removed Wave 0. ShaderManager hot-reload only reloads file-compiled shaders, so it is inert for the shipped (embedded) set.
+5. **Every new effect is a GLSL file in `/shaders`**: Never hardcode effect logic in C++. One `.frag` file per effect. **NOTE (actual shipped model)**: the 135 shipped effects are inline strings in `src/render/EmbeddedShaders.h`, compiled at startup (the legacy `shaders/` dir was removed Wave 0; hot-reload is inert for them -- `docs/claude/effects.md`).
 
 6. **All effect parameters are [0, 1]**: The mapping engine and UI work in normalized space. The shader maps `[0, 1]` to its internal range.
 
@@ -230,6 +230,7 @@ the named area; this index is triage-only.
 53. Images decode off the GL thread: pending is never no media (the FX-only trap); render_frame waits for a complete frame -- before touching getKeyTexture or a clip-texture branch.
 54. A sequence's textures are a bounded recycled window (SeqVram; the shown frame is never evicted) -- before touching ImageSequence textures or a media class's per-frame GL objects.
 55. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
+56. Video decodes off the GL thread: the render thread picks the newest ring frame <= its clock and never waits; a hold is not pending -- before touching VideoPlayer or syncMedia's video branch.
 
 ---
 

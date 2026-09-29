@@ -207,7 +207,7 @@ AudioDNA/
 │   │   ├── ProceduralSource.h/cpp        # Shader-backed source w/ ping-pong FBOs for stateful sims
 │   │   └── ProjectMSource + ProjectMPresetManager + PresetSelector.h/cpp  # MilkDrop (build-conditional on libprojectM-4)
 │   ├── media/
-│   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (H.264/H.265/ProRes/HAP Alpha; container per linked FFmpeg) → GL texture
+│   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (H.264/H.265/ProRes/HAP Alpha; container per linked FFmpeg) on a per-player decode thread → VideoRing (3 RGBA slots, s-rta-0928b) → GL texture picked by the render thread
 │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
 │   ├── recording/                      # SessionRecorder REMOVED (s168, 3736f02) -- replaced by the performance take recorder below
 │   │   ├── AudioTap.h/cpp            ✅ # Second fan-out in CombinedCallback; writes take audio, re-patches the WAV header every 10s (kHeaderFlushSeconds)
