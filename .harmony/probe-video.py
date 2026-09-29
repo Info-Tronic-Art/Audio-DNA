@@ -38,7 +38,8 @@ w1_steady_1080x4: 4 layers = a1080 (4 players). trig x4; 2 s; s0; 5 s poll; s1 -
   delta == 0.
 w2_steady_4kx4 (m1): first the same scene with 4 x 4K STILLS (still4k_f100.png = a4k frame 100, one image clip per
   layer, 5 s poll: the upload-free ceiling of this launch), then as w1 at 4K (a4k), one run. PASS (a) median fps >= fps4kMin (W1: the
-  upload-bound floor on this M1 Pro; main 36) and (a2) median fps >= stills fps - fps4kBelowStillsMax (both printed);
+  upload-bound floor on this M1 Pro; main 36); (a2) is an INFO line (video fps vs this launch's stills fps, gap printed --
+  Harmony ruling s-rta-0928b W1b demoted it, not a gate: the upload cost is filed as the zero-copy upload follow-up);
   (b)-(d) as w1; (e) late delta <= lateMaxSteady4k. "4 x 4K video at the display rate" is filed (zero-copy upload).
 w3_retrigger_midgop_1080 (m2): a1080 inPoint 0.5 (5.0 s = frame 150, 150 past keyframe 0). trig + prime; 3 s; capPre;
   s0; RETRIGGER (seekTo(inPoint)); 3 s poll; s1; settle; cap. PASS (a) every poll's peak_callback_ms <= peakMaxMs;
@@ -113,6 +114,10 @@ def ok(msg):
 
 def no(msg):
     global FAIL; FAIL += 1; print(f"FAIL  {msg}", flush=True)
+
+
+def info(msg):
+    print(f"INFO  {msg}", flush=True)
 
 
 def check(cond, msg):
@@ -603,10 +608,15 @@ def steady(tag, size, name, n=4):
         good = sum(1 for f in fpsl if f >= lim)
         check(good >= need_n, f"{tag}: (a) median fps >= {lim:g} in {good} of {reps} runs (>= {need_n}): {fpsl}")
     else:
-        lo, below = float(FIX["fps4kMin"]), float(FIX["fps4kBelowStillsMax"])
+        # Harmony ruling s-rta-0928b W1b: (a2) demoted to INFO -- its -30 margin rested on a stills ceiling of
+        # 108-110 measured under load; on a quiet machine stills reach 116-120 and 4 x 4K video sits at 89-91
+        # (5-run table in .harmony/s-rta-0928b-work.md), so the relative bar was a knife-edge, not a regression
+        # witness; (a) >= 80 and (c) 0 GL-thread decodes remain the gates.
+        lo = float(FIX["fps4kMin"])
         check(fps >= lo, f"{tag}: (a) median fps {fps:.1f} >= {lo:g} (W1: the upload-bound floor)")
-        check(fps >= stills - below, f"{tag}: (a2) median fps {fps:.1f} >= this launch's 4 x 4K stills fps {stills:.1f} - {below:g} "
-                                     f"= {stills - below:.1f}")
+        gap = stills - fps
+        info(f"{tag}: (a2) video fps {fps:.1f} vs this launch's 4 x 4K stills fps {stills:.1f} "
+             f"(gap {gap:.1f} fps; the upload cost -- filed: zero-copy upload follow-up)")
     check(p90 <= float(FIX["p90CallbackMaxMs"]), f"{tag}: (b) p90 peak_callback_ms {p90:.2f} <= {FIX['p90CallbackMaxMs']}")
     if dec is not None:
         check(dec == 0, f"{tag}: (c) gl_video_decode_calls delta {dec} == 0 (no decode on the render thread)")

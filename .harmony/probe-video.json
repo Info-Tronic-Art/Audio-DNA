@@ -9,6 +9,7 @@
   "fps4kMin": 80,
   "fps4kBelowStillsMax": 30,
   "_fps4k": "ADDENDUM W1 (ruled with evidence, not a silent re-threshold): w2 (a) fps >= fps4kMin (main 36; the upload-bound ceiling on this M1 Pro: 4 x 4K video 84-90 fps with 0 GL-thread decodes) AND (a2) fps >= the same launch's 4 x 4K STILL scene fps - fps4kBelowStillsMax (stills measured 108-110). '4 x 4K video at the display rate' is filed (zero-copy upload: IOSurface / VideoToolbox)",
+  "_note": "Harmony ruling s-rta-0928b W1b: (a2) demoted to INFO -- its -30 margin rested on a stills ceiling of 108-110 measured under load; on a quiet machine stills reach 116-120 and 4 x 4K video sits at 89-91 (5-run table in .harmony/s-rta-0928b-work.md), so the relative bar was a knife-edge, not a regression witness; (a) >= 80 and (c) 0 GL-thread decodes remain the gates.",
   "w9FadeS": 2.0,
   "_w9FadeS": "w9's layer transitionSpeed 2.0 = a 2 s fade (w6b: done at 2.02-2.03 s); PASS = done within w9FadeS + 0.5 s (ADDENDUM W3)",
   "broken": {
