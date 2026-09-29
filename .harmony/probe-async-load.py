@@ -676,6 +676,24 @@ def d1(tag):
          f"(seen {mt} s after the post); window passes {p0[0]} -> {p1[0]}; on screen {win_onscreen()}; timing {tm}")
 
 
+def d2(tag):
+    """DIAGNOSTIC (no PASS / FAIL): a2's audio witness window WITHOUT a load -- the control arm for an audio outlier
+    (a2 (g)): W playing, s0, 0.5 s of polling, s1; prints the CoreAudio overload delta and the callback gap max."""
+    L = 76; lw = L * 10 + 1
+    if not load(tag + "_W", [layer(lw, [vclip(1, mpath("w_play.mp4"))])], wait_lid=lw):
+        return
+    trig(0, 0); wait_active(0, 0); time.sleep(1.0)
+    hb_on(); time.sleep(0.3)
+    s0 = state()
+    pol = Poller().start()
+    time.sleep(0.5)
+    pol.stop(); s1 = state()
+    l1 = lstate(s1)
+    gaps = [g for g in (pol.max("gap"), l1.get("audio_callback_gap_max_ms")) if g is not None]
+    info(f"{tag}: no load: audio_xruns {lstate(s0).get('audio_xruns')} -> {l1.get('audio_xruns')}, callback gap max "
+         f"{max(gaps) if gaps else None} ms, ring overruns +{delta(s0, s1, 'analysis_ring_overruns', True)}; {la()}")
+
+
 def image_comp(tag, lid, top=True):
     clips = [iclip(1, mpath("base.png"))] + ([iclip(2, mpath("top.png"))] if top else [])
     return [layer(lid, clips)], len(clips)
@@ -1040,6 +1058,7 @@ def main():
         "a6_append_deck": lambda: a6("a6_append_deck"),
         "a7_failure_mid_batch": lambda: a7("a7_failure_mid_batch"),
         "d1_grid_16_images": lambda: d1("d1_grid_16_images"),   # diagnostic, not in the default order
+        "d2_audio_no_load": lambda: d2("d2_audio_no_load"),     # diagnostic, not in the default order
     }
     order = ["a1_witness_fields", "a2_load_16x4k", "a2b_load_16x1080", "a3_cancel_by_newer_load", "a3b_explicit_cancel",
              "a3c_cancel_with_sequences", "a4_load_then_trigger", "a5_duplicate_deck", "a5b_duplicate_twice",
