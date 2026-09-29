@@ -1,4 +1,17 @@
-## BUILDER REPORT -- lane seqvram (s-rta-0928b)
+## BUILDER REPORT -- lane seqvram (s-rta-0928b) -- lane state after FIX ROUND 1
+
+STATUS: DONE_WITH_CONCERNS
+RESULT: Harmony's fix-round rulings F1-F9 (plan-seqvram.md "HARMONY ADOPTION ADDENDUM -- fix round") are implemented on lane/seqvram, d2b4411..accc1b3, 7 commits. The two review MUSTs are closed: R-A (the Renderer trimmed the OUTGOING sequence at a crossfade start) and R-B (one bulk delete of ~127 textures stalled the render callback ~22 ms). On the d2b4411 app, v8 (b') failed 4 of 6 runs at 22.2-24.3 ms and v7c (a) failed 5 of 5 at 21.2-24.9 ms. On the fixed app both pass 5 of 5, at 5.4-10.0 ms and 4.1-11.3 ms. The incoming sequence now grows after a fade: 82-84 textures 3 s after it ends. The d2b4411 app has no counter for this, and an app with F3 disabled holds 8. Also GREEN: the full probe-seq-vram 66/0 on two consecutive runs, image-load 37/0, crossfade 35/0 and serial ctest 869/869. The concern: 2 single-run late-frame failures on the fixed app (v3 in 1 of 8 runs, v8 in 1 of 12). Neither repeated in the runs after it. The v3 one lines up with a burst of other programs' CPU use on the machine.
+FACTS: `src/media/SeqVram.h` (kIdleFrames, isIdle, kMaxDeletesPerFrame, DeleteBudget, drawnAllowance, Slots::shrink(cap, maxDeletes) / releaseSome / canAcquire), `src/media/ImageSequence.cpp` (deleteTextures, trimToMinimum(stats, deletes), releaseGLWithin, the F4 upload loop), `src/render/Renderer.cpp` (seqDeletes_ reset at the frame top, drainRetiredMedia(contextClosing), scanSequenceVram, the F3 grant), `src/api/ApiServer.cpp` + `src/test/TestServer.cpp` (seq_deletes, seq_drawn_textures), `tests/test_seq_vram.cpp` (cases 13-16), `.harmony/probe-seq-vram.py` (v8 (b') and (f), v7c_one_per_deck, v11_retire), run logs under the scratchpad `seqvram/fix1/runs/`
+METHOD: Each ruling was checked against the code first. Each group got its own commit: F1, F2, F3, F4, the probe, the (f) timing fix, then docs. Every new ctest case was RED first (a compile failure against the previous header), GREEN after, and then broken on purpose in a mutated COPY of the header to show it catches the bug. The live A/B used 5 runs per arm: the d2b4411 app (built from d2b4411, copied before the first change) against the fixed app, both under the quiet-before-lock rule. A per-second sampler logged compilers, load and the top 3 CPU processes. The F7 counter got a teeth build (F3 disabled), made in place and restored with an EQUAL sha256.
+CONFIDENCE+VERIFY: High for F1-F4 (pure ctests + teeth; live A/B 5 v 5). Medium-high for live smoothness: 1 late-frame run in 12 (v8) and 1 in 8 (v3) on the fixed app, neither repeating. To check: `ctest --test-dir build-lane -j1` should give 869/869. `SEQVRAM_APP=<lane app> bash .harmony/probe-seq-vram.sh <out>`, run with the lock held, should give `PY 66 PASS / 0 FAIL`. The rows `v8_crossfade_two_long,v7c_one_per_deck` A/B against the d2b4411 app.
+UNKNOWNS/NOT-DONE: The pitfall number is still "NN" (Harmony assigns it at merge). The one-off late run in v8 (green2 run 5) had no sampler running, so its cause is not shown. HANDOFF.md and APP-INVENTORY.md are untouched (H17).
+NUANCE: seq_drawn_textures counts every sequence drawn in the last 60 frames. For about 60 frames after a fade it therefore still includes the outgoing sequence. The first (f) version read it at the first sample >= 64 and passed at 0.003 s with 129. That pass was meaningless, so (f) now reads the count at fade end + 3 s (commit accc1b3). Under F2, a trimmed idle sequence keeps its evicted slots as FREE slots while the total is under budget. Its "minimum" is therefore not 2 slots, and "seq_textures - 2" cannot measure the incoming (it gave 127 on the d2b4411 app and 122-123 on the fixed app).
+HANDOFF-NEEDS: Harmony: a verdict on the two single-run late-frame failures (below), the pitfall number, and the merge.
+
+INBOX-RECHECK: none
+
+## Round 0 report (d2b4411; superseded where Fix round 1 says so)
 
 STATUS: PARTIAL
 RESULT: All 5 plan items are committed on lane/seqvram (dc15ac8, 768be63, 7386312, 4752576 + this report). Every adopted gate is GREEN on the final app: probe-seq-vram 60/0 on two consecutive runs, ctest 865/865 serial, image-load 37/0, crossfade 35/0, render-state 35/0, canvas 15/0, S4 byte-identical. But two live regressions outside the adopted gates need a Harmony ruling before merge. (1) The plan's rule "not drawn last frame = idle" is broken by Pitfall 53's layer hold: at the start of a crossfade, the Renderer trims the whole OUTGOING sequence (~127 textures). (2) Trimming one big idle sequence in a single frame stalls the render callback for ~22 ms. Both were measured, and neither is fixed here (the rig says do not improvise a redesign).
@@ -144,3 +157,84 @@ GREEN on the final app (green2 and green3, load 4.8-7.0, verbatim): `PY 60 PASS 
 
 ### STATUS
 PARTIAL. Items 1-5 are delivered and every adopted gate is GREEN. R-A and R-B need a ruling or fix before merge.
+
+
+---
+
+## Fix round 1 (lane seqvram-fix1; plan-seqvram.md HARMONY ADOPTION ADDENDUM F1-F9; d2b4411 -> accc1b3)
+
+### Rulings checked against the code first (all premises hold, one partly -- F7)
+- F1: `CompositorEngine.cpp` ~1093 holds the layer while the incoming chain is pending. The outgoing's `getCurrentTexture` is then not called. The old idle rule `lastDrawnSerial() + 1 < seqFrameSerial_` (Renderer.cpp, scanSequenceVram) made that chain idle. Premise holds.
+- F2: trimToMinimum / shrink / releaseGL each called `glDeleteTextures` in an uncapped loop, and the drain released every retired sequence in one frame. Premise holds.
+- F3: the grant was `allowance(total - mine)`, so the idle outgoing's ~121 frames counted against the incoming. Premise holds.
+- F4: the upload loop ran `budget.take()` before `uploadFrame()` -> `acquire()`. Premise holds.
+- F7 -- partly wrong premise. The ruling says to read a per-layer count "if one exists; else seq_textures minus the outgoing's minimum". No per-sequence count existed. The fallback cannot tell the two arms apart under F2: the trimmed outgoing keeps FREE slots while the total is under budget. Measured "seq_textures - 2": 127 on the d2b4411 app, 122-123 on the fixed app. So I added the additive counter `seq_drawn_textures`, the slots of the sequences that are not idle. (f) asserts on it, and the row also prints the fallback.
+
+### Table: ruling -> commit -> RED line -> GREEN line (verbatim)
+| ruling | commit | RED (before) | GREEN (after) |
+|---|---|---|---|
+| F1 idle-age kIdleFrames 60 | fc02457 | vs the d2b4411 header: `test_seq_vram.cpp:588:11: error: use of undeclared identifier 'kIdleFrames'`; teeth (old rule in a copy): `F1_old_rule_not_drawn_last_frame: FAILED cases ['(13)'] \| test cases:      18 \|      17 passed \| 1 failed`; `F1_off_by_one: FAILED cases ['(13)']` | `All tests passed (9 assertions in 1 test case)` (13) |
+| F2 delete budget 8/frame (trim + shrink + retire drain) | f33873c | vs the F1 header: `error: use of undeclared identifier 'kMaxDeletesPerFrame'`, `error: too many arguments to function call, expected single argument 'cap', have 2 arguments`; teeth: `F2_shrink_ignores_maxDeletes: FAILED cases ['(14)']`, `F2_releaseSome_ignores_max: FAILED cases ['(14)']`. Live (d2b4411 app, v7c, 5/5): `FAIL  v7c_one_per_deck: (a) longest render callback over the 2 s after the switch 23.99 ms <= 16.7` (then 22.52, 23.82, 21.23, 24.91) | `All tests passed (68 assertions in 1 test case)` (14). Live (fixed app, 5/5): `PASS  v7c_one_per_deck: (a) longest render callback over the 2 s after the switch 4.14 ms <= 16.7` (then 4.42, 6.75, 7.77, 11.28) |
+| F3 drawn outranks idle | 67e9ad2 | vs the F2 header: `error: use of undeclared identifier 'drawnAllowance'`; teeth: `F3_idle_bytes_not_reclaimable: FAILED cases ['(15)'] \| test cases:      20 \|      19 passed \| 1 failed` | `All tests passed (8 assertions in 1 test case)` (15) |
+| F4 canAcquire before budget.take | 33a4336 | vs the F3 header: `error: no member named 'canAcquire' in 'SeqVram::Slots'`; teeth `F4_canAcquire_always: FAILED cases ['(16)']` | `All tests passed (30 assertions in 1 test case)` (16); every probe row prints `deferred N` (0 in every row of both full runs) |
+| F5 v8 (b') peak_callback_ms 5/5 | c61abca | d2b4411 app, 6 runs: `FAIL  v8_crossfade_two_long: (b') longest render callback over the fade 23.88 ms <= 16.7 (the frame-top scan and trim)` (then 22.49, 24.33, PASS 6.21, 22.17, PASS 8.66) = 4 of 6 FAIL | fixed app, 5/5 (final probe): `PASS  v8_crossfade_two_long: (b') longest render callback over the fade 6.23 ms <= 16.7 (the frame-top scan and trim)` (then 6.55, 10.03, 7.23, 8.55); also 5/5 on the first probe version (6.54, 6.25, 5.62, 5.42, 5.84), 5/5 v8more (6.54, 5.46, 6.38, 9.05, 7.14), full x4 (5.77, 7.89, 5.36, 5.15) |
+| F6 v7c_one_per_deck 5/5 | c61abca | see F2 (5 of 5 FAIL, 21.2-24.9 ms; (c) validity guard PASS on both arms: `eviction jumps >= 100: [(0.053, 127)]`) | 5/5 + 5/5 (first probe version: 7.21, 5.43, 6.61, 10.03, 5.33) + full x4 (4.26, 4.35, 4.48, 5.30); `(b) after 5 s 1020.4 MB <= 1040.0` every run |
+| F7 v8 (f) incoming >= 64 | c61abca + accc1b3 | d2b4411 app (absence, 6/6): `FAIL  v8_crossfade_two_long: (f) /api/state has no seq_drawn_textures (the app predates it; seq_textures - 2 = 127)`. By value, a teeth build with F3 disabled (grant idle sums 0; source restored, sha256 dbcc461b... EQUAL), 2/2: `FAIL  v8_crossfade_two_long: (f) 3 s after the fade the incoming holds 8 >= 64 textures` | fixed app 5/5: `PASS  v8_crossfade_two_long: (f) 3 s after the fade the incoming holds 83 >= 64 textures` (83, 83, 83, 84, 83; v8more 82-83; full 83-84); `(f) late frames over the next 2 s 0 == 0` in 11 of 12 runs -- see concerns |
+| F8 v11_retire report-only | c61abca | d2b4411 app: `INFO  v11_retire: over 2 s after loading an empty composition: max callback 19.14754295349121 at 0.044 s, max frame 2.618750095367432, seq_deletes +absent, textures 129 -> 0 (0.0 MB)` (all 129 in one poll) | fixed app: `INFO  v11_retire: over 2 s after loading an empty composition: max callback 7.078374862670898 at 1.127 s, max frame 0.586250007152557, seq_deletes +129, textures 129 -> 0 (0.0 MB)`; textures 113, 97, 81, 57, 41, 9, 0 over 0.023-0.159 s; full runs 3.18 / 3.88 / 2.71 ms |
+| F9 GREEN + docs | 1f9ebee | -- | full probe `PY 66 PASS / 0 FAIL` + `PROBE-SEQ-VRAM GREEN` on 2 consecutive runs (full2 1+2, 22:16-22:22, load 5.8); image-load `PY 37 PASS / 0 FAIL`; crossfade `PY 35 PASS / 0 FAIL`; `100% tests passed, 0 tests failed out of 869` (ctest -j1, 18.72 s) |
+
+### Design as implemented
+- F1 `SeqVram::isIdle(lastDrawn, serial)`: frames missed = serial - 1 - lastDrawn, and idle means >= 60. The frame-top scan's trim candidates are the idle sequences that hold > 2 slots. CompositorEngine is untouched.
+- F2 `Renderer::seqDeletes_` is reset at the frame top, before `drainRetiredMedia`, so the drain, the idle trim and every drawn sequence's shrink share 8 deletes a frame, in that order. `Slots::shrink(cap, maxDeletes)` and `Slots::releaseSome(maxDeletes)` enforce the cap. A retired sequence releases within the budget (`ImageSequence::releaseGLWithin`) and goes back on the retired list, ahead of anything retired meanwhile, until it is empty. Its remaining textures are reported in seq_textures / seq_texture_mb. The grants and the pressure check use the live sequences only. Context loss (`drainRetiredMedia(true)`, `releaseGL`) releases everything. The trim loop stops when the budget is spent. Evicted slots it could not delete stay FREE (reusable, counted) and are deleted on later frames while the total is over budget. Measured on v7c: 8 deletes about every 0.25 s as the incoming grows.
+- F3 `SeqVram::drawnAllowance(total, mine, idleBytes, idleMinBytes, floor)` = max(floor, budget - drawn others - the idle sequences' 2-frame minimum). The scan publishes the idle sums. A sequence that was idle at the frame top and is drawn now leaves both sums at its grant. seq_drawn_textures = all slots minus the idle ones' slots.
+- F4 `Slots::canAcquire(frame, cap)` (const, agrees with acquire's Full) runs before `budget.take()`. A result with no slot counts seq_upload_deferred and never spends the upload budget.
+
+### Per-row numbers (final app, full2 run 1 / run 2)
+| row | result | notes |
+|---|---|---|
+| v8 | (b') 5.36 / 5.15 ms; (f) 84 / 83 textures, late 0 | the outgoing turns idle ~0.5 s after the fade (60 frames at ~120 Hz); the incoming grows ~30 frames/s to 127 |
+| v7c | (a) 4.48 / 5.30 ms; 1020.4 MB after 5 s | the trim at 0.52 s: 128 evictions in one poll, then deletes of 8 |
+| v11 (INFO) | callback 3.88 / 2.71 ms; +129 / +128 deletes in ~0.15 s | d2b4411 app: 19.1 ms, all in one frame |
+| v1..v10 | all PASS as in round 0 | v1 129 textures / 1020.4 MB; v3 32 / 1012.5 MB; v10 1265.6 MB, over_budget 1 |
+
+### Concerns (not fixed; evidence)
+- v3_smooth_pingpong_4k in full run 2 (22:02-22:05, load 6.8-7.1): `FAIL  v3_smooth_pingpong_4k: (a) late frames over 12 s (4K PingPong at 10 fps) 104 == 0` and `FAIL  v3_smooth_pingpong_4k: (c) frames shown 109 in [114, 123] (3 bounces)`.
+  - The sampler, during the row's 12 s window (22:04:50-22:05:02), recorded `22:04:56 ... top: 225.9 firefox ; 80.0 Audio-DNA ; 73.1 WindowServer`, then plugin-container at 108 % and "Firefox GPU Help" at 93 %, with clang=0.
+  - A/B right after, 5 runs per arm, v3 only: d2b4411 app 5/5 `late 0`; fixed app 5/5 `late 0`. Both following full runs also passed v3 (late 0).
+  - F1-F4 change nothing on v3's path: one drawn sequence, no idle sequence, F3 reduces to the old formula, and the 4K frame upload is the "first upload of a frame" both before and after F4.
+  - Verdict (inferred): environmental, 1 of 8 fixed-app v3 runs.
+- v8 in green2 run 5 (21:54, load 4.3): `FAIL  v8_crossfade_two_long: (e) late frames over the fade 22 <= 12` and `FAIL  v8_crossfade_two_long: (f) late frames over the next 2 s 19 == 0`.
+  - The late frames came at 6.85-7.07 s after the trigger, just after the incoming reached its full 127-frame window (6.51 s). stale 4 means 4 decoded results arrived after their frame had passed.
+  - No sampler was running in that batch.
+  - The 7 fixed-app v8 runs after it (5 v8more + 2 full) all had late 0 in both windows. So it is 1 of 12 fixed-app v8 runs, cause not shown.
+  - The d2b4411 app and the F3-off teeth build never reach a full incoming window in that period, so they are not a comparison for this moment.
+  - I did not re-threshold anything and did not change code for it.
+
+### Deviations / additions (each with evidence)
+- The counter `seq_drawn_textures` was added (F7; the per-layer count the ruling asked for did not exist; evidence above).
+- ctest cases (14) F2, (15) F3 and (16) F4 go beyond the ruling's F1 ctest. Renderer.cpp is in no ctest, so the arithmetic of F2/F3/F4 is pinned where it lives: pure helpers in SeqVram.h.
+- v7c gains (c), a validity guard: the idle trim ran inside the 2 s window. Without it, (a) could pass because the trim happened after the window.
+- v8's Poller now covers the fade, the 3 s after it and the 2 s late window. That is stricter for (b)/(b'): it also covers the outgoing's F3 trim, which now happens ~0.5 s after the fade.
+- The first (f) read "the first sample >= 64" and passed at 0.003 s with 129, because the outgoing was still in the drawn count. Fixed in accc1b3 (read at fade end + 3 s). The 5/5 F5/F6 runs were then repeated on the final probe version.
+- A retired sequence's not-yet-deleted textures are included in the reported seq_textures / seq_texture_mb (they are VRAM held). The grants do not count them.
+- The comment in scanSequenceVram was re-wrapped (committed in 1f9ebee). The rebuilt binary differs from the tested fixed-app copy only past LC_CODE_SIGNATURE dataoff 17,946,928 (first differing byte 18,088,456).
+
+### Rig
+- All builds are in build-lane (Release, configured in round 0). The d2b4411 app was rebuilt from a touch of the lane sources at d2b4411 and copied as `fix1/apps/d2b-Audio-DNA.app` (sha efa53bf5...). It is not the stopped round's `seqvram-fix/apps/pre-Audio-DNA.app`. The fixed app is `fix1/apps/fix-Audio-DNA.app` (sha 9bebefda...). The teeth app is `fix1/apps/T-F3off-Audio-DNA.app`.
+- The teeth build was in place on Renderer.cpp. The source was restored from a copy: pre = post sha256 `dbcc461b2ec993e69670d41296a9b74344ac48f1db5f206494cc8d71a794d6de` EQUAL, and `git diff` was empty. After `sleep 1; touch` the rebuild matches the fixed app up to the code signature.
+- Every batch ran under acquire_quiet_lock and held the lock for at most ~9 min. Batch list: red 21:25-21:28, green1 21:35-21:38, green2 21:51-21:55, full 21:59-22:05, ab 22:09-22:14, full2 22:16-22:22, others 22:24-22:29.
+- After every run: `adna after run: []` and `audio-dna windows 0, Output-named 0`. No Output window was ever opened. There was no `.venv` symlink (the probes got the python explicitly), no env-var hook, no synthetic input and no debugger. No `cd` was used.
+- At the end: git status is clean apart from build-lane/. The lock is not held by seqvram (at 22:29 it was owned by `video`). The Audio-DNA running at the end is the video lane's (pid 89605, under its lock), not mine.
+
+### NOTEBOOK NOTES (for Harmony to append)
+- 2026-09-28 A "not idle within N frames" counter (seq_drawn_textures) still includes a fade's outgoing chain for N frames after the fade. Gate the incoming only after that grace period. A first-sample-above-threshold read passes vacuously | discovered: `.harmony/probe-seq-vram.py` v8 (f).
+- 2026-09-28 A budget-limited trim leaves the victim's evicted slots allocated (free) while the total is under budget. "total minus the victim's minimum" is therefore not a per-sequence count | discovered: `src/render/Renderer.cpp` scanSequenceVram.
+- 2026-09-28 wait_no_compiler does not see browser or GPU bursts. A per-second top-3 CPU sampler during live batches (`fix1/sampler.sh`) is what tied a 4K decode-bound late run to a Firefox burst (225 % CPU + GPU helper) | discovered: scratch `fix1/runs/sampler-spec-full.log`.
+
+### PACKET QUALITY (fix round)
+- Clarity: CLEAR, with one ruling (F7) partly resting on a wrong premise. Its fallback measure cannot tell the two arms apart under F2 (evidence above).
+- Missing context: the display rate. It is ~120 Hz here: 8 deletes a frame shows as ~16 per 21 ms poll. That sets when an outgoing turns idle.
+- Unused context: none.
+- Self-brief files: the plan including both adoptions, both r1 reviews and the round-0 lane report, all used.
+
+STATUS: DONE_WITH_CONCERNS
