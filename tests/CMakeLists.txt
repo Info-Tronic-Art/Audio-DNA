@@ -2659,3 +2659,14 @@ target_include_directories(test_seq_vram PRIVATE ${SRC_DIR})
 target_link_libraries(test_seq_vram PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_seq_vram)
 catch_discover_tests(test_seq_vram)
+
+# --- s-rta-0928b video: src/media/VideoRing.h -- the lock-free frame ring between a VideoPlayer's decode thread (one
+# writer) and the GL thread (one reader): pick / skip / stale-generation / reverse-play frees, the tolerance, release /
+# abandon no-ops, the decode thread's policy (decide / shouldPublish / NONREF / the V2 idle park), judge + the V1
+# shown-before rule, and a two-thread stress run (200,000 frames, no torn slot, no double owner). Headless, no GL, no
+# JUCE, no FFmpeg (registered like test_frame_ring).
+add_executable(test_video_ring test_video_ring.cpp)
+target_include_directories(test_video_ring PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_ring PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_video_ring)
+catch_discover_tests(test_video_ring)
