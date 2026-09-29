@@ -939,23 +939,27 @@ void LayerStrip::updateButtonStates()
 void LayerStrip::updateThumbnail()
 {
     // s-rta-0928 (restore-diag.md): NEVER decodes -- the ClipCell rule (an Image clip's picture from DeckView's
-    // ClipThumbnails, a video / sequence's from Clip::thumbnail); rescaled / placeholder drawn only when the active
-    // clip's source or the square's size changed (it used to re-decode or re-rescale on every refresh).
+    // ClipThumbnails, a video's from Clip::thumbnail; s-rta-0928b mediaopen: a sequence's from ClipThumbnails keyed by
+    // its first file); rescaled / placeholder drawn only when the active clip's source or the square's size changed (it
+    // used to re-decode or re-rescale on every refresh).
     const Clip* clip = layer_ != nullptr ? layer_->getActiveClip() : nullptr;
     int sz = thumbnailBounds_.getHeight();
     if (sz < 1) sz = 64;
     const auto type = clip != nullptr ? clip->mediaType : Clip::MediaType::None;
     const bool fxOnly = clip != nullptr && clip->hasEffects() && !clip->hasMedia();
     const juce::Image cached = clip != nullptr ? clip->thumbnail : juce::Image();
-    const juce::String path = (type == Clip::MediaType::Image && !cached.isValid()) ? clip->mediaFile.getFullPathName()
-                                                                                    : juce::String();
+    const juce::File sourceFile = cached.isValid() ? juce::File()
+                                : type == Clip::MediaType::Image ? clip->mediaFile
+                                : (type == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
+                                      ? clip->sequenceFiles[0] : juce::File();
+    const juce::String path = sourceFile.getFullPathName();
     if (type == shownType_ && fxOnly == shownFxOnly_ && sz == shownSize_ && path == shownPath_ && cached == shownCached_
         && (path.isEmpty() || thumbnail_.isValid()))
         return;
     shownType_ = type; shownFxOnly_ = fxOnly; shownSize_ = sz; shownPath_ = path; shownCached_ = cached;
     thumbnail_ = juce::Image();
     const juce::Image source = cached.isValid() ? cached
-                             : (path.isNotEmpty() && thumbs_ != nullptr) ? thumbs_->get(clip->mediaFile) : juce::Image();
+                             : (path.isNotEmpty() && thumbs_ != nullptr) ? thumbs_->get(sourceFile) : juce::Image();
     if (source.isValid())
         thumbnail_ = source.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
     else if (type == Clip::MediaType::Source || fxOnly)

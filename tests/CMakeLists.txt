@@ -2659,3 +2659,82 @@ target_include_directories(test_seq_vram PRIVATE ${SRC_DIR})
 target_link_libraries(test_seq_vram PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_seq_vram)
 catch_discover_tests(test_seq_vram)
+
+# --- test_fenced_ptr_slot (s-rta-0928b mediaopen, Harmony adoption P3): the renderer's active deck and the
+# UndoService::withDeckDetached fence state share ONE atomic word (src/render/FencedPtrSlot.h), read with one load: the
+# single-thread semantics and a two-thread stress of the fence's store sequence (never "fenced with a deck", never
+# "unfenced without one"). Headless, no GL, no JUCE (registered like test_frame_ring; a TSan build runs it too).
+add_executable(test_fenced_ptr_slot test_fenced_ptr_slot.cpp)
+target_include_directories(test_fenced_ptr_slot PRIVATE ${SRC_DIR})
+target_link_libraries(test_fenced_ptr_slot PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_fenced_ptr_slot)
+catch_discover_tests(test_fenced_ptr_slot)
+
+# --- test_image_sequence_open (s-rta-0928b mediaopen, plan-mediaopen.md 4.5 / 4.9(3)): ImageSequence::open does NO file
+# I/O (a missing frame keeps its slot -- no stat, no frame-0 decode) and seekTo is a request consumed at the top of
+# advanceFrame (before the playing check). Links the REAL src/media/ImageSequence.cpp; no GL call is reached.
+add_executable(test_image_sequence_open
+    test_image_sequence_open.cpp
+    ${SRC_DIR}/media/ImageSequence.cpp
+)
+target_include_directories(test_image_sequence_open PRIVATE ${SRC_DIR})
+target_link_libraries(test_image_sequence_open PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_image_sequence_open PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_image_sequence_open PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_image_sequence_open)
+catch_discover_tests(test_image_sequence_open)
+
+# --- test_media_presence (s-rta-0928b mediaopen, plan-mediaopen.md 4.6 / 4.9(2)): the pure half of MediaPresence
+# (src/core/MediaPresence.h) -- which paths a sweep stats, how its answers become Clip::mediaMissing (changes counted),
+# the load-time seed, and the flag's life in a Clip (clear / replaceContent). Linked like test_composition.
+add_executable(test_media_presence
+    test_media_presence.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_media_presence PRIVATE ${SRC_DIR})
+target_link_libraries(test_media_presence PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_media_presence PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_media_presence PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_media_presence)
+catch_discover_tests(test_media_presence)
+
+# --- test_hot_thread_io_lint (s-rta-0928b mediaopen, plan-mediaopen.md 4.9(4)): no ImageFileFormat::loadFrom outside
+# the off-thread decoders, no existsAsFile in the compositor (GL thread), ImageSequence, or ClipCell (per paint). Static
+# text scan of src/ at test time (like test_shader_param_lint); the live rows prove the effect.
+add_executable(test_hot_thread_io_lint test_hot_thread_io_lint.cpp)
+target_link_libraries(test_hot_thread_io_lint PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_hot_thread_io_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_hot_thread_io_lint)
+catch_discover_tests(test_hot_thread_io_lint)

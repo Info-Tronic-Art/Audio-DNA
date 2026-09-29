@@ -1,0 +1,29 @@
+{
+  "_doc": "Fixtures + thresholds for .harmony/probe-media-open.sh (s-rta-0928b mediaopen, .harmony/.reports/s-rta-0928b/plan-mediaopen.md 4.10 + HARMONY ADOPTION). Rows and calibration: the docstring of .harmony/probe-media-open.py. Fixtures are generated per run into <out>/media (videos by ffmpeg, PNGs by PIL): every path is new to the app instance.",
+  "stallMaxMs": 50,
+  "_stallMaxMs": "the longest message-thread wait of a heartbeat ping (peak_message_stall_ms, polled every 15 ms) during a load / a sequence drop",
+  "dropStall4kMaxMs": 150,
+  "_dropStall4kMaxMs": "a 4K video drop still opens the video (and, until the video lane lands its open()-time thumbnail, makes the full-frame thumbnail) on the message thread -- reported, bounded",
+  "dropStall1080MaxMs": 60,
+  "holdMaxPerDrop": 3,
+  "_holdMaxPerDrop": "a drop's fence wraps only the setClip: it holds the canvas for 1-2 frames (120 Hz display)",
+  "presenceMaxS": 1.5,
+  "_presenceMaxS": "MediaPresence sweeps once a second: a deleted / restored file is seen within one period + a message-loop hop",
+  "boxTol": 3.0,
+  "_boxTol": "dbox(X, Y): both arrays box-averaged in 16x16 blocks, then mean |diff| over RGB (0..255) -- probe-image-load's measure",
+  "lumaMin": 20.0,
+  "heartbeatPeriodMs": 4,
+  "seqFrames": 300,
+  "canvas": [1920, 1080],
+  "speedMinPlayhead": 0.15,
+  "_speedMinPlayhead": "a 3 s clip that plays at speed 1.0 is at ~0.33 after 1 s; a clip loaded at speed 0 stays at 0.0",
+  "video": {
+    "v4k": ["-f", "lavfi", "-i", "color=c=0x3060c0:s=3840x2160:r=30:d=3", "-g", "250", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast"],
+    "v1080": ["-f", "lavfi", "-i", "color=c=0x3060c0:s=1920x1080:r=30:d=3", "-g", "250", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast"]
+  },
+  "layers": {
+    "m2c_load_fence": 91, "m3_drop_4k_video": 92, "m3b_drop_1080_video": 93, "m3c_drop_4k_image": 94,
+    "m3d_drop_seq300": 95, "m4_load_two_seq": 96, "m5_missing_frame_repeats": 97, "m6_retrigger_seek": 98,
+    "m7_presence": 99, "m8_speed_default": 90
+  }
+}

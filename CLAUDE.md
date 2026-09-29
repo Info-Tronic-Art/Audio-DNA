@@ -219,16 +219,17 @@ the named area; this index is triage-only.
 42. A beat clock integrates totalBeatCount + beatPhase, never the beatPhase wrap -- before reading beatPhase on the message thread as a clock or an edge.
 43. `newton_3d` is a heightfield: its camera stays above it, auto-rotate is yaw-only -- before touching a heightfield/terrain source's camera or its defaults.
 44. Fractal subdivision depth is capped by the canvas (a dyadic canvas aliases every pixel into a hole) -- before adding or deepening a digit/IFS-per-level source.
-45. A registered parameter must be read by its shader (`test_shader_param_lint`; helper lambdas hide dead params; old files reconcile on load) -- before adding a source/effect param or a param-adding helper.
+45. A registered parameter must be read by its shader (`test_shader_param_lint`) -- before adding a source/effect param or a param-adding helper.
 46. `juce::FileOutputStream` opens an existing file at its END -- before writing any image/binary file to a path that may exist (use `PngWrite::writeReplacing`).
 47. Eyes `load_source` seeds the registry's default params (a cached source keeps its last values) -- before writing or debugging a test that loads a source through 8080.
-48. A tempo command reaches the analysis snapshot only at the next hop -- before acting on "everything sent before X" (a take's t = 0 and bar grid), compare `FeatureSnapshot::trackerRequestSeq` with `BPMTracker::postedRequestSeq()` read at X.
+48. A tempo command reaches the analysis snapshot only at the next hop -- before acting on "everything sent before X", compare `trackerRequestSeq` with `postedRequestSeq()` read at X.
 49. A polar complex power at z = 0 is NaN on this GPU -- before adding a pow/atan complex step (guard the angle; render the default before/after).
 50. A point-cloud IFS DE draws sub-pixel specks -- before adding an IFS source or its Iterations / Cross Section range (iteration floor).
-51. A deck-grid refresh never decodes a file (image thumbnails come from DeckView's ClipThumbnails) -- before touching ClipCell/LayerStrip thumbnails.
+51. A deck-grid refresh never decodes a file (image and sequence thumbnails come from ClipThumbnails) -- before touching ClipCell/LayerStrip thumbnails.
 52. One capture at a time: `captureFrame` owns the time override and the test canvas lock -- before calling it concurrently or setting either around it.
-53. Images decode off the GL thread: a pending image is never 0 / no media (the FX-only trap); render_frame waits for a complete frame -- before touching getKeyTexture or a clip-texture branch.
+53. Images decode off the GL thread: pending is never no media (the FX-only trap); render_frame waits for a complete frame -- before touching getKeyTexture or a clip-texture branch.
 54. A sequence's textures are a bounded recycled window (SeqVram; the shown frame is never evicted) -- before touching ImageSequence textures or a media class's per-frame GL objects.
+NN. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
 
 ---
 

@@ -76,6 +76,8 @@ public:
     // --- GL fence for structure-changing mutations (defined in UndoService.cpp) ---
     // Runs `mutation` with the renderer's active deck detached and the GL
     // thread fenced. If no renderer is wired, runs `mutation` directly.
+    // s-rta-0928b mediaopen: the detach also MARKS the renderer fenced (one atomic word with the deck,
+    // Renderer::detachActiveDeckFenced); the restore unmarks it in the same store.
     // NOT reentrant-safe: a nested call would restore the active-deck pointer
     // before the OUTER mutation finishes, briefly re-exposing the model to the
     // GL thread mid-mutation. Callers must never nest a withDeckDetached call

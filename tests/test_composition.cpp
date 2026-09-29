@@ -548,6 +548,23 @@ TEST_CASE("Backward compatibility: old-format presets load with struct defaults"
         REQUIRE(clip.playlistEnabled == false);
         REQUIRE(clip.playlistCycleMode == Clip::PlaylistCycleMode::RandomBag);
         REQUIRE(clip.playlistTriggerBeats == 8);
+        // s-rta-0928b mediaopen: a file without "speed" plays at the struct default, not frozen at 0.
+        REQUIRE_THAT(clip.speed, WithinAbs(1.0f, 0.001f));
+    }
+
+    SECTION("Clip explicit speed")
+    {
+        // s-rta-0928b mediaopen: an explicit "speed" is kept -- 0.0 (a deliberately frozen clip) included.
+        for (const double v : { 0.0, 2.0 })
+        {
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty("name", "speed_clip");
+            obj->setProperty("mediaType", static_cast<int>(Clip::MediaType::Video));
+            obj->setProperty("speed", v);
+            Clip clip;
+            clip.fromVar(juce::var(obj));
+            REQUIRE_THAT(clip.speed, WithinAbs(static_cast<float>(v), 0.001f));
+        }
     }
 
     SECTION("Layer old-format")

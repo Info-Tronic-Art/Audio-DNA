@@ -75,6 +75,18 @@ public:
     // Update the thumbnail from the clip's media -- never decodes (s-rta-0928)
     void updateThumbnail();
 
+    // s-rta-0928b mediaopen: a Finder drop's split (images / videos by extension, the videos in natural order) and its
+    // dispatch (mixed -> one video -> several videos -> several images -> one image), shared by filesDropped and the
+    // TEST-ONLY /api/debug/drop_files (MainComponent::debugDropFiles) so both reach the same handler for the same files.
+    struct DropRoute { std::vector<juce::File> images, videos; };
+    static DropRoute classifyDrop(const juce::StringArray& files);
+    static void dispatchDrop(const DropRoute& route, int layerIndex, int column,
+                             const std::function<void(int, int, const juce::File&)>& fileDrop,
+                             const std::function<void(int, int, const std::vector<juce::File>&)>& multiFileDrop,
+                             const std::function<void(int, int, const std::vector<juce::File>&)>& multiVideoDrop,
+                             const std::function<void(int, int, const std::vector<juce::File>&,
+                                                      const std::vector<juce::File>&)>& mixedFilesDrop);
+
 private:
     juce::Rectangle<int> getThumbnailBounds() const;
     juce::Rectangle<int> getNameBarBounds() const;

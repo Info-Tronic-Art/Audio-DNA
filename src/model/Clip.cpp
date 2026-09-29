@@ -212,7 +212,10 @@ void Clip::fromVar(const juce::var& v)
 
         transportMode = static_cast<TransportMode>(static_cast<int>(obj->getProperty("transportMode")));
         loopMode = static_cast<LoopMode>(static_cast<int>(obj->getProperty("loopMode")));
-        speed = static_cast<float>(static_cast<double>(obj->getProperty("speed")));
+        // s-rta-0928b mediaopen: an old / hand-written file without the key plays at the struct default 1.0 (it read
+        // var() -> 0: the clip loaded frozen); an explicit 0.0 is kept.
+        if (obj->hasProperty("speed"))
+            speed = static_cast<float>(static_cast<double>(obj->getProperty("speed")));
         reverse = static_cast<bool>(obj->getProperty("reverse"));
         startOffset = static_cast<float>(static_cast<double>(obj->getProperty("startOffset")));
         if (obj->hasProperty("inPoint"))

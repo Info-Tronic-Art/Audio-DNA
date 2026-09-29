@@ -6,6 +6,10 @@
 #include <atomic>
 #include <optional>
 #include <string>
+#include <vector>
+#if AUDIODNA_TEST_SERVER
+#include "api/MessageHeartbeat.h"
+#endif
 
 // Forward declarations
 class Renderer;
@@ -160,6 +164,13 @@ public:
     // (OutputManager::stateVar(): built on the message thread, read here as a mutex-guarded copy; never
     // Desktop::getDisplays() off the message thread). Set it BEFORE start(): HTTP threads only read it.
     void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
+    // s-rta-0928b mediaopen: /api/state.media (MainComponent::mediaStateVar: atomics only). Set it BEFORE start().
+    void setMediaStateProvider(std::function<juce::var()> provider) { mediaStateProvider_ = std::move(provider); }
+
+    // s-rta-0928b mediaopen (TEST-ONLY route, AUDIODNA_BUILD_TEST_SERVER): POST /api/debug/drop_files {layer, column,
+    // files[]} -- MainComponent hands the files to the handlers a Finder drop onto that cell reaches (ClipCell::classifyDrop,
+    // then the same DeckView callback). Marshalled to the message thread; answers at once.
+    std::function<void(int layer, int column, const std::vector<juce::File>& files)> onDebugDropFiles;
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
@@ -208,6 +219,10 @@ private:
     void handleAudioSource(const httplib::Request& req, httplib::Response& res);
 #if AUDIODNA_TEST_SERVER
     void handleDebugStallMessageThread(const httplib::Request& req, httplib::Response& res);   // s-rta-0927 beat clock (TEST-ONLY)
+    // s-rta-0928b mediaopen (TEST-ONLY): the message-thread heartbeat on / off, and a Finder drop by path.
+    void handleDebugHeartbeat(const httplib::Request& req, httplib::Response& res);
+    void handleDebugDropFiles(const httplib::Request& req, httplib::Response& res);
+    MessageHeartbeat heartbeat_;   // /api/state message_heartbeat_on / peak_message_stall_ms
 #endif
 
     // s-rta-0926 routines slice 1 -- /api/routine/*
@@ -233,6 +248,7 @@ private:
     BindingManager& bindingManager_;
 
     std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
+    std::function<juce::var()> mediaStateProvider_;     // set before start(); see setMediaStateProvider
     int port_;
     // R6 (featurebus-thread-safety-design.md): production = not registered
     // (ctor flag from testMode_) so inject_features 404s outside test mode.

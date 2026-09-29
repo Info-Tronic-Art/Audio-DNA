@@ -39,6 +39,7 @@
 #include "midi/MidiHandler.h"
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
+#include "core/MediaPresence.h"
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
 #include "core/EffectScope.h"
@@ -395,6 +396,11 @@ private:
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<DeckView> deckView_;
+    // s-rta-0928b mediaopen: Clip::mediaMissing for every Image / Video clip of composition_, from a 1 Hz off-thread
+    // sweep (the compositor and the grid read the flag, never stat). Declared after composition_ and deckView_: it is
+    // destroyed first (its timer stops, a sweep in flight lands on nobody).
+    MediaPresenceSweeper presence_;
+    juce::var mediaStateVar() const;   // /api/state "media" (any thread: atomics only)
     std::unique_ptr<InspectorPanel> inspectorPanel_;
     std::unique_ptr<BrowserPanel> browserPanel_;
 
@@ -465,19 +471,31 @@ private:
     // can never blank a DIFFERENT layer's still-playing visual.
     void refreshPreviewFromActiveClip(Deck& deck);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
-    // Perform one image/video file drop into a cell (build clip, open media,
-    // setClip) WITHOUT pushing an undo command. Returns the resulting cell edit
-    // (nullopt if refused — no deck or content-locked). handleFileDrop wraps this
-    // as one command; multi-video drop collects N edits into one composite.
-    std::optional<CellEdit> applyFileDrop(int layerIndex, int column, const juce::File& file);
+    // s-rta-0928b mediaopen: POST /api/debug/drop_files (TEST-ONLY) -- a Finder drop of `files` onto (layer, column) of
+    // the active deck: ClipCell::classifyDrop + ClipCell::dispatchDrop onto the SAME DeckView callbacks a cell's
+    // filesDropped reaches (DeckView.cpp:200-211). Message thread.
+    void debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files);
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
-    // Perform one image-sequence drop (build the ImageSequence clip, open it in
-    // the renderer, setClip) WITHOUT pushing an undo command. Returns the
-    // resulting cell edit (nullopt if refused — no deck). Mirrors applyFileDrop's
-    // shape; handleMultiFileDrop wraps this as one command, and the mixed-drop
-    // handler (2026-07-30) combines it with applyFileDrop's video edits into one
-    // composite so an image+video Finder drop is a single undo entry.
-    std::optional<CellEdit> applyMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
+    // s-rta-0928b mediaopen: a drop is PREPARED outside the GL fence -- the clip id minted, the media opened under it,
+    // dims / alpha / thumbnail read (a video's open + thumbnail used to run INSIDE UndoService::withDeckDetached: the
+    // output showed 5-14 deck-less frames per video drop) -- and COMMITTED inside it (the before-snapshot + deck->setClip,
+    // the reallocation the fence exists for). prepare* refuses exactly as the old apply* did (no active deck / a
+    // content-locked cell -> nullopt, nothing opened). Nothing runs between a prepare and its commit (the same synchronous
+    // handler), so the refusal cannot go stale. The handlers push the commits' edits as ONE command (one undo entry per
+    // gesture, as before): handleFileDrop / handleMultiFileDrop / the multi-video and mixed DeckView drops.
+    struct PreparedDrop
+    {
+        int layerIndex = 0;
+        int column = 0;
+        Clip clip;
+    };
+    // One image / video file -> one cell (a video is opened here, its dims / alpha / thumbnail read).
+    std::optional<PreparedDrop> prepareFileDrop(int layerIndex, int column, const juce::File& file);
+    // 3+ images -> one ImageSequence cell (the sequence is opened here).
+    std::optional<PreparedDrop> prepareMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
+    // INSIDE withDeckDetached only: the before-snapshot + setClip. nullopt only if the active deck vanished (it cannot
+    // inside one synchronous handler; a prepared player would then leak until quit -- accepted, plan 4.2).
+    std::optional<CellEdit> commitDrop(const PreparedDrop& prepared);
     void handleDeckSwitch(int deckIndex, Origin origin = Origin::Human);
 
     // s-rta-0923/0924 step 3 (Lane S3-B, plan section 3.3 B3, D6b): the five

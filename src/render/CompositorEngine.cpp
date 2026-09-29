@@ -12,6 +12,17 @@
 
 using namespace juce::gl;
 
+namespace
+{
+// s-rta-0928b mediaopen: an Image / Video clip's file is present -- Clip::mediaMissing, set by MediaPresence's 1 Hz
+// off-thread sweep (seeded at load), instead of a stat() on the GL thread per layer per frame (6 sites here). Same
+// semantics as mediaFile.existsAsFile() (an empty File is never present), at <= 1 s latency.
+bool mediaPresent(const Clip& clip)
+{
+    return clip.mediaFile != juce::File() && !clip.mediaMissing;
+}
+} // namespace
+
 void CompositorEngine::initGL(int width, int height)
 {
     fboWidth_ = width;
@@ -1073,7 +1084,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 // Get clip texture — image, procedural source, video, or image sequence
                 GLuint clipTex = 0;
                 bool pending = false;   // s-rta-0928 R1.2: the picture is still decoding (NOT "no media")
-                if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+                if (clip->mediaType == Clip::MediaType::Image && mediaPresent(*clip))
                 {
                     clipTex = getKeyTexture(clip->mediaFile, &pending);
                 }
@@ -1183,7 +1194,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 // P13.5.3: Use clip content as luminance mask on accumulator
                 GLuint clipTex = 0;
                 bool pending = false;   // s-rta-0928 R1.2
-                if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+                if (clip->mediaType == Clip::MediaType::Image && mediaPresent(*clip))
                     clipTex = getKeyTexture(clip->mediaFile, &pending);
                 else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
                 {
@@ -1231,11 +1242,11 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
 
 bool CompositorEngine::clipHasContent(const Clip& clip)
 {
-    if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
+    if (clip.mediaType == Clip::MediaType::Image && mediaPresent(clip))
         return true;
     if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty())
         return true;
-    if (clip.mediaType == Clip::MediaType::Video && clip.mediaFile.existsAsFile())
+    if (clip.mediaType == Clip::MediaType::Video && mediaPresent(clip))
         return true;
     if (clip.mediaType == Clip::MediaType::ImageSequence && !clip.sequenceFiles.empty())
         return true;
@@ -1339,7 +1350,7 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
 
         GLuint clipTex = 0;
         bool pending = false;   // s-rta-0928 R1.2
-        if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+        if (clip->mediaType == Clip::MediaType::Image && mediaPresent(*clip))
         {
             clipTex = getKeyTexture(clip->mediaFile, &pending);
         }
@@ -1580,7 +1591,7 @@ GLuint CompositorEngine::getClipTexture(const Clip& clip, float time, int w, int
     if (pending != nullptr)
         *pending = false;
     // s-rta-0928 R1.2: a pending OUTGOING image returns 0 -- applyTransition shows the incoming clip alone.
-    if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
+    if (clip.mediaType == Clip::MediaType::Image && mediaPresent(clip))
         return getKeyTexture(clip.mediaFile, pending);
 
     if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty() && sourceRenderFn_)

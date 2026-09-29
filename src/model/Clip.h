@@ -230,6 +230,9 @@ struct Clip
     int beatsPlayed = 0;
     bool hasBeenTriggered = false; // true after first user trigger (used to auto-play on first click)
     juce::Image thumbnail;          // Cached thumbnail for UI display
+    // s-rta-0928b mediaopen: MediaPresence found mediaFile absent (Image / Video; a 1 Hz off-thread sweep, seeded at load
+    // / drop). Read by the compositor and ClipCell::paint instead of a stat(). Runtime, not serialized.
+    bool mediaMissing = false;
 
     // === Helpers ===
     bool hasMedia() const { return mediaType != MediaType::None; }
@@ -284,6 +287,7 @@ struct Clip
         clipWidth = newContent.clipWidth;
         clipHeight = newContent.clipHeight;
         thumbnail = newContent.thumbnail;
+        mediaMissing = newContent.mediaMissing;   // s-rta-0928b mediaopen: presence travels with the media
         presetPlaylist = newContent.presetPlaylist;
         presetPlaylistIndex = newContent.presetPlaylistIndex;
         playlistCycleMode = newContent.playlistCycleMode;
@@ -359,6 +363,7 @@ struct Clip
         playing = false;
         playheadPosition = 0.0;
         beatsPlayed = 0;
+        mediaMissing = false;   // s-rta-0928b mediaopen
     }
 
     // === Serialization ===

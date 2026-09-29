@@ -285,6 +285,10 @@ void ApiServer::setupRoutes()
     // needs no --test-mode): sleeps the MESSAGE thread for `ms` (1..2000) -- the deterministic stall
     // probe-beatclock.sh and probe-routines row 7s use as their RED. Answers at once.
     server_.Post("/api/debug/stall_message_thread", [this](const httplib::Request& req, httplib::Response& res) { handleDebugStallMessageThread(req, res); });
+    // s-rta-0928b mediaopen (TEST-ONLY, same build path): the message-thread heartbeat (/api/state peak_message_stall_ms)
+    // and a Finder drop by path (the handlers ClipCell::filesDropped reaches). Both answer at once.
+    server_.Post("/api/debug/heartbeat", [this](const httplib::Request& req, httplib::Response& res) { handleDebugHeartbeat(req, res); });
+    server_.Post("/api/debug/drop_files", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDropFiles(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -402,6 +406,13 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
                     clipObj->setProperty("playheadPosition", clip.playheadPosition);   // plan4 T7
                     clipObj->setProperty("mediaType", static_cast<int>(clip.mediaType));
                     clipObj->setProperty("sourceType", juce::String(clip.sourceType));
+                    // s-rta-0928b mediaopen: presence (Clip::mediaMissing, the 1 Hz sweep), the media's size, and the
+                    // grid thumbnail's size (0 x 0 = none) -- the witnesses of a drop / load / presence change.
+                    clipObj->setProperty("mediaMissing", clip.mediaMissing);
+                    clipObj->setProperty("clipWidth", clip.clipWidth);
+                    clipObj->setProperty("clipHeight", clip.clipHeight);
+                    clipObj->setProperty("thumbnailW", clip.thumbnail.getWidth());
+                    clipObj->setProperty("thumbnailH", clip.thumbnail.getHeight());
                     addLiveBlock<Clip, ClipScalar>(*clipObj, clip, clip.scalarConns, clipScalarDefs());
 
                     // s-rta-0926 routines (plan 5.1, additive): the clip's effect stack with each
@@ -1350,6 +1361,20 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("peak_gpu_time_ms", static_cast<double>(renderer_.takePeakGpuTimeMs()));
     // s-rta-0925: master_level is now the one master (composition_.eff()).
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
+    // s-rta-0928b mediaopen: frames the renderer found inside a withDeckDetached fence with no deck (cumulative):
+    // hold = it re-presented the canvas as the previous frame left it; black = it fell to the "nothing to render" path.
+    // Same fields as TestServer.
+    obj->setProperty("fence_hold_frames", static_cast<juce::int64>(renderer_.getFenceHoldFrames()));
+    obj->setProperty("fence_black_frames", static_cast<juce::int64>(renderer_.getFenceBlackFrames()));
+    // s-rta-0928b mediaopen: {presence_sweeps, presence_changed} (MediaPresence). Same field as TestServer.
+    if (mediaStateProvider_)
+        obj->setProperty("media", mediaStateProvider_());
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0928b mediaopen (TEST-ONLY): the message-thread heartbeat (POST /api/debug/heartbeat) -- the longest wait of
+    // a ping since the previous read (resets on read; 0 while off).
+    obj->setProperty("message_heartbeat_on", heartbeat_.isOn());
+    obj->setProperty("peak_message_stall_ms", heartbeat_.takePeakMs());
+#endif
     // s-rta-0927 outputs-c1: the output frame path (additive). Same fields as TestServer.
     {
         auto& frames = renderer_.getSharedFrames();
@@ -1634,6 +1659,62 @@ void ApiServer::handleDebugStallMessageThread(const httplib::Request& req, httpl
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
     obj->setProperty("ms", ms);
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// s-rta-0928b mediaopen (TEST-ONLY): {"on": bool, "period_ms": 1..50 (default 4)}. The heartbeat starts / stops on the
+// message thread (MessageHeartbeat's one-thread rule); /api/state reads its peak from an atomic.
+void ApiServer::handleDebugHeartbeat(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("on"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("on (bool) required"), "application/json");
+        return;
+    }
+    const bool on = static_cast<bool>(json["on"]);
+    const int periodMs = std::clamp(json.hasProperty("period_ms") ? static_cast<int>(json["period_ms"]) : 4, 1, 50);
+    juce::MessageManager::callAsync([this, on, periodMs]() {
+        if (on) heartbeat_.start(periodMs);
+        else    heartbeat_.stop();
+    });
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("on", on);
+    obj->setProperty("period_ms", periodMs);
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// s-rta-0928b mediaopen (TEST-ONLY): {"layer": L, "column": C, "files": ["/abs/path", ...]} -> the handlers a Finder drop
+// onto that cell of the active deck reaches (MainComponent::debugDropFiles). Paths are not checked here: a Finder drop
+// does not check them either.
+void ApiServer::handleDebugDropFiles(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const auto* arr = json["files"].getArray();
+    if (!json.hasProperty("layer") || !json.hasProperty("column") || arr == nullptr || arr->isEmpty())
+    {
+        res.status = 400;
+        res.set_content(jsonError("layer, column and files (non-empty array of absolute paths) required"), "application/json");
+        return;
+    }
+    if (!onDebugDropFiles)
+    {
+        res.status = 503;
+        res.set_content(jsonError("drop_files not wired"), "application/json");
+        return;
+    }
+    const int layer = static_cast<int>(json["layer"]);
+    const int column = static_cast<int>(json["column"]);
+    std::vector<juce::File> files;
+    for (const auto& f : *arr)
+        if (juce::File::isAbsolutePath(f.toString()))
+            files.emplace_back(f.toString());
+    juce::MessageManager::callAsync([this, layer, column, files]() { onDebugDropFiles(layer, column, files); });
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("files", static_cast<int>(files.size()));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 #endif

@@ -660,6 +660,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (deckView_) deckView_->refresh();
     });
 
+    // s-rta-0928b mediaopen: file presence, off the GL thread and off every paint (MediaPresence). A flag that flipped
+    // repaints the grid's "!" indicators.
+    presence_.onChanged = [this] { if (deckView_) deckView_->refresh(); };
+    presence_.start(composition_);
+
     // P23: Genre change callback — auto-switch deck or load genre preset
     previewPanel_.getRenderer().setOnGenreChanged([this](uint8_t genre, float confidence) {
         if (!composition_.autoPresetOnGenre) return;
@@ -802,6 +807,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
         const int numColsBefore = deck->numColumns;
+        // s-rta-0928b mediaopen: every video is opened BEFORE the fence (prepareFileDrop); the fence holds only the
+        // column growth and the setClips.
+        std::vector<PreparedDrop> prepared;
+        for (int i = 0; i < static_cast<int>(files.size()); ++i)
+            if (auto p = prepareFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]))
+                prepared.push_back(std::move(*p));
         // GL fence (2026-07-28): the growth loop below resizes EVERY layer's
         // clips vector (layer.clips.resize), the exact crash-proven reallocation
         // — one fence for the whole gesture (growth + placement), not per-cell.
@@ -817,8 +828,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     layer.clips.resize(static_cast<size_t>(deck->numColumns));
             }
             // Place each video, collecting cell edits WITHOUT per-file history entries.
-            for (int i = 0; i < static_cast<int>(files.size()); ++i)
-                if (auto edit = applyFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]))
+            for (const auto& p : prepared)
+                if (auto edit = commitDrop(p))
                     edits.push_back(*edit);
         });
         const int numColsAfter = deck->numColumns;
@@ -844,8 +855,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Mixed Finder drop (2026-07-30 fix): a multi-file drop mixing videos and
     // images used to silently discard the images (ClipCell::filesDropped ran
     // mutually-exclusive early-return branches, video-first). Route each media
-    // type through its existing single-type primitive (image(s) → applyFileDrop
-    // or applyMultiFileDrop for one cell; videos → applyFileDrop per sequential
+    // type through its existing single-type primitive (image(s) → prepareFileDrop
+    // or prepareMultiFileDrop for one cell; videos → prepareFileDrop per sequential
     // cell, mirroring onMultiVideoDropped above) and combine every edit into ONE
     // composite so the whole drop is one undo entry, per house pattern.
     deckView_->onMixedFilesDropped = [this](int layerIdx, int col,
@@ -864,6 +875,32 @@ MainComponent::MainComponent(bool testMode, int testPort)
         const int imageCellCount = images.empty() ? 0 : (images.size() == 2 ? 2 : 1);
         const int videoStartCol = col + imageCellCount;
 
+        // s-rta-0928b mediaopen: every file is prepared (videos opened, the sequence opened) BEFORE the fence, in the
+        // order the fenced loop used to open them (images, then videos); the fence holds only growth + setClips.
+        std::vector<PreparedDrop> prepared;
+        if (images.size() == 1)
+        {
+            if (auto p = prepareFileDrop(layerIdx, col, images[0]))
+                prepared.push_back(std::move(*p));
+        }
+        else if (images.size() == 2)
+        {
+            // Spread: same primitive as the video-spread pattern above
+            // (prepareFileDrop per cell), not prepareMultiFileDrop — two
+            // images must land as two separate clips.
+            for (int i = 0; i < 2; ++i)
+                if (auto p = prepareFileDrop(layerIdx, col + i, images[static_cast<size_t>(i)]))
+                    prepared.push_back(std::move(*p));
+        }
+        else if (images.size() > 2)
+        {
+            if (auto p = prepareMultiFileDrop(layerIdx, col, images))
+                prepared.push_back(std::move(*p));
+        }
+        for (int i = 0; i < static_cast<int>(videos.size()); ++i)
+            if (auto p = prepareFileDrop(layerIdx, videoStartCol + i, videos[static_cast<size_t>(i)]))
+                prepared.push_back(std::move(*p));
+
         std::vector<CellEdit> edits;
         // GL fence (2026-07-28, round 3 class): column growth + setClip below can
         // reallocate every layer's clips vector — one fence for the whole
@@ -877,29 +914,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 for (auto& layer : deck->layers)
                     layer.clips.resize(static_cast<size_t>(deck->numColumns));
             }
-
-            if (images.size() == 1)
-            {
-                if (auto edit = applyFileDrop(layerIdx, col, images[0]))
-                    edits.push_back(*edit);
-            }
-            else if (images.size() == 2)
-            {
-                // Spread: same primitive as the video-spread pattern above
-                // (applyFileDrop per cell), not applyMultiFileDrop — two
-                // images must land as two separate clips.
-                for (int i = 0; i < 2; ++i)
-                    if (auto edit = applyFileDrop(layerIdx, col + i, images[static_cast<size_t>(i)]))
-                        edits.push_back(*edit);
-            }
-            else if (images.size() > 2)
-            {
-                if (auto edit = applyMultiFileDrop(layerIdx, col, images))
-                    edits.push_back(*edit);
-            }
-
-            for (int i = 0; i < static_cast<int>(videos.size()); ++i)
-                if (auto edit = applyFileDrop(layerIdx, videoStartCol + i, videos[static_cast<size_t>(i)]))
+            for (const auto& p : prepared)
+                if (auto edit = commitDrop(p))
                     edits.push_back(*edit);
         });
         const int numColsAfter = deck->numColumns;
@@ -1853,6 +1869,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
         testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+        testServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
         // plan5 C3 (s-rta-0927 outputs-c3), test mode only: the manager's counters, "Restore Last Outputs" with
         // nothing to restore, the poll A/B. The restore hook re-checks ON the message thread and runs the menu
         // action's own handler only while nothing is restorable -- it can never open a window.
@@ -2115,6 +2132,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         };
 #endif
     apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+    apiServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
+    // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
+    apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
+        debugDropFiles(layer, column, files);
+    };
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks, then start listening (below).
@@ -2907,11 +2929,14 @@ void MainComponent::openComposition()
 
 // L3 STEP 3 (2026-09): per-clip media-open loop, factored out of
 // loadComposition's OPEN NEW step so appendDeckFromFile (below) can share it
-// verbatim rather than duplicate it. Mirrors applyFileDrop's video block and
-// applyMultiFileDrop's sequence block — see loadComposition's step 4 comment
+// verbatim rather than duplicate it. Mirrors prepareFileDrop's video block and
+// prepareMultiFileDrop's sequence block — see loadComposition's step 4 comment
 // for why this must run on the STAGED deck, before any fence/swap.
 void MainComponent::openMediaForDeck(Deck& deck)
 {
+    // s-rta-0928b mediaopen: seed Clip::mediaMissing on the STAGED deck (a stat per Image / Video clip, here at load, so
+    // the first frames after the swap behave as the per-frame stat did); MediaPresence's sweep keeps it current.
+    presence::seed(deck);
     auto& renderer = previewPanel_.getRenderer();
     for (auto& layer : deck.layers)
     {
@@ -2921,7 +2946,7 @@ void MainComponent::openMediaForDeck(Deck& deck)
             Clip& clip = *cell;
             if (clip.mediaType == Clip::MediaType::Video)
             {
-                if (!clip.mediaFile.existsAsFile()) continue;   // non-fatal: skip, continue
+                if (clip.mediaMissing) continue;   // non-fatal: skip, continue (the seed's stat)
                 if (renderer.openVideoForClip(clip.id, clip.mediaFile))
                 {
                     if (auto* p = renderer.getVideoPlayer(clip.id))
@@ -2936,10 +2961,9 @@ void MainComponent::openMediaForDeck(Deck& deck)
             else // ImageSequence
             {
                 if (clip.sequenceFiles.empty()) continue;
+                // s-rta-0928b mediaopen: no I/O -- open() stats and decodes nothing, and the grid pulls the sequence's
+                // thumbnail from ClipThumbnails (its first file, off-thread) instead of a frame-0 decode here.
                 renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
-                auto first = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
-                if (first.isValid())
-                    clip.thumbnail = first.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
             }
         }
     }
@@ -4843,8 +4867,8 @@ void MainComponent::refreshAfterUndoRedo(bool affectsLayerOrder)
     }
 }
 
-std::optional<MainComponent::CellEdit>
-MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
+std::optional<MainComponent::PreparedDrop>
+MainComponent::prepareFileDrop(int layerIndex, int column, const juce::File& file)
 {
     auto* deck = composition_.getActiveDeck();
     if (!deck) return std::nullopt;
@@ -4855,9 +4879,6 @@ MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
         if (existing->contentLocked)
             return std::nullopt; // Silently refuse — locked content
     }
-
-    // Capture before-state for undo (nullopt if the cell was empty).
-    std::optional<Clip> before = snapshotCell(deck->getLayer(layerIndex), column);
 
     Clip clip;
     clip.name = file.getFileNameWithoutExtension().toStdString();
@@ -4892,22 +4913,35 @@ MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
         }
     }
 
-    deck->setClip(layerIndex, column, clip);
+    return PreparedDrop{ layerIndex, column, std::move(clip) };
+}
 
-    return CellEdit{ layerIndex, column, before, std::optional<Clip>(clip) };
+std::optional<MainComponent::CellEdit> MainComponent::commitDrop(const PreparedDrop& prepared)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return std::nullopt;
+
+    // Capture before-state for undo (nullopt if the cell was empty).
+    std::optional<Clip> before = snapshotCell(deck->getLayer(prepared.layerIndex), prepared.column);
+    deck->setClip(prepared.layerIndex, prepared.column, prepared.clip);
+    return CellEdit{ prepared.layerIndex, prepared.column, before, std::optional<Clip>(prepared.clip) };
 }
 
 void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
 {
-    // GL fence (2026-07-28, round 3): applyFileDrop's internal deck->setClip
+    // s-rta-0928b mediaopen: open the media BEFORE the fence (prepareFileDrop); the fence holds only the setClip.
+    auto prepared = prepareFileDrop(layerIndex, column, file);
+    if (!prepared) return;
+
+    // GL fence (2026-07-28, round 3): commitDrop's deck->setClip
     // call can grow the layer's clips vector (Deck::setClip -> ensureColumns)
     // — the crash-proven reallocation class. One fence for this single-cell
     // drop gesture (mirrors every other single-cell drop handler, e.g.
     // onSourceActivated above). onMultiVideoDropped already fences its own
-    // growth+placement loop around applyFileDrop, so applyFileDrop itself is
+    // growth+placement loop around commitDrop, so commitDrop itself is
     // NOT fenced internally — that would nest under the loop's outer fence.
     std::optional<CellEdit> edit;
-    undoService_.withDeckDetached([&] { edit = applyFileDrop(layerIndex, column, file); });
+    undoService_.withDeckDetached([&] { edit = commitDrop(*prepared); });
     if (edit)
     {
         pushClipEdits(composition_.activeDeckIndex, { *edit },
@@ -4917,13 +4951,33 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
     }
 }
 
-std::optional<MainComponent::CellEdit>
-MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
+juce::var MainComponent::mediaStateVar() const
+{
+    // s-rta-0928b mediaopen: /api/state "media" -- MediaPresence's completed sweeps and flags flipped (cumulative).
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("presence_sweeps", presence_.sweeps());
+    obj->setProperty("presence_changed", presence_.changes());
+    return juce::var(obj);
+}
+
+void MainComponent::debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files)
+{
+    if (!deckView_)
+        return;
+    juce::StringArray paths;
+    for (const auto& f : files)
+        paths.add(f.getFullPathName());
+    ClipCell::dispatchDrop(ClipCell::classifyDrop(paths), layerIndex, column, deckView_->onFileDropped,
+                           deckView_->onMultiFileDropped, deckView_->onMultiVideoDropped, deckView_->onMixedFilesDropped);
+}
+
+std::optional<MainComponent::PreparedDrop>
+MainComponent::prepareMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
 {
     auto* deck = composition_.getActiveDeck();
     if (!deck) return std::nullopt;
 
-    // P24.5: Check content lock before replacing (mirrors applyFileDrop —
+    // P24.5: Check content lock before replacing (mirrors prepareFileDrop —
     // this check was missing here, letting a multi-image drop silently
     // overwrite a content-locked cell).
     if (auto* existing = deck->getClip(layerIndex, column))
@@ -4931,9 +4985,6 @@ MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<
         if (existing->contentLocked)
             return std::nullopt; // Silently refuse — locked content
     }
-
-    // Capture before-state for undo (nullopt if the cell was empty).
-    std::optional<Clip> before = snapshotCell(deck->getLayer(layerIndex), column);
 
     Clip clip;
     clip.id = s_nextClipId++;
@@ -4952,20 +5003,14 @@ MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<
     {
         clip.name = clip.sequenceFiles[0].getParentDirectory().getFileName().toStdString()
                   + " (" + std::to_string(clip.sequenceFiles.size()) + " frames)";
-
-        // Thumbnail from first image
-        auto firstImg = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
-        if (firstImg.isValid())
-            clip.thumbnail = firstImg.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+        // s-rta-0928b mediaopen: no frame-0 decode for a thumbnail here -- the grid pulls it from ClipThumbnails.
     }
 
     // Open the image sequence in the renderer
     auto& renderer = previewPanel_.getRenderer();
     renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
 
-    deck->setClip(layerIndex, column, clip);
-
-    return CellEdit{ layerIndex, column, before, std::optional<Clip>(clip) };
+    return PreparedDrop{ layerIndex, column, std::move(clip) };
 }
 
 void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
@@ -4976,13 +5021,19 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
     // This handler is reached both by a direct Finder drop of images only
     // (no video — ClipCell::filesDropped) and by the internal "files:" drag
     // path when videos.empty() (ClipCell::itemDropped) — 3+ still falls
-    // through to applyMultiFileDrop below, mirroring onMixedFilesDropped's
+    // through to prepareMultiFileDrop below, mirroring onMixedFilesDropped's
     // threshold so every drop path agrees.
     if (files.size() == 2)
     {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
         const int numColsBefore = deck->numColumns;
+
+        // s-rta-0928b mediaopen: both prepared BEFORE the fence; the fence holds growth + the two setClips.
+        std::vector<PreparedDrop> prepared;
+        for (int i = 0; i < 2; ++i)
+            if (auto p = prepareFileDrop(layerIndex, column + i, files[static_cast<size_t>(i)]))
+                prepared.push_back(std::move(*p));
 
         // GL fence (2026-07-28, round 3 class): column growth + setClip below
         // can reallocate every layer's clips vector — one fence for the whole
@@ -4997,8 +5048,8 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
                 for (auto& layer : deck->layers)
                     layer.clips.resize(static_cast<size_t>(deck->numColumns));
             }
-            for (int i = 0; i < 2; ++i)
-                if (auto edit = applyFileDrop(layerIndex, column + i, files[static_cast<size_t>(i)]))
+            for (const auto& p : prepared)
+                if (auto edit = commitDrop(p))
                     edits.push_back(*edit);
         });
         const int numColsAfter = deck->numColumns;
@@ -5020,10 +5071,14 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
         return;
     }
 
+    // s-rta-0928b mediaopen: the sequence is opened BEFORE the fence (prepareMultiFileDrop).
+    auto prepared = prepareMultiFileDrop(layerIndex, column, files);
+    if (!prepared) return;
+
     // GL fence (2026-07-28, round 3): setClip's internal ensureColumns can
     // grow the layer's clips vector — the crash-proven reallocation class.
     std::optional<CellEdit> edit;
-    undoService_.withDeckDetached([&] { edit = applyMultiFileDrop(layerIndex, column, files); });
+    undoService_.withDeckDetached([&] { edit = commitDrop(*prepared); });
     if (!edit) return;
 
     pushClipEdits(composition_.activeDeckIndex, { *edit },

@@ -200,10 +200,11 @@ void ClipCell::paint(juce::Graphics& g)
         g.drawText("L", lockBounds, juce::Justification::centred, false);
     }
 
-    // P24.7: Missing file indicator (red border + "!" marker)
+    // P24.7: Missing file indicator (red border + "!" marker). s-rta-0928b mediaopen: Clip::mediaMissing (MediaPresence's
+    // 1 Hz off-thread sweep; its onChanged repaints the grid) instead of a stat per media cell per paint (30 Hz).
     if (clip_ && clip_->hasMedia() &&
         (clip_->mediaType == Clip::MediaType::Image || clip_->mediaType == Clip::MediaType::Video) &&
-        clip_->mediaFile != juce::File() && !clip_->mediaFile.existsAsFile())
+        clip_->mediaFile != juce::File() && clip_->mediaMissing)
     {
         auto b = getLocalBounds().toFloat();
         g.setColour(juce::Colour(0xffcc3333));
@@ -277,9 +278,15 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     dragHover_ = false;
     repaint();
 
+    dispatchDrop(classifyDrop(files), layerIndex_, column_, onFileDrop, onMultiFileDrop, onMultiVideoDrop, onMixedFilesDrop);
+}
+
+ClipCell::DropRoute ClipCell::classifyDrop(const juce::StringArray& files)
+{
     // Separate images from videos
-    std::vector<juce::File> imageFiles;
-    std::vector<juce::File> videoFiles;
+    DropRoute route;
+    auto& imageFiles = route.images;
+    auto& videoFiles = route.videos;
 
     for (const auto& f : files)
     {
@@ -303,6 +310,18 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
                   [](const juce::File& a, const juce::File& b) {
                       return a.getFileName().compareNatural(b.getFileName()) < 0;
                   });
+    return route;
+}
+
+void ClipCell::dispatchDrop(const DropRoute& route, int layerIndex, int column,
+                            const std::function<void(int, int, const juce::File&)>& fileDrop,
+                            const std::function<void(int, int, const std::vector<juce::File>&)>& multiFileDrop,
+                            const std::function<void(int, int, const std::vector<juce::File>&)>& multiVideoDrop,
+                            const std::function<void(int, int, const std::vector<juce::File>&,
+                                                     const std::vector<juce::File>&)>& mixedFilesDrop)
+{
+    const auto& imageFiles = route.images;
+    const auto& videoFiles = route.videos;
 
     // Mixed batch (images AND videos): route through the combined callback so
     // the whole drop lands as one undo entry, instead of the video branches
@@ -310,21 +329,21 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     // internal drag path a few lines below already handles this correctly).
     if (!imageFiles.empty() && !videoFiles.empty())
     {
-        if (onMixedFilesDrop) onMixedFilesDrop(layerIndex_, column_, imageFiles, videoFiles);
+        if (mixedFilesDrop) mixedFilesDrop(layerIndex, column, imageFiles, videoFiles);
         return;
     }
 
     // Single video = normal file drop
     if (videoFiles.size() == 1)
     {
-        if (onFileDrop) onFileDrop(layerIndex_, column_, videoFiles[0]);
+        if (fileDrop) fileDrop(layerIndex, column, videoFiles[0]);
         return;
     }
 
     // Multiple videos = place in sequential cells
     if (videoFiles.size() > 1)
     {
-        if (onMultiVideoDrop) onMultiVideoDrop(layerIndex_, column_, videoFiles);
+        if (multiVideoDrop) multiVideoDrop(layerIndex, column, videoFiles);
         return;
     }
 
@@ -335,14 +354,14 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     // hits).
     if (imageFiles.size() > 1)
     {
-        if (onMultiFileDrop) onMultiFileDrop(layerIndex_, column_, imageFiles);
+        if (multiFileDrop) multiFileDrop(layerIndex, column, imageFiles);
         return;
     }
 
     // Single image = normal image drop
     if (imageFiles.size() == 1)
     {
-        if (onFileDrop) onFileDrop(layerIndex_, column_, imageFiles[0]);
+        if (fileDrop) fileDrop(layerIndex, column, imageFiles[0]);
         return;
     }
 }
@@ -395,13 +414,18 @@ void ClipCell::setGridPosition(int layerIndex, int column)
 void ClipCell::updateThumbnail()
 {
     // s-rta-0928 (restore-diag.md): NEVER decodes. An Image clip's thumbnail comes from DeckView's ClipThumbnails --
-    // decoded once per file off the message thread, invalid until it lands; a video / sequence's is its Clip::thumbnail.
+    // decoded once per file off the message thread, invalid until it lands; a video's is its Clip::thumbnail.
+    // s-rta-0928b mediaopen: a SEQUENCE's comes from the same store, keyed by its first file (the drop / load used to
+    // decode frame 0 for it on the message thread); a Clip::thumbnail that is valid still wins.
     // Re-derived only when its source changed: every DeckView::refresh (once per discrete restore entry, every clip
     // trigger) used to decode each image cell from disk right here.
     const auto type = (clip_ != nullptr && clip_->hasMedia()) ? clip_->mediaType : Clip::MediaType::None;
     const bool cached = clip_ != nullptr && clip_->thumbnail.isValid();
-    const juce::String path = (type == Clip::MediaType::Image && !cached) ? clip_->mediaFile.getFullPathName()
-                                                                          : juce::String();
+    const juce::File source = cached ? juce::File()
+                            : type == Clip::MediaType::Image ? clip_->mediaFile
+                            : (type == Clip::MediaType::ImageSequence && !clip_->sequenceFiles.empty())
+                                  ? clip_->sequenceFiles[0] : juce::File();
+    const juce::String path = source.getFullPathName();
     // Same source: a cached picture is the same image; an image path has landed; anything else derives no picture
     // (so a video whose Clip::thumbnail was cleared never keeps the old one).
     if (type == shownType_ && path == shownPath_
@@ -416,7 +440,7 @@ void ClipCell::updateThumbnail()
     if (cached)
         thumbnail_ = clip_->thumbnail;
     else if (path.isNotEmpty() && thumbs_ != nullptr)
-        thumbnail_ = thumbs_->get(clip_->mediaFile);   // invalid while its decode is under way
+        thumbnail_ = thumbs_->get(source);   // invalid while its decode is under way
 }
 
 juce::Rectangle<int> ClipCell::getThumbnailBounds() const
