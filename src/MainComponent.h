@@ -36,6 +36,8 @@
 #include "recording/RoutineEngine.h"
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
+#include "ui/NativeLayerHost.h"
+#include "ui/OverlayWatch.h"
 #include "midi/MidiHandler.h"
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
@@ -411,6 +413,11 @@ private:
     BindingManager bindingManager_;
     std::unique_ptr<BindingOverlay> bindingOverlay_;
     std::unique_ptr<MidiLearnOverlay> midiLearnOverlay_;
+    // s-rta-0928b idlepaint (Pitfall NN): the two always-animating full-width panels draw in their own CoreGraphics
+    // layers; an in-peer overlay crossing one hands it back to JUCE painting. Declared AFTER signalBar_,
+    // waveformDisplay_ and the two overlays (destroyed BEFORE them); the watch before the hosts that use it.
+    std::unique_ptr<OverlayWatch> overlayWatch_;
+    std::unique_ptr<NativeLayerHost> waveformLayer_, signalBarLayer_;
     std::unique_ptr<MidiHandler> midiHandler_;
     void buildBindableTargets(std::vector<BindingOverlay::BindableTarget>& targets);
     void handleBindingAction(const Binding& binding, float value);

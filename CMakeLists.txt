@@ -315,6 +315,11 @@ target_sources(AudioDNA PRIVATE
     src/ui/SignalStrip.cpp
     src/ui/SignalBar.h
     src/ui/SignalBar.cpp
+    src/ui/OverlayWatch.h
+    src/ui/OverlayWatch.cpp
+    src/ui/NativeLayerCache.h
+    src/ui/NativeLayerHost.h
+    src/ui/UiPaintCounters.h
     src/ui/TopBar.h
     src/ui/TopBar.cpp
     src/ui/ClipCell.h
@@ -410,6 +415,7 @@ endif()
 if(APPLE)
     target_sources(AudioDNA PRIVATE
         src/output/SyphonOutput.mm
+        src/ui/NativeLayerHost.mm
     )
 endif()
 

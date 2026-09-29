@@ -2285,6 +2285,24 @@ MainComponent::MainComponent(bool testMode, int testPort)
     setWantsKeyboardFocus(true);
     // Register as key listener on top-level component to catch keys globally
     addKeyListener(this);
+
+    // s-rta-0928b idlepaint (Pitfall NN): the two always-animating panels draw in their own CoreGraphics layers (JUCE's
+    // mac peer repaints the UNION of every dirty rect, so their 30 Hz repaints at opposite window edges repainted the
+    // whole window). An in-peer overlay that crosses one (a parented PopupMenu, the tooltip, a ClipCell drag image,
+    // the binding overlays) hands it back to JUCE painting while it is up. After every addAndMakeVisible (the baseline).
+    overlayWatch_ = std::make_unique<OverlayWatch>(*this);
+    overlayWatch_->addOverlay(bindingOverlay_.get());
+    overlayWatch_->addOverlay(midiLearnOverlay_.get());
+    signalBar_->setOpaque(true);   // its paint() fills every pixel (SignalBar::paint): same pixels, an opaque layer
+    waveformLayer_  = NativeLayerHost::attach(waveformDisplay_, *overlayWatch_, uipaint::Waveform);
+    signalBarLayer_ = NativeLayerHost::attach(*signalBar_, *overlayWatch_, uipaint::SignalBar);
+#if AUDIODNA_TEST_SERVER
+    apiServer_->onDebugUiNativeFallback = [this](bool on) {
+        for (auto* host : { waveformLayer_.get(), signalBarLayer_.get() })
+            if (host != nullptr)
+                host->setForcedFallback(on);
+    };
+#endif
     setSize(1280, 800);
 }
 
