@@ -179,6 +179,7 @@ bool VideoPlayer::open(const juce::File& file)
     decodeNextFrame();
     convertFrameToRGBA();
     frameReady_ = true;
+    newFrame_ = true;
 
     open_.store(true, std::memory_order_relaxed);
     playing_.store(true, std::memory_order_relaxed);
@@ -343,6 +344,12 @@ GLuint VideoPlayer::uploadToTexture()
 
     if (frameBuffer_.empty() || frameBufferWidth_ <= 0 || frameBufferHeight_ <= 0)
         return 0;
+
+    // s-rta-0928b video (b1): upload only a newly converted frame -- a 30 fps clip on a 120 Hz render was uploaded
+    // every render frame (4x per content frame); the texture already holds the current one.
+    if (textureCreated_ && !newFrame_)
+        return texture_;
+    newFrame_ = false;
 
     const auto uploadStart = std::chrono::steady_clock::now();   // s-rta-0928b video counters
     if (!textureCreated_)
@@ -577,4 +584,5 @@ void VideoPlayer::convertFrameToRGBA()
         std::memcpy(top, bot, static_cast<size_t>(rowBytes));
         std::memcpy(bot, tempRow.data(), static_cast<size_t>(rowBytes));
     }
+    newFrame_ = true;
 }

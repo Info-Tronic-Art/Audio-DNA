@@ -135,6 +135,7 @@ private:
     int frameBufferWidth_ = 0;
     int frameBufferHeight_ = 0;
     bool frameReady_ = false;
+    bool newFrame_ = false;   // s-rta-0928b video (b1): a frame was converted since the last upload
 
     // GL texture
     GLuint texture_ = 0;
