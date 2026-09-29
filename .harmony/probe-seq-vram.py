@@ -15,12 +15,13 @@ rows (run order, H15 + fix round F6 / F8): v1_memory_1080 v2_smooth_loop_1080 v4
       v8_crossfade_two_long v9_three_decoding v7_deck_keeps_time v7b_trim_spike v7c_one_per_deck v11_retire
       v3_smooth_pingpong_4k v10_floors_win
 Fix round (plan-seqvram.md HARMONY ADOPTION ADDENDUM F1-F9): v8 gains (b') the longest render callback over the fade
-(the frame-top scan runs outside the frame timer) and (f) the incoming grows >= incomingMinTextures textures
-(seq_drawn_textures: the sequences drawn within kIdleFrames) within 3 s after the fade completes, then 0 late frames
-for 2 s; v7c_one_per_deck = one 300-frame sequence per deck, a deck switch when deck 0's window is full: the longest
-render callback over the 2 s after it (the idle trim within the per-frame delete budget); v11_retire is REPORT-ONLY
-(INFO lines: the retire drain of a full window at a composition swap). Every row prints seq_upload_deferred,
-seq_deletes and seq_drawn_textures in its state lines ("absent" on an app that predates them).
+(the frame-top scan runs outside the frame timer) and (f) 3 s after the fade completes the incoming holds >=
+incomingMinTextures textures (seq_drawn_textures: the sequences drawn within kIdleFrames -- read at the end of the 3 s,
+when the outgoing is idle), then 0 late frames for 2 s; v7c_one_per_deck = one 300-frame sequence per deck, a deck
+switch when deck 0's window is full: the longest render callback over the 2 s after it (the idle trim within the
+per-frame delete budget); v11_retire is REPORT-ONLY (INFO lines: the retire drain of a full window at a composition
+swap). Every row prints seq_upload_deferred, seq_deletes and seq_drawn_textures in its state lines ("absent" on an app
+that predates them).
 
 Fixtures (<out>/media, PIL compress_level 1): frame k of a set with code c: R = 255x/W, G = 255y/H, B = (37c) % 256,
 alpha 255, plus a CODE BAND at the bottom (64 px at 1080 rows, scaled with the height): 10 cells across, cell b white
@@ -567,22 +568,19 @@ def v8(tag):
     time.sleep(1.0)
     tc = time.time(); fm = cap(tag + "_mid"); tce = time.time()
     sm = state()
-    # F7: the fade's end, then until the incoming holds INCOMING_MIN textures (seq_drawn_textures) or 3 s pass
+    # F7: the fade's end; the incoming's textures read 3 s later (seq_drawn_textures = the sequences drawn within
+    # kIdleFrames, so the outgoing drops out of it only once it is idle -- read at the END of the window, never at the
+    # first sample >= INCOMING_MIN, which the not-yet-idle outgoing would satisfy); then 2 s of late frames.
     td = None
     while time.time() - tt < 8.0:
         if fade_done(0, 0):
             td = time.time(); break
         time.sleep(0.01)
-    tg = None; sg = None
+    sg = None
     if td is not None:
-        while time.time() - td < 3.0:
-            sg = state()
-            if sg is not None and (sg.get("seq_drawn_textures") or 0) >= INCOMING_MIN:
-                tg = time.time() - td; break
-            time.sleep(0.05)
-        else:
-            sg = state()
-    sa = state(); time.sleep(2.0); sb = state()
+        time.sleep(max(0.0, td + 3.0 - time.time()))
+        sg = state()
+    sa = sg if sg is not None else state(); time.sleep(2.0); sb = state()
     m = pol.stop()
     s1 = state()
     fa, pbs = cap_with_playheads(tag + "_after", [(0, 0, 1)])
@@ -598,11 +596,10 @@ def v8(tag):
           f"fade done at {tdr} s); callback>10 {[(round(r[0] - tt, 3), round(r[1]['peak_callback_ms'], 1)) for r in pol.rows if (r[1].get('peak_callback_ms') or 0) > 10]}; "
           f"evictions {pol.steps('seq_evictions', tt)[-3:]}; late steps {pol.steps('seq_late_frames', tt)}; "
           f"s0 {show(tag, s0)}; s1 {show(tag, s1)}; {la()}", flush=True)
-    print(f"      {tag}: after the fade: drawn textures {None if sg is None else sg.get('seq_drawn_textures', 'absent')} "
-          f"(reached {INCOMING_MIN} at {None if tg is None else round(tg, 3)} s; seq_textures - 2 = "
-          f"{None if sg is None else sg['seq_textures'] - 2}); drawn steps "
-          f"{[x for x in pol.steps('seq_drawn_textures', tt)][:12]}; deletes steps {pol.steps('seq_deletes', tt)[:10]}; "
-          f"sa {show(tag, sa)}; sb {show(tag, sb)}", flush=True)
+    print(f"      {tag}: 3 s after the fade: drawn textures {None if sg is None else sg.get('seq_drawn_textures', 'absent')} "
+          f"(seq_textures - 2 = {None if sg is None else sg['seq_textures'] - 2}); drawn steps "
+          f"{[x for x in pol.steps('seq_drawn_textures', tt)][:6]} ... {[x for x in pol.steps('seq_drawn_textures', tt)][-3:]}; "
+          f"deletes steps {pol.steps('seq_deletes', tt)[:12]}; sa {show(tag, sa)}; sb {show(tag, sb)}", flush=True)
     (ok if pend <= 6 and pend_after == 0 else no)(
         f"{tag}: (a) pending frames over the fade {pend} <= 6 and {pend_after} == 0 after the incoming chain shows")
     if pf is None:
@@ -627,9 +624,8 @@ def v8(tag):
         no(f"{tag}: (f) /api/state has no seq_drawn_textures (the app predates it; seq_textures - 2 = "
            f"{None if sg is None else sg.get('seq_textures', 0) - 2})")
     else:
-        (ok if tg is not None else no)(
-            f"{tag}: (f) the incoming holds {sg['seq_drawn_textures']} >= {INCOMING_MIN} textures within 3 s after the fade "
-            f"({None if tg is None else round(tg, 3)} s)")
+        (ok if sg["seq_drawn_textures"] >= INCOMING_MIN else no)(
+            f"{tag}: (f) 3 s after the fade the incoming holds {sg['seq_drawn_textures']} >= {INCOMING_MIN} textures")
         lg = d(sa, sb, "seq_late_frames")
         (ok if lg == 0 else no)(f"{tag}: (f) late frames over the next 2 s {lg} == 0")
 
