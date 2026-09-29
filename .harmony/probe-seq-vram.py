@@ -11,8 +11,16 @@ talks to the running app on 7070 (production mode). Every captured PNG is decode
 
 usage: probe-seq-vram.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-seq-vram.py <root> <fresh-outdir> [row,row,...]
-rows (run order, H15): v1_memory_1080 v2_smooth_loop_1080 v4_retrigger_hit v6_budget_share v8_crossfade_two_long
-      v9_three_decoding v7_deck_keeps_time v7b_trim_spike v3_smooth_pingpong_4k v10_floors_win
+rows (run order, H15 + fix round F6 / F8): v1_memory_1080 v2_smooth_loop_1080 v4_retrigger_hit v6_budget_share
+      v8_crossfade_two_long v9_three_decoding v7_deck_keeps_time v7b_trim_spike v7c_one_per_deck v11_retire
+      v3_smooth_pingpong_4k v10_floors_win
+Fix round (plan-seqvram.md HARMONY ADOPTION ADDENDUM F1-F9): v8 gains (b') the longest render callback over the fade
+(the frame-top scan runs outside the frame timer) and (f) the incoming grows >= incomingMinTextures textures
+(seq_drawn_textures: the sequences drawn within kIdleFrames) within 3 s after the fade completes, then 0 late frames
+for 2 s; v7c_one_per_deck = one 300-frame sequence per deck, a deck switch when deck 0's window is full: the longest
+render callback over the 2 s after it (the idle trim within the per-frame delete budget); v11_retire is REPORT-ONLY
+(INFO lines: the retire drain of a full window at a composition swap). Every row prints seq_upload_deferred,
+seq_deletes and seq_drawn_textures in its state lines ("absent" on an app that predates them).
 
 Fixtures (<out>/media, PIL compress_level 1): frame k of a set with code c: R = 255x/W, G = 255y/H, B = (37c) % 256,
 alpha 255, plus a CODE BAND at the bottom (64 px at 1080 rows, scaled with the height): 10 cells across, cell b white
@@ -45,6 +53,7 @@ PEAK = float(FIX["peakMaxMs"]); TOL = float(FIX["boxTol"])
 BUDGET = float(FIX["budgetMB"]); SLACK = float(FIX["slackMB"])
 F1080 = float(FIX["frameMB1080"]); F4K = float(FIX["frameMB4k"]); FLOOR = int(FIX["minWindowFrames"])
 SHOWN_TOL = int(FIX["shownTol"]); LATE_MAX = int(FIX["lateMaxAfterJump"])
+INCOMING_MIN = int(FIX["incomingMinTextures"])
 LID = FIX["layers"]
 MEDIA = os.path.join(OUT, "media")
 PASS = FAIL = 0
@@ -67,7 +76,8 @@ SETS = {"L300": (300, 1920, 1080, 0), "M300": (300, 1920, 1080, 400), "Q40": (40
 ROW_SETS = {"v1_memory_1080": ("L300",), "v2_smooth_loop_1080": ("L300",), "v4_retrigger_hit": ("L300",),
             "v6_budget_share": ("L300",), "v8_crossfade_two_long": ("L300", "M300"),
             "v9_three_decoding": ("L300", "M300"), "v7_deck_keeps_time": ("L300",),
-            "v7b_trim_spike": ("L300", "M300"), "v3_smooth_pingpong_4k": ("Q40",), "v10_floors_win": ("Q40",)}
+            "v7b_trim_spike": ("L300", "M300"), "v7c_one_per_deck": ("L300", "M300"), "v11_retire": ("L300",),
+            "v3_smooth_pingpong_4k": ("Q40",), "v10_floors_win": ("Q40",)}
 
 
 def mpath(name):
@@ -220,6 +230,16 @@ def wait_deck(dk, limit=10.0):
             return time.time() - t0
         time.sleep(0.005)
     return None
+
+
+def fade_done(dk, li, c=None):
+    """the layer's crossfade has completed (previousClipColumn -1 / crossfadeProgress 1)."""
+    c = c if c is not None else comp_state()
+    try:
+        l = c["decks"][dk]["layers"][li]
+        return l["previousClipColumn"] == -1 or float(l["crossfadeProgress"]) >= 1.0
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def playhead(dk, li, col, c=None):
@@ -403,7 +423,8 @@ def show(tag, s):
     return (f"textures {s['seq_textures']} / {s['seq_texture_mb']:.1f} MB / open {s['seq_open']} / over {s['seq_over_budget']} / "
             f"uploads {s['seq_uploads']} / evictions {s['seq_evictions']} / reuses {s['seq_slot_reuses']} / "
             f"stale {s['seq_stale_drops']} / late {s['seq_late_frames']} / pending {s['seq_pending_frames']} / "
-            f"shown {s['seq_frames_shown']}")
+            f"shown {s['seq_frames_shown']} / deferred {s.get('seq_upload_deferred', 'absent')} / "
+            f"deletes {s.get('seq_deletes', 'absent')} / drawn {s.get('seq_drawn_textures', 'absent')}")
 
 
 def wait_window_full(tag, base, min_textures=125, limit=10.0):
@@ -546,26 +567,53 @@ def v8(tag):
     time.sleep(1.0)
     tc = time.time(); fm = cap(tag + "_mid"); tce = time.time()
     sm = state()
-    time.sleep(3.0)
+    # F7: the fade's end, then until the incoming holds INCOMING_MIN textures (seq_drawn_textures) or 3 s pass
+    td = None
+    while time.time() - tt < 8.0:
+        if fade_done(0, 0):
+            td = time.time(); break
+        time.sleep(0.01)
+    tg = None; sg = None
+    if td is not None:
+        while time.time() - td < 3.0:
+            sg = state()
+            if sg is not None and (sg.get("seq_drawn_textures") or 0) >= INCOMING_MIN:
+                tg = time.time() - td; break
+            time.sleep(0.05)
+        else:
+            sg = state()
+    sa = state(); time.sleep(2.0); sb = state()
     m = pol.stop()
     s1 = state()
     fa, pbs = cap_with_playheads(tag + "_after", [(0, 0, 1)])
-    if not has_seq(tag, s0, sm, s1):
+    if not has_seq(tag, s0, sm, s1, sa, sb):
         return
     pend, pend_after = d(s0, s1, "seq_pending_frames"), d(sm, s1, "seq_pending_frames")
     late = d(s0, s1, "seq_late_frames")
     pf, pc = m.get("peak_frame_time_ms"), m.get("peak_callback_ms")
     amc = pol.argmax("peak_callback_ms")
+    tdr = None if td is None else round(td - tt, 3)
     print(f"      {tag}: fade: pending {pend} ({pend_after} after mid-fade), late {late}, max frame {pf}, max callback {pc} "
-          f"at {None if amc is None else round(amc[0] - tt, 3)} s after the trigger (mid capture {tc - tt:.3f}-{tce - tt:.3f} s); "
+          f"at {None if amc is None else round(amc[0] - tt, 3)} s after the trigger (mid capture {tc - tt:.3f}-{tce - tt:.3f} s, "
+          f"fade done at {tdr} s); callback>10 {[(round(r[0] - tt, 3), round(r[1]['peak_callback_ms'], 1)) for r in pol.rows if (r[1].get('peak_callback_ms') or 0) > 10]}; "
           f"evictions {pol.steps('seq_evictions', tt)[-3:]}; late steps {pol.steps('seq_late_frames', tt)}; "
           f"s0 {show(tag, s0)}; s1 {show(tag, s1)}; {la()}", flush=True)
+    print(f"      {tag}: after the fade: drawn textures {None if sg is None else sg.get('seq_drawn_textures', 'absent')} "
+          f"(reached {INCOMING_MIN} at {None if tg is None else round(tg, 3)} s; seq_textures - 2 = "
+          f"{None if sg is None else sg['seq_textures'] - 2}); drawn steps "
+          f"{[x for x in pol.steps('seq_drawn_textures', tt)][:12]}; deletes steps {pol.steps('seq_deletes', tt)[:10]}; "
+          f"sa {show(tag, sa)}; sb {show(tag, sb)}", flush=True)
     (ok if pend <= 6 and pend_after == 0 else no)(
         f"{tag}: (a) pending frames over the fade {pend} <= 6 and {pend_after} == 0 after the incoming chain shows")
     if pf is None:
         no(f"{tag}: (b) peak_frame_time_ms absent")
     else:
         (ok if pf <= PEAK else no)(f"{tag}: (b) longest frame over the fade {pf:.2f} ms <= {PEAK} (callback {pc})")
+    if pc is None:
+        no(f"{tag}: (b') peak_callback_ms absent")
+    else:
+        (ok if pc <= PEAK else no)(
+            f"{tag}: (b') longest render callback over the fade {pc:.2f} ms <= {PEAK} (the frame-top scan and trim)")
     (ok if s1["seq_texture_mb"] <= BUDGET + 16 else no)(
         f"{tag}: (c) after the fade {s1['seq_texture_mb']:.1f} MB <= {BUDGET + 16}")
     if fm is not None:
@@ -573,6 +621,17 @@ def v8(tag):
         (ok if luma > 20 else no)(f"{tag}: (d) mid-fade capture is not black (mean luma {luma:.1f} > 20)")
     check_code(tag, "(d) after the fade", fa, pbs[0], "M300", 0, n, 2)
     (ok if late <= LATE_MAX else no)(f"{tag}: (e) late frames over the fade {late} <= {LATE_MAX}")
+    if td is None:
+        no(f"{tag}: (f) the fade never completed within 8 s")
+    elif sg is None or "seq_drawn_textures" not in sg:
+        no(f"{tag}: (f) /api/state has no seq_drawn_textures (the app predates it; seq_textures - 2 = "
+           f"{None if sg is None else sg.get('seq_textures', 0) - 2})")
+    else:
+        (ok if tg is not None else no)(
+            f"{tag}: (f) the incoming holds {sg['seq_drawn_textures']} >= {INCOMING_MIN} textures within 3 s after the fade "
+            f"({None if tg is None else round(tg, 3)} s)")
+        lg = d(sa, sb, "seq_late_frames")
+        (ok if lg == 0 else no)(f"{tag}: (f) late frames over the next 2 s {lg} == 0")
 
 
 def v9(tag):
@@ -672,6 +731,70 @@ def v7b(tag):
         check_code(tag, f"(c) deck 1 layer {i}", f, pbs[i], sn, 0, n, 2, rect=third_rect(2 * i, *W1), check_pixels=False)
 
 
+def v7c(tag):
+    """fix round F6: one 300-frame 1080p sequence per deck; switch when deck 0's window is full. The idle trim of deck 0's
+    sequence (F1: 60 frames after the switch) deletes within the per-frame budget (F2)."""
+    l0, l1 = LID[tag]
+    d0 = deck(0, [layer(l0, [seq_clip(1, frames("L300"), 30.0)])])
+    d1 = deck(1, [layer(l1, [seq_clip(10, frames("M300"), 30.0)])])
+    if not load(tag, [d0, d1], W1):
+        return
+    base = state(); time.sleep(1.0); trig(0, 0); wait_active(0, 0, 0)
+    wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
+    time.sleep(0.5)
+    if not wait_no_compiler(tag):
+        return
+    s0 = state(); pol = Poller(); pol.start(); tt = time.time()
+    switch(1); wait_deck(1); trig(0, 0)
+    time.sleep(max(0.0, tt + 2.0 - time.time()))
+    m = pol.stop(); s2 = state()
+    time.sleep(max(0.0, tt + 5.0 - time.time()))
+    s5 = state()
+    if not has_seq(tag, s0, s2, s5):
+        return
+    pf, pc = m.get("peak_frame_time_ms"), m.get("peak_callback_ms")
+    amc = pol.argmax("peak_callback_ms")
+    ev = [(round(t - tt, 3), dd["seq_evictions"]) for t, dd in pol.rows if dd.get("seq_evictions") is not None]
+    jumps = [(ev[k][0], ev[k][1] - ev[k - 1][1]) for k in range(1, len(ev)) if ev[k][1] - ev[k - 1][1] >= 100]
+    print(f"      {tag}: switch: max frame {pf}, max callback {pc} at {None if amc is None else round(amc[0] - tt, 3)} s; "
+          f"eviction jumps >= 100 {jumps}; textures {[x for x in pol.steps('seq_textures', tt) if x[0] < 2.0][:10]} "
+          f"deletes {pol.steps('seq_deletes', tt)[:10]} callback>10 "
+          f"{[(round(r[0] - tt, 3), round(r[1]['peak_callback_ms'], 1)) for r in pol.rows if (r[1].get('peak_callback_ms') or 0) > 10]}; "
+          f"s0 {show(tag, s0)}; s2 {show(tag, s2)}; s5 {show(tag, s5)}; {la()}", flush=True)
+    if pc is None:
+        no(f"{tag}: (a) peak_callback_ms absent")
+    else:
+        (ok if pc <= PEAK else no)(f"{tag}: (a) longest render callback over the 2 s after the switch {pc:.2f} ms <= {PEAK}")
+    (ok if s5["seq_texture_mb"] <= BUDGET + 16 else no)(f"{tag}: (b) after 5 s {s5['seq_texture_mb']:.1f} MB <= {BUDGET + 16}")
+    (ok if jumps else no)(f"{tag}: (c) the idle trim of deck 0 ran inside the 2 s window (eviction jumps >= 100: {jumps})")
+
+
+def v11(tag):
+    """fix round F8, REPORT-ONLY: a full window, then an empty composition -- the retire drain (INFO lines, no verdict)."""
+    lid = LID[tag]
+    if not load(tag, [deck(0, [layer(lid, [seq_clip(1, frames("L300"), 30.0)])])], W1):
+        return
+    base = state(); time.sleep(1.0); trig(0, 0); wait_active(0, 0, 0)
+    wait_window_full(tag, 0 if base is None else base.get("seq_evictions", 0), 125, 10.0)
+    if not wait_no_compiler(tag):
+        return
+    s0 = state(); pol = Poller(); pol.start(); tt = time.time()
+    load(tag + "_empty", [deck(0, [layer(lid, [])], ncols=1)], W1)
+    time.sleep(2.0)
+    m = pol.stop(); s1 = state()
+    if not has_seq(tag, s0, s1):
+        return
+    amc = pol.argmax("peak_callback_ms")
+    dl = None if "seq_deletes" not in s1 else s1["seq_deletes"] - s0.get("seq_deletes", 0)
+    print(f"INFO  {tag}: over 2 s after loading an empty composition: max callback {m.get('peak_callback_ms')} at "
+          f"{None if amc is None else round(amc[0] - tt, 3)} s, max frame {m.get('peak_frame_time_ms')}, seq_deletes "
+          f"+{dl if dl is not None else 'absent'}, textures {s0['seq_textures']} -> {s1['seq_textures']} "
+          f"({s1['seq_texture_mb']:.1f} MB)", flush=True)
+    print(f"INFO  {tag}: textures steps {pol.steps('seq_textures', tt)[:20]}; deletes steps {pol.steps('seq_deletes', tt)[:20]}; "
+          f"callback>10 {[(round(r[0] - tt, 3), round(r[1]['peak_callback_ms'], 1)) for r in pol.rows if (r[1].get('peak_callback_ms') or 0) > 10]}; "
+          f"s1 {show(tag, s1)}; {la()}", flush=True)
+
+
 def v3(tag):
     lid = LID[tag]; n = 40
     if not load(tag, [deck(0, [layer(lid, [seq_clip(1, frames("Q40"), 10.0, loop_mode=1)])])], W4):
@@ -727,7 +850,8 @@ def main():
         make_fixtures(); return
     rows = [("v1_memory_1080", v1), ("v2_smooth_loop_1080", v2), ("v4_retrigger_hit", v4), ("v6_budget_share", v6),
             ("v8_crossfade_two_long", v8), ("v9_three_decoding", v9), ("v7_deck_keeps_time", v7),
-            ("v7b_trim_spike", v7b), ("v3_smooth_pingpong_4k", v3), ("v10_floors_win", v10)]
+            ("v7b_trim_spike", v7b), ("v7c_one_per_deck", v7c), ("v11_retire", v11), ("v3_smooth_pingpong_4k", v3),
+            ("v10_floors_win", v10)]
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name} ({time.strftime('%H:%M:%S')})", flush=True)

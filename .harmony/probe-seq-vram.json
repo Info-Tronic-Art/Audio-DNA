@@ -18,6 +18,9 @@
   "layers": {
     "v1_memory_1080": 81, "v2_smooth_loop_1080": 82, "v4_retrigger_hit": 83, "v6_budget_share": [84, 85],
     "v8_crossfade_two_long": 86, "v9_three_decoding": [87, 88, 89], "v7_deck_keeps_time": [90, 91],
-    "v7b_trim_spike": [92, 93, 94, 95, 96], "v3_smooth_pingpong_4k": 97, "v10_floors_win": [98, 99, 100, 101, 102]
-  }
+    "v7b_trim_spike": [92, 93, 94, 95, 96], "v3_smooth_pingpong_4k": 97, "v10_floors_win": [98, 99, 100, 101, 102],
+    "v7c_one_per_deck": [103, 104], "v11_retire": 105
+  },
+  "incomingMinTextures": 64,
+  "_incomingMinTextures": "fix round F7: within 3 s after a fade completes the incoming sequence holds at least this many textures"
 }
