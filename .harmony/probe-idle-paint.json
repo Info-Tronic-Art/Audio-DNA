@@ -22,6 +22,8 @@
   "identity": { "comment": "Harmony ruling K2 (fix round 2, replaces J3): v1 / v1b / v2 / v3 / v3p / v4 -- a differing pixel is tolerated iff <= maxDelta per channel, anywhere; more, outside the row's live-content masks = FAIL", "maxDelta": 1 },
   "v3p": { "runs": 2, "topbarLiveFromLeftPt": 322, "topbarLiveWidthPt": 196 },
   "v4": { "runs": 2 },
+  "v5": { "beat0": 100, "beat1": [106, 0.5], "beat2": [110, 0.5], "positionTol": 0.1, "settleS": 0.7, "minPadShiftPt": 15,
+          "minCuePx": 300 },
   "seq24": { "frames": 24, "w": 320, "h": 180, "fps": 30.0 },
   "many16": { "w": 3840, "h": 2160 }
 }

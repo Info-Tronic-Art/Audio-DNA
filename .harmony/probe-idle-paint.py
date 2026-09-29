@@ -8,7 +8,8 @@ gate row is a >= 5-launch arm and the identity rows alternate two bundles.
 usage: probe-idle-paint.py <root> <fresh-outdir> [row,row,...]   (env IDLEPAINT_APP, IDLEPAINT_APP_BEFORE)
 rows (run order; default = all but x1 / v1b): c0_preflight i1_idle_card i2_idle_many16 g2_strip_playhead g4_routine
       a1_attribution g5_driven x1_within_build_off v0_capture_teeth v1_identity_test_mode v1b_native_vs_inpeer
-      v2_identity_fallback v2b_fallback_frames v3_identity_production_masked
+      v2_identity_fallback v2b_fallback_frames v3_identity_production_masked v3p_production_idle_identity
+      v4_full_pass_identity v5_routine_identity
 a1 (INFO, s-rta-0929 g4cpu, plan-g4cpu 2.2 + adoption G3): a1.launches launches each of i1's card and g4's routine with
   GET /api/debug/ui_passes drained every poll: per arm the repaint sources / paints per second (UiPaintCounters), the
   display passes per second and their JUCE paint CPU time by rect class (the wheel / pad-row / strip-column / deck /
@@ -72,6 +73,14 @@ peer_layer_backed == 1 is asserted in c0):
      folder emoji (<= 66/255) and three TopBar slider thumbs (<= 29/255) differently from every later pass (fix round 1,
      J1), so this row documents that first-display-pass class (identical in main) instead of gating on it; v3p is the
      identity gate for ruling K3.
+  v5 (s-rta-0929 g4cpu-fix, plan-g4cpu 3.2 v5) test mode, BEFORE (main) vs AFTER, the routine fixture (g4's loop routine
+     on 3 layers) at two injected beat positions (inject_features totalBeatCount beat0, fire, then beat1 / beat2 + 0.5;
+     /api/routine/status position within positionTol of 6.5 / 10.5, else SKIP -- never PASS): P1 and P2 BEFORE vs AFTER
+     K2 identity outside the fps mask + the SignalBar; the routine cue (kRoutineCue, decoded by hue) >= minCuePx in the
+     strip column of all four frames; TEETH: AFTER P1 vs P2 has violation clusters, all inside the pad row / strip column
+     (+2 px; the preview -- preview_rect -- is masked, its P1 / P2 change printed as INFO), >= 1 in the strip column, and
+     the pad cluster >= minPadShiftPt wide. Always writes shots/v5-P1 / v5-P2 / v5-teeth-regions.png (pad row, strip
+     column, preview: A | B | diff). An app without preview_rect (before g4cpu-fix) FAILs the teeth line ("absent").
 Exit 0 iff no FAIL (SKIP / TAINTED are not PASS: they exit 2).
 """
 import json, os, re, statistics as st, subprocess, sys, time
@@ -85,7 +94,7 @@ ROOT, OUT = sys.argv[1], sys.argv[2]
 ALL_ROWS = ["c0_preflight", "i1_idle_card", "i2_idle_many16", "g2_strip_playhead", "g4_routine", "a1_attribution", "g5_driven",
             "x1_within_build_off", "v0_capture_teeth", "v1_identity_test_mode", "v1n_noise_floor", "v1b_native_vs_inpeer",
             "v2_identity_fallback", "v2b_fallback_frames", "v3_identity_production_masked",
-            "v3p_production_idle_identity", "v4_full_pass_identity"]
+            "v3p_production_idle_identity", "v4_full_pass_identity", "v5_routine_identity"]
 DEFAULT_ROWS = [r for r in ALL_ROWS if r not in ("x1_within_build_off", "v1b_native_vs_inpeer")]
 ROWS = [r for r in (sys.argv[3].split(",") if len(sys.argv) > 3 and sys.argv[3] else DEFAULT_ROWS) if r]
 for r in ROWS:
@@ -1349,6 +1358,140 @@ def row_v4():
         f"pass outside the fps mask, {runs} launches: " + " | ".join(f"r{i + 1} {k2(r)}" for i, r in enumerate(res)))
 
 
+# ---------------------------------------------------------------- v5 (s-rta-0929 g4cpu-fix, plan-g4cpu 3.2 v5)
+def cue_px(img, geo, r):
+    """Routine-cue (kRoutineCue #b4ff2e, chartreuse) pixels inside MainComponent rect r -- decoded by hue, as
+    probe-routine-display's d9 does (hue 68..100 deg, saturation > 0.5, value > 0.6: no other UI colour sits there)."""
+    x, y, w, h = geo.px(r)
+    a = img[max(0, y):y + h, max(0, x):x + w].astype(float)
+    if a.size == 0:
+        return 0
+    mx, mn = a.max(axis=2), a.min(axis=2)
+    d = np.maximum(mx - mn, 1.0)
+    rr, gg, bb = a[..., 0], a[..., 1], a[..., 2]
+    hue = np.where(mx == gg, 60.0 * ((bb - rr) / d) + 120.0,
+                   np.where(mx == rr, (60.0 * ((gg - bb) / d)) % 360.0, 60.0 * ((rr - gg) / d) + 240.0))
+    return int(((mx == gg) & (hue >= 68.0) & (hue <= 100.0) & ((mx - mn) / np.maximum(mx, 1.0) > 0.5)
+                & (mx > 153)).sum())
+
+
+def regions_png(name, a, b, geo, rects):
+    """Evidence image (always written, also when nothing differs): one row per region -- [A crop | B crop | diff], the
+    diff = B dimmed, differing <= identity.maxDelta yellow, > maxDelta magenta. -> the PNG's path."""
+    rows = []
+    for _, r in rects:
+        x, y, w, h = geo.px(r)
+        x, y = max(0, x), max(0, y)
+        ca, cb = a[y:y + h, x:x + w], b[y:y + h, x:x + w]
+        d = np.abs(ca.astype(np.int16) - cb.astype(np.int16)).max(axis=2)
+        vis = (cb // 3).astype(np.uint8)
+        vis[(d > 0) & (d <= CFG["identity"]["maxDelta"])] = (255, 255, 0)
+        vis[d > CFG["identity"]["maxDelta"]] = (255, 0, 255)
+        sep = np.full((ca.shape[0], 8, 3), 255, np.uint8)
+        rows.append(np.concatenate([ca, sep, cb, sep, vis], axis=1))
+    wmax = max(r.shape[1] for r in rows)
+    rows = [np.pad(r, ((0, 12), (0, wmax - r.shape[1]), (0, 0)), constant_values=255) for r in rows]
+    p = os.path.join(OUT, "shots", f"{name}-regions.png")
+    Image.fromarray(np.concatenate(rows, axis=0)).save(p)
+    return p
+
+
+def v5_shoot(app, tag):
+    """test mode, the routine fixture at two injected beat positions -> (P1, P2, geo, u, positions) or None."""
+    c = CFG["v5"]
+    pid, _ = launch(app, tag, test=True)
+    if pid is None:
+        quit_app(); return None
+    fx = routine_fixture()
+    r = post("/api/load_composition", {"path": write_fixture(fx, "routine-v5")})
+    time.sleep(1.5)
+    for li in range(3):
+        post("/api/trigger_clip", {"layer": li, "column": 0})
+        time.sleep(0.2)
+    post("/api/inject_features", {"bpm": 120.0, "totalBeatCount": c["beat0"], "beatPhase": 0.0})
+    time.sleep(0.3)
+    post("/api/routine/fire", {"slot": 0})
+    for _ in range(40):
+        b = ((get("/api/routine/status") or {}).get("bank") or [{}])[0]
+        if b.get("state") == "running":
+            break
+        time.sleep(0.1)
+    shots, pos = [], []
+    for k, (beat, phase) in enumerate((c["beat1"], c["beat2"])):
+        post("/api/inject_features", {"bpm": 120.0, "totalBeatCount": beat, "beatPhase": phase})
+        time.sleep(c["settleS"])
+        b = ((get("/api/routine/status") or {}).get("bank") or [{}])[0]
+        pos.append(b.get("position"))
+        shots.append(capture(f"{tag.replace('/', '-')}-P{k + 1}"))
+    geo, u = geo_for(*shots[0])
+    quit_app()
+    print(f"    {tag}: load {(r or {}).get('ok')} routine state {b.get('state')} positions {pos}", flush=True)
+    return shots[0], shots[1], geo, u, pos
+
+
+def row_v5():
+    """s-rta-0929 g4cpu v5 (plan-g4cpu 3.2): test mode, the routine playing on 3 layers, captured at two injected beat
+    positions in BEFORE (main) and AFTER: K2 identity outside the fps mask + the SignalBar (Mod 1 is live, v1 S2's rule);
+    the routine cue is on screen in all four frames (a routine really plays); TEETH: AFTER P1 vs P2 moved, only inside
+    the pad row / strip column (the preview, where the layers' opacity renders, is masked and printed as INFO), and the
+    pad's sweep moved >= minPadShiftPt. Region evidence PNGs (pad row / strip column / preview) are always written."""
+    if not APPB or not os.path.isdir(APPB):
+        skip("v5_routine_identity: no BEFORE app"); return
+    if compilers() > 0:
+        skip("v5_routine_identity: TAINTED"); return
+    c = CFG["v5"]
+    b = v5_shoot(APPB, "v5/before")
+    a = v5_shoot(APP, "v5/after")
+    if a is None or b is None:
+        no("v5_routine_identity: launch"); return
+    want = [c["beat1"][0] + c["beat1"][1] - c["beat0"], c["beat2"][0] + c["beat2"][1] - c["beat0"]]
+    for tag, res in (("BEFORE", b), ("AFTER", a)):
+        for k, p in enumerate(res[4]):
+            if p is None or abs(float(p) - want[k]) > c["positionTol"]:
+                skip(f"v5_routine_identity: clock did not advance ({tag} P{k + 1} position {p}, want {want[k]})")
+                return
+    geo, u = a[2], a[3]
+    if geo is None or any(x[0] is None for x in (a[0], a[1], b[0], b[1])):
+        skip("v5_routine_identity: no capture / geometry"); return
+    masks = (fps_mask(u), u["signalbar_rect"])
+    for k in (0, 1):
+        r3 = identity(b[k][0], a[k][0], geo, f"v5-P{k + 1}", masks=masks)
+        (ok if r3[2] == 0 else no)(f"v5_routine_identity P{k + 1} (routine position {want[k]} beats): BEFORE vs AFTER "
+                                   f"outside the fps mask and the SignalBar -- {k2(r3)}")
+    if any(k not in u for k in ("pad_row_rect", "strip_col_rect", "preview_rect")):
+        no("v5_routine_identity teeth: pad_row_rect / strip_col_rect / preview_rect absent from GET /api/debug/ui_paint "
+           "(the app predates s-rta-0929 g4cpu-fix)"); return
+    rects = (("pad row", u["pad_row_rect"]), ("strip column", u["strip_col_rect"]), ("preview", u["preview_rect"]))
+    for k in (0, 1):
+        print(f"    v5 evidence P{k + 1} BEFORE | AFTER | diff: {regions_png(f'v5-P{k + 1}', b[k][0], a[k][0], geo, rects)}",
+              flush=True)
+    print(f"    v5 evidence AFTER P1 | P2 | diff: {regions_png('v5-teeth', a[0][0], a[1][0], geo, rects)}", flush=True)
+    cues = [cue_px(img, geo, u["strip_col_rect"]) for img in (b[0][0], b[1][0], a[0][0], a[1][0])]
+    (ok if min(cues) >= c["minCuePx"] else no)(
+        f"v5_routine_identity cue: routine-cue pixels in the strip column (V fill + band name), BEFORE P1 / P2, AFTER "
+        f"P1 / P2: {' / '.join(str(n) for n in cues)} (each >= {c['minCuePx']}: a routine plays in every frame)")
+    # TEETH: the routine moved between P1 and P2 -- only in the pad row and the strip column (V fill, hairline) outside
+    # the masked preview -- and the comparator sees it.
+    r3 = identity(a[0][0], a[1][0], geo, "v5-teeth", masks=masks + (u["preview_rect"],))
+    grow = lambda r: (r[0] - 2, r[1] - 2, r[2] + 4, r[3] + 4)
+    pr, sc = grow(geo.px(u["pad_row_rect"])), grow(geo.px(u["strip_col_rect"]))
+    inside = lambda cl, r: in_rect(r, cl[0], cl[1]) and in_rect(r, cl[2], cl[3])
+    cl = r3[3]
+    stray = [x for x in cl if not (inside(x, pr) or inside(x, sc))]
+    pad_cl = [x for x in cl if inside(x, pr)]
+    pad_w = (max(x[2] for x in pad_cl) - min(x[0] for x in pad_cl) + 1) / geo.scale if pad_cl else 0.0
+    col = [x for x in cl if inside(x, sc)]
+    (ok if cl and not stray and pad_w >= c["minPadShiftPt"] and col else no)(
+        f"v5_routine_identity teeth: AFTER P1 vs P2 -- {len(cl)} violation cluster(s): {len(pad_cl)} in the pad row "
+        f"(bbox {pad_w:.0f} pt wide, >= {c['minPadShiftPt']}), {len(col)} in the strip column (>= 1), "
+        f"{len(stray)} elsewhere (== 0; the preview is masked: INFO below)")
+    pv = u["preview_rect"]
+    outside_pv = [(0, 0, u["main_w"], pv[1]), (0, pv[1] + pv[3], u["main_w"], u["main_h"] + 100),
+                  (0, pv[1], pv[0], pv[3]), (pv[0] + pv[2], pv[1], u["main_w"], pv[3])]
+    info(f"v5_routine_identity teeth: the preview (the three layers' opacity) AFTER P1 vs P2 -- "
+         f"{k2(identity(a[0][0], a[1][0], geo, 'v5-teeth-preview', masks=outside_pv))}")
+
+
 # ---------------------------------------------------------------- main
 print(f"rows: {','.join(ROWS)} | app {APP} | before {APPB or '-'} | {load_avg()}", flush=True)
 for row in ROWS:
@@ -1403,6 +1546,8 @@ for row in ROWS:
         row_v3p()
     elif row == "v4_full_pass_identity":
         row_v4()
+    elif row == "v5_routine_identity":
+        row_v5()
 quit_app()
 json.dump({"pass": PASS, "fail": FAIL, "skip": SKIP, "summary": SUMMARY}, open(os.path.join(OUT, "summary.json"), "w"),
           indent=1)

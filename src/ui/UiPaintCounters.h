@@ -66,6 +66,7 @@ struct Counters {
     std::atomic<int> signalBarStrips { 0 };                    // the SignalBar's strip count (the mask's width)
     std::atomic<uint32_t> pendingSources { 0 };
     std::atomic<int> deckRect[4] {}, padRowRect[4] {}, stripColRect[4] {}, wheelRect[4] {}, inspectorRect[4] {};
+    std::atomic<int> previewRect[4] {};                        // g4cpu-fix: the PreviewPanel (v5 masks its opacity render)
     int64_t passStartUs = -1, passStartCpuUs = -1;             // message thread only
 #endif
 };

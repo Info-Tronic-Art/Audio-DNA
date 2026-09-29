@@ -1808,6 +1808,7 @@ void ApiServer::handleDebugUiPaint(const httplib::Request&, httplib::Response& r
     obj->setProperty("strip_col_rect", rect(c.stripColRect));
     obj->setProperty("wheel_rect", rect(c.wheelRect));
     obj->setProperty("inspector_rect", rect(c.inspectorRect));
+    obj->setProperty("preview_rect", rect(c.previewRect));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 

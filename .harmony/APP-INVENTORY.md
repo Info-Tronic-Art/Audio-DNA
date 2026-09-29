@@ -215,7 +215,7 @@ forces the native-layer panels to in-peer painting; `POST /api/debug/ui_repaint_
 `ui_paint` also carries the s-rta-0929 g4cpu counters (routine pad repaints / paints / sweep ticks / sweep paints,
 LayerStrip fader repaints + V-fader paints + band paints, TopBar wheel repaints, deck corner, LayerInspector, param-control
 and SignalStrip changes, SignalBar ticks, the native layers' draw CPU / wall time) and the deck / pad-row / strip-column /
-wheel / inspector rects; `GET /api/debug/ui_passes` returns the newest <= 500 display passes (clip rect in MainComponent
+wheel / inspector rects (+ the preview rect, probe-idle-paint v5's mask -- g4cpu-fix); `GET /api/debug/ui_passes` returns the newest <= 500 display passes (clip rect in MainComponent
 coordinates, JUCE paint CPU + wall us, the repaint sources since the previous pass) and SignalBar tick change masks --
 probe-idle-paint a1's attribution;
 `POST /api/debug/heartbeat {"on","period_ms"}` (s-rta-0928b mediaopen) + `/api/state.peak_message_stall_ms`. TEST_SERVER

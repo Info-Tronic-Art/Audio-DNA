@@ -2766,6 +2766,7 @@ void MainComponent::recordUiGeometry()
                                              : juce::Rectangle<int>());
     put(c.wheelRect, topBar_ != nullptr ? getLocalArea(topBar_.get(), topBar_->getWheelRepaintBounds()) : juce::Rectangle<int>());
     put(c.inspectorRect, inspectorPanel_ != nullptr ? inspectorPanel_->getBounds() : juce::Rectangle<int>());
+    put(c.previewRect, previewPanel_.getBounds());   // s-rta-0929 g4cpu-fix (TEST-ONLY): probe-idle-paint v5's mask
 #endif
 }
 
