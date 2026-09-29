@@ -2825,3 +2825,53 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_layer_strip_transport_view)
 catch_discover_tests(test_layer_strip_transport_view)
+
+# --- test_native_layer_cache (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 1 + adoption I1): the CachedComponentImage
+# that hands a widget's repaints to its own CALayer (src/ui/NativeLayerCache.h, header-only): Native swallows every
+# repaint (incl. a child's), Fallback is transparent, Native -> Fallback is synchronous, Fallback -> Native shows the
+# layer only after it drew; the plan body's late hide as teeth. Headless juce::Component, like test_png_fast.
+add_executable(test_native_layer_cache test_native_layer_cache.cpp)
+target_include_directories(test_native_layer_cache PRIVATE ${SRC_DIR})
+target_link_libraries(test_native_layer_cache PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_native_layer_cache PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_native_layer_cache PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_native_layer_cache)
+catch_discover_tests(test_native_layer_cache)
+
+# --- test_overlay_watch (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 2): OverlayWatch (src/ui/OverlayWatch.*) lists
+# the in-peer overlays that can sit above a native-layer widget -- a TooltipWindow, a post-baseline root child (a drag
+# image), an explicit overlay, a child of the top-level window (a parented PopupMenu) -- and tells clients once per
+# change. Headless juce::Component.
+add_executable(test_overlay_watch test_overlay_watch.cpp ${SRC_DIR}/ui/OverlayWatch.cpp)
+target_include_directories(test_overlay_watch PRIVATE ${SRC_DIR})
+target_link_libraries(test_overlay_watch PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_overlay_watch PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_overlay_watch PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_overlay_watch)
+catch_discover_tests(test_overlay_watch)
