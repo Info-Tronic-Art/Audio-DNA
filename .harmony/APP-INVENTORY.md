@@ -214,7 +214,13 @@ overlay parented to the top-level window at MainComponent point (x, y) (a 3-item
 forces the native-layer panels to in-peer painting; `POST /api/debug/ui_repaint_all` repaints the whole MainComponent;
 `POST /api/debug/heartbeat {"on","period_ms"}` (s-rta-0928b mediaopen) + `/api/state.peak_message_stall_ms`. TEST_SERVER
 env, read once at start: `ADNA_UI_NATIVE_LAYERS=0` (no native layers), `ADNA_UI_NATIVE_LAYERS_TEETH=shift|asynchide`
-(probe-idle-paint's teeth), `ADNA_UI_OVERLAY_WITNESS=1` (a vblank witness).
+(probe-idle-paint's teeth), `ADNA_UI_OVERLAY_WITNESS=1` (a vblank witness). s-rta-0929 vupload (reconcile the counts on the
+next full pass): Eyes 8080 +1 route `POST /api/debug/gl_context_cycle {"detached_ms"}` (detach + re-attach the preview's
+GL context, no window) and 8080 `/api/state` `gl_context_gen` / `gl_thread_qos` / `phys_footprint_mb`; both servers'
+`/api/state` +7 `video_*` fields (uploads_deferred, hold_no_texture, slots_purged, fence_failed, surface_fallbacks,
+upload_cap, max_uploads_per_frame); TEST_SERVER env `ADNA_VIDEO_FORCE_FALLBACK=malloc|client`; ctest +2 Catch2 targets
+(`test_video_upload_budget`, `test_video_player_gl` -- Apple only) and +8 cases in `test_video_ring`; probes
+`probe-vupload.{sh,py,json}` + `probe-vupload-ab.{sh,py}` (NEW) and probe-video rows w1c / w1d / w2c / w10.
 
 ### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 
