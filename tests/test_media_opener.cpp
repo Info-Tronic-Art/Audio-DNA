@@ -4,7 +4,8 @@
 // every case is deterministic: (a) a batch lands its players and completes once; (b) a failed open lands a null player,
 // counted; (c1) a cancel while BOTH jobs are running (a start latch) lands both Stale; (c2) a cancel while both jobs are
 // still QUEUED (the workers held) deletes them -- counted as dropped, no landing ever arrives; (d) an empty batch
-// completes inside begin(); (AL8 a) a thumbnail made on a pool thread equals one made on this thread, pixel for pixel.
+// completes inside begin(); (AL8 a) a thumbnail made on a pool thread equals one made on this thread, pixel for pixel;
+// (AL2) destroying an opener whose open hangs forever (a FIFO) returns in ~5 s without killing the thread (forked child).
 // Fixture: tests/fixtures/video_h264_64x64.mp4 (3,464 B testsrc2 64x64 H.264).
 #include <catch2/catch_test_macros.hpp>
 
@@ -13,9 +14,14 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <csignal>
 #include <deque>
 #include <mutex>
 #include <thread>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace
 {
@@ -228,4 +234,56 @@ TEST_CASE("(AL8 a) a thumbnail made on a pool thread equals one made on this thr
             if (a.getPixelAt(x, y).getARGB() != b.getPixelAt(x, y).getARGB())
                 ++diff;
     CHECK(diff == 0);
+}
+
+TEST_CASE("(AL2) an opener whose open hangs forever is destroyed within ~5 s, its thread left alone (no kill, no crash)",
+          "[asyncload][opener]")
+{
+    // A FIFO with no writer: open(2) inside avformat_open_input blocks forever (the hung-open class). Everything runs in a
+    // forked CHILD: the hung thread dies with the child, and a crash is a failed assertion here, never a crashed runner.
+    char dir[] = "/tmp/asyncload_fifo_XXXXXX";
+    REQUIRE(mkdtemp(dir) != nullptr);
+    const std::string fifo = std::string(dir) + "/hung.mp4";
+    REQUIRE(mkfifo(fifo.c_str(), 0600) == 0);
+    const auto t0 = std::chrono::steady_clock::now();
+    const pid_t pid = fork();
+    REQUIRE(pid >= 0);
+    if (pid == 0)
+    {
+        {
+            Mailbox mb;
+            Gate started;
+            MediaOpener o(nullptr);
+            o.setPosterForTests([&mb](std::function<void()> fn) { mb.post(std::move(fn)); });
+            o.setJobGateForTests([&started] {   // records that the job reached open(); never holds it
+                std::lock_guard<std::mutex> lk(started.m);
+                ++started.arrived;
+                started.cv.notify_all();
+            });
+            Landings L;
+            begin(o, { { 1, juce::File(juce::String(fifo)) } }, L);
+            if (!started.waitArrived(1, 10000))
+                _exit(3);
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));   // now inside open(2)
+        }   // ~MediaOpener: waits <= 5 s, then leaks the pool
+        _exit(0);
+    }
+    int status = 0;
+    pid_t r = 0;
+    while ((r = waitpid(pid, &status, WNOHANG)) == 0
+           && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(20))
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    const double s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    if (r == 0)
+    {
+        kill(pid, SIGKILL);
+        waitpid(pid, &status, 0);
+    }
+    unlink(fifo.c_str());
+    rmdir(dir);
+    CAPTURE(s, r, status);
+    REQUIRE(r == pid);                  // the child returned (no hang past 20 s)
+    REQUIRE(WIFEXITED(status));         // not killed by a signal (no crash)
+    CHECK(WEXITSTATUS(status) == 0);
+    CHECK(s < 12.0);                    // ~5 s: removeAllJobs(true, 5000) then the leak
 }
