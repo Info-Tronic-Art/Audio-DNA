@@ -233,7 +233,7 @@ the named area; this index is triage-only.
 54. A sequence's textures are a bounded recycled window (SeqVram; the shown frame is never evicted) -- before touching ImageSequence textures or a media class's per-frame GL objects.
 55. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
 56. Video decodes off the GL thread: the render thread picks the newest ring frame <= its clock and never waits; a hold is not pending -- before touching VideoPlayer or syncMedia's video branch.
-NN. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
+57. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
 
 ---
 
