@@ -172,6 +172,16 @@ public:
     // then the same DeckView callback). Marshalled to the message thread; answers at once.
     std::function<void(int layer, int column, const std::vector<juce::File>& files)> onDebugDropFiles;
 
+    // s-rta-0928b idlepaint (TEST-ONLY routes, AUDIODNA_BUILD_TEST_SERVER): POST /api/debug/ui_test_menu {on, x, y, kind}
+    // shows (on) / removes an in-peer overlay parented to the top-level window at MainComponent point (x, y): kind "menu"
+    // (default) = a 3-item PopupMenu (JUCE dismisses it within ~50 ms while the app is in the background), "panel" = a
+    // plain 300 x 140 test component (it stays until {on:false}); POST /api/debug/ui_native_fallback {on} forces the
+    // native-layer panels to in-peer painting (on) or back; POST /api/debug/ui_repaint_all repaints the whole
+    // MainComponent. Marshalled to the message thread; answer at once.
+    std::function<void(bool on, int x, int y, const juce::String& kind)> onDebugUiTestMenu;
+    std::function<void(bool on)> onDebugUiNativeFallback;
+    std::function<void()> onDebugUiRepaintAll;
+
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
 
@@ -223,6 +233,11 @@ private:
     void handleDebugHeartbeat(const httplib::Request& req, httplib::Response& res);
     void handleDebugDropFiles(const httplib::Request& req, httplib::Response& res);
     MessageHeartbeat heartbeat_;   // /api/state message_heartbeat_on / peak_message_stall_ms
+    // s-rta-0928b idlepaint (TEST-ONLY): the UI paint counters (src/ui/UiPaintCounters.h) and the three UI hooks above.
+    void handleDebugUiPaint(const httplib::Request& req, httplib::Response& res);
+    void handleDebugUiTestMenu(const httplib::Request& req, httplib::Response& res);
+    void handleDebugUiNativeFallback(const httplib::Request& req, httplib::Response& res);
+    void handleDebugUiRepaintAll(const httplib::Request& req, httplib::Response& res);
 #endif
 
     // s-rta-0926 routines slice 1 -- /api/routine/*

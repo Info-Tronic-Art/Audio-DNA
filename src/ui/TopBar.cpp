@@ -3,6 +3,7 @@
 #include "output/OutputMenuModel.h"
 #include "connect/ConnClock.h"
 #include "sync/LinkSync.h"
+#include "ui/UiPaintCounters.h"
 #include <cmath>
 
 TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
@@ -441,6 +442,7 @@ void TopBar::handleMultiplierButton(int multiplier)
 
 void TopBar::paint(juce::Graphics& g)
 {
+    uipaint::counters().topBarPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0928b idlepaint witness
     auto bounds = getLocalBounds().toFloat();
 
     // Background

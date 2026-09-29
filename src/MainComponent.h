@@ -36,6 +36,8 @@
 #include "recording/RoutineEngine.h"
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
+#include "ui/NativeLayerHost.h"
+#include "ui/OverlayWatch.h"
 #include "midi/MidiHandler.h"
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
@@ -411,6 +413,11 @@ private:
     BindingManager bindingManager_;
     std::unique_ptr<BindingOverlay> bindingOverlay_;
     std::unique_ptr<MidiLearnOverlay> midiLearnOverlay_;
+    // s-rta-0928b idlepaint (Pitfall NN): the two always-animating full-width panels draw in their own CoreGraphics
+    // layers; an in-peer overlay crossing one hands it back to JUCE painting. Declared AFTER signalBar_,
+    // waveformDisplay_ and the two overlays (destroyed BEFORE them); the watch before the hosts that use it.
+    std::unique_ptr<OverlayWatch> overlayWatch_;
+    std::unique_ptr<NativeLayerHost> waveformLayer_, signalBarLayer_;
     std::unique_ptr<MidiHandler> midiHandler_;
     void buildBindableTargets(std::vector<BindingOverlay::BindableTarget>& targets);
     void handleBindingAction(const Binding& binding, float value);
@@ -475,6 +482,9 @@ private:
     // the active deck: ClipCell::classifyDrop + ClipCell::dispatchDrop onto the SAME DeckView callbacks a cell's
     // filesDropped reaches (DeckView.cpp:200-211). Message thread.
     void debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files);
+    // s-rta-0928b idlepaint (TEST_SERVER builds; a no-op otherwise): MainComponent's size and the SignalBar /
+    // WaveformDisplay / TopBar bounds into uipaint::counters() for GET /api/debug/ui_paint. Called by resized().
+    void recordUiGeometry();
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     // s-rta-0928b mediaopen: a drop is PREPARED outside the GL fence -- the clip id minted, the media opened under it,
     // dims / alpha / thumbnail read (a video's open + thumbnail used to run INSIDE UndoService::withDeckDetached: the
@@ -589,6 +599,7 @@ private:
     int testPort_ = 8080;
 #if AUDIODNA_TEST_SERVER
     std::unique_ptr<TestServer> testServer_;
+    std::unique_ptr<juce::Component> debugOverlayPanel_;   // s-rta-0928b idlepaint: POST /api/debug/ui_test_menu "panel"
 #endif
 #if AUDIODNA_BUILD_INSPECTOR
     std::unique_ptr<melatonin::Inspector> melatoninInspector_;

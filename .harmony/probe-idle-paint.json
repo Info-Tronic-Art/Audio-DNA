@@ -1,0 +1,26 @@
+{
+  "comment": "probe-idle-paint thresholds (s-rta-0928b idlepaint, plan-idlepaint.md 3.2 + HARMONY ADOPTION I1-I8). Never re-threshold: a FAIL is a finding.",
+  "launches": 5,
+  "settleS": 6.0,
+  "idleS": 30.0,
+  "pollMs": 500,
+  "heartbeatPeriodMs": 4,
+  "winMaxMedMs": 8.0,
+  "cpuMainMsPerS": 150.0,
+  "g1": { "layerDrawsPerS": [24.0, 36.0], "topBarPaintsPerS": [12.0, 26.0] },
+  "g2": { "playingS": 5.0, "minTransportRepaints": 40, "idleMaxTransportRepaints": 2, "minPaintAdvanceRatio": 0.95 },
+  "g4": { "bpm": 120.0 },
+  "x1": { "launches": 3 },
+  "v": {
+    "settleS": 5.0, "settleManyS": 8.0,
+    "fpsMaskRightPt": 200,
+    "menuX": 600, "menuY": 60, "panelW": 300, "panelH": 140,
+    "modePollS": 1.0
+  },
+  "v2b": { "cycles": 5, "restoreFramesMax": 2 },
+  "identity": { "comment": "Harmony ruling K2 (fix round 2, replaces J3): v1 / v1b / v2 / v3 / v3p / v4 -- a differing pixel is tolerated iff <= maxDelta per channel, anywhere; more, outside the row's live-content masks = FAIL", "maxDelta": 1 },
+  "v3p": { "runs": 2, "topbarLiveFromLeftPt": 322, "topbarLiveWidthPt": 196 },
+  "v4": { "runs": 2 },
+  "seq24": { "frames": 24, "w": 320, "h": 180, "fps": 30.0 },
+  "many16": { "w": 3840, "h": 2160 }
+}

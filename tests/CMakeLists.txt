@@ -2780,3 +2780,146 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_video_player_open)
 catch_discover_tests(test_video_player_open)
+
+# --- test_layer_strip_transport_view (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 3 + adoptions I2 / I3): the layer
+# strip's transport rect repaints only when what it paints changes (LayerStrip::transportViewOf), the playhead read at the
+# tick is the one painted, the routine band hairline repaints only when its painted width changes, and the tick still
+# pulls the faders from the model (Pitfall 41). The test_layer_strip_follows_model harness and link closure.
+add_executable(test_layer_strip_transport_view
+    test_layer_strip_transport_view.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_strip_transport_view PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_strip_transport_view PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_layer_strip_transport_view PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_strip_transport_view PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_strip_transport_view)
+catch_discover_tests(test_layer_strip_transport_view)
+
+# --- test_native_layer_cache (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 1 + adoption I1): the CachedComponentImage
+# that hands a widget's repaints to its own CALayer (src/ui/NativeLayerCache.h, header-only): Native swallows every
+# repaint (incl. a child's), Fallback is transparent, Native -> Fallback is synchronous, Fallback -> Native shows the
+# layer only after it drew; the plan body's late hide as teeth. Headless juce::Component, like test_png_fast.
+add_executable(test_native_layer_cache test_native_layer_cache.cpp)
+target_include_directories(test_native_layer_cache PRIVATE ${SRC_DIR})
+target_link_libraries(test_native_layer_cache PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_native_layer_cache PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_native_layer_cache PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_native_layer_cache)
+catch_discover_tests(test_native_layer_cache)
+
+# --- test_overlay_watch (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 2): OverlayWatch (src/ui/OverlayWatch.*) lists
+# the in-peer overlays that can sit above a native-layer widget -- a TooltipWindow, a post-baseline root child (a drag
+# image), an explicit overlay, a child of the top-level window (a parented PopupMenu) -- and tells clients once per
+# change. Headless juce::Component.
+add_executable(test_overlay_watch test_overlay_watch.cpp ${SRC_DIR}/ui/OverlayWatch.cpp)
+target_include_directories(test_overlay_watch PRIVATE ${SRC_DIR})
+target_link_libraries(test_overlay_watch PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_overlay_watch PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_overlay_watch PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_overlay_watch)
+catch_discover_tests(test_overlay_watch)
+
+# --- test_clip_inspector_paint_key (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 4): ClipInspector::refresh() (10 Hz)
+# repaints only when a painted input changed (ClipInspector::paintKeyNow). The test_layer_inspector_persistent_toggle
+# headless-widgets harness and link closure, with ClipInspector.cpp for the inspector under test.
+add_executable(test_clip_inspector_paint_key
+    test_clip_inspector_paint_key.cpp
+    ${SRC_DIR}/ui/ClipInspector.cpp
+    ${SRC_DIR}/ui/MacroPanel.cpp
+    ${SRC_DIR}/ui/Knob.cpp
+    ${SRC_DIR}/render/FeedbackProcessor.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_clip_inspector_paint_key PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_inspector_paint_key PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_clip_inspector_paint_key PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_clip_inspector_paint_key PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_clip_inspector_paint_key)
+catch_discover_tests(test_clip_inspector_paint_key)

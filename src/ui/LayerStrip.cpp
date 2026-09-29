@@ -2,7 +2,9 @@
 #include "ui/ClipThumbnails.h"
 #include "connect/ConnClock.h"
 #include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's routine cue reads)
+#include "ui/UiPaintCounters.h"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 // ID scheme for V dropdown: 1-100 = MixMode, 101+ = KeyingMode
@@ -534,22 +536,24 @@ void LayerStrip::paint(juce::Graphics& g)
         g.setColour(juce::Colour(0xff111111));
         g.fillRect(tb);
 
-        if (layer_)
+        // s-rta-0928b idlepaint (adoption I2): the transport as the last update read it (transportView_), never the
+        // model again -- the value the repaint decision compared is the value painted.
+        const auto& tv = transportView_;
+        if (tv.showsClip)
         {
-            auto* clip = layer_->getActiveClip();
-            if (clip && clip->isPlayable())
-            {
-                // Draw in/out region
-                float inX = tb.getX() + clip->inPoint * tb.getWidth();
-                float outX = tb.getX() + clip->outPoint * tb.getWidth();
-                g.setColour(juce::Colour(0xff1a2a2a));
-                g.fillRect(juce::Rectangle<float>(inX, tb.getY(), outX - inX, tb.getHeight()));
+            // Draw in/out region
+            float inX = tb.getX() + tv.inPoint * tb.getWidth();
+            float outX = tb.getX() + tv.outPoint * tb.getWidth();
+            g.setColour(juce::Colour(0xff1a2a2a));
+            g.fillRect(juce::Rectangle<float>(inX, tb.getY(), outX - inX, tb.getHeight()));
 
-                // Playhead line
-                float pos = static_cast<float>(clip->playheadPosition);
-                float xPos = tb.getX() + pos * tb.getWidth();
-                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-                g.drawVerticalLine(static_cast<int>(xPos), tb.getY(), tb.getBottom());
+            // Playhead line
+            g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+            g.drawVerticalLine(tv.playheadX, tb.getY(), tb.getBottom());
+            if (tv.playheadX != lastPaintedPlayheadX_ && g.getClipBounds().intersects(transportBounds_))
+            {
+                lastPaintedPlayheadX_ = tv.playheadX;
+                uipaint::counters().layerStripPlayheadPaints.fetch_add(1, std::memory_order_relaxed);
             }
         }
 
@@ -686,6 +690,7 @@ void LayerStrip::resized()
     blendDropdown_.setBounds(sX, rowY, sliderW * 3, rowH);
     clipNameBounds_ = juce::Rectangle<int>(thumbX, rowY, thumbW, rowH);
     transitionDropdown_.setBounds(fX, rowY, sliderW, rowH);
+    updateTransportView();   // s-rta-0928b idlepaint: the transport rect moved / resized
 }
 
 void LayerStrip::setLayer(Layer* layer, int index)
@@ -719,6 +724,7 @@ void LayerStrip::setLayer(Layer* layer, int index)
         updateThumbnail();
         updateClipName();
     }
+    updateTransportView();   // s-rta-0928b idlepaint
 }
 
 void LayerStrip::refresh()
@@ -727,23 +733,77 @@ void LayerStrip::refresh()
     layerName_ = juce::String(layer_->name);
     updateThumbnail();
     updateClipName();
+    updateTransportView();   // s-rta-0928b idlepaint: read before the whole-strip repaint paints it
     repaint();
+}
+
+LayerStrip::TransportView LayerStrip::transportViewOf(const Layer* layer, juce::Rectangle<int> transportBounds)
+{
+    TransportView v;
+    const Clip* clip = layer != nullptr ? layer->getActiveClip() : nullptr;
+    if (clip == nullptr || !clip->isPlayable())
+        return v;                                   // paint() draws only the fill + border then
+    // Clip::playheadPosition is a GL-written `mutable double` (ConnectionEngine.h: s166 spec L5 names two acceptable
+    // reads -- std::atomic_ref<double> on BOTH sides, or convert the field). This is the atomic_ref read, ONE per update
+    // (adoption I2); the GL-side writers (Layer.h, Renderer) still write it plainly -- L5's open item, outside this lane.
+    const double pos = std::atomic_ref<double>(clip->playheadPosition).load(std::memory_order_relaxed);
+    const auto tb = transportBounds.toFloat();
+    v.showsClip = true;
+    v.inPoint = clip->inPoint;
+    v.outPoint = clip->outPoint;
+    v.playheadX = static_cast<int>(tb.getX() + static_cast<float>(pos) * tb.getWidth());   // = paint()'s old xPos
+    return v;
+}
+
+void LayerStrip::updateTransportView()
+{
+    if (transportBounds_.isEmpty())
+        return;
+    const auto tv = transportViewOf(layer_, transportBounds_);
+    if (tv.showsClip && tv.playheadX != transportView_.playheadX)
+        uipaint::counters().layerStripPlayheadTicks.fetch_add(1, std::memory_order_relaxed);   // the I2 witness
+    if (tv == transportView_)
+        return;
+    transportView_ = tv;
+    repaint(transportBounds_);
+    uipaint::counters().layerStripTransportRepaints.fetch_add(1, std::memory_order_relaxed);
 }
 
 void LayerStrip::timerCallback()
 {
-    // Repaint transport and clip name areas to animate the playhead
-    if (!transportBounds_.isEmpty())
-        repaint(transportBounds_);
-    if (!clipNameBounds_.isEmpty())
-        repaint(clipNameBounds_);
+    timerTick();
+}
+
+void LayerStrip::timerTick()
+{
+    // s-rta-0928b idlepaint (Pitfall NN): JUCE's mac peer repaints the UNION of every rect repainted since the last
+    // vblank, so a per-tick repaint here made the whole window repaint 30 times a second. The transport rect repaints
+    // only when what it paints changed; the clip-name box paints nothing time-varying (updateClipName() repaints it).
+    updateTransportView();
 
     syncFromModel();   // s-rta-0927: the faders follow the model
 
-    // s-rta-0927: a playing routine's band hairline creeps.
-    if (bandsShown() && std::any_of(routineBands_.begin(), routineBands_.end(), [](const RoutineDeckView::Band& b) {
-            return b.state == RoutineDeckView::State::Playing; }))
-        repaint(thumbnailBounds_.withHeight(kBandHeight * 2));
+    // s-rta-0927: a playing routine's band hairline creeps -- s-rta-0928b (adoption I3): repainted only when a band's
+    // painted hairline width changes (paintRoutineBands' hw; -1 = no hairline).
+    int w[2] { -1, -1 };
+    if (bandsShown())
+        for (int k = 0; k < std::min(2, static_cast<int>(routineBands_.size())); ++k)
+        {
+            const auto& band = routineBands_[static_cast<size_t>(k)];
+            if (band.state == RoutineDeckView::State::Playing)
+                w[k] = juce::roundToInt(static_cast<float>(bandBounds(k).getWidth()) * juce::jlimit(0.0f, 1.0f, band.progress01));
+        }
+    if (w[0] != bandHairlineW_[0] || w[1] != bandHairlineW_[1])
+    {
+        const bool anyPlaying = w[0] >= 0 || w[1] >= 0;
+        bandHairlineW_[0] = w[0];
+        bandHairlineW_[1] = w[1];
+        if (anyPlaying)
+        {
+            repaint(thumbnailBounds_.withHeight(kBandHeight * 2));
+            uipaint::counters().layerStripBandRepaints.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
 }
 
 void LayerStrip::syncFromModel()
