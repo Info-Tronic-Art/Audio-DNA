@@ -36,11 +36,12 @@ window's Quartz height minus MainComponent's height, measured every run -- adopt
 peer_layer_backed == 1 is asserted in c0):
   v0 teeth: AFTER with ADNA_UI_NATIVE_LAYERS_TEETH=shift vs AFTER (test mode, card): the comparator must find diffs in
      BOTH panel rects and nowhere else outside the allowed set.
-  v1 BEFORE vs AFTER, --test-mode (meters and waveform static): S1 default, S2 card, S3 many16, S4 = S3 after POST
-     /api/debug/ui_repaint_all on AFTER (the full-window pass, adoption I7). Masked: the TopBar row's right
-     fpsMaskRightPt (fps / DSP labels); the rest K2 identity (a diff PNG saved). S4 is scoped to the waveform rect + 8 px
-     (I7's subject); the whole-window S4 count is INFO: the window's first display pass draws emoji / slider-thumb /
-     text edges a little differently from every later pass, in both builds (fix round 1, J1).
+  v1 BEFORE vs AFTER, --test-mode (meters and waveform static, except the SignalBar's 'Mod 1' oscillator -- live even
+     in test mode, masked on S2): S1 default, S2 card, S3 many16, S4 = S3 after POST /api/debug/ui_repaint_all on AFTER
+     (the full-window pass, adoption I7). Masked: the TopBar row's right fpsMaskRightPt (fps / DSP labels), and on S2
+     the whole SignalBar (Mod 1's sine meter, fix round 2); the rest K2 identity (a diff PNG saved). S4 is scoped to the
+     waveform rect + 8 px (I7's subject); the whole-window S4 count is INFO: the window's first display pass draws
+     emoji / slider-thumb / text edges a little differently from every later pass, in both builds (fix round 1, J1).
   v1n (INFO) the comparator's noise floor: the BEFORE app against itself, two launches, S1-S3.
   v1b (adoption I5) AFTER, test mode, card, inject_features non-trivial meters (+ the TEMPORARY waveform-freeze hook
      ADNA_TEMP_WAVE_FREEZE=1 when the build carries it -- else the waveform half is SKIP): native capture, forced in-peer
@@ -59,11 +60,12 @@ peer_layer_backed == 1 is asserted in c0):
      masked only where production draws live content -- the fps mask, the SignalBar, the WaveformDisplay and the TopBar's
      beat wheel / bar readout / tempo + tracker-state labels (topbar_rect x + v3p.topbarLiveFromLeftPt, v3p.
      topbarLiveWidthPt wide: TopBar::resized lays them out at fixed offsets 326..512 pt from its left); the rest K2.
-  v4 (Harmony ruling K3) AFTER, test mode, card, v4.runs launches: the idle look vs the look after POST
+  v4 (INFO only, Harmony addendum 3 L2) AFTER, test mode, card, v4.runs launches: the idle look vs the look after POST
      /api/debug/ui_repaint_all (a whole-MainComponent pass, as a resize or leaving binding / MIDI-learn mode draws),
-     outside the fps mask: K2. The window's FIRST display pass draws the Files grid's folder emoji (<= 66/255) and three
-     TopBar slider thumbs (<= 29/255) differently from every later pass (fix round 1, J1), so this row reads RED on any
-     build whose idle look still carries first-pass pixels there.
+     outside the fps mask: K2 numbers printed, never a verdict. The window's FIRST display pass draws the Files grid's
+     folder emoji (<= 66/255) and three TopBar slider thumbs (<= 29/255) differently from every later pass (fix round 1,
+     J1), so this row documents that first-display-pass class (identical in main) instead of gating on it; v3p is the
+     identity gate for ruling K3.
 Exit 0 iff no FAIL (SKIP / TAINTED are not PASS: they exit 2).
 """
 import json, os, re, statistics as st, subprocess, sys, time
@@ -790,9 +792,14 @@ def row_v1():
     if geo is None or any(b.get(s, (None,))[0] is None or a.get(s, (None,))[0] is None for s in ("S1", "S2", "S3", "S4")):
         skip("v1_identity_test_mode: missing capture or geometry"); return
     for s in ("S1", "S2", "S3"):
-        r3 = identity(b[s][0], a[s][0], geo, f"v1-{s}", masks=(fps_mask(u),))
+        # S2's SignalBar 'Mod 1' oscillator meter is LIVE content even in test mode (a sine of beatPhase,
+        # SignalRegistry.cpp:65 / OscillatorSignal.h:59-71) -- mask it like the fps readout (fix round 2, 160 px @ max
+        # delta 119 seen between BEFORE and AFTER captures otherwise).
+        masks = (fps_mask(u), u["signalbar_rect"]) if s == "S2" else (fps_mask(u),)
+        r3 = identity(b[s][0], a[s][0], geo, f"v1-{s}", masks=masks)
         what = {"S1": "default", "S2": "card", "S3": "many16"}[s]
-        (ok if r3[2] == 0 else no)(f"v1_identity_test_mode {s} ({what}): BEFORE vs AFTER outside the fps mask -- {k2(r3)}")
+        mask_desc = "the fps mask and the SignalBar (Mod 1 is live)" if s == "S2" else "the fps mask"
+        (ok if r3[2] == 0 else no)(f"v1_identity_test_mode {s} ({what}): BEFORE vs AFTER outside {mask_desc} -- {k2(r3)}")
         live_meters_info("v1", s, b[s][0], a[s][0], geo, u, r3)
     # S4 (adoption I7): after POST /api/debug/ui_repaint_all (a whole-MainComponent pass) the waveform's corners are
     # still right. Scoped to the waveform rect + 8 px. The whole-window line is INFO: the window's FIRST display pass
@@ -1084,9 +1091,9 @@ def row_v4():
         print(f"    v4 r{k}: ui_repaint_all {rp} | idle vs after the full pass outside the fps mask -- {k2(r3)}", flush=True)
         live_meters_info("v4", f"r{k}", a[0], b[0], geo, u, r3)
         res.append(r3)
-    (ok if all(r[2] == 0 for r in res) else no)(
-        f"v4_full_pass_identity (K3): test mode, card -- idle look vs after a whole-MainComponent pass outside the fps "
-        f"mask, {runs} launches: " + " | ".join(f"r{i + 1} {k2(r)}" for i, r in enumerate(res)))
+    info(
+        f"v4_full_pass_identity (INFO, Harmony addendum 3 L2): test mode, card -- idle look vs after a whole-MainComponent "
+        f"pass outside the fps mask, {runs} launches: " + " | ".join(f"r{i + 1} {k2(r)}" for i, r in enumerate(res)))
 
 
 # ---------------------------------------------------------------- main

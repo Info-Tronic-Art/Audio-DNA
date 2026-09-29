@@ -648,4 +648,46 @@ Harmony rules on:
 - K1 option A / B / C;
 - the test-mode Mod 1 meter (declare it live content, or freeze beatPhase in the probe).
 
+## Addendum 3 (v4 INFO for real + v1 S2's Mod 1 mask)
+
+34a8cf8 landed the `# Harmony addendum 3 L2` comment on `row_v4` only -- `v4_full_pass_identity` still ended on
+`(ok if all(r[2] == 0 for r in res) else no)(...)` and so still fed PASS/FAIL. This commit makes the comment true and
+closes the other open item from fix round 2 (v1 S2's Mod 1 FAIL):
+
+- `row_v4()`'s terminal call is now an unconditional `info(...)` carrying the same per-run K2 numbers (`{n} px differ
+  (max delta {md}), {nv} violate K2 ... in {cluster} cluster(s)`) -- it never increments PASS or FAIL, mirroring
+  `x1_within_build_off`'s INFO pattern. The module docstring's v4 entry is reworded to match: v4 documents the
+  first-display-pass class (identical in main, per the K1 investigation above); v3p is the identity gate for ruling K3.
+- `row_v1()`'s S2 iteration (card fixture) now adds `u["signalbar_rect"]` to its identity masks, alongside the existing
+  `fps_mask(u)` -- the SignalBar's 'Mod 1' oscillator meter (a sine of `beatPhase`, `SignalRegistry.cpp:65` /
+  `OscillatorSignal.h:59-71`) is live content even in `--test-mode`, per "The Mod 1 meter class" section above (160 px,
+  max delta 119 seen between BEFORE and AFTER captures). S1 and S3 are untouched -- the class was only observed on S2
+  in this fixture sequence.
+
+### Run (v4_full_pass_identity, v1_identity_test_mode; live lock, LANE=idlepaint-fix)
+
+```
+== v4_full_pass_identity
+    v4 r1: ui_repaint_all {'ok': True} | idle vs after the full pass outside the fps mask -- 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)
+INFO  v4 r1 with the live meters masked too (SignalBar, waveform): 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)
+    v4 r2: ui_repaint_all {'ok': True} | idle vs after the full pass outside the fps mask -- 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)
+INFO  v4 r2 with the live meters masked too (SignalBar, waveform): 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)
+INFO  v4_full_pass_identity (INFO, Harmony addendum 3 L2): test mode, card -- idle look vs after a whole-MainComponent pass outside the fps mask, 2 launches: r1 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s) | r2 35393 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)
+== v1_identity_test_mode
+PASS  v1_identity_test_mode S1 (default): BEFORE vs AFTER outside the fps mask -- 1251 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)
+PASS  v1_identity_test_mode S2 (card): BEFORE vs AFTER outside the fps mask and the SignalBar (Mod 1 is live) -- 102 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)
+PASS  v1_identity_test_mode S3 (many16): BEFORE vs AFTER outside the fps mask -- 91 px differ (max delta 1), 0 violate K2 (> 1/255) in 0 cluster(s)
+PASS  v1_identity_test_mode S4 (many16 after a full-window repaint, I7): the waveform rect + 8 px BEFORE vs AFTER -- 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s)
+INFO  v1_identity_test_mode S4 whole window (BEFORE's first-pass pixels vs AFTER's full pass, J1): 35484 px differ (max delta 66), 13507 violate K2 (> 1/255) in 32 cluster(s)
+
+4 PASS / 0 FAIL / 0 SKIP
+PASS  app terminated
+
+PROBE-IDLE-PAINT GREEN
+```
+
+v4 prints INFO lines only (no PASS/FAIL emitted for that row); v1 S1-S3 all PASS, including S2 with the new SignalBar
+mask. UserNotificationCenter on-screen windows after the run: 0 (Quartz `CGWindowListCopyWindowInfo`,
+`kCGWindowListOptionOnScreenOnly`). No Output window was opened; only `open -g` (via the probe's own `launch()`).
+
 Then the critic re-review and the merge (Pitfall NN -> 57).
