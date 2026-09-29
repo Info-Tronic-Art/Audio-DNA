@@ -1,4 +1,5 @@
-STATUS: PARTIAL
+STATUS: DONE
+(fix round 1 at the end supersedes the STOP below: c2 landed per addendum 2 G11-G15)
 
 # g4cpu lane report (s-rta-0929) -- plan-g4cpu.md + HARMONY ADOPTION G1-G10
 
@@ -267,3 +268,203 @@ Work-log rows (.harmony/s-rta-0929-work.md):
   repaint().
 - SHOULD 3 (a synthetic G3 test): conditional on a future hard gate, not built. SHOULD 4: no fix required.
 - ctest serial 920/920 (13:52). Screen safety: 0 Output windows, 0 dialogs after every batch.
+
+---------------------------------------------------------------------------------------------------------------------
+## Fix round 1 (g4cpu-fix1, 14:05-16:07) -- HARMONY ADOPTION ADDENDUM 2 (G11-G15) implemented
+STATUS: DONE. Branch lane/g4cpu, continued from c1d216c (no reset / rebase). Commits: 8e7fb2e (G11), f19d5ba (G12),
+00bb672 (G15), and this report. The BEFORE app for every RED run and for the interleaved arms is a copy of the app built
+from c1d216c (the build was a no-op at HEAD: binary sha256 56fbb898...; copy at scratchpad g4cpu-fix1/c1dapp). The c2
+app is build-lane at 8e7fb2e (sha256 4c058af7..., copy at g4cpu-fix1/c2app). The docs and report commits do not change
+the binary.
+
+RESULT: c2 is landed. A ROUTINES pad now repaints only when what it paints changes (`RoutinePad::paintKeyOf`). On
+interleaved launches (c1 and c2 alternating, 6 per arm, one invocation), g4 went from 176.0 to 155.4 ms/s of main-thread
+CPU (paired per-round median -21.6). The idle card stayed at 116.4 vs 117.5 (paired +0.7). As G11 ruled, the CPU stays
+an INFO line. The new cadence rows are RED on c1d216c and GREEN on c2. v5 reads 0 px differ at both beat positions on
+c2. Every existing probe is GREEN on c2. ctest serial is 925/925.
+
+### Table (ruling -> commit -> RED line -> GREEN line)
+| ruling | commit | RED (verbatim) | GREEN (verbatim) |
+|---|---|---|---|
+| G11 c2 + ctest | 8e7fb2e | build of test_routine_pad_paint_key on the c1d216c tree: `tests/test_routine_pad_paint_key.cpp:47:23: error: no member named 'paintKeyOf' in 'RoutinePad'` | `100% tests passed, 0 tests failed out of 11` (-R paintKeyOf\|RoutinePad: the 5 new + 6 existing); full serial `100% tests passed, 0 tests failed out of 925` (15:40) |
+| G11 teeth (scratch copies; the deliverable's sha256 89451c56... is unchanged before and after) | -- | drop `k.bar`: `test cases:  5 \|  3 passed \| 2 failed`; drop `k.restartPending`: `test cases:  5 \|  4 passed \| 1 failed` | (the real key) 5 / 5 pass |
+| G12-1 pad requests | f19d5ba | c1d216c app: `FAIL  g4_routine cadence (G12-1): ROUTINES pad repaint requests/s median 29.2 [29.2, 29.2, 29.2, 29.2, 29.3] in [8.0, 16.0]` | c2 (F2 15:17-15:25): `PASS  g4_routine cadence (G12-1): ROUTINES pad repaint requests/s median 11.6 [11.6, 11.5, 11.6, 11.6, 11.6] in [8.0, 16.0]` |
+| G12-2 sweep | f19d5ba | main (pre-g4cpu): `FAIL  g4_routine cadence (G12): the g4cpu paint / change counters are absent from this build` (c1d216c: PASS 1.000 -- c1 misses no update, so this row's RED is by absence) | `PASS  g4_routine cadence (G12-2): routine_pad_sweep_paints / routine_pad_sweep_ticks = 57.09 / 57.09 per s summed over 5 launches = 1.000 (>= 0.95)` |
+| G12-3 band | f19d5ba | main: the same absent line (c1d216c: PASS 1.584) | `PASS  g4_routine cadence (G12-3 band): layer_strip_band_paints / layer_strip_band_repaints = 177.98 / 143.70 per s summed over 5 launches = 1.239 (>= 0.95)` |
+| G12-3 V fader | f19d5ba | main: the same absent line (c1d216c: PASS 1.000) | `PASS  g4_routine cadence (G12-3 V fader): layer_strip_fader_paints / layer_strip_fader_repaints = 114.42 / 114.42 per s summed over 5 launches = 1.000 (>= 0.95)` |
+| G11 v5 on c2 | (row from 2df6876, unchanged) | (2df6876: main vs main -> teeth "absent") | `PASS  v5_routine_identity P1 (routine position 6.5 beats): BEFORE vs AFTER outside the fps mask and the SignalBar -- 0 px differ (max delta 0), 0 violate K2 (> 1/255) in 0 cluster(s)` / `PASS  ... P2 (routine position 10.5 beats): ... 0 px differ (max delta 0) ...` / teeth `9 violation cluster(s): 3 in the pad row (bbox 40 pt wide, >= 15), 6 in the strip column (>= 1), 0 elsewhere` |
+| G11 CPU (INFO) | -- | interleaved c1 arm: g4 176.0 [172.5-183.4], i1 116.4 [115.2-117.6] | c2 arm: g4 155.4 [153.2-156.2], i1 117.5 [114.9-118.9] |
+| G13 | -- | -- | diff stat below |
+| G14 | -- | -- | 26 clean interleaved launches, no outlier; the phase of the earlier outliers is named below |
+| G15 docs | 00bb672 | -- | 57 amended, NN appended, architecture.md and recording.md updated; CLAUDE.md untouched (24,980 B) |
+
+### G11 -- c2 landed (8e7fb2e)
+- I re-checked the draft against HEAD c1d216c before applying it: `git apply --check` passes, and the applied files are
+  byte-identical to c2draft/RoutinePad.{h,cpp}. The key holds every field that `paint` / `paintContent` read: number,
+  name, state, onShownDeck (the 50 % layer), loop, warning, restartPending, bar, barsTotal, and progress01, which enters
+  only through sweepW at `getWidth()`. The tooltip is compared separately, as before. No other caller of
+  `samePad` / `sweepWidthOf` exists (grep).
+- ctest `tests/test_routine_pad_paint_key.cpp` [g4cpu][pad] has 5 cases (plan 2.3 (a)-(e)) and is registered at the EOF
+  of tests/CMakeLists.txt (the test_routine_pad_press link set). I reconfigured after the CMake change.
+
+### G11 -- the CPU effect from INTERLEAVED arms (INFO; the c1d216c copy as BEFORE)
+Driver: scratchpad g4cpu-fix1/mix.py + batch_mix.sh, the diag-vfps run_mix.sh pattern. It uses the probe's own launch /
+fixture / idle window, with the pass log drained. Each round launches c1 i1, c2 i1, c1 g4, c2 g4, and even rounds put c2
+first. The lock was held for 3 rounds at a time. A compiler stopped round 4 once; the wrapper resumed and re-ran round 4
+whole. Times: 14:19-14:28 and 14:58-15:07. Load 5.2-12.7. The stray `yes` (pid 83720) ran throughout. Raw aggregate
+(verbatim):
+```
+27 launches (2 tainted, kept in the list, excluded from medians)
+c1 i1: n=6 cpu median 116.4 [115.2-117.6] | JUCE 6.7 SB 39.1 WF 6.5 rest 64.1 | passes 14.9/s | pad 0.00/s
+c1 g4: n=6 cpu median 176.0 [172.5-183.4] | JUCE 29.2 SB 40.6 WF 6.2 rest 99.9 | passes 39.0/s | pad 29.21/s
+c2 i1: n=7 cpu median 117.5 [114.9-118.9] | JUCE 6.7 SB 39.6 WF 6.6 rest 64.4 | passes 14.9/s | pad 0.00/s
+c2 g4: n=6 cpu median 155.4 [153.2-156.2] | JUCE 17.9 SB 40.8 WF 6.3 rest 89.8 | passes 31.8/s | pad 11.56/s
+g4: c1 176.0 -> c2 155.4 = -20.6 ms/s | i1: c1 116.4 -> c2 117.5 = +1.2 ms/s | gap over i1: c1 +59.6, c2 +37.8 | gap change (delta g4 - delta i1) -21.8 ms/s
+paired per-round c2 - c1 (i1): +1.1, +0.0, +0.4, +2.3, -1.4, +2.7 | median +0.7
+paired per-round c2 - c1 (g4): -16.3, -25.4, -23.9, -17.6, -19.3, -27.3 | median -21.6
+```
+(c2 i1 has n=7 because the first hold's clean c2_i1_r4, at 14:29:31, stays in the list. The wrapper then re-ran round 4
+whole after the compiler stop.)
+
+Every launch is printed in the per-launch list in scratchpad g4cpu-fix1/mix.log, including the 2 tainted launches (c1
+i1 r4 119.3 and c2 i1 r4 119.9, neither an outlier). The list splits each launch's main-thread CPU into JUCE peer +
+SignalBar layer + waveform layer + rest.
+
+What the split says: c2's -20.6 ms/s is -11.3 of JUCE peer paint (the union reach the pad no longer adds) and -10.1 of
+the "rest" (AppKit / Core Animation / timers / engine). Passes fell by 7.2/s. So a removed pass costs about 1.4 ms outside
+JUCE (INFERRED from the arithmetic). This corrects my c1 report's "~18 pad passes/s x 1.2 ms". Requests fell by 17.6/s,
+but most removed requests shared a vblank with another source. The layers did not change (SB 40.6 / 40.8).
+
+The quiet a1 on c2 (F1c, 15:58-16:06) gives the AFTER attribution:
+- `INFO  a1_attribution g4 (routine): cpu_main median 140.9 ms/s | display passes 30.9/s (MainComponent paints 19.45/s; paint() skipped on 11.4/s) | JUCE paint 16.1 ms/s CPU (18.0 wall) | ...`
+- `INFO  a1_attribution g4 - i1 (these launches): cpu 32.3 ms/s | passes +16.0/s | JUCE peer paint +9.8 ms/s CPU | SignalBar layer +2.6 | waveform layer -0.1 ms/s CPU`
+- The c3 record at c2: 4.3 / 5.3 wheel+deck coincident passes/s, by rect / by source, down from 7.8 / 8.9.
+
+### G12 -- cadence rows (f19d5ba)
+`row_g4_cadence` runs on g4's own 5 launches. It needs no extra launches and leaves the window max gate and the CPU INFO
+untouched. It prints the absolute paint rates as INFO. On c2:
+`pad paints (all 8 pads) 20.7, 21.5, 20.4, 20.6, 20.9 | band paints 36.0, 35.5, 35.8, 36.0, 34.8 | V-fader paints 22.9 x5`.
+
+Limit of (3) (INFERRED): a union sweep can paint a strip whose own change request was lost, so (3) proves no update was
+missed only as a lower bound. The fader change counter also counts S-fader moves; S never moves in g4.
+
+### G13 -- the bound knob (argument, no hook arm)
+`git diff --stat adf9b8a..HEAD -- src/ui/UniversalParamControl.*` gives `src/ui/UniversalParamControl.cpp | 2 +`. The
+two lines are `#include "ui/UiPaintCounters.h"` and one `uipaint::bump(...paramControlRepaints...)` after the existing
+`repaint()` in `updateValueDisplay` (c1). `git diff --stat c1d216c..HEAD` lists only RoutinePad.{h,cpp},
+tests/CMakeLists.txt and tests/test_routine_pad_paint_key.cpp for code. The knob's paint code and its inputs (the model,
+RoutineEngine, ConnPicker) are untouched, so c1 and c2 cannot move a bound-knob pixel. The only thing c2 changes is when
+the pad asks for a repaint.
+
+### G14 -- the ~700 ms/s outlier launches (No Unexplained Residue)
+- It did not recur: 26 clean interleaved launches (12 routine, 14 card, both apps) all fall in 110-184 ms/s. The
+  final-app batches below have none either; the highest is g4 r5 at 207.5.
+- The phase is named, from the stored idle.json of the old outliers. The a1b r2 outlier (c1, 10:19, 708.4 ms/s) had
+  JUCE peer paint 18.2 ms/s, SignalBar layer 15.8 and waveform layer 3.1. So about 670 ms/s sat in the "rest" phase:
+  outside JUCE paint and outside the native layer draws, i.e. AppKit / Core Animation outside drawRect, timers, the
+  routine engine, or the REST handlers.
+- Its window max median was about 30 ms: one ~30 ms busy block in every 500 ms poll window. Its display passes
+  (27.8/s) and layer draws (27.7/s vs 29.2) were slightly fewer, not more. So it was not paint-driven.
+- The other two outliers (ce04R6 g4 r5 on c2, BEFORE r1 on c1) show the same signature: window max ~30 ms and
+  SB / WF draws 27.6/s. They have no pass log.
+- Ruled out: the binary (it happened on c1 and on c2, and not on main in ~15 routine launches), the `yes` process (it
+  ran through every clean launch too), and a compiler (the launches were not tainted).
+- Not established: which timer or handler held the ~30 ms block.
+- Cheapest next test: if it recurs, the mix driver already records the per-launch phase split and the thread table
+  (`ps -M`). One more step would split "rest": TEST_SERVER thread-CPU stamps around `MainComponent::timerCallback`,
+  `RoutineEngine::tick` and `LayerStrip::timerTick`, the same `threadCpuUs()` helper as the pass log (FILED).
+
+### G15 -- docs (00bb672)
+- `docs/claude/pitfalls.md` 57: rule (2) now lists `RoutinePad::paintKeyOf`. "a routine playing on 3 layers still
+  costs 163 ms/s -- ..." becomes "a routine playing on 3 layers: 176.0 -> 155.4 ms/s, idle + 38 -- s-rta-0929 g4cpu,
+  Pitfall NN". A new NN entry follows 57 (Harmony numbers it).
+- NN covers:
+  - the paint-key rule;
+  - the interleaved pass / JUCE / rest split;
+  - "count display passes, not JUCE paint time";
+  - the Slider snap;
+  - why the CPU stays INFO;
+  - the TopBar filed;
+  - the witnesses and the guard.
+  It cites no BORIS_DECISIONS (G5).
+- `docs/claude/architecture.md` "UI Painting": paintKeyOf joins the on-change list, and ui_passes plus "a1 prints who
+  repaints" join the witnesses. `docs/claude/recording.md` "Surfaces": a pad repaints on its paint key, a band on its
+  hairline width.
+- CLAUDE.md is untouched: 24,980 B, no index line (G9). APP-INVENTORY already carries the ui_paint / ui_passes sentence
+  from c1 / g4cpu-fix, so nothing is added.
+
+### Existing probes on the final (c2) app -- re-run, never re-thresholded
+| batch | time | rows | result |
+|---|---|---|---|
+| F1 | 15:08-15:16 | c0 PASS x3; i1 FAIL (CPU 157.2 > 150); g1 PASS; i2 PASS 131.2 | i1 FAIL -> re-check F1c |
+| F1c | 15:45-15:58 | i1 on c2; i1 on c1d216c | both PASS |
+| F2 | 15:17-15:25 | g2 PASS x3 (146 / 146 = 1.000); g4 PASS (window max 4.9) + 4 cadence rows PASS | GREEN |
+| F3 -> F1c | 15:58-16:06 | a1 INFO (above); g5 INFO 109.9 ms/s | (F3 at 15:26 was SKIP / TAINTED: a compiler) |
+| F4 | 15:26-15:29 | v0 PASS x2; v1 S1-S4 PASS (0 px); v1n 0 px | GREEN |
+| F5 | 15:30-15:33 | v2 PASS x6; v2b I1 / I4 (max 1) / teeth PASS; v3 PASS; v3p PASS (0 px x2); v4 INFO (the J1 first-pass class, 35393 px, as before); v5 PASS x4 | GREEN |
+| F6 | 15:34-15:35 | probe-routines (ROUTINES_BUILD_DIR=build-lane, pause 1.8) | `109 PASS / 0 FAIL` |
+| F7 | 15:36-15:37 | probe-routine-display | `16 PASS / 0 FAIL` |
+| F8 | 15:39 | probe-deck-tabs | `6 PASS / 0 FAIL` |
+| F9 | 15:40 | ctest serial `-j1`, under the lock | `100% tests passed, 0 tests failed out of 925` |
+
+The F1 i1 line, verbatim:
+`FAIL  i1_idle_card (IDLE-HB-card): window max median 6.3 ms [5.7-6.7] (<= 8.0) AND main CPU median 157.2 ms/s [148.5-170.5] (<= 150.0)`
+
+The re-check, verbatim:
+- c2: `PASS  i1_idle_card (IDLE-HB-card): window max median 4.5 ms [4.2-4.8] (<= 8.0) AND main CPU median 115.3 ms/s [114.9-117.6] (<= 150.0)`
+- c1d216c: `PASS  i1_idle_card (IDLE-HB-card): window max median 4.6 ms [4.3-5.3] (<= 8.0) AND main CPU median 110.6 ms/s [109.9-111.6] (<= 150.0)`
+
+Verdict: the F1 FAIL was a rig excursion, not c2. The evidence:
+- The same c2 binary read 114.9-119.9 at i1 in the 7 interleaved launches 30-45 minutes earlier, and 115.3 in F1c.
+- At i1, c2 only runs setSpec on idle pads whose key never changes (pad repaints 0.00/s).
+- During the same window (15:17-15:25) the main binary's g4 BEFORE arm read 219.6 ms/s [201.2-230.8], against 171.5 an
+  hour earlier (RED batch): every binary was inflated.
+- F1 had no top-process sampler. The F1b / F1c samplers (top.log) show the ChatGPT Codex renderer at 22-40 % and other
+  lanes' cmake / clang coming and going.
+
+Screen safety: after every batch `audio-dna windows 0, Output-named 0` and `UserNotificationCenter windows on screen:
+0`. No Output window was opened, there was no synthetic input and no debugger or `sample`, and
+test_output_window_level.py was not run. No TEMPORARY hook was used; `strings | grep -c ADNA_TEMP_` gives 0.
+I LOOKED at v5-after-P1.png (F5):
+- pad "1 Sweep 2/4" is playing with its teal sweep and frame;
+- a "Sweep" band sits on L1-L3, and the three V faders are in chartreuse;
+- "Outputs: Off", and there is no Output window.
+
+### LOOK list for Boris (c5, unchanged by c2 -- nothing may look different)
+1. Fire a routine that spans 3 layers. The pad's teal sweep creeps and "n/4" counts. Each band's hairline creeps. Each V
+   fader glides in chartreuse.
+2. Press the pad again. The restart mark appears left of "n/4", and the sweep restarts on the bar.
+3. Right-click the pad: the menu opens. Hover over it: the tooltip shows.
+
+### Notes for Harmony to append (notebook), corrections included
+- (replaces my c1 note "~18 pad passes/s x ~1.2 ms") Interleaved c1 / c2, 6 launches per arm, one invocation: removing
+  17.6 pad requests/s removed 7.2 display passes/s. It saved 11.3 ms/s of JUCE peer paint (union reach) plus 10.1 ms/s
+  of non-JUCE main-thread CPU, about 1.4 ms per pass. Count passes (`paintOverChildren`), not JUCE time. |
+  scratchpad g4cpu-fix1/mix.log, src/ui/UiPaintCounters.h passEnd
+- An interleaved A/B (alternating launch by launch in one invocation) resolves a 20 ms/s CPU effect with a paired
+  spread of ~±5. Separate invocations drift ~8 ms/s, and on 09-29 one 15-minute window inflated every binary by
+  ~40-50 ms/s (i1 157 / main g4 220). A lone CPU FAIL needs an interleaved re-check with the other binary before it
+  is a finding. | .harmony/probe-idle-paint.py gate
+- The 700 ms/s launches are a "rest"-phase block (~30 ms per 500 ms), not paint. | g4cpu.md fix round 1 G14
+
+### Work-log rows (.harmony/s-rta-0929-work.md)
+| t | kind | item | result |
+|---|---|---|---|
+| 14:05 | build | HEAD c1d216c no-op build; app copied as BEFORE (c1dapp) | sha256 56fbb898 |
+| 14:05 | ctest | RED test_routine_pad_paint_key on c1d216c | compile error "no member named 'paintKeyOf'" |
+| 14:06 | build + ctest | c2 applied (draft re-verified), GREEN 11/11; teeth drop bar / restartPending -> FAIL | commit 8e7fb2e |
+| 14:10-14:18 | probe | RED g4 cadence: c1d216c (pad requests 29.2 -> FAIL), main (absent -> FAIL) | commit f19d5ba |
+| 14:19-15:07 | probe | interleaved c1 / c2 x 6 (i1 + g4) | g4 176.0 -> 155.4 (-20.6; paired -21.6); i1 116.4 / 117.5 |
+| 15:08 | commit | docs 57 + NN, architecture, recording | 00bb672 |
+| 15:08-15:40 | probe | final app: idle-paint all rows, routines 109/0, display 16/0, deck-tabs 6/0, ctest 925/925 | GREEN except F1 i1 (rig excursion) |
+| 15:45-16:06 | probe | i1 re-check c2 / c1d216c PASS 115.3 / 110.6; a1 + g5 on c2 | GREEN |
+
+### PACKET QUALITY (fix round 1)
+- Clarity: CLEAR. G12 (3) names "change ticks" for the band and the V fader; I used the existing change counters (band
+  repaints on a hairline width change, fader repaints on a snapped value change).
+- Missing context: none. The task said "the c1 app you already keep" while the BEFORE build it named was c1d216c. I used
+  the c1d216c copy: the same code as c1 plus the TEST-ONLY preview_rect, so it is the closer twin of c2.
+- Unused context: none.
+- Self-brief files: plan-g4cpu.md + addendum 2, g4cpu.md, the c2 draft, and the probe sources. All useful.
+
+INBOX-RECHECK: none
