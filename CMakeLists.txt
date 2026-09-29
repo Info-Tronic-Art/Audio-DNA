@@ -170,6 +170,8 @@ target_sources(AudioDNA PRIVATE
     src/core/LoadTiming.h
     src/core/LoadTicket.h
     src/core/StagedLoad.h
+    src/core/MediaOpener.h
+    src/core/MediaOpener.cpp
     src/core/UndoManager.h
     src/core/UndoManager.cpp
     src/core/UndoService.h
