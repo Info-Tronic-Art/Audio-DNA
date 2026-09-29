@@ -1871,6 +1871,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             testPort_);
         testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
         testServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
+        testServer_->setLoadWitnessProvider([this] { return loadWitnessVar(); });   // s-rta-0929 asyncload, before start()
         // plan5 C3 (s-rta-0927 outputs-c3), test mode only: the manager's counters, "Restore Last Outputs" with
         // nothing to restore, the poll A/B. The restore hook re-checks ON the message thread and runs the menu
         // action's own handler only while nothing is restorable -- it can never open a window.
@@ -2134,6 +2135,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
 #endif
     apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
     apiServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
+    apiServer_->setLoadWitnessProvider([this] { return loadWitnessVar(); });   // s-rta-0929 asyncload, before start()
+    // s-rta-0929 asyncload: the TEST-ONLY load routes' targets (the routes exist only in a TEST_SERVER build).
+    apiServer_->onDebugLoadDeck = [this](juce::File f) { appendDeckFromFile(f); };
+    apiServer_->onDebugDuplicateDeck = [this](int deckIndex) { duplicateDeck(deckIndex); };
+    apiServer_->onDebugCancelLoad = [] {};   // commit 1: no staged load exists yet (a load is synchronous)
+    apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
         debugDropFiles(layer, column, files);
@@ -3014,7 +3021,10 @@ void MainComponent::openMediaForDeck(Deck& deck)
 {
     // s-rta-0928b mediaopen: seed Clip::mediaMissing on the STAGED deck (a stat per Image / Video clip, here at load, so
     // the first frames after the swap behave as the per-frame stat did); MediaPresence's sweep keeps it current.
-    presence::seed(deck);
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Prep);   // s-rta-0929 asyncload: the seed is prep
+        presence::seed(deck);
+    }
     auto& renderer = previewPanel_.getRenderer();
     for (auto& layer : deck.layers)
     {
@@ -3025,6 +3035,7 @@ void MainComponent::openMediaForDeck(Deck& deck)
             if (clip.mediaType == Clip::MediaType::Video)
             {
                 if (clip.mediaMissing) continue;   // non-fatal: skip, continue (the seed's stat)
+                const auto tOpen = LoadTiming::Clock::now();   // s-rta-0929 asyncload: one open + its thumbnail read
                 if (renderer.openVideoForClip(clip.id, clip.mediaFile))
                 {
                     if (auto* p = renderer.getVideoPlayer(clip.id))
@@ -3035,10 +3046,14 @@ void MainComponent::openMediaForDeck(Deck& deck)
                         clip.thumbnail = p->getThumbnail(90, 72);
                     }
                 }
+                const double openMs = LoadTiming::msSince(tOpen);
+                loadTiming_.add(LoadTiming::Opens, openMs);
+                loadTiming_.noteOpen(openMs);
             }
             else // ImageSequence
             {
                 if (clip.sequenceFiles.empty()) continue;
+                LoadTiming::Scope t(loadTiming_, LoadTiming::Seq);
                 // s-rta-0928b mediaopen: no I/O -- open() stats and decodes nothing, and the grid pulls the sequence's
                 // thumbnail from ClipThumbnails (its first file, off-thread) instead of a frame-0 decode here.
                 renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
@@ -3074,8 +3089,14 @@ void MainComponent::loadComposition(const juce::File& file)
     //    a well-formed-but-wrong-shape file (FX preset, lone deck) would
     //    otherwise "succeed" via fromVar, leaving every hasProperty-guarded
     //    field at its OLD value — a stale hybrid of two compositions.
+    loadTiming_.begin();   // s-rta-0929 asyncload: the load's cost split (/api/state load.timing)
     Composition incoming;
-    if (!incoming.loadFromFile(file))
+    bool parsed = false;
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Parse);
+        parsed = incoming.loadFromFile(file);
+    }
+    if (!parsed)
     {
         if (!testMode_)
             juce::AlertWindow::showMessageBoxAsync(
@@ -3088,6 +3109,7 @@ void MainComponent::loadComposition(const juce::File& file)
     // 2. VALIDATE — refuse (no decks / a deck with no layers) or repair
     //    (activeDeckIndex out of range, numColumns/padding) — on `incoming`
     //    only. Live state untouched either way.
+    const auto tPrep = LoadTiming::Clock::now();
     if (auto reason = compload::validateComposition(incoming); !reason.empty())
     {
         if (!testMode_)
@@ -3108,6 +3130,7 @@ void MainComponent::loadComposition(const juce::File& file)
     //     (a file from an older build keeps controls no shader reads, and old
     //     defaults as the right-click reset target). On `incoming`, pre-swap.
     compload::reconcileSourceParams(incoming, sourceParamLookup(previewPanel_.getRenderer().getSourceRegistry()));
+    loadTiming_.add(LoadTiming::Prep, LoadTiming::msSince(tPrep));
 
     // 4. OPEN NEW — open every playable clip's media under its new id and
     //    fill thumbnail/dims INTO `incoming`, BEFORE the swap (openMediaForDeck,
@@ -3128,12 +3151,19 @@ void MainComponent::loadComposition(const juce::File& file)
     // 6. SWAP — fenced; closes orphaned media by set difference, clears undo
     //    history, nulls the inspectors, rebuilds the grid (see
     //    swapCompositionModel/refreshUiAfterModelSwap above).
-    swapCompositionModel([this, &incoming] { composition_ = std::move(incoming); });
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
+        swapCompositionModel([this, &incoming] { composition_ = std::move(incoming); });
+    }
 
     // 7. LABEL
-    fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
-    if (browserPanel_)
-        browserPanel_->getCompDecksBrowser().refresh();
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
+        fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+        if (browserPanel_)
+            browserPanel_->getCompDecksBrowser().refresh();
+    }
+    loadTiming_.end();
 }
 
 void MainComponent::saveComposition()
@@ -3218,7 +3248,10 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
     //    ("decks") or an FX preset's. Refuse before touching the model:
     //    Deck::fromVar's own hasProperty-less getProperty calls would
     //    otherwise happily default-construct an empty/wrong Deck from either.
+    loadTiming_.begin();   // s-rta-0929 asyncload: the load's cost split (/api/state load.timing)
+    const auto tParse = LoadTiming::Clock::now();
     auto parsed = juce::JSON::parse(file.loadFileAsString());
+    loadTiming_.add(LoadTiming::Parse, LoadTiming::msSince(tParse));
     auto* obj = parsed.getDynamicObject();
     if (!obj || !obj->hasProperty("layers"))
     {
@@ -3230,6 +3263,7 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
         return;   // Live state untouched.
     }
 
+    const auto tPrep = LoadTiming::Clock::now();
     Deck incoming;
     incoming.fromVar(parsed);
 
@@ -3254,6 +3288,7 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
 
     // 3b. RECONCILE — as loadComposition (source params to the registry's current list).
     compload::reconcileSourceParams(incoming, sourceParamLookup(previewPanel_.getRenderer().getSourceRegistry()));
+    loadTiming_.add(LoadTiming::Prep, LoadTiming::msSince(tPrep));
 
     // 4. OPEN NEW — shared with loadComposition's per-deck body.
     openMediaForDeck(incoming);
@@ -3274,19 +3309,26 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
     //    re-points the renderer), and cancels any pending quantized trigger on
     //    the deck being left (restored on undo). Undo disposes the appended
     //    deck's media; redo reopens it.
-    std::vector<std::unique_ptr<Command>> children;
-    children.push_back(std::make_unique<InsertDeckCmd>(
-        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
-        std::move(incoming), "Load Deck"));
-    pushCommands(std::move(children), "Load Deck");
-    if (deckView_) deckView_->rebuildGrid();   // rebuilds the deck tabs too (setupDeckTabs)
-    if (auto* active = composition_.getActiveDeck())
-        refreshPreviewFromActiveClip(*active);
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<InsertDeckCmd>(
+            makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
+            std::move(incoming), "Load Deck"));
+        pushCommands(std::move(children), "Load Deck");
+    }
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
+        if (deckView_) deckView_->rebuildGrid();   // rebuilds the deck tabs too (setupDeckTabs)
+        if (auto* active = composition_.getActiveDeck())
+            refreshPreviewFromActiveClip(*active);
 
-    // 7. LABEL
-    fileLabel_.setText("Loaded deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
-    if (browserPanel_)
-        browserPanel_->getCompDecksBrowser().refresh();
+        // 7. LABEL
+        fileLabel_.setText("Loaded deck: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+        if (browserPanel_)
+            browserPanel_->getCompDecksBrowser().refresh();
+    }
+    loadTiming_.end();
 }
 
 // plan6 §6.4 — the deck tab row's handlers. Message thread; each guards its
@@ -3441,19 +3483,29 @@ void MainComponent::duplicateDeck(int deckIndex)
     // live in at most ONE cell — makeClipMediaDisposeHook's FUTURE-FRAGILE
     // note) and no queued trigger; media opened on the staged copy under its
     // new ids BEFORE the fenced append (like loadComposition's step 4).
+    loadTiming_.begin();   // s-rta-0929 asyncload: the load's cost split (/api/state load.timing)
+    const auto tPrep = LoadTiming::Clock::now();
     Deck copy = compload::duplicateDeck(composition_.decks[static_cast<size_t>(deckIndex)], s_nextClipId);
     const juce::String copyName(copy.name);
+    loadTiming_.add(LoadTiming::Prep, LoadTiming::msSince(tPrep));
     openMediaForDeck(copy);
 
-    std::vector<std::unique_ptr<Command>> children;
-    children.push_back(std::make_unique<InsertDeckCmd>(
-        makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
-        std::move(copy), "Duplicate Deck"));
-    pushCommands(std::move(children), "Duplicate Deck");
-    if (deckView_) deckView_->rebuildGrid();
-    if (auto* active = composition_.getActiveDeck())
-        refreshPreviewFromActiveClip(*active);
-    fileLabel_.setText("Duplicated deck: " + copyName, juce::dontSendNotification);
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Swap);
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<InsertDeckCmd>(
+            makeCompositionResolver(), makeDeckFence(), makeClipMediaHook(), makeClipMediaDisposeHook(),
+            std::move(copy), "Duplicate Deck"));
+        pushCommands(std::move(children), "Duplicate Deck");
+    }
+    {
+        LoadTiming::Scope t(loadTiming_, LoadTiming::Ui);
+        if (deckView_) deckView_->rebuildGrid();
+        if (auto* active = composition_.getActiveDeck())
+            refreshPreviewFromActiveClip(*active);
+        fileLabel_.setText("Duplicated deck: " + copyName, juce::dontSendNotification);
+    }
+    loadTiming_.end();
 }
 
 // Remove ANY deck (a tab's menu names it; the Deck menu passes the active one).
@@ -3827,6 +3879,11 @@ void MainComponent::timerCallback()
     // plan5 C3: the hot-plug backstop, on EVERY tick (30 Hz) -- reconciles the outputs only when the display list
     // differs from the last one seen; otherwise a cached comparison, nothing else.
     outputs_.pollDisplays();
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929 asyncload (R9): CoreAudio's own processor-overload count (kAudioDeviceProcessorOverload), sampled here.
+    if (auto* dev = audioEngine_.getDeviceManager().getCurrentAudioDevice())
+        audioXruns_.store(dev->getXRunCount(), std::memory_order_relaxed);
+#endif
 
     // Update FPS/CPU labels at ~4Hz (every 8th call at 30Hz)
     if (++uiUpdateCounter_ >= 8)
@@ -5035,6 +5092,35 @@ juce::var MainComponent::mediaStateVar() const
     auto* obj = new juce::DynamicObject();
     obj->setProperty("presence_sweeps", presence_.sweeps());
     obj->setProperty("presence_changed", presence_.changes());
+    return juce::var(obj);
+}
+
+juce::var MainComponent::loadWitnessVar() const
+{
+    // s-rta-0929 asyncload: /api/state "load" (any thread). Commit 1 (measurement only): no load is staged yet -- the
+    // opener fields are 0 until MediaOpener lands; timing is the last load's cost split (LoadTiming).
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("opens_pending", 0);
+    obj->setProperty("open_batches", 0);
+    obj->setProperty("opens_stale", 0);
+    obj->setProperty("opens_failed", 0);
+    obj->setProperty("opens_dropped", 0);
+    obj->setProperty("staged", 0);
+    obj->setProperty("staged_players", 0);
+    obj->setProperty("queued", 0);
+    obj->setProperty("timing", loadTiming_.var());
+#if AUDIODNA_TEST_SERVER
+    // TEST-ONLY audio witnesses (plan R9): CoreAudio's overload count, the callback's inter-arrival gap (reset on read)
+    // and period, and the analysis ring's overruns.
+    auto& ae = const_cast<AudioEngine&>(audioEngine_);
+    obj->setProperty("audio_xruns", audioXruns_.load(std::memory_order_relaxed));
+    obj->setProperty("audio_callbacks", static_cast<juce::int64>(ae.audioCallbacks()));
+    obj->setProperty("audio_callback_gap_max_ms", ae.takeAudioGapMaxMs());
+    const double rate = ae.sourceSampleRateCell().load(std::memory_order_acquire);
+    const int period = ae.audioPeriodSamples();
+    obj->setProperty("audio_callback_period_ms", rate > 0.0 ? 1000.0 * period / rate : 0.0);
+    obj->setProperty("analysis_ring_overruns", static_cast<juce::int64>(ae.ringOverruns()));
+#endif
     return juce::var(obj);
 }
 

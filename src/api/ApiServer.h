@@ -166,6 +166,8 @@ public:
     void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
     // s-rta-0928b mediaopen: /api/state.media (MainComponent::mediaStateVar: atomics only). Set it BEFORE start().
     void setMediaStateProvider(std::function<juce::var()> provider) { mediaStateProvider_ = std::move(provider); }
+    // s-rta-0929 asyncload: /api/state.load (MainComponent::loadWitnessVar: atomics + a mutex-guarded copy). Before start().
+    void setLoadWitnessProvider(std::function<juce::var()> provider) { loadWitnessProvider_ = std::move(provider); }
 
     // s-rta-0928b mediaopen (TEST-ONLY route, AUDIODNA_BUILD_TEST_SERVER): POST /api/debug/drop_files {layer, column,
     // files[]} -- MainComponent hands the files to the handlers a Finder drop onto that cell reaches (ClipCell::classifyDrop,
@@ -181,6 +183,16 @@ public:
     std::function<void(bool on, int x, int y, const juce::String& kind)> onDebugUiTestMenu;
     std::function<void(bool on)> onDebugUiNativeFallback;
     std::function<void()> onDebugUiRepaintAll;
+
+    // s-rta-0929 asyncload (TEST-ONLY routes, AUDIODNA_BUILD_TEST_SERVER): GET /api/debug/ui_text answers the file label's
+    // text (read ON the message thread; the handler waits <= 2 s -- also a responsiveness witness); POST
+    // /api/debug/load_deck {path} = Load Deck... of that file (appendDeckFromFile); POST /api/debug/duplicate_deck {deck}
+    // = the tab menu's Duplicate; POST /api/debug/cancel_load cancels the staged load. The three POSTs are marshalled to
+    // the message thread and answer at once.
+    std::function<void(juce::File)> onDebugLoadDeck;
+    std::function<void(int deckIndex)> onDebugDuplicateDeck;
+    std::function<void()> onDebugCancelLoad;
+    std::function<juce::String()> onDebugUiText;
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
@@ -238,6 +250,11 @@ private:
     void handleDebugUiTestMenu(const httplib::Request& req, httplib::Response& res);
     void handleDebugUiNativeFallback(const httplib::Request& req, httplib::Response& res);
     void handleDebugUiRepaintAll(const httplib::Request& req, httplib::Response& res);
+    // s-rta-0929 asyncload (TEST-ONLY): see onDebugUiText / onDebugLoadDeck / onDebugDuplicateDeck / onDebugCancelLoad.
+    void handleDebugUiText(const httplib::Request& req, httplib::Response& res);
+    void handleDebugLoadDeck(const httplib::Request& req, httplib::Response& res);
+    void handleDebugDuplicateDeck(const httplib::Request& req, httplib::Response& res);
+    void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
 #endif
 
     // s-rta-0926 routines slice 1 -- /api/routine/*
@@ -264,6 +281,7 @@ private:
 
     std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
     std::function<juce::var()> mediaStateProvider_;     // set before start(); see setMediaStateProvider
+    std::function<juce::var()> loadWitnessProvider_;    // set before start(); see setLoadWitnessProvider
     int port_;
     // R6 (featurebus-thread-safety-design.md): production = not registered
     // (ctor flag from testMode_) so inject_features 404s outside test mode.

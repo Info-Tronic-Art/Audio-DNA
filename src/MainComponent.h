@@ -42,6 +42,7 @@
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
 #include "core/MediaPresence.h"
+#include "core/LoadTiming.h"
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
 #include "core/EffectScope.h"
@@ -403,6 +404,12 @@ private:
     // destroyed first (its timer stops, a sweep in flight lands on nobody).
     MediaPresenceSweeper presence_;
     juce::var mediaStateVar() const;   // /api/state "media" (any thread: atomics only)
+    // s-rta-0929 asyncload: /api/state "load" (any thread: atomics + LoadTiming's mutex-guarded copy); the last load's
+    // cost split (LoadTiming, written on the message thread by the three load paths); CoreAudio's processor-overload
+    // count sampled on the 30 Hz timer (TEST_SERVER builds; -1 = no device / not sampled yet).
+    juce::var loadWitnessVar() const;
+    LoadTiming loadTiming_;
+    std::atomic<int> audioXruns_{ -1 };
     std::unique_ptr<InspectorPanel> inspectorPanel_;
     std::unique_ptr<BrowserPanel> browserPanel_;
 

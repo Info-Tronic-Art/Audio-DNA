@@ -298,6 +298,12 @@ void ApiServer::setupRoutes()
     server_.Post("/api/debug/ui_test_menu", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiTestMenu(req, res); });
     server_.Post("/api/debug/ui_native_fallback", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiNativeFallback(req, res); });
     server_.Post("/api/debug/ui_repaint_all", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiRepaintAll(req, res); });
+    // s-rta-0929 asyncload (TEST-ONLY, same build path): the file label's text (read on the message thread), Load Deck /
+    // Duplicate Deck by REST, and a cancel of the staged load.
+    server_.Get("/api/debug/ui_text", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiText(req, res); });
+    server_.Post("/api/debug/load_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugLoadDeck(req, res); });
+    server_.Post("/api/debug/duplicate_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDuplicateDeck(req, res); });
+    server_.Post("/api/debug/cancel_load", [this](const httplib::Request& req, httplib::Response& res) { handleDebugCancelLoad(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -1400,6 +1406,9 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     // s-rta-0928b mediaopen: {presence_sweeps, presence_changed} (MediaPresence). Same field as TestServer.
     if (mediaStateProvider_)
         obj->setProperty("media", mediaStateProvider_());
+    // s-rta-0929 asyncload: the asynchronous-load witnesses (MainComponent::loadWitnessVar). Same field as TestServer.
+    if (loadWitnessProvider_)
+        obj->setProperty("load", loadWitnessProvider_());
 #if AUDIODNA_TEST_SERVER
     // s-rta-0928b mediaopen (TEST-ONLY): the message-thread heartbeat (POST /api/debug/heartbeat) -- the longest wait of
     // a ping since the previous read (resets on read; 0 while off).
@@ -1847,6 +1856,92 @@ void ApiServer::handleDebugUiRepaintAll(const httplib::Request&, httplib::Respon
         return;
     }
     juce::MessageManager::callAsync([this]() { onDebugUiRepaintAll(); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0929 asyncload (TEST-ONLY): the file label's text, read ON the message thread. The handler waits <= 2 s for the
+// answer (a frozen message thread answers {"ok":false,...} instead); the shared box outlives a late answer.
+void ApiServer::handleDebugUiText(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugUiText)
+    {
+        res.status = 503;
+        res.set_content(jsonError("ui_text not wired"), "application/json");
+        return;
+    }
+    struct Box { juce::WaitableEvent done; juce::String text; };
+    auto box = std::make_shared<Box>();
+    const bool posted = juce::MessageManager::callAsync([this, box]() {
+        box->text = onDebugUiText();
+        box->done.signal();
+    });
+    auto* obj = new juce::DynamicObject();
+    if (!posted || !box->done.wait(2000))
+    {
+        obj->setProperty("ok", false);
+        obj->setProperty("reason", "message thread did not answer within 2 s");
+    }
+    else
+    {
+        obj->setProperty("ok", true);
+        obj->setProperty("file_label", box->text);
+    }
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// s-rta-0929 asyncload (TEST-ONLY): {"path": "/abs/deck.json"} -> Load Deck... of that file (the library's Decks row).
+void ApiServer::handleDebugLoadDeck(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const juce::String path = json.getProperty("path", "").toString();
+    if (path.isEmpty() || !juce::File::isAbsolutePath(path) || !juce::File(path).existsAsFile())
+    {
+        res.status = 400;
+        res.set_content(jsonError("path (an existing absolute file) required"), "application/json");
+        return;
+    }
+    if (!onDebugLoadDeck)
+    {
+        res.status = 503;
+        res.set_content(jsonError("load_deck not wired"), "application/json");
+        return;
+    }
+    const juce::File f(path);
+    juce::MessageManager::callAsync([this, f]() { onDebugLoadDeck(f); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0929 asyncload (TEST-ONLY): {"deck": i} -> the deck tab menu's Duplicate of deck i.
+void ApiServer::handleDebugDuplicateDeck(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("deck"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("deck (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugDuplicateDeck)
+    {
+        res.status = 503;
+        res.set_content(jsonError("duplicate_deck not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json["deck"]);
+    juce::MessageManager::callAsync([this, deck]() { onDebugDuplicateDeck(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0929 asyncload (TEST-ONLY): cancel the staged load (MainComponent::cancelStagedOpen, Superseded).
+void ApiServer::handleDebugCancelLoad(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugCancelLoad)
+    {
+        res.status = 503;
+        res.set_content(jsonError("cancel_load not wired"), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this]() { onDebugCancelLoad(); });
     res.set_content(jsonOk(), "application/json");
 }
 #endif

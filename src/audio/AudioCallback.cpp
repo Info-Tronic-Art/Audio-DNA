@@ -41,7 +41,13 @@ void AudioCallback::audioDeviceIOCallbackWithContext(
         }
     }
 
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929 asyncload (TEST-ONLY): count a push the ring could not take whole (see ringOverruns).
+    if (ringBuffer_.push(dest, static_cast<size_t>(samplesToProcess)) < static_cast<size_t>(samplesToProcess))
+        overruns_.fetch_add(1, std::memory_order_relaxed);
+#else
     ringBuffer_.push(dest, static_cast<size_t>(samplesToProcess));
+#endif
 }
 
 void AudioCallback::audioDeviceAboutToStart(juce::AudioIODevice* device)
