@@ -19,7 +19,14 @@ a1 (INFO, s-rta-0929 g4cpu, plan-g4cpu 2.2 + adoption G3): a1.launches launches 
 Gate rows (PASS = window max median <= winMaxMedMs AND main-thread CPU <= cpuMainMsPerS, medians over `launches`):
   i1 card fixture (probe-routines.json), i2 many16 (4 layers x 4 Image clips over 16 PIL-made 3840x2160 JPEGs),
   g4 a loop routine playing on 3 layers at a manual 120 BPM (adoption I3): the window max only -- its main-thread CPU is
-  an INFO line, BEFORE (main, 5 more launches) vs AFTER (Harmony ruling J2). g1 (animation rates: waveform / signal-bar
+  an INFO line, BEFORE (main, 5 more launches) vs AFTER (Harmony ruling J2; s-rta-0929 g4cpu G11 keeps it INFO) -- plus
+  the routine's cadence (s-rta-0929 g4cpu, adoption addendum 2 G12: MISSED visual updates, never absolute paint rates):
+  (1) ROUTINES pad repaint REQUESTS/s median in g4.padRepaintsPerS (the fixture's sweep 90 px / 8 s + the bar digits =
+  ~11.75/s; a pad that repaints on progress01 reads ~29); (2) pad paints whose painted sweep moved / ticks whose painted
+  sweep pixel moved >= g4.minPadPaintRatio; (3) LayerStrip band paints / band change ticks (hairline width moved) >=
+  g4.minBandPaintRatio and V-fader paints / fader change ticks (the snapped value moved) >= g4.minFaderPaintRatio,
+  counts summed over the launches; the absolute paint rates print as INFO (a union sweep paints beyond the requests).
+  A build without the g4cpu counters FAILs the cadence line ("absent"). g1 (animation rates: waveform / signal-bar
   layer draws per s, TopBar paints per s, modes native, 0 fallbacks) and g3 (INFO: MainComponent paints/s, ClipInspector
   repaints/s) ride on i1's launches. g5 (REPORT-ONLY, I6): the card at a manual 120 BPM (beat wheel, bar display and
   beat-phase meters move) with the live input driving the waveform -- the panels' paint cost does not depend on the
@@ -778,6 +785,39 @@ def row_g5():
          f"{fmt(st.median(wm) if wm else None)} ms {['%.1f' % w for w in wm]}")
 
 
+def row_g4_cadence(runs):
+    """s-rta-0929 g4cpu (adoption addendum 2 G12): the routine's visual cadence on g4's launches -- missed visual updates,
+    not absolute paint rates. (1) pad repaint requests/s (the paint-key lever's direct effect); (2) the painted sweep
+    keeps up with the ticks whose sweep pixel moved; (3) band / V-fader paints keep up with their change ticks."""
+    if not runs:
+        return   # gate() already reported TAINTED / too few launches
+    g = CFG["g4"]
+    if "a1_routine_pad_repaints" not in runs[0] or "a1_layer_strip_fader_paints" not in runs[0]:
+        no("g4_routine cadence (G12): the g4cpu paint / change counters are absent from this build"); return
+    v = lambda k: [r["a1_" + k] for r in runs]
+    pad = st.median(v("routine_pad_repaints"))
+    lo, hi = g["padRepaintsPerS"]
+    (ok if lo <= pad <= hi else no)(
+        f"g4_routine cadence (G12-1): ROUTINES pad repaint requests/s median {pad:.1f} "
+        f"[{', '.join(f'{x:.1f}' for x in v('routine_pad_repaints'))}] in [{lo}, {hi}]")
+
+    def ratio(line, paints_k, ticks_k, minr):
+        paints, ticks = sum(v(paints_k)), sum(v(ticks_k))
+        rr = paints / ticks if ticks else 0.0
+        (ok if ticks > 0 and rr >= minr else no)(
+            f"g4_routine cadence ({line}): {paints_k} / {ticks_k} = {paints:.2f} / {ticks:.2f} per s summed over "
+            f"{len(runs)} launches = {rr:.3f} (>= {minr})")
+    ratio("G12-2", "routine_pad_sweep_paints", "routine_pad_sweep_ticks", g["minPadPaintRatio"])
+    ratio("G12-3 band", "layer_strip_band_paints", "layer_strip_band_repaints", g["minBandPaintRatio"])
+    ratio("G12-3 V fader", "layer_strip_fader_paints", "layer_strip_fader_repaints", g["minFaderPaintRatio"])
+    info("g4_routine paint rates/s (INFO, G12): pad paints (all 8 pads) "
+         + ", ".join(f"{x:.1f}" for x in v("routine_pad_paints"))
+         + " | band paints " + ", ".join(f"{x:.1f}" for x in v("layer_strip_band_paints"))
+         + " | V-fader paints " + ", ".join(f"{x:.1f}" for x in v("layer_strip_fader_paints"))
+         + " | sweep ticks " + ", ".join(f"{x:.2f}" for x in v("routine_pad_sweep_ticks"))
+         + " | fader change ticks " + ", ".join(f"{x:.1f}" for x in v("layer_strip_fader_repaints")))
+
+
 def row_x1():
     runs = run_arm("x1_within_build_off", APP, "card", int(CFG["x1"]["launches"]), env=("ADNA_UI_NATIVE_LAYERS=0",))
     if not runs:
@@ -1520,6 +1560,7 @@ for row in ROWS:
             info("g4_routine: band repaints/s " + ", ".join(f"{r['band_repaints']:.1f}" for r in runs)
                  + " | strip transport repaints/s " + ", ".join(f"{r['strip_repaints']:.1f}" for r in runs)
                  + " | MainComponent paints/s " + ", ".join(f"{r['main_paints']:.1f}" for r in runs))
+        row_g4_cadence(runs)
     elif row == "a1_attribution":
         row_a1()
     elif row == "g2_strip_playhead":

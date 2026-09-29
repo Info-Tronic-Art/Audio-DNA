@@ -9,7 +9,7 @@
   "cpuMainMsPerS": 150.0,
   "g1": { "layerDrawsPerS": [24.0, 36.0], "topBarPaintsPerS": [12.0, 26.0] },
   "g2": { "playingS": 5.0, "minTransportRepaints": 40, "idleMaxTransportRepaints": 2, "minPaintAdvanceRatio": 0.95 },
-  "g4": { "bpm": 120.0 },
+  "g4": { "bpm": 120.0, "comment": "s-rta-0929 g4cpu G12: cadence = missed visual updates (fixture constants: sweep 90 px / 8 s + digits = ~11.75 pad requests/s)", "padRepaintsPerS": [8.0, 16.0], "minPadPaintRatio": 0.95, "minBandPaintRatio": 0.95, "minFaderPaintRatio": 0.95 },
   "a1": { "launches": 3 },
   "x1": { "launches": 3 },
   "v": {
