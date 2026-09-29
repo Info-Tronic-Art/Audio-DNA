@@ -73,7 +73,7 @@ CFG = json.load(open(os.path.join(ROOT, ".harmony", "probe-idle-paint.json")))
 APP = os.environ["IDLEPAINT_APP"]
 APPB = os.environ.get("IDLEPAINT_APP_BEFORE", "")
 MEDIA = os.path.join(OUT, "media")
-N = int(CFG["launches"])
+N = int(os.environ.get("IDLEPAINT_LAUNCHES") or CFG["launches"])   # the env override is for A/B attribution runs only
 PASS = FAIL = SKIP = 0
 SUMMARY = {}
 S = requests.Session()
