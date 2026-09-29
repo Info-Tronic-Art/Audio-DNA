@@ -126,6 +126,14 @@ public:
     // s-rta-0928b video: the Renderer's counters (/api/state). nullptr = none (the default). Before start().
     void setStats(VideoStats* s) { stats_ = s; }
 
+    // s-rta-0929 vupload P4b (plan R-14): GL thread, the frame top (Renderer::scanVideoIdle). A shown player not drawn for
+    // kTrimIdleMs drops its Ready slots (the reader's) and asks its parked decode thread (the writer) to purge its Free
+    // ones (IOSurfaceSetPurgeable Empty; free() on the malloc path); the writer un-purges a slot when it next takes it.
+    // The held slot (the frame on screen) is never purged. Once per idle spell (a draw re-arms it).
+    void trimIfIdle(int64_t nowMs);
+    static constexpr int64_t kTrimIdleMs = 1000;
+    static int64_t nowMs();
+
     // s-rta-0929 vupload P3: how a new frame reaches texture_. Blit = the ring slots are IOSurfaces (BGRA), each bound once
     // to a GL_TEXTURE_RECTANGLE read FBO; one glBlitFramebuffer into texture_, fenced (macOS). Client = IOSurface slots,
     // uploaded with glTexSubImage2D (a player whose blit setup failed). Malloc = malloc'd RGBA slots + glTexSubImage2D
@@ -178,6 +186,13 @@ private:
     std::array<void*, kSlots> fence_{};
     GLuint dstFbo_ = 0;
     unsigned (*fenceWaitOverride_)(void*) = nullptr;   // ctest seam (a GL_WAIT_FAILED fence); nullptr = glClientWaitSync
+    // P4b: the idle trim. trimmed_ (GL thread) = this idle spell is trimmed; trimRequested_ (GL -> decode thread) = purge
+    // the Free slots; purged_ (decode thread only: only the writer leaves Free); rebind_ (decode -> GL thread, set before
+    // the slot's publish): the slot was un-purged -- re-run CGLTexImageIOSurface2D before its next blit (adoption VU1).
+    bool trimmed_ = false;
+    std::atomic<bool> trimRequested_{ false };
+    std::array<bool, kSlots> purged_{};
+    std::array<std::atomic<bool>, kSlots> rebind_{};
 
     // GL texture + GL-thread-only picking state
     GLuint texture_ = 0;
@@ -267,7 +282,8 @@ private:
     void ensureTexture();                                          // texture_ as GL_RGBA8 w x h, no data
     void fallBack(const char* why);                                // Blit -> Client (once per player, counted)
     void pollFences();                                             // P3: signaled blits give their slot back
+    void purgeFreeSlots();                                         // P4b: decode thread -- purge the Free slots
+    bool unpurge(int slot);                                        // P4b: decode thread, after acquireWrite
     void freeFfmpeg();                                             // idempotent
     void makeThumbnail();                                          // open(): the first frame -> <= 90x72
-    static int64_t nowMs();
 };

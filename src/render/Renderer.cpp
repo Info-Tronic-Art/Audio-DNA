@@ -339,6 +339,7 @@ void Renderer::renderOpenGL()
     drainRetiredMedia();
     // s-rta-0928b seqvram: the image sequences' texture bytes, every frame, before any early return.
     scanSequenceVram();
+    scanVideoIdle();   // s-rta-0929 vupload P4b: idle players drop their ready frames and purge their free slots
 
     // Handle pending image load or clear (from message thread). s-rta-0928 R1.3: O(1) -- the decode runs off the GL
     // thread and only when a frame needs the legacy image (resolveLegacy below).
@@ -1710,6 +1711,14 @@ void Renderer::scanSequenceVram()
     seqStats_.residentSlots.store(slots + seqRetiredSlots_, std::memory_order_relaxed);
     seqStats_.openCount.store(open, std::memory_order_relaxed);
     seqStats_.overBudget.store(total > SeqVram::kBudgetBytes ? 1 : 0, std::memory_order_relaxed);
+}
+
+void Renderer::scanVideoIdle()
+{
+    const int64_t now = VideoPlayer::nowMs();
+    std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    for (auto& [id, player] : videoPlayers_)
+        player->trimIfIdle(now);
 }
 
 void Renderer::noteMsgVideoLockWait(std::chrono::steady_clock::time_point waitStart)

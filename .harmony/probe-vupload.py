@@ -29,8 +29,9 @@ u4a_context_cycle: 1080p canvas, 4 x a1080 layers -- layer 0 (bottom) at "speed"
   steady window s2 -> s3 == 0 (the late frames across a cycle -- the stalled frames while every shader recompiles -- are
   printed as INFO); (f) VU11: gl_thread_qos == 33 after the cycles (the QoS is re-applied by every new context).
 u4b_idle_ring_trim: 4K canvas, deck 0 = 4 x a4k, deck 1 = warm.png; trigger_column; 3 s; s0 (8080 phys_footprint_mb,
-  `ps -o rss=` of the app, video_slots_purged); switch_deck 1; trimWaitS; s1; switch_deck 0; settle_late; s2; cap; a 5 s
-  window; s3. PASS (a) video_slots_purged delta s0 -> s1 == 8 (4 players x the 2 slots that are not the shown one); (b)
+  `ps -o rss=` of the app, video_slots_purged); switch_deck 1; trimWaitS; s1; switch_deck 0; (the return) s2; cap; a 5 s
+  window; s3 (the return: settle_late, returnSettleS more, settle_late again -- four 4K catch-ups end at different
+  times, and the first 200 ms lull of settle_late alone is not steady state). PASS (a) video_slots_purged delta s0 -> s1 == 8 (4 players x the 2 slots that are not the shown one); (b)
   phys_footprint OR rss dropped by >= trimDropMinMb (4 x 2 x 33.2 MB = 265 expected; both printed); (c) after the return
   video_pending_frames +0, video_hold_no_texture +0 (s0 -> s3) and the top layer's code within its bracket (the un-purged
   slots carry a correct picture); (d) video_slots_purged does not grow while the deck is on screen (s2 -> s3 == 0);
@@ -189,7 +190,8 @@ def u4b(tag):
     s0 = pv.state(); t0 = tstate(); r0 = app_rss_mb()
     pv.switch(1); time.sleep(float(VU["trimWaitS"]))
     s1 = pv.state(); t1 = tstate(); r1 = app_rss_mb()
-    pv.switch(0); pv.settle_late(); s2 = pv.state()
+    pv.switch(0); pv.settle_late(); sr = pv.state()
+    time.sleep(float(VU["returnSettleS"])); pv.settle_late(); s2 = pv.state()   # 4 x 4K catch-ups end at different times
     f, pb, pa = pv.cap_bracket(tag, 3)
     time.sleep(5.0); s3 = pv.state()
     pur = pv.delta(tag, s0, s1, "video_slots_purged")
@@ -197,9 +199,11 @@ def u4b(tag):
     dfp = None if fp0 is None or fp1 is None else round(fp0 - fp1, 1)
     drss = None if r0 is None or r1 is None else round(r0 - r1, 1)
     print(f"      {tag}: slots purged {pur}, phys_footprint {fp0} -> {fp1} MB (drop {dfp}), rss {r0 and round(r0)} -> "
-          f"{r1 and round(r1)} MB (drop {drss}), late on return (INFO, w4's bounded hold) {pv.dz(s1, s2, 'video_late_frames')}, "
+          f"{r1 and round(r1)} MB (drop {drss}), late on return (INFO, w4's bounded hold) {pv.dz(s1, sr, 'video_late_frames')} "
+          f"+ {pv.dz(sr, s2, 'video_late_frames')} in the next {VU['returnSettleS']} s, "
           f"{pv.la()}", flush=True)
-    pv.data(tag, purged=pur, footprint_drop=dfp, rss_drop=drss, late_return=pv.dz(s1, s2, "video_late_frames"))
+    pv.data(tag, purged=pur, footprint_drop=dfp, rss_drop=drss, late_return=pv.dz(s1, sr, "video_late_frames"),
+            late_return_tail=pv.dz(sr, s2, "video_late_frames"), late_steady=pv.dz(s2, s3, "video_late_frames"))
     if pur is not None:
         check(pur == 8, f"{tag}: (a) video_slots_purged delta {pur} == 8 (4 players x 2 free slots; the shown one is kept)")
     lim = float(VU["trimDropMinMb"])

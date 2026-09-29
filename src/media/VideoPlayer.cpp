@@ -436,6 +436,7 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
     if (firstDrawMs_ < 0)
         firstDrawMs_ = nowMs();   // W3: the first draw request starts the first-frame timeout
     pollFences();   // P3: a slot whose blit has completed goes back to the writer (the held one stays)
+    trimmed_ = false;   // P4b: drawn again -- the next idle spell trims again
 
     // s-rta-0929 vupload P1: the per-frame upload budget is asked BEFORE the pick (peek: no state change), so a refused
     // player leaves the ring exactly as it was and HOLDS its shown frame -- never pending, never late (R-4, R-6). Exempt
@@ -676,6 +677,11 @@ void VideoPlayer::decodeLoop()
 
     while (!thread_.threadShouldExit())
     {
+        // s-rta-0929 vupload P4b: the GL thread trimmed this idle player -- the writer purges its Free slots (and parks
+        // again below). Before the idle check: trimIfIdle notifies a parked thread for exactly this.
+        if (trimRequested_.exchange(false, std::memory_order_acq_rel))
+            purgeFreeSlots();
+
         // Rule 15: a player that is not drawn (its deck off screen) decodes nothing.
         if (VideoRing::idleStep(nowMs(), lastDrawMs_.load(std::memory_order_acquire), pol) == VideoRing::Idle::Park)
         {
@@ -750,6 +756,11 @@ void VideoPlayer::onDecoded(uint32_t gen, const VideoRing::Policy& pol)
             == VideoRing::Step::Reseek)
             return;   // the clock moved away (reverse play): the top of the loop re-seeks
         thread_.wait(20);
+    }
+    if (!unpurge(s))   // P4b: a purged slot back in use (malloc path: the allocation failed -- drop this frame)
+    {
+        ring_.abandon(s);
+        return;
     }
     convertInto(s);
     ring_.publish(s, pts, gen, ++seq_);
@@ -952,6 +963,23 @@ bool VideoPlayer::blitSlot(int slot)
         glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(prevRead));
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(prevDraw));
     };
+    const bool rebind = rebind_[i].exchange(false, std::memory_order_acq_rel);   // P4b / VU1: un-purged since
+    if (rectTex_[i] != 0 && rebind)
+    {
+        // The slot's IOSurface was purged (Empty) and made non-volatile again by the writer: re-specify the rectangle
+        // texture on it (the default path, not a fallback -- the binding's page state after a purge is not relied on).
+        glBindTexture(GL_TEXTURE_RECTANGLE, rectTex_[i]);
+        const CGLError err = CGLTexImageIOSurface2D(CGLGetCurrentContext(), GL_TEXTURE_RECTANGLE, GL_RGBA8, width_, height_,
+                                                    GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV,
+                                                    static_cast<IOSurfaceRef>(surf_[i]), 0);
+        glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+        if (err != kCGLNoError)
+        {
+            restore();
+            fallBack(("CGLTexImageIOSurface2D (re-bind) error " + std::to_string(static_cast<int>(err))).c_str());
+            return false;
+        }
+    }
     if (rectTex_[i] == 0)
     {
         // Once per slot per context: a rectangle texture on the slot's IOSurface (the storage IS the surface: CPU
@@ -1036,4 +1064,68 @@ void VideoPlayer::pollFences()
             releasedThisFrame_ = true;
         }
     }
+}
+
+// ---- s-rta-0929 vupload P4b: the idle ring trim (plan-vupload.md R-14; two owners by construction) ----
+
+void VideoPlayer::trimIfIdle(int64_t now)
+{
+    // GL thread (the reader): drops the Ready slots (only the reader leaves Ready) and asks the writer to purge the Free
+    // ones. Idle = no draw for kTrimIdleMs (the thread parks at 250 ms; a crossfade's outgoing skip or a fenced frame's
+    // hold is 1-3 frames, never idle). The held slot stays Reading: never purged.
+    if (trimmed_ || !shown_.everShown || !open_.load(std::memory_order_relaxed)
+        || now - lastDrawMs_.load(std::memory_order_acquire) <= kTrimIdleMs)
+        return;
+    pollFences();
+    ring_.dropReady();
+    trimmed_ = true;
+    trimRequested_.store(true, std::memory_order_release);
+    thread_.notify();
+}
+
+void VideoPlayer::purgeFreeSlots()
+{
+    // Decode thread (the writer): only the writer leaves Free, so a Free slot seen here stays Free while it is purged.
+    for (size_t i = 0; i < purged_.size(); ++i)
+    {
+        if (purged_[i]
+            || ring_.header(static_cast<int>(i)).state.load(std::memory_order_acquire)
+                   != static_cast<uint8_t>(VideoRing::SlotState::Free))
+            continue;
+#if JUCE_MAC
+        if (surf_[i] != nullptr)
+            IOSurfaceSetPurgeable(static_cast<IOSurfaceRef>(surf_[i]), kIOSurfacePurgeableEmpty, nullptr);
+        else
+#endif
+        {
+            std::free(slotBytes_[i]);
+            slotBytes_[i] = nullptr;
+        }
+        purged_[i] = true;
+        if (stats_ != nullptr)
+            ++stats_->slotsPurged;
+    }
+}
+
+bool VideoPlayer::unpurge(int slot)
+{
+    // Decode thread, the slot just taken (Writing): back to non-volatile memory BEFORE it is written; the GL thread
+    // re-binds its rectangle texture before the next blit (rebind_, published with the slot's Ready store).
+    const auto i = static_cast<size_t>(slot);
+    if (!purged_[i])
+        return true;
+#if JUCE_MAC
+    if (surf_[i] != nullptr)
+    {
+        IOSurfaceSetPurgeable(static_cast<IOSurfaceRef>(surf_[i]), kIOSurfacePurgeableNonVolatile, nullptr);
+        rebind_[i].store(true, std::memory_order_release);
+        purged_[i] = false;
+        return true;
+    }
+#endif
+    slotBytes_[i] = static_cast<uint8_t*>(std::malloc(static_cast<size_t>(rowBytes_) * static_cast<size_t>(height_)));
+    if (slotBytes_[i] == nullptr)
+        return false;
+    purged_[i] = false;
+    return true;
 }

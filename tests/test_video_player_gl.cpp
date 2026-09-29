@@ -12,7 +12,9 @@
 // every GL handle (VU3). (3) the blit fence: a signaled fence of the held slot is deleted without releasing it; an
 // injected GL_WAIT_FAILED releases a non-held slot and counts video_fence_failed (VU2). (4) the budget: a player over
 // its cap HOLDS (the frame stays Ready) and is force-admitted at its defer bound; the first frame, the post-release
-// re-upload and the first frame after a seek are exempt (VU8).
+// re-upload and the first frame after a seek are exempt (VU8). (5) the idle purge round trip (VU1): the free slots are
+// purged, the held one is not; an un-purged slot is re-bound and a new picture written into it reads back exactly; a
+// previously blitted slot re-written reads back its new picture.
 #include <catch2/catch_test_macros.hpp>
 
 #include "media/VideoPlayer.h"
@@ -53,14 +55,17 @@ struct VideoPlayerTestAccess
     static GLuint rectTex(const VideoPlayer& p, int i) { return p.rectTex_[static_cast<size_t>(i)]; }
     static GLuint dstFbo(const VideoPlayer& p) { return p.dstFbo_; }
     static bool fenced(const VideoPlayer& p, int i) { return p.fence_[static_cast<size_t>(i)] != nullptr; }
+    static bool purged(const VideoPlayer& p, int i) { return p.purged_[static_cast<size_t>(i)]; }
     static void setFenceWait(VideoPlayer& p, unsigned (*fn)(void*)) { p.fenceWaitOverride_ = fn; }
+    static void purgeFreeSlots(VideoPlayer& p) { p.purgeFreeSlots(); }
 
-    // Writer: take a Free slot, write `rgba` (top-down, w x h) into it bottom-up in the path's byte order,
+    // Writer: take a Free slot, un-purge it, write `rgba` (top-down, w x h) into it bottom-up in the path's byte order,
     // publish it at `pts` in the CURRENT request generation. Returns the slot.
     static int writeFrame(VideoPlayer& p, const Pixels& rgba, double pts)
     {
         const int s = p.ring_.acquireWrite();
         REQUIRE(s >= 0);
+        REQUIRE(p.unpurge(s));
         const bool bgra = p.path_ != VideoPlayer::UploadPath::Malloc;
         uint8_t* base = p.slotBytes_[static_cast<size_t>(s)];
         if (bgra)
@@ -379,4 +384,58 @@ TEST_CASE("(4) the budget: over the cap a player HOLDS (its frame stays Ready) u
     CHECK(maxDiff(readTexture(t3, 64, 64), p3) <= 1);
     CHECK(stats.uploadsDeferred.load() == 2);
     v.releaseGL();
+}
+
+TEST_CASE("(5) the idle purge round trip: free slots purged, the held one kept; an un-purged slot is re-bound and shows its new picture (VU1)",
+          "[video_player_gl][s-rta-0929]")
+{
+    if (!glReady())
+        return;
+    for (Path path : { Path::Blit, Path::Malloc })
+    {
+        INFO("the " << pathName(path) << " path");
+        VideoStats stats;
+        VideoPlayer v;
+        v.setStats(&stats);
+        VideoPlayerTestAccess::forcePath(v, path);
+        REQUIRE(v.open(fixture("video_h264_64x64.mp4")));
+        bool pending = true;
+        REQUIRE(upload(v, pending) != 0);
+        const int held = VideoPlayerTestAccess::held(v);
+        glFinish();
+        upload(v, pending);                                  // the held slot's fence polled away
+        VideoPlayerTestAccess::writeFrame(v, pattern(64, 64, 5), 10.0);   // a future frame: Ready, never picked
+        REQUIRE(VideoPlayerTestAccess::readyCount(v) == 1);
+        v.trimIfIdle(VideoPlayer::nowMs() + 2 * VideoPlayer::kTrimIdleMs);
+        CHECK(VideoPlayerTestAccess::readyCount(v) == 0);   // the reader dropped its Ready slots
+        VideoPlayerTestAccess::purgeFreeSlots(v);            // the test is the writer (the parked decode thread's job)
+        CHECK(stats.slotsPurged.load() == 2);
+        CHECK_FALSE(VideoPlayerTestAccess::purged(v, held));
+        CHECK(VideoPlayerTestAccess::state(v, held) == VideoRing::SlotState::Reading);
+        VideoPlayerTestAccess::purgeFreeSlots(v);            // idempotent
+        CHECK(stats.slotsPurged.load() == 2);
+
+        const Pixels pa = pattern(64, 64, 3);
+        const int sa = VideoPlayerTestAccess::writeFrame(v, pa, 0.0);   // un-purge (re-bind) + write + publish
+        CHECK_FALSE(VideoPlayerTestAccess::purged(v, sa));
+        const GLuint ta = upload(v, pending);
+        CHECK(VideoPlayerTestAccess::held(v) == sa);
+        CHECK(maxDiff(readTexture(ta, 64, 64), pa) <= 1);
+
+        glFinish();
+        upload(v, pending);                                  // the old held slot (frame 0, blitted before) is free now
+        REQUIRE(VideoPlayerTestAccess::state(v, held) == VideoRing::SlotState::Free);
+        const Pixels pb = pattern(64, 64, 4);
+        int sb = -1;
+        for (int tries = 0; tries < 3 && sb != held; ++tries)   // write until the previously blitted slot is reused
+        {
+            sb = VideoPlayerTestAccess::writeFrame(v, pb, 0.0);
+            const GLuint tb = upload(v, pending);
+            CHECK(maxDiff(readTexture(tb, 64, 64), pb) <= 1);
+            glFinish();
+            upload(v, pending);
+        }
+        CHECK(sb == held);
+        v.releaseGL();
+    }
 }

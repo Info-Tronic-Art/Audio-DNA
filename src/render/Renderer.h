@@ -313,6 +313,9 @@ private:
     uint64_t seqFrameSerial_ = 0;
     size_t seqResidentTotal_ = 0;
     void scanSequenceVram();
+    // s-rta-0929 vupload P4b: every player's idle trim (VideoPlayer::trimIfIdle), at the frame top -- one more O(#players)
+    // critical section on videoPlayerMutex_ (the lookup mutex; w7 (a) gates the message thread's wait on it).
+    void scanVideoIdle();
     // Fix round F2: the frame's glDeleteTextures budget (SeqVram::kMaxDeletesPerFrame), reset at the frame top and
     // SHARED by the retire drain, the idle trim and every drawn sequence's shrink; the retired sequences' textures not
     // deleted yet (drainRetiredMedia) are reported with the live ones.
