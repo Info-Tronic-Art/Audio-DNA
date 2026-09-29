@@ -194,15 +194,30 @@ inline Idle idleStep(int64_t nowMs, int64_t lastDrawMs, const Policy& p)
 }
 
 // ---- the GL thread's verdict when uploadToTexture picks nothing ----
-enum class Shown : uint8_t { New, Held, Late, Pending };
+// Failed (ADDENDUM W3): never shown and never going to be -- "no media" (texture 0, NOT pending), like a failed image.
+enum class Shown : uint8_t { New, Held, Late, Pending, Failed };
 
-inline Shown judge(bool picked, bool shownBefore, bool playing, double clock, double lastShownPts, double frameDur)
+inline Shown judge(bool picked, bool shownBefore, bool playing, double clock, double lastShownPts, double frameDur,
+                   bool failed = false)
 {
     if (picked)
         return Shown::New;
     if (!shownBefore)
-        return Shown::Pending;
+        return failed ? Shown::Failed : Shown::Pending;
     return (playing && std::fabs(clock - lastShownPts) > 1.5 * frameDur) ? Shown::Late : Shown::Held;
+}
+
+// ADDENDUM W3: a player that has never shown a frame is FAILED -- not pending, so C1 never waits on it and the
+// render_frame gate does not hang -- once its decode thread gave up before any frame (a decode error, or EOF), or when no
+// frame arrived within kFirstFrameTimeoutMs of its first draw request (firstDrawMs < 0 = never drawn: no clock runs yet).
+// A player that has shown a frame is never failed (a hold); a frame that lands after the verdict still shows (judge: New).
+constexpr int64_t kFirstFrameTimeoutMs = 2000;
+inline bool firstFrameFailed(bool shownBefore, bool gaveUp, int64_t firstDrawMs, int64_t nowMs,
+                             int64_t timeoutMs = kFirstFrameTimeoutMs)
+{
+    if (shownBefore)
+        return false;
+    return gaveUp || (firstDrawMs >= 0 && nowMs - firstDrawMs >= timeoutMs);
 }
 
 // V1 (HARMONY ADOPTION): "shown before" is a flag set on the first upload and NEVER cleared by a GL release (context

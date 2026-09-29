@@ -186,12 +186,13 @@ bool VideoPlayer::open(const juce::File& file)
     // Decode the first frame into slot 0 (gen 0) and make the thumbnail from it: a fresh trigger without a seek is
     // never pending. Its pts is clamped to <= 0 so it is current from clock 0 (a stream whose first pts is a frame
     // or two late would otherwise wait for its own clock). A failed first decode publishes nothing: the player is
-    // pending until the decode thread lands a frame.
+    // pending until the decode thread lands a frame -- or FAILED (W3) when it cannot (uploadToTexture).
     currentTime_ = 0.0;
     playheadPosition_.store(0.0, std::memory_order_relaxed);
     double thumbMs = 0.0;
     if (decodeNextFrame())
     {
+        everDecoded_ = true;
         const double pts0 = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_ : 0.0;
         const int s = ring_.acquireWrite();
         convertInto(s);
@@ -388,6 +389,8 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
         *pending = false;
     if (!open_.load(std::memory_order_relaxed))
         return texture_;   // hold after close, as before
+    if (firstDrawMs_ < 0)
+        firstDrawMs_ = nowMs();   // W3: the first draw request starts the first-frame timeout
 
     // Frames the clock moved away from (reverse / ping-pong) are freed once they are more than a ring's worth of
     // frames ahead: forward play never gets that far ahead, and they would otherwise keep the writer out.
@@ -436,8 +439,19 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
         return texture_;
     }
 
+    // W3: never shown -> FAILED once the decode thread gave up before any frame or the first frame is overdue.
+    if (!shown_.everShown)
+    {
+        const bool gaveUp = firstFrameGaveUp_.load(std::memory_order_acquire);
+        const bool failed = VideoRing::firstFrameFailed(false, gaveUp, firstDrawMs_, nowMs());
+        if (failed && !firstFrameFailed_ && !gaveUp)
+            std::cerr << "[VideoPlayer] No first frame within " << VideoRing::kFirstFrameTimeoutMs
+                      << " ms of the first draw: " << sourceFile_.getFullPathName() << " -- no media" << std::endl;
+        firstFrameFailed_ = failed;
+    }
+
     switch (VideoRing::judge(false, shown_.everShown, playing_.load(std::memory_order_relaxed), currentTime_,
-                             lastShownPts_, frameDur_))
+                             lastShownPts_, frameDur_, firstFrameFailed_))
     {
         case VideoRing::Shown::Late:
             if (stats_) { ++stats_->holdFrames; ++stats_->lateFrames; }
@@ -447,6 +461,8 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
             if (pending != nullptr)
                 *pending = true;
             return 0;
+        case VideoRing::Shown::Failed:
+            return 0;   // W3: no media (*pending stays false) -- a crossfade onto it runs, render_frame answers
         case VideoRing::Shown::Held:
         case VideoRing::Shown::New:
             if (stats_) ++stats_->holdFrames;
@@ -515,6 +531,16 @@ void VideoPlayer::makeThumbnail()
     thumbnail_ = img;
 }
 
+void VideoPlayer::noteNoFirstFrame(const char* why)
+{
+    // W3: only before ANY frame of this file decoded; once. uploadToTexture turns the player FAILED ("no media").
+    if (everDecoded_ || firstFrameGaveUp_.load(std::memory_order_relaxed))
+        return;
+    firstFrameGaveUp_.store(true, std::memory_order_release);
+    std::cerr << "[VideoPlayer] No first frame (" << why << " before any frame): " << sourceFile_.getFullPathName()
+              << " -- no media" << std::endl;
+}
+
 void VideoPlayer::park()
 {
     if (stats_) --stats_->threadsAwake;
@@ -557,12 +583,16 @@ void VideoPlayer::decodeLoop()
         if (!decodeNextFrame())
         {
             if (!atEof_)
+            {
+                noteNoFirstFrame("a decode error");   // W3: before any frame -> FAILED
                 continue;               // a decode error: the next packet
+            }
             if (!drained_)
             {
                 drainDecoder(g, pol);   // EOF: the last frames frame-threading held back now show
                 continue;
             }
+            noteNoFirstFrame("EOF");    // W3: drained and still no frame -> FAILED
             thread_.wait(20);           // EOF: the Loop wrap's generation bump (or a seek) re-seeks
             continue;
         }
@@ -580,6 +610,7 @@ void VideoPlayer::onDecoded(uint32_t gen, const VideoRing::Policy& pol)
                                                : wantTime_.load(std::memory_order_acquire);
     lastDecodedPts_ = pts;
     haveDecoded_ = true;
+    everDecoded_ = true;
     if (stats_) ++stats_->framesDecoded;
 
     // A catch-up chases the moving clock: frames behind it are dropped without a conversion.

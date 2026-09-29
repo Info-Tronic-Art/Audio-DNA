@@ -193,6 +193,33 @@ TEST_CASE("V1: a GL release (context loss) keeps 'shown before' -- a hold stays 
     CHECK(VideoRing::judge(false, s.everShown, true, 1.0, 0.5, kFd) == Shown::Late);
 }
 
+TEST_CASE("W3: a player whose first frame never decodes is FAILED -- no media, not pending", "[video_ring][s-rta-0928b]")
+{
+    using VideoRing::Shown;
+    using VideoRing::firstFrameFailed;
+    REQUIRE(VideoRing::kFirstFrameTimeoutMs == 2000);
+    // The decode thread gave up (EOF or a decode error before any frame): FAILED at once -- no media, never Pending.
+    CHECK(firstFrameFailed(false, true, 10'000, 10'001));
+    CHECK(firstFrameFailed(false, true, -1, 10'000));
+    CHECK(VideoRing::judge(false, false, true, 1.0, -1.0, kFd, firstFrameFailed(false, true, 10'000, 10'001))
+          == Shown::Failed);
+    // No verdict from the thread: Pending until kFirstFrameTimeoutMs after the first draw request, then FAILED.
+    CHECK_FALSE(firstFrameFailed(false, false, 10'000, 11'999));
+    CHECK(VideoRing::judge(false, false, true, 1.0, -1.0, kFd, firstFrameFailed(false, false, 10'000, 11'999))
+          == Shown::Pending);
+    CHECK(firstFrameFailed(false, false, 10'000, 12'000));
+    CHECK(VideoRing::judge(false, false, false, 0.0, -1.0, kFd, firstFrameFailed(false, false, 10'000, 12'000))
+          == Shown::Failed);   // paused too
+    // Never drawn: no timeout runs (a player on an off-screen deck is not failed by the clock).
+    CHECK_FALSE(firstFrameFailed(false, false, -1, 1'000'000));
+    // Shown before: never FAILED -- a hold stays Held / Late, whatever the thread reports later.
+    CHECK_FALSE(firstFrameFailed(true, true, 10'000, 99'000));
+    CHECK(VideoRing::judge(false, true, true, 1.0, 1.0 - 0.5 * kFd, kFd, true) == Shown::Held);
+    CHECK(VideoRing::judge(false, true, true, 1.0, 0.5, kFd, true) == Shown::Late);
+    // A frame that lands after the verdict still shows.
+    CHECK(VideoRing::judge(true, false, true, 1.0, -1.0, kFd, true) == Shown::New);
+}
+
 TEST_CASE("V2: the idle rule parks the decode thread 250 ms after the last draw, ring full or not", "[video_ring][s-rta-0928b]")
 {
     const VideoRing::Policy p;

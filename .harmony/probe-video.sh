@@ -3,7 +3,8 @@
 # Live witness that video decodes OFF the GL render thread: steady 4 x 1080p / ProRes playback at >= 110 fps (4 x 4K:
 # >= 80 and within 30 of the same launch's 4 x 4K stills -- ADDENDUM W1) with no avcodec call on the render thread and one
 # upload per content frame; a mid-GOP retrigger / deck return / retrigger mid-fade holds the last shown frame (never
-# black, never keyframe + 29) instead of freezing the whole output; decode threads park off screen; the message thread
+# black, never keyframe + 29) instead of freezing the whole output; a video whose first frame never decodes is FAILED, not
+# pending (a fade onto it completes, render_frame answers -- W3); decode threads park off screen; the message thread
 # never waits on a decode; frame accuracy survives the ring.
 # Rows, fixtures and calibration: the docstring of .harmony/probe-video.py (REST on 7070, every PNG decoded with
 # PIL+numpy); thresholds: .harmony/probe-video.json. Fixtures (ffmpeg, nice'd, -threads 2) are encoded per run into

@@ -102,12 +102,14 @@ public:
 
     // Pick the newest ring frame with pts <= the clock (+ half a frame) of the current request generation and upload
     // it when it is new (glTexImage2D once, then glTexSubImage2D). Nothing picked: the texture of the last shown frame
-    // (a HOLD; *pending = false), or 0 with *pending = true when this player has never shown a frame. Never waits.
-    // Must be called on the GL thread.
+    // (a HOLD; *pending = false), or 0 with *pending = true when this player has never shown a frame -- unless its first
+    // frame FAILED (ADDENDUM W3: the decode thread gave up before any frame, or none came within kFirstFrameTimeoutMs
+    // of the first call): then 0 with *pending = false, "no media". Never waits. Must be called on the GL thread.
     GLuint uploadToTexture(bool* pending);
 
-    // GL thread: no frame uploaded yet (the C1 crossfade pause provider). A GL release does not make it true again.
-    bool neverShown() const { return open_.load(std::memory_order_relaxed) && !shown_.everShown; }
+    // GL thread: no frame uploaded yet and not FAILED (the C1 crossfade pause provider). A GL release does not make it
+    // true again.
+    bool neverShown() const { return open_.load(std::memory_order_relaxed) && !shown_.everShown && !firstFrameFailed_; }
 
     // Release the GL texture. Call from openGLContextClosing() / drainRetiredMedia() (GL thread).
     void releaseGL();
@@ -155,6 +157,8 @@ private:
     bool textureCreated_ = false;
     VideoRing::ShownState shown_;      // V1: everShown survives releaseGL
     double lastShownPts_ = -1.0;
+    int64_t firstDrawMs_ = -1;         // W3: the first uploadToTexture call (-1 = never drawn)
+    bool firstFrameFailed_ = false;    // W3: VideoRing::firstFrameFailed, re-judged while nothing has been shown
     bool releasedThisFrame_ = false;
     bool discontinuity_ = false;       // a Loop wrap inside advanceTransport (-> a generation bump)
 
@@ -176,6 +180,9 @@ private:
     std::atomic<uint32_t> gen_{0};
     std::atomic<int64_t> lastDrawMs_{0};
 
+    // decode thread -> GL thread (W3): the decode thread reached EOF, or a decode error, before any frame decoded.
+    std::atomic<bool> firstFrameGaveUp_{false};
+
     // Current transport position in seconds (GL thread)
     double currentTime_ = 0.0;
     bool pingPongForward_ = true;
@@ -189,6 +196,7 @@ private:
     uint64_t seq_ = 0;
     bool drained_ = false;
     bool atEof_ = false;               // decodeNextFrame() stopped at the end of the stream (not a decode error)
+    bool everDecoded_ = false;         // a frame of this file ever decoded (open()'s frame 0 included) -- W3
 
     juce::Image thumbnail_;            // made in open() (message thread)
 
@@ -216,6 +224,7 @@ private:
     void onDecoded(uint32_t gen, const VideoRing::Policy& pol);   // drop, or convert into a slot and publish
     void drainDecoder(uint32_t gen, const VideoRing::Policy& pol); // EOF: the frames frame-threading held back
     void park();                                                   // wait until notified (threadsAwake accounting)
+    void noteNoFirstFrame(const char* why);                        // W3: EOF / a decode error before any frame
     bool seekToTimestamp(double timeSec);
     bool decodeNextFrame();
     void convertInto(int slot);                                    // sws_scale bottom-up (negative stride) into a slot

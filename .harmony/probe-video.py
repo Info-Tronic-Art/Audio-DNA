@@ -5,13 +5,13 @@ The .sh owns launch / refuse / quit; this file encodes the fixtures (--make-fixt
 talks to the running app on 7070 (production mode). Every captured PNG is decoded with PIL+numpy; every render_frame
 response is checked; the output dir is fresh per run. Plan: .harmony/.reports/s-rta-0928b/plan-video.md section 4.6
 + its HARMONY ADOPTION (V2 -> w4b, V4 -> w6b, V5 -> NONREF on/off tables) and ADDENDUM (W1 -> w2 (a)/(a2), W2 -> the
-50 ms fps polls and w1's 5 runs).
+50 ms fps polls and w1's 5 runs, W3 -> w9).
 
 usage: probe-video.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-video.py <root> <fresh-outdir> [row,row,...]
 rows (run order): w5_correctness_gop30 w1_steady_1080x4 w3_retrigger_midgop_1080 w4_deck_return_1080
-      w6_crossfade_two_players w6b_retrigger_mid_fade w8_prores_steady w2_steady_4kx4 w3b_retrigger_midgop_4k
-      w4b_idle_mid_catchup w7_message_thread_no_wait
+      w6_crossfade_two_players w6b_retrigger_mid_fade w9_crossfade_onto_broken w8_prores_steady w2_steady_4kx4
+      w3b_retrigger_midgop_4k w4b_idle_mid_catchup w7_message_thread_no_wait
 
 Fixtures (probe-video.json "fixtures"; 10 s, 30 fps, 300 frames; ffmpeg nice'd, -threads 2): testsrc2 (b1080: negated)
 with a frame-number CODE BAND -- the bottom bandRows rows (64 at 1080p, 128 at 4K), 10 cells, cell c white iff bit c of
@@ -65,6 +65,16 @@ w6b_retrigger_mid_fade (V4): transitionSpeed 2.0; col 0 = a1080 inPoint 0.5, col
   PASS (a) every poll <= peakMaxMs; (b) the hold captures: mean luma > 20 and code not 29 / 541 (keyframe + 29);
   (c) crossfadeProgress reaches 1 within fadeDoneS of the fade start (the fade keeps running); (d) after settle the code
   has bit 9 and (code & 511) is within B's bracket.
+w9_crossfade_onto_broken (W3): transitionSpeed 2.0; col 0 = a1080, col 1 = a broken file (probe-video.json "broken":
+  derived from a 2 s encode by cutting it to its header -- ftyp + moov + the mdat header + 8 bytes -- or by zeroing the
+  mdat payload). Arms: hap_cut (HAP .mov cut to its header: open() succeeds -- HAP's pixel format is known without a
+  frame -- and the decode reaches EOF before any frame), hap_zero (HAP payload zeroed: every packet fails to decode).
+  NOT an arm: an H.264 .mp4 cut to its header ABORTS the app in VideoPlayer::open() (no pixel format without a frame ->
+  sws_getContext(AV_PIX_FMT_NONE) -> a libswscale assertion, SIGABRT; fix round 1 finding, filed). Per arm: trig 0; 2 s; s0; trig 1 (the fade onto the broken clip starts); poll
+  crossfadeProgress; s1. PASS (a) crossfadeProgress reaches 1 within fadeS + 0.5 s of the trigger (C1 does not wait on a
+  player that will never show a frame); (b) render_frame answers (ok, a fresh PNG) within the app's own 5 s; (c)
+  video_pending_frames grows by 0 over the 1 s after the fade (FAILED is "no media", not pending). RED on the lane head 90cdf55: the broken
+  player is PENDING forever -- the fade waits and render_frame times out.
 w7_message_thread_no_wait (X1, 4K): layers 101-104 = a4k inPoint 0.5; layer 105 cols 0-1 = warm.png. trig x5; 2 s; s0;
   retrigger 101 (a mid-GOP catch-up starts); 50 ms; then 5 x [a video retrigger of 102 / 103 / 104 (the message thread
   takes videoPlayerMutex_ in getVideoPlayer while a catch-up runs) + trig(105, alternating cols)] 100 ms apart, each image
@@ -119,9 +129,51 @@ ROW_FIXTURES = {
     "w6_crossfade_two_players": ["a1080_g250.mp4", "b1080_g250.mp4"], "w6b_retrigger_mid_fade": ["a1080_g250.mp4", "b1080_g250.mp4"],
     "w8_prores_steady": ["pr1080.mov"], "w2_steady_4kx4": ["a4k_g250.mp4"], "w3b_retrigger_midgop_4k": ["a4k_g250.mp4"],
     "w4b_idle_mid_catchup": ["a4k_g250.mp4"], "w7_message_thread_no_wait": ["a4k_g250.mp4"],
+    "w9_crossfade_onto_broken": ["a1080_g250.mp4"],
 }
 FPS_POLL = float(FIX["fpsPollS"])   # W2: the fps rows poll at 50 ms (a 15 ms poller perturbs the fps it measures)
 STILL4K = "still4k_f100.png"        # w2's upload-free ceiling: a4k frame 100 as a still
+
+
+def mp4_atoms(b):
+    """Top-level atoms of an ISO-BMFF file: [(type, offset, size)]."""
+    import struct
+    off, out = 0, []
+    while off + 8 <= len(b):
+        sz, ty = struct.unpack(">I4s", b[off:off + 8])
+        if sz < 8:
+            break
+        out.append((ty.decode("latin-1"), off, sz)); off += sz
+    return out
+
+
+def make_broken():
+    """w9's broken files (probe-video.json "broken"): a 2 s encode (+faststart: the moov before the mdat), then cut to its
+    header (ftyp + moov + the mdat header + 8 bytes) or its mdat payload zeroed."""
+    bad = 0
+    for name, spec in FIX["broken"].items():
+        p = mpath(name)
+        if os.path.exists(p):
+            print(f"fixture {name}: reused from {MEDIA}", flush=True); continue
+        src = mpath("src_" + name)
+        if not os.path.exists(src):
+            cmd = (["nice", "-n", "10", "ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=s=1920x1080:r=30:d=2"]
+                   + spec["enc"] + ["-movflags", "+faststart", "-threads", "2", src + ".tmp" + os.path.splitext(name)[1]])
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0:
+                no(f"fixture {name}: ffmpeg failed: {r.stderr[:300]}"); bad += 1; continue
+            os.rename(src + ".tmp" + os.path.splitext(name)[1], src)
+        b = open(src, "rb").read(); at = mp4_atoms(b); md = [a for a in at if a[0] == "mdat"]
+        if not md or [a[0] for a in at].index("moov") > [a[0] for a in at].index("mdat"):
+            no(f"fixture {name}: atoms {at} (want moov before mdat)"); bad += 1; continue
+        o = md[0][1]
+        if spec["break"] == "cut":
+            out = b[:o + 16]
+        else:
+            out = b[:o + 8] + bytes(len(b) - o - 8)
+        open(p, "wb").write(out)
+        print(f"fixture {name}: {spec['break']} of a {len(b)} B {spec['enc'][1]} file at the mdat (offset {o}) -> {len(out)} B", flush=True)
+    return bad
 
 
 def band_filter(band, base):
@@ -175,6 +227,8 @@ def make_fixtures():
             no(f"fixture {STILL4K}: ffmpeg made nothing"); bad += 1
         else:
             print(f"fixture {STILL4K}: ready", flush=True)
+    if ONLY is None or "w9_crossfade_onto_broken" in ONLY:
+        bad += make_broken()
     warm = FIX["warm"]
     a = np.zeros((warm[1], warm[0], 4), np.uint8); a[..., :3] = warm[2]; a[..., 3] = 255
     Image.fromarray(a, "RGBA").save(os.path.join(OUT, "warm.png"))
@@ -770,6 +824,47 @@ def w6b(tag):
         check(bool(c & 512) and good, f"{tag}: (d) after settle code {c} has bit 9 (B) and {c & 511} within B's bracket {br}")
 
 
+def w9(tag):
+    fade = float(FIX["w9FadeS"])
+    for arm, spec in FIX["broken"].items():
+        at = f"{tag}[{arm}]"
+        if not load(f"{tag}_{os.path.splitext(arm)[0]}", [deck(0, [layer(LID[tag], [vclip(1, "a1080_g250.mp4"), vclip(2, arm)],
+                                                                      speed=2.0)])], "1080", int(spec["players"])):
+            continue
+        trig(0, 0); wait_active(0, 0); time.sleep(2.0)
+        s0 = state(); t0 = time.time()
+        trig(0, 1)   # the fade onto the broken clip starts
+        done = None; prog = 0.0
+        while time.time() - t0 < fade + 2.5:
+            L = layer_json(0)
+            if L is not None:
+                prog = float(L.get("crossfadeProgress", 0.0))
+                if prog >= 1.0:
+                    done = time.time() - t0; break
+            time.sleep(0.02)
+        pm = state()
+        tc = time.time(); p = os.path.join(OUT, f"{tag}_{os.path.splitext(arm)[0]}.png")
+        if os.path.exists(p):
+            os.remove(p)
+        try:
+            body = S.post(A + "/api/render_frame", json={"output_path": p, "time": 0.0}, timeout=30).json()
+        except Exception as e:  # noqa: BLE001
+            body = {"error": str(e)}
+        rt = time.time() - tc
+        fresh = os.path.isfile(p) and os.path.getmtime(p) >= tc - 0.01
+        lu = luma(np.asarray(Image.open(p).convert("RGBA")).astype(np.float32)) if fresh else None
+        time.sleep(1.0); s1 = state()
+        pend = delta(at, pm, s1, "video_pending_frames")
+        print(f"      {at}: fade done at {done and round(done, 2)} s (progress {prog:.2f}), render_frame {rt:.2f} s {body}, "
+              f"capture luma {lu if lu is None else round(lu, 1)}, pending frames over 1 s after {pend}, "
+              f"players {counter(s1, 'video_players')}, videos_pending {counter(s1, 'videos_pending')}, {la()}", flush=True)
+        check(done is not None and done <= fade + 0.5, f"{at}: (a) crossfadeProgress reached 1 at {done and round(done, 2)} s "
+                                                       f"<= {fade:g} + 0.5 s (progress {prog:.2f}; C1 does not wait on it)")
+        check(bool(body.get("ok")) and fresh, f"{at}: (b) render_frame answered in {rt:.2f} s (ok {body.get('ok')}, fresh PNG {fresh})")
+        if pend is not None:
+            check(pend == 0, f"{at}: (c) video_pending_frames grew by {pend} over the 1 s after the fade == 0 (no media, not pending)")
+
+
 def w7(tag):
     lids = LID[tag]; warm = os.path.join(OUT, "warm.png")
     layers = [layer(lids[i], [vclip(20 + i, "a4k_g250.mp4", ip=0.5)]) for i in range(4)]
@@ -810,6 +905,7 @@ def main():
             ("w4_deck_return_1080", lambda: w4("w4_deck_return_1080")),
             ("w6_crossfade_two_players", lambda: w6("w6_crossfade_two_players")),
             ("w6b_retrigger_mid_fade", lambda: w6b("w6b_retrigger_mid_fade")),
+            ("w9_crossfade_onto_broken", lambda: w9("w9_crossfade_onto_broken")),
             ("w8_prores_steady", lambda: w8("w8_prores_steady")),
             ("w2_steady_4kx4", lambda: steady("w2_steady_4kx4", "4k", "a4k_g250.mp4")),
             ("w3b_retrigger_midgop_4k", lambda: retrigger("w3b_retrigger_midgop_4k", "4k", "a4k_g250.mp4")),
