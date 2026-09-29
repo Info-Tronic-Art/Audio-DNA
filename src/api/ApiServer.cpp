@@ -1366,6 +1366,9 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     // Same fields as TestServer.
     obj->setProperty("fence_hold_frames", static_cast<juce::int64>(renderer_.getFenceHoldFrames()));
     obj->setProperty("fence_black_frames", static_cast<juce::int64>(renderer_.getFenceBlackFrames()));
+    // s-rta-0928b mediaopen: {presence_sweeps, presence_changed} (MediaPresence). Same field as TestServer.
+    if (mediaStateProvider_)
+        obj->setProperty("media", mediaStateProvider_());
 #if AUDIODNA_TEST_SERVER
     // s-rta-0928b mediaopen (TEST-ONLY): the message-thread heartbeat (POST /api/debug/heartbeat) -- the longest wait of
     // a ping since the previous read (resets on read; 0 while off).

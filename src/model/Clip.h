@@ -287,6 +287,7 @@ struct Clip
         clipWidth = newContent.clipWidth;
         clipHeight = newContent.clipHeight;
         thumbnail = newContent.thumbnail;
+        mediaMissing = newContent.mediaMissing;   // s-rta-0928b mediaopen: presence travels with the media
         presetPlaylist = newContent.presetPlaylist;
         presetPlaylistIndex = newContent.presetPlaylistIndex;
         playlistCycleMode = newContent.playlistCycleMode;
@@ -362,6 +363,7 @@ struct Clip
         playing = false;
         playheadPosition = 0.0;
         beatsPlayed = 0;
+        mediaMissing = false;   // s-rta-0928b mediaopen
     }
 
     // === Serialization ===

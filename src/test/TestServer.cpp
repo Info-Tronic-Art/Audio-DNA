@@ -674,6 +674,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     // s-rta-0928b mediaopen: fenced deck-less frames (cumulative): held the canvas / fell to black. Same fields as ApiServer.
     obj->setProperty("fence_hold_frames", static_cast<juce::int64>(renderer_.getFenceHoldFrames()));
     obj->setProperty("fence_black_frames", static_cast<juce::int64>(renderer_.getFenceBlackFrames()));
+    if (mediaStateProvider_)
+        obj->setProperty("media", mediaStateProvider_());   // s-rta-0928b mediaopen: MediaPresence sweeps / flips
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
     obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
     // s-rta-0927 outputs-c1: the output frame path (additive). live = output windows open; tap = the TEST-ONLY

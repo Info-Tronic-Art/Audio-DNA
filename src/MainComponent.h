@@ -39,6 +39,7 @@
 #include "midi/MidiHandler.h"
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
+#include "core/MediaPresence.h"
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
 #include "core/EffectScope.h"
@@ -395,6 +396,11 @@ private:
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<DeckView> deckView_;
+    // s-rta-0928b mediaopen: Clip::mediaMissing for every Image / Video clip of composition_, from a 1 Hz off-thread
+    // sweep (the compositor and the grid read the flag, never stat). Declared after composition_ and deckView_: it is
+    // destroyed first (its timer stops, a sweep in flight lands on nobody).
+    MediaPresenceSweeper presence_;
+    juce::var mediaStateVar() const;   // /api/state "media" (any thread: atomics only)
     std::unique_ptr<InspectorPanel> inspectorPanel_;
     std::unique_ptr<BrowserPanel> browserPanel_;
 

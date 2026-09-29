@@ -200,10 +200,11 @@ void ClipCell::paint(juce::Graphics& g)
         g.drawText("L", lockBounds, juce::Justification::centred, false);
     }
 
-    // P24.7: Missing file indicator (red border + "!" marker)
+    // P24.7: Missing file indicator (red border + "!" marker). s-rta-0928b mediaopen: Clip::mediaMissing (MediaPresence's
+    // 1 Hz off-thread sweep; its onChanged repaints the grid) instead of a stat per media cell per paint (30 Hz).
     if (clip_ && clip_->hasMedia() &&
         (clip_->mediaType == Clip::MediaType::Image || clip_->mediaType == Clip::MediaType::Video) &&
-        clip_->mediaFile != juce::File() && !clip_->mediaFile.existsAsFile())
+        clip_->mediaFile != juce::File() && clip_->mediaMissing)
     {
         auto b = getLocalBounds().toFloat();
         g.setColour(juce::Colour(0xffcc3333));

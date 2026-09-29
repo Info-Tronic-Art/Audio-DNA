@@ -660,6 +660,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (deckView_) deckView_->refresh();
     });
 
+    // s-rta-0928b mediaopen: file presence, off the GL thread and off every paint (MediaPresence). A flag that flipped
+    // repaints the grid's "!" indicators.
+    presence_.onChanged = [this] { if (deckView_) deckView_->refresh(); };
+    presence_.start(composition_);
+
     // P23: Genre change callback — auto-switch deck or load genre preset
     previewPanel_.getRenderer().setOnGenreChanged([this](uint8_t genre, float confidence) {
         if (!composition_.autoPresetOnGenre) return;
@@ -1864,6 +1869,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
         testServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+        testServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
         // plan5 C3 (s-rta-0927 outputs-c3), test mode only: the manager's counters, "Restore Last Outputs" with
         // nothing to restore, the poll A/B. The restore hook re-checks ON the message thread and runs the menu
         // action's own handler only while nothing is restorable -- it can never open a window.
@@ -2126,6 +2132,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         };
 #endif
     apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+    apiServer_->setMediaStateProvider([this] { return mediaStateVar(); });   // s-rta-0928b mediaopen, before start()
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
         debugDropFiles(layer, column, files);
@@ -2927,6 +2934,9 @@ void MainComponent::openComposition()
 // for why this must run on the STAGED deck, before any fence/swap.
 void MainComponent::openMediaForDeck(Deck& deck)
 {
+    // s-rta-0928b mediaopen: seed Clip::mediaMissing on the STAGED deck (a stat per Image / Video clip, here at load, so
+    // the first frames after the swap behave as the per-frame stat did); MediaPresence's sweep keeps it current.
+    presence::seed(deck);
     auto& renderer = previewPanel_.getRenderer();
     for (auto& layer : deck.layers)
     {
@@ -2936,7 +2946,7 @@ void MainComponent::openMediaForDeck(Deck& deck)
             Clip& clip = *cell;
             if (clip.mediaType == Clip::MediaType::Video)
             {
-                if (!clip.mediaFile.existsAsFile()) continue;   // non-fatal: skip, continue
+                if (clip.mediaMissing) continue;   // non-fatal: skip, continue (the seed's stat)
                 if (renderer.openVideoForClip(clip.id, clip.mediaFile))
                 {
                     if (auto* p = renderer.getVideoPlayer(clip.id))
@@ -4939,6 +4949,15 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
         if (deckView_)
             deckView_->rebuildGrid();
     }
+}
+
+juce::var MainComponent::mediaStateVar() const
+{
+    // s-rta-0928b mediaopen: /api/state "media" -- MediaPresence's completed sweeps and flags flipped (cumulative).
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("presence_sweeps", presence_.sweeps());
+    obj->setProperty("presence_changed", presence_.changes());
+    return juce::var(obj);
 }
 
 void MainComponent::debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files)

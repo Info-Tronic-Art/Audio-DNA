@@ -164,6 +164,8 @@ public:
     // (OutputManager::stateVar(): built on the message thread, read here as a mutex-guarded copy; never
     // Desktop::getDisplays() off the message thread). Set it BEFORE start(): HTTP threads only read it.
     void setOutputsStateProvider(std::function<juce::var()> provider) { outputsStateProvider_ = std::move(provider); }
+    // s-rta-0928b mediaopen: /api/state.media (MainComponent::mediaStateVar: atomics only). Set it BEFORE start().
+    void setMediaStateProvider(std::function<juce::var()> provider) { mediaStateProvider_ = std::move(provider); }
 
     // s-rta-0928b mediaopen (TEST-ONLY route, AUDIODNA_BUILD_TEST_SERVER): POST /api/debug/drop_files {layer, column,
     // files[]} -- MainComponent hands the files to the handlers a Finder drop onto that cell reaches (ClipCell::classifyDrop,
@@ -246,6 +248,7 @@ private:
     BindingManager& bindingManager_;
 
     std::function<juce::var()> outputsStateProvider_;   // set before start(); see setOutputsStateProvider
+    std::function<juce::var()> mediaStateProvider_;     // set before start(); see setMediaStateProvider
     int port_;
     // R6 (featurebus-thread-safety-design.md): production = not registered
     // (ctor flag from testMode_) so inject_features 404s outside test mode.
