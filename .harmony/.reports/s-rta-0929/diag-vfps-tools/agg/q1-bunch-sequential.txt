@@ -1,0 +1,72 @@
+=== /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/f33bd4ec-5bde-4244-b1b7-b2ce40654c9a/scratchpad/diag-vfps/runs/base_w1
+    r1 w1_load1    fps  108.3  uploads/frame {0: 394, 4: 151}  pattern 4        heavy frame 6.24 ms  load 8.04
+    r1 w1_load2    fps  104.0  uploads/frame {0: 373, 4: 152}  pattern 4        heavy frame 6.24 ms  load 7.8
+    r1 w1_load3    fps  113.9  uploads/frame {0: 420, 4: 151}  pattern 4        heavy frame 6.24 ms  load 7.52
+    r2 w1_load1    fps  118.9  uploads/frame {0: 295, 1: 150, 3: 151}  pattern 3+1      heavy frame 4.77 ms  load 8.32
+    r2 w1_load2    fps  118.3  uploads/frame {0: 294, 1: 151, 3: 151}  pattern 3+1      heavy frame 4.74 ms  load 8.13
+    r2 w1_load3    fps  114.1  uploads/frame {0: 423, 4: 151}  pattern 4        heavy frame 6.21 ms  load 7.66
+    r3 w1_load1    fps  111.7  uploads/frame {0: 412, 4: 152}  pattern 4        heavy frame 6.13 ms  load 7.36
+    r3 w1_load2    fps  117.7  uploads/frame {0: 291, 2: 302}  pattern 2        heavy frame 3.25 ms  load 7.17
+    r3 w1_load3    fps  119.0  uploads/frame {0: 296, 1: 150, 3: 150}  pattern 3+1      heavy frame 4.69 ms  load 7.22
+    r4 w1_load1    fps  109.7  uploads/frame {0: 404, 4: 151}  pattern 4        heavy frame 6.16 ms  load 7.05
+    r4 w1_load2    fps  115.0  uploads/frame {0: 425, 4: 151}  pattern 4        heavy frame 6.18 ms  load 6.96
+    r4 w1_load3    fps  119.5  uploads/frame {0: 151, 1: 299, 2: 153}  pattern 2+1      heavy frame 3.32 ms  load 6.89
+    r5 w1_load1    fps  114.2  uploads/frame {0: 387, 1: 38, 3: 37, 4: 114}  pattern 4+3      heavy frame 6.15 ms  load 7.19
+    r5 w1_load2    fps  114.6  uploads/frame {0: 426, 4: 151}  pattern 4        heavy frame 6.19 ms  load 7.3
+    r5 w1_load3    fps  119.3  uploads/frame {0: 297, 1: 150, 3: 151}  pattern 3+1      heavy frame 4.69 ms  load 7.2
+    r6 w1_load1    fps  118.5  uploads/frame {0: 295, 2: 299, 4: 1}  pattern 2        heavy frame 6.12 ms  load 6.9
+    r6 w1_load2    fps  110.8  uploads/frame {0: 407, 4: 152}  pattern 4        heavy frame 6.21 ms  load 6.54
+    r6 w1_load3    fps  105.4  uploads/frame {0: 379, 4: 151}  pattern 4        heavy frame 6.24 ms  load 6.09
+    r7 w1_load1    fps  108.8  uploads/frame {0: 396, 4: 150}  pattern 4        heavy frame 6.2 ms  load 5.62
+    r7 w1_load2    fps  109.3  uploads/frame {0: 398, 4: 151}  pattern 4        heavy frame 6.23 ms  load 5.06
+    r7 w1_load3    fps  113.8  uploads/frame {0: 424, 4: 151}  pattern 4        heavy frame 6.22 ms  load 4.82
+    r8 w1_load1    fps  112.1  uploads/frame {0: 414, 4: 150}  pattern 4        heavy frame 6.17 ms  load 4.74
+    r8 w1_load2    fps  112.4  uploads/frame {0: 414, 4: 150}  pattern 4        heavy frame 6.2 ms  load 4.64
+    r8 w1_load3    fps  113.6  uploads/frame {0: 419, 4: 151}  pattern 4        heavy frame 6.19 ms  load 4.82
+    r9 w1_load1    fps  117.6  uploads/frame {0: 291, 1: 149, 3: 150, 4: 1}  pattern 3+1      heavy frame 6.46 ms  load 4.79
+    r9 w1_load2    fps  110.8  uploads/frame {0: 407, 4: 150}  pattern 4        heavy frame 6.21 ms  load 4.89
+    r9 w1_load3    fps  117.6  uploads/frame {0: 290, 1: 152, 3: 152}  pattern 3+1      heavy frame 4.78 ms  load 5.06
+   r10 w1_load1    fps  110.9  uploads/frame {0: 406, 4: 150}  pattern 4        heavy frame 6.22 ms  load 5.14
+   r10 w1_load2    fps  103.8  uploads/frame {0: 373, 4: 151}  pattern 4        heavy frame 6.19 ms  load 5.34
+   r10 w1_load3    fps  115.3  uploads/frame {0: 430, 4: 151}  pattern 4        heavy frame 6.2 ms  load 5.24
+  pattern 3+1     : n= 6 fps median  118.6 range [117.6, 119.3] [117.6, 117.6, 118.3, 118.9, 119.0, 119.3]
+  pattern 2+1     : n= 1 fps median  119.5 range [119.5, 119.5] [119.5]
+  pattern 4+3     : n= 1 fps median  114.2 range [114.2, 114.2] [114.2]
+  pattern 4       : n=20 fps median  111.3 range [103.8, 115.3] [103.8, 104.0, 105.4, 108.3, 108.8, 109.3, 109.7, 110.8, 110.8, 110.9, 111.7, 112.1, 112.4, 113.6, 113.8, 113.9, 114.1, 114.6, 115.0, 115.3]
+  pattern 2       : n= 2 fps median  118.1 range [117.7, 118.5] [117.7, 118.5]
+=== /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/f33bd4ec-5bde-4244-b1b7-b2ce40654c9a/scratchpad/diag-vfps/runs/noup_w1
+    r1 w1_load1    fps  114.4  uploads/frame {0: 361, 1: 67, 3: 67, 4: 85}  pattern 4+3      heavy frame 0.76 ms  load 5.24
+    r1 w1_load2    fps  113.2  uploads/frame {0: 421, 4: 151}  pattern 4        heavy frame 0.74 ms  load 5.34
+    r1 w1_load3    fps  116.0  uploads/frame {0: 285, 2: 298, 4: 2}  pattern 2        heavy frame 1.03 ms  load 5.21
+    r2 w1_load1    fps  111.8  uploads/frame {0: 410, 4: 151}  pattern 4        heavy frame 0.99 ms  load 5.34
+    r2 w1_load2    fps  111.6  uploads/frame {0: 413, 4: 152}  pattern 4        heavy frame 0.83 ms  load 5.38
+    r2 w1_load3    fps  111.9  uploads/frame {0: 411, 4: 151}  pattern 4        heavy frame 0.84 ms  load 5.67
+    r3 w1_load1    fps  113.8  uploads/frame {0: 423, 4: 151}  pattern 4        heavy frame 0.76 ms  load 6.18
+    r3 w1_load2    fps  112.2  uploads/frame {0: 412, 4: 150}  pattern 4        heavy frame 0.83 ms  load 6.07
+    r3 w1_load3    fps  113.6  uploads/frame {0: 420, 4: 150}  pattern 4        heavy frame 0.84 ms  load 5.99
+    r4 w1_load1    fps  111.9  uploads/frame {0: 414, 4: 152}  pattern 4        heavy frame 0.78 ms  load 5.93
+    r4 w1_load2    fps  110.7  uploads/frame {0: 407, 4: 152}  pattern 4        heavy frame 0.83 ms  load 5.56
+    r4 w1_load3    fps  119.7  uploads/frame {0: 149, 1: 329, 2: 99, 3: 26}  pattern 2+1      heavy frame 0.69 ms  load 5.59
+    r5 w1_load1    fps  111.4  uploads/frame {0: 413, 4: 151}  pattern 4        heavy frame 0.78 ms  load 5.01
+    r5 w1_load2    fps  119.1  uploads/frame {0: 148, 1: 298, 2: 148, 3: 2}  pattern 2+1      heavy frame 2.09 ms  load 5.38
+    r5 w1_load3    fps  117.9  uploads/frame {0: 295, 2: 299, 4: 2}  pattern 2        heavy frame 0.92 ms  load 5.19
+    r6 w1_load1    fps  116.2  uploads/frame {0: 284, 1: 147, 3: 147, 4: 3}  pattern 3+1      heavy frame 0.81 ms  load 5.02
+    r6 w1_load2    fps  112.5  uploads/frame {0: 413, 4: 150}  pattern 4        heavy frame 0.87 ms  load 4.63
+    r6 w1_load3    fps  115.8  uploads/frame {0: 280, 1: 151, 3: 152}  pattern 3+1      heavy frame 0.79 ms  load 5.06
+    r7 w1_load1    fps  116.9  uploads/frame {0: 290, 1: 149, 3: 149, 4: 2}  pattern 3+1      heavy frame 1.87 ms  load 4.77
+    r7 w1_load2    fps  115.4  uploads/frame {0: 283, 1: 146, 3: 146, 4: 5}  pattern 3+1      heavy frame 1.27 ms  load 4.81
+    r7 w1_load3    fps  110.6  uploads/frame {0: 406, 4: 152}  pattern 4        heavy frame 0.78 ms  load 4.66
+    r8 w1_load1    fps  114.2  uploads/frame {0: 425, 4: 152}  pattern 4        heavy frame 0.78 ms  load 4.89
+    r8 w1_load2    fps  114.1  uploads/frame {0: 415, 1: 9, 3: 9, 4: 142}  pattern 4        heavy frame 0.81 ms  load 4.68
+    r8 w1_load3    fps  112.6  uploads/frame {0: 417, 4: 152}  pattern 4        heavy frame 0.82 ms  load 4.55
+    r9 w1_load1    fps  112.7  uploads/frame {0: 416, 4: 151}  pattern 4        heavy frame 0.74 ms  load 4.12
+    r9 w1_load2    fps  113.5  uploads/frame {0: 423, 4: 152}  pattern 4        heavy frame 0.81 ms  load 4.26
+    r9 w1_load3    fps  118.2  uploads/frame {0: 258, 1: 68, 2: 268}  pattern 2        heavy frame 0.74 ms  load 4.16
+   r10 w1_load1    fps  112.7  uploads/frame {0: 414, 4: 151}  pattern 4        heavy frame 0.75 ms  load 4.29
+   r10 w1_load2    fps  115.4  uploads/frame {0: 429, 4: 150}  pattern 4        heavy frame 0.79 ms  load 4.42
+   r10 w1_load3    fps  115.4  uploads/frame {0: 432, 4: 152}  pattern 4        heavy frame 1.11 ms  load 4.15
+  pattern 4+3     : n= 1 fps median  114.4 range [114.4, 114.4] [114.4]
+  pattern 2+1     : n= 2 fps median  119.4 range [119.1, 119.7] [119.1, 119.7]
+  pattern 3+1     : n= 4 fps median  116.0 range [115.4, 116.9] [115.4, 115.8, 116.2, 116.9]
+  pattern 4       : n=20 fps median  112.7 range [110.6, 115.4] [110.6, 110.7, 111.4, 111.6, 111.8, 111.9, 111.9, 112.2, 112.5, 112.6, 112.7, 112.7, 113.2, 113.5, 113.6, 113.8, 114.1, 114.2, 115.4, 115.4]
+  pattern 2       : n= 3 fps median  117.9 range [116.0, 118.2] [116.0, 117.9, 118.2]

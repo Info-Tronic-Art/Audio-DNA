@@ -676,6 +676,8 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("fence_black_frames", static_cast<juce::int64>(renderer_.getFenceBlackFrames()));
     if (mediaStateProvider_)
         obj->setProperty("media", mediaStateProvider_());   // s-rta-0928b mediaopen: MediaPresence sweeps / flips
+    if (loadWitnessProvider_)
+        obj->setProperty("load", loadWitnessProvider_());   // s-rta-0929 asyncload: the asynchronous-load witnesses
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
     obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
     // s-rta-0928b video: video decodes off the GL thread (VideoPlayer decode thread + VideoRing; probe-video). Same

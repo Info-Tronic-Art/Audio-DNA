@@ -58,6 +58,14 @@ public:
     uint64_t getDeliveredSamples() const { return combinedCallback_.getDeliveredSamples(); }
     AudioTap& getAudioTap() { return combinedCallback_.tap(); }
 
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929 asyncload (TEST-ONLY): the audio-callback witnesses (CombinedCallback / AudioCallback, plan 5.7).
+    double takeAudioGapMaxMs() { return combinedCallback_.takeGapMaxMs(); }
+    uint64_t audioCallbacks() const { return combinedCallback_.callbacks(); }
+    int audioPeriodSamples() const { return combinedCallback_.periodSamples(); }
+    uint64_t ringOverruns() const { return audioCallback_.ringOverruns(); }
+#endif
+
 private:
     juce::AudioDeviceManager deviceManager_;
     juce::AudioFormatManager formatManager_;

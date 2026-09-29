@@ -1,0 +1,114 @@
+diff --git a/modules/juce_events/messages/juce_MessageManager.cpp b/modules/juce_events/messages/juce_MessageManager.cpp
+index 68b5f6871..3ec0d3d30 100644
+--- a/modules/juce_events/messages/juce_MessageManager.cpp
++++ b/modules/juce_events/messages/juce_MessageManager.cpp
+@@ -35,6 +35,8 @@
+ namespace juce
+ {
+ 
++DiagVfpsHook::Fn DiagVfpsHook::fn = nullptr;   // DIAG-VFPS TEMPORARY
++
+ MessageManager::MessageManager() noexcept
+   : messageThreadId (Thread::getCurrentThreadId())
+ {
+diff --git a/modules/juce_events/messages/juce_MessageManager.h b/modules/juce_events/messages/juce_MessageManager.h
+index 0dda096e2..8125f0658 100644
+--- a/modules/juce_events/messages/juce_MessageManager.h
++++ b/modules/juce_events/messages/juce_MessageManager.h
+@@ -36,6 +36,13 @@ namespace juce
+ {
+ 
+ class MessageManagerLock;
++
++// DIAG-VFPS TEMPORARY (private JUCE copy, lane diag-vfps): timing hook, null unless the app installs it.
++struct JUCE_API DiagVfpsHook
++{
++    using Fn = void (*) (int kind, double a, double b, double c, double d);
++    static Fn fn;
++};
+ class ThreadPoolJob;
+ class ActionListener;
+ class ActionBroadcaster;
+diff --git a/modules/juce_gui_basics/native/juce_PerScreenDisplayLinks_mac.h b/modules/juce_gui_basics/native/juce_PerScreenDisplayLinks_mac.h
+index 4e412beb1..01876ae4d 100644
+--- a/modules/juce_gui_basics/native/juce_PerScreenDisplayLinks_mac.h
++++ b/modules/juce_gui_basics/native/juce_PerScreenDisplayLinks_mac.h
+@@ -132,13 +132,16 @@ public:
+           onCallback (std::move (onCallbackIn))
+     {
+         const auto callback = [] (CVDisplayLinkRef,
+-                                  const CVTimeStamp*,
++                                  const CVTimeStamp* inNow,
+                                   const CVTimeStamp* outputTime,
+                                   CVOptionFlags,
+                                   CVOptionFlags*,
+                                   void* context) -> int
+         {
+             const auto outputTimeSec = (double) outputTime->videoTime / (double) outputTime->videoTimeScale;
++            if (auto* diagFn = ::juce::DiagVfpsHook::fn)   // DIAG-VFPS TEMPORARY
++                diagFn (1, (double) mach_absolute_time(), (double) inNow->hostTime, (double) outputTime->hostTime,
++                        (double) static_cast<const ScopedDisplayLink*> (context)->displayId);
+             static_cast<const ScopedDisplayLink*> (context)->onCallback (outputTimeSec);
+             return kCVReturnSuccess;
+         };
+diff --git a/modules/juce_opengl/native/juce_OpenGL_mac.h b/modules/juce_opengl/native/juce_OpenGL_mac.h
+index badc06f20..cfb547ac9 100644
+--- a/modules/juce_opengl/native/juce_OpenGL_mac.h
++++ b/modules/juce_opengl/native/juce_OpenGL_mac.h
+@@ -178,7 +178,10 @@ public:
+     void swapBuffers()
+     {
+         auto now = Time::getMillisecondCounterHiRes();
++        const double diagT0 = (double) mach_absolute_time();   // DIAG-VFPS TEMPORARY
+         [renderContext flushBuffer];
++        const double diagT1 = (double) mach_absolute_time();
++        double diagSleep = 0.0;
+ 
+         if (const auto minSwapTime = minSwapTimeMs.get(); minSwapTime > 0)
+         {
+@@ -196,6 +199,7 @@ public:
+                 if (underrunCounter > 3)
+                 {
+                     Thread::sleep (2 * (minSwapTime - frameTime));
++                    diagSleep = 2.0 * (minSwapTime - frameTime);   // DIAG-VFPS TEMPORARY
+                     now = Time::getMillisecondCounterHiRes();
+                 }
+                 else
+@@ -210,6 +214,9 @@ public:
+             }
+         }
+ 
++        if (auto* diagFn = ::juce::DiagVfpsHook::fn)   // DIAG-VFPS TEMPORARY
++            diagFn (2, diagT0, diagT1, (double) std::min ((uint64_t) std::numeric_limits<int>::max(), (uint64_t) now - (uint64_t) lastSwapTime),
++                    underrunCounter * 1.0e6 + diagSleep * 1.0e3 + (double) minSwapTimeMs.get());
+         lastSwapTime = now;
+     }
+ 
+diff --git a/modules/juce_opengl/opengl/juce_OpenGLContext.cpp b/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+index 482536916..73df1bb4d 100644
+--- a/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
++++ b/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+@@ -851,7 +851,14 @@ public:
+             {
+                 std::unique_lock lock { mutex };
+                 flags |= (requestRender ? renderRequested : 0);
++               #if JUCE_MAC
++                const double diagT0 = (double) mach_absolute_time();   // DIAG-VFPS TEMPORARY
++               #endif
+                 condvar.wait (lock, [this] { return flags > listSafe; });
++               #if JUCE_MAC
++                if (auto* diagFn = ::juce::DiagVfpsHook::fn)
++                    diagFn (3, diagT0, (double) mach_absolute_time(), requestRender ? 1.0 : 0.0, 0.0);
++               #endif
+                 flags &= ~renderRequested;
+                 return ((flags & destructorCalled) == 0);
+             }
+@@ -901,6 +908,8 @@ public:
+             {
+                 return [this, display] (double)
+                 {
++                    if (auto* diagFn = ::juce::DiagVfpsHook::fn)   // DIAG-VFPS TEMPORARY
++                        diagFn (4, (double) mach_absolute_time(), display == lastDisplay ? 1.0 : 0.0, 0.0, 0.0);
+                     if (display == lastDisplay)
+                         triggerRepaint();
+                 };

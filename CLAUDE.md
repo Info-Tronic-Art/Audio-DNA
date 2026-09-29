@@ -142,7 +142,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **Deck tab row**: '+' = New / Load Deck; right-click a tab = its menu (Save / Save As / Rename / Duplicate / Remove + 10-s Undo), never a deck switch: `DeckTabButton` intercepts `isPopupMenu()` (a JUCE Button fires `onClick` on ANY mouse button); `docs/claude/performance-controls.md`.
 
-**Routine pads and bands**: a routine pad's press is always Fire (restart while playing, no-op while waiting); there is no stop control -- a routine leaves by its band's x (the whole routine, every layer), the layer X (clears the layer of routines too), its own end, the pad menu's "Remove from layers", or Stop (routines only). "Delete routine" (pad menu, warning red via `addColouredItem` -- the app LookAndFeel honours an item colour -- behind a confirm) is the only path that erases one. Pads and bands are model-driven from `RoutineEngine::Status` via `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`) every 30 Hz tick, never from panel memory; a strip fader follows the model (`LayerStrip::syncFromModel`, Pitfall 41) and its V fill turns the routine cue while a routine's hand grips opacity; a bound `UniversalParamControl` shows its value (and slider) in the routine cue with ROUTINE in the hint slot while a routine's (lane-rank) hand holds it. The routine cue is `AudioDNALookAndFeel::kRoutineCue` (chartreuse, band names too) -- reserved: never the accent cyan every mapped knob wears, and never used for anything else; `docs/claude/recording.md` "Surfaces".
+**Routine pads and bands**: the rules -- a pad's press, how a routine leaves, "Delete routine", the model-driven pads / bands / strip faders / bound controls, the reserved routine cue `AudioDNALookAndFeel::kRoutineCue` -- live verbatim in `docs/claude/recording.md` "Surfaces": read them before touching a routine pad, band, strip fader or the routine cue.
 
 ---
 
@@ -234,6 +234,7 @@ the named area; this index is triage-only.
 55. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
 56. Video decodes off the GL thread: the render thread picks the newest ring frame <= its clock and never waits; a hold is not pending -- before touching VideoPlayer or syncMedia's video branch.
 57. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
+58. A load is staged off the message thread; a command during the window acts on the live composition -- before touching loadComposition / appendDeckFromFile / duplicateDeck / the load REST handler.
 
 ---
 

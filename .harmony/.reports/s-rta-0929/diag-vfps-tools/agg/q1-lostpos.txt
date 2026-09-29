@@ -1,0 +1,9 @@
+base_w1 pattern 4: windows 20, lost ticks 910
+  lost tick, ms after the upload frame's start: {0: 14, 2: 49, 4: 274, 6: 12, 8: 5, 10: 15, 12: 366, 14: 44, 16: 15, 18: 20, 20: 33, 22: 19, 24: 12, 26: 10, 28: 13, 30: 9}
+  decoder sws start, ms after the upload frame's start: {0: 121, 2: 431, 4: 1124, 6: 1312, 8: 6493, 10: 1278, 12: 520, 14: 224, 16: 143, 18: 49, 20: 65, 22: 65, 24: 223, 26: 1}
+noup_w1 pattern 4: windows 20, lost ticks 725
+  lost tick, ms after the upload frame's start: {0: 38, 2: 68, 4: 106, 6: 22, 8: 32, 10: 32, 12: 166, 14: 37, 16: 25, 18: 12, 20: 56, 22: 37, 24: 32, 26: 5, 28: 22, 30: 19, 32: 9, 34: 2, 36: 3, 38: 1, 40: 1}
+  decoder sws start, ms after the upload frame's start: {0: 868, 2: 1284, 4: 3028, 6: 1927, 8: 2122, 10: 1305, 12: 776, 14: 409, 16: 188, 18: 104, 20: 29, 22: 17, 24: 6, 28: 2}
+col_w1 pattern 4: windows 21, lost ticks 866
+  lost tick, ms after the upload frame's start: {0: 12, 2: 55, 4: 249, 6: 5, 8: 19, 10: 7, 12: 418, 14: 3, 16: 23, 18: 4, 20: 15, 24: 23, 26: 3, 28: 29, 32: 1}
+  decoder sws start, ms after the upload frame's start: {0: 124, 2: 347, 4: 761, 6: 761, 8: 8109, 10: 1178, 12: 505, 14: 204, 16: 124, 18: 74, 20: 233, 22: 91, 24: 159, 26: 2, 28: 2, 38: 1}

@@ -1,0 +1,37 @@
+{
+  "_doc": "Fixtures + thresholds for .harmony/probe-async-load.sh (s-rta-0929 asyncload, .harmony/.reports/s-rta-0929/plan-asyncload.md 5.9 + HARMONY ADOPTION AL1-AL12). Rows and calibration: the docstring of .harmony/probe-async-load.py. Fixtures are generated per run into <out>/media (videos by ffmpeg, PNGs by PIL, APFS clones by cp -c): every path is new to the app instance.",
+  "stallMaxMs": 50,
+  "_stallMaxMs": "the longest message-thread wait of a heartbeat ping (peak_message_stall_ms, polled every 15 ms) during a staged load (plan R10: the no-open load cost 18-20 ms + one GL-frame fence drain <= 12 ms + the landings ~0.2 ms each; the mediaopen probe's bar)",
+  "swapMaxS": 2.5,
+  "_swapMaxS": "a staged 16 x 4K load answers (the cut) within this many seconds of the post (plan R3: 16 x ~68 ms / 2 pool threads, x2 if both land on E cores)",
+  "cancelAnswerMaxS": 0.5,
+  "_cancelAnswerMaxS": "a superseded / cancelled load's REST answer comes within this of the superseding post (the cancel never waits for an open)",
+  "holdMaxPerCut": 3,
+  "_holdMaxPerCut": "the swap's fence holds the canvas for 1-2 frames (120 Hz display) -- probe-media-open's holdMaxPerDrop",
+  "boxTol": 3.0,
+  "_boxTol": "dbox(X, Y): both arrays box-averaged in 16x16 blocks, then mean |diff| over RGB (0..255) -- probe-image-load's measure",
+  "lumaMin": 20.0,
+  "heartbeatPeriodMs": 4,
+  "audioGapFactor": 2.5,
+  "_audioGapFactor": "the audio callback's longest inter-arrival gap during a load <= factor x audio_callback_period_ms (a GUARD, plan R9: a load never runs on the RT callback). Raised only with the arithmetic in the report, never silently.",
+  "uploadsMinPerS": 10,
+  "_uploadsMinPerS": "the OLD composition's playing 1080p clip keeps uploading frames during the staged window (30 fps content: ~30/s; a frozen show 0)",
+  "lateMaxPerLoad": 2,
+  "_lateMaxPerLoad": "video_late_frames delta over a load (the old clip's decode thread is not starved by the openers, adoption AL1)",
+  "pollMs": 15,
+  "triggerDelayS": 0.1,
+  "cancelDelayS": 0.15,
+  "w16": 16,
+  "w32": 32,
+  "seqFrames": 300,
+  "canvas": [1920, 1080],
+  "video": {
+    "v4k": ["-f", "lavfi", "-i", "color=c=0x3060c0:s=3840x2160:r=30:d=3", "-g", "250", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast"],
+    "v1080": ["-f", "lavfi", "-i", "color=c=0x3060c0:s=1920x1080:r=30:d=3", "-g", "250", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast"]
+  },
+  "layers": {
+    "a2_load_16x4k": 81, "a2b_load_16x1080": 82, "a3_cancel_by_newer_load": 83, "a3b_explicit_cancel": 84,
+    "a3c_cancel_with_sequences": 85, "a4_load_then_trigger": 86, "a5_duplicate_deck": 87, "a5b_duplicate_twice": 80,
+    "a6_append_deck": 88, "a7_failure_mid_batch": 89, "end_quit_mid_load": 79, "end_quit_hung_open": 78
+  }
+}

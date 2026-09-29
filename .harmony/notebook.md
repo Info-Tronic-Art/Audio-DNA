@@ -2063,3 +2063,17 @@ from 0; only a retrigger seeks to the in-point — mid-clip rows trigger + retri
 a fast poller consumes them (max over polls) and a 15 ms poller perturbs the fps it measures (poll fps rows at 50 ms).
 4 x 4K video on the M1 Pro sits ~30 fps under the same scene with stills (upload cost; zero-copy follow-up filed).
 **Valid while:** VideoPlayer decodes on its own thread into VideoRing.
+
+### s-rta-0929 — packet wording can manufacture a "Boris ruling" (2026-09-29 09:18)
+The g4cpu plan cited BORIS_DECISIONS.md for "how they look must not change" — no such ruling exists. The phrase was Harmony's
+own constraint, written in parentheses right after a BORIS_DECISIONS citation in the planning packet; the planner attributed
+it to Boris and a blind seat caught it. Rule: in any packet, Harmony's constraints are their own sentence labelled "Harmony
+constraint:"; a BORIS_DECISIONS citation names only a section or quotes its text verbatim.
+
+### s-rta-0929 — diag-vfps notes (report .harmony/.reports/s-rta-0929/diag-vfps.md; audit SOUND_WITH_GAPS)
+- 2026-09-29 multi-video fps is set per LOAD by clock phase | 4 videos at 30 fps on 120 Hz: if their clocks start on the same render frame mod 4 (column trigger, beat-quantized triggers) all 4 uploads land on one frame (6.3 ms GL CPU) and ~2-8 display-link ticks/s are lost (104-117 fps); spread = 119-120; peak_callback_ms median 6.3-6.5 is the REST-visible witness | src/media/VideoPlayer.cpp:435
+- 2026-09-29 JUCE mac GL pacing = display-link FLAG + blocking flushBuffer | pendingRender is a flag, so two CVDisplayLink ticks during one renderOpenGL + flushBuffer collapse into one frame; flushBuffer blocks 5-19 ms at ~0.2 ms CPU (swap back-pressure, INFERRED) -- measure lost ticks, not swap-interval histograms | juce_OpenGLContext.cpp renderFrame / refreshDisplayLinkConnection
+- 2026-09-29 GL render thread is QoS DEFAULT and drifts to E-cores when light | JUCE's OpenGL Renderer is a std::thread; with little work 20-67 % of its frames run on E cores with wake-up p99 1-7 ms and fps drops 10-20; USER_INTERACTIVE halves lost ticks but does not prevent E placement
+- 2026-09-29 4K upload cost is GL-thread CPU, not format | glTexSubImage2D RGBA/UBYTE of a 4K frame = 0.86-0.96 ms GL CPU; BGRA/8_8_8_8_REV, PBO and QoS gain 0; client storage = 25 ms/frame trap; IOSurface ring + glBlitFramebuffer = +15-16 fps (picture match by region codes + mean RGB only -- NOT a byte diff, audit MUST); IOSurface cannot bind to GL_TEXTURE_2D (CGLError 10008)
+- 2026-09-29 A/B perf on the shared rig drifts ~5 fps/hour | run arms INTERLEAVED launch by launch (diag-vfps-tools/run_mix.sh), never as sequential per-arm batches
+- 2026-09-29 probe-video w1's "per launch" bimodality was per LOAD: probe-video.py runs w1's 5 repeats as 5 loads in ONE launch (the packet's ESTABLISHED line was wrong -- inherited from my ledger wording)

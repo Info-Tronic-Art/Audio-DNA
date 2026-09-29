@@ -42,6 +42,10 @@
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
 #include "core/MediaPresence.h"
+#include "core/LoadTiming.h"
+#include "core/LoadTicket.h"
+#include "core/StagedLoad.h"
+#include "core/MediaOpener.h"
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
 #include "core/EffectScope.h"
@@ -137,7 +141,9 @@ private:
     // GL-fence + undo-clear + inspector-null helper kCompNew is also based
     // on — see .harmony/.work-packets/L3-composition-persistence.md §1.
     void openComposition();
-    void loadComposition(const juce::File& file);
+    // s-rta-0929 asyncload: `ticket` (POST /api/load_composition) is finished Done at the staged swap, Failed on a refusal,
+    // Superseded / Cancelled when the staged load is retired.
+    void loadComposition(const juce::File& file, std::shared_ptr<LoadTicket> ticket = nullptr);
     void saveComposition();
     void saveCompositionAs();
     void swapCompositionModel(const std::function<void()>& mutation);
@@ -150,11 +156,37 @@ private:
     // than replacing the deck on screen — a performer loading a deck mid-set
     // must not lose the deck they are on. The append is one undoable
     // InsertDeckCmd (no whole-model swap: routines keep running, undo history
-    // survives, nothing is closed). openMediaForDeck is the per-clip media-open
-    // loop factored out of loadComposition's OPEN NEW step (§1 step 4) so
-    // loadComposition, appendDeckFromFile and duplicateDeck share one body.
-    void openMediaForDeck(Deck& deck);
+    // survives, nothing is closed). s-rta-0929 asyncload: the three loads share
+    // one STAGED flow (beginStagedOpen, below) -- openMediaForDeck is gone.
     void appendDeckFromFile(const juce::File& file);
+    // s-rta-0929 asyncload (Pitfall NN): a composition / deck load is STAGED -- its video players open on MediaOpener's
+    // pool, each landing writes the STAGED clip (never a live Clip) and installs the player under its re-minted id; the
+    // last landing runs the completion (staged sequences opened, then today's swap / InsertDeckCmd / label). One staged
+    // load at a time: a newer Composition load, swapCompositionModel (any caller), an explicit cancel or destruction
+    // retires it. An Append / Duplicate that arrives while a load is staged is QUEUED (AL7, FIFO <= 8) and prepared when
+    // dequeued against the then-live composition.
+    struct StagedLoad
+    {
+        stagedload::Kind kind = stagedload::Kind::Composition;
+        Composition comp;                    // Kind::Composition
+        Deck deck;                           // Kind::DeckAppend / DeckDuplicate
+        juce::String name;                   // the label's name: file base name / the copy's deck name
+        stagedload::LabelHold label;         // AL5: "Loading <name>..." while staged; a cancel shows the latest held text
+        stagedload::Adopted adopted;         // every media id handed to the renderer (a cancel retires them)
+        std::shared_ptr<LoadTicket> ticket;  // POST /api/load_composition's waiter (Composition only)
+    };
+    void stageDeckAppend(const juce::File& file);                           // prepare + begin (nothing staged)
+    void stageDeckDuplicate(int deckIndex);                                 // prepare + begin (nothing staged)
+    void beginStagedOpen(std::unique_ptr<StagedLoad> staged);               // seeds presence, queues the videos (or completes)
+    void onStagedLanded(uint32_t clipId, std::unique_ptr<VideoPlayer> player);
+    void finishStagedLoad();
+    void cancelStagedOpen(LoadTicket::Outcome why);                         // retire adopted ids, restore the label, finish the ticket, drop the queue
+    void pumpLoadQueue();                                                   // AL7: the next queued Append / Duplicate
+    Clip* findStagedClip(uint32_t clipId);
+    void publishLoadWitness();                                              // the message-thread state -> /api/state atomics
+    // AL5: every file-label write except the staged-load machinery's goes through here: while a load is staged the text
+    // is held for a cancel and the label keeps "Loading <name>...".
+    void setFileLabel(const juce::String& text);
     // plan6 §6.4: the deck tab row's actions ("+" menu, a tab's right-click
     // menu) and the Deck menu's mirror (which passes the ACTIVE deck's index).
     // Message thread. Undoable: New / Load / Duplicate / Rename / Remove.
@@ -404,6 +436,23 @@ private:
     // destroyed first (its timer stops, a sweep in flight lands on nobody).
     MediaPresenceSweeper presence_;
     juce::var mediaStateVar() const;   // /api/state "media" (any thread: atomics only)
+    // s-rta-0929 asyncload: /api/state "load" (any thread: atomics + LoadTiming's mutex-guarded copy); the last load's
+    // cost split (LoadTiming, written on the message thread by the three load paths); CoreAudio's processor-overload
+    // count sampled on the 30 Hz timer (TEST_SERVER builds; -1 = no device / not sampled yet).
+    juce::var loadWitnessVar() const;
+    LoadTiming loadTiming_;
+    std::atomic<int> audioXruns_{ -1 };
+    // s-rta-0929 asyncload: the staged load (message thread), the AL7 queue, the model epoch a queued Duplicate's source
+    // id was read in (bumped by every swapCompositionModel), and their mirrors for /api/state (any thread).
+    std::unique_ptr<StagedLoad> staged_;
+    stagedload::LoadQueue loadQueue_;
+    uint64_t modelEpoch_ = 0;
+    std::atomic<int> stagedNow_{ 0 }, stagedPlayers_{ 0 }, queuedNow_{ 0 };
+    // AL11 (load-bearing member order): mediaOpener_ is declared AFTER previewPanel_ (the Renderer whose VideoStats it
+    // stores), composition_, deckView_ and presence_, so it is destroyed BEFORE them: its destructor drops the queued
+    // opens and waits <= 5 s for an in-flight one while everything a landing could reach is still alive (a landing
+    // after it is gone finds its WeakReference null).
+    MediaOpener mediaOpener_{ &previewPanel_.getRenderer().getVideoStats() };
     std::unique_ptr<InspectorPanel> inspectorPanel_;
     std::unique_ptr<BrowserPanel> browserPanel_;
 

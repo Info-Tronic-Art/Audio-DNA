@@ -26,10 +26,20 @@ public:
     // thread's resampler. 0.0 = no device / not started yet.
     const std::atomic<double>& sampleRateCell() const noexcept { return sampleRate_; }
 
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929 asyncload (plan-asyncload.md 5.7 / R9, TEST-ONLY build path): pushes the ring buffer could not take
+    // whole (the analysis thread, its consumer, was starved). One compare + a relaxed add on the overrun path only.
+    uint64_t ringOverruns() const noexcept { return overruns_.load(std::memory_order_relaxed); }
+#endif
+
 private:
     RingBuffer<float>& ringBuffer_;
     std::vector<float> monoBuffer_;  // pre-allocated in audioDeviceAboutToStart
     std::atomic<double> sampleRate_{0.0};
+#if AUDIODNA_TEST_SERVER
+    std::atomic<uint64_t> overruns_{0};
+    static_assert(std::atomic<uint64_t>::is_always_lock_free, "audio-callback witness must be lock-free");   // AL8 b
+#endif
 };
 
 static_assert(std::atomic<double>::is_always_lock_free,
