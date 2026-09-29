@@ -34,8 +34,10 @@ peer_layer_backed == 1 is asserted in c0):
   v1 BEFORE vs AFTER, --test-mode (meters and waveform static): S1 default, S2 card, S3 many16, S4 = S3 after POST
      /api/debug/ui_repaint_all on AFTER (the full-window pass, adoption I7). Allowed: the TopBar row's right fpsMaskRightPt
      (fps / DSP labels) + <= cornerClusters clusters <= cornerClusterMaxPx inside the waveform rect's corners with max
-     delta <= cornerMaxDelta (the rounded corners: premultiplied-alpha rounding of a non-opaque layer). Every cluster's
-     bbox + max delta printed, a diff PNG saved.
+     delta <= cornerMaxDelta (the rounded corners: anti-aliasing of a curved edge in a separate layer). Every cluster's
+     bbox + max delta printed, a diff PNG saved. S4 is scoped to the waveform rect + 8 px (I7's subject); a whole-
+     MainComponent pass re-renders never-repainted text slightly differently in both builds -- its count is INFO.
+  v1n (INFO) the comparator's noise floor: the BEFORE app against itself, two launches, S1-S3.
   v1b (adoption I5) AFTER, test mode, card, inject_features non-trivial meters (+ the TEMPORARY waveform-freeze hook
      ADNA_TEMP_WAVE_FREEZE=1 when the build carries it -- else the waveform half is SKIP): native capture, forced in-peer
      (POST /api/debug/ui_native_fallback) capture, native again: the panel rects pixel-equal.
@@ -60,7 +62,7 @@ from PIL import Image, ImageDraw
 A = "http://127.0.0.1:7070"
 ROOT, OUT = sys.argv[1], sys.argv[2]
 ALL_ROWS = ["c0_preflight", "i1_idle_card", "i2_idle_many16", "g2_strip_playhead", "g4_routine", "g5_driven",
-            "x1_within_build_off", "v0_capture_teeth", "v1_identity_test_mode", "v1b_native_vs_inpeer",
+            "x1_within_build_off", "v0_capture_teeth", "v1_identity_test_mode", "v1n_noise_floor", "v1b_native_vs_inpeer",
             "v2_identity_fallback", "v2b_fallback_frames", "v3_identity_production_masked"]
 DEFAULT_ROWS = [r for r in ALL_ROWS if r not in ("x1_within_build_off", "v1b_native_vs_inpeer")]
 ROWS = [r for r in (sys.argv[3].split(",") if len(sys.argv) > 3 and sys.argv[3] else DEFAULT_ROWS) if r]
@@ -666,12 +668,17 @@ def row_x1():
          f"main CPU median {fmt(st.median(cpu))} ms/s")
 
 
+GEO = {}   # the last good geometry of this run (v1n reuses it)
+
+
 def geo_for(img, win):
     u = ui()
     if u is None or img is None:
         return None, u
     g = Geo(u, win, img)
     print(f"    geometry: {g.desc()} ({'ok' if g.ok else 'MISMATCH'})", flush=True)
+    if g.ok:
+        GEO.update(geo=g, u=u)
     return (g if g.ok else None), u
 
 
@@ -721,7 +728,8 @@ def row_v0():
         skip("v0_capture_teeth: no capture / geometry"); return
     res = compare(t[0], p[0], geo, "v0", masks=(fps_mask(u),))
     n, cl, md, bad = res
-    sb, wf = geo.px(u["signalbar_rect"]), geo.px(u["waveform_rect"])
+    grow = lambda r: (r[0] - 2, r[1] - 2, r[2] + 4, r[3] + 4)   # a 1-pt shift moves an edge up to 2 capture px
+    sb, wf = grow(geo.px(u["signalbar_rect"])), grow(geo.px(u["waveform_rect"]))
     in_sb = [c for c in cl if in_rect(sb, c[0], c[1]) and in_rect(sb, c[2], c[3])]
     in_wf = [c for c in cl if in_rect(wf, c[0], c[1]) and in_rect(wf, c[2], c[3])]
     outside = [c for c in cl if c not in in_sb and c not in in_wf]
@@ -739,11 +747,48 @@ def row_v1():
     a, geo, u = shoot_states(APP, "v1/after", repaint=True)
     if geo is None or any(b.get(s, (None,))[0] is None or a.get(s, (None,))[0] is None for s in ("S1", "S2", "S3", "S4")):
         skip("v1_identity_test_mode: missing capture or geometry"); return
-    for s in ("S1", "S2", "S3", "S4"):
+    for s in ("S1", "S2", "S3"):
         n, cl, md, bad = compare(b[s][0], a[s][0], geo, f"v1-{s}", masks=(fps_mask(u),), corner_rect=u["waveform_rect"])
-        what = {"S1": "default", "S2": "card", "S3": "many16", "S4": "many16 after a full-window repaint (I7)"}[s]
+        what = {"S1": "default", "S2": "card", "S3": "many16"}[s]
         (ok if not bad else no)(f"v1_identity_test_mode {s} ({what}): BEFORE vs AFTER -- {n} differing px outside the "
                                 f"fps mask in {len(cl)} cluster(s), {len(bad)} not allowed, max delta {md}")
+    # S4 (adoption I7): after POST /api/debug/ui_repaint_all (a whole-MainComponent pass) the waveform's corners are
+    # still right. Scoped to the waveform rect + 8 px: a whole-MainComponent repaint re-renders the text of regions JUCE
+    # had not repainted since startup a little differently (glyph-edge AA, both builds; the BEFORE app cannot be driven
+    # to such a pass) -- the whole-window count is INFO.
+    wr = u["waveform_rect"]
+    around = (wr[0] - 8, wr[1] - 8, wr[2] + 16, wr[3] + 16)
+    outside = [(0, 0, u["main_w"], around[1]), (0, around[1] + around[3], u["main_w"], u["main_h"] + 100),
+               (0, around[1], around[0], around[3]), (around[0] + around[2], around[1], u["main_w"], around[3])]
+    n, cl, md, bad = compare(b["S4"][0], a["S4"][0], geo, "v1-S4-waveform", masks=outside, corner_rect=wr)
+    (ok if not bad else no)(f"v1_identity_test_mode S4 (many16 after a full-window repaint, I7): the waveform rect + 8 px "
+                            f"BEFORE vs AFTER -- {n} differing px in {len(cl)} cluster(s), {len(bad)} not allowed, max delta {md}")
+    d = np.abs(b["S4"][0].astype(np.int16) - a["S4"][0].astype(np.int16)).max(axis=2) > 0
+    info(f"v1_identity_test_mode S4 whole window: {int(d.sum())} px differ (text re-rendered by the full pass)")
+
+
+def row_v1n():
+    """INFO: the comparator's noise floor -- the BEFORE app against itself (two launches, the same state sequence)."""
+    if not APPB or not os.path.isdir(APPB):
+        skip("v1n_noise_floor: no BEFORE app"); return
+    if compilers() > 0:
+        skip("v1n_noise_floor: TAINTED"); return
+    geo, u = GEO.get("geo"), GEO.get("u")
+    b1, _, _ = shoot_states(APPB, "v1n/before-1")
+    b2, _, _ = shoot_states(APPB, "v1n/before-2")
+    if geo is None:
+        pid, _ = launch(APP, "v1n/geometry", test=True)
+        time.sleep(CFG["v"]["settleS"])
+        geo, u = geo_for(*capture("v1n-geometry"))
+        quit_app()
+    if geo is None:
+        skip("v1n_noise_floor: no geometry"); return
+    for s in ("S1", "S2", "S3"):
+        if b1.get(s, (None,))[0] is None or b2.get(s, (None,))[0] is None:
+            skip(f"v1n_noise_floor {s}: missing capture"); continue
+        n, cl, md, bad = compare(b1[s][0], b2[s][0], geo, f"v1n-{s}", masks=(fps_mask(u),), corner_rect=u["waveform_rect"])
+        info(f"v1n_noise_floor {s}: BEFORE vs BEFORE (two launches) -- {n} differing px outside the fps mask in "
+             f"{len(cl)} cluster(s), max delta {md}")
 
 
 def row_v1b():
@@ -950,6 +995,8 @@ for row in ROWS:
         row_v0()
     elif row == "v1_identity_test_mode":
         row_v1()
+    elif row == "v1n_noise_floor":
+        row_v1n()
     elif row == "v1b_native_vs_inpeer":
         row_v1b()
     elif row == "v2_identity_fallback":
