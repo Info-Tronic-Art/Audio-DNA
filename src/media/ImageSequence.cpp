@@ -241,7 +241,8 @@ bool ImageSequence::uploadFrame(const ImageDecode::Result& r, int idx, int cap, 
     {
         case SeqVram::Slots::Act::Full:
             // H1: no free slot and none may be created (the floor holds cur + lastShown): not uploaded this frame; the
-            // result stays in ready_ and is judged again next frame.
+            // result stays in ready_ and is judged again next frame. F4: the caller checks canAcquire first, so this is
+            // defensive only.
             if (stats != nullptr)
                 stats->uploadDeferred.fetch_add(1, std::memory_order_relaxed);
             return false;
@@ -361,10 +362,18 @@ GLuint ImageSequence::getCurrentTexture(ImageDecode::Decoder& decoder, ImageTexC
         deleteTextures(slots_.shrink(cap, grant.deletes != nullptr ? grant.deletes->left : std::numeric_limits<int>::max()),
                        grant.deletes, stats);
 
-    // 4. Upload within the frame's budget (the rest wait, never re-decoded; no slot this frame -> wait too, H1).
+    // 4. Upload within the frame's budget (the rest wait, never re-decoded; no slot this frame -> wait too, H1). F4: the
+    //    slot is checked BEFORE the upload budget is taken, so a result that has no slot never spends it.
     for (auto it = ready_.begin(); it != ready_.end();)
     {
         const int idx = static_cast<int>(static_cast<uint32_t>(it->tag));
+        if (!slots_.canAcquire(idx, cap))
+        {
+            if (stats != nullptr)
+                stats->uploadDeferred.fetch_add(1, std::memory_order_relaxed);
+            ++it;
+            continue;
+        }
         if (!budget.take(it->rgba.size()) || !uploadFrame(*it, idx, cap, stats))
         {
             ++it;

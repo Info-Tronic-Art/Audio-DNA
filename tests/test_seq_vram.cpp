@@ -673,3 +673,40 @@ TEST_CASE("(15) F3: a drawn sequence's grant counts idle sequences' bytes above 
     // inconsistent sums never underflow: idle > the others -> only the idle minimum counts
     CHECK(drawnAllowance(frames(10), frames(8), frames(50), frames(2), floor) == kBudgetBytes - frames(2));
 }
+
+TEST_CASE("(16) F4: canAcquire agrees with acquire, without changing anything", "[seq_vram][s-rta-0928b]")
+{
+    // cap 2, both slots held by cur + lastShown: an incoming result has no slot -> no upload budget spent on it
+    Slots s;
+    s.bind(s.acquire(10, 64, 64, 2).slot, 1);
+    s.bind(s.acquire(9, 64, 64, 2).slot, 2);
+    CHECK_FALSE(s.canAcquire(11, 2));
+    CHECK(s.acquire(11, 64, 64, 2).act == Slots::Act::Full);
+    CHECK(s.canAcquire(10, 2));   // a frame already in a slot (re-upload into it)
+    CHECK(s.canAcquire(11, 3));   // room to create
+    CHECK(s.size() == 2);
+    CHECK(s.occupied() == 2);
+    s.release(9);                 // a free slot
+    CHECK(s.canAcquire(11, 2));
+    CHECK(s.acquire(11, 64, 64, 2).act == Slots::Act::Reuse);
+    CHECK_FALSE(s.canAcquire(12, 2));
+    CHECK_FALSE(s.canAcquire(12, 0));
+    // a model of the upload loop: a Full result never takes budget
+    for (int cap : { 1, 2, 3, 8 })
+    {
+        Slots m;
+        int taken = 0, uploaded = 0;
+        for (int f = 0; f < 6; ++f)
+        {
+            if (!m.canAcquire(f, cap))
+                continue;
+            ++taken;
+            const auto a = m.acquire(f, 64, 64, cap);
+            REQUIRE(a.act != Slots::Act::Full);
+            m.bind(a.slot, static_cast<uint32_t>(f + 1));
+            ++uploaded;
+        }
+        CHECK(taken == uploaded);
+        CHECK(uploaded == std::min(cap, 6));
+    }
+}

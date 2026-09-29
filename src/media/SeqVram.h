@@ -319,6 +319,14 @@ public:
         return {};
     }
 
+    // F4: true when acquire(frame, ..., cap) would NOT return Full -- checked before a frame's upload budget is spent.
+    bool canAcquire(int frame, int cap) const
+    {
+        if (slotOf(frame) >= 0 || size() < cap)
+            return true;
+        return std::any_of(slots_.begin(), slots_.end(), [](const Slot& s) { return s.frame < 0; });
+    }
+
     void bind(int slot, uint32_t tex)   // after Create: the new texture name
     {
         if (valid(slot))
