@@ -413,13 +413,18 @@ void ClipCell::setGridPosition(int layerIndex, int column)
 void ClipCell::updateThumbnail()
 {
     // s-rta-0928 (restore-diag.md): NEVER decodes. An Image clip's thumbnail comes from DeckView's ClipThumbnails --
-    // decoded once per file off the message thread, invalid until it lands; a video / sequence's is its Clip::thumbnail.
+    // decoded once per file off the message thread, invalid until it lands; a video's is its Clip::thumbnail.
+    // s-rta-0928b mediaopen: a SEQUENCE's comes from the same store, keyed by its first file (the drop / load used to
+    // decode frame 0 for it on the message thread); a Clip::thumbnail that is valid still wins.
     // Re-derived only when its source changed: every DeckView::refresh (once per discrete restore entry, every clip
     // trigger) used to decode each image cell from disk right here.
     const auto type = (clip_ != nullptr && clip_->hasMedia()) ? clip_->mediaType : Clip::MediaType::None;
     const bool cached = clip_ != nullptr && clip_->thumbnail.isValid();
-    const juce::String path = (type == Clip::MediaType::Image && !cached) ? clip_->mediaFile.getFullPathName()
-                                                                          : juce::String();
+    const juce::File source = cached ? juce::File()
+                            : type == Clip::MediaType::Image ? clip_->mediaFile
+                            : (type == Clip::MediaType::ImageSequence && !clip_->sequenceFiles.empty())
+                                  ? clip_->sequenceFiles[0] : juce::File();
+    const juce::String path = source.getFullPathName();
     // Same source: a cached picture is the same image; an image path has landed; anything else derives no picture
     // (so a video whose Clip::thumbnail was cleared never keeps the old one).
     if (type == shownType_ && path == shownPath_
@@ -434,7 +439,7 @@ void ClipCell::updateThumbnail()
     if (cached)
         thumbnail_ = clip_->thumbnail;
     else if (path.isNotEmpty() && thumbs_ != nullptr)
-        thumbnail_ = thumbs_->get(clip_->mediaFile);   // invalid while its decode is under way
+        thumbnail_ = thumbs_->get(source);   // invalid while its decode is under way
 }
 
 juce::Rectangle<int> ClipCell::getThumbnailBounds() const

@@ -2951,10 +2951,9 @@ void MainComponent::openMediaForDeck(Deck& deck)
             else // ImageSequence
             {
                 if (clip.sequenceFiles.empty()) continue;
+                // s-rta-0928b mediaopen: no I/O -- open() stats and decodes nothing, and the grid pulls the sequence's
+                // thumbnail from ClipThumbnails (its first file, off-thread) instead of a frame-0 decode here.
                 renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
-                auto first = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
-                if (first.isValid())
-                    clip.thumbnail = first.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
             }
         }
     }
@@ -4985,11 +4984,7 @@ MainComponent::prepareMultiFileDrop(int layerIndex, int column, const std::vecto
     {
         clip.name = clip.sequenceFiles[0].getParentDirectory().getFileName().toStdString()
                   + " (" + std::to_string(clip.sequenceFiles.size()) + " frames)";
-
-        // Thumbnail from first image
-        auto firstImg = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
-        if (firstImg.isValid())
-            clip.thumbnail = firstImg.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+        // s-rta-0928b mediaopen: no frame-0 decode for a thumbnail here -- the grid pulls it from ClipThumbnails.
     }
 
     // Open the image sequence in the renderer

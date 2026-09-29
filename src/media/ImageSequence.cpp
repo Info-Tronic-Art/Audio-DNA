@@ -22,7 +22,10 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
     if (imageFiles.empty())
         return false;
 
-    // Filter to supported image formats and sort alphabetically
+    // Filter to supported image formats and sort alphabetically. s-rta-0928b mediaopen: NO stat -- a missing file is a
+    // frame that decodes Failed (the previous frame repeats, renderleft R-7) instead of being dropped from the list (which
+    // shifted the timing of every later frame); open() does no file I/O at all (it ran on the message thread: 300 stats
+    // + a frame-0 decode per 300-frame sequence).
     files_.clear();
     for (const auto& f : imageFiles)
     {
@@ -30,8 +33,7 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
             ext == ".bmp" || ext == ".tiff" || ext == ".gif")
         {
-            if (f.existsAsFile())
-                files_.push_back(f);
+            files_.push_back(f);
         }
     }
 
@@ -51,22 +53,10 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
     failed_.assign(files_.size(), 0);
     ready_.clear();
     lastShown_ = -1;
+    // s-rta-0928b mediaopen: no frame-0 decode here -- frameBytesHint_ stays "unknown" (0: the window's floor, seqvram
+    // H5) until the first upload sets it; nothing read width / height.
 
-    // Get dimensions from first image
-    auto firstImg = juce::ImageFileFormat::loadFrom(files_[0]);
-    if (firstImg.isValid())
-    {
-        width_ = firstImg.getWidth();
-        height_ = firstImg.getHeight();
-        // s-rta-0928b seqvram: the frame size for the window's allowance until the first upload (H5: invalid -> 0)
-        frameBytesHint_ = static_cast<size_t>(width_) * static_cast<size_t>(height_) * 4u;
-    }
-    else
-    {
-        width_ = 1920;
-        height_ = 1080;
-    }
-
+    seekRequested_.store(false, std::memory_order_relaxed);
     currentTime_ = 0.0;
     currentFrameIndex_ = 0;
     pingPongForward_ = true;
@@ -75,7 +65,6 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
     open_.store(true, std::memory_order_relaxed);
 
     std::cerr << "[ImageSequence] Opened " << files_.size() << " images"
-              << " (" << width_ << "x" << height_ << ")"
               << " at " << fps_.load() << " fps" << std::endl;
 
     return true;
@@ -99,8 +88,7 @@ void ImageSequence::close()
     // Note: GL textures must be released on GL thread via releaseGL()
     files_.clear();
     // Don't clear textures_ here — releaseGL() handles that
-    width_ = 0;
-    height_ = 0;
+    seekRequested_.store(false, std::memory_order_relaxed);
     currentTime_ = 0.0;
     currentFrameIndex_ = 0;
     playheadPosition_.store(0.0, std::memory_order_relaxed);
@@ -115,18 +103,29 @@ double ImageSequence::getDuration() const
 
 void ImageSequence::seekTo(double normalizedPosition)
 {
-    normalizedPosition = std::clamp(normalizedPosition, 0.0, 1.0);
-    double dur = getDuration();
-    currentTime_ = normalizedPosition * dur;
-    currentFrameIndex_ = static_cast<int>(normalizedPosition * static_cast<double>(files_.size() - 1));
-    currentFrameIndex_ = std::clamp(currentFrameIndex_, 0, static_cast<int>(files_.size()) - 1);
-    playheadPosition_.store(normalizedPosition, std::memory_order_relaxed);
+    // s-rta-0928b mediaopen: a REQUEST (VideoPlayer's shape), consumed by advanceFrame on the GL thread -- the message-
+    // thread callers (cue jump, beat snap, retrigger) used to write currentTime_ / currentFrameIndex_ while the GL thread
+    // read and wrote them in advanceFrame / getCurrentTexture. The last request before an advance wins.
+    seekTarget_.store(std::clamp(normalizedPosition, 0.0, 1.0), std::memory_order_relaxed);
+    seekRequested_.store(true, std::memory_order_release);
 }
 
 void ImageSequence::advanceFrame(double dt)
 {
     if (!open_.load(std::memory_order_relaxed) || files_.empty())
         return;
+
+    // s-rta-0928b mediaopen: a pending seek lands here, BEFORE the playing check (a cue jump on a paused sequence moves
+    // the frame; the clock-only off-screen path calls advanceFrame too, so an off-screen seek lands as well). The GL
+    // thread's own out-point wrap (Renderer::syncMedia) now lands one frame later -- video's behaviour.
+    if (seekRequested_.exchange(false, std::memory_order_acq_rel))
+    {
+        const double p = seekTarget_.load(std::memory_order_relaxed);
+        currentTime_ = p * getDuration();
+        currentFrameIndex_ = std::clamp(static_cast<int>(p * static_cast<double>(files_.size() - 1)),
+                                        0, static_cast<int>(files_.size()) - 1);
+        playheadPosition_.store(p, std::memory_order_relaxed);
+    }
 
     if (!playing_.load(std::memory_order_relaxed))
         return;
@@ -493,20 +492,3 @@ bool ImageSequence::releaseGLWithin(SeqVram::DeleteBudget& deletes, SeqVram::Sta
     return true;
 }
 
-juce::Image ImageSequence::getThumbnail(int maxWidth, int maxHeight)
-{
-    if (files_.empty())
-        return {};
-
-    auto img = juce::ImageFileFormat::loadFrom(files_[0]);
-    if (!img.isValid())
-        return {};
-
-    float scaleX = static_cast<float>(maxWidth) / static_cast<float>(img.getWidth());
-    float scaleY = static_cast<float>(maxHeight) / static_cast<float>(img.getHeight());
-    float scale = std::min(scaleX, scaleY);
-    int thumbW = std::max(1, static_cast<int>(static_cast<float>(img.getWidth()) * scale));
-    int thumbH = std::max(1, static_cast<int>(static_cast<float>(img.getHeight()) * scale));
-
-    return img.rescaled(thumbW, thumbH, juce::Graphics::lowResamplingQuality);
-}

@@ -2669,3 +2669,31 @@ target_include_directories(test_fenced_ptr_slot PRIVATE ${SRC_DIR})
 target_link_libraries(test_fenced_ptr_slot PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_fenced_ptr_slot)
 catch_discover_tests(test_fenced_ptr_slot)
+
+# --- test_image_sequence_open (s-rta-0928b mediaopen, plan-mediaopen.md 4.5 / 4.9(3)): ImageSequence::open does NO file
+# I/O (a missing frame keeps its slot -- no stat, no frame-0 decode) and seekTo is a request consumed at the top of
+# advanceFrame (before the playing check). Links the REAL src/media/ImageSequence.cpp; no GL call is reached.
+add_executable(test_image_sequence_open
+    test_image_sequence_open.cpp
+    ${SRC_DIR}/media/ImageSequence.cpp
+)
+target_include_directories(test_image_sequence_open PRIVATE ${SRC_DIR})
+target_link_libraries(test_image_sequence_open PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_image_sequence_open PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_image_sequence_open PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_image_sequence_open)
+catch_discover_tests(test_image_sequence_open)
