@@ -885,3 +885,24 @@ commit sequence, the 9 rows. Rulings:
   ImageSequence.* / SeqVram.h. Pitfall text "NN". CLAUDE.md: pay for the index line by trimming rule 5's NOTE (R-K); final
   `wc -c CLAUDE.md` <= 25,000 including seqvram's line.
 - V7 GREEN definition as 4.7 + w4b + w6b; quiet-before-lock (the lock helper's acquire_quiet_lock).
+
+## HARMONY ADOPTION ADDENDUM — fix round (s-rta-0928b, 00:14) — rulings on the lane's open items (video.md @ 90cdf55)
+Reviews r1: gl PASS_WITH_NITS, gates PASS_WITH_NITS (0 MUST). Accepted as built: "Beyond the plan" 1-3 (each with a ctest).
+- W1 (w2 (a), RULED with evidence — not a silent re-threshold) The plan's ">= 110 fps at 4 x 4K" was an INFERRED prediction; the
+  lane measured the SAME 4K canvas with 4 x 4K STILLS at 108-110 fps and 4 x 4K video at 84-90 (video adds ~1 ms GPU of
+  uploads; BGRA tried, no gain), with 0 GL-thread decodes and callback p90 3.8-6.5 ms. The row now asserts what this plan
+  controls: (a) fps >= 80 (main 36; the upload-bound ceiling on this M1 Pro) AND (a2) fps >= (the same launch's 4 x 4K STILL
+  scene fps) - 30. Print both. "4 x 4K video at the display rate" is FILED as a separate follow-up (zero-copy upload: IOSurface /
+  VideoToolbox — its own plan).
+- W2 (w1 (a), RULED: a measurement fix) The probe's 15 ms poller perturbs the fps it measures (lane 120 fps at 50 ms polls vs
+  86-120 under 15 ms polls; main ~89 either way). fps rows (w1, w2, w8) poll at 50 ms; peak/max fields keep the per-poll max.
+  w1 (a) PASS = fps >= 110 in >= 4 of 5 runs on a quiet machine; record all 5 and main's 5.
+- W3 (found_not_fixed 3, ADOPT — a regression vs main otherwise) A video whose first frame never decodes (open succeeded, the
+  decode thread reports a decode error / EOF before any frame, or no frame within kFirstFrameTimeoutMs = 2000 of the first
+  draw request) becomes FAILED: getTexture returns 0 with pending = false ("no media", like a failed image or sequence frame),
+  so C1 never waits on it and the render_frame gate does not hang. ctest on the judge/state (failed-first-frame -> not
+  pending); a live row w9: a truncated / corrupt mp4 fixture (e.g. a file cut to its header) crossfaded onto: the fade
+  completes within its time + 0.5 s and render_frame answers (RED on the lane head 90cdf55: the fade waits).
+- W4 found_not_fixed 4 (context loss, FX-only 1-4 frames), 5 (reverse long-GOP rate), 6 (RSS trim) — FILED for the handoff
+  ledger; not this round.
+- W5 Keep "NN"; Harmony assigns 55 at merge. Rebase onto main if it moved (mediaopen / idlepaint may merge first).
