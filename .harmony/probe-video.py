@@ -44,9 +44,11 @@ w4_deck_return_1080 (rule 15): deck 0 = a1080; deck 1 = warm.png. trig; 2 s; p0 
   1.5 s poll; s1; settle; cap + p1. PASS (a) every poll <= peakMaxMs; (b) video_pending_frames delta == 0; (c) 1 <= late
   delta <= lateMaxReturn (the frames the clock ran past off screen were never decoded: a bounded hold); (d) (p1 - p0) x 10
   >= 5.0 s and the code within the bracket.
-w4b_idle_mid_catchup (V2, 4K): deck 0 = a4k inPoint 0.5; deck 1 = warm.png. trig; 2 s; (A) retrigger (a catch-up starts),
-  switch_deck 1 within 100 ms, 1.5 s -> video_threads_awake == 0; (B) switch_deck 0, 3 s (the ring fills in steady play),
-  switch_deck 1, 1.5 s -> video_threads_awake == 0. video_threads must be 1 (not a vacuous PASS).
+w4b_idle_mid_catchup (V2, 4K): deck 0 = a4k inPoint 0.5; deck 1 = warm.png. trig; 3 s; (B) switch_deck 1 (steady play has
+  filled the ring), 1.5 s -> video_threads_awake == 0; switch_deck 0; 1 s; (A) retrigger (a catch-up starts), switch_deck 1
+  within 100 ms, 1.5 s -> video_threads_awake == 0. video_threads must be 1 (not a vacuous PASS). Both arms stay clear of
+  the 10 s Loop wrap (its generation bump would also end a ring-full wait). Teeth (a build without the idle check inside
+  the ring-full wait): B FAILs; A parks at the loop top during its catch-up on either build.
 w6_crossfade_two_players (Pitfall 35): transitionSpeed 2.0; col 0 = a1080, col 1 = b1080. trig 0; 2 s; s0; trig 1; poll
   2.5 s with capMid at +1.0 s; s1; settle; capAfter. PASS (a) max peak_callback_ms <= peakMaxMs; (b) video_uploads delta in
   [130, 180]; (c) capMid mean luma > 20, dbox to A's and to B's frame both > boxTol (a blend: both chains live); (d) capAfter
@@ -628,12 +630,15 @@ def w4b(tag):
     if not load(tag, [deck(0, [layer(LID[tag], [vclip(1, "a4k_g250.mp4", ip=0.5)])]),
                       deck(1, [layer(LID["w4_away"], [iclip(2, os.path.join(OUT, "warm.png"))])])], "4k", 1):
         return
-    trig(0, 0); wait_active(0, 0); time.sleep(2.0)
-    trig(0, 0); time.sleep(0.05); switch(1)       # (A) a catch-up starts, then the deck leaves within 100 ms
-    time.sleep(1.5); sA = state()
-    switch(0); time.sleep(3.0); switch(1)          # (B) steady play fills the ring, then the deck leaves
+    # Clock arithmetic keeps both arms clear of the 10 s Loop wrap (a wrap bumps the request generation, which also
+    # ends a ring-full wait and would hide a missing inner idle check): B leaves at 3.0 s, A spans 5.0 -> 6.55 s.
+    trig(0, 0); wait_active(0, 0); time.sleep(3.0)
+    switch(1)                                      # (B) steady play has filled the ring; the deck leaves
     time.sleep(1.5); sB = state()
-    for arm, s in (("A (mid catch-up)", sA), ("B (ring full)", sB)):
+    switch(0); time.sleep(1.0)
+    trig(0, 0); time.sleep(0.05); switch(1)        # (A) a retrigger starts a catch-up; the deck leaves within 100 ms
+    time.sleep(1.5); sA = state()
+    for arm, s in (("B (ring full)", sB), ("A (mid catch-up)", sA)):
         th = field(tag, s, "video_threads"); aw = field(tag, s, "video_threads_awake")
         if th is None or aw is None:
             continue
