@@ -302,6 +302,7 @@ void Renderer::renderOpenGL()
     // pass and before any early return (B2), within the frame's upload budget. No decode here, ever.
     compositor_.beginFrame();
     uploadBudget_.reset();
+    videoStats_.pendingNow.store(0, std::memory_order_relaxed);   // s-rta-0928b video: videos_pending is per frame
     compositor_.pumpImages();
 
     // Release any media players closeMediaForClip() retired from the message
@@ -1438,6 +1439,7 @@ bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
     auto player = std::make_unique<VideoPlayer>();
     if (!player->open(videoFile))
         return false;
+    player->setStats(&videoStats_);   // s-rta-0928b video counters
 
     // Retire whatever media (video OR image-sequence) currently occupies
     // this clip id through closeMediaForClip()'s existing GL-thread-drained
@@ -1453,6 +1455,7 @@ bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
 
     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
     videoPlayers_[clipId] = std::move(player);
+    videoStats_.players.store(static_cast<int>(videoPlayers_.size()), std::memory_order_relaxed);
     return true;
 }
 
@@ -1487,7 +1490,9 @@ void Renderer::closeMediaForClip(uint32_t clipId)
     // current (see the GL-THREAD DESTROY GUARD comment on the retire members
     // in Renderer.h). drainRetiredMedia() does the actual GL-thread release.
     {
+        const auto waitStart = std::chrono::steady_clock::now();   // s-rta-0928b video: msg_video_lock_wait_max_ms
         std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+        noteMsgVideoLockWait(waitStart);
         auto it = videoPlayers_.find(clipId);
         if (it != videoPlayers_.end())
         {
@@ -1495,6 +1500,7 @@ void Renderer::closeMediaForClip(uint32_t clipId)
             std::lock_guard<std::mutex> retireLock(retiredMediaMutex_);
             retiredVideoPlayers_.push_back(std::move(it->second));
             videoPlayers_.erase(it);
+            videoStats_.players.store(static_cast<int>(videoPlayers_.size()), std::memory_order_relaxed);
         }
     }
     {
@@ -1622,16 +1628,26 @@ void Renderer::scanSequenceVram()
     seqStats_.overBudget.store(total > SeqVram::kBudgetBytes ? 1 : 0, std::memory_order_relaxed);
 }
 
+void Renderer::noteMsgVideoLockWait(std::chrono::steady_clock::time_point waitStart)
+{
+    VideoStats::noteMax(videoStats_.msgLockWaitMaxMs,
+                        std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - waitStart).count());
+}
+
 VideoPlayer* Renderer::getVideoPlayer(uint32_t clipId)
 {
+    const auto waitStart = std::chrono::steady_clock::now();   // s-rta-0928b video: msg_video_lock_wait_max_ms
     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    noteMsgVideoLockWait(waitStart);
     auto it = videoPlayers_.find(clipId);
     return (it != videoPlayers_.end()) ? it->second.get() : nullptr;
 }
 
 juce::File Renderer::getVideoPlayerFile(uint32_t clipId)
 {
+    const auto waitStart = std::chrono::steady_clock::now();   // s-rta-0928b video: msg_video_lock_wait_max_ms
     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    noteMsgVideoLockWait(waitStart);
     auto it = videoPlayers_.find(clipId);
     return (it != videoPlayers_.end()) ? it->second->getFile() : juce::File();
 }

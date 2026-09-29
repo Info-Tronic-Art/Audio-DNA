@@ -6,6 +6,7 @@
 #include <mutex>
 #include <atomic>
 #include <memory>
+#include "media/VideoStats.h"
 
 // Forward declarations for FFmpeg types (C linkage)
 struct AVFormatContext;
@@ -102,6 +103,9 @@ public:
     // Get a thumbnail image (first frame). Call after open(), from message thread.
     juce::Image getThumbnail(int maxWidth, int maxHeight);
 
+    // s-rta-0928b video: the Renderer's counters (/api/state). nullptr = none (the default).
+    void setStats(VideoStats* s) { stats_ = s; }
+
     VideoPlayer(const VideoPlayer&) = delete;
     VideoPlayer& operator=(const VideoPlayer&) = delete;
 
@@ -135,6 +139,9 @@ private:
     // GL texture
     GLuint texture_ = 0;
     bool textureCreated_ = false;
+
+    // s-rta-0928b video: the Renderer's counters (/api/state); nullptr = none.
+    VideoStats* stats_ = nullptr;
 
     // Transport state (atomics for cross-thread access)
     std::atomic<bool> open_{false};

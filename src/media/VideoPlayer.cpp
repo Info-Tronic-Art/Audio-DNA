@@ -7,6 +7,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 
 // FFmpeg headers (C linkage)
 extern "C" {
@@ -343,6 +344,7 @@ GLuint VideoPlayer::uploadToTexture()
     if (frameBuffer_.empty() || frameBufferWidth_ <= 0 || frameBufferHeight_ <= 0)
         return 0;
 
+    const auto uploadStart = std::chrono::steady_clock::now();   // s-rta-0928b video counters
     if (!textureCreated_)
     {
         glGenTextures(1, &texture_);
@@ -362,6 +364,12 @@ GLuint VideoPlayer::uploadToTexture()
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
                         frameBufferWidth_, frameBufferHeight_,
                         GL_RGBA, GL_UNSIGNED_BYTE, frameBuffer_.data());
+    }
+    if (stats_)
+    {
+        ++stats_->uploads;
+        VideoStats::noteMax(stats_->peakUploadMs, std::chrono::duration<float, std::milli>(
+                                                      std::chrono::steady_clock::now() - uploadStart).count());
     }
 
     return texture_;
@@ -445,12 +453,17 @@ bool VideoPlayer::decodeFrameAtTime(double timeSec)
     }
 
     // Decode frames until we reach or pass the target time
+    // s-rta-0928b video (counters): the decodes this call made; the "used up attempts" return is the S1b witness.
+    int decodes = 0;
+    auto noteDecodes = [&]() { if (stats_) VideoStats::noteMax(stats_->glMaxDecodesPerCall, decodes); };
     int maxAttempts = 30; // Don't decode too many frames per render
     while (maxAttempts-- > 0)
     {
+        ++decodes;
         if (!decodeNextFrame())
         {
             // End of stream — wrap for looping
+            noteDecodes();
             return false;
         }
 
@@ -458,14 +471,20 @@ bool VideoPlayer::decodeFrameAtTime(double timeSec)
         {
             double decodedTime = static_cast<double>(decodedFrame_->pts) * timeBase_;
             if (decodedTime >= timeSec - (1.0 / frameRate_) * 0.5)
+            {
+                noteDecodes();
                 return true; // Got a frame at or past target time
+            }
         }
         else
         {
+            noteDecodes();
             return true; // No PTS info — use whatever we got
         }
     }
 
+    noteDecodes();
+    if (stats_) ++stats_->lateFrames;
     return true; // Used up attempts, return what we have
 }
 
@@ -477,6 +496,7 @@ bool VideoPlayer::seekToTimestamp(double timeSec)
     auto* stream = formatCtx_->streams[videoStreamIndex_];
     int64_t timestamp = static_cast<int64_t>(timeSec / timeBase_);
 
+    if (stats_) ++stats_->seeks;
     int ret = av_seek_frame(formatCtx_, videoStreamIndex_, timestamp,
                             AVSEEK_FLAG_BACKWARD);
     if (ret < 0)
@@ -495,6 +515,7 @@ bool VideoPlayer::decodeNextFrame()
 {
     if (!formatCtx_ || !codecCtx_ || !decodedFrame_ || !packet_)
         return false;
+    if (stats_) ++stats_->glDecodeCalls;   // s-rta-0928b video: stats_ is set after open(), so these are GL-thread calls
 
     while (true)
     {
@@ -520,7 +541,10 @@ bool VideoPlayer::decodeNextFrame()
 
         ret = avcodec_receive_frame(codecCtx_, decodedFrame_);
         if (ret == 0)
+        {
+            if (stats_) ++stats_->framesDecoded;
             return true;  // Got a frame
+        }
         if (ret == AVERROR(EAGAIN))
             continue;      // Need more packets
         // Other error

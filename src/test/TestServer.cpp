@@ -673,6 +673,28 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
     obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
+    // s-rta-0928b video: video decodes off the GL thread (VideoPlayer decode thread + VideoRing; probe-video). Same
+    // fields as ApiServer. gl_video_decode_calls counts avcodec calls made ON the render thread (0 by construction once
+    // the decode thread lands); *_max_* / peak_* reset on read.
+    {
+        auto& v = renderer_.getVideoStats();
+        obj->setProperty("video_players", v.players.load(std::memory_order_relaxed));
+        obj->setProperty("video_threads", v.threadsRunning.load(std::memory_order_relaxed));
+        obj->setProperty("video_threads_awake", v.threadsAwake.load(std::memory_order_relaxed));   // not parked (V2)
+        obj->setProperty("gl_video_decode_calls", static_cast<juce::int64>(v.glDecodeCalls.load(std::memory_order_relaxed)));
+        obj->setProperty("gl_video_max_decodes_per_call", v.takeGlMaxDecodesPerCall());
+        obj->setProperty("video_uploads", static_cast<juce::int64>(v.uploads.load(std::memory_order_relaxed)));
+        obj->setProperty("video_frames_decoded", static_cast<juce::int64>(v.framesDecoded.load(std::memory_order_relaxed)));
+        obj->setProperty("video_frames_dropped", static_cast<juce::int64>(v.framesDropped.load(std::memory_order_relaxed)));   // catch-up: decoded, not converted
+        obj->setProperty("video_frames_skipped", static_cast<juce::int64>(v.framesSkipped.load(std::memory_order_relaxed)));   // GL: an older ready frame passed over
+        obj->setProperty("video_seeks", static_cast<juce::int64>(v.seeks.load(std::memory_order_relaxed)));
+        obj->setProperty("video_hold_frames", static_cast<juce::int64>(v.holdFrames.load(std::memory_order_relaxed)));   // drawn frames that re-showed the last frame
+        obj->setProperty("video_late_frames", static_cast<juce::int64>(v.lateFrames.load(std::memory_order_relaxed)));   // ... while the clock had passed the next frame
+        obj->setProperty("video_pending_frames", static_cast<juce::int64>(v.pendingFrames.load(std::memory_order_relaxed)));   // nothing shown yet
+        obj->setProperty("videos_pending", v.pendingNow.load(std::memory_order_relaxed));   // this frame
+        obj->setProperty("peak_video_upload_ms", static_cast<double>(v.takePeakUploadMs()));
+        obj->setProperty("msg_video_lock_wait_max_ms", static_cast<double>(v.takeMsgLockWaitMaxMs()));
+    }
     // s-rta-0927 outputs-c1: the output frame path (additive). live = output windows open; tap = the TEST-ONLY
     // forced tap; frame_* = the newest completed shared frame (gen 0 = nothing published). Same fields as ApiServer.
     {

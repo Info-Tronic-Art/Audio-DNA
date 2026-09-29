@@ -1,0 +1,38 @@
+{
+  "_doc": "Fixtures + thresholds for .harmony/probe-video.sh (s-rta-0928b video: video decodes off the GL thread; .harmony/.reports/s-rta-0928b/plan-video.md section 4.6 + HARMONY ADOPTION V2/V4/V5). Rows and calibration: the docstring of .harmony/probe-video.py. Fixtures: 10 s, 30 fps, 300 frames, encoded with ffmpeg (nice'd, -threads 2) into <out>/media before the app starts, or reused from $VIDEO_FIXTURES when it holds them (the keyframe list is re-asserted with ffprobe on every run). Every fixture carries a frame-number code band: the bottom bandRows rows, 10 cells, cell c white iff bit c of the code (drawbox per bit; decoded by thresholding each cell's inner 50 % at 128). @OUT@ = the fixture path.",
+  "fpsMin": 110,
+  "_fpsMin": "median /api/state fps over the 5 s steady window; the diag's v1 arm (no decode, uploads kept) gave 95.9-117 fps",
+  "p90CallbackMaxMs": 8.3,
+  "peakMaxMs": 16.7,
+  "_peakMaxMs": "one 60 Hz frame period",
+  "uploads5s": [540, 660],
+  "_uploads5s": "4 players x 30 content frames/s x 5 s = 600 uploads when a frame is uploaded once; every-render-frame upload = ~2400",
+  "lateMaxRetrigger1080": 60,
+  "lateMaxRetrigger4k": 200,
+  "lateMaxReturn": 60,
+  "lateMaxSteady4k": 12,
+  "codeTol": 2,
+  "boxTol": 3.0,
+  "lockWaitMaxMs": 2.0,
+  "triggerRttMaxMs": 30,
+  "settleLateS": 4.0,
+  "fadeDoneS": 4.0,
+  "bandRows": { "1080": 64, "4k": 128 },
+  "keyframesG250": [0.0, 8.333],
+  "keyframesG30": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+  "layers": {
+    "w1_steady_1080x4": [91, 92, 93, 94], "w2_steady_4kx4": [91, 92, 93, 94], "w3_retrigger_midgop_1080": 95,
+    "w3b_retrigger_midgop_4k": 96, "w4_deck_return_1080": 97, "w4_away": 98, "w5_correctness_gop30": 99,
+    "w6_crossfade_two_players": 100, "w7_message_thread_no_wait": [101, 102, 103, 104], "w7_images": 105,
+    "w8_prores_steady": 106, "w4b_idle_mid_catchup": 107, "w6b_retrigger_mid_fade": 108
+  },
+  "fixtures": {
+    "a1080_g250.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250" },
+    "b1080_g250.mp4": { "size": "1920x1080", "band": 64, "base": 512, "src": "testsrc2,negate", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250" },
+    "g30_1080.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "30", "-keyint_min", "30", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG30" },
+    "a4k_g250.mp4": { "size": "3840x2160", "band": 128, "base": 0, "src": "testsrc2", "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250" },
+    "pr1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"], "keys": null }
+  },
+  "_b1080": "b1080 is the NEGATED testsrc2 picture (plus code bit 9): a crossfade mid-point is then a blend distinguishable from both A and B (w6 (c)); the band is drawn after the negate, so it decodes like A's",
+  "warm": [256, 144, [200, 120, 40]]
+}

@@ -26,6 +26,7 @@
 #include "output/SharedFrameSet.h"
 #include <mutex>
 #include <future>
+#include <chrono>
 #include <unordered_map>
 
 // Forward declaration only (no GL dependency needed here) — used by the
@@ -234,6 +235,9 @@ public:
     // Lets callers detect an id-stable content swap and reopen when the loaded
     // file differs from the clip's current media file.
     juce::File getVideoPlayerFile(uint32_t clipId);
+
+    // s-rta-0928b video: the video path's counters for /api/state (any thread; relaxed atomics, take* reset on read).
+    VideoStats& getVideoStats() { return videoStats_; }
 
     // Get the ImageSequence for a clip (nullptr if none). For transport control.
     ImageSequence* getImageSequence(uint32_t clipId);
@@ -607,6 +611,9 @@ private:
     // Video players — keyed by clip ID
     std::mutex videoPlayerMutex_;
     std::unordered_map<uint32_t, std::unique_ptr<VideoPlayer>> videoPlayers_;
+    VideoStats videoStats_;   // s-rta-0928b video: shared by every player (setStats); /api/state reads it
+    // Message-thread sites that take videoPlayerMutex_ (lookup / close): the wait -> msg_video_lock_wait_max_ms.
+    void noteMsgVideoLockWait(std::chrono::steady_clock::time_point waitStart);
 
     // Image sequences — keyed by clip ID
     std::mutex imageSeqMutex_;
