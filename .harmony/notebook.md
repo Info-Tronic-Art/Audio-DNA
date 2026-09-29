@@ -2028,3 +2028,38 @@ resolver). A reviewer caught it by diffing the docs against main. Lanes write "N
 check `git diff <main>..<lane> -- docs CLAUDE.md` removes nothing it did not mean to. (3) The live-app lock is the session's
 real bottleneck with 3 lanes: batches rotate fairly (20 s poll + 45 s cooldown) but a Tier-1 hold is ~18 min.
 **Valid while:** lanes append to shared docs and share one live-app lock.
+
+## 2026-09-29 s-rta-0928b Harmony methods: relayed user messages stop lanes; report paths are fenced; broken media crashes
+**Files:** scratchpad wf/{build,fix,diag,plan}-lane.js, .harmony/probe-video.py (w9), gate-scripts lock helper
+**Note:** (1) A user message that arrives mid-turn is relayed to every subagent that STARTS later in that turn, and a
+builder may treat it as its task (two lanes stopped on a status question). A "your task is this lane" line in the packet
+does not reliably override it — yield the turn after answering, and launch new lanes from a fresh turn. (2) MINIMAL-profile
+builders cannot write report.md into the scratchpad (the harness refuses); name `.harmony/.reports/<session>/<lane>.md`
+(committed in the worktree) or return the report in full. (3) A probe that feeds deliberately broken media can crash the
+app (truncated H.264 -> sws_getContext(AV_PIX_FMT_NONE) SIGABRT, now guarded) and leave a macOS "quit unexpectedly" dialog on
+Boris's screen that no process check sees: end every such batch with an on-screen UserNotificationCenter window count
+(Quartz) == 0. (4) Wait for no compiler BEFORE taking the live lock (`acquire_quiet_lock`); holding the lock while
+wait_quiet spins starves other lanes. (5) Never derive a perf threshold from a number measured while other lanes ran
+(W1 -> W1b); re-measure quiet first. (6) A prohibition names the mechanism it protects and what stays allowed (J1's
+"no periodic/background repaint" read as forbidding a one-shot repaint). (7) A workflow's automatic fix round can be
+stopped (TaskStop) while it is in its review stage, and relaunched with rulings from a named commit (fix-lane.js);
+verify the worktree clean first.
+**Valid while:** lanes run as workflow agents in the same turn as Boris's messages; the MINIMAL fence binds report writes.
+
+## 2026-09-29 s-rta-0928b idlepaint: JUCE 8's mac peer repaints the UNION of dirty rects; the first display pass differs
+**Files:** src/ui/NativeLayerHost.*, src/ui/NativeLayerCache.h, src/ui/OverlayWatch.*, src/ui/LayerStrip.cpp (Pitfall 57)
+**Note:** Four always-animating widgets at opposite window edges made AppKit redraw the whole window 30x/s (334 ms/s busy,
+~18 ms stalls). Giving the animators their own layer-backed NSViews removes the union. Separately, the window's FIRST display
+pass (off screen at startup) rasterises colour emoji (Files grid folders) and slider-thumb rims slightly differently from
+every later pass; main never repaints those regions at idle either, so main idle == lane idle and main after a pass == lane
+after a pass (0 px). Pixel-identity rows use "<= 1/255 anywhere" (main vs main itself shows 1/255 noise).
+**Valid while:** JUCE 8.0.4 CoreGraphics peer; macOS layer-backed NSViews.
+
+## 2026-09-29 s-rta-0928b video: a ring that decodes ahead needs look-ahead-aware thresholds
+**Files:** src/media/VideoPlayer.cpp, src/media/VideoRing.h, .harmony/probe-video.py (Pitfall 56)
+**Note:** Porting a synchronous decoder's "behind" threshold (0.1 s) to a decode-ahead ring re-seeks forward play of < 30 fps
+clips; the reader must also free frames the clock moved away from (reverse would freeze). A FIRST trigger of a video plays
+from 0; only a retrigger seeks to the in-point — mid-clip rows trigger + retrigger. /api/state peak/max fields reset on read:
+a fast poller consumes them (max over polls) and a 15 ms poller perturbs the fps it measures (poll fps rows at 50 ms).
+4 x 4K video on the M1 Pro sits ~30 fps under the same scene with stills (upload cost; zero-copy follow-up filed).
+**Valid while:** VideoPlayer decodes on its own thread into VideoRing.

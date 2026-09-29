@@ -1,0 +1,10 @@
+class                                        events/s     ms/event med/p90/max busy ms/s   busy %    lag %
+display:metal-or-unknown                        39.61         6.15/12.10/21.14     239.6     91.0     98.9
+runloop:sources0                                    -                        -      18.9      7.2      0.5
+runloop:outside-runloop                             -                        -       2.6      1.0      0.0
+runloop:wake-handle                                 -                        -       1.2      0.5      0.3
+runloop:loop-entry                                  -                        -       0.4      0.1      0.0
+display:no drawRect                                 -                        -       0.3      0.1      0.0
+runloop:aw-observers                                -                        -       0.2      0.1      0.0
+runloop:bw-observers                                -                        -       0.1      0.0      0.0
+TOTAL busy 263.3 ms/s ; heartbeat lag (>=2 ms) 118.9 ms/s ; unaccounted lag 0.3%

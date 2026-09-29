@@ -1,0 +1,423 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 05d7bd5..50eea50 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -410,6 +410,7 @@ endif()
+ if(APPLE)
+     target_sources(AudioDNA PRIVATE
+         src/output/SyphonOutput.mm
++        src/diag/DiagIdle.mm
+     )
+ endif()
+ 
+diff --git a/src/Main.cpp b/src/Main.cpp
+index a34fc91..92db8af 100644
+--- a/src/Main.cpp
++++ b/src/Main.cpp
+@@ -1,5 +1,6 @@
+ #include <juce_gui_basics/juce_gui_basics.h>
+ #include "MainComponent.h"
++#include "diag/DiagTrace.h"
+ 
+ class AudioDNAApplication : public juce::JUCEApplication
+ {
+@@ -23,12 +24,14 @@ public:
+                 testPort = arg.fromFirstOccurrenceOf("=", false, false).getIntValue();
+         }
+ 
++        diag::startAll();
+         mainWindow_ = std::make_unique<MainWindow>(getApplicationName(), testMode, testPort);
+     }
+ 
+     void shutdown() override
+     {
+         mainWindow_.reset();
++        diag::stopAll();
+     }
+ 
+     void systemRequestedQuit() override
+diff --git a/src/ui/ClipCell.cpp b/src/ui/ClipCell.cpp
+index 24d7c97..57d5493 100644
+--- a/src/ui/ClipCell.cpp
++++ b/src/ui/ClipCell.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/ClipCell.h"
++#include "diag/DiagTrace.h"
+ #include "ui/ClipThumbnails.h"
+ 
+ namespace
+@@ -201,9 +202,14 @@ void ClipCell::paint(juce::Graphics& g)
+     }
+ 
+     // P24.7: Missing file indicator (red border + "!" marker)
+-    if (clip_ && clip_->hasMedia() &&
++    bool diagMissing = false;
++    {
++        DIAG_SCOPE("cc.paint.existsAsFile");
++        diagMissing = clip_ && clip_->hasMedia() &&
+         (clip_->mediaType == Clip::MediaType::Image || clip_->mediaType == Clip::MediaType::Video) &&
+-        clip_->mediaFile != juce::File() && !clip_->mediaFile.existsAsFile())
++        clip_->mediaFile != juce::File() && !clip_->mediaFile.existsAsFile();
++    }
++    if (diagMissing)
+     {
+         auto b = getLocalBounds().toFloat();
+         g.setColour(juce::Colour(0xffcc3333));
+diff --git a/src/ui/LayerStrip.cpp b/src/ui/LayerStrip.cpp
+index 4176d11..45d6341 100644
+--- a/src/ui/LayerStrip.cpp
++++ b/src/ui/LayerStrip.cpp
+@@ -1,4 +1,5 @@
+ #include "ui/LayerStrip.h"
++#include "diag/DiagTrace.h"
+ #include "ui/ClipThumbnails.h"
+ #include "connect/ConnClock.h"
+ #include "connect/ManualWrite.h"   // Hand (the lane rank the V fader's routine cue reads)
+@@ -733,10 +734,14 @@ void LayerStrip::refresh()
+ void LayerStrip::timerCallback()
+ {
+     // Repaint transport and clip name areas to animate the playhead
++    static const bool diagNoLs = diag::envOn("ADNA_DIAG_NO_LSREPAINT") || diag::envOn("ADNA_DIAG_NO_ANIM");
++    if (!diagNoLs)
++    {
+     if (!transportBounds_.isEmpty())
+         repaint(transportBounds_);
+     if (!clipNameBounds_.isEmpty())
+         repaint(clipNameBounds_);
++    }
+ 
+     syncFromModel();   // s-rta-0927: the faders follow the model
+ 
+diff --git a/src/ui/SignalBar.cpp b/src/ui/SignalBar.cpp
+index 8cd6a41..67b6e15 100644
+--- a/src/ui/SignalBar.cpp
++++ b/src/ui/SignalBar.cpp
+@@ -1,4 +1,5 @@
+ #include "SignalBar.h"
++#include "diag/DiagTrace.h"
+ 
+ SignalBar::SignalBar(SignalRegistry& registry, const FeatureBus& featureBus)
+     : registry_(registry), featureBus_(featureBus)
+@@ -120,6 +121,8 @@ void SignalBar::timerCallback()
+         strip->updateValue(val);
+     }
+ 
++    static const bool diagNoSig = diag::envOn("ADNA_DIAG_NO_SIGBAR_REPAINT") || diag::envOn("ADNA_DIAG_NO_ANIM");
++    if (!diagNoSig)
+     repaint();
+ }
+ 
+diff --git a/src/ui/TopBar.cpp b/src/ui/TopBar.cpp
+index 6d19a65..015d429 100644
+--- a/src/ui/TopBar.cpp
++++ b/src/ui/TopBar.cpp
+@@ -1,4 +1,5 @@
+ #include "TopBar.h"
++#include "diag/DiagTrace.h"
+ #include "TopBarModel.h"
+ #include "output/OutputMenuModel.h"
+ #include "connect/ConnClock.h"
+@@ -322,7 +323,8 @@ void TopBar::timerCallback()
+ 
+     updateBpmDisplay();
+     // Repaint the beat wheel and bar/phrase area
+-    if (!beatWheelBounds_.isEmpty())
++    static const bool diagNoTop = diag::envOn("ADNA_DIAG_NO_TOPBAR_REPAINT") || diag::envOn("ADNA_DIAG_NO_ANIM");
++    if (!beatWheelBounds_.isEmpty() && !diagNoTop)
+         repaint(beatWheelBounds_.getUnion(barPhraseBounds_).expanded(2));
+ 
+     syncMasterFromComposition();
+diff --git a/src/ui/WaveformDisplay.cpp b/src/ui/WaveformDisplay.cpp
+index 95336e0..4edc74d 100644
+--- a/src/ui/WaveformDisplay.cpp
++++ b/src/ui/WaveformDisplay.cpp
+@@ -1,4 +1,5 @@
+ #include "WaveformDisplay.h"
++#include "diag/DiagTrace.h"
+ #include "ui/LookAndFeel.h"
+ #include <cmath>
+ #include <algorithm>
+@@ -55,6 +56,8 @@ void WaveformDisplay::timerCallback()
+         peakHoldNeg_ *= kPeakDecayRate;
+     }
+ 
++    static const bool diagNoWave = diag::envOn("ADNA_DIAG_NO_WAVE_REPAINT") || diag::envOn("ADNA_DIAG_NO_ANIM");
++    if (!diagNoWave)
+     repaint();
+ }
+ 
+diff --git a/src/diag/DiagTrace.h b/src/diag/DiagTrace.h
+new file mode 100644
+index 0000000..cb1c98c
+--- /dev/null
++++ b/src/diag/DiagTrace.h
+@@ -0,0 +1,29 @@
++#pragma once
++// DIAG-IDLE TEMPORARY DIAGNOSTIC INSTRUMENTATION (lane diag-idle) -- never committed.
++// A lock-free record ring drained by a background thread to $ADNA_DIAG_FILE; a message-thread
++// heartbeat; CFRunLoop activity observers on the main run loop; per-thread CPU sampling.
++// Everything is inert unless ADNA_DIAG_FILE is set.
++#include <chrono>
++#include <cstdlib>
++
++namespace diag
++{
++    double nowMs() noexcept;                 // steady_clock since epoch, ms (same clock as juce::DiagHook)
++    bool enabled() noexcept;
++    void record(int kind, const char* name, double t0, double dur, double extra) noexcept;
++    void startAll();                         // call once on the message thread, before the main window
++    void stopAll();
++    inline bool envOn(const char* v) { const char* e = std::getenv(v); return e != nullptr && e[0] == '1'; }
++
++    struct Scope
++    {
++        const char* name;
++        double t0;
++        explicit Scope(const char* n) : name(n), t0(enabled() ? nowMs() : 0.0) {}
++        ~Scope() { if (enabled()) record(30, name, t0, nowMs() - t0, 0.0); }
++    };
++}
++
++#define DIAG_CAT2(a, b) a##b
++#define DIAG_CAT(a, b) DIAG_CAT2(a, b)
++#define DIAG_SCOPE(name) diag::Scope DIAG_CAT(diagScope_, __LINE__)(name)
+diff --git a/src/diag/DiagIdle.mm b/src/diag/DiagIdle.mm
+new file mode 100644
+index 0000000..1670d65
+--- /dev/null
++++ b/src/diag/DiagIdle.mm
+@@ -0,0 +1,234 @@
++// DIAG-IDLE TEMPORARY DIAGNOSTIC INSTRUMENTATION (lane diag-idle) -- never committed.
++#include "diag/DiagTrace.h"
++#include <juce_events/juce_events.h>
++#import <Foundation/Foundation.h>
++#import <AppKit/AppKit.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <mach/mach.h>
++#include <pthread.h>
++#include <atomic>
++#include <climits>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <thread>
++#include <string>
++#include <sys/qos.h>
++
++namespace diag
++{
++namespace
++{
++    struct Rec
++    {
++        std::atomic<uint64_t> seq { 0 };
++        double t = 0, dur = 0, extra = 0;
++        const char* name = nullptr;
++        int kind = 0, thr = 0, cpu = -1;
++    };
++    constexpr uint64_t kN = 1u << 19;
++    Rec* ring = nullptr;
++    std::atomic<uint64_t> head { 0 };
++    uint64_t tail = 0;
++    std::atomic<bool> on { false };
++    std::atomic<bool> running { false };
++    FILE* out = nullptr;
++    std::thread drainTh, hbTh;
++    uint64_t mainTid = 0;
++    std::atomic<bool> hbServed { true };
++    std::atomic<double> hbPostT { 0.0 };
++    std::atomic<long> hbCount { 0 };
++    uint64_t lost = 0;
++
++    void hookFn(int kind, const char* name, double t0, double dur, double extra)
++    {
++        record(kind, name, t0, dur, extra);
++    }
++
++    void observerCb(CFRunLoopObserverRef, CFRunLoopActivity act, void* info)
++    {
++        record(info != nullptr ? 200 : 100, nullptr, nowMs(), 0.0, (double) act);
++    }
++
++    void drainOnce()
++    {
++        for (;;)
++        {
++            Rec& r = ring[tail & (kN - 1)];
++            const uint64_t s = r.seq.load(std::memory_order_acquire);
++            if (s == tail + 1)
++            {
++                std::fprintf(out, "R\t%d\t%d\t%.4f\t%.4f\t%.3f\t%s\t%d\n", r.kind, r.thr, r.t, r.dur, r.extra,
++                             r.name != nullptr ? r.name : "-", r.cpu);
++                ++tail;
++            }
++            else if (s > tail + 1)
++            {
++                ++lost; ++tail;   // overwritten by a later lap
++            }
++            else
++                break;
++        }
++    }
++
++    void sampleThreads(double t)
++    {
++        thread_act_array_t th = nullptr;
++        mach_msg_type_number_t n = 0;
++        if (task_threads(mach_task_self(), &th, &n) != KERN_SUCCESS)
++            return;
++        for (mach_msg_type_number_t i = 0; i < n; ++i)
++        {
++            thread_extended_info_data_t info {};
++            mach_msg_type_number_t cnt = THREAD_EXTENDED_INFO_COUNT;
++            thread_identifier_info_data_t idi {};
++            mach_msg_type_number_t cnt2 = THREAD_IDENTIFIER_INFO_COUNT;
++            if (thread_info(th[i], THREAD_EXTENDED_INFO, (thread_info_t) &info, &cnt) == KERN_SUCCESS
++                && thread_info(th[i], THREAD_IDENTIFIER_INFO, (thread_info_t) &idi, &cnt2) == KERN_SUCCESS)
++            {
++                char nm[80];
++                std::snprintf(nm, sizeof(nm), "%s", info.pth_name[0] ? info.pth_name : "-");
++                for (char* c = nm; *c; ++c) if (*c == '\t' || *c == ' ') *c = '_';
++                std::fprintf(out, "C\t%.3f\t%llu\t%llu\t%d\t%d\t%d\t%s\n", t, (unsigned long long) idi.thread_id,
++                             (unsigned long long) (info.pth_user_time + info.pth_system_time),
++                             idi.thread_id == mainTid ? 1 : 0, info.pth_curpri, info.pth_priority, nm);
++            }
++            mach_port_deallocate(mach_task_self(), th[i]);
++        }
++        vm_deallocate(mach_task_self(), (vm_address_t) th, n * sizeof(thread_act_t));
++        double la[3] = { 0, 0, 0 };
++        getloadavg(la, 3);
++        std::fprintf(out, "L\t%.3f\t%.2f\t%.2f\t%.2f\t%llu\n", t, la[0], la[1], la[2], (unsigned long long) lost);
++    }
++}
++
++double nowMs() noexcept
++{
++    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
++}
++
++bool enabled() noexcept { return on.load(std::memory_order_relaxed); }
++
++void record(int kind, const char* name, double t0, double dur, double extra) noexcept
++{
++    if (! on.load(std::memory_order_relaxed))
++        return;
++    const uint64_t i = head.fetch_add(1, std::memory_order_relaxed);
++    Rec& r = ring[i & (kN - 1)];
++    r.t = t0; r.dur = dur; r.extra = extra; r.name = name; r.kind = kind;
++    r.thr = pthread_main_np() ? 0 : (int) pthread_mach_thread_np(pthread_self());
++    size_t cpu = 0;
++    r.cpu = pthread_cpu_number_np(&cpu) == 0 ? (int) cpu : -1;
++    r.seq.store(i + 1, std::memory_order_release);
++}
++
++void startAll()
++{
++    const char* path = std::getenv("ADNA_DIAG_FILE");
++    if (path == nullptr || path[0] == 0)
++        return;
++    out = std::fopen(path, "w");
++    if (out == nullptr)
++        return;
++    std::setvbuf(out, nullptr, _IOFBF, 1 << 20);
++    ring = new Rec[kN];
++    pthread_threadid_np(nullptr, &mainTid);
++    on = true;
++    running = true;
++    std::fprintf(out, "M\t%.3f\tmainTid=%llu\tHB=%d\tACTIVITY=%d\n", nowMs(), (unsigned long long) mainTid,
++                 envOn("ADNA_DIAG_NOHB") ? 0 : 1, envOn("ADNA_DIAG_ACTIVITY") ? 1 : 0);
++
++    juce::DiagHook::fn = &hookFn;
++
++    CFRunLoopObserverContext c0 { 0, nullptr, nullptr, nullptr, nullptr };
++    CFRunLoopObserverContext c1 { 0, (void*) 1, nullptr, nullptr, nullptr };
++    CFRunLoopObserverRef first = CFRunLoopObserverCreate(kCFAllocatorDefault, kCFRunLoopAllActivities, true, LONG_MIN, observerCb, &c0);
++    CFRunLoopObserverRef last = CFRunLoopObserverCreate(kCFAllocatorDefault, kCFRunLoopBeforeWaiting | kCFRunLoopAfterWaiting,
++                                                        true, LONG_MAX, observerCb, &c1);
++    CFRunLoopAddObserver(CFRunLoopGetMain(), first, kCFRunLoopCommonModes);
++    CFRunLoopAddObserver(CFRunLoopGetMain(), last, kCFRunLoopCommonModes);
++
++    if (envOn("ADNA_DIAG_ACTIVITY"))
++    {
++        id act = [[NSProcessInfo processInfo] beginActivityWithOptions:(NSActivityUserInitiated | NSActivityLatencyCritical)
++                                                                reason:@"diag"];
++        [act retain];
++        std::fprintf(out, "M\t%.3f\tbeginActivity UserInitiated|LatencyCritical\n", nowMs());
++    }
++
++    drainTh = std::thread([] {
++        pthread_setname_np("diag.drain");
++        double lastSample = nowMs();
++        while (running.load())
++        {
++            std::this_thread::sleep_for(std::chrono::milliseconds(20));
++            drainOnce();
++            const double t = nowMs();
++            if (t - lastSample >= 500.0)
++            {
++                sampleThreads(t);
++                lastSample = t;
++            }
++            std::fflush(out);
++        }
++        drainOnce();
++        std::fflush(out);
++    });
++
++    if (! envOn("ADNA_DIAG_NOHB"))
++    {
++        hbTh = std::thread([] {
++            pthread_setname_np("diag.heartbeat");
++            while (running.load())
++            {
++                if (hbServed.load())
++                {
++                    hbServed = false;
++                    hbPostT = nowMs();
++                    juce::MessageManager::callAsync([] {
++                        const double t = nowMs();
++                        const double p = hbPostT.load();
++                        record(40, "hb", p, t - p, 0.0);
++                        const long hbN = ++hbCount;
++                        if (hbN == 1000)
++                        {
++                            // one-time dump of the main run loop (modes, sources, observers with order + callout)
++                            if (const char* path = std::getenv("ADNA_DIAG_FILE"))
++                            {
++                                CFStringRef d = CFCopyDescription(CFRunLoopGetMain());
++                                const std::string rp = std::string(path) + ".runloop.txt";
++                                if (FILE* f = std::fopen(rp.c_str(), "w"))
++                                {
++                                    std::fputs([(NSString*) d UTF8String], f);
++                                    std::fclose(f);
++                                }
++                                CFRelease(d);
++                            }
++                        }
++                        if ((hbN % 250) == 0)
++                        {
++                            record(42, "qos", t, 0.0, (double) qos_class_self());
++                            const bool active = [NSApp isActive];
++                            const bool visible = ([NSApp occlusionState] & NSApplicationOcclusionStateVisible) != 0;
++                            record(41, "appState", t, 0.0, (active ? 1.0 : 0.0) + (visible ? 2.0 : 0.0));
++                        }
++                        hbServed = true;
++                    });
++                }
++                std::this_thread::sleep_for(std::chrono::milliseconds(2));
++            }
++        });
++    }
++}
++
++void stopAll()
++{
++    if (! running.load())
++        return;
++    running = false;
++    if (hbTh.joinable()) hbTh.join();
++    juce::DiagHook::fn = nullptr;
++    if (drainTh.joinable()) drainTh.join();
++    on = false;
++}
++}

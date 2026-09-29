@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Audio-DNA — what only you can check (s-rta-0928b)</title>
+<style>
+ body{font:15px/1.5 -apple-system,system-ui,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;color:#1d1d1f;background:#fbfbfd}
+ h1{font-size:22px;margin-bottom:4px} .sub{color:#6e6e73;margin-top:0}
+ h2{font-size:17px;margin-top:28px;border-bottom:1px solid #e5e5ea;padding-bottom:4px}
+ li{margin:6px 0} .how{color:#515154} .was{color:#8e3b2f} .now{color:#1f6f43}
+ .box{background:#fff;border:1px solid #e5e5ea;border-radius:10px;padding:10px 18px;margin:10px 0}
+ code{background:#f2f2f7;padding:1px 5px;border-radius:4px;font-size:13px}
+</style></head><body>
+<h1>Audio-DNA — what only you can check</h1>
+<p class="sub">Session s-rta-0928b (Sep 28–29). Everything below passed its automated gates; these are the feel / look checks a gate cannot make for you. Defaults stay in force until you say otherwise.</p>
+
+<h2>1. The app should feel lighter when nothing is happening</h2>
+<div class="box"><ul>
+ <li><b>What changed:</b> with nothing playing the app used a third of its UI thread just redrawing the whole window 30× a second (small hitches ~18 ms, 3× a second). Now the meters and waveform draw on their own. <span class="was">Was 17–22 ms hitches</span> → <span class="now">now ~4.5 ms</span>.</li>
+ <li class="how"><b>Check:</b> the signal bar meters, waveform, layer playheads and beat wheel look and move exactly as before; hover, menus and tooltips over the meter bar and waveform appear instantly.</li>
+ <li class="how"><b>Tiny known quirk (macOS, same as before):</b> after you resize the window, the folder icons in the Files grid look very slightly crisper than at startup. The old build does exactly the same.</li>
+</ul></div>
+
+<h2>2. Video: retrigger no longer freezes the show</h2>
+<div class="box"><ul>
+ <li><b>Was:</b> retriggering a long video to a mid-clip in-point (or a beat-snapped / cue jump, or coming back to a deck) dropped the <i>whole output</i> to 14 fps (1080p) or 4 fps (4K) for ~3 s, stuck on a wrong frame.</li>
+ <li><b>Now:</b> only that layer holds its last frame for about ¼ s (1080p) or ~1 s (4K) while it catches up; everything else keeps playing. Retriggering the incoming clip mid-crossfade also just holds while the fade continues.</li>
+ <li><b>Four 4K videos at once:</b> <span class="was">36 fps</span> → <span class="now">~90 fps</span>. Four 1080p: back to full rate.</li>
+ <li class="how"><b>Check (feel):</b> is the ~1 s hold on a 4K mid-clip retrigger acceptable? (Most camera files catch up faster; this is the worst case, x264's default spacing.)</li>
+ <li>A truncated / half-copied video file no longer crashes the app — it shows as no media.</li>
+</ul></div>
+
+<h2>3. Image sequences use far less memory</h2>
+<div class="box"><ul>
+ <li><b>Was:</b> a 300-frame 1080p sequence kept every frame in video memory (2.4 GB); two could exhaust the machine.</li>
+ <li><b>Now:</b> all sequences together use at most 1 GB; short loops still keep every frame. Long sequences re-load frames as they play.</li>
+ <li class="how"><b>Check:</b> long sequences play smoothly on your real show; coming back to a deck whose sequence moved on may show the last frame for a blink. Say if a longer sequence should keep more frames.</li>
+</ul></div>
+
+<h2>4. Dropping media and loading never blacks out the projector</h2>
+<div class="box"><ul>
+ <li><b>Was:</b> every drop or load showed 1–14 black frames on every output (a 4K video drop ≈ 14).</li>
+ <li><b>Now:</b> the output holds the last picture for 1–2 frames instead. Loading a composition still keeps the old show on screen until the new one is ready (making loads fully background is the next step).</li>
+ <li class="how"><b>Check:</b> drop a 4K video mid-show on the projector — no flash.</li>
+ <li>A media file deleted mid-show now turns into "no media" within ~½ s (was: the next frame).</li>
+</ul></div>
+
+<h2>Still open from earlier pages</h2>
+<div class="box"><ul>
+ <li>Fractal Zoom goes black for 60–75 % of its travel (recommended: dive toward edge detail, Zoom 0 unchanged) — page <code>.harmony/.reports/s-rta-0928/boris-checks.html</code>.</li>
+ <li>Tetra / IFS slices, spirograph dots, photo hold / late dissolve feel, routine glide-from.</li>
+</ul></div>
+</body></html>

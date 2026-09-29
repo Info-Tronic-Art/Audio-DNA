@@ -1,0 +1,6 @@
+['base3', 'r1'] main 328.6 ms/s  process 515.4 ms/s  (39 threads)
+['base3', 'r2'] main 345.4 ms/s  process 521.4 ms/s  (38 threads)
+['base3', 'r3'] main 343.8 ms/s  process 516.2 ms/s  (38 threads)
+['base3', 'r4'] main 347.2 ms/s  process 520.9 ms/s  (38 threads)
+['base3', 'r5'] main 316.6 ms/s  process 509.4 ms/s  (39 threads)
+median main 343.8 [316.6-347.2]  process 516.2 [509.4-521.4]

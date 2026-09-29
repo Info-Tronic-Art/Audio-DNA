@@ -1,0 +1,3 @@
+body   ctxType=6.0 drawsAsync=1.0 n= 2582 wall med 15.13 p90 15.63 | thread CPU med 15.13 p90 15.63 | CPU/wall 1.00
+full   ctxType=6.0 drawsAsync=1.0 n=   46 wall med 16.72 p90 17.29 | thread CPU med 16.72 p90 17.29 | CPU/wall 1.00
+other  ctxType=6.0 drawsAsync=1.0 n= 1276 wall med 0.28 p90 1.28 | thread CPU med 0.28 p90 1.28 | CPU/wall 1.00

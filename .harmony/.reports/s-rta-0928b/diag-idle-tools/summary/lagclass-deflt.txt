@@ -1,0 +1,15 @@
+class                                        events/s     ms/event med/p90/max busy ms/s   busy %    lag %
+display:BODY (4,39,1720,978)                    25.91         9.67/11.24/23.56     267.4     72.7     75.4
+display:FULL window (top bar + body)             3.71        20.85/22.50/28.03      78.5     21.3     23.9
+display:TOP BAR only                            11.23           0.71/2.71/4.11      10.8      2.9      0.5
+runloop:sources0                                    -                        -       9.0      2.4      0.1
+runloop:outside-runloop                             -                        -       1.0      0.3      0.0
+runloop:wake-handle                                 -                        -       0.6      0.2      0.1
+display:no drawRect                                 -                        -       0.2      0.0      0.0
+runloop:loop-entry                                  -                        -       0.2      0.0      0.0
+runloop:aw-observers                                -                        -       0.1      0.0      0.0
+display:other rect (4, 4, 1720, 478)             0.01        11.75/11.75/11.75       0.1      0.0      0.0
+runloop:bw-observers                                -                        -       0.1      0.0      0.0
+display:other rect (4, 39, 1720, 704)            0.01           9.45/9.45/9.45       0.1      0.0      0.0
+display:other rect (4, 39, 1720, 443)            0.01           6.35/6.35/6.35       0.0      0.0      0.0
+TOTAL busy 368.0 ms/s ; heartbeat lag (>=2 ms) 306.1 ms/s ; unaccounted lag 0.0%

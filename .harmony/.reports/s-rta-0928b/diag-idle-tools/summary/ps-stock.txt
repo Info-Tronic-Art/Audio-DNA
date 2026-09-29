@@ -1,0 +1,6 @@
+['stock', 'r1'] main 351.5 ms/s  process 507.5 ms/s  (36 threads)
+['stock', 'r2'] main 344.6 ms/s  process 509.4 ms/s  (36 threads)
+['stock', 'r3'] main 321.6 ms/s  process 494.9 ms/s  (37 threads)
+['stock', 'r4'] main 331.7 ms/s  process 501.0 ms/s  (36 threads)
+['stock', 'r5'] main 308.3 ms/s  process 476.7 ms/s  (36 threads)
+median main 331.7 [308.3-351.5]  process 501.0 [476.7-509.4]

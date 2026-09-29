@@ -1,0 +1,331 @@
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_events/messages/juce_MessageManager.h	2026-05-18 22:10:51
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_events/messages/juce_MessageManager.h	2026-09-28 17:25:34
+@@ -37,6 +37,17 @@
+ 
+ class MessageManagerLock;
+ class ThreadPoolJob;
++
++// DIAG-IDLE TEMPORARY (private JUCE copy, lane diag-idle): timing hook, null unless the app installs it.
++struct JUCE_API DiagHook
++{
++    using Fn = void (*) (int kind, const char* name, double t0Ms, double durMs, double extra);
++    static Fn fn;
++    static double nowMs() noexcept;
++};
++#define JUCE_DIAG_T0(v) const double v = (::juce::DiagHook::fn != nullptr ? ::juce::DiagHook::nowMs() : 0.0)
++#define JUCE_DIAG_END(v, kind, name, extra) do { if (auto* diagFn_ = ::juce::DiagHook::fn) diagFn_ (kind, name, v, ::juce::DiagHook::nowMs() - v, extra); } while (false)
++
+ class ActionListener;
+ class ActionBroadcaster;
+ 
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_events/messages/juce_MessageManager.cpp	2026-05-18 22:10:51
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_events/messages/juce_MessageManager.cpp	2026-09-28 17:25:34
+@@ -35,6 +35,12 @@
+ namespace juce
+ {
+ 
++DiagHook::Fn DiagHook::fn = nullptr;
++double DiagHook::nowMs() noexcept
++{
++    return std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now().time_since_epoch()).count();
++}
++
+ MessageManager::MessageManager() noexcept
+   : messageThreadId (Thread::getCurrentThreadId())
+ {
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_events/native/juce_MessageQueue_mac.h	2026-05-18 22:10:51
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_events/native/juce_MessageQueue_mac.h	2026-09-28 17:25:34
+@@ -88,11 +88,13 @@
+ 
+         JUCE_AUTORELEASEPOOL
+         {
++            JUCE_DIAG_T0 (diagT0);
+             JUCE_TRY
+             {
+                 nextMessage->messageCallback();
+             }
+             JUCE_CATCH_EXCEPTION
++            JUCE_DIAG_END (diagT0, 1, typeid (*nextMessage).name(), (double) messages.size());
+         }
+ 
+         return true;
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_events/timers/juce_Timer.cpp	2026-05-18 22:10:51
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_events/timers/juce_Timer.cpp	2026-09-28 17:25:34
+@@ -165,11 +165,15 @@
+ 
+             const LockType::ScopedUnlockType ul (lock);
+ 
++            const char* diagName = typeid (*timer).name();
++            const double diagPeriod = (double) timer->timerPeriodMs;
++            JUCE_DIAG_T0 (diagT0);
+             JUCE_TRY
+             {
+                 timer->timerCallback();
+             }
+             JUCE_CATCH_EXCEPTION
++            JUCE_DIAG_END (diagT0, 2, diagName, diagPeriod);
+ 
+             // avoid getting stuck in a loop if a timer callback repeatedly takes too long
+             if (Time::getMillisecondCounter() > timeout)
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_events/broadcasters/juce_AsyncUpdater.cpp	2026-05-18 22:10:51
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_events/broadcasters/juce_AsyncUpdater.cpp	2026-09-28 17:25:34
+@@ -43,7 +43,12 @@
+     void messageCallback() override
+     {
+         if (shouldDeliver.compareAndSetBool (0, 1))
++        {
++            const char* diagName = typeid (owner).name();
++            JUCE_DIAG_T0 (diagT0);
+             owner.handleAsyncUpdate();
++            JUCE_DIAG_END (diagT0, 3, diagName, 0.0);
++        }
+     }
+ 
+     AsyncUpdater& owner;
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_basics/components/juce_Component.cpp	2026-05-18 22:10:52
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_gui_basics/components/juce_Component.cpp	2026-09-28 17:32:24
+@@ -1573,16 +1573,25 @@
+ //==============================================================================
+ void Component::repaint()
+ {
++    if (auto* diagFn_ = ::juce::DiagHook::fn)
++        if (flags.visibleFlag && isShowing())
++            diagFn_ (8, typeid (*this).name(), ::juce::DiagHook::nowMs(), 0.0, (double) getWidth() * (double) getHeight());
+     internalRepaintUnchecked (getLocalBounds(), true);
+ }
+ 
+ void Component::repaint (int x, int y, int w, int h)
+ {
++    if (auto* diagFn_ = ::juce::DiagHook::fn)
++        if (flags.visibleFlag && isShowing())
++            diagFn_ (8, typeid (*this).name(), ::juce::DiagHook::nowMs(), 1.0, (double) w * (double) h);
+     internalRepaint ({ x, y, w, h });
+ }
+ 
+ void Component::repaint (Rectangle<int> area)
+ {
++    if (auto* diagFn_ = ::juce::DiagHook::fn)
++        if (flags.visibleFlag && isShowing())
++            diagFn_ (8, typeid (*this).name(), ::juce::DiagHook::nowMs(), 1.0, (double) area.getWidth() * (double) area.getHeight());
+     internalRepaint (area);
+ }
+ 
+@@ -1678,6 +1687,8 @@
+ 
+     auto clipBounds = g.getClipBounds();
+ 
++    {
++    JUCE_DIAG_T0 (diagT0);
+     if (flags.dontClipGraphicsFlag && getNumChildComponents() == 0)
+     {
+         paint (g);
+@@ -1689,6 +1700,8 @@
+         if (! (detail::ComponentHelpers::clipObscuredRegions (*this, g, clipBounds, {}) && g.isClipEmpty()))
+             paint (g);
+     }
++    JUCE_DIAG_END (diagT0, 4, typeid (*this).name(), (double) clipBounds.getWidth() * (double) clipBounds.getHeight());
++    }
+ 
+     for (int i = 0; i < childComponentList.size(); ++i)
+     {
+@@ -1736,7 +1749,9 @@
+     }
+ 
+     Graphics::ScopedSaveState ss (g);
++    JUCE_DIAG_T0 (diagT0b);
+     paintOverChildren (g);
++    JUCE_DIAG_END (diagT0b, 4, typeid (*this).name(), -1.0);
+ }
+ 
+ void Component::paintEntireComponent (Graphics& g, bool ignoreAlphaLevel)
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_basics/windows/juce_ComponentPeer.cpp	2026-05-18 22:10:52
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_gui_basics/windows/juce_ComponentPeer.cpp	2026-09-28 17:25:34
+@@ -139,11 +139,13 @@
+     }
+   #endif
+ 
++    JUCE_DIAG_T0 (diagT0);
+     JUCE_TRY
+     {
+         component.paintEntireComponent (g, true);
+     }
+     JUCE_CATCH_EXCEPTION
++    JUCE_DIAG_END (diagT0, 6, typeid (component).name(), 0.0);
+ 
+   #if JUCE_ENABLE_REPAINT_DEBUGGING
+    #ifdef JUCE_IS_REPAINT_DEBUGGING_ACTIVE
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_gui_basics/native/juce_NSViewComponentPeer_mac.mm	2026-05-18 22:10:52
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_gui_basics/native/juce_NSViewComponentPeer_mac.mm	2026-09-28 22:41:54
+@@ -38,8 +38,19 @@
+ @end
+ 
+ //==============================================================================
++#include <dlfcn.h>
++// DIAG-IDLE TEMPORARY: compiled in, runtime-gated by ADNA_DIAG_METAL (see diagMetalOn)
++#ifndef JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
++ #define JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS 1
++#endif
++
+ namespace juce
+ {
++static bool diagMetalOn()
++{
++    static const bool on = [] { const char* e = std::getenv ("ADNA_DIAG_METAL"); return e != nullptr && e[0] == '1'; }();
++    return on;
++}
+ 
+ using AppFocusChangeCallback = void (*)();
+ extern AppFocusChangeCallback appFocusChangeCallback;
+@@ -213,8 +224,11 @@
+        #if JUCE_COREGRAPHICS_RENDER_WITH_MULTIPLE_PAINT_CALLS
+         if (@available (macOS 10.14, *))
+         {
+-            metalRenderer = CoreGraphicsMetalLayerRenderer::create();
+-            layerDelegate.reset (JuceCALayerDelegate::construct (this));
++            if (diagMetalOn())
++            {
++                metalRenderer = CoreGraphicsMetalLayerRenderer::create();
++                layerDelegate.reset (JuceCALayerDelegate::construct (this));
++            }
+         }
+        #endif
+ 
+@@ -965,7 +979,50 @@
+             return;
+ 
+         auto* cg = (CGContextRef) [[NSGraphicsContext currentContext] CGContext];
++        JUCE_DIAG_T0 (diagT0);
++        const auto diagCpu0 = clock_gettime_nsec_np (CLOCK_THREAD_CPUTIME_ID);
++        const ScopeGuard diagCpuEnd { [&] {
++            if (auto* diagFn_ = ::juce::DiagHook::fn)
++                diagFn_ (21, "drawRect.threadCpu", diagT0, ::juce::DiagHook::nowMs() - diagT0,
++                         (double) (clock_gettime_nsec_np (CLOCK_THREAD_CPUTIME_ID) - diagCpu0) / 1.0e6);
++        } };
++        if (auto* diagFn_ = ::juce::DiagHook::fn)
++        {
++            const NSRect* diagRects = nullptr;
++            NSInteger diagNum = 0;
++            [view getRectsBeingDrawn: &diagRects count: &diagNum];
++            double diagA = 0.0;
++            for (NSInteger k = 0; k < diagNum; ++k)
++                diagA += diagRects[k].size.width * diagRects[k].size.height;
++            diagFn_ (10, "drawRect.rectsBeingDrawn", diagT0, diagA, (double) diagNum);
++            static const bool diagGrid = [] { const char* e = std::getenv ("ADNA_DIAG_DIRTYGRID"); return e != nullptr && e[0] == '1'; }();
++            if (diagGrid)
++            {
++                const auto vb = [view bounds];
++                int dirty = 0, inRect = 0;
++                for (int gy = 0; gy < 20; ++gy)
++                    for (int gx = 0; gx < 32; ++gx)
++                    {
++                        const NSRect cell = NSMakeRect (vb.origin.x + vb.size.width * gx / 32.0, vb.origin.y + vb.size.height * gy / 20.0,
++                                                        vb.size.width / 32.0, vb.size.height / 20.0);
++                        if (NSIntersectsRect (cell, r)) ++inRect;
++                        if ([view needsToDrawRect: cell]) ++dirty;
++                    }
++                diagFn_ (19, "drawRect.dirtyGrid", diagT0, (double) inRect, (double) dirty);
++            }
++        }
++        if (auto* diagFn_ = ::juce::DiagHook::fn)
++        {
++            using GetTypeFn = int (*) (CGContextRef);
++            static const auto getType = (GetTypeFn) dlsym (RTLD_DEFAULT, "CGContextGetType");
++            diagFn_ (20, "drawRect.cgContextType", diagT0, (double) (view.layer != nil && view.layer.drawsAsynchronously ? 1 : 0),
++                     getType != nullptr ? (double) getType (cg) : -1.0);
++        }
++        if (auto* diagFn_ = ::juce::DiagHook::fn)
++            diagFn_ (9, "drawRect.rect", diagT0, (double) std::round (r.size.width) * 1e4 + (double) std::round (r.size.height),
++                     (double) std::round (r.origin.x) * 1e4 + (double) std::round (r.origin.y));
+         drawRectWithContext (cg, r);
++        JUCE_DIAG_END (diagT0, 5, typeid (component).name(), (double) (r.size.width * r.size.height));
+     }
+ 
+     void drawRectWithContext (CGContextRef cg, NSRect r)
+@@ -993,7 +1050,7 @@
+         // [view getRectsBeingDrawn: ...] sometime around 10.13, so on later versions of macOS
+         // numRects will always be 1, and you'll need to use a CoreGraphicsMetalLayerRenderer
+         // to avoid CoreGraphics consolidating disparate rects.
+-        if (usingCoreGraphics && metalRenderer == nullptr)
++        if (usingCoreGraphics && metalRenderer == nullptr && diagMetalOn())
+         {
+             const NSRect* rects = nullptr;
+             NSInteger numRects = 0;
+@@ -1112,6 +1169,13 @@
+         const auto frameSize = view.frame.size;
+         const Rectangle currentBounds { (float) frameSize.width, (float) frameSize.height };
+ 
++        {
++            double diagArea = 0.0;
++            for (auto& i : deferredRepaints)
++                diagArea += (double) (i.getWidth() * i.getHeight());
++            if (auto* diagFn_ = ::juce::DiagHook::fn)
++                diagFn_ (7, typeid (component).name(), ::juce::DiagHook::nowMs(), 0.0, diagArea);
++        }
+         for (auto& i : deferredRepaints)
+             [view setNeedsDisplayInRect: makeNSRect (i)];
+ 
+@@ -2004,6 +2068,9 @@
+             return 1.0f;
+         }();
+ 
++        JUCE_DIAG_T0 (diagMt);
++        const auto diagNumRects = (double) deferredRepaints.getNumRectangles();
++        const ScopeGuard diagMtEnd { [&] { JUCE_DIAG_END (diagMt, 16, "metal.drawRectangleList", diagNumRects); } };
+         deferredRepaints = metalRenderer->drawRectangleList (static_cast<CAMetalLayer*> (layer),
+                                                              scale,
+                                                              [this] (auto&&... args) { drawRectWithContext (args...); },
+--- /Users/boriskarpman/projects/RealTimeAudio/build/_deps/juce-src/modules/juce_opengl/opengl/juce_OpenGLContext.cpp	2026-05-18 22:10:52
++++ /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/e9ff9dc6-f159-4d37-b0a9-871bf522d258/scratchpad/diag-idle/juce-src/modules/juce_opengl/opengl/juce_OpenGLContext.cpp	2026-09-28 17:25:34
+@@ -220,7 +220,9 @@
+     {
+         if (MessageManager::getInstance()->isThisTheMessageThread())
+         {
++            JUCE_DIAG_T0 (diagT0);
+             updateViewportSize();
++            JUCE_DIAG_END (diagT0, 11, "gl.cachedImage.paint.updateViewportSize", 0.0);
+         }
+         else
+         {
+@@ -379,7 +381,9 @@
+ 
+             doWorkWhileWaitingForLock (contextActivator);
+ 
++            JUCE_DIAG_T0 (diagLockWait);
+             scopedLock.emplace (mmLock);
++            JUCE_DIAG_END (diagLockWait, 12, "gl.mmLock.wait", 0.0);
+ 
+             // If we can't get the lock here, it's probably because a context has been removed
+             // on the main thread.
+@@ -419,7 +423,9 @@
+             {
+                 if (isUpdating)
+                 {
++                    JUCE_DIAG_T0 (diagPc);
+                     paintComponent (currentAreaAndScale);
++                    JUCE_DIAG_END (diagPc, 13, "gl.paintComponent.underMMLock", 0.0);
+ 
+                     if (! isFlagSet (state, StateFlags::initialised))
+                         return RenderStatus::noWork;
+@@ -433,7 +439,11 @@
+             }
+         }
+ 
+-        bufferSwapper.swap();
++        {
++            JUCE_DIAG_T0 (diagSw);
++            bufferSwapper.swap();
++            JUCE_DIAG_END (diagSw, 14, "gl.swap", 0.0);
++        }
+         return RenderStatus::nominal;
+     }
+ 
+@@ -799,7 +809,9 @@
+                 listMutex.unlock();
+                 const ScopeGuard scope { [&] { listMutex.lock(); } };
+ 
++                JUCE_DIAG_T0 (diagRf);
+                 const auto status = x->renderFrame (messageManagerLock);
++                JUCE_DIAG_END (diagRf, 15, "gl.renderFrame", (double) (int) status);
+ 
+                 switch (status)
+                 {

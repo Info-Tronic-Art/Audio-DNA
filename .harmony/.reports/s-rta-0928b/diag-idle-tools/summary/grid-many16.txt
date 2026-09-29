@@ -1,0 +1,6 @@
+body   n= 2641  union-rect share of view med 1.00 ; TRUE dirty share med 1.00 p10 1.00 p90 1.00 ; drawRect ms med 15.64 p90 16.20
+       drawRect ms by TRUE dirty share: 1.0:15.6(n2641)
+other  n= 1301  union-rect share of view med 0.00 ; TRUE dirty share med 0.00 p10 0.00 p90 0.04 ; drawRect ms med 0.41 p90 1.57
+       drawRect ms by TRUE dirty share: 0.0:0.4(n1301)
+full   n=   39  union-rect share of view med 1.00 ; TRUE dirty share med 1.00 p10 1.00 p90 1.00 ; drawRect ms med 16.65 p90 18.31
+       drawRect ms by TRUE dirty share: 1.0:16.7(n39)

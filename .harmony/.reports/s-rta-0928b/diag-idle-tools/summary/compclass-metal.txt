@@ -1,0 +1,5 @@
+== outside: total 0.0 ms/s
+   SignalStrip 0.0, LayerStrip 0.0, AudioDNAApplication::MainWindow 0.0, MainComponent 0.0, DeckView 0.0, juce::Viewport 0.0, juce::Component 0.0, juce::Viewport::AccessibilityIgnoredComponent 0.0, SignalBar 0.0
+== metal: total 222.8 ms/s
+   WaveformDisplay 70.6, SignalStrip 56.5, ResettableSlider 30.1, AudioDNAApplication::MainWindow 16.8, juce::TextButton 14.3, LayerStrip 10.5, juce::Label 7.4, MainComponent 5.4, TopBar 3.9, SignalBar 2.8, ClipInspector 2.2, InspectorPanel 1.0
+repaint() calls/s: LayerStrip 116.5, SignalBar 29.1, WaveformDisplay 29.1, TopBar 14.8, ClipInspector 10.9, juce::Label 4.5

@@ -1,0 +1,2 @@
+display phase ms/s (median over launches): pre 4.6 [4.5-4.8], draw 229.5 [226.7-240.1], post 4.3 [4.3-4.5], nodraw 0.3 [0.3-0.4]
+per pass: pre med 0.10 p90 0.19, draw med 5.95 p90 11.85, post med 0.07 p90 0.20

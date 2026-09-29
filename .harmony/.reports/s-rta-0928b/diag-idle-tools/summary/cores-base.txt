@@ -1,0 +1,12 @@
+base/r1 main-thread observer records on E-cores: 0.1%
+base/r2 main-thread observer records on E-cores: 13.5%
+base/r3 main-thread observer records on E-cores: 3.0%
+base/r4 main-thread observer records on E-cores: 12.7%
+base/r5 main-thread observer records on E-cores: 9.3%
+body     start/end core EP: n=  979 med   8.68 p90  16.74 max  20.46
+body     start/end core PP: n= 2969 med   4.90 p90   7.30 max  25.57
+full     start/end core EP: n=   12 med  18.55 p90  19.42 max  20.91
+full     start/end core PP: n=  490 med  14.91 p90  16.39 max  26.71
+topbar   start/end core EE: n=   59 med   0.39 p90   4.86 max   5.49
+topbar   start/end core EP: n=   12 med   4.44 p90   5.93 max   5.95
+topbar   start/end core PP: n= 1667 med   0.16 p90   1.40 max  15.70

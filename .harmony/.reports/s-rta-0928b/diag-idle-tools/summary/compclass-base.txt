@@ -1,0 +1,9 @@
+== body: total 177.5 ms/s
+   juce::TextButton 43.0, FilesBrowser::FileListContent 33.2, SignalStrip 29.9, RoutinePad 13.5, juce::Label 12.1, ResettableSlider 8.9, DeckView 7.4, juce::TextEditor::TextHolderComponent 7.2, ClipCell 6.1, WaveformDisplay 4.2, LayerStrip 3.8, AudioDNAApplication::MainWindow 1.6
+== top: total 5.7 ms/s
+   TopBar 2.1, juce::TextButton 2.0, juce::ToggleButton 0.5, juce::Label 0.5, AudioDNAApplication::MainWindow 0.2, juce::LookAndFeel_V2::SliderLabelComp 0.1, MainComponent 0.1, ResettableSlider 0.1, FilesBrowser::FileListContent 0.0, SignalStrip 0.0, juce::ComboBox 0.0, ClipCell 0.0
+== full: total 50.9 ms/s
+   FilesBrowser::FileListContent 17.1, juce::TextButton 12.1, SignalStrip 5.1, ClipCell 2.3, RoutinePad 2.3, juce::Label 1.9, DeckView 1.9, ResettableSlider 1.5, LayerStrip 1.2, TopBar 0.9, juce::TextEditor::TextHolderComponent 0.8, juce::ToggleButton 0.7
+== outside: total 0.1 ms/s
+   FilesBrowser::FileListContent 0.0, juce::TextButton 0.0, ClipCell 0.0, RoutinePad 0.0, ResettableSlider 0.0, juce::Label 0.0, juce::TextEditor::TextHolderComponent 0.0, LayerStrip 0.0, ClipInspector 0.0, juce::TextEditor 0.0, MacroPanel 0.0, TimingWindow 0.0
+repaint() calls/s: LayerStrip 118.7, SignalBar 29.7, WaveformDisplay 29.7, TopBar 14.9, ClipInspector 11.1, juce::Label 3.8
