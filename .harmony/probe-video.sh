@@ -1,9 +1,10 @@
 #!/bin/bash
 # probe-video.sh -- s-rta-0928b video (.harmony/.reports/s-rta-0928b/plan-video.md section 4.6 + HARMONY ADOPTION).
-# Live witness that video decodes OFF the GL render thread: steady 4 x 1080p / 4 x 4K / ProRes playback at >= 110 fps
-# with no avcodec call on the render thread and one upload per content frame; a mid-GOP retrigger / deck return /
-# retrigger mid-fade holds the last shown frame (never black, never keyframe + 29) instead of freezing the whole output;
-# decode threads park off screen; the message thread never waits on a decode; frame accuracy survives the ring.
+# Live witness that video decodes OFF the GL render thread: steady 4 x 1080p / ProRes playback at >= 110 fps (4 x 4K:
+# >= 80 and within 30 of the same launch's 4 x 4K stills -- ADDENDUM W1) with no avcodec call on the render thread and one
+# upload per content frame; a mid-GOP retrigger / deck return / retrigger mid-fade holds the last shown frame (never
+# black, never keyframe + 29) instead of freezing the whole output; decode threads park off screen; the message thread
+# never waits on a decode; frame accuracy survives the ring.
 # Rows, fixtures and calibration: the docstring of .harmony/probe-video.py (REST on 7070, every PNG decoded with
 # PIL+numpy); thresholds: .harmony/probe-video.json. Fixtures (ffmpeg, nice'd, -threads 2) are encoded per run into
 # <out>/media (deleted after the quit), or reused from $VIDEO_FIXTURES when that dir holds them. ADDITIONALLY REFUSES

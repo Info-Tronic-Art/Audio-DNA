@@ -4,7 +4,8 @@
 The .sh owns launch / refuse / quit; this file encodes the fixtures (--make-fixtures, BEFORE the app starts) and then
 talks to the running app on 7070 (production mode). Every captured PNG is decoded with PIL+numpy; every render_frame
 response is checked; the output dir is fresh per run. Plan: .harmony/.reports/s-rta-0928b/plan-video.md section 4.6
-+ its HARMONY ADOPTION (V2 -> w4b, V4 -> w6b, V5 -> NONREF on/off tables).
++ its HARMONY ADOPTION (V2 -> w4b, V4 -> w6b, V5 -> NONREF on/off tables) and ADDENDUM (W1 -> w2 (a)/(a2), W2 -> the
+50 ms fps polls and w1's 5 runs).
 
 usage: probe-video.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-video.py <root> <fresh-outdir> [row,row,...]
@@ -29,10 +30,16 @@ their first trigger and print the load average and the app's %cpu. A missing /ap
 
 w5_correctness_gop30 (guard): 1080p canvas; g30. trig; 2 s; caps at +0 / +1 / +2 s. PASS: each code within the playhead
   bracket; dbox(cap, fixture_frame(code)) <= boxTol (a decoded picture, not a stale slot); video_late_frames delta == 0.
-w1_steady_1080x4: 4 layers = a1080 (4 players). trig x4; 2 s; s0; 5 s poll; s1. PASS (a) median fps >= fpsMin;
-  (b) p90 peak_callback_ms <= p90CallbackMaxMs; (c) gl_video_decode_calls delta == 0; (d) video_uploads delta in
-  uploads5s; (e) video_late_frames delta == 0.
-w2_steady_4kx4 (m1): as w1 at 4K (a4k); (e) late delta <= lateMaxSteady4k.
+w1_steady_1080x4: 4 layers = a1080 (4 players). trig x4; 2 s; s0; 5 s poll; s1 -- w1Repeats times, each on a fresh load
+  (new clip ids = new players). The fps rows (w1, w2, w8) poll /api/state every fpsPollS (50 ms, W2: a 15 ms poller
+  perturbs the fps it measures); peak_* fields are still maxed over the polls. PASS (a) median fps >= fpsMin in >=
+  w1PassMin of the w1Repeats runs (every run's median printed); on the first run: (b) p90 peak_callback_ms <=
+  p90CallbackMaxMs; (c) gl_video_decode_calls delta == 0; (d) video_uploads delta in uploads5s; (e) video_late_frames
+  delta == 0.
+w2_steady_4kx4 (m1): first the same scene with 4 x 4K STILLS (still4k_f100.png = a4k frame 100, one image clip per
+  layer, 5 s poll: the upload-free ceiling of this launch), then as w1 at 4K (a4k), one run. PASS (a) median fps >= fps4kMin (W1: the
+  upload-bound floor on this M1 Pro; main 36) and (a2) median fps >= stills fps - fps4kBelowStillsMax (both printed);
+  (b)-(d) as w1; (e) late delta <= lateMaxSteady4k. "4 x 4K video at the display rate" is filed (zero-copy upload).
 w3_retrigger_midgop_1080 (m2): a1080 inPoint 0.5 (5.0 s = frame 150, 150 past keyframe 0). trig + prime; 3 s; capPre;
   s0; RETRIGGER (seekTo(inPoint)); 3 s poll; s1; settle; cap. PASS (a) every poll's peak_callback_ms <= peakMaxMs;
   (b) gl_video_max_decodes_per_call <= 2; (c) late delta <= lateMaxRetrigger1080 (prints the hold in ms); (d) code within
@@ -64,7 +71,7 @@ w7_message_thread_no_wait (X1, 4K): layers 101-104 = a4k inPoint 0.5; layer 105 
   trigger timed until /api/composition shows it (it queues behind the video retrigger on the message thread); s1.
   (An image trigger alone never takes the video lock: measured 9 ms on main, 1.44 ms lock wait on the commit-1 app.) PASS (a) msg_video_lock_wait_max_ms <= lockWaitMaxMs; (b) every round trip <=
   triggerRttMaxMs.
-w8_prores_steady: pr1080. trig; 2 s; s0; 5 s poll; s1; settle; cap. PASS: median fps >= fpsMin; decode calls delta 0;
+w8_prores_steady: pr1080. trig; 2 s; s0; 5 s poll (fpsPollS); s1; settle; cap. PASS: median fps >= fpsMin; decode calls delta 0;
   late delta 0; code within the bracket.
 """
 import json, os, statistics, subprocess, sys, threading, time
@@ -113,6 +120,8 @@ ROW_FIXTURES = {
     "w8_prores_steady": ["pr1080.mov"], "w2_steady_4kx4": ["a4k_g250.mp4"], "w3b_retrigger_midgop_4k": ["a4k_g250.mp4"],
     "w4b_idle_mid_catchup": ["a4k_g250.mp4"], "w7_message_thread_no_wait": ["a4k_g250.mp4"],
 }
+FPS_POLL = float(FIX["fpsPollS"])   # W2: the fps rows poll at 50 ms (a 15 ms poller perturbs the fps it measures)
+STILL4K = "still4k_f100.png"        # w2's upload-free ceiling: a4k frame 100 as a still
 
 
 def band_filter(band, base):
@@ -157,6 +166,15 @@ def make_fixtures():
                 no(f"fixture {name}: keyframes {got} != {want}"); bad += 1
             else:
                 print(f"fixture {name}: keyframes {got} (as designed)", flush=True)
+    if ONLY is None or "w2_steady_4kx4" in ONLY:
+        sp = mpath(STILL4K)
+        if not os.path.exists(sp) and os.path.exists(mpath("a4k_g250.mp4")):
+            subprocess.run(["nice", "-n", "10", "ffmpeg", "-y", "-loglevel", "error", "-threads", "2", "-i", mpath("a4k_g250.mp4"),
+                            "-vf", "select='eq(n\\,100)'", "-frames:v", "1", sp], capture_output=True)
+        if not os.path.exists(sp):
+            no(f"fixture {STILL4K}: ffmpeg made nothing"); bad += 1
+        else:
+            print(f"fixture {STILL4K}: ready", flush=True)
     warm = FIX["warm"]
     a = np.zeros((warm[1], warm[0], 4), np.uint8); a[..., :3] = warm[2]; a[..., 3] = 255
     Image.fromarray(a, "RGBA").save(os.path.join(OUT, "warm.png"))
@@ -397,13 +415,13 @@ def wait_no_compiler(tag, limit_s=1800):
 
 
 class Poller:
-    """Reads /api/state every 15 ms in a thread; peak_* reset on read, so the max over reads is the max over the
-    window. Keys missing from the app are remembered (the row FAILs on them)."""
+    """Reads /api/state every `interval` s (15 ms; the fps rows 50 ms, W2) in a thread; peak_* reset on read, so the max
+    over reads is the max over the window. Keys missing from the app are remembered (the row FAILs on them)."""
     KEYS = ("peak_callback_ms", "peak_frame_time_ms", "fps", "gl_video_max_decodes_per_call", "peak_video_upload_ms",
             "msg_video_lock_wait_max_ms")   # the *_max_* / peak_* fields reset on read: max over the polls
 
-    def __init__(self):
-        self.rows = []; self.missing = set(); self._run = False; self._th = None
+    def __init__(self, interval=0.015):
+        self.rows = []; self.missing = set(); self._run = False; self._th = None; self.interval = interval
 
     def _loop(self):
         s = requests.Session(); s.headers["Connection"] = "close"
@@ -416,7 +434,7 @@ class Poller:
                         self.missing.add(k)
             except Exception:  # noqa: BLE001
                 pass
-            time.sleep(0.015)
+            time.sleep(self.interval)
 
     def start(self):
         self.rows = []; self._run = True
@@ -481,34 +499,59 @@ def w5(tag):
         check(late == 0, f"{tag}: video_late_frames delta over the captures {late} == 0")
 
 
-def steady(tag, size, name, fps_only=False, n=4):
+def steady_scene(tag, size, clips, players):
+    """One layer per clip on a fresh load; trigger all; 2 s; s0; a 5 s window polled every FPS_POLL; s1."""
     lids = LID[tag] if isinstance(LID[tag], list) else [LID[tag]]
-    if not load(tag, [deck(0, [layer(lids[i], [vclip(10 + i, name)]) for i in range(n)])], size, n):
-        return
+    if not load(tag, [deck(0, [layer(lids[i], [c]) for i, c in enumerate(clips)])], size, players):
+        return None
     if not wait_no_compiler(tag):
-        return
-    for i in range(n):
+        return None
+    for i in range(len(clips)):
         trig(i, 0); wait_active(i, 0)
     time.sleep(2.0)
-    s0 = state(); pol = Poller().window(5.0); s1 = state()
+    s0 = state(); pol = Poller(FPS_POLL).window(5.0); s1 = state()
     if not need(tag, pol, "fps") or not need(tag, pol, "peak_callback_ms"):
-        return
-    fps = pol.median("fps"); p90 = pol.p90("peak_callback_ms")
-    dec = delta(tag, s0, s1, "gl_video_decode_calls"); upl = counter(s1, "video_uploads")
-    upl = None if upl is None or counter(s0, "video_uploads") is None else upl - s0["video_uploads"]
-    late = delta(tag, s0, s1, "video_late_frames")
-    extra = {k: (None if counter(s0, k) is None or counter(s1, k) is None else s1[k] - s0[k])
-             for k in ("video_frames_decoded", "video_frames_dropped", "video_frames_skipped", "video_hold_frames", "video_seeks")}
-    print(f"      {tag}: median fps {fps:.1f}, p90 callback {p90:.2f} ms, max callback {pol.max('peak_callback_ms'):.2f} ms, "
-          f"decode calls {dec}, uploads {upl}, late {late}, {extra}, peak upload {pol.max('peak_video_upload_ms')} ms, "
-          f"%cpu {app_cpu()}, {la()}", flush=True)
-    check(fps >= float(FIX["fpsMin"]), f"{tag}: (a) median fps {fps:.1f} >= {FIX['fpsMin']}")
-    if fps_only:
-        if dec is not None:
-            check(dec == 0, f"{tag}: gl_video_decode_calls delta {dec} == 0")
-        if late is not None:
-            check(late == 0, f"{tag}: video_late_frames delta {late} == 0")
-        return
+        return None
+    return s0, pol, s1
+
+
+def steady(tag, size, name, n=4):
+    stills = None
+    if size == "4k":   # W1: the same launch's upload-free ceiling (4 x 4K stills on the 4K canvas)
+        r = steady_scene(tag, size, [iclip(200 + i, mpath(STILL4K)) for i in range(n)], 0)
+        if r is None:
+            return
+        stills = r[1].median("fps")
+        print(f"      {tag}: 4 x 4K STILLS median fps {stills:.1f}, p90 callback {r[1].p90('peak_callback_ms'):.2f} ms, "
+              f"polls {len(r[1].vals('fps'))}, {la()}", flush=True)
+    reps = int(FIX["w1Repeats"]) if size == "1080" else 1
+    fpsl = []; first = None
+    for k in range(reps):
+        r = steady_scene(tag, size, [vclip(10 + 10 * k + i, name) for i in range(n)], n)
+        if r is None:
+            return
+        s0, pol, s1 = r
+        fps = pol.median("fps"); p90 = pol.p90("peak_callback_ms"); fpsl.append(round(fps, 1))
+        dec = delta(tag, s0, s1, "gl_video_decode_calls"); upl = counter(s1, "video_uploads")
+        upl = None if upl is None or counter(s0, "video_uploads") is None else upl - s0["video_uploads"]
+        late = delta(tag, s0, s1, "video_late_frames")
+        extra = {kk: (None if counter(s0, kk) is None or counter(s1, kk) is None else s1[kk] - s0[kk])
+                 for kk in ("video_frames_decoded", "video_frames_dropped", "video_frames_skipped", "video_hold_frames", "video_seeks")}
+        print(f"      {tag} run {k + 1}/{reps}: median fps {fps:.1f}, p90 callback {p90:.2f} ms, max callback "
+              f"{pol.max('peak_callback_ms'):.2f} ms, polls {len(pol.vals('fps'))}, decode calls {dec}, uploads {upl}, late {late}, "
+              f"{extra}, peak upload {pol.max('peak_video_upload_ms')} ms, %cpu {app_cpu()}, {la()}", flush=True)
+        if first is None:
+            first = (fps, p90, dec, upl, late)
+    fps, p90, dec, upl, late = first
+    if size == "1080":
+        lim, need_n = float(FIX["fpsMin"]), int(FIX["w1PassMin"])
+        good = sum(1 for f in fpsl if f >= lim)
+        check(good >= need_n, f"{tag}: (a) median fps >= {lim:g} in {good} of {reps} runs (>= {need_n}): {fpsl}")
+    else:
+        lo, below = float(FIX["fps4kMin"]), float(FIX["fps4kBelowStillsMax"])
+        check(fps >= lo, f"{tag}: (a) median fps {fps:.1f} >= {lo:g} (W1: the upload-bound floor)")
+        check(fps >= stills - below, f"{tag}: (a2) median fps {fps:.1f} >= this launch's 4 x 4K stills fps {stills:.1f} - {below:g} "
+                                     f"= {stills - below:.1f}")
     check(p90 <= float(FIX["p90CallbackMaxMs"]), f"{tag}: (b) p90 peak_callback_ms {p90:.2f} <= {FIX['p90CallbackMaxMs']}")
     if dec is not None:
         check(dec == 0, f"{tag}: (c) gl_video_decode_calls delta {dec} == 0 (no decode on the render thread)")
@@ -528,7 +571,7 @@ def w8(tag):
     if not wait_no_compiler(tag):
         return
     trig(0, 0); wait_active(0, 0); time.sleep(2.0)
-    s0 = state(); pol = Poller().window(5.0); s1 = state()
+    s0 = state(); pol = Poller(FPS_POLL).window(5.0); s1 = state()
     if not need(tag, pol, "fps"):
         return
     fps = pol.median("fps"); dec = delta(tag, s0, s1, "gl_video_decode_calls"); late = delta(tag, s0, s1, "video_late_frames")
