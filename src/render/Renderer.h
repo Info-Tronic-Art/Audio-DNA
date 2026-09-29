@@ -284,6 +284,24 @@ private:
     // detach(): its destructor drops queued jobs and waits for the running decodes (<= 5 s); jobs hold no `this`.
     ImageDecode::Decoder imageDecoder_{ 3 };
     ImageTexCache::UploadBudget uploadBudget_;
+    // s-rta-0928b seqvram (GL thread; the stats are read by /api/state): every image sequence's texture bytes summed at
+    // the frame top (scanSequenceVram: totals + the idle trim under pressure, SeqVram.h), kept RUNNING through the
+    // frame's grants (H3), and the frame serial the grants carry. No new mutex (Sacred Rule 2): the scan is one more
+    // O(#sequences) critical section on imageSeqMutex_, which syncMedia already takes per drawn clip.
+    SeqVram::Stats seqStats_;
+    uint64_t seqFrameSerial_ = 0;
+    size_t seqResidentTotal_ = 0;
+    void scanSequenceVram();
+    // Fix round F2: the frame's glDeleteTextures budget (SeqVram::kMaxDeletesPerFrame), reset at the frame top and
+    // SHARED by the retire drain, the idle trim and every drawn sequence's shrink; the retired sequences' textures not
+    // deleted yet (drainRetiredMedia) are reported with the live ones.
+    SeqVram::DeleteBudget seqDeletes_;
+    size_t seqRetiredBytes_ = 0;
+    int seqRetiredSlots_ = 0;
+    // Fix round F3 (drawn sequences outrank idle ones): the idle sequences' bytes and their trimmed minimum, from the
+    // frame-top scan; a sequence idle at the frame top and drawn now leaves both sums at its grant.
+    size_t seqIdleBytes_ = 0;
+    size_t seqIdleMinBytes_ = 0;
     // R1.3: the legacy single image still decoding while a frame needs it (the capture gate reads it). Reset at the
     // top of every frame; set by resolveLegacy.
     bool legacyPendingThisFrame_ = false;
@@ -389,6 +407,8 @@ public:
     // reading resets it. Unlike peak_frame_time_ms it includes the work before renderStart (the pending legacy
     // image, the camera upload, autopilot) and after renderEnd (recorder, Syphon, the capture read).
     float takePeakCallbackMs() { return peakCallbackMs_.exchange(0.0f, std::memory_order_relaxed); }
+    // s-rta-0928b seqvram: the image sequences' texture memory and frame counters (/api/state seq_*).
+    const SeqVram::Stats& getSeqStats() const { return seqStats_; }
 
     // s-rta-0926b plan4 A-opt: GPU time of one frame's GL work (canvas block through the present pass),
     // from GL_TIME_ELAPSED timer queries read back one or two frames later (never blocking). 0 when the
@@ -612,7 +632,9 @@ private:
     std::mutex retiredMediaMutex_;
     std::vector<std::unique_ptr<VideoPlayer>> retiredVideoPlayers_;
     std::vector<std::unique_ptr<ImageSequence>> retiredImageSequences_;
-    void drainRetiredMedia();
+    // contextClosing: every texture now (the context dies). Otherwise (every frame) a retired image sequence deletes at
+    // most the frame's remaining seqDeletes_ and stays on the list until it holds none (fix round F2).
+    void drainRetiredMedia(bool contextClosing = false);
 
     // Get video frame texture for a clip (used as compositor callback) -- syncMedia(clip, dt, true, pending).
     GLuint getVideoFrameTexture(const Clip* clip, float dt, bool* pending);

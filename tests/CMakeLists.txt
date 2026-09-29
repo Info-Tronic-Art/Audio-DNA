@@ -2648,3 +2648,14 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_png_fast)
 catch_discover_tests(test_png_fast)
+
+# --- test_seq_vram (s-rta-0928b seqvram, plan-seqvram.md 4.4 + Harmony adoption H1/H2/H6/H10): an image sequence plays
+# through a BOUNDED window of recycled GL textures (src/media/SeqVram.h). Trajectory distances per loop mode (Loop wraps,
+# PingPong bounces, OneShot orders like Loop, in/out points), the request / eviction plan (Belady order, never the
+# current or the shown frame, the floor), the slot table (reuse / respecify / Full / shrink / releaseAll) and the
+# budget (floors win), plus a 2,000-step model of ImageSequence::getCurrentTexture. Headless, no GL, no JUCE.
+add_executable(test_seq_vram test_seq_vram.cpp)
+target_include_directories(test_seq_vram PRIVATE ${SRC_DIR})
+target_link_libraries(test_seq_vram PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_seq_vram)
+catch_discover_tests(test_seq_vram)

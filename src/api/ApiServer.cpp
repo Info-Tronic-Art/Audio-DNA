@@ -1322,6 +1322,28 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
         obj->setProperty("peak_image_upload_ms", static_cast<double>(comp.takePeakImageUploadMs()));
         obj->setProperty("image_pump_frames", static_cast<juce::int64>(comp.getImagePumpFrames()));
     }
+    // s-rta-0928b seqvram: image sequences' texture memory (all sequences, summed at the frame top) and frame counters
+    // (cumulative). seq_textures = allocated textures, seq_late_frames = frames the current frame was not resident and the
+    // shown one repeated, seq_pending_frames = frames with nothing to show yet. Same fields in ApiServer and TestServer.
+    {
+        const auto& sq = renderer_.getSeqStats();
+        obj->setProperty("seq_open", sq.openCount.load(std::memory_order_relaxed));
+        obj->setProperty("seq_textures", sq.residentSlots.load(std::memory_order_relaxed));
+        obj->setProperty("seq_texture_mb", static_cast<double>(sq.residentBytes.load(std::memory_order_relaxed)) / (1024.0 * 1024.0));
+        obj->setProperty("seq_over_budget", sq.overBudget.load(std::memory_order_relaxed));
+        obj->setProperty("seq_frames_shown", static_cast<juce::int64>(sq.framesShown.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_late_frames", static_cast<juce::int64>(sq.lateFrames.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_pending_frames", static_cast<juce::int64>(sq.pendingFrames.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_uploads", static_cast<juce::int64>(sq.uploads.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_slot_reuses", static_cast<juce::int64>(sq.slotReuses.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_evictions", static_cast<juce::int64>(sq.evictions.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_stale_drops", static_cast<juce::int64>(sq.staleDrops.load(std::memory_order_relaxed)));
+        obj->setProperty("seq_upload_deferred", static_cast<juce::int64>(sq.uploadDeferred.load(std::memory_order_relaxed)));
+        // fix round F2: glDeleteTextures of the per-frame paths (idle trim, shrink, retire drain), <= 8 per frame
+        obj->setProperty("seq_deletes", static_cast<juce::int64>(sq.deletes.load(std::memory_order_relaxed)));
+        // fix round F3: the textures of the sequences drawn within the last kIdleFrames frames (not idle)
+        obj->setProperty("seq_drawn_textures", sq.drawnSlots.load(std::memory_order_relaxed));
+    }
     // s-rta-0926b plan4 A-opt: GPU time of the frame's GL work (timer queries; 0 = driver reported
     // nothing). Same fields as TestServer.
     obj->setProperty("gpu_time_ms", static_cast<double>(renderer_.getGpuTimeMs()));
