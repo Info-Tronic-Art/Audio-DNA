@@ -2,21 +2,21 @@
 #include "ui/UiPaintCounters.h"
 #include <cmath>
 
-namespace
+RoutinePad::PaintKey RoutinePad::paintKeyOf(const RoutineDeckView::Pad& spec, int width)
 {
-    bool samePad(const RoutineDeckView::Pad& a, const RoutineDeckView::Pad& b)
-    {
-        return a.number == b.number && a.name == b.name && a.state == b.state && a.onShownDeck == b.onShownDeck
-            && a.loop == b.loop && a.progress01 == b.progress01 && a.bar == b.bar && a.barsTotal == b.barsTotal
-            && a.warning == b.warning && a.restartPending == b.restartPending;
-    }
-
-    // s-rta-0929 g4cpu c1 (TEST-ONLY witness): the sweep width paintContent draws (0 unless Playing).
-    int sweepWidthOf(const RoutineDeckView::Pad& p, int width)
-    {
-        return p.state == RoutineDeckView::State::Playing
-                   ? juce::roundToInt(static_cast<float>(width) * juce::jlimit(0.0f, 1.0f, p.progress01)) : 0;
-    }
+    PaintKey k;
+    k.number = spec.number;
+    k.name = spec.name;
+    k.state = spec.state;
+    k.onShownDeck = spec.onShownDeck;
+    k.loop = spec.loop;
+    k.warning = spec.warning;
+    k.restartPending = spec.restartPending;
+    k.bar = spec.bar;
+    k.barsTotal = spec.barsTotal;
+    if (spec.state == RoutineDeckView::State::Playing)   // paintContent: the sweep exists only while Playing
+        k.sweepW = juce::roundToInt(static_cast<float>(width) * juce::jlimit(0.0f, 1.0f, spec.progress01));
+    return k;
 }
 
 RoutinePad::RoutinePad(int slot) : slot_(slot)
@@ -28,13 +28,13 @@ RoutinePad::RoutinePad(int slot) : slot_(slot)
 
 void RoutinePad::setSpec(const RoutineDeckView::Pad& spec)
 {
-    const bool changed = !samePad(spec_, spec);
-    if (sweepWidthOf(spec, getWidth()) != sweepWidthOf(spec_, getWidth()))
-        uipaint::counters().routinePadSweepTicks.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 g4cpu c1
+    const auto before = paintKeyOf(spec_, getWidth()), after = paintKeyOf(spec, getWidth());
+    if (after.sweepW != before.sweepW)
+        uipaint::counters().routinePadSweepTicks.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 g4cpu witness
     if (spec.tooltip != spec_.tooltip)
         setTooltip(spec.tooltip);
     spec_ = spec;
-    if (changed)
+    if (!(after == before))   // s-rta-0929 g4cpu: what paint() draws changed (Pitfall 57 rule 2)
     {
         repaint();
         uipaint::bump(uipaint::counters().routinePadRepaints, uipaint::SrcPad);   // s-rta-0929 g4cpu c1
