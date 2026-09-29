@@ -18,7 +18,7 @@
     "modePollS": 1.0
   },
   "v2b": { "cycles": 5, "restoreFramesMax": 2 },
-  "identity": { "comment": "Harmony ruling J3 (fix round 1): v1 / v1b / v2 -- a differing pixel is tolerated iff <= maxDelta per channel AND its 3x3 neighbourhood spans > edgeSpan levels", "maxDelta": 1, "edgeSpan": 32 },
+  "identity": { "comment": "Harmony ruling K2 (fix round 2, replaces J3): v1 / v1b / v2 / v3 -- a differing pixel is tolerated iff <= maxDelta per channel, anywhere; more, outside the row's live-content masks = FAIL", "maxDelta": 1 },
   "seq24": { "frames": 24, "w": 320, "h": 180, "fps": 30.0 },
   "many16": { "w": 3840, "h": 2160 }
 }
