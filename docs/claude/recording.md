@@ -102,7 +102,9 @@ routines reaching for the same control):
   x takes the whole routine off, and the layer X takes every routine off that layer
   (`RoutineEngine::stopOnLayer`). Driven every 30 Hz tick from `RoutineEngine::Status` (`deck`,
   `layers`, `fireSeq`, `startsOn`, `restartPending`, `touchesComp` -- also on `/api/routine/status`)
-  through `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`). The Record tab keeps only Save
+  through `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`); a pad repaints only when its painted state changes
+  (`RoutinePad::paintKeyOf` -- the sweep in pixels, Pitfall NN), a band only when its hairline width changes. The
+  Record tab keeps only Save
   Routine (its old pad row is gone). Live: `.harmony/probe-routine-display.sh`.
   **The UI pattern (moved verbatim from CLAUDE.md "UI Patterns", s-rta-0929 asyncload -- CLAUDE.md keeps a pointer):**
   **Routine pads and bands**: a routine pad's press is always Fire (restart while playing, no-op while waiting); there is no stop control -- a routine leaves by its band's x (the whole routine, every layer), the layer X (clears the layer of routines too), its own end, the pad menu's "Remove from layers", or Stop (routines only). "Delete routine" (pad menu, warning red via `addColouredItem` -- the app LookAndFeel honours an item colour -- behind a confirm) is the only path that erases one. Pads and bands are model-driven from `RoutineEngine::Status` via `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`) every 30 Hz tick, never from panel memory; a strip fader follows the model (`LayerStrip::syncFromModel`, Pitfall 41) and its V fill turns the routine cue while a routine's hand grips opacity; a bound `UniversalParamControl` shows its value (and slider) in the routine cue with ROUTINE in the hint slot while a routine's (lane-rank) hand holds it. The routine cue is `AudioDNALookAndFeel::kRoutineCue` (chartreuse, band names too) -- reserved: never the accent cyan every mapped knob wears, and never used for anything else; `docs/claude/recording.md` "Surfaces".

@@ -2438,6 +2438,9 @@ MainComponent::~MainComponent()
 void MainComponent::paint(juce::Graphics& g)
 {
     uipaint::counters().mainComponentPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0928b idlepaint witness
+#if AUDIODNA_TEST_SERVER
+    uipaint::passBegin();   // s-rta-0929 g4cpu: the pass's JUCE paint time starts here (ends in paintOverChildren)
+#endif
     g.fillAll(juce::Colour(AudioDNALookAndFeel::kBackground));
 
     // Draw input level meter
@@ -2764,6 +2767,27 @@ void MainComponent::recordUiGeometry()
     put(c.signalBarRect, signalBar_ != nullptr ? signalBar_->getBounds() : juce::Rectangle<int>());
     put(c.waveformRect, waveformDisplay_.getBounds());
     put(c.topBarRect, topBar_ != nullptr ? topBar_->getBounds() : juce::Rectangle<int>());
+    // s-rta-0929 g4cpu (TEST-ONLY): the rects probe-idle-paint a1 classifies each display pass by.
+    put(c.deckRect, deckView_ != nullptr ? deckView_->getBounds() : juce::Rectangle<int>());
+    put(c.padRowRect, deckView_ != nullptr ? getLocalArea(deckView_.get(), deckView_->getRoutinePadRowBounds())
+                                           : juce::Rectangle<int>());
+    put(c.stripColRect, deckView_ != nullptr ? getLocalArea(deckView_.get(), deckView_->getStripColumnBounds())
+                                             : juce::Rectangle<int>());
+    put(c.wheelRect, topBar_ != nullptr ? getLocalArea(topBar_.get(), topBar_->getWheelRepaintBounds()) : juce::Rectangle<int>());
+    put(c.inspectorRect, inspectorPanel_ != nullptr ? inspectorPanel_->getBounds() : juce::Rectangle<int>());
+    put(c.previewRect, previewPanel_.getBounds());   // s-rta-0929 g4cpu-fix (TEST-ONLY): probe-idle-paint v5's mask
+#endif
+}
+
+// s-rta-0929 g4cpu (TEST-ONLY): one display pass ends here (JUCE calls paintOverChildren on every pass that reaches
+// MainComponent, even when opaque children covered the clip and paint() was skipped) -> GET /api/debug/ui_passes.
+void MainComponent::paintOverChildren(juce::Graphics& g)
+{
+#if AUDIODNA_TEST_SERVER
+    const auto r = g.getClipBounds();
+    uipaint::passEnd(r.getX(), r.getY(), r.getWidth(), r.getHeight());
+#else
+    juce::ignoreUnused(g);
 #endif
 }
 

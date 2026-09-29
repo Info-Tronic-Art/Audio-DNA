@@ -2924,6 +2924,36 @@ endif()
 apply_sanitizers(test_clip_inspector_paint_key)
 catch_discover_tests(test_clip_inspector_paint_key)
 
+# --- test_routine_pad_paint_key (s-rta-0929 g4cpu, plan-g4cpu.md 2.3, Pitfall 57 rule 2): a ROUTINES pad repaints only
+# when what it PAINTS changes -- RoutinePad::paintKeyOf keys the sweep as the painted pixel width (never progress01, a
+# fresh float every 30 Hz tick while a routine plays), the bar digits, the frame state and the marks; setSpec() repaints
+# only when the key changed; two specs with equal keys paint the same pixels. Headless JUCE widgets under
+# ScopedJuceInitialiser_GUI (the test_routine_pad_press link set).
+add_executable(test_routine_pad_paint_key
+    test_routine_pad_paint_key.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+)
+target_include_directories(test_routine_pad_paint_key PRIVATE ${SRC_DIR})
+target_link_libraries(test_routine_pad_paint_key PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+)
+target_compile_definitions(test_routine_pad_paint_key PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_routine_pad_paint_key PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_routine_pad_paint_key)
+catch_discover_tests(test_routine_pad_paint_key)
+
 # --- s-rta-0929 asyncload (plan-asyncload.md 5.8 test 1): LoadTicket -- the waitable outcome of one composition load
 # (POST /api/load_composition waits on it; the message thread finishes it once; ApiServer::stop() cancels it). juce_core.
 add_executable(test_load_ticket test_load_ticket.cpp)

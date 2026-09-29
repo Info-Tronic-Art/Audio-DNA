@@ -1,4 +1,5 @@
 #include "ui/UniversalParamControl.h"
+#include "ui/UiPaintCounters.h"
 #include "connect/ConnPicker.h"
 #include "connect/ManualWrite.h"
 #include "connect/ConnClock.h"
@@ -677,4 +678,5 @@ void UniversalParamControl::handleSourcePickerResult(int result)
 void UniversalParamControl::updateValueDisplay()
 {
     repaint();
+    uipaint::bump(uipaint::counters().paramControlRepaints, uipaint::SrcParam);   // s-rta-0929 g4cpu c1
 }

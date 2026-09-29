@@ -18,10 +18,25 @@ class RoutinePad : public juce::Component,
 public:
     explicit RoutinePad(int slot);
 
-    // Stores the pad's view; sets the tooltip when its text changed and repaints when anything changed.
+    // Stores the pad's view; sets the tooltip when its text changed and repaints when what it paints changed.
     void setSpec(const RoutineDeckView::Pad& spec);
     const RoutineDeckView::Pad& getSpec() const { return spec_; }
     int getSlot() const { return slot_; }
+
+    // s-rta-0929 g4cpu (Pitfall 57 rule 2): everything paint() draws, AS it draws it -- the sweep as a pixel width, never
+    // progress01 (a new float every 30 Hz tick while a routine plays, which made the pad repaint 30 times a second and
+    // its 90x22 rect union with the strips' and the wheel's repaints into one tall pass). setSpec() repaints only when
+    // this changes at the pad's current width. Pure; public for tests/test_routine_pad_paint_key.cpp.
+    struct PaintKey
+    {
+        int number = 0;
+        juce::String name;
+        RoutineDeckView::State state = RoutineDeckView::State::Empty;
+        bool onShownDeck = true, loop = false, warning = false, restartPending = false;
+        int sweepW = 0, bar = 0, barsTotal = 0;
+        bool operator==(const PaintKey&) const = default;
+    };
+    static PaintKey paintKeyOf(const RoutineDeckView::Pad& spec, int width);
 
     std::function<void(int slot)> onFire;
     std::function<void(int slot)> onContextMenu;
@@ -34,6 +49,7 @@ private:
 
     int slot_ = -1;
     RoutineDeckView::Pad spec_;
+    int lastPaintedSweepW_ = -1;   // s-rta-0929 g4cpu: the painted-sweep witness (UiPaintCounters routinePadSweepPaints)
 
     static constexpr juce::uint32 kPadEmpty  = 0xff2a2a2a;
     static constexpr juce::uint32 kPadIdle   = 0xff333333;

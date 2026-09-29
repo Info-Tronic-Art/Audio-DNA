@@ -19,8 +19,10 @@ public:
     void resized() override {}
     void mouseDown(const juce::MouseEvent& event) override;
 
-    // Update the displayed value (called by SignalBar timer)
-    void updateValue(float newValue);
+    // Update the displayed value (called by SignalBar timer). -> true when what paint() draws changed (s-rta-0929 g4cpu:
+    // the displayed value, the peak line while shown, the flash while shown -- compared exactly: each moves an
+    // anti-aliased edge or the 2-decimal text).
+    bool updateValue(float newValue);
 
     // Display size
     void setDisplaySize(DisplaySize size);
@@ -53,6 +55,13 @@ private:
     float peakValue_ = 0.0f;
     int peakHoldTimer_ = 0;
     float flashAlpha_ = 0.0f;
+
+    struct Painted
+    {
+        float value = -1.0f, peak = -1.0f, flash = -1.0f;
+        bool operator==(const Painted&) const = default;
+    };
+    Painted painted_;
 
     static constexpr int kPeakHoldFrames = 30;  // ~1 second at 30fps
     static constexpr float kPeakDecay = 0.97f;

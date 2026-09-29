@@ -222,6 +222,10 @@ void NativeLayerHost::drawLayer(void* cgv, float w, float h)
     const auto height = target_.getHeight();
     CGContextConcatCTM(cg, CGAffineTransformMake(1, 0, 0, -1, 0, height));            // (peer: renderRect)
     juce::CoreGraphicsContext context(cg, (float) height);
+#if AUDIODNA_TEST_SERVER
+    const auto t0 = std::chrono::steady_clock::now();   // s-rta-0929 g4cpu c1: the layer's JUCE paint time (TEST witness)
+    const auto cpu0 = uipaint::threadCpuUs();
+#endif
     {
         juce::Graphics g(context);
         if (teethShift_)
@@ -229,5 +233,10 @@ void NativeLayerHost::drawLayer(void* cgv, float w, float h)
         target_.paintEntireComponent(g, false);                                       // = paintWithinParentContext
     }
     c.layerDraws[id_].fetch_add(1, std::memory_order_relaxed);
+#if AUDIODNA_TEST_SERVER
+    c.layerDrawUs[id_].fetch_add(static_cast<uint64_t>(uipaint::threadCpuUs() - cpu0), std::memory_order_relaxed);
+    c.layerDrawWallUs[id_].fetch_add(static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                                         std::chrono::steady_clock::now() - t0).count()), std::memory_order_relaxed);
+#endif
     cache_->layerDrew();
 }

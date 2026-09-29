@@ -1,14 +1,22 @@
 #include "ui/RoutinePad.h"
+#include "ui/UiPaintCounters.h"
 #include <cmath>
 
-namespace
+RoutinePad::PaintKey RoutinePad::paintKeyOf(const RoutineDeckView::Pad& spec, int width)
 {
-    bool samePad(const RoutineDeckView::Pad& a, const RoutineDeckView::Pad& b)
-    {
-        return a.number == b.number && a.name == b.name && a.state == b.state && a.onShownDeck == b.onShownDeck
-            && a.loop == b.loop && a.progress01 == b.progress01 && a.bar == b.bar && a.barsTotal == b.barsTotal
-            && a.warning == b.warning && a.restartPending == b.restartPending;
-    }
+    PaintKey k;
+    k.number = spec.number;
+    k.name = spec.name;
+    k.state = spec.state;
+    k.onShownDeck = spec.onShownDeck;
+    k.loop = spec.loop;
+    k.warning = spec.warning;
+    k.restartPending = spec.restartPending;
+    k.bar = spec.bar;
+    k.barsTotal = spec.barsTotal;
+    if (spec.state == RoutineDeckView::State::Playing)   // paintContent: the sweep exists only while Playing
+        k.sweepW = juce::roundToInt(static_cast<float>(width) * juce::jlimit(0.0f, 1.0f, spec.progress01));
+    return k;
 }
 
 RoutinePad::RoutinePad(int slot) : slot_(slot)
@@ -20,17 +28,23 @@ RoutinePad::RoutinePad(int slot) : slot_(slot)
 
 void RoutinePad::setSpec(const RoutineDeckView::Pad& spec)
 {
-    const bool changed = !samePad(spec_, spec);
+    const auto before = paintKeyOf(spec_, getWidth()), after = paintKeyOf(spec, getWidth());
+    if (after.sweepW != before.sweepW)
+        uipaint::counters().routinePadSweepTicks.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 g4cpu witness
     if (spec.tooltip != spec_.tooltip)
         setTooltip(spec.tooltip);
     spec_ = spec;
-    if (changed)
+    if (!(after == before))   // s-rta-0929 g4cpu: what paint() draws changed (Pitfall 57 rule 2)
+    {
         repaint();
+        uipaint::bump(uipaint::counters().routinePadRepaints, uipaint::SrcPad);   // s-rta-0929 g4cpu c1
+    }
 }
 
 void RoutinePad::paint(juce::Graphics& g)
 {
     using State = RoutineDeckView::State;
+    uipaint::counters().routinePadPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 g4cpu (G7)
     const bool dimmed = !spec_.onShownDeck && (spec_.state == State::Waiting || spec_.state == State::Playing);
 
     // The row behind a dimmed pad is the deck's background, so the 50 % layer reads as "elsewhere".
@@ -61,6 +75,11 @@ void RoutinePad::paintContent(juce::Graphics& g)
     if (spec_.state == State::Playing)
     {
         const int sweepW = juce::roundToInt(static_cast<float>(w) * juce::jlimit(0.0f, 1.0f, spec_.progress01));
+        if (sweepW != lastPaintedSweepW_)   // s-rta-0929 g4cpu: the I2-style witness (the painted sweep moved)
+        {
+            lastPaintedSweepW_ = sweepW;
+            uipaint::counters().routinePadSweepPaints.fetch_add(1, std::memory_order_relaxed);
+        }
         g.setColour(juce::Colour(kTeal).withAlpha(0.3f));
         g.fillRect(0, 0, sweepW, h);
         if (spec_.barsTotal > 1 && spec_.barsTotal <= 8)
@@ -69,6 +88,10 @@ void RoutinePad::paintContent(juce::Graphics& g)
             for (int k = 1; k < spec_.barsTotal; ++k)
                 g.fillRect(juce::roundToInt(static_cast<float>(w * k) / static_cast<float>(spec_.barsTotal)), 0, 1, h);
         }
+    }
+    else
+    {
+        lastPaintedSweepW_ = -1;   // a re-fire counts again
     }
 
     // 3. frame

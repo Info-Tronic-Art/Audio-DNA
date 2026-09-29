@@ -307,6 +307,9 @@ void ApiServer::setupRoutes()
     // s-rta-0928b idlepaint (TEST-ONLY, same build path): the UI paint counters (read on the HTTP thread from atomics, no
     // message-thread hop), a parented test PopupMenu, forced native-layer fallback, a whole-MainComponent repaint.
     server_.Get("/api/debug/ui_paint", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiPaint(req, res); });
+    // s-rta-0929 g4cpu (TEST-ONLY, same build path): the last display passes (clip rect + JUCE paint time + repaint
+    // sources) and SignalBar change masks, read on the HTTP thread from the ring buffers (no message-thread hop).
+    server_.Get("/api/debug/ui_passes", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiPasses(req, res); });
     server_.Post("/api/debug/ui_test_menu", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiTestMenu(req, res); });
     server_.Post("/api/debug/ui_native_fallback", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiNativeFallback(req, res); });
     server_.Post("/api/debug/ui_repaint_all", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUiRepaintAll(req, res); });
@@ -1833,6 +1836,63 @@ void ApiServer::handleDebugUiPaint(const httplib::Request&, httplib::Response& r
     obj->setProperty("signalbar_rect", rect(c.signalBarRect));
     obj->setProperty("waveform_rect", rect(c.waveformRect));
     obj->setProperty("topbar_rect", rect(c.topBarRect));
+    // s-rta-0929 g4cpu (plan-g4cpu 2.2, G7): who repaints / what paints while a routine plays.
+    obj->setProperty("routine_pad_repaints", static_cast<juce::int64>(c.routinePadRepaints.load(rl)));
+    obj->setProperty("routine_pad_sweep_ticks", static_cast<juce::int64>(c.routinePadSweepTicks.load(rl)));
+    obj->setProperty("routine_pad_sweep_paints", static_cast<juce::int64>(c.routinePadSweepPaints.load(rl)));
+    obj->setProperty("routine_pad_paints", static_cast<juce::int64>(c.routinePadPaints.load(rl)));
+    obj->setProperty("layer_strip_fader_repaints", static_cast<juce::int64>(c.layerStripFaderRepaints.load(rl)));
+    obj->setProperty("layer_strip_fader_paints", static_cast<juce::int64>(c.layerStripFaderPaints.load(rl)));
+    obj->setProperty("layer_strip_band_paints", static_cast<juce::int64>(c.layerStripBandPaints.load(rl)));
+    obj->setProperty("top_bar_wheel_repaints", static_cast<juce::int64>(c.topBarWheelRepaints.load(rl)));
+    obj->setProperty("deck_corner_repaints", static_cast<juce::int64>(c.deckCornerRepaints.load(rl)));
+    obj->setProperty("layer_inspector_repaints", static_cast<juce::int64>(c.layerInspectorRepaints.load(rl)));
+    obj->setProperty("param_control_repaints", static_cast<juce::int64>(c.paramControlRepaints.load(rl)));
+    obj->setProperty("signal_strip_changes", static_cast<juce::int64>(c.signalStripChanges.load(rl)));
+    obj->setProperty("signal_bar_ticks", static_cast<juce::int64>(c.signalBarTicks.load(rl)));
+    obj->setProperty("waveform_layer_draw_us", static_cast<juce::int64>(c.layerDrawUs[uipaint::Waveform].load(rl)));
+    obj->setProperty("signalbar_layer_draw_us", static_cast<juce::int64>(c.layerDrawUs[uipaint::SignalBar].load(rl)));
+    obj->setProperty("waveform_layer_draw_wall_us", static_cast<juce::int64>(c.layerDrawWallUs[uipaint::Waveform].load(rl)));
+    obj->setProperty("signalbar_layer_draw_wall_us", static_cast<juce::int64>(c.layerDrawWallUs[uipaint::SignalBar].load(rl)));
+    obj->setProperty("deck_rect", rect(c.deckRect));
+    obj->setProperty("pad_row_rect", rect(c.padRowRect));
+    obj->setProperty("strip_col_rect", rect(c.stripColRect));
+    obj->setProperty("wheel_rect", rect(c.wheelRect));
+    obj->setProperty("inspector_rect", rect(c.inspectorRect));
+    obj->setProperty("preview_rect", rect(c.previewRect));
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// s-rta-0929 g4cpu (TEST-ONLY): the newest display passes (up to 500 of the 512-entry ring: the writer is at most a few
+// entries ahead while we read) as {t, x, y, w, h, us, src}, oldest first, and the newest SignalBar change masks.
+void ApiServer::handleDebugUiPasses(const httplib::Request&, httplib::Response& res)
+{
+    auto& c = uipaint::counters();
+    const auto rl = std::memory_order_relaxed;
+    constexpr uint32_t kKeep = 500;
+    const uint32_t seq = c.passSeq.load(std::memory_order_acquire);
+    juce::Array<juce::var> passes;
+    for (uint32_t k = seq > kKeep ? seq - kKeep : 0; k < seq; ++k)
+    {
+        const auto& p = c.passes[k % uipaint::Counters::kRing];
+        juce::Array<juce::var> e;
+        e.add(static_cast<juce::int64>(p.tUs.load(rl)));
+        e.add(p.x.load(rl)); e.add(p.y.load(rl)); e.add(p.w.load(rl)); e.add(p.h.load(rl)); e.add(p.us.load(rl));
+        e.add(static_cast<int>(p.src.load(rl)));
+        e.add(p.wus.load(rl));
+        passes.add(juce::var(e));
+    }
+    const uint32_t mseq = c.stripMaskSeq.load(std::memory_order_acquire);
+    juce::Array<juce::var> masks;
+    for (uint32_t k = mseq > kKeep ? mseq - kKeep : 0; k < mseq; ++k)
+        masks.add(static_cast<juce::int64>(c.stripMasks[k % uipaint::Counters::kRing].load(rl)));
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("seq", static_cast<juce::int64>(seq));
+    obj->setProperty("passes", passes);   // [t_us, x, y, w, h, cpu us (-1: paint() skipped), src bits, wall us]
+    obj->setProperty("strip_seq", static_cast<juce::int64>(mseq));
+    obj->setProperty("strip_masks", masks);
+    obj->setProperty("signalbar_strips", c.signalBarStrips.load(rl));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 

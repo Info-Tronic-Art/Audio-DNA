@@ -1,4 +1,5 @@
 #include "ui/DeckView.h"
+#include "ui/UiPaintCounters.h"
 
 DeckView::DeckView()
 {
@@ -539,6 +540,15 @@ void DeckView::showDeckTabMenu(int deckIndex)
                        });
 }
 
+juce::Rectangle<int> DeckView::getRoutinePadRowBounds() const
+{
+    juce::Rectangle<int> r;
+    for (const auto& pad : routinePads_)
+        if (pad != nullptr)
+            r = r.isEmpty() ? pad->getBounds() : r.getUnion(pad->getBounds());
+    return r;
+}
+
 void DeckView::setRoutineView(const RoutineDeckView& view)
 {
     for (int i = 0; i < RoutineEngine::kBankSize; ++i)
@@ -547,6 +557,7 @@ void DeckView::setRoutineView(const RoutineDeckView& view)
     {
         routineCornerNote_ = view.cornerNote;
         repaint(0, 0, kLayerStripWidth, kRoutineRowHeight);
+        uipaint::bump(uipaint::counters().deckCornerRepaints, uipaint::SrcCorner);   // s-rta-0929 g4cpu c1
     }
     lastRoutineView_ = view;
     fanRoutineBands();

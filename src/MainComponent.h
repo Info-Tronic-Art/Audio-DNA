@@ -85,6 +85,7 @@ public:
     ~MainComponent() override;
 
     void paint(juce::Graphics& g) override;
+    void paintOverChildren(juce::Graphics& g) override;   // s-rta-0929 g4cpu: the display-pass log's end (TEST_SERVER)
     void resized() override;
 
     // FileDragAndDropTarget

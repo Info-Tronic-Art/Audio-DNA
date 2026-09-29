@@ -63,6 +63,9 @@ public:
     // + readout + width-budget checks in test_master_signal_link.cpp.
     juce::String masterSignalLabelTextForTest() const { return masterSignalLabel_.getText(); }
     juce::Rectangle<int> masterLabelBoundsForTest() const { return masterLabel_.getBounds(); }
+    // The rect timerCallback repaints at 15 Hz (the beat wheel + the bar readout; s-rta-0929 g4cpu: also the probe's
+    // wheel rect in GET /api/debug/ui_passes).
+    juce::Rectangle<int> getWheelRepaintBounds() const { return beatWheelBounds_.getUnion(barPhraseBounds_).expanded(2); }
 
     // The "Outputs" button (s-rta-0927 outputs-c2 = plan5 C2): MainComponent wires its click to the output item
     // list (OutputManager::populateMenu); setLiveOutputCount sets its text ("Outputs: Off" / "Outputs: N").
