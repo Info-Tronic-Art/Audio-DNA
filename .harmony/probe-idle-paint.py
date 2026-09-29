@@ -1062,6 +1062,7 @@ def row_v3p():
 def row_v4():
     """Harmony ruling K3: test mode, card -- this build's idle look vs its look after POST /api/debug/ui_repaint_all (a
     whole-MainComponent pass), outside the fps mask: K2 identity, v4.runs launches."""
+    # Harmony addendum 3 L2: v4 documents the first-display-pass class (identical in main); v3p is the identity gate.
     if compilers() > 0:
         skip("v4_full_pass_identity: TAINTED"); return
     runs = int(CFG["v4"]["runs"])
