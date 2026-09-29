@@ -320,13 +320,16 @@ The message thread paints through ONE CoreGraphics-backed NSView per window; App
 repainted since the last vblank and JUCE paints every component inside it (Pitfall 57). Rules: a widget that repaints on
 a timer either owns a layer (`NativeLayerHost::attach` in MainComponent's constructor -- SignalBar, WaveformDisplay; never
 inside a `juce::Viewport`) or repaints a rect only when its pixels change (`LayerStrip::transportViewOf`,
-`ClipInspector::paintKeyNow`). Native layers are above JUCE content: every in-peer overlay must be one `OverlayWatch` sees
+`ClipInspector::paintKeyNow`, `RoutinePad::paintKeyOf` -- compare what you paint, never the float you read; Pitfall
+NN). Native layers are above JUCE content: every in-peer overlay must be one `OverlayWatch` sees
 (a child of the top-level window, a `TooltipWindow`, a child of MainComponent added after startup, or registered with
 `addOverlay`); while one crosses a native panel, that panel paints in-peer exactly as before (the switch is synchronous;
 the layer comes back only after it drew). The layer's backing store is its own: the parent's background under a
 non-opaque panel (the waveform's rounded corners) is painted by the peer and composited under the layer (and repainted
 by the peer when the layer returns from a fallback).
-Witnesses: `GET /api/debug/ui_paint` (TEST_SERVER builds), `.harmony/probe-idle-paint.sh`.
+Witnesses: `GET /api/debug/ui_paint` and `GET /api/debug/ui_passes` (TEST_SERVER builds: the counters; the newest
+display passes' rects, JUCE paint time and repaint sources), `.harmony/probe-idle-paint.sh` -- its a1 row prints who
+repaints and what each pass costs: run it before touching a timed repaint.
 
 ### Naming Conventions
 

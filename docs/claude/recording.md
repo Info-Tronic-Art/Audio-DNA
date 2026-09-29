@@ -102,7 +102,9 @@ routines reaching for the same control):
   x takes the whole routine off, and the layer X takes every routine off that layer
   (`RoutineEngine::stopOnLayer`). Driven every 30 Hz tick from `RoutineEngine::Status` (`deck`,
   `layers`, `fireSeq`, `startsOn`, `restartPending`, `touchesComp` -- also on `/api/routine/status`)
-  through `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`). The Record tab keeps only Save
+  through `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`); a pad repaints only when its painted state changes
+  (`RoutinePad::paintKeyOf` -- the sweep in pixels, Pitfall NN), a band only when its hairline width changes. The
+  Record tab keeps only Save
   Routine (its old pad row is gone). Live: `.harmony/probe-routine-display.sh`.
 - **Deferred to slice 2+** (disclosed, not silent): nothing about a fired routine is recorded back
   into a take (no `routine` lane, no `via`-tagged children); no lane editor / range-select UI (a
