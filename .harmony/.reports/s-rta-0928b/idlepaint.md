@@ -240,3 +240,217 @@ DONE_WITH_CONCERNS
 
 ### NEXT ACTION
 Harmony rules on HANDOFF-NEEDS (a)-(c), then the critic panel (I12), Boris's LOOK list (plan 3.4), and the merge (Pitfall NN to be numbered).
+
+---
+
+# Fix round 1 (lane-name idlepaint-fix1) -- Harmony rulings J1-J5 (plan-idlepaint.md "HARMONY ADOPTION ADDENDUM -- fix round")
+
+STATUS: PARTIAL
+
+RESULT: J2, J3 and J5 are done. J4 is checked on GCC 15 and filed for GCC 11 / MSVC. J1 was diagnosed and then STOPPED under the packet's wrong-premise rule. The evidence:
+- The pixels a whole-window pass changes come from the window's FIRST display pass.
+- Main behaves the same way, and main's union never re-covered those regions.
+- v4 as ruled (main idle vs the lane after a full pass) cannot go GREEN.
+- The only lane-side fix would break v1 / v3 identity with main.
+
+No app code changed this round.
+
+FACTS:
+- Commits on lane/idlepaint (42871bd ->):
+  - df1221b J2 probe
+  - ce6c2a8 J3 probe
+  - a965a98 Pitfall NN correction (J1 diagnosis)
+  - this report
+- `git diff 42871bd -- src tests CMakeLists.txt` is empty. The final `build-lane` app differs from the saved 42871bd copy (`S/app-42871bd`) in 260 bytes, all at offsets >= 18234024. That is past the LC_CODE_SIGNATURE dataoff (18091376), so only the signature blob differs.
+- Gates: `S/fix1/G1..G6.log`, `S/fix1/V3L.log`, `S/fix1/V3M.log`. J1 runs: `S/j1-b1..b5.log`, with captures in `S/j1-b*/<arm>/s*.png`.
+- ctest serial `ctest --test-dir WT/build-lane -j1` -> "100% tests passed, 0 tests failed out of 920" (`S/fix1/ctest.log`).
+
+METHOD:
+- J1 instrumentation used a TEMPORARY env-gated diagnostic, saved verbatim in `S/j1-diag-final.patch`:
+  - a per-pass log of CGContext / layer / window state;
+  - one suspect toggled per launch.
+- For "main", `git archive 5c5f21d` was exported to `S/mainsrc`, with a TEMPORARY `ADNA_TEMP_KICK_MS` one-shot repaint added, and built in `S/mainbuild`. The main checkout was not touched.
+- Every capture is window-only (Quartz window id), decoded with PIL + numpy. Zoomed crops and the J3 diff PNG were looked at by eye.
+- The diagnostic was reverted with `git apply -R`, then rebuilt: `strings` "ADNA_TEMP|J1DIAG" = 0, and `git status` is clean.
+
+CONFIDENCE+VERIFY:
+- High on the J1 attribution to pass order: deterministic, identical counts across 16 lane launches and 2 main launches.
+- Medium on the mechanism inside AppKit / Core Animation. It is INFERRED: no public API shows a difference between the two passes.
+- Re-prove:
+  - `LANE=idlepaint . S/../lib/lock.sh`
+  - `bash S/fix1/gbatch.sh <tag> <rows>`
+  - `J1FIX=none python S/j1exp.py <out> <app> full ADNA_TEMP_T=kick:150` needs the diagnostic build (`S/app-diag`).
+
+UNKNOWNS / NOT DONE:
+- J1: no fix and no v4 row (STOPPED; options below).
+- J4 on GCC 11 and MSVC.
+- The exact Core Animation step that makes the first pass differ.
+
+NUANCE: the r1 report's "text re-rendered, up to 91/255" was wrong on two counts:
+- Text differs by exactly 1/255, at anti-aliased edges.
+- The 91/255 is the FPS readout's number changing value, which is live content.
+The real large classes are the Files grid's folder emoji (<= 66/255) and three TopBar slider-thumb rims (<= 29/255).
+
+HANDOFF-NEEDS: Harmony rulings on:
+- (a) J1: options A / B / C below.
+- (b) J3: the rule rejects the SignalStrip top-corner anti-aliasing (1/255, 3x3 span 14-30, so below edgeSpan 32). v1 S1-S3, v1b SignalBar and v2 A-B FAIL on 8 px each (S3 also on 13 deck-cell px). Accept, re-rule the edge span, or order a corner fix.
+- (c) v3: flake verdict, below.
+
+INBOX-RECHECK: none
+
+## Fix round 1 -- ruling -> commit -> RED -> GREEN
+
+| ruling | commit | RED (raw line) | GREEN (raw line) |
+|---|---|---|---|
+| J5 rebase onto main | none (no-op) | -- | `git rev-parse --short main` = 5c5f21d = the lane's merge-base. It already contains 3919ea5 and the docs commit 5c5f21d. Re-checked 05:12:35 before committing. |
+| J2 g4 CPU -> INFO | df1221b | g4 BEFORE arm (main), per launch: `g4_routine_before r1: win_max_med 17.4 ms` ... `r5: 17.2 ms` (16.5-17.9 > 8.0; the r1 report's R3 gave 19.3) | `PASS  g4_routine (a loop routine on 3 layers, adoption I3): window max median 5.2 ms [4.9-5.4] (<= 8.0) \| main CPU median 163.6 ms/s [160.6-165.9] (INFO, ruling J2)` and `INFO  g4_routine CPU (INFO, ruling J2): main-thread CPU median BEFORE 335.1 ms/s [330.5-340.5] \| AFTER 163.6 ms/s [160.6-165.9] (i1's 150.0 ms/s is not applied to g4)` |
+| J3 identity rule (v1 / v1b / v2) | ce6c2a8 | teeth: `PASS  v0_capture_teeth (J3): the J3 identity rule rejects the 1-px shift -- 25859 px differ (max delta 189), 25601 violate J3 ... in 81 cluster(s) (> 0)` | not GREEN everywhere, see the next table. PASS: v1 S4 waveform, v1b waveform, v2 A-C. FAIL: 8 px of SignalStrip-corner AA |
+| J1 full-pass identity + fix | a965a98 (Pitfall NN text only) | diagnosis only: `INFO  v1_identity_test_mode S4 whole window (BEFORE's first-pass pixels vs AFTER's full pass, J1): 35483 px differ (max delta 66), 20590 violate J3` | STOPPED: no v4 row, no fix (below) |
+| J4 atomic_ref portability | none (check only) | -- | `g++-15 (Homebrew GCC 15.2.0_1)`: `__cpp_lib_atomic_ref=201806 is_always_lock_free=1 pos=0.25`, exit 0. Apple clang 17.0.0 gives the same. GCC 11 (CI ubuntu-22.04) and MSVC were not available locally: FILED |
+
+## Gates on the final app (= 42871bd code), 5 launches per perf arm; load average printed per launch (2.9-6.5)
+
+| row | result (raw) | log |
+|---|---|---|
+| c0 | `PASS` heartbeat ok, peer_layer_backed 1, capture not blank | G1 |
+| i1 | `PASS  i1_idle_card (IDLE-HB-card): window max median 4.3 ms [4.2-4.9] (<= 8.0) AND main CPU median 112.6 ms/s [111.9-133.2] (<= 150.0)` | G1 |
+| g1 / g3 | `PASS  g1_anim_rates` (wf / sb 29.1-29.2/s, top 14.8-14.9/s, modes [0, 0], 0 fallbacks); `INFO  g3_peer_quiet: MainComponent paints/s 14.9, 14.9, 14.8, 14.9, 14.9 \| ClipInspector repaints/s 0.00 x5` | G1 |
+| i2 | `PASS  i2_idle_many16 (IDLE-HB-many16): window max median 4.8 ms [3.8-5.2] (<= 8.0) AND main CPU median 128.5 ms/s [117.2-130.9] (<= 150.0)` | G2 |
+| g4 | PASS window max / INFO CPU (table above) | G3 |
+| v0 | `PASS` 78 clusters in the SignalBar, 2 in the waveform, 0 elsewhere; J3 teeth PASS | G4 |
+| v1 S1 | `FAIL  v1_identity_test_mode S1 (default): BEFORE vs AFTER outside the fps mask -- 1251 px differ (max delta 1), 8 violate J3 (> 1/255 or off an anti-aliased edge) in 6 cluster(s)` | G4 |
+| v1 S2 | `FAIL ... S2 (card): ... 110 px differ (max delta 1), 8 violate J3 ... in 6 cluster(s)` | G4 |
+| v1 S3 | `FAIL ... S3 (many16): ... 90 px differ (max delta 1), 21 violate J3 ... in 19 cluster(s)` (the 6 strip corners + 13 single deck-cell px) | G4 |
+| v1 S4 waveform | `PASS ... the waveform rect + 8 px BEFORE vs AFTER -- 0 px differ (max delta 0), 0 violate J3` | G4 |
+| v1n (INFO) | S1 0 px; S2 33 px (max 1), 0 violate; S3 0 px | G4 |
+| v1b SignalBar | `FAIL  v1b_native_vs_inpeer SignalBar: native layer vs forced in-peer at a frozen driven state -- 8 px differ (max delta 1), 8 violate J3 ... in 6 cluster(s)`; the round trip is 0 px (PASS) | G5 (TEMPORARY freeze hook copy `S/app-hook2`; reverted, strings 0) |
+| v1b waveform | `PASS ... waveform: native layer vs forced in-peer ... -- 28 px differ (max delta 1), 0 violate J3`; round trip 0 px | G5 |
+| v2 | modes PASS; `FAIL  v2_identity_fallback: A vs B outside the overlay's rect -- 8 px differ (max delta 1), 8 violate J3 ... in 6 cluster(s); the overlay IS visible over the SignalBar (75608 px changed there)`; `PASS ... A vs C ... 0 px`; covered 0 PASS; real PopupMenu PASS | G4 |
+| v2b | `PASS` 10 fallbacks, 0 covered vblanks; `PASS` restore max 2 (<= 2); teeth `PASS` covered 11 | G6 |
+| v3 | `FAIL  v3_identity_production_masked: ... 33 px differ in 19 cluster(s), max delta 1` in G6. Flake arms, 5 runs each: lane vs main 0 / 0 / 33 / 33 / 33 px (V3L); main vs main 33 / 0 / 33 / 33 / 0 px (V3M, compared offline with the same masks because the main app has no geometry route). The same x = 613 px column (1/255) appears in both arms. Verdict: main's own launch-to-launch noise, a flake. The existing row was not re-thresholded. | G6, V3L, V3M, `S/fix1/v3off.py` |
+
+## J1 -- the diagnosis (why a whole-MainComponent pass changes pixels)
+
+Classes, from lane idle vs the lane after `POST /api/debug/ui_repaint_all` (`S/j1-b1/base`, `S/j1ana.py`):
+
+| class | px | max delta | px violating J3 |
+|---|---|---|---|
+| Files grid folder emoji (U+1F4C1, FilesBrowser::paintGrid) | 24,507 | 66 | 20,224 |
+| Three TopBar slider thumbs (Fade, Master Signal, Master) | 1,648 | 29 | 343 |
+| All text | 9,756 | 1 (at AA edges) | 2 |
+| FPS readout | 91 | 91 | -- (the number changed value: live content, masked by the fps mask) |
+
+Zoomed crops (`S/j1-zoom.png`):
+- The first-pass emoji is a little smaller and softer: bbox 1 px narrower, 3 % less gradient energy.
+- The slider thumbs have the same centroid (to within 0.003 px) but different rim coverage.
+
+Which render is which:
+- The first-pass look comes from the peer's FIRST drawRect. It is pass n=1: the whole window at 0 ms, before the window is on screen, occlusionState 8192.
+- Any later pass draws the steady look:
+
+| trigger | when | result (s0 == after the pass) |
+|---|---|---|
+| one-shot full repaint (`kick`) | 300 / 1000 / 2500 / 5000 ms | folders 0, sliders 0 (`S/j1-b3`) |
+| `kick:150` (it landed in pass n=2, still off screen) | 75 ms | folders 0, sliders 0 (`S/j1-b4/k150`) |
+| partial passes (`halves`: 2 half-window passes 200 ms apart) | -- | the same change as a full pass (`S/j1-b1/halves`) |
+
+So on-screen vs off-screen is not the variable, and neither is the size of the dirty rect.
+
+What does not differ between pass 1 and later passes, logged per pass (`J1DIAG`):
+- user->device transform [2 0 0 2];
+- the context is not a bitmap context (the async display list);
+- layer drawsAsynchronously 1, opaque 1, contentsScale 2.0, contentsFormat RGBA8;
+- window screen "Built-in Retina Display", backingScaleFactor 2.0, colour space "sRGB IEC61966-2.1", frame 1728x1079.
+
+Suspects, one TEMPORARY env toggle per launch. Every row still read folders 24,507 / 66 and sliders 1,648 / 29:
+
+| toggle | what it did | log |
+|---|---|---|
+| smooth0 | font smoothing off | `S/j1-b1` |
+| subpix0 | subpixel positioning / quantization off | `S/j1-b1` |
+| interp | kCGInterpolationHigh | `S/j1-b1` |
+| opaque | peer layer.opaque = YES | `S/j1-b1` |
+| sync | drawsAsynchronously = NO from pass 2 | `S/j1-b1` |
+| syncearly | drawsAsynchronously = NO before pass 2 | `S/j1-b4` |
+| halves | partial passes instead of a full one | `S/j1-b1` |
+| ADNA_UI_NATIVE_LAYERS=0 | no native subviews | `S/j1-b1` |
+| warm | a CoreGraphics `createComponentSnapshot` of MainComponent in its constructor, before the first paint, to rule out JUCE first-use caches | `S/j1-b5/warm` |
+
+Main (`S/j1-b5/mh1`, `mh2`: a scratch build of main 5c5f21d plus a TEMPORARY one-shot repaint 13 s after the first paint):
+- Before the pass, main+hook equals the shipped main at idle: 33 px, max 1, 0 J3 violations.
+- The pass changes the same 24,507 emoji px (max 66), 1,648 slider px (max 29) and ~9.8k text px at 1/255.
+- The change PERSISTS: 4 s later only the fps readout differs (mh1 209 px, mh2 99 px, all fps).
+- Main after its pass vs the lane (42871bd) after its pass: folders 0, sliders 0. The remaining 120 px (max 3) are the waveform / strip corners.
+- Main idle vs lane idle: 77 px, max 1 (8 J3 px: the strip corners).
+
+In short, the lane equals main in both states. Main's 30 Hz union never covered the Files grid or the right-hand TopBar sliders, so the critic's premise ("on main the union overwrote it within a frame") does not hold for any pixel above 1/255.
+
+Root cause: inside AppKit / Core Animation (INFERRED). The first display pass into the peer's layer rasterises emoji bitmaps and ellipse rims differently from every later pass. Every input observable through public API is equal. No JUCE patch is involved.
+
+Why STOPPED (the packet's wrong-premise rule):
+- (i) v4 as ruled compares main's FIRST-pass pixels with a later pass of any build. No lane change can make it GREEN except re-drawing the first-pass look.
+- (ii) The only lane-side fix at the root would be ONE repaint right after the first pass. That is a single pass, neither periodic nor in the background. Measured: `kick:150` gives 0 px of emoji / slider change on a later full pass. But it makes lane idle differ from main idle by the same 24,507 emoji px (max 66), so v1 / v3 BEFORE-vs-AFTER identity would FAIL. The two rulings conflict.
+
+Options for Harmony:
+- A: accept. The behaviour is main's own and identical in the lane.
+- B: adopt the one-shot post-first-pass repaint, and re-base v1 / v3 on a main full-pass reference (a scratch hook like `S/mainsrc`'s).
+- C: a separate AppKit investigation lane.
+
+## J4 -- portability
+
+- `S/j4/atomic_ref_probe.cpp` is the LayerStrip.cpp:749 construct (`std::atomic_ref<double>(clip->playheadPosition).load(relaxed)`) plus `#ifndef __cpp_lib_atomic_ref #error`.
+- It builds and runs under Homebrew GCC 15.2.0 (libstdc++) and Apple clang 17.0.0.
+- NOT verified: CI's ubuntu-22.04 GCC (11.x) and windows-latest MSVC. No local toolchain, and no local docker image of either. FILED as a CI-only pre-merge check.
+- `src/features/FeatureBus.h:20` ("std::atomic_ref is unavailable on this toolchain") is stale for the current Apple clang (verified above). Not edited: outside this lane.
+- Reviewer NIT, filed for L5: `ClipInspector::paintKeyNow` reads the same field plainly.
+
+## Rig (fix round 1)
+
+- 13 lock holds, each <= 7.3 min. Each release was followed by >= 40 s before the next acquire; the helper enforced 45 s.
+- 79 launches, all `open -g`. No Output window: `outwins` gave 0 Output-named windows after every hold. No synthetic input. No debugger or full-screen capture.
+- The scratch main build and a diagnostic rebuild compiled during the J1 pixel batches b4 / b5. Those batches produced pixel identity only, no perf numbers. Every perf batch (G1-G3) took the lock via `acquire_quiet_lock`.
+- The `.venv` symlink was created for the gate runs and removed before the first commit.
+- TEMPORARY hooks and where they are now:
+  - the J1 diagnostic (reverted);
+  - the v1b waveform freeze (a copy in `S/app-hook2`, reverted);
+  - the main one-shot (scratch source only).
+  - After the revert rebuilds: `strings` on the build-lane app gives 0 for "ADNA_TEMP|J1DIAG", and `git status` shows only `build-lane/`.
+
+## Work-log rows (fix round 1, for Harmony)
+
+- J1: diagnosed, STOPPED. The whole-pass change is the window's first display pass (emoji <= 66, slider rims <= 29, text 1/255), identical in main.
+- J2 df1221b: g4 PASS 5.2 ms / CPU INFO 163.6 vs main 335.1.
+- J3 ce6c2a8: v1 S1-S3 / v1b SignalBar / v2 A-B FAIL on 8 strip-corner px at 1/255 (span < 32).
+- J4: GCC 15 PASS, GCC 11 / MSVC filed.
+- J5: no-op.
+- i1 4.3 / 112.6, i2 4.8 / 128.5.
+- v3 is a flake: 3/5 in both arms.
+- ctest 920/920.
+
+## Notebook lines (fix round 1, for Harmony to append)
+
+- `## 2026-09-29 the macOS window's first display pass draws differently | the peer's FIRST drawRect rasterises colour-emoji glyphs (<= 66/255) and ellipse rims (<= 29/255) differently from every later pass; the context / layer / window state logged equal and 7 toggles change nothing; any repaint after pass 1 (even at 75 ms, off screen) draws the steady look | discovered: S/j1-b1..b5`
+- `## 2026-09-29 an fps readout in a capture diff reads as a big glyph delta | the TopBar FPS number changes value between captures (91/255) -- mask it before calling a diff a rendering change | discovered: S/j1-regions.py`
+- `## 2026-09-29 a main-with-hook build without touching the main checkout | git archive <sha> | tar -x into scratch, add the TEMPORARY hook there, configure with FETCHCONTENT_SOURCE_DIR_* -> an independent app (built in ~2 min here) | discovered: S/mainbuild.sh`
+
+## PACKET QUALITY (fix round 1)
+
+- Clarity: HAD_TO_INFER.
+  - J1's gate (main idle vs lane after a full pass) and its fix sentence conflict with the v1 / v3 identity contract once the cause is known. This was surfaced, not improvised.
+  - J3's "spans > 32 levels" is read per channel, in either capture.
+- Missing context:
+  - The r1 "91/255" was the FPS readout.
+  - The main app has no full-pass trigger, so a scratch main+hook build was needed.
+- Unused context: none.
+- Self-brief files: the plan's addendum, critic-idlepaint-r1.md, review-idlepaint-juce-r1.md, the r1 report and the r1 scratch evidence. All were useful.
+
+### STATUS
+PARTIAL
+
+### NEXT ACTION
+Harmony rules on:
+- J1 option A / B / C;
+- the J3 SignalStrip-corner FAILs (accept, re-rule the edge span, or order a corner fix);
+- the v3 flake.
+
+Then the critic re-review of J1 with the main+hook evidence, and the merge (Pitfall NN -> 57).
