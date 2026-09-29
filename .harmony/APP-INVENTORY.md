@@ -205,7 +205,16 @@ TEST-ONLY build path on the production port (not a counted row): `POST /api/debu
 {"ms":1..2000}` (s-rta-0927 beat clock) sleeps the MESSAGE thread once for `ms` -- the deterministic stall
 `.harmony/probe-beatclock.sh` and `probe-routines.sh` row 7s use. Compiled only with
 `AUDIODNA_BUILD_TEST_SERVER=ON` (`#if AUDIODNA_TEST_SERVER`, `ApiServer.cpp`); needs no `--test-mode`;
-a build without the flag 404s it.
+a build without the flag 404s it. `GET /api/debug/ui_paint` (s-rta-0928b idlepaint) returns the UI paint counters
+(`src/ui/UiPaintCounters.h`: native-layer draws and modes, fallbacks, LayerStrip transport / playhead / band repaints,
+MainComponent / TopBar paints, ClipInspector repaints, the overlay witness, the panels' geometry) from atomics -- no
+message-thread hop; `POST /api/debug/ui_test_menu {"on":bool,"x","y","kind":"menu"|"panel"}` shows / removes an in-peer
+overlay parented to the top-level window at MainComponent point (x, y) (a 3-item PopupMenu -- dismissed by JUCE within
+~50 ms while the app is in the background -- or a 300 x 140 test panel); `POST /api/debug/ui_native_fallback {"on":bool}`
+forces the native-layer panels to in-peer painting; `POST /api/debug/ui_repaint_all` repaints the whole MainComponent;
+`POST /api/debug/heartbeat {"on","period_ms"}` (s-rta-0928b mediaopen) + `/api/state.peak_message_stall_ms`. TEST_SERVER
+env, read once at start: `ADNA_UI_NATIVE_LAYERS=0` (no native layers), `ADNA_UI_NATIVE_LAYERS_TEETH=shift|asynchide`
+(probe-idle-paint's teeth), `ADNA_UI_OVERLAY_WITNESS=1` (a vblank witness).
 
 ### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 

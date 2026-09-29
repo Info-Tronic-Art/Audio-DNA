@@ -138,6 +138,8 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **Preview/Output panel never reshapes the picture**: it letter/pillar-boxes the composition canvas, never stretches it; the Resolution dropdown never names a size the canvas is not (`docs/claude/rendering.md`).
 
+**Periodic repaints**: a timed `repaint()` costs the whole window (Pitfall NN): an always-animating widget draws in its own layer (`NativeLayerHost`) or repaints only on change.
+
 **Deck tab row**: '+' = New / Load Deck; right-click a tab = its menu (Save / Save As / Rename / Duplicate / Remove + 10-s Undo), never a deck switch: `DeckTabButton` intercepts `isPopupMenu()` (a JUCE Button fires `onClick` on ANY mouse button); `docs/claude/performance-controls.md`.
 
 **Routine pads and bands**: a routine pad's press is always Fire (restart while playing, no-op while waiting); there is no stop control -- a routine leaves by its band's x (the whole routine, every layer), the layer X (clears the layer of routines too), its own end, the pad menu's "Remove from layers", or Stop (routines only). "Delete routine" (pad menu, warning red via `addColouredItem` -- the app LookAndFeel honours an item colour -- behind a confirm) is the only path that erases one. Pads and bands are model-driven from `RoutineEngine::Status` via `deriveRoutineDeckView` (`src/ui/RoutineDeckView.h`) every 30 Hz tick, never from panel memory; a strip fader follows the model (`LayerStrip::syncFromModel`, Pitfall 41) and its V fill turns the routine cue while a routine's hand grips opacity; a bound `UniversalParamControl` shows its value (and slider) in the routine cue with ROUTINE in the hint slot while a routine's (lane-rank) hand holds it. The routine cue is `AudioDNALookAndFeel::kRoutineCue` (chartreuse, band names too) -- reserved: never the accent cyan every mapped knob wears, and never used for anything else; `docs/claude/recording.md` "Surfaces".
@@ -163,8 +165,8 @@ commit, post-phase documentation).
 - Always read this CLAUDE.md before touching any file
 - Check PHASE_GUIDE.md for current phase status and what's next
 - Read `ARCHITECTURE_V2.md` for the v2 design spec
-- Note: `ARCHITECTURE.md` (v1 keyboard launcher) is archived at `docs/archive/v1/ARCHITECTURE_V1.md`. The current design spec is `ARCHITECTURE_V2.md`.
-- Note: `TASKPLAN_V2.md` is archived at `docs/archive/TASKPLAN_V2.md` — all phases P1-P25 are complete.
+- `ARCHITECTURE.md` (v1 keyboard launcher) is archived at `docs/archive/v1/ARCHITECTURE_V1.md`; the current spec is `ARCHITECTURE_V2.md`.
+- `TASKPLAN_V2.md` (all phases P1-P25 complete) is archived at `docs/archive/TASKPLAN_V2.md`.
 - Read existing source files before modifying them
 
 ---
@@ -231,6 +233,7 @@ the named area; this index is triage-only.
 54. A sequence's textures are a bounded recycled window (SeqVram; the shown frame is never evicted) -- before touching ImageSequence textures or a media class's per-frame GL objects.
 55. A fenced frame holds the canvas; media opens run before the fence -- before touching withDeckDetached or a drop handler.
 56. Video decodes off the GL thread: the render thread picks the newest ring frame <= its clock and never waits; a hold is not pending -- before touching VideoPlayer or syncMedia's video branch.
+NN. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
 
 ---
 

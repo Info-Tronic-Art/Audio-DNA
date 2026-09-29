@@ -262,6 +262,7 @@ AudioDNA/
 │       ├── EffectsRackPanel, EffectStackView, UniversalParamControl, Knob, MacroPanel, MappingEditor  # FX + param controls
 │       ├── BindingOverlay, MidiLearnOverlay           # Bind-mode + MIDI-learn overlays (ProgrammingMode removed Wave 0)
 │       ├── AudioReadoutPanel, WaveformDisplay, SpectrumDisplay, TimingWindow  # Audio readouts
+│       ├── NativeLayerHost (.h/.mm), NativeLayerCache, OverlayWatch, UiPaintCounters  # Always-animating panels in their own CoreGraphics layers; in-peer overlays fall back (Pitfall NN)
 │       ├── MenuBarModel, PreferencesDialog, PresetManager  # Menus, preferences, preset save/load
 │       └── LookAndFeel                              # Dark VJ theme
 ├── shaders/                             # REMOVED 2026-07-17 (Wave 0) — dir deleted; was 5 dead duplicate disk files (hue_shift/rgb_split/ripple/vignette .frag + passthrough.vert). All shipped shaders are embedded strings in src/render/EmbeddedShaders.h
@@ -312,6 +313,19 @@ AudioDNA/
 
 - **Always display whole words** in the UI — never use abbreviations. For example, "Inverted Luma is Alpha" not "Inv. Luma is Alpha", "Ignore Random" not "Ign. Rnd".
 - Labels, button text, dropdown items, and tooltips must all use complete words.
+
+### UI Painting (macOS)
+
+The message thread paints through ONE CoreGraphics-backed NSView per window; AppKit hands JUCE the UNION of every rect
+repainted since the last vblank and JUCE paints every component inside it (Pitfall NN). Rules: a widget that repaints on
+a timer either owns a layer (`NativeLayerHost::attach` in MainComponent's constructor -- SignalBar, WaveformDisplay; never
+inside a `juce::Viewport`) or repaints a rect only when its pixels change (`LayerStrip::transportViewOf`,
+`ClipInspector::paintKeyNow`). Native layers are above JUCE content: every in-peer overlay must be one `OverlayWatch` sees
+(a child of the top-level window, a `TooltipWindow`, a child of MainComponent added after startup, or registered with
+`addOverlay`); while one crosses a native panel, that panel paints in-peer exactly as before (the switch is synchronous;
+the layer comes back only after it drew). The layer's backing store is its own: the parent's background under a
+non-opaque panel (the waveform's rounded corners) is painted by the peer and composited under the layer.
+Witnesses: `GET /api/debug/ui_paint` (TEST_SERVER builds), `.harmony/probe-idle-paint.sh`.
 
 ### Naming Conventions
 
