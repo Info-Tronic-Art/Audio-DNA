@@ -2428,7 +2428,8 @@ MainComponent::~MainComponent()
 
 void MainComponent::paint(juce::Graphics& g)
 {
-    uipaint::counters().mainComponentPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0928b idlepaint witness
+    if (uipaint::counters().inLayerDraw.load(std::memory_order_relaxed) == 0)          // s-rta-0928b idlepaint witness
+        uipaint::counters().mainComponentPaints.fetch_add(1, std::memory_order_relaxed);
     g.fillAll(juce::Colour(AudioDNALookAndFeel::kBackground));
 
     // Draw input level meter

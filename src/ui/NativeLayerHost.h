@@ -38,7 +38,8 @@ public:
     void peerNeedsDisplay(juce::Rectangle<int> areaInComponent) override;
 
     void drawLayer(void* cgContext, float w, float h);   // the NSView's drawRect:
-    bool targetIsOpaque() const { return target_.isOpaque(); }
+    // Every pixel is painted: an opaque widget, or a non-opaque one over its parent's own paint (drawLayer).
+    bool layerIsOpaque() const { return target_.isOpaque() || target_.getParentComponent() != nullptr; }
 
     struct Impl;   // the .mm's ObjC state (the view, the TEST-ONLY vblank witness)
 
