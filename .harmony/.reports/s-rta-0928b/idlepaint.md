@@ -494,7 +494,7 @@ METHOD:
 - Every capture is window-only by Quartz window id. I looked at sample frames by eye: the K1 arm's folder icons against main's (`S/fix2/look-v3p-k1.png`), the downscaled v3p diff (`S/fix2/look-v3p-k1-diff-small.png`) and the Mod 1 crops (`S/fix2/crop-119.png`).
 
 CONFIDENCE+VERIFY:
-- High. Every pixel row is deterministic: 13,507 / max 66 in all 11 runs where the class appears.
+- High. Every pixel row is deterministic. The class reads exactly 13,507 px above 1/255 (max 66) under the fps-only mask in every run where it appears: v4 r2 in R1 (r1 = 13,507 + the 160 Mod 1 px), v4 r1 / r2 in F3, v3p r1 / r2 and v1 S2 / S3 in K1, and the S4 whole-window INFO in R1 / K1 / F3.
 - Re-prove the premise with `bash S/fix2/pbatch.sh`.
 - Re-prove the rows with `bash S/fix2/vbatch.sh <tag> <app> v4_full_pass_identity,v3p_production_idle_identity`.
 
