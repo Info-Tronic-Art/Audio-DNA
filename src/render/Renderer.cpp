@@ -1566,7 +1566,9 @@ void Renderer::drainRetiredMedia(bool contextClosing)
 // hold skips a fading layer's outgoing chain for 1-3 frames -- that chain is not idle) to their current + shown frames,
 // least-recently drawn first, until it is not. Drawn sequences are never trimmed here: each shrinks to
 // its own allowance in getCurrentTexture (floors win, H10). The total seeds this frame's grants (syncMedia keeps it
-// running, H3); the idle sequences' bytes above their minimum are reclaimable in a drawn sequence's grant (F3). GL deletes only in the pressure trim, under imageSeqMutex_ (as getCurrentTexture uploads under it).
+// running, H3); the idle sequences' bytes above their minimum are reclaimable in a drawn sequence's grant (F3). GL
+// deletes here only in the pressure trim, under imageSeqMutex_ (as getCurrentTexture uploads under it), within the
+// frame's shared delete budget (F2).
 void Renderer::scanSequenceVram()
 {
     ++seqFrameSerial_;
