@@ -31,6 +31,9 @@ constexpr size_t kBudgetBytes = size_t{ 1 } << 30;
 // arriving.
 constexpr int kLookAhead = 4, kMaxOutstanding = 4, kMinWindowFrames = 8;
 constexpr int kFar = 1 << 30;   // distance of a frame the trajectory never reaches (outside the in/out range)
+// Fix round F1: a sequence is IDLE only after kIdleFrames consecutive frames without a draw (~0.5 s at 120 Hz) -- a
+// Pitfall 53 pending hold skips a fading layer's outgoing chain for 1-3 frames, which never makes it idle.
+constexpr int kIdleFrames = 60;
 
 struct Stats   // relaxed atomics, written on the GL thread, read by /api/state
 {
@@ -58,6 +61,13 @@ struct Grant
 inline size_t allowance(size_t othersBytes, size_t minBytes)
 {
     return std::max(minBytes, kBudgetBytes > othersBytes ? kBudgetBytes - othersBytes : size_t{ 0 });
+}
+
+// F1: idle = not drawn for >= kIdleFrames consecutive frames. frameSerial is the frame being started (not drawn yet),
+// so the frames missed since the last draw are frameSerial - 1 - lastDrawnSerial.
+inline bool isIdle(uint64_t lastDrawnSerial, uint64_t frameSerial)
+{
+    return frameSerial > lastDrawnSerial && frameSerial - 1 - lastDrawnSerial >= static_cast<uint64_t>(kIdleFrames);
 }
 
 // The allowance in frames of frameBytes; kMinWindowFrames while the frame size is unknown (H5: never a guess).

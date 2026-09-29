@@ -1535,8 +1535,9 @@ void Renderer::drainRetiredMedia()
 }
 
 // s-rta-0928b seqvram: frame top, GL thread. Sums every open sequence's texture bytes; only when the total is over
-// SeqVram::kBudgetBytes, trims the sequences NOT drawn in the previous frame (inactive decks / columns) to their current
-// + shown frames, least-recently drawn first, until it is not. Drawn sequences are never trimmed here: each shrinks to
+// SeqVram::kBudgetBytes, trims the IDLE sequences (not drawn for SeqVram::kIdleFrames frames, fix round F1: a Pitfall 53
+// hold skips a fading layer's outgoing chain for 1-3 frames -- that chain is not idle) to their current + shown frames,
+// least-recently drawn first, until it is not. Drawn sequences are never trimmed here: each shrinks to
 // its own allowance in getCurrentTexture (floors win, H10). The total seeds this frame's grants (syncMedia keeps it
 // running, H3). GL deletes only in the pressure trim, under imageSeqMutex_ (as getCurrentTexture uploads under it).
 void Renderer::scanSequenceVram()
@@ -1551,7 +1552,7 @@ void Renderer::scanSequenceVram()
         {
             total += seq->residentBytes();
             ++open;
-            if (seq->lastDrawnSerial() + 1 < seqFrameSerial_ && seq->residentSlots() > 2)
+            if (SeqVram::isIdle(seq->lastDrawnSerial(), seqFrameSerial_) && seq->residentSlots() > 2)
                 idle.push_back(seq.get());
         }
         if (total > SeqVram::kBudgetBytes && !idle.empty())

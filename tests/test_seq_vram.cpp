@@ -581,3 +581,17 @@ TEST_CASE("(11) invariants over 2,000 steps: Loop / PingPong / reverse, random s
                 CHECK(demands > 0);
             }
 }
+
+TEST_CASE("(13) F1: a sequence is idle only after kIdleFrames frames without a draw", "[seq_vram][s-rta-0928b]")
+{
+    // the frame being started is `serial`; missed = serial - 1 - lastDrawn
+    CHECK(kIdleFrames == 60);
+    CHECK_FALSE(isIdle(100, 100));                        // drawn this frame
+    CHECK_FALSE(isIdle(100, 101));                        // drawn last frame
+    CHECK_FALSE(isIdle(100, 104));                        // a Pitfall 53 hold: 3 frames skipped
+    CHECK_FALSE(isIdle(100, 100 + 1 + 59));               // 59 frames missed
+    CHECK(isIdle(100, 100 + 1 + 60));                     // 60 frames missed
+    CHECK(isIdle(0, 1 + 60));                             // never drawn (serial 0), 60 frames in
+    CHECK_FALSE(isIdle(0, 1 + 59));
+    CHECK_FALSE(isIdle(200, 100));                        // a serial behind the last draw is never idle
+}
