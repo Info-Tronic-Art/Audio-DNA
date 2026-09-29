@@ -48,7 +48,8 @@ u7_reverse_pingpong (VU7): four scenes on the 1080p canvas, each a fresh load of
   (GOP 250)} x {reverse (loopMode Loop, reverse on), ping-pong (loopMode PingPong)}; trig; 1 s; s0; a 5 s window; s1.
   Prints uploads/s and late frames per scene as DATA lines; the verdict is taken ACROSS apps by
   .harmony/probe-vupload-ab.sh --u7 (interleaved launches, >= 5 per arm): the lane's median uploads/s per scene >= 0.9 x
-  the pre-lane app's, and its median late frames per scene <= the pre-lane app's. In a single run: INFO.
+  the pre-lane app's, and its median late frames per scene <= the pre-lane app's. In a single run: INFO, except (VU16 =
+  VU5) PASS video_hold_no_texture delta s0 -> s1 == 0 per scene (an app that predates the counter FAILs as absent).
 """
 import importlib.util, json, os, subprocess, sys, time
 
@@ -286,8 +287,11 @@ def u7(tag):
             print(f"      {tag}[{sc}]: INFO uploads/s {None if upl is None else round(upl / 5.0, 1)}, late {lt}, median fps "
                   f"{pol.median('fps')}, skipped {pv.dz(s0, s1, 'video_frames_skipped')}, seeks {pv.dz(s0, s1, 'video_seeks')}, "
                   f"{pv.la()}", flush=True)
+            h = pv.delta(f"{tag}[{sc}]", s0, s1, "video_hold_no_texture")
+            if h is not None:   # VU16 (VU5): asserted per scene, not only printed
+                check(h == 0, f"{tag}[{sc}]: (VU5) video_hold_no_texture delta over the 5 s window {h} == 0")
             pv.data(tag, scene=sc, uploads_per_s=None if upl is None else round(upl / 5.0, 2), late=lt,
-                    fps=pol.median("fps"), hold_no_texture=pv.dz(s0, s1, "video_hold_no_texture"))
+                    fps=pol.median("fps"), hold_no_texture=h)
 
 
 def make_fixtures():
