@@ -212,6 +212,12 @@ message-thread hop; `POST /api/debug/ui_test_menu {"on":bool,"x","y","kind":"men
 overlay parented to the top-level window at MainComponent point (x, y) (a 3-item PopupMenu -- dismissed by JUCE within
 ~50 ms while the app is in the background -- or a 300 x 140 test panel); `POST /api/debug/ui_native_fallback {"on":bool}`
 forces the native-layer panels to in-peer painting; `POST /api/debug/ui_repaint_all` repaints the whole MainComponent;
+`ui_paint` also carries the s-rta-0929 g4cpu counters (routine pad repaints / paints / sweep ticks / sweep paints,
+LayerStrip fader repaints + V-fader paints + band paints, TopBar wheel repaints, deck corner, LayerInspector, param-control
+and SignalStrip changes, SignalBar ticks, the native layers' draw CPU / wall time) and the deck / pad-row / strip-column /
+wheel / inspector rects; `GET /api/debug/ui_passes` returns the newest <= 500 display passes (clip rect in MainComponent
+coordinates, JUCE paint CPU + wall us, the repaint sources since the previous pass) and SignalBar tick change masks --
+probe-idle-paint a1's attribution;
 `POST /api/debug/heartbeat {"on","period_ms"}` (s-rta-0928b mediaopen) + `/api/state.peak_message_stall_ms`. TEST_SERVER
 env, read once at start: `ADNA_UI_NATIVE_LAYERS=0` (no native layers), `ADNA_UI_NATIVE_LAYERS_TEETH=shift|asynchide`
 (probe-idle-paint's teeth), `ADNA_UI_OVERLAY_WITNESS=1` (a vblank witness).

@@ -118,6 +118,7 @@ public:
                           float sliderPos, float, float,
                           juce::Slider::SliderStyle, juce::Slider& slider) override
     {
+        uipaint::counters().layerStripFaderPaints.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 g4cpu (G7)
         auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
 
         g.setColour(juce::Colour(0xff2a2a2a));
@@ -766,7 +767,7 @@ void LayerStrip::updateTransportView()
         return;
     transportView_ = tv;
     repaint(transportBounds_);
-    uipaint::counters().layerStripTransportRepaints.fetch_add(1, std::memory_order_relaxed);
+    uipaint::bump(uipaint::counters().layerStripTransportRepaints, uipaint::SrcTransport);
 }
 
 void LayerStrip::timerCallback()
@@ -801,7 +802,7 @@ void LayerStrip::timerTick()
         if (anyPlaying)
         {
             repaint(thumbnailBounds_.withHeight(kBandHeight * 2));
-            uipaint::counters().layerStripBandRepaints.fetch_add(1, std::memory_order_relaxed);
+            uipaint::bump(uipaint::counters().layerStripBandRepaints, uipaint::SrcBand);
         }
     }
 }
@@ -817,7 +818,12 @@ void LayerStrip::syncFromModel()
         // The LayerInspector rule: a connected control shows its effective value (opacity's toNorm is identity).
         const double shown = conn.isConnected() ? layer_->eff(LayerScalar::Opacity) : layer_->opacity;
         if (std::abs(opacitySlider_.getValue() - shown) > 1e-4)
+        {
+            const double before = opacitySlider_.getValue();
             opacitySlider_.setValue(shown, juce::dontSendNotification);   // never fires onValueChange: no grip, no write
+            if (opacitySlider_.getValue() != before)   // s-rta-0929 g4cpu: the snapped value moved => JUCE repainted
+                uipaint::bump(uipaint::counters().layerStripFaderRepaints, uipaint::SrcFader);
+        }
     }
 
     // The routine cue (kRoutineCue) while a lane-rank hand (a routine or a take replay) holds opacity.
@@ -837,7 +843,12 @@ void LayerStrip::syncFromModel()
         const auto* clip = layer_->getActiveClip();
         const double shown = clip ? static_cast<double>(clip->speed / 4.0f) : 0.25;
         if (std::abs(speedSlider_.getValue() - shown) > 1e-4)
+        {
+            const double before = speedSlider_.getValue();
             speedSlider_.setValue(shown, juce::dontSendNotification);
+            if (speedSlider_.getValue() != before)   // s-rta-0929 g4cpu
+                uipaint::bump(uipaint::counters().layerStripFaderRepaints, uipaint::SrcFader);
+        }
     }
 }
 
@@ -868,6 +879,14 @@ void LayerStrip::paintRoutineBands(juce::Graphics& g)
     if (!bandsShown())
         return;
     const int n = std::min(2, static_cast<int>(routineBands_.size()));
+    // s-rta-0929 g4cpu (G7): a paint that drew a playing band's rect (the band cadence witness).
+    for (int k = 0; k < n; ++k)
+        if (routineBands_[static_cast<size_t>(k)].state == RoutineDeckView::State::Playing
+            && g.getClipBounds().intersects(bandBounds(k)))
+        {
+            uipaint::counters().layerStripBandPaints.fetch_add(1, std::memory_order_relaxed);
+            break;
+        }
     for (int k = 0; k < n; ++k)
     {
         const auto& band = routineBands_[static_cast<size_t>(k)];

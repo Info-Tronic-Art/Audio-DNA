@@ -34,6 +34,7 @@ private:
 
     int slot_ = -1;
     RoutineDeckView::Pad spec_;
+    int lastPaintedSweepW_ = -1;   // s-rta-0929 g4cpu: the painted-sweep witness (UiPaintCounters routinePadSweepPaints)
 
     static constexpr juce::uint32 kPadEmpty  = 0xff2a2a2a;
     static constexpr juce::uint32 kPadIdle   = 0xff333333;

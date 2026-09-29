@@ -7,8 +7,14 @@ gate row is a >= 5-launch arm and the identity rows alternate two bundles.
 
 usage: probe-idle-paint.py <root> <fresh-outdir> [row,row,...]   (env IDLEPAINT_APP, IDLEPAINT_APP_BEFORE)
 rows (run order; default = all but x1 / v1b): c0_preflight i1_idle_card i2_idle_many16 g2_strip_playhead g4_routine
-      g5_driven x1_within_build_off v0_capture_teeth v1_identity_test_mode v1b_native_vs_inpeer v2_identity_fallback
-      v2b_fallback_frames v3_identity_production_masked
+      a1_attribution g5_driven x1_within_build_off v0_capture_teeth v1_identity_test_mode v1b_native_vs_inpeer
+      v2_identity_fallback v2b_fallback_frames v3_identity_production_masked
+a1 (INFO, s-rta-0929 g4cpu, plan-g4cpu 2.2 + adoption G3): a1.launches launches each of i1's card and g4's routine with
+  GET /api/debug/ui_passes drained every poll: per arm the repaint sources / paints per second (UiPaintCounters), the
+  display passes per second and their JUCE paint CPU time by rect class (the wheel / pad-row / strip-column / deck /
+  inspector rects each pass's clip hits) and by source class (the repaint sources that fired since the previous pass),
+  the native layers' draw time, and each lever's arithmetic (c2 pad paint key, c4 per-strip SignalBar, c2b LayerInspector
+  paint key; c3's wheel + deck coincident passes, recorded only -- G1). A build without the endpoint prints "absent".
 Gate rows (PASS = window max median <= winMaxMedMs AND main-thread CPU <= cpuMainMsPerS, medians over `launches`):
   i1 card fixture (probe-routines.json), i2 many16 (4 layers x 4 Image clips over 16 PIL-made 3840x2160 JPEGs),
   g4 a loop routine playing on 3 layers at a manual 120 BPM (adoption I3): the window max only -- its main-thread CPU is
@@ -76,7 +82,7 @@ from PIL import Image, ImageDraw
 
 A = "http://127.0.0.1:7070"
 ROOT, OUT = sys.argv[1], sys.argv[2]
-ALL_ROWS = ["c0_preflight", "i1_idle_card", "i2_idle_many16", "g2_strip_playhead", "g4_routine", "g5_driven",
+ALL_ROWS = ["c0_preflight", "i1_idle_card", "i2_idle_many16", "g2_strip_playhead", "g4_routine", "a1_attribution", "g5_driven",
             "x1_within_build_off", "v0_capture_teeth", "v1_identity_test_mode", "v1n_noise_floor", "v1b_native_vs_inpeer",
             "v2_identity_fallback", "v2b_fallback_frames", "v3_identity_production_masked",
             "v3p_production_idle_identity", "v4_full_pass_identity"]
@@ -356,7 +362,45 @@ def ui():
     return get("/api/debug/ui_paint")
 
 
-def idle_window(pid, settle=None, dur=None):
+class PassLog:
+    """s-rta-0929 g4cpu a1: drains GET /api/debug/ui_passes (the newest <= 500 of a 512-entry ring) into
+    {index: entry} for the display passes and the SignalBar change masks; start() marks the window's first index."""
+    def __init__(self):
+        self.passes, self.masks, self.p0 = {}, {}, None
+        self.m0 = self.p1 = self.m1 = None
+        self.nstrips = 0
+
+    def drain(self):
+        r = get("/api/debug/ui_passes")
+        if not r or not r.get("ok"):
+            return None
+        seq, ps = int(r["seq"]), r["passes"]
+        for k, e in enumerate(ps):
+            self.passes[seq - len(ps) + k] = e
+        mseq, ms = int(r["strip_seq"]), r["strip_masks"]
+        for k, m in enumerate(ms):
+            self.masks[mseq - len(ms) + k] = int(m)
+        self.nstrips = int(r.get("signalbar_strips", 0))
+        return seq, mseq
+
+    def start(self):
+        r = self.drain()
+        if r:
+            self.p0, self.m0 = r
+
+    def stop(self):
+        r = self.drain()
+        if r:
+            self.p1, self.m1 = r
+
+    def window(self):
+        if self.p0 is None or self.p1 is None:
+            return [], []
+        return ([self.passes[i] for i in range(self.p0, self.p1) if i in self.passes],
+                [self.masks[i] for i in range(self.m0, self.m1) if i in self.masks])
+
+
+def idle_window(pid, settle=None, dur=None, passes=False):
     settle = CFG["settleS"] if settle is None else settle
     dur = CFG["idleS"] if dur is None else dur
     poll = CFG["pollMs"] / 1000.0
@@ -365,6 +409,9 @@ def idle_window(pid, settle=None, dur=None):
     time.sleep(0.5)
     get("/api/state")   # discard the peak of the switch-on
     u0 = ui()
+    plog = PassLog() if passes else None
+    if plog:
+        plog.start()
     tainted = compilers() > 0
     c0, t0 = ps_main_ms(pid), time.monotonic()
     peaks = []
@@ -373,12 +420,16 @@ def idle_window(pid, settle=None, dur=None):
         time.sleep(max(0.0, target - time.monotonic()))
         s = get("/api/state") or {}
         ui()
+        if plog:
+            plog.drain()
         if "peak_message_stall_ms" in s:
             peaks.append(float(s["peak_message_stall_ms"]))
         if i % 4 == 0 and compilers() > 0:
             tainted = True
     c1, t1 = ps_main_ms(pid), time.monotonic()
     u1 = ui()
+    if plog:
+        plog.stop()
     post("/api/debug/heartbeat", {"on": False})
     wall = t1 - t0
     res = {"hb_ok": bool((hb or {}).get("ok")), "win_max_med": st.median(peaks) if peaks else None,
@@ -392,14 +443,32 @@ def idle_window(pid, settle=None, dur=None):
                    insp_repaints=rate("clip_inspector_repaints"), strip_repaints=rate("layer_strip_transport_repaints"),
                    band_repaints=rate("layer_strip_band_repaints"),
                    modes=[u1["waveform_mode"], u1["signalbar_mode"]], fallbacks=u1["layer_fallbacks"])
+        # s-rta-0929 g4cpu: the attribution counters (absent on older builds -> not in res)
+        for k in A1_COUNTERS:
+            if k in u1 and k in u0:
+                res["a1_" + k] = rate(k)
+        res["u1"] = {k: u1[k] for k in ("deck_rect", "pad_row_rect", "strip_col_rect", "wheel_rect", "inspector_rect",
+                                         "topbar_rect", "signalbar_rect") if k in u1}
+    if plog:
+        res["passes"], res["masks"] = plog.window()
+        res["nstrips"] = plog.nstrips
     return res
+
+
+A1_COUNTERS = ["routine_pad_repaints", "routine_pad_sweep_ticks", "routine_pad_sweep_paints", "routine_pad_paints",
+               "layer_strip_fader_repaints", "layer_strip_fader_paints", "layer_strip_band_repaints",
+               "layer_strip_band_paints", "top_bar_wheel_repaints", "deck_corner_repaints", "layer_inspector_repaints",
+               "param_control_repaints", "clip_inspector_repaints", "layer_strip_transport_repaints",
+               "signal_strip_changes", "signal_bar_ticks", "main_component_paints", "top_bar_paints",
+               "signalbar_layer_draws", "waveform_layer_draws", "signalbar_layer_draw_us", "waveform_layer_draw_us",
+               "signalbar_layer_draw_wall_us", "waveform_layer_draw_wall_us"]
 
 
 def fmt(v, f="%.1f"):
     return "absent" if v is None else (f % v)
 
 
-def run_arm(row, app, fixture, n, env=(), bpm=None):
+def run_arm(row, app, fixture, n, env=(), bpm=None, passes=False):
     """n clean launches -> list of idle_window results; None when a compiler ran before a launch (TAINTED)."""
     got, attempt = [], 0
     while len(got) < n and attempt < n + 3:
@@ -417,7 +486,7 @@ def run_arm(row, app, fixture, n, env=(), bpm=None):
             quit_app()
             no(f"{row}: fixture {fixture} did not load")
             return got
-        r = idle_window(pid)
+        r = idle_window(pid, passes=passes)
         quit_app()
         print(f"  {row} r{attempt}: win_max_med {fmt(r['win_max_med'])} ms (max {fmt(r['win_max_max'])}, "
               f"{r['n_windows']} windows) cpu_main {fmt(r['cpu_main'])} ms/s"
@@ -425,7 +494,7 @@ def run_arm(row, app, fixture, n, env=(), bpm=None):
                  f"{r['main_paints']:.1f}/s insp {r['insp_repaints']:.1f}/s strip {r['strip_repaints']:.1f}/s band "
                  f"{r['band_repaints']:.1f}/s modes {r['modes']} fallbacks {r['fallbacks']}" if "wf_draws" in r else "")
               + f" | {r['load']}" + (" TAINTED (compiler seen) -- re-run" if r["tainted"] else ""), flush=True)
-        json.dump(r, open(os.path.join(OUT, row, f"r{attempt}", "idle.json"), "w"), indent=1)
+        json.dump(r, open(os.path.join(OUT, row, f"r{attempt}", "idle.json"), "w"))
         if not r["tainted"]:
             got.append(r)
     return got
@@ -708,6 +777,190 @@ def row_x1():
     wm = [r["win_max_med"] for r in runs]
     info(f"x1_within_build_off (INFO): ADNA_UI_NATIVE_LAYERS=0 -> window max median {fmt(st.median(wm))} ms, "
          f"main CPU median {fmt(st.median(cpu))} ms/s")
+
+
+# ---------------------------------------------------------------- a1 attribution (s-rta-0929 g4cpu)
+SRC_NAMES = [(1, "pad"), (2, "fader"), (4, "band"), (8, "wheel"), (16, "corner"), (32, "layerinsp"), (64, "param"),
+             (128, "transport"), (256, "clipinsp")]
+RECT_NAMES = [("wheel", "wheel_rect"), ("padrow", "pad_row_rect"), ("stripcol", "strip_col_rect"), ("deck", "deck_rect"),
+              ("inspector", "inspector_rect")]
+
+
+def src_class(bits):
+    return "+".join(n for b, n in SRC_NAMES if bits & b) or "none"
+
+
+def hits(r, e):
+    x, y, w, h = e[1:5]
+    return r[2] > 0 and r[3] > 0 and x < r[0] + r[2] and r[0] < x + w and y < r[1] + r[3] and r[1] < y + h
+
+
+def rect_class(e, u1):
+    return "+".join(n for n, k in RECT_NAMES if k in u1 and hits(u1[k], e)) or "other"
+
+
+def pct(v, q):
+    v = sorted(v)
+    return v[min(len(v) - 1, int(q * len(v)))] if v else None
+
+
+def a1_stats(runs):
+    """-> dict: pooled passes over the arm's launches, per-class tables, counter rates (mean over launches)."""
+    wall = sum(r["wall"] for r in runs)
+    allp = [(e, r["u1"]) for r in runs for e in r.get("passes", [])]
+    out = {"wall": wall, "n_passes": len(allp), "passes_per_s": len(allp) / wall if wall else 0.0}
+    known = [e[5] for e, _ in allp if e[5] >= 0]
+    out["juce_ms_per_s"] = sum(known) / 1000.0 / wall if wall else 0.0
+    out["juce_wall_ms_per_s"] = sum(e[7] for e, _ in allp if len(e) > 7 and e[7] >= 0) / 1000.0 / wall if wall else 0.0
+    out["unknown_per_s"] = sum(1 for e, _ in allp if e[5] < 0) / wall if wall else 0.0
+    cpu = [r["cpu_main"] for r in runs if r["cpu_main"] is not None]
+    out["cpu"] = st.median(cpu) if cpu else None
+    rates = {}
+    for k in A1_COUNTERS:
+        v = [r.get("a1_" + k) for r in runs if ("a1_" + k) in r]
+        rates[k] = sum(v) / len(v) if v else None
+    out["rates"] = rates
+
+    def table(keyf):
+        t = {}
+        for e, u1 in allp:
+            t.setdefault(keyf(e, u1), []).append(e[5])
+        rows = []
+        for c, us in t.items():
+            kn = [x for x in us if x >= 0]
+            rows.append((c, len(us) / wall, pct(kn, 0.5), pct(kn, 0.9), sum(kn) / 1000.0 / wall, len(us) - len(kn)))
+        return sorted(rows, key=lambda r: -r[4])
+    out["by_rect"] = table(lambda e, u1: rect_class(e, u1))
+    out["by_src"] = table(lambda e, u1: src_class(e[6]))
+    # G3 cross-check: a pass that reached the pad row without a pad request (a union sweep), and the converse
+    out["padrow_no_padsrc"] = sum(1 for e, u1 in allp if "pad_row_rect" in u1 and hits(u1["pad_row_rect"], e)
+                                  and not e[6] & 1) / wall if wall else 0.0
+    out["padsrc_no_padrow"] = sum(1 for e, u1 in allp if e[6] & 1 and "pad_row_rect" in u1
+                                  and not hits(u1["pad_row_rect"], e)) / wall if wall else 0.0
+    # c3's record (G1): passes whose rect spans the wheel AND the deck; and by source
+    out["wheel_deck_rect"] = sum(1 for e, u1 in allp if "wheel_rect" in u1 and hits(u1["wheel_rect"], e)
+                                 and any(k in u1 and hits(u1[k], e) for k in ("pad_row_rect", "strip_col_rect", "deck_rect"))) / wall if wall else 0.0
+    out["wheel_deck_src"] = sum(1 for e, _ in allp if e[6] & 8 and e[6] & (1 | 2 | 4 | 16 | 128)) / wall if wall else 0.0
+    # c4: per SignalBar tick, the changed strips' contiguous span as a fraction of the bar's strips
+    spans, nz = [], 0
+    for r in runs:
+        n = max(1, int(r.get("nstrips") or 0))
+        for m in r.get("masks", []):
+            if m:
+                nz += 1
+                bits = [i for i in range(64) if m >> i & 1]
+                spans.append((bits[-1] - bits[0] + 1) / n)
+            else:
+                spans.append(0.0)
+    out["span_mean"] = sum(spans) / len(spans) if spans else None
+    out["mask_ticks"] = len(spans)
+    out["mask_nonzero"] = nz
+    sb_us = rates.get("signalbar_layer_draw_us")
+    out["sb_ms_per_s"] = sb_us / 1000.0 if sb_us is not None else None
+    wf_us = rates.get("waveform_layer_draw_us")
+    out["wf_ms_per_s"] = wf_us / 1000.0 if wf_us is not None else None
+    for k, rk in (("sb_wall_ms_per_s", "signalbar_layer_draw_wall_us"), ("wf_wall_ms_per_s", "waveform_layer_draw_wall_us")):
+        out[k] = rates[rk] / 1000.0 if rates.get(rk) is not None else None
+    return out
+
+
+def a1_print(arm, a):
+    rt = a["rates"]
+    f = lambda k: fmt(rt.get(k), "%.2f")
+    info(f"a1_attribution {arm}: cpu_main median {fmt(a['cpu'])} ms/s | display passes {a['passes_per_s']:.1f}/s "
+         f"(MainComponent paints {f('main_component_paints')}/s; paint() skipped on {a['unknown_per_s']:.1f}/s) | JUCE "
+         f"paint {a['juce_ms_per_s']:.1f} ms/s CPU ({a['juce_wall_ms_per_s']:.1f} wall) | layers (CPU / wall ms/s): "
+         f"SignalBar {f('signalbar_layer_draws')}/s {fmt(a['sb_ms_per_s'], '%.2f')} / {fmt(a['sb_wall_ms_per_s'], '%.2f')}, "
+         f"waveform {f('waveform_layer_draws')}/s {fmt(a['wf_ms_per_s'], '%.2f')} / {fmt(a['wf_wall_ms_per_s'], '%.2f')} | "
+         f"cpu - JUCE peer - layers = {fmt(a['cpu'] - a['juce_ms_per_s'] - (a['sb_ms_per_s'] or 0) - (a['wf_ms_per_s'] or 0) if a['cpu'] is not None else None)} "
+         f"ms/s (AppKit / CA / timers / engine)")
+    info(f"a1_attribution {arm} sources/s: pad repaints {f('routine_pad_repaints')} (paints {f('routine_pad_paints')}, "
+         f"sweep ticks {f('routine_pad_sweep_ticks')}, sweep paints {f('routine_pad_sweep_paints')}) | fader repaints "
+         f"{f('layer_strip_fader_repaints')} (V paints {f('layer_strip_fader_paints')}) | band repaints "
+         f"{f('layer_strip_band_repaints')} (paints {f('layer_strip_band_paints')}) | wheel {f('top_bar_wheel_repaints')} "
+         f"(TopBar paints {f('top_bar_paints')}) | corner {f('deck_corner_repaints')} | LayerInspector "
+         f"{f('layer_inspector_repaints')} | param control {f('param_control_repaints')} | ClipInspector "
+         f"{f('clip_inspector_repaints')} | transport {f('layer_strip_transport_repaints')} | SignalStrip changes "
+         f"{f('signal_strip_changes')} over {f('signal_bar_ticks')} bar ticks")
+    for title, key in (("by rect class", "by_rect"), ("by source class (G3)", "by_src")):
+        info(f"a1_attribution {arm} {title} (class: passes/s, median / p90 JUCE us, JUCE ms/s, paint()-skipped n): "
+             + " | ".join(f"{c}: {n:.1f}/s {fmt(m, '%.0f')}/{fmt(p9, '%.0f')} us {ms:.1f} ms/s"
+                          + (f" [{sk} skipped]" if sk else "") for c, n, m, p9, ms, sk in a[key][:14]))
+    info(f"a1_attribution {arm} G3 cross-check: passes over the pad row without a pad request {a['padrow_no_padsrc']:.1f}/s "
+         f"(union sweeps) | pad requests whose pass missed the pad row {a['padsrc_no_padrow']:.1f}/s | c3 record (G1, not "
+         f"built): passes spanning the wheel AND the deck {a['wheel_deck_rect']:.1f}/s by rect, {a['wheel_deck_src']:.1f}/s "
+         f"by source (wheel + a deck source)")
+
+
+def a1_levers(ca, ro):
+    """The ranking (INFO): each lever's arithmetic from the measured tables."""
+    base = 0.3   # ms: the plan's assumed AppKit / CA per-pass base (a TopBar-only pass: 0.73 total, 0.49 JUCE)
+    rt = ro["rates"]
+    pad = rt.get("routine_pad_repaints") or 0.0
+    key = (rt.get("routine_pad_sweep_ticks") or 0.0) + 0.5   # + the bar digits (16 beats = 4 bars / 8 s)
+    frac = max(0.0, 1.0 - key / pad) if pad else 0.0
+    bysrc = {c: (n, m, ms) for c, n, m, p9, ms, sk in ro["by_src"]}
+    pure = bysrc.get("pad", (0.0, None, 0.0))
+    grow = 0.0
+    for c, (n, m, ms) in bysrc.items():
+        if c.startswith("pad+") and m is not None:
+            other = bysrc.get(c[4:])
+            if other and other[1] is not None:
+                grow += n * max(0.0, m - other[1]) / 1000.0
+    c2 = frac * (pure[2] + pure[0] * base + grow)
+    info(f"a1_attribution lever c2 (pad paint key): pad repaints {pad:.1f}/s -> key changes ~{key:.1f}/s (removes "
+         f"{100 * frac:.0f} %); pad-only passes {pure[0]:.1f}/s ({pure[2]:.1f} ms/s JUCE + {base} ms base each); union "
+         f"growth by the pad in shared passes {grow:.1f} ms/s -> saving ~{c2:.1f} ms/s at g4, 0 at i1")
+    for arm, a in (("i1", ca), ("g4", ro)):
+        sp, sb = a["span_mean"], a["sb_ms_per_s"]
+        est = (1.0 - sp) * sb if sp is not None and sb is not None else None
+        plan = (1.0 - sp) * 29.9 * (a["rates"].get("signalbar_layer_draws") or 0.0) / 29.65 if sp is not None else None
+        info(f"a1_attribution lever c4 ({arm}): SignalBar ticks with a change {a['mask_nonzero']}/{a['mask_ticks']}, mean "
+             f"dirty span {fmt(sp, '%.2f')} of the bar | layer {fmt(sb, '%.2f')} ms/s measured -> saving ~{fmt(est, '%.1f')} "
+             f"ms/s (the plan's compclass scaling: ~{fmt(plan, '%.1f')} ms/s)")
+    for arm, a in (("i1", ca), ("g4", ro)):
+        li = a["rates"].get("layer_inspector_repaints") or 0.0
+        bs = {c: (n, m, ms) for c, n, m, p9, ms, sk in a["by_src"]}
+        ms = sum(v[2] for c, v in bs.items() if "layerinsp" in c.split("+"))
+        info(f"a1_attribution lever c2b ({arm}): LayerInspector repaints {li:.2f}/s, passes carrying it {ms:.2f} ms/s JUCE "
+             f"(c2b is built iff >= 2 ms/s in i1 or g4)")
+
+
+def row_a1():
+    n = int(CFG["a1"]["launches"])
+    if compilers() > 0:
+        skip("a1_attribution: TAINTED"); return
+    pid, _ = launch(APP, "a1/check")
+    have = (get("/api/debug/ui_passes") or {}).get("ok") if pid is not None else None
+    quit_app()
+    if pid is None:
+        no("a1_attribution: launch"); return
+    if not have:
+        info("a1_attribution: absent -- GET /api/debug/ui_passes is not in this build (predates s-rta-0929 g4cpu)")
+        return
+    ca = run_arm("a1_card", APP, "card", n, passes=True)
+    ro = run_arm("a1_routine", APP, "routine", n, bpm=CFG["g4"]["bpm"], passes=True)
+    if ca is None or ro is None:
+        skip("a1_attribution: TAINTED"); return
+    if not ca or not ro:
+        no("a1_attribution: no clean launch"); return
+    if "u1" not in ca[0] or not ca[0].get("u1", {}).get("pad_row_rect"):
+        info("a1_attribution: the g4cpu counters / GET /api/debug/ui_passes are absent from this build")
+        return
+    sa, sr = a1_stats(ca), a1_stats(ro)
+    SUMMARY["a1_attribution"] = {"card": {k: v for k, v in sa.items()}, "routine": {k: v for k, v in sr.items()}}
+    a1_print("i1 (card)", sa)
+    a1_print("g4 (routine)", sr)
+    d = lambda k: (sr[k] or 0.0) - (sa[k] or 0.0)
+    info(f"a1_attribution g4 - i1 (these launches): cpu {fmt(sr['cpu'] - sa['cpu'] if sr['cpu'] and sa['cpu'] else None)} ms/s | "
+         f"passes {sr['passes_per_s'] - sa['passes_per_s']:+.1f}/s | JUCE peer paint {d('juce_ms_per_s'):+.1f} ms/s CPU | "
+         f"SignalBar layer {d('sb_ms_per_s'):+.1f} | waveform layer {d('wf_ms_per_s'):+.1f} ms/s CPU")
+    a1_levers(sa, sr)
+    i1, g4 = SUMMARY.get("i1_idle_card"), SUMMARY.get("g4_routine")
+    if i1 and g4 and i1["cpu_main"] and g4["cpu_main"]:
+        info(f"a1_attribution G (same invocation, {len(g4['cpu_main'])} + {len(i1['cpu_main'])} launches): median g4 "
+             f"{st.median(g4['cpu_main']):.1f} - median i1 {st.median(i1['cpu_main']):.1f} = "
+             f"{st.median(g4['cpu_main']) - st.median(i1['cpu_main']):.1f} ms/s")
 
 
 GEO = {}   # the last good geometry of this run (v1n reuses it)
@@ -1124,6 +1377,8 @@ for row in ROWS:
             info("g4_routine: band repaints/s " + ", ".join(f"{r['band_repaints']:.1f}" for r in runs)
                  + " | strip transport repaints/s " + ", ".join(f"{r['strip_repaints']:.1f}" for r in runs)
                  + " | MainComponent paints/s " + ", ".join(f"{r['main_paints']:.1f}" for r in runs))
+    elif row == "a1_attribution":
+        row_a1()
     elif row == "g2_strip_playhead":
         row_g2()
     elif row == "g5_driven":

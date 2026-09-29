@@ -1,4 +1,5 @@
 #include "ui/LayerInspector.h"
+#include "ui/UiPaintCounters.h"
 
 LayerInspector::LayerInspector()
 {
@@ -796,6 +797,7 @@ void LayerInspector::refresh()
 {
     if (layer_) { syncFromLayer(); effectStackView_.refresh(); macroPanel_.refresh(); }
     repaint();
+    uipaint::bump(uipaint::counters().layerInspectorRepaints, uipaint::SrcLayerInspector);   // s-rta-0929 g4cpu c1
 }
 
 int LayerInspector::getPreferredHeight() const

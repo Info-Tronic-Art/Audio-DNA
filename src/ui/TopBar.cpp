@@ -324,7 +324,10 @@ void TopBar::timerCallback()
     updateBpmDisplay();
     // Repaint the beat wheel and bar/phrase area
     if (!beatWheelBounds_.isEmpty())
-        repaint(beatWheelBounds_.getUnion(barPhraseBounds_).expanded(2));
+    {
+        repaint(getWheelRepaintBounds());
+        uipaint::bump(uipaint::counters().topBarWheelRepaints, uipaint::SrcWheel);   // s-rta-0929 g4cpu c1
+    }
 
     syncMasterFromComposition();
     syncMasterSignalFromComposition();

@@ -986,7 +986,7 @@ void ClipInspector::refresh()
         lastPaintKey_ = key;
         paintKeyValid_ = true;
         repaint();
-        uipaint::counters().clipInspectorRepaints.fetch_add(1, std::memory_order_relaxed);
+        uipaint::bump(uipaint::counters().clipInspectorRepaints, uipaint::SrcClipInspector);
     }
 }
 

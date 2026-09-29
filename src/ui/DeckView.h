@@ -32,6 +32,15 @@ public:
     // Rebuild the grid from the current deck state
     void rebuildGrid();
 
+    // s-rta-0929 g4cpu (probe-idle-paint a1's pass classes): the ROUTINES pads' union and the strip column of the grid
+    // viewport, in DeckView coordinates.
+    juce::Rectangle<int> getRoutinePadRowBounds() const;
+    juce::Rectangle<int> getStripColumnBounds() const
+    {
+        const auto v = gridViewport_.getBounds();
+        return v.withWidth(std::min(v.getWidth(), kLayerStripWidth - v.getX()));
+    }
+
     // Refresh display state (active clips, button states, etc.)
     void refresh();
 

@@ -1,4 +1,5 @@
 #include "SignalStrip.h"
+#include "ui/UiPaintCounters.h"
 #include <cmath>
 #include <algorithm>
 
@@ -7,7 +8,7 @@ SignalStrip::SignalStrip(Signal& signal, const SignalRegistry& registry)
 {
 }
 
-void SignalStrip::updateValue(float newValue)
+bool SignalStrip::updateValue(float newValue)
 {
     // Smooth the display value
     constexpr float smoothAlpha = 0.3f;
@@ -34,6 +35,14 @@ void SignalStrip::updateValue(float newValue)
         flashAlpha_ = 1.0f;
     else
         flashAlpha_ *= 0.85f;
+
+    // s-rta-0929 g4cpu: exactly the quantities the paint bodies branch or fill on.
+    const Painted now { displayValue_, peakValue_ > 0.01f ? peakValue_ : -1.0f, flashAlpha_ > 0.05f ? flashAlpha_ : -1.0f };
+    const bool changed = !(now == painted_);
+    painted_ = now;
+    if (changed)
+        uipaint::counters().signalStripChanges.fetch_add(1, std::memory_order_relaxed);
+    return changed;
 }
 
 void SignalStrip::setDisplaySize(DisplaySize size)

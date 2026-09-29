@@ -235,6 +235,7 @@ private:
     MessageHeartbeat heartbeat_;   // /api/state message_heartbeat_on / peak_message_stall_ms
     // s-rta-0928b idlepaint (TEST-ONLY): the UI paint counters (src/ui/UiPaintCounters.h) and the three UI hooks above.
     void handleDebugUiPaint(const httplib::Request& req, httplib::Response& res);
+    void handleDebugUiPasses(const httplib::Request& req, httplib::Response& res);   // s-rta-0929 g4cpu
     void handleDebugUiTestMenu(const httplib::Request& req, httplib::Response& res);
     void handleDebugUiNativeFallback(const httplib::Request& req, httplib::Response& res);
     void handleDebugUiRepaintAll(const httplib::Request& req, httplib::Response& res);

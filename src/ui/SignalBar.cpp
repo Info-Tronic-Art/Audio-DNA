@@ -1,4 +1,5 @@
 #include "SignalBar.h"
+#include "ui/UiPaintCounters.h"
 
 SignalBar::SignalBar(SignalRegistry& registry, const FeatureBus& featureBus)
     : registry_(registry), featureBus_(featureBus)
@@ -114,11 +115,25 @@ void SignalBar::timerCallback()
     // per tick by MainComponent::tickFeaturePipeline (120Hz) — not this
     // repaint timer. This 30Hz timer only reads the cache and repaints.
     // Update each strip with its cached value
+    uint64_t changedMask = 0;   // s-rta-0929 g4cpu c1 (TEST-ONLY witness): bit i = strip i's painted state changed
+    int i = 0;
     for (auto& strip : strips_)
     {
         float val = registry_.getCachedValue(strip->getSignal().getId());
-        strip->updateValue(val);
+        if (strip->updateValue(val) && i < 64)
+            changedMask |= (uint64_t { 1 } << i);
+        ++i;
     }
+    auto& c = uipaint::counters();
+    c.signalBarTicks.fetch_add(1, std::memory_order_relaxed);
+#if AUDIODNA_TEST_SERVER
+    c.stripMasks[c.stripMaskSeq.load(std::memory_order_relaxed) % uipaint::Counters::kRing].store(changedMask,
+                                                                                                   std::memory_order_relaxed);
+    c.stripMaskSeq.fetch_add(1, std::memory_order_release);
+    c.signalBarStrips.store(i, std::memory_order_relaxed);
+#else
+    (void) changedMask;
+#endif
 
     repaint();
 }
