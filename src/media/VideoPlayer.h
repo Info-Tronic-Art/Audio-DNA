@@ -7,6 +7,7 @@
 #include <memory>
 #include "media/VideoRing.h"
 #include "media/VideoStats.h"
+#include "media/VideoUploadBudget.h"
 
 // Forward declarations for FFmpeg types (C linkage)
 struct AVFormatContext;
@@ -107,7 +108,10 @@ public:
     // (a HOLD; *pending = false), or 0 with *pending = true when this player has never shown a frame -- unless its first
     // frame FAILED (ADDENDUM W3: the decode thread gave up before any frame, or none came within kFirstFrameTimeoutMs
     // of the first call): then 0 with *pending = false, "no media". Never waits. Must be called on the GL thread.
-    GLuint uploadToTexture(bool* pending);
+    // s-rta-0929 vupload P1: with a budget, a NEW frame asks budget->admit() BEFORE the pick (VideoRing::peek); refused
+    // = a HOLD of the shown frame (*pending false, the ring untouched), asked again next frame, force-admitted after
+    // VideoUpload::maxDefer(frame duration / |speed|, renderDt) render frames. nullptr = no budget (ctests, tools).
+    GLuint uploadToTexture(bool* pending, VideoUpload::Budget* budget = nullptr, double renderDt = 0.0);
 
     // GL thread: no frame uploaded yet and not FAILED (the C1 crossfade pause provider). A GL release does not make it
     // true again.
@@ -163,6 +167,8 @@ private:
     bool firstFrameFailed_ = false;    // W3: VideoRing::firstFrameFailed, re-judged while nothing has been shown
     bool releasedThisFrame_ = false;
     bool discontinuity_ = false;       // a Loop wrap inside advanceTransport (-> a generation bump)
+    int deferredFrames_ = 0;           // s-rta-0929 vupload P1: render frames the ready frame has been held by the budget
+    uint32_t shownGen_ = 0;            // P1 / VU8: the request generation of the last uploaded frame (a new one is exempt)
 
     // Transport state (atomics for cross-thread access)
     std::atomic<bool> open_{false};

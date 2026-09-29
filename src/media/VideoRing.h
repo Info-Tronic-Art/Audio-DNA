@@ -122,6 +122,30 @@ public:
         return p;
     }
 
+    // s-rta-0929 vupload P1 (plan R-6): the slot pick() WOULD choose now -- the newest Ready slot with gen == gen && pts <=
+    // clock + tolSec, ties by seq -- with NO state change (no CAS, nothing freed). The upload budget is asked BEFORE the
+    // pick, so a refused player leaves the ring exactly as it was. A writer publishing between peek() and pick() can only
+    // make pick() return a NEWER frame (only the reader leaves Ready): never an older one, never none.
+    Pick peek(double clock, uint32_t gen, double tolSec) const
+    {
+        Pick p;
+        const double limit = clock + tolSec;
+        for (int i = 0; i < N; ++i)
+        {
+            const auto& s = slots_[static_cast<size_t>(i)];
+            if (s.state.load(std::memory_order_acquire) != static_cast<uint8_t>(SlotState::Ready) || s.gen != gen
+                || s.pts > limit)
+                continue;
+            if (p.slot < 0 || s.pts > p.pts || (s.pts == p.pts && s.seq > p.seq))
+            {
+                p.slot = i;
+                p.pts = s.pts;
+                p.seq = s.seq;
+            }
+        }
+        return p;
+    }
+
     // Reader: Reading -> Free. No-op on any other state (defined behaviour, not an assert-only path).
     void release(int slot) { cas(slot, SlotState::Reading, SlotState::Free); }
 

@@ -2750,6 +2750,15 @@ target_link_libraries(test_video_ring PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_video_ring)
 catch_discover_tests(test_video_ring)
 
+# --- s-rta-0929 vupload P1 (plan-vupload.md 4.1 / 4.8 + adoption VU8 / VU9): src/media/VideoUploadBudget.h -- the
+# per-render-frame video upload budget: the demand-adaptive cap, the bounded deferral (never a skipped content frame,
+# no requester held > maxDefer frames for N = 4 / 8 / 16 synchronized or random-phase players), the exemptions. Pure.
+add_executable(test_video_upload_budget test_video_upload_budget.cpp)
+target_include_directories(test_video_upload_budget PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_upload_budget PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_video_upload_budget)
+catch_discover_tests(test_video_upload_budget)
+
 # --- s-rta-0928b video fix round 2: the REAL VideoPlayer (src/media/VideoPlayer.cpp + FFmpeg), headless, no GL context.
 # A video whose pixel format is unknown before a frame decodes (an H.264 .mp4 cut to its header) fails open() cleanly
 # instead of aborting in sws_getContext (each open runs in a forked child: the RED is an assertion, not a crashed

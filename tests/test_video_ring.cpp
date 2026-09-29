@@ -333,3 +333,105 @@ TEST_CASE("stress: one writer thread, one reader thread, 200,000 frames, generat
     CHECK(orderViolations.load() == 0);
     CHECK(r.freeCount() == 3);
 }
+
+// ---- s-rta-0929 vupload (plan-vupload.md 4.2 + HARMONY ADOPTION VU2 / VU10) ----
+
+TEST_CASE("peek: the slot the following pick takes, with no state change", "[video_ring][s-rta-0929]")
+{
+    Ring<3> r;
+    const int s0 = publishOne(r, 0.000, 1, 1);
+    const int s1 = publishOne(r, 1 * kFd, 1, 2);
+    const int s2 = publishOne(r, 2 * kFd, 1, 3);
+    const auto k = r.peek(0.040, 1, 0.5 * kFd);
+    CHECK(k.slot == s1);
+    CHECK(k.seq == 2);
+    CHECK(stateOf(r, s0) == SlotState::Ready);   // nothing freed, nothing taken
+    CHECK(stateOf(r, s1) == SlotState::Ready);
+    CHECK(stateOf(r, s2) == SlotState::Ready);
+    const auto p = r.pick(0.040, 1, 0.5 * kFd);
+    CHECK(p.slot == k.slot);
+    CHECK(p.seq == k.seq);
+    CHECK(p.pts == k.pts);
+}
+
+TEST_CASE("peek: stale-generation frames are never chosen (and not freed); nothing qualifying -> none", "[video_ring][s-rta-0929]")
+{
+    Ring<3> r;
+    publishOne(r, 0.0, 1, 1);
+    const int s1 = publishOne(r, 1 * kFd, 2, 2);
+    const auto k = r.peek(100.0, 2, 0.5 * kFd);
+    CHECK(k.slot == s1);
+    CHECK(r.readyCount() == 2);                  // the stale one is still Ready (pick frees it)
+    const auto p = r.pick(100.0, 2, 0.5 * kFd);
+    CHECK(p.slot == s1);
+    CHECK(p.staleDropped == 1);
+
+    Ring<3> e;
+    publishOne(e, 5.0, 1, 1);
+    CHECK(e.peek(0.0, 1, 0.5 * kFd).slot == -1);   // only a future frame
+    CHECK(e.pick(0.0, 1, 0.5 * kFd).slot == -1);
+    Ring<3> z;
+    CHECK(z.peek(0.0, 1, 0.5 * kFd).slot == -1);   // empty
+}
+
+TEST_CASE("VU10 stress: a writer publishing between peek() and pick() -- pick never returns an older frame or none, and every upload was admitted or charged exactly once",
+          "[video_ring][s-rta-0929]")
+{
+    // The reader mirrors VideoPlayer::uploadToTexture's order: peek -> (admission on the peeked frame) -> pick -> upload
+    // -> the previously shown slot released when a newer one is shown. A frame the writer published
+    // after the peek is what pick may return instead: it must be NEWER than the peeked one (never older, never none),
+    // and a pick when the peek saw nothing is "charged" -- so admitted + charged == uploads.
+    constexpr int kFrames = 100000;
+    Ring<3> r;
+    std::atomic<bool> writerDone{ false };
+    std::atomic<double> clock{ 0.0 };
+    std::thread writer([&] {
+        for (int k = 0; k < kFrames; ++k)
+        {
+            int s;
+            while ((s = r.acquireWrite()) < 0)
+            {
+                if (writerDone.load(std::memory_order_relaxed)) return;
+                std::this_thread::yield();
+            }
+            r.publish(s, k * kFd, 1, static_cast<uint64_t>(k) + 1);
+            clock.store(k * kFd, std::memory_order_release);   // the clock follows the writer (forward play)
+        }
+        writerDone.store(true, std::memory_order_release);
+    });
+    int shownSlot = -1;                                   // the shown frame's slot: released when a newer one is shown
+    uint64_t lastSeq = 0;
+    long admitted = 0, charged = 0, uploads = 0, olderThanPeek = 0, noneAfterPeek = 0, orderViolations = 0;
+    while (!(writerDone.load(std::memory_order_acquire) && r.readyCount() == 0))
+    {
+        const double c = clock.load(std::memory_order_acquire);
+        const auto k = r.peek(c, 1, 0.5 * kFd);
+        const bool asked = k.slot >= 0 && k.seq != lastSeq;
+        if (asked) ++admitted;
+        std::this_thread::yield();                       // widen the window between peek and pick
+        const auto p = r.pick(c + (asked ? 0.0 : kFd), 1, 0.5 * kFd);   // (a later clock read, as the next frame would)
+        if (p.slot < 0)
+        {
+            if (k.slot >= 0) ++noneAfterPeek;
+            continue;
+        }
+        if (k.slot >= 0 && p.seq < k.seq) ++olderThanPeek;
+        if (p.seq != lastSeq)
+        {
+            if (!asked) ++charged;
+            ++uploads;
+            if (p.seq < lastSeq) ++orderViolations;
+            lastSeq = p.seq;
+        }
+        if (shownSlot >= 0 && shownSlot != p.slot)
+            r.release(shownSlot);
+        shownSlot = p.slot;
+    }
+    writerDone.store(true);
+    writer.join();
+    CHECK(uploads > 0);
+    CHECK(olderThanPeek == 0);
+    CHECK(noneAfterPeek == 0);
+    CHECK(orderViolations == 0);
+    CHECK(admitted + charged == uploads);
+}

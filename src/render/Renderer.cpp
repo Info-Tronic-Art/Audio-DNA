@@ -324,6 +324,8 @@ void Renderer::renderOpenGL()
         glThreadQos_.store(static_cast<int>(qos_class_self()), std::memory_order_relaxed);
 #endif
     }
+    videoUploadBudget_.beginFrame();   // s-rta-0929 vupload P1: this frame's video upload allowance
+    videoStats_.uploadCap.store(videoUploadBudget_.cap, std::memory_order_relaxed);
     compositor_.pumpImages();
 
     // Release any media players closeMediaForClip() retired from the message
@@ -1833,8 +1835,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             return 0;
         // s-rta-0928b video: picks the newest ring frame <= the clock, uploads only a new one, never waits. A player
         // that has never shown a frame is PENDING (Pitfall 53): the render_frame gate's counter (C3), as sequences do.
+        // s-rta-0929 vupload P1: within this frame's video upload budget (both chains of a crossfade count).
         bool videoPending = false;
-        const GLuint tex = player->uploadToTexture(&videoPending);
+        const GLuint tex = player->uploadToTexture(&videoPending, &videoUploadBudget_, static_cast<double>(dt));
         if (videoPending)
         {
             compositor_.notePendingImage();

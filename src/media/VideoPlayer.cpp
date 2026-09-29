@@ -9,6 +9,7 @@
 #include <cstring>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -394,7 +395,7 @@ bool VideoPlayer::advanceTransport(double dt)
     return true;
 }
 
-GLuint VideoPlayer::uploadToTexture(bool* pending)
+GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, double renderDt)
 {
     if (pending != nullptr)
         *pending = false;
@@ -403,10 +404,33 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
     if (firstDrawMs_ < 0)
         firstDrawMs_ = nowMs();   // W3: the first draw request starts the first-frame timeout
 
+    // s-rta-0929 vupload P1: the per-frame upload budget is asked BEFORE the pick (peek: no state change), so a refused
+    // player leaves the ring exactly as it was and HOLDS its shown frame -- never pending, never late (R-4, R-6). Exempt
+    // (VU8): the first frame, the first upload after a GL release, the first frame of a new request generation.
+    const uint32_t gen = gen_.load(std::memory_order_acquire);
+    bool asked = false;
+    if (budget != nullptr)
+    {
+        const auto pk = ring_.peek(currentTime_, gen, 0.5 * frameDur_);
+        if (pk.slot >= 0 && shown_.needsUpload(pk.seq))
+        {
+            asked = true;
+            const double speed = std::fabs(static_cast<double>(speed_.load(std::memory_order_relaxed)));
+            const double contentFrameSec = speed > 1e-6 ? frameDur_ / speed : 1.0e9;   // speed 0: no next frame
+            const bool isExempt = VideoUpload::exempt(shown_.everShown, textureCreated_, gen != shownGen_);
+            if (!budget->admit(deferredFrames_, VideoUpload::maxDefer(contentFrameSec, renderDt), isExempt))
+            {
+                ++deferredFrames_;
+                if (stats_) { ++stats_->uploadsDeferred; ++stats_->holdFrames; }
+                return texture_;
+            }
+        }
+    }
+    deferredFrames_ = 0;
+
     // Frames the clock moved away from (reverse / ping-pong) are freed once they are more than a ring's worth of
     // frames ahead: forward play never gets that far ahead, and they would otherwise keep the writer out.
-    const auto p = ring_.pick(currentTime_, gen_.load(std::memory_order_acquire), 0.5 * frameDur_,
-                              (kSlots + 1) * frameDur_);
+    const auto p = ring_.pick(currentTime_, gen, 0.5 * frameDur_, (kSlots + 1) * frameDur_);
     if (stats_ && p.skipped > 0)
         stats_->framesSkipped += p.skipped;
 
@@ -414,6 +438,9 @@ GLuint VideoPlayer::uploadToTexture(bool* pending)
     {
         if (shown_.needsUpload(p.seq))
         {
+            if (budget != nullptr && !asked)
+                budget->charge();   // VU10: published between the peek and the pick -- this step's upload, counted
+            shownGen_ = gen;
             const auto uploadStart = std::chrono::steady_clock::now();
             const uint8_t* bytes = slotBytes_[static_cast<size_t>(p.slot)];
             if (!textureCreated_)

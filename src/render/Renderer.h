@@ -302,6 +302,9 @@ private:
     // detach(): its destructor drops queued jobs and waits for the running decodes (<= 5 s); jobs hold no `this`.
     ImageDecode::Decoder imageDecoder_{ 3 };
     ImageTexCache::UploadBudget uploadBudget_;
+    // s-rta-0929 vupload P1: the per-frame VIDEO upload budget (count-based, demand-adaptive; never shared with the images'
+    // byte budget, plan-vupload.md R-1). Begun at the frame top, consulted by every drawn player (syncMedia).
+    VideoUpload::Budget videoUploadBudget_;
     // s-rta-0928b seqvram (GL thread; the stats are read by /api/state): every image sequence's texture bytes summed at
     // the frame top (scanSequenceVram: totals + the idle trim under pressure, SeqVram.h), kept RUNNING through the
     // frame's grants (H3), and the frame serial the grants carry. No new mutex (Sacred Rule 2): the scan is one more
