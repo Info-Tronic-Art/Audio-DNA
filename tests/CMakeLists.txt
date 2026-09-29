@@ -2659,3 +2659,13 @@ target_include_directories(test_seq_vram PRIVATE ${SRC_DIR})
 target_link_libraries(test_seq_vram PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_seq_vram)
 catch_discover_tests(test_seq_vram)
+
+# --- test_fenced_ptr_slot (s-rta-0928b mediaopen, Harmony adoption P3): the renderer's active deck and the
+# UndoService::withDeckDetached fence state share ONE atomic word (src/render/FencedPtrSlot.h), read with one load: the
+# single-thread semantics and a two-thread stress of the fence's store sequence (never "fenced with a deck", never
+# "unfenced without one"). Headless, no GL, no JUCE (registered like test_frame_ring; a TSan build runs it too).
+add_executable(test_fenced_ptr_slot test_fenced_ptr_slot.cpp)
+target_include_directories(test_fenced_ptr_slot PRIVATE ${SRC_DIR})
+target_link_libraries(test_fenced_ptr_slot PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_fenced_ptr_slot)
+catch_discover_tests(test_fenced_ptr_slot)

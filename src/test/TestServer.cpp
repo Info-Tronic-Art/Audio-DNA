@@ -671,6 +671,9 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("peak_gpu_time_ms", static_cast<double>(renderer_.takePeakGpuTimeMs()));
     // s-rta-0925: master_level is now the one master (composition_.eff()).
     obj->setProperty("master_level", static_cast<double>(composition_.eff(CompScalar::Opacity)));
+    // s-rta-0928b mediaopen: fenced deck-less frames (cumulative): held the canvas / fell to black. Same fields as ApiServer.
+    obj->setProperty("fence_hold_frames", static_cast<juce::int64>(renderer_.getFenceHoldFrames()));
+    obj->setProperty("fence_black_frames", static_cast<juce::int64>(renderer_.getFenceBlackFrames()));
     // Onset render-path fix: frames on which the render-frame onset pulse fired.
     obj->setProperty("onset_pulse_frames", static_cast<juce::int64>(renderer_.getOnsetPulseFrames()));
     // s-rta-0927 outputs-c1: the output frame path (additive). live = output windows open; tap = the TEST-ONLY

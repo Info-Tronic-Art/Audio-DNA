@@ -465,6 +465,10 @@ private:
     // can never blank a DIFFERENT layer's still-playing visual.
     void refreshPreviewFromActiveClip(Deck& deck);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
+    // s-rta-0928b mediaopen: POST /api/debug/drop_files (TEST-ONLY) -- a Finder drop of `files` onto (layer, column) of
+    // the active deck: ClipCell::classifyDrop + ClipCell::dispatchDrop onto the SAME DeckView callbacks a cell's
+    // filesDropped reaches (DeckView.cpp:200-211). Message thread.
+    void debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files);
     // Perform one image/video file drop into a cell (build clip, open media,
     // setClip) WITHOUT pushing an undo command. Returns the resulting cell edit
     // (nullopt if refused — no deck or content-locked). handleFileDrop wraps this

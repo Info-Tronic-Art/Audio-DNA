@@ -277,9 +277,15 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     dragHover_ = false;
     repaint();
 
+    dispatchDrop(classifyDrop(files), layerIndex_, column_, onFileDrop, onMultiFileDrop, onMultiVideoDrop, onMixedFilesDrop);
+}
+
+ClipCell::DropRoute ClipCell::classifyDrop(const juce::StringArray& files)
+{
     // Separate images from videos
-    std::vector<juce::File> imageFiles;
-    std::vector<juce::File> videoFiles;
+    DropRoute route;
+    auto& imageFiles = route.images;
+    auto& videoFiles = route.videos;
 
     for (const auto& f : files)
     {
@@ -303,6 +309,18 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
                   [](const juce::File& a, const juce::File& b) {
                       return a.getFileName().compareNatural(b.getFileName()) < 0;
                   });
+    return route;
+}
+
+void ClipCell::dispatchDrop(const DropRoute& route, int layerIndex, int column,
+                            const std::function<void(int, int, const juce::File&)>& fileDrop,
+                            const std::function<void(int, int, const std::vector<juce::File>&)>& multiFileDrop,
+                            const std::function<void(int, int, const std::vector<juce::File>&)>& multiVideoDrop,
+                            const std::function<void(int, int, const std::vector<juce::File>&,
+                                                     const std::vector<juce::File>&)>& mixedFilesDrop)
+{
+    const auto& imageFiles = route.images;
+    const auto& videoFiles = route.videos;
 
     // Mixed batch (images AND videos): route through the combined callback so
     // the whole drop lands as one undo entry, instead of the video branches
@@ -310,21 +328,21 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     // internal drag path a few lines below already handles this correctly).
     if (!imageFiles.empty() && !videoFiles.empty())
     {
-        if (onMixedFilesDrop) onMixedFilesDrop(layerIndex_, column_, imageFiles, videoFiles);
+        if (mixedFilesDrop) mixedFilesDrop(layerIndex, column, imageFiles, videoFiles);
         return;
     }
 
     // Single video = normal file drop
     if (videoFiles.size() == 1)
     {
-        if (onFileDrop) onFileDrop(layerIndex_, column_, videoFiles[0]);
+        if (fileDrop) fileDrop(layerIndex, column, videoFiles[0]);
         return;
     }
 
     // Multiple videos = place in sequential cells
     if (videoFiles.size() > 1)
     {
-        if (onMultiVideoDrop) onMultiVideoDrop(layerIndex_, column_, videoFiles);
+        if (multiVideoDrop) multiVideoDrop(layerIndex, column, videoFiles);
         return;
     }
 
@@ -335,14 +353,14 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     // hits).
     if (imageFiles.size() > 1)
     {
-        if (onMultiFileDrop) onMultiFileDrop(layerIndex_, column_, imageFiles);
+        if (multiFileDrop) multiFileDrop(layerIndex, column, imageFiles);
         return;
     }
 
     // Single image = normal image drop
     if (imageFiles.size() == 1)
     {
-        if (onFileDrop) onFileDrop(layerIndex_, column_, imageFiles[0]);
+        if (fileDrop) fileDrop(layerIndex, column, imageFiles[0]);
         return;
     }
 }

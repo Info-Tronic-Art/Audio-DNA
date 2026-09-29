@@ -230,6 +230,9 @@ struct Clip
     int beatsPlayed = 0;
     bool hasBeenTriggered = false; // true after first user trigger (used to auto-play on first click)
     juce::Image thumbnail;          // Cached thumbnail for UI display
+    // s-rta-0928b mediaopen: MediaPresence found mediaFile absent (Image / Video; a 1 Hz off-thread sweep, seeded at load
+    // / drop). Read by the compositor and ClipCell::paint instead of a stat(). Runtime, not serialized.
+    bool mediaMissing = false;
 
     // === Helpers ===
     bool hasMedia() const { return mediaType != MediaType::None; }

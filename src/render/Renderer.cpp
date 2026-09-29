@@ -357,9 +357,12 @@ void Renderer::renderOpenGL()
         }
     }
 
-    // Check for active deck compositing
-    Deck* deck = activeDeck_.load(std::memory_order_acquire);
+    // Check for active deck compositing. s-rta-0928b mediaopen (adoption P3): the deck and the withDeckDetached fence
+    // state come from ONE load of one atomic word -- no window between two loads on the fence's begin or end edge.
+    const auto deckView = activeDeck_.view();
+    Deck* deck = deckView.ptr;
     bool deckActive = (deck != nullptr);
+    const bool fenced = deckView.fenced;
 
     // Read latest audio features (R5: coherent caller-owned value copy).
     // Onset render-path fix: read the bus FIRST (before the early return below) so idle
@@ -373,6 +376,10 @@ void Renderer::renderOpenGL()
     if (frameSnap_.onsetDetected)
         onsetPulseFrames_.fetch_add(1u, std::memory_order_relaxed);
     const FeatureSnapshot& snap = frameSnap_;
+
+    // s-rta-0928b mediaopen: a frame inside a withDeckDetached fence (the model is being mutated) with no deck.
+    if (fenced && !deckActive)
+        fenceBlackFrames_.fetch_add(1, std::memory_order_relaxed);   // falls to the "nothing to render" path below
 
     // === s-rta-0926b plan4 item 1: the composition canvas ===
     // Boris 2026-09-26: "the preview and output display window in the lower left corner should not
@@ -1376,7 +1383,7 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
         int layerIndex = static_cast<int>(layerParam * 9.0f + 0.5f);
 
         // Find layer ID from index in the active deck
-        Deck* deck = activeDeck_.load(std::memory_order_acquire);
+        Deck* deck = activeDeck_.get();
         if (deck)
         {
             if (layerIndex >= 0 && layerIndex < deck->getNumLayers())

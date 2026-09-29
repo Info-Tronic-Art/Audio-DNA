@@ -2115,6 +2115,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         };
 #endif
     apiServer_->setOutputsStateProvider([this] { return outputs_.stateVar(); });   // plan5 C2, before start()
+    // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
+    apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
+        debugDropFiles(layer, column, files);
+    };
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks, then start listening (below).
@@ -4915,6 +4919,17 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
         if (deckView_)
             deckView_->rebuildGrid();
     }
+}
+
+void MainComponent::debugDropFiles(int layerIndex, int column, const std::vector<juce::File>& files)
+{
+    if (!deckView_)
+        return;
+    juce::StringArray paths;
+    for (const auto& f : files)
+        paths.add(f.getFullPathName());
+    ClipCell::dispatchDrop(ClipCell::classifyDrop(paths), layerIndex, column, deckView_->onFileDropped,
+                           deckView_->onMultiFileDropped, deckView_->onMultiVideoDropped, deckView_->onMixedFilesDropped);
 }
 
 std::optional<MainComponent::CellEdit>
