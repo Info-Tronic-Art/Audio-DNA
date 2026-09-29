@@ -102,6 +102,11 @@ private:
         {
             mode_ = Mode::Native;
             sink_.layerShown(true);
+            // The peer painted the widget while the layer was hidden; a non-opaque widget's translucent edges (the
+            // waveform's rounded corners) would now blend over those pixels instead of the parent's -- repaint what
+            // lies beneath (Native: the parent only), in the same turn the layer shows.
+            if (!component_.isOpaque())
+                sink_.peerNeedsDisplay(component_.getLocalBounds());
         }
         else if (mode_ == Mode::FallbackPending)
         {

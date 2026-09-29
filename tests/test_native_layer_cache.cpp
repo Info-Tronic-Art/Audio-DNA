@@ -103,7 +103,7 @@ TEST_CASE("NativeLayerCache: starts RestorePending -- the peer paints the widget
     CHECK(rig.cache->mode() == Mode::RestorePending); // shown one message-loop turn after the draw
     rig.cache->flushForTest();
     CHECK(rig.cache->mode() == Mode::Native);
-    CHECK(rig.sink.log.back() == "S 1");
+    CHECK(rig.sink.count("S 1") == 1);
 }
 
 TEST_CASE("NativeLayerCache: Native swallows repaints (the peer never dirtied) and marks the layer", "[idlepaint][cache]")
@@ -190,7 +190,16 @@ TEST_CASE("NativeLayerCache: Fallback -> Native draws the hidden layer first and
     rig.cache->layerDrew();
     rig.cache->flushForTest();
     CHECK(rig.cache->mode() == Mode::Native);
+    REQUIRE(rig.sink.log.size() >= 2);
+    CHECK(rig.sink.log[rig.sink.log.size() - 2] == "S 1");
+    CHECK(rig.sink.log.back() == "P 0 0 200 80");     // a non-opaque widget: what lies beneath is repainted too
+    rig.widget.setOpaque(true);                       // an opaque widget covers it all: no extra peer pass
+    rig.cache->setFallback(true);
+    rig.cache->setFallback(false);
+    rig.cache->layerDrew();
+    rig.cache->flushForTest();
     CHECK(rig.sink.log.back() == "S 1");
+    rig.widget.setOpaque(false);
     rig.cache->setFallback(true);                     // and a new overlay hides it again at once
     CHECK(rig.cache->mode() == Mode::Fallback);
     CHECK(rig.sink.log.back() == "P 0 0 200 80");
