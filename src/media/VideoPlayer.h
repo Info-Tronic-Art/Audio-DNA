@@ -299,6 +299,9 @@ private:
     // the frame the run needs (index times are DTS: a B-frame stream's keyframe decodes before the frames shown just below
     // it), and how far below seekFrom's time it now asks.
     int runPrevRel_ = -1;
+    // gopcache-fix2 R1: the index of the run's previous output (-1 = unknown) -- a frame with no pts and no best-effort time
+    // (the stream's last frame, drained at EOF) takes this + 1 when the previous output was in the window
+    int runLastOutRel_ = -1;
     bool runLanded_ = false;
     int runOvershoots_ = 0;
     double runSeekBackSec_ = 0.0;
@@ -356,6 +359,7 @@ private:
     void serviceTrim();                                            // the decode loop's trim branch (P4b + R-10)
     int relOf(double pts) const;
     double ptsOfRel(int rel) const;
+    bool indexTimeOf(const AVFrame* f, double* t) const;           // gopcache-fix2 R1: pts, else best-effort; false = neither
     int nTraj() const;
     int capSlots() const;
     int64_t floorBytes() const;

@@ -200,6 +200,55 @@ std::map<long, Bytes> forwardDecode(const juce::File& file)
     return out;
 }
 
+// gopcache-fix2 R1: every frame of `file` decoded forward from the start, converted like forwardDecode, keyed by its
+// POSITION in the decoder's output (presentation) order -- 0, 1, 2 ... -- never by a timestamp: the reference for a stream
+// whose timestamps cannot index it (a DivX-style AVI: no pts on its keyframes and P-frames).
+std::map<long, Bytes> forwardDecodeByOrder(const juce::File& file)
+{
+    std::map<long, Bytes> out;
+    AVFormatContext* fmt = nullptr;
+    REQUIRE(avformat_open_input(&fmt, file.getFullPathName().toRawUTF8(), nullptr, nullptr) == 0);
+    REQUIRE(avformat_find_stream_info(fmt, nullptr) >= 0);
+    const int si = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    REQUIRE(si >= 0);
+    const AVCodec* codec = avcodec_find_decoder(fmt->streams[si]->codecpar->codec_id);
+    AVCodecContext* cc = avcodec_alloc_context3(codec);
+    avcodec_parameters_to_context(cc, fmt->streams[si]->codecpar);
+    cc->thread_count = 2;
+    REQUIRE(avcodec_open2(cc, codec, nullptr) == 0);
+    SwsContext* sws = nullptr;
+    AVFrame* fr = av_frame_alloc();
+    AVPacket* pk = av_packet_alloc();
+    long position = 0;
+    auto take = [&] {
+        while (avcodec_receive_frame(cc, fr) == 0)
+        {
+            if (sws == nullptr)
+                sws = sws_getContext(fr->width, fr->height, static_cast<AVPixelFormat>(fr->format), fr->width, fr->height,
+                                     AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+            Bytes b(static_cast<size_t>(fr->width) * static_cast<size_t>(fr->height) * 4);
+            uint8_t* dst[4] = { b.data() + static_cast<size_t>(fr->height - 1) * static_cast<size_t>(fr->width) * 4, nullptr, nullptr, nullptr };
+            int ds[4] = { -fr->width * 4, 0, 0, 0 };
+            sws_scale(sws, fr->data, fr->linesize, 0, fr->height, dst, ds);
+            out.emplace(position++, std::move(b));
+        }
+    };
+    while (av_read_frame(fmt, pk) >= 0)
+    {
+        if (pk->stream_index == si && avcodec_send_packet(cc, pk) >= 0)
+            take();
+        av_packet_unref(pk);
+    }
+    avcodec_send_packet(cc, nullptr);
+    take();
+    sws_freeContext(sws);
+    av_frame_free(&fr);
+    av_packet_free(&pk);
+    avcodec_free_context(&cc);
+    avformat_close_input(&fmt);
+    return out;
+}
+
 void big(GopCache::Budget& b)
 {
     b.total.store(int64_t{ 1 } << 30);
@@ -650,6 +699,60 @@ TEST_CASE("GC3 holes: a reverse Loop over a file with index holes (VFR drops, MP
         CHECK(st.reverseNonmonotonic.load() == 0);
         p.close();
     }
+}
+
+// gopcache-fix2 R1: a DivX-style AVI (MPEG-4 part 2, 2 B-frames: every keyframe and P-frame has NO pts) reversed in Loop
+// with the whole file in budget. A pts-less frame is indexed by its own best-effort time (the same from the file start and
+// after any seek), else by the previous output's index + 1 -- never given the run's target index. Every frame SHOWN and
+// every frame RESIDENT equals the forward decode's frame at the same position from the file start (output order: this
+// file's timestamps cannot index it), all 120 frames become resident, and laps 2-3 cost no seek. RED on 98994c6: a run's
+// pts-less first output (its keyframe) was stored at the run's TARGET index and ended the run -- reverse showed keyframe
+// pictures (one seek + one decode per frame).
+TEST_CASE("R1: a pts-less AVI reversed in Loop -- every frame shown and cached is the forward decode's frame at that "
+          "position; laps 2-3 cost no seek", "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_mpeg4_bf2_64x64.avi");
+    auto ref = forwardDecodeByOrder(f);
+    REQUIRE(ref.size() == 120);
+    REQUIRE(ref[29] != ref[30]);   // a sanity tooth: the keyframe differs from the frame before it
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    p.setReverse(true);
+    p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
+    Show s{ p };
+    s.check = &ref;
+    const int lap = static_cast<int>(std::ceil(p.getDuration() * 120.0));
+    for (int i = 0; i < lap + 60; ++i)   // one lap (+ half a second: the wrap's own window)
+        s.frame(1.0 / 120.0);
+    const auto seeks1 = st.seeks.load(), runs1 = st.gopCacheRuns.load(), misses1 = st.gopCacheMisses.load();
+    const auto decoded1 = st.framesDecoded.load();
+    const size_t shown1 = s.shown.size();
+    std::string missing;
+    for (int k = 0; k < 120; ++k)
+        if (!VideoPlayerTestAccess::isResident(p, k))
+            missing += std::to_string(k) + " ";
+    CAPTURE(missing, seeks1, runs1, misses1, decoded1, shown1);
+    CHECK(missing.empty());
+    int checked = 0;
+    const int badResident = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+    CHECK(checked == 120);
+    CHECK(badResident == 0);
+    for (int i = 0; i < 2 * lap; ++i)
+        s.frame(1.0 / 120.0);
+    CAPTURE(st.seeks.load(), st.gopCacheRuns.load(), st.gopCacheMisses.load(), st.framesDecoded.load(), s.shown.size(), s.late);
+    CHECK(s.shown.size() - shown1 >= 2 * 110);   // ~120 frames a lap: every frame of the file, in reverse
+    CHECK(s.mismatches == 0);
+    CHECK(st.seeks.load() - seeks1 <= 1);
+    CHECK(st.gopCacheRuns.load() - runs1 <= 1);
+    CHECK(st.gopCacheMisses.load() - misses1 <= 1);
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    p.close();
 }
 
 // gopcache-fix (the GC3 keyframe gate's tooth): an MPEG-TS file has no keyframe index -- the demuxer seeks by timestamp and

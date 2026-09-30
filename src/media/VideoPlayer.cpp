@@ -264,7 +264,10 @@ bool VideoPlayer::open(const juce::File& file)
     // the decode thread). Relative frame 0 = the first decoded frame's pts (GC3: a stream need not start at 0). GC5:
     // intra-only = the codec says so (HAP / ProRes / MJPEG / DNxHD / raw) or every index entry is a keyframe -- never
     // learned from runs. The GOP estimate = the index's longest keyframe interval (R-9; no index: kDefaultGopFrames).
-    firstPts_ = (everDecoded_ && decodedFrame_->pts >= 0) ? static_cast<double>(decodedFrame_->pts) * timeBase_ : 0.0;
+    // gopcache-fix2 R1: the first frame's INDEX time (a pts-less first frame: its best-effort time, the scale every later
+    // frame of the stream is indexed on).
+    double firstIndexTime = 0.0;
+    firstPts_ = (everDecoded_ && indexTimeOf(decodedFrame_, &firstIndexTime)) ? firstIndexTime : 0.0;
     nFrames_ = std::max(1, totalFrames_);
     {
         const auto id = codecpar->codec_id;
@@ -919,7 +922,9 @@ void VideoPlayer::onDecoded(uint32_t gen)
     const double pts = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_
                                                : wantTime_.load(std::memory_order_acquire);
     lastDecodedPts_ = pts;
-    lastDecodedRel_ = relOf(pts);
+    // gopcache-fix2 R1: the decoder's position by the frame's own time (a pts-less frame's clock time is no index)
+    double indexTime = pts;
+    lastDecodedRel_ = relOf(indexTimeOf(decodedFrame_, &indexTime) ? indexTime : pts);
     haveDecoded_ = true;
     everDecoded_ = true;
     if (stats_) ++stats_->framesDecoded;
@@ -975,7 +980,11 @@ bool VideoPlayer::tryPublishPending()
     convertInto(pendingFrame_, s);
     if (!revGen_)
     {
-        retainForward(relOf(pendingPts_), pendingPts_, pendingFrame_);   // c4: GC8 / R-9 (a copy: the ring slot is written)
+        // c4: GC8 / R-9 (a copy: the ring slot is written), at the frame's own index -- gopcache-fix2 R1: never at a pts-less
+        // frame's clock time (pendingPts_); a frame with no index time is not retained
+        double indexTime = 0.0;
+        if (indexTimeOf(pendingFrame_, &indexTime))
+            retainForward(relOf(indexTime), indexTime, pendingFrame_);
         hitsArmed_ = false;   // the decoder has taken over from the cache
     }
     av_frame_unref(pendingFrame_);   // its buffer back to the decoder's pool now (never later than the old loop did)
@@ -1001,6 +1010,19 @@ int VideoPlayer::relOf(double pts) const
 double VideoPlayer::ptsOfRel(int rel) const
 {
     return firstPts_ + static_cast<double>(rel) * frameDur_;
+}
+
+// gopcache-fix2 R1: the time a decoded frame is INDEXED by (its relative index, the time the cache keeps with it): its pts,
+// else libavcodec's best-effort timestamp. A DivX-style AVI (MPEG-4 part 2 with B-frames) has no pts on its keyframes and
+// P-frames; their best-effort time follows the packet order, is the same from the file start and after any seek, and is on
+// the scale of the B-frames' pts. false = neither (the stream's last frame, drained at EOF): the caller decides.
+bool VideoPlayer::indexTimeOf(const AVFrame* f, double* t) const
+{
+    const int64_t ts = f->pts >= 0 ? f->pts : f->best_effort_timestamp;
+    if (ts == AV_NOPTS_VALUE || ts < 0)
+        return false;
+    *t = static_cast<double>(ts) * timeBase_;
+    return true;
 }
 
 int VideoPlayer::nTraj() const
@@ -1115,6 +1137,7 @@ void VideoPlayer::endRun()
         prefetchBlockedAt_ = run_->target;
     runStored_ = 0;
     runPrevRel_ = -1;
+    runLastOutRel_ = -1;
     runLanded_ = false;
     runOvershoots_ = 0;
     runSeekBackSec_ = 0.0;
@@ -1317,6 +1340,7 @@ bool VideoPlayer::runStep(double want)
         runSawKey_ = false;
         runLanded_ = false;
         runPrevRel_ = -1;
+        runLastOutRel_ = -1;
         if (stats_ != nullptr && runOvershoots_ == 0)   // a run's re-seek is still that run
             ++(r.kind == GopCache::RunKind::Demand ? stats_->gopCacheMisses : stats_->gopCacheRuns);
     }
@@ -1354,11 +1378,28 @@ bool VideoPlayer::runStep(double want)
 void VideoPlayer::onRunFrame(double want)
 {
     auto& r = *run_;
-    const double pts = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_ : ptsOfRel(r.target);
-    const int rel = relOf(pts);
-    lastDecodedPts_ = pts;
-    lastDecodedRel_ = rel;
-    haveDecoded_ = true;
+    // gopcache-fix2 R1: the frame's index comes from its OWN time -- its pts, else its best-effort time (indexTimeOf); a
+    // frame with neither (the stream's last frame, drained at EOF) takes the previous output's index + 1 when that output
+    // was inside the window (NONREF skipping ends kFullDecodeFrames below it: no frame was skipped in between); else its
+    // index is unknown and it is neither stored nor published. Never the run's target (98994c6: a pts-less keyframe was
+    // stored as the frame the run was sent for).
+    const int lo = runPublishAt_ >= 0 ? std::min(r.windowLo, runPublishAt_) : r.windowLo;
+    double pts = 0.0;
+    bool known = indexTimeOf(decodedFrame_, &pts);
+    int rel = known ? relOf(pts) : -1;
+    if (!known && runLastOutRel_ >= 0 && runLastOutRel_ >= lo)
+    {
+        rel = runLastOutRel_ + 1;
+        pts = ptsOfRel(rel);
+        known = true;
+    }
+    runLastOutRel_ = known ? rel : -1;
+    if (known)
+    {
+        lastDecodedPts_ = pts;
+        lastDecodedRel_ = rel;
+        haveDecoded_ = true;
+    }
     everDecoded_ = true;
     ++r.decoded;
     if (stats_ != nullptr)
@@ -1367,24 +1408,32 @@ void VideoPlayer::onRunFrame(double want)
         ++stats_->gopCacheRunDecodes;
     }
     const bool hasPts = decodedFrame_->pts >= 0;
-    if (!runLanded_ && hasPts)
+    if (!runLanded_)
     {
         // F1: the first output since the seek sits ABOVE the frame the run was sent for -- the demuxer picked a keyframe
         // by its DTS, and a B-frame stream's keyframe decodes before the frames shown just below it (which then never come
         // out of this seek: an MPEG-4 part 2 file's last GOP). Seek again, further back, instead of calling them holes.
+        // gopcache-fix2 R1: a first output with no index at all (a last GOP whose keyframe is drained at EOF) cannot be
+        // judged -- seek a GOP further back, so the frames before it index it.
         runLanded_ = true;
-        if (r.kind != GopCache::RunKind::None && rel > r.seekFrom && runOvershoots_ < kMaxRunOvershoots
+        if (r.kind != GopCache::RunKind::None && (!known || rel > r.seekFrom) && runOvershoots_ < kMaxRunOvershoots
             && ptsOfRel(r.seekFrom) - runSeekBackSec_ > firstPts_)
         {
             ++runOvershoots_;
             runSeekBackSec_ = std::max(2.0 * runSeekBackSec_,
-                                       (rel - r.seekFrom + 1 + std::max(1, codecCtx_->has_b_frames)) * frameDur_);
+                                       known ? (rel - r.seekFrom + 1 + std::max(1, codecCtx_->has_b_frames)) * frameDur_
+                                             : std::max(1, gopFramesEst_) * frameDur_);
             r.seekPending = true;
             return;
         }
     }
     if ((decodedFrame_->flags & AV_FRAME_FLAG_KEY) != 0)
         runSawKey_ = true;
+    if (!known)
+    {
+        runPrevRel_ = -1;   // R1: an unknown index -- nothing stored, published or inferred across it
+        return;
+    }
     // F1 (GC3 "every run has a negative result", for EVERY run kind): after the run's keyframe the decoder's output is in
     // pts order, so an index between two consecutive outputs inside the window is one it never outputs -- a hole: walked
     // over by the reverse step AND by the prefetch planner (a PREFETCH that passed it used to mark nothing, so it stayed
@@ -1393,7 +1442,6 @@ void VideoPlayer::onRunFrame(double want)
     {
         if (runPrevRel_ >= 0)
         {
-            const int lo = runPublishAt_ >= 0 ? std::min(r.windowLo, runPublishAt_) : r.windowLo;
             for (int k = std::max(runPrevRel_ + 1, lo); k < rel && k <= r.target; ++k)
                 cache_->markHole(k);   // only an index still unknown (-1) becomes a hole
         }
@@ -1485,7 +1533,17 @@ bool VideoPlayer::forwardIdle(double want)
             lastRel_ = std::max(lastRel_, lastDecodedRel_);
         return false;
     }
-    const double pts = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_ : ptsOfRel(target);
+    double pts = 0.0;   // gopcache-fix2 R1: the frame's own index time, never the target's
+    if (!indexTimeOf(decodedFrame_, &pts))
+    {
+        if (stats_ != nullptr)
+        {
+            ++stats_->framesDecoded;
+            ++stats_->gopCacheRunDecodes;
+            ++stats_->framesDropped;
+        }
+        return true;   // no index: not stored (the plain forward decode serves what the cache cannot)
+    }
     const int rel = relOf(pts);
     lastDecodedPts_ = pts;
     lastDecodedRel_ = rel;
