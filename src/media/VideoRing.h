@@ -70,11 +70,18 @@ public:
     // Ready with pts > clock + tolSec + dropAheadSec -> Free (a frame the clock moved away from -- reverse / ping-pong play:
     // it would never become current and would keep the writer out of the ring); other Ready slots ahead of the clock stay.
     // Never waits.
+    // s-rta-0929b gopcache (plan-gopcache.md 3.2, deviation D1): `reverse` MIRRORS every pts comparison (key = -pts, limit
+    // = -clock + tolSec): the candidates are the frames with pts >= clock - tolSec, the chosen is the LOWEST (the frame
+    // whose interval the falling clock has just entered), the passed-over frames are those ABOVE it, the ahead-drop line is
+    // dropAheadSec BELOW clock - tolSec. The forward rule freed every frame below the chosen one -- in reverse, the
+    // writer's next frame. reverse = false: key = pts, limit = clock + tolSec (x 1.0 is exact) -- today's pick.
     Pick pick(double clock, uint32_t gen, double tolSec,
-              double dropAheadSec = std::numeric_limits<double>::infinity())
+              double dropAheadSec = std::numeric_limits<double>::infinity(), bool reverse = false)
     {
         Pick p;
-        const double limit = clock + tolSec;
+        const double sgn = reverse ? -1.0 : 1.0;
+        const double limit = sgn * clock + tolSec;
+        double chosenKey = 0.0;
         for (int i = 0; i < N; ++i)
         {
             auto& s = slots_[static_cast<size_t>(i)];
@@ -86,16 +93,18 @@ public:
                     ++p.staleDropped;
                 continue;
             }
-            if (s.pts <= limit)
+            const double key = sgn * s.pts;
+            if (key <= limit)
             {
-                if (p.slot < 0 || s.pts > p.pts || (s.pts == p.pts && s.seq > p.seq))
+                if (p.slot < 0 || key > chosenKey || (key == chosenKey && s.seq > p.seq))
                 {
                     p.slot = i;
                     p.pts = s.pts;
                     p.seq = s.seq;
+                    chosenKey = key;
                 }
             }
-            else if (s.pts > limit + dropAheadSec)
+            else if (key > limit + dropAheadSec)
             {
                 if (cas(i, SlotState::Ready, SlotState::Free))
                     ++p.aheadDropped;
@@ -116,7 +125,7 @@ public:
                 continue;
             auto& s = slots_[static_cast<size_t>(i)];
             if (s.state.load(std::memory_order_acquire) == static_cast<uint8_t>(SlotState::Ready) && s.gen == gen
-                && s.pts <= p.pts && cas(i, SlotState::Ready, SlotState::Free))
+                && sgn * s.pts <= chosenKey && cas(i, SlotState::Ready, SlotState::Free))
                 ++p.skipped;
         }
         return p;
@@ -126,21 +135,27 @@ public:
     // clock + tolSec, ties by seq -- with NO state change (no CAS, nothing freed). The upload budget is asked BEFORE the
     // pick, so a refused player leaves the ring exactly as it was. A writer publishing between peek() and pick() can only
     // make pick() return a NEWER frame (only the reader leaves Ready): never an older one, never none.
-    Pick peek(double clock, uint32_t gen, double tolSec) const
+    // s-rta-0929b gopcache: `reverse` mirrors the comparisons exactly as pick() does (the lowest pts >= clock - tolSec); a
+    // publish between peek() and pick() then only ever yields a frame at or BELOW the peeked one.
+    Pick peek(double clock, uint32_t gen, double tolSec, bool reverse = false) const
     {
         Pick p;
-        const double limit = clock + tolSec;
+        const double sgn = reverse ? -1.0 : 1.0;
+        const double limit = sgn * clock + tolSec;
+        double chosenKey = 0.0;
         for (int i = 0; i < N; ++i)
         {
             const auto& s = slots_[static_cast<size_t>(i)];
             if (s.state.load(std::memory_order_acquire) != static_cast<uint8_t>(SlotState::Ready) || s.gen != gen
-                || s.pts > limit)
+                || sgn * s.pts > limit)
                 continue;
-            if (p.slot < 0 || s.pts > p.pts || (s.pts == p.pts && s.seq > p.seq))
+            const double key = sgn * s.pts;
+            if (p.slot < 0 || key > chosenKey || (key == chosenKey && s.seq > p.seq))
             {
                 p.slot = i;
                 p.pts = s.pts;
                 p.seq = s.seq;
+                chosenKey = key;
             }
         }
         return p;

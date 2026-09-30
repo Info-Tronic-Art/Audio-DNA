@@ -321,8 +321,10 @@ void VideoPlayer::advanceFrame(double dt)
     else
         advanceTransport(dt);
 
-    // The wanted time BEFORE the generation (release): a decode thread that sees the new generation sees its time.
+    // The wanted time BEFORE the generation (release): a decode thread that sees the new generation sees its time (and,
+    // s-rta-0929b gopcache, its direction).
     wantTime_.store(currentTime_, std::memory_order_release);
+    wantReverse_.store(reverseNow_, std::memory_order_release);
     const bool genChanged = jumped || discontinuity_;
     discontinuity_ = false;
     if (genChanged)
@@ -351,6 +353,7 @@ void VideoPlayer::advanceClock(double dt)
         double target = seekTarget_.load(std::memory_order_relaxed);
         currentTime_ = target * duration_;
         playheadPosition_.store(target, std::memory_order_relaxed);
+        wantReverse_.store(reverseNow_, std::memory_order_release);
         gen_.fetch_add(1, std::memory_order_acq_rel);
         return;
     }
@@ -359,6 +362,7 @@ void VideoPlayer::advanceClock(double dt)
     if (discontinuity_)
     {
         discontinuity_ = false;
+        wantReverse_.store(reverseNow_, std::memory_order_release);
         gen_.fetch_add(1, std::memory_order_acq_rel);
     }
 }
@@ -421,6 +425,21 @@ bool VideoPlayer::advanceTransport(double dt)
         }
     }
 
+    // s-rta-0929b gopcache (plan R-2): the clock's effective direction from here on -- after a PingPong reflection, so the
+    // turn is ONE generation bump on the frame it happens (the sign of the motion: a negative speed from a composition file
+    // runs the clock down too); a change is a discontinuity -- a generation bump, like a Loop wrap -- so the ring never
+    // holds both directions' look-ahead. Speed 0 (no motion) keeps the direction.
+    const double dirAfter = loopMode == LoopMode::PingPong ? ((reverse != !pingPongForward_) ? -1.0 : 1.0)
+                                                          : (reverse ? -1.0 : 1.0);
+    const double motion = static_cast<double>(speed) * dirAfter;
+    if (motion != 0.0 && (motion < 0.0) != reverseNow_)
+    {
+        reverseNow_ = motion < 0.0;
+        discontinuity_ = true;
+        if (stats_ != nullptr)
+            ++stats_->directionChanges;
+    }
+
     // Update playhead position
     double pos = (duration_ > 0.0) ? (currentTime_ / duration_) : 0.0;
     playheadPosition_.store(std::clamp(pos, 0.0, 1.0), std::memory_order_relaxed);
@@ -451,7 +470,7 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
     bool asked = false;
     if (budget != nullptr)
     {
-        const auto pk = ring_.peek(currentTime_, gen, 0.5 * frameDur_);
+        const auto pk = ring_.peek(currentTime_, gen, 0.5 * frameDur_, reverseNow_);
         if (pk.slot >= 0 && shown_.needsUpload(pk.seq))
         {
             asked = true;
@@ -470,7 +489,8 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
 
     // Frames the clock moved away from (reverse / ping-pong) are freed once they are more than the writer's look-ahead
     // (+1) frames ahead: forward play never gets that far ahead, and they would otherwise keep the writer out.
-    const auto p = ring_.pick(currentTime_, gen, 0.5 * frameDur_, (kWriterLookAhead + 1) * frameDur_);
+    // s-rta-0929b gopcache: the pick mirrors its comparisons while the clock runs down (reverseNow_, plan 3.2).
+    const auto p = ring_.pick(currentTime_, gen, 0.5 * frameDur_, (kWriterLookAhead + 1) * frameDur_, reverseNow_);
     if (stats_ && p.skipped > 0)
         stats_->framesSkipped += p.skipped;
 
@@ -480,6 +500,10 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
         {
             if (budget != nullptr && !asked)
                 budget->charge();   // VU10: published between the peek and the pick -- this step's upload, counted
+            // s-rta-0929b gopcache (adoption GC4): a reversing player never shows a frame above the one it showed before in
+            // the same request generation (must stay 0).
+            if (reverseNow_ && stats_ != nullptr && gen == shownGen_ && shown_.everShown && p.pts > lastShownPts_)
+                ++stats_->reverseNonmonotonic;
             shownGen_ = gen;
             const auto uploadStart = std::chrono::steady_clock::now();
             uploadSlot(p.slot);

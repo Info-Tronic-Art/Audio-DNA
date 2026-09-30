@@ -6,6 +6,7 @@
 #include "media/VideoRing.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <thread>
 #include <vector>
@@ -501,4 +502,184 @@ TEST_CASE("VU10 stress: a writer publishing between peek() and pick() -- pick ne
     CHECK(noneAfterPeek == 0);
     CHECK(orderViolations == 0);
     CHECK(admitted + charged == uploads);
+}
+
+// ---- s-rta-0929b gopcache (plan-gopcache.md 3.2 / 4.1, deviation D1): pick / peek take the direction and MIRROR every
+// pts comparison. RED on main: pick / peek have no `reverse` parameter (these cases do not compile).
+
+TEST_CASE("reverse pick: the held frame stays until the falling clock crosses held - 0.5 fd; then the next one down, the one below kept",
+          "[video_ring][gopcache][s-rta-0929b]")
+{
+    Ring<3> r;
+    const double W = 100 * kFd;
+    const int sw = publishOne(r, W, 1, 1);
+    auto p = r.pick(W, 1, 0.5 * kFd, 3 * kFd, true);   // shown: W
+    REQUIRE(p.slot == sw);
+    const int s1 = publishOne(r, W - kFd, 1, 2);
+    const int s2 = publishOne(r, W - 2 * kFd, 1, 3);
+    // clock W - 0.3 fd: W-1 is not yet a candidate (its pts < clock - tol) -> nothing new; both queued frames stay
+    auto q = r.pick(W - 0.3 * kFd, 1, 0.5 * kFd, 3 * kFd, true);
+    CHECK(q.slot == -1);
+    CHECK(q.readyAhead == 2);
+    CHECK(stateOf(r, s1) == SlotState::Ready);
+    CHECK(stateOf(r, s2) == SlotState::Ready);
+    // clock W - 0.6 fd: W-1 is picked, W-2 (below it) is kept
+    q = r.pick(W - 0.6 * kFd, 1, 0.5 * kFd, 3 * kFd, true);
+    CHECK(q.slot == s1);
+    CHECK(q.pts == W - kFd);
+    CHECK(q.skipped == 0);
+    CHECK(q.readyAhead == 1);
+    CHECK(stateOf(r, s2) == SlotState::Ready);
+}
+
+TEST_CASE("forward pick of the same ring frees the frame below the chosen one (why reverse needs the mirror)",
+          "[video_ring][gopcache][s-rta-0929b]")
+{
+    Ring<3> r;
+    const double W = 100 * kFd;
+    const int s1 = publishOne(r, W - kFd, 1, 2);
+    const int s2 = publishOne(r, W - 2 * kFd, 1, 3);
+    const auto q = r.pick(W - 0.6 * kFd, 1, 0.5 * kFd, 3 * kFd);   // forward: the newest <= clock + tol = W-1
+    CHECK(q.slot == s1);
+    CHECK(q.skipped == 1);                                         // W-2 -- reverse play's NEXT frame -- freed
+    CHECK(stateOf(r, s2) == SlotState::Free);
+}
+
+TEST_CASE("reverse pick: the passed-over frames are the ones ABOVE the chosen (freed as skipped)", "[video_ring][gopcache][s-rta-0929b]")
+{
+    Ring<3> r;
+    const double W = 100 * kFd;
+    const int a = publishOne(r, W, 1, 1);
+    const int b = publishOne(r, W - kFd, 1, 2);
+    const int c = publishOne(r, W - 2 * kFd, 1, 3);
+    // the clock fell to W - 1.6 fd (a late frame): candidates W, W-1 (>= clock - tol = W - 2.1 fd -> also W-2) -> the
+    // lowest candidate is W-2; W and W-1 above it are passed over
+    const auto q = r.pick(W - 1.6 * kFd, 1, 0.5 * kFd, 3 * kFd, true);
+    CHECK(q.slot == c);
+    CHECK(q.skipped == 2);
+    CHECK(stateOf(r, a) == SlotState::Free);
+    CHECK(stateOf(r, b) == SlotState::Free);
+}
+
+TEST_CASE("reverse pick: the ahead-drop line is dropAheadSec BELOW clock - tol (4 fd below freed, 3 fd below kept)",
+          "[video_ring][gopcache][s-rta-0929b]")
+{
+    Ring<3> r;
+    const double C = 100 * kFd;
+    const int far = publishOne(r, C - 4 * kFd, 1, 1);
+    const int near = publishOne(r, C - 3 * kFd, 1, 2);
+    const auto q = r.pick(C, 1, 0.5 * kFd, 3 * kFd, true);
+    CHECK(q.slot == -1);
+    CHECK(q.aheadDropped == 1);
+    CHECK(stateOf(r, far) == SlotState::Free);
+    CHECK(stateOf(r, near) == SlotState::Ready);
+    CHECK(q.readyAhead == 1);
+}
+
+TEST_CASE("reverse peek chooses what the reverse pick chooses, with no state change", "[video_ring][gopcache][s-rta-0929b]")
+{
+    Ring<3> r;
+    const double W = 100 * kFd;
+    publishOne(r, W, 1, 1);
+    publishOne(r, W - kFd, 1, 2);
+    publishOne(r, W - 2 * kFd, 1, 3);
+    for (double c : { W + 0.2 * kFd, W - 0.6 * kFd, W - 1.6 * kFd, W - 5 * kFd })
+    {
+        const auto pk = r.peek(c, 1, 0.5 * kFd, true);
+        CHECK(r.readyCount() == 3);   // nothing moved
+        Ring<3> copy;
+        publishOne(copy, W, 1, 1);
+        publishOne(copy, W - kFd, 1, 2);
+        publishOne(copy, W - 2 * kFd, 1, 3);
+        const auto pp = copy.pick(c, 1, 0.5 * kFd, std::numeric_limits<double>::infinity(), true);
+        CHECK(pk.slot == pp.slot);
+        CHECK(pk.seq == pp.seq);
+    }
+}
+
+TEST_CASE("reverse pick: ties at the same pts take the newest seq; stale generations are freed and never chosen",
+          "[video_ring][gopcache][s-rta-0929b]")
+{
+    Ring<3> r;
+    const double W = 100 * kFd;
+    publishOne(r, W, 1, 1);
+    const int newer = publishOne(r, W, 1, 5);
+    const int stale = publishOne(r, W - kFd, 0, 9);
+    const auto q = r.pick(W, 1, 0.5 * kFd, 3 * kFd, true);
+    CHECK(q.slot == newer);
+    CHECK(q.staleDropped == 1);
+    CHECK(stateOf(r, stale) == SlotState::Free);
+}
+
+TEST_CASE("reverse = false is today's pick: every forward outcome unchanged on a sweep of clocks", "[video_ring][gopcache][s-rta-0929b]")
+{
+    for (int k = 0; k < 40; ++k)
+    {
+        const double c = (k - 5) * 0.25 * kFd;
+        Ring<3> a, b;
+        for (Ring<3>* r : { &a, &b })
+        {
+            publishOne(*r, 0.0, 1, 1);
+            publishOne(*r, kFd, 1, 2);
+            publishOne(*r, 2 * kFd, 1, 3);
+        }
+        const auto pa = a.pick(c, 1, 0.5 * kFd, 3 * kFd);
+        const auto pb = b.pick(c, 1, 0.5 * kFd, 3 * kFd, false);
+        CHECK(pa.slot == pb.slot);
+        CHECK(pa.skipped == pb.skipped);
+        CHECK(pa.aheadDropped == pb.aheadDropped);
+        CHECK(pa.readyAhead == pb.readyAhead);
+        CHECK(a.peek(c, 1, 0.5 * kFd).slot == b.peek(c, 1, 0.5 * kFd, false).slot);
+    }
+}
+
+TEST_CASE("reverse race (VU10's shape): a writer publishing lower frames between peek() and pick() -- pick never returns a frame "
+          "above the peeked one, never none", "[video_ring][gopcache][s-rta-0929b]")
+{
+    // One writer thread publishes frames DOWNWARD (reverse play: each new frame 1 fd below the previous); the reader peeks,
+    // then picks at the same clock. The pick may only return the peeked frame or a LOWER one (a newer publish), never a
+    // higher one and never none once the peek saw a candidate.
+    Ring<3> r;
+    std::atomic<bool> stop{ false };
+    std::atomic<int> lowestPublished{ 1000000 };
+    std::thread writer([&] {
+        int f = 1000000;
+        uint64_t seq = 0;
+        while (!stop.load())
+        {
+            const int s = r.acquireWrite();
+            if (s < 0)
+            {
+                std::this_thread::yield();
+                continue;
+            }
+            --f;
+            r.publish(s, f * kFd, 1, ++seq);
+            lowestPublished.store(f);
+        }
+    });
+    int violations = 0, checks = 0, held = -1;
+    const auto t0 = std::chrono::steady_clock::now();   // until enough checks (the writer thread may start late), <= 3 s
+    while (checks < 20000 && std::chrono::steady_clock::now() - t0 < std::chrono::seconds(3))
+    {
+        const double clock = (lowestPublished.load() + 0.4) * kFd;   // just above the lowest published frame
+        const auto pk = r.peek(clock, 1, 0.5 * kFd, true);
+        const auto pp = r.pick(clock, 1, 0.5 * kFd, 3 * kFd, true);
+        if (pk.slot >= 0)
+        {
+            ++checks;
+            if (pp.slot < 0 || pp.pts > pk.pts)
+                ++violations;
+        }
+        if (pp.slot >= 0)
+        {
+            if (held >= 0 && held != pp.slot)
+                r.release(held);
+            held = pp.slot;
+        }
+    }
+    stop.store(true);
+    writer.join();
+    CHECK(checks > 1000);
+    CHECK(violations == 0);
 }

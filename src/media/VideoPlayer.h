@@ -213,7 +213,11 @@ private:
     int64_t firstDrawMs_ = -1;         // W3: the first uploadToTexture call (-1 = never drawn)
     bool firstFrameFailed_ = false;    // W3: VideoRing::firstFrameFailed, re-judged while nothing has been shown
     bool releasedThisFrame_ = false;
-    bool discontinuity_ = false;       // a Loop wrap inside advanceTransport (-> a generation bump)
+    bool discontinuity_ = false;       // a Loop wrap or a direction change inside advanceTransport (-> a generation bump)
+    // s-rta-0929b gopcache (plan R-2): the effective direction of the clock (GL thread: the pick / peek mirror on it); a
+    // change is a discontinuity. wantReverse_ (GL -> decode thread) is stored with wantTime_, before the generation.
+    bool reverseNow_ = false;
+    std::atomic<bool> wantReverse_{ false };
     int deferredFrames_ = 0;           // s-rta-0929 vupload P1: render frames the ready frame has been held by the budget
     uint32_t shownGen_ = 0;            // P1 / VU8: the request generation of the last uploaded frame (a new one is exempt)
     // s-rta-0929 vupload P4a: the slot of the frame ON SCREEN stays Reading until a newer frame is shown (retire_.held),

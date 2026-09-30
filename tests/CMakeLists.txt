@@ -2827,6 +2827,40 @@ endif()
 apply_sanitizers(test_video_decode_trace)
 catch_discover_tests(test_video_decode_trace)
 
+# --- s-rta-0929b gopcache (plan-gopcache.md 4.1 + adoption GC1-GC10): the REAL VideoPlayer + FFmpeg + the GOP cache, no GL,
+# no decode thread (the test is the GL thread and steps the writer: VideoPlayerTestAccess). A direction change is ONE
+# generation bump; reverse served from the cache byte-identical to a forward decode; the budget, intra-only, the trim,
+# GC1-GC3 / GC6 / GC10. Fixtures: tests/fixtures/video_h264_gop10_64x64.mp4 (+ the GC3 / GC10 / S8 ones).
+add_executable(test_gop_cache_store
+    test_gop_cache_store.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_gop_cache_store PRIVATE ${SRC_DIR})
+target_link_libraries(test_gop_cache_store PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+if(APPLE)
+    target_link_libraries(test_gop_cache_store PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
+target_compile_definitions(test_gop_cache_store PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_gop_cache_store PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_gop_cache_store)
+catch_discover_tests(test_gop_cache_store)
+
 # --- s-rta-0929 vupload (plan-vupload.md 4.8 + adoption VU1-VU3 / VU8): the REAL VideoPlayer uploading into a PRIVATE CGL
 # 4.1 core context (the test_shared_frame_gl shape: no window, SKIPs loudly without a pixel format); no decode thread --
 # the test is the writer (VideoPlayerTestAccess). Frame-0 identity vs a test-side FFmpeg + sws decode (yuv420p H.264, a

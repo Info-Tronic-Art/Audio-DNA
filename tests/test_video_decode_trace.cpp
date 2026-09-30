@@ -48,7 +48,8 @@ struct VideoPlayerTestAccess
     static long readerPick(VideoPlayer& p)
     {
         const uint32_t g = p.gen_.load(std::memory_order_acquire);
-        const auto k = p.ring_.pick(p.currentTime_, g, 0.5 * p.frameDur_, (VideoPlayer::kWriterLookAhead + 1) * p.frameDur_);
+        const auto k = p.ring_.pick(p.currentTime_, g, 0.5 * p.frameDur_, (VideoPlayer::kWriterLookAhead + 1) * p.frameDur_,
+                                    p.reverseNow_);   // c1: as uploadToTexture (the direction-aware pick)
         if (k.slot < 0)
             return -1;
         const int prev = p.retire_.shown(k.slot, false);
