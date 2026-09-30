@@ -94,3 +94,11 @@ INBOX-RECHECK: none
 - Self-brief files: plan-btguard.md and the 3 attack files were useful; JUCE source was read directly.
 
 STATUS: DONE_WITH_CONCERNS
+
+## Fix round (btguard-fix, 2026-09-30) -- STATUS: PARTIAL
+
+The full report is `.harmony/.reports/s-rta-0929b/btguard-fix.md`. I checked all 7 critic-r1 findings against the code, and all 7 hold. Each "survives" claim was reproduced with a mutant built from source COPIES; the old suite stayed 30/30 green on all 8 mutants.
+- 3340697 test: D1 changed, plus new D4 / D5 / D6 / M6 / M7 / R4b, R1 settle check, and E1 macOS-default flags. The new suite FAILs every mutant: MA -> D1 D4 M6 M7, MB -> D1 M6, MC -> R1, MD -> R4b, ME -> D5, MF / MF2 -> E1, MG -> D6. Real code: 36/36; ctest `100% tests passed, 0 tests failed out of 1003`.
+- 0c849f3 fix: the notice now reads "No wired mic found - plug one in. Bluetooth is never used." / "No audio device found - plug one in. Bluetooth is never used." The pre-fix app gives `PROBE-BTGUARD: 22 PASS / 3 FAIL / 2 SKIP` (B3, B3b, C2).
+- 90f4854 test: probe row C5b (the no-device take.json has no audio; lastError ""). It PASSes on the pre-fix app.
+- STOPPED: the clamp-removed mutant app, a re-signed scratch copy, raised the macOS microphone-permission prompt. That prompt is still on screen and was left untouched. So no GREEN probe run was done on build-lane, and C5b has no RED. Still open: the real-HAL aggregate branch (needs a real aggregate device) and video recording with no device (no REST route; Harmony to accept).
