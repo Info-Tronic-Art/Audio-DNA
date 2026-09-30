@@ -9,7 +9,8 @@
 // RED on main: VideoPlayer has no decodeStep / GOP cache (this file does not compile).
 // c1: a direction change is ONE generation bump; c1b: the forward writer stepped without a thread shows a Loop clip's frames
 // in order; c2: GopCache::Store on its own; c3: reverse served from the cache (identity, GC1 / GC2 / GC3 / GC5 / GC6 / GC10,
-// the budget, the trim).
+// the budget, the trim); c4: forward retention (R-9 PingPong, GC8 Loop), the flips and turns served from the cache, the
+// forward hits after a reverse episode (the guard: never an older frame).
 #include <catch2/catch_test_macros.hpp>
 
 #include "media/GopCacheStore.h"
@@ -784,4 +785,149 @@ TEST_CASE("c2: GopCache::Store -- copies in the native format, the budget refuse
     for (auto* f : src)
         av_frame_free(&f);
     av_frame_free(&odd);
+}
+
+namespace
+{
+// Forward play of a fresh player from frame 0 for `frames` content frames at a 120 Hz render; returns what was shown.
+std::vector<long> playForward(VideoPlayer& p, Show& s, int contentFrames)
+{
+    for (int i = 0; i < 4 * contentFrames; ++i)
+        s.frame(1.0 / 120.0);
+    return s.shown;
+}
+} // namespace
+
+TEST_CASE("c4: forward retention -- PingPong keeps its retainFrames (R-9), Loop its last 16 (GC8) behind the clock; never more",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    for (auto mode : { VideoPlayer::LoopMode::PingPong, VideoPlayer::LoopMode::Loop, VideoPlayer::LoopMode::OneShot })
+    {
+        CAPTURE(static_cast<int>(mode));
+        VideoStats st;
+        GopCache::Budget budget;
+        big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(fixture("video_h264_gop10_64x64.mp4")));
+        p.setLoopMode(mode);
+        Show s{ p };
+        playForward(p, s, 40);
+        REQUIRE(s.shown.size() >= 38);
+        // 64x64 GOP 10 decodes in microseconds: R-9's GOP x decode ms / frame ms x 2 is under the floor -> 16 either way
+        CHECK(VideoPlayerTestAccess::backPool(p) == GopCache::kBehindFrames);
+        CHECK(VideoPlayerTestAccess::resident(p) <= GopCache::kBehindFrames + 3 + 1);   // + the writer's look-ahead
+        CHECK(st.seeks.load() == 0);          // retention never touches the decoder
+        p.close();
+    }
+}
+
+TEST_CASE("c4: GC8 -- a forward Loop clip flipped to reverse is served at once from its retained frames (hits, no hold), "
+          "then from the runs; every frame identical to a forward decode", "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");
+    auto ref = forwardDecode(f);
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    Show s{ p };
+    s.check = &ref;
+    playForward(p, s, 35);                              // forward to ~frame 35
+    const size_t atFlip = s.shown.size();
+    const long lateAtFlip = s.late;
+    const auto hits0 = st.gopCacheHits.load();
+    p.setReverse(true);
+    for (int i = 0; i < 4 * 20; ++i)                    // 20 frames of reverse
+        s.frame(1.0 / 120.0);
+    REQUIRE(s.shown.size() >= atFlip + 18);
+    CHECK(s.late - lateAtFlip <= 1);                    // the flip is not a hold
+    CHECK(st.gopCacheHits.load() - hits0 >= 15);        // the first reverse frames came from the retained ones
+    bool down = true;
+    for (size_t i = atFlip + 1; i < s.shown.size(); ++i)
+        down = down && s.shown[i] < s.shown[i - 1];
+    CHECK(down);
+    CHECK(s.mismatches == 0);
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    p.close();
+}
+
+TEST_CASE("c4: the PingPong top turn is served from the retained frames; the bottom turn from the window; forward hits "
+          "after a manual reverse -> forward flip never show an older frame (the guard); identity throughout",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");   // 60 frames, 2 s
+    auto ref = forwardDecode(f);
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    p.setLoopMode(VideoPlayer::LoopMode::PingPong);
+    Show s{ p };
+    s.check = &ref;
+    // 2 s up, the top turn, 2 s down, the bottom turn, 0.5 s up
+    for (int i = 0; i < 4 * 30 * 4 + 60; ++i)
+        s.frame(1.0 / 120.0);
+    CHECK(s.mismatches == 0);
+    CHECK(s.late <= 4);                                 // <= 2 per turn
+    // the turns: the sequence rises to the top, falls to the bottom, rises again (the turn frame is shown again in the new
+    // generation -- one repeated upload of the same picture per turn: collapsed here)
+    std::vector<long> v;
+    for (long k : s.shown)
+        if (v.empty() || v.back() != k)
+            v.push_back(k);
+    size_t top = 0;
+    for (size_t i = 1; i < v.size(); ++i)
+        if (v[i] > v[top])
+            top = i;
+    CHECK(v[top] >= 58);
+    bool up = true, down = true;
+    for (size_t i = 1; i <= top; ++i)
+        up = up && v[i] > v[i - 1];
+    size_t bottom = top;
+    for (size_t i = top + 1; i < v.size() && v[i] < v[i - 1]; ++i)
+        bottom = i;
+    for (size_t i = top + 1; i <= bottom; ++i)
+        down = down && v[i] < v[i - 1];
+    CHECK(up);
+    CHECK(down);
+    CHECK(v[bottom] <= 1);
+    CHECK(v.size() > bottom + 5);
+    for (size_t i = bottom + 1; i < v.size(); ++i)
+        CHECK(v[i] > v[i - 1]);                       // after the bottom turn: forward, never an older frame
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    // a manual flip mid-file: reverse 10 frames, then forward again -- the forward hits and the decoder's catch-up never
+    // publish a frame at or below the newest one
+    p.setLoopMode(VideoPlayer::LoopMode::Loop);
+    p.seekTo(40.0 / 60.0);
+    p.advanceFrame(0.0);
+    p.setReverse(true);
+    Show t{ p };
+    t.check = &ref;
+    for (int i = 0; i < 40; ++i)
+        t.frame(1.0 / 120.0);
+    const size_t atFlip = t.shown.size();
+    p.setReverse(false);
+    for (int i = 0; i < 120; ++i)
+        t.frame(1.0 / 120.0);
+    REQUIRE(t.shown.size() >= atFlip + 25);
+    for (size_t i = atFlip + 1; i < t.shown.size(); ++i)
+        CHECK(t.shown[i] >= t.shown[i - 1]);          // the flip frame may be shown again (a new generation), never older
+    size_t repeats = 0;
+    for (size_t i = atFlip + 1; i < t.shown.size(); ++i)
+        repeats += t.shown[i] == t.shown[i - 1] ? 1 : 0;
+    CHECK(repeats <= 1);
+    CHECK(t.mismatches == 0);
+    CHECK(t.late <= 2);
+    p.close();
 }

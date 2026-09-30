@@ -290,6 +290,7 @@ private:
     bool runHasToken_ = false;                  // GC9
     int lastDecodedRel_ = -1;
     bool servedFromCache_ = false;              // forward: frames came from the cache since the last decode (reposition)
+    bool hitsArmed_ = false;                    // forward hits: after a reverse episode or a seek onto a resident frame only
     bool repoSeeked_ = false;
     int prefetchBlockedAt_ = -1;                // a PREFETCH run that stored nothing: none again until the served frame moves
     int runStored_ = 0;
@@ -329,6 +330,8 @@ private:
     bool forwardStep(uint32_t gen, double want);                   // today's forward writer (+ c4: hits, retention)
     bool reverseStep(double want);                                 // serve the next frame down: a hit, or a DEMAND run
     bool idleWork(double want);                                    // the ring is full: one decode of a run (or none)
+    bool forwardIdle(double want);                                 // c4: the REPOSITION run behind forward hits
+    void retainForward(int rel, double pts, const AVFrame* src);   // c4: GC8 / R-9 forward retention
     bool runStep(double want);                                     // one decode of the current run
     void onRunFrame(double want);                                  // store / publish a run's decoded frame
     void startDemand(int rel, double want);

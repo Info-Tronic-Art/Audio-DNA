@@ -189,7 +189,8 @@ struct Verdict
 };
 
 // f decoded (not resident): Store into a free slot, else over a None-pool resident, else a new slot while slots < capSlots
-// -- if its pool has room (Future count < capSlots - behindCap, Behind count < behindCap); a full
+// -- if its pool has room (Future count < capSlots - behindCap, Behind count < behindCap); a full pool takes a None
+// resident's slot first, else
 // pool replaces its resident with the largest key if that key > key(f) (never protectA / protectB: the wanted frame and
 // the one being served); else Drop. A frame of pool None is never stored. Also, when the cache is at capSlots and the
 // OTHER pool is over its share, that pool's largest key gives way.
@@ -249,11 +250,11 @@ inline Verdict judgeStore(const std::vector<Slot>& slots, int capSlots, int behi
                 return { Keep::Replace, b };
         }
     }
+    if (noneSlot >= 0)   // a frame of no use left over from another direction / lap goes before anything of value
+        return { Keep::Replace, noneSlot };
     const int b = largest(pool);
     if (b >= 0 && slots[static_cast<size_t>(b)].key > key)
         return { Keep::Replace, b };
-    if (noneSlot >= 0)
-        return { Keep::Replace, noneSlot };
     return v;
 }
 

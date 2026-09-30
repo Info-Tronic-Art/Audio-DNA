@@ -825,13 +825,16 @@ bool VideoPlayer::decodeStep()
         // A new request (a seek, a wrap, a direction change): a run ends (its frames stay resident); reverse plans its own
         // seeks; forward seeks as before unless the wanted frame is resident (hits first, c4).
         myGen_ = g;
+        // c4: forward hits only where they help -- a reverse episode just ended (a flip, a PingPong bottom turn) or the
+        // wanted frame is resident (a seek back into the retained frames); plain forward play decodes as before
+        hitsArmed_ = !rev && !intraOnly_ && (revGen_ || cache_->slotOf(relOf(want)) >= 0);
         revGen_ = rev;
         endRun();
         haveServed_ = false;
         servedFromCache_ = false;
         repoSeeked_ = false;
         prefetchBlockedAt_ = -1;
-        if (revGen_ || (!intraOnly_ && cache_->slotOf(relOf(want)) >= 0))
+        if (revGen_ || hitsArmed_)
             haveNewest_ = false;
         else
         {
@@ -846,10 +849,36 @@ bool VideoPlayer::decodeStep()
 
 bool VideoPlayer::forwardStep(uint32_t g, double want)
 {
+    // c4: a forward HIT -- the next frame is resident (a reverse episode's frames after a flip, a PingPong bottom turn, a
+    // seek back into the retained frames): published from the cache while the decoder is repositioned in idle steps.
+    const int nextRel = haveNewest_ ? relOf(newestPts_) + 1 : relOf(want);
+    if (hitsArmed_ && cache_->slots() > 0)
+    {
+        const int slot = cache_->slotOf(nextRel);
+        if (slot >= 0 && VideoRing::shouldPublish(cache_->ptsAt(slot), want, frameDur_, pol_))
+        {
+            if (!publishCached(slot))
+                return forwardIdle(want);
+            servedFromCache_ = true;
+            return true;
+        }
+    }
     if (VideoRing::decide(want, newestPts_, haveNewest_, pol_) == VideoRing::Step::Reseek)
     {
         seekToTimestamp(want);   // the keyframe at or before want; the catch-up follows
         haveNewest_ = haveDecoded_ = false;
+        servedFromCache_ = false;
+    }
+    else if (servedFromCache_)
+    {
+        // after hits: the decoder must output the frame after the last one served -- seek unless it is at most a GOP below
+        // it (then decode forward: the guard in onDecoded drops what was already served)
+        servedFromCache_ = false;
+        if (!haveDecoded_ || lastDecodedRel_ + 1 > nextRel || nextRel - (lastDecodedRel_ + 1) > gopFramesEst_)
+        {
+            seekToTimestamp(ptsOfRel(nextRel));
+            haveDecoded_ = false;
+        }
     }
 
     codecCtx_->skip_frame = (haveDecoded_ && VideoRing::useSkipNonRef(lastDecodedPts_, want, frameDur_, pol_))
@@ -882,12 +911,16 @@ void VideoPlayer::onDecoded(uint32_t gen)
     const double pts = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_
                                                : wantTime_.load(std::memory_order_acquire);
     lastDecodedPts_ = pts;
+    lastDecodedRel_ = relOf(pts);
     haveDecoded_ = true;
     everDecoded_ = true;
     if (stats_) ++stats_->framesDecoded;
 
-    // A catch-up chases the moving clock: frames behind it are dropped without a conversion.
-    if (!VideoRing::shouldPublish(pts, wantTime_.load(std::memory_order_acquire), frameDur_, pol_))
+    // A catch-up chases the moving clock: frames behind it are dropped without a conversion. c4: so is a frame at or
+    // below the newest one published (a no-op for plain forward play -- after a seek haveNewest_ is false and a decoder's
+    // output is monotonic -- needed after cache hits).
+    if (!VideoRing::shouldPublish(pts, wantTime_.load(std::memory_order_acquire), frameDur_, pol_)
+        || (haveNewest_ && pts <= newestPts_ + 0.5 * frameDur_))
     {
         if (stats_) ++stats_->framesDropped;
         return;
@@ -930,6 +963,11 @@ bool VideoPlayer::tryPublishPending()
         return true;
     }
     convertInto(pendingFrame_, s);
+    if (!revGen_)
+    {
+        retainForward(relOf(pendingPts_), pendingPts_, pendingFrame_);   // c4: GC8 / R-9 (a copy: the ring slot is written)
+        hitsArmed_ = false;   // the decoder has taken over from the cache
+    }
     av_frame_unref(pendingFrame_);   // its buffer back to the decoder's pool now (never later than the old loop did)
     ring_.publish(s, pendingPts_, pendingGen_, ++seq_);
     newestPts_ = pendingPts_;
@@ -1234,7 +1272,7 @@ void VideoPlayer::planPrefetchRun(double want)
 bool VideoPlayer::idleWork(double want)
 {
     if (!revGen_)
-        return false;
+        return forwardIdle(want);
     if (run_->kind == GopCache::RunKind::None)
         planPrefetchRun(want);
     if (run_->kind == GopCache::RunKind::None)
@@ -1320,6 +1358,92 @@ void VideoPlayer::onRunFrame(double want)
     }
     if (rel >= r.target)
         endRun();
+}
+
+// ---- s-rta-0929b gopcache c4: forward retention (GC8 / R-9) and the REPOSITION run behind forward hits ----
+
+// A forward frame just published is kept (a copy in the native format) so a flip to reverse -- the reverse flag on a Loop /
+// OneShot clip (GC8), a PingPong top turn (R-9) -- is served from the cache while the first DEMAND / PREFETCH run decodes.
+// The pool rules keep the newest `forwardRetain()` frames behind the clock; older ones are replaced first.
+void VideoPlayer::retainForward(int rel, double pts, const AVFrame* src)
+{
+    if (intraOnly_ || forwardRetain() <= 0 || rel < 0 || cache_->slotOf(rel) >= 0 || !cache_->storable(src))
+        return;
+    const auto mode = cacheModeOf(loopMode_.load(std::memory_order_relaxed));
+    const int n = nTraj();
+    const int cur = relOf(wantTime_.load(std::memory_order_acquire));
+    const int capS = capSlots();
+    const int retain = forwardRetain();
+    refreshView(cur, true);
+    const auto pool = GopCache::poolOf(mode, true, n, cur, rel, retain);
+    const int key = GopCache::keyOf(mode, true, n, cur, rel, pool);
+    const auto v = GopCache::judgeStore(cache_->view(), capS, GopCache::behindCapFor(mode, true, capS, retain), rel, key,
+                                        pool, rel, -1);
+    if (v.keep == GopCache::Keep::Drop || !cache_->store(src, rel, pts, v, GopCache::Slot{ rel, key, pool }, floorBytes()))
+        if (stats_ != nullptr)
+            ++stats_->gopCacheDrops;
+}
+
+// Forward hits are being served: bring the decoder to the frame after the cache's contiguous top (one decode per step),
+// storing that frame -- it becomes the next hit, and the decoder then outputs the one after it (no seek at the switch).
+bool VideoPlayer::forwardIdle(double want)
+{
+    (void) want;
+    if (!hitsArmed_ || !haveNewest_ || cache_->slots() == 0)
+        return false;
+    const int nextRel = relOf(newestPts_) + 1;
+    if (cache_->slotOf(nextRel) < 0)
+        return false;   // no hits ahead: the plain forward decode serves the next frame
+    int top = nextRel;
+    while (cache_->slotOf(top + 1) >= 0)
+        ++top;
+    const int target = top + 1;
+    if (target >= nTraj() || (haveDecoded_ && lastDecodedRel_ == top))
+        return false;   // the end, or the decoder is in place (its next output is `target`)
+    if (!repoSeeked_ && (!haveDecoded_ || lastDecodedRel_ >= target || target - lastDecodedRel_ > gopFramesEst_))
+    {
+        seekToTimestamp(ptsOfRel(target));
+        haveDecoded_ = false;
+        repoSeeked_ = true;
+        if (stats_ != nullptr)
+            ++stats_->gopCacheRuns;
+    }
+    codecCtx_->skip_frame = AVDISCARD_DEFAULT;
+    if (!decodeNextFrame())
+    {
+        if (atEof_)
+            lastRel_ = std::max(lastRel_, lastDecodedRel_);
+        return false;
+    }
+    const double pts = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_ : ptsOfRel(target);
+    const int rel = relOf(pts);
+    lastDecodedPts_ = pts;
+    lastDecodedRel_ = rel;
+    haveDecoded_ = true;
+    if (stats_ != nullptr)
+    {
+        ++stats_->framesDecoded;
+        ++stats_->gopCacheRunDecodes;
+    }
+    if (rel >= target && cache_->slotOf(rel) < 0 && cache_->storable(decodedFrame_))
+    {
+        const auto mode = cacheModeOf(loopMode_.load(std::memory_order_relaxed));
+        const int cur = relOf(wantTime_.load(std::memory_order_acquire));
+        const int capS = capSlots();
+        const int retain = forwardRetain();
+        refreshView(cur, true);
+        const auto pool = GopCache::poolOf(mode, true, nTraj(), cur, rel, retain);
+        const int key = GopCache::keyOf(mode, true, nTraj(), cur, rel, pool);
+        const auto v = GopCache::judgeStore(cache_->view(), capS, GopCache::behindCapFor(mode, true, capS, retain), rel,
+                                            key, pool, rel, -1);
+        if (v.keep == GopCache::Keep::Drop
+            || !cache_->store(decodedFrame_, rel, pts, v, GopCache::Slot{ rel, key, pool }, floorBytes()))
+            if (stats_ != nullptr)
+                ++stats_->gopCacheDrops;
+    }
+    else if (stats_ != nullptr)
+        ++stats_->framesDropped;
+    return true;
 }
 
 bool VideoPlayer::seekToTimestamp(double timeSec)
