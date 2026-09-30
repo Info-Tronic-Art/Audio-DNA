@@ -3077,8 +3077,8 @@ void MainComponent::refreshAudioDeviceNotice(bool relayout)
     juce::String text;
     switch (audioEngine_.getDeviceState())
     {
-        case AudioEngine::DeviceState::NoDevice: text = "No audio device found. Bluetooth is never used."; break;
-        case AudioEngine::DeviceState::NoInput:  text = "No wired mic found. Bluetooth is never used."; break;
+        case AudioEngine::DeviceState::NoDevice: text = "No audio device found - plug one in. Bluetooth is never used."; break;
+        case AudioEngine::DeviceState::NoInput:  text = "No wired mic found - plug one in. Bluetooth is never used."; break;
         case AudioEngine::DeviceState::Ok:       break;
     }
     if (text == audioDeviceNotice_.getText() && audioDeviceNotice_.isVisible() == text.isNotEmpty())

@@ -133,8 +133,8 @@ def dev_row(d, name, key):
 def check(rid, cond, text, detail=''):
     row('PASS' if cond else 'FAIL', '%s %s%s' % (rid, text, '' if cond else '  [' + detail + ']'))
     return cond
-NOTICE_IN = 'No wired mic found. Bluetooth is never used.'
-NOTICE_DEV = 'No audio device found. Bluetooth is never used.'
+NOTICE_IN = 'No wired mic found - plug one in. Bluetooth is never used.'
+NOTICE_DEV = 'No audio device found - plug one in. Bluetooth is never used.'
 WIRELESS = {'blue', 'blea', 'airp', 'ccwl', 'ccap'}
 
 if arm == 'A':
