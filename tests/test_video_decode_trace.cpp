@@ -6,7 +6,7 @@
 // then picks like uploadToTexture (the same pick call, the same Retire hand-back; no GL). The trace (every published
 // frame in publish order, every pick, the decode / drop / seek counters) was RECORDED ON THE PRE-REFACTOR WRITER (main
 // d88d2ea: decodeLoop with its ring-full wait loop) and is the literal below: the c1b refactor (decodeLoop = an outer
-// loop around decodeStep) must reproduce it exactly, threaded AND stepped without a thread.
+// loop around decodeStep) must reproduce it exactly, threaded AND stepped without a thread (the second case).
 #include <catch2/catch_test_macros.hpp>
 
 #include "media/VideoPlayer.h"
@@ -45,6 +45,15 @@ struct VideoPlayerTestAccess
     }
 
     // The GL thread's pick (uploadToTexture without GL and without a budget): the frame index picked, or -1.
+    // c1b: the writer without a thread -- decodeStep() until it reports no progress (the ring full, or EOF drained).
+    static bool stepUntilIdle(VideoPlayer& p)
+    {
+        for (int n = 0; n < 100000; ++n)
+            if (!p.decodeStep())
+                return true;
+        return false;
+    }
+
     static long readerPick(VideoPlayer& p)
     {
         const uint32_t g = p.gen_.load(std::memory_order_acquire);
@@ -158,6 +167,25 @@ TEST_CASE("golden trace: the forward writer publishes exactly the recorded frame
     p.close();
     if (const char* out = std::getenv("GOLDEN_TRACE_OUT"))   // how the literals below were recorded (c0, main's writer)
         juce::File(out).replaceWithText(t.published + "\n" + t.picks + "\n" + t.counters + "\n");
+    UNSCOPED_INFO("published: " << t.published);
+    UNSCOPED_INFO("picks: " << t.picks);
+    UNSCOPED_INFO("counters: " << t.counters);
+    CHECK(t.published == kGoldenPublished);
+    CHECK(t.picks == kGoldenPicks);
+    CHECK(t.counters == kGoldenCounters);
+}
+
+TEST_CASE("golden trace, stepped: decodeStep() without a thread reproduces the pre-refactor writer exactly (c1b)",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop30_64x64.mp4");
+    REQUIRE(f.existsAsFile());
+    VideoStats st;
+    VideoPlayer p;
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    const auto t = runSchedule(p, st, [&] { return VideoPlayerTestAccess::stepUntilIdle(p); });
+    p.close();
     UNSCOPED_INFO("published: " << t.published);
     UNSCOPED_INFO("picks: " << t.picks);
     UNSCOPED_INFO("counters: " << t.counters);

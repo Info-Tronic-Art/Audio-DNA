@@ -257,6 +257,15 @@ private:
     uint32_t myGen_ = 0;
     uint64_t seq_ = 0;
     bool drained_ = false;
+    // s-rta-0929b gopcache c1b (plan R-15): the writer is a step machine -- decodeLoop() is an outer wait loop around
+    // decodeStep(). A decoded frame that finds the ring full is PENDING: moved into pendingFrame_ (adoption GC1: never shared
+    // with later decodes) and retried once per step; draining_ = the EOF drain is in progress (one frame per step).
+    VideoRing::Policy pol_;
+    AVFrame* pendingFrame_ = nullptr;
+    bool pendingPublish_ = false;
+    uint32_t pendingGen_ = 0;
+    double pendingPts_ = 0.0;
+    bool draining_ = false;
     bool atEof_ = false;               // decodeNextFrame() stopped at the end of the stream (not a decode error)
     bool everDecoded_ = false;         // a frame of this file ever decoded (open()'s frame 0 included) -- W3
 
@@ -285,14 +294,15 @@ private:
     bool advanceTransport(double dt);
 
     // Decode thread
-    void decodeLoop();
-    void onDecoded(uint32_t gen, const VideoRing::Policy& pol);   // drop, or convert into a slot and publish
-    void drainDecoder(uint32_t gen, const VideoRing::Policy& pol); // EOF: the frames frame-threading held back
+    void decodeLoop();                                             // the outer loop: exit / trim / park / wait
+    bool decodeStep();                                             // one unit of progress, never blocks (false = none)
+    void onDecoded(uint32_t gen);                                  // drop, or publish (pending when the ring is full)
+    bool tryPublishPending();                                      // true = done with it (published or dropped)
     void park();                                                   // wait until notified (threadsAwake accounting)
     void noteNoFirstFrame(const char* why);                        // W3: EOF / a decode error before any frame
     bool seekToTimestamp(double timeSec);
     bool decodeNextFrame();
-    void convertInto(int slot);                                    // sws_scale bottom-up (negative stride) into a slot
+    void convertInto(const AVFrame* src, int slot);                // sws_scale bottom-up (negative stride) into a slot
     void uploadSlot(int slot);                                     // GL thread: slot -> texture_ (created on first use)
     bool createSurfaces();                                         // open(): 3 BGRA IOSurfaces (macOS)
     bool blitSlot(int slot);                                       // P3: the IOSurface blit; false = fell back to Client

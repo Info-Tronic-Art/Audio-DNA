@@ -131,8 +131,9 @@ bool VideoPlayer::open(const juce::File& file)
         return false;
     }
 
-    // Allocate frame and packet
+    // Allocate frame and packet (and the pending frame: a decoded frame waiting for a ring slot, GC1)
     decodedFrame_ = av_frame_alloc();
+    pendingFrame_ = av_frame_alloc();
     packet_ = av_packet_alloc();
 
     // Extract video properties
@@ -147,6 +148,14 @@ bool VideoPlayer::open(const juce::File& file)
     else
         frameRate_ = 30.0;
     frameDur_ = 1.0 / frameRate_;
+
+    // s-rta-0929b gopcache c1b: the decode thread's policy, set here (decodeStep() runs it with or without the loop).
+    // The writer runs up to kWriterLookAhead frames ahead of the shown frame (the old decode ran at most one): "behind"
+    // must exceed that look-ahead, or forward play of a slow clip (a 24 fps clip: 3 frames > 0.1 s) would re-seek after
+    // every few frames -- and no more than it (+1 frame), or reverse play re-seeks later than it needs to.
+    pol_ = VideoRing::Policy{};
+    pol_.skipNonRefInCatchUp = kSkipNonRefInCatchUp;
+    pol_.reseekBehindSec = std::max(pol_.reseekBehindSec, (kWriterLookAhead + 1) * frameDur_);
 
     // Time base
     timeBase_ = av_q2d(stream->time_base);
@@ -238,7 +247,7 @@ bool VideoPlayer::open(const juce::File& file)
         everDecoded_ = true;
         const double pts0 = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_ : 0.0;
         const int s = ring_.acquireWrite();
-        convertInto(s);
+        convertInto(decodedFrame_, s);
         ring_.publish(s, std::min(pts0, 0.0), 0, ++seq_);
         newestPts_ = lastDecodedPts_ = pts0;
         haveNewest_ = haveDecoded_ = true;
@@ -291,6 +300,8 @@ void VideoPlayer::freeFfmpeg()
 {
     if (swsCtx_) { sws_freeContext(swsCtx_); swsCtx_ = nullptr; }
     if (decodedFrame_) { av_frame_free(&decodedFrame_); decodedFrame_ = nullptr; }
+    if (pendingFrame_) { av_frame_free(&pendingFrame_); pendingFrame_ = nullptr; }
+    pendingPublish_ = false;
     if (packet_) { av_packet_free(&packet_); packet_ = nullptr; }
     if (codecCtx_) { avcodec_free_context(&codecCtx_); codecCtx_ = nullptr; }
     if (formatCtx_) { avformat_close_input(&formatCtx_); formatCtx_ = nullptr; }
@@ -702,12 +713,10 @@ void VideoPlayer::park()
 void VideoPlayer::decodeLoop()
 {
     // plan-video R-5: today's GL-thread rules, moved here and made non-blocking for the GL thread.
-    VideoRing::Policy pol;
-    pol.skipNonRefInCatchUp = kSkipNonRefInCatchUp;
-    // The writer runs up to kWriterLookAhead frames ahead of the shown frame (the old decode ran at most one): "behind"
-    // must exceed that look-ahead, or forward play of a slow clip (a 24 fps clip: 3 frames > 0.1 s) would re-seek after
-    // every few frames -- and no more than it (+1 frame), or reverse play re-seeks later than it needs to.
-    pol.reseekBehindSec = std::max(pol.reseekBehindSec, (kWriterLookAhead + 1) * frameDur_);
+    // s-rta-0929b gopcache c1b (plan R-15): an outer loop -- exit / trim / park / wait -- around decodeStep(), one unit of
+    // progress that never blocks. The ring-full wait of the old loop is one publish attempt per step with this loop's
+    // 20 ms wait between attempts (the reader's release notifies, as before); the idle park is checked once per iteration.
+    // The policy (pol_) is set in open(): a writer stepped without this loop (the ctests) runs the same rules.
     if (stats_) ++stats_->threadsAwake;
 
     while (!thread_.threadShouldExit())
@@ -717,50 +726,81 @@ void VideoPlayer::decodeLoop()
         if (trimRequested_.exchange(false, std::memory_order_acq_rel))
             purgeFreeSlots();
 
-        // Rule 15: a player that is not drawn (its deck off screen) decodes nothing.
-        if (VideoRing::idleStep(nowMs(), lastDrawMs_.load(std::memory_order_acquire), pol) == VideoRing::Idle::Park)
+        // Rule 15: a player that is not drawn (its deck off screen) decodes nothing. V2: a frame waiting for a ring slot is
+        // dropped when the thread parks (the clock moved on while it was off screen).
+        if (VideoRing::idleStep(nowMs(), lastDrawMs_.load(std::memory_order_acquire), pol_) == VideoRing::Idle::Park)
         {
             park();
+            pendingPublish_ = false;
             continue;
         }
 
-        const uint32_t g = gen_.load(std::memory_order_acquire);
-        const double want = wantTime_.load(std::memory_order_acquire);
-        if (g != myGen_ || VideoRing::decide(want, newestPts_, haveNewest_, pol) == VideoRing::Step::Reseek)
-        {
-            myGen_ = g;
-            seekToTimestamp(want);   // the keyframe at or before want; the catch-up follows
-            haveNewest_ = haveDecoded_ = false;
-        }
-
-        codecCtx_->skip_frame = (haveDecoded_ && VideoRing::useSkipNonRef(lastDecodedPts_, want, frameDur_, pol))
-                                    ? AVDISCARD_NONREF
-                                    : AVDISCARD_DEFAULT;
-
-        if (!decodeNextFrame())
-        {
-            if (!atEof_)
-            {
-                noteNoFirstFrame("a decode error");   // W3: before any frame -> FAILED
-                continue;               // a decode error: the next packet
-            }
-            if (!drained_)
-            {
-                drainDecoder(g, pol);   // EOF: the last frames frame-threading held back now show
-                continue;
-            }
-            noteNoFirstFrame("EOF");    // W3: drained and still no frame -> FAILED
-            thread_.wait(20);           // EOF: the Loop wrap's generation bump (or a seek) re-seeks
-            continue;
-        }
-        onDecoded(g, pol);
+        const auto t0 = std::chrono::steady_clock::now();
+        const bool progressed = decodeStep();
+        if (stats_ != nullptr)   // S1 (adoption, decode seat): the longest single writer step (INFO)
+            VideoStats::noteMax(stats_->writerStepMaxMs,
+                                std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count());
+        if (!progressed)
+            thread_.wait(20);   // a full ring (the reader's release notifies) or EOF (a wrap's generation bump re-seeks)
     }
 
     freeFfmpeg();   // the thread owns the contexts: nobody else touches them after start()
     if (stats_) { --stats_->threadsAwake; --stats_->threadsRunning; }
 }
 
-void VideoPlayer::onDecoded(uint32_t gen, const VideoRing::Policy& pol)
+bool VideoPlayer::decodeStep()
+{
+    // A frame waiting for a ring slot: one attempt (today's ring-full loop body).
+    if (pendingPublish_)
+        return tryPublishPending();
+
+    // EOF: the frames frame-threading held back, one per step (drainDecoder's loop).
+    if (draining_)
+    {
+        if (!thread_.threadShouldExit() && avcodec_receive_frame(codecCtx_, decodedFrame_) == 0)
+        {
+            onDecoded(myGen_);
+            return true;
+        }
+        draining_ = false;
+        drained_ = true;
+        return true;
+    }
+
+    const uint32_t g = gen_.load(std::memory_order_acquire);
+    const double want = wantTime_.load(std::memory_order_acquire);
+    if (g != myGen_ || VideoRing::decide(want, newestPts_, haveNewest_, pol_) == VideoRing::Step::Reseek)
+    {
+        myGen_ = g;
+        seekToTimestamp(want);   // the keyframe at or before want; the catch-up follows
+        haveNewest_ = haveDecoded_ = false;
+    }
+
+    codecCtx_->skip_frame = (haveDecoded_ && VideoRing::useSkipNonRef(lastDecodedPts_, want, frameDur_, pol_))
+                                ? AVDISCARD_NONREF
+                                : AVDISCARD_DEFAULT;
+
+    if (!decodeNextFrame())
+    {
+        if (!atEof_)
+        {
+            noteNoFirstFrame("a decode error");   // W3: before any frame -> FAILED
+            return true;                          // a decode error: the next packet
+        }
+        if (!drained_)
+        {
+            avcodec_send_packet(codecCtx_, nullptr);   // EOF: the last frames frame-threading held back now show
+            draining_ = true;
+            return true;
+        }
+        noteNoFirstFrame("EOF");   // W3: drained and still no frame -> FAILED
+        return false;              // EOF: the Loop wrap's generation bump (or a seek) re-seeks
+    }
+    onDecoded(g);
+    return true;
+}
+
+void VideoPlayer::onDecoded(uint32_t gen)
 {
     // No pts -> take it (the old decodeFrameAtTime's "use whatever we got").
     const double pts = decodedFrame_->pts >= 0 ? static_cast<double>(decodedFrame_->pts) * timeBase_
@@ -771,44 +811,54 @@ void VideoPlayer::onDecoded(uint32_t gen, const VideoRing::Policy& pol)
     if (stats_) ++stats_->framesDecoded;
 
     // A catch-up chases the moving clock: frames behind it are dropped without a conversion.
-    if (!VideoRing::shouldPublish(pts, wantTime_.load(std::memory_order_acquire), frameDur_, pol))
+    if (!VideoRing::shouldPublish(pts, wantTime_.load(std::memory_order_acquire), frameDur_, pol_))
     {
         if (stats_) ++stats_->framesDropped;
         return;
     }
 
-    int s;
-    while ((s = ring_.acquireWrite()) < 0)   // the ring is full: the reader frees a slot and notifies
+    // Pending until a ring slot takes it (GC1: its own AVFrame -- the next decode never overwrites it).
+    av_frame_unref(pendingFrame_);
+    av_frame_move_ref(pendingFrame_, decodedFrame_);
+    pendingGen_ = gen;
+    pendingPts_ = pts;
+    pendingPublish_ = true;
+    tryPublishPending();
+}
+
+bool VideoPlayer::tryPublishPending()
+{
+    const int s = ring_.acquireWrite();
+    if (s < 0)   // the ring is full: the reader frees a slot and notifies
     {
-        if (thread_.threadShouldExit() || gen_.load(std::memory_order_acquire) != gen)
-            return;   // exiting, or a seek arrived: this frame is stale
-        if (VideoRing::idleStep(nowMs(), lastDrawMs_.load(std::memory_order_acquire), pol) == VideoRing::Idle::Park)
+        if (thread_.threadShouldExit() || gen_.load(std::memory_order_acquire) != pendingGen_)
         {
-            park();   // V2: off screen while the ring is full -- park, and drop this frame (the clock moved on)
-            return;
+            pendingPublish_ = false;   // exiting, or a seek arrived: this frame is stale
+            av_frame_unref(pendingFrame_);
+            return true;
         }
-        if (VideoRing::decide(wantTime_.load(std::memory_order_acquire), newestPts_, haveNewest_, pol)
+        if (VideoRing::decide(wantTime_.load(std::memory_order_acquire), newestPts_, haveNewest_, pol_)
             == VideoRing::Step::Reseek)
-            return;   // the clock moved away (reverse play): the top of the loop re-seeks
-        thread_.wait(20);
+        {
+            pendingPublish_ = false;   // the clock moved away (reverse play): the next step re-seeks
+            av_frame_unref(pendingFrame_);
+            return true;
+        }
+        return false;
     }
+    pendingPublish_ = false;
     if (!unpurge(s))   // P4b: a purged slot back in use (malloc path: the allocation failed -- drop this frame)
     {
         ring_.abandon(s);
-        return;
+        av_frame_unref(pendingFrame_);
+        return true;
     }
-    convertInto(s);
-    ring_.publish(s, pts, gen, ++seq_);
-    newestPts_ = pts;
+    convertInto(pendingFrame_, s);
+    av_frame_unref(pendingFrame_);   // its buffer back to the decoder's pool now (never later than the old loop did)
+    ring_.publish(s, pendingPts_, pendingGen_, ++seq_);
+    newestPts_ = pendingPts_;
     haveNewest_ = true;
-}
-
-void VideoPlayer::drainDecoder(uint32_t gen, const VideoRing::Policy& pol)
-{
-    avcodec_send_packet(codecCtx_, nullptr);
-    while (!thread_.threadShouldExit() && avcodec_receive_frame(codecCtx_, decodedFrame_) == 0)
-        onDecoded(gen, pol);
-    drained_ = true;
+    return true;
 }
 
 bool VideoPlayer::seekToTimestamp(double timeSec)
@@ -873,12 +923,13 @@ bool VideoPlayer::decodeNextFrame()
     }
 }
 
-void VideoPlayer::convertInto(int slot)
+void VideoPlayer::convertInto(const AVFrame* src, int slot)
 {
     // Bottom-up (GL order) in one pass: the destination starts at the slot's last row with a negative stride (sws
     // honours it -- plan-video F14, re-verified at 320x180 / 1080p / 4K for yuv420p and yuv422p10le). No flip, no
     // allocation.
     // s-rta-0929 vupload P3: an IOSurface slot is written under its lock (the CPU-write / GPU-read protocol).
+    // s-rta-0929b gopcache: `src` = the decoded frame, the pending frame or a GOP-cache copy -- the only slot writer.
 #if JUCE_MAC
     auto* surface = static_cast<IOSurfaceRef>(surf_[static_cast<size_t>(slot)]);
     if (surface != nullptr)
@@ -887,7 +938,7 @@ void VideoPlayer::convertInto(int slot)
     uint8_t* dst[4] = { slotBytes_[static_cast<size_t>(slot)] + static_cast<size_t>(height_ - 1) * static_cast<size_t>(rowBytes_),
                         nullptr, nullptr, nullptr };
     int dstStride[4] = { -rowBytes_, 0, 0, 0 };
-    sws_scale(swsCtx_, decodedFrame_->data, decodedFrame_->linesize, 0, height_, dst, dstStride);
+    sws_scale(swsCtx_, src->data, src->linesize, 0, height_, dst, dstStride);
 #if JUCE_MAC
     if (surface != nullptr)
         IOSurfaceUnlock(surface, 0, nullptr);
