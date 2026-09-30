@@ -278,6 +278,10 @@ private:
     int playerId_ = 0;                          // GC9: the one-PREFETCH-run token's owner id
     bool intraOnly_ = false;                    // GC5: every frame a keyframe (codec or container index) -- no cache
     int gopFramesEst_ = 250;                    // the container index's longest keyframe interval (R-9)
+    // s-rta-0930 gop2 (A1): the container index's keyframes, relative and sorted (empty = no index: the longest-interval
+    // grid) -- a PREFETCH window's lead-in is measured from the real keyframe below it. Written in open(), read by the
+    // decode thread (like gopFramesEst_).
+    std::vector<int> keyRels_;
     double decodeMsEma_ = 0.0;                  // measured decode ms per frame (seeded per megapixel)
     double firstPts_ = 0.0;                     // relative frame 0 (open()'s first decoded frame)
     int nFrames_ = 0;                           // the trajectory's length (totalFrames_; the real count once EOF is met)

@@ -30,6 +30,7 @@ extern "C" {
 
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <map>
 #include <set>
@@ -137,6 +138,16 @@ struct VideoPlayerTestAccess
         return p.relOf(k.pts);
     }
     static double lastPickedPts(const VideoPlayer& p) { return p.ring_.header(p.retire_.held).pts; }
+    // s-rta-0930 gop2: the decode-time estimate pinned by an emulating harness (the EMA would learn a 64x64 file's ~0.05 ms)
+    static void pinDecodeMs(VideoPlayer& p, double ms) { p.decodeMsEma_ = ms; }
+    // a PREFETCH run is in its lead-in: sought, not yet decoding inside its window
+    static bool inPrefetchLeadIn(const VideoPlayer& p)
+    {
+        return p.run_->kind == GopCache::RunKind::Prefetch && !p.run_->seekPending
+               && (!p.haveDecoded_ || p.lastDecodedRel_ < p.run_->windowLo);
+    }
+    static int gopEst(const VideoPlayer& p) { return p.gopFramesEst_; }
+    static std::vector<int> keyRels(const VideoPlayer& p) { return p.keyRels_; }
 };
 
 namespace
@@ -1260,4 +1271,275 @@ TEST_CASE("c4: the PingPong top turn is served from the retained frames; the bot
     CHECK(t.mismatches == 0);
     CHECK(t.late <= 2);
     p.close();
+}
+
+namespace
+{
+// s-rta-0930 gop2: the key-flagged PACKETS and the key-flagged DECODED frames of a forward decode of `file` (a fixture's
+// sanity tooth: the GOP structure the case depends on).
+void keyCounts(const juce::File& file, int* keyPackets, int* keyFrames)
+{
+    *keyPackets = *keyFrames = 0;
+    AVFormatContext* fmt = nullptr;
+    REQUIRE(avformat_open_input(&fmt, file.getFullPathName().toRawUTF8(), nullptr, nullptr) == 0);
+    REQUIRE(avformat_find_stream_info(fmt, nullptr) >= 0);
+    const int si = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    REQUIRE(si >= 0);
+    const AVCodec* codec = avcodec_find_decoder(fmt->streams[si]->codecpar->codec_id);
+    AVCodecContext* cc = avcodec_alloc_context3(codec);
+    avcodec_parameters_to_context(cc, fmt->streams[si]->codecpar);
+    REQUIRE(avcodec_open2(cc, codec, nullptr) == 0);
+    AVFrame* fr = av_frame_alloc();
+    AVPacket* pk = av_packet_alloc();
+    auto take = [&] {
+        while (avcodec_receive_frame(cc, fr) == 0)
+            *keyFrames += (fr->flags & AV_FRAME_FLAG_KEY) != 0 ? 1 : 0;
+    };
+    while (av_read_frame(fmt, pk) >= 0)
+    {
+        if (pk->stream_index == si)
+        {
+            *keyPackets += (pk->flags & AV_PKT_FLAG_KEY) != 0 ? 1 : 0;
+            if (avcodec_send_packet(cc, pk) >= 0)
+                take();
+        }
+        av_packet_unref(pk);
+    }
+    avcodec_send_packet(cc, nullptr);
+    take();
+    av_frame_free(&fr);
+    av_packet_free(&pk);
+    avcodec_free_context(&cc);
+    avformat_close_input(&fmt);
+}
+
+// s-rta-0930 gop2 (GC7): a deterministic real-time emulation -- the REAL player reversing, the writer stepped with at most
+// K FFmpeg decodes (the framesDecoded delta) per 120 Hz render frame, the decode-time estimate pinned before EVERY step to
+// the emulated t_d = 8.333 / K ms (x pinFactor; or the harness's own 0.9 / 0.1 EMA of t_d from `ema`, emulateEma), then the
+// pick and the committed Show's late rule (counted only while playing). It counts decodes, never time: reruns are identical.
+// late / shown are split at the event (phase 0 before it fires, 1 after); every picked frame is compared with `ref`.
+struct Emulated
+{
+    VideoPlayer& p;
+    VideoStats& st;
+    std::map<long, Bytes>& ref;
+    int K = 3;
+    double pinFactor = 1.0;
+    bool emulateEma = false;
+    double ema = 0.0;
+    long late[2] = { 0, 0 }, shown[2] = { 0, 0 };
+    long mismatches = 0, lastShown = -1;
+
+    double td() const { return 1000.0 / 120.0 / K; }
+    void frame(int phase)
+    {
+        p.advanceFrame(1.0 / 120.0);
+        const long d0 = st.framesDecoded.load();
+        for (int s = 0; s < 20000; ++s)
+        {
+            VideoPlayerTestAccess::pinDecodeMs(p, emulateEma ? ema : td() * pinFactor);
+            const long before = st.framesDecoded.load();
+            if (before - d0 >= K || !VideoPlayerTestAccess::step(p))
+                break;
+            for (long d = before; d < st.framesDecoded.load(); ++d)
+                ema = 0.9 * ema + 0.1 * td();
+        }
+        Bytes b;
+        const long k = VideoPlayerTestAccess::pick(p, &b);
+        if (k >= 0)
+        {
+            shown[phase] += k != lastShown ? 1 : 0;
+            lastShown = k;
+            mismatches += (ref.count(k) == 0 || ref[k] != b) ? 1 : 0;
+        }
+        else if (lastShown >= 0 && p.isPlaying()
+                 && std::fabs(VideoPlayerTestAccess::clock(p) - VideoPlayerTestAccess::lastPickedPts(p))
+                        > 1.5 * VideoPlayerTestAccess::frameDur(p))
+            ++late[phase];
+    }
+    long lateTotal() const { return late[0] + late[1]; }
+    long shownTotal() const { return shown[0] + shown[1]; }
+};
+
+// The player opened with a local Budget of `capFrames` frames, reversing from the Loop wrap (the T1b start).
+void openCapped(VideoPlayer& p, VideoStats& st, GopCache::Budget& budget, const juce::File& f, int capFrames)
+{
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    budget.total.store(capFrames * VideoPlayerTestAccess::frameBytes(p));
+    p.setReverse(true);
+    p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
+}
+} // namespace
+
+// s-rta-0930 gop2 (GC7, plan item 1 + ruling A5): a GOP-250 file (keys 0 and 250) reversed for 9 s from the Loop wrap in a
+// small share, under an emulated decoder of K decodes per render frame. main 655d232 planned a PREFETCH run only once half
+// the share was free -- too little cover for the lead-in from keyframe 0 into the top of GOP 0 (the live u8 row: late 123
+// per 5 s at 256 MB). The in-place window counts the slots the clock frees during the lead-in. Pre-registered (late /
+// shown): main (a) 69 / 246, (b) 56 / 250, (c) 0 / 269, (d) 403 / 160, (e) 69 / 246, (f) 69 / 246; RED on 655d232: (a) (b)
+// (d) (e) (f).
+TEST_CASE("gop2 (GC7): a GOP-250 reverse Loop in a small share keeps up with an emulated decoder", "[video_player][gopcache][s-rta-0930]")
+{
+    const auto f = fixture("video_h264_gop250_64x64.mp4");
+    auto ref = forwardDecode(f);
+    REQUIRE(ref.size() == 300);
+    int keyPackets = 0, keyFrames = 0;
+    keyCounts(f, &keyPackets, &keyFrames);
+    REQUIRE(keyPackets == 2);   // keys 0 and 250: the fixture still has the u8 shape
+    REQUIRE(keyFrames == 2);
+    struct Config
+    {
+        const char* name;
+        int cap, K;
+        double pinFactor;
+        bool ema;
+        long lateMax, shownMin;
+    };
+    for (const Config& c : { Config{ "(a) CAP 21, K 3", 21, 3, 1.0, false, 4, 265 }, Config{ "(b) CAP 16, K 4", 16, 4, 1.0, false, 4, 265 },
+                             Config{ "(c) CAP 21, K 5", 21, 5, 1.0, false, 4, 265 }, Config{ "(d) CAP 21, K 2", 21, 2, 1.0, false, 100, 240 },
+                             Config{ "(e) CAP 21, K 3, EMA from a 2x seed", 21, 3, 2.0, true, 4, 265 },
+                             Config{ "(f) CAP 21, K 3, pinned 2x", 21, 3, 2.0, false, 4, 265 } })
+    {
+        VideoStats st;
+        GopCache::Budget budget;
+        VideoPlayer p;
+        openCapped(p, st, budget, f, c.cap);
+        REQUIRE(VideoPlayerTestAccess::gopEst(p) == 250);
+        Emulated e{ p, st, ref, c.K, c.ema ? 1.0 : c.pinFactor, c.ema };
+        e.ema = e.td() * c.pinFactor;
+        for (int i = 0; i < 9 * 120; ++i)
+            e.frame(0);
+        int checked = 0;
+        const int bad = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+        std::printf("gop2 T1b %-36s late %ld shown %ld mismatches %ld cacheMismatches %d/%d nonmono %lld decodes %lld\n", c.name,
+                    e.lateTotal(), e.shownTotal(), e.mismatches, bad, checked, static_cast<long long>(st.reverseNonmonotonic.load()),
+                    static_cast<long long>(st.framesDecoded.load()));
+        CAPTURE(c.name, e.lateTotal(), e.shownTotal(), checked, st.framesDecoded.load(), st.gopCacheMisses.load());
+        CHECK(e.lateTotal() <= c.lateMax);
+        CHECK(e.shownTotal() >= c.shownMin);
+        CHECK(e.mismatches == 0);
+        CHECK(bad == 0);
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+}
+
+// s-rta-0930 gop2 (ruling A5, T1c): the T1b harness (CAP 21, K 3) with ONE event fired, before that frame's advanceFrame, at
+// the first render frame >= 1.6 s where a PREFETCH run is in its lead-in. Pre-registered totals (main -> amended): pause
+// 33 -> 0, 2x speed 558 -> 337, a halved budget 469 -> 428, a decoder slowing from 5 to 3 decodes a frame 38 -> 0, a flip
+// to forward 3 (post 0) -> 31 (pre 0). RED on 655d232: pause and slew; the rest are guards (never later than main; a flip
+// never stalls: post-flip late <= the forward catch-up's bound ceil(gopFramesEst_ / K) + 6 = 90).
+TEST_CASE("gop2 (GC7): a pause, a 2x speed change, a halved budget, a slower decoder or a flip DURING a PREFETCH lead-in -- "
+          "identity holds, never later than main, a flip never stalls", "[video_player][gopcache][s-rta-0930]")
+{
+    const auto f = fixture("video_h264_gop250_64x64.mp4");
+    auto ref = forwardDecode(f);
+    REQUIRE(ref.size() == 300);
+    for (const char* ev : { "pause", "speed", "shrink", "slew", "flip" })
+    {
+        const std::string event = ev;
+        VideoStats st;
+        GopCache::Budget budget;
+        VideoPlayer p;
+        openCapped(p, st, budget, f, 21);
+        Emulated e{ p, st, ref, event == "slew" ? 5 : 3 };
+        long fired = -1, resumeAt = -1;
+        for (long i = 0; i < 9 * 120; ++i)
+        {
+            const int phase = fired >= 0 ? 1 : 0;
+            if (fired < 0 && i >= 192 && VideoPlayerTestAccess::inPrefetchLeadIn(p))
+            {
+                fired = i;
+                if (event == "pause")
+                {
+                    p.setPlaying(false);
+                    resumeAt = i + 120;
+                }
+                else if (event == "speed")
+                    p.setSpeed(2.0f);
+                else if (event == "shrink")
+                    budget.total.store(budget.total.load() / 2);
+                else if (event == "slew")
+                    e.K = 3;
+                else
+                    p.setReverse(false);
+            }
+            if (resumeAt >= 0 && i == resumeAt)
+            {
+                p.setPlaying(true);
+                resumeAt = -1;
+            }
+            e.frame(phase);
+        }
+        int checked = 0;
+        const int bad = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+        std::printf("gop2 T1c %-6s fired@%ld late pre %ld post %ld (total %ld) shown pre %ld post %ld mismatches %ld "
+                    "cacheMismatches %d/%d nonmono %lld\n", ev, fired, e.late[0], e.late[1], e.lateTotal(), e.shown[0], e.shown[1],
+                    e.mismatches, bad, checked, static_cast<long long>(st.reverseNonmonotonic.load()));
+        CAPTURE(event, fired, e.late[0], e.late[1], e.shown[0], e.shown[1], checked);
+        REQUIRE(fired >= 0);
+        if (event == "pause" || event == "slew")
+            CHECK(e.lateTotal() <= 4);
+        else if (event == "speed")
+            CHECK(e.lateTotal() <= 558);
+        else if (event == "shrink")
+            CHECK(e.lateTotal() <= 469);
+        else
+        {
+            const int bound = (VideoPlayerTestAccess::gopEst(p) + e.K - 1) / e.K + 6;
+            CHECK(bound == 90);
+            CHECK(e.late[1] <= bound);
+            CHECK(e.late[0] <= 4);
+        }
+        CHECK(e.mismatches == 0);
+        CHECK(bad == 0);
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+}
+
+// s-rta-0930 gop2 (ruling A1 / A6, T1d): a scene-cut file (keys 0 37 150 190 213 262: the longest interval 113 is the GOP
+// estimate) reversed like T1b. The lead-in comes from the container index's real keyframe below a window: the grid of
+// multiples of the longest GOP over-states it (the plan's grid spent 1388 / 1690 decodes -- more than main's 1213 / 1461).
+// RED: m5 (keys ignored) on the c2 code; main passes (its window never counts a lead-in).
+TEST_CASE("gop2 (GC7): on a scene-cut file the window's lead-in comes from the index's real keyframes -- never more decodes "
+          "than main", "[video_player][gopcache][s-rta-0930]")
+{
+    const auto f = fixture("video_h264_scenecut_64x64.mp4");
+    auto ref = forwardDecode(f);
+    REQUIRE(ref.size() == 300);
+    struct Config
+    {
+        const char* name;
+        int cap, K;
+        long decodesMax;   // main 655d232's count
+    };
+    for (const Config& c : { Config{ "CAP 16, K 3", 16, 3, 1213 }, Config{ "CAP 13, K 4", 13, 4, 1461 } })
+    {
+        VideoStats st;
+        GopCache::Budget budget;
+        VideoPlayer p;
+        openCapped(p, st, budget, f, c.cap);
+        CHECK(VideoPlayerTestAccess::keyRels(p) == std::vector<int>{ 0, 37, 150, 190, 213, 262 });
+        CHECK(VideoPlayerTestAccess::gopEst(p) == 113);
+        Emulated e{ p, st, ref, c.K };
+        for (int i = 0; i < 9 * 120; ++i)
+            e.frame(0);
+        int checked = 0;
+        const int bad = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+        const long decodes = static_cast<long>(st.framesDecoded.load());
+        std::printf("gop2 T1d %-12s late %ld shown %ld decodes %ld (main %ld) mismatches %ld cacheMismatches %d/%d nonmono %lld\n",
+                    c.name, e.lateTotal(), e.shownTotal(), decodes, c.decodesMax, e.mismatches, bad, checked,
+                    static_cast<long long>(st.reverseNonmonotonic.load()));
+        CAPTURE(c.name, e.lateTotal(), e.shownTotal(), decodes, checked);
+        CHECK(e.lateTotal() <= 4);
+        CHECK(e.shownTotal() >= 265);
+        CHECK(decodes <= c.decodesMax);
+        CHECK(e.mismatches == 0);
+        CHECK(bad == 0);
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
 }

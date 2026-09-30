@@ -438,3 +438,127 @@ TEST_CASE("amortization: a reverse Loop over a GOP-250 clip costs <= G / (2 x fl
     CHECK(simulateReverse(G, 300, 2, 1) == 0.0);                     // the second: none -- the clip is resident
     CHECK(resident == G);
 }
+
+namespace
+{
+// n 300, reverse Loop, served = cur = 249: frames [249 - u, 248] resident as Future (key 249 - f) -- the u8 shape.
+void residentBelow(int u, std::vector<int>& index, std::vector<Slot>& slots)
+{
+    index.assign(300, -1);
+    slots.clear();
+    for (int f = 249 - u; f <= 248; ++f)
+    {
+        index[static_cast<size_t>(f)] = static_cast<int>(slots.size());
+        slots.push_back({ f, 249 - f, Pool::Future });
+    }
+}
+
+bool sameRun(const Run& a, const Run& b)
+{
+    return a.kind == b.kind && a.target == b.target && a.windowLo == b.windowLo && a.seekFrom == b.seekFrom;
+}
+} // namespace
+
+// s-rta-0930 gop2 (GC7 + ruling A3 / A4): a PREFETCH window = the slots free at planning + the slots of the nearer frames the
+// clock passes while the run decodes its lead-in (keyframe -> window) at the measured decode time. Four 1080p GOP-250
+// reversers in 256 MB (21 frames each) planned a run only once half the share was free: ~11 frames of cover for a 250-decode
+// lead-in (late 123 per 5 s live). RED on 655d232: GopCache::Lead / servedDuringLead / keyAtOrBefore do not exist (the
+// behavioural REDs are test_gop_cache_store's gop2 cases).
+TEST_CASE("gop2 (GC7): the in-place window counts the slots a run's lead-in frees; unchanged when the lead-in is shorter "
+          "than a frame", "[gopcache][s-rta-0930]")
+{
+    const double fms = 1000.0 / 30.0;
+    // (i) the frames the clock passes during a lead-in
+    CHECK(servedDuringLead(228, 1.8, fms) == 12);
+    CHECK(servedDuringLead(0, 1.8, fms) == 0);
+    CHECK(servedDuringLead(100, 0.0, 33.3) == 0);
+    CHECK(servedDuringLead(9, 0.05, 33.3) == 0);
+    // (ii) the u8 shape on reachable inputs (A3): 21 slots, no Behind pool, u = pAt - 1 = 16 resident below served 249
+    const int pAt = prefetchAt(21, 250, 1.8, fms);
+    REQUIRE(pAt == 17);
+    std::vector<int> index;
+    std::vector<Slot> slots;
+    residentBelow(16, index, slots);
+    REQUIRE(unservedAhead(index, Mode::Loop, 300, 249) == 16);
+    auto plan = [&](const Lead& lead) { return planPrefetch(index, slots, Mode::Loop, 300, 249, 249, 21, 0, pAt, false, 10, lead); };
+    CHECK(plan({}).kind == RunKind::None);   // avail0 5 < minWindow 10: today's result
+    const Run r = plan(Lead{ 1.8, fms, 250 });
+    REQUIRE(r.kind == RunKind::Prefetch);   // iteration 1: 5 + 12 - 1 = 16; iteration 2: lo 217, gain 11 -> 15
+    CHECK(r.target == 232);
+    CHECK(r.windowLo == 218);
+    CHECK(r.seekFrom == 218);
+    const std::vector<int> fixedKeys{ 0, 250 };
+    CHECK(sameRun(plan(Lead{ 1.8, fms, 250, &fixedKeys }), r));   // the index's keys on a fixed-GOP file: the same
+    const std::vector<int> sceneKeys{ 0, 37, 150, 190, 213, 262 };
+    CHECK(plan(Lead{ 1.8, fms, 250, &sceneKeys }).kind == RunKind::None);   // the real lead-in 213 -> 228 is 15 frames: gain 0
+    // (iii) a lead-in shorter than a frame period changes nothing -- here, and on the planPrefetch case's inputs above
+    CHECK(sameRun(plan(Lead{ 0.05, fms, 250 }), plan({})));
+    {
+        std::vector<int> i1(300, -1);
+        std::vector<Slot> s1;
+        for (int f = 90; f <= 99; ++f)
+        {
+            i1[static_cast<size_t>(f)] = static_cast<int>(s1.size());
+            s1.push_back({ f, 100 - f, Pool::Future });
+        }
+        for (int at : { 10, 32 })
+        {
+            const Run a = planPrefetch(i1, s1, Mode::Loop, 300, 100, 100, 64, 0, at, false);
+            const Run b = planPrefetch(i1, s1, Mode::Loop, 300, 100, 100, 64, 0, at, false, 1, Lead{ 0.05, fms, 250 });
+            CAPTURE(at);
+            CHECK(sameRun(a, b));
+        }
+    }
+    // (iv) the window never shrinks below today's (or below what exists) and never exceeds the Future share (A4 grid)
+    long states = 0, runs = 0, grown = 0, violations = 0;
+    for (int cap = 8; cap <= 64; ++cap)
+        for (double ms : { 0.5, 1.0, 1.8, 3.0, 7.0 })
+            for (const std::vector<int>* keys : { static_cast<const std::vector<int>*>(nullptr), &fixedKeys })
+            {
+                const int behindCap = behindCapFor(Mode::Loop, false, cap, 0);
+                const int at = prefetchAt(cap, 250, ms, fms);
+                for (int u = 0; u < at; ++u)
+                {
+                    residentBelow(u, index, slots);
+                    const Run x = planPrefetch(index, slots, Mode::Loop, 300, 249, 249, cap, behindCap, at, false,
+                                               std::max(1, (cap - behindCap) / 2), Lead{ ms, fms, 250, keys });
+                    ++states;
+                    if (x.kind != RunKind::Prefetch)
+                        continue;
+                    ++runs;
+                    const int avail0 = availableFor(slots, cap, behindCap, distance(Mode::Loop, false, 300, 249, x.target));
+                    const int window = x.target - x.windowLo + 1;
+                    grown += window > avail0 ? 1 : 0;
+                    if (window < std::min(avail0, x.target + 1) || window > cap - behindCap)
+                    {
+                        ++violations;
+                        UNSCOPED_INFO("cap " << cap << " ms " << ms << " u " << u << ": window " << window << " avail0 " << avail0);
+                    }
+                }
+            }
+    CAPTURE(states, runs, grown);
+    CHECK(violations == 0);
+    CHECK(grown > 0);   // not vacuous: the lead-in grew windows
+    // ... and the avail0 == 0 state (a Behind pool): nothing is planned, with or without a Lead
+    {
+        const int behindCap = behindCapFor(Mode::Loop, false, 40, 0);
+        REQUIRE(behindCap == 10);
+        const int at = prefetchAt(40, 250, 7.0, fms);
+        REQUIRE(at == 38);
+        residentBelow(30, index, slots);
+        REQUIRE(availableFor(slots, 40, behindCap, distance(Mode::Loop, false, 300, 249, 218)) == 0);
+        CHECK(planPrefetch(index, slots, Mode::Loop, 300, 249, 249, 40, behindCap, at, false, 15).kind == RunKind::None);
+        CHECK(planPrefetch(index, slots, Mode::Loop, 300, 249, 249, 40, behindCap, at, false, 15, Lead{ 7.0, fms, 250 }).kind
+              == RunKind::None);
+    }
+    // (v) the keyframe at or before a frame: the container index's, else the longest-interval grid
+    CHECK(keyAtOrBefore(228, 250, &fixedKeys) == 0);
+    CHECK(keyAtOrBefore(228, 113, &sceneKeys) == 213);
+    CHECK(keyAtOrBefore(100, 113, &sceneKeys) == 37);
+    CHECK(keyAtOrBefore(262, 113, &sceneKeys) == 262);
+    CHECK(keyAtOrBefore(228, 113, nullptr) == 226);
+    const std::vector<int> none;
+    CHECK(keyAtOrBefore(228, 113, &none) == 226);
+    const std::vector<int> late{ 10, 40 };
+    CHECK(keyAtOrBefore(5, 113, &late) == 0);
+}

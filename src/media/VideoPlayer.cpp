@@ -275,6 +275,7 @@ bool VideoPlayer::open(const juce::File& file)
                      || id == AV_CODEC_ID_RAWVIDEO;
         int keys = 0, entries = 0;
         int64_t lastKeyTs = 0, maxGapTs = 0;   // index timestamps are DTS: the first may be negative (B-frame delay)
+        std::vector<int64_t> keyTs;            // gop2 (A1): every keyframe entry's timestamp, in index order
 #if LIBAVFORMAT_VERSION_MAJOR >= 59
         entries = avformat_index_get_entries_count(stream);
         for (int i = 0; i < entries; ++i)
@@ -286,10 +287,16 @@ bool VideoPlayer::open(const juce::File& file)
                 maxGapTs = std::max(maxGapTs, e->timestamp - lastKeyTs);
             ++keys;
             lastKeyTs = e->timestamp;
+            keyTs.push_back(e->timestamp);
         }
 #endif
         if (entries >= 2 && keys == entries)
             intraOnly_ = true;
+        // gop2 (A1): the keyframes as relative indices, from the FIRST keyframe's timestamp (index timestamps are DTS: this
+        // removes the B-frame delay); none without keyframe entries (the grid fallback)
+        keyRels_.clear();
+        for (const int64_t ts : keyTs)
+            keyRels_.push_back(std::max(0, static_cast<int>(std::lround(static_cast<double>(ts - keyTs.front()) * timeBase_ / frameDur_))));
         if (keys >= 2 && maxGapTs > 0)
             gopFramesEst_ = std::max(1, static_cast<int>(std::lround(static_cast<double>(maxGapTs) * timeBase_ / frameDur_)));
         else if (keys == 1 && totalFrames_ > 0)
@@ -1304,8 +1311,10 @@ void VideoPlayer::planPrefetchRun(double want)
     const int behindCap = GopCache::behindCapFor(mode, false, capS, 0);
     refreshView(cur, false);
     const int pAt = GopCache::prefetchAt(capS, gopFramesEst_, decodeMsEma_, frameMsEff());
+    // gop2 (GC7): the in-place window -- the lead-in from the index's keyframe below the window at the measured decode time
     const auto r = GopCache::planPrefetch(cache_->index(), cache_->view(), mode, n, cur, servedRel_, capS, behindCap, pAt,
-                                          false, std::max(1, (capS - behindCap) / 2));
+                                          false, std::max(1, (capS - behindCap) / 2),
+                                          GopCache::Lead{ decodeMsEma_, frameMsEff(), gopFramesEst_, &keyRels_ });
     if (r.kind != GopCache::RunKind::Prefetch || r.target == prefetchBlockedAt_)
         return;
     // GC9: one PREFETCH run at a time across players (a deck's players returning together fill one after another) --
