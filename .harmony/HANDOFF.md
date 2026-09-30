@@ -3,84 +3,120 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0929 (2026-09-29 08:35 → ~22:15). The newest
-dated section is at the END of this file ("# >>> SESSION s-rta-0929"); read it first, then the SCREEN-SAFETY LAW section.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0929b (2026-09-29 23:14 → 2026-09-30 ~11:15). The newest
+dated section is at the END of this file ("# >>> SESSION s-rta-0929b"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
-"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo, video). CLAUDE.md is 24,522 B of its
-25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) + docs/claude/*.md (trigger table).
-Ultracode: use workflows. Law #11: plans by Fable (architect, max; it worked all session) — on "You've reached your Fable
-limit" re-pin to opus max, record the deviation, tell Boris.
+"Playback Behaviour" and .harmony/binding-decisions.md (read before touching routines, decks, outputs, fit, tempo, video,
+audio devices). CLAUDE.md is 23,999 B of its 25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) +
+docs/claude/*.md (trigger table). Ultracode: use workflows. Law #11: plans by Fable (architect; both plans ran on Fable this
+session) — on "You've reached your Fable limit" re-pin to opus max, record the deviation, tell Boris.
 
-STATE: s-rta-0929 closed START-HERE items 1-3 of s-rta-0928b and two of item 4, with 3 merges, each gated by Harmony
-RED-first on the pre-merge app then GREEN on merged main: (1) ASYNC LOADS (asyncload, Pitfall 58): composition / Load Deck /
-Duplicate Deck loads are staged, videos open on a 2 x low pool, the 16 x 4K load's UI stall 244-257 -> 8-16 ms, the old show
-plays until a clean cut, POST /api/load_composition answers after the swap, Append / Duplicate queue FIFO, a hung open at
-quit leaks its pool instead of killing a thread; (2) VIDEO UPLOAD (diag-vfps -> vupload, Pitfall 60): a per-frame video upload
-budget (column-trigger 4 x 1080p 105 -> ~119.5 fps), IOSurface ring slots + one GPU blit per new frame (4 x 4K 85-90 ->
-100-104 fps, pixel-identical on 3 paths x 5 formats), the shown slot held across a context loss (FX-only frames 463 -> 0),
-idle slots purged (-284..-318 MB); GL-thread QoS was tried and REVERTED (pre-registered test: it made trigger round trips
-slower); (3) ROUTINE CPU (g4cpu, Pitfall 59): the ROUTINES pad repaints only when its picture changes (29 -> 11.6/s), g4
-CPU 176 -> 155 ms/s interleaved, pixels identical. ctest 967/967 (107 targets). FINAL battery GREEN (idle-paint needed one
-re-run: 2 startup crashes, see START 1). Everything pushed. RIG FACTS (binding): NO Bluetooth audio. NO Xcode (Command Line
-Tools only). Machine: M1 Pro, 32 GiB, 120 Hz display.
+STATE: s-rta-0929b closed START 1 and START 2 of s-rta-0929 with 2 merges, each gated by Harmony RED-first on the pre-merge
+app COPY then GREEN on merged main: (1) BTGUARD (Pitfall 61): the "startup heap corruption" was the KNOWN s-rta-0924b JUCE
+8.0.4 CoreAudio overflow, triggered when Boris's Bluetooth earbuds auto-connect and macOS makes them the default device
+(unified log: 2/2 BT launches crashed, 661/661 built-in clean) — the app now never opens a Bluetooth / BLE / AirPlay /
+wireless-Continuity device (guard inside the device TYPE), falls back to onboard mic / built-in or wired output, shows a
+persistent plain notice when no allowed mic / device; RED 11/14 -> GREEN 25/0; (2) GOPCACHE (Pitfall 62): reverse /
+ping-pong served from a decode-thread GOP cache — 1080p GOP-250 reverse 4.6 -> 30.8 uploads/s, late 467 -> 0; flip stall
+435 -> 77 ms; column of four 122/s pooled; forward play golden-trace identical. ctest 1049/1049 (111 targets). FINAL
+battery GREEN after quiet re-runs (the first pass ran under 6 orphaned `yes` CPU burners from other sessions — killed).
+Also: JUCE deferral CORRECTED (fix f6df3e3 first in 8.0.9, NOT 8.0.8 — hash-verified); ASan sweep 31 launches clean; TSan
+29 unique races -> 20 real (1 MEDIUM). Everything pushed. RIG FACTS (binding): Boris never uses Bluetooth audio, but his
+earbuds DO auto-connect to the Mac — pre-btguard binaries (BEFORE-arm copies) still crash when they are the default: check
+`system_profiler SPAudioDataType` before launching an old copy. NO Xcode (Command Line Tools only). M1 Pro, 32 GiB, 120 Hz.
 
 START HERE, in order:
-1. STARTUP HEAP CORRUPTION (HIGH, pre-existing): SIGABRT "malloc free-list checksum botch" on the message thread, surfacing in
-   CoreMedia / CMIO init at launch — crash reports 2026-09-23 (x2), 09-24, 09-29 20:58 + 20:59 on four binaries; 2 of ~10
-   production launches in one battery group, 0 in the re-run. A crash leaves a "quit unexpectedly" dialog on Boris's
-   screen. Diagnose first (repeated launches with MallocScribble / MallocGuardEdges / an ASan build of the app; which
-   startup code runs before CMIO: camera enumeration, audio device open, the new audio-callback witnesses). Fresh Fable plan
-   after the diagnosis.
-2. GOP cache (own lane, ruled in plan-vupload P4c): reverse / ping-pong on long-GOP files runs at a low rate (g250 reverse
-   ~4.5 uploads/s); touches decodeLoop's seek policy + a second memory budget. Fresh Fable plan.
-3. Unexplained residues, each filed with what was established / ruled out / the next test (ledger items 3-6).
-4. Video headroom: VideoToolbox hardware decode (frees ~2.2 cores at 4 x 4K, no fps gain measured) — its own plan when
-   wanted. The light-scene E-core placement of the GL thread is open: QoS is NOT the lever (it cost trigger latency).
-5. Boris answers pending (page .harmony/.reports/s-rta-0929/boris-checks.html, opened for him; older pages s-rta-0928b and
-   s-rta-0928 still open with defaults).
+1. TSan races (verify-sweep-F*.md, sweep.md): 20 REAL — 1 MEDIUM (F2: a clip trigger writes Layer activeClipColumn /
+   previousClipColumn / pendingTriggerColumn / crossfadeProgress on the message thread while the render thread reads them ->
+   a one-frame wrong-opacity / crossfade flash) + 19 LOW (clip playhead, Clip::playing, manual scalar, activeDeckIndex).
+   Fresh Fable plan: model-field publication across threads (relaxed-atomic wrappers or a per-frame snapshot); TSan gate
+   (the TSan build recipe: .harmony/.reports/s-rta-0929b/prebuild.md, -DADNA_SANITIZE=thread).
+2. GC7 bar MISSED (ab-ab256): with a 256 MB GOP-cache cap, four 1080p g250 reversers run 27.8/s per player (bar 20 PASS)
+   but late 123 > 40 (main: 17/s, late 1793). Small lane: tune the capped-window policy; also fix the probe artefact
+   (u8 "cap 0.0" rows read None in a capped-only A/B run).
+3. Filed from the lanes (each has a repro in its report): btguard C3 (drop the redundant startup setSourceMode re-open) +
+   reconcile case (iii) adopt a newly plugged mic; gopcache R3 MPEG-TS reverse shows pre-keyframe garbage (= main's forward
+   seek parity); VFR residual (one cached frame per index: 20 of 85 frames never shown in reverse); older "Pitfall NN"
+   comments in src/ (idlepaint / asyncload lanes) never got numbers — doc hygiene.
+4. Residues still open from s-rta-0929 ledger items 3-6 (asyncload 110 ms stall, g4 700 ms/s outliers, vupload w7 outlier,
+   idle-paint v0 clusters) + new INFO: w1c (b) thin margin A 1/5 vs B 3/5 FAIL (medians 118.6 vs 118.43, n=5 not
+   significant). VideoToolbox decode + JUCE bump (>= 8.0.9, issue #1601 risk with separate in / out devices) stay optional /
+   trigger-deferred (first wired interface).
+5. Boris answers pending: page .harmony/.reports/s-rta-0929b/boris-checks.html (opened for him).
 
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build lanes);
 remove each worktree the turn it merges. A user message that arrives mid-turn is RELAYED to every lane started later in that
 turn and a builder may take it as its task: answer it, YIELD the turn, launch new lanes from a fresh turn. MINIMAL builders
-write reports to .harmony/.reports/<session>/<lane>.md (committed) — scratchpad report.md writes are refused. Packets: NEVER
-lldb/debugserver/gdb/dtrace/Instruments/sample on ANY binary; never full-screen screencapture (Quartz window id only); no
-synthetic input (UI states via REST / composition files / TEMPORARY env-var hook, reverted + rebuilt + strings check = 0);
-fence each lane; reviewer/critic packets PIN worktree + branch + commit; FIX-ROUND prompts continue from a named commit
-(wf/fix-lane.js). A workflow's automatic fix round can be TaskStop-ped in its review stage and relaunched with rulings.
-Broken-media probes can CRASH the app -> count on-screen UserNotificationCenter windows (Quartz) == 0 after such batches.
-Live app: ONE at a time via /tmp/audiodna-live.lock; lock helper .harmony/.reports/s-rta-0929/wf/lock.sh (copy to your
-scratchpad, fix SPL) — acquire_quiet_lock for perf. Probe HTTP clients use Connection: close. NEVER SendMessage a running
-WORKFLOW agent. Test mode: open -g <App> --args --test-mode. Render gates DECODE PIXELS; LOOK at one frame. A flake verdict
-needs >= 5 runs per arm. PERF A/B: INTERLEAVED arms launch by launch (the rig drifts ~5-8 fps or ms/s per hour; sequential
-per-arm batches are not evidence); a CPU bar whose teeth equal the drift is INFO, not a gate. Inside a fix round, a
-"is X the cause" question gets a PRE-REGISTERED decision rule (arms, N, metric, thresholds, action per branch) so the lane
-acts on its own result. Packets: Harmony's own constraints go in a sentence labelled "Harmony constraint:"; a BORIS_DECISIONS
-citation quotes the file verbatim (s-rta-0929: a paraphrase became a fabricated "Boris ruling"); an ESTABLISHED list carries
-only lines a prior report VERIFIED (the "per launch" w1 claim was wrong). Keep a COPY of the pre-merge app for BEFORE arms
-(IDLEPAINT_APP_BEFORE / VIDEO_REF_WRITE) — merging rebuilds build/. MERGE SEQUENCE: commit your notes -> RED of the lane's new
-rows on the PRE-MERGE binary -> merge (source conflicts go to a builder rebase lane, never Harmony) -> cmake -S . -B build +
-build -> ctest -> GREEN. Pitfall numbers: lanes write "NN" until merge; Harmony assigns the next free number (next = 61).
-Probe env: STEP3/RESYNC/DOWNBEAT/MANUALBPM/ROUTINES_BUILD_DIR=build (+ ROUTINES_RECORD_PAUSE=1.8); FINLOOP_BUILD_DIR=build;
-ONSET_BUILD_DIR=build; *_APP overrides (VIDEO_APP also drives probe-vupload; ASYNCLOAD_APP; IDLEPAINT_APP[_BEFORE]). Battery
-script: .harmony/.reports/s-rta-0929/wf/vupload-final.sh (27 probes + Tier-1; adapt paths). Main-loop habits: never `cd`;
-stamp EVERY log row from `date`; syntax-check workflow scripts (wf/check.sh); teeth by the lane report's named pattern, never
-by reading source (Iron Law #1); never `git commit -a` (Boris's dirty .harmony-version rides along) — stage by path.
-COUNTS: run them — ctest 967/967 at close (107 targets); unpushed 0.
+write reports to .harmony/.reports/<session>/<lane>.md (committed with git add -f — .harmony/.reports and *-work.md are
+gitignored). NEVER copy an app bundle and re-sign it (codesign --sign -) or launch such a copy: TCC treats it as a new
+identity, prompts on Boris's screen and RESET the real app's microphone permission (s-rta-0929b: every live gate blocked
+until Boris clicked Allow); mutants come only from a normal cmake build. A TCC permission prompt of the real app is Boris's:
+never dismiss it. Crash dialogs: count UserNotificationCenter windows with Quartz kCGWindowListOptionAll >= 15 s after the
+last quit; attribute by the UNC log's "ordered front" time; dismiss only our own crash dialogs by SIGTERM to that UNC pid.
+Sanitizer options always abort_on_error=0 (TSan also exitcode=0). Before any perf verdict check `ps -Ao pcpu=,etime=,comm= |
+sort -rn | head` (orphaned CPU burners). Packets: NEVER lldb/debugserver/gdb/dtrace/Instruments/sample on ANY binary; never
+full-screen screencapture (Quartz window id only); no synthetic input (UI states via REST / composition files / TEMPORARY
+env-var hook, reverted + rebuilt + strings check = 0); fence each lane; reviewer/critic packets PIN worktree + branch +
+commit. A workflow's automatic fix round can be TaskStop-ped in its review stage and relaunched with rulings. Live app: ONE
+at a time via /tmp/audiodna-live.lock; lock helper .harmony/.reports/s-rta-0929b/wf/lock.sh (copy to your scratchpad, fix
+SPL) — acquire_quiet_lock for perf. Probe HTTP clients use Connection: close. NEVER SendMessage a running WORKFLOW agent.
+Test mode: open -g <App> --args --test-mode. Render gates DECODE PIXELS; LOOK at one frame. A flake verdict needs >= 5 runs
+per arm. PERF A/B: INTERLEAVED arms launch by launch (probe-vupload-ab.sh needs LANE exported + LOCK_LIB); a bar whose teeth
+equal the drift is INFO, not a gate. Pre-registered decision rules inside fix rounds. Packets: Harmony's own constraints
+in a sentence labelled "Harmony constraint:"; Boris is quoted only verbatim (binding-decisions.md records his words in
+quotes — the rest of an entry is Harmony's consequence text); an ESTABLISHED list carries only VERIFIED lines. Before
+diagnosing a crash signature, grep .harmony/ for it and `log show` for bluetoothd connects around it. Keep a COPY of the
+pre-merge app for BEFORE arms. MERGE SEQUENCE: commit notes -> RED on the PRE-MERGE copy -> merge (source conflicts ->
+builder rebase lane; doc-only conflicts Harmony may resolve) -> cmake + build -> ctest -> GREEN. Pitfall numbers: lanes
+write "NN"; Harmony assigns the next free number (next = 63). Battery scripts: .harmony/.reports/s-rta-0929b/wf/
+(btguard.sh, gop-final.sh = RED + merge + full battery + Tier-1, ab-rerun.sh = the interleaved A/B + quiet re-runs; adapt
+paths). Main-loop habits: never cd; stamp EVERY log row from date; syntax-check workflow scripts (wf/check.sh); teeth by the
+lane report's named pattern, never by reading source (Iron Law #1); never `git commit -a` — stage by path (git add -f for
+ignored notes). COUNTS: run them — ctest 1049/1049 at close (111 targets); unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0929 -->
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0929b -->
 BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
-SHIPPED: loading a composition never freezes the UI (old show plays until a clean cut) · 4 videos triggered together stay at
-120 fps · 4 x 4K video 85-90 -> 100-104 fps with an identical picture · no effects-only flash after a context loss · idle
-video players give back ~300 MB · a playing routine costs ~20 ms/s less CPU, looks identical.
+SHIPPED: app never opens Bluetooth audio (earbuds no longer crash it at launch; plain note if no wired / built-in mic) ·
+reverse / ping-pong video smooth on long-keyframe files (4.6 -> 30.8 frames/s at 1080p, flip stall 435 -> 77 ms) · the
+JUCE-upgrade note corrected (fix is in 8.0.9) · memory-error sweep clean (31 runs).
 IN-FLIGHT: none. Tree clean (Boris's .harmony-version / AGENTS.md untouched), everything pushed, no worktrees.
-NEXT: (1) an intermittent startup crash (heap corruption, pre-existing since 09-23) · (2) smooth reverse on long-GOP videos ·
-(3) filed residues · (4) optional hardware video decode · (5) Boris answers.
+NEXT: (1) 20 thread races found by TSan (1 can flash a wrong opacity for a frame on a clip trigger) · (2) low-memory reverse
+mode misses its late-frame bar · (3) filed small items · (4) Boris answers.
 BLOCKERS: none (Boris questions have defaults).
-YOU ARE HERE: loads, multi-video playback and routine CPU are done; the top risk left is a rare crash at launch.
+YOU ARE HERE: startup crash and reverse video are done; the top risk left is thread races between the UI and the renderer.
 
-## LOOSE-ENDS LEDGER — s-rta-0929 (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0929b (CURRENT)
+
+1. [OPEN, START 1] TSan: 20 REAL races (1 MEDIUM F2 trigger tuple; 19 LOW), 9 BENIGN (std::cerr) — sweep.md +
+   verify-sweep-F*.md. Fresh Fable plan (model-field publication across threads).
+2. [OPEN, START 2] GC7: 256 MB cap late 123 > 40 (ab-ab256.log; per-player 27.8/s PASS, bytes PASS, holds 0) + probe
+   artefact (u8 "cap 0.0" rows read None in a capped-only run).
+3. [OPEN, filed] btguard: C3 redundant startup re-open (dropped as out of scope, BG3); reconcile case (iii) adopt a newly
+   plugged mic; the real-HAL aggregate membersReadOk branch is unit-uncovered (needs a real aggregate device = a system
+   change, not allowed); a video recording with NO device was not live-tested (C5b covers the take).
+4. [OPEN, filed] gopcache: R3 MPEG-TS reverse pre-key garbage (parity with main's forward seek; logs/r3-parity.log in the
+   lane scratch, report "Fix round 2"); VFR residual (one frame per index; 20 of 85 frames never shown in reverse).
+5. [OPEN, INFO] w1c (b) thin margin: A 1/5, B 3/5 FAIL over 5 x 2 interleaved (medians 118.6 vs 118.43) — not significant.
+6. [OPEN, residue] s-rta-0929 items 3-6 unchanged (asyncload ~110 ms stall; g4 ~700 ms/s outliers; vupload w7 outlier;
+   idle-paint v0 clusters — the FINAL idle-paint read 35/0/0 this session, 0 startup crashes).
+7. [OPEN, low] "Pitfall NN" comments in src/ from the idlepaint / asyncload lanes (MainComponent.h:162/471, UiPaintCounters.h,
+   NativeLayer*, LayerStrip, ClipInspector, OverlayWatch, tests, probe-idle-paint.sh) never got their numbers; pitfalls.md
+   physical order still 57, 59, 56, 58, 60, 61, 62.
+8. [OPEN, Boris] Page .harmony/.reports/s-rta-0929b/boris-checks.html (opened). Older pages s-rta-0929 / 0928b / 0928
+   still open with defaults.
+9. [DEFERRED, trigger] JUCE bump before the first wired interface: minimum 8.0.9 (NOT 8.0.8 — juce_CoreAudio_mac.cpp is
+   byte-identical 8.0.4..8.0.8; f6df3e3 is 8 commits after tag 8.0.8); risk JUCE issue #1601 (8.0.9+ glitches with separate
+   in / out devices = this app); JUCE 9 replaces the combiner. btguard makes the app safe from Bluetooth meanwhile.
+10. [INCIDENT, closed] A fix-round mutant (copied + ad-hoc re-signed bundle) reset the real app's microphone permission;
+   Boris clicked Allow at ~08:00; tccd authValue=2 re-verified. Rule in the birth prompt + wf/build-lane.js.
+11. WARN fable-usage-audit: LAW11-LOG-GAP — 2 runtime-verified Fable plans (gopcache, btguard; both followed with adoption
+   rulings), 0 DISPATCH_LOG rows (a foreign-repo secondary cannot write Harmony_Main's log); compliance rows in the work log.
+12. Session-index — skipped (foreign-repo lane, no transport yet).
+13. Carried: .harmony/.harmony-version and AGENTS.md dirty/untracked at boot — not this session's, left untouched.
+
+## (HISTORICAL, s-rta-0929 — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0929
 
 1. [OPEN, HIGH, START 1] Startup heap corruption (malloc checksum botch, SIGABRT, message thread, CoreMedia / CMIO init):
    .ips 09-23 x2, 09-24, 09-29 x2 on four binaries; pre-existing (INFERRED from the older binaries); 2 of ~10 launches in one
@@ -3424,29 +3460,50 @@ capture taken. The Boris page was opened in his browser (the only window this se
 ## COUNTS — run them, never inherit them
 ctest 967/967 (107 targets). Unpushed 0 after the close commit.
 
-# >>> SESSION s-rta-0929b (2026-09-29 23:14 → in progress, secondary) — INTERIM START HERE (written before EOS as insurance) <<<
-Running log: .harmony/s-rta-0929b-work.md (authoritative); reports .harmony/.reports/s-rta-0929b/.
-1. BLOCKER (Boris): a real-app "Audio-DNA would like to access the microphone" prompt is on his screen since 02:36
-   (UNC window 29885). Cause: a fix-round builder launched a copied + ad-hoc re-signed mutant bundle -> TCC reset the
-   app's microphone permission (notebook 2026-09-30). Until Boris clicks Allow the app hangs at launch (CoreAudio
-   10004003, health silent) and EVERY live gate is blocked. Never dismiss that prompt. Verify after Allow: one launch,
-   tccd AUTHREQ_RESULT kTCCServiceMicrophone authValue=2 (scratchpad gate/tcccheck.sh pattern).
-2. START 1 re-framed + FIXED IN LANE: the 09-29 startup "heap corruption" = the known s-rta-0924b JUCE 8.0.4 CoreAudio
-   overflow, triggered when Boris's Bluetooth earbuds auto-connect (unified log: 2/2 BT launches crashed, 661/661 built-in
-   clean). Lane/btguard (worktree .claude/worktrees/rta0929b-btguard, HEAD 9f4623e): the app never opens a Bluetooth /
-   BLE / AirPlay / wireless-Continuity device; persistent plain notice when no allowed mic / device. Reviews r2 APPROVE
-   (both), critic run, lane ctest 1003/1003 (108 targets). OPEN: Harmony gate — RED probe-btguard on the pre-merge app
-   COPY (scratchpad apps/main-c8730a61.app; BTGUARD_APP=<app>; the probe defaults to build-lane/), merge, cmake + build,
-   ctest, GREEN probe-btguard (BTGUARD_APP=build/...Release/Audio-DNA.app) + step3 / resync / onset-render /
-   downbeat-level / manual-bpm unchanged; C5b has no RED yet (lane note).
-3. START 2 FIXED IN LANE: lane/gopcache (worktree .claude/worktrees/rta0929b-gopcache, HEAD 9cce17d): reverse / ping-pong
-   served from a decode-thread GOP cache (plan-gopcache.md + HARMONY ADOPTION GC1-GC13); 2 fix rounds; lane ctest
-   1013/1013; r3 reviews PASS_WITH_NITS. OPEN: every live gate on the HEAD app — forward battery (probe-video all rows,
-   w10-all identity, u2/u4a/u4b/u6/u12, crossfade / media-open / async-load / seq-vram, w1c/w2c/w6b 5x2 interleaved),
-   u7 re-run (R2 changed the look-ahead), GC13 medians of >= 5 (probe-vupload-ab.sh A B 5 ...), GC9 u11 x5, GC7 u8 with
-   ADNA_GOPCACHE_BUDGET_MB=256; RED of new rows on the pre-merge app copy first. Expect doc conflicts with btguard
-   (pitfalls NN, CLAUDE.md index, APP-INVENTORY): source conflicts -> builder rebase lane.
-4. JUCE deferral CORRECTED: the CoreAudio fix f6df3e3 is first in 8.0.9 (8.0.8's juce_CoreAudio_mac.cpp is byte-identical
-   to 8.0.4, Harmony hash-verified); issue #1601 (8.0.9+ glitches with separate in/out devices) is the risk.
-5. Filed: TSan sweep 20 real races (1 MEDIUM: clip-trigger Layer fields read by the render thread -> one-frame
-   wrong-opacity flash possible; verify-sweep-F2.md) -> a future Fable-plan lane; ASan 31 launches clean.
+
+# >>> SESSION s-rta-0929b (2026-09-29 23:14 → 2026-09-30 ~11:15, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+START 1 re-framed (the startup "heap corruption" = the known JUCE 8.0.4 CoreAudio overflow, triggered by Boris's Bluetooth
+earbuds auto-connecting) and fixed by a guard (btguard), START 2 built (gopcache); both: recon / diagnosis -> FABLE plan ->
+3 blind attack seats -> Harmony adoption rulings -> opus builder lane -> pinned reviewers (+ critic for the notice) -> fix
+rounds -> Harmony RED on the pre-merge copy + GREEN on merged main + FINAL battery + interleaved A/B. Auto-EOS (off-ramp).
+Session log .harmony/sessions/2026-09-30-s-rta-0929b-secondary.md; running log .harmony/s-rta-0929b-work.md; plans /
+reports / evidence / wf scripts .harmony/.reports/s-rta-0929b/.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate)
+btguard -> 6c73bb0: RED on the pre-merge copy (uuid c8730a61) PROBE-BTGUARD 11 PASS / 14 FAIL / 2 SKIP; ctest 1003/1003;
+GREEN 25/0/2 SKIP; manual-bpm 22/0, resync 16/0, downbeat 14/0, step3 94/0, onset-render 13/0. gopcache -> 8015c76 (doc-only
+conflicts resolved by Harmony, Pitfalls 61 / 62): RED on PRE (main after btguard) u4b (f)(g) FAIL, reverse brackets False;
+ctest 1049/1049 (111 targets); A/B 5 x 2 interleaved vs PRE: ab7 66 PASS / 0 FAIL (g250 reverse 4.6 -> 30.8/s, late 467 -> 0;
+speed-2 6.8 -> 59.0; turn 15.8 -> 30.2; flip gap 435 -> 77 ms; column 122/s pooled, slowest 30.4; footprint drop 1.05);
+ab256 GC7 late 123 > 40 FAIL (ledger 2); abw w2c / w6b / w1c INFO (ledger 5); abw7 w7 0/5 both arms. FINAL battery on
+8015c76: every probe GREEN (w10-all 3 paths, u12 client + malloc, vupload 29/0, btguard 25/0, outputs, routine-display,
+beatclock, render-state, crossfade, effects-parity, routines, mastersignal, decktabs, canvas, deckclock, fitmode, tempo-start,
+image-load, capture, finalize-loop, seq-vram 66/0, media-open 38/0, idle-paint 35/0/0, Tier-1 14 passed) except 3 rows run
+under orphaned CPU load (video w6b / w7, async-load end_hold_witness, step3 T2) — all GREEN on quiet re-runs (w6b / w7 0/5
+both arms, async-load 83/0 x 10, step3 94/0). Sanitizers: ASan 31 launches 0 reports; TSan 29 unique -> 29 verifier seats.
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-0929b/boris-checks.html, opened for him)
+- The notice wording and placement when no wired / built-in mic is available (critic-approved, his taste decides).
+- If HE chooses: launch with his earbuds connected — the app should start normally on the built-in mic / speakers.
+- Reverse / ping-pong feel on his own long-keyframe clips; hitting reverse mid-play; a column of reversing clips in his set.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. My sanitizer prebuild lane's TSan smoke build aborted at quit (Darwin abort_on_error=1 default) and left a crash dialog;
+   I first mis-attributed it to the previous session's crash (corrected from the UNC log). 2. The btguard fix-round packet
+   let the builder run a copied + re-signed mutant: TCC reset the real app's microphone permission and blocked every live
+   gate for ~5 h until Boris clicked Allow (rule now in lane rules). 3. My first A/B call did not export LANE to the driver
+   (3 runs refused; re-run). 4. The first FINAL battery ran under 6 orphaned `yes` burners I had not checked for. 5. My
+   first commit attempt used a pathspec on gitignored files (nothing committed; redone with git add -f). 6. One `cd` into
+   the wf dir early in the session (no effect).
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was `open -g` (production or --test-mode), main window only; no gate opened an Output window (0 Output-named
+windows after every batch). Dialogs this session: a TSan-build crash dialog (23:27, dismissed by SIGTERM to its UNC), an
+orphaned Desktop-folder prompt from the mutant (dismissed by SIGTERM), and the real app's microphone prompt (answered Allow by
+Boris). At close: no Audio-DNA process, the live lock free, no worktrees, 0 UserNotificationCenter windows (Quartz
+kCGWindowListOptionAll), no full-screen capture taken. The Boris page was opened in his browser.
+
+## COUNTS — run them, never inherit them
+ctest 1049/1049 (111 targets). Unpushed 0 after the close commit.
