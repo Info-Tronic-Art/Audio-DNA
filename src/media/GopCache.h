@@ -158,13 +158,16 @@ inline int keyOf(Mode m, bool forward, int n, int cur, int f, Pool p)
     return distance(m, forward, n, cur, f);
 }
 
-// The Behind pool's share of capSlots: reverse Loop / OneShot min(kBehindFrames, capSlots / 4); reverse PingPong 0 (its
-// passed frames are Future); forward: `retain` (PingPong R-9, Loop / OneShot GC8's kBehindFrames) capped at capSlots / 2.
+// The Behind pool's share of capSlots: reverse Loop / OneShot min(kBehindFrames, capSlots / 4) -- none under
+// kBehindMinSlots (a cover of a few frames is no cover, and a tiny cache needs every slot for its window); reverse
+// PingPong 0 (its passed frames are Future); forward: `retain` (PingPong R-9, Loop / OneShot GC8's kBehindFrames) capped
+// at capSlots / 2.
+constexpr int kBehindMinSlots = 32;
 inline int behindCapFor(Mode m, bool forward, int capSlots, int retain)
 {
     if (forward)
         return std::max(0, std::min(retain, capSlots / 2));
-    if (m == Mode::PingPong)
+    if (m == Mode::PingPong || capSlots < kBehindMinSlots)
         return 0;
     return std::min(kBehindFrames, capSlots / 4);
 }
@@ -367,6 +370,14 @@ inline Run planPrefetch(const std::vector<int>& index, const std::vector<Slot>& 
     r.kind = RunKind::Prefetch;
     r.target = t;
     r.windowLo = std::max(0, t - (avail - 1));
+    // never below the resident frames under the target (the Loop wrap's window: the top of the file above a resident
+    // start) -- the seek lands on the keyframe at or before the first frame the run actually stores
+    for (int f = t - 1; f >= r.windowLo; --f)
+        if (resident(index, f))
+        {
+            r.windowLo = f + 1;
+            break;
+        }
     r.seekFrom = r.windowLo;
     return r;
 }

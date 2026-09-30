@@ -189,6 +189,7 @@ TEST_CASE("poolOf: reverse Loop keeps the 16 frames above cur Behind, the wrap's
     CHECK(poolOf(Mode::Loop, true, n, cur, 120) == Pool::Future);     // a forward hit (from a reverse episode)
     CHECK(behindCapFor(Mode::Loop, false, 64, 0) == 16);
     CHECK(behindCapFor(Mode::Loop, false, 32, 0) == 8);
+    CHECK(behindCapFor(Mode::Loop, false, 31, 0) == 0);                // a tiny cache keeps no cover
     CHECK(behindCapFor(Mode::PingPong, false, 64, 0) == 0);
     CHECK(behindCapFor(Mode::Loop, true, 64, 16) == 16);
     CHECK(behindCapFor(Mode::PingPong, true, 64, 50) == 32);          // capped at capSlots / 2
@@ -292,6 +293,19 @@ TEST_CASE("unservedAhead / planPrefetch: a run below the resident run; one seek 
     r = planPrefetch(i3, s3, Mode::Loop, n, 5, 5, 64, 0, 32, false);
     REQUIRE(r.kind == RunKind::Prefetch);
     CHECK(r.target == n - 1);
+    // ... and its window stops above the resident start of the file (46..59 missing, 0..45 resident: seek from 46, not 0)
+    std::vector<int> i5(60, -1);
+    std::vector<Slot> s5;
+    for (int f2 = 0; f2 <= 45; ++f2)
+    {
+        i5[static_cast<size_t>(f2)] = static_cast<int>(s5.size());
+        s5.push_back({ f2, 1, Pool::Future });
+    }
+    r = planPrefetch(i5, s5, Mode::Loop, 60, 45, 45, 1000, 0, 500, false);
+    REQUIRE(r.kind == RunKind::Prefetch);
+    CHECK(r.target == 59);
+    CHECK(r.windowLo == 46);
+    CHECK(r.seekFrom == 46);
     // OneShot / PingPong: nothing below 0
     CHECK(planPrefetch(i3, s3, Mode::OneShot, n, 5, 5, 64, 0, 32, false).kind == RunKind::None);
     CHECK(planPrefetch(i3, s3, Mode::PingPong, n, 5, 5, 64, 0, 32, false).kind == RunKind::None);

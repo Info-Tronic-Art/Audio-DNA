@@ -15,6 +15,7 @@ struct AVCodecContext;
 struct AVFrame;
 struct AVPacket;
 struct SwsContext;
+namespace GopCache { class Store; struct Budget; struct Run; }
 
 // VideoPlayer: Decodes video files via FFmpeg and uploads frames to OpenGL textures.
 //
@@ -265,7 +266,33 @@ private:
     bool pendingPublish_ = false;
     uint32_t pendingGen_ = 0;
     double pendingPts_ = 0.0;
+    int pendingRel_ = -1;
     bool draining_ = false;
+
+    // s-rta-0929b gopcache c3 (plan-gopcache.md 3.4 / 3.5 + adoption GC1-GC9): the decode thread's GOP cache (AVFrame copies
+    // in the decoder's native format, src/media/GopCacheStore.h) and the reverse step machine. Frames are RELATIVE indices
+    // rel = round((pts - firstPts_) / frameDur_) (R-13). Decode thread only (configured in open(), freed in freeFfmpeg).
+    std::unique_ptr<GopCache::Store> cache_;
+    GopCache::Budget* cacheBudget_ = nullptr;   // GopCache::sharedBudget() unless a ctest set one before open()
+    std::unique_ptr<GopCache::Run> run_;
+    int playerId_ = 0;                          // GC9: the one-PREFETCH-run token's owner id
+    bool intraOnly_ = false;                    // GC5: every frame a keyframe (codec or container index) -- no cache
+    int gopFramesEst_ = 250;                    // the container index's longest keyframe interval (R-9)
+    double decodeMsEma_ = 0.0;                  // measured decode ms per frame (seeded per megapixel)
+    double firstPts_ = 0.0;                     // relative frame 0 (open()'s first decoded frame)
+    int nFrames_ = 0;                           // the trajectory's length (totalFrames_; the real count once EOF is met)
+    int lastRel_ = -1;                          // the last frame's index once a decode met EOF (-1 = not yet known)
+    bool revGen_ = false;                       // the clock's direction for myGen_ (wantReverse_ at the generation)
+    int servedRel_ = -1;                        // reverse: the last frame published in this generation
+    bool haveServed_ = false;
+    int runPublishAt_ = -1;                     // a DEMAND run's frame to publish (-1 = none)
+    bool runSawKey_ = false;                    // GC3: a run stores only frames decoded after its keyframe
+    bool runHasToken_ = false;                  // GC9
+    int lastDecodedRel_ = -1;
+    bool servedFromCache_ = false;              // forward: frames came from the cache since the last decode (reposition)
+    bool repoSeeked_ = false;
+    int prefetchBlockedAt_ = -1;                // a PREFETCH run that stored nothing: none again until the served frame moves
+    int runStored_ = 0;
     bool atEof_ = false;               // decodeNextFrame() stopped at the end of the stream (not a decode error)
     bool everDecoded_ = false;         // a frame of this file ever decoded (open()'s frame 0 included) -- W3
 
@@ -298,6 +325,29 @@ private:
     bool decodeStep();                                             // one unit of progress, never blocks (false = none)
     void onDecoded(uint32_t gen);                                  // drop, or publish (pending when the ring is full)
     bool tryPublishPending();                                      // true = done with it (published or dropped)
+    // s-rta-0929b gopcache c3: the reverse step machine (plan 3.5 + GC1-GC9)
+    bool forwardStep(uint32_t gen, double want);                   // today's forward writer (+ c4: hits, retention)
+    bool reverseStep(double want);                                 // serve the next frame down: a hit, or a DEMAND run
+    bool idleWork(double want);                                    // the ring is full: one decode of a run (or none)
+    bool runStep(double want);                                     // one decode of the current run
+    void onRunFrame(double want);                                  // store / publish a run's decoded frame
+    void startDemand(int rel, double want);
+    void planPrefetchRun(double want);
+    void endRun();
+    bool publishCached(int slot);                                  // a cache frame -> a ring slot (the SAME convertInto)
+    bool publishDecodedNow(int rel, double pts);                   // decodedFrame_ -> a ring slot, else pending (GC1)
+    bool storeDecoded(int rel, double pts, bool forward, int cur, int protect);
+    void refreshView(int cur, bool forward);
+    void enforceCap(double want);                                  // GC6: over its share -> free one slot per step
+    void clearCache();                                             // R-10: the idle trim / freeFfmpeg
+    void serviceTrim();                                            // the decode loop's trim branch (P4b + R-10)
+    int relOf(double pts) const;
+    double ptsOfRel(int rel) const;
+    int nTraj() const;
+    int capSlots() const;
+    int64_t floorBytes() const;
+    int forwardRetain() const;
+    double frameMsEff() const;
     void park();                                                   // wait until notified (threadsAwake accounting)
     void noteNoFirstFrame(const char* why);                        // W3: EOF / a decode error before any frame
     bool seekToTimestamp(double timeSec);

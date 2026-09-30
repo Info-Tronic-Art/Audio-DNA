@@ -1,25 +1,63 @@
-// test_gop_cache_store -- s-rta-0929b gopcache (plan-gopcache.md 4.1 + HARMONY ADOPTION): the REAL VideoPlayer
-// (src/media/VideoPlayer.cpp + FFmpeg), no GL, no decode thread -- the test is the GL thread (advanceFrame + a pick like
-// uploadToTexture's) and drives the writer itself (VideoPlayerTestAccess, a friend of VideoPlayer). c1: a direction change
-// is a discontinuity (a request-generation bump), whatever changes the direction (the reverse flag, a negative speed).
-// c1b: the forward writer stepped without a thread publishes a Loop clip's frames in order (plan case 7).
-// c2: GopCache::Store on its own -- native-format copies, the budget's refusals and floors, reuse, every byte returned.
+// test_gop_cache_store -- s-rta-0929b gopcache (plan-gopcache.md 4.1 + HARMONY ADOPTION GC1-GC10): the REAL VideoPlayer
+// (src/media/VideoPlayer.cpp + FFmpeg + the GOP cache), no GL, no decode thread -- the test is the GL thread (advanceFrame +
+// a pick exactly like uploadToTexture's: the same ring call, the same Retire hand-back) and drives the writer itself
+// (decodeStep through VideoPlayerTestAccess, a friend of VideoPlayer). Every player uses the malloc upload path (RGBA slots:
+// no IOSurface needed) and, unless a case says otherwise, a local Budget (never the process-wide one).
+// Identity: every frame a reversing player publishes is compared byte for byte with the SAME frame decoded forward from the
+// file start by a test-side FFmpeg decode and converted by a test-side sws with the player's own parameters (SWS_BILINEAR,
+// RGBA, bottom-up) -- the cache stores native-format copies that the one convertInto turns into ring slots.
+// RED on main: VideoPlayer has no decodeStep / GOP cache (this file does not compile).
+// c1: a direction change is ONE generation bump; c1b: the forward writer stepped without a thread shows a Loop clip's frames
+// in order; c2: GopCache::Store on its own; c3: reverse served from the cache (identity, GC1 / GC2 / GC3 / GC5 / GC6 / GC10,
+// the budget, the trim).
 #include <catch2/catch_test_macros.hpp>
 
 #include "media/GopCacheStore.h"
 #include "media/VideoPlayer.h"
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+}
+
+#include <mach/mach.h>
+
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <map>
 #include <string>
 #include <vector>
 
+using Bytes = std::vector<uint8_t>;
+
 struct VideoPlayerTestAccess
 {
+    static void mallocPath(VideoPlayer& p) { p.forcePath_ = VideoPlayer::UploadPath::Malloc; }
+    static void setBudget(VideoPlayer& p, GopCache::Budget* b) { p.cacheBudget_ = b; }   // before open()
     static uint32_t gen(const VideoPlayer& p) { return p.gen_.load(); }
     static bool reverseNow(const VideoPlayer& p) { return p.reverseNow_; }
     static bool wantReverse(const VideoPlayer& p) { return p.wantReverse_.load(); }
-    // c1b: the writer without a thread, and the GL thread's pick (uploadToTexture without GL / budget)
+    static double clock(const VideoPlayer& p) { return p.currentTime_; }
+    static double frameDur(const VideoPlayer& p) { return p.frameDur_; }
+    static bool intraOnly(const VideoPlayer& p) { return p.intraOnly_; }
+    static int resident(const VideoPlayer& p) { return p.cache_->resident(); }
+    static int64_t cacheBytes(const VideoPlayer& p) { return p.cache_->bytes(); }
+    static int64_t frameBytes(const VideoPlayer& p) { return p.cache_->frameBytes(); }
+    static bool isResident(const VideoPlayer& p, int rel) { return p.cache_->slotOf(rel) >= 0; }
+    static int servedRel(const VideoPlayer& p) { return p.haveServed_ ? p.servedRel_ : -1; }
+    static bool pending(const VideoPlayer& p) { return p.pendingPublish_; }
+    static int readyCount(const VideoPlayer& p) { return p.ring_.readyCount(); }
+    static void unstorable(VideoPlayer& p) { p.cache_->configure(-1, p.width_, p.height_, p.cacheBudget_, p.stats_); }
+    static int backPool(const VideoPlayer& p)
+    {
+        int n = 0;
+        for (const auto& s : p.cache_->view())
+            n += (s.frame >= 0 && s.frame < p.relOf(p.currentTime_)) ? 1 : 0;
+        return n;
+    }
+    static bool step(VideoPlayer& p) { return p.decodeStep(); }
     static int stepUntilIdle(VideoPlayer& p, int limit = 200000)
     {
         int n = 0;
@@ -27,21 +65,35 @@ struct VideoPlayerTestAccess
             ++n;
         return n;
     }
-    static long pick(VideoPlayer& p)
+    // The decode loop's trim branch (R-10): the GL thread asked, the writer purges its Free slots and drops the cache.
+    static void trim(VideoPlayer& p)
+    {
+        p.trimRequested_.store(true);
+        p.serviceTrim();
+    }
+    // The GL thread's pick (uploadToTexture without GL / budget): the frame index picked (-1 = none); `bytes` gets the
+    // picked slot's RGBA (bottom-up rows, as written).
+    static long pick(VideoPlayer& p, Bytes* bytes = nullptr)
     {
         const uint32_t g = p.gen_.load();
         const auto k = p.ring_.pick(p.currentTime_, g, 0.5 * p.frameDur_, (VideoPlayer::kWriterLookAhead + 1) * p.frameDur_,
                                     p.reverseNow_);
         if (k.slot < 0)
             return -1;
+        if (bytes != nullptr)
+        {
+            const uint8_t* b = p.slotBytes_[static_cast<size_t>(k.slot)];
+            bytes->assign(b, b + static_cast<size_t>(p.rowBytes_) * static_cast<size_t>(p.height_));
+        }
         const int prev = p.retire_.shown(k.slot, false);
         if (prev >= 0)
         {
             p.ring_.release(prev);
             p.releasedThisFrame_ = true;
         }
-        return std::lround(k.pts / p.frameDur_);
+        return p.relOf(k.pts);
     }
+    static double lastPickedPts(const VideoPlayer& p) { return p.ring_.header(p.retire_.held).pts; }
 };
 
 namespace
@@ -49,6 +101,121 @@ namespace
 juce::File fixture(const char* name)
 {
     return juce::File(TEST_FIXTURES_DIR).getChildFile(name);
+}
+
+// Every frame of `file` decoded forward from the start and converted like VideoPlayer::convertInto on the malloc path
+// (sws SWS_BILINEAR to RGBA, bottom-up via a negative stride): relative index (round((pts - first) / fd)) -> bytes.
+std::map<long, Bytes> forwardDecode(const juce::File& file)
+{
+    std::map<long, Bytes> out;
+    AVFormatContext* fmt = nullptr;
+    REQUIRE(avformat_open_input(&fmt, file.getFullPathName().toRawUTF8(), nullptr, nullptr) == 0);
+    REQUIRE(avformat_find_stream_info(fmt, nullptr) >= 0);
+    int si = -1;
+    for (unsigned i = 0; i < fmt->nb_streams; ++i)
+        if (fmt->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+            si = static_cast<int>(i);
+    REQUIRE(si >= 0);
+    auto* st = fmt->streams[si];
+    const AVCodec* codec = avcodec_find_decoder(st->codecpar->codec_id);
+    AVCodecContext* cc = avcodec_alloc_context3(codec);
+    avcodec_parameters_to_context(cc, st->codecpar);
+    cc->thread_count = 2;
+    REQUIRE(avcodec_open2(cc, codec, nullptr) == 0);
+    const double tb = av_q2d(st->time_base);
+    const double fd = 1.0 / av_q2d(st->avg_frame_rate);
+    SwsContext* sws = nullptr;
+    AVFrame* fr = av_frame_alloc();
+    AVPacket* pk = av_packet_alloc();
+    double first = -1.0;
+    auto take = [&] {
+        while (avcodec_receive_frame(cc, fr) == 0)
+        {
+            const double pts = static_cast<double>(fr->pts) * tb;
+            if (first < 0.0)
+                first = pts;
+            if (sws == nullptr)
+                sws = sws_getContext(fr->width, fr->height, static_cast<AVPixelFormat>(fr->format), fr->width, fr->height,
+                                     AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+            Bytes b(static_cast<size_t>(fr->width) * static_cast<size_t>(fr->height) * 4);
+            uint8_t* dst[4] = { b.data() + static_cast<size_t>(fr->height - 1) * static_cast<size_t>(fr->width) * 4, nullptr, nullptr, nullptr };
+            int ds[4] = { -fr->width * 4, 0, 0, 0 };
+            sws_scale(sws, fr->data, fr->linesize, 0, fr->height, dst, ds);
+            out[std::lround((pts - first) / fd)] = std::move(b);
+        }
+    };
+    while (av_read_frame(fmt, pk) >= 0)
+    {
+        if (pk->stream_index == si && avcodec_send_packet(cc, pk) >= 0)
+            take();
+        av_packet_unref(pk);
+    }
+    avcodec_send_packet(cc, nullptr);
+    take();
+    sws_freeContext(sws);
+    av_frame_free(&fr);
+    av_packet_free(&pk);
+    avcodec_free_context(&cc);
+    avformat_close_input(&fmt);
+    return out;
+}
+
+void big(GopCache::Budget& b)
+{
+    b.total.store(int64_t{ 1 } << 30);
+}
+
+// A reversing player driven like the app: every render frame (dt) the clock advances, the writer runs until it has nothing
+// to do (or not at all while `stalled`), the reader picks; late = a drawn frame whose clock had passed the shown frame by
+// more than 1.5 frames (VideoRing::judge's rule).
+struct Show
+{
+    VideoPlayer& p;
+    std::vector<long> shown;   // every NEW frame picked, in order
+    long late = 0, frames = 0;
+    std::map<long, Bytes>* check = nullptr;   // identity reference (nullptr = none)
+    long mismatches = 0;
+
+    void frame(double dt, bool stalled = false)
+    {
+        p.advanceFrame(dt);
+        if (!stalled)
+            VideoPlayerTestAccess::stepUntilIdle(p);
+        Bytes b;
+        const long k = VideoPlayerTestAccess::pick(p, check != nullptr ? &b : nullptr);
+        ++frames;
+        if (k >= 0)
+        {
+            shown.push_back(k);
+            if (check != nullptr && (check->count(k) == 0 || (*check)[k] != b))
+                ++mismatches;
+        }
+        else if (!shown.empty())
+        {
+            const double clockNow = VideoPlayerTestAccess::clock(p);
+            const double fd = VideoPlayerTestAccess::frameDur(p);
+            if (std::fabs(clockNow - VideoPlayerTestAccess::lastPickedPts(p)) > 1.5 * fd)
+                ++late;
+        }
+    }
+};
+
+// The player at frame `rel` reversing: seek there (one generation), then flip the direction (the next one).
+void startReverseAt(VideoPlayer& p, double seekNorm)
+{
+    p.seekTo(seekNorm);
+    p.advanceFrame(0.0);
+    p.setReverse(true);
+    p.advanceFrame(1.0 / 1000.0);
+}
+
+int64_t physFootprint()
+{
+    task_vm_info_data_t info{};
+    mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+    if (task_info(mach_task_self(), TASK_VM_INFO, reinterpret_cast<task_info_t>(&info), &count) != KERN_SUCCESS)
+        return -1;
+    return static_cast<int64_t>(info.phys_footprint);
 }
 } // namespace
 
@@ -65,12 +232,12 @@ TEST_CASE("a direction change is a discontinuity: exactly one generation bump pe
     p.advanceFrame(dt);
     CHECK(VideoPlayerTestAccess::gen(p) == g0);          // forward stays forward: no bump
     p.setReverse(true);
-    p.advanceFrame(dt);                                   // 0 - dt: the Loop wrap AND the flip share ONE bump
+    p.advanceFrame(dt);                                   // the flip: one bump
     CHECK(VideoPlayerTestAccess::gen(p) == g0 + 1);
     CHECK(VideoPlayerTestAccess::reverseNow(p));
     CHECK(VideoPlayerTestAccess::wantReverse(p));         // posted with the generation
     p.advanceFrame(dt);
-    CHECK(VideoPlayerTestAccess::gen(p) == g0 + 1);      // reverse stays reverse
+    CHECK(VideoPlayerTestAccess::gen(p) == g0 + 1);      // reverse stays reverse (no wrap yet: 2 frames of clock left)
     p.setReverse(false);
     p.advanceFrame(dt);
     CHECK(VideoPlayerTestAccess::gen(p) == g0 + 2);
@@ -89,7 +256,7 @@ TEST_CASE("a direction change is a discontinuity: exactly one generation bump pe
     p.close();
 }
 
-TEST_CASE("a PingPong reflection flips the direction with ONE generation bump (never mixed in the ring)",
+TEST_CASE("a PingPong reflection flips the direction with ONE generation bump on the frame of the turn",
           "[video_player][gopcache][s-rta-0929b]")
 {
     VideoPlayer p;
@@ -103,6 +270,391 @@ TEST_CASE("a PingPong reflection flips the direction with ONE generation bump (n
     CHECK(VideoPlayerTestAccess::reverseNow(p));
     p.advanceFrame(0.05);
     CHECK(VideoPlayerTestAccess::gen(p) == g0 + 1);
+    p.close();
+}
+
+TEST_CASE("reverse from the cache: frames 45, 44, 43 ... in order, one DEMAND seek + one PREFETCH seek, every frame "
+          "byte-identical to a forward decode", "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");
+    auto ref = forwardDecode(f);
+    REQUIRE(ref.size() == 60);
+    REQUIRE(ref[44] != ref[45]);                            // a sanity tooth: neighbouring frames differ
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    startReverseAt(p, 45.0 / 60.0);
+    const auto seeks0 = st.seeks.load();
+    Show s{ p };
+    s.check = &ref;
+    for (int i = 0; i < 4 * 30; ++i)    // 1 s of reverse at a 120 Hz render
+        s.frame(1.0 / 120.0);
+    REQUIRE(s.shown.size() >= 29);
+    CHECK(s.shown[0] == 45);
+    CHECK(s.shown[1] == 44);
+    CHECK(s.shown[2] == 43);
+    bool ordered = true;
+    for (size_t i = 1; i < s.shown.size(); ++i)
+        ordered = ordered && s.shown[i] == s.shown[i - 1] - 1;
+    CHECK(ordered);
+    CHECK(s.mismatches == 0);
+    CHECK(s.late == 0);
+    // the DEMAND run (keyframe 40), one PREFETCH (keyframe 0: frames 0..39), and the PREFETCH of the Loop wrap's future
+    // (frames 46..59, from keyframe 40) -- then everything is resident
+    CHECK(st.seeks.load() - seeks0 == 3);
+    for (int k = 0; k < 60; ++k)
+        CHECK(VideoPlayerTestAccess::isResident(p, k));
+    CHECK(st.gopCacheHits.load() >= 28);
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    p.close();
+}
+
+TEST_CASE("GC1: a DEMAND frame waiting for a ring slot is published with ITS pixels after the run decoded other frames",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");
+    auto ref = forwardDecode(f);
+    GopCache::Budget budget;
+    big(budget);
+    VideoStats st;
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    VideoPlayerTestAccess::unstorable(p);   // nothing can be stored: every served frame goes straight from the decoder
+    startReverseAt(p, 45.0 / 60.0);
+    VideoPlayerTestAccess::pick(p);          // the reader drops open()'s frame 0 (another generation): 3 slots for the writer
+    // the reader never picks: the writer publishes 45, 44, 43 (the ring is full), then decodes 42 with a DEMAND run: pending
+    for (int i = 0; i < 500 && !(VideoPlayerTestAccess::readyCount(p) == 3 && VideoPlayerTestAccess::pending(p)); ++i)
+        VideoPlayerTestAccess::step(p);
+    REQUIRE(VideoPlayerTestAccess::readyCount(p) == 3);
+    REQUIRE(VideoPlayerTestAccess::pending(p));
+    const auto decoded0 = st.framesDecoded.load();
+    for (int i = 0; i < 3; ++i)             // idle work: three more decodes (a PREFETCH run) while 42 waits
+        VideoPlayerTestAccess::step(p);
+    CHECK(st.framesDecoded.load() - decoded0 >= 3);
+    // the reader frees a slot (the clock at frame 44: 44 is picked, 45 above it is passed over)
+    for (int i = 0; i < 40 && VideoPlayerTestAccess::clock(p) > 44.0 / 30.0; ++i)
+        p.advanceFrame(1.0 / 120.0);
+    Bytes b;
+    REQUIRE(VideoPlayerTestAccess::pick(p, &b) == 44);
+    REQUIRE(VideoPlayerTestAccess::step(p));
+    CHECK_FALSE(VideoPlayerTestAccess::pending(p));
+    // walk the clock down to 42: its bytes are frame 42's (not the last frame the prefetch decoded)
+    long got = -1;
+    std::string picks;
+    for (int i = 0; i < 80 && got != 42; ++i)
+    {
+        p.advanceFrame(1.0 / 120.0);
+        Bytes bb;
+        const long k = VideoPlayerTestAccess::pick(p, &bb);
+        if (k >= 0)
+            picks += std::to_string(k) + " ";
+        if (k == 42)
+        {
+            got = k;
+            b = bb;
+        }
+    }
+    CAPTURE(picks, VideoPlayerTestAccess::readyCount(p), VideoPlayerTestAccess::clock(p));
+    REQUIRE(got == 42);
+    CHECK(b == ref[42]);
+    p.close();
+}
+
+TEST_CASE("the budget: a cache capped at its floor (8 frames) never holds more, never evicts the served frame, and costs "
+          "<= G / (2 x floor(share / 2)) + 1 decodes per served frame (+ the first DEMAND run)", "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");
+    auto ref = forwardDecode(f);
+    VideoStats st;
+    GopCache::Budget budget;
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    budget.total.store(1);   // nothing but the floor (kMinFrames) -- a cache under any other budget share
+    startReverseAt(p, 50.0 / 60.0);
+    Show s{ p };
+    s.check = &ref;
+    const auto dec0 = st.framesDecoded.load();
+    int maxResident = 0;
+    while (s.shown.size() < 31 && s.frames < 2000)
+    {
+        s.frame(1.0 / 120.0);
+        maxResident = std::max(maxResident, VideoPlayerTestAccess::resident(p));
+    }
+    REQUIRE(s.shown.size() >= 31);
+    CHECK(maxResident <= GopCache::kMinFrames);
+    CHECK(s.mismatches == 0);
+    const double perFrame = static_cast<double>(st.framesDecoded.load() - dec0) / static_cast<double>(s.shown.size());
+    const int share = GopCache::kMinFrames - GopCache::behindCapFor(GopCache::Mode::Loop, false, GopCache::kMinFrames, 0);
+    CAPTURE(perFrame, share, st.gopCacheEvictions.load());
+    // the pure policy's steady-state bound (test_gop_cache's amortization case) + the first DEMAND run (one GOP of decode)
+    // spread over the frames served here
+    CHECK(perFrame <= 10.0 / (2.0 * (share / 2)) + 1.0 + 10.0 / static_cast<double>(s.shown.size()));
+    CHECK(st.gopCacheEvictions.load() > 0);
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    p.close();
+}
+
+TEST_CASE("GC5: intra-only is the codec's or the container index's verdict at open -- never a cache, never a prefetch",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    for (const char* name : { "video_rawrgba_63x37.mov", "video_hapa_64x64.mov", "video_h264_allintra_64x64.mp4" })
+    {
+        CAPTURE(name);
+        VideoStats st;
+        GopCache::Budget budget;
+    big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(fixture(name)));
+        CHECK(VideoPlayerTestAccess::intraOnly(p));
+        p.setReverse(true);
+        p.advanceFrame(1.0 / 1000.0);
+        Show s{ p };
+        for (int i = 0; i < 60; ++i)
+            s.frame(1.0 / 120.0);
+        CHECK(s.shown.size() >= 10);
+        CHECK(VideoPlayerTestAccess::resident(p) == 0);
+        CHECK(st.gopCacheRuns.load() == 0);                 // no PREFETCH
+        CHECK(VideoPlayerTestAccess::cacheBytes(p) == 0);
+        p.close();
+    }
+    VideoPlayer q;
+    REQUIRE(q.open(fixture("video_h264_gop10_64x64.mp4")));
+    CHECK_FALSE(VideoPlayerTestAccess::intraOnly(q));
+    q.close();
+}
+
+TEST_CASE("R-10: the idle trim clears the cache -- nothing resident, no bytes, the budget inactive",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(fixture("video_h264_gop10_64x64.mp4")));
+    startReverseAt(p, 45.0 / 60.0);
+    Show s{ p };
+    for (int i = 0; i < 20; ++i)
+        s.frame(1.0 / 120.0);
+    REQUIRE(VideoPlayerTestAccess::resident(p) > 8);
+    REQUIRE(budget.active.load() == 1);
+    REQUIRE(budget.bytes.load() > 0);
+    VideoPlayerTestAccess::trim(p);
+    CHECK(VideoPlayerTestAccess::resident(p) == 0);
+    CHECK(VideoPlayerTestAccess::cacheBytes(p) == 0);
+    CHECK(budget.bytes.load() == 0);
+    CHECK(budget.active.load() == 0);
+    CHECK(st.gopCacheBytes.load() == 0);
+    CHECK(st.gopCacheFrames.load() == 0);
+    CHECK(st.gopCacheActive.load() == 0);
+    p.close();
+}
+
+TEST_CASE("GC2: reverse at 2x and 4x keeps up with the clock (never frozen, late <= 3); after a 300 ms writer stall it jumps "
+          "to the clock", "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");
+    for (float speed : { 2.0f, 4.0f })
+    {
+        CAPTURE(speed);
+        VideoStats st;
+        GopCache::Budget budget;
+    big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(f));
+        p.setSpeed(speed);
+        startReverseAt(p, 58.0 / 60.0);
+        Show s{ p };
+        for (int i = 0; i < 90; ++i)   // 0.75 s: 45 (2x) / 90 (4x) frames of content -> never a wrap at 2x
+            s.frame(1.0 / 120.0);
+        CHECK(s.late <= 3);
+        bool monotone = true;
+        for (size_t i = 1; i < s.shown.size(); ++i)
+            monotone = monotone && s.shown[i] < s.shown[i - 1];
+        if (speed == 2.0f)
+        {
+            CHECK(monotone);
+            CHECK(s.shown.size() >= 40);
+        }
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+    // the stall: 36 render frames (300 ms) with no writer step, then the writer runs again
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    startReverseAt(p, 58.0 / 60.0);
+    Show s{ p };
+    for (int i = 0; i < 24; ++i)
+        s.frame(1.0 / 120.0);
+    for (int i = 0; i < 36; ++i)
+        s.frame(1.0 / 120.0, true);
+    const long lateAtResume = s.late;
+    const size_t shownAtResume = s.shown.size();
+    for (int i = 0; i < 24; ++i)
+        s.frame(1.0 / 120.0);
+    CHECK(s.late - lateAtResume <= 3);                                 // back on the clock within a few frames
+    REQUIRE(s.shown.size() > shownAtResume);
+    const long clockRel = std::lround(VideoPlayerTestAccess::clock(p) / VideoPlayerTestAccess::frameDur(p));
+    CHECK(std::labs(s.shown.back() - clockRel) <= 1);                  // the shown frame is the clock's
+    CHECK(st.framesDropped.load() > 0);                                // the frames the clock passed were skipped
+    p.close();
+}
+
+TEST_CASE("GC3: open-GOP, a non-zero start time and a VFR file -- every frame a full reverse lap serves equals a forward "
+          "decode; no seek storm", "[video_player][gopcache][s-rta-0929b]")
+{
+    for (const char* name : { "video_h264_opengop_64x64.mp4", "video_h264_start1s_64x64.mp4", "video_h264_vfr_64x64.mp4" })
+    {
+        CAPTURE(name);
+        const auto f = fixture(name);
+        auto ref = forwardDecode(f);
+        REQUIRE(ref.size() == 60);
+        VideoStats st;
+        GopCache::Budget budget;
+    big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(f));
+        p.setReverse(true);
+        p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
+        Show s{ p };
+        s.check = &ref;
+        for (int i = 0; i < 4 * 55; ++i)
+            s.frame(1.0 / 120.0);
+        CHECK(s.shown.size() >= 20);
+        CHECK(s.mismatches == 0);
+        CHECK(st.seeks.load() <= 12);   // a DEMAND + a few PREFETCH runs, never one seek per frame
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+}
+
+TEST_CASE("GC6: a resident cache shrinks to its share when a second cache joins the budget (per step, not at a store)",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop10_64x64.mp4");
+    GopCache::Budget budget;
+    VideoPlayer a, b;
+    for (VideoPlayer* p : { &a, &b })
+    {
+        VideoPlayerTestAccess::mallocPath(*p);
+        VideoPlayerTestAccess::setBudget(*p, &budget);
+        REQUIRE(p->open(f));
+    }
+    budget.total.store(40 * VideoPlayerTestAccess::frameBytes(a));   // room for 40 frames together
+    startReverseAt(a, 59.0 / 60.0);
+    Show sa{ a };
+    for (int i = 0; i < 60; ++i)
+        sa.frame(1.0 / 120.0);
+    REQUIRE(VideoPlayerTestAccess::resident(a) > 20);                // A alone: most of the budget
+    startReverseAt(b, 59.0 / 60.0);
+    Show sb{ b };
+    for (int i = 0; i < 30; ++i)
+    {
+        sb.frame(1.0 / 120.0);
+        sa.frame(1.0 / 120.0);
+    }
+    const int64_t share = budget.capBytes();
+    CHECK(budget.active.load() == 2);
+    CHECK(VideoPlayerTestAccess::cacheBytes(a) <= std::max(share, 8 * VideoPlayerTestAccess::frameBytes(a)));
+    CHECK(budget.bytes.load() <= budget.total.load() + 16 * VideoPlayerTestAccess::frameBytes(a));
+    CHECK(sb.shown.size() >= 7);
+    a.close();
+    b.close();
+}
+
+TEST_CASE("GC10: the cache's memory really returns -- 100 frames filled, cleared, 20 players opened / filled / closed: the "
+          "physical footprint ends within 15 % of the filled peak's growth", "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop60_640x360.mp4");   // 345,600 B a frame: 100 frames = 34.6 MB
+    GopCache::Budget budget;
+    big(budget);
+    const int64_t base = physFootprint();
+    REQUIRE(base > 0);
+    int64_t peak = base;
+    {
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        REQUIRE(p.open(f));
+        startReverseAt(p, 119.0 / 120.0);
+        Show s{ p };
+        for (int i = 0; i < 400 && VideoPlayerTestAccess::resident(p) < 100; ++i)
+            s.frame(1.0 / 120.0);
+        REQUIRE(VideoPlayerTestAccess::resident(p) >= 100);
+        peak = physFootprint();
+        VideoPlayerTestAccess::trim(p);
+        p.close();
+    }
+    for (int k = 0; k < 20; ++k)
+    {
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        REQUIRE(p.open(f));
+        startReverseAt(p, 119.0 / 120.0);
+        Show s{ p };
+        for (int i = 0; i < 20; ++i)
+            s.frame(1.0 / 120.0);
+        p.close();
+    }
+    const int64_t end = physFootprint();
+    CAPTURE(base, peak, end);
+    CHECK(peak - base > 25'000'000);
+    CHECK(end - base < (peak - base) * 15 / 100);
+    CHECK(budget.bytes.load() == 0);
+    CHECK(budget.active.load() == 0);
+}
+
+TEST_CASE("S8: a 640x360 GOP-60 clip in a small cache (24 frames) costs a bounded number of decodes per served frame",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop60_640x360.mp4");
+    VideoStats st;
+    GopCache::Budget budget;
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    budget.total.store(24 * VideoPlayerTestAccess::frameBytes(p));
+    startReverseAt(p, 119.0 / 120.0);
+    Show s{ p };
+    const auto dec0 = st.framesDecoded.load();
+    for (int i = 0; i < 4 * 60; ++i)
+        s.frame(1.0 / 120.0);
+    REQUIRE(s.shown.size() >= 55);
+    const double perFrame = static_cast<double>(st.framesDecoded.load() - dec0) / static_cast<double>(s.shown.size());
+    const int share = 24 - GopCache::behindCapFor(GopCache::Mode::Loop, false, 24, 0);
+    CAPTURE(perFrame, share);
+    CHECK(perFrame <= 60.0 / (2.0 * (share / 2)) + 1.0 + 60.0 / static_cast<double>(s.shown.size()));   // + the first DEMAND
     p.close();
 }
 
