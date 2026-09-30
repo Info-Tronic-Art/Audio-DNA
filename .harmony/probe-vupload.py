@@ -40,6 +40,10 @@ u4b_idle_ring_trim: 4K canvas, deck 0 = 4 x a4k, deck 1 = warm.png; trigger_colu
   slots carry a correct picture); (d) video_slots_purged does not grow while the deck is on screen (s2 -> s3 == 0);
   (e) VU5: video_late_frames delta over the on-screen windows (the 3 s before the switch is not polled; s2 -> s3) == 0 --
   the return itself is w4's bounded hold (1 <= late <= lateMaxReturn in probe-video w4), printed as INFO here.
+  s-rta-0929b gopcache-fix (review SHOULD: plan 4.3's "bytes == 0" became false with GC8, and nothing bounded forward
+  retention): (f) at s0 (3 s of plain forward Loop play) video_gopcache_frames <= 4 x fwdRetainMaxFrames (GC8 keeps
+  kBehindFrames = 16 behind the clock + the writer's look-ahead; absent = FAIL: the pre-lane app has no cache), the bytes
+  and the footprint delta printed; (g) after the idle trim (s1) video_gopcache_frames / _bytes == 0 (R-10).
 u6_crossfade_video (VU5): 1080p canvas; 4 layers: layers 0-2 = a1080 in columns 0 and 1 (new players in column 1, cut);
   layer 3 (the TOP) = a1080 in column 0 and b1080 (negated) in column 1 with transitionSpeed 2.0 (the default Dissolve).
   trigger_column 0; 2 s; s0; trigger_column 1 (a crossfade A -> B on the top layer while three more players start on
@@ -236,6 +240,8 @@ def u4b(tag):
     f, pb, pa = pv.cap_bracket(tag, 3)
     time.sleep(5.0); s3 = pv.state()
     pur = pv.delta(tag, s0, s1, "video_slots_purged")
+    gf0, gb0 = pv.counter(s0, "video_gopcache_frames"), pv.counter(s0, "video_gopcache_bytes")
+    gf1, gb1 = pv.counter(s1, "video_gopcache_frames"), pv.counter(s1, "video_gopcache_bytes")
     fp0, fp1 = pv.counter(t0, "phys_footprint_mb"), pv.counter(t1, "phys_footprint_mb")
     dfp = None if fp0 is None or fp1 is None else round(fp0 - fp1, 1)
     drss = None if r0 is None or r1 is None else round(r0 - r1, 1)
@@ -243,8 +249,16 @@ def u4b(tag):
           f"{r1 and round(r1)} MB (drop {drss}), late on return (INFO, w4's bounded hold) {pv.dz(s1, sr, 'video_late_frames')} "
           f"+ {pv.dz(sr, s2, 'video_late_frames')} in the next {VU['returnSettleS']} s, "
           f"{pv.la()}", flush=True)
+    mb = lambda b: None if b is None else round(b / 1048576.0, 1)
+    print(f"      {tag}: forward retention at s0 {gf0} frames / {mb(gb0)} MB (4 players), after the trim {gf1} frames / "
+          f"{mb(gb1)} MB; the footprint drop above includes the retained frames' {mb(gb0)} MB", flush=True)
     pv.data(tag, purged=pur, footprint_drop=dfp, rss_drop=drss, late_return=pv.dz(s1, sr, "video_late_frames"),
-            late_return_tail=pv.dz(sr, s2, "video_late_frames"), late_steady=pv.dz(s2, s3, "video_late_frames"))
+            late_return_tail=pv.dz(sr, s2, "video_late_frames"), late_steady=pv.dz(s2, s3, "video_late_frames"),
+            retained_frames=gf0, retained_mb=mb(gb0), retained_after_trim=gf1)
+    rmax = 4 * int(VU["fwdRetainMaxFrames"])
+    check(gf0 is not None and gf0 <= rmax, f"{tag}: (f) forward retention video_gopcache_frames {gf0} <= {rmax} "
+                                           f"(4 x fwdRetainMaxFrames; {mb(gb0)} MB)")
+    check(gf1 == 0 and gb1 == 0, f"{tag}: (g) after the idle trim video_gopcache_frames {gf1} / _bytes {gb1} == 0")
     if pur is not None:
         check(pur == 8, f"{tag}: (a) video_slots_purged delta {pur} == 8 (4 players x 2 free slots; the shown one is kept)")
     lim = float(VU["trimDropMinMb"])

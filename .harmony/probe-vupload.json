@@ -8,6 +8,8 @@
   "_trimWaitS": "u4b: the player is idle kTrimIdleMs (1000 ms) after its last draw; the frame-top scan trims it and its parked decode thread purges -- 2.5 s leaves 1.5 s of margin",
   "returnSettleS": 3.0,
   "_returnSettleS": "u4b: after the deck return, wait this long past settle_late and settle again before the steady window (VU5's late == 0 is a steady-state claim; the 4K return catch-ups are w4's bounded hold, printed)",
+  "fwdRetainMaxFrames": 20,
+  "_fwdRetainMaxFrames": "u4b (f) (s-rta-0929b gopcache-fix): a plain forward Loop player retains at most this many native frames -- GopCache::kBehindFrames (16) behind the clock + the writer's look-ahead (kWriterLookAhead 2 + 1) + 1 in flight; 4K yuv420p = 12.4 MB a frame",
   "trimDropMinMb": 150,
   "_trimDropMinMb": "u4b (b): 4 players x 2 free BGRA 4K slots x 33.2 MB = 265 MB expected; phys_footprint (primary) or ps rss must drop by >= this (plan risk 5: purged IOSurface pages may not leave rss -- both printed)",
   "u7UploadsRatioMin": 0.9,
