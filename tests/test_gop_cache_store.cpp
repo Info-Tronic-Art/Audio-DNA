@@ -32,6 +32,7 @@ extern "C" {
 #include <cstdint>
 #include <cstring>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -111,12 +112,15 @@ struct VideoPlayerTestAccess
         p.serviceTrim();
     }
     // The GL thread's pick (uploadToTexture without GL / budget): the frame index picked (-1 = none); `bytes` gets the
-    // picked slot's RGBA (bottom-up rows, as written).
-    static long pick(VideoPlayer& p, Bytes* bytes = nullptr)
+    // picked slot's RGBA (bottom-up rows, as written); `aheadDropped` counts the frames the pick freed as too far ahead of
+    // the clock (published, never shown).
+    static long pick(VideoPlayer& p, Bytes* bytes = nullptr, long* aheadDropped = nullptr)
     {
         const uint32_t g = p.gen_.load();
         const auto k = p.ring_.pick(p.currentTime_, g, 0.5 * p.frameDur_, (VideoPlayer::kWriterLookAhead + 1) * p.frameDur_,
                                     p.reverseNow_);
+        if (aheadDropped != nullptr)
+            *aheadDropped += k.aheadDropped;
         if (k.slot < 0)
             return -1;
         if (bytes != nullptr)
@@ -264,6 +268,7 @@ struct Show
     long late = 0, frames = 0;
     std::map<long, Bytes>* check = nullptr;   // identity reference (nullptr = none)
     long mismatches = 0;
+    long aheadDropped = 0;                    // published frames the pick freed unshown (too far ahead of the clock)
 
     void frame(double dt, bool stalled = false)
     {
@@ -271,7 +276,7 @@ struct Show
         if (!stalled)
             VideoPlayerTestAccess::stepUntilIdle(p);
         Bytes b;
-        const long k = VideoPlayerTestAccess::pick(p, check != nullptr ? &b : nullptr);
+        const long k = VideoPlayerTestAccess::pick(p, check != nullptr ? &b : nullptr, &aheadDropped);
         ++frames;
         if (k >= 0)
         {
@@ -689,8 +694,7 @@ TEST_CASE("GC3 holes: a reverse Loop over a file with index holes (VFR drops, MP
         CAPTURE(uncovered1, VideoPlayerTestAccess::uncovered(p));
         CAPTURE(seeks1, runs1, misses1, st.seeks.load(), st.gopCacheRuns.load(), st.gopCacheMisses.load(),
                 s.shown.size() - shown1, st.framesDecoded.load(), s.late);
-        // never frozen (the VFR file shows ~25 of its 85 frames a lap in reverse, before and after this fix: its relative
-        // index is the AVERAGE frame duration -- a separate finding, not this test's)
+        // never frozen (how many of the VFR file's frames a lap shows is the R2 case's gate, not this test's)
         CHECK(s.shown.size() - shown1 >= 40);
         CHECK(st.seeks.load() - seeks1 <= 1);
         CHECK(st.gopCacheRuns.load() - runs1 <= 1);
@@ -751,6 +755,45 @@ TEST_CASE("R1: a pts-less AVI reversed in Loop -- every frame shown and cached i
     CHECK(st.seeks.load() - seeks1 <= 1);
     CHECK(st.gopCacheRuns.load() - runs1 <= 1);
     CHECK(st.gopCacheMisses.load() - misses1 <= 1);
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    p.close();
+}
+
+// gopcache-fix2 R2: a VFR file (a 30 fps capture with ~30 % of its frames dropped: 85 frames, an AVERAGE frame duration of
+// 47 ms over a 33 ms grid) reversed in Loop with the whole file in budget, three laps. The reverse writer publishes a frame
+// no further below the clock than kWriterLookAhead + 1 frame durations measured on the frame's OWN pts -- inside the line
+// the pick frees frames at. 98994c6 measured it in relative indices: a frame of index wantRel - 3 whose pts sits early in
+// its 47 ms bucket was up to ~4 frame durations below the clock, freed by the pick unshown (28 of the 63 frames published a
+// lap), and the writer never came back for it that lap. Every lap: no published frame is freed unshown, and the lap shows
+// at least 0.9 x main's median of distinct frames a lap (main d88d2ea, threaded reverse Loop of this file, 5 runs x 3
+// laps: median 42 -> >= 38). RED on 98994c6: 35 distinct a lap, 28 freed unshown.
+TEST_CASE("R2: a VFR file reversed in Loop -- no published frame is freed unshown; each lap shows >= 0.9 x main's distinct "
+          "frames", "[video_player][gopcache][s-rta-0929b]")
+{
+    constexpr long kMainMedianPerLap = 42;   // main d88d2ea, threaded, 5 runs x 3 laps (lane report gopcache.md, fix round 2)
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(fixture("video_h264_vfrgap_64x64.mp4")));
+    p.setReverse(true);
+    p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
+    Show s{ p };
+    const int lap = static_cast<int>(std::lround(p.getDuration() * 120.0));
+    for (int l = 0; l < 3; ++l)
+    {
+        const size_t from = s.shown.size();
+        const long ahead0 = s.aheadDropped;
+        for (int i = 0; i < lap; ++i)
+            s.frame(1.0 / 120.0);
+        const std::set<long> distinct(s.shown.begin() + static_cast<std::ptrdiff_t>(from), s.shown.end());
+        CAPTURE(l, distinct.size(), s.aheadDropped - ahead0, VideoPlayerTestAccess::resident(p), st.seeks.load());
+        CHECK(s.aheadDropped - ahead0 == 0);
+        CHECK(static_cast<long>(distinct.size()) * 10 >= kMainMedianPerLap * 9);
+    }
     CHECK(st.reverseNonmonotonic.load() == 0);
     p.close();
 }

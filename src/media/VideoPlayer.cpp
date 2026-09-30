@@ -1236,8 +1236,6 @@ bool VideoPlayer::reverseStep(double want)
                 stats_->framesDropped += next - wantRel;
             next = wantRel;
         }
-        if (next < wantRel - (kWriterLookAhead + 1))   // GC2: far enough AHEAD of the clock -- run work instead
-            return idleWork(want);
     }
     next = std::min(next, nTraj() - 1);   // the clock above the last frame (a wrap lands at the duration): the last frame
     while (next >= 0 && cache_->isHole(next))   // GC3: a frame the decoder never outputs is skipped, never sought again
@@ -1245,6 +1243,13 @@ bool VideoPlayer::reverseStep(double want)
     if (next < 0)
         return idleWork(want);   // below the first frame: the GL thread's wrap / reflection brings a new generation
     const int slot = intraOnly_ ? -1 : cache_->slotOf(next);
+    // GC2: far enough AHEAD of the clock -- run work instead. gopcache-fix2 R2: measured in TIME on the frame's own pts (a
+    // resident frame's; the nominal time of a miss), after the holes are walked: the pick frees a frame more than
+    // (kWriterLookAhead + 1) frame durations + half a frame below the clock, and a VFR file's index (the AVERAGE frame
+    // duration) put a frame of index wantRel - 3 up to ~4 frame durations below it -- published, freed unshown, never
+    // published again that lap (98994c6: 28 of the 63 frames a lap).
+    if (haveServed_ && (slot >= 0 ? cache_->ptsAt(slot) : ptsOfRel(next)) < want - (kWriterLookAhead + 1) * frameDur_)
+        return idleWork(want);
     if (slot >= 0)
         return publishCached(slot) ? true : idleWork(want);
     // a miss: the running run keeps going when it will still decode `next`; else a DEMAND run for it
