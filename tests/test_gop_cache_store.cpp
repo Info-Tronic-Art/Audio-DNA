@@ -597,6 +597,17 @@ TEST_CASE("GC10: the cache's memory really returns -- 100 frames filled, cleared
     const auto f = fixture("video_h264_gop60_640x360.mp4");   // 345,600 B a frame: 100 frames = 34.6 MB
     GopCache::Budget budget;
     big(budget);
+    {   // warm-up: FFmpeg / sws / JUCE one-time allocations stay with the process -- not the cache's memory
+        VideoPlayer w;
+        VideoPlayerTestAccess::mallocPath(w);
+        VideoPlayerTestAccess::setBudget(w, &budget);
+        REQUIRE(w.open(f));
+        startReverseAt(w, 119.0 / 120.0);
+        Show s{ w };
+        for (int i = 0; i < 20; ++i)
+            s.frame(1.0 / 120.0);
+        w.close();
+    }
     const int64_t base = physFootprint();
     REQUIRE(base > 0);
     int64_t peak = base;
