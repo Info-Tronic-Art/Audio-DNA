@@ -28,8 +28,6 @@ extern "C" {
 // outside a full window, the served / wanted frames protected (the caller's verdicts), everything freed on clear().
 namespace GopCache
 {
-constexpr int kHole = -2;   // index value: a frame the decoder never output (GC3: skipped over, never sought again)
-
 // GC7: the process-wide budget -- min(2 GiB, RAM / 16); TEST-SERVER builds: ADNA_GOPCACHE_BUDGET_MB=<n> sets it (the u8
 // cap-256 row). A memory-pressure source on the main queue (the message thread) sets `pressure`: warn -> half the budget,
 // critical -> the floors only, normal -> back; the decode threads evict down to the new cap at their next steps (GC6).

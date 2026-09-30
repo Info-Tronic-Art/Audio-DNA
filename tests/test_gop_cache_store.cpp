@@ -48,6 +48,15 @@ struct VideoPlayerTestAccess
     static int64_t frameBytes(const VideoPlayer& p) { return p.cache_->frameBytes(); }
     static bool isResident(const VideoPlayer& p, int rel) { return p.cache_->slotOf(rel) >= 0; }
     static int servedRel(const VideoPlayer& p) { return p.haveServed_ ? p.servedRel_ : -1; }
+    // gopcache-fix F1: the trajectory's indices that are neither resident nor a known hole (what a PREFETCH would chase)
+    static std::string uncovered(const VideoPlayer& p)
+    {
+        std::string out;
+        for (int r = 0; r < p.nTraj(); ++r)
+            if (p.cache_->slotOf(r) < 0 && !p.cache_->isHole(r))
+                out += std::to_string(r) + " ";
+        return out;
+    }
     static bool pending(const VideoPlayer& p) { return p.pendingPublish_; }
     static int readyCount(const VideoPlayer& p) { return p.ring_.readyCount(); }
     static void unstorable(VideoPlayer& p) { p.cache_->configure(-1, p.width_, p.height_, p.cacheBudget_, p.stats_); }
@@ -142,7 +151,7 @@ std::map<long, Bytes> forwardDecode(const juce::File& file)
             uint8_t* dst[4] = { b.data() + static_cast<size_t>(fr->height - 1) * static_cast<size_t>(fr->width) * 4, nullptr, nullptr, nullptr };
             int ds[4] = { -fr->width * 4, 0, 0, 0 };
             sws_scale(sws, fr->data, fr->linesize, 0, fr->height, dst, ds);
-            out[std::lround((pts - first) / fd)] = std::move(b);
+            out.emplace(std::lround((pts - first) / fd), std::move(b));   // two frames at one index (VFR): the first, as the cache
         }
     };
     while (av_read_frame(fmt, pk) >= 0)
@@ -552,6 +561,62 @@ TEST_CASE("GC3: open-GOP, a non-zero start time and a VFR file -- every frame a 
         CHECK(s.shown.size() >= 20);
         CHECK(s.mismatches == 0);
         CHECK(st.seeks.load() <= 12);   // a DEMAND + a few PREFETCH runs, never one seek per frame
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+}
+
+// gopcache-fix F1 (GC3 "every run has a negative result", for EVERY run kind): a file whose frame index has holes -- a VFR
+// file with dropped frames (the relative index is pts / the AVERAGE frame duration: some indices are never output) and an
+// MPEG-4 part 2 MP4 with B-frames -- reversed in Loop for three laps with the whole file in budget. After the first lap
+// everything the decoder can output is resident and every index it never outputs is a known hole: laps 2 and 3 cost no
+// seek and no run (RED on a02c93c: a PREFETCH run that passed an un-fetchable index marked nothing, so the index stayed the
+// prefetch target -- one seek + catch-up per served frame, forever). The h264 GOP-10 file is the control.
+TEST_CASE("GC3 holes: a reverse Loop over a file with index holes (VFR drops, MPEG-4 B-frames) stops seeking after one lap",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    for (const char* name : { "video_h264_vfrgap_64x64.mp4", "video_mpeg4_bf2_64x64.mp4", "video_h264_gop10_64x64.mp4" })
+    {
+        CAPTURE(name);
+        auto ref = forwardDecode(fixture(name));   // the indices a forward decode outputs: none may become a hole
+        VideoStats st;
+        GopCache::Budget budget;
+        big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(fixture(name)));
+        p.setReverse(true);
+        p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
+        Show s{ p };
+        s.check = &ref;
+        const int lap = static_cast<int>(std::ceil(p.getDuration() * 120.0));
+        for (int i = 0; i < lap + 60; ++i)   // one lap (+ half a second: the wrap's own window)
+            s.frame(1.0 / 120.0);
+        const auto seeks1 = st.seeks.load(), runs1 = st.gopCacheRuns.load(), misses1 = st.gopCacheMisses.load();
+        const size_t shown1 = s.shown.size();
+        const std::string uncovered1 = VideoPlayerTestAccess::uncovered(p);
+        // no false hole: every index a forward decode outputs is resident after the lap (an MPEG-4 file's frame 118 -- a
+        // B-frame decoded after keyframe 119 -- is reached by seeking further back, never written off as a hole)
+        std::string missing;
+        for (const auto& [rel, bytes] : ref)
+            if (!VideoPlayerTestAccess::isResident(p, static_cast<int>(rel)))
+                missing += std::to_string(rel) + " ";
+        CAPTURE(missing);
+        CHECK(missing.empty());
+        for (int i = 0; i < 2 * lap; ++i)
+            s.frame(1.0 / 120.0);
+        CAPTURE(uncovered1, VideoPlayerTestAccess::uncovered(p));
+        CAPTURE(seeks1, runs1, misses1, st.seeks.load(), st.gopCacheRuns.load(), st.gopCacheMisses.load(),
+                s.shown.size() - shown1, st.framesDecoded.load(), s.late);
+        // never frozen (the VFR file shows ~25 of its 85 frames a lap in reverse, before and after this fix: its relative
+        // index is the AVERAGE frame duration -- a separate finding, not this test's)
+        CHECK(s.shown.size() - shown1 >= 40);
+        CHECK(st.seeks.load() - seeks1 <= 1);
+        CHECK(st.gopCacheRuns.load() - runs1 <= 1);
+        CHECK(st.gopCacheMisses.load() - misses1 <= 1);
+        CHECK(s.mismatches == 0);
         CHECK(st.reverseNonmonotonic.load() == 0);
         p.close();
     }

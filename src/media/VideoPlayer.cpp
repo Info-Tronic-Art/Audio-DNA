@@ -1099,6 +1099,7 @@ void VideoPlayer::serviceTrim()
 void VideoPlayer::clearCache()
 {
     endRun();
+    prefetchBlockedAt_ = -1;   // F1: the cache is empty -- every target may be planned again
     if (cache_ != nullptr)
         cache_->clear();
     haveServed_ = false;
@@ -1106,9 +1107,15 @@ void VideoPlayer::clearCache()
 
 void VideoPlayer::endRun()
 {
+    // F1: a window nothing could be stored in -- its TARGET is not planned again (keyed to the served frame, the same
+    // un-fetchable target came back after every served frame: one seek + catch-up each, forever); the DEMAND run reaches it
     if (run_ != nullptr && run_->kind == GopCache::RunKind::Prefetch && runStored_ == 0 && run_->decoded > 0)
-        prefetchBlockedAt_ = servedRel_;   // a window nothing could be stored in: no new one until the clock moves on
+        prefetchBlockedAt_ = run_->target;
     runStored_ = 0;
+    runPrevRel_ = -1;
+    runLanded_ = false;
+    runOvershoots_ = 0;
+    runSeekBackSec_ = 0.0;
     if (runHasToken_ && cacheBudget_ != nullptr)
         cacheBudget_->releasePrefetch(playerId_);
     runHasToken_ = false;
@@ -1258,7 +1265,7 @@ void VideoPlayer::startDemand(int rel, double want)
 
 void VideoPlayer::planPrefetchRun(double want)
 {
-    if (intraOnly_ || !haveServed_ || servedRel_ == prefetchBlockedAt_)
+    if (intraOnly_ || !haveServed_)
         return;
     const auto mode = cacheModeOf(loopMode_.load(std::memory_order_relaxed));
     const int n = nTraj();
@@ -1269,7 +1276,7 @@ void VideoPlayer::planPrefetchRun(double want)
     const int pAt = GopCache::prefetchAt(capS, gopFramesEst_, decodeMsEma_, frameMsEff());
     const auto r = GopCache::planPrefetch(cache_->index(), cache_->view(), mode, n, cur, servedRel_, capS, behindCap, pAt,
                                           false, std::max(1, (capS - behindCap) / 2));
-    if (r.kind != GopCache::RunKind::Prefetch)
+    if (r.kind != GopCache::RunKind::Prefetch || r.target == prefetchBlockedAt_)
         return;
     // GC9: one PREFETCH run at a time across players (a deck's players returning together fill one after another) --
     // unless this player would run dry before a run of its own could land (fewer resident frames ahead than one GOP of
@@ -1302,11 +1309,13 @@ bool VideoPlayer::runStep(double want)
     auto& r = *run_;
     if (r.seekPending)
     {
-        seekToTimestamp(ptsOfRel(r.seekFrom));
+        seekToTimestamp(ptsOfRel(r.seekFrom) - runSeekBackSec_);   // F1: further back after an overshoot
         r.seekPending = false;
         haveDecoded_ = false;
         runSawKey_ = false;
-        if (stats_ != nullptr)
+        runLanded_ = false;
+        runPrevRel_ = -1;
+        if (stats_ != nullptr && runOvershoots_ == 0)   // a run's re-seek is still that run
             ++(r.kind == GopCache::RunKind::Demand ? stats_->gopCacheMisses : stats_->gopCacheRuns);
     }
     // R-7: non-reference frames are skipped only well below the storage window (a skipped frame is a hole in it)
@@ -1321,7 +1330,13 @@ bool VideoPlayer::runStep(double want)
         // EOF: the frames frame-threading holds back, then the run ends; the last frame is now known
         avcodec_send_packet(codecCtx_, nullptr);
         while (!thread_.threadShouldExit() && avcodec_receive_frame(codecCtx_, decodedFrame_) == 0)
+        {
             onRunFrame(want);
+            if (r.kind == GopCache::RunKind::None)
+                break;   // the run ended on this frame
+            if (r.seekPending)
+                return true;   // F1: the landing overshot the window -- the run seeks again (the seek flushes the rest)
+        }
         drained_ = true;
         if (haveDecoded_)
             lastRel_ = std::max(lastRel_, lastDecodedRel_);
@@ -1349,8 +1364,41 @@ void VideoPlayer::onRunFrame(double want)
         ++stats_->framesDecoded;
         ++stats_->gopCacheRunDecodes;
     }
+    const bool hasPts = decodedFrame_->pts >= 0;
+    if (!runLanded_ && hasPts)
+    {
+        // F1: the first output since the seek sits ABOVE the frame the run was sent for -- the demuxer picked a keyframe
+        // by its DTS, and a B-frame stream's keyframe decodes before the frames shown just below it (which then never come
+        // out of this seek: an MPEG-4 part 2 file's last GOP). Seek again, further back, instead of calling them holes.
+        runLanded_ = true;
+        if (r.kind != GopCache::RunKind::None && rel > r.seekFrom && runOvershoots_ < kMaxRunOvershoots
+            && ptsOfRel(r.seekFrom) - runSeekBackSec_ > firstPts_)
+        {
+            ++runOvershoots_;
+            runSeekBackSec_ = std::max(2.0 * runSeekBackSec_,
+                                       (rel - r.seekFrom + 1 + std::max(1, codecCtx_->has_b_frames)) * frameDur_);
+            r.seekPending = true;
+            return;
+        }
+    }
     if ((decodedFrame_->flags & AV_FRAME_FLAG_KEY) != 0)
         runSawKey_ = true;
+    // F1 (GC3 "every run has a negative result", for EVERY run kind): after the run's keyframe the decoder's output is in
+    // pts order, so an index between two consecutive outputs inside the window is one it never outputs -- a hole: walked
+    // over by the reverse step AND by the prefetch planner (a PREFETCH that passed it used to mark nothing, so it stayed
+    // the next target). A frame without a pts breaks the chain (its index is unknown: nothing is inferred across it).
+    if (runSawKey_ && hasPts)
+    {
+        if (runPrevRel_ >= 0)
+        {
+            const int lo = runPublishAt_ >= 0 ? std::min(r.windowLo, runPublishAt_) : r.windowLo;
+            for (int k = std::max(runPrevRel_ + 1, lo); k < rel && k <= r.target; ++k)
+                cache_->markHole(k);   // only an index still unknown (-1) becomes a hole
+        }
+        runPrevRel_ = std::max(runPrevRel_, rel);
+    }
+    else if (!hasPts)
+        runPrevRel_ = -1;
     // GC3: only frames decoded after the run's keyframe (an open-GOP seek's leading frames reference the GOP before it) and
     // not flagged corrupt are stored
     const int cur = relOf(want);

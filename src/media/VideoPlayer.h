@@ -292,7 +292,17 @@ private:
     bool servedFromCache_ = false;              // forward: frames came from the cache since the last decode (reposition)
     bool hitsArmed_ = false;                    // forward hits: after a reverse episode or a seek onto a resident frame only
     bool repoSeeked_ = false;
-    int prefetchBlockedAt_ = -1;                // a PREFETCH run that stored nothing: none again until the served frame moves
+    int prefetchBlockedAt_ = -1;                // the target of a PREFETCH run that stored nothing: not planned again (F1)
+    // gopcache-fix F1 (GC3 for every run kind): the run's last post-keyframe output with a real pts (an index between two
+    // consecutive ones was never output: a hole; -1 = none yet / a pts-less frame broke the chain); its first output since
+    // the seek was judged (runLanded_); the seek went back further this many times because the demuxer's keyframe sat ABOVE
+    // the frame the run needs (index times are DTS: a B-frame stream's keyframe decodes before the frames shown just below
+    // it), and how far below seekFrom's time it now asks.
+    int runPrevRel_ = -1;
+    bool runLanded_ = false;
+    int runOvershoots_ = 0;
+    double runSeekBackSec_ = 0.0;
+    static constexpr int kMaxRunOvershoots = 3;
     int runStored_ = 0;
     bool atEof_ = false;               // decodeNextFrame() stopped at the end of the stream (not a decode error)
     bool everDecoded_ = false;         // a frame of this file ever decoded (open()'s frame 0 included) -- W3

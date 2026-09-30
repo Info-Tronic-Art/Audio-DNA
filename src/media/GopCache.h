@@ -288,17 +288,27 @@ inline int nextReverse(Mode m, int n, int r)
     return (m == Mode::Loop && n > 0) ? n - 1 : -1;
 }
 
+constexpr int kHole = -2;   // index value: a frame the decoder never outputs (GC3: skipped over, never sought again)
+
 inline bool resident(const std::vector<int>& index, int r)
 {
     return r >= 0 && r < static_cast<int>(index.size()) && index[static_cast<size_t>(r)] >= 0;
 }
 
-// Reverse: how many frames after `served` along the trajectory are resident and contiguous (at most n - 1).
+// gopcache-fix F1: resident, or a known hole -- nothing left to fetch at r (a hole is never a prefetch target).
+inline bool covered(const std::vector<int>& index, int r)
+{
+    return r >= 0 && r < static_cast<int>(index.size())
+           && (index[static_cast<size_t>(r)] >= 0 || index[static_cast<size_t>(r)] == kHole);
+}
+
+// Reverse: how many frames after `served` along the trajectory are resident, walking over known holes, before the first
+// index that is neither (at most n - 1 steps).
 inline int unservedAhead(const std::vector<int>& index, Mode m, int n, int served)
 {
-    int u = 0;
-    for (int r = nextReverse(m, n, served); r >= 0 && u < n - 1 && resident(index, r); r = nextReverse(m, n, r))
-        ++u;
+    int u = 0, steps = 0;
+    for (int r = nextReverse(m, n, served); r >= 0 && steps < n - 1 && covered(index, r); r = nextReverse(m, n, r), ++steps)
+        u += resident(index, r) ? 1 : 0;
     return u;
 }
 
@@ -350,8 +360,8 @@ inline int availableFor(const std::vector<Slot>& slots, int capSlots, int behind
 // REVERSE: a PREFETCH run when fewer than `prefetchAtN` unserved frames are resident ahead of `served`, the trajectory
 // continues (Loop wraps to n - 1 after frame 0; PingPong / OneShot plan nothing below 0; intra-only files never prefetch)
 // and at least `minWindow` Future slots are available (a run costs a keyframe seek + the catch-up however few frames it
-// stores: a 1-frame window would cost a GOP of decode per frame): target = the first non-resident frame after the resident
-// run; windowLo = max(0, target - (available - 1)) (available as availableFor at the target's distance), seekFrom =
+// stores: a 1-frame window would cost a GOP of decode per frame): target = the first frame after the resident run that is
+// neither resident nor a known hole (holes are walked over: gopcache-fix F1); windowLo = max(0, target - (available - 1)) (available as availableFor at the target's distance), seekFrom =
 // windowLo -- ONE keyframe seek covers the whole next window.
 inline Run planPrefetch(const std::vector<int>& index, const std::vector<Slot>& slots, Mode m, int n, int cur, int served,
                         int capSlots, int behindCap, int prefetchAtN, bool intraOnly, int minWindow = 1)
@@ -359,13 +369,14 @@ inline Run planPrefetch(const std::vector<int>& index, const std::vector<Slot>& 
     Run r;
     if (intraOnly || n <= 1 || served < 0)
         return r;
-    int u = 0, t = nextReverse(m, n, served);
-    while (t >= 0 && u < n - 1 && resident(index, t))
+    int u = 0, steps = 0, t = nextReverse(m, n, served);
+    while (t >= 0 && steps < n - 1 && covered(index, t))   // F1: a known hole is walked over, never a target
     {
-        ++u;
+        u += resident(index, t) ? 1 : 0;
+        ++steps;
         t = nextReverse(m, n, t);
     }
-    if (t < 0 || u >= n - 1 || u >= prefetchAtN)
+    if (t < 0 || steps >= n - 1 || u >= prefetchAtN)
         return r;
     const int avail = availableFor(slots, capSlots, behindCap, distance(m, false, n, cur, t));
     if (avail <= 0 || avail < minWindow)
