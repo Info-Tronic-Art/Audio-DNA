@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Audio-DNA — what only you can check (s-rta-0930)</title>
+<style>body{font:16px/1.5 -apple-system,system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1d1d1f;background:#fafafa}
+h1{font-size:22px}h2{font-size:17px;margin-top:28px}li{margin:6px 0}.def{color:#555}.note{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 16px}
+code{background:#eee;padding:1px 4px;border-radius:4px}</style></head><body>
+<h1>Audio-DNA — what only you can check</h1>
+<p class="note"><b>Shipped this session:</b> reverse and ping-pong video now stay smooth when the reverse memory is capped. Four 1080p clips reversing together in a 256 MB budget went from 100 late frames to 0, at about 30 frames per second each. A single 4K clip reversing in a 512 MB budget went from 2.4 to 13.8 frames per second. Clips whose keyframes are spread across frames (intra-refresh H.264) now reverse from memory instead of re-seeking over and over. Every automated check I ran passed; the items below need your eyes, or your call.</p>
+<p class="note"><b>Planned, not built yet</b> (ready for next session): the fix for the 20 thread races (one could flash a wrong opacity for a frame on a clip trigger), and the Bluetooth-guard follow-ups (fewer audio device re-opens at launch; picking up a wired mic you plug in after launch when the app had none). Fable was out, so Opus 5.5 wrote the plans, as you said.</p>
+<h2>1. Feel checks (only if you want to)</h2>
+<ul><li>Four 4K clips in one column, all set to Reverse, trigger the column: they used to barely move (~2 frames a second each); now they should move (~12–14 each), about half as smooth as forward.</li>
+<li>Any reversed clip you know well, in a column of four: it should look exactly as before and never stall. The change only alters <i>when</i> frames are decoded.</li>
+<li>If you use screen recordings or game captures: reverse one. Fast parts show fewer frames than forward. That is by design (question 1).</li></ul>
+<h2>2. Your calls (each has a default; nothing waits on you)</h2>
+<ol>
+<li><b>Screen recordings / phone clips with dropped frames in reverse:</b> fast parts show fewer frames than forward (0% for normal phone video, up to about half for a screen recording). Fix now (a bigger change to the video engine) or only if you notice it? <span class="def">Default: documented now, fixed on request.</span></li>
+<li><b>Four 4K clips reversing together:</b> they move now but are not smooth with software decoding. OK for now? <span class="def">Default: yes; hardware decoding stays on the list.</span></li>
+<li><b>Firing a column that is already playing:</b> today it does not restart its videos, but clicking a single playing cell does. Should firing the same column again restart every clip in it? <span class="def">Default: keep today's behaviour.</span></li>
+<li><b>Column switch timing:</b> when you fire a whole column, one layer can switch one frame (1/120 s) before the others. Should all layers switch on exactly the same frame, even if that makes some switch a frame later? <span class="def">Default: keep today's timing (lowest latency).</span></li>
+<li><b>Momentary pad with Quantize on:</b> press and let go before the beat arrives. Today the clip still starts on the beat and then stays on. Should letting go before the beat cancel it? <span class="def">Default: yes (the code's own notes say that was the intent).</span></li>
+<li><b>Wired mic plugged in while the app is on the MacBook mic</b> (because your wired mic dropped out mid-show, or you plugged it in after launch): (a) stay on the MacBook mic until you relaunch; (b) switch to the wired mic by itself within about a second; (c) for a drop-out only, never fall back to the MacBook mic: show the "plug one in" note and wait. <span class="def">Default: (a), never switch away from a mic that works.</span></li>
+<li><b>The "mic lost" note:</b> if your wired mic drops out and the app moves to the MacBook mic by itself, a yellow note says <i>Mic "&lt;your mic&gt;" lost - now listening on "MacBook Pro Microphone".</i> and stays until you relaunch or the mic changes again. Keep that note or drop it? <span class="def">Default: keep it.</span></li>
+</ol>
+<p style="color:#666;font-size:13px">Older pages still open with their defaults: s-rta-0929b, s-rta-0929, s-rta-0928b, s-rta-0928.</p>
+</body></html>

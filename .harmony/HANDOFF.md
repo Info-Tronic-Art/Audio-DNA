@@ -3,46 +3,44 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0929b (2026-09-29 23:14 → 2026-09-30 ~11:15). The newest
-dated section is at the END of this file ("# >>> SESSION s-rta-0929b"); read it first, then the SCREEN-SAFETY LAW section.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0930 (2026-09-30 11:53 → ~16:15). The newest dated
+section is at the END of this file ("# >>> SESSION s-rta-0930"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
 "Playback Behaviour" and .harmony/binding-decisions.md (read before touching routines, decks, outputs, fit, tempo, video,
-audio devices). CLAUDE.md is 23,999 B of its 25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) +
-docs/claude/*.md (trigger table). Ultracode: use workflows. Law #11: plans by Fable (architect; both plans ran on Fable this
-session) — on "You've reached your Fable limit" re-pin to opus max, record the deviation, tell Boris.
+audio devices). CLAUDE.md is 23,996 B of its 25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) +
+docs/claude/*.md (trigger table). Ultracode: use workflows. Law #11: plans by Fable (architect) — Fable was OUT for all of
+s-rta-0930 and Boris said (verbatim) "just so you know, we are out of fable usage so you will need to do all fable work with
+opus 5.5": pin plans / rulings to model 'opus', effort 'max' until Boris says Fable is back; on "You've reached your Fable
+limit" re-pin to opus max, record the deviation, tell Boris.
 
-STATE: s-rta-0929b closed START 1 and START 2 of s-rta-0929 with 2 merges, each gated by Harmony RED-first on the pre-merge
-app COPY then GREEN on merged main: (1) BTGUARD (Pitfall 61): the "startup heap corruption" was the KNOWN s-rta-0924b JUCE
-8.0.4 CoreAudio overflow, triggered when Boris's Bluetooth earbuds auto-connect and macOS makes them the default device
-(unified log: 2/2 BT launches crashed, 661/661 built-in clean) — the app now never opens a Bluetooth / BLE / AirPlay /
-wireless-Continuity device (guard inside the device TYPE), falls back to onboard mic / built-in or wired output, shows a
-persistent plain notice when no allowed mic / device; RED 11/14 -> GREEN 25/0; (2) GOPCACHE (Pitfall 62): reverse /
-ping-pong served from a decode-thread GOP cache — 1080p GOP-250 reverse 4.6 -> 30.8 uploads/s, late 467 -> 0; flip stall
-435 -> 77 ms; column of four 122/s pooled; forward play golden-trace identical. ctest 1049/1049 (111 targets). FINAL
-battery GREEN after quiet re-runs (the first pass ran under 6 orphaned `yes` CPU burners from other sessions — killed).
-Also: JUCE deferral CORRECTED (fix f6df3e3 first in 8.0.9, NOT 8.0.8 — hash-verified); ASan sweep 31 launches clean; TSan
-29 unique races -> 20 real (1 MEDIUM). Everything pushed. RIG FACTS (binding): Boris never uses Bluetooth audio, but his
-earbuds DO auto-connect to the Mac — pre-btguard binaries (BEFORE-arm copies) still crash when they are the default: check
-`system_profiler SPAudioDataType` before launching an old copy. NO Xcode (Command Line Tools only). M1 Pro, 32 GiB, 120 Hz.
+STATE: s-rta-0930 shipped ONE merge, gated by Harmony (RED arm = a copy of pre-merge main 655d232): GOP2 -> 7123b9d
+(Pitfall 62 amended): the capped reverse window now counts the slots the clock frees during a run's lead-in from the index's
+real keyframe — GC7 MET (four 1080p GOP-250 reversers at 256 MB: late 100 -> 0, slowest 30.2/s, over-budget 0), 4K reverse at
+512 MB 2.4 -> 13.8/s, 192 MB late 543 -> 0; intra-refresh H.264 reverse now cached (R3 store gate on demuxer-key landing
+packets); VFR residual documented by design; probe-vupload-ab u8 artefact fixed (+ --selftest, burner taint). G1 ctest
+1055/1055, G2 TSan 0, G3-G7 PASS, forward pixel identity on 3 upload paths, a pre-registered flip-gap re-run (INFO tail).
+TWO PLANS ARE READY TO BUILD (rulings say ready_to_build) but were NOT built (Boris: "finish current tasks then eos"): tsan
+and bt2. A TSan RED baseline exists for main 655d232 (25 unique, all 5 families) — main has moved to 7123b9d since.
 
 START HERE, in order:
-1. TSan races (verify-sweep-F*.md, sweep.md): 20 REAL — 1 MEDIUM (F2: a clip trigger writes Layer activeClipColumn /
-   previousClipColumn / pendingTriggerColumn / crossfadeProgress on the message thread while the render thread reads them ->
-   a one-frame wrong-opacity / crossfade flash) + 19 LOW (clip playhead, Clip::playing, manual scalar, activeDeckIndex).
-   Fresh Fable plan: model-field publication across threads (relaxed-atomic wrappers or a per-frame snapshot); TSan gate
-   (the TSan build recipe: .harmony/.reports/s-rta-0929b/prebuild.md, -DADNA_SANITIZE=thread).
-2. GC7 bar MISSED (ab-ab256): with a 256 MB GOP-cache cap, four 1080p g250 reversers run 27.8/s per player (bar 20 PASS)
-   but late 123 > 40 (main: 17/s, late 1793). Small lane: tune the capped-window policy; also fix the probe artefact
-   (u8 "cap 0.0" rows read None in a capped-only A/B run).
-3. Filed from the lanes (each has a repro in its report): btguard C3 (drop the redundant startup setSourceMode re-open) +
-   reconcile case (iii) adopt a newly plugged mic; gopcache R3 MPEG-TS reverse shows pre-keyframe garbage (= main's forward
-   seek parity); VFR residual (one cached frame per index: 20 of 85 frames never shown in reverse); older "Pitfall NN"
-   comments in src/ (idlepaint / asyncload lanes) never got numbers — doc hygiene.
-4. Residues still open from s-rta-0929 ledger items 3-6 (asyncload 110 ms stall, g4 700 ms/s outliers, vupload w7 outlier,
-   idle-paint v0 clusters) + new INFO: w1c (b) thin margin A 1/5 vs B 3/5 FAIL (medians 118.6 vs 118.43, n=5 not
-   significant). VideoToolbox decode + JUCE bump (>= 8.0.9, issue #1601 risk with separate in / out devices) stay optional /
-   trigger-deferred (first wired interface).
-5. Boris answers pending: page .harmony/.reports/s-rta-0929b/boris-checks.html (opened for him).
+1. START HERE — long task, begin at session start: lane TSAN. Read .harmony/.reports/s-rta-0930/plan-tsan.md, then
+   ruling-tsan.md (18 amendments OVERRIDE the plan; the seats' papers are in attack-tsan-papers.md). Design: the Layer
+   trigger tuple becomes ONE lock-free 16-byte atomic word per Layer (LayerRuntimeCell, CAS from both threads; undo takes
+   the exact before / after CAS pair; getActiveClip loads once), Clip runtime fields Relaxed<T>, 23 manual scalars
+   RelaxedFloat, activeDeckIndex derived from the loaded deck pointer, logLine() for worker-thread std::cerr, threaded
+   Catch2 tests labelled tsan (exit 66 on main), an in-repo probe-tsan (scenario d). Write the HARMONY ADOPTION section
+   (decide with Boris-page defaults Q3-Q5), build in a worktree (opus high builder), reviewers pinned; RED = TSan build of
+   PRE-MERGE main (wf/tsan-main.sh; rebuild it — 655d232's build is stale), harness .harmony/.reports/s-rta-0930/tsan-harness/
+   (README). Follow-up lane tsan-r5 (config scalars R5, REST reader R7) is filed by the ruling.
+2. Lane BT2 (can run beside tsan; name the MainComponent.cpp regions in the adoption to fence them): plan-bt2.md +
+   ruling-bt2.md (AM1-AM11) + ruling-bt2-seats.md (AM12+, FINAL GATE LIST there, overrides both). Scope: drop the redundant
+   startup setSourceMode re-open (opens counter = the teeth), adopt a newly plugged allowed mic ONLY when the app has no
+   allowed input, a progress guard on adoption, cable-jiggle recovery; defaults for Boris Q6 / Q7.
+3. Filed (ledger below): gop2 F1-F4 (flip-to-forward keyframe catch-up hitch, 4K avail0 guard, MPEG-4-in-TS publish gate,
+   no-share degrade policy), MKV / WebM 1-entry index (keyRels_ refresh after the first seek), the G5 flip-gap INFO tail,
+   plus the older items (btguard C3 is IN bt2; "Pitfall NN" comments in src/; pitfalls.md order; s-rta-0929 residues).
+4. Boris answers pending: page .harmony/.reports/s-rta-0930/boris-checks.html (7 questions, each with a default; opened
+   for him).
 
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build lanes);
 remove each worktree the turn it merges. A user message that arrives mid-turn is RELAYED to every lane started later in that
@@ -58,7 +56,7 @@ sort -rn | head` (orphaned CPU burners). Packets: NEVER lldb/debugserver/gdb/dtr
 full-screen screencapture (Quartz window id only); no synthetic input (UI states via REST / composition files / TEMPORARY
 env-var hook, reverted + rebuilt + strings check = 0); fence each lane; reviewer/critic packets PIN worktree + branch +
 commit. A workflow's automatic fix round can be TaskStop-ped in its review stage and relaunched with rulings. Live app: ONE
-at a time via /tmp/audiodna-live.lock; lock helper .harmony/.reports/s-rta-0929b/wf/lock.sh (copy to your scratchpad, fix
+at a time via /tmp/audiodna-live.lock; lock helper .harmony/.reports/s-rta-0930/wf/lock.sh (copy to your scratchpad, fix
 SPL) — acquire_quiet_lock for perf. Probe HTTP clients use Connection: close. NEVER SendMessage a running WORKFLOW agent.
 Test mode: open -g <App> --args --test-mode. Render gates DECODE PIXELS; LOOK at one frame. A flake verdict needs >= 5 runs
 per arm. PERF A/B: INTERLEAVED arms launch by launch (probe-vupload-ab.sh needs LANE exported + LOCK_LIB); a bar whose teeth
@@ -68,26 +66,56 @@ quotes — the rest of an entry is Harmony's consequence text); an ESTABLISHED l
 diagnosing a crash signature, grep .harmony/ for it and `log show` for bluetoothd connects around it. Keep a COPY of the
 pre-merge app for BEFORE arms. MERGE SEQUENCE: commit notes -> RED on the PRE-MERGE copy -> merge (source conflicts ->
 builder rebase lane; doc-only conflicts Harmony may resolve) -> cmake + build -> ctest -> GREEN. Pitfall numbers: lanes
-write "NN"; Harmony assigns the next free number (next = 63). Battery scripts: .harmony/.reports/s-rta-0929b/wf/
-(btguard.sh, gop-final.sh = RED + merge + full battery + Tier-1, ab-rerun.sh = the interleaved A/B + quiet re-runs; adapt
-paths). Main-loop habits: never cd; stamp EVERY log row from date; syntax-check workflow scripts (wf/check.sh); teeth by the
+write "NN"; Harmony assigns the next free number (next = 63). Battery / workflow scripts: .harmony/.reports/s-rta-0930/wf/
+(gop2-gate.sh = merge + G1-G7 + identity template; build-lane.js = one lane: builder -> pinned reviews -> <= 1 fix round;
+plans2.js = plan -> blind seats -> ruling with the papers INLINE; tsan-main.sh + configure.sh = TSan build of main; adapt
+paths) + .harmony/.reports/s-rta-0929b/wf/ (gop-final.sh = full battery + Tier-1, ab-rerun.sh). Main-loop habits: never cd; stamp EVERY log row from date; syntax-check workflow scripts (wf/check.sh); teeth by the
 lane report's named pattern, never by reading source (Iron Law #1); never `git commit -a` — stage by path (git add -f for
-ignored notes). COUNTS: run them — ctest 1049/1049 at close (111 targets); unpushed 0.
+ignored notes). Workflow habits (s-rta-0930): a stage passes the previous stage's OUTPUT inline in the next prompt (council seats return
+StructuredOutput and do NOT write their REPORT_FILE); planners write a SKELETON plan file within ~10 tool calls, then rewrite;
+never git commit while a perf A/B runs (each commit fires the graphify rebuild hook); Spotlight mds_stores at ~100 % after
+builds is a system service, not a burner. COUNTS: run them — ctest 1055/1055 at close (111 targets registered, 110 built);
+unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0929b -->
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0930 -->
 BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
-SHIPPED: app never opens Bluetooth audio (earbuds no longer crash it at launch; plain note if no wired / built-in mic) ·
-reverse / ping-pong video smooth on long-keyframe files (4.6 -> 30.8 frames/s at 1080p, flip stall 435 -> 77 ms) · the
-JUCE-upgrade note corrected (fix is in 8.0.9) · memory-error sweep clean (31 runs).
-IN-FLIGHT: none. Tree clean (Boris's .harmony-version / AGENTS.md untouched), everything pushed, no worktrees.
-NEXT: (1) 20 thread races found by TSan (1 can flash a wrong opacity for a frame on a clip trigger) · (2) low-memory reverse
-mode misses its late-frame bar · (3) filed small items · (4) Boris answers.
-BLOCKERS: none (Boris questions have defaults).
-YOU ARE HERE: startup crash and reverse video are done; the top risk left is thread races between the UI and the renderer.
+SHIPPED: reverse video smooth under a memory cap (4 x 1080p at 256 MB: 100 late frames -> 0; 4K at 512 MB 2.4 -> 13.8 fps)
+· intra-refresh clips reverse from memory · screen-recording reverse gap documented · A/B probe fixed.
+IN-FLIGHT: none built. Two plans READY to build: thread-race fix (tsan) and Bluetooth-guard follow-ups (bt2).
+NEXT: (1) build the thread-race fix (long, start of session) · (2) build bt2 beside it · (3) filed small items · (4) Boris
+answers (7 questions, defaults).
+BLOCKERS: none (Boris questions have defaults; Fable out -> plans on Opus 5.5).
+YOU ARE HERE: reverse video done incl. low memory; the top risk left is still the UI-vs-renderer thread races — now planned.
 
-## LOOSE-ENDS LEDGER — s-rta-0929b (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0930 (CURRENT)
+
+1. [OPEN, START 1] lane tsan: plan-tsan.md + ruling-tsan.md READY (not built). TSan RED baseline on 655d232 (25 unique,
+   tsan-red-main-655d232.txt); rebuild the RED arm on the pre-merge main of that day. Follow-up lane tsan-r5 filed by ruling.
+2. [OPEN, START 2] lane bt2: plan-bt2.md + ruling-bt2.md + ruling-bt2-seats.md READY (not built; includes btguard C3 +
+   reconcile (iii) from the s-rta-0929b ledger 3).
+3. [OPEN, filed] gop2 ruling F1 flip back to forward catches up across a keyframe (post-flip holds up to 43 render frames,
+   both arms; trigger: a performer reports a hitch); F2 in-place avail0 > 0 guard delays 4K runs (measure on u10 first);
+   F3 MPEG-4 part 2 in MPEG-TS publishes 606 wrong frames / 20 seeks (app refuses .ts by extension; a renamed .ts only);
+   F4 no degrade policy when a column cannot reverse within its share (Boris's call, ask only on a report).
+4. [OPEN, filed] MKV / WebM keep a 1-entry index after open -> keyRels_ = {0} -> the window is always the whole share
+   (extra decodes bounded, no stall; documented). Fix candidate: refresh keyRels_ / gopFramesEst_ after the first seek.
+5. [OPEN, INFO] G5 flip gap: merged app 1 of 10 launches at 148.8 ms (a1080_g250_flip_reverse), PRE 0 of 10; medians 79.0 /
+   71.9 vs 79.0 / 78.1. ESTABLISHED: not reproduced in 5 more launches; RULED OUT: taint / load / dialogs. Cheapest
+   discriminating test: u7 flip 20 x 2 interleaved (tail rate per arm). Evidence gate-gop2/.
+6. [OPEN, Boris] Page .harmony/.reports/s-rta-0930/boris-checks.html (Q1-Q7 with defaults; opened). Older pages
+   s-rta-0929b / 0929 / 0928b / 0928 still open with defaults.
+7. [OPEN, carried] s-rta-0929b ledger 4 VFR residual -> now DOCUMENTED by design (Boris Q1 decides a fix); ledger 5 w1c
+   thin margin INFO; ledger 6 residues (asyncload ~110 ms stall, g4 ~700 ms/s outliers, vupload w7, idle-paint v0);
+   ledger 7 "Pitfall NN" comments in src/ + pitfalls.md physical order; ledger 9 JUCE >= 8.0.9 bump (trigger-deferred).
+8. WARN fable-usage-audit: LAW11-LOG-GAP — 11 architect dispatches, 0 DISPATCH_LOG rows (a foreign-repo secondary cannot
+   write Harmony_Main's log). The audit counts "3 runtime-verified Fable plans" by agent type, but all ran on opus max (Fable
+   limit at 11:56; Boris confirmed Opus 5.5; deviation rows in the work log). Quality: gop2 built exactly to its ruling.
+9. Session-index — skipped (foreign-repo lane, no transport yet).
+10. Carried: .harmony/.harmony-version and AGENTS.md dirty / untracked at boot — not this session's, left untouched.
+
+## (HISTORICAL, s-rta-0929b — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0929b
 
 1. [OPEN, START 1] TSan: 20 REAL races (1 MEDIUM F2 trigger tuple; 19 LOW), 9 BENIGN (std::cerr) — sweep.md +
    verify-sweep-F*.md. Fresh Fable plan (model-field publication across threads).
@@ -3507,3 +3535,46 @@ kCGWindowListOptionAll), no full-screen capture taken. The Boris page was opened
 
 ## COUNTS — run them, never inherit them
 ctest 1049/1049 (111 targets). Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-0930 (2026-09-30 11:53 → ~16:15, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+Planned three lanes (Fable out -> Opus 5.5 max planners, blind seats, rulings), built and merged ONE (gop2: low-memory
+reverse video meets its bar), and left TWO ready-to-build plans (tsan thread races, bt2 device follow-ups) because Boris
+said "finish current tasks then eos". Session log .harmony/sessions/2026-09-30-s-rta-0930-secondary.md; running log
+.harmony/s-rta-0930-work.md; plans / rulings / attacks / evidence / wf scripts .harmony/.reports/s-rta-0930/.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate)
+gop2 -> 7123b9d (merged tree == lane head 48dd81b for src / tests / docs / probes). G1 ctest 1055/1055 serial. G2 TSan 0
+reports on test_gop_cache_store 662/26, test_video_decode_trace 510/5, test_gop_cache 148/13. G3 --selftest PASS; ab256
+evidence replay: 0 "cap 0.0" rule lines, cap-256 verdicts identical. G4 GC7 5 x 2 interleaved at 256 MB vs PRE (655d232
+copy): A late 100 (V1 reproduced) -> B 0, slowest 30.2/s, cap_bytes 64.0 / active 4 / frames 84, over_budget 0 every B, 0
+tainted launches -> PASS. G5 uncapped u7 / u8 / u9 / u11 5 x 2: all PASS except the strict "B < A" flip-gap row, an exact
+tie 79.0 / 79.0 with one B outlier 148.8 ms -> pre-registered 5 x 2 re-run: B 65.9-80.9, A 71.1-86.3, B > 120 ms 1/10 vs
+0/10 -> INFO tail, PASS (ledger 5). G5b u12 identity uncapped / 256 / 128 GREEN. G6 u10 4K @512 5 x 2 PASS (2.4 -> 13.8/s,
+late 553 -> 320); INFO: u10 uncapped 24.8 = 24.8; 192 MB late 543 -> 0; 128 MB dec/up 43.06 -> 30.52. w10 forward pixel
+identity vs PRE refs on blit / client / malloc 34/0 each; G7 probe-video 102/0, u4b 9/0, u6 5/0; media-open 38/0; seq-vram
+66/0. TSan RED baseline on main 655d232: 9 launches a/b/c x3, 25 unique, all 5 families.
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-0930/boris-checks.html, opened for him)
+- Four 4K clips reversing in one column: they move now (~12-14 fps each), not smoothly (software decoding).
+- Any reversed clip he knows, in a column of four: looks exactly as before, never stalls.
+- Screen recordings / game captures in reverse: fewer frames in fast parts, by design (his Q1).
+- 7 product questions with defaults (VFR fix, 4K x4, column refire restart, same-frame column switch, momentary + quantize
+  release, wired-mic switching, the "mic lost" note).
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. plans.js passed attack-paper PATHS to the ruling stage; the seats returned StructuredOutput and wrote no file -> bt2's
+   first ruling ruled without its seats (fixed by a seats addendum; habit now in the birth prompt). 2. The first tsan
+   planner had no write-early instruction and ended with nothing on disk (~40 min lost). 3. Two commits during the live perf
+   A/B fired the graphify rebuild hook mid-gate. 4. One cd early in the session (no effect).
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was open -g (production, the TSan build, or --test-mode via the probes), main window only; no gate opened an
+Output window (0 Output-named windows after every batch and at the end). No dialog appeared: 0 UserNotificationCenter
+windows (Quartz kCGWindowListOptionAll) after the RED sweep, the gate and the re-run; 0 new Audio-DNA .ips since 15:00. At
+close: no Audio-DNA process, the live lock free, no worktrees, no full-screen capture taken. The Boris page was opened in his
+browser.
+
+## COUNTS — run them, never inherit them
+ctest 1055/1055 (111 Catch2 targets registered, 110 built). Unpushed 0 after the close commit.

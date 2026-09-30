@@ -1,0 +1,9 @@
+== u8_reverse_column_1080x4
+   -- u8 group cap_mb 256.0
+      cap_mb 256.0 A medians (n 5): active 4.0, bytes_mb 249.4, cap_bytes_mb 64.0, cap_mb 256.0, decoded_per_upload 12.25, evictions 557.0, footprint_delta_mb -17.7, fps 118.99630737304688, frames 84.0, hold_no_texture 0.0, late 100.0, over_budget 0.0, pending 0.0, per_player_min 28.4, uploads_per_s 114.2
+      cap_mb 256.0 B medians (n 5): active 4.0, bytes_mb 249.4, cap_bytes_mb 64.0, cap_mb 256.0, decoded_per_upload 10.92, evictions 599.0, footprint_delta_mb -5.9, fps 119.82099914550781, frames 84.0, hold_no_texture 0.0, late 0.0, over_budget 0.0, pending 0.0, per_player_min 30.2, uploads_per_s 120.8
+   PASS  [GC7]  u8 cap 256.0 MB: B median slowest player 30.2 uploads/s >= 20
+   PASS  [ABS]  u8 cap 256.0: B median late 0.0 <= 40
+   PASS  [ABS]  u8 cap 256.0: B median max video_gopcache_bytes 249.4 MB <= budget + floors 350.9 MB
+   PASS  [ABS]  u8 cap 256.0: over_budget delta per B launch [0.0, 0.0, 0.0, 0.0, 0.0] (== 0 without a cap)
+   PASS  [ABS]  u8 cap 256.0: hold_no_texture / pending 0 in every B launch

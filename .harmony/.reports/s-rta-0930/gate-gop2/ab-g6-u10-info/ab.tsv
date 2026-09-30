@@ -1,0 +1,6 @@
+1 A DATA u10_reverse_4k uploads_per_s=24.8 late=109 bytes_mb=2042.5 frames=172 decoded_per_upload=2.38 fps=114.69348907470703 hold_no_texture=0
+1 B DATA u10_reverse_4k uploads_per_s=24.8 late=114 bytes_mb=2042.5 frames=172 decoded_per_upload=2.22 fps=113.06012725830078 hold_no_texture=0
+2 A DATA u10_reverse_4k uploads_per_s=24.8 late=109 bytes_mb=2042.5 frames=172 decoded_per_upload=2.38 fps=114.05140686035156 hold_no_texture=0
+2 B DATA u10_reverse_4k uploads_per_s=25.0 late=111 bytes_mb=2042.5 frames=172 decoded_per_upload=2.2 fps=116.966796875 hold_no_texture=0
+3 A DATA u10_reverse_4k uploads_per_s=24.8 late=110 bytes_mb=2042.5 frames=172 decoded_per_upload=2.38 fps=113.03294372558594 hold_no_texture=0
+3 B DATA u10_reverse_4k uploads_per_s=24.6 late=113 bytes_mb=2042.5 frames=172 decoded_per_upload=2.21 fps=118.05259704589844 hold_no_texture=0

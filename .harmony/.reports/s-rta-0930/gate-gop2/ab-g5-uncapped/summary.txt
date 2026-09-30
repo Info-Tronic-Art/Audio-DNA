@@ -1,0 +1,95 @@
+== u11_reverse_column_return
+      u11 A medians (n 5): first_upload_ms 276.8, gap_counter_ms 33.0, hold_no_texture 0.0, late 112.0, player_first_max_ms 277.9, player_gap_max_ms 277.9, pooled_gap_ms 276.8
+      u11 B medians (n 5): first_upload_ms 267.1, gap_counter_ms 0.0, hold_no_texture 0.0, late 112.0, player_first_max_ms 269.6, player_gap_max_ms 269.6, pooled_gap_ms 267.1
+   PASS  [GC9]  u11: B median pooled upload gap after the return 267.1 ms <= A 276.8 ms (first upload A 276.8 B 267.1 ms)
+== u7_reverse_pingpong
+   PASS  [VU7]  a1080_g250_flip_reverse: uploads/s A 30.8 B 30.6 (>= 0.9 x A: 27.72), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      a1080_g250_flip_reverse A medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 194.0, decoded 473.0, decoded_per_upload 3.07, dirchg 1.0, dropped 0.0, flip_gap_ms 60.1, fps 116.76102447509766, gap_counter_ms 38.0, hits 125.0, hold_no_texture 0.0, late 0.0, max_gap_ms 79.0, misses 0.0, mono_ok 1.0, nonmono 0.0, post_flip_uploads_per_s 29.96, reversed 1.0, runs 2.0, seeks 2.0, seeks_per_upload 0.013, skipped 0.0, uploads_per_s 30.8
+      a1080_g250_flip_reverse B medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 195.0, decoded 473.0, decoded_per_upload 3.09, dirchg 1.0, dropped 0.0, flip_gap_ms 60.1, fps 116.99577331542969, gap_counter_ms 42.0, hits 125.0, hold_no_texture 0.0, late 0.0, max_gap_ms 79.0, misses 0.0, mono_ok 1.0, nonmono 0.0, post_flip_uploads_per_s 30.0, reversed 1.0, runs 2.0, seeks 2.0, seeks_per_upload 0.013, skipped 0.0, uploads_per_s 30.6
+   PASS  [ABS]  a1080_g250_flip_reverse: (a) B median uploads/s 30.6 >= 28.5
+   PASS  [ABS]  a1080_g250_flip_reverse: (b) B median late 0.0 <= 10
+   PASS  [ABS]  a1080_g250_flip_reverse: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_flip_reverse: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_flip_reverse: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+   PASS  [GC8]  a1080_g250_flip_reverse: the REST flip reversed the clip in B (median reversed 1.0; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   FAIL  [GC8]  a1080_g250_flip_reverse: B median max upload gap 79.0 ms < A 79.0 ms
+   PASS  [VU7]  a1080_g250_pingpong: uploads/s A 30.6 B 30.4 (>= 0.9 x A: 27.54), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      a1080_g250_pingpong A medians (n 5): bracket_ok 1.0, cache_mb 103.9, code 106.0, decoded 153.0, decoded_per_upload 1.0, dirchg 0.0, dropped 0.0, fps 118.50117874145508, gap_counter_ms 36.0, hits 0.0, hold_no_texture 0.0, late 0.0, max_gap_ms 66.8, misses 0.0, nonmono 0.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.6
+      a1080_g250_pingpong B medians (n 5): bracket_ok 1.0, cache_mb 103.9, code 106.0, decoded 153.0, decoded_per_upload 1.0, dirchg 0.0, dropped 0.0, fps 117.98809051513672, gap_counter_ms 35.0, hits 0.0, hold_no_texture 0.0, late 0.0, max_gap_ms 67.7, misses 0.0, nonmono 0.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.4
+   PASS  [GC12] a1080_g250_pingpong: B median uploads/s 30.4 >= 0.985 x A 30.6 (30.14), late every B launch [0.0, 0.0, 0.0, 0.0, 0.0] == 0
+   PASS  [VU7]  a1080_g250_pingpong_turn: uploads/s A 30.4 B 30.4 (>= 0.9 x A: 27.36), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      a1080_g250_pingpong_turn A medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 284.0, decoded 321.0, decoded_per_upload 2.11, dirchg 1.0, dropped 0.0, fps 117.99034881591797, gap_counter_ms 41.0, hits 95.0, hold_no_texture 0.0, late 0.0, max_gap_ms 81.6, misses 0.0, mono_ok 1.0, nonmono 0.0, runs 1.0, seeks 1.0, seeks_per_upload 0.007, skipped 0.0, turn_seen 1.0, uploads_per_s 30.4
+      a1080_g250_pingpong_turn B medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 284.0, decoded 321.0, decoded_per_upload 2.11, dirchg 1.0, dropped 0.0, fps 116.68211364746094, gap_counter_ms 36.0, hits 95.0, hold_no_texture 0.0, late 0.0, max_gap_ms 78.1, misses 0.0, mono_ok 1.0, nonmono 0.0, runs 1.0, seeks 1.0, seeks_per_upload 0.007, skipped 0.0, turn_seen 1.0, uploads_per_s 30.4
+   PASS  [ABS]  a1080_g250_pingpong_turn: (a) B median uploads/s 30.4 >= 28.5
+   PASS  [ABS]  a1080_g250_pingpong_turn: (b) B median late 0.0 <= 10
+   PASS  [ABS]  a1080_g250_pingpong_turn: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_pingpong_turn: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_pingpong_turn: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+   PASS  [ABS]  a1080_g250_pingpong_turn: (GC4) exactly one direction change: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_pingpong_turn: the turn inside the window: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [VU7]  a1080_g250_reverse: uploads/s A 30.8 B 30.8 (>= 0.9 x A: 27.72), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      a1080_g250_reverse A medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 193.0, decoded 0.0, decoded_per_upload 0.0, dirchg 0.0, dropped 0.0, fps 104.42552947998047, gap_counter_ms 38.0, hits 154.0, hold_no_texture 0.0, late 0.0, max_gap_ms 77.8, misses 0.0, mono_ok 1.0, nonmono 0.0, reversed 1.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.8
+      a1080_g250_reverse B medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 194.0, decoded 0.0, decoded_per_upload 0.0, dirchg 0.0, dropped 0.0, fps 104.20255279541016, gap_counter_ms 42.0, hits 154.0, hold_no_texture 0.0, late 0.0, max_gap_ms 81.5, misses 0.0, mono_ok 1.0, nonmono 0.0, reversed 1.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.8
+   PASS  [ABS]  a1080_g250_reverse: (a) B median uploads/s 30.8 >= 28.5
+   PASS  [ABS]  a1080_g250_reverse: (b) B median late 0.0 <= 10
+   PASS  [ABS]  a1080_g250_reverse: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_reverse: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_reverse: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+   PASS  [VU7]  a1080_g250_reverse_speed2: uploads/s A 61.0 B 60.8 (>= 0.9 x A: 54.9), late A 1.0 B 1.0 (B <= A), launches (5, 5)
+      a1080_g250_reverse_speed2 A medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 87.0, decoded 0.0, decoded_per_upload 0.0, dirchg 0.0, dropped 0.0, fps 104.99034118652344, gap_counter_ms 23.0, hits 308.0, hold_no_texture 0.0, late 1.0, max_gap_ms 53.0, misses 0.0, mono_ok 1.0, nonmono 0.0, reversed 0.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 2.0, uploads_per_s 61.0
+      a1080_g250_reverse_speed2 B medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 87.0, decoded 0.0, decoded_per_upload 0.0, dirchg 0.0, dropped 0.0, fps 103.93167877197266, gap_counter_ms 28.0, hits 308.0, hold_no_texture 0.0, late 1.0, max_gap_ms 52.6, misses 0.0, mono_ok 1.0, nonmono 0.0, reversed 0.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 4.0, uploads_per_s 60.8
+   PASS  [ABS]  a1080_g250_reverse_speed2: (a) B median uploads/s 60.8 >= 57
+   PASS  [ABS]  a1080_g250_reverse_speed2: (b) B median late 1.0 <= 10
+   PASS  [ABS]  a1080_g250_reverse_speed2: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_reverse_speed2: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  a1080_g250_reverse_speed2: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+   PASS  [VU7]  g30_1080_flip_reverse: uploads/s A 30.8 B 30.8 (>= 0.9 x A: 27.72), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      g30_1080_flip_reverse A medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 195.0, decoded 314.0, decoded_per_upload 2.05, dirchg 1.0, dropped 0.0, flip_gap_ms 67.0, fps 113.07223510742188, gap_counter_ms 39.0, hits 125.0, hold_no_texture 0.0, late 0.0, max_gap_ms 83.8, misses 1.0, mono_ok 1.0, nonmono 0.0, post_flip_uploads_per_s 30.0, reversed 1.0, runs 2.0, seeks 2.0, seeks_per_upload 0.013, skipped 0.0, uploads_per_s 30.8
+      g30_1080_flip_reverse B medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 195.0, decoded 314.0, decoded_per_upload 2.05, dirchg 1.0, dropped 0.0, flip_gap_ms 63.7, fps 111.88357162475586, gap_counter_ms 41.0, hits 125.0, hold_no_texture 0.0, late 0.0, max_gap_ms 81.1, misses 0.0, mono_ok 1.0, nonmono 0.0, post_flip_uploads_per_s 29.73, reversed 1.0, runs 2.0, seeks 2.0, seeks_per_upload 0.013, skipped 0.0, uploads_per_s 30.8
+   PASS  [ABS]  g30_1080_flip_reverse: (a) B median uploads/s 30.8 >= 28.5
+   PASS  [ABS]  g30_1080_flip_reverse: (b) B median late 0.0 <= 10
+   PASS  [ABS]  g30_1080_flip_reverse: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_flip_reverse: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_flip_reverse: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+   PASS  [GC8]  g30_1080_flip_reverse: the REST flip reversed the clip in B (median reversed 1.0; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [GC8]  g30_1080_flip_reverse: B median max upload gap 81.1 ms <= 150 (A 83.8)
+   PASS  [VU7]  g30_1080_pingpong: uploads/s A 30.4 B 30.4 (>= 0.9 x A: 27.36), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      g30_1080_pingpong A medians (n 5): bracket_ok 1.0, cache_mb 56.4, code 107.0, decoded 153.0, decoded_per_upload 1.0, dirchg 0.0, dropped 0.0, fps 118.45536804199219, gap_counter_ms 36.0, hits 0.0, hold_no_texture 0.0, late 0.0, max_gap_ms 70.2, misses 0.0, nonmono 0.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.4
+      g30_1080_pingpong B medians (n 5): bracket_ok 1.0, cache_mb 56.4, code 106.0, decoded 152.0, decoded_per_upload 1.0, dirchg 0.0, dropped 0.0, fps 118.3517074584961, gap_counter_ms 35.0, hits 0.0, hold_no_texture 0.0, late 0.0, max_gap_ms 67.3, misses 0.0, nonmono 0.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.4
+   PASS  [GC12] g30_1080_pingpong: B median uploads/s 30.4 >= 0.985 x A 30.4 (29.94), late every B launch [0.0, 0.0, 0.0, 0.0, 0.0] == 0
+   PASS  [VU7]  g30_1080_pingpong_turn: uploads/s A 30.4 B 30.4 (>= 0.9 x A: 27.36), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      g30_1080_pingpong_turn A medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 284.0, decoded 338.0, decoded_per_upload 2.22, dirchg 1.0, dropped 0.0, fps 118.01084899902344, gap_counter_ms 37.0, hits 95.0, hold_no_texture 0.0, late 0.0, max_gap_ms 85.3, misses 1.0, mono_ok 1.0, nonmono 0.0, runs 1.0, seeks 1.0, seeks_per_upload 0.007, skipped 0.0, turn_seen 1.0, uploads_per_s 30.4
+      g30_1080_pingpong_turn B medians (n 5): bracket_ok 1.0, cache_mb 890.6, code 284.0, decoded 337.0, decoded_per_upload 2.22, dirchg 1.0, dropped 0.0, fps 117.06566619873047, gap_counter_ms 38.0, hits 95.0, hold_no_texture 0.0, late 0.0, max_gap_ms 82.5, misses 1.0, mono_ok 1.0, nonmono 0.0, runs 1.0, seeks 1.0, seeks_per_upload 0.007, skipped 0.0, turn_seen 1.0, uploads_per_s 30.4
+   PASS  [ABS]  g30_1080_pingpong_turn: (a) B median uploads/s 30.4 >= 28.5
+   PASS  [ABS]  g30_1080_pingpong_turn: (b) B median late 0.0 <= 10
+   PASS  [ABS]  g30_1080_pingpong_turn: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_pingpong_turn: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_pingpong_turn: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+   PASS  [ABS]  g30_1080_pingpong_turn: (GC4) exactly one direction change: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_pingpong_turn: the turn inside the window: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [VU7]  g30_1080_reverse: uploads/s A 30.8 B 30.8 (>= 0.9 x A: 27.72), late A 0.0 B 0.0 (B <= A), launches (5, 5)
+      g30_1080_reverse A medians (n 5): bracket_ok 1.0, cache_mb 884.7, code 193.0, decoded 0.0, decoded_per_upload 0.0, dirchg 0.0, dropped 0.0, fps 104.36591339111328, gap_counter_ms 36.0, hits 155.0, hold_no_texture 0.0, late 0.0, max_gap_ms 77.4, misses 0.0, mono_ok 1.0, nonmono 0.0, reversed 1.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.8
+      g30_1080_reverse B medians (n 5): bracket_ok 1.0, cache_mb 884.7, code 193.0, decoded 0.0, decoded_per_upload 0.0, dirchg 0.0, dropped 0.0, fps 102.79643249511719, gap_counter_ms 41.0, hits 154.0, hold_no_texture 0.0, late 0.0, max_gap_ms 78.1, misses 0.0, mono_ok 1.0, nonmono 0.0, reversed 1.0, runs 0.0, seeks 0.0, seeks_per_upload 0.0, skipped 0.0, uploads_per_s 30.8
+   PASS  [ABS]  g30_1080_reverse: (a) B median uploads/s 30.8 >= 28.5
+   PASS  [ABS]  g30_1080_reverse: (b) B median late 0.0 <= 10
+   PASS  [ABS]  g30_1080_reverse: (d) mid capture within its bracket (ct 1): B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_reverse: (GC4) back-to-back captures strictly decreasing, each in its bracket: B median 1.0 == 1 (per launch [1.0, 1.0, 1.0, 1.0, 1.0]; A [1.0, 1.0, 1.0, 1.0, 1.0])
+   PASS  [ABS]  g30_1080_reverse: (GC4) video_reverse_nonmonotonic: B median 0.0 == 0 (per launch [0.0, 0.0, 0.0, 0.0, 0.0]; A [0.0, 0.0, 0.0, 0.0, 0.0])
+== u8_reverse_column_1080x4
+   -- u8 group cap_mb 0.0
+      cap_mb 0.0 A medians (n 5): active 4.0, bytes_mb 2042.5, cap_bytes_mb 512.0, cap_mb 0.0, decoded_per_upload 1.1, evictions 453.0, footprint_delta_mb 220.4, fps 112.0495834350586, frames 688.0, hold_no_texture 0.0, late 0.0, over_budget 0.0, pending 0.0, per_player_min 30.2, uploads_per_s 121.4
+      cap_mb 0.0 B medians (n 5): active 4.0, bytes_mb 2042.5, cap_bytes_mb 512.0, cap_mb 0.0, decoded_per_upload 1.01, evictions 438.0, footprint_delta_mb 150.0, fps 110.96744537353516, frames 688.0, hold_no_texture 0.0, late 0.0, over_budget 0.0, pending 0.0, per_player_min 30.2, uploads_per_s 121.0
+   PASS  [ABS]  u8: B median pooled uploads/s 121.0 >= 114
+   PASS  [GC6]  u8: B median slowest player 30.2 uploads/s >= 28.5
+   PASS  [ABS]  u8 cap 0.0: B median late 0.0 <= 40
+   PASS  [ABS]  u8 cap 0.0: B median max video_gopcache_bytes 2042.5 MB <= budget + floors 2142.9 MB
+   PASS  [ABS]  u8 cap 0.0: over_budget delta per B launch [0.0, 0.0, 0.0, 0.0, 0.0] (== 0 without a cap)
+   PASS  [ABS]  u8 cap 0.0: hold_no_texture / pending 0 in every B launch
+== u9_reverse_cache_drop
+      u9 A medians (n 5): active1 0.0, bracket_ok 1.0, bytes0_mb 890.6, bytes1 0.0, code 113.0, footprint_drop_frac 1.053, footprint_drop_mb 937.5, frames0 300.0, frames1 0.0, hold_no_texture 0.0, late 0.0
+      u9 B medians (n 5): active1 0.0, bracket_ok 1.0, bytes0_mb 890.6, bytes1 0.0, code 113.0, footprint_drop_frac 1.051, footprint_drop_mb 935.6, frames0 300.0, frames1 0.0, hold_no_texture 0.0, late 0.0
+   PASS  [ABS]  u9 (a): B median bytes at s0 890.6 MB in [25, 2048], frames 300.0 >= 8 (INFO: >= 270 -- True)
+   PASS  [ABS]  u9 (b): after the trim B median bytes 0.0 / frames 0.0 / active 0.0 == 0
+   PASS  [GC10] u9: B median phys_footprint drop 1.051 of the counted bytes >= 0.5
+   PASS  [ABS]  u9 (c): back on screen the code within its bracket (B median 1.0), hold 0 every launch
+   PASS  [ABS]  u9 (d): B median late 0.0 <= 10
