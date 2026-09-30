@@ -1543,3 +1543,100 @@ TEST_CASE("gop2 (GC7): on a scene-cut file the window's lead-in comes from the i
         p.close();
     }
 }
+
+// s-rta-0930 gop2 R3 (plan item 3 + ruling A2): an intra-refresh H.264 file (x264 intra-refresh, keyint 30: 4 key PACKETS --
+// the recovery points -- but only frame 0 is a key-flagged DECODED frame). Every seek lands on a key packet and the decoder
+// outputs correct frames from there, never key-flagged: main's store gate (the decoded frame's key flag) stored only the
+// runs that sought frame 0 -- reverse re-sought the same GOPs every lap. The gate also opens on a demuxer-key landing, at
+// or after its pts. (a) the whole file in budget: all 120 frames resident after one lap, laps 2-3 cost <= 1 seek / run /
+// miss; (b) a 12-frame cache, lap 2: misses <= 2, decodes <= 700 (main: 169 seeks, 77 misses, 3,321 decodes). Every frame
+// shown and every frame resident equals a forward decode. RED on 655d232: (a) missing / seeks, (b) misses / decodes.
+TEST_CASE("gop2 R3: a landing on a demuxer-key packet opens the store gate -- intra-refresh H.264", "[video_player][gopcache][s-rta-0930]")
+{
+    const auto f = fixture("video_h264_intrarefresh_64x64.mp4");
+    auto ref = forwardDecode(f);
+    REQUIRE(ref.size() == 120);
+    int keyPackets = 0, keyFrames = 0;
+    keyCounts(f, &keyPackets, &keyFrames);
+    CAPTURE(keyPackets, keyFrames);
+    REQUIRE(keyPackets >= 3);   // the recovery points: else the fixture no longer exercises the gate
+    REQUIRE(keyFrames == 1);
+    {   // (a) the whole file in budget
+        VideoStats st;
+        GopCache::Budget budget;
+        big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(f));
+        p.setReverse(true);
+        p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
+        Show s{ p };
+        s.check = &ref;
+        const int lap = static_cast<int>(std::ceil(p.getDuration() * 120.0));
+        for (int i = 0; i < lap + 60; ++i)   // one lap (+ half a second: the wrap's own window)
+            s.frame(1.0 / 120.0);
+        std::string missing;
+        for (int k = 0; k < 120; ++k)
+            if (!VideoPlayerTestAccess::isResident(p, k))
+                missing += std::to_string(k) + " ";
+        const auto seeks1 = st.seeks.load(), runs1 = st.gopCacheRuns.load(), misses1 = st.gopCacheMisses.load();
+        const auto dec1 = st.framesDecoded.load();
+        for (int i = 0; i < 2 * lap; ++i)
+            s.frame(1.0 / 120.0);
+        int checked = 0;
+        const int bad = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+        std::printf("gop2 T3 (a) whole file: resident after lap 1 %d of 120 (missing: %s) | laps 2-3: seeks %lld runs %lld misses "
+                    "%lld decodes %lld | mismatches %ld cacheMismatches %d/%d nonmono %lld\n", VideoPlayerTestAccess::resident(p),
+                    missing.c_str(), static_cast<long long>(st.seeks.load() - seeks1),
+                    static_cast<long long>(st.gopCacheRuns.load() - runs1), static_cast<long long>(st.gopCacheMisses.load() - misses1),
+                    static_cast<long long>(st.framesDecoded.load() - dec1), s.mismatches, bad, checked,
+                    static_cast<long long>(st.reverseNonmonotonic.load()));
+        CAPTURE(missing, seeks1, runs1, misses1, st.seeks.load(), st.gopCacheRuns.load(), st.gopCacheMisses.load());
+        CHECK(missing.empty());
+        CHECK(st.seeks.load() - seeks1 <= 1);
+        CHECK(st.gopCacheRuns.load() - runs1 <= 1);
+        CHECK(st.gopCacheMisses.load() - misses1 <= 1);
+        CHECK(s.mismatches == 0);
+        CHECK(checked == 120);
+        CHECK(bad == 0);
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+    {   // (b) a 12-frame cache, lap 2
+        VideoStats st;
+        GopCache::Budget budget;
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(f));
+        budget.total.store(12 * VideoPlayerTestAccess::frameBytes(p));
+        p.setReverse(true);
+        p.advanceFrame(1.0 / 1000.0);
+        Show s{ p };
+        s.check = &ref;
+        const int lap = static_cast<int>(p.getDuration() * 120.0);
+        for (int i = 0; i < lap; ++i)
+            s.frame(1.0 / 120.0);
+        const auto seeks1 = st.seeks.load(), misses1 = st.gopCacheMisses.load(), dec1 = st.framesDecoded.load();
+        const size_t shown1 = s.shown.size();
+        for (int i = 0; i < lap; ++i)
+            s.frame(1.0 / 120.0);
+        int checked = 0;
+        const int bad = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+        const long seeks = static_cast<long>(st.seeks.load() - seeks1), misses = static_cast<long>(st.gopCacheMisses.load() - misses1),
+                   decodes = static_cast<long>(st.framesDecoded.load() - dec1);
+        std::printf("gop2 T3 (b) 12-frame cache, lap 2: seeks %ld misses %ld decodes %ld shown %zu | mismatches %ld cacheMismatches "
+                    "%d/%d nonmono %lld\n", seeks, misses, decodes, s.shown.size() - shown1, s.mismatches, bad, checked,
+                    static_cast<long long>(st.reverseNonmonotonic.load()));
+        CAPTURE(seeks, misses, decodes, s.shown.size() - shown1);
+        CHECK(misses <= 2);
+        CHECK(decodes <= 700);
+        CHECK(s.mismatches == 0);
+        CHECK(bad == 0);
+        CHECK(st.reverseNonmonotonic.load() == 0);
+        p.close();
+    }
+}

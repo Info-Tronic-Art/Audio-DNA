@@ -291,6 +291,15 @@ inline int nextReverse(Mode m, int n, int r)
 
 constexpr int kHole = -2;   // index value: a frame the decoder never outputs (GC3: skipped over, never sought again)
 
+constexpr int64_t kNoPts = INT64_MIN;   // == AV_NOPTS_VALUE (static_assert in VideoPlayer.cpp)
+// GC3 + s-rta-0930 gop2 R3: a run stores frames only after its keyframe -- a decoded frame flagged key, or, after a seek
+// that landed on a packet the demuxer flags key, a frame at or after that packet's pts (a recovery point's recovered
+// frames; an open-GOP leading frame precedes it and never opens the gate). No pts on the frame or the landing: the flag.
+inline bool storeGateOpens(bool frameKey, bool landedOnKeyPacket, int64_t framePts, int64_t landingPts)
+{
+    return frameKey || (landedOnKeyPacket && framePts != kNoPts && landingPts != kNoPts && framePts >= landingPts);
+}
+
 inline bool resident(const std::vector<int>& index, int r)
 {
     return r >= 0 && r < static_cast<int>(index.size()) && index[static_cast<size_t>(r)] >= 0;

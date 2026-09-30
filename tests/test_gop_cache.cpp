@@ -562,3 +562,19 @@ TEST_CASE("gop2 (GC7): the in-place window counts the slots a run's lead-in free
     const std::vector<int> late{ 10, 40 };
     CHECK(keyAtOrBefore(5, 113, &late) == 0);
 }
+
+// s-rta-0930 gop2 R3 (ruling A2): a run's store gate opens on a key-flagged decoded frame, or -- after a seek that landed on
+// a packet the demuxer flags key -- on a frame at or after that packet's pts (an intra-refresh file's recovered frames are
+// never key-flagged); never before the landing's pts (an open-GOP leading frame), never without a pts on either side.
+// RED: m6 (the pts clause dropped) fails the 999 / 1000 row.
+TEST_CASE("gop2 R3: the store gate opens on a key frame, or at / after a demuxer-key landing's pts -- never before it, never "
+          "without a pts", "[gopcache][s-rta-0930]")
+{
+    CHECK(storeGateOpens(true, false, kNoPts, kNoPts));
+    CHECK(storeGateOpens(false, true, 1000, 1000));
+    CHECK(storeGateOpens(false, true, 1001, 1000));
+    CHECK_FALSE(storeGateOpens(false, true, 999, 1000));
+    CHECK_FALSE(storeGateOpens(false, true, kNoPts, 1000));
+    CHECK_FALSE(storeGateOpens(false, true, 1000, kNoPts));
+    CHECK_FALSE(storeGateOpens(false, false, 1000, 0));
+}

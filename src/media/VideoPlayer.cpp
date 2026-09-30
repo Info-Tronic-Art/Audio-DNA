@@ -1441,7 +1441,12 @@ void VideoPlayer::onRunFrame(double want)
             return;
         }
     }
-    if ((decodedFrame_->flags & AV_FRAME_FLAG_KEY) != 0)
+    // GC3 + gop2 R3: a key-flagged frame, or a frame at / after a demuxer-key landing's pts -- a recovery point's frames
+    // (intra-refresh H.264) are output once recovered but never key-flagged; an MPEG-TS landing packet is never key-flagged,
+    // so its garbage stays out
+    static_assert(AV_NOPTS_VALUE == GopCache::kNoPts);
+    if (GopCache::storeGateOpens((decodedFrame_->flags & AV_FRAME_FLAG_KEY) != 0, landedOnKeyPacket_, decodedFrame_->pts,
+                                 landingPts_))
         runSawKey_ = true;
     if (!known)
     {
@@ -1607,6 +1612,9 @@ bool VideoPlayer::seekToTimestamp(double timeSec)
     if (codecCtx_)
         avcodec_flush_buffers(codecCtx_);
     drained_ = false;
+    firstPacketSinceSeek_ = true;   // gop2 R3: the next video packet read is this seek's landing
+    landedOnKeyPacket_ = false;
+    landingPts_ = AV_NOPTS_VALUE;
 
     return ret >= 0;
 }
@@ -1632,6 +1640,12 @@ bool VideoPlayer::decodeNextFrame()
         {
             av_packet_unref(packet_);
             continue;
+        }
+        if (firstPacketSinceSeek_)   // gop2 R3: the seek's landing packet (written here, read only by a run's store gate)
+        {
+            firstPacketSinceSeek_ = false;
+            landedOnKeyPacket_ = (packet_->flags & AV_PKT_FLAG_KEY) != 0;
+            landingPts_ = packet_->pts;
         }
 
         ret = avcodec_send_packet(codecCtx_, packet_);

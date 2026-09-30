@@ -291,6 +291,12 @@ private:
     bool haveServed_ = false;
     int runPublishAt_ = -1;                     // a DEMAND run's frame to publish (-1 = none)
     bool runSawKey_ = false;                    // GC3: a run stores only frames decoded after its keyframe
+    // s-rta-0930 gop2 R3 (GopCache::storeGateOpens): the next video packet read is a seek's landing; that packet carried
+    // the demuxer's key flag; its pts (INT64_MIN = GopCache::kNoPts = AV_NOPTS_VALUE: none -- this header keeps GopCache.h
+    // and FFmpeg out). Decode thread only (reset by seekToTimestamp).
+    bool firstPacketSinceSeek_ = false;
+    bool landedOnKeyPacket_ = false;
+    int64_t landingPts_ = INT64_MIN;
     bool runHasToken_ = false;                  // GC9
     int lastDecodedRel_ = -1;
     bool servedFromCache_ = false;              // forward: frames came from the cache since the last decode (reposition)
