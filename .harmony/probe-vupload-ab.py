@@ -15,8 +15,77 @@ Input lines: "<round> <arm> DATA <row> k=v k=v ...". A = the pre-lane app, B = t
 - u8 / u9 / u11: the bars of probe-vupload.json "_u8" / "_u9" / "_u11" on B's medians (u11: B <= A).
 - every other row: per arm, per numeric key, the median over all its DATA lines (and n).
 Each rule prints its own PASS / FAIL line tagged with its source ([VU7] [GC12] [ABS] ...); the exit code is 1 on any FAIL.
+u8 (s-rta-0930 gop2): ruled per cap group of B; A's lines at that cap are the baseline, else all A lines (labelled); a cap
+only A ran prints INFO; no B u8 line at all = FAIL "u8: no B launch".
+probe-vupload-ab.py --selftest: runs this file on three synthetic TSVs (in a mkdtemp dir) and checks the exact u8 rule
+lines; prints SELFTEST PASS / FAIL (exit 0 / 1).
 """
-import collections, json, math, os, statistics, subprocess, sys
+import collections, json, math, os, statistics, subprocess, sys, tempfile
+
+
+def selftest():
+    u8 = "u8_reverse_column_1080x4"
+    a0 = ("cap_mb=0 uploads_per_s=17.0 per_player_min=None per_player=None late=1790 hold_no_texture=0 pending=0 bytes_mb=None "
+          "frames=None active=None over_budget=None cap_bytes_mb=None decoded_per_upload=75.9")
+    b256 = ("cap_mb=256 uploads_per_s=118.0 per_player_min=29.5 per_player=29.5,29.6,29.7,29.8 late=10 hold_no_texture=0 "
+            "pending=0 bytes_mb=249.4 frames=84 active=4 over_budget=0 cap_bytes_mb=64.0 decoded_per_upload=10.9")
+    b0 = ("cap_mb=0 uploads_per_s=118.0 per_player_min=29.5 per_player=29.5,29.6,29.7,29.8 late=10 hold_no_texture=0 "
+          "pending=0 bytes_mb=200.0 frames=268 active=4 over_budget=0 cap_bytes_mb=512.0 decoded_per_upload=1.1")
+    cases = {   # name -> (the TSV's (arm, kv) lines per round, the expected exit code)
+        "capped-only": ([("A", a0), ("B", b256)], 0),
+        "mixed": ([("A", a0), ("B", b0), ("B", b256)], 0),
+        "A-only": ([("A", a0)], 1),
+    }
+    fails = []
+    with tempfile.TemporaryDirectory() as d:
+        for name, (lines, want_rc) in cases.items():
+            path = os.path.join(d, name + ".tsv")
+            with open(path, "w") as f:
+                for r in range(1, 6):
+                    for arm, kv in lines:
+                        f.write(f"{r} {arm} DATA {u8} {kv}\n")
+            p = subprocess.run([sys.executable, os.path.abspath(__file__), path], capture_output=True, text=True)
+            groups = collections.defaultdict(list)   # "cap_mb X" / "none" -> its PASS / FAIL lines
+            cur, infos = "none", []
+            for ln in p.stdout.splitlines():
+                s = ln.strip()
+                if s.startswith("-- u8 group "):
+                    cur = s[len("-- u8 group "):]
+                elif s.startswith("INFO"):
+                    infos.append(s)
+                elif s.startswith("PASS") or s.startswith("FAIL"):
+                    groups[cur].append(s)
+            rules = [x for g in groups.values() for x in g]
+            checks = [("exit code %d" % want_rc, p.returncode == want_rc)]
+            if name == "capped-only":
+                g = groups["cap_mb 256.0"]
+                checks += [("0 PASS / FAIL lines naming cap 0.0", sum("cap 0.0" in x for x in rules) == 0),
+                           ("exactly 1 INFO 'cap 0.0: pre-lane arm only -- no rule'",
+                            sum("cap 0.0: pre-lane arm only -- no rule" in x for x in infos) == 1),
+                           ("exactly 5 'u8 cap 256.0' rule lines", sum("u8 cap 256.0" in x for x in rules) == 5 and len(g) == 5),
+                           ("every rule line PASS", len(rules) == 5 and all(x.startswith("PASS") for x in rules))]
+            elif name == "mixed":
+                g0, g256 = groups["cap_mb 0.0"], groups["cap_mb 256.0"]
+                checks += [("exactly 6 cap-0.0 rule lines (pooled / GC6 / late / bytes / over_budget / hold)", len(g0) == 6
+                            and all(sum(k in x for x in g0) == 1 for k in ("pooled", "[GC6]", "median late", "video_gopcache_bytes",
+                                                                           "over_budget", "hold_no_texture"))),
+                           ("exactly 5 cap-256.0 rule lines", len(g256) == 5),
+                           ("every rule line PASS", len(rules) == 11 and all(x.startswith("PASS") for x in rules))]
+            else:
+                checks += [("exactly 1 FAIL 'u8: no B launch'", sum(x == "FAIL  u8: no B launch" for x in rules) == 1),
+                           ("no other rule line", len(rules) == 1)]
+            for what, ok in checks:
+                print(f"   {'ok  ' if ok else 'FAIL'}  selftest ({name}): {what}")
+                if not ok:
+                    fails.append(f"{name}: {what}")
+            if any(not ok for _, ok in checks):
+                print("      output was:\n" + "\n".join("      | " + x for x in p.stdout.splitlines()))
+    print("SELFTEST " + ("PASS" if not fails else "FAIL (" + "; ".join(fails) + ")"))
+    sys.exit(0 if not fails else 1)
+
+
+if len(sys.argv) > 1 and sys.argv[1] == "--selftest":
+    selftest()
 
 rows = collections.defaultdict(list)   # row -> [(round, arm, {k: v})]
 for line in open(sys.argv[1]):
@@ -120,10 +189,24 @@ for row, recs in sorted(rows.items()):
                 else:
                     rule(None not in (ga, gb) and gb < ga and min(n) >= 5, f"[GC8]  {sc}: B median max upload gap {gb} ms < A {ga} ms")
     elif row == "u8_reverse_column_1080x4":
-        for capmb in sorted({kv.get("cap_mb") for r, a, kv in recs}):
+        # s-rta-0930 gop2: the bars are ruled per cap group of the LANE arm (B); the pre-lane arm's lines at the same cap are
+        # its baseline, else all of them (labelled). A cap only the pre-lane arm ran gets an INFO line, never a rule (a
+        # capped-only run no longer invents "cap 0.0" rules on empty B data); no B u8 line at all is one FAIL.
+        capsB = sorted({kv.get("cap_mb") for r, a, kv in recs if a == "B"})
+        if not capsB:
+            rule(False, "u8: no B launch")
+        for capmb in sorted({kv.get("cap_mb") for r, a, kv in recs if a == "A"} - set(capsB)):
+            print(f"   INFO  u8 cap {capmb}: pre-lane arm only -- no rule")
+        for capmb in capsB:
             B_ = [kv for r, a, kv in recs if a == "B" and kv.get("cap_mb") == capmb]
             A_ = [kv for r, a, kv in recs if a == "A" and kv.get("cap_mb") == capmb]
-            info_line(f"cap_mb {capmb}", A_, B_)
+            label = f"cap_mb {capmb}"
+            if not A_:
+                A_ = [kv for r, a, kv in recs if a == "A"]
+                capsA = sorted({kv.get("cap_mb") for kv in A_})
+                label = f"cap_mb {capmb} (A baseline, cap {', '.join(str(c) for c in capsA)})" if A_ else label
+            print(f"   -- u8 group cap_mb {capmb}")
+            info_line(label, A_, B_)
             floors = 4 * int(VU["floorFrames"]) * int(VU["frameBytes1080"])
             budget = (capmb * 1048576 if capmb else BUDGET) + floors
             m = lambda k: med([kv.get(k) for kv in B_])   # noqa: E731
