@@ -298,3 +298,19 @@ the plan was built as written (c1-c4).
 - A hand-built v3 take (one clip-scope "playing" lane, point action "reverse") + /api/perf/load + /api/perf/play flips a
   playing clip's direction over REST; the replay stays "playing" after its last point -- /api/perf/stop_play |
   .harmony/probe-vupload.py flip_take.
+
+## Fix round (gopcache-fix, 2026-09-30) -- full report: .harmony/.reports/s-rta-0929b/gopcache-fix.md
+STATUS after the fix round: PARTIAL -- every code finding fixed (RED on a02c93c, GREEN on HEAD, teeth); every live gate
+BLOCKED by a TCC microphone prompt already on screen when the round started (Boris's to answer; not touched).
+- Commits: c5b1496 F1 (GC3 holes for every run kind + the overshoot re-seek + the prefetch block by target), 3ac8388 F2
+  (the forward guard only while hits are in play + the pts-less AVI golden trace), 4b06acd (the GC3 keyframe gate's
+  tooth, MPEG-TS), 46a2304 (GC10's tooth: the slot's page mapping is unmapped when freed), 63df7c5 (a threaded reverse /
+  flip / turn case, TSan 0 reports), 9009d9b (probe-vupload u4b (f) / (g): forward retention bounded and dropped),
+  88b3868 (docs: the GC9 urgent bypass stated, holes, F2, the true launch counts).
+- ctest -j1: 1011 / 1011 (was 1005). FIX app 821670d2bcb4e702 (build-lane, HEAD code).
+- Open (live, blocked): the forward battery, u7 + u8-u12 at 5 x 2 (GC13, GC9 u11), u8 at 256 MB x 5, u12 client /
+  malloc + w10-all, w1c / w2c / w6b 5 x 2, u4b (f) / (g), Tier-1 -- scripted: scratchpad/gopcache-fix/live.sh
+  fwd ab7 ab256 abw tier1.
+- Found, not fixed: reverse of a pts-less AVI shows keyframe pictures (every run's pts-less first output is stored at
+  its target index -- since c3); VFR reverse shows fewer distinct frames than main (48 / 41 / 42 vs 64 / 65 / 62 over two
+  laps, 3 runs each); MPEG-TS DEMAND publishes pre-key output (as main's forward seek).
