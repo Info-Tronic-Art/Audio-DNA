@@ -35,22 +35,7 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 
 ### Latency Budget
 
-| Stage | Operation | Latency |
-|-------|-----------|---------|
-| 1. Audio buffer delivery | OS delivers 128 samples @ 48kHz | 2.67ms (period) |
-| 2. Ring buffer push | `memcpy` into SPSC | ~50ns |
-| 3. Hop accumulation | Wait for 512 samples (1 hop) | 10.7ms (hop period) |
-| 3b. Resample to 48 kHz (R13, non-48 kHz devices only) | `AnalysisResampler`: 5-tap Lagrange interpolation + anti-alias biquads when upsampling; bypass (0µs) when the device is already 48 kHz | ~20-60μs/hop |
-| 4. Window + FFT | Hann window, 2048-pt FFT | ~20μs |
-| 5. Feature extraction | All spectral + temporal features | ~100μs |
-| 6. Feature bus publish | Atomic triple-buffer swap | ~10ns |
-| 7. Render acquire | Atomic read of latest snapshot | ~10ns |
-| 8. Mapping engine | Apply curves, smoothing | ~5μs |
-| 9. Uniform upload | glUniform + UBO update | ~2μs |
-| 10. Shader render | Effect chain on fullscreen quad | ~1-3ms |
-| 11. Swap buffers | VSync present | 0-16.67ms |
-
-**Total audio-to-visual latency: ~15-25ms** (well within the ±80ms perceptual sync window).
+Stage-by-stage table (audio buffer delivery -> swap, ~15-25 ms audio-to-visual): `docs/claude/architecture.md` "Latency Budget".
 
 ---
 
@@ -236,6 +221,7 @@ the named area; this index is triage-only.
 57. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
 58. A load is staged off the message thread; a command during the window acts on the live composition -- before touching loadComposition / appendDeckFromFile / duplicateDeck / the load REST handler.
 60. Video uploads are budgeted, fenced IOSurface blits; the shown slot stays the reader's -- before touching `uploadToTexture`, `releaseGL` or a ring release.
+NN. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
 
 ---
 
@@ -252,7 +238,7 @@ these are NOT @-imported, so they cost nothing at boot and are read on demand.
 
 | When you are doing X | Read |
 |---|---|
-| Touching `FeatureSnapshot`/`Mapping`/`Effect`/`Clip` struct fields, the lock-free communication chain, the technology-stack table, the source tree/file layout, naming a new file/class/method/uniform (Naming Conventions), or debugging audio-thread/threading issues | `docs/claude/architecture.md` |
+| Touching `FeatureSnapshot`/`Mapping`/`Effect`/`Clip` struct fields, the lock-free communication chain, the technology-stack table, the source tree/file layout, the latency budget, naming a new file/class/method/uniform (Naming Conventions), or debugging audio-thread/threading issues | `docs/claude/architecture.md` |
 | Adding/changing an audio analysis feature (amplitude, spectral, rhythm/onset, pitch/harmony, structural) or the 14-stage analysis pipeline order | `docs/claude/analysis.md` |
 | Adding/changing a GLSL effect, a transition shader, the effect-chain architecture, FX drag-and-drop, the Autopilot System, Manual BPM Mode, or the Tooltip System | `docs/claude/effects.md` |
 | Touching Mapping System internals (curve/scale/smooth pipeline, Master Signal), temporal/time effects (P16), the audio uniform system (P18), composition-level transform or cross-deck transitions (P25), or debugging visual/render issues | `docs/claude/rendering.md` |

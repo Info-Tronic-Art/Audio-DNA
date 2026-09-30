@@ -187,6 +187,10 @@ private:
     // AL5: every file-label write except the staged-load machinery's goes through here: while a load is staged the text
     // is held for a cancel and the label keeps "Loading <name>...".
     void setFileLabel(const juce::String& text);
+    // s-rta-0929b btguard (BG6): the persistent no-input / no-device notice beside the file label -- independent of
+    // setFileLabel (no other label write hides it), shown while the audio device state is not Ok. `relayout` = call
+    // resized() when its visibility or text changed (false only in the constructor, before the first layout).
+    void refreshAudioDeviceNotice(bool relayout);
     // plan6 §6.4: the deck tab row's actions ("+" menu, a tab's right-click
     // menu) and the Deck menu's mirror (which passes the ACTIVE deck's index).
     // Message thread. Undoable: New / Load / Duplicate / Rename / Remove.
@@ -323,6 +327,7 @@ private:
     juce::TextButton savePresetButton_{"Save"};
     juce::TextButton loadPresetButton_{"Load"};
     juce::Label fileLabel_;
+    juce::Label audioDeviceNotice_;   // s-rta-0929b btguard (BG6): see refreshAudioDeviceNotice
     juce::Label fpsLabel_;
     juce::Label cpuLabel_;
 

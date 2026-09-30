@@ -482,9 +482,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         });
     };
 
-    if (!audioEngine_.hasAudioDevice())
-        setFileLabel("No audio device found");
-    else
+    // s-rta-0929b btguard (BG6): no allowed input / no allowed device is a persistent notice, not a file-label write
+    // (every other label write would hide it). Plain words, never a modal.
+    addChildComponent(audioDeviceNotice_);
+    audioDeviceNotice_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterYellow));
+    audioDeviceNotice_.setJustificationType(juce::Justification::centredRight);
+    audioEngine_.onDeviceStateChanged = [this] { refreshAudioDeviceNotice(true); };
+    refreshAudioDeviceNotice(false);
+    if (audioEngine_.hasAudioDevice())
     {
         // R13: the analysis thread resamples the device stream to its fixed
         // internal rate (AnalysisThread::kSampleRate, 48 kHz) via
@@ -2137,6 +2142,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugDuplicateDeck = [this](int deckIndex) { duplicateDeck(deckIndex); };
     apiServer_->onDebugCancelLoad = [this] { cancelStagedOpen(LoadTicket::Outcome::Superseded); };
     apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
+    apiServer_->onDebugAudioNotice = [this] {   // s-rta-0929b btguard
+        return audioDeviceNotice_.isVisible() ? audioDeviceNotice_.getText() : juce::String();
+    };
+#if AUDIODNA_TEST_SERVER
+    apiServer_->setAudioDevicesProvider([this] { return audioEngine_.deviceStatusVar(); });   // s-rta-0929b btguard, before start()
+#endif
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
         debugDropFiles(layer, column, files);
@@ -2614,6 +2625,11 @@ void MainComponent::resized()
     row1.removeFromLeft(2);
     fastSaveButton_.setBounds(row1.removeFromLeft(50));
     row1.removeFromLeft(2);
+    if (audioDeviceNotice_.isVisible())   // s-rta-0929b btguard (BG6): the notice keeps its whole sentence
+    {
+        const int w = juce::GlyphArrangement::getStringWidthInt(audioDeviceNotice_.getFont(), audioDeviceNotice_.getText()) + 12;
+        audioDeviceNotice_.setBounds(row1.removeFromRight(juce::jmin(w, row1.getWidth() / 2)));
+    }
     fileLabel_.setBounds(row1);
 
     area.removeFromTop(2);
@@ -3054,6 +3070,23 @@ void MainComponent::setFileLabel(const juce::String& text)
     if (staged_ != nullptr && staged_->label.divert(text.toStdString()))
         return;   // AL5: held for a cancel; the label keeps "Loading <name>..."
     fileLabel_.setText(text, juce::dontSendNotification);
+}
+
+void MainComponent::refreshAudioDeviceNotice(bool relayout)
+{
+    juce::String text;
+    switch (audioEngine_.getDeviceState())
+    {
+        case AudioEngine::DeviceState::NoDevice: text = "No audio device found - plug one in. Bluetooth is never used."; break;
+        case AudioEngine::DeviceState::NoInput:  text = "No wired mic found - plug one in. Bluetooth is never used."; break;
+        case AudioEngine::DeviceState::Ok:       break;
+    }
+    if (text == audioDeviceNotice_.getText() && audioDeviceNotice_.isVisible() == text.isNotEmpty())
+        return;
+    audioDeviceNotice_.setText(text, juce::dontSendNotification);
+    audioDeviceNotice_.setVisible(text.isNotEmpty());
+    if (relayout)
+        resized();
 }
 
 void MainComponent::publishLoadWitness()
@@ -5681,6 +5714,10 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
     armOpts.audio = opts.audio;
     armOpts.audioMode = (audioEngine_.getSourceMode() == AudioEngine::SourceMode::File) ? "file" : "input";
     armOpts.deviceRate = audioEngine_.getCurrentSampleRate();
+    // s-rta-0929b btguard (BG7): no audio device (the device policy found nothing allowed) = rate 0 and no channels --
+    // nothing to capture, and a 0 must never size the tap's writer: the take records without audio.
+    if (armOpts.deviceRate <= 0.0)
+        armOpts.audio = false;
     if (auto* dev = audioEngine_.getDeviceManager().getCurrentAudioDevice())
         armOpts.deviceChannels = dev->getActiveOutputChannels().countNumberOfSetBits();
     armOpts.appVersion = juce::JUCEApplication::getInstance()

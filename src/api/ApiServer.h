@@ -198,6 +198,14 @@ public:
     std::function<void(int deckIndex)> onDebugDuplicateDeck;
     std::function<void()> onDebugCancelLoad;
     std::function<juce::String()> onDebugUiText;
+    // s-rta-0929b btguard (TEST-ONLY): /api/debug/ui_text "audio_notice" -- the no-input / no-device notice beside the
+    // file label ("" when hidden), read in the same message-thread hop as file_label.
+    std::function<juce::String()> onDebugAudioNotice;
+#if AUDIODNA_TEST_SERVER
+    // s-rta-0929b btguard (TEST-ONLY route, production port, no --test-mode): GET /api/debug/audio_devices answers
+    // AudioEngine::deviceStatusVar() (a mutex-guarded copy published on the message thread). Set it BEFORE start().
+    void setAudioDevicesProvider(std::function<juce::var()> provider) { audioDevicesProvider_ = std::move(provider); }
+#endif
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
@@ -261,6 +269,8 @@ private:
     void handleDebugLoadDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugDuplicateDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
+    void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
+    std::function<juce::var()> audioDevicesProvider_;   // set before start(); see setAudioDevicesProvider
 #endif
 
     // s-rta-0926 routines slice 1 -- /api/routine/*

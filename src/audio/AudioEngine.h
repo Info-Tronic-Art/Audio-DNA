@@ -3,8 +3,10 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <atomic>
+#include <mutex>
 #include "AudioCallback.h"
 #include "CombinedCallback.h"
+#include "DeviceGuard.h"
 #include "RingBuffer.h"
 #include "recording/AudioTap.h"
 
@@ -33,7 +35,17 @@ public:
     std::function<void(const juce::String& message)> onError;
 
     bool hasAudioDevice() const;
+    // s-rta-0929b btguard: true when the open device has an input (a wired mic or the onboard mic). The device policy
+    // (DeviceGuard.h) never opens a Bluetooth / wireless device, so with only such an input the app runs output-only.
+    bool hasInputDevice() const;
+    // The input device's name and rate ("MacBook Pro Microphone @ 48000Hz"), or the plain-words no-input / no-device text.
     juce::String getDeviceStatus() const;
+
+    // s-rta-0929b btguard: Ok = an input is open; NoInput = output-only (no allowed input); NoDevice = nothing allowed.
+    enum class DeviceState { Ok, NoInput, NoDevice };
+    DeviceState getDeviceState() const;
+    // Message thread: the device manager changed (open / close / device list). MainComponent refreshes its indicator.
+    std::function<void()> onDeviceStateChanged;
 
     // Actual sample rate of the running output device, or 0.0 if none.
     double getCurrentSampleRate() const;
@@ -64,10 +76,17 @@ public:
     uint64_t audioCallbacks() const { return combinedCallback_.callbacks(); }
     int audioPeriodSamples() const { return combinedCallback_.periodSamples(); }
     uint64_t ringOverruns() const { return audioCallback_.ringOverruns(); }
+    // s-rta-0929b btguard (TEST-ONLY): GET /api/debug/audio_devices -- the last device scan, the opened devices, the
+    // state, `opens` (device starts since launch) and the reconciler's re-applies. Built on the MESSAGE thread at every
+    // device change (publishDeviceStatus), read on the HTTP thread as a mutex-guarded copy: never the manager itself.
+    juce::var deviceStatusVar() const;
 #endif
 
 private:
-    juce::AudioDeviceManager deviceManager_;
+    // s-rta-0929b btguard: JUCE's manager with its CoreAudio type wrapped by the no-wireless device policy.
+    GuardedAudioDeviceManager deviceManager_{ devguard::productionConfig() };
+    // BG4: re-applies the policy when the OPEN device vanished and JUCE's own re-init left no device (DeviceGuard.h).
+    DeviceReconciler deviceReconciler_{ deviceManager_, 2, 2 };
     juce::AudioFormatManager formatManager_;
     juce::AudioSourcePlayer sourcePlayer_;
     juce::AudioTransportSource transportSource_;
@@ -82,4 +101,9 @@ private:
     // directly, without a real device).
     CombinedCallback combinedCallback_;
     SourceMode sourceMode_ = SourceMode::File;
+#if AUDIODNA_TEST_SERVER
+    void publishDeviceStatus();                     // message thread
+    mutable std::mutex deviceStatusMutex_;          // message thread (publish) <-> HTTP thread (read) only
+    juce::var deviceStatus_;                        // guarded by deviceStatusMutex_; never mutated after publish
+#endif
 };
