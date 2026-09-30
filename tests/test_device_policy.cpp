@@ -5,7 +5,11 @@
 //   M*  a REAL juce::AudioDeviceManager (GuardedAudioDeviceManager) over the mock: every manager case asserts, through
 //       the inner SPY (every createDevice / open / start name, JUCE's temporary devices included), that no denied name
 //       was ever created; the unguarded control M2 asserts the spy DID see it (the JUCE behaviour the guard exists for).
+//   R*  the DeviceReconciler (BG4) over the same manager.
 //   E*  the real HAL (macOS): read-only property queries, no device is opened.
+// Fix round (btguard-fix): D1 / D4 / M6 / M7 put a hidden device BEFORE the default so the inner and the filtered default
+// index differ (JUCE moves getDefaultDeviceIndex to the front); every case added there was RED on a mutant of the code
+// it guards (.harmony/.reports/s-rta-0929b/btguard.md "Fix round").
 // Fixture names never name a real product: "Denied Wireless" stands for any Bluetooth headset.
 #include <catch2/catch_test_macros.hpp>
 #include <juce_audio_devices/juce_audio_devices.h>
@@ -456,20 +460,29 @@ TEST_CASE("P13 the transport table spells the SDK fourccs", "[device_policy]")
 
 TEST_CASE("D1 the decorator lists only allowed devices and answers the built-in as the default", "[device_policy]")
 {
+    // The headset is the "macOS default" both ways and sits at a DIFFERENT inner index than the built-in's filtered index
+    // (inner inputs {Built-in Mic, headset}: default 1; inner outputs {headset, USB, Built-in Speakers}: default 0), so
+    // answering the inner index -- or skipping the built-in rung (the first allowed output is the USB) -- is caught.
     Spy spy;
     auto inner = std::make_unique<MockDeviceType>(spy);
     auto* mock = inner.get();
-    addHeadsetAndBuiltIn(*mock);
+    mock->devs = { { "Built-in Mic", tp::BuiltIn, 1, 0 },
+                   { kDenied, tp::Bluetooth, 1, 2 },
+                   { "USB Speakers", tp::USB, 0, 2 },
+                   { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+    mock->defaultIn = kDenied;
+    mock->defaultOut = kDenied;
     GuardedDeviceType guarded(std::move(inner), [mock] { return mock->infos(); }, {});
     guarded.scanForDevices();
 
     CHECK(guarded.getTypeName() == "CoreAudio");
     CHECK(guarded.getDeviceNames(true) == juce::StringArray("Built-in Mic"));
-    CHECK(guarded.getDeviceNames(false) == juce::StringArray("Built-in Speakers"));
+    CHECK(guarded.getDeviceNames(false) == juce::StringArray("USB Speakers", "Built-in Speakers"));
+    CHECK(mock->getDefaultDeviceIndex(true) == 1);    // the inner default IS the headset
+    CHECK(mock->getDefaultDeviceIndex(false) == 0);
     CHECK(guarded.getDefaultDeviceIndex(true) == 0);
-    CHECK(guarded.getDefaultDeviceIndex(false) == 0);
-    CHECK(mock->getDefaultDeviceIndex(false) == 0);   // the inner default IS the headset (index 0 of its list)
-    CHECK(mock->getDeviceNames(false)[0] == kDenied);
+    CHECK(guarded.getDefaultDeviceIndex(false) == 1);
+    CHECK(guarded.getDeviceNames(false)[guarded.getDefaultDeviceIndex(false)] == "Built-in Speakers");
 }
 
 TEST_CASE("D2 createDevice refuses a hidden name before the inner type sees it", "[device_policy]")
@@ -520,6 +533,74 @@ TEST_CASE("D3 an inner list change reaches the decorator's listeners after the f
     CHECK(listener.seqSeen == before + 1);
     CHECK(listener.outputsSeen.contains("USB Speakers"));
     guarded.removeListener(&listener);
+}
+
+TEST_CASE("D4 an allowed USB macOS default listed after a hidden device: the default index is the FILTERED one",
+          "[device_policy]")
+{
+    Spy spy;
+    auto inner = std::make_unique<MockDeviceType>(spy);
+    auto* mock = inner.get();
+    mock->devs = { { kDenied, tp::Bluetooth, 1, 2 },
+                   { "Built-in Mic", tp::BuiltIn, 1, 0 },
+                   { "USB Interface", tp::USB, 2, 2 },
+                   { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+    mock->defaultIn = "USB Interface";
+    mock->defaultOut = "USB Interface";
+    GuardedDeviceType guarded(std::move(inner), [mock] { return mock->infos(); }, {});
+    guarded.scanForDevices();
+
+    CHECK(mock->getDefaultDeviceIndex(true) == 2);    // inner inputs {headset, Built-in Mic, USB Interface}
+    CHECK(mock->getDefaultDeviceIndex(false) == 1);   // inner outputs {headset, USB Interface, Built-in Speakers}
+    CHECK(guarded.getDeviceNames(true) == juce::StringArray("Built-in Mic", "USB Interface"));
+    CHECK(guarded.getDeviceNames(false) == juce::StringArray("USB Interface", "Built-in Speakers"));
+    CHECK(guarded.getDefaultDeviceIndex(true) == 1);
+    CHECK(guarded.getDefaultDeviceIndex(false) == 0);
+}
+
+TEST_CASE("D5 a device that appears between the inner scan and the enumeration is mapped by the re-scan, not hidden",
+          "[device_policy]")
+{
+    Spy spy;
+    auto inner = std::make_unique<MockDeviceType>(spy);
+    auto* mock = inner.get();
+    addHeadsetAndBuiltIn(*mock);
+    mock->devs.push_back({ "USB Speakers", tp::USB, 0, 2 });
+    int calls = 0;
+    // The HAL query race (attack S7): the first enumeration still misses the USB device the inner type already lists.
+    GuardedDeviceType guarded(std::move(inner), [mock, &calls] {
+        auto v = mock->infos();
+        if (calls++ == 0)
+            v.erase(std::remove_if(v.begin(), v.end(), [](const dp::DeviceInfo& d) { return d.outputName == "USB Speakers"; }),
+                    v.end());
+        return v;
+    }, {});
+    guarded.scanForDevices();
+
+    CHECK(calls == 2);
+    CHECK(guarded.lastScan().lists.unmapped.isEmpty());
+    CHECK(guarded.getDeviceNames(false) == juce::StringArray("Built-in Speakers", "USB Speakers"));
+}
+
+TEST_CASE("D6 getIndexOfDevice answers the device's index in the FILTERED list (a hidden device precedes it)",
+          "[device_policy]")
+{
+    Spy spy;
+    auto inner = std::make_unique<MockDeviceType>(spy);
+    auto* mock = inner.get();
+    addHeadsetAndBuiltIn(*mock);   // inner inputs / outputs both start with the hidden headset
+    GuardedDeviceType guarded(std::move(inner), [mock] { return mock->infos(); }, {});
+    guarded.scanForDevices();
+
+    std::unique_ptr<juce::AudioIODevice> out(guarded.createDevice("Built-in Speakers", ""));
+    std::unique_ptr<juce::AudioIODevice> in(guarded.createDevice("", "Built-in Mic"));
+    REQUIRE(out != nullptr);
+    REQUIRE(in != nullptr);
+    CHECK(mock->getIndexOfDevice(out.get(), false) == 1);
+    CHECK(mock->getIndexOfDevice(in.get(), true) == 1);
+    CHECK(guarded.getIndexOfDevice(out.get(), false) == 0);
+    CHECK(guarded.getIndexOfDevice(in.get(), true) == 0);
+    CHECK(guarded.getIndexOfDevice(nullptr, false) == -1);
 }
 
 // ======================================================================================================================
@@ -584,6 +665,43 @@ TEST_CASE("M4 nothing allowed: no device, no error", "[device_policy]")
     });
     CHECK(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
     CHECK(rig.manager->getCurrentAudioDevice() == nullptr);
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("M6 the headset is the macOS default and a USB output is listed before the built-in: the built-in opens "
+          "(JUCE moves getDefaultDeviceIndex to the front)", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 },
+                   { "USB Speakers", tp::USB, 0, 2 },
+                   { "Built-in Mic", tp::BuiltIn, 1, 0 },
+                   { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied;
+        m.defaultOut = kDenied;
+    });
+    CHECK(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("M7 an allowed USB macOS default listed after the hidden headset opens both ways", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 },
+                   { "Built-in Mic", tp::BuiltIn, 1, 0 },
+                   { "USB Interface", tp::USB, 2, 2 },
+                   { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Interface";
+        m.defaultOut = "USB Interface";
+    });
+    CHECK(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "USB Interface");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Interface");
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
 
@@ -669,7 +787,10 @@ TEST_CASE("R1 a storm of 20 list changes after the open device vanished -> exact
     appOpenSequence(*rig.manager);
     pump(50);
     removeDevice(*rig.mock, "Speakers A");
-    for (int i = 0; i < 20; ++i)
+    rig.mock->fireListChanged();
+    pump(100);
+    CHECK(reconciler.reapplies() == 0);   // not yet settled: coalesced, never acted on at the first change message
+    for (int i = 1; i < 20; ++i)
     {
         rig.mock->fireListChanged();
         pump(20);
@@ -743,6 +864,30 @@ TEST_CASE("R4 an allowed device that cannot open: one re-apply, retried only aft
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
 
+TEST_CASE("R4b with a 50 ms bound: a failed re-apply waits for a NEW device scan, never its own change messages",
+          "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 2); });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);   // only the scan gate can hold the retry back
+    appOpenSequence(*rig.manager);
+    pump(50);
+    rig.spy.failOpen.add("Speakers B");
+    removeDevice(*rig.mock, "Speakers A");
+    rig.mock->fireListChanged();
+    pump(600);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getCurrentAudioDevice() == nullptr);
+    pump(1000);   // its own change messages (close + a failed open) never re-trigger it
+    CHECK(reconciler.reapplies() == 1);
+    rig.mock->fireListChanged();   // a new device scan
+    pump(600);
+    CHECK(reconciler.reapplies() == 2);
+    pump(1000);
+    CHECK(reconciler.reapplies() == 2);
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
 TEST_CASE("R5 a device-list change fired from INSIDE the device's start() (JUCE's combiner rate reconcile) re-enters "
           "safely", "[device_policy]")
 {
@@ -800,6 +945,27 @@ TEST_CASE("E1 the enumerator reproduces JUCE's CoreAudio names exactly and reads
         }
     }
     CHECK(builtIn >= 1);
+
+    // The macOS default flags drive "default = the macOS default if allowed": exactly one device per direction carries
+    // it, and it is the device JUCE's own CoreAudio type answers as its default on the same scan.
+    for (const bool input : { true, false })
+    {
+        const auto names = ca->getDeviceNames(input);
+        if (names.isEmpty())
+            continue;
+        int flagged = 0;
+        juce::String flaggedName;
+        for (const auto& d : devices)
+            if (input ? d.isDefaultInput : d.isDefaultOutput)
+            {
+                ++flagged;
+                flaggedName = input ? d.inputName : d.outputName;
+            }
+        INFO((input ? "input" : "output") << " default: JUCE \"" << names[ca->getDefaultDeviceIndex(input)]
+                                           << "\", enumerator \"" << flaggedName << "\"");
+        CHECK(flagged == 1);
+        CHECK(flaggedName == names[ca->getDefaultDeviceIndex(input)]);
+    }
 }
 
 TEST_CASE("E2 the real CoreAudio type behind the decorator: every JUCE name is listed or skipped with a reason", "[device_policy]")
