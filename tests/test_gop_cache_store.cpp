@@ -67,6 +67,31 @@ struct VideoPlayerTestAccess
             n += (s.frame >= 0 && s.frame < p.relOf(p.currentTime_)) ? 1 : 0;
         return n;
     }
+    // gopcache-fix (the GC3 keyframe gate's tooth): every RESIDENT cache frame converted like the reference (sws SWS_BILINEAR
+    // to RGBA, bottom-up) and compared with ref[its relative index]; the count of those that differ (or have no reference).
+    static int cacheMismatches(const VideoPlayer& p, std::map<long, Bytes>& ref, int* checked)
+    {
+        int bad = 0;
+        *checked = 0;
+        for (int i = 0; i < p.cache_->slots(); ++i)
+        {
+            const int rel = p.cache_->view()[static_cast<size_t>(i)].frame;
+            if (rel < 0)
+                continue;
+            const AVFrame* fr = p.cache_->frameAt(i);
+            SwsContext* sws = sws_getContext(fr->width, fr->height, static_cast<AVPixelFormat>(fr->format), fr->width,
+                                             fr->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr, nullptr, nullptr);
+            Bytes b(static_cast<size_t>(fr->width) * static_cast<size_t>(fr->height) * 4);
+            uint8_t* dst[4] = { b.data() + static_cast<size_t>(fr->height - 1) * static_cast<size_t>(fr->width) * 4, nullptr,
+                                nullptr, nullptr };
+            int ds[4] = { -fr->width * 4, 0, 0, 0 };
+            sws_scale(sws, fr->data, fr->linesize, 0, fr->height, dst, ds);
+            sws_freeContext(sws);
+            ++*checked;
+            bad += (ref.count(rel) == 0 || ref[rel] != b) ? 1 : 0;
+        }
+        return bad;
+    }
     static bool step(VideoPlayer& p) { return p.decodeStep(); }
     static int stepUntilIdle(VideoPlayer& p, int limit = 200000)
     {
@@ -133,7 +158,8 @@ std::map<long, Bytes> forwardDecode(const juce::File& file)
     cc->thread_count = 2;
     REQUIRE(avcodec_open2(cc, codec, nullptr) == 0);
     const double tb = av_q2d(st->time_base);
-    const double fd = 1.0 / av_q2d(st->avg_frame_rate);
+    // the player's frame duration: avg_frame_rate, else r_frame_rate (an MPEG-TS stream has no average)
+    const double fd = 1.0 / av_q2d(st->avg_frame_rate.num > 0 && st->avg_frame_rate.den > 0 ? st->avg_frame_rate : st->r_frame_rate);
     SwsContext* sws = nullptr;
     AVFrame* fr = av_frame_alloc();
     AVPacket* pk = av_packet_alloc();
@@ -620,6 +646,39 @@ TEST_CASE("GC3 holes: a reverse Loop over a file with index holes (VFR drops, MP
         CHECK(st.reverseNonmonotonic.load() == 0);
         p.close();
     }
+}
+
+// gopcache-fix (the GC3 keyframe gate's tooth): an MPEG-TS file has no keyframe index -- the demuxer seeks by timestamp and
+// lands on the frame asked for, a NON-keyframe: the MPEG-4 part 2 decoder then outputs every P-frame after it, predicted
+// from pictures it never saw (key 0, not flagged corrupt). A run stores only frames decoded after its keyframe (runSawKey_),
+// so every frame RESIDENT in the cache equals a forward decode. Tooth: without the gate the cache holds the garbage frames.
+// (What a DEMAND run PUBLISHES before its keyframe is the decoder's output as-is -- main's forward seek on this file shows
+// the same frames: outside this gate.)
+TEST_CASE("GC3 keyframe gate: an MPEG-TS seek lands on a non-keyframe -- no frame decoded before the run's keyframe is stored",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_mpeg4_64x64.ts");
+    auto ref = forwardDecode(f);
+    REQUIRE(ref.size() == 60);
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    startReverseAt(p, 45.0 / 60.0);
+    Show s{ p };
+    for (int i = 0; i < 4 * 90; ++i)
+        s.frame(1.0 / 120.0);
+    int checked = 0;
+    const int bad = VideoPlayerTestAccess::cacheMismatches(p, ref, &checked);
+    CAPTURE(checked, s.shown.size(), st.seeks.load(), st.gopCacheRuns.load(), st.gopCacheMisses.load());
+    CHECK(checked >= 20);   // the runs stored frames (from keyframe 30 up): the gate was exercised, not bypassed
+    CHECK(bad == 0);
+    CHECK(st.reverseNonmonotonic.load() == 0);
+    p.close();
 }
 
 TEST_CASE("GC6: a resident cache shrinks to its share when a second cache joins the budget (per step, not at a store)",
