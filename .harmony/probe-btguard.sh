@@ -10,7 +10,7 @@
 #   A  no env               A0-A5, A7-A9 (+ A6 INFO: opens)
 #   D  deny the opened OUTPUT only, when a second allowed output exists (BG8) -- SKIP otherwise (never counted)
 #   B  deny the opened INPUT                         B0-B6 (B3b: a label-writing action keeps the notice, BG6)
-#   C  deny the opened INPUT and OUTPUT (no device)  C0-C6 (C5: a take arms / stops with no device, BG7)
+#   C  deny the opened INPUT and OUTPUT (no device)  C0-C6 (C5: a take arms / stops with no device, C5b: it is saved without audio, BG7)
 # B / C take the device names from arm A's opened{} (vj S4); if arm A has no endpoint (the pre-change app) they fall
 # back to BTGUARD_INPUT / BTGUARD_OUTPUT (default: the MacBook Pro built-in names).
 #
@@ -252,6 +252,18 @@ elif arm == 'C':
           'a take arms and stops with no audio device (HTTP %s / %s / status %s), app alive' % (s1, s2, s3),
           'record %s stop %s status %s' % (r1, r2, ps))
     open(os.path.join(out, 'c5-take.txt'), 'w').write(name + '\n' + json.dumps(ps) + '\n')
+    # C5b (btguard-fix, BG7 load-bearing): /api/perf/record answers 200 before the message thread arms, so C5 alone
+    # cannot see a refused or audio-carrying take. The saved take.json must exist, carry NO audio (mode "", no
+    # segments, "audio" not in features) and the recorder must report no error.
+    tj = os.path.join(os.path.expanduser('~/Documents/Audio-DNA/Takes'), name + '.adna-take', 'take.json')
+    try:
+        t = json.load(open(tj)); au = t.get('audio') or {}
+        ok = au.get('mode', '') == '' and au.get('segments', []) == [] and 'audio' not in (t.get('features') or []) \
+             and isinstance(ps, dict) and ps.get('lastError', '') == ''
+        info = 'audio %s features %s lastError "%s"' % (json.dumps(au)[:160], t.get('features'), (ps or {}).get('lastError'))
+    except Exception as e:
+        ok, info = False, 'no take.json (%s); status %s' % (e, json.dumps(ps)[:200])
+    check('C5b', ok, 'the no-device take was saved WITHOUT audio and the recorder reports no error', info)
 PYEOF
 }
 
