@@ -150,6 +150,25 @@ const char* const kGoldenPicks =
     "84 85 86 87 88 89 -1 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 "
     "30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 ";
 const char* const kGoldenCounters = "decoded 125 dropped 18 seeks 2";
+
+// gopcache-fix F2: the SAME schedule on a DivX-style AVI (MPEG-4 part 2, 2 B-frames, GOP 30, 4 s): every third frame has no
+// pts (the writer takes the clock's time for it), so frames decoded in one clock tick share a time and come out of order.
+// RECORDED on the pre-refactor writer (e13dccb = main d88d2ea's writer + the c0 counters; 6 / 6 identical runs, threaded,
+// GOLDEN_FIXTURE=video_mpeg4_bf2_64x64.avi). Never edit to make a change pass. RED on a02c93c: its forward guard dropped a
+// pts-less frame at or below the newest published one even in plain forward play.
+const char* const kGoldenAviPublished =
+    "0:0 0:2 0:3 0:1 0:5 0:6 0:3 0:8 0:9 0:6 0:11 0:12 0:9 0:11 0:12 0:12 0:11 0:12 0:13 0:14 0:15 0:13 "
+    "0:17 0:18 0:15 0:20 0:21 0:18 0:23 1:73 1:74 1:74 1:75 1:75 1:75 1:76 1:77 1:78 1:78 1:80 1:81 1:79 "
+    "1:83 1:84 1:82 1:86 1:87 1:85 1:89 1:90 1:88 1:92 1:93 1:91 1:95 1:96 1:94 1:98 1:99 1:97 1:101 "
+    "1:102 1:100 1:104 1:105 1:103 1:107 1:108 1:106 1:110 1:111 1:109 1:113 1:114 1:112 1:116 1:117 "
+    "1:115 1:119 1:118 2:0 2:2 2:3 2:1 2:5 2:6 2:4 2:8 2:9 2:7 2:11 2:12 2:10 2:14 2:15 2:13 2:17 2:18 "
+    "2:16 2:20 2:21 2:19 2:23 2:24 2:22 2:26 2:27 2:25 2:29 2:30 2:28 2:32 2:33 2:31 ";
+const char* const kGoldenAviPicks =
+    "0 -1 2 1 -1 3 -1 -1 5 3 -1 6 -1 -1 8 6 9 -1 -1 -1 11 9 11 12 12 13 -1 14 13 15 -1 -1 17 15 18 -1 -1 "
+    "-1 20 18 -1 74 75 75 77 78 -1 80 81 -1 83 84 -1 86 87 -1 89 90 -1 92 93 -1 95 96 -1 98 99 -1 101 "
+    "102 -1 104 105 -1 107 108 -1 110 111 -1 113 114 -1 116 117 118 119 0 -1 2 3 -1 5 6 -1 8 9 -1 11 12 "
+    "-1 14 15 -1 17 18 -1 20 21 -1 23 24 -1 26 27 -1 29 30 -1 32 33 ";
+const char* const kGoldenAviCounters = "decoded 128 dropped 14 seeks 3";
 } // namespace
 
 TEST_CASE("golden trace: the forward writer publishes exactly the recorded frames, picks and counters (threaded)",
@@ -193,3 +212,43 @@ TEST_CASE("golden trace, stepped: decodeStep() without a thread reproduces the p
     CHECK(t.picks == kGoldenPicks);
     CHECK(t.counters == kGoldenCounters);
 }
+
+TEST_CASE("golden trace, pts-less AVI: the forward writer publishes exactly main's frames, picks and counters (threaded)",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_mpeg4_bf2_64x64.avi");
+    REQUIRE(f.existsAsFile());
+    VideoStats st;
+    VideoPlayer p;
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    p.start();
+    const auto t = runSchedule(p, st, [&] { return waitQuiescent(p, st); });
+    p.close();
+    UNSCOPED_INFO("published: " << t.published);
+    UNSCOPED_INFO("picks: " << t.picks);
+    UNSCOPED_INFO("counters: " << t.counters);
+    CHECK(t.published == kGoldenAviPublished);
+    CHECK(t.picks == kGoldenAviPicks);
+    CHECK(t.counters == kGoldenAviCounters);
+}
+
+TEST_CASE("golden trace, pts-less AVI, stepped: decodeStep() without a thread reproduces main's writer exactly",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_mpeg4_bf2_64x64.avi");
+    REQUIRE(f.existsAsFile());
+    VideoStats st;
+    VideoPlayer p;
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    const auto t = runSchedule(p, st, [&] { return VideoPlayerTestAccess::stepUntilIdle(p); });
+    p.close();
+    UNSCOPED_INFO("published: " << t.published);
+    UNSCOPED_INFO("picks: " << t.picks);
+    UNSCOPED_INFO("counters: " << t.counters);
+    CHECK(t.published == kGoldenAviPublished);
+    CHECK(t.picks == kGoldenAviPicks);
+    CHECK(t.counters == kGoldenAviCounters);
+}
+

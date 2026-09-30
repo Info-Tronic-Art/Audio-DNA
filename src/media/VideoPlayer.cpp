@@ -925,10 +925,12 @@ void VideoPlayer::onDecoded(uint32_t gen)
     if (stats_) ++stats_->framesDecoded;
 
     // A catch-up chases the moving clock: frames behind it are dropped without a conversion. c4: so is a frame at or
-    // below the newest one published (a no-op for plain forward play -- after a seek haveNewest_ is false and a decoder's
-    // output is monotonic -- needed after cache hits).
+    // below the newest one published -- ONLY while cache hits are in play (hitsArmed_ / servedFromCache_: the decoder then
+    // re-outputs frames the cache already served). gopcache-fix F2: plain forward play never applies it -- a frame without
+    // a pts takes the clock's time, so two decoded in one clock tick would compare equal and the second would be dropped
+    // (a DivX-style AVI: shown 196 -> 155 / 480 render frames); main's writer publishes both.
     if (!VideoRing::shouldPublish(pts, wantTime_.load(std::memory_order_acquire), frameDur_, pol_)
-        || (haveNewest_ && pts <= newestPts_ + 0.5 * frameDur_))
+        || ((hitsArmed_ || servedFromCache_) && haveNewest_ && pts <= newestPts_ + 0.5 * frameDur_))
     {
         if (stats_) ++stats_->framesDropped;
         return;
