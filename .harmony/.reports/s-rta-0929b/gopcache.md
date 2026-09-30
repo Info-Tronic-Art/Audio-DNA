@@ -314,3 +314,127 @@ BLOCKED by a TCC microphone prompt already on screen when the round started (Bor
 - Found, not fixed: reverse of a pts-less AVI shows keyframe pictures (every run's pts-less first output is stored at
   its target index -- since c3); VFR reverse shows fewer distinct frames than main (48 / 41 / 42 vs 64 / 65 / 62 over two
   laps, 3 runs each); MPEG-TS DEMAND publishes pre-key output (as main's forward seek).
+
+## Fix round 2 (gopcache-fix2, 2026-09-30)
+STATUS after fix round 2: PARTIAL. R1, R2 and R3 are done. Both code fixes went RED on 98994c6 and GREEN on HEAD, and each
+has teeth. R4 (the live gates) is BLOCKED: the microphone TCC prompt is still pending, so I launched nothing.
+
+- Commits:
+  - 7c798b5: R1, a pts-less frame is indexed by its own time
+  - 707b922: R2, the reverse look-ahead is measured in time
+  - the commit carrying this section: docs (rendering.md / pitfalls NN) + this report
+- ctest --test-dir build-lane -j1: `100% tests passed, 0 tests failed out of 1013` (52.02 s; +2 cases: R1, R2).
+- TSan (scratch build, HEAD source): test_video_decode_trace 510 / 5 and test_gop_cache_store 523 / 22 pass, 0 TSan
+  reports.
+- FIX2 app: build-lane/AudioDNA_artefacts/Release/Audio-DNA.app. It comes from a normal cmake build, signed "Audio-DNA Dev",
+  com.audiodna.app. The binary's sha256 starts 693566fccb01cb53. I made no copy and did no re-sign.
+- Scratch: scratchpad/gopcache-fix2/. The harnesses (vfr_tmpl.cpp, r3p_*.cpp, diag_step.cpp) build with rev.py; the logs
+  are in logs/.
+
+### R1 (MUST): reverse of a pts-less AVI. FIXED (7c798b5)
+- **Cause.** onRunFrame gave a frame with no pts the time `ptsOfRel(r.target)`. So a run's first output, which is its
+  pts-less keyframe, was stored and published as the target frame, and the run then ended.
+- **Fix: `indexTimeOf()`.** A frame's index time is its pts, else libavcodec's best-effort timestamp. firstPts_ uses the
+  same rule.
+- **Probe of video_mpeg4_bf2_64x64.avi** (thread_count 2, as in the player; scratchpad/gopcache-fix2/probe/be.cpp):
+  - The best-effort time is the output position + 1 for every frame except the last, from the file start and after a seek
+    to each keyframe, with or without NONREF.
+  - Each B-frame's pts is on the same +1 scale.
+  - So with firstPts_ = I0's best-effort time, index = the output position.
+- **The last frame.** It is drained at EOF with no time, so it takes the previous output's index + 1 when that output was
+  inside the run's window. Otherwise it is not stored or published.
+- **A run whose first output has no index at all** (the last GOP) seeks one GOP further back, through the overshoot path.
+- **Forward retention and the reposition run** also index by the frame's own time. A frame with no index time is not kept.
+- **Gate:** ctest "R1: a pts-less AVI reversed in Loop". It checks every frame shown and every resident frame against
+  `forwardDecodeByOrder` (a forward decode from the file start, keyed by output position), that all 120 frames are
+  resident, and that laps 2-3 have seeks / runs / misses <= 1.
+  - RED on 98994c6 (logs/r1-red-98994c6.log): `badResident 118 == 0`, `mismatches 368 == 0`; seeks 120, runs 117.
+  - GREEN on 7c798b5 and HEAD.
+- **Teeth** (scratch mutants of 7c798b5 via rev.py):
+
+  | mutant | fails with |
+  |---|---|
+  | firstPts_ from pts only | `missing := "0 "`, 4 assertions |
+  | no chain for the last frame | `missing := "119 "` |
+  | an unknown landing is not an overshoot | `missing := "117 118 119 "`, seeks 3,800,004 |
+
+- **Seeks / decodes per lap vs main** (threaded harness, 3 laps, 5 runs each; logs/avi-threaded.log):
+
+  | arm | seeks / lap | decodes / lap | distinct frames / lap | late (of 1440) |
+  |---|---|---|---|---|
+  | main d88d2ea | 26-31 (median 27) | 239-334 (median 267) | 27-72, frames wrong | 991-1078 |
+  | 98994c6 | 120 / 0 / 0 | 120 / 0 / 0 | 120, keyframe pictures | 4 |
+  | 7c798b5 (R1) and 707b922 | 3 / 0 / 0 | 131 / 0 / 0 | 120 | 0 |
+
+### R2: fewer distinct VFR frames in reverse than main. DIAGNOSED, FIXED (707b922)
+- **Correction to my round-1 numbers.** "48 / 41 / 42 vs main 64 / 65 / 62" counted distinct frames over TWO laps
+  together. Main shows a different subset in each lap, so its 2-lap union is larger. Per lap, 98994c6 was not below main
+  when threaded: 5 runs x 3 laps (logs/vfr-threaded.log) give a median of 42 (main) vs 47 (98994c6). Two runs of 5 x 3
+  agree (logs/vfr-base.log: 42 / 47).
+- **The real cause, with evidence.** A stepped reverse Loop of video_h264_vfrgap_64x64.mp4 with the ring traced every render
+  frame (scratchpad/gopcache-fix2/diag_step.cpp):
+  - The writer bounded its look-ahead in indices (`next >= wantRel - 3`), but the pick frees frames by time (pts < clock -
+    half a frame - 3 frame durations).
+  - This file's index uses the AVERAGE frame duration: 47 ms against a 33 ms grid, so 85 frames fall in 65 buckets.
+  - So a frame at index wantRel - 3 whose pts sits early in its bucket went out up to ~4 frame durations below the clock.
+    Example trace line: clock 3808 ms, frame 77 at 3633 ms, 175 ms below the clock against a 164.5 ms line. The next pick
+    freed it unshown, and the writer, already past it, did not publish it again that lap.
+  - The hole walk also ran after the index check, so a hole pushed the published frame further down without a check.
+  - Result: 28 of the 63 frames published a lap were freed unshown, and each lap showed 35 frames: 81 80 79, then a jump
+    to 70.
+- **Fix.** The look-ahead check now runs after the hole walk, on the candidate's own time (a resident frame's pts, or a
+  miss's nominal time). A candidate more than kWriterLookAhead + 1 frame durations below the clock means idle work instead.
+- **Gate:** ctest "R2: a VFR file reversed in Loop", stepped, on the real player. Each of 3 laps must have 0 published
+  frames freed unshown, and distinct frames x 10 >= main's median 42 x 9, i.e. >= 38.
+  - RED on 98994c6 and on 7c798b5: 25 distinct per lap, 39 freed unshown, 6 of 8 assertions failed.
+  - GREEN on 707b922: 64 per lap (every resident frame), 0 freed.
+- **Threaded, 5 runs x 3 laps** (logs/vfr-threaded.log):
+
+  | arm | distinct / lap | late (of 1428) | seeks / lap | decodes / lap |
+  |---|---|---|---|---|
+  | main | median 42 (36-52) | 462-584 | 39-44 | 334-396 |
+  | 98994c6 | median 47 | 406-445 | 3 / 0 / 0 | 91 / 0 / 0 |
+  | 707b922 | 63 every lap | 149 | 3 / 0 / 0 | 91 / 0 / 0 |
+
+  63 >= 0.9 x 42.
+- **Control (CFR, unchanged, 3 runs; logs/cfr-threaded.log):** 98994c6 and 707b922 are identical on gop10 (60 / lap,
+  late 4) and on gop60_640x360 (120 / lap, late 4).
+- **Residual (not a regression).** The lane keeps one frame per index, so 20 of this file's 85 frames (collisions in the
+  47 ms buckets) are never shown in reverse. Each lap shows the same 63-64. Main shows a varying 36-52.
+
+### R3: MPEG-TS DEMAND publishes pre-key output. ACCEPTED (parity), filed, not fixed
+- **Repro:** tests/fixtures/video_mpeg4_64x64.ts (mpeg4 -g 30 -bf 0, start 1.4 s, no keyframe index). Reverse from 45/60
+  for 3 s at 120 Hz. Main's forward seek to the same point is the parity arm.
+- **Lane, stepped** (scratchpad/gopcache-fix2/r3_ts.cpp on 707b922, the test file's own Show):
+  - shown 23, of which 20 differ from the forward decode; late 265
+  - seeks 39, runs 19, misses 20, run decodes 256
+  - resident 32, all identical (the GC3 keyframe gate holds)
+- **Threaded, 3 runs** (logs/r3-parity.log):
+  - Forward seek: main shows 35-36 frames, 16 of them wrong (the decoder's output before the keyframe). The lane shows the
+    same 35-36 / 16.
+  - Reverse: main shows 9-11, all wrong, with 168-170 seeks. The lane shows 23, 21 wrong, with 35 seeks.
+  - The 1.4 s start time also keeps main's clock / pts mismatch, which is round 1's filed debt: only indices 0-18 appear on
+    both arms.
+
+### R4: live gates. BLOCKED (TCC prompt pending). Nothing launched
+- **Precondition (a) failed** at 04:48:20. A Quartz `CGWindowListCopyWindowInfo(kCGWindowListOptionAll)` count of
+  UserNotificationCenter windows was 1: pid 98807, window 29885, on screen, layer 8, 260x234. This is the same prompt as
+  in round 1.
+- **tccd log** (`log show --last 3h`): `AUTHREQ_PROMPTING ... service=kTCCServiceMicrophone, subject=Sub:{com.audiodna.app}`
+  at 02:36:22. No AUTHREQ_RESULT for com.audiodna.app / Microphone after it.
+- Per the ruling, I made no launch, so I did not run precondition (b). I did not touch the prompt, did not acquire the
+  lock, and did not start the app.
+- **Open for Harmony once Boris has answered the prompt:**
+  - the forward battery
+  - GC13 (n >= 5 medians)
+  - GC9 u11 x 5
+  - GC11 client / malloc + w10-all
+  - GC7 256 MB
+  - u4b (f) / (g)
+  - Tier-1
+  All of these run on the FIX2 app above (`scratchpad/gopcache-fix/live.sh fwd ab7 ab256 abw tier1` or equivalent). R2's
+  look-ahead change also touches live reverse, so u7 must be re-run on this build.
+
+### Rig-rule breach
+One command at about 04:45 began `cd /private/tmp && true;` before a python heredoc, against the never-cd rule. It was a
+no-op: that heredoc changed nothing, and no file outside the scratchpad / worktree was touched.
