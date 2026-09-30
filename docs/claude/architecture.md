@@ -110,6 +110,29 @@ All data flows forward. No backward dependencies on the hot path.
 
 ---
 
+### Latency Budget
+
+(Moved from CLAUDE.md, s-rta-0929b.)
+
+| Stage | Operation | Latency |
+|-------|-----------|---------|
+| 1. Audio buffer delivery | OS delivers 128 samples @ 48kHz | 2.67ms (period) |
+| 2. Ring buffer push | `memcpy` into SPSC | ~50ns |
+| 3. Hop accumulation | Wait for 512 samples (1 hop) | 10.7ms (hop period) |
+| 3b. Resample to 48 kHz (R13, non-48 kHz devices only) | `AnalysisResampler`: 5-tap Lagrange interpolation + anti-alias biquads when upsampling; bypass (0µs) when the device is already 48 kHz | ~20-60μs/hop |
+| 4. Window + FFT | Hann window, 2048-pt FFT | ~20μs |
+| 5. Feature extraction | All spectral + temporal features | ~100μs |
+| 6. Feature bus publish | Atomic triple-buffer swap | ~10ns |
+| 7. Render acquire | Atomic read of latest snapshot | ~10ns |
+| 8. Mapping engine | Apply curves, smoothing | ~5μs |
+| 9. Uniform upload | glUniform + UBO update | ~2μs |
+| 10. Shader render | Effect chain on fullscreen quad | ~1-3ms |
+| 11. Swap buffers | VSync present | 0-16.67ms |
+
+**Total audio-to-visual latency: ~15-25ms** (well within the ±80ms perceptual sync window).
+
+---
+
 ## Technology Stack
 
 | Library | Version | License | What It Owns | Why Chosen Over Alternatives | Configured In |
@@ -151,6 +174,9 @@ AudioDNA/
 │   ├── MainComponent.h/cpp              # Top-level component, owns all systems, layout
 │   ├── audio/
 │   │   ├── AudioEngine.h/cpp         ✅ # AudioDeviceManager + AudioTransportSource + file loading
+│   │   ├── DevicePolicy.h/cpp           # pure no-Bluetooth device policy: classify / filter / the default index
+│   │   ├── CoreAudioDeviceInfo.h/cpp    # macOS device enumeration: JUCE-identical names + transport types + aggregate members
+│   │   ├── DeviceGuard.h/cpp            # GuardedDeviceType decorator + GuardedAudioDeviceManager + DeviceReconciler
 │   │   ├── AudioCallback.h/cpp       ✅ # RT callback → mono downmix → ring buffer push
 │   │   └── RingBuffer.h              ✅ # Lock-free SPSC, power-of-two, cache-line padded
 │   ├── analysis/
@@ -347,6 +373,7 @@ repaints and what each pass costs: run it before touching a timed repaint.
 1. Check the SPSC ring buffer fill level first — if it's consistently full or empty, the producer/consumer balance is wrong
 2. R13: the ANALYSIS domain is always 48 kHz; the DEVICE/recorder domain is the device's own rate — never assume either is the other. `AnalysisResampler` bridges device rate → 48 kHz on the analysis thread (bypass when the device already is 48 kHz); the recorder/take/audio-store path stays entirely in the device domain (`FeatureSnapshot::sourceSampleRate` and `RecorderHost::Status::deviceRate`/`rateChangedSinceArm` publish which domain you are looking at)
 3. Check thread priority — if analysis can't keep up, features lag behind audio
+4. No sound / features flat: read `GET /api/debug/audio_devices` (TEST_SERVER build) or the startup stderr `[AudioEngine] audio devices:` line -- a Bluetooth / AirPlay / wireless device is hidden by policy (Pitfall NN); the notice beside the file label says so when nothing wired is available
 
 ---
 

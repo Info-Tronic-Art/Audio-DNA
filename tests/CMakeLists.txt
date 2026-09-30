@@ -480,6 +480,43 @@ endif()
 apply_sanitizers(test_audio_tap_sync)
 catch_discover_tests(test_audio_tap_sync)
 
+# --- test_device_policy (s-rta-0929b btguard, plan-btguard 4.9): the app never opens a Bluetooth (or other
+# wireless) audio device. The pure policy, the GuardedDeviceType decorator and a REAL juce::AudioDeviceManager
+# (GuardedAudioDeviceManager) over a mock inner type with a spy on every createDevice / open / start; E1/E2 read
+# the real HAL (read-only property queries, no device opened). AUDIODNA_TEST_SERVER=1 compiles the TEST-ONLY
+# testDeniedNames branch (P8); JUCE_MODAL_LOOPS_PERMITTED=1 lets the M cases pump the MessageManager.
+add_executable(test_device_policy
+    test_device_policy.cpp
+    ${SRC_DIR}/audio/DevicePolicy.cpp
+    ${SRC_DIR}/audio/CoreAudioDeviceInfo.cpp
+    ${SRC_DIR}/audio/DeviceGuard.cpp
+)
+target_include_directories(test_device_policy PRIVATE ${SRC_DIR})
+target_link_libraries(test_device_policy PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+)
+target_compile_definitions(test_device_policy PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    AUDIODNA_TEST_SERVER=1
+)
+if(NOT MSVC)
+    target_compile_options(test_device_policy PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_device_policy)
+catch_discover_tests(test_device_policy)
+
 # --- test_undo_commands (Undo v1 step 2: clip commands + coord resolution) ---
 # Headless: bare Composition, no-op renderer/UI hooks. UndoService resolvers are
 # inline (renderer-free) so this target does NOT link UndoService.cpp/Renderer.

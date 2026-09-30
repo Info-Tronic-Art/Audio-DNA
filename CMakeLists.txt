@@ -103,6 +103,12 @@ target_sources(AudioDNA PRIVATE
     src/audio/AudioCallback.cpp
     src/audio/CombinedCallback.h
     src/audio/RingBuffer.h
+    src/audio/DevicePolicy.h
+    src/audio/DevicePolicy.cpp
+    src/audio/CoreAudioDeviceInfo.h
+    src/audio/CoreAudioDeviceInfo.cpp
+    src/audio/DeviceGuard.h
+    src/audio/DeviceGuard.cpp
 
     # Analysis
     src/analysis/AnalysisThread.h

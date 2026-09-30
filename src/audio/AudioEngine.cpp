@@ -9,8 +9,18 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
     sourcePlayer_.setSource(&transportSource_);
     readAheadThread_.startThread(juce::Thread::Priority::normal);
 
+    // s-rta-0929b btguard: every device change (open / close / device list) reaches changeListenerCallback.
+    deviceManager_.addChangeListener(this);
+    deviceReconciler_.onReapplied = [this](const juce::String& error) {
+        std::cerr << devguard::describeDevices(deviceManager_, deviceManager_.guardedType()) << std::endl;
+        if (error.isNotEmpty() && onError)
+            onError("Audio device: " + error);
+    };
+
     // Initialize with both input and output channels available
     // Input channels are needed for mic mode
+    // s-rta-0929b btguard: the manager's device type hides every Bluetooth / wireless device, so the "default devices"
+    // here are the macOS defaults when allowed, else the built-in ones (DeviceGuard.h).
     auto result = deviceManager_.initialiseWithDefaultDevices(2, 2);
     if (result.isNotEmpty())
     {
@@ -19,10 +29,12 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
     }
 
     deviceManager_.addAudioCallback(&combinedCallback_);
+    std::cerr << devguard::describeDevices(deviceManager_, deviceManager_.guardedType()) << std::endl;
 }
 
 AudioEngine::~AudioEngine()
 {
+    deviceManager_.removeChangeListener(this);
     deviceManager_.removeAudioCallback(&combinedCallback_);
     transportSource_.setSource(nullptr);
     sourcePlayer_.setSource(nullptr);
@@ -78,12 +90,28 @@ bool AudioEngine::hasAudioDevice() const
     return deviceManager_.getCurrentAudioDevice() != nullptr;
 }
 
+bool AudioEngine::hasInputDevice() const
+{
+    return hasAudioDevice() && deviceManager_.getAudioDeviceSetup().inputDeviceName.isNotEmpty();
+}
+
+AudioEngine::DeviceState AudioEngine::getDeviceState() const
+{
+    if (!hasAudioDevice())
+        return DeviceState::NoDevice;
+    return hasInputDevice() ? DeviceState::Ok : DeviceState::NoInput;
+}
+
 juce::String AudioEngine::getDeviceStatus() const
 {
+    // s-rta-0929b btguard (Q4): names the INPUT device -- the device's own name is the combiner's, i.e. the OUTPUT's.
     auto* device = deviceManager_.getCurrentAudioDevice();
     if (device == nullptr)
-        return "No audio device";
-    return device->getName() + " @ " + juce::String(static_cast<int>(device->getCurrentSampleRate())) + "Hz";
+        return "no audio device (Bluetooth is never used)";
+    const auto input = deviceManager_.getAudioDeviceSetup().inputDeviceName;
+    if (input.isEmpty())
+        return "no wired mic (Bluetooth is never used)";
+    return input + " @ " + juce::String(static_cast<int>(device->getCurrentSampleRate())) + "Hz";
 }
 
 double AudioEngine::getCurrentSampleRate() const
@@ -125,8 +153,14 @@ void AudioEngine::setSourceMode(SourceMode mode)
     }
 }
 
-void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster*)
+void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
+    if (source == &deviceManager_)
+    {
+        if (onDeviceStateChanged)
+            onDeviceStateChanged();
+        return;
+    }
     if (onTransportStateChanged)
         onTransportStateChanged(transportSource_.isPlaying());
 }
