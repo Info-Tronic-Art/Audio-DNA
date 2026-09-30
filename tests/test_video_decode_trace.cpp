@@ -54,6 +54,9 @@ struct VideoPlayerTestAccess
         return false;
     }
 
+    static bool reverseNow(const VideoPlayer& p) { return p.reverseNow_; }
+    static uint32_t gen(const VideoPlayer& p) { return p.gen_.load(std::memory_order_acquire); }
+
     static long readerPick(VideoPlayer& p)
     {
         const uint32_t g = p.gen_.load(std::memory_order_acquire);
@@ -252,3 +255,57 @@ TEST_CASE("golden trace, pts-less AVI, stepped: decodeStep() without a thread re
     CHECK(t.counters == kGoldenAviCounters);
 }
 
+// gopcache-fix (review SHOULD: no threaded reverse test): the REAL decode thread (start()) against a clock driven in real
+// time through every hand-off the reverse machine has -- flips (the reverse flag, a negative speed), PingPong turns, seeks
+// while reversing, speed changes, a Loop <-> PingPong switch -- with the GOP cache on (the process budget). The reader picks
+// like uploadToTexture. Asserts: frames keep coming, and within one request generation a reversing reader never picks a
+// frame above the one it picked before (GC4 at the pick). Run under TSan (ADNA_SANITIZE=thread) it guards the pending /
+// generation / direction hand-off between the GL-thread side and the decode thread.
+TEST_CASE("threaded reverse: flips, turns, seeks and speed changes against the real decode thread -- monotonic per generation",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    const auto f = fixture("video_h264_gop30_64x64.mp4");
+    VideoStats st;
+    VideoPlayer p;
+    p.setStats(&st);
+    REQUIRE(p.open(f));
+    p.start();
+    const double fd = VideoPlayerTestAccess::frameDur(p);
+    long shown = 0, violations = 0;
+    uint32_t lastGen = 0;
+    long lastPick = -1;
+    auto frame = [&] {
+        p.advanceFrame(1.0 / 120.0);
+        std::this_thread::sleep_for(std::chrono::microseconds(8333));
+        const uint32_t g = VideoPlayerTestAccess::gen(p);
+        const bool rev = VideoPlayerTestAccess::reverseNow(p);
+        const long k = VideoPlayerTestAccess::readerPick(p);
+        if (k < 0)
+            return;
+        ++shown;
+        if (g == lastGen && lastPick >= 0 && rev && k > lastPick)
+            ++violations;
+        lastGen = g;
+        lastPick = k;
+    };
+    auto run = [&](int frames) { for (int i = 0; i < frames; ++i) frame(); };
+    run(36);                                   // forward 0.3 s
+    p.setReverse(true);   run(60);             // flip to reverse (GC8: from the retained frames)
+    p.setReverse(false);  run(24);             // back to forward (hits, reposition)
+    p.setReverse(true);   run(24);
+    p.seekTo(0.8);        run(36);             // a seek while reversing
+    p.setSpeed(2.0f);     run(36);             // reverse at 2x
+    p.setSpeed(-1.0f); p.setReverse(false); run(36);   // a negative speed reverses too
+    p.setSpeed(1.0f);
+    p.setLoopMode(VideoPlayer::LoopMode::PingPong);
+    p.seekTo(0.9);        run(120);            // the top turn, then down
+    p.seekTo(0.1);        run(120);            // the bottom turn, then up
+    p.setLoopMode(VideoPlayer::LoopMode::Loop);
+    p.setReverse(true);   run(90);             // the Loop wrap while reversing
+    p.close();
+    CAPTURE(shown, violations, st.seeks.load(), st.gopCacheHits.load(), st.directionChanges.load());
+    CHECK(shown >= 100);   // ~4.9 s of clock: ~160 content frames at 30 fps (+ the 2x span)
+    CHECK(violations == 0);
+    CHECK(st.gopCacheHits.load() > 0);
+    CHECK(st.directionChanges.load() >= 6);
+}
