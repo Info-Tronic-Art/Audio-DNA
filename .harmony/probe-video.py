@@ -9,9 +9,10 @@ response is checked; the output dir is fresh per run. Plan: .harmony/.reports/s-
 
 usage: probe-video.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-video.py <root> <fresh-outdir> [row,row,...]
-rows (run order): w5_correctness_gop30 w1_steady_1080x4 w3_retrigger_midgop_1080 w4_deck_return_1080
-      w6_crossfade_two_players w6b_retrigger_mid_fade w9_crossfade_onto_broken w8_prores_steady w2_steady_4kx4
-      w3b_retrigger_midgop_4k w4b_idle_mid_catchup w7_message_thread_no_wait
+rows (run order): w5_correctness_gop30 w1_steady_1080x4 w1c_column_trigger_1080x4 w1d_column_trigger_1080x8
+      w3_retrigger_midgop_1080 w4_deck_return_1080 w6_crossfade_two_players w6b_retrigger_mid_fade
+      w9_crossfade_onto_broken w8_prores_steady w2_steady_4kx4 w2c_steady_4kx4_blit w3b_retrigger_midgop_4k
+      w4b_idle_mid_catchup w7_message_thread_no_wait w10_pixel_identity
 
 Fixtures (probe-video.json "fixtures"; 10 s, 30 fps, 300 frames; ffmpeg nice'd, -threads 2): testsrc2 (b1080: negated)
 with a frame-number CODE BAND -- the bottom bandRows rows (64 at 1080p, 128 at 4K), 10 cells, cell c white iff bit c of
@@ -85,6 +86,39 @@ w7_message_thread_no_wait (X1, 4K): layers 101-104 = a4k inPoint 0.5; layer 105 
   triggerRttMaxMs.
 w8_prores_steady: pr1080. trig; 2 s; s0; 5 s poll (fpsPollS); s1; settle; cap. PASS: median fps >= fpsMin; decode calls delta 0;
   late delta 0; code within the bracket.
+--- s-rta-0929 vupload (.harmony/.reports/s-rta-0929/plan-vupload.md 4.7 + HARMONY ADOPTION VU4 / VU5 / VU9) ---
+Every new row asserts video_hold_no_texture delta == 0 (a shown player never returns texture 0 -- the FX-only witness) and
+video_late_frames delta == 0 (adoption VU5), and prints "DATA <row> k=v ..." lines for .harmony/probe-vupload-ab.sh.
+w1c_column_trigger_1080x4: w1cLoads fresh loads (new clip ids), each: 4 x a1080 on the 1080p canvas, ONE
+  /api/trigger_column {"column": 0} (all four clocks start on one render frame: the bunched uploads, diag-vfps), wait_active
+  x4, 2 s, s0, a 5 s window polled every fpsPollS, s1. PASS (a) in EVERY load the median of the per-poll peak_callback_ms
+  <= w1cPeakMedianMaxMs; (b) the median over the loads of each load's median fps >= w1cFpsMin (run the .sh twice = 6
+  loads for the merge verdict: pool the DATA lines); (c) per load video_uploads delta >= w1cUploadsMin and
+  video_late_frames delta == 0 (the anti-naive-cap guard: a cap of 1 upload per frame skips frames: 586); (d) per load
+  video_hold_no_texture delta == 0. INFO: video_uploads_deferred, video_frames_skipped, video_upload_cap,
+  video_max_uploads_per_frame.
+w1d_column_trigger_1080x8 (VU9, INFO for fps): as w1c with 8 x a1080 and 2 loads: prints fps, the most video uploads on one
+  render frame (video_max_uploads_per_frame, maxed over the polls), deferred, cap. PASS: late delta == 0 and
+  video_hold_no_texture delta == 0 per load (VU5).
+w2c_steady_4kx4_blit: 4 x a4k on the 4K canvas (sequential trig per layer, the w2 scene without the stills), 2 loads. PASS
+  (a) each load's median fps >= fps4kBlitMin (probe-video.json; null = INFO until the interleaved A/B of plan 4.9 sets it);
+  (b) video_uploads delta in uploads5s; (c) video_late_frames delta == 0 (VU5); (d) gl_video_decode_calls delta == 0;
+  (e) video_hold_no_texture delta == 0. Prints peak_video_upload_ms (the per-upload GL CPU).
+w10_pixel_identity (last): per fixture in w10Fixtures (a1080 yuv420p, pr1080 yuv422p10le, pr4444a_1080 ProRes 4444
+  yuva444p10le + an alpha ramp, hapa_1080 HAP Alpha rgba + an alpha ramp, x265_10_1080 libx265 yuv420p10le -- SKIP with an
+  INFO line when ffmpeg has no libx265): the 1080p canvas; layer 130 (lower, Opaque) = warm.png triggered; layer 131
+  (upper, Transparent) = the video with "speed": 0.0 -> trig, videos_pending 0, capture <f>_f0; reload with inPoint =
+  frame N / frames (N from w10Fixtures) -> trig + prime retrigger (seek to frame N), settle_late, capture <f>_f<N>: its
+  code band == N exactly (speed 0). With $VIDEO_REF_DIR holding <f>_f<k>.png: PASS max |diff| over all channels <= w10MaxDiff
+  (numpy int16) against the reference of the same name; without: INFO. $VIDEO_REF_WRITE=<dir>: copy the captures there (the
+  pre-lane app writes the references). The alpha fixtures' ramp (a = 255 * X / W above the code band; the band stays
+  opaque) shows the warm layer through: asserted, the f0 capture's left / right thirds' means differ by > 20. Self-check
+  printed every run: a1080 f0 vs f<N> max diff > 50 (the comparator can RED). VU5 here: video_hold_no_texture delta over
+  the row == 0 and video_late_frames delta == 0 over each settled capture window (a seek's catch-up before it is a
+  legitimate hold: 78 late frames over the row on the pre-lane app). VU4: the same row on an app launched with
+  VIDEO_ENV=ADNA_VIDEO_FORCE_FALLBACK=malloc (TEST-ONLY hook, AUDIODNA_TEST_SERVER builds) diffs the malloc path.
+  VU17: .harmony/probe-video-w10-all.sh <ref-dir> runs this row on the blit / client / malloc paths in ONE invocation
+  (three launches, the same reference) and asserts each arm's "upload=" witness in its err.log.
 """
 import json, os, statistics, subprocess, sys, threading, time
 
@@ -136,6 +170,9 @@ ROW_FIXTURES = {
     "w8_prores_steady": ["pr1080.mov"], "w2_steady_4kx4": ["a4k_g250.mp4"], "w3b_retrigger_midgop_4k": ["a4k_g250.mp4"],
     "w4b_idle_mid_catchup": ["a4k_g250.mp4"], "w7_message_thread_no_wait": ["a4k_g250.mp4"],
     "w9_crossfade_onto_broken": ["a1080_g250.mp4"],
+    "w1c_column_trigger_1080x4": ["a1080_g250.mp4"], "w1d_column_trigger_1080x8": ["a1080_g250.mp4"],
+    "w2c_steady_4kx4_blit": ["a4k_g250.mp4"],
+    "w10_pixel_identity": ["a1080_g250.mp4", "pr1080.mov", "pr4444a_1080.mov", "hapa_1080.mov", "x265_10_1080.mp4"],
 }
 FPS_POLL = float(FIX["fpsPollS"])   # W2: the fps rows poll at 50 ms (a 15 ms poller perturbs the fps it measures)
 STILL4K = "still4k_f100.png"        # w2's upload-free ceiling: a4k frame 100 as a still
@@ -190,6 +227,11 @@ def band_filter(band, base):
     return ",".join(vf)
 
 
+def have_encoder(name):
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True)
+    return any(line.split()[1:2] == [name] for line in r.stdout.splitlines() if len(line.split()) > 1)
+
+
 def keyframes(p):
     r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v", "-skip_frame", "nokey", "-show_entries",
                         "frame=pts_time", "-of", "csv=p=0", p], capture_output=True, text=True)
@@ -205,11 +247,17 @@ def make_fixtures():
     bad = 0
     for name in sorted(need):
         spec = FIX["fixtures"][name]; p = mpath(name)
+        if spec.get("needEncoder") and not have_encoder(spec["needEncoder"]):
+            info(f"fixture {name}: SKIP -- ffmpeg has no {spec['needEncoder']} encoder"); continue
         if not os.path.exists(p):
             t0 = time.time()
             pre = "negate," if "negate" in spec["src"] else ""
+            vf = pre + band_filter(spec["band"], spec["base"])
+            if spec.get("alpha"):   # vupload w10: an alpha ramp above the (opaque) code band
+                vf += (f",format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
+                       f"a='if(gte(Y,H-{spec['band']}),255,255*X/W)'")
             cmd = (["nice", "-n", "10", "ffmpeg", "-y", "-loglevel", "error", "-filter_threads", "2", "-f", "lavfi", "-i",
-                    f"testsrc2=s={spec['size']}:r=30:d=10", "-vf", pre + band_filter(spec["band"], spec["base"])]
+                    f"testsrc2=s={spec['size']}:r=30:d={spec.get('dur', 10)}", "-vf", vf]
                    + spec["enc"] + ["-threads", "2", p + ".tmp" + os.path.splitext(p)[1]])
             r = subprocess.run(cmd, capture_output=True, text=True)
             if r.returncode != 0:
@@ -907,11 +955,211 @@ def w7(tag):
           f"{tag}: (b) every trigger round trip {rtts} <= {FIX['triggerRttMaxMs']} ms")
 
 
+# ---------------------------------------------------------------- s-rta-0929 vupload rows (plan-vupload.md 4.7 + VU4 / VU5 / VU9)
+def data(row, **kv):
+    """A machine-readable line for .harmony/probe-vupload-ab.sh (pooled across launches / arms)."""
+    print("DATA " + row + " " + " ".join(f"{k}={v}" for k, v in kv.items()), flush=True)
+
+
+def trigger_column(col):
+    S.post(A + "/api/trigger_column", json={"column": col}, timeout=6)
+
+
+def dz(s0, s1, k):
+    """delta of a cumulative counter, None when the app predates it."""
+    return None if counter(s0, k) is None or counter(s1, k) is None else s1[k] - s0[k]
+
+
+def vu5(tag, s0, s1):
+    """Adoption VU5: in every new live row, a shown player never returns texture 0, and no frame is late."""
+    h = delta(tag, s0, s1, "video_hold_no_texture"); lt = delta(tag, s0, s1, "video_late_frames")
+    if h is not None:
+        check(h == 0, f"{tag}: (VU5) video_hold_no_texture delta {h} == 0 (a shown player never returned texture 0)")
+    if lt is not None:
+        check(lt == 0, f"{tag}: (VU5) video_late_frames delta {lt} == 0")
+    return h, lt
+
+
+def column_scene(tag, n, k, name="a1080_g250.mp4"):
+    """n layers of `name` on the 1080p canvas (fresh clip ids per load k), ONE trigger_column, wait_active xn, 2 s, s0, a
+    5 s window polled every FPS_POLL, s1."""
+    lids = LID[tag]
+    if not load(f"{tag}_{k}", [deck(0, [layer(lids[i], [vclip(300 + 20 * k + i, name)]) for i in range(n)])], "1080", n):
+        return None
+    if not wait_no_compiler(tag):
+        return None
+    trigger_column(0)
+    for i in range(n):
+        if wait_active(i, 0) is None:
+            no(f"{tag} load {k + 1}: layer {i} never showed column 0 active"); return None
+    time.sleep(2.0)
+    s0 = state(); pol = Poller(FPS_POLL); pol.KEYS = Poller.KEYS + ("video_max_uploads_per_frame",)
+    pol.window(5.0); s1 = state()
+    if not need(tag, pol, "fps") or not need(tag, pol, "peak_callback_ms"):
+        return None
+    return s0, pol, s1
+
+
+def w1c(tag):
+    loads = int(FIX["w1cLoads"]); med_fps = []
+    peak_lim = float(FIX["w1cPeakMedianMaxMs"]); up_min = int(FIX["w1cUploadsMin"])
+    for k in range(loads):
+        r = column_scene(tag, 4, k)
+        if r is None:
+            return
+        s0, pol, s1 = r
+        fps = pol.median("fps"); pk_med = pol.median("peak_callback_ms"); pk_p90 = pol.p90("peak_callback_ms")
+        upl = dz(s0, s1, "video_uploads"); late = dz(s0, s1, "video_late_frames")
+        dfr = dz(s0, s1, "video_uploads_deferred"); skp = dz(s0, s1, "video_frames_skipped")
+        hnt = dz(s0, s1, "video_hold_no_texture"); capv = counter(s1, "video_upload_cap")
+        mxu = pmax(tag, pol, s1, "video_max_uploads_per_frame") if "video_max_uploads_per_frame" in (s1 or {}) else None
+        med_fps.append(fps)
+        print(f"      {tag} load {k + 1}/{loads}: median fps {fps:.1f}, peak_callback_ms median {pk_med:.2f} / p90 {pk_p90:.2f} "
+              f"ms, uploads {upl}, late {late}, deferred {dfr}, skipped {skp}, hold_no_texture {hnt}, cap {capv}, "
+              f"max uploads/frame {mxu}, polls {len(pol.vals('fps'))}, %cpu {app_cpu()}, {la()}", flush=True)
+        data(tag, load=k + 1, fps=round(fps, 2), peak_med=round(pk_med, 3), peak_p90=round(pk_p90, 3), uploads=upl, late=late,
+             deferred=dfr, skipped=skp, hold_no_texture=hnt, cap=capv, max_uploads_frame=mxu)
+        check(pk_med <= peak_lim, f"{tag} load {k + 1}: (a) median per-poll peak_callback_ms {pk_med:.2f} <= {peak_lim:g}")
+        if upl is None or late is None:
+            no(f"{tag} load {k + 1}: (c) video_uploads / video_late_frames absent (the app predates them)")
+        else:
+            check(upl >= up_min and late == 0, f"{tag} load {k + 1}: (c) video_uploads delta {upl} >= {up_min} and "
+                                                f"video_late_frames delta {late} == 0 (no content frame skipped by the budget)")
+        if hnt is None:
+            no(f"{tag} load {k + 1}: (d) video_hold_no_texture absent (the app predates it)")
+        else:
+            check(hnt == 0, f"{tag} load {k + 1}: (d) video_hold_no_texture delta {hnt} == 0 (VU5)")
+    m = statistics.median(med_fps); lim = float(FIX["w1cFpsMin"])
+    check(m >= lim, f"{tag}: (b) median over {loads} loads of the per-load median fps {m:.1f} >= {lim:g} "
+                    f"({[round(x, 1) for x in med_fps]})")
+
+
+def w1d(tag):
+    for k in range(int(FIX["w1dLoads"])):
+        r = column_scene(tag, 8, k)
+        if r is None:
+            return
+        s0, pol, s1 = r
+        fps = pol.median("fps"); mxu = pmax(tag, pol, s1, "video_max_uploads_per_frame")
+        upl = dz(s0, s1, "video_uploads"); dfr = dz(s0, s1, "video_uploads_deferred"); capv = counter(s1, "video_upload_cap")
+        print(f"      {tag} load {k + 1}: INFO median fps {fps:.1f}, p90 peak_callback_ms {pol.p90('peak_callback_ms'):.2f}, "
+              f"max uploads on one render frame {mxu}, uploads {upl}, deferred {dfr}, cap {capv}, late "
+              f"{dz(s0, s1, 'video_late_frames')}, skipped {dz(s0, s1, 'video_frames_skipped')}, %cpu {app_cpu()}, {la()}", flush=True)
+        data(tag, load=k + 1, fps=round(fps, 2), max_uploads_frame=mxu, uploads=upl, deferred=dfr, cap=capv,
+             late=dz(s0, s1, "video_late_frames"), hold_no_texture=dz(s0, s1, "video_hold_no_texture"))
+        vu5(f"{tag} load {k + 1}", s0, s1)
+
+
+def w2c(tag):
+    bar = FIX.get("fps4kBlitMin")
+    for k in range(int(FIX["w2cLoads"])):
+        r = steady_scene(tag, "4k", [vclip(400 + 10 * k + i, "a4k_g250.mp4") for i in range(4)], 4)
+        if r is None:
+            return
+        s0, pol, s1 = r
+        fps = pol.median("fps"); upl = dz(s0, s1, "video_uploads"); dec = delta(tag, s0, s1, "gl_video_decode_calls")
+        print(f"      {tag} load {k + 1}: median fps {fps:.1f}, p90 callback {pol.p90('peak_callback_ms'):.2f} ms, peak upload "
+              f"{pol.max('peak_video_upload_ms')} ms, uploads {upl}, late {dz(s0, s1, 'video_late_frames')}, deferred "
+              f"{dz(s0, s1, 'video_uploads_deferred')}, decode calls {dec}, %cpu {app_cpu()}, {la()}", flush=True)
+        data(tag, load=k + 1, fps=round(fps, 2), peak_upload_ms=pol.max("peak_video_upload_ms"), uploads=upl,
+             late=dz(s0, s1, "video_late_frames"), hold_no_texture=dz(s0, s1, "video_hold_no_texture"))
+        if bar is None:
+            info(f"{tag} load {k + 1}: (a) median fps {fps:.1f} (fps4kBlitMin null: INFO until the plan 4.9 A/B sets it)")
+        else:
+            check(fps >= float(bar), f"{tag} load {k + 1}: (a) median fps {fps:.1f} >= fps4kBlitMin {bar}")
+        if upl is None:
+            no(f"{tag} load {k + 1}: (b) video_uploads absent")
+        else:
+            lo, hi = FIX["uploads5s"]
+            check(lo <= upl <= hi, f"{tag} load {k + 1}: (b) video_uploads delta {upl} in [{lo}, {hi}]")
+        if dec is not None:
+            check(dec == 0, f"{tag} load {k + 1}: (d) gl_video_decode_calls delta {dec} == 0")
+        vu5(f"{tag} load {k + 1}", s0, s1)
+
+
+def wait_videos_pending_zero(limit=5.0):
+    t0 = time.time()
+    while time.time() - t0 < limit:
+        s = state()
+        if s is not None and s.get("videos_pending", 0) == 0:
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def w10(tag):
+    import shutil
+    ref_dir = os.environ.get("VIDEO_REF_DIR"); wr_dir = os.environ.get("VIDEO_REF_WRITE")
+    if wr_dir:
+        os.makedirs(wr_dir, exist_ok=True)
+    lids = LID[tag]; warm = os.path.join(OUT, "warm.png"); maxd = int(FIX["w10MaxDiff"]); band = BAND["1080"]
+    caps = {}
+    s_row0 = state()
+    for name, nfr, fN in FIX["w10Fixtures"]:
+        spec = FIX["fixtures"][name]
+        if not os.path.exists(mpath(name)):
+            if spec.get("needEncoder"):
+                info(f"{tag}[{name}]: SKIP -- no fixture (ffmpeg has no {spec['needEncoder']} encoder)"); continue
+            no(f"{tag}[{name}]: fixture missing"); continue
+        for arm, ip in (("f0", 0.0), (f"f{fN}", fN / float(nfr))):
+            at = f"{tag}[{name} {arm}]"
+            lay_lo = layer(lids[0], [iclip(1, warm)])
+            lay_hi = layer(lids[1], [vclip(2 if arm == "f0" else 3, name, ip=ip, speed=0.0)], type=1)
+            if not load(f"{tag}_{os.path.splitext(name)[0]}_{arm}", [deck(0, [lay_lo, lay_hi])], "1080", 1):
+                continue
+            trig(0, 0); wait_active(0, 0); trig(1, 0); wait_active(1, 0)
+            if arm != "f0":
+                trig(1, 0)   # prime: a first trigger plays from 0; the retrigger seeks to the in-point
+            time.sleep(0.5)
+            if not wait_videos_pending_zero():
+                no(f"{at}: videos_pending never reached 0"); continue
+            settle_late(); sa = state(); time.sleep(0.3)
+            f = cap(f"{tag}_{os.path.splitext(name)[0]}_{arm}")
+            sb = state(); lt = delta(at, sa, sb, "video_late_frames")
+            if lt is not None:   # VU5 over the steady capture window (the seek's own catch-up before settle is a hold)
+                check(lt == 0, f"{at}: (VU5) video_late_frames delta over the settled capture window {lt} == 0")
+            if f is None:
+                continue
+            c = code(f, band); want = 0 if arm == "f0" else fN
+            check(c == want, f"{at}: code band {c} == {want} (speed 0: exactly the frame asked for)")
+            caps[(name, arm)] = f
+            png = os.path.join(OUT, f"{tag}_{os.path.splitext(name)[0]}_{arm}.png")
+            if wr_dir:
+                shutil.copy(png, os.path.join(wr_dir, os.path.basename(png)))
+            if spec.get("alpha") and arm == "f0":
+                w = f.shape[1]; left = float(f[:-band, : w // 3, :3].mean()); right = float(f[:-band, 2 * w // 3:, :3].mean())
+                check(abs(left - right) > 20, f"{at}: the alpha ramp shows the warm layer through: left third mean "
+                                              f"{left:.1f} vs right third {right:.1f} differ by > 20")
+            if ref_dir:
+                rp = os.path.join(ref_dir, os.path.basename(png))
+                if not os.path.exists(rp):
+                    no(f"{at}: no reference {rp}"); continue
+                ref = np.asarray(Image.open(rp).convert("RGBA")).astype(np.int16)
+                got = np.asarray(Image.open(png).convert("RGBA")).astype(np.int16)
+                if ref.shape != got.shape:
+                    no(f"{at}: shape {got.shape} != reference {ref.shape}"); continue
+                d = np.abs(ref - got); md = int(d.max()); nbad = int((d > maxd).any(axis=2).sum())
+                data(tag, fixture=name, frame=arm, max_diff=md, px_over=nbad)
+                check(md <= maxd, f"{at}: max |diff| vs the reference {md} <= {maxd} ({nbad} px over; mean "
+                                  f"{float(d.mean()):.4f})")
+    if ref_dir is None:
+        info(f"{tag}: no VIDEO_REF_DIR -- captures written to {OUT} (identity not judged)")
+    a0, aN = caps.get(("a1080_g250.mp4", "f0")), caps.get(("a1080_g250.mp4", f"f{FIX['w10Fixtures'][0][2]}"))
+    if a0 is not None and aN is not None:
+        sd = int(np.abs(a0.astype(np.int16) - aN.astype(np.int16)).max())
+        check(sd > 50, f"{tag}: self-check -- a1080 f0 vs f{FIX['w10Fixtures'][0][2]} max diff {sd} > 50 (the comparator can RED)")
+    h = delta(tag, s_row0, state(), "video_hold_no_texture")
+    if h is not None:
+        check(h == 0, f"{tag}: (VU5) video_hold_no_texture delta over the row {h} == 0")
+
+
 def main():
     if MAKE:
         make_fixtures(); return
     rows = [("w5_correctness_gop30", lambda: w5("w5_correctness_gop30")),
             ("w1_steady_1080x4", lambda: steady("w1_steady_1080x4", "1080", "a1080_g250.mp4")),
+            ("w1c_column_trigger_1080x4", lambda: w1c("w1c_column_trigger_1080x4")),
+            ("w1d_column_trigger_1080x8", lambda: w1d("w1d_column_trigger_1080x8")),
             ("w3_retrigger_midgop_1080", lambda: retrigger("w3_retrigger_midgop_1080", "1080", "a1080_g250.mp4")),
             ("w4_deck_return_1080", lambda: w4("w4_deck_return_1080")),
             ("w6_crossfade_two_players", lambda: w6("w6_crossfade_two_players")),
@@ -919,9 +1167,11 @@ def main():
             ("w9_crossfade_onto_broken", lambda: w9("w9_crossfade_onto_broken")),
             ("w8_prores_steady", lambda: w8("w8_prores_steady")),
             ("w2_steady_4kx4", lambda: steady("w2_steady_4kx4", "4k", "a4k_g250.mp4")),
+            ("w2c_steady_4kx4_blit", lambda: w2c("w2c_steady_4kx4_blit")),
             ("w3b_retrigger_midgop_4k", lambda: retrigger("w3b_retrigger_midgop_4k", "4k", "a4k_g250.mp4")),
             ("w4b_idle_mid_catchup", lambda: w4b("w4b_idle_mid_catchup")),
-            ("w7_message_thread_no_wait", lambda: w7("w7_message_thread_no_wait"))]
+            ("w7_message_thread_no_wait", lambda: w7("w7_message_thread_no_wait")),
+            ("w10_pixel_identity", lambda: w10("w10_pixel_identity"))]
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)

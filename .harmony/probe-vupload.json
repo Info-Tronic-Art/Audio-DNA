@@ -1,0 +1,21 @@
+{
+  "_doc": "Thresholds for .harmony/probe-vupload.sh (s-rta-0929 vupload: .harmony/.reports/s-rta-0929/plan-vupload.md 4.7 + HARMONY ADOPTION VU5-VU11). Rows and calibration: the docstring of .harmony/probe-vupload.py. Fixtures: .harmony/probe-video.json's (the same encoder code, $VIDEO_FIXTURES reuse).",
+  "cycleDetachedMs": [0, 500, 0],
+  "_cycleDetachedMs": "u4a: one context cycle per entry; N = ms between the detach and the re-attach (0 = at once; 500 = longer than the decode threads' 250 ms idle park)",
+  "cycleWaitS": 5.0,
+  "_cycleWaitS": "u4a: a context cycle re-creates the preview context on the message thread; the new context recompiles every shader (~100s of ms) before gl_context_gen advances",
+  "trimWaitS": 2.5,
+  "_trimWaitS": "u4b: the player is idle kTrimIdleMs (1000 ms) after its last draw; the frame-top scan trims it and its parked decode thread purges -- 2.5 s leaves 1.5 s of margin",
+  "returnSettleS": 3.0,
+  "_returnSettleS": "u4b: after the deck return, wait this long past settle_late and settle again before the steady window (VU5's late == 0 is a steady-state claim; the 4K return catch-ups are w4's bounded hold, printed)",
+  "trimDropMinMb": 150,
+  "_trimDropMinMb": "u4b (b): 4 players x 2 free BGRA 4K slots x 33.2 MB = 265 MB expected; phys_footprint (primary) or ps rss must drop by >= this (plan risk 5: purged IOSurface pages may not leave rss -- both printed)",
+  "u7UploadsRatioMin": 0.9,
+  "_u7": "adoption VU7: per u7 scene, the lane app's median uploads/s over >= 5 interleaved launches >= u7UploadsRatioMin x the pre-lane app's median, and its median late frames <= the pre-lane app's (.harmony/probe-vupload-ab.sh --u7)",
+  "layers": {
+    "u4a_context_cycle": [140, 141, 142, 143],
+    "u4b_idle_ring_trim": [144, 145, 146, 147], "u4b_away": 148,
+    "u6_crossfade_video": [150, 151, 152, 153],
+    "u7_reverse_pingpong": 154
+  }
+}

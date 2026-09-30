@@ -11,6 +11,10 @@
 #include <chrono>
 #include <string>
 #include <random>
+#if JUCE_MAC
+ #include <pthread.h>
+ #include <sys/qos.h>   // s-rta-0929 vupload: the render thread's QoS (gl_thread_qos)
+#endif
 
 using namespace juce::gl;
 Renderer::Renderer(const FeatureBus& featureBus)
@@ -226,6 +230,7 @@ void Renderer::updateActiveSourceParamsFor(const std::string& sourceType,
 
 void Renderer::newOpenGLContextCreated()
 {
+    glContextGen_.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 vupload: the context-cycle witness
     std::cerr << "[Renderer] GL context created. Version: "
               << glGetString(GL_VERSION) << std::endl;
 
@@ -310,6 +315,17 @@ void Renderer::renderOpenGL()
     compositor_.beginFrame();
     uploadBudget_.reset();
     videoStats_.pendingNow.store(0, std::memory_order_relaxed);   // s-rta-0928b video: videos_pending is per frame
+    {
+        // s-rta-0929 vupload: the previous frame's video uploads (video_max_uploads_per_frame) and this thread's QoS.
+        const int64_t uploads = videoStats_.uploads.load(std::memory_order_relaxed);
+        VideoStats::noteMax(videoStats_.maxUploadsPerFrame, static_cast<int>(uploads - videoUploadsAtFrameTop_));
+        videoUploadsAtFrameTop_ = uploads;
+#if JUCE_MAC
+        glThreadQos_.store(static_cast<int>(qos_class_self()), std::memory_order_relaxed);
+#endif
+    }
+    videoUploadBudget_.beginFrame();   // s-rta-0929 vupload P1: this frame's video upload allowance
+    videoStats_.uploadCap.store(videoUploadBudget_.cap, std::memory_order_relaxed);
     compositor_.pumpImages();
 
     // Release any media players closeMediaForClip() retired from the message
@@ -321,6 +337,7 @@ void Renderer::renderOpenGL()
     drainRetiredMedia();
     // s-rta-0928b seqvram: the image sequences' texture bytes, every frame, before any early return.
     scanSequenceVram();
+    scanVideoIdle();   // s-rta-0929 vupload P4b: idle players drop their ready frames and purge their free slots
 
     // Handle pending image load or clear (from message thread). s-rta-0928 R1.3: O(1) -- the decode runs off the GL
     // thread and only when a frame needs the legacy image (resolveLegacy below).
@@ -1694,6 +1711,14 @@ void Renderer::scanSequenceVram()
     seqStats_.overBudget.store(total > SeqVram::kBudgetBytes ? 1 : 0, std::memory_order_relaxed);
 }
 
+void Renderer::scanVideoIdle()
+{
+    const int64_t now = VideoPlayer::nowMs();
+    std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    for (auto& [id, player] : videoPlayers_)
+        player->trimIfIdle(now);
+}
+
 void Renderer::noteMsgVideoLockWait(std::chrono::steady_clock::time_point waitStart)
 {
     VideoStats::noteMax(videoStats_.msgLockWaitMaxMs,
@@ -1819,8 +1844,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             return 0;
         // s-rta-0928b video: picks the newest ring frame <= the clock, uploads only a new one, never waits. A player
         // that has never shown a frame is PENDING (Pitfall 53): the render_frame gate's counter (C3), as sequences do.
+        // s-rta-0929 vupload P1: within this frame's video upload budget (both chains of a crossfade count).
         bool videoPending = false;
-        const GLuint tex = player->uploadToTexture(&videoPending);
+        const GLuint tex = player->uploadToTexture(&videoPending, &videoUploadBudget_, static_cast<double>(dt));
         if (videoPending)
         {
             compositor_.notePendingImage();

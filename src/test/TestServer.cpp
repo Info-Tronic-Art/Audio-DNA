@@ -19,6 +19,8 @@
 #include <juce_core/juce_core.h>
 #if JUCE_MAC
  #include <OpenGL/OpenGL.h>   // after juce_gl.h (via Renderer.h): the output probe's private CGL context
+ #include <libproc.h>         // s-rta-0929 vupload: phys_footprint_mb (proc_pid_rusage)
+ #include <unistd.h>
 #endif
 #include <algorithm>
 #include <iostream>
@@ -243,6 +245,14 @@ void TestServer::setupRoutes()
 
     server_.Post("/api/output_probe", [this](const httplib::Request& req, httplib::Response& res) {
         handleOutputProbe(req, res);
+    });
+
+    // s-rta-0929 vupload (plan-vupload.md 4.6): detach + re-attach the preview panel's GL context on the message thread
+    // -- JUCE's context-loss path (openGLContextClosing, then newOpenGLContextCreated on the render thread) -- at once or
+    // after {"detached_ms": N}. Answers at once; poll gl_context_gen (/api/state) until it advances. Opens no window.
+    // Test mode only (this server).
+    server_.Post("/api/debug/gl_context_cycle", [this](const httplib::Request& req, httplib::Response& res) {
+        handleGlContextCycle(req, res);
     });
 
     // s-rta-0927 outputs-c3 (plan5 C3): Restore Last Outputs with nothing to restore, and the display-poll A/B.
@@ -701,7 +711,28 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
         obj->setProperty("videos_pending", v.pendingNow.load(std::memory_order_relaxed));   // this frame
         obj->setProperty("peak_video_upload_ms", static_cast<double>(v.takePeakUploadMs()));
         obj->setProperty("msg_video_lock_wait_max_ms", static_cast<double>(v.takeMsgLockWaitMaxMs()));
+        // s-rta-0929 vupload: the per-frame upload budget, the FX-only witness (must stay 0), the idle ring trim, the
+        // IOSurface blit's fence failures / client-upload fallbacks; the cap is INFO; max uploads per frame resets on read.
+        obj->setProperty("video_uploads_deferred", static_cast<juce::int64>(v.uploadsDeferred.load(std::memory_order_relaxed)));
+        obj->setProperty("video_hold_no_texture", static_cast<juce::int64>(v.holdNoTexture.load(std::memory_order_relaxed)));
+        obj->setProperty("video_slots_purged", static_cast<juce::int64>(v.slotsPurged.load(std::memory_order_relaxed)));
+        obj->setProperty("video_fence_failed", static_cast<juce::int64>(v.fenceFailed.load(std::memory_order_relaxed)));
+        obj->setProperty("video_surface_fallbacks", static_cast<juce::int64>(v.surfaceFallbacks.load(std::memory_order_relaxed)));
+        obj->setProperty("video_upload_cap", v.uploadCap.load(std::memory_order_relaxed));
+        obj->setProperty("video_max_uploads_per_frame", v.takeMaxUploadsPerFrame());
     }
+    // s-rta-0929 vupload (test mode only): GL contexts created so far (a context cycle advances it), the QoS class of the
+    // thread that last ran renderOpenGL (-1 = no frame yet; 33 = QOS_CLASS_USER_INTERACTIVE, 21 = DEFAULT), and the
+    // process's physical footprint in MB (proc_pid_rusage; the idle ring trim's witness).
+    obj->setProperty("gl_context_gen", static_cast<juce::int64>(renderer_.getGlContextGen()));
+    obj->setProperty("gl_thread_qos", renderer_.getGlThreadQos());
+#if JUCE_MAC
+    {
+        rusage_info_v4 ri{};
+        if (proc_pid_rusage(getpid(), RUSAGE_INFO_V4, reinterpret_cast<rusage_info_t*>(&ri)) == 0)
+            obj->setProperty("phys_footprint_mb", static_cast<double>(ri.ri_phys_footprint) / (1024.0 * 1024.0));
+    }
+#endif
     // s-rta-0927 outputs-c1: the output frame path (additive). live = output windows open; tap = the TEST-ONLY
     // forced tap; frame_* = the newest completed shared frame (gen 0 = nothing published). Same fields as ApiServer.
     {
@@ -1717,6 +1748,43 @@ void TestServer::handleLoadMilkDropPreset(const httplib::Request& req, httplib::
 // output_probe presents the newest shared frame through a PRIVATE CGL context -- no window, no drawable -- with the
 // same presentSharedFrame() the Output window uses, and writes what a display would show as a PNG. The probe runs on
 // an HTTP thread in its own context (a harder path than production, where both sides share JUCE's one GL thread).
+
+void TestServer::handleGlContextCycle(const httplib::Request& req, httplib::Response& res)
+{
+    // JUCE asserts the message thread in OpenGLContext::detach / attachTo: marshal, answer at once (Pitfall 31).
+    // Optional {"detached_ms": N} (0-5000): re-attach N ms after the detach -- the preview hidden for a while (a
+    // minimise): nothing is drawn, the decode threads park (250 ms), then the new context's first frames.
+    if (renderer_.getContext().getTargetComponent() == nullptr)
+    {
+        res.status = 409;
+        res.set_content(jsonError("the preview GL context is not attached"), "application/json");
+        return;
+    }
+    int detachedMs = 0;
+    const auto parsed = juce::JSON::parse(juce::String(req.body));   // kept alive: the object is owned by the var
+    if (auto* obj = parsed.getDynamicObject(); obj != nullptr && obj->hasProperty("detached_ms"))
+        detachedMs = juce::jlimit(0, 5000, static_cast<int>(obj->getProperty("detached_ms")));
+    const auto genBefore = renderer_.getGlContextGen();
+    juce::MessageManager::callAsync([this, detachedMs] {
+        juce::Component::SafePointer<juce::Component> c(renderer_.getContext().getTargetComponent());
+        if (c == nullptr)
+            return;
+        renderer_.detach();
+        auto reattach = [this, c] {
+            if (c != nullptr && renderer_.getContext().getTargetComponent() == nullptr)
+                renderer_.attachTo(*c);
+        };
+        if (detachedMs > 0)
+            juce::Timer::callAfterDelay(detachedMs, reattach);
+        else
+            reattach();
+    });
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("gen_before", static_cast<juce::int64>(genBefore));
+    result->setProperty("detached_ms", detachedMs);
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
 
 void TestServer::handleSetOutputTap(const httplib::Request& req, httplib::Response& res)
 {

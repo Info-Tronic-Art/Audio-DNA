@@ -1442,6 +1442,15 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
         obj->setProperty("videos_pending", v.pendingNow.load(std::memory_order_relaxed));   // this frame
         obj->setProperty("peak_video_upload_ms", static_cast<double>(v.takePeakUploadMs()));
         obj->setProperty("msg_video_lock_wait_max_ms", static_cast<double>(v.takeMsgLockWaitMaxMs()));
+        // s-rta-0929 vupload: the per-frame upload budget, the FX-only witness (must stay 0), the idle ring trim, the
+        // IOSurface blit's fence failures / client-upload fallbacks; the cap is INFO; max uploads per frame resets on read.
+        obj->setProperty("video_uploads_deferred", static_cast<juce::int64>(v.uploadsDeferred.load(std::memory_order_relaxed)));
+        obj->setProperty("video_hold_no_texture", static_cast<juce::int64>(v.holdNoTexture.load(std::memory_order_relaxed)));
+        obj->setProperty("video_slots_purged", static_cast<juce::int64>(v.slotsPurged.load(std::memory_order_relaxed)));
+        obj->setProperty("video_fence_failed", static_cast<juce::int64>(v.fenceFailed.load(std::memory_order_relaxed)));
+        obj->setProperty("video_surface_fallbacks", static_cast<juce::int64>(v.surfaceFallbacks.load(std::memory_order_relaxed)));
+        obj->setProperty("video_upload_cap", v.uploadCap.load(std::memory_order_relaxed));
+        obj->setProperty("video_max_uploads_per_frame", v.takeMaxUploadsPerFrame());
     }
     // s-rta-0928b mediaopen: frames the renderer found inside a withDeckDetached fence with no deck (cumulative):
     // hold = it re-presented the canvas as the previous frame left it; black = it fell to the "nothing to render" path.

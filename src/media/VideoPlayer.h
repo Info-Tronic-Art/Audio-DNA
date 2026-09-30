@@ -7,6 +7,7 @@
 #include <memory>
 #include "media/VideoRing.h"
 #include "media/VideoStats.h"
+#include "media/VideoUploadBudget.h"
 
 // Forward declarations for FFmpeg types (C linkage)
 struct AVFormatContext;
@@ -107,7 +108,10 @@ public:
     // (a HOLD; *pending = false), or 0 with *pending = true when this player has never shown a frame -- unless its first
     // frame FAILED (ADDENDUM W3: the decode thread gave up before any frame, or none came within kFirstFrameTimeoutMs
     // of the first call): then 0 with *pending = false, "no media". Never waits. Must be called on the GL thread.
-    GLuint uploadToTexture(bool* pending);
+    // s-rta-0929 vupload P1: with a budget, a NEW frame asks budget->admit() BEFORE the pick (VideoRing::peek); refused
+    // = a HOLD of the shown frame (*pending false, the ring untouched), asked again next frame, force-admitted after
+    // VideoUpload::maxDefer(frame duration / |speed|, renderDt) render frames. nullptr = no budget (ctests, tools).
+    GLuint uploadToTexture(bool* pending, VideoUpload::Budget* budget = nullptr, double renderDt = 0.0);
 
     // GL thread: no frame uploaded yet and not FAILED (the C1 crossfade pause provider). A GL release does not make it
     // true again.
@@ -122,10 +126,26 @@ public:
     // s-rta-0928b video: the Renderer's counters (/api/state). nullptr = none (the default). Before start().
     void setStats(VideoStats* s) { stats_ = s; }
 
+    // s-rta-0929 vupload P4b (plan R-14): GL thread, the frame top (Renderer::scanVideoIdle). A shown player not drawn for
+    // kTrimIdleMs drops its Ready slots (the reader's) and asks its parked decode thread (the writer) to purge its Free
+    // ones (IOSurfaceSetPurgeable Empty; free() on the malloc path); the writer un-purges a slot when it next takes it.
+    // The held slot (the frame on screen) is never purged. Once per idle spell (a draw re-arms it).
+    void trimIfIdle(int64_t nowMs);
+    static constexpr int64_t kTrimIdleMs = 1000;
+    static int64_t nowMs();
+
+    // s-rta-0929 vupload P3: how a new frame reaches texture_. Blit = the ring slots are IOSurfaces (BGRA), each bound once
+    // to a GL_TEXTURE_RECTANGLE read FBO; one glBlitFramebuffer into texture_, fenced (macOS). Client = IOSurface slots,
+    // uploaded with glTexSubImage2D (a player whose blit setup failed). Malloc = malloc'd RGBA slots + glTexSubImage2D
+    // (non-Apple builds, a failed IOSurfaceCreate). Decided in open().
+    enum class UploadPath : uint8_t { Blit, Client, Malloc };
+
     VideoPlayer(const VideoPlayer&) = delete;
     VideoPlayer& operator=(const VideoPlayer&) = delete;
 
 private:
+    friend struct VideoPlayerTestAccess;   // tests/test_video_player_gl.cpp: the test is the writer (no decode thread)
+
     // The most recently opened file (for id-stable content-swap detection).
     juce::File sourceFile_;
 
@@ -148,11 +168,36 @@ private:
     int totalFrames_ = 0;
     double timeBase_ = 0.0;   // Stream time base in seconds per tick
 
-    // The ring: 3 RGBA slots of width * height * 4 bytes (malloc'd in open(), freed in the destructor), each written
-    // bottom-up (GL order) by sws_scale with a negative destination stride; the headers are the lock-free protocol.
+    // The ring: 3 slots of width x height pixels, each written bottom-up (GL order) by sws_scale with a negative
+    // destination stride (rowBytes_ apart); the headers are the lock-free protocol. s-rta-0929 vupload P3: on macOS the
+    // slots are BGRA IOSurfaces (surf_, base addresses in slotBytes_, released in the destructor); otherwise RGBA
+    // malloc'd blocks (freed in the destructor).
     static constexpr int kSlots = 3;
+    // s-rta-0929 vupload: the frame on screen keeps its slot (retire_), so the writer runs at most kSlots - 1 frames
+    // ahead of it. The reseek distance ("behind") and the reader's ahead-drop line are measured from that look-ahead
+    // (+1 frame of margin) -- (kSlots + 1) frames, main's pre-held-slot value, made reverse play re-seek one frame later
+    // per cycle (u7: 25 % fewer uploads / seeks; kSlots 4 regressed the same way).
+    static constexpr int kWriterLookAhead = kSlots - 1;
     std::array<uint8_t*, kSlots> slotBytes_{};
     VideoRing::Ring<kSlots> ring_;
+    UploadPath path_ = UploadPath::Malloc;
+    UploadPath forcePath_ = UploadPath::Blit;   // TEST-ONLY lever (ADNA_VIDEO_FORCE_FALLBACK / VideoPlayerTestAccess)
+    bool fallbackCounted_ = false;
+    std::array<void*, kSlots> surf_{};          // IOSurfaceRef (macOS; void* keeps IOSurface out of this header)
+    // GL thread: per slot a GL_TEXTURE_RECTANGLE bound to its IOSurface + a read FBO on it, the blit's fence (GLsync);
+    // one draw FBO on texture_. Created lazily in uploadSlot, every handle zeroed by releaseGL (a sync dies with its
+    // context -- dropped, never deleted there).
+    std::array<GLuint, kSlots> rectTex_{}, readFbo_{};
+    std::array<void*, kSlots> fence_{};
+    GLuint dstFbo_ = 0;
+    unsigned (*fenceWaitOverride_)(void*) = nullptr;   // ctest seam (a GL_WAIT_FAILED fence); nullptr = glClientWaitSync
+    // P4b: the idle trim. trimmed_ (GL thread) = this idle spell is trimmed; trimRequested_ (GL -> decode thread) = purge
+    // the Free slots; purged_ (decode thread only: only the writer leaves Free); rebind_ (decode -> GL thread, set before
+    // the slot's publish): the slot was un-purged -- re-run CGLTexImageIOSurface2D before its next blit (adoption VU1).
+    bool trimmed_ = false;
+    std::atomic<bool> trimRequested_{ false };
+    std::array<bool, kSlots> purged_{};
+    std::array<std::atomic<bool>, kSlots> rebind_{};
 
     // GL texture + GL-thread-only picking state
     GLuint texture_ = 0;
@@ -163,6 +208,11 @@ private:
     bool firstFrameFailed_ = false;    // W3: VideoRing::firstFrameFailed, re-judged while nothing has been shown
     bool releasedThisFrame_ = false;
     bool discontinuity_ = false;       // a Loop wrap inside advanceTransport (-> a generation bump)
+    int deferredFrames_ = 0;           // s-rta-0929 vupload P1: render frames the ready frame has been held by the budget
+    uint32_t shownGen_ = 0;            // P1 / VU8: the request generation of the last uploaded frame (a new one is exempt)
+    // s-rta-0929 vupload P4a: the slot of the frame ON SCREEN stays Reading until a newer frame is shown (retire_.held),
+    // so after a GL context loss the first draw re-uploads it -- a shown player never returns texture 0.
+    VideoRing::Retire<kSlots> retire_;
 
     // Transport state (atomics for cross-thread access)
     std::atomic<bool> open_{false};
@@ -230,7 +280,15 @@ private:
     bool seekToTimestamp(double timeSec);
     bool decodeNextFrame();
     void convertInto(int slot);                                    // sws_scale bottom-up (negative stride) into a slot
+    void uploadSlot(int slot);                                     // GL thread: slot -> texture_ (created on first use)
+    bool createSurfaces();                                         // open(): 3 BGRA IOSurfaces (macOS)
+    bool blitSlot(int slot);                                       // P3: the IOSurface blit; false = fell back to Client
+    void clientUploadSurface(int slot);                            // P3: glTexSubImage2D of a slot's BGRA surface bytes
+    void ensureTexture();                                          // texture_ as GL_RGBA8 w x h, no data
+    void fallBack(const char* why);                                // Blit -> Client (once per player, counted)
+    void pollFences();                                             // P3: signaled blits give their slot back
+    void purgeFreeSlots();                                         // P4b: decode thread -- purge the Free slots
+    bool unpurge(int slot);                                        // P4b: decode thread, after acquireWrite
     void freeFfmpeg();                                             // idempotent
     void makeThumbnail();                                          // open(): the first frame -> <= 90x72
-    static int64_t nowMs();
 };

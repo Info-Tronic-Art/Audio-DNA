@@ -302,6 +302,9 @@ private:
     // detach(): its destructor drops queued jobs and waits for the running decodes (<= 5 s); jobs hold no `this`.
     ImageDecode::Decoder imageDecoder_{ 3 };
     ImageTexCache::UploadBudget uploadBudget_;
+    // s-rta-0929 vupload P1: the per-frame VIDEO upload budget (count-based, demand-adaptive; never shared with the images'
+    // byte budget, plan-vupload.md R-1). Begun at the frame top, consulted by every drawn player (syncMedia).
+    VideoUpload::Budget videoUploadBudget_;
     // s-rta-0928b seqvram (GL thread; the stats are read by /api/state): every image sequence's texture bytes summed at
     // the frame top (scanSequenceVram: totals + the idle trim under pressure, SeqVram.h), kept RUNNING through the
     // frame's grants (H3), and the frame serial the grants carry. No new mutex (Sacred Rule 2): the scan is one more
@@ -310,6 +313,9 @@ private:
     uint64_t seqFrameSerial_ = 0;
     size_t seqResidentTotal_ = 0;
     void scanSequenceVram();
+    // s-rta-0929 vupload P4b: every player's idle trim (VideoPlayer::trimIfIdle), at the frame top -- one more O(#players)
+    // critical section on videoPlayerMutex_ (the lookup mutex; w7 (a) gates the message thread's wait on it).
+    void scanVideoIdle();
     // Fix round F2: the frame's glDeleteTextures budget (SeqVram::kMaxDeletesPerFrame), reset at the frame top and
     // SHARED by the retire drain, the idle trim and every drawn sequence's shrink; the retired sequences' textures not
     // deleted yet (drainRetiredMedia) are reported with the live ones.
@@ -425,6 +431,10 @@ public:
     // reading resets it. Unlike peak_frame_time_ms it includes the work before renderStart (the pending legacy
     // image, the camera upload, autopilot) and after renderEnd (recorder, Syphon, the capture read).
     float takePeakCallbackMs() { return peakCallbackMs_.exchange(0.0f, std::memory_order_relaxed); }
+    // s-rta-0929 vupload (TestServer): GL contexts created so far, and the QoS class of the thread that ran the latest
+    // renderOpenGL (-1 before the first frame; macOS only).
+    uint64_t getGlContextGen() const { return glContextGen_.load(std::memory_order_relaxed); }
+    int getGlThreadQos() const { return glThreadQos_.load(std::memory_order_relaxed); }
     // s-rta-0928b seqvram: the image sequences' texture memory and frame counters (/api/state seq_*).
     const SeqVram::Stats& getSeqStats() const { return seqStats_; }
 
@@ -537,6 +547,9 @@ private:
     std::atomic<float> frameTimeMs_{0.0f};
     std::atomic<float> peakFrameTimeMs_{0.0f};
     std::atomic<float> peakCallbackMs_{0.0f};   // s-rta-0928 R1.0 (takePeakCallbackMs)
+    std::atomic<uint64_t> glContextGen_{0};     // s-rta-0929 vupload: ++ per newOpenGLContextCreated
+    std::atomic<int> glThreadQos_{-1};          // s-rta-0929 vupload: qos_class_self() of the render thread, per frame
+    int64_t videoUploadsAtFrameTop_ = 0;        // s-rta-0929 vupload: video_max_uploads_per_frame (GL thread)
     double renderProfileAccum_ = 0.0;
     int renderProfileCount_ = 0;
     static constexpr int kRenderProfileInterval = 300; // Log every N frames (~5s at 60fps)
