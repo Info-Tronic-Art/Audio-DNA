@@ -2750,6 +2750,16 @@ target_link_libraries(test_video_ring PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_video_ring)
 catch_discover_tests(test_video_ring)
 
+# --- s-rta-0929b gopcache (plan-gopcache.md 3.3 / 4.1 + adoption GC6 / GC7 / GC9): src/media/GopCache.h -- the pure policy of
+# the decode-thread GOP cache: the shared budget (cap = budget / active, floors win, RAM / 16, memory pressure, the one-
+# prefetch token), closed-form trajectory distances vs a brute-force walk, pools, store / evict / prefetch decisions, and
+# the amortization property on a simulated decoder. Pure (no FFmpeg, no GL, no JUCE).
+add_executable(test_gop_cache test_gop_cache.cpp)
+target_include_directories(test_gop_cache PRIVATE ${SRC_DIR})
+target_link_libraries(test_gop_cache PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_gop_cache)
+catch_discover_tests(test_gop_cache)
+
 # --- s-rta-0929 vupload P1 (plan-vupload.md 4.1 / 4.8 + adoption VU8 / VU9): src/media/VideoUploadBudget.h -- the
 # per-render-frame video upload budget: the demand-adaptive cap, the bounded deferral (never a skipped content frame,
 # no requester held > maxDefer frames for N = 4 / 8 / 16 synchronized or random-phase players), the exemptions. Pure.

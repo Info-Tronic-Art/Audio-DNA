@@ -3,8 +3,10 @@
 // uploadToTexture's) and drives the writer itself (VideoPlayerTestAccess, a friend of VideoPlayer). c1: a direction change
 // is a discontinuity (a request-generation bump), whatever changes the direction (the reverse flag, a negative speed).
 // c1b: the forward writer stepped without a thread publishes a Loop clip's frames in order (plan case 7).
+// c2: GopCache::Store on its own -- native-format copies, the budget's refusals and floors, reuse, every byte returned.
 #include <catch2/catch_test_macros.hpp>
 
+#include "media/GopCacheStore.h"
 #include "media/VideoPlayer.h"
 
 #include <cmath>
@@ -126,4 +128,108 @@ TEST_CASE("c1b: forward Loop, the writer stepped without a thread -- 30 frames p
     CHECK(st.seeks.load() == 0);
     CHECK(st.framesDropped.load() == 0);
     p.close();
+}
+
+namespace
+{
+AVFrame* patternFrame(int w, int h, int seed)
+{
+    AVFrame* f = av_frame_alloc();
+    f->format = AV_PIX_FMT_YUV420P;
+    f->width = w;
+    f->height = h;
+    REQUIRE(av_frame_get_buffer(f, 0) == 0);
+    for (int plane = 0; plane < 3; ++plane)
+    {
+        const int ph = plane == 0 ? h : h / 2, pw = plane == 0 ? w : w / 2;
+        for (int y = 0; y < ph; ++y)
+            for (int x = 0; x < pw; ++x)
+                f->data[plane][y * f->linesize[plane] + x] = static_cast<uint8_t>((seed * 31 + plane * 7 + y * 3 + x) & 0xff);
+    }
+    return f;
+}
+
+bool samePlanes(const AVFrame* a, const AVFrame* b)
+{
+    for (int plane = 0; plane < 3; ++plane)
+    {
+        const int ph = plane == 0 ? a->height : a->height / 2, pw = plane == 0 ? a->width : a->width / 2;
+        for (int y = 0; y < ph; ++y)
+            if (std::memcmp(a->data[plane] + y * a->linesize[plane], b->data[plane] + y * b->linesize[plane],
+                            static_cast<size_t>(pw)) != 0)
+                return false;
+    }
+    return true;
+}
+} // namespace
+
+TEST_CASE("c2: GopCache::Store -- copies in the native format, the budget refuses past the cap (floors win), a replace reuses "
+          "memory, freeSlot / clear give every byte back, holes stay", "[gopcache][s-rta-0929b]")
+{
+    VideoStats st;
+    GopCache::Budget budget;
+    GopCache::Store store;
+    store.configure(AV_PIX_FMT_YUV420P, 64, 64, &budget, &st);
+    std::vector<AVFrame*> src;
+    for (int i = 0; i < 12; ++i)
+        src.push_back(patternFrame(64, 64, i));
+    // the first slot settles the estimate against the REAL allocation (GC7: real bytes are counted)
+    REQUIRE(store.store(src[0], 0, 0.0, { GopCache::Keep::Store, -1 }, GopCache::Slot{ 0, 0, GopCache::Pool::Future }, 0));
+    const int64_t est = store.frameBytes();
+    REQUIRE(est >= 64 * 64 * 3 / 2);
+    CHECK(budget.bytes.load() == est);
+    store.clear();
+    CHECK(budget.bytes.load() == 0);
+    budget.total.store(10 * est);
+    // a new slot per frame until the budget refuses at 10 frames
+    int stored = 0;
+    for (int i = 0; i < 12; ++i)
+        stored += store.store(src[static_cast<size_t>(i)], i, i / 30.0, { GopCache::Keep::Store, -1 },
+                              GopCache::Slot{ i, i, GopCache::Pool::Future }, 4 * est)
+                      ? 1
+                      : 0;
+    CHECK(stored == 10);                                 // exactly the budget (the floor, 4 frames, is inside it)
+    CHECK(store.resident() == stored);
+    CHECK(budget.bytes.load() == store.bytes());
+    CHECK(st.gopCacheBytes.load() == store.bytes());
+    CHECK(st.gopCacheFrames.load() == stored);
+    CHECK(budget.active.load() == 1);
+    CHECK(st.gopCacheActive.load() == 1);
+    for (int i = 0; i < stored; ++i)                     // a copy, not a reference: the source may change
+    {
+        REQUIRE(store.slotOf(i) >= 0);
+        CHECK(samePlanes(store.frameAt(store.slotOf(i)), src[static_cast<size_t>(i)]));
+    }
+    // a replace reuses the slot's memory: no new bytes; the old frame is gone from the index
+    const int64_t bytesBefore = store.bytes();
+    const int s0 = store.slotOf(0);
+    REQUIRE(store.store(src[11], 11, 11 / 30.0, { GopCache::Keep::Replace, s0 }, GopCache::Slot{ 11, 0, GopCache::Pool::Future }, 0));
+    CHECK(store.bytes() == bytesBefore);
+    CHECK(store.slotOf(0) == -1);
+    CHECK(store.slotOf(11) == s0);
+    CHECK(samePlanes(store.frameAt(s0), src[11]));
+    CHECK(st.gopCacheEvictions.load() == 1);
+    // a frame of another format / size, or flagged corrupt, is never stored (GC3)
+    AVFrame* odd = patternFrame(32, 32, 99);
+    CHECK_FALSE(store.store(odd, 20, 0.0, { GopCache::Keep::Store, -1 }, GopCache::Slot{ 20, 0, GopCache::Pool::Future }, 100 * est));
+    src[5]->flags |= AV_FRAME_FLAG_CORRUPT;
+    CHECK_FALSE(store.storable(src[5]));
+    // holes stay across a clear; freeSlot returns memory
+    store.markHole(30);
+    CHECK(store.isHole(30));
+    store.freeSlot(0);
+    CHECK(store.bytes() == bytesBefore - store.frameBytes());
+    CHECK(budget.bytes.load() == store.bytes());
+    store.clear();
+    CHECK(store.bytes() == 0);
+    CHECK(store.resident() == 0);
+    CHECK(budget.bytes.load() == 0);
+    CHECK(budget.active.load() == 0);
+    CHECK(st.gopCacheBytes.load() == 0);
+    CHECK(st.gopCacheFrames.load() == 0);
+    CHECK(st.gopCacheActive.load() == 0);
+    CHECK(store.isHole(30));
+    for (auto* f : src)
+        av_frame_free(&f);
+    av_frame_free(&odd);
 }
