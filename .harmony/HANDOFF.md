@@ -3423,3 +3423,30 @@ capture taken. The Boris page was opened in his browser (the only window this se
 
 ## COUNTS — run them, never inherit them
 ctest 967/967 (107 targets). Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-0929b (2026-09-29 23:14 → in progress, secondary) — INTERIM START HERE (written before EOS as insurance) <<<
+Running log: .harmony/s-rta-0929b-work.md (authoritative); reports .harmony/.reports/s-rta-0929b/.
+1. BLOCKER (Boris): a real-app "Audio-DNA would like to access the microphone" prompt is on his screen since 02:36
+   (UNC window 29885). Cause: a fix-round builder launched a copied + ad-hoc re-signed mutant bundle -> TCC reset the
+   app's microphone permission (notebook 2026-09-30). Until Boris clicks Allow the app hangs at launch (CoreAudio
+   10004003, health silent) and EVERY live gate is blocked. Never dismiss that prompt. Verify after Allow: one launch,
+   tccd AUTHREQ_RESULT kTCCServiceMicrophone authValue=2 (scratchpad gate/tcccheck.sh pattern).
+2. START 1 re-framed + FIXED IN LANE: the 09-29 startup "heap corruption" = the known s-rta-0924b JUCE 8.0.4 CoreAudio
+   overflow, triggered when Boris's Bluetooth earbuds auto-connect (unified log: 2/2 BT launches crashed, 661/661 built-in
+   clean). Lane/btguard (worktree .claude/worktrees/rta0929b-btguard, HEAD 9f4623e): the app never opens a Bluetooth /
+   BLE / AirPlay / wireless-Continuity device; persistent plain notice when no allowed mic / device. Reviews r2 APPROVE
+   (both), critic run, lane ctest 1003/1003 (108 targets). OPEN: Harmony gate — RED probe-btguard on the pre-merge app
+   COPY (scratchpad apps/main-c8730a61.app; BTGUARD_APP=<app>; the probe defaults to build-lane/), merge, cmake + build,
+   ctest, GREEN probe-btguard (BTGUARD_APP=build/...Release/Audio-DNA.app) + step3 / resync / onset-render /
+   downbeat-level / manual-bpm unchanged; C5b has no RED yet (lane note).
+3. START 2 FIXED IN LANE: lane/gopcache (worktree .claude/worktrees/rta0929b-gopcache, HEAD 9cce17d): reverse / ping-pong
+   served from a decode-thread GOP cache (plan-gopcache.md + HARMONY ADOPTION GC1-GC13); 2 fix rounds; lane ctest
+   1013/1013; r3 reviews PASS_WITH_NITS. OPEN: every live gate on the HEAD app — forward battery (probe-video all rows,
+   w10-all identity, u2/u4a/u4b/u6/u12, crossfade / media-open / async-load / seq-vram, w1c/w2c/w6b 5x2 interleaved),
+   u7 re-run (R2 changed the look-ahead), GC13 medians of >= 5 (probe-vupload-ab.sh A B 5 ...), GC9 u11 x5, GC7 u8 with
+   ADNA_GOPCACHE_BUDGET_MB=256; RED of new rows on the pre-merge app copy first. Expect doc conflicts with btguard
+   (pitfalls NN, CLAUDE.md index, APP-INVENTORY): source conflicts -> builder rebase lane.
+4. JUCE deferral CORRECTED: the CoreAudio fix f6df3e3 is first in 8.0.9 (8.0.8's juce_CoreAudio_mac.cpp is byte-identical
+   to 8.0.4, Harmony hash-verified); issue #1601 (8.0.9+ glitches with separate in/out devices) is the risk.
+5. Filed: TSan sweep 20 real races (1 MEDIUM: clip-trigger Layer fields read by the render thread -> one-frame
+   wrong-opacity flash possible; verify-sweep-F2.md) -> a future Fable-plan lane; ASan 31 launches clean.
