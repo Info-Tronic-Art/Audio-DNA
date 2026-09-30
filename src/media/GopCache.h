@@ -20,6 +20,8 @@ constexpr int kMinRetainFrames = 16;       // PingPong forward retention floor (
 constexpr double kRetainSafety = 2.0;      // PingPong forward retention: GOP x decode ms / frame ms x this
 constexpr double kRetainBudgetFrac = 0.25; // Q2 (adopted): a player's forward retention <= 1/4 of the budget
 constexpr int kFullDecodeFrames = 10;      // no NONREF skip within this many frames below a run's storage window (R-7)
+constexpr int kDemandWindow = 16;          // a DEMAND run stores the frames just below its target (latency first: the
+                                           // window below is a PREFETCH run's, in the idle steps)
 constexpr int kDefaultGopFrames = 250;     // no container index
 constexpr double kDecodeMsSeedPerMpix = 1.0;
 constexpr int kFar = 1 << 30;

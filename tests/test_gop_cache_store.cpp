@@ -572,9 +572,9 @@ TEST_CASE("GC6: a resident cache shrinks to its share when a second cache joins 
     budget.total.store(40 * VideoPlayerTestAccess::frameBytes(a));   // room for 40 frames together
     startReverseAt(a, 59.0 / 60.0);
     Show sa{ a };
-    for (int i = 0; i < 60; ++i)
+    for (int i = 0; i < 60 && VideoPlayerTestAccess::resident(a) <= 24; ++i)
         sa.frame(1.0 / 120.0);
-    REQUIRE(VideoPlayerTestAccess::resident(a) > 20);                // A alone: most of the budget
+    REQUIRE(VideoPlayerTestAccess::resident(a) > 24);                // A alone: most of the budget
     startReverseAt(b, 59.0 / 60.0);
     Show sb{ b };
     for (int i = 0; i < 30; ++i)

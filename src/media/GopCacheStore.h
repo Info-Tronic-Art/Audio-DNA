@@ -15,6 +15,10 @@ extern "C" {
  #include <dispatch/dispatch.h>
  #include <sys/sysctl.h>
 #endif
+#if defined(__APPLE__) || defined(__linux__)
+ #include <sys/mman.h>
+ #include <unistd.h>
+#endif
 
 // s-rta-0929b gopcache (plan-gopcache.md 3.4 + HARMONY ADOPTION GC3 / GC6 / GC7 / GC10): the FFmpeg-facing half of a
 // VideoPlayer's GOP cache -- a slot table of AVFrame COPIES in the decoder's native pixel format (never the ring's BGRA:
@@ -86,6 +90,10 @@ public:
         stats_ = stats;
         const int est = av_image_get_buffer_size(static_cast<AVPixelFormat>(pixFmt), w, h, 64);
         frameBytes_ = est > 0 ? est : 0;
+#if defined(__APPLE__) || defined(__linux__)
+        const int64_t page = static_cast<int64_t>(sysconf(_SC_PAGESIZE));   // mapBuffer's real size: whole pages
+        frameBytes_ = (frameBytes_ + page - 1) / page * page;
+#endif
     }
     void setBudget(Budget* b) { budget_ = b; }   // ctests (before anything is stored)
     Budget* budget() const { return budget_; }
@@ -241,14 +249,8 @@ private:
                 ++stats_->gopCacheOverBudget;
         }
         AVFrame* f = av_frame_alloc();
-        if (f != nullptr)
-        {
-            f->format = fmt_;
-            f->width = w_;
-            f->height = h_;
-            if (av_frame_get_buffer(f, 0) < 0)
-                av_frame_free(&f);
-        }
+        if (f != nullptr && !mapBuffer(f))
+            av_frame_free(&f);
         if (f == nullptr)
         {
             if (budget_ != nullptr)
@@ -278,6 +280,45 @@ private:
         view_.push_back(Slot{});
         noteActive();
         return slots() - 1;
+    }
+
+    // GC10: a slot's planes live in their own anonymous mapping (one buffer, 64-byte aligned lines), unmapped when the frame
+    // is freed -- the pages go back to the OS at once (malloc keeps freed multi-MB blocks around: the idle trim of a
+    // 900 MB cache moved phys_footprint by 65 MB). Elsewhere: av_frame_get_buffer.
+    static void unmap(void* opaque, uint8_t* data)
+    {
+#if defined(__APPLE__) || defined(__linux__)
+        munmap(data, static_cast<size_t>(reinterpret_cast<uintptr_t>(opaque)));
+#else
+        (void) opaque;
+        (void) data;
+#endif
+    }
+    bool mapBuffer(AVFrame* f) const
+    {
+        f->format = fmt_;
+        f->width = w_;
+        f->height = h_;
+#if defined(__APPLE__) || defined(__linux__)
+        const int size = av_image_get_buffer_size(static_cast<AVPixelFormat>(fmt_), w_, h_, 64);
+        if (size <= 0)
+            return false;
+        const size_t page = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+        const size_t mapped = (static_cast<size_t>(size) + page - 1) / page * page;
+        void* mem = mmap(nullptr, mapped, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        if (mem == MAP_FAILED)
+            return false;
+        auto* data = static_cast<uint8_t*>(mem);
+        f->buf[0] = av_buffer_create(data, static_cast<size_t>(mapped), &Store::unmap, reinterpret_cast<void*>(mapped), 0);
+        if (f->buf[0] == nullptr)
+        {
+            munmap(mem, mapped);
+            return false;
+        }
+        return av_image_fill_arrays(f->data, f->linesize, data, static_cast<AVPixelFormat>(fmt_), w_, h_, 64) >= 0;
+#else
+        return av_frame_get_buffer(f, 0) >= 0;
+#endif
     }
 
     void giveBytes(int64_t n)
