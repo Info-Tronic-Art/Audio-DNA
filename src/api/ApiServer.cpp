@@ -1453,6 +1453,30 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
         obj->setProperty("video_surface_fallbacks", static_cast<juce::int64>(v.surfaceFallbacks.load(std::memory_order_relaxed)));
         obj->setProperty("video_upload_cap", v.uploadCap.load(std::memory_order_relaxed));
         obj->setProperty("video_max_uploads_per_frame", v.takeMaxUploadsPerFrame());
+        // s-rta-0929b gopcache: the decode threads' GOP caches (gauges: bytes / frames / active; cap INFO; the rest
+        // cumulative), the reverse-order witness (must stay 0), direction changes, the longest upload gap of a drawn
+        // player and the longest writer step (reset on read), uploads per player slot.
+        obj->setProperty("video_gopcache_bytes", static_cast<juce::int64>(v.gopCacheBytes.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_frames", static_cast<juce::int64>(v.gopCacheFrames.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_active", v.gopCacheActive.load(std::memory_order_relaxed));
+        obj->setProperty("video_gopcache_cap_bytes", static_cast<juce::int64>(v.gopCacheCapBytes.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_hits", static_cast<juce::int64>(v.gopCacheHits.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_misses", static_cast<juce::int64>(v.gopCacheMisses.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_runs", static_cast<juce::int64>(v.gopCacheRuns.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_run_decodes", static_cast<juce::int64>(v.gopCacheRunDecodes.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_evictions", static_cast<juce::int64>(v.gopCacheEvictions.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_drops", static_cast<juce::int64>(v.gopCacheDrops.load(std::memory_order_relaxed)));
+        obj->setProperty("video_gopcache_over_budget", static_cast<juce::int64>(v.gopCacheOverBudget.load(std::memory_order_relaxed)));
+        obj->setProperty("video_reverse_nonmonotonic", static_cast<juce::int64>(v.reverseNonmonotonic.load(std::memory_order_relaxed)));
+        obj->setProperty("video_direction_changes", static_cast<juce::int64>(v.directionChanges.load(std::memory_order_relaxed)));
+        obj->setProperty("video_max_upload_gap_ms", static_cast<double>(v.takeMaxUploadGapMs()));
+        obj->setProperty("video_writer_step_max_ms", static_cast<double>(v.takeWriterStepMaxMs()));
+        {
+            juce::Array<juce::var> pu;
+            for (const auto& u : v.playerUploads)
+                pu.add(static_cast<juce::int64>(u.load(std::memory_order_relaxed)));
+            obj->setProperty("video_player_uploads", pu);
+        }
     }
     // s-rta-0928b mediaopen: frames the renderer found inside a withDeckDetached fence with no deck (cumulative):
     // hold = it re-presented the canvas as the previous frame left it; black = it fell to the "nothing to render" path.

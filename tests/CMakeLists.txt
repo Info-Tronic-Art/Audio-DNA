@@ -2787,6 +2787,16 @@ target_link_libraries(test_video_ring PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_video_ring)
 catch_discover_tests(test_video_ring)
 
+# --- s-rta-0929b gopcache (plan-gopcache.md 3.3 / 4.1 + adoption GC6 / GC7 / GC9): src/media/GopCache.h -- the pure policy of
+# the decode-thread GOP cache: the shared budget (cap = budget / active, floors win, RAM / 16, memory pressure, the one-
+# prefetch token), closed-form trajectory distances vs a brute-force walk, pools, store / evict / prefetch decisions, and
+# the amortization property on a simulated decoder. Pure (no FFmpeg, no GL, no JUCE).
+add_executable(test_gop_cache test_gop_cache.cpp)
+target_include_directories(test_gop_cache PRIVATE ${SRC_DIR})
+target_link_libraries(test_gop_cache PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_gop_cache)
+catch_discover_tests(test_gop_cache)
+
 # --- s-rta-0929 vupload P1 (plan-vupload.md 4.1 / 4.8 + adoption VU8 / VU9): src/media/VideoUploadBudget.h -- the
 # per-render-frame video upload budget: the demand-adaptive cap, the bounded deferral (never a skipped content frame,
 # no requester held > maxDefer frames for N = 4 / 8 / 16 synchronized or random-phase players), the exemptions. Pure.
@@ -2829,6 +2839,74 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_video_player_open)
 catch_discover_tests(test_video_player_open)
+
+# --- s-rta-0929b gopcache (plan-gopcache.md 7 + adoption GC12): the GOLDEN TRACE of the REAL VideoPlayer's forward writer
+# (decode thread started, no GL): a fixed-clock schedule on the GOP-30 64x64 fixture; every published frame, every pick
+# and the decode / drop / seek counters must equal the trace recorded on the pre-refactor writer (main d88d2ea).
+# Fixture: tests/fixtures/video_h264_gop30_64x64.mp4.
+add_executable(test_video_decode_trace
+    test_video_decode_trace.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_video_decode_trace PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_decode_trace PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+if(APPLE)
+    target_link_libraries(test_video_decode_trace PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
+target_compile_definitions(test_video_decode_trace PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_video_decode_trace PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_video_decode_trace)
+catch_discover_tests(test_video_decode_trace)
+
+# --- s-rta-0929b gopcache (plan-gopcache.md 4.1 + adoption GC1-GC10): the REAL VideoPlayer + FFmpeg + the GOP cache, no GL,
+# no decode thread (the test is the GL thread and steps the writer: VideoPlayerTestAccess). A direction change is ONE
+# generation bump; reverse served from the cache byte-identical to a forward decode; the budget, intra-only, the trim,
+# GC1-GC3 / GC6 / GC10. Fixtures: tests/fixtures/video_h264_gop10_64x64.mp4 (+ the GC3 / GC10 / S8 ones).
+add_executable(test_gop_cache_store
+    test_gop_cache_store.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_gop_cache_store PRIVATE ${SRC_DIR})
+target_link_libraries(test_gop_cache_store PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+if(APPLE)
+    target_link_libraries(test_gop_cache_store PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
+target_compile_definitions(test_gop_cache_store PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_gop_cache_store PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_gop_cache_store)
+catch_discover_tests(test_gop_cache_store)
 
 # --- s-rta-0929 vupload (plan-vupload.md 4.8 + adoption VU1-VU3 / VU8): the REAL VideoPlayer uploading into a PRIVATE CGL
 # 4.1 core context (the test_shared_frame_gl shape: no window, SKIPs loudly without a pixel format); no decode thread --

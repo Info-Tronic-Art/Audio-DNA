@@ -221,7 +221,8 @@ the named area; this index is triage-only.
 57. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
 58. A load is staged off the message thread; a command during the window acts on the live composition -- before touching loadComposition / appendDeckFromFile / duplicateDeck / the load REST handler.
 60. Video uploads are budgeted, fenced IOSurface blits; the shown slot stays the reader's -- before touching `uploadToTexture`, `releaseGL` or a ring release.
-NN. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
+61. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
+62. Reverse / ping-pong video comes from the decode thread's GOP cache; the ring's pick is direction-aware -- before touching `decodeStep`, `VideoRing::pick` or a direction change.
 
 ---
 
