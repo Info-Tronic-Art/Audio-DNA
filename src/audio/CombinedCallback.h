@@ -51,6 +51,9 @@ public:
     }
     uint64_t callbacks() const { return callbacks_.load(std::memory_order_relaxed); }
     int periodSamples() const { return periodSamples_.load(std::memory_order_relaxed); }
+    // s-rta-0929b btguard (TEST-ONLY): device starts since launch (audioDeviceAboutToStart: message thread, callback
+    // quiesced -- never touched by the audio callback). /api/debug/audio_devices "opens".
+    int opens() const { return opens_.load(std::memory_order_relaxed); }
 #endif
 
     void audioDeviceIOCallbackWithContext(
@@ -173,6 +176,7 @@ public:
     {
 #if AUDIODNA_TEST_SERVER
         lastTicks_ = 0;   // s-rta-0929 asyncload: a restart's first callback measures no gap (callback quiesced here)
+        opens_.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929b btguard
 #endif
         player_.audioDeviceAboutToStart(device);
         analysisCallback_.audioDeviceAboutToStart(device);
@@ -209,6 +213,7 @@ private:
     std::atomic<int64_t> gapMaxTicks_{ 0 };
     std::atomic<uint64_t> callbacks_{ 0 };
     std::atomic<int> periodSamples_{ 0 };
+    std::atomic<int> opens_{ 0 };                  // s-rta-0929b btguard: see opens()
     // s-rta-0929 asyncload (adoption AL8 b): every counter the audio callback touches is lock-free.
     static_assert(std::atomic<int64_t>::is_always_lock_free, "audio-callback witness must be lock-free");
     static_assert(std::atomic<uint64_t>::is_always_lock_free, "audio-callback witness must be lock-free");

@@ -3,6 +3,7 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <atomic>
+#include <mutex>
 #include "AudioCallback.h"
 #include "CombinedCallback.h"
 #include "DeviceGuard.h"
@@ -75,6 +76,10 @@ public:
     uint64_t audioCallbacks() const { return combinedCallback_.callbacks(); }
     int audioPeriodSamples() const { return combinedCallback_.periodSamples(); }
     uint64_t ringOverruns() const { return audioCallback_.ringOverruns(); }
+    // s-rta-0929b btguard (TEST-ONLY): GET /api/debug/audio_devices -- the last device scan, the opened devices, the
+    // state, `opens` (device starts since launch) and the reconciler's re-applies. Built on the MESSAGE thread at every
+    // device change (publishDeviceStatus), read on the HTTP thread as a mutex-guarded copy: never the manager itself.
+    juce::var deviceStatusVar() const;
 #endif
 
 private:
@@ -96,4 +101,9 @@ private:
     // directly, without a real device).
     CombinedCallback combinedCallback_;
     SourceMode sourceMode_ = SourceMode::File;
+#if AUDIODNA_TEST_SERVER
+    void publishDeviceStatus();                     // message thread
+    mutable std::mutex deviceStatusMutex_;          // message thread (publish) <-> HTTP thread (read) only
+    juce::var deviceStatus_;                        // guarded by deviceStatusMutex_; never mutated after publish
+#endif
 };

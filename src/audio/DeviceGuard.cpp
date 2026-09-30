@@ -203,6 +203,16 @@ namespace devguard
 dp::Config productionConfig()
 {
     dp::Config config;
+#if AUDIODNA_TEST_SERVER
+    if (const char* env = std::getenv("ADNA_AUDIO_DENY_DEVICES"))
+    {
+        config.testDeniedNames.addTokens(juce::String::fromUTF8(env), ";", "");
+        config.testDeniedNames.trim();
+        config.testDeniedNames.removeEmptyStrings();
+        std::cerr << "[AudioEngine] TEST-ONLY ADNA_AUDIO_DENY_DEVICES: "
+                  << config.testDeniedNames.joinIntoString("; ") << std::endl;
+    }
+#endif
     return config;
 }
 

@@ -227,6 +227,11 @@ GL context, no window) and 8080 `/api/state` `gl_context_gen` / `gl_thread_qos` 
 upload_cap, max_uploads_per_frame); TEST_SERVER env `ADNA_VIDEO_FORCE_FALLBACK=malloc|client`; ctest +2 Catch2 targets
 (`test_video_upload_budget`, `test_video_player_gl` -- Apple only) and +8 cases in `test_video_ring`; probes
 `probe-vupload.{sh,py,json}` + `probe-vupload-ab.{sh,py}` (NEW) and probe-video rows w1c / w1d / w2c / w10.
+s-rta-0929b btguard: `GET /api/debug/audio_devices` returns the audio device policy's last scan (every device's
+transport, allowed flag and reason, the filtered lists), the opened devices, `state` (ok / no-input / no-device), `opens`
+and `reapplies`, from a mutex-guarded copy; `GET /api/debug/ui_text` also answers `audio_notice`. TEST_SERVER env
+`ADNA_AUDIO_DENY_DEVICES=<name>[;<name>]` (read once) treats those exact device names as denied; probe `probe-btguard.sh`
+(NEW); ctest +1 Catch2 target (`test_device_policy`).
 
 ### OSC input (`src/osc/OscHandler.cpp`) — 15 patterns, subsystem **LIVE** (Wave 1-B, 2026-07-17)
 

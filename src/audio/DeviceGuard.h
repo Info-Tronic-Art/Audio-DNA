@@ -66,6 +66,7 @@ public:
 
     // The wrapped type, or nullptr (a platform without CoreAudio, or before the first scan).
     GuardedDeviceType* guardedType() const noexcept { return guarded_; }
+    const audiodna::devpolicy::Config& policyConfig() const noexcept { return config_; }
 
     // TESTS ONLY: builds the inner types instead of JUCE's list (set BEFORE initialise; a mock names itself "CoreAudio").
     std::function<void(juce::OwnedArray<juce::AudioIODeviceType>&)> typeFactoryForTests;

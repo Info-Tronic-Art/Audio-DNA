@@ -319,6 +319,8 @@ void ApiServer::setupRoutes()
     server_.Post("/api/debug/load_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugLoadDeck(req, res); });
     server_.Post("/api/debug/duplicate_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDuplicateDeck(req, res); });
     server_.Post("/api/debug/cancel_load", [this](const httplib::Request& req, httplib::Response& res) { handleDebugCancelLoad(req, res); });
+    // s-rta-0929b btguard (TEST-ONLY, same build path): the audio device policy's last scan and the opened devices.
+    server_.Get("/api/debug/audio_devices", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDevices(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -1980,10 +1982,12 @@ void ApiServer::handleDebugUiText(const httplib::Request&, httplib::Response& re
         res.set_content(jsonError("ui_text not wired"), "application/json");
         return;
     }
-    struct Box { juce::WaitableEvent done; juce::String text; };
+    struct Box { juce::WaitableEvent done; juce::String text, notice; };
     auto box = std::make_shared<Box>();
     const bool posted = juce::MessageManager::callAsync([this, box]() {
         box->text = onDebugUiText();
+        if (onDebugAudioNotice)
+            box->notice = onDebugAudioNotice();   // s-rta-0929b btguard
         box->done.signal();
     });
     auto* obj = new juce::DynamicObject();
@@ -1996,6 +2000,7 @@ void ApiServer::handleDebugUiText(const httplib::Request&, httplib::Response& re
     {
         obj->setProperty("ok", true);
         obj->setProperty("file_label", box->text);
+        obj->setProperty("audio_notice", box->notice);
     }
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
@@ -2044,6 +2049,18 @@ void ApiServer::handleDebugDuplicateDeck(const httplib::Request& req, httplib::R
 }
 
 // s-rta-0929 asyncload (TEST-ONLY): cancel the staged load (MainComponent::cancelStagedOpen, Superseded).
+// s-rta-0929b btguard (TEST-ONLY): reads ONLY the mutex-guarded copy AudioEngine publishes on the message thread.
+void ApiServer::handleDebugAudioDevices(const httplib::Request&, httplib::Response& res)
+{
+    if (!audioDevicesProvider_)
+    {
+        res.status = 503;
+        res.set_content(jsonError("audio devices not wired"), "application/json");
+        return;
+    }
+    res.set_content(juce::JSON::toString(audioDevicesProvider_(), true).toStdString(), "application/json");
+}
+
 void ApiServer::handleDebugCancelLoad(const httplib::Request&, httplib::Response& res)
 {
     if (!onDebugCancelLoad)

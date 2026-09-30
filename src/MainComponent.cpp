@@ -2142,6 +2142,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugDuplicateDeck = [this](int deckIndex) { duplicateDeck(deckIndex); };
     apiServer_->onDebugCancelLoad = [this] { cancelStagedOpen(LoadTicket::Outcome::Superseded); };
     apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
+    apiServer_->onDebugAudioNotice = [this] {   // s-rta-0929b btguard
+        return audioDeviceNotice_.isVisible() ? audioDeviceNotice_.getText() : juce::String();
+    };
+#if AUDIODNA_TEST_SERVER
+    apiServer_->setAudioDevicesProvider([this] { return audioEngine_.deviceStatusVar(); });   // s-rta-0929b btguard, before start()
+#endif
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
         debugDropFiles(layer, column, files);
