@@ -1,0 +1,22 @@
+A = /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/pre-gop/Audio-DNA.app (d49df20b40a6a0cd)
+B = /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app (abdd9135425bd0d5)
+10:19:36 [r1 A] start: load avg { 3.30 3.92 4.10 }
+10:19:52 [r1 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:19:53 [r1 B] start: load avg { 3.53 3.93 4.10 }
+10:20:07 [r1 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:08 [r2 A] start: load avg { 4.23 4.06 4.14 }
+10:20:22 [r2 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:23 [r2 B] start: load avg { 4.23 4.07 4.14 }
+10:20:37 [r2 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:38 [r3 A] start: load avg { 4.03 4.04 4.13 }
+10:20:52 [r3 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:53 [r3 B] start: load avg { 4.46 4.13 4.16 }
+10:21:07 [r3 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:08 [r4 A] start: load avg { 4.04 4.06 4.13 }
+10:21:22 [r4 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:23 [r4 B] start: load avg { 4.12 4.07 4.14 }
+10:21:37 [r4 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:38 [r5 A] start: load avg { 4.02 4.05 4.13 }
+10:21:52 [r5 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:53 [r5 B] start: load avg { 5.29 4.35 4.23 }
+10:22:07 [r5 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN

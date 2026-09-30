@@ -1,0 +1,180 @@
+11:59:51 lock acquired
+=== batch red1 arm=tsan start 2026-09-30 11:59:51
+UNC windows (OptionAll) before: 0
+11:59:52 audio: defaults=3 non-builtin-transport=0 bt[          State: Off]  Default Input Device: Yes; Transport: Built-in; Default Output Device: Yes; Default System Output Device: Yes; Transport: Built-in;
+--- tsan-1 scenario a  11:59:52
+health after 9 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 22003 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 118.652381896972656,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-2 scenario b  12:00:25
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 22511 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 118.994010925292969,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-3 scenario c  12:00:58
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 23486 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 109.095565795898438,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-4 scenario a  12:01:25
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 23822 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 120.347206115722656,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-5 scenario b  12:01:52
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 24202 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 116.635116577148438,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-6 scenario c  12:02:24
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 24757 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 120.006484985351562,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-7 scenario a  12:02:51
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 24881 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 119.995635986328125,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-8 scenario b  12:03:18
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 25226 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 119.993621826171875,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+--- tsan-9 scenario c  12:03:51
+health after 2 s gone=0: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 0.0,
+  "effects_count": 0
+}
+7070 listener: Audio-DNA; pids: 25806 ; outwins: audio-dna windows 2, Output-named 0
+scen rc=0
+alive at end: yes; outwins: audio-dna windows 2, Output-named 0; health end: {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 112.069313049316406,
+  "eff
+app running after quit: no
+outwins after quit: audio-dna windows 0, Output-named 0
+sanitizer files: 1
+last quit 12:04:18
+UNC windows (OptionAll) after: 0
+new .ips: 
+=== batch red1 done 12:04:34
+12:04:34 lock released

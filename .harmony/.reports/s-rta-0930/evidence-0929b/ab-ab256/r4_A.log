@@ -1,0 +1,13 @@
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/pre-gop/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.tdI1dK
+fixture a1080_g250.mp4: encoded in 1.9 s (load avg 4.04 4.06 4.13)
+fixture a1080_g250.mp4: keyframes [0.0, 8.333333] (as designed)
+--- u8_reverse_column_1080x4
+      u8_reverse_column_1080x4: INFO cap_mb 0, uploads_per_s 18.0, per_player_min None, per_player None, late 1796, hold_no_texture 0, pending 0, bytes_mb None, frames None, active None, over_budget None, cap_bytes_mb None, decoded_per_upload 71.66, fps 116.93480682373047, footprint_delta_mb -17.9, evictions None, budget 2147483648 B, load avg 4.13 4.07 4.14
+DATA u8_reverse_column_1080x4 cap_mb=0 uploads_per_s=18.0 per_player_min=None per_player=None late=1796 hold_no_texture=0 pending=0 bytes_mb=None frames=None active=None over_budget=None cap_bytes_mb=None decoded_per_upload=71.66 fps=116.93480682373047 footprint_delta_mb=-17.9 evictions=None
+
+PY 0 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-VUPLOAD GREEN

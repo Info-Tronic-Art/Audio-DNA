@@ -1,0 +1,13 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.T9Lwwd
+fixture a1080_g250.mp4: encoded in 1.9 s (load avg 5.29 4.35 4.23)
+fixture a1080_g250.mp4: keyframes [0.0, 8.333333] (as designed)
+--- u8_reverse_column_1080x4
+      u8_reverse_column_1080x4: INFO cap_mb 256, uploads_per_s 111.8, per_player_min 27.6, per_player 27.6,27.8,28.2,28.2, late 123, hold_no_texture 0, pending 0, bytes_mb 249.4, frames 84, active 4, over_budget 0, cap_bytes_mb 64.0, decoded_per_upload 12.41, fps 117.53362274169922, footprint_delta_mb -13.5, evictions 553, budget 2147483648 B, load avg 5.50 4.42 4.26
+DATA u8_reverse_column_1080x4 cap_mb=256 uploads_per_s=111.8 per_player_min=27.6 per_player=27.6,27.8,28.2,28.2 late=123 hold_no_texture=0 pending=0 bytes_mb=249.4 frames=84 active=4 over_budget=0 cap_bytes_mb=64.0 decoded_per_upload=12.41 fps=117.53362274169922 footprint_delta_mb=-13.5 evictions=553
+
+PY 0 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-VUPLOAD GREEN

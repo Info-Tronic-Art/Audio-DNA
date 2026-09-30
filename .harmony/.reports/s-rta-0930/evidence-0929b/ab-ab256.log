@@ -1,0 +1,40 @@
+A = /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/pre-gop/Audio-DNA.app (d49df20b40a6a0cd)
+B = /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app (abdd9135425bd0d5)
+10:18:50 re-acquire cooldown 45 s
+10:19:35 lock acquired
+10:19:36 [r1 A] start: load avg { 3.30 3.92 4.10 }
+10:19:52 [r1 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:19:53 [r1 B] start: load avg { 3.53 3.93 4.10 }
+10:20:07 [r1 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:08 [r2 A] start: load avg { 4.23 4.06 4.14 }
+10:20:22 [r2 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:23 [r2 B] start: load avg { 4.23 4.07 4.14 }
+10:20:37 [r2 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:38 [r3 A] start: load avg { 4.03 4.04 4.13 }
+10:20:52 [r3 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:20:53 [r3 B] start: load avg { 4.46 4.13 4.16 }
+10:21:07 [r3 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:08 [r4 A] start: load avg { 4.04 4.06 4.13 }
+10:21:22 [r4 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:23 [r4 B] start: load avg { 4.12 4.07 4.14 }
+10:21:37 [r4 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:38 [r5 A] start: load avg { 4.02 4.05 4.13 }
+10:21:52 [r5 A] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:21:53 [r5 B] start: load avg { 5.29 4.35 4.23 }
+10:22:07 [r5 B] rc 0, compilers seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, PROBE-VUPLOAD GREEN
+10:22:08 lock released
+10:22:08 rounds 5 x 2 arms done (tainted 0)
+== u8_reverse_column_1080x4
+      cap_mb 0.0 A medians (n 5): cap_mb 0.0, decoded_per_upload 75.88, footprint_delta_mb -9.4, fps 116.0248031616211, hold_no_texture 0.0, late 1793.0, pending 0.0, uploads_per_s 17.0
+   FAIL  [ABS]  u8: B median pooled uploads/s None >= 114
+   FAIL  [GC6]  u8: B median slowest player None uploads/s >= 28.5
+   FAIL  [ABS]  u8 cap 0.0: B median late None <= 40
+   FAIL  [ABS]  u8 cap 0.0: B median max video_gopcache_bytes None MB <= budget + floors 2142.9 MB
+   FAIL  [ABS]  u8 cap 0.0: over_budget delta per B launch [] (== 0 without a cap)
+   FAIL  [ABS]  u8 cap 0.0: hold_no_texture / pending 0 in every B launch
+      cap_mb 256.0 B medians (n 5): active 4.0, bytes_mb 249.4, cap_bytes_mb 64.0, cap_mb 256.0, decoded_per_upload 12.36, evictions 553.0, footprint_delta_mb -10.9, fps 115.07972717285156, frames 84.0, hold_no_texture 0.0, late 123.0, over_budget 0.0, pending 0.0, per_player_min 27.8, uploads_per_s 112.0
+   PASS  [GC7]  u8 cap 256.0 MB: B median slowest player 27.8 uploads/s >= 20
+   FAIL  [ABS]  u8 cap 256.0: B median late 123.0 <= 40
+   PASS  [ABS]  u8 cap 256.0: B median max video_gopcache_bytes 249.4 MB <= budget + floors 350.9 MB
+   PASS  [ABS]  u8 cap 256.0: over_budget delta per B launch [0.0, 0.0, 0.0, 0.0, 0.0] (== 0 without a cap)
+   PASS  [ABS]  u8 cap 256.0: hold_no_texture / pending 0 in every B launch

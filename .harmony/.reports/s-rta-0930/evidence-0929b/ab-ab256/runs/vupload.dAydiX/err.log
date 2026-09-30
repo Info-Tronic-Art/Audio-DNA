@@ -1,0 +1,308 @@
+[AudioEngine] audio devices: input "MacBook Pro Microphone" (bltn), output "MacBook Pro Speakers" (bltn); skipped: none
+[AudioEngine] Switched to mic input mode
+[Settings] test mode: AUDIODNA_SETTINGS_FILE unset or not absolute -- scratch settings /Users/boriskarpman/Library/Caches/Audio-DNA/test-mode-settings.json (never the real settings.json)
+[MilkDrop] Loaded 30 presets
+[Settings] test mode: AUDIODNA_SETTINGS_FILE unset or not absolute -- scratch settings /Users/boriskarpman/Library/Caches/Audio-DNA/test-mode-settings.json (never the real settings.json)
+[Eyes] Test server started on port 8080
+[Eyes] HTTP server listening on port 8080
+[API] HTTP server listening on 127.0.0.1:7070
+[OSC] Listening on port 8000
+[OSC] Input listening on port 8000
+[Renderer] GL context created. Version: 4.1 Metal - 89.4
+[Renderer]   passthrough: OK
+[Renderer]   present_box: OK
+[Renderer]   opacity_blend: OK
+[Renderer]   clip_opacity_blend: OK
+[Renderer]   effect_dry_wet: OK
+[Renderer]   effect_drywet: OK
+[Renderer]   comp_transform: OK
+[Renderer]   deck_transition: OK
+[Renderer]   ripple: OK
+[Renderer]   bulge: OK
+[Renderer]   wave: OK
+[Renderer]   liquid: OK
+[Renderer]   kaleidoscope: OK
+[Renderer]   fisheye: OK
+[Renderer]   swirl: OK
+[Renderer]   hue_shift: OK
+[Renderer]   saturation: OK
+[Renderer]   brightness: OK
+[Renderer]   duotone: OK
+[Renderer]   chromatic_aberration: OK
+[Renderer]   invert: OK
+[Renderer]   posterize: OK
+[Renderer]   color_shift: OK
+[Renderer]   thermal: OK
+[Renderer]   color_matrix: OK
+[Renderer]   pixel_scatter: OK
+[Renderer]   rgb_split: OK
+[Renderer]   block_glitch: OK
+[Renderer]   scanlines: OK
+[Renderer]   digital_rain: OK
+[Renderer]   noise_overlay: OK
+[Renderer]   mirror: OK
+[Renderer]   pixelate: OK
+[Renderer]   gaussian_blur: OK
+[Renderer]   zoom_blur: OK
+[Renderer]   shake: OK
+[Renderer]   vignette: OK
+[Renderer]   motion_blur: OK
+[Renderer]   glow: OK
+[Renderer]   edge_detect: OK
+[Renderer]   perspective_tilt: OK
+[Renderer]   cylinder_wrap: OK
+[Renderer]   sphere_wrap: OK
+[Renderer]   tunnel: OK
+[Renderer]   page_curl: OK
+[Renderer]   parallax_layers: OK
+[Renderer]   polar_coords: OK
+[Renderer]   twirl: OK
+[Renderer]   shear: OK
+[Renderer]   elastic_bounce: OK
+[Renderer]   ripple_pond: OK
+[Renderer]   diamond_distort: OK
+[Renderer]   barrel_distort: OK
+[Renderer]   sine_grid: OK
+[Renderer]   glitch_displace: OK
+[Renderer]   sepia: OK
+[Renderer]   cross_process: OK
+[Renderer]   split_tone: OK
+[Renderer]   color_halftone: OK
+[Renderer]   ordered_dither: OK
+[Renderer]   heat_map: OK
+[Renderer]   selective_color: OK
+[Renderer]   film_grain: OK
+[Renderer]   gamma_levels: OK
+[Renderer]   solarize: OK
+[Renderer]   crt_simulation: OK
+[Renderer]   vhs_effect: OK
+[Renderer]   ascii_art: OK
+[Renderer]   dot_matrix: OK
+[Renderer]   crosshatch: OK
+[Renderer]   emboss: OK
+[Renderer]   oil_paint: OK
+[Renderer]   pencil_sketch: OK
+[Renderer]   voronoi_glass: OK
+[Renderer]   cross_stitch: OK
+[Renderer]   night_vision: OK
+[Renderer]   strobe: OK
+[Renderer]   pulse: OK
+[Renderer]   slit_scan: OK
+[Renderer]   double_exposure: OK
+[Renderer]   frosted_glass: OK
+[Renderer]   prism_refract: OK
+[Renderer]   rain_on_glass: OK
+[Renderer]   hexagonalize: OK
+[Renderer]   key_alpha: OK
+[Renderer]   key_luma: OK
+[Renderer]   key_chroma: OK
+[Renderer]   key_max_rgb: OK
+[Renderer]   key_inv_luma: OK
+[Renderer]   key_luma_alpha: OK
+[Renderer]   key_inv_luma_alpha: OK
+[Renderer]   key_saturation: OK
+[Renderer]   key_edge: OK
+[Renderer]   key_threshold: OK
+[Renderer]   key_channel_r: OK
+[Renderer]   key_channel_g: OK
+[Renderer]   key_channel_b: OK
+[Renderer]   key_vignette: OK
+[Renderer]   source_perlin_noise: OK
+[Renderer]   source_plasma: OK
+[Renderer]   source_voronoi: OK
+[Renderer]   source_kaleido_fractal: OK
+[Renderer]   source_mandelbrot: OK
+[Renderer]   source_geometric_tunnel: OK
+[Renderer]   source_color_gradient: OK
+[Renderer]   source_audio_waveform: OK
+[Renderer]   source_reaction_diffusion: OK
+[Renderer]   source_cellular_automata: OK
+[Renderer]   layer_transform: OK
+[Renderer]   mask_luminance: OK
+[Renderer]   greyscale: OK
+[Renderer]   threshold: OK
+[Renderer]   exposure: OK
+[Renderer]   vibrance: OK
+[Renderer]   quad_mirror: OK
+[Renderer]   flip: OK
+[Renderer]   warp_field: OK
+[Renderer]   sharpen: OK
+[Renderer]   pixel_explosion: OK
+[Renderer]   color_flash: OK
+[Renderer]   slide_wrap: OK
+[Renderer]   dot_field: OK
+[Renderer]   triangulate: OK
+[Renderer]   auto_mask: OK
+[Renderer]   chromakey_effect: OK
+[Renderer]   tile_grid: OK
+[Renderer]   spot_zoom: OK
+[Renderer]   neon_edge: OK
+[Renderer]   cartoon_ink: OK
+[Renderer]   pop_raster: OK
+[Renderer]   palette_remap: OK
+[Renderer]   lut_grade: OK
+[Renderer]   bendoscope: OK
+[Renderer]   uv_remap: OK
+[Renderer]   liquid_morph: OK
+[Renderer]   edge_blur: OK
+[Renderer]   brush_strokes: OK
+[Renderer]   fragment_burst: OK
+[Renderer]   signal_destroy: OK
+[Renderer]   line_cloner: OK
+[Renderer]   radial_cloner: OK
+[Renderer]   cube_scatter: OK
+[Renderer]   infinite_zoom: OK
+[Renderer]   bump_light: OK
+[Renderer]   feedback: OK
+[Renderer]   directional_feedback: OK
+[Renderer]   source_solid_color: OK
+[Renderer]   source_strobe_light: OK
+[Renderer]   source_checkerboard: OK
+[Renderer]   source_line_pattern: OK
+[Renderer]   source_concentric_rings: OK
+[Renderer]   source_sine_oscillator: OK
+[Renderer]   source_spiral_pattern: OK
+[Renderer]   source_metaballs: OK
+[Renderer]   source_terrain_lines: OK
+[Renderer]   source_shape_generator: OK
+[Renderer]   source_bump_light: OK
+[Renderer]   source_infinite_zoom: OK
+[Renderer]   source_spiral_tunnel: OK
+[Renderer]   source_wireframe_3d: OK
+[Renderer]   source_line_generator: OK
+[Renderer]   source_zigzag_lines: OK
+[Renderer]   source_star_burst: OK
+[Renderer]   source_polygon_lines: OK
+[Renderer]   source_waveform_lines: OK
+[Renderer]   source_lissajous: OK
+[Renderer]   source_spirograph: OK
+[Renderer]   source_angular_grid: OK
+[Renderer]   source_fractal_tree: OK
+[Renderer]   source_laser_scan: OK
+[Renderer]   source_moire_lines: OK
+[Renderer]   source_julia_set: OK
+[Renderer]   source_burning_ship: OK
+[Renderer]   source_newton_fractal: OK
+[Renderer]   source_sierpinski: OK
+[Renderer]   source_apollonian: OK
+[Renderer]   source_mandelbulb: OK
+[Renderer]   source_menger_sponge: OK
+[Renderer]   source_kifs: OK
+[Renderer]   source_julia_set_3d: OK
+[Renderer]   source_burning_ship_3d: OK
+[Renderer]   source_newton_3d: OK
+[Renderer]   source_sierpinski_tetra: OK
+[Renderer]   source_apollonian_3d: OK
+[Renderer]   source_striped_torus: OK
+[Renderer]   source_spiral_vortex: OK
+[Renderer]   source_checker_torus: OK
+[Renderer]   source_ribbed_vortex: OK
+[Renderer]   source_wormhole_tunnel: OK
+[Renderer]   source_twisted_torus: OK
+[Renderer]   source_wormhole: OK
+[Renderer]   source_torus_hole: OK
+[Renderer]   source_lissajous_weaver: OK
+[Renderer]   source_fermat_spiral: OK
+[Renderer]   source_hyperbolic_tiling: OK
+[Renderer]   source_penrose_pulse: OK
+[Renderer]   source_moire_interference: OK
+[Renderer]   source_astral_grid: OK
+[Renderer]   source_radial_burst: OK
+[Renderer]   source_hex_grid: OK
+[Renderer]   source_sacred_geometry: OK
+[Renderer]   source_crystal_cavern: OK
+[Renderer]   source_infinite_corridor: OK
+[Renderer]   source_orbit_chamber: OK
+[Renderer]   source_fire_wall: OK
+[Renderer]   source_water_caustics: OK
+[Renderer]   source_electric_arc: OK
+[Renderer]   source_laser_scanner: OK
+[Renderer]   source_scroll_plane: OK
+[Renderer]   source_rotating_cube_map: OK
+[Renderer]   source_dual_plane_drift: OK
+[Renderer]   ghost_trails: OK
+[Renderer]   frame_hold: OK
+[Renderer]   time_freeze: OK
+[Renderer]   screen_split: OK
+[Renderer]   frame_delay: OK
+[Renderer]   feedback_blend: OK
+[Renderer]   harmonic_displace: OK
+[Renderer]   timbral_mosaic: OK
+[Renderer]   structural_morph: OK
+[Renderer]   pitch_chroma_shift: OK
+[Renderer]   key_palette: OK
+[Renderer]   transient_flash: OK
+[Renderer]   beat_ripple: OK
+[Renderer]   rhythm_slice: OK
+[Renderer]   density_wave: OK
+[Renderer]   chroma_dissolve: OK
+[Renderer]   source_spectrum_landscape: OK
+[Renderer]   source_chromatic_ring: OK
+[Renderer]   source_band_tower: OK
+[Renderer]   source_timbral_nebula: OK
+[Renderer]   source_structural_landscape: OK
+[Renderer]   source_cymatics: OK
+[Renderer]   source_spectral_waterfall: OK
+[Renderer]   source_spectral_ring: OK
+[Renderer]   source_text_wall: OK
+[Renderer]   luma_terrain: OK
+[Renderer]   voxel_matrix: OK
+[Renderer]   monitor_wall: OK
+[Renderer]   drop_shadow: OK
+[Renderer]   channel_delay: OK
+[Renderer]   topo_lines: OK
+[Renderer]   data_corrupt: OK
+[Renderer]   glitch_sort: OK
+[Renderer]   source_superformula: OK
+[Renderer]   source_truchet: OK
+[Renderer]   source_rose: OK
+[Renderer]   source_fibonacci: OK
+[Renderer]   source_lightning: OK
+[Renderer]   source_fire: OK
+[Renderer]   source_starfield: OK
+[Renderer]   source_nebula: OK
+[Renderer]   source_radar: OK
+[Renderer]   source_glitch_grid: OK
+[Renderer]   source_dna: OK
+[Renderer]   source_dot_matrix: OK
+[Renderer]   transition_dissolve: OK
+[Renderer]   transition_wipe_left: OK
+[Renderer]   transition_wipe_right: OK
+[Renderer]   transition_wipe_up: OK
+[Renderer]   transition_wipe_down: OK
+[Renderer]   transition_push_left: OK
+[Renderer]   transition_push_right: OK
+[Renderer]   transition_push_up: OK
+[Renderer]   transition_push_down: OK
+[Renderer]   transition_zoom_in: OK
+[Renderer]   transition_zoom_out: OK
+[Renderer]   transition_iris: OK
+[Renderer]   transition_flip_h: OK
+[Renderer]   transition_cut: OK
+[Renderer]   transition_fade_black: OK
+[Renderer]   source_text_animator: OK
+[Renderer]   source_strange_attractor: OK
+[Renderer]   source_gravity_well: OK
+[Renderer]   source_fluid_dynamics: OK
+[Renderer]   source_layer_router: OK
+[Renderer] All shaders compiled.
+[Renderer] programID(passthrough)=2
+[Renderer] programID(hue_shift)=47
+[Renderer] programID(vignette)=110
+[Renderer] Loaded 135 effects from library.
+2026-09-30 10:20:41.559 Audio-DNA[72523:84331522] [Syphon] Server created: Audio-DNA
+[Syphon] Output initialized
+[swscaler @ 0x148448000] No accelerated colorspace conversion found from yuv420p to bgra.
+[swscaler @ 0x118640000] No accelerated colorspace conversion found from yuv420p to bgra.
+[VideoPlayer] Opened: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.dAydiX/media/a1080_g250.mp4 (1920x1080, 30 fps, 10s, codec=h264, alpha=no, upload=iosurface-blit, thumb=0.655083 ms)
+[VideoPlayer] Opened: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.dAydiX/media/a1080_g250.mp4 (1920x1080, 30 fps, 10s, codec=h264, alpha=no, upload=iosurface-blit, thumb=0.652583 ms)
+[swscaler @ 0x118650000] No accelerated colorspace conversion found from yuv420p to bgra.
+[swscaler @ 0x1290d0000] No accelerated colorspace conversion found from yuv420p to bgra.
+[VideoPlayer] Opened: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.dAydiX/media/a1080_g250.mp4 (1920x1080, 30 fps, 10s, codec=h264, alpha=no, upload=iosurface-blit, thumb=0.434416 ms)
+[VideoPlayer] Opened: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.dAydiX/media/a1080_g250.mp4 (1920x1080, 30 fps, 10s, codec=h264, alpha=no, upload=iosurface-blit, thumb=0.429875 ms)
+[Render Profile] Avg frame: 0.8 ms, 0 effects active, 1920x1080
+[Render Profile] Avg frame: 0.75 ms, 0 effects active, 1920x1080
+[API] HTTP server stopped
+[Eyes] HTTP server stopped
+2026-09-30 10:20:51.080 Audio-DNA[72523:84331419] [Syphon] Server stopped
+[OSC] Stopped listening

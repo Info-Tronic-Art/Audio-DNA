@@ -1,0 +1,117 @@
+{
+ "name": "video-u8_reverse_column_1080x4",
+ "activeDeckIndex": 0,
+ "masterOpacity": 1.0,
+ "globalTransitionSpeed": 0.0,
+ "outputWidth": 1920,
+ "outputHeight": 1080,
+ "decks": [
+  {
+   "name": "D0",
+   "id": 0,
+   "numColumns": 1,
+   "layers": [
+    {
+     "name": "L155",
+     "id": 155,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v70",
+       "id": 70,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.f5GMfl/media/a1080_g250.mp4",
+       "speed": 1.0,
+       "transportMode": 0,
+       "loopMode": 0,
+       "reverse": true,
+       "inPoint": 0.0,
+       "outPoint": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L156",
+     "id": 156,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v71",
+       "id": 71,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.f5GMfl/media/a1080_g250.mp4",
+       "speed": 1.0,
+       "transportMode": 0,
+       "loopMode": 0,
+       "reverse": true,
+       "inPoint": 0.0,
+       "outPoint": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L157",
+     "id": 157,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v72",
+       "id": 72,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.f5GMfl/media/a1080_g250.mp4",
+       "speed": 1.0,
+       "transportMode": 0,
+       "loopMode": 0,
+       "reverse": true,
+       "inPoint": 0.0,
+       "outPoint": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L158",
+     "id": 158,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v73",
+       "id": 73,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/bd9a1c96-8ac1-42b0-a088-3d8fb87be738/scratchpad/gate/final/ab-ab256/runs/vupload.f5GMfl/media/a1080_g250.mp4",
+       "speed": 1.0,
+       "transportMode": 0,
+       "loopMode": 0,
+       "reverse": true,
+       "inPoint": 0.0,
+       "outPoint": 1.0,
+       "effects": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
