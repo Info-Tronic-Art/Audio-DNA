@@ -23,6 +23,10 @@ extern "C" {
 }
 
 #include <mach/mach.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#include <cerrno>
 
 #include <cmath>
 #include <cstdint>
@@ -920,6 +924,51 @@ TEST_CASE("c2: GopCache::Store -- copies in the native format, the budget refuse
     for (auto* f : src)
         av_frame_free(&f);
     av_frame_free(&odd);
+}
+
+// gopcache-fix (GC10's tooth): the footprint case above cannot tell an mmap-backed slot from a malloc-backed one (345 KB frames:
+// a $TMPDIR mutant with av_frame_get_buffer returned its memory there too -- only the live 1080p u9 row saw malloc keep
+// 870 MB). This asserts the mechanism itself: every slot's planes are ONE page-aligned anonymous mapping of whole pages,
+// and a freed slot's pages are unmapped at once (msync on them fails with ENOMEM) -- a malloc'd block stays mapped.
+TEST_CASE("GC10: a cache slot is its own page mapping, unmapped the moment the slot is freed (clear / freeSlot)",
+          "[gopcache][s-rta-0929b]")
+{
+    GopCache::Budget budget;
+    big(budget);
+    GopCache::Store store;
+    store.configure(AV_PIX_FMT_YUV420P, 64, 64, &budget, nullptr);
+    std::vector<AVFrame*> src;
+    for (int i = 0; i < 4; ++i)
+        src.push_back(patternFrame(64, 64, i));
+    const size_t page = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+    std::vector<std::pair<uint8_t*, size_t>> maps;
+    for (int i = 0; i < 4; ++i)
+    {
+        REQUIRE(store.store(src[static_cast<size_t>(i)], i, i / 30.0, { GopCache::Keep::Store, -1 },
+                            GopCache::Slot{ i, i, GopCache::Pool::Future }, 0));
+        const AVFrame* f = store.frameAt(store.slotOf(i));
+        REQUIRE(f->buf[0] != nullptr);
+        CHECK(f->buf[1] == nullptr);                                            // all planes in one buffer
+        CHECK(reinterpret_cast<uintptr_t>(f->buf[0]->data) % page == 0);       // page-aligned
+        CHECK(f->buf[0]->size % page == 0);                                     // whole pages
+        CHECK(static_cast<int64_t>(f->buf[0]->size) == store.frameBytes());
+        maps.emplace_back(f->buf[0]->data, f->buf[0]->size);
+        CHECK(msync(f->buf[0]->data, f->buf[0]->size, MS_ASYNC) == 0);          // mapped while held
+    }
+    store.freeSlot(store.slotOf(0));
+    errno = 0;
+    CHECK(msync(maps[0].first, maps[0].second, MS_ASYNC) == -1);
+    CHECK(errno == ENOMEM);                                                     // the freed slot's pages are gone
+    CHECK(msync(maps[1].first, maps[1].second, MS_ASYNC) == 0);                 // the others stay
+    store.clear();
+    for (size_t i = 1; i < maps.size(); ++i)
+    {
+        errno = 0;
+        CHECK(msync(maps[i].first, maps[i].second, MS_ASYNC) == -1);
+        CHECK(errno == ENOMEM);
+    }
+    for (auto* f : src)
+        av_frame_free(&f);
 }
 
 namespace
