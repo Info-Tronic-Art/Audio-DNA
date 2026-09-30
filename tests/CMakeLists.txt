@@ -2793,6 +2793,40 @@ endif()
 apply_sanitizers(test_video_player_open)
 catch_discover_tests(test_video_player_open)
 
+# --- s-rta-0929b gopcache (plan-gopcache.md 7 + adoption GC12): the GOLDEN TRACE of the REAL VideoPlayer's forward writer
+# (decode thread started, no GL): a fixed-clock schedule on the GOP-30 64x64 fixture; every published frame, every pick
+# and the decode / drop / seek counters must equal the trace recorded on the pre-refactor writer (main d88d2ea).
+# Fixture: tests/fixtures/video_h264_gop30_64x64.mp4.
+add_executable(test_video_decode_trace
+    test_video_decode_trace.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_video_decode_trace PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_decode_trace PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+if(APPLE)
+    target_link_libraries(test_video_decode_trace PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
+target_compile_definitions(test_video_decode_trace PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_video_decode_trace PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_video_decode_trace)
+catch_discover_tests(test_video_decode_trace)
+
 # --- s-rta-0929 vupload (plan-vupload.md 4.8 + adoption VU1-VU3 / VU8): the REAL VideoPlayer uploading into a PRIVATE CGL
 # 4.1 core context (the test_shared_frame_gl shape: no window, SKIPs loudly without a pixel format); no decode thread --
 # the test is the writer (VideoPlayerTestAccess). Frame-0 identity vs a test-side FFmpeg + sws decode (yuv420p H.264, a

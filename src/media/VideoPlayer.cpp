@@ -433,8 +433,14 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
         *pending = false;
     if (!open_.load(std::memory_order_relaxed))
         return texture_;   // hold after close, as before
+    const int64_t drawMs = nowMs();
     if (firstDrawMs_ < 0)
-        firstDrawMs_ = nowMs();   // W3: the first draw request starts the first-frame timeout
+        firstDrawMs_ = drawMs;   // W3: the first draw request starts the first-frame timeout
+    // s-rta-0929b gopcache: a drawn spell starts at the first draw after > 100 ms without one (a deck return, a trigger);
+    // the wait from it (or from the last upload) to the next upload is video_max_upload_gap_ms.
+    if (lastDrawCallMs_ < 0 || drawMs - lastDrawCallMs_ > 100)
+        gapFromMs_ = drawMs;
+    lastDrawCallMs_ = drawMs;
     pollFences();   // P3: a slot whose blit has completed goes back to the writer (the held one stays)
     trimmed_ = false;   // P4b: drawn again -- the next idle spell trims again
 
@@ -481,9 +487,13 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
             if (stats_)
             {
                 ++stats_->uploads;
+                ++stats_->playerUploads[statsSlot_];
+                if (playing_.load(std::memory_order_relaxed))
+                    VideoStats::noteMax(stats_->maxUploadGapMs, static_cast<float>(drawMs - gapFromMs_));
                 VideoStats::noteMax(stats_->peakUploadMs, std::chrono::duration<float, std::milli>(
                                                               std::chrono::steady_clock::now() - uploadStart).count());
             }
+            gapFromMs_ = drawMs;
         }
         lastShownPts_ = p.pts;
         // P4a: this slot is now the one ON SCREEN (held); the previously shown one goes back to the writer.

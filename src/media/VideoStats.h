@@ -17,11 +17,28 @@ struct VideoStats
     // video uploads on one render frame (reset on read).
     std::atomic<int64_t>  uploadsDeferred{ 0 }, holdNoTexture{ 0 }, slotsPurged{ 0 }, fenceFailed{ 0 }, surfaceFallbacks{ 0 };
     std::atomic<int>      uploadCap{ 0 }, maxUploadsPerFrame{ 0 };
+    // s-rta-0929b gopcache (plan-gopcache.md 3.8 + adoption GC4 / GC6): the decode threads' GOP caches -- bytes / frames /
+    // caches holding a frame (gauges), the budget's per-cache cap (INFO), hits (a cached frame published), misses (demand
+    // runs), runs (prefetch + reposition), run decodes, evictions, drops (decoded, not stored), stores taken over the budget
+    // under the floor. GL thread: a reversing player showed a frame ABOVE the previous one in the same generation (must
+    // stay 0), the effective direction changed; the longest wait between two uploads of one drawn, playing player and the
+    // longest single writer step (both reset on read); uploads per player slot (a player takes slot n % kPlayerSlots at
+    // setStats; the probe's per-player minimum).
+    std::atomic<int64_t>  gopCacheBytes{ 0 }, gopCacheFrames{ 0 }, gopCacheCapBytes{ 0 }, gopCacheHits{ 0 },
+                          gopCacheMisses{ 0 }, gopCacheRuns{ 0 }, gopCacheRunDecodes{ 0 }, gopCacheEvictions{ 0 },
+                          gopCacheDrops{ 0 }, gopCacheOverBudget{ 0 }, reverseNonmonotonic{ 0 }, directionChanges{ 0 };
+    std::atomic<int>      gopCacheActive{ 0 };
+    std::atomic<float>    maxUploadGapMs{ 0.0f }, writerStepMaxMs{ 0.0f };   // reset on read
+    static constexpr int  kPlayerSlots = 32;
+    std::atomic<int>      nextPlayerSlot{ 0 };
+    std::atomic<int64_t>  playerUploads[kPlayerSlots] = {};
 
     int   takeGlMaxDecodesPerCall() { return glMaxDecodesPerCall.exchange(0, std::memory_order_relaxed); }
     int   takeMaxUploadsPerFrame()  { return maxUploadsPerFrame.exchange(0, std::memory_order_relaxed); }
     float takePeakUploadMs()        { return peakUploadMs.exchange(0.0f, std::memory_order_relaxed); }
     float takeMsgLockWaitMaxMs()    { return msgLockWaitMaxMs.exchange(0.0f, std::memory_order_relaxed); }
+    float takeMaxUploadGapMs()      { return maxUploadGapMs.exchange(0.0f, std::memory_order_relaxed); }
+    float takeWriterStepMaxMs()     { return writerStepMaxMs.exchange(0.0f, std::memory_order_relaxed); }
 
     static void noteMax(std::atomic<float>& a, float v)
     {

@@ -124,7 +124,13 @@ public:
     juce::Image getThumbnail(int maxWidth, int maxHeight);
 
     // s-rta-0928b video: the Renderer's counters (/api/state). nullptr = none (the default). Before start().
-    void setStats(VideoStats* s) { stats_ = s; }
+    // s-rta-0929b gopcache: the player takes an upload-count slot (video_player_uploads, the probe's per-player minimum).
+    void setStats(VideoStats* s)
+    {
+        stats_ = s;
+        if (s != nullptr)
+            statsSlot_ = s->nextPlayerSlot.fetch_add(1, std::memory_order_relaxed) % VideoStats::kPlayerSlots;
+    }
 
     // s-rta-0929 vupload P4b (plan R-14): GL thread, the frame top (Renderer::scanVideoIdle). A shown player not drawn for
     // kTrimIdleMs drops its Ready slots (the reader's) and asks its parked decode thread (the writer) to purge its Free
@@ -253,6 +259,9 @@ private:
     juce::Image thumbnail_;            // made in open() (message thread)
 
     VideoStats* stats_ = nullptr;
+    int statsSlot_ = 0;                // s-rta-0929b gopcache: this player's video_player_uploads slot
+    int64_t gapFromMs_ = -1;           // GL thread: the last upload, or the start of this drawn spell (video_max_upload_gap_ms)
+    int64_t lastDrawCallMs_ = -1;      // GL thread: the previous uploadToTexture call
 
     // R-13 levers (named, each with its trigger in plan-video.md): V5 -- NONREF skipping in a catch-up is ON.
     static constexpr bool kSkipNonRefInCatchUp = true;
