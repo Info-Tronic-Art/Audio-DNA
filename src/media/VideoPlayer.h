@@ -278,6 +278,10 @@ private:
     int playerId_ = 0;                          // GC9: the one-PREFETCH-run token's owner id
     bool intraOnly_ = false;                    // GC5: every frame a keyframe (codec or container index) -- no cache
     int gopFramesEst_ = 250;                    // the container index's longest keyframe interval (R-9)
+    // s-rta-0930 gop2 (A1): the container index's keyframes, relative and sorted (empty = no index: the longest-interval
+    // grid) -- a PREFETCH window's lead-in is measured from the real keyframe below it. Written in open(), read by the
+    // decode thread (like gopFramesEst_).
+    std::vector<int> keyRels_;
     double decodeMsEma_ = 0.0;                  // measured decode ms per frame (seeded per megapixel)
     double firstPts_ = 0.0;                     // relative frame 0 (open()'s first decoded frame)
     int nFrames_ = 0;                           // the trajectory's length (totalFrames_; the real count once EOF is met)
@@ -287,6 +291,12 @@ private:
     bool haveServed_ = false;
     int runPublishAt_ = -1;                     // a DEMAND run's frame to publish (-1 = none)
     bool runSawKey_ = false;                    // GC3: a run stores only frames decoded after its keyframe
+    // s-rta-0930 gop2 R3 (GopCache::storeGateOpens): the next video packet read is a seek's landing; that packet carried
+    // the demuxer's key flag; its pts (INT64_MIN = GopCache::kNoPts = AV_NOPTS_VALUE: none -- this header keeps GopCache.h
+    // and FFmpeg out). Decode thread only (reset by seekToTimestamp).
+    bool firstPacketSinceSeek_ = false;
+    bool landedOnKeyPacket_ = false;
+    int64_t landingPts_ = INT64_MIN;
     bool runHasToken_ = false;                  // GC9
     int lastDecodedRel_ = -1;
     bool servedFromCache_ = false;              // forward: frames came from the cache since the last decode (reposition)

@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <vector>
 
 // s-rta-0929b gopcache (.harmony/.reports/s-rta-0929b/plan-gopcache.md 3.3 + HARMONY ADOPTION GC6 / GC7 / GC9): the PURE
@@ -290,6 +291,15 @@ inline int nextReverse(Mode m, int n, int r)
 
 constexpr int kHole = -2;   // index value: a frame the decoder never outputs (GC3: skipped over, never sought again)
 
+constexpr int64_t kNoPts = INT64_MIN;   // == AV_NOPTS_VALUE (static_assert in VideoPlayer.cpp)
+// GC3 + s-rta-0930 gop2 R3: a run stores frames only after its keyframe -- a decoded frame flagged key, or, after a seek
+// that landed on a packet the demuxer flags key, a frame at or after that packet's pts (a recovery point's recovered
+// frames; an open-GOP leading frame precedes it and never opens the gate). No pts on the frame or the landing: the flag.
+inline bool storeGateOpens(bool frameKey, bool landedOnKeyPacket, int64_t framePts, int64_t landingPts)
+{
+    return frameKey || (landedOnKeyPacket && framePts != kNoPts && landingPts != kNoPts && framePts >= landingPts);
+}
+
 inline bool resident(const std::vector<int>& index, int r)
 {
     return r >= 0 && r < static_cast<int>(index.size()) && index[static_cast<size_t>(r)] >= 0;
@@ -357,14 +367,51 @@ inline int availableFor(const std::vector<Slot>& slots, int capSlots, int behind
     return std::max(0, std::min(share, room + farther + nNone));
 }
 
+// s-rta-0930 gop2 (GC7): the frames the clock passes while a run decodes `leadFrames` frames of lead-in (keyframe ->
+// window) at `decodeMs` a decode, one frame per `frameMsEff` -- each becomes a passed frame whose slot the run's stores may
+// take. 0 when any input is <= 0 (and whenever the lead-in is shorter than a frame period).
+inline int servedDuringLead(int leadFrames, double decodeMs, double frameMsEff)
+{
+    if (leadFrames <= 0 || decodeMs <= 0.0 || frameMsEff <= 0.0)
+        return 0;
+    return static_cast<int>(std::floor(static_cast<double>(leadFrames) * decodeMs / frameMsEff));
+}
+
+// s-rta-0930 gop2: the keyframe at or before r -- the container index's (sorted relative indices) when it has one at or
+// below r, else the longest-interval grid (no index / cue-less: on a scene-cut file the grid over-states the lead-in)
+inline int keyAtOrBefore(int r, int gopFrames, const std::vector<int>* keys)
+{
+    if (keys != nullptr && !keys->empty() && (*keys)[0] <= r)
+        return *std::prev(std::upper_bound(keys->begin(), keys->end(), r));
+    return gopFrames > 0 ? (r / gopFrames) * gopFrames : r;
+}
+
+// s-rta-0930 gop2: what a PREFETCH window's lead-in costs -- the measured decode ms a frame, the clip's effective frame
+// period, the longest keyframe interval (0 = no model: the window is what is free at planning) and the container index's
+// keyframes (relative, sorted; nullptr / empty = the grid).
+constexpr int kInPlaceMargin = 1;   // slots of the lead-in's gain left unplanned (a frame passing late)
+struct Lead
+{
+    double decodeMs = 0.0;
+    double frameMsEff = 0.0;
+    int gopFrames = 0;
+    const std::vector<int>* keys = nullptr;
+};
+
 // REVERSE: a PREFETCH run when fewer than `prefetchAtN` unserved frames are resident ahead of `served`, the trajectory
 // continues (Loop wraps to n - 1 after frame 0; PingPong / OneShot plan nothing below 0; intra-only files never prefetch)
 // and at least `minWindow` Future slots are available (a run costs a keyframe seek + the catch-up however few frames it
 // stores: a 1-frame window would cost a GOP of decode per frame): target = the first frame after the resident run that is
 // neither resident nor a known hole (holes are walked over: gopcache-fix F1); windowLo = max(0, target - (available - 1)) (available as availableFor at the target's distance), seekFrom =
 // windowLo -- ONE keyframe seek covers the whole next window.
+// s-rta-0930 gop2 (GC7): `lead` -- the in-place window. The frames the clock passes while the run decodes its lead-in (from
+// the keyframe at or before the window's bottom up to it) free their slots before the run's stores begin, so `available`
+// = the slots free now (avail0) + those frames (servedDuringLead, less kInPlaceMargin), at most the Future share -- two
+// iterations (the window's bottom and its lead-in depend on each other). A lead-in shorter than a frame period changes
+// nothing; when the estimate is optimistic the store's farthest-next-use verdict keeps the frames nearest the clock and
+// replaces the window's own bottom (judgeStore): the window shrinks, it never stalls.
 inline Run planPrefetch(const std::vector<int>& index, const std::vector<Slot>& slots, Mode m, int n, int cur, int served,
-                        int capSlots, int behindCap, int prefetchAtN, bool intraOnly, int minWindow = 1)
+                        int capSlots, int behindCap, int prefetchAtN, bool intraOnly, int minWindow = 1, const Lead& lead = {})
 {
     Run r;
     if (intraOnly || n <= 1 || served < 0)
@@ -378,7 +425,19 @@ inline Run planPrefetch(const std::vector<int>& index, const std::vector<Slot>& 
     }
     if (t < 0 || steps >= n - 1 || u >= prefetchAtN)
         return r;
-    const int avail = availableFor(slots, capSlots, behindCap, distance(m, false, n, cur, t));
+    const int avail0 = availableFor(slots, capSlots, behindCap, distance(m, false, n, cur, t));
+    int avail = avail0;
+    if (lead.gopFrames > 0 && avail0 > 0)
+    {
+        const int share = capSlots - behindCap;
+        for (int it = 0; it < 2; ++it)
+        {
+            const int lo = std::max(0, t - (avail - 1));
+            const int gain = std::min(share - avail0,
+                                      servedDuringLead(lo - keyAtOrBefore(lo, lead.gopFrames, lead.keys), lead.decodeMs, lead.frameMsEff));
+            avail = std::min(share, avail0 + std::max(0, gain - kInPlaceMargin));
+        }
+    }
     if (avail <= 0 || avail < minWindow)
         return r;
     r.kind = RunKind::Prefetch;
