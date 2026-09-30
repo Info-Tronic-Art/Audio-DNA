@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Audio-DNA — your checks (s-rta-0929)</title>
+<style>body{font:16px/1.5 -apple-system,system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1d1d1f}
+h1{font-size:24px}h2{font-size:18px;margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}
+li{margin:10px 0}.why{color:#666;font-size:14px}.pending{background:#fff7e0;padding:10px 14px;border-radius:8px}
+@media (prefers-color-scheme:dark){body{background:#1d1d1f;color:#f5f5f7}.why{color:#aaa}.pending{background:#3a3220}h2{border-color:#444}}</style></head><body>
+<h1>Audio-DNA — what only you can check (session s-rta-0929)</h1>
+<p>Everything below passed the automated tests. These checks need your eyes, your hands, or real hardware. Tell me what you see; nothing blocks on them.</p>
+
+<h2>1. Loading a composition no longer freezes the app</h2>
+<ul>
+<li>Load a composition that has many video clips (File &gt; Open, or the library). The window should not freeze. The label reads "Loading &lt;name&gt;..." for a moment, and the output keeps playing the current show until the new one cuts in, with no black flash.</li>
+<li>Press keys or pads during that moment: they should still act on the show you are looking at.</li>
+<li>Right-click a deck tab &gt; Duplicate twice quickly: you should get two copies, the second one active.</li>
+<li>Choose Load Deck... while a composition is still loading: the deck should be added after the composition arrives.</li>
+</ul>
+
+<h2>2. Several videos at once stay smooth</h2>
+<ul>
+<li>Trigger a whole column of four 1080p video clips at once: the preview should stay smooth (it now holds 120 fps on the laptop display; before, it could drop to ~105).</li>
+<li>Four 4K videos together should also feel smoother than before (about 100-104 fps, was 85-90).</li>
+<li>Play a clip in reverse and in ping-pong: the motion should look as smooth as before.</li>
+<li>While a video clip plays, minimise and restore the main window, or unplug and replug a projector. The layer must never flash to "effects only" (the picture should stay). <span class="why">A real graphics-driver reset cannot be produced on the test rig.</span></li>
+</ul>
+
+<h2>3. A playing routine uses less CPU, looks the same</h2>
+<ul>
+<li>Play a routine on a few layers: the routine pad, the chartreuse bands and the faders should look and move exactly as before. <span class="why">Only how often the pad redraws changed (about 12 times a second instead of 30).</span></li>
+</ul>
+
+<h2>Still open from earlier sessions</h2>
+<p class="pending">Older pages are still waiting, with defaults in place: <code>.harmony/.reports/s-rta-0928b/boris-checks.html</code> (idle feel, video hold length, sequence reloads, no-black drops) and <code>.harmony/.reports/s-rta-0928/boris-checks.html</code> (first item: fractal Zoom goes black at 60-75 % of its travel).</p>
+</body></html>

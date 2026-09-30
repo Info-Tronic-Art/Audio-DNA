@@ -3,39 +3,41 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0928b (2026-09-28 17:14 → 2026-09-29 ~08:00). The newest
-dated section is at the END of this file ("# >>> SESSION s-rta-0928b"); read it first, then the SCREEN-SAFETY LAW section.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-0929 (2026-09-29 08:35 → ~22:15). The newest
+dated section is at the END of this file ("# >>> SESSION s-rta-0929"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
-"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo, video). CLAUDE.md is 24,980 B of its
-25,000-byte cap (20 B left — pay for ANY addition by moving text into docs/claude/*.md) + docs/claude/*.md (trigger table).
+"Playback Behaviour" (read before touching routines, decks, outputs, fit, tempo, video). CLAUDE.md is 24,522 B of its
+25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) + docs/claude/*.md (trigger table).
 Ultracode: use workflows. Law #11: plans by Fable (architect, max; it worked all session) — on "You've reached your Fable
 limit" re-pin to opus max, record the deviation, tell Boris.
 
-STATE: s-rta-0928b closed all four technical START-HERE items of s-rta-0928 with 5 merges, each gated by Harmony RED-first on
-the pre-merge app then GREEN on merged main: (1) the always-present idle UI stall (diagnosed: JUCE 8's mac peer redrew the
-UNION of four animating widgets' dirty rects = the whole window 30x/s; fixed: SignalBar/WaveformDisplay in their own
-layer-backed views + repaint-on-change; idle window max 17-22 -> 4.5 ms, CPU 319-347 -> 112-135 ms/s, pixel-identical to main;
-Pitfall 57); (2) image sequences play through a bounded 1 GiB window of recycled textures (2373 -> 1020 MiB; Pitfall 54);
-(3) media on hot threads: video decodes off the GL thread (retrigger freeze 3.4 s at 14/4 fps -> a 0.25/1.05 s hold; 4x4K
-36 -> 90 fps; UI lock waits 222 -> 0 ms; truncated files no longer crash; Pitfall 56) + the fence holds the canvas (drops/loads
-never black), drops open before the fence, sequences open with no I/O, presence sweep, speed default (Pitfall 55);
-(4) TempoMap::sampleAt nominal-rate fix. ctest 920/920 (101 targets). Everything pushed. RIG FACTS (binding): NO Bluetooth
-audio. NO Xcode (Command Line Tools only). Machine: M1 Pro, 32 GiB, 120 Hz display.
+STATE: s-rta-0929 closed START-HERE items 1-3 of s-rta-0928b and two of item 4, with 3 merges, each gated by Harmony
+RED-first on the pre-merge app then GREEN on merged main: (1) ASYNC LOADS (asyncload, Pitfall 58): composition / Load Deck /
+Duplicate Deck loads are staged, videos open on a 2 x low pool, the 16 x 4K load's UI stall 244-257 -> 8-16 ms, the old show
+plays until a clean cut, POST /api/load_composition answers after the swap, Append / Duplicate queue FIFO, a hung open at
+quit leaks its pool instead of killing a thread; (2) VIDEO UPLOAD (diag-vfps -> vupload, Pitfall 60): a per-frame video upload
+budget (column-trigger 4 x 1080p 105 -> ~119.5 fps), IOSurface ring slots + one GPU blit per new frame (4 x 4K 85-90 ->
+100-104 fps, pixel-identical on 3 paths x 5 formats), the shown slot held across a context loss (FX-only frames 463 -> 0),
+idle slots purged (-284..-318 MB); GL-thread QoS was tried and REVERTED (pre-registered test: it made trigger round trips
+slower); (3) ROUTINE CPU (g4cpu, Pitfall 59): the ROUTINES pad repaints only when its picture changes (29 -> 11.6/s), g4
+CPU 176 -> 155 ms/s interleaved, pixels identical. ctest 967/967 (107 targets). FINAL battery GREEN (idle-paint needed one
+re-run: 2 startup crashes, see START 1). Everything pushed. RIG FACTS (binding): NO Bluetooth audio. NO Xcode (Command Line
+Tools only). Machine: M1 Pro, 32 GiB, 120 Hz display.
 
 START HERE, in order:
-1. ASYNC LOADS (mediaopen commit 7, deferred by ruling P1): plan-mediaopen.md §4.4 + its HARMONY ADOPTION P1 name the
-   acceptance: staged-cancel retires sequence ids too; the "Loading <name>..." label restored on cancel (+ a cancel row); an
-   AUDIO-callback witness during a 16 x 4K load (the GL peak_callback_ms is not the audio callback); a load-then-trigger row;
-   DeckDuplicate label. Uses the video lane's seam (Renderer::installVideoPlayer; VideoPlayer::open runs on any thread).
-   16 x 4K load still freezes the UI ~1.1 s (thumbnail now cheap). Fresh Fable plan (the old §4.4 predates the video merge).
-2. probe-video w1 bimodal (~101 vs ~120 fps per launch; ledger item 2) — diagnose first; then 4 x 4K video at the display rate: 89-91 fps vs 116-120 with stills = the per-frame upload cost (~30 fps). Zero-copy upload
-   (IOSurface / VideoToolbox) — its own plan; w2 (a2) prints the gap as INFO (ruling W1b).
-3. g4 (a routine playing on 3 layers): stall bar passes (5.6 ms) but main-thread CPU 158 ms/s (main 328) — lever filed:
-   per-strip SignalBar repaints, then fold the band / V-fader repaints (plan-idlepaint J2).
-4. Filed video items: a context loss gives 1-4 frames FX-only on a playing clip; reverse / ping-pong on long-GOP files runs
-   at a low rate (GOP cache); RSS trim of idle players' 3 ring slots (R-14).
-5. Boris answers pending (page .harmony/.reports/s-rta-0928b/boris-checks.html, opened for him; older page s-rta-0928 still
-   open: TOP = fractal Zoom black 60-75 % of travel, B1).
+1. STARTUP HEAP CORRUPTION (HIGH, pre-existing): SIGABRT "malloc free-list checksum botch" on the message thread, surfacing in
+   CoreMedia / CMIO init at launch — crash reports 2026-09-23 (x2), 09-24, 09-29 20:58 + 20:59 on four binaries; 2 of ~10
+   production launches in one battery group, 0 in the re-run. A crash leaves a "quit unexpectedly" dialog on Boris's
+   screen. Diagnose first (repeated launches with MallocScribble / MallocGuardEdges / an ASan build of the app; which
+   startup code runs before CMIO: camera enumeration, audio device open, the new audio-callback witnesses). Fresh Fable plan
+   after the diagnosis.
+2. GOP cache (own lane, ruled in plan-vupload P4c): reverse / ping-pong on long-GOP files runs at a low rate (g250 reverse
+   ~4.5 uploads/s); touches decodeLoop's seek policy + a second memory budget. Fresh Fable plan.
+3. Unexplained residues, each filed with what was established / ruled out / the next test (ledger items 3-6).
+4. Video headroom: VideoToolbox hardware decode (frees ~2.2 cores at 4 x 4K, no fps gain measured) — its own plan when
+   wanted. The light-scene E-core placement of the GL thread is open: QoS is NOT the lever (it cost trigger latency).
+5. Boris answers pending (page .harmony/.reports/s-rta-0929/boris-checks.html, opened for him; older pages s-rta-0928b and
+   s-rta-0928 still open with defaults).
 
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build lanes);
 remove each worktree the turn it merges. A user message that arrives mid-turn is RELAYED to every lane started later in that
@@ -44,39 +46,82 @@ write reports to .harmony/.reports/<session>/<lane>.md (committed) — scratchpa
 lldb/debugserver/gdb/dtrace/Instruments/sample on ANY binary; never full-screen screencapture (Quartz window id only); no
 synthetic input (UI states via REST / composition files / TEMPORARY env-var hook, reverted + rebuilt + strings check = 0);
 fence each lane; reviewer/critic packets PIN worktree + branch + commit; FIX-ROUND prompts continue from a named commit
-(scratchpad wf/fix-lane.js pattern, copied to .harmony/.reports/s-rta-0928b/wf/). A workflow's automatic fix round can be
-TaskStop-ped in its review stage and relaunched with rulings (verify the worktree clean first). Broken-media probes can
-CRASH the app -> a "quit unexpectedly" dialog on Boris's screen: after such batches count on-screen UserNotificationCenter
-windows (Quartz) == 0. Live app: ONE at a time via /tmp/audiodna-live.lock; lock helper (copy .harmony/.reports/s-rta-0928b/
-wf/lock.sh to your scratchpad, fix SPL) — use acquire_quiet_lock (waits for no compiler BEFORE locking). Probe HTTP clients
-use Connection: close. NEVER SendMessage a running WORKFLOW agent. Test mode: `open -g <App> --args --test-mode`. Render gates
-DECODE PIXELS; LOOK at one frame; check the INPUT fixture first. A flake verdict needs >= 5 runs per arm; never derive a perf
-bar from numbers measured while other lanes run. MERGE SEQUENCE: commit your notes -> RED of the lane's new rows on the
-PRE-MERGE binary -> merge (source conflicts go to a builder rebase lane, never Harmony) -> cmake -S . -B build + build ->
-ctest -> GREEN. Pitfall numbers: lanes write "NN" until merge; Harmony assigns the next free number (next = 58). Probe env:
-STEP3/RESYNC/DOWNBEAT/MANUALBPM/ROUTINES_BUILD_DIR=build (+ ROUTINES_RECORD_PAUSE=1.8); FINLOOP_BUILD_DIR=build;
-ONSET_BUILD_DIR=build; *_APP overrides (TEMPOSTART/IMGLOAD/CAPT/SEQVRAM/MEDIAOPEN/VIDEO/IDLEPAINT). Battery script:
-.harmony/.reports/s-rta-0928b/wf/final.sh (24 probes + Tier-1; adapt paths). Main-loop habits: never `cd`; stamp EVERY log
-row from `date` (never type a time); syntax-check workflow scripts before launch; teeth mutations by the lane report's named
-pattern, never by reading source (Iron Law #1). Reviews/critics are not the verdict — the live gate is.
-COUNTS: run them — ctest 920/920 at close (101 targets); unpushed 0.
+(wf/fix-lane.js). A workflow's automatic fix round can be TaskStop-ped in its review stage and relaunched with rulings.
+Broken-media probes can CRASH the app -> count on-screen UserNotificationCenter windows (Quartz) == 0 after such batches.
+Live app: ONE at a time via /tmp/audiodna-live.lock; lock helper .harmony/.reports/s-rta-0929/wf/lock.sh (copy to your
+scratchpad, fix SPL) — acquire_quiet_lock for perf. Probe HTTP clients use Connection: close. NEVER SendMessage a running
+WORKFLOW agent. Test mode: open -g <App> --args --test-mode. Render gates DECODE PIXELS; LOOK at one frame. A flake verdict
+needs >= 5 runs per arm. PERF A/B: INTERLEAVED arms launch by launch (the rig drifts ~5-8 fps or ms/s per hour; sequential
+per-arm batches are not evidence); a CPU bar whose teeth equal the drift is INFO, not a gate. Inside a fix round, a
+"is X the cause" question gets a PRE-REGISTERED decision rule (arms, N, metric, thresholds, action per branch) so the lane
+acts on its own result. Packets: Harmony's own constraints go in a sentence labelled "Harmony constraint:"; a BORIS_DECISIONS
+citation quotes the file verbatim (s-rta-0929: a paraphrase became a fabricated "Boris ruling"); an ESTABLISHED list carries
+only lines a prior report VERIFIED (the "per launch" w1 claim was wrong). Keep a COPY of the pre-merge app for BEFORE arms
+(IDLEPAINT_APP_BEFORE / VIDEO_REF_WRITE) — merging rebuilds build/. MERGE SEQUENCE: commit your notes -> RED of the lane's new
+rows on the PRE-MERGE binary -> merge (source conflicts go to a builder rebase lane, never Harmony) -> cmake -S . -B build +
+build -> ctest -> GREEN. Pitfall numbers: lanes write "NN" until merge; Harmony assigns the next free number (next = 61).
+Probe env: STEP3/RESYNC/DOWNBEAT/MANUALBPM/ROUTINES_BUILD_DIR=build (+ ROUTINES_RECORD_PAUSE=1.8); FINLOOP_BUILD_DIR=build;
+ONSET_BUILD_DIR=build; *_APP overrides (VIDEO_APP also drives probe-vupload; ASYNCLOAD_APP; IDLEPAINT_APP[_BEFORE]). Battery
+script: .harmony/.reports/s-rta-0929/wf/vupload-final.sh (27 probes + Tier-1; adapt paths). Main-loop habits: never `cd`;
+stamp EVERY log row from `date`; syntax-check workflow scripts (wf/check.sh); teeth by the lane report's named pattern, never
+by reading source (Iron Law #1); never `git commit -a` (Boris's dirty .harmony-version rides along) — stage by path.
+COUNTS: run them — ctest 967/967 at close (107 targets); unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0928b -->
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0929 -->
 BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
-SHIPPED: UI no longer redraws the whole window 30x/s at idle (hitches 18 -> 4.5 ms, pixel-identical) · retriggering a video no
-longer freezes the show (a short hold on that layer instead; 4x4K 36 -> 90 fps; a broken video file no longer crashes) · image
-sequences capped at 1 GB of video memory (was 2.4 GB per long sequence) · dropping media / loading never blacks the projector ·
-deleted files noticed off the hot threads · tempo-map short-take fix.
-IN-FLIGHT: none. Tree clean, everything pushed, no worktrees.
-NEXT: (1) fully background composition loads (async opens; UI still freezes ~1 s on a 16 x 4K load) · (2) 4x4K video at the
-display rate (zero-copy upload) · (3) CPU while a routine plays on 3 layers · (4) filed video edge items · (5) Boris answers.
+SHIPPED: loading a composition never freezes the UI (old show plays until a clean cut) · 4 videos triggered together stay at
+120 fps · 4 x 4K video 85-90 -> 100-104 fps with an identical picture · no effects-only flash after a context loss · idle
+video players give back ~300 MB · a playing routine costs ~20 ms/s less CPU, looks identical.
+IN-FLIGHT: none. Tree clean (Boris's .harmony-version / AGENTS.md untouched), everything pushed, no worktrees.
+NEXT: (1) an intermittent startup crash (heap corruption, pre-existing since 09-23) · (2) smooth reverse on long-GOP videos ·
+(3) filed residues · (4) optional hardware video decode · (5) Boris answers.
 BLOCKERS: none (Boris questions have defaults).
-YOU ARE HERE: the known hot-thread freezes and the idle stall are gone; what remains is background loading, a GPU upload
-ceiling at 4 x 4K, and Boris's hands-on checks at his rig.
+YOU ARE HERE: loads, multi-video playback and routine CPU are done; the top risk left is a rare crash at launch.
 
-## LOOSE-ENDS LEDGER — s-rta-0928b (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-0929 (CURRENT)
+
+1. [OPEN, HIGH, START 1] Startup heap corruption (malloc checksum botch, SIGABRT, message thread, CoreMedia / CMIO init):
+   .ips 09-23 x2, 09-24, 09-29 x2 on four binaries; pre-existing (INFERRED from the older binaries); 2 of ~10 launches in one
+   battery group, 0 of 10 in the re-run.
+2. [OPEN, START 2] GOP cache for reverse / ping-pong on long-GOP files (own lane; plan-vupload P4c).
+3. [OPEN, residue] asyncload: an intermittent ~110 ms message-thread stall ~0.13 s after a 16-cell cut (10/10 loads in two
+   batches 10:33 / 10:40, then 0 of 30+); the load's own work was 5-9 ms (outside the load code). Next: probe-async-load
+   d1_grid_16_images + main_component_paints when it recurs. Also one audio outlier (+2 overloads, 160.9 ms gap) in 1 of 37
+   a2 windows, not reproduced in 20 more.
+4. [OPEN, residue] g4cpu: ~700 ms/s outlier launches (both apps, one invocation): the 'rest' phase (outside JUCE paint and
+   layer draws), a ~30 ms busy block per 500 ms window; not recurred in 26 launches. Next: thread-CPU stamps on
+   MainComponent::timerCallback / RoutineEngine::tick / LayerStrip::timerTick.
+5. [OPEN, residue] vupload: one w7 launch at 835 / 80 / 173 ms with QoS on (did not recur without QoS; cause INFERRED).
+   w1c (b) margin is thin without QoS (one launch exactly 118.5, pooled 119.2); w2c 4K fps not re-measured without QoS
+   (w2c is INFO). probe-video w6b (a) is a pre-existing load-sensitive flake (main fails it 4/5).
+6. [OPEN, residue] FINAL battery idle-paint v0_capture_teeth saw 4 clusters "elsewhere" (pt bboxes (265,139)-(273,296),
+   (601,139)-(609,296) delta 38, (27,277)-(78,288) delta 91, (236,170)-(241,263) delta 17 — the layer strip / grid
+   region) in one run; the re-run read 0. Next: when it recurs keep both captures and dump the strip / grid model state.
+7. [OPEN, low] g4 residue ~29 ms/s over idle = the look's own pixel-change ticks; c3 (TopBar in a native layer, filed: click
+   routing untestable without synthetic input), c4 (per-strip SignalBar, ~0 gain) filed; beat wheel repaint-on-change at
+   idle (~-8 ms/s) filed. Bound-knob region covered by argument (UniversalParamControl untouched), no frame.
+8. [OPEN, low] asyncload: AL2 hung-open quit row is a GUARD (T6 forked-child passes either way); AVIOInterruptCB
+   cancellation of a hung open filed (VideoPlayer fenced); sequence frame-0 pre-warm filed (Q4); EXCESS_DEAD accessors
+   LoadTiming::active / LabelHold::loadingText.
+9. [OPEN, low] vupload: VideoToolbox decode filed with the diag's price; light-scene GL-thread E-core placement open (QoS is not
+   the lever); a real GPU-driven context loss is untested (Boris check); non-Apple malloc path has no dedicated probe.
+10. [OPEN, low] docs: docs/claude/pitfalls.md physical order is 57, 59, 56, 58, 60 (56 sits after 57 from before this session);
+    cosmetic — renumber nothing, reorder when next editing that file. Tier-1 reaction_diffusion 'Diffusion A' PSNR 58.6 once
+    in a lane (limit 55; untouched source; no flake verdict). Carried from s-rta-0928b ledger items 4-8 (context-loss item
+    now FIXED; ring RSS trim FIXED) — the rest stand below.
+11. [OPEN, Boris] Page .harmony/.reports/s-rta-0929/boris-checks.html (opened): loads without freeze, duplicate twice, load
+    deck during a load, column of four videos, reverse smoothness, minimise / unplug during video, routine look. Older pages
+    s-rta-0928b and s-rta-0928 still open with defaults.
+12. WARN fable-usage-audit: LAW11-LOG-GAP — 3 architect dispatches (all runtime-verified Fable; all 3 plans followed with
+    adoptions), 0 DISPATCH_LOG rows (a foreign-repo secondary cannot write Harmony_Main's DISPATCH_LOG); compliance rows
+    are in .harmony/s-rta-0929-work.md.
+13. Session-index — skipped (foreign-repo lane, no transport yet).
+14. Carried: JUCE 8.0.8 bump before any wired interface; .harmony/.harmony-version and AGENTS.md dirty/untracked at boot —
+    not this session's, left untouched (one accidental sweep into a local commit was amended out before push).
+
+## (HISTORICAL, s-rta-0928b — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0928b
 
 1. [OPEN, START 1] Async composition / deck loads (plan-mediaopen commit 7, deferred by P1) — acceptance list in START 1.
 2. [OPEN, START 2] 4 x 4K video upload ceiling: 89-91 fps vs stills 116-120 (w2 (a2) INFO, ruling W1b). Zero-copy upload plan.
@@ -3329,3 +3374,52 @@ in his browser (the only window this session opened for him).
 
 ## COUNTS — run them, never inherit them
 ctest 920/920 (101 targets). Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-0929 (2026-09-29 08:35 → ~22:15, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+START-HERE items 1-3 of s-rta-0928b (+ two of item 4) closed with 3 merges (asyncload, g4cpu, vupload) and one diagnosis
+(diag-vfps), each: diagnosis where needed -> FABLE plan (all 3 plans ran on Fable) -> 2-3 blind attack seats -> Harmony adoption
+rulings -> opus builder lane -> pinned reviewers (+ critic seat for the UI lane) -> Harmony-ruled fix rounds (a builder rebase
+lane for g4cpu) -> Harmony RED on the pre-merge app + GREEN on merged main. Boris asked for EOS after the in-flight work.
+Session log: .harmony/sessions/2026-09-29-s-rta-0929-secondary.md; running log .harmony/s-rta-0929-work.md; plans / reports /
+evidence .harmony/.reports/s-rta-0929/ (wf/ = the reusable workflow + gate scripts).
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate; each lane's new rows RED on the pre-merge app first)
+Boot: ctest 920/920 re-derived. asyncload: RED PY 30 / 49 + phase 2 1 / 2 (pre-merge app) -> merged 7c95c4e -> ctest 942 ->
+GREEN probe-async-load 83 / 0 + 3 / 0, media-open 38 / 0. g4cpu: RED G12 cadence + v5 teeth absent -> merged c432e3f -> ctest
+947 -> GREEN probe-idle-paint all rows (v1-v5 0 px vs a pre-merge app COPY), routine-display 16 / 0. vupload: RED probe-vupload
+6 / 11, w1c 111.1 fps (bar 118.5) + hold absent, w10-all witness 0/10 -> merged 5b7f461 -> ctest 967/967 -> GREEN probe-vupload
+21 / 0, probe-video 102 / 0, w10-all 3 paths GREEN (refs written from the pre-merge app). FINAL battery on main 5b7f461 (20:15-
+21:40, load 3.3-12): vupload, video, w10-all, async-load, outputs 17/0, routine-display 16/0, beatclock 6/0, render-state 35/0,
+crossfade 35/0, effects-parity 46/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, routines 109/0, mastersignal 22/0,
+decktabs 6/0, canvas 15/0, deckclock 10/0, fitmode 10/0, step3 94/0, tempo-start 10/0, image-load 37/0, capture 9/0,
+finalize-loop 8/0 (40 cycles), onset-render 13/0, seq-vram 66/0, media-open 38/0 — all GREEN; idle-paint 32 / 5 (2 launches
+CRASHED at startup = ledger 1, v0 4 clusters = ledger 6) -> re-run of the failed rows GREEN (i1 / i2 5/5 launches, v0 0
+elsewhere, 0 new crash reports); Tier-1 test_sources 4, test_effects 3, test_audio_reactivity 4, test_time_sweep 1,
+test_performance 2 = 14/14 passed. Frames LOOKED at: the v0 diff (SignalBar + waveform shift clusters).
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-0929/boris-checks.html, opened for him)
+- Loads of a many-video composition: no freeze, "Loading <name>..." label, keys act on the show you see; Duplicate twice =
+  two copies; Load Deck during a load lands after it.
+- A column of four 1080p videos at 120 fps on the laptop display; 4 x 4K smoother; reverse / ping-pong as smooth as before.
+- Minimise / restore (or unplug a projector) while a video plays: never an effects-only flash (a real GPU context loss
+  cannot be produced on this rig).
+- The routine pad, bands and faders look and move exactly as before.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. The g4cpu planning packet parenthesised MY constraint right after a BORIS_DECISIONS citation; the plan cited it as a Boris
+   ruling (a seat caught it). 2. My ledger's "w1 bimodal per launch" went into the diag packet as ESTABLISHED — it was per
+   load. 3. The inherited "16 x 4K load freezes ~1.1 s" was wrong for today's code (~250 ms); it reached the plan's RED
+   prediction. 4. The build-lane critic prompt was static, so the round-2 critic judged a claim the lane had withdrawn
+   (fixed in wf/build-lane.js). 5. `git commit -am` swept Boris's dirty .harmony-version into a docs commit and dropped the
+   attribution (amended before push). 6. One temp file under /tmp instead of the scratchpad (notebook extraction).
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was `open -g` (production or --test-mode), main window only. No gate opened an Output window (0 Output-named
+windows after every batch). Two startup crashes at 20:58 / 20:59 (ledger 1) left NO on-screen dialog: 0 UserNotificationCenter
+windows at 21:40 and after the re-run. At close: no Audio-DNA process, the live lock free, no worktrees, no full-screen
+capture taken. The Boris page was opened in his browser (the only window this session opened for him).
+
+## COUNTS — run them, never inherit them
+ctest 967/967 (107 targets). Unpushed 0 after the close commit.

@@ -2077,3 +2077,55 @@ constraint:"; a BORIS_DECISIONS citation names only a section or quotes its text
 - 2026-09-29 4K upload cost is GL-thread CPU, not format | glTexSubImage2D RGBA/UBYTE of a 4K frame = 0.86-0.96 ms GL CPU; BGRA/8_8_8_8_REV, PBO and QoS gain 0; client storage = 25 ms/frame trap; IOSurface ring + glBlitFramebuffer = +15-16 fps (picture match by region codes + mean RGB only -- NOT a byte diff, audit MUST); IOSurface cannot bind to GL_TEXTURE_2D (CGLError 10008)
 - 2026-09-29 A/B perf on the shared rig drifts ~5 fps/hour | run arms INTERLEAVED launch by launch (diag-vfps-tools/run_mix.sh), never as sequential per-arm batches
 - 2026-09-29 probe-video w1's "per launch" bimodality was per LOAD: probe-video.py runs w1's 5 repeats as 5 loads in ONE launch (the packet's ESTABLISHED line was wrong -- inherited from my ledger wording)
+
+### s-rta-0929 — lane notes appended at close (verbatim from the lane reports)
+asyncload (asyncload.md:189):
+- 2026-09-29 asyncload | every file-label write goes through MainComponent::setFileLabel (AL5: while a load is staged the text is HELD for a cancel); a new label writer that calls fileLabel_.setText directly breaks the "Loading..." hold | discovered: src/MainComponent.cpp setFileLabel
+- 2026-09-29 asyncload | the async-load probe fixture (flat-colour ultrafast H.264) opens a 4K file in ~15 ms, so a staged window is 0.05-0.3 s: a row that must land INSIDE a window reads right after its POST (the ui_text message queues behind the load's), never after a fixed sleep | discovered: .harmony/probe-async-load.py a5 / a5b
+- 2026-09-29 asyncload | `osascript 'tell application "Audio-DNA" to quit'` against a HUNG app blocks ~120 s (Apple-event timeout) before any 30 s kill clock starts: background it | discovered: .harmony/probe-async-load.sh quit_check
+- 2026-09-29 asyncload | .harmony/probe-*.{sh,py,json} are gitignored: `git add -f` or the probe silently misses the commit | discovered: .gitignore
+- 2026-09-29 asyncload | juce::ThreadPool::removeAllJobs(false, 0) deletes QUEUED jobs and never waits for a running one; count dropped jobs in the ThreadPoolJob destructor (ran_ false) -- getNumJobs() races a finishing job | discovered: src/core/MediaOpener.cpp OpenJob
+
+
+g4cpu (g4cpu.md:220):
+Notebook (.harmony/notebook.md):
+- A JUCE-time pass log undercounts what a display pass costs. JUCE skips MainComponent::paint (and any parent's paint)
+  when opaque children cover the clip (juce_ComponentHelpers.h `clipObscuredRegions` recurses), so a pass inside one
+  opaque widget (a RoutinePad) has no JUCE time. Yet removing ~18 such pad passes/s saved ~21.7 ms/s of main-thread
+  CPU: ~1.2 ms per pass in AppKit / CA. Count passes (`paintOverChildren` always runs), not JUCE paint time.
+  | src/ui/UiPaintCounters.h passEnd | s-rta-0929 g4cpu
+- Main-thread CPU (ps -M utime + stime) of the same binary and fixture drifts ~8 ms/s between probe invocations on the
+  shared rig (g4 on c1: 159.9 / 167.6 / 166.9). A relative CPU bar needs teeth well above 8 ms/s, or several invocations.
+  | .harmony/probe-idle-paint.py gate
+- Paint-execution counters include union sweeps, and RoutinePad's includes all 8 pads (pad 2 is swept by the wheel +
+  strip unions). A cadence bound set from repaint REQUEST rates fails on paint counts (c2: pad paints 22.9/s vs requests
+  11.6/s). Filter to the playing pad, or derive the bounds from measured paints. | src/ui/RoutinePad.cpp paint
+- A stray orphaned `yes` (pid 83720, since ~05:02 on 09-29) ate one P-core all session; the perf rows rode on it.
+Work-log rows (.harmony/s-rta-0929-work.md):
+
+| t | kind | item | result |
+|---|---|---|---|
+| 09:18 | build | g4cpu STEP 0 (lane/g4cpu from main adf9b8a; build-lane with FETCHCONTENT from main build/_deps) | full build 09:31-09:50 |
+| 09:57 | probe | a1 batch 1 (c1 wall time) | DISCARDED: compilers ran, i1 298-386 ms/s tainted |
+| 10:14 | probe | c1 ctest + i1 / g4 (5 + 5, one invocation) | 920/920; G_red 42.7 (117.2 / 159.9); main g4 160.6 |
+| 10:19 | probe | a1 on c1 (CPU time) | c4 span 1.00 -> filed; c2b 0/s -> filed; c3 record 7.8 / 8.9 coincident passes/s |
+| 10:20 | commit | c1 ad35de1 | test-only witnesses + a1 |
+| 10:33 | probe | c2 EXPERIMENT (uncommitted, reverted) | g4 145.9 vs c1 167.6; gap 28.6; bar 35 -> 3.3 (iii) margin 7.7 < 8 -> STOP |
+| 12:45 | probe | final-app probes (G10) + v2b I4 flake check | idle-paint GREEN except the v2b I4 flake (10/10 PASS on re-run); routines 109/0; display 16/0; deck-tabs 6/0 |
+| 12:53 | check | final ctest serial | 920/920 |
+
+vupload (vupload.md:94):
+- 2026-09-29 | A video frame's shown slot is held (VideoRing::Retire): the writer look-ahead is kSlots - 1, and the reseek distance / ahead-drop line must be measured from it (kWriterLookAhead). Measured from kSlots, reverse play lost 25 % of its frames, and kSlots 4 did not help | discovered: src/media/VideoPlayer.cpp decodeLoop + uploadToTexture pick.
+- 2026-09-29 | TestServer listens on "localhost" (may be ::1): probe clients must use http://localhost:8080, never 127.0.0.1 | discovered: src/test/TestServer.cpp:84.
+- 2026-09-29 | `auto* obj = juce::JSON::parse(x).getDynamicObject()` dangles (the var dies at the end of the statement): keep the parsed var alive | discovered: src/test/TestServer.cpp handleGlContextCycle (caught live: detached_ms read as 0).
+- 2026-09-29 | A context cycle with an immediate re-attach does not starve a PLAYING video: the ~60 ms shader recompile refills every ring. The P4a bug needs a speed-0 / paused clip or a long detach to show | discovered: .harmony/probe-vupload.py u4a.
+- 2026-09-29 | IOSurface blit into a sampler2D is per-pixel identical to the RGBA client upload (0 / 255 on yuv420p, yuv422p10le, ProRes 4444 alpha, HAP Alpha, HEVC 10-bit); the binding survives IOSurfaceSetPurgeable Empty -> NonVolatile on the M1 Pro | discovered: tests/test_video_player_gl.cpp, probe-video w10.
+
+
+vupload fix round 1 (vupload.md:205):
+- 2026-09-29 | Raising JUCE's GL render thread to QoS USER_INTERACTIVE (pthread_set_qos_class_self_np in newOpenGLContextCreated) delays the MESSAGE thread: w7 image-trigger round trips > 20 ms went 2 -> 11 of 50 (one launch 835 ms), and reverting it alone brought them back to 2 (10 x 3 interleaved launches). A render-thread QoS change needs a message-thread latency gate, not only fps | discovered: src/render/Renderer.cpp newOpenGLContextCreated (reverted 8952f97), .harmony/probe-video.py w7.
+- 2026-09-29 | A pre-registered 3-arm diagnosis (MAIN / FINAL / FINAL-minus-one-commit) needs the minus-one arm's src built from `git archive <sha>` + a reverse-applied `git diff <c>^ <c>` in a scratch dir and build dir, never a second worktree: this adds no .git metadata, and `diff -r` against the later revert commit proves the arm IS that commit | discovered: fix1/noqos_build.sh.
+
+INBOX-RECHECK: none
+- 2026-09-29 pre-registered decision rule inside a fix round (arms, N, metric, thresholds, the action per branch, written before the run) let vupload act on its own diagnosis with no round trip; it reverted its own QoS change on the numbers (MAIN 2 / FINAL 11 / NOQOS 2 round trips > 20 ms of 50).
+- 2026-09-29 startup heap corruption (malloc free-list checksum botch, SIGABRT on the message thread, surfacing in CoreMedia / CMIO init) is PRE-EXISTING: crash reports 09-23 (x2), 09-24, 09-29 (x2) on four different binaries; 2 of ~10 production launches in one battery group, 0 in the re-run. Needs its own diagnosis (MallocScribble / MallocGuardEdges / ASan build + repeated launches).
