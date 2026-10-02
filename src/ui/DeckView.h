@@ -49,6 +49,16 @@ public:
     // it. Public for tests (setBackendsForTests before setComposition).
     ClipThumbnails& getThumbnails() { return thumbnails_; }
 
+    // s-rta-1002b ui U2.3 (BF3): fan-out only. Every clip cell reads a Video clip's codec / size / rate through this
+    // source (MainComponent::videoInfoFor) when its tooltip is asked for, and its menu's "Show in Finder" bubbles up as
+    // onRevealInFinder(layerIndex, column). Message thread.
+    void setVideoInfoSource(VideoInfoSource source) { videoInfoSource_ = std::move(source); }
+    std::function<void(int layerIndex, int column)> onRevealInFinder;
+    // TEST-ONLY hooks (ruling-ui.md AM10; /api/debug/reveal_clip and /api/debug/clip_media): the cell showing (layer,
+    // column) -- nullptr if none -- and its menu's completion path, menuChosen(1), as if "Show in Finder" was chosen.
+    ClipCell* cellForTests(int layerIndex, int column) const;
+    void revealCellForTests(int layerIndex, int column);
+
     // Callbacks — forwarded from child components
     std::function<void(int layerIndex, int column)> onClipTriggered;
     std::function<void(int layerIndex, int column, bool addToSelection)> onClipSelected;
@@ -148,6 +158,7 @@ public:
 private:
     Composition* composition_ = nullptr;
     ClipThumbnails thumbnails_;   // declared before the strips / cells: destroyed after them
+    VideoInfoSource videoInfoSource_;   // s-rta-1002b ui U2.3: the cells hold its address -- declared before them too
 
     // Grid components
     std::vector<std::unique_ptr<LayerStrip>> layerStrips_;

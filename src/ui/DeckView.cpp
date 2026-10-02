@@ -214,6 +214,7 @@ void DeckView::rebuildGrid()
             auto cell = std::make_unique<ClipCell>();
             cell->setGridPosition(layerIdx, col);
             cell->setThumbnails(&thumbnails_);
+            cell->setVideoInfoSource(&videoInfoSource_);   // s-rta-1002b ui U2.3 (BF3)
             cell->setClip(layer->getClipAt(col));
             cell->setActive(layer->runtime().activeClipColumn == col);
 
@@ -252,6 +253,9 @@ void DeckView::rebuildGrid()
             };
             cell->onClipMove = [this](int srcL, int srcC, int dstL, int dstC) {
                 if (onClipMoved) onClipMoved(srcL, srcC, dstL, dstC);
+            };
+            cell->onRevealInFinder = [this](int li, int c) {   // s-rta-1002b ui U2.3 (BF3): the cell menu's Show in Finder
+                if (onRevealInFinder) onRevealInFinder(li, c);
             };
 
             gridContent_->addAndMakeVisible(cell.get());
@@ -436,6 +440,21 @@ void DeckView::setupColumnTriggers()
         addAndMakeVisible(btn.get());
         columnTriggers_.push_back(std::move(btn));
     }
+}
+
+ClipCell* DeckView::cellForTests(int layerIndex, int column) const
+{
+    for (const auto& row : clipCells_)
+        for (const auto& cell : row)
+            if (cell != nullptr && cell->getLayerIndex() == layerIndex && cell->getColumn() == column)
+                return cell.get();
+    return nullptr;
+}
+
+void DeckView::revealCellForTests(int layerIndex, int column)
+{
+    if (auto* cell = cellForTests(layerIndex, column))
+        cell->menuChosen(1);   // what choosing "Show in Finder" in that cell's menu does (ruling-ui.md AM10)
 }
 
 void DeckView::clearSelection()

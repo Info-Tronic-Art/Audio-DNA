@@ -204,3 +204,58 @@ TEST_CASE("ClipCell media (e): a sequence cell's tooltip says images per second,
     r.cell->mouseDown(press(*r.cell, kLeft));
     CHECK(r.triggers == 1);
 }
+
+TEST_CASE("DeckView fan-out (U2.3): every cell reads DeckView's video source; a cell's Show in Finder reaches "
+          "DeckView::onRevealInFinder(layer, column) exactly once", "[clipcell][clipmedia][deckview]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition comp;
+    comp.initDefault();
+    auto* deck = comp.getActiveDeck();
+    REQUIRE(deck != nullptr);
+    REQUIRE(deck->getLayer(0) != nullptr);
+    deck->getLayer(0)->clips[3] = videoClip();
+    deck->getLayer(0)->clips[4] = sourceClip();
+
+    DeckView dv;
+    dv.setSize(1400, 600);
+    dv.setComposition(&comp);
+    // Set AFTER the grid exists: the cells hold the source's address, so they see it at once.
+    dv.setVideoInfoSource([](const Clip&) -> std::optional<VideoInfo> { return h264(); });
+    std::vector<std::pair<int, int>> reveals;
+    dv.onRevealInFinder = [&](int l, int c) { reveals.emplace_back(l, c); };
+
+    auto* cell = dv.cellForTests(0, 3);
+    REQUIRE(cell != nullptr);
+    CHECK(cell->getClip() == deck->getLayer(0)->getClipAt(3));
+    CHECK(cell->getTooltip()
+          == "video_h264_64x64.mp4\nH.264 High, 64 x 64, 30 frames per second\nRight-click: Show in Finder");
+
+    dv.revealCellForTests(0, 3);                             // the REST path: the cell's menuChosen(1)
+    REQUIRE(reveals.size() == 1);
+    CHECK(reveals[0] == std::make_pair(0, 3));
+
+    // The real right-click path through the same cell, with an injected launcher.
+    std::function<void(int)> done;
+    cell->setMenuLauncherForTests([&](const juce::String&, const juce::StringArray&, std::function<void(int)> d) {
+        done = std::move(d);
+    });
+    cell->mouseDown(press(*cell, kRight));
+    REQUIRE(done != nullptr);
+    done(1);
+    REQUIRE(reveals.size() == 2);
+    CHECK(reveals[1] == std::make_pair(0, 3));
+
+    dv.revealCellForTests(0, 4);                             // a source: nothing to show
+    dv.revealCellForTests(0, 5);                             // an empty cell
+    dv.revealCellForTests(99, 0);                            // no such cell
+    CHECK(reveals.size() == 2);
+
+    // A rebuilt grid wires its fresh cells the same way.
+    dv.rebuildGrid();
+    auto* fresh = dv.cellForTests(0, 3);
+    REQUIRE(fresh != nullptr);
+    CHECK(fresh->getTooltip().contains("H.264 High"));
+    dv.revealCellForTests(0, 3);
+    CHECK(reveals.size() == 3);
+}
