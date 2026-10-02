@@ -3435,3 +3435,36 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_clip_transport_sync)
 catch_discover_tests(test_clip_transport_sync)
+
+# --- s-rta-1002b ui U1 (BF3 data; plan-ui.md U1.1 / U1.2 + ruling AM9 / AM11): src/media/VideoInfo.h -- a video's codec,
+# size and frame rate in a performer's words (pure) -- and the info the REAL VideoPlayer keeps from open() (headless, no
+# GL context, valid fixtures only, never started). Link recipe of test_video_player_open.
+add_executable(test_video_info
+    test_video_info.cpp
+    ${SRC_DIR}/media/VideoPlayer.cpp
+)
+target_include_directories(test_video_info PRIVATE ${SRC_DIR})
+target_link_libraries(test_video_info PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+    FFmpeg::FFmpeg
+)
+if(APPLE)   # VideoPlayer.cpp calls IOSurface / CGL (the ring slots are IOSurfaces)
+    target_link_libraries(test_video_info PRIVATE "-framework IOSurface" "-framework OpenGL" "-framework CoreFoundation")
+endif()
+target_compile_definitions(test_video_info PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+if(NOT MSVC)
+    target_compile_options(test_video_info PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_video_info)
+catch_discover_tests(test_video_info)
