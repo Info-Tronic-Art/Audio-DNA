@@ -1,6 +1,6 @@
 // test_layer_strip_transport_view -- s-rta-0928b idlepaint (plan-idlepaint.md 2.5 / 3.1 test 3 + Harmony adoptions I2 /
 // I3). The layer strip's 30 Hz timer used to repaint its transport rect and clip-name box every tick; together with the
-// other always-animating widgets that made JUCE's mac peer repaint the whole window 30 times a second (Pitfall NN). Now:
+// other always-animating widgets that made JUCE's mac peer repaint the whole window 30 times a second (Pitfall 57). Now:
 // the transport rect repaints only when what it paints changes (LayerStrip::transportViewOf -- an Image clip's strip is
 // silent), the playhead is read ONCE per tick and that one value is both compared and painted (I2), the routine band
 // hairline repaints only when its painted width changes (I3), and syncFromModel() still runs every tick (Pitfall 41).

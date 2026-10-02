@@ -2307,7 +2307,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Register as key listener on top-level component to catch keys globally
     addKeyListener(this);
 
-    // s-rta-0928b idlepaint (Pitfall NN): the two always-animating panels draw in their own CoreGraphics layers (JUCE's
+    // s-rta-0928b idlepaint (Pitfall 57): the two always-animating panels draw in their own CoreGraphics layers (JUCE's
     // mac peer repaints the UNION of every dirty rect, so their 30 Hz repaints at opposite window edges repainted the
     // whole window). An in-peer overlay that crosses one (a parented PopupMenu, the tooltip, a ClipCell drag image,
     // the binding overlays) hands it back to JUCE painting while it is up. After every addAndMakeVisible (the baseline).
@@ -3064,7 +3064,7 @@ void MainComponent::openComposition()
     });
 }
 
-// s-rta-0929 asyncload (plan-asyncload.md 5.4 + HARMONY ADOPTION; Pitfall NN): the three loads (loadComposition,
+// s-rta-0929 asyncload (plan-asyncload.md 5.4 + HARMONY ADOPTION; Pitfall 58): the three loads (loadComposition,
 // appendDeckFromFile, duplicateDeck) STAGE a private model on this thread (parse, validate, re-mint, reconcile -- as
 // before), then beginStagedOpen seeds presence and hands one MediaOpener job per present video clip to the pool; each
 // landing writes dims / alpha / thumbnail into the STAGED clip (a live Clip write would race the GL thread) and installs

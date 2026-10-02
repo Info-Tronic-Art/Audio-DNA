@@ -978,7 +978,7 @@ void ClipInspector::refresh()
             }
         }
     }
-    // s-rta-0928b idlepaint (Pitfall NN): a 10 Hz repaint of the whole inspector joined the peer's union every time;
+    // s-rta-0928b idlepaint (Pitfall 57): a 10 Hz repaint of the whole inspector joined the peer's union every time;
     // repaint only when something paint() shows changed (the children repaint themselves).
     const auto key = paintKeyNow();
     if (!paintKeyValid_ || !(key == lastPaintKey_))

@@ -1,7 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// s-rta-0928b idlepaint (Pitfall NN): the juce::CachedComponentImage that hands a widget's repaints to its own CALayer
+// s-rta-0928b idlepaint (Pitfall 57): the juce::CachedComponentImage that hands a widget's repaints to its own CALayer
 // (NativeLayerHost). JUCE asks a component's cachedImage first on every repaint: an invalidate() that returns false
 // stops the repaint before the parent / the peer (juce_Component.cpp internalRepaintUnchecked), and the parent paints
 // the widget through cachedImage->paint() (paintWithinParentContext). So:

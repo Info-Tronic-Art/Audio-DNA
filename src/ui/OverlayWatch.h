@@ -2,7 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <vector>
 
-// s-rta-0928b idlepaint (Pitfall NN): the screen rects of every JUCE-drawn thing that can sit ABOVE a native-layer widget
+// s-rta-0928b idlepaint (Pitfall 57): the screen rects of every JUCE-drawn thing that can sit ABOVE a native-layer widget
 // (NativeLayerHost) inside the main window. A native NSView is above ALL JUCE content of its window, so an in-peer
 // overlay that crosses one must hand that widget back to JUCE painting while it is up.
 // Tracked: the explicit overlays (addOverlay: the binding / MIDI-learn overlays), every child of `root` that passes

@@ -50,7 +50,7 @@ public:
     // (a routine or a take replay) grips opacity. Called by the strip's own 30 Hz timer; public for tests.
     void syncFromModel();
 
-    // s-rta-0928b idlepaint (Pitfall NN): what the transport rect paints (paint(): the in/out region + the playhead line).
+    // s-rta-0928b idlepaint (Pitfall 57): what the transport rect paints (paint(): the in/out region + the playhead line).
     // The strip repaints the rect only when this changes -- an Image clip's strip is silent at idle, a playing sequence's
     // repaints as its playhead crosses a pixel. Pure; public for tests/test_layer_strip_transport_view.cpp.
     struct TransportView

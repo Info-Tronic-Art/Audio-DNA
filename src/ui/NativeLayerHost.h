@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-// s-rta-0928b idlepaint (Pitfall NN): an always-animating panel (SignalBar, WaveformDisplay) draws in its OWN layer-backed
+// s-rta-0928b idlepaint (Pitfall 57): an always-animating panel (SignalBar, WaveformDisplay) draws in its OWN layer-backed
 // NSView instead of the window's one CoreGraphics view. JUCE 8's mac peer hands AppKit every rect repainted since the
 // last vblank and AppKit redraws their UNION in one drawRect, so a 30 Hz repaint at one window edge plus another at the
 // opposite edge repainted the whole window 30 times a second. A layer of its own is dirty-tracked alone.

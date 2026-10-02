@@ -1,6 +1,6 @@
 // test_clip_inspector_paint_key -- s-rta-0928b idlepaint (plan-idlepaint.md 2.6 / 3.1 test 4). ClipInspector::refresh() runs
 // at ~10 Hz and used to end in an unconditional repaint() of the whole inspector, which joined JUCE's mac peer union every
-// time (Pitfall NN). Now it repaints only when something paint() shows changed: ClipInspector::paintKeyNow() carries every
+// time (Pitfall 57). Now it repaints only when something paint() shows changed: ClipInspector::paintKeyNow() carries every
 // painted input. Headless JUCE widgets under ScopedJuceInitialiser_GUI; refresh() repaints are counted by
 // uipaint::counters().clipInspectorRepaints.
 #include <catch2/catch_test_macros.hpp>
