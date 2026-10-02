@@ -1,0 +1,24 @@
+== patched, bf10_solid
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+context made current                     none
+createFBO (ProceduralSource::createFBO)  none
+projectm_create                          0x500
+set_window_size/fps/mesh/aspect          none
+beat_sens/preset_duration/soft_cut       none
+load_preset_file (hard)                  0x500
+render frame 0                           none
+render frame 1                           none
+render frame 2                           none
+projectm_destroy                         none
+== stock, bf10_solid
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+context made current                     none
+createFBO (ProceduralSource::createFBO)  none
+projectm_create                          0x500
+set_window_size/fps/mesh/aspect          none
+beat_sens/preset_duration/soft_cut       none
+load_preset_file (hard)                  0x500
+render frame 0                           0x506
+render frame 1                           0x506
+render frame 2                           0x506
+projectm_destroy                         none

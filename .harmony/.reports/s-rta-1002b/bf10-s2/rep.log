@@ -1,0 +1,17 @@
+start 2026-10-02 19:03:27
+T6 run 1 rc=0 
+t=0.142s median=(204,51,26,255) ;t=0.304s median=(203,51,27,255) ;t=0.465s median=(191,61,41,255) ;t=0.625s median=(45,164,207,255) ;t=0.784s median=(27,177,228,255) ;t=0.945s median=(26,178,229,255) ;t=1.104s median=(26,178,229,255) ;
+T6 run 2 rc=42 test cases:  1 |  0 passed | 1 failed
+t=0.145s median=(204,51,26,255) ;t=0.303s median=(204,51,26,255) ;t=0.465s median=(204,51,26,255) ;t=0.624s median=(26,178,229,255) ;t=0.785s median=(26,178,229,255) ;t=0.945s median=(26,178,229,255) ;t=1.104s median=(26,178,229,255) ;
+T6 run 3 rc=0 
+t=0.146s median=(204,51,26,255) ;t=0.306s median=(203,51,27,255) ;t=0.466s median=(190,61,42,255) ;t=0.626s median=(44,165,208,255) ;t=0.786s median=(27,177,228,255) ;t=0.946s median=(26,178,229,255) ;t=1.106s median=(26,178,229,255) ;
+T6 run 4 rc=42 test cases:  1 |  0 passed | 1 failed
+t=0.143s median=(204,51,26,255) ;t=0.302s median=(204,51,26,255) ;t=0.465s median=(198,55,33,255) ;t=0.625s median=(26,178,229,255) ;t=0.785s median=(26,178,229,255) ;t=0.945s median=(26,178,229,255) ;t=1.105s median=(26,178,229,255) ;
+T6 run 5 rc=42 test cases:  1 |  0 passed | 1 failed
+t=0.145s median=(204,51,26,255) ;t=0.304s median=(204,51,26,255) ;t=0.463s median=(204,51,26,255) ;t=0.625s median=(26,178,229,255) ;t=0.785s median=(26,178,229,255) ;t=0.945s median=(26,178,229,255) ;t=1.105s median=(26,178,229,255) ;
+T5 run 1 rc=42 test cases:   1 |   0 passed | 1 failed | T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ];
+T5 run 2 rc=42 test cases:   1 |   0 passed | 1 failed | T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ];
+T5 run 3 rc=42 test cases:   1 |   0 passed | 1 failed | T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ];
+T5 run 4 rc=42 test cases:   1 |   0 passed | 1 failed | T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ];
+T5 run 5 rc=42 test cases:   1 |   0 passed | 1 failed | T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ];
+end 2026-10-02 19:03:46

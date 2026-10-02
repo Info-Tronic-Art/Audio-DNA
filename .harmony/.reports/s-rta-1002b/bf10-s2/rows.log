@@ -1,0 +1,19 @@
+/dev/disk3s5   926Gi   599Gi   291Gi    68%    5.5M  3.0G    0%   /System/Volumes/Data
+== pre-stale (19:04:52) src=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S2/pre-src args: -DprojectM4_DIR=/Users/boriskarpman/.local/lib/cmake/projectM4
+exit=0
+cached projectM4_DIR: projectM4_DIR:UNINITIALIZED=/Users/boriskarpman/.local/lib/cmake/projectM4
+== pre-neg (19:05:24) src=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S2/pre-src args: -DAUDIODNA_PROJECTM_PREFIX=/nonexistent -DprojectM4_DIR=/Users/boriskarpman/.local/lib/cmake/projectM4
+exit=0
+cached projectM4_DIR: projectM4_DIR:UNINITIALIZED=/Users/boriskarpman/.local/lib/cmake/projectM4
+== lane-stale (19:05:56) src=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10 args: -DprojectM4_DIR=/Users/boriskarpman/.local/lib/cmake/projectM4
+exit=0
+-- libprojectM: /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/cmake/projectM4 (render_frame_fbo: yes)
+cached projectM4_DIR: projectM4_DIR:PATH=/Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/cmake/projectM4
+== lane-neg (19:06:27) src=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10 args: -DAUDIODNA_PROJECTM_PREFIX=/nonexistent -DprojectM4_DIR=/Users/boriskarpman/.local/lib/cmake/projectM4
+exit=1
+CMake Error at CMakeLists.txt:33 (message):
+  libprojectM at /Users/boriskarpman/.local/lib/cmake/projectM4 lacks
+  projectm_opengl_render_frame_fbo (BF10: MilkDrop must render into its
+  canvas-sized framebuffer).  Run cmake/projectm/build-projectm.sh, then
+cached projectM4_DIR: projectM4_DIR:PATH=/Users/boriskarpman/.local/lib/cmake/projectM4
+done 19:06:28
