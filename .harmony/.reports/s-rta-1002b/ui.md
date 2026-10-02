@@ -258,3 +258,193 @@ Base for U3: 9af61b2 (lane/ui after U1). Head: the report commit after 2274abf. 
   harness. Knowledge tools: grep only (no KNOWLEDGE_TOOLS block); impact taken conservatively (every DeckView.cpp
   consumer target rebuilt and run: test_deck_thumbnails, test_deck_tab_rename, the app).
 INBOX-RECHECK: none
+
+---------------------------------------------------------------------------------------------------------------------
+# LANE ui -- stage U2 (BF3 UI) -- builder report
+STATUS: DONE (stage U2 of 4: U2.1-U2.6 committed; U4 not started -- next stage)
+Base for U2: f2690de (lane/ui after U3). Commits: da1eaa6 U2.1, 52db1a3 U2.2, 2582ebb U2.3, 77c01c3 U2.4, 34263a7 U2.5,
+0d5d41c U2.6, + this report commit.
+## Items
+### U2.1 ClipMediaText.h (+ AM9 lines, AM12 string) -- DONE (da1eaa6)
+- NEW src/ui/ClipMediaText.h (pure, juce_core + Clip + VideoInfo; no I/O): VideoInfoSource; struct Described {line,
+  lines, pathTip, revealTarget, fileBacked, missing}; clipmedia::revealTarget (Video / Image = mediaFile, sequence = first
+  image, else File()), imageKind (extension upper-cased, JPG -> JPEG, TIF -> TIFF), describe (fileBacked = a reveal
+  target exists; Video: missing -> {"File missing"}, known info -> {codecLine, frameLine}, else {"Video file not
+  loaded"}; Image: "File missing" or "<KIND> image"; sequence "Image sequence, N images"; line = lines joined ", "),
+  cellTooltip (video / picture "<file name>\n<line>\nRight-click: Show in Finder"; sequence "Image sequence — N images at
+  X.X images per second" + the menu line when it has an image; else ""), menuItems ({"Show in Finder"} iff a reveal
+  target exists).
+- Inferred details (not in the plan text): (1) menuItems returns juce::StringArray (the AM10 launcher takes a
+  StringArray) instead of std::vector<juce::String>; (2) an EMPTY sequence's tooltip keeps its first line without the
+  "Right-click: Show in Finder" line (it has no menu); (3) a Video / Image clip with an empty mediaFile is not file-backed.
+- NEW tests/test_clip_media_text.cpp [clipmedia] 8 cases; tests/CMakeLists.txt target test_clip_media_text (Clip.cpp +
+  ConnSerialization.cpp, juce_core + juce_graphics); reconfigured.
+- RED(stub) 16:54:11 (every body returns {}), raw:
+    test cases:  8 |  1 passed |  7 failed
+    assertions: 82 | 37 passed | 45 failed
+- GREEN 16:54:32, raw: All tests passed (82 assertions in 8 test cases). Build log: 0 warnings.
+### U2.2 ClipCell tooltip + menu (AM10) -- DONE (see git log: "U2.2 clip cell")
+- src/ui/ClipCell.h/.cpp: #include "ui/ClipMediaText.h"; setVideoInfoSource(const VideoInfoSource*) (DeckView's, the
+  setThumbnails shape); getTooltip() override = clipmedia::cellTooltip(*clip_, lookupVideo()) (lookup only for Video
+  clips); the setTooltip branch removed from setClip. mouseDown: `if (isRightButtonDown()) { if (clip_ && !menuItems
+  .isEmpty()) showContextMenu(); return; }` then main's code (Ctrl+left unchanged). MenuLauncher + setMenuLauncherForTests;
+  showContextMenu: done = SafePointer -> menuChosen; default = PopupMenu (section header = clip name, setLookAndFeel,
+  withTargetComponent(this).withParentComponent(getTopLevelComponent())). menuChosen(1) -> onRevealInFinder(layer,
+  column) iff the clip still has a reveal target. Header comment updated (right-click = the file menu).
+- NEW tests/test_clip_cell_media.cpp: (a) tooltip == cellTooltip with a fake source, re-asked on hover, "" on a source;
+  (b) Ctrl+left on a video cell triggers (guard); (b2) right-click -> launcher header "clip", items {"Show in Finder"};
+  (b3) done(0) nothing, done(1) -> (2, 5) once, then a source clip -> no call; (b4) cell destroyed before done(1) -> no
+  call; (c) Ctrl+left on a source triggers (guard); (d) right-click on source / empty / empty-sequence -> nothing (guard);
+  (e) sequence tooltip line 1 "Image sequence — 3 images at 2.5 images per second", line 2 the menu hint.
+  tests/CMakeLists.txt target test_clip_cell_media (test_deck_tab_rename's recipe); reconfigured.
+- RED(stub) 16:56:40 (getTooltip = main's stored tooltip; launcher / menuChosen / showContextMenu empty; mouseDown =
+  main's), raw:
+    test cases:  8 | 3 passed | 5 failed
+    assertions: 16 | 9 passed | 7 failed
+  (the 3 passing = guards (b) (c) (d).)
+- GREEN 16:57:00, raw: All tests passed (28 assertions in 8 test cases); build log 0 warnings. Consumers re-run:
+  test_deck_thumbnails (62 / 4), test_deck_tab_rename (218 / 16) all passed.
+### U2.3 DeckView fan-out -- DONE (see git log: "U2.3 DeckView fan-out")
+- src/ui/DeckView.h/.cpp: `VideoInfoSource videoInfoSource_` declared right after thumbnails_ (before layerStrips_ /
+  clipCells_), public setVideoInfoSource, onRevealInFinder; rebuildGrid's cell loop: setVideoInfoSource(&videoInfoSource_)
+  (before setClip) and onRevealInFinder forwarding. TEST-ONLY cellForTests(layer, column) / revealCellForTests (=
+  that cell's menuChosen(1)) after updateSelectionVisuals' neighbours. U3's blocks untouched.
+- tests/test_clip_cell_media.cpp: "DeckView fan-out (U2.3)" case.
+- RED(stub) 16:58:05, raw:
+    test cases:  9 |  8 passed | 1 failed
+    assertions: 31 | 30 passed | 1 failed
+- GREEN 16:58:18, raw: All tests passed (42 assertions in 9 test cases). Consumers rebuilt + run: test_deck_thumbnails
+  (62 / 4), test_deck_tab_rename (218 / 16) passed; probe_deck_tab_dispatch rebuilt EXIT 0 (NOT run, adoption 3).
+### U2.4 Clip inspector button + info rows (AM9) -- DONE (see git log: "U2.4 Clip inspector")
+- src/ui/ClipInspector.h/.cpp: revealBtn_ "Show in Finder" (componentID "revealClipFile", kSurface / kTextPrimary like
+  the inspector's small buttons, setWantsKeyboardFocus(false), addChildComponent = hidden until a clip with a file);
+  mediaInfoLabel1_ / mediaInfoLabel2_ (FontOptions(10.5f), kTextSecondary, "File missing" in 0xffcc3333, tooltip = the
+  path, setMinimumHorizontalScale(1.0f) -> ellipsize, never squash). updateMediaInfo(force): MediaKey {clip, mediaType,
+  reveal path, mediaMissing}; refresh() re-describes only on a key change or while videoPending_ (a Video clip with a
+  file whose source has not answered); compare-before-set; resized() only when the row count or the button changes.
+  setClip -> updateMediaInfo(true). paint: nameTextBounds(getWidth(), revealShown_), sections at kNameBarHeight +
+  infoRowHeight() + ...; resized: button at revealButtonBounds(width) = (w - kInset - 104, 4, 104, 20), rows after the
+  name bar; getPreferredHeight + infoRowHeight() (no-clip branch unchanged); PaintKey + infoRows + revealShown.
+- DEVIATION (inferred, flagged): AM9 says "the name is trimmed by kRevealButtonWidth + 8 when the button shows", and its
+  test (i) requires the name's right <= the button's x - 4. With the button kInset (6 px) from the edge (plan U2.4) a
+  +8 trim leaves a 2-px gap and FAILS (i). I kept the plan's button position (aligned with the sections' kInset) and
+  trimmed by kRevealButtonWidth + kInset + 4 (114) -- the smallest trim that passes (i). Measured: w 200 -> button x 90,
+  name right 86; w 303 -> 193 / 189; w 400 -> 290 / 286.
+- NEW tests/test_clip_inspector_media.cpp [clipinspector][clipmedia]: (a) visible "Show in Finder" (componentID);
+  (b) picture without / with file +18; video no file / not answering / answering = +18 / +36; (c) lines == describe's
+  for video / picture / missing; source and no clip: no row, no button; (d) a source answering later -> one refresh
+  shows the codec; (e) onClick -> onRevealInFinder(&clip) once; (g) widths at 10.5 px under AudioDNALookAndFeel: "H.264
+  Constrained Baseline" 119.461, "ProRes 4444 XQ" 69.8998, "QuickTime Animation" 93.5682, "4096 x 2160, 23.976 frames per
+  second" 175.931, "3840 x 2160, 59.94 frames per second" 170.294 (all <= 200); (h) "Show in Finder" 84.7312 + 16 <= 104;
+  (i) as above, plus nameTextBounds(w, false) == main's rect. tests/test_clip_inspector_paint_key.cpp: new case (f)
+  (a sequence gains / loses its file -> infoRows 0 -> 1 -> 0, revealShown, one repaint each, idle between).
+  tests/CMakeLists.txt target test_clip_inspector_media (paint_key's recipe + LookAndFeel.cpp); reconfigured.
+- RED(stub) 17:00:42, raw:
+    test_clip_inspector_media:     test cases:  8 |  2 passed |  6 failed
+                                   assertions: 25 | 11 passed | 14 failed
+    test_clip_inspector_paint_key: test cases:  4 |  3 passed |  1 failed
+                                   assertions: 44 | 38 passed |  6 failed
+  ((g) and (h) pass on any tree -- pure text measures of the constants; (b)'s RED value = 0 px: picture 812 vs 812,
+  video 812 / 812 / 812.)
+- GREEN 17:01:47 / 17:01:50, raw: All tests passed (53 assertions in 8 test cases) / All tests passed (44 assertions in 4
+  test cases). Build logs: 0 warnings naming ClipInspector.
+### U2.5 MainComponent videoInfoFor / revealClipFile / revealClipAt + wiring -- DONE (see git log: "U2.5 MainComponent")
+- src/MainComponent.h (after renameFocusHomeCount_): videoInfoFor, revealClipFile, revealClipAt, lastRevealPath_,
+  revealCount_. src/MainComponent.cpp: the three functions right after applyDeckRename (U3's funnel untouched).
+  videoInfoFor uses p->getInfo().known() (U1 / U3 hand-over) and p->getFile() == clip.mediaFile. revealClipFile:
+  testMode_ -> record (path, count) and return -- also for a missing file (V3 L1C2); else revealToUser() iff the file
+  exists or its parent folder is a directory, else setFileLabel("Show in Finder: not found - " + path).
+  Wiring: deckView_->setVideoInfoSource + onRevealInFinder right after U3's onRenameClosed block; the ClipInspector's
+  setVideoInfoSource + onRevealInFinder right after onLayerNameChanged.
+- No unit test (MainComponent is not headless-testable; plan U2.5): live rows V1-V4 of U4's probe. App build 17:03:13
+  BUILD_EXIT=0; warnings naming MainComponent.cpp 8 -> 8, MainComponent.h 2 -> 2 (same pre-existing lines as U3).
+### U2.6 TEST-ONLY REST (AM10) -- DONE (0d5d41c)
+- src/api/ApiServer.h/.cpp inside `#if AUDIODNA_TEST_SERVER`, right after U3's block (callbacks after onDebugUndo,
+  handlers after handleDebugUndo, routes after /api/debug/undo): GET /api/debug/clip_media?layer=L&column=C (400 without
+  both query params; read ON the message thread, the deck_tabs Box + 2-s wait), POST /api/debug/reveal_clip {layer,
+  column} and POST /api/debug/inspect_clip {layer, column} (400 without both; callAsync, answered at once; 503 unwired).
+- src/MainComponent.cpp TEST-ONLY block (after U3's onDebugUndo): onDebugClipMedia -> {layer, column, cell, media_type
+  (none / image / video / camera / source / image_sequence), line, lines, tooltip (the CELL's own getTooltip -- proves
+  the DeckView fan-out live), path_tip, reveal_target, file_backed, missing, video {codec, width, height, fps} | null,
+  menu (clipmedia::menuItems), inspector_shows (Clip tab active AND the inspector's clip is this one), inspector_lines /
+  inspector_line (the labels actually visible, joined ", "), inspector_button_visible (the button's isVisible),
+  last_revealed, reveal_count}; onDebugRevealClip -> DeckView::revealCellForTests (through the cell, AM10);
+  onDebugInspectClip -> that cell's onSelect(layer, column, false) (= a name-bar click: selectCell + onClipSelected).
+- App build 17:04:41 BUILD_EXIT=0; `strings` of the binary: "api/debug/clip_media" x1. Warnings naming ApiServer.cpp
+  2 -> 2 (lines 1045, 1868: pre-existing), MainComponent.cpp 8 -> 8 (all pre-existing lines).
+- BUILDER SMOKE (sanity only, NOT the G3 gate; one locked batch, lock waited 17:06:06 -> 17:11:46 behind bf2-S1a,
+  released 17:11:58; lane app --test-mode, open -g; cells made with /api/debug/drop_files, the missing file by deleting a
+  dropped copy so MediaPresence flags it): V1 L0C0-L0C3 (H.264 High / ProRes 422 HQ / HAP Q / HEVC Main 10, all lines
+  exact, video non-null on the first read, 0 retries), V2 L0C0 tooltip exact, L1C0 "PNG image", L1C1 "Image sequence, 3
+  images" + tooltip "Image sequence — 3 images at 2.5 images per second", L1C3 (empty cell) "" / [] / file_backed false,
+  L1C2 "File missing" (4 polls after the delete), V3 reveal L0C0 -> fixture path count 0 -> 1, empty cell +0, missing ->
+  its path count 2, V4 inspect L0C0 / L0C2 / L1C2 -> inspector_shows, the exact lines, button visible; GET clip_media
+  without params -> HTTP 400 -> "SMOKE fails=0". NOT covered by the smoke (U4's probe): a procedural-source cell (V1 / V4
+  L1C3 as written: no source-in-cell REST route used here) and R10. Raw log scratchpad/ui-U2/smoke-170606/smoke.txt +
+  scratchpad/ui-U2/smoke-run.log. Output-named windows 0 before / after; UserNotificationCenter windows 16 s after the
+  quit: 0; app-err.log crash|assert lines: 0; "app running after quit: no".
+
+## Builds / tests (U2)
+- Reconfigured after each tests/CMakeLists.txt append (U2.1 test_clip_media_text, U2.2 test_clip_cell_media, U2.4
+  test_clip_inspector_media). Disk 291 GiB free (no new build dir). -j3 throughout, one build at a time.
+- Full incremental build 17:12:22 -> 17:12:33 BUILD_EXIT=0. Touch-rebuild of ClipCell.cpp / DeckView.cpp /
+  ClipInspector.cpp in the app target (17:13:31, 3 objects): 0 warnings naming any of them or their headers (ClipCell.h,
+  DeckView.h, ClipInspector.h, ClipMediaText.h, VideoInfo.h). App-target warnings naming MainComponent.cpp 8, .h 2,
+  ApiServer.cpp 2 = U3's counts, all on pre-existing lines. Every new test target's build log: 0 warnings.
+- FULL ctest -j3 17:12:33 -> 17:13:06, raw: 100% tests passed, 0 tests failed out of 1174 (U3: 1148; +26 = 8
+  test_clip_media_text + 9 test_clip_cell_media + 8 test_clip_inspector_media + 1 paint-key case). `ctest -N | grep -c
+  probe_deck` = 0.
+- Direct runs 17:13:11 (raw, each "All tests passed"): test_video_info (117 / 17), test_clip_media_text (82 / 8),
+  test_clip_cell_media (42 / 9), test_clip_inspector_media (53 / 8), test_deck_tab_rename (218 / 16), test_deck_tab_row
+  (110 / 5), test_undo_commands (562 / 81), test_clip_inspector_paint_key (44 / 4), test_deck_thumbnails (62 / 4),
+  test_clip_thumbnails (112 / 6); lints test_hot_thread_io_lint (324 / 2; U3 323 -- one more scanned file, the new
+  header), test_render_thread_lint (19 / 2), test_log_line_lint (58 / 3), test_shared_field_types (1 / 1).
+- G2b: `grep -rn AUDIODNA_DEBUG_SHOW src tests` -> 0 lines.
+
+## Rig discipline (U2)
+- ONE live batch (the smoke): helper LANE=ui-U2, acquire_lock waited for bf2-S1a's lock (never touched it), start_app
+  --test-mode via open -g, REST only, quit_app, release_lock. No foreign Audio-DNA was running when ours started; none
+  of ours runs now; the lock dir is gone.
+- No Output window, no screen capture, no synthetic OS input, no debugger / sampler, no temporary hook, no copied or
+  re-signed bundle, no probe_deck_tab_dispatch run (rebuilt only). The .venv symlink was never created (the main .venv
+  python by absolute path). No perf number taken (none needed in U2).
+- Worked only in the ui worktree; main checkout and lane mkvidx untouched (U2 did not touch VideoPlayer.*).
+- Commit hook: every commit printed "[graphify hook] launching background rebuild" (a repo hook, not started by me).
+
+## Notes for .harmony/notebook.md (U2)
+- 2026-10-02 A juce::Label's default minimumHorizontalScale (0) lets drawFittedText SQUASH text to ~70 % width before it
+  ellipsizes; for a read-only info row set setMinimumHorizontalScale(1.0f) so it ellipsizes instead | discovered:
+  src/ui/ClipInspector.cpp U2.4 labels.
+- 2026-10-02 SettableTooltipClient::getTooltip is virtual: overriding it makes a tooltip built on hover (TooltipWindow
+  polls the hovered component), so live data (a player that opened later) shows without any refresh | discovered:
+  src/ui/ClipCell.cpp getTooltip.
+- 2026-10-02 /api/debug/drop_files + deleting the dropped copy is a cheap way to get a "File missing" clip live:
+  MediaPresence's 1 Hz sweep flags it within ~1 s | discovered: scratchpad/ui-U2/smoke.py.
+
+## Next stage notes (U2 -> U4)
+- G3 V-rows: clip_media answers `line`, `lines`, `inspector_lines`, `inspector_line`, `inspector_button_visible`,
+  `menu`, `video` (null until the player answers), `last_revealed`, `reveal_count`, plus `cell` / `media_type`. The
+  tooltip is the CELL's own getTooltip (proves the DeckView fan-out). inspect_clip = the cell's onSelect (selects and
+  inspects; an Image clip also loads into the preview, as a real click does).
+- V1 / V4 L1C3 (procedural source): the probe's composition file must place the source in the cell (no REST here puts
+  a source into a cell); the smoke used an EMPTY cell for the "no row" case.
+- R10 (load_composition) is still unexercised live (U3 note stands).
+- C5: the U3 note stands (>= 25 decks, or a narrower window, for 60-px tabs).
+- C8-C14 numbers for the critic brief: the inspector button = (w - 110, 4, 104, 20); the name stops at w - 114 (AM9 (i)
+  deviation, see U2.4); info labels 18 px each at x = kInset, width w - 12, 10.5 px, ellipsized not squashed.
+- Docs for U4 (AM16): testing-eyes.md must list clip_media / reveal_clip / inspect_clip with the JSON above; APP-INVENTORY
+  rows :60 (cell right-click = Show in Finder menu on file clips; hover tooltip on video / picture / sequence cells;
+  sequence tooltip now "images per second") and :72 (ClipInspector name-bar button + info rows).
+- Merging with mkvidx: U2 touched no VideoPlayer.* file.
+
+## PACKET QUALITY (U2)
+- Clarity: HAD_TO_INFER (small): plan U2.1-U2.6 + AM9 / AM10 / AM12 gave the shapes; three inferences recorded:
+  (1) AM9's "+8" name trim contradicts its own test (i) with the plan's kInset button -> trim 114 (U2.4 DEVIATION);
+  (2) menuItems returns juce::StringArray (the AM10 launcher's type); (3) an empty sequence's tooltip has no menu line.
+- Missing context: no REST route places a procedural source into a cell (the smoke could not cover L1C3's source row).
+- Unused context: U3 / U4 bodies, G1b, G4 critic rules (later stages / Harmony).
+- Self-brief: plan-ui.md (incl. HARMONY ADOPTION) and ruling-ui.md read in full; the U1 / U3 reports; CLAUDE.md loaded by
+  the harness. Knowledge tools: grep only (no KNOWLEDGE_TOOLS block); impact taken conservatively (every consumer target
+  of ClipCell / DeckView / ClipInspector rebuilt and run: test_deck_thumbnails, test_deck_tab_rename,
+  test_clip_inspector_paint_key, probe_deck_tab_dispatch (built only), the app, the full ctest).
+INBOX-RECHECK: none
