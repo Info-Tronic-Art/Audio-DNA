@@ -2,9 +2,19 @@
 // size and frame rate in a performer's words -- and the info the REAL VideoPlayer keeps from open().
 // [videoinfo]: the pure formatter (codecLabel's whole table incl. the fallbacks, fpsText, codecLine / frameLine /
 // describe).
+// [videoinfo][open]: VideoPlayer::open() on VALID fixtures only, in-process (the cut-header file stays in its forked-child
+// test, test_video_player_open.cpp); each player is closed and never started. Expected values = ffprobe 8.0.
+// Fixtures added by U1.2 (ffmpeg 8.0, /opt/homebrew/bin; testsrc2 64x64, 0.2 s):
+//   video_prores_hq_64x64_2997.mov     ffmpeg -f lavfi -i testsrc2=s=64x64:r=30000/1001:d=0.2 -c:v prores_ks -profile:v 3
+//                                      (20,345 B; prores HQ apch 30000/1001)
+//   video_hapq_64x64_60.mov            ffmpeg -f lavfi -i testsrc2=s=64x64:r=60:d=0.2 -c:v hap -format hap_q
+//                                      (25,312 B; hap HapY 60/1)
+//   video_hevc_main10_64x64_23976.mp4  ffmpeg -f lavfi -i testsrc2=s=64x64:r=24000/1001:d=0.2 -c:v libx265
+//                                      -pix_fmt yuv420p10le -x265-params log-level=none (4,529 B; hevc Main 10 24000/1001)
 #include <catch2/catch_test_macros.hpp>
 
 #include "media/VideoInfo.h"
+#include "media/VideoPlayer.h"
 
 #include <string>
 
@@ -107,4 +117,118 @@ TEST_CASE("codecLine / frameLine / describe", "[videoinfo]")
     CHECK(videoinfo::describe(noRate) == "H.264 High, 1920 x 1080");
 
     CHECK_FALSE(VideoInfo{}.known());
+}
+
+namespace
+{
+struct Opened
+{
+    bool ok = false;
+    VideoInfo info;
+};
+
+// open() the fixture in-process, copy the info, close the never-started player.
+Opened openFixture(const char* name)
+{
+    const auto f = juce::File(TEST_FIXTURES_DIR).getChildFile(name);
+    REQUIRE(f.existsAsFile());
+    Opened o;
+    VideoPlayer p;
+    o.ok = p.open(f);
+    o.info = p.getInfo();
+    p.close();
+    return o;
+}
+} // namespace
+
+TEST_CASE("open() keeps the info: H.264 High .mp4, 30 frames per second exactly", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_h264_64x64.mp4");   // ffprobe: h264 High avc1 64x64 30/1
+    REQUIRE(o.ok);
+    CHECK(o.info.known());
+    CHECK(o.info.codec == "H.264 High");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(o.info.fps == 30.0);
+    CHECK(videoinfo::describe(o.info) == "H.264 High, 64 x 64, 30 frames per second");
+}
+
+TEST_CASE("open() keeps the info: HAP Alpha .mov", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_hapa_64x64.mov");   // hap Hap5 64x64 30/1
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "HAP Alpha");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "30");
+}
+
+TEST_CASE("open() keeps the info: ProRes 422 HQ .mov at 29.97", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_prores_hq_64x64_2997.mov");   // prores HQ apch 64x64 30000/1001
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "ProRes 422 HQ");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "29.97");
+}
+
+TEST_CASE("open() keeps the info: HAP Q .mov at 60", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_hapq_64x64_60.mov");   // hap HapY 64x64 60/1
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "HAP Q");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "60");
+}
+
+TEST_CASE("open() keeps the info: HEVC Main 10 .mp4 at 23.976", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_hevc_main10_64x64_23976.mp4");   // hevc Main 10 hev1 64x64 24000/1001
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "HEVC Main 10");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "23.976");
+}
+
+TEST_CASE("open() keeps the info: MPEG-4 Part 2 .avi", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_mpeg4_bf2_64x64.avi");   // mpeg4 Advanced Simple Profile FMP4 64x64 30/1
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "MPEG-4 Part 2");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "30");
+}
+
+TEST_CASE("open() keeps the info: a variable-rate H.264 shows its average rate (21.25), not r_frame_rate", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_h264_vfrgap_64x64.mp4");   // h264 High avc1 64x64, avg 85/4, r 30/1
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "H.264 High");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "21.25");
+}
+
+TEST_CASE("open() keeps the info: uncompressed RGBA .mov, 63 x 37", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_rawrgba_63x37.mov");   // rawvideo RGBA, profile unknown, 63x37 30/1
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "Uncompressed");
+    CHECK(o.info.width == 63);
+    CHECK(o.info.height == 37);
+    CHECK(videoinfo::fpsText(o.info.fps) == "30");
+}
+
+TEST_CASE("open() keeps the info: MPEG-4 Part 2 in an MPEG transport stream (.ts)", "[videoinfo][open]")
+{
+    const auto o = openFixture("video_mpeg4_64x64.ts");   // mpeg4 Simple Profile, tag 0x0010, 64x64 30/1
+    REQUIRE(o.ok);
+    CHECK(o.info.codec == "MPEG-4 Part 2");
+    CHECK(o.info.width == 64);
+    CHECK(o.info.height == 64);
+    CHECK(videoinfo::fpsText(o.info.fps) == "30");
 }

@@ -8,6 +8,7 @@
 #include "media/VideoRing.h"
 #include "media/VideoStats.h"
 #include "media/VideoUploadBudget.h"
+#include "media/VideoInfo.h"
 
 // Forward declarations for FFmpeg types (C linkage)
 struct AVFormatContext;
@@ -69,6 +70,9 @@ public:
     double getDuration() const { return duration_; }
     double getFrameRate() const { return frameRate_; }
     int getTotalFrames() const { return totalFrames_; }
+    // BF3 (s-rta-1002b ui): what the file is -- codec, size, the stream's own frame rate (0 = none). Written in open(),
+    // read-only after (message thread; the decode and GL threads never read it).
+    const VideoInfo& getInfo() const { return info_; }
 
     // === Transport ===
 
@@ -174,6 +178,7 @@ private:
     double frameDur_ = 1.0 / 30.0;
     int totalFrames_ = 0;
     double timeBase_ = 0.0;   // Stream time base in seconds per tick
+    VideoInfo info_;          // BF3: getInfo()
 
     // The ring: 3 slots of width x height pixels, each written bottom-up (GL order) by sws_scale with a negative
     // destination stride (rowBytes_ apart); the headers are the lock-free protocol. s-rta-0929 vupload P3: on macOS the
