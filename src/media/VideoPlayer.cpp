@@ -5,6 +5,7 @@
 // compositing on the GL thread (s-rta-0928b video; plan-video.md).
 
 #include "VideoPlayer.h"
+#include "core/LogLine.h"
 #include "media/GopCacheStore.h"
 #if JUCE_MAC
  #include <OpenGL/OpenGL.h>          // after juce_gl.h (via VideoPlayer.h)
@@ -80,13 +81,13 @@ bool VideoPlayer::open(const juce::File& file)
     // Open input
     if (avformat_open_input(&formatCtx_, path.c_str(), nullptr, nullptr) < 0)
     {
-        std::cerr << "[VideoPlayer] Failed to open: " << path << std::endl;
+        logLine("[VideoPlayer] Failed to open: ", path);
         return false;
     }
 
     if (avformat_find_stream_info(formatCtx_, nullptr) < 0)
     {
-        std::cerr << "[VideoPlayer] Failed to find stream info" << std::endl;
+        logLine("[VideoPlayer] Failed to find stream info");
         avformat_close_input(&formatCtx_);
         return false;
     }
@@ -104,7 +105,7 @@ bool VideoPlayer::open(const juce::File& file)
 
     if (videoStreamIndex_ < 0)
     {
-        std::cerr << "[VideoPlayer] No video stream found" << std::endl;
+        logLine("[VideoPlayer] No video stream found");
         avformat_close_input(&formatCtx_);
         return false;
     }
@@ -116,7 +117,7 @@ bool VideoPlayer::open(const juce::File& file)
     const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
     if (!codec)
     {
-        std::cerr << "[VideoPlayer] Unsupported codec: " << avcodec_get_name(codecpar->codec_id) << std::endl;
+        logLine("[VideoPlayer] Unsupported codec: ", avcodec_get_name(codecpar->codec_id));
         avformat_close_input(&formatCtx_);
         return false;
     }
@@ -129,7 +130,7 @@ bool VideoPlayer::open(const juce::File& file)
 
     if (avcodec_open2(codecCtx_, codec, nullptr) < 0)
     {
-        std::cerr << "[VideoPlayer] Failed to open codec" << std::endl;
+        logLine("[VideoPlayer] Failed to open codec");
         avcodec_free_context(&codecCtx_);
         avformat_close_input(&formatCtx_);
         return false;
@@ -191,8 +192,8 @@ bool VideoPlayer::open(const juce::File& file)
     // Fail the open instead: no player, "no media" (fix round 2; tests/test_video_player_open.cpp).
     if (codecCtx_->pix_fmt == AV_PIX_FMT_NONE)
     {
-        std::cerr << "[VideoPlayer] Unknown pixel format (no frame decodes: a truncated or corrupt file): " << path
-                  << " -- no media" << std::endl;
+        logLine("[VideoPlayer] Unknown pixel format (no frame decodes: a truncated or corrupt file): ", path,
+                  " -- no media");
         freeFfmpeg();
         return false;
     }
@@ -217,7 +218,7 @@ bool VideoPlayer::open(const juce::File& file)
                               SWS_BILINEAR, nullptr, nullptr, nullptr);
     if (!swsCtx_)
     {
-        std::cerr << "[VideoPlayer] Failed to create swscale context" << std::endl;
+        logLine("[VideoPlayer] Failed to create swscale context");
         freeFfmpeg();
         return false;
     }
@@ -232,7 +233,7 @@ bool VideoPlayer::open(const juce::File& file)
             s = static_cast<uint8_t*>(std::malloc(slotSize));
             if (s == nullptr)
             {
-                std::cerr << "[VideoPlayer] Failed to allocate a frame slot" << std::endl;
+                logLine("[VideoPlayer] Failed to allocate a frame slot");
                 freeFfmpeg();
                 return false;
             }
@@ -311,16 +312,16 @@ bool VideoPlayer::open(const juce::File& file)
     open_.store(true, std::memory_order_relaxed);
     playing_.store(true, std::memory_order_relaxed);
 
-    std::cerr << "[VideoPlayer] Opened: " << path
-              << " (" << width_ << "x" << height_
-              << ", " << frameRate_ << " fps"
-              << ", " << duration_ << "s"
-              << ", codec=" << avcodec_get_name(codecpar->codec_id)
-              << ", alpha=" << (alpha ? "yes" : "no")
-              << ", upload=" << (path_ == UploadPath::Blit ? "iosurface-blit" : path_ == UploadPath::Client ? "iosurface-client" : "malloc")
-              << ", thumb=" << thumbMs << " ms"
-              << ", cacheFrame=" << cache_->frameBytes() << " B, gop=" << gopFramesEst_
-              << (intraOnly_ ? ", intra-only" : "") << ", firstPts=" << firstPts_ << ")" << std::endl;
+    logLine("[VideoPlayer] Opened: ", path,
+              " (", width_, "x", height_,
+              ", ", frameRate_, " fps",
+              ", ", duration_, "s",
+              ", codec=", avcodec_get_name(codecpar->codec_id),
+              ", alpha=", (alpha ? "yes" : "no"),
+              ", upload=", (path_ == UploadPath::Blit ? "iosurface-blit" : path_ == UploadPath::Client ? "iosurface-client" : "malloc"),
+              ", thumb=", thumbMs, " ms",
+              ", cacheFrame=", cache_->frameBytes(), " B, gop=", gopFramesEst_,
+              (intraOnly_ ? ", intra-only" : ""), ", firstPts=", firstPts_, ")");
 
     return true;
 }
@@ -333,8 +334,8 @@ void VideoPlayer::start()
     if (!thread_.startThread(kDecodeThreadPriority))
     {
         if (stats_) --stats_->threadsRunning;
-        std::cerr << "[VideoPlayer] Failed to start the decode thread: " << sourceFile_.getFullPathName()
-                  << " (the player shows its first frame only)" << std::endl;
+        logLine("[VideoPlayer] Failed to start the decode thread: ", sourceFile_.getFullPathName(),
+                  " (the player shows its first frame only)");
     }
 }
 
@@ -607,8 +608,8 @@ GLuint VideoPlayer::uploadToTexture(bool* pending, VideoUpload::Budget* budget, 
         const bool gaveUp = firstFrameGaveUp_.load(std::memory_order_acquire);
         const bool failed = VideoRing::firstFrameFailed(false, gaveUp, firstDrawMs_, nowMs());
         if (failed && !firstFrameFailed_ && !gaveUp)
-            std::cerr << "[VideoPlayer] No first frame within " << VideoRing::kFirstFrameTimeoutMs
-                      << " ms of the first draw: " << sourceFile_.getFullPathName() << " -- no media" << std::endl;
+            logLine("[VideoPlayer] No first frame within ", VideoRing::kFirstFrameTimeoutMs,
+                      " ms of the first draw: ", sourceFile_.getFullPathName(), " -- no media");
         firstFrameFailed_ = failed;
     }
 
@@ -754,8 +755,8 @@ void VideoPlayer::noteNoFirstFrame(const char* why)
     if (everDecoded_ || firstFrameGaveUp_.load(std::memory_order_relaxed))
         return;
     firstFrameGaveUp_.store(true, std::memory_order_release);
-    std::cerr << "[VideoPlayer] No first frame (" << why << " before any frame): " << sourceFile_.getFullPathName()
-              << " -- no media" << std::endl;
+    logLine("[VideoPlayer] No first frame (", why, " before any frame): ", sourceFile_.getFullPathName(),
+              " -- no media");
 }
 
 void VideoPlayer::park()
@@ -1719,8 +1720,8 @@ bool VideoPlayer::createSurfaces()
     {
         for (auto*& sf : surf_)
             if (sf != nullptr) { CFRelease(static_cast<IOSurfaceRef>(sf)); sf = nullptr; }
-        std::cerr << "[VideoPlayer] IOSurface slots unavailable (" << width_ << "x" << height_
-                  << "): the malloc + glTexSubImage2D path" << std::endl;
+        logLine("[VideoPlayer] IOSurface slots unavailable (", width_, "x", height_,
+                  "): the malloc + glTexSubImage2D path");
         return false;
     }
     rowBytes_ = static_cast<int>(bpr);
@@ -1756,8 +1757,8 @@ void VideoPlayer::fallBack(const char* why)
         fallbackCounted_ = true;
         if (stats_ != nullptr)
             ++stats_->surfaceFallbacks;
-        std::cerr << "[VideoPlayer] IOSurface blit unavailable (" << why << "): " << sourceFile_.getFullPathName()
-                  << " -- glTexSubImage2D of the surface" << std::endl;
+        logLine("[VideoPlayer] IOSurface blit unavailable (", why, "): ", sourceFile_.getFullPathName(),
+                  " -- glTexSubImage2D of the surface");
     }
 }
 

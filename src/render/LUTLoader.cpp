@@ -1,4 +1,5 @@
 #include "LUTLoader.h"
+#include "core/LogLine.h"
 #include <vector>
 #include <iostream>
 
@@ -8,7 +9,7 @@ GLuint LUTLoader::loadCubeFile(const juce::File& file)
 {
     if (!file.existsAsFile())
     {
-        std::cerr << "[LUTLoader] File not found: " << file.getFullPathName() << std::endl;
+        logLine("[LUTLoader] File not found: ", file.getFullPathName());
         return 0;
     }
 
@@ -55,8 +56,8 @@ GLuint LUTLoader::loadCubeFile(const juce::File& file)
 
     if (lutSize <= 0 || static_cast<int>(data.size()) != lutSize * lutSize * lutSize * 3)
     {
-        std::cerr << "[LUTLoader] Invalid .cube file: size=" << lutSize
-                  << ", entries=" << data.size() / 3 << std::endl;
+        logLine("[LUTLoader] Invalid .cube file: size=", lutSize,
+                  ", entries=", data.size() / 3);
         return 0;
     }
 
@@ -76,8 +77,8 @@ GLuint LUTLoader::loadCubeFile(const juce::File& file)
 
     glBindTexture(GL_TEXTURE_3D, 0);
 
-    std::cerr << "[LUTLoader] Loaded " << file.getFileName()
-              << " (" << lutSize << "x" << lutSize << "x" << lutSize << ")" << std::endl;
+    logLine("[LUTLoader] Loaded ", file.getFileName(),
+              " (", lutSize, "x", lutSize, "x", lutSize, ")");
     return texId;
 }
 

@@ -712,8 +712,71 @@ test_compositor            All tests passed (47 assertions in 9 test cases)
 detection is not linkable headless: its live witness is the H8 smoke's switch_deck steps + Harmony's G4
 probe-deck-tabs / probe-deck-path.
 
-### T7 -- std::cerr -> logLine (family A)
-(pending)
+### T7 -- std::cerr on worker threads -> logLine (family A; widened by H3)
+Files (src, 14): analysis/AnalysisThread.cpp (4), api/ApiServer.cpp (3: :94 / :97 in the server-thread lambda, :124 stop()),
+test/TestServer.cpp (4), render/Renderer.cpp (20), render/ImageDecode.h (2), render/TextureManager.cpp (1),
+render/LUTLoader.cpp (3), recording/VideoRecorder.cpp (16), core/MediaOpener.cpp (1), media/ImageSequence.cpp (1),
+output/SyphonOutput.mm (2), output/SharedFrameSet.cpp (2), output/OutputPresenter.cpp (2), media/VideoPlayer.cpp (14 =
+EVERY statement in the file, H3) -- 75 statements, each file gains `#include "core/LogLine.h"` after its first #include.
+src/audio/* untouched (`git diff --stat -- src/audio` empty). tests/test_log_line_lint.cpp needed no edit: its list
+already holds VideoPlayer.cpp whole (B1 wrote it to H3) and its comment names the R8 residual (AudioEngine.cpp +
+DeviceGuard.cpp, bt2's).
+- Conversion (scratch cerr_convert.py, mechanical): `std::cerr << a << b ... << std::endl;` -> `logLine(a, b, ...);` with the
+  top-level `<<` split outside strings / parentheses; multi-line statements keep their line breaks. The one statement
+  that ended in a literal newline instead of std::endl (AnalysisThread.cpp:82, `<< " Hz\n";`) drops the `\n` from the
+  literal (logLine appends it). No statement built a line across several cerr statements; no manipulator was used.
+- Text byte-identity: a second script (cerr_verify.py) re-parses every new logLine call and compares its argument list
+  with the HEAD statement's `<<` operands (endl / trailing \n normalized). Verbatim summary:
+```
+analysis/AnalysisThread.cpp: std::cerr statements on HEAD 4, logLine statements now 4, argument lists identical: True, std::cerr left: 0
+api/ApiServer.cpp: std::cerr statements on HEAD 3, logLine statements now 3, argument lists identical: True, std::cerr left: 0
+test/TestServer.cpp: std::cerr statements on HEAD 4, logLine statements now 4, argument lists identical: True, std::cerr left: 0
+render/Renderer.cpp: std::cerr statements on HEAD 20, logLine statements now 20, argument lists identical: True, std::cerr left: 0
+render/ImageDecode.h: std::cerr statements on HEAD 2, logLine statements now 2, argument lists identical: True, std::cerr left: 0
+render/TextureManager.cpp: std::cerr statements on HEAD 1, logLine statements now 1, argument lists identical: True, std::cerr left: 0
+render/LUTLoader.cpp: std::cerr statements on HEAD 3, logLine statements now 3, argument lists identical: True, std::cerr left: 0
+recording/VideoRecorder.cpp: std::cerr statements on HEAD 16, logLine statements now 16, argument lists identical: True, std::cerr left: 0
+core/MediaOpener.cpp: std::cerr statements on HEAD 1, logLine statements now 1, argument lists identical: True, std::cerr left: 0
+media/ImageSequence.cpp: std::cerr statements on HEAD 1, logLine statements now 1, argument lists identical: True, std::cerr left: 0
+output/SyphonOutput.mm: std::cerr statements on HEAD 2, logLine statements now 2, argument lists identical: True, std::cerr left: 0
+output/SharedFrameSet.cpp: std::cerr statements on HEAD 2, logLine statements now 2, argument lists identical: True, std::cerr left: 0
+output/OutputPresenter.cpp: std::cerr statements on HEAD 2, logLine statements now 2, argument lists identical: True, std::cerr left: 0
+media/VideoPlayer.cpp: std::cerr statements on HEAD 14, logLine statements now 14, argument lists identical: True, std::cerr left: 0
+total 75 files with mismatch 0
+```
+  With identical operands in identical order, logLine's `(os << ... << a)` + '\n' prints what the cerr chain + endl
+  printed (the same operator<< overloads, incl. juce::String's and `const unsigned char*` for glGetString); T1's
+  scratch check printed identical lines through both. The only difference: each line is one fwrite (stderr is unbuffered,
+  so std::endl's flush has no counterpart to lose).
+- `#include <iostream>` stays in every file that had it (other iostream users / transitive includes not audited: left as
+  is, no drive-by removal).
+- Thread context: the list is plan T7's + H3's (converted whole as directed: "if unsure, convert"). ApiServer :124 /
+  TestServer :104 (stop()) and the Renderer / VideoRecorder start / stop lines run on the message thread too -- converting
+  them is harmless (same text).
+- Merge surface: ApiServer.cpp hunks `@@ -1,0 +2 @@` (the include), `@@ -94 +95 @@`, `@@ -97 +98 @@`, `@@ -124 +125 @@` --
+  the include line and :124 are new hunks beside H5's :93-96 list; neither is near bt2's ~323 / ~2086+.
+
+RED (D6, the pre-change tree): B1's T0 run (`test_log_line_lint: total std::cerr in the worker-thread list: 75
+(assertions: 29 | 14 passed | 15 failed)`) and B2's stage-end full ctest on adeece2^ (`1062 - no std::cerr in code that
+runs off the message thread (Failed)`, the only failure of 1085).
+GREEN (normal build: build 09:45:12-09:46:02 rc=0), targeted binaries, verbatim:
+```
+test_log_line_lint             All tests passed (29 assertions in 1 test case)
+test_image_decode              All tests passed (39 assertions in 5 test cases)
+test_image_sequence_open       All tests passed (58 assertions in 2 test cases)
+test_media_opener              All tests passed (58 assertions in 7 test cases)
+test_video_player_open         All tests passed (10 assertions in 2 test cases)
+test_video_player_gl           All tests passed (284 assertions in 5 test cases)
+test_video_decode_trace        All tests passed (510 assertions in 5 test cases)
+test_video_ring                All tests passed (683 assertions in 31 test cases)
+test_video_upload_budget       All tests passed (180902 assertions in 7 test cases)
+test_shared_frame_gl           All tests passed (90 assertions in 8 test cases)
+test_gop_cache_store           All tests passed (662 assertions in 26 test cases)
+test_clip_replace_media_retire All tests passed (18 assertions in 6 test cases)
+test_seq_vram                  All tests passed (4889364 assertions in 21 test cases)
+```
+Family A has no [tsan] unit case (its behavioural RED / GREEN is the app sweep, G3; the H8 smoke below is the first
+lane read).
 
 ### T8 -- probe-tsan tooling
 (pending)

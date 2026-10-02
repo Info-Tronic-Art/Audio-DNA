@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "core/LogLine.h"
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
 #include "render/ClipTransportSync.h"
@@ -66,7 +67,7 @@ void Renderer::detach()
 
 void Renderer::loadImage(const juce::File& imageFile)
 {
-    std::cerr << "[Renderer] loadImage: " << imageFile.getFullPathName() << std::endl;
+    logLine("[Renderer] loadImage: ", imageFile.getFullPathName());
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
     legacyReq_ = LegacyRequest{ imageFile, false, legacyReq_.gen + 1 };
 }
@@ -232,8 +233,8 @@ void Renderer::updateActiveSourceParamsFor(const std::string& sourceType,
 void Renderer::newOpenGLContextCreated()
 {
     glContextGen_.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 vupload: the context-cycle witness
-    std::cerr << "[Renderer] GL context created. Version: "
-              << glGetString(GL_VERSION) << std::endl;
+    logLine("[Renderer] GL context created. Version: ",
+              glGetString(GL_VERSION));
 
     quad_.init();
     initShaders();
@@ -247,8 +248,8 @@ void Renderer::newOpenGLContextCreated()
     // outputs-c1: the output window compiles no programs any more).
     for (const char* name : { "passthrough", "hue_shift", "vignette" })
         if (auto* p = shaderMgr_.getProgram(name))
-            std::cerr << "[Renderer] programID(" << name << ")="
-                      << p->getProgramID() << std::endl;
+            logLine("[Renderer] programID(", name, ")=",
+                      p->getProgramID());
 
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
@@ -998,9 +999,9 @@ void Renderer::renderOpenGL()
                 if (fx != nullptr && fx->isEnabled())
                 {
                     fx->setEnabled(false);
-                    std::cerr << "[Renderer] Adaptive quality: disabled '"
-                              << fx->getName() << "' (frame time "
-                              << static_cast<int>(frameMs * 10) / 10.0 << "ms)" << std::endl;
+                    logLine("[Renderer] Adaptive quality: disabled '",
+                              fx->getName(), "' (frame time ",
+                              static_cast<int>(frameMs * 10) / 10.0, "ms)");
                     break;
                 }
             }
@@ -1023,9 +1024,9 @@ void Renderer::renderOpenGL()
             if (auto* fx = effectChain_.getEffect(i))
                 if (fx->isEnabled()) ++numEnabled;
         }
-        std::cerr << "[Render Profile] Avg frame: " << static_cast<int>(avgMs * 100) / 100.0
-                  << " ms, " << numEnabled << " effects active, "
-                  << static_cast<int>(renderW) << "x" << static_cast<int>(renderH) << std::endl;
+        logLine("[Render Profile] Avg frame: ", static_cast<int>(avgMs * 100) / 100.0,
+                  " ms, ", numEnabled, " effects active, ",
+                  static_cast<int>(renderW), "x", static_cast<int>(renderH));
         renderProfileAccum_ = 0.0;
         renderProfileCount_ = 0;
     }
@@ -1946,9 +1947,9 @@ void Renderer::compileAllShaders()
 {
     auto compile = [&](const juce::String& name, const char* frag) {
         if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag))
-            std::cerr << "[Renderer]   " << name << ": OK" << std::endl;
+            logLine("[Renderer]   ", name, ": OK");
         else
-            std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
+            logLine("[Renderer]   ", name, ": FAILED");
     };
 
     // Core
@@ -2296,7 +2297,7 @@ void Renderer::compileAllShaders()
     compile("source_fluid_dynamics",    EmbeddedShaders::sourceFluidDynamics);
     compile("source_layer_router",      EmbeddedShaders::sourceLayerRouter);
 
-    std::cerr << "[Renderer] All shaders compiled." << std::endl;
+    logLine("[Renderer] All shaders compiled.");
 }
 
 void Renderer::compileShaderWithUtils(const juce::String& name, const char* frag,
@@ -2332,9 +2333,9 @@ void Renderer::compileShaderWithUtils(const juce::String& name, const char* frag
     combined += afterVersion;
 
     if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, combined.c_str()))
-        std::cerr << "[Renderer]   " << name << ": OK (with utils)" << std::endl;
+        logLine("[Renderer]   ", name, ": OK (with utils)");
     else
-        std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
+        logLine("[Renderer]   ", name, ": FAILED");
 }
 
 void Renderer::initEffectChain()
@@ -2376,8 +2377,8 @@ void Renderer::initEffectChain()
         }
     }
 
-    std::cerr << "[Renderer] Loaded " << effectChain_.getNumEffects()
-              << " effects from library." << std::endl;
+    logLine("[Renderer] Loaded ", effectChain_.getNumEffects(),
+              " effects from library.");
 
     // No demo effects — user enables what they want via the FX browser.
     // A4 (outputwindow-arc-design.md): the mappingEngine_.clearAll() that
@@ -2407,7 +2408,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     std::unique_lock<std::timed_mutex> flight(captureFlight_, std::defer_lock);
     if (!flight.try_lock_for(std::chrono::seconds(5)))
     {
-        std::cerr << "[Eyes] Frame capture timed out after 5s (another capture in flight)" << std::endl;
+        logLine("[Eyes] Frame capture timed out after 5s (another capture in flight)");
         return false;
     }
     const uint64_t prevLock = lockedSize_.load(std::memory_order_relaxed);
@@ -2435,7 +2436,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     if (status == std::future_status::timeout)
     {
-        std::cerr << "[Eyes] Frame capture timed out after 5s" << std::endl;
+        logLine("[Eyes] Frame capture timed out after 5s");
         std::lock_guard<std::mutex> lock(captureMutex_);
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
@@ -2460,7 +2461,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     const double readMs = read.readMs;
     if (readW <= 0 || readH <= 0 || pixels.size() != static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4)
     {
-        std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
+        logLine("[Eyes] Invalid capture dimensions: ", readW, "x", readH);
         return false;
     }
 
@@ -2502,13 +2503,13 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     // C0's split: read = the GL thread's whole share; convert + png ran here.
     if (ok)
-        std::cerr << "[Eyes] Captured frame: " << outputPath.getFullPathName()
-                  << " (" << readW << "x" << readH << ")"
-                  << " read=" << juce::String(readMs, 1) << " convert=" << juce::String(convertMs, 1)
-                  << " png=" << juce::String(pngMs, 1) << " ms"
-                  << (enc == CaptureEncoding::Fast ? " enc=fast" : " enc=archive") << std::endl;
+        logLine("[Eyes] Captured frame: ", outputPath.getFullPathName(),
+                  " (", readW, "x", readH, ")",
+                  " read=", juce::String(readMs, 1), " convert=", juce::String(convertMs, 1),
+                  " png=", juce::String(pngMs, 1), " ms",
+                  (enc == CaptureEncoding::Fast ? " enc=fast" : " enc=archive"));
     else
-        std::cerr << "[Eyes] Failed to write PNG: " << outputPath.getFullPathName() << std::endl;
+        logLine("[Eyes] Failed to write PNG: ", outputPath.getFullPathName());
 
     return ok;
 }
@@ -2543,11 +2544,11 @@ void Renderer::processPendingCapture()
     // plan4 item 1: the capture is the whole canvas, exactly its size.
     const int readW = canvasW_;
     const int readH = canvasH_;
-    std::cerr << "[Eyes] Processing capture: canvas " << readW << "x" << readH << std::endl;
+    logLine("[Eyes] Processing capture: canvas ", readW, "x", readH);
 
     if (canvasFBO_ == 0 || readW <= 0 || readH <= 0)
     {
-        std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
+        logLine("[Eyes] Invalid capture dimensions: ", readW, "x", readH);
         capturePromise_->set_value(CaptureRead{});
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
@@ -2595,7 +2596,7 @@ juce::File Renderer::takeSnapshot()
 
     if (ok)
     {
-        std::cerr << "[Snapshot] Saved: " << outputFile.getFullPathName() << std::endl;
+        logLine("[Snapshot] Saved: ", outputFile.getFullPathName());
         if (onSnapshotTaken)
         {
             auto file = outputFile;
@@ -2605,7 +2606,7 @@ juce::File Renderer::takeSnapshot()
         return outputFile;
     }
 
-    std::cerr << "[Snapshot] Failed to save snapshot" << std::endl;
+    logLine("[Snapshot] Failed to save snapshot");
     return {};
 }
 

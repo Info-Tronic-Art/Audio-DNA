@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_graphics/juce_graphics.h>
+#include "core/LogLine.h"
 #include "render/ImageTexCache.h"
 #include "render/PixelConvert.h"
 #include <chrono>
@@ -93,7 +94,7 @@ inline Result decodeFile(const juce::File& file, Layout layout, uint64_t tag,
     if (!img.isValid())
     {
         r.kind = ImageTexCache::Kind::Failed;
-        std::cerr << "[Image] decode FAILED " << r.path << std::endl;
+        logLine("[Image] decode FAILED ", r.path);
         return r;
     }
     img = img.convertedToFormat(juce::Image::ARGB);
@@ -109,8 +110,8 @@ inline Result decodeFile(const juce::File& file, Layout layout, uint64_t tag,
     r.decodeMs = std::chrono::duration<double, std::milli>(t1 - t0).count();
     r.convertMs = std::chrono::duration<double, std::milli>(t2 - t1).count();
     r.kind = ImageTexCache::Kind::Decoded;
-    std::cerr << "[Image] decoded " << r.path << " (" << r.w << "x" << r.h << ") decode=" << juce::String(r.decodeMs, 1)
-              << " convert=" << juce::String(r.convertMs, 1) << " ms" << std::endl;
+    logLine("[Image] decoded ", r.path, " (", r.w, "x", r.h, ") decode=", juce::String(r.decodeMs, 1),
+              " convert=", juce::String(r.convertMs, 1), " ms");
     return r;
 }
 

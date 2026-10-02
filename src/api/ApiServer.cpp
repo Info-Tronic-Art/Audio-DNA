@@ -1,4 +1,5 @@
 #include "api/ApiServer.h"
+#include "core/LogLine.h"
 #include "render/Renderer.h"
 #include "features/FeatureBus.h"
 #include "features/OnsetPulse.h"
@@ -91,10 +92,10 @@ void ApiServer::start()
 
     running_.store(true, std::memory_order_relaxed);
     serverThread_ = std::thread([this, bindAddress]() {
-        std::cerr << "[API] HTTP server listening on " << bindAddress << ":" << port_ << std::endl;
+        logLine("[API] HTTP server listening on ", bindAddress, ":", port_);
         if (!server_.listen(bindAddress, port_))
         {
-            std::cerr << "[API] Failed to start HTTP server on port " << port_ << std::endl;
+            logLine("[API] Failed to start HTTP server on port ", port_);
             running_.store(false, std::memory_order_relaxed);
         }
     });
@@ -121,7 +122,7 @@ void ApiServer::stop()
     if (serverThread_.joinable())
         serverThread_.join();
     running_.store(false, std::memory_order_relaxed);
-    std::cerr << "[API] HTTP server stopped" << std::endl;
+    logLine("[API] HTTP server stopped");
 }
 
 // --- JSON helpers ---

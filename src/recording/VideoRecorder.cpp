@@ -1,4 +1,5 @@
 #include "recording/VideoRecorder.h"
+#include "core/LogLine.h"
 #include <juce_opengl/juce_opengl.h>
 #include <iostream>
 
@@ -28,7 +29,7 @@ bool VideoRecorder::startRecording(const juce::File& outputFile, const Config& c
 {
     if (state_.load(std::memory_order_relaxed) != State::Idle)
     {
-        std::cerr << "[VideoRecorder] Already recording" << std::endl;
+        logLine("[VideoRecorder] Already recording");
         return false;
     }
 
@@ -46,7 +47,7 @@ bool VideoRecorder::startRecording(const juce::File& outputFile, const Config& c
 
     if (!initEncoder())
     {
-        std::cerr << "[VideoRecorder] Failed to initialize encoder" << std::endl;
+        logLine("[VideoRecorder] Failed to initialize encoder");
         closeEncoder();
         return false;
     }
@@ -56,8 +57,8 @@ bool VideoRecorder::startRecording(const juce::File& outputFile, const Config& c
     // Start encoder thread
     encoderThread_ = std::thread(&VideoRecorder::encoderThreadFunc, this);
 
-    std::cerr << "[VideoRecorder] Recording started: " << outputFile.getFullPathName()
-              << " (" << config.width << "x" << config.height << " @ " << config.fps << "fps)" << std::endl;
+    logLine("[VideoRecorder] Recording started: ", outputFile.getFullPathName(),
+              " (", config.width, "x", config.height, " @ ", config.fps, "fps)");
 
     return true;
 }
@@ -81,8 +82,8 @@ void VideoRecorder::stopRecording()
 
     state_.store(State::Idle, std::memory_order_release);
 
-    std::cerr << "[VideoRecorder] Recording stopped. Frames: " << framesWritten_.load()
-              << ", Dropped: " << droppedFrames_.load() << std::endl;
+    logLine("[VideoRecorder] Recording stopped. Frames: ", framesWritten_.load(),
+              ", Dropped: ", droppedFrames_.load());
 
     if (onRecordingFinished)
     {
@@ -194,7 +195,7 @@ bool VideoRecorder::initEncoder()
                                               outputFile_.getFullPathName().toRawUTF8());
     if (ret < 0 || !formatCtx_)
     {
-        std::cerr << "[VideoRecorder] Failed to allocate output context" << std::endl;
+        logLine("[VideoRecorder] Failed to allocate output context");
         return false;
     }
 
@@ -214,7 +215,7 @@ bool VideoRecorder::initEncoder()
         codec = avcodec_find_encoder(formatCtx_->oformat->video_codec);
         if (!codec)
         {
-            std::cerr << "[VideoRecorder] No encoder found for " << codecName << std::endl;
+            logLine("[VideoRecorder] No encoder found for ", codecName);
             return false;
         }
     }
@@ -223,7 +224,7 @@ bool VideoRecorder::initEncoder()
     videoStream_ = avformat_new_stream(formatCtx_, nullptr);
     if (!videoStream_)
     {
-        std::cerr << "[VideoRecorder] Failed to create video stream" << std::endl;
+        logLine("[VideoRecorder] Failed to create video stream");
         return false;
     }
 
@@ -231,7 +232,7 @@ bool VideoRecorder::initEncoder()
     codecCtx_ = avcodec_alloc_context3(codec);
     if (!codecCtx_)
     {
-        std::cerr << "[VideoRecorder] Failed to allocate codec context" << std::endl;
+        logLine("[VideoRecorder] Failed to allocate codec context");
         return false;
     }
 
@@ -268,7 +269,7 @@ bool VideoRecorder::initEncoder()
     ret = avcodec_open2(codecCtx_, codec, nullptr);
     if (ret < 0)
     {
-        std::cerr << "[VideoRecorder] Failed to open codec: " << ret << std::endl;
+        logLine("[VideoRecorder] Failed to open codec: ", ret);
         return false;
     }
 
@@ -276,7 +277,7 @@ bool VideoRecorder::initEncoder()
     ret = avcodec_parameters_from_context(videoStream_->codecpar, codecCtx_);
     if (ret < 0)
     {
-        std::cerr << "[VideoRecorder] Failed to copy codec params" << std::endl;
+        logLine("[VideoRecorder] Failed to copy codec params");
         return false;
     }
 
@@ -290,7 +291,7 @@ bool VideoRecorder::initEncoder()
                         AVIO_FLAG_WRITE);
         if (ret < 0)
         {
-            std::cerr << "[VideoRecorder] Failed to open output file" << std::endl;
+            logLine("[VideoRecorder] Failed to open output file");
             return false;
         }
     }
@@ -299,7 +300,7 @@ bool VideoRecorder::initEncoder()
     ret = avformat_write_header(formatCtx_, nullptr);
     if (ret < 0)
     {
-        std::cerr << "[VideoRecorder] Failed to write header" << std::endl;
+        logLine("[VideoRecorder] Failed to write header");
         return false;
     }
 
@@ -319,7 +320,7 @@ bool VideoRecorder::initEncoder()
                               SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
     if (!swsCtx_)
     {
-        std::cerr << "[VideoRecorder] Failed to create sws context" << std::endl;
+        logLine("[VideoRecorder] Failed to create sws context");
         return false;
     }
 
@@ -387,7 +388,7 @@ bool VideoRecorder::encodeFrame(const uint8_t* rgbaData, int width, int height)
     int ret = avcodec_send_frame(codecCtx_, frame_);
     if (ret < 0)
     {
-        std::cerr << "[VideoRecorder] Error sending frame: " << ret << std::endl;
+        logLine("[VideoRecorder] Error sending frame: ", ret);
         return false;
     }
 
@@ -399,7 +400,7 @@ bool VideoRecorder::encodeFrame(const uint8_t* rgbaData, int width, int height)
             break;
         if (ret < 0)
         {
-            std::cerr << "[VideoRecorder] Error receiving packet: " << ret << std::endl;
+            logLine("[VideoRecorder] Error receiving packet: ", ret);
             return false;
         }
 
@@ -410,7 +411,7 @@ bool VideoRecorder::encodeFrame(const uint8_t* rgbaData, int width, int height)
         av_packet_unref(packet_);
         if (ret < 0)
         {
-            std::cerr << "[VideoRecorder] Error writing packet: " << ret << std::endl;
+            logLine("[VideoRecorder] Error writing packet: ", ret);
             return false;
         }
     }

@@ -1,4 +1,5 @@
 #include "output/OutputPresenter.h"
+#include "core/LogLine.h"
 #include "render/RenderGeometry.h"
 #include <juce_opengl/juce_opengl.h>   // juce_gl.h must precede any Apple GL header
 #if JUCE_MAC
@@ -63,7 +64,7 @@ bool bindGeneration(SharedFrameSet& frames, PresenterGLState& st, uint32_t gen)
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, st.tex[i], 0);
         if (err != kCGLNoError || glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            std::cerr << "[OutputPresenter] cannot bind shared frame slot " << i << std::endl;
+            logLine("[OutputPresenter] cannot bind shared frame slot ", i);
             st.release();
             return false;
         }
@@ -101,7 +102,7 @@ bool presentSharedFrame(SharedFrameSet& frames, PresenterGLState& st, unsigned i
 #else
     (void) frames; (void) st;
     static bool logged = false;
-    if (!logged) { logged = true; std::cerr << "[OutputPresenter] shared frames are macOS-only: output stays black" << std::endl; }
+    if (!logged) { logged = true; logLine("[OutputPresenter] shared frames are macOS-only: output stays black"); }
     return false;
 #endif
 }

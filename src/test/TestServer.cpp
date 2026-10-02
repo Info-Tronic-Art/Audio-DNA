@@ -1,6 +1,7 @@
 #if AUDIODNA_TEST_SERVER
 
 #include "test/TestServer.h"
+#include "core/LogLine.h"
 #include "render/Renderer.h"
 #include "features/FeatureBus.h"
 #include "effects/EffectChain.h"
@@ -80,10 +81,10 @@ void TestServer::start()
 
     running_.store(true, std::memory_order_relaxed);
     serverThread_ = std::thread([this]() {
-        std::cerr << "[Eyes] HTTP server listening on port " << port_ << std::endl;
+        logLine("[Eyes] HTTP server listening on port ", port_);
         if (!server_.listen("localhost", port_))
         {
-            std::cerr << "[Eyes] Failed to start HTTP server on port " << port_ << std::endl;
+            logLine("[Eyes] Failed to start HTTP server on port ", port_);
             running_.store(false, std::memory_order_relaxed);
         }
     });
@@ -101,7 +102,7 @@ void TestServer::stop()
     // s-rta-0927 outputs-c1: no HTTP thread can use the probe context any more; it goes before the renderer's
     // detach (MainComponent's shutdown law), and the shared frames it read outlive it.
     destroyOutputProbe();
-    std::cerr << "[Eyes] HTTP server stopped" << std::endl;
+    logLine("[Eyes] HTTP server stopped");
 }
 
 // --- JSON helpers ---
@@ -1932,8 +1933,8 @@ void TestServer::handleOutputProbe(const httplib::Request& req, httplib::Respons
         res.set_content(jsonError("cannot write " + outFile.getFullPathName().toStdString()), "application/json");
         return;
     }
-    std::cerr << "[Eyes] Output probe: " << outFile.getFullPathName() << " (" << w << "x" << h << ", gen " << gen
-              << " serial " << front.serial << ")" << std::endl;
+    logLine("[Eyes] Output probe: ", outFile.getFullPathName(), " (", w, "x", h, ", gen ", gen,
+              " serial ", front.serial, ")");
 
     auto* result = new juce::DynamicObject();
     result->setProperty("ok", true);
