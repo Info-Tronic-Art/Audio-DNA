@@ -100,3 +100,28 @@ TEST_CASE("a pause landing inside the sync window survives the write-back", "[cl
     ClipTransportSync::pushIntent(clip, player);
     CHECK_FALSE(player.isPlaying());       // and the next sync pauses the player
 }
+
+TEST_CASE("an intent that changed inside the sync window survives an out-point crossing (OneShot)", "[clip_transport_sync]")
+{
+    // Fix round (ruling F6, review-tsan-tests-r1 S3): the OneShot stop at the out-point compare-exchanges only the value
+    // THIS sync wrote; it must not erase a newer intent. A OneShot clip sits stopped past its out-point (it played to
+    // the end); the GL sync reads "stopped"; inside the window the message thread sets playing = true (the transport
+    // play / a re-trigger's intent); the write-back's CAS fails (the intent changed) and the out-point branch runs.
+    Clip clip = videoClip();
+    clip.loopMode = Clip::LoopMode::OneShot;
+    clip.inPoint = 0.1f;
+    clip.outPoint = 0.5f;
+    clip.playing = false;
+    FakePlayer player;                 // stopped at 0.75, past the out-point
+    player.head = 0.75;
+
+    const bool wanted = ClipTransportSync::pushIntent(clip, player);   // GL: reads "stopped"
+    REQUIRE_FALSE(wanted);
+    clip.playing = true;               // message thread: the newer intent lands inside the window
+    player.advance(0.01);              // stopped: the head stays past the out-point
+    ClipTransportSync::writeBack(clip, player, wanted);
+
+    CHECK(clip.playing.load() == true);           // the newer intent survives (an unconditional OneShot stop erases it)
+    CHECK(clip.playheadPosition.load() == 0.75);  // the playhead this sync read
+    CHECK_FALSE(player.isPlaying());              // the player itself is held at its OneShot end this frame
+}
