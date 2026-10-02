@@ -1,7 +1,7 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: DONE (S0 / Stage P complete and gated; S1 next)
-Stage in progress: S0 DONE (Stage P = Persistent removed; ruling-bf9.md C0-C4, G0-G7 all PASS at STAGE_P_HEAD)
+STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a next)
+Stage in progress: S1 DONE (ClipRef in the tuple, inert; S1 commit 475b716). S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
 STAGE_P_HEAD: 3dac692 (C4)
@@ -488,4 +488,105 @@ prefix fcd75aff1387dd66c2c6 == build-lane's at 3dac692). BASE (C0) = scratchpad/
 ## Resume point (for the S1 builder)
 S0 is complete at 3dac692. Next: S1 (plan-bf9b S1 + ruling-bf9b amendments 1, 2(a)(b)) on lane/bf9b; the S1 first commit
 carries the symbol -> file:line table (amendment 1). Do NOT rebase until Harmony says (main has hyg + mkvidx; ui next).
+INBOX-RECHECK: none
+
+## S1 (ClipRef in the tuple, inert; plan S1 + ruling-bf9b amendments 1, 2(a)(b)) -- builder started 19:04
+STATUS(S1): DONE
+### S1 progress log (appended per item)
+- 19:04 read the lane report, plan-bf9b (incl. HARMONY ADOPTION) and ruling-bf9b in full. Disk 291 GiB free.
+- 19:06 symbol -> file:line table generated (scratchpad/bf9b-S1/symtab.py; 90 rows, 0 missing cells, both 11820fa and
+  3dac692) -- goes into the S1.1 commit message (amendment 1).
+- 19:08 RED (tests written first, src untouched = STAGE_P_HEAD src; `cmake --build build-lane --target test_layer_runtime
+  -j3` rc=2, 20 error lines before the error limit; log scratchpad/bf9b-S1/red-build.log). First lines VERBATIM:
+  `tests/test_layer_runtime.cpp:49:46: error: use of undeclared identifier 'ClipRef'`
+  `tests/test_layer_runtime.cpp:86:52: error: no member named 'activeDeckId' in 'LayerRuntimeSnapshot'`
+  `tests/test_layer_runtime.cpp:93:21: error: no member named 'activeRef' in 'LayerRuntimeSnapshot'`
+  = the ruled RED form ("does not compile on STAGE_P_HEAD (no activeDeckId)").
+- 19:09 GREEN, target only (`cmake --build build-lane --target test_layer_runtime -j3` rc 0, 0 errors, 0 warnings in
+  ClipRef.h / Layer.h / test_layer_runtime.cpp): `test_layer_runtime "[layer_runtime]"` -> `All tests passed (2474
+  assertions in 17 test cases)`; `"*bf9b S1*"` -> `All tests passed (1366 assertions in 2 test cases)`.
+- 19:09:53-19:11:52 full incremental build `cmake --build build-lane -j3` rc=0, 0 error lines, 152 objects recompiled
+  (29 of the app target incl. MainComponent.cpp; app binary 19:10:53). Warnings located in the 3 touched files: 0
+  (STAGE_P_HEAD clean-build log: 0).
+- 19:12:25-19:12:57 B2 at the S1 tree (`ctest --test-dir build-lane -j3 --output-on-failure`, log
+  scratchpad/bf9b-S1/ctest-s1.log), VERBATIM:
+  `100% tests passed, 0 tests failed out of 1119`
+  count 1119 = STAGE_P_HEAD 1117 + 2 added (#1098 "LayerRuntimeCell packs a ClipRef per slot: deck ids and columns
+  round-trip at 0 and the limits, a ref without a deck round-trips, pending + snap still share the last word (bf9b
+  S1)", #1099 "ClipRef packing is a bijection on the valid domain (bf9b S1)"); 0 retired. #1097 "LayerRuntimeCell:
+  pack / unpack round trip over the whole range" (amendment 2(b) edits) Passed.
+- COMMIT 475b716 `feat(s-rta-1002b bf9b): S1.1 -- ClipRef (deck id, column) packed per slot into the 16-byte trigger
+  tuple (inert)` -- src/model/ClipRef.h (new), src/model/Layer.h, CMakeLists.txt (ClipRef.h listed beside Layer.h),
+  tests/test_layer_runtime.cpp. Its message carries the amendment-1 symbol -> file:line table (90 rows: every plan
+  4.C block + amendment 26's additions, at BF9B_BASE 11820fa AND at STAGE_P_HEAD 3dac692, first `grep -n` match).
+  Build rc at 475b716: app + tests rc 0 (19:11:52; rebuilt again 19:15:51 after the mutants, rc 0).
+
+### S1 encoding (as built; the bijection test pins it)
+- active / previous int32 = (deckField16 << 16) | uint16(column); deckField16 = 0xFFFF for kNoDeck, else the id.
+  So no clip and no deck = -1 (as before, plan F2's literal), (deck d, column c >= 0) = d << 16 | c (plan F2's literal),
+  and (deck d, column -1) = d << 16 | 0xFFFF.
+- pending = low 28 bits (deckField14 << 14) | (column + 1), deckField14 = 0x3FFF for kNoDeck; snap override in the
+  high 4 (unchanged). Limit: deck 0x3FFE + column 0x3FFE = 0x0FFFBFFF (plan S1's number; pinned).
+- DEVIATION from plan F2's literal pending form `(deck << 14 | column) + 1`: identical for every column >= 0, but that
+  form maps (any deck, column -1) to 0 = "no deck", which breaks amendment 2(a)'s bijection over deck x column {-1, ...}
+  in the PENDING slot. The built form stores column + 1 in its own 14 bits, so every (deck, -1) round-trips. The
+  no-pending default word is therefore 0x0FFFC000, not 0 (never serialized, R-F14; pack is the only writer).
+- LayerRuntimeSnapshot: activeDeckId / previousDeckId / pendingDeckId appended AFTER pendingTriggerSnapOverride (every
+  positional `{a, p, prog, pend, snap}` and designated initialiser keeps compiling, zero caller edits); operator==
+  compares them. ClipRef::valid() = deck <= kMaxDeckId and 0 <= column <= kMaxColumn (a deck-less ref is not valid).
+  pack does NOT jassert in S1 (amendment 2(c) adds the refusal + jassert from S2 on).
+
+### S1 teeth (mutants; scratchpad/bf9b-S1/mutants.sh; each = an in-place edit of the committed Layer.h in build-lane,
+target test_layer_runtime only, restored by cp from a scratch copy; sha256 prefix 209e48dcec14ed7a before and after
+every mutant, `git diff -- src/model/Layer.h` 0 lines after each; build-lane fully rebuilt from the restored source
+19:13:51-19:15:51 rc 0)
+| mutant | packing case (#1098) | bijection case (#1099) | whole-range case (#1097) |
+|---|---|---|---|
+| MS3 (ruling amendment 13): active / previous pack the no-deck field whatever the deck | FAILED | FAILED | passed |
+| MS3b: pending packs the no-deck field whatever the deck | FAILED | FAILED | passed |
+| OFF1 (plan S1 risk, 14-bit field off by one): pending deck shift 13 instead of 14 | FAILED | FAILED | FAILED |
+| COLM: active / previous column decoded as 14 unsigned bits (no sign) | FAILED | FAILED | FAILED |
+Raw: `test cases:    2 |    0 passed |   2 failed` for each mutant's "*bf9b S1*" run. MS3 is ruling-bf9b's S2b smoke; it is
+recorded here early because it is S1's own test teeth (S2b may re-record it).
+
+### B3 TSAN at S1's end (`.harmony/probe-tsan-unit.sh`, worktree build-tsan, 19:15:51-19:16:02, exit 0; log
+scratchpad/bf9b-S1/tsan-s1.log; test_layer_runtime_race / test_manual_scalar_race recompiled Layer.cpp + their tests
+with the new Layer.h), every non-compiler line VERBATIM:
+```
+probe-tsan-unit: build test_layer_runtime_race test_manual_scalar_race 2026-10-02 19:15:51
+probe-tsan-unit: ctest -L tsan finds 4 [tsan] cases (expected 4)
+probe-tsan-unit: ctest -L tsan 2026-10-02 19:16:01
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-tsan
+    Start 111: R1 message-thread triggers vs render clock / autopilot on one deck
+1/4 Test #111: R1 message-thread triggers vs render clock / autopilot on one deck ......   Passed    0.31 sec
+    Start 112: R2 clip runtime fields: trigger writes vs render transport write-back
+2/4 Test #112: R2 clip runtime fields: trigger writes vs render transport write-back ...   Passed    0.31 sec
+    Start 113: R4 tuple consistency and no lost fade under a paced trigger storm
+3/4 Test #113: R4 tuple consistency and no lost fade under a paced trigger storm .......   Passed    0.28 sec
+    Start 114: R3 manual scalar writes vs eff() reads
+4/4 Test #114: R3 manual scalar writes vs eff() reads ..................................   Passed    0.25 sec
+100% tests passed, 0 tests failed out of 4
+Label Time Summary:
+tsan    =   1.15 sec*proc (4 tests)
+Total Test time (real) =   1.16 sec
+probe-tsan-unit: ctest rc=0 2026-10-02 19:16:02
+```
+"WARNING: ThreadSanitizer" count: 0. B3 at S1's end: 4 / 4 PASS (the ruled S1 count).
+
+### S1 RESULT (19:17)
+S1 DONE: one commit 475b716 on 3dac692 (+ this report commit). B1 (per commit) rc 0; B2 1119 / 0 failed (+2 added, 0
+retired); B3 4 / 4, 0 TSan warnings; RED = does not compile on STAGE_P_HEAD (verbatim above); mutants MS3 / MS3b / OFF1 /
+COLM each fail both new cases. No live app was launched in S1 (inert; no K row runs before S4) -- no lock taken.
+The graphify post-commit hook launched a background graph rebuild on commit (log ~/.cache/graphify-rebuild.log); not
+the lane's, nothing in the worktree changed (git status clean apart from this report).
+
+## Resume point (for the S2a builder)
+S1 is complete at 475b716 (BF9B tree builds app + tests; ctest 1119 / 0). Next: S2a = plan S2.1-S2.11 (src) +
+ruling-bf9b amendments 2(c), 3(a) writers fenced, 4, 5, 6, 7, 8, 9(a)-(c), 12 (padStateFor), 18 (Renderer half), 19,
+20, 22, 26 -- the sanctioned non-building window opens (app builds at 2a's end, tests at 2b's end). Resolve every plan
+line by SYMBOL from the 475b716 commit message's table (the 3dac692 column = S1's parent; S1 touched only Layer.h's
+tuple section, so Layer.h lines after :45 moved by +38: triggerClip :386 -> :424, processPendingTrigger :423 -> :461, clearActiveClip :465 -> :503 at 475b716; re-grep). The deck-less ClipRef form (kNoDeck with a
+column) is S1's interim only: S2's tuple-writing entries refuse it (amendment 2(c)) and pack jasserts it. Arms for K
+rows: scratchpad/bf9b-S0/apps/stagep-head.app (STAGE_P), apps/base-c0.app (C0); REF dir for a4
+scratchpad/bf9b-S0/live/run1-base/rstate.O2yu7p. Do NOT rebase until Harmony says.
 INBOX-RECHECK: none
