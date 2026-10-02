@@ -289,6 +289,16 @@ row("V4 inspect L0C0", i0.get("inspector_shows") is True and i0.get("inspector_l
 post("/api/debug/inspect_clip", {"layer": 1, "column": 3}); time.sleep(0.3); i3 = cm(1, 3)
 row("V4 inspect L1C3 (source)", i3.get("inspector_lines") == [] and i3.get("inspector_button_visible") is False,
     json.dumps({x: i3.get(x) for x in ("inspector_shows", "inspector_lines", "inspector_button_visible")}))
+# V4 for the other six cells (fix round F3): the Clip inspector's OWN rows, read live, == V1's lines; the button shows
+# on every file-backed cell. L0C0 / L1C3 keep their rows above unchanged; L1C3 gets its own "shows" row.
+row("V4 inspect L1C3 (source) shows the clip", i3.get("inspector_shows") is True, "inspector_shows %s" % i3.get("inspector_shows"))
+for (l, c), lines in V1.items():
+    if (l, c) in ((0, 0), (1, 3)): continue
+    lab = "L%dC%d" % (l, c)
+    post("/api/debug/inspect_clip", {"layer": l, "column": c}); time.sleep(0.3)
+    ii, n = settle_video(l, c, "V4 " + lab) if l == 0 else (cm(l, c), 0)
+    row("V4 inspect %s" % lab, ii.get("inspector_shows") is True and ii.get("inspector_lines") == lines and ii.get("inspector_button_visible") is True,
+        json.dumps({x: ii.get(x) for x in ("inspector_shows", "inspector_lines", "inspector_button_visible")}) + " retries %d" % n)
 
 # ---- BF8 rows
 t = tabs(); tl = t.get("tabs") or []
