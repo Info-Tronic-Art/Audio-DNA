@@ -393,8 +393,10 @@ struct Layer
     // Quantize) and it is not already active; otherwise trigger it immediately. An empty cell clears the layer.
     // onlyIfActive: a GL-thread trigger DECIDED from a tuple snapshot (the autopilot advance) passes the active column
     // it decided from; the trigger then applies only while the tuple still names that column -- tested inside the
-    // pure function of every CAS attempt, so a clear or a user trigger that landed since the snapshot stands and the
-    // call is a no-op (no tuple change, no clip tail).
+    // pure function of every CAS attempt, so a clear, or an IMMEDIATE user trigger of another column, that landed since
+    // the snapshot stands and the call is a no-op (no tuple change, no clip tail). The guard compares the ACTIVE column
+    // only: a user trigger QUEUED by beat snap after the snapshot, or a retrigger of the same active column, leaves it
+    // unchanged, so the advance still applies and (immediateNext) cancels that queue -- as before this guard existed.
     LayerRuntimeTransition triggerClip(int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
                                        int maxAttempts = 0, std::optional<int> onlyIfActive = std::nullopt)
     {
@@ -549,7 +551,7 @@ private:
     {
         auto guarded = [&](const LayerRuntimeSnapshot& r) -> LayerRuntimeSnapshot {
             if (onlyIfActive.has_value() && r.activeClipColumn != *onlyIfActive)
-                return r;   // decided from a stale snapshot: what landed since stands
+                return r;   // decided from a stale snapshot: a changed active column (clear / immediate trigger) stands
             return fn(r);
         };
         auto t = updateRuntime(guarded, maxAttempts,

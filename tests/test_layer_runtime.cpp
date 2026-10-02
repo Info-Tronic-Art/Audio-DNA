@@ -415,7 +415,8 @@ TEST_CASE("contention: GL-thread fade ticks and beat-fired triggers vs a message
 // s-rta-1002 fix round, ruling F2 (review-tsan-memmodel-r1 S1): Autopilot::processFrame loads a layer's tuple ONCE,
 // decides an advance from it, then calls triggerClip(next, Off, 16, currentCol) (Autopilot.cpp advanceClip /
 // smartAdvanceClip). The window between that load and the CAS is the whole advance path, so the trigger is
-// conditioned on the column it decided from: a clear or a user trigger that landed first stands.
+// conditioned on the column it decided from: a clear or an immediate user trigger of another column that landed first
+// stands (a user trigger queued by beat snap, or a retrigger of the same column, can still be cancelled, as before).
 // ---------------------------------------------------------------------------
 
 TEST_CASE("a render-side advance decided before a clear leaves the layer cleared", "[layer_runtime][autopilot]")

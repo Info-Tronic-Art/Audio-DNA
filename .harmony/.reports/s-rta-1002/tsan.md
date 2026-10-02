@@ -1399,3 +1399,6 @@ unchanged (24,006 B). src/audio, test_device_policy, test_audio_engine_devices, 
   discovered: F3.
 - 2026-10-02 -- `ctest -L <label>` with no matching test exits 0 | Files: .harmony/probe-tsan-unit.sh | count with
   `ctest -L <label> -N` ("Total Tests:") and pass `--no-tests=error` | discovered: F7.
+
+## Wording fix (memmodel r2 S1)
+Review review-tsan-memmodel-r2 S1: the comments / docs said "a clear or a user trigger that landed since the snapshot stands". The onlyIfActive guard compares the ACTIVE column only, so that holds for a clear and for an IMMEDIATE user trigger of another column, NOT for a user trigger QUEUED by beat snap after the snapshot (the stale advance's immediateNext sets pendingTriggerColumn = -1 and cancels it) nor for a retrigger of the same active column. Behaviour is unchanged from main before the lane (an immediate trigger always cancels the queue). Reworded, comments and docs only, in: src/model/Layer.h (triggerClip comment, activate() guard trailing comment), src/model/Autopilot.cpp (header comment), tests/test_layer_runtime.cpp (section comment, same claim), docs/claude/pitfalls.md Pitfall 63 item 4, docs/claude/architecture.md. No code token changed (the only non-pure-comment diff line is a trailing `//` comment after an unchanged `return r;`). build-lane rebuilt clean; `ctest -R 'layer_runtime|autopilot'` 2/2 passed.

@@ -6,7 +6,9 @@ namespace
 // Autopilot runs on the GL thread, which never waits: its triggers try at most this many compare-exchanges of the
 // layer's tuple word (lane tsan, ruling amendment 7), then retry at the next beat crossing. Every advance is DECIDED
 // from the tuple processFrame loaded once (currentCol), so it passes currentCol as triggerClip's onlyIfActive: a
-// clear or a user trigger that landed since the load stands, the advance is a no-op (s-rta-1002 fix round, F2).
+// clear or an immediate user trigger of another column that landed since the load stands, the advance is a no-op
+// (s-rta-1002 fix round, F2). A user trigger queued by beat snap after the load, or a retrigger of the same column,
+// can still be cancelled by the advance, as before this guard.
 constexpr int kRenderTriggerAttempts = 16;
 }
 
