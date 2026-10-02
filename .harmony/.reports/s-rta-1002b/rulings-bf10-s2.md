@@ -14,3 +14,9 @@ FOUND 1 (presets without a comp shader write their own alpha < 1 into the FBO; b
   mask, inside the saved / restored GL state), and ASSERT in T4: bf10_circle alpha255 == 100 % at both sizes (RED on
   ab5cf4b). MilkDrop is a full-frame generator; an opaque output is what a layer expects.
 Pitfall number for this lane: 66 (64 mkvidx, 65 ui).
+
+## STOP 3 (s-rta-1002b, 2026-10-02 19:29:45) — T6 fails 1 run in 30 (every-10th-frame reads straddle a soft wipe)
+RULING: option (A). Read EVERY frame between 0.2 s and 1.2 s of the blend; the clause and its bars stay EXACTLY as ruled
+(no third branch, no re-threshold). Required: 20 consecutive runs, 20/20 PASS (scratch evidence 20/20). Any failure = STOP
+and report the raw reads (never retune). Option (B) rejected (a thin 4.80 % margin = a new flake); (C) rejected (a ctest
+that fails ~3 % of the time is not a gate).
