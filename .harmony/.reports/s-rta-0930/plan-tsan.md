@@ -634,3 +634,12 @@ they differ:
   path is gone.
 - H10 Filed, not built here: follow-up lane "tsan-r5" (R5 config scalars incl. the perf/play preamble writes, R7 the unfenced
   httplib reader), starting from scenario e's reports.
+- H11 (2026-10-02 08:49:46, ruling on B1's flagged deviation) amendment 2's normal-build T0 bar is AMENDED: D1, D1b, D1c, D6 and lint case 1
+  MUST fail; R1 and R4 MAY also fail in the normal build on the base (their value invariants -- I1 / range / I3 -- catch the
+  torn tuple and the lost trigger without TSan: that is RED with more teeth, not a weakened test); everything else passes.
+  G2's RED arm is unchanged (TSan exit 66 + a src/ data race per [tsan] case).
+- H12 (2026-10-02 08:49:46) RIG: two lanes' concurrent full ctest runs collide on fixed temp names (test_preset_manager's
+  preset_manager_test_<suffix>.json, test_app_settings' audiodna-test-app-settings): 464 / 471 / 472 / 821 / 823 failed in
+  B1's T0 run and passed isolated. From now on every FULL ctest run takes the cross-lane mutex
+  (until mkdir /tmp/audiodna-ctest.lock 2>/dev/null; do sleep 15; done; run; rm -rf /tmp/audiodna-ctest.lock), and a failure in
+  those targets is re-run isolated before any verdict.
