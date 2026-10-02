@@ -1039,3 +1039,363 @@ on every tree before T7).
 | m4 | activation tail moved after the CAS | B1 (T2) | contract test, rarely: 3 of 30 runs (4 of 20 in a first batch); lane 30/30 pass | `activations seen 20000, stale beatsPlayed seen 1 -- test cases: 1 / 1 failed` (fired, as the ruling predicted: rare, so the order is also a review item) |
 | m5 | LayerClock::tick as a plain store | B2 (T3) | stale-tick test + contention test; R4 (normal) 3/3 | `test_layer_runtime.cpp:325: FAILED: CHECK_FALSE( LayerClock::tick(L, rt, 0.1f) )`; `:402: FAILED: REQUIRE_FALSE( stalled ) ... adopts 0`; R4 `I1 0 I2 11725 I3 0 I4 0` / `I2 12053` / `I2 12112` -- through I2 (a LOST activation), not I3 as the ruling worded it |
 | m6 | syncMedia write-back as a plain store | B2 (T4) | test_clip_transport_sync 2 of 3 cases (OneShot passes, no concurrent intent) | `test_clip_transport_sync.cpp:48: FAILED: CHECK( clip.playing.load() == true ) with expansion: false == true`; `:99: FAILED: CHECK( clip.playing.load() == false ) with expansion: true == false` |
+
+## Fix round (Harmony rulings) -- Builder tsan-fix, started 2026-10-02 11:08 EDT
+STATUS: DONE -- F1-F8 done as ruled (each finding re-verified against the code first; none was wrong), one-line NITs
+fixed, the rest listed with reasons. Commits on lane/tsan after bf5c116: eef55fe F1, d13f66a F2, 1e7abbc F3, 6de81ba F4,
+ef686f5 F5, 0562907 F6, 525bdbe F7, d59a903 F8, fb2916b NITs, then this report commit. Full normal ctest 1092/1092
+(serial, mutex); probe-tsan-unit 4/4 (finds 4, 0 TSan warnings). base_commit 2d38b39. NOT merged, NOT pushed.
+Inputs read in full: plan-tsan.md (incl. HARMONY ADOPTION H1-H13), ruling-tsan.md "ARCHITECT RULING" (amendments 1-18 +
+FINAL GATES), tsan-fix-rulings.txt (F1-F8), review-tsan-{memmodel,tests,render}-r1.md. Continue from bf5c116 (no reset).
+
+### F1 -- R1 / R2 / R3 start handshake (commit eef55fe)
+Finding VERIFIED before fixing (tests M1): at bf5c116 the render thread is spawned right before main's ~10 ms loop with
+no handshake. Fix: `waitForFrames(renderFrames, atLeast, 10 s)` (tests/test_layer_runtime_race.cpp and
+tests/test_manual_scalar_race.cpp); after `go`, main waits for renderFrames >= 1 (else stop + join + `FAIL("render thread
+never started")`), and after its loop waits (bounded 10 s) for renderFrames >= 100 before `stop`; `CHECK(renderFrames > 0)`
+stays as the vacuity guard. The render thread "publishes running" by counting its first frame.
+Evidence: scratch script tsan-fix/load-runs.sh -- starts 10 busy-loop burners `( while :; do :; done ) &`, records their
+pids, runs each case 30x serially (normal build, build-lane), KILLS the burners on EXIT and prints the survivors + top 5 CPU.
+RED (bf5c116 binaries, 11:12:53-11:12:56), verbatim:
+```
+burner pids: 40331 40332 40333 40334 40335 40336 40337 40338 40339 40340
+R1: 14 / 30 failed
+R2: 14 / 30 failed
+R3: 1 / 30 failed
+burners left alive: 0
+```
+every failure: `test_layer_runtime_race.cpp:168: FAILED: CHECK( renderFrames.load() > 0 ) with expansion: render frames 0, ...`
+(R1), `:241` (R2), the R3 analogue in test_manual_scalar_race.cpp:90.
+GREEN (eef55fe, 11:13:34-11:13:38), verbatim:
+```
+burner pids: 41229 41230 41231 41232 41233 41234 41235 41236 41237 41238
+R1: 0 / 30 failed
+R2: 0 / 30 failed
+R3: 0 / 30 failed
+burners left alive: 0
+ 76.6 .../Metadata.framework/Versions/A/Support/mds_stores
+ 70.9 .../Contacts.framework/Support/contactsd
+ 69.2 .../CoreSuggestions.framework/Versions/A/Support/suggestd
+ 62.5 .../mediaanalysisd-access.xpc/Contents/MacOS/mediaanalysisd-access
+ 49.8 .../MediaAnalysis.framework/Versions/A/mediaanalysisd
+```
+(`ps -Ao pcpu=,comm= | sort -rn | head -5` after the kill: no burner left; the top entries are macOS indexers.) A passing
+run now overlaps for real (`-s` output): R1 `render frames 16447`, R2 `render frames 47625`, R3 `render frames 216196`.
+(First RED attempt at 11:12:36 had a script bug -- R2's case name holds a ':' my splitter cut on, so R2 "failed" 30/30 as
+"no test matched"; fixed the separator to '|' and re-ran; the numbers above are the re-run.)
+### F2 -- a render-side trigger decided from a snapshot is conditioned on its column (commit d13f66a)
+Finding VERIFIED before fixing (memmodel S1): Autopilot::processFrame loads `activeCol` once (Autopilot.cpp:27 / :83 at
+bf5c116), decides, and calls advanceClip / smartAdvanceClip -> `triggerClip(next, Off, 16)` whose pure function
+(Layer.h:403-411 / immediateNext) never looked at the column it decided from. Reproduced below by the call-site mutant
+(= bf5c116's behaviour on that path): 4895 of 5000 clears re-activated 300 yields later. The only render-side trigger
+callers in src are those three Autopilot sites (grep `triggerClip(Immediate)?\(|triggerColumn\(` outside the
+message-thread dirs); processPendingTrigger already fires from the tuple it CASes (its pure fn reads the pending column).
+Fix (src/model/Layer.h, src/model/Autopilot.{h,cpp}):
+- `Layer::triggerClip(column, forcedSnap, maxAttempts, std::optional<int> onlyIfActive = nullopt)`; `activate()` wraps
+  the pure fn: when `onlyIfActive` is set and `r.activeClipColumn != *onlyIfActive` it returns `r` unchanged -- inside
+  every CAS attempt, so it holds against a clear / trigger landing at any point. The post-CAS retrigger tail is skipped
+  when the guard rejected (`*onlyIfActive == column` required), and an advance onto an EMPTY cell passes the guard on to
+  `clearActiveClip(onlyIfActive, ...)`. So a rejected advance changes no tuple field AND no clip field.
+- Autopilot's 3 sites pass `currentCol` (advanceClip :304, smartAdvanceClip :326 / :387). This also stops an autopilot
+  advance overriding a user trigger that landed first. A rejected advance returns changed() == false, so it is not
+  counted in render_autopilot_advances.
+- Docs: the Layer.h clear-tail comment now states WHY no guard is needed (the advance is conditioned); Pitfall 63 item
+  4 and architecture.md ("Model fields shared across threads") state the guarantee. CLAUDE.md untouched.
+- tests/CMakeLists.txt: test_layer_runtime gains `${SRC_DIR}/model/Autopilot.cpp` (its own lane block; reconfigured).
+Tests (tests/test_layer_runtime.cpp, GREEN-only; the teeth are the mutants), 3 new cases (target 12 -> 15):
+- "a render-side advance decided before a clear leaves the layer cleared": snapshot -> clearActiveClip -> the stale
+  advance (exactly advanceClip's call) -> tuple == the clear's `after`, the would-be clip's playing / beatsPlayed /
+  playhead untouched; plus a positive control (an advance decided from the CURRENT tuple applies).
+- "a render-side advance decided before a user trigger leaves the user's clip active": sections k = 2 (another
+  column), k = 1 (the very column the advance wanted: no second activation tail), and the empty-cell advance.
+- "stress: a real autopilot advancing every frame never re-activates a layer the message thread cleared": the
+  reviewer's repro, bounded (5000 clears or 3 s; ~0.25 s): GL thread = real Autopilot::processFrame with a beat crossing
+  every frame (PlayNext / Beat1); main = trigger, yield, clear, check right after and 300 yields later; start
+  handshake; vacuity guards `clears > 0` and `applied advances > 0`. GREEN run: `clears 5000, GL frames 26514432,
+  applied advances 11709` and 0 / 0 re-activations. (0 by construction with the guard, so it cannot false-fail.)
+GREEN: `test_layer_runtime: All tests passed (1107 assertions in 15 test cases)`; test_autopilot `All tests passed (49
+assertions in 11 test cases)`; test_render_thread_lint `All tests passed (15 assertions in 2 test cases)` (case-2 load
+counts unchanged: no runtime() / getActiveClip( added).
+Mutants (scratch tsan-fix/mutant.sh: backup, one textual replacement, build test_layer_runtime in build-lane, run
+`[autopilot]`, restore, sha256 equal, rebuild, `git diff` empty -- all four printed `restore sha256 equal: yes` and
+`git diff after restore: []`):
+| mutant | result (verbatim excerpt) |
+|---|---|
+| guard removed (the 2-line `onlyIfActive` check in activate's wrapper) -- the ruled mutant | `test cases: 3 \| 0 passed \| 3 failed`; `:433 FAILED: CHECK_FALSE( t.changed() )`, `:434 CHECK( L.runtime() == cleared.after )`, `:435 CHECK( L.clips[1]->playing == false )`, `:436 beatsPlayed == 9`, `:437 playheadPosition == 0.8`, `:456 / :457 / :458` (k = 2), `:559 FAILED: CHECK( activeLater == 0 ) ... clears 5000, GL frames 11736068, applied advances 11519845; active right after the clear 0, 300 yields later 4961` |
+| Autopilot advanceClip not passing currentCol (= bf5c116's path) | `:559 FAILED: CHECK( activeLater == 0 ) ... clears 5000, GL frames 11959991, applied advances 11396792; active right after the clear 0, 300 yields later 4895`; `test cases: 3 \| 2 passed \| 1 failed` |
+| post-CAS retrigger tail without the guard condition | `the user triggered the very column the advance wanted (k = 1) ... :471 FAILED: CHECK( L.clips[1]->beatsPlayed == 3 )`, `:472 playheadPosition == 0.6` |
+| empty-cell advance clears unguarded (`clearActiveClip(std::nullopt, ...)`) | `a stale advance onto an EMPTY cell ... :481 FAILED: CHECK_FALSE( t.changed() )`, `:482 CHECK( L.runtime() == user.after )` |
+Residual (named, not in the ruling): the guard compares the ACTIVE column only, as ruled; a user trigger that was
+QUEUED (beat snap) after the autopilot's load leaves the active column unchanged, so the advance (an immediate trigger)
+still clears that queued trigger -- identical to bf5c116 and the base (an immediate trigger always cancels the queue).
+### F3 -- zero-heap logLinef on the analysis thread (+ the GL periodic lines) (commit 1e7abbc)
+Finding VERIFIED before fixing (render SHOULD-1): at bf5c116 AnalysisThread.cpp:83 / :367 / :372 / :374 call logLine,
+which builds a std::ostringstream + std::string. Measured (scratch tsan-fix/heap: a DYLD_INSERT_LIBRARIES interposer
+counting malloc / calloc / realloc / malloc_zone_malloc / malloc_zone_calloc while armed, 2 warm-up calls then 10
+counted calls each; controls first), verbatim:
+```
+CONTROL malloc(64)                       mallocs in 10 calls: 10
+CONTROL new char[64]                     mallocs in 10 calls: 10
+logLine (the old profile TOTAL line)     mallocs in 10 calls: 20
+logLine (rate-change line, 90+ chars)    mallocs in 10 calls: 30
+logLinef (rate-change line, 90+ chars)   mallocs in 10 calls: 0
+logLinef (Render Profile, %g + %s)       mallocs in 10 calls: 0
+logLine (ostringstream, ints + strings)  mallocs in 10 calls: 0
+logLinef (%s %d)                         mallocs in 10 calls: 0
+logLinef (%g double)                     mallocs in 10 calls: 0
+logLinef (%g double 16)                  mallocs in 10 calls: 0
+```
+(a short logLine line fits the small-string buffer and does not allocate; the real profile / rate-change lines do: 2-3
+per call -> 16+ allocations per 5.3 s profile on the analysis thread, as the reviewer said.)
+Fix:
+- src/core/LogLine.h: `logLinef(const char* fmt, ...)` -- vsnprintf into a STACK `char[kLogLineMax = 512]`, ONE
+  std::fwrite of the line + '\n' to stderr; a cut line ends with `kLogLineTruncated` = "...[truncated]"; a bad format
+  writes `kLogLineBadFormat`. Plus `vformatLogLinef` / `formatLogLinef(char* out, size_t cap, fmt, ...)` (caller
+  buffer; returns the length incl. '\n') and `logLinefTo(FILE*, fmt, ...)`. printf-format attributes (clang / gcc)
+  check every call's arguments; `format(printf, 3, 0)` on the va_list one keeps -Wformat-nonliteral quiet (the first
+  build printed that warning 19x; fixed, the final build has 0 LogLine.h warnings).
+- src/analysis/AnalysisThread.cpp: all four statements (rate change, profile header, per-stage, TOTAL) -> logLinef.
+- src/render/Renderer.cpp: the two GL lines the ruling named -- Render Profile (~1027, every 300 frames) and Adaptive
+  quality (~1002) -> logLinef (trivial: %g / %d / %s; `fx->getName().toRawUTF8()` is exactly what JUCE's
+  `operator<<(std::ostream&, const String&)` streams, juce_String.h:1511-1513). So Pitfall 63 needs no "allocates once
+  per ~5 s" note; it now names logLinef for threads that must not allocate.
+- Text identity: every line is byte-identical to the old std::cerr text (no difference to list). Checked: (a) the unit
+  test compares logLinef's output with an ostringstream of the old operands; (b) scratch tsan-fix/heap/g.cpp compared
+  `os << v` with `%g` for 4,000,002 doubles of the two shapes (k / 100.0 and k / 10.0, k = 0..2,000,000):
+  `compared 4000002 values, 0 differ`.
+Tests (tests/test_log_line_lint.cpp; its CMake block gains `target_include_directories(... ${SRC_DIR})`; 1 -> 3 cases):
+- "threads that must not allocate log with the zero-heap logLinef" [tsan_lint][lint]: AnalysisThread.cpp has 0
+  `logLine(` and exactly 4 `logLinef(`; the Renderer.cpp code line holding "[Render Profile] Avg frame" and the one
+  holding "Adaptive quality: disabled" each hold `logLinef(`.
+  RED on bf5c116's two source files (scratch red-f3.sh: copy bf5c116's AnalysisThread.cpp + Renderer.cpp over the tree,
+  run the lint binary -- it reads the source at run time -- restore, `shasum -c` OK on both), verbatim excerpt:
+  ```
+  test_log_line_lint.cpp:114: FAILED:  CHECK( ostreamLines.empty() )
+    analysis/AnalysisThread.cpp logLine( at: analysis/AnalysisThread.cpp:83, analysis/AnalysisThread.cpp:367,
+    analysis/AnalysisThread.cpp:372, analysis/AnalysisThread.cpp:374
+  test_log_line_lint.cpp:115: FAILED:  CHECK( hits("analysis/AnalysisThread.cpp", "logLinef(").size() == 4 )
+  test_log_line_lint.cpp:122: FAILED:  CHECK( lines[0].find("logLinef(") != std::string::npos )  ("[Render Profile] Avg frame")
+  test_log_line_lint.cpp:122: FAILED:  ... ("Adaptive quality: disabled")
+  test cases:  1 | 1 failed
+  assertions: 10 | 6 passed | 4 failed
+  ```
+- "logLinef: one whole line in a stack buffer, the old std::cerr text, truncation marked" [log_line]: the four analysis
+  lines and the Render Profile line (8.33 / 16 / 0.5 / 123.45) equal the streamed text; a 24-byte buffer keeps 22
+  characters ending "...[truncated]" + '\n' + NUL; an exactly-fitting line is unmarked; a too-small buffer writes 0;
+  logLinefTo(tmpfile) writes exactly the line. Mutant "no truncation marker" (the memcpy removed; mutant.sh, restore
+  sha256 equal: yes), verbatim: `test_log_line_lint.cpp:151: FAILED: CHECK( std::string(small, n) == std::string("abcdefgh")
+  + kLogLineTruncated + "\n" )` / `test cases: 1 | 0 passed | 1 failed`.
+GREEN: `test_log_line_lint: All tests passed (54 assertions in 3 test cases)`; D6 (the std::cerr lint) still green.
+Docs: Pitfall 63 (9) and architecture.md name logLinef for threads that must not allocate. CLAUDE.md untouched.
+### F4 -- D1d: ClearActiveClipCmd's first execute() is a no-op (commit 6de81ba)
+Finding VERIFIED before fixing (tests S1): at bf5c116 DeckCommands.h:388-396 ClearActiveClipCmd has the first-call skip
+but no test pins it (D1 / D1b / D1c and mutant m2 are TriggerClipCmd only; the existing clear tests are idempotent with
+the live clear). New case in tests/test_undo_commands.cpp (target 80 -> 81 cases): "D1d a clear's first perform keeps a
+transition that landed after the live clear" -- live `clearActiveClip()` (before / after captured), then
+`triggerClipImmediate(1)` lands (the ruling's example), then `UndoManager::perform(ClearActiveClipCmd(before, after))`:
+REQUIRE the tuple is still the landed one (active 1); undo -> before; redo -> after.
+GREEN-only on bf5c116 too (the skip exists there); the teeth are the ruled mutant "remove its first-call skip"
+(mutant.sh on src/core/DeckCommands.h: the 5-line `if (firstExecute_) {...}` removed, test_undo_commands rebuilt; restore
+sha256 equal: yes; git diff after restore: []), verbatim:
+```
+test_undo_commands.cpp:3182: FAILED:
+  CHECK( captureLayerRuntime(L) == landed )
+test cases:  81 |  80 passed | 1 failed
+assertions: 562 | 561 passed | 1 failed
+```
+GREEN: `test_undo_commands: All tests passed (562 assertions in 81 test cases)`.
+### F5 -- R2 drives the real ClipTransportSync (commit ef686f5)
+Finding VERIFIED before fixing (tests S2 = memmodel S3): at bf5c116 R2's render side (test_layer_runtime_race.cpp:188-220)
+is a plain-syntax mirror of the PRE-lane syncMedia (`c->playing = playerPlaying` etc.), so since T4 the [tsan] case
+did not exercise ClipTransportSync's CAS write-back. Fix: R2's render thread now does, per frame, ONE
+`captureLayerRuntime`, picks the active column's FakePlayer (one per column, GL-owned like Renderer's players),
+`ClipTransportSync::pushIntent(*c, player)` -> `player.advance(0.01)` -> `ClipTransportSync::writeBack(*c, player,
+wanted)` (the playhead store, the CAS write-back, the out-point on the local playhead: both clips get outPoint 0.9 so
+the branch runs; clip 0 loops back, clip 1 is a OneShot) and `c->beatsPlayed.fetchAdd(1)` (Autopilot's real shape).
+The main thread (triggerClipImmediate / clearActiveClip / hasBeenTriggered) and the third reader are unchanged. The
+file header now says R2 drives the real entry points and that the file no longer compiles against the pre-lane tree.
+As ruled, R2's T0 RED stays as recorded (B1 section). GREEN under TSan on the fix head (build-tsan, target rebuilt
+11:26:42; the ruling's TSAN_OPTIONS), 5 runs, verbatim:
+```
+R2 tsan run 1 rc=0 warnings=0 All tests passed (5 assertions in 1 test case)
+R2 tsan run 2 rc=0 warnings=0 All tests passed (5 assertions in 1 test case)
+R2 tsan run 3 rc=0 warnings=0 All tests passed (5 assertions in 1 test case)
+R2 tsan run 4 rc=0 warnings=0 All tests passed (5 assertions in 1 test case)
+R2 tsan run 5 rc=0 warnings=0 All tests passed (5 assertions in 1 test case)
+```
+Normal build: `test_layer_runtime_race` rc=0 `All tests passed (1189 assertions in 3 test cases)` x3; a passing R2 run
+overlaps for real (`render frames 48881`). probe-tsan-unit.sh (final evidence) runs it again.
+### F6 -- the newer intent survives an out-point crossing (commit 0562907)
+Finding VERIFIED before fixing (tests S3): the 3 bf5c116 cases never reach the OneShot branch with `wrote == false`
+(B2's m6 note: "the OneShot case passes under the mutant"). New case in tests/test_clip_transport_sync.cpp (3 -> 4
+cases): "an intent that changed inside the sync window survives an out-point crossing (OneShot)" -- a OneShot clip
+(in 0.1, out 0.5) sits stopped past its out-point (player head 0.75); pushIntent reads "stopped"; inside the window the
+message thread sets playing = true; the player (stopped) does not move; writeBack: the CAS fails (intent changed), the
+out-point branch runs; CHECK playing == true (the newer intent), playhead 0.75, the player held stopped this frame.
+GREEN-only on bf5c116 (its writeBack has the `if (wrote)` guard); the teeth are the ruled mutant "OneShot stop as an
+unconditional playing.store(false)" (mutant.sh: the 5-line `if (wrote) {...}` in ClipTransportSync.h -> 
+`clip.playing.store(false);`; restore sha256 equal: yes; git diff after restore: []), verbatim:
+```
+test_clip_transport_sync.cpp:124: FAILED:
+  CHECK( clip.playing.load() == true )
+with expansion:
+  false == true
+test cases:  4 |  3 passed | 1 failed
+assertions: 17 | 16 passed | 1 failed
+```
+GREEN: `test_clip_transport_sync: All tests passed (17 assertions in 4 test cases)`.
+### F7 -- probe-tsan-unit.sh fails closed (commit 525bdbe)
+Finding VERIFIED before fixing (memmodel S2): bf5c116's script ends `ctest --test-dir "$B" -L tsan --output-on-failure`
+and exits with its code; with no tsan-labelled test ctest prints "No tests were found!!!" and exits 0 (shown below).
+Fix (.harmony/probe-tsan-unit.sh): `EXPECTED_TSAN_CASES=4` (R1 / R2 / R4 + R3); after the build it counts
+`ctest -L tsan -N` ("Total Tests:"), prints `probe-tsan-unit: ctest -L tsan finds N [tsan] cases (expected 4)`, and
+exits 3 with `FAIL -- N [tsan] cases, expected 4 (label dropped or discovery failed?)` when N < 4; the ctest run adds
+`--no-tests=error`. Header documents the fail-closed rule and that a new [tsan] target goes into TARGETS AND the count
+(tests N4). RED / GREEN on scratch fake build dirs (tsan-fix/f7: a 10-line CMake project with ADNA_SANITIZE=thread in
+its cache, the two target names as custom targets, 0 or 3 tsan-labelled `cmake -E true` tests + one untagged), verbatim:
+```
+=== fake dir with 0 [tsan] cases -- bf5c116 script
+probe-tsan-unit: ctest -L tsan 2026-10-02 11:28:06
+No tests were found!!!
+probe-tsan-unit: ctest rc=0 2026-10-02 11:28:06
+rc=0
+=== fake dir with 0 [tsan] cases -- fix-round script
+probe-tsan-unit: ctest -L tsan finds 0 [tsan] cases (expected 4)
+probe-tsan-unit: FAIL -- 0 [tsan] cases, expected 4 (label dropped or discovery failed?)
+rc=3
+=== fake dir with 3 [tsan] cases -- bf5c116 script
+probe-tsan-unit: ctest -L tsan 2026-10-02 11:28:06
+probe-tsan-unit: ctest rc=0 2026-10-02 11:28:06
+rc=0
+=== fake dir with 3 [tsan] cases -- fix-round script
+probe-tsan-unit: ctest -L tsan finds 3 [tsan] cases (expected 4)
+probe-tsan-unit: FAIL -- 3 [tsan] cases, expected 4 (label dropped or discovery failed?)
+rc=3
+```
+GREEN on the real build-tsan: "Fix-round final evidence" below (finds 4, 4/4 passed).
+### F8 -- R4's deadline per wait (commit d59a903)
+Finding VERIFIED before fixing (tests N1): bf5c116 test_layer_runtime_race.cpp:296 set ONE `deadline = now + 60 s` before
+the 20,000-trigger loop. Fix: the deadline is computed inside the loop, before each wait (`// 60 s PER WAIT`); the
+stall path (`stalled = true` -> `REQUIRE_FALSE(stalled)`) is unchanged. No new test, so no RED arm; instead a scratch
+demonstration on a modified copy (tsan-fix/f8-demo.sh: per-wait budget cut to 1 s plus an injected render pause,
+build, run, restore -- `restore sha256 equal: yes`), verbatim:
+```
+=== slow-live 11:29:05        (1 s per wait; the render pauses 0.4 s every 4000 observations: slow but live)
+rc=0
+All tests passed (2 assertions in 1 test case)
+real 43.59
+=== one-stall 11:29:52        (1 s per wait; the render pauses 2 s once)
+rc=42
+test_layer_runtime_race.cpp:363: FAILED:
+  REQUIRE_FALSE( stalled )
+  render observations 5000; I1 0 I2 0 I3 0 I4 0
+real 2.02
+```
+(The slow-live run took 43.6 s with a 1 s budget: a single run-wide budget of that size would have reported "stalled" --
+INFERRED from the old code, the old arm was not run.) GREEN at 60 s: R4 rc=0 `All tests passed (2 assertions in 1 test
+case)` x3.
+### NITs (commit fb2916b, plus N4 of tests in F7's commit 525bdbe)
+Fixed (one-line / safe), each re-read against the code first:
+- memmodel N1 (activation tail not reverted when the CAS never lands): VERIFIED by reading Layer.h updateRuntime /
+  activate (beforeCas runs per attempt, nothing undoes it on a lost / exhausted CAS). Comment on applyActivationTail
+  + Pitfall 63 item 4 now say it is harmless (inactive clip; its next activation re-runs the tail).
+- memmodel N2 (pushIntent comment): VERIFIED -- the code restarts a stopped player whenever `wanted` (as the base). The
+  comment now says so and that writeBack's OneShot stop clears the intent in that same sync.
+- memmodel N3: `static_assert(static_cast<int>(Clip::BeatSnapMode::FourBar) < 16, ...)` beside the Word size assert
+  (FourBar is the last enumerator, Clip.h:131-138).
+- memmodel N4: VERIFIED in scratch (tsan-fix/x86/a.cpp, `clang++ -std=c++20 -O2 -arch x86_64`, no -mcx16): the
+  static_assert is_always_lock_free compiles and the load is `lock cmpxchg16b (%rdi)` (Apple clang 17.0.0). Layer.h
+  comment + Pitfall 63 (2) reworded: Apple clang arm64 and x86_64 lock-free (x86_64's load writes the line); GCC x86_64
+  needs -mcx16; MSVC is not lock-free.
+- memmodel N5: `/build-lane/` added to .gitignore beside `/build-tsan/` (git status no longer lists it).
+- tests N3 (bounded-exhaustion test would spin if the bound were ignored): fn stops changing the tuple after 1000 calls.
+  Mutant "updateRuntime ignores maxAttempts" (loop condition dropped; restore sha256 equal: yes): FAILS instead of
+  hanging -- `test_layer_runtime.cpp:209: FAILED: CHECK_FALSE( t.applied ) ... !true`, `:210: FAILED: CHECK( calls == 16 )
+  ... 1001 (0x3e9) == 16`, `:211: FAILED: CHECK( L.runtime().activeClipColumn == 116 ) ... 1100 (0x44c) == 116`.
+- tests N4 (TARGETS hardcoded): documented in the probe-tsan-unit.sh header; the F7 count check fails a missing one.
+- tests N5 (lint case 2 blind to captureLayerRuntime( / LayerClock::advanceCrossfade(Layer&, float)): both spellings now
+  counted per file and pinned at 0 (VERIFIED 0 today in CompositorEngine.cpp / Renderer.cpp / DeckClock.h /
+  Autopilot.cpp; CompositorEngine's own member `advanceCrossfade(layer, rt, dt)` takes the loaded tuple and is not
+  matched). test_render_thread_lint 15 -> 19 assertions. Mutant (DeckClock.h's `layer.runtime()` -> `captureLayerRuntime(layer)`;
+  restore sha256 equal: yes): `test_render_thread_lint.cpp:114: FAILED: CHECK( otherLoads == 0 ) ... render/DeckClock.h:
+  runtime() 0, getActiveClip( 0, captureLayerRuntime( / LayerClock::advanceCrossfade( 1 at lines 32`.
+Extra evidence the reviews asked for (no code change):
+- render "PROPOSED" mutant (a second `layer.runtime()` in compositeDeck): `test_render_thread_lint.cpp:112: FAILED:
+  CHECK( runtimeLoads == pin.runtimeLoads ) ... render/CompositorEngine.cpp: runtime() 3, getActiveClip( 2, ... at lines
+  1052 1078` (restore sha256 equal: yes; git diff after restore: []).
+- tests N2 (R4's I3 had no killing mutant): mutant "immediateNext keeps the old progress" (Layer.h, the
+  `r.crossfadeProgress = ...` line dropped; R4 normal build; restore sha256 equal: yes): `test_layer_runtime_race.cpp:363:
+  FAILED: REQUIRE( v1.load() + v2.load() + v3.load() + v4.load() == 0 ) ... render observations 357062; I1 0 I2 0 I3
+  19999 I4 0` -- I3 alone kills it.
+Listed, not fixed (reason):
+- render 3 (16-byte static_assert `__APPLE__`-only; a #warning / #error off Apple): not one-line-safe -- an #error
+  breaks every non-Apple build where the word is not lock-free, a #warning fires in every TU including Layer.h (and
+  fails -Werror builds); the plan names it risk R2 (no non-Apple build here). Kept as documented risk.
+- render 4 (probe-tsan-analyze.py family regexes match common words): fail-closed (a misfiled report FAILS G3.3(a),
+  never hides); a precise keying needs a new negative-fixture set, not a one-line change. Proposed for the tsan-r5 follow-up (not filed by me).
+- render 5 (R2 / R4 T0 RED names src/ only via allocation stacks): evidence note for G2, no code; R2's render side is now
+  real ClipTransportSync code (F5), which adds src/render frames to any future R2 report.
+- render 2 (GL Render Profile allocation): fixed under F3 (logLinef), not listed.
+### Fix-round final evidence
+(1) Full normal build (build-lane, 11:34:30-11:36:25, rc=0; 0 warnings from LogLine.h; no new warning in a touched
+file) and full normal ctest, serial, under the H12 cross-lane mutex (scratch tsan-fix/ctest-full.sh: `until mkdir
+/tmp/audiodna-ctest.lock ...; ctest --test-dir <wt>/build-lane -j1; rm -rf /tmp/audiodna-ctest.lock`; mutex acquired
+11:36:31, ctest rc=0, released 11:37:38), verbatim:
+```
+100% tests passed, 0 tests failed out of 1092
+Label Time Summary:
+tsan    =   0.06 sec*proc (4 tests)
+Total Test time (real) =  66.82 sec
+```
+New total 1092 = 1085 (bf5c116) + 7 new cases: test_layer_runtime +3 (F2: 12 -> 15), test_clip_transport_sync +1 (F6:
+3 -> 4), test_log_line_lint +2 (F3: 1 -> 3), test_undo_commands +1 (F4 D1d: 80 -> 81). Per-target counts
+(`--list-tests --verbosity quiet`): test_layer_runtime_race 3, test_manual_scalar_race 1, test_layer_runtime 15,
+test_clip_transport_sync 4, test_relaxed 4, test_log_line_lint 3, test_render_thread_lint 2, test_shared_field_types 1,
+test_undo_commands 81. Lane new cases vs base 2d38b39: 30 + 7 = 37 -> G1 total 1055 + 37 = 1092.
+(2) `.harmony/probe-tsan-unit.sh <wt>/build-tsan` (no TSAN_OPTIONS in the shell, `env -u TSAN_OPTIONS`; 11:37:52-11:38:02,
+probe rc=0; the two targets rebuilt: 9 "Building CXX" lines), verbatim:
+```
+probe-tsan-unit: build test_layer_runtime_race test_manual_scalar_race 2026-10-02 11:37:52
+probe-tsan-unit: ctest -L tsan finds 4 [tsan] cases (expected 4)
+probe-tsan-unit: ctest -L tsan 2026-10-02 11:38:01
+1/4 Test #1058: R1 message-thread triggers vs render clock / autopilot on one deck ......   Passed    0.28 sec
+2/4 Test #1059: R2 clip runtime fields: trigger writes vs render transport write-back ...   Passed    0.22 sec
+3/4 Test #1060: R4 tuple consistency and no lost fade under a paced trigger storm .......   Passed    0.20 sec
+4/4 Test #1061: R3 manual scalar writes vs eff() reads ..................................   Passed    0.23 sec
+100% tests passed, 0 tests failed out of 4
+Label Time Summary:
+tsan    =   0.93 sec*proc (4 tests)
+Total Test time (real) =   0.95 sec
+probe-tsan-unit: ctest rc=0 2026-10-02 11:38:02
+WARNING: ThreadSanitizer count: 0
+```
+(3) INFO: the fix round's other new tests built in build-tsan and run once with the ruling's TSAN_OPTIONS: 
+`test_layer_runtime TSan rc=0 warnings=0 All tests passed (1107 assertions in 15 test cases)` (incl. the F2 stress
+through the real Autopilot), `test_log_line_lint ... (54 assertions in 3 test cases)`, `test_clip_transport_sync ...
+(17 assertions in 4 test cases)`. The full TSan ctest was NOT re-run this round (B3's 1085/1085 stands for the
+untouched targets).
+(4) Harmony constraints: no mutex added (grep of the diff: no std::mutex / lock_guard; logLinef's single fwrite takes
+the stdio FILE lock exactly as logLine / std::cerr did before); the render never waits (the F2 guard runs inside the
+existing bounded 16-attempt CAS loop and returns the tuple unchanged -- no retry, no wait); the audio callback is
+untouched (`git diff bf5c116 HEAD -- src/audio` empty); the analysis thread allocates nothing in steady state
+(F3: its four statements are logLinef, measured 0 mallocs; test_log_line_lint pins 0 logLine( in AnalysisThread.cpp).
+(5) Rig: no app launched this round (no live lock taken; no Output window by any path; no synthetic input; no screen
+capture; no debugger / sample / dtrace). The load runs used 10 busy-loop burners recorded by pid and killed on EXIT
+(`burners left alive: 0` after each batch). No .venv symlink was created. Main checkout and its build/ only read
+(git show of bf5c116 files into scratch / over my own tree for the F3 RED, restored sha256-checked). CLAUDE.md
+unchanged (24,006 B). src/audio, test_device_policy, test_audio_engine_devices, probe-btguard.sh, Pitfall 61: untouched.
+
+### Notebook notes (for Harmony to append)
+- 2026-10-02 -- a threaded Catch2 case needs a START handshake | Files: tests/test_layer_runtime_race.cpp,
+  tests/test_manual_scalar_race.cpp | a render thread spawned right before a ~10 ms main loop is often not scheduled
+  inside it on a loaded machine: `render frames 0` (R1 14/30, R2 14/30 under 10 burners); wait (bounded) for its first
+  frame before the loop and for a floor after it | discovered: s-rta-1002 fix round F1.
+- 2026-10-02 -- a GL-thread trigger decided from a tuple snapshot must be conditioned on it | Files: src/model/Layer.h,
+  src/model/Autopilot.cpp | `triggerClip(col, snap, 16, onlyIfActive = decidedFrom)`: the check sits INSIDE the pure
+  CAS function (not before the call), and the post-CAS retrigger tail must also respect it | discovered: F2.
+- 2026-10-02 -- logLine allocates, logLinef does not | Files: src/core/LogLine.h | an ostringstream line of 20+ chars
+  costs 2-3 mallocs (measured with a DYLD_INSERT_LIBRARIES interposer); a thread under Sacred Rule 3 uses
+  logLinef(fmt, ...) (stack buffer); `%g` prints a double byte-identically to an ostream (4M values compared) |
+  discovered: F3.
+- 2026-10-02 -- `ctest -L <label>` with no matching test exits 0 | Files: .harmony/probe-tsan-unit.sh | count with
+  `ctest -L <label> -N` ("Total Tests:") and pass `--no-tests=error` | discovered: F7.
