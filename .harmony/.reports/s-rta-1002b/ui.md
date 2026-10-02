@@ -180,7 +180,23 @@ Base for U3: 9af61b2 (lane/ui after U1).
   (needs a composition file: U4's probe). Raw log scratchpad/ui-U3/smoke-164231/smoke.txt. Outwins before / after:
   "audio-dna windows 2, Output-named 0"; after quit 0 / 0; UserNotificationCenter windows 16 s after the quit: 0;
   app-err.log: 0 lines matching crash|assert.
-### U3.5 probe_deck_tab_dispatch (AM8; BUILT, NEVER RUN) -- PENDING
+### U3.5 probe_deck_tab_dispatch (AM8; BUILT, NEVER RUN) -- DONE (built only)
+- NEW tests/probe_deck_tab_dispatch.cpp: plain main() (no Catch2), `probe_deck_tab_dispatch <OUT> [--offset X,Y]`, exit
+  0 PASS / 1 FAIL / 3 INCONCLUSIVE. Home (wants focus, records keys) 700 x 124 holding a real DeckView (3 layers x 12
+  columns, decks A B C, A showing) at (0, -236) so only layer 0's row and the tab row show; AudioDNALookAndFeel as the
+  default; setAlwaysOnTop(true), addToDesktop(0) at the primary display's userArea + (40, 60) or --offset; setVisible;
+  one CFRunLoopRunInMode 0.4 s; never toFront(true), never activated. Wiring: onDeckSwitched = active + rebuildGrid;
+  onDeckRenamed = write the name + refresh; onRenameClosed = home.grabKeyboardFocus(); counters on onColumnTriggered,
+  onLayerClearClip, onClipTriggered + onClipSelected. Input: ComponentPeer::handleMouseEvent (move, down, +40 ms, up;
+  double-click clicks 100 ms apart, gestures 1 s apart, synthetic times) and handleKeyUpOrDown / handleKeyPress, 0.3 s
+  CFRunLoop turn after each step. Precheck peer->contains(centre of tabs A B C, true) else exit 3. Rows P1-P9 exactly as
+  AM8 (P4 saves OUT/probe-dispatch-P4.png = capture C15, PngWrite::writeReplacing of Home's component snapshot; P7 clicks
+  layer 0 / column 3 at Home (565, 60)).
+- tests/CMakeLists.txt: `if(APPLE)` target probe_deck_tab_dispatch = test_deck_thumbnails' sources, linked to
+  juce_gui_basics + juce_opengl + CoreFoundation; NO add_test / catch_discover_tests / Catch2; reconfigured.
+- Built 16:46:01 EXIT 0; touch-rebuild of probe + both test files + DeckView.cpp: 0 compiler warnings. `ctest -N |
+  grep -c probe_deck` = 0 (Total Tests: 1148). NEVER RUN by this lane (adoption 3): its RED evidence is the unit RED of
+  test_deck_tab_rename / test_deck_tab_row above; whether P1-P9 PASS is unknown until Harmony runs it.
 ## Builds / tests (U3)
 ## Rig discipline (U3)
 ## Notes for .harmony/notebook.md (U3)

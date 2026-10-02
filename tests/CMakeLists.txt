@@ -3515,3 +3515,50 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_deck_tab_rename)
 catch_discover_tests(test_deck_tab_rename)
+
+# --- s-rta-1002b ui U3.5 (ruling-ui.md AM8; gate G1b): probe_deck_tab_dispatch -- REAL JUCE mouse / key dispatch on the
+# deck tab row and its rename box. It opens an ON-SCREEN always-on-top window, so it is NEVER a ctest: no add_test, no
+# catch_discover_tests, no Catch2 (plain main(); exit 0 PASS / 1 FAIL / 3 INCONCLUSIVE). Built only; Harmony runs it by
+# hand (HARMONY ADOPTION 3). test_deck_thumbnails' sources + PngWrite.h (header-only). macOS only (CFRunLoop).
+if(APPLE)
+    add_executable(probe_deck_tab_dispatch
+        probe_deck_tab_dispatch.cpp
+        ${SRC_DIR}/ui/DeckView.cpp
+        ${SRC_DIR}/ui/ClipCell.cpp
+        ${SRC_DIR}/ui/RoutinePad.cpp
+        ${SRC_DIR}/ui/LayerStrip.cpp
+        ${SRC_DIR}/ui/LookAndFeel.cpp
+        ${SRC_DIR}/ui/UniversalParamControl.cpp
+        ${SRC_DIR}/connect/ConnPicker.cpp
+        ${SRC_DIR}/connect/ManualWrite.cpp
+        ${SRC_DIR}/signal/SignalRegistry.cpp
+        ${SRC_DIR}/mapping/MappingEngine.cpp
+        ${SRC_DIR}/effects/EffectChain.cpp
+        ${SRC_DIR}/effects/Effect.cpp
+        ${SRC_DIR}/render/ShaderManager.cpp
+        ${SRC_DIR}/render/TextureManager.cpp
+        ${SRC_DIR}/render/FullscreenQuad.cpp
+        ${SRC_DIR}/render/LUTLoader.cpp
+        ${SRC_DIR}/model/Clip.cpp
+        ${SRC_DIR}/model/Layer.cpp
+        ${SRC_DIR}/connect/ConnSerialization.cpp
+    )
+    target_include_directories(probe_deck_tab_dispatch PRIVATE ${SRC_DIR})
+    target_link_libraries(probe_deck_tab_dispatch PRIVATE
+        juce::juce_gui_basics
+        juce::juce_opengl
+        "-framework CoreFoundation"
+    )
+    target_compile_definitions(probe_deck_tab_dispatch PRIVATE
+        _USE_MATH_DEFINES
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+    )
+    target_compile_options(probe_deck_tab_dispatch PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+    apply_sanitizers(probe_deck_tab_dispatch)
+endif()
