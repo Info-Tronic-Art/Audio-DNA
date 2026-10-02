@@ -93,7 +93,8 @@
 | `videoBeats` | `float` | Content beats (for BPM speed calc) |
 | `beatSnap` | `bool` | Snap playhead to beat on trigger |
 | `cuepoints[8]` | `float[8]` | Normalized positions [0,1], up to 8 |
-| `playheadPosition` | `mutable double` | [0,1] runtime position (synced from player each frame) |
+| `playheadPosition` | `mutable RelaxedDouble` | [0,1] runtime position (synced from player each frame; Pitfall 63) |
+| `playing` | `mutable RelaxedBool` | Transport intent (UI / triggers write it; the render's write-back is a CAS, Pitfall 63) |
 
 ---
 
@@ -107,6 +108,22 @@ Render Thread ──juce::MessageManager::callAsync()──▶ UI Thread
 ```
 
 All data flows forward. No backward dependencies on the hot path.
+
+**Model fields shared across threads** (lane tsan, s-rta-1002; Pitfall 63):
+- Single-writer scalars another thread reads are `Relaxed<T>` (`src/model/Relaxed.h`: relaxed atomic, copyable, no
+  compound operators): the 23 manualRef scalars, `Composition::activeDeckIndex`, the clip runtime fields
+  (`playing`, `playheadPosition`, `beatsPlayed`, `hasBeenTriggered`).
+- The Layer trigger tuple (active / previous column, crossfade progress, pending column + snap) is ONE 16-byte atomic
+  word (`LayerRuntimeCell`) written by both the message and the GL thread, every transition a compare-exchange
+  (`Layer::runtime()` / `setRuntime()` / `casRuntime()` / `updateRuntime()`).
+- The render loads it ONCE per layer per frame (where its first read used to be) and publishes a fade tick with ONE CAS
+  (`LayerClock::tick`, adopt-on-fail); its own triggers (autopilot, beat snap) try at most 16 CASes, then wait for the
+  next beat. The render never waits.
+- A render write-back of a message-thread intent is a CAS on the value it read (`ClipTransportSync`, syncMedia).
+- Structure (decks / layers / clips vectors) stays behind `withDeckDetached` (the fence); the GL derives the active
+  deck index from the acquire-loaded deck pointer.
+- Code that can run off the message thread logs with `logLine(...)` (`src/core/LogLine.h`), never `std::cerr`
+  (test_log_line_lint).
 
 ---
 
@@ -382,5 +399,6 @@ repaints and what each pass costs: run it before touching a timed repaint.
 Before refactoring any threading code, read these research documents first:
 - `research/ARCH_realtime_constraints.md` — golden rules of RT audio
 - `research/ARCH_pipeline.md` — lock-free communication chain details
+- `docs/claude/pitfalls.md` Pitfall 63 — model fields another thread reads (Relaxed<T>, the tuple word, the TSan gates)
 
 ---

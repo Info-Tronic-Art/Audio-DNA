@@ -861,8 +861,32 @@ rates equal the ruling's G-A2 table (A 9/9; B c 3/3, b 1/3; C b + c 6/6; D c 2/3
 GREEN for the lane: the H8 smoke below (one lane-d launch). The app sweep's full RED / GREEN arms are Harmony's G3.
 Syntax: `bash -n .harmony/probe-tsan.sh` ok; py_compile of both .py ok (main .venv python).
 
-### Docs
-(pending)
+### Docs (plan (6) + amendment 14 + H4)
+- docs/claude/architecture.md: Clip table -- `playheadPosition` = `mutable RelaxedDouble`, new row `playing` = `mutable
+  RelaxedBool`; Lock-Free Communication Chain gains "Model fields shared across threads" (Relaxed<T> single-writer
+  scalars; the tuple = one 16-byte CAS word written by both threads; one load per layer per frame + one-CAS fade tick,
+  render triggers <= 16; render write-back = CAS on the value read; structure behind withDeckDetached, the GL derives
+  the deck index from the deck pointer; worker threads log with logLine); Threading Deep-Dives points at Pitfall 63.
+- docs/claude/pitfalls.md: NEW Pitfall 63 appended after 62 (Pitfall 61 untouched, H5) -- the five families, rules
+  (1)-(10) incl. amendment 14's (probe-tsan-unit.sh REQUIRED, first execute() a no-op, activation tails before the CAS,
+  activeDeckIndex Relaxed, a live Layer copy is per-field atomic), the m5 wording (I2, not I3), the R5 / R7 scope note,
+  the 16-byte portability note, the guards.
+- docs/claude/performance-controls.md: Beat Snap paragraph (a queued trigger lives in the tuple word; cancel vs fire
+  are both CASes, a cancel is never outrun by a beat; GL fire <= 16 attempts) and Key-up routing (a momentary release =
+  releaseMomentary, one CAS; a release before its beat cancels its own queued trigger -- amendment 10 / H2).
+- docs/claude/rendering.md :67 (Crossfades): observe() gets one consistent tuple per layer per frame (+ the adopt case);
+  R11 (per-layer consistency only, the torn column frame kept) and R-A9 (hasActiveLayers' own load) beside it.
+- docs/claude/integration.md: a bullet after the `/api/state` outputs bullet: render_pending_fired /
+  render_autopilot_advances / render_tuple_adopts (meaning, monotonic since launch, adopts INFO only, scenario d's bar).
+- CLAUDE.md: Sacred Rule 2 + " (model fields: `Relaxed<T>`, Pitfall 63)"; pitfall index "63. The Layer trigger tuple is
+  one CAS word; shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.";
+  paid for by shrinking the Deck tab row paragraph to a pointer (its full text is performance-controls.md:51).
+  `wc -c CLAUDE.md`: 23,996 B on the base -> 24,006 B (bar <= 24,999 B, H4).
+- Code comments (plan (6)): TriggerCommands.h / DeckCommands.h (B1), CrossfadeHistory.h / LayerStrip.cpp /
+  ConnectionEngine.h (B2), Renderer.cpp:449-451 (T6, this stage). .harmony/APP-INVENTORY.md counts: Harmony's (not
+  touched).
+- For Harmony (not a repo doc): plan (8)'s Boris live check gains "a momentary pad released before its beat does not
+  latch on" (amendment 14 / H2) -- the plan file is Harmony's.
 
 ### Lane final evidence
 (pending)
