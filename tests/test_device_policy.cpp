@@ -58,6 +58,7 @@ dp::Lists filterScan(const std::vector<dp::DeviceInfo>& scan, const dp::Config& 
 struct Spy
 {
     juce::StringArray created, opened, started;   // every name, temporary devices included
+    juce::StringArray createdPairs;                 // "<out> + <in>" per duplex createDevice (JUCE's probes are one-way)
     juce::StringArray failOpen;                     // names whose open() fails (an unopenable device)
     std::function<void()> onStart;                  // runs inside start() (a list change mid-open, attack S7)
     bool saw(const juce::String& name) const
@@ -195,6 +196,7 @@ public:
     {
         if (out.isNotEmpty()) spy_.created.add(out);
         if (in.isNotEmpty()) spy_.created.add(in);
+        if (out.isNotEmpty() && in.isNotEmpty()) spy_.createdPairs.add(out + " + " + in);
         const Dev* o = find(out, false);
         const Dev* i = find(in, true);
         if (o == nullptr && i == nullptr)
@@ -871,6 +873,10 @@ TEST_CASE("M5c MONO mic, the app's launch WITHOUT the setSourceMode re-open (C3)
     removeDevice(*rig.mock, "Speakers A");
     rig.mock->fireListChanged();
     CHECK(rig.manager->getCurrentAudioDevice() == nullptr);   // JUCE's own re-init: "No such device"
+    // ... and JUCE cleared the setup's names (deleteCurrentDevice): with no device the restore has nothing to put back,
+    // so its `haveDevice` gate and its still-listed filter agree (fix round teeth, X6).
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName.isEmpty());
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
     pump(800);
     CHECK(reconciler.reapplies() == 1);
     REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
@@ -1130,6 +1136,8 @@ TEST_CASE("R10 the launch open failed while an allowed device is listed -> no re
     CHECK(reconciler.openDefaultDevices().isNotEmpty());
     pump(800);
     CHECK(rig.manager->getCurrentAudioDevice() == nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName.isEmpty());   // a failed open clears the names (X6)
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
     CHECK(reconciler.reapplies() == 0);          // the launch's own scan is never re-tried by itself
     rig.spy.failOpen.clear();
     rig.mock->fireListChanged();                 // a new scan
@@ -1156,6 +1164,7 @@ TEST_CASE("R11 a mic that cannot open -> the output-only device is put back; the
     REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
     CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
     CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    CHECK(rig.manager->createStateXml() == nullptr);   // the put-back is no explicit choice: JUCE's XML branch stays off (X5)
     pump(800);
     CHECK(reconciler.reapplies() == 1);
     rig.spy.failOpen.clear();
@@ -1241,6 +1250,7 @@ TEST_CASE("R14 input lost and the fallback cannot open -> only the still-listed 
     REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
     CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
     CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    CHECK(rig.manager->createStateXml() == nullptr);   // the put-back is no explicit choice (X5)
     CHECK(count(rig.spy.opened, "USB Mic") == 1);   // the launch only
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
@@ -1311,6 +1321,8 @@ TEST_CASE("R16 a cable jiggle: the open mic's device stops (JUCE's combiner shut
     REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
     CHECK(rig.manager->getCurrentAudioDevice()->isPlaying());
     CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK(count(rig.spy.createdPairs, "Built-in Speakers + USB Mic") == 2);   // launch + re-apply: closed and re-created (X2)
+    CHECK(reconciler.lostInput().isEmpty());   // re-applied onto the SAME mic: no mic was lost (X1)
     rig.manager->getCurrentAudioDevice()->stop();   // dies again with NO device-list change: waits for a new scan
     pump(800);
     CHECK(reconciler.reapplies() == 1);
@@ -1341,7 +1353,7 @@ TEST_CASE("R17 JUCE restarts the open device itself (stop, 100 ms, start) -> no 
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
 
-TEST_CASE("R18 the fallback is named: input lost -> the built-in mic; lostInput() names the lost mic and survives Keep", "[device_policy]")
+TEST_CASE("R18 the fallback is named: input lost -> the built-in mic; lostInput() names the lost mic and survives Keep and a stop re-apply onto the same mic", "[device_policy]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     GuardedRig rig([](MockDeviceType& m) {
@@ -1365,6 +1377,17 @@ TEST_CASE("R18 the fallback is named: input lost -> the built-in mic; lostInput(
     rig.mock->fireListChanged();
     pump(800);
     CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK(reconciler.lostInput() == "USB Mic");
+    removeDevice(*rig.mock, "USB Mic");   // pulled again while the device stops: re-applied onto the SAME built-in mic (X1)
+    rig.mock->fireListChanged();
+    pump(50);
+    rig.manager->getCurrentAudioDevice()->stop();
+    pump(800);
+    CHECK(reconciler.reapplies() == 2);
+    CHECK(reconciler.lastAction() == dp::Reapply::DeviceStopped);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getCurrentAudioDevice()->isPlaying());
     CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
     CHECK(reconciler.lostInput() == "USB Mic");
     CHECK_FALSE(rig.spy.saw(kDenied));

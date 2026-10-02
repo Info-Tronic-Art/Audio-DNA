@@ -228,3 +228,94 @@ DONE_WITH_CONCERNS. Every item and gate this stage owns met its pre-registered b
 
 ### NEXT ACTION
 Harmony: review, then merge. After the merge: GATE-6 (5 of 5 at 39 / 0 / 2), GATE-8, GATE-9 and GATE-10.
+
+---
+
+## Fix round (teeth) -- s-rta-1002 bt2-teeth (base f89b1fa)
+
+STATUS: DONE
+RESULT: The four surviving mutants were re-checked against the code. X1, X2 and X5 are now killed by new unit assertions; X5 is also coreaudio NIT-1. X6 is an EQUIVALENT mutant on every path JUCE 8.0.4 can reach, so no assertion can kill it without an artificial state; two premise assertions now pin the JUCE fact that makes it equivalent. NIT-3 doc wording is fixed. Only tests and docs changed; src/ is untouched.
+FACTS:
+- X1 / X2 / X5: in the OLD arm all 55 cases pass under each mutant. In the NEW arm the new assertions fail: R16 + R18 (X1), R16 (X2), R11 + R14 (X5). Evidence: `.harmony/.reports/s-rta-1002/bt2-gates/teeth.out`.
+- X6: 55 of 55 cases pass in both arms (`teeth.out`).
+- Full serial ctest in build-lane, under the mutex: `100% tests passed, 0 tests failed out of 1077` (`bt2-gates/teeth-ctest.out`).
+- `git diff f89b1fa -- src` is empty.
+METHOD: `bt2-gates/teeth-mut.sh` follows gate4-mut.sh. It makes a detached worktree of HEAD in scratch with a fresh cmake configure. The OLD arm keeps HEAD's test file; the NEW arm copies the fix-round test file over it. Each mutant is one src edit whose anchor is asserted to match exactly once. After the edit the script rebuilds test_device_policy and runs it with `-r junit`. It then prints the failing case IDs and the failing assertion expressions, runs `git checkout -- src`, and proves `git diff --quiet -- src`. The worktree and its build dir are removed at the end.
+CONFIDENCE: HIGH for X1 / X2 / X5. The kills were run and the red lines are pasted below. HIGH for the X6 equivalence argument: it comes from reading JUCE 8.0.4 source, and the two premise assertions run green.
+VERIFY: `bash .harmony/.reports/s-rta-1002/bt2-gates/teeth-mut.sh <lane> <new test file> <scratch> <deps>`, then `ctest --test-dir build-lane -j1`.
+UNKNOWNS-NOT-DONE: X6 can still be killed with a contrived case: an external `closeAudioDevice()` (which keeps the setup names), then failed defaults. I did not add it because no app path can reach that state (see below). This is Harmony's call.
+NUANCE: SHOULD-3's suggested assertion, `count(spy.opened, "Built-in Speakers") == 2`, would NOT kill X2. Under X2, JUCE's `setAudioDeviceSetup` calls `open()` again on the SAME device object (needsNewDevice false: `juce_AudioDeviceManager.cpp:755-759`, then `open` :808 and `start` :817), so `opened` grows in both arms. The kill uses a device CREATION count instead. The new test-only `Spy::createdPairs` records duplex createDevice calls only; JUCE's sample-rate probe temporaries are one-way (`juce_AudioDeviceManager.cpp:556-557`).
+HANDOFF-NEEDS: none
+
+### Per-finding verification (each finding re-checked against the code)
+- SHOULD-1 (X1): CORRECT.
+  - Removing `if (nowInput != previous.inputDeviceName)` (`src/audio/DeviceGuard.cpp:238`) means the formula runs on every re-apply.
+  - On a DeviceStopped re-apply onto the same, non-empty mic it writes `previous` into lostInput_. That wrongly names a mic that was never lost, and it overwrites a MicReplaced name.
+  - Teeth:
+    - R16 `CHECK(reconciler.lostInput().isEmpty())` (`tests/test_device_policy.cpp:1325`).
+    - R18 gains a step: the replaced USB mic is pulled again while the device stops. The DeviceStopped re-apply lands on the SAME built-in mic, and the step checks reapplies 2, lastAction DeviceStopped, playing, input "Built-in Mic", and `lostInput() == "USB Mic"` (`:1382-1392`).
+    - The R18 title gains "and a stop re-apply onto the same mic". Its kDenied check stays last.
+- SHOULD-2a (X5): CORRECT. With `setAudioDeviceSetup(keep, true)` (`DeviceGuard.cpp:230`), JUCE calls `updateXml()` (`juce_AudioDeviceManager.cpp:830-831`), so `lastExplicitSettings` is set. Teeth: `CHECK(rig.manager->createStateXml() == nullptr)` after the put-back in R11 (`:1167`) and R14 (`:1253`).
+- coreaudio NIT-1: this is the same mutant as X5, and the same two assertions kill it. Cheap.
+- SHOULD-2b (X6): the finding is WRONG as a kill request; X6 is an equivalent mutant on reachable states. Evidence (JUCE 8.0.4, `build/_deps/juce-src/.../juce_AudioDeviceManager.cpp`):
+  - Every no-device outcome clears the setup's names through `deleteCurrentDevice()` (:663-668). This covers the empty-names branch (:745), "No such device" (:761 deletes before :771 returns), a null create or a create error (:785), and a failed open or start (:835). JUCE's own list-change re-init ends in the same `setAudioDeviceSetup` (:217-226).
+  - `closeAudioDevice()` (:889-894) is the only path that drops the device and keeps the names. Its only src caller is `DeviceReconciler::openDefaultDevices` (`DeviceGuard.cpp:181`), which re-opens at once (grep of src). The app does not use AudioDeviceSelectorComponent; MainComponent only reads `getCurrentAudioDevice()` and starts MIDI.
+  - So with no device, `previous` names are empty, `keep` is empty, and the `keep.isNotEmpty()` guard (`DeviceGuard.cpp:228`) already blocks the restore. Removing `haveDevice &&` changes nothing.
+  - Teeth for the premise: M5c (after JUCE's failed re-init, `:877-879`) and R10 (after the failed launch open, `:1139-1140`) now CHECK that both setup names are empty. If a JUCE upgrade ever kept the names, these go red and the gate's equivalence has to be re-proved.
+- SHOULD-3 (X2): CORRECT that it survived. The suggested assertion was wrong (see NUANCE). Teeth: R16 `CHECK(count(rig.spy.createdPairs, "Built-in Speakers + USB Mic") == 2)` (`:1324`): the launch plus the re-apply, so the stopped device was closed and re-created, not restarted in place.
+- gates NIT-3: pitfalls.md Guards append now reads "RED on the pre-bt2 base, whose src/audio and tests/test_device_policy.cpp are identical to 655d232". I checked `git diff 655d232 2d38b39 --stat -- src/audio tests/test_device_policy.cpp`; it is empty. GATE-11 strings re-counted after the edit:
+  - "The startup `setSourceMode` re-open stays": 0
+  - the full AM6 exception sentence: 1
+  - "the open device is STOPPED and nothing restarted it": 1
+  - "tried once per distinct list of allowed inputs": 1
+  - "lost - now listening on": 1
+  - "M5r (JUCE's own XML-branch re-init": 1
+  - Note: the Guards append is no longer byte-identical to the AM20 ruling text in this one place. That is by request.
+
+### Per-mutant lines (verbatim, `bt2-gates/teeth.out`)
+```
+--- arm OLD tests (tests/test_device_policy.cpp sha 0b424e6cae59)
+baseline (src unmutated): cases 55 NONE
+OLD | X1 lostInput guard removed | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16 R18} | failing: NONE (of 55 cases)
+OLD | X2 openDefaultDevices never closes | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16} | failing: NONE (of 55 cases)
+OLD | X5 restore with treatAsChosenDevice=true (= coreaudio NIT-1) | src/audio/DeviceGuard.cpp +1 -1 | kill set {R11 R14} | failing: NONE (of 55 cases)
+OLD | X6 restore gate without haveDevice | src/audio/DeviceGuard.cpp +1 -1 | kill set {(equivalent: none expected)} | failing: NONE (of 55 cases)
+--- arm NEW tests (tests/test_device_policy.cpp sha 8a580cbda4f8)
+baseline (src unmutated): cases 55 NONE
+NEW | X1 lostInput guard removed | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16 R18} | failing: R16 R18 (of 55 cases)
+    R16: reconciler.lostInput().isEmpty()  [test_device_policy.cpp:1325]
+    R18: reconciler.lostInput() == "USB Mic"  [test_device_policy.cpp:1392]
+NEW | X2 openDefaultDevices never closes | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16} | failing: R16 (of 55 cases)
+    R16: count(rig.spy.createdPairs, "Built-in Speakers + USB Mic") == 2  [test_device_policy.cpp:1324]
+NEW | X5 restore with treatAsChosenDevice=true (= coreaudio NIT-1) | src/audio/DeviceGuard.cpp +1 -1 | kill set {R11 R14} | failing: R11 R14 (of 55 cases)
+    R11: rig.manager->createStateXml() == nullptr  [test_device_policy.cpp:1167]
+    R14: rig.manager->createStateXml() == nullptr  [test_device_policy.cpp:1253]
+NEW | X6 restore gate without haveDevice | src/audio/DeviceGuard.cpp +1 -1 | kill set {(equivalent: none expected)} | failing: NONE (of 55 cases)
+post (NEW tests, all mutants reverted): cases 55 NONE
+```
+Every mutant was followed by `reverted: git diff -- src = '' (empty)`, and the script ended with `cleanup: worktree + build dir removed` and exit 0.
+
+### ctest (serial, under /tmp/audiodna-ctest.lock, build-lane fully rebuilt first)
+`100% tests passed, 0 tests failed out of 1077`. The count is unchanged because no case was added. test_device_policy now has 55 cases and 360 assertions (346 before).
+
+### FILES CHANGED (f89b1fa..fix round)
+- `tests/test_device_policy.cpp`:
+  - `Spy::createdPairs`, recorded in `MockDeviceType::createDevice`.
+  - New assertions in M5c, R10, R11, R14 and R16.
+  - An R18 step and title.
+- `docs/claude/pitfalls.md`: Pitfall 61 Guards, "RED on ..." wording (NIT-3).
+- `.harmony/.reports/s-rta-1002/bt2-gates/teeth-mut.sh`, `teeth.out`, `teeth-ctest.out`: the rig and its evidence.
+- This section.
+
+### PACKET QUALITY (fix round)
+- Clarity: CLEAR.
+- Missing context: none.
+- Unused context: none.
+- Self-brief files: both reviews, gate4-mut.sh and the lane report were used. I also read JUCE 8.0.4 ADM source to verify X2 and X6.
+- Two suggestions in the reviews were inaccurate:
+  - SHOULD-3's `spy.opened` count does not kill X2.
+  - SHOULD-2b's X6 is equivalent.
+
+INBOX-RECHECK: none
+### STATUS
+DONE
