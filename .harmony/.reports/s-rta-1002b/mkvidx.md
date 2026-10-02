@@ -1,20 +1,19 @@
-# LANE REPORT mkvidx (s-rta-1002b) -- Stage A (C++)
+# LANE REPORT mkvidx (s-rta-1002b) -- Stage A (C++) + Stage B (probe + docs)
 
 STATUS: DONE
-RESULT: Stage A built as ruled (AM1-AM13): items 1-3 in src/media, ten bitexact fixtures, 8 new ctest cases; c1 = 24f9da3.
+RESULT: Lane complete as ruled. c1 24f9da3 = items 1-3 + fixtures + 8 ctest cases (Stage A); c2 0126610 = item 4 (probe u13 + ab rules + selftest); c3 = item 5 docs (Pitfall 64, CLAUDE.md index line paid by a move, 23,976 B) + this report.
 FACTS:
-- c1 24f9da34679fbbbf4a2da3c01c940bceae417fab on lane/mkvidx (parent 9a832a0; src / tests of the parent == fa9604d).
-- A0 RED on fa9604d's src (relink rig $A/rig.sh red): P = compile error (6 x "use of undeclared identifier 'keyIndexFrom'"); shape PASS; T1 / T2 / T3 / T4 / T2e FAIL; T3b PASS -- every value == the ruling's RED column (section A0 below, raw).
-- GREEN: every mkvidx / T2e printed value == the ruling's G3 GREEN column (table below); `gop2*` lines identical to gop2.md:68-82.
-- `ctest --test-dir build-lane -j1` (ctest mutex): `100% tests passed, 0 tests failed out of 1122` (1114 + 8), 115.78 s.
-- TSan (build-tsan, RelWithDebInfo, ADNA_SANITIZE=thread, TSAN_OPTIONS=halt_on_error=0:abort_on_error=0): test_gop_cache_store rc 0 / 0 reports (1046 assertions, 32 cases); test_video_decode_trace rc 0 / 0 (517, 6) -- T2e oracle PASS inside it; test_gop_cache rc 0 / 0 (164, 14).
-- Mutants m1-m6 each fail >= 1 case; m8 / m9 pass all (inert / defensive, as AM13 expects).
-- G5: the committed blobs' sha256 prefixes == AM5 (all ten). G8 (i)-(iv) hold.
-METHOD: RED first with the gop2 relink rig (fa9604d src exported by `git archive`, the worktree's test TUs, main build's JUCE / Catch2 objects read-only), then items 1-3 from the plan's prototype with AM2 / AM3 / AM4 applied, then the same rig on the lane src, the lane cmake build, ctest, TSan, and a copy-tree mutant matrix built by cmake.
-CONFIDENCE+VERIFY: High -- deterministic emulated counts reproduce the ruling's tables to the unit. Re-check: `build-lane/tests/test_gop_cache_store "mkvidx*"`, `build-lane/tests/test_video_decode_trace "threaded reverse on a Matroska file*"`, `ctest --test-dir build-lane -j1`.
-UNKNOWNS-NOT-DONE: Stage B (item 4 probe u13 + its live INFO smoke, item 5 docs incl. Pitfall 64 / CLAUDE.md line) is the next stage's. No live app was launched in Stage A (none needed).
-NUANCE: m4 also fails T2 (c)'s open-GOP Matroska parity row (an extra tooth the ruling did not predict); m5 also fails the committed MPEG-TS GC3 case; m6's whole-suite run stalls > 17 min in the committed GC5 case (killed; re-run per mkvidx case).
-HANDOFF-NEEDS: none (Harmony's gates G1-G9 after Stage B + merge).
+- Stage A (unchanged): A0 RED == the ruling's RED column; GREEN == the G3 GREEN column; ctest 1122 / 1122 (1114 + 8); TSan 0 reports on the three targets; mutants m1-m6 each fail >= 1 case (sections below).
+- c2 0126610: `python3 .harmony/probe-vupload-ab.py --selftest` -> `SELFTEST PASS` (25 checks incl. the three u13 TSVs); the same u13 TSVs on HEAD~ (e3dc697) ab.py print 0 rule lines and exit 0 (RED: the frozen-B TSV is not caught); three scratch-copy rule mutants abm1-abm3 each turn the selftest FAIL.
+- u7 / u8 refactor: HEAD~ vs lane probe-vupload.py run against one deterministic fake probe-video module print byte-identical output (71 lines, 9 u7 scenes + u8, `diff` empty).
+- Live INFO smoke (lock 16:27:56-16:29:41, lane app build-lane, `probe-vupload.sh ... u13_container_reverse`): `PY 7 PASS / 0 FAIL`, `PROBE-VUPLOAD GREEN`; every scene uploads/s 29.4-30.6 (columns 120.2 / 120.6 pooled), late 0 except mp4 ping-pong turn 31; captures decoded (code 194 / 193 / 194 in bracket, 20 mono captures falling); 6 "Keyframe index:" lines = 1 (mkv end-Cues) + 4 (mkv column) + 1 (mkv turn), 0 for front-Cues / MP4 / HAP. After: no Audio-DNA, 0 Output-named windows, 0 UserNotificationCenter windows (kCGWindowListOptionAll) at +20 s.
+- `ctest --test-dir build-lane -N` = `Total Tests: 1122` (delta +8 vs the base's 1114; Stage B touched no src / tests: `git diff --stat 24f9da3 HEAD -- src tests` empty).
+- G9: `wc -c CLAUDE.md` = 23,976 <= 24,002; rendering.md has 0 "MKV / WebM hold a 1-entry index after open"; pitfalls.md has 0 "(MKV / WebM keep a 1-entry index after open"; Pitfall 64 + the CLAUDE.md "64." line (AM16 (c) text verbatim) present.
+METHOD: Stage B: item 4 code per plan item 4 + AM14 (remux fixtures, helpers, u13, "_u13" bars, ab block, selftest), RED via the pre-change ab.py + scratch-copy mutants, an offline fake-pv equivalence run for the u7 / u8 refactor, fixtures checked with ffprobe + the ruling's idx4, then ONE INFO live smoke under the lock helper; item 5 docs per plan section 6 + AM16, edited by quoted text.
+CONFIDENCE+VERIFY: High for the code and the selftest (re-run: `python3 .harmony/probe-vupload-ab.py --selftest`); the live rules are Harmony's G6 (5 x 2 interleaved) -- one smoke on B only proves the row runs and the lane app passes the B bars once. Re-check: `git rev-parse HEAD:.harmony/probe-vupload.json` = e770e5c7a0455402c9c4fda79f7de4c3c8cdfc97 at c2 (unchanged by c3).
+UNKNOWNS-NOT-DONE: the A arm (main) was not launched (the adoption allows ONE INFO smoke); [CTRL-A] and every B-vs-A rule are unmeasured live until G6. G7 is Harmony's.
+NUANCE: in the smoke the mkv / front-Cues reverse scenes decoded 0 frames in-window (all 300 frames resident: one player's share is 2 GiB), so [FREEZE] / [MKV] discriminate by uploads/s / late / captures, not decodes; the 60 s ping-pong turn showed MP4 late 31 (max gap 313 ms) vs MKV late 0 -- MP4's F1 hold, one launch, INFO.
+HANDOFF-NEEDS: Harmony: G1-G9 after merge; G6 records the blob e770e5c before its first launch; VIDEO_FIXTURES=$B/fixtures holds the u13 fixtures (reusable, ~164 MB).
 INBOX-RECHECK: none
 
 Worktree /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/mkvidx, branch lane/mkvidx, base 9a832a0 (src / tests
@@ -257,3 +256,139 @@ Total Test time (real) = 115.78 sec
 - Missing context: where "the ctest mutex" lives (found in .harmony/s-rta-1002-work.md H12: mkdir /tmp/audiodna-ctest.lock); how mutants should be built without touching the deliverable (I used a cmake-built copy tree).
 - Unused context: the live-app / lock-helper rules (no live run in Stage A).
 - Self-brief files: plan-mkvidx.md, ruling-mkvidx.md (both read in full, useful); gop2.md (GREEN block, useful); the ruling's scratch rig ($R/t2e.cpp, rcost.cpp, proto3.diff: useful for exact harness parity).
+
+---
+
+# STAGE B (probe + docs)
+
+Stage B: 2026-10-02 16:18:47 -> 16:33:08 EDT (report written) on lane/mkvidx e3dc697 (c1 24f9da3). Scratch: $B = /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/mkvidx-B
+
+## B1 item 4 = c2 0126610 (AM14)
+
+Files:
+- .harmony/probe-video.py make_fixtures: a spec with "remux" is made by `ffmpeg -y -loglevel error -i <source> -c copy <mux...> -fflags +bitexact <tmp>` + rename; remux sources are added to the fixture set; non-remux specs are made FIRST (sort key (is_remux, name)); the "keys" check applies as before. Docstring: one paragraph.
+- .harmony/probe-video.json: "keyframesG250x60" [0, 8.333, ..., 58.333]; fixtures a1080_g250.mkv {remux a1080_g250.mp4}, a1080_g250_cuesfront.mkv {remux, mux ["-cues_to_front","1"]}, a1080_g250_60s.mp4 (a1080_g250.mp4's spec + "dur": 60), a1080_g250_60s.mkv {remux}, hap1080_tb600.mov {hap, -video_track_timescale 600, keys null}; "_mkvidx" doc.
+- .harmony/probe-vupload.py: ROW_FIXTURES["u13_container_reverse"] = the five; u7's per-scene body -> `rev_scene(tag, lid, cid, sc, name, extra, kind, speed, ip, window=5.0, captures=True, witness=False)` (u7 calls it with the defaults); u8's window -> `column_window(window)` returning (kv, s0, s1, pol, t0, t1) (u8 calls it with 5.0); `witness_lines()` (count of "Keyframe index: " in OUT/err.log); `U13_SCENES` + `u13(tag)`: (a) mkv_cuesfront_reverse (b) mkv_reverse (c) hap600_reverse via rev_scene (u7 reverse scene); (d) mkv_long_column_1080x4 (e) mp4_long_column_1080x4 = four 60 s reversers by ONE trigger_column, 1 s, a 10 s column_window + max_gap_ms / seeks / nonmono / dirchg; (f) mkv_long_pingpong_turn (g) mp4_long_pingpong_turn = rev_scene kind "turn", in-point 0.95 (prime retrigger), window 12 s, captures off. Every scene's DATA line carries kf_lines (the witness delta). Clip ids 210-283, layers 169-172.
+- .harmony/probe-vupload.json: "_u13" doc (the rules verbatim) + u13CtrlAFreezeMax 20, u13CtrlACpuMin 1.3, u13HapDecPerUploadMax 1.25, u13CpuRatioMax 0.7, u13ParityMax 1.15, u13LateSlack 15, u13PerPlayerSlack 1.5, u13PpLateSlack 15; layers "u13_container_reverse": [169, 170, 171, 172]. Blob at c2: e770e5c7a0455402c9c4fda79f7de4c3c8cdfc97 (AM14 (6)).
+- .harmony/probe-vupload-ab.py: the u13 block -- per-scene A / B medians; [CTRL-A] (i) / (ii) / (iii) printed FIRST as INFO verdicts (no rc effect); one rule line each: [FREEZE] (a), [MKV] (b), [HAP] (c) (+ decoded_per_upload <= 1.25), [CPU] (d) B <= 0.7 x A (on FAIL with [PARITY] PASS an INFO "recorded verdict: live Matroska cost ratio R = B / A ... not a merge blocker (AM14 (4))"), [PARITY] (d) <= 1.15 x (e) in B, [GUARD] (d) late B <= A + 15 and per_player_min B >= A - 1.5, [PP-PARITY] (f) late <= (g) late + 15 in B; every rule FAILs with < 5 launches per arm of the scenes it reads; INFO big-share turn line incl. decision (iv)'s difference. No re-register path (AM14 (1)). `--selftest` gains three u13 TSVs (AM14 (7)).
+
+### Selftest (G4) -- GREEN on the lane, raw (u13 part; the u8 checks above it all `ok`)
+```
+   ok    selftest (u13-all-pass): exit code 0
+   ok    selftest (u13-all-pass): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-all-pass): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-all-pass): every u13 rule PASS
+   ok    selftest (u13-all-pass): [CTRL-A] (i) / (ii) / (iii) read the A arm as reproducing main
+   ok    selftest (u13-frozen-B-a): exit code 1
+   ok    selftest (u13-frozen-B-a): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-frozen-B-a): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-frozen-B-a): exactly one FAIL and it is [FREEZE]
+   ok    selftest (u13-too-few): exit code 1
+   ok    selftest (u13-too-few): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-too-few): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-too-few): every u13 rule FAIL, none PASS
+SELFTEST PASS
+```
+rc 0.
+
+### RED -- the same three u13 TSVs on the pre-change summarizer (HEAD~ = e3dc697's probe-vupload-ab.py, scratch copy $B/abred)
+```
+== HEAD ab.py on u13-all-pass.tsv     rule lines 0   rc=0
+== HEAD ab.py on u13-frozen-B-a.tsv   rule lines 0   rc=0
+== HEAD ab.py on u13-too-few.tsv      rule lines 0   rc=0
+```
+(the pre-change tool prints only generic medians for an unknown row and exits 0: a frozen B passes it.) The lane tool on the frozen-B TSV, raw:
+```
+   INFO  [CTRL-A] (i) A (a) median uploads/s 3.0 < 20: the pre-lane app freezes on the front-Cues file -- [FREEZE] discriminates (launches 5)
+   INFO  [CTRL-A] (ii) A (c) median uploads/s 15.0 < 28.5 or decoded_per_upload 2.4 > 1.25: A fails [HAP]'s bars -- [HAP] discriminates (launches 5)
+   INFO  [CTRL-A] (iii) A (d) median decoded_per_upload 8.0 >= 1.3 x A (e) 3.0: the pre-lane app pays the Matroska cost -- [CPU] discriminates (launches 5 / 5)
+   FAIL  [FREEZE] (a) mkv_cuesfront_reverse: B medians uploads/s 3.0 >= 28.5, late 400.0 <= 10, bracket_ok 0.0 == 1, mono_ok 0.0 == 1; nonmono every B launch [0.0, 0.0, 0.0, 0.0, 0.0] == 0 (A medians uploads/s 3.0, late 400.0); launches 5
+   PASS  [MKV] (b) mkv_reverse: ... launches 5
+   PASS  [HAP] (c) hap600_reverse: ... decoded_per_upload 1.05 <= 1.25; ... launches 5
+   PASS  [CPU] (d) B median decoded_per_upload 2.0 <= 0.7 x A's 8.0 (5.6); launches 5
+   PASS  [PARITY] (d) vs (e): B median decoded_per_upload mkv 2.0 <= 1.15 x mp4 2.0 (2.3); launches 5
+   PASS  [GUARD] (d) B median late 5.0 <= A 10.0 + 15 and B median per_player_min 29.5 >= A 29.0 - 1.5; launches 5
+   PASS  [PP-PARITY] (f) vs (g): B median late mkv 20.0 <= mp4 10.0 + 15; launches 5
+```
+
+### Rule mutants (scratch copies $B/abmut, never the deliverable; $B/abmut.sh) -- each turns the selftest FAIL
+| mutant | diff | selftest |
+|---|---|---|
+| abm1 | `- good = (nn(sc) >= 5 and u is not None ...` `+ good = (u is not None ...` | FAIL (u13-too-few: every u13 rule FAIL, none PASS) |
+| abm2 | `- (("[FREEZE]", SA, "(a)"), ...` `+ (("[FREEZE]", SB, "(a)"), ...` | FAIL (u13-frozen-B-a: exit code 1; exactly one FAIL and it is [FREEZE]) |
+| abm3 | `- nn = lambda *scs: min(len(per[sc][arm]) for sc in scs for arm in ("A", "B"))` `+ nn = lambda *scs: 5` | FAIL (u13-too-few: exit code 1; every u13 rule FAIL, none PASS) |
+
+### u7 / u8 output unchanged (plan item 4: "u7's output unchanged")
+$B/eq/run.py loads HEAD~'s and the lane's probe-vupload.py against ONE deterministic fake probe-video module ($B/eq/fakepv.py: counters growing per call, a frozen clock, no threads) and runs u7 (all nine scenes: reverse / forward / turn / speed-2 / flip) + u8: `71 lines each, diff empty -> IDENTICAL` (10 DATA lines).
+
+### Fixtures (VIDEO_FIXTURES=$B/fixtures, made 16:23:49-16:24:04 by `probe-vupload.py --make-fixtures u13_container_reverse`)
+```
+fixture a1080_g250.mp4: keyframes [0.0, 8.333333] (as designed)
+fixture a1080_g250_60s.mp4: keyframes [0.0, 8.333333, 16.666667, 25.0, 33.333333, 41.666667, 50.0, 58.333333] (as designed)
+fixture hap1080_tb600.mov: encoded in 0.8 s
+fixture a1080_g250.mkv: remuxed from a1080_g250.mp4 [] in 0.1 s -- keyframes [0.0, 8.333] (as designed)
+fixture a1080_g250_60s.mkv: remuxed from a1080_g250_60s.mp4 [] in 0.1 s -- keyframes [0.0, 8.333, ..., 58.333] (as designed)
+fixture a1080_g250_cuesfront.mkv: remuxed from a1080_g250.mp4 ['-cues_to_front', '1'] in 0.1 s -- keyframes [0.0, 8.333] (as designed)
+```
+ffprobe hap1080_tb600.mov: `codec_name=hap|width=1920|height=1080|r_frame_rate=30/1|time_base=1/600|nb_frames=300` (nb_read_frames 300). The ruling's index probe ($R/idx4, read-only), open + 3 packets -> after one seek: a1080_g250.mkv `1: 0` -> `2: 0 250`; a1080_g250_cuesfront.mkv `2: 0 250` at open (main's intra-only freeze case); a1080_g250_60s.mkv `1: 0` -> `8: 0 250 ... 1750`; a1080_g250_60s.mp4 1800 entries at open.
+
+### ONE INFO live smoke of u13 (B = the lane app only; $B/smoke.sh, log $B/smoke.log, out $B/live/vupload.oJ6uXv)
+- Lane app = build-lane/AudioDNA_artefacts/Release/Audio-DNA.app; `cmake --build build-lane --target AudioDNA` 16:25:56 = `[100%] Built target AudioDNA` (no-op: current at c1); `strings ... | grep -c "Keyframe index: "` = 1.
+- Lock (LANE=mkvidx-B helper, acquire_quiet_lock): waited for a foreign compiler 16:26:15-16:27:56 (three clang processes, not this lane's), acquired 16:27:56, burners 0, released 16:29:41. No Audio-DNA was running at acquire. CPU before: three clang ~99 % (the wait), claude 12.8 %, Docker 8.7 %; after: WindowServer 25 %, syspolicyd 25 %, claude 18 % (no ChatGPT / Codex renderer in the top 6 at either sample).
+- Run: `VIDEO_APP=<lane app> VIDEO_FIXTURES=$B/fixtures VIDEO_PY=<main .venv python> bash .harmony/probe-vupload.sh $B/live u13_container_reverse` (no .venv symlink was created: VIDEO_PY set). Result lines, raw:
+```
+DATA u13_container_reverse scene=mkv_cuesfront_reverse uploads_per_s=30.4 late=0 fps=105.08787536621094 hold_no_texture=0 decoded=0 dropped=0 seeks=0 skipped=0 decoded_per_upload=0.0 seeks_per_upload=0.0 max_gap_ms=70.5 gap_counter_ms=47.0 nonmono=0 dirchg=0 hits=152 misses=0 runs=0 cache_mb=890.6 code=194 bracket_ok=1 reversed=1 mono_ok=1 kf_lines=0
+DATA u13_container_reverse scene=mkv_reverse uploads_per_s=30.6 late=0 fps=106.94105529785156 hold_no_texture=0 decoded=0 dropped=0 seeks=0 skipped=0 decoded_per_upload=0.0 seeks_per_upload=0.0 max_gap_ms=78.8 gap_counter_ms=39.0 nonmono=0 dirchg=0 hits=154 misses=0 runs=0 cache_mb=890.6 code=193 bracket_ok=1 reversed=1 mono_ok=1 kf_lines=1
+DATA u13_container_reverse scene=hap600_reverse uploads_per_s=30.6 late=0 fps=119.99430084228516 hold_no_texture=0 decoded=151 dropped=0 seeks=151 skipped=0 decoded_per_upload=0.99 seeks_per_upload=0.987 max_gap_ms=63.6 gap_counter_ms=44.0 nonmono=0 dirchg=0 hits=0 misses=151 runs=0 cache_mb=0.0 code=194 bracket_ok=1 reversed=1 mono_ok=1 kf_lines=0
+DATA u13_container_reverse scene=mkv_long_column_1080x4 cap_mb=0 uploads_per_s=120.6 per_player_min=30.1 per_player=30.1,30.1,30.2,30.2 late=0 hold_no_texture=0 pending=0 bytes_mb=2042.5 frames=688 active=4 over_budget=0 cap_bytes_mb=512.0 decoded_per_upload=1.8 fps=116.1232681274414 footprint_delta_mb=147.1 evictions=1055 max_gap_ms=79.3 seeks=13 nonmono=0 dirchg=0 kf_lines=4
+DATA u13_container_reverse scene=mp4_long_column_1080x4 cap_mb=0 uploads_per_s=120.2 per_player_min=30.0 per_player=30.0,30.0,30.1,30.1 late=0 hold_no_texture=0 pending=0 bytes_mb=2042.5 frames=688 active=4 over_budget=0 cap_bytes_mb=512.0 decoded_per_upload=1.81 fps=118.0356216430664 footprint_delta_mb=169.8 evictions=1049 max_gap_ms=75.1 seeks=13 nonmono=0 dirchg=0 kf_lines=0
+DATA u13_container_reverse scene=mkv_long_pingpong_turn uploads_per_s=30.08 late=0 fps=110.67517852783203 hold_no_texture=0 decoded=793 dropped=0 seeks=2 skipped=0 decoded_per_upload=2.2 seeks_per_upload=0.006 max_gap_ms=81.0 gap_counter_ms=34.0 nonmono=0 dirchg=1 hits=304 misses=1 runs=2 cache_mb=2045.5 turn_seen=1 kf_lines=1
+DATA u13_container_reverse scene=mp4_long_pingpong_turn uploads_per_s=29.42 late=31 fps=109.90834045410156 hold_no_texture=0 decoded=779 dropped=588 seeks=1 skipped=0 decoded_per_upload=2.21 seeks_per_upload=0.003 max_gap_ms=313.1 gap_counter_ms=33.0 nonmono=0 dirchg=1 hits=296 misses=9 runs=1 cache_mb=2036.6 turn_seen=1 kf_lines=0
+
+PY 7 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-VUPLOAD GREEN
+probe rc=0 at Fri Oct  2 16:29:20 EDT 2026
+after: adna='' audio-dna windows 0, Output-named 0
+UserNotificationCenter windows (all) 0
+after +20 s: adna='' audio-dna windows 0, Output-named 0
+```
+- The 7 PASS lines are the per-scene VU5 hold checks. Captures: (a) mid code 194 in [191-1, 194+1], 20 mono codes 117 -> 56 strictly falling; (b) 193 in [191-1, 193+1], 115 -> 55; (c) 194 in [192-1, 194+1], 117 -> 56. I LOOKED at (a)'s and (c)'s mid captures (1920x1080, downscaled copies $B/look_a.png / look_c.png): testsrc2 bars + the moving line, the overlay clock 00:00:06.467 (= frame 194), the code band white at cells 1, 6, 7 (194 = 2 + 64 + 128).
+- err.log: 6 `[VideoPlayer] Keyframe index:` lines -- `2 keyframes, longest interval 250 frames (open saw 1)` (the end-Cues 10 s mkv) and five `8 keyframes, longest interval 250 frames (open saw 1)` (four column players + the turn clip); none for the front-Cues file (open saw 2), the MP4s or the HAP clip -- as item 2 specifies.
+- Fed to the ab tool as a single B launch (INFO): every u13 rule prints FAIL on the launch gate only ("launches 0"), [CTRL-A] reads "STOP / non-discriminating" for lack of an A arm -- the B values meet every B bar: (a) 30.4 uploads/s late 0, (b) 30.6 / 0, (c) 30.6 / 0 with 0.99 decodes per upload, (d) vs (e) 1.80 vs 1.81 decodes per upload ([PARITY] 1.8 <= 2.08), (f) late 0 vs (g) 31.
+- Observations (one launch, INFO): (a) / (b) decoded 0 in-window: the single player's 2 GiB share holds all 300 frames after the first second (cache_mb 890.6, hits 152 / 154), so on B the reverse scenes measure the cache, and on A (main) (a) is intra-only = seek per step. The 60 s ping-pong turn: MKV late 0 / max gap 81 ms vs MP4 late 31 / max gap 313 ms (588 dropped) -- MP4's pre-existing F1 hold; [PP-PARITY] reads B (f) vs (g) and is not threatened by it.
+
+## B2 item 5 docs = c3 (AM16)
+
+- docs/claude/rendering.md (GOP-cache paragraph): "MKV / WebM hold a 1-entry index after open, ... (extra decodes bounded by the share, no stall)" -> "the keyframes are the demuxer's LIVE index -- re-read at the top of every decodeStep when its (entry count, first, last timestamp) changes (... 1.3-7x the decodes of the same stream in MP4 -- s-rta-1002b mkvidx, Pitfall 64)"; "or an index of keyframes only" -> "or an index whose entries are all keyframes ONE frame apart -- Matroska Cues list keyframes only: a long-GOP file with its Cues at the front was called intra-only and froze in reverse"; + the run-only aim sentence (AM16 (a): forward repositioning seeks keep the exact nominal time, no overshoot re-seek; clock-time seeks keep the clock); Levers + `VideoPlayer::readKeyIndex`, `GopCache::keyIndexFrom`; Guards "(incl. the mkvidx cases)", live u8-u13; NEW paragraph "Matroska index and the run seek's aim, measured" with the X1-X5 / E2 / E4 residual / E8 (4K live: unmeasured) / E9 (F7) table, the G3 ctest values and "[G6 medians, filled in by Harmony]".
+- docs/claude/pitfalls.md: Pitfall 62 "(MKV / WebM keep a 1-entry index after open: their window is always the whole share)" -> "(the demuxer's live index -- Pitfall 64)"; 62's guard list + "mkvidx T1" / "mkvidx T2" / "mkvidx T3"; NEW Pitfall 64 (run-only aim; readKeyIndex as decodeStep's first statement, the (count, first, last) trigger and its members, the witness line; the intra rule + open()-only verdict; guards per AM16 (d): test_gop_cache.cpp "mkvidx P"; test_gop_cache_store.cpp "mkvidx fixture shape" / T1 / T2 / T3 / T3b / T4; test_video_decode_trace.cpp "threaded reverse on a Matroska file (Cues at the end)"; live probe-vupload u13).
+- CLAUDE.md: index line after 63, AM16 (c) verbatim with NN = 64: "64. A run's frame seek aims at the frame's middle; the keyframe index is the demuxer's live one -- before touching `runStep`'s seek, `readKeyIndex` or the intra-only verdict." Paid by MOVING the Key-capabilities source breakdown " (3D 24, Geometric 11, ..., Routing 1)" verbatim into docs/claude/history.md:52 (which pointed back at it; now "(3D 24, ..., Routing 1; moved here from CLAUDE.md's Key Capabilities line, s-rta-1002b mkvidx; also in `.harmony/APP-INVENTORY.md`; SourceRegistry is ground truth)"). `wc -c CLAUDE.md` 24,002 -> 23,976 (cap 24,002). `git grep "Routing 1"`: no test / script parses that text.
+- docs/claude/testing-eyes.md "Reverse / ping-pong rows": one sentence for u13 (scenes, the witness count, [CTRL-A] first, [FREEZE] / [MKV] / [HAP] / [CPU] / [PARITY] / [GUARD] / [PP-PARITY], bars frozen in "_u13").
+- VideoPlayer.h comments: done in c1 (lines 283-294 name keyIndexEntries_ / keyIndexFirstTs_ / keyIndexLastTs_; AM16 (e)).
+
+## FILES CHANGED (Stage B)
+- c2 0126610: .harmony/probe-video.py (+22 / -2), .harmony/probe-video.json (+9), .harmony/probe-vupload.py (+259 / -85 incl. the moved u7 body), .harmony/probe-vupload.json (+12), .harmony/probe-vupload-ab.py (+124).
+- c3: CLAUDE.md, docs/claude/history.md, docs/claude/pitfalls.md, docs/claude/rendering.md, docs/claude/testing-eyes.md, .harmony/.reports/s-rta-1002b/mkvidx.md (this report, git add -f).
+
+## Deviations / notes (Stage B)
+- [FREEZE] / [MKV] / [HAP] read "bracket_ok 1, mono_ok 1" as MEDIANS (u7's [ABS] instrument) and "nonmono 0" in EVERY B launch -- the plan's sentence "B medians: ..., bracket_ok 1, mono_ok 1, nonmono 0 in every B launch" is ambiguous on whether "in every B launch" binds all three; the rule line prints the per-launch nonmono list. Harmony may tighten before G6 (that changes the frozen blob: record it after).
+- The "_u13" bars are top-level keys (u13*) + a "_u13" doc string, the file's convention for "_u8" / "_u9" (not a nested object); [CTRL-A]'s 20 and 1.3 and [PP-PARITY]'s 15 got their own keys (u13CtrlAFreezeMax, u13CtrlACpuMin, u13PpLateSlack).
+- [CPU] FAIL still sets the exit code 1 like every rule (the tool's contract: "exit 1 on any FAIL"); the "recorded verdict R ... not a merge blocker" is an INFO line under it.
+- RED for the probe row: the adoption allows ONE live smoke, run on B; the live RED (A arm) is G6's [CTRL-A]. The probe's RED is shown offline: the pre-change summarizer passes a frozen B (0 rule lines, rc 0), and three rule mutants fail the selftest.
+- The stash-guard hook blocked `git add .harmony/...` (leading-dot relative paths read as a whole-tree add); staged by absolute path (the same five files).
+- The smoke waited 1 m 41 s for three foreign clang processes (acquire_quiet_lock); not this lane's.
+
+## Notes for .harmony/notebook.md (Harmony appends) -- Stage B
+- A probe refactor (moving a row's body into a helper) can be proven output-identical offline: load the old and new probe module against ONE deterministic fake of the imported helper module (counters that grow per call, a frozen clock, a no-op Thread) and diff stdout -- every scene kind runs, no app. | discovered: $B/eq/run.py
+- The Harmony stash-guard hook reads `git add .harmony/<file>` (a relative path starting with ".") as a whole-tree add; stage by absolute path. | discovered: c2 staging
+- In u13 a single player's reverse of a 300-frame 1080p clip is served entirely from its 2 GiB share after ~1 s (decoded 0 in the window): decode-count rules for one-player reverse scenes need a longer clip or a smaller budget; u13 puts its cost rules on the four-player 60 s column. | discovered: smoke DATA (a) / (b)
+
+## PACKET QUALITY (Stage B)
+- Clarity: CLEAR (plan item 4 + AM14 + AM16 specify every scene, key, bar and doc sentence); one ambiguity recorded above (the "in every B launch" binding).
+- Missing context: none blocking; where the "_u13" bars live (nested vs top-level) was inferred from the file's convention.
+- Unused context: the TSan / mutant-build instructions (Stage A's).
+- Self-brief files: lane report Stage A (useful: witness text, G3 table, CLAUDE.md size), plan-mkvidx.md + ruling-mkvidx.md (read in full, useful), lock.sh (useful), probe-vupload*.{py,json,sh} / probe-video.{py,json} (read).
+
+STATUS: DONE

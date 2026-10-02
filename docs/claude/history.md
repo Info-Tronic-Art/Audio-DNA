@@ -49,7 +49,7 @@ Core audio pipeline, full 14-stage analysis engine, OpenGL rendering with 135 GL
 - Clip timeline with draggable in/out points, beat division markers, playhead triangle
 - Session recording (timestamped event capture + JSON save/load) — PARTIAL: only clip triggers are captured (6/7 event types never called); playback is DEAD (advancePlayback never called). Save/load work.
 - Undo/redo scaffold (Command pattern) — NOT functional: zero concrete Command subclasses, perform() never called, so the undo/redo keys are permanent no-ops
-- 108 procedural sources across 18 registry categories (full per-category breakdown in CLAUDE.md's Key Capabilities line and in `.harmony/APP-INVENTORY.md`; SourceRegistry is ground truth)
+- 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1; moved here from CLAUDE.md's Key Capabilities line, s-rta-1002b mkvidx; also in `.harmony/APP-INVENTORY.md`; SourceRegistry is ground truth)
 - Video playback via FFmpeg (MP4/MOV/AVI/MKV/WebM/HAP Alpha) with transport controls
 - Image sequence playback (multi-image drag-drop as video) with configurable FPS
 - BPM Sync transport mode for video/image sequences with beat division presets
