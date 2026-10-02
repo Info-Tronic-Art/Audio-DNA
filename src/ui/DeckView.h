@@ -115,6 +115,10 @@ public:
     // Get the natural height that fits all layers + triggers + tabs exactly
     int getNaturalHeight() const;
 
+    // s-rta-1002b ui U3.1 (BF8): how many times the tab row was built (setupDeckTabs) -- the witness that a click on the
+    // deck already showing rebuilds nothing.
+    int tabRowBuilds() const { return tabRowBuilds_; }
+
 private:
     Composition* composition_ = nullptr;
     ClipThumbnails thumbnails_;   // declared before the strips / cells: destroyed after them
@@ -144,6 +148,10 @@ private:
         void mouseUp(const juce::MouseEvent& e) override   { if (! e.mods.isPopupMenu()) juce::TextButton::mouseUp(e); }
     };
     std::vector<std::unique_ptr<DeckTabButton>> deckTabs_;
+    int tabRowBuilds_ = 0;                               // ++ in setupDeckTabs (U3.1 witness)
+    // s-rta-1002b ui U3.1 (BF8): a tab's left click. A click on the deck already showing does NOTHING: it must not
+    // rebuild the row, or the clicked tab dies before JUCE can deliver its double-click (plan-ui E4 / E5, ruling E-R3).
+    void tabClicked(int deckIndex);
     std::unique_ptr<juce::TextButton> plusTab_;          // "+" -- New Deck / Load Deck... (rebuilt with the tabs)
     std::unique_ptr<juce::TextButton> undoHintBtn_;      // "Undo Remove \"<name>\"" -- created once, hidden (Pitfall 34)
     int undoHintGeneration_ = 0;                         // bumps on every show/hide: a stale 10-s timer does nothing

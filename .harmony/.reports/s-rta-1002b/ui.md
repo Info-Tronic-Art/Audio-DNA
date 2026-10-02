@@ -88,3 +88,34 @@ Worktree: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/ui  branc
 - Unused context: everything for U3 / U2 / U4 (later stages).
 - Self-brief: plan-ui.md (incl. HARMONY ADOPTION), ruling-ui.md read in full; CLAUDE.md (project) loaded by the harness.
 INBOX-RECHECK: none
+
+---------------------------------------------------------------------------------------------------------------------
+# LANE ui -- stage U3 (BF8 double-click rename) -- builder report
+STATUS: PENDING (stage U3 of 4, in progress; U1 above is DONE and unchanged)
+Base for U3: 9af61b2 (lane/ui after U1).
+## Items
+### U3.1 active-tab click = no-op -- DONE
+- src/ui/DeckView.h/.cpp: private `tabClicked(int)` (the tab's onClick is `[this, capturedIdx] { tabClicked(capturedIdx); }`):
+  `composition_ == nullptr || deckIndex == activeDeckIndex` -> return, else onDeckSwitched(deckIndex). Witness
+  `int tabRowBuilds_` (++ at the top of setupDeckTabs) + public `tabRowBuilds()`.
+- NEW tests/test_deck_tab_rename.cpp (decks A B C, B showing; the tab = the direct-child TextButton with the deck's
+  text; onClick invoked through a COPY): (a) showing-tab click -> 0 onDeckSwitched calls; (a2) REBUILDING handler
+  (active = i; rebuildGrid -- MainComponent.cpp:5550's shape): showing tab -> builds +0, 3 tabs; tab C -> +1, 3 tabs;
+  (b) tab C -> one call with 2, tab A -> one call with 0. tests/CMakeLists.txt: target test_deck_tab_rename appended
+  (test_deck_thumbnails' recipe); reconfigured.
+- RED(stub) 16:33:20 -- the stub tree = tabRowBuilds witness landed, tabClicked forwarding EVERY click (main's exact
+  behaviour), raw:
+    test cases:  3 |  1 passed | 2 failed
+    assertions: 21 | 18 passed | 3 failed
+  (fails: (a) calls.empty(); (a2) builds == b0 after the showing-tab click; (a2) builds == b0 + 1 after tab C, because
+  the showing-tab click had already rebuilt once.)
+- GREEN 16:33:33, raw: All tests passed (21 assertions in 3 test cases)
+### U3.2 editor + listener (AM2-AM5) + editorRect -- PENDING
+### U3.3 one rename funnel (AM4 wiring, AM12 cancel placement) -- PENDING
+### U3.4 TEST-ONLY REST (AM6) -- PENDING
+### U3.5 probe_deck_tab_dispatch (AM8; BUILT, NEVER RUN) -- PENDING
+## Builds / tests (U3)
+## Rig discipline (U3)
+## Notes for .harmony/notebook.md (U3)
+## Next stage notes (U3 -> U2)
+## PACKET QUALITY (U3)

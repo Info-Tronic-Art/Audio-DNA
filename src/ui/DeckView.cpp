@@ -471,6 +471,7 @@ void DeckView::updateSelectionVisuals()
 void DeckView::setupDeckTabs()
 {
     deckTabs_.clear();
+    ++tabRowBuilds_;
 
     if (!composition_) return;
 
@@ -487,10 +488,7 @@ void DeckView::setupDeckTabs()
         btn->setTooltip(tabTooltipFor(deck));
 
         int capturedIdx = static_cast<int>(i);
-        btn->onClick = [this, capturedIdx] {
-            if (onDeckSwitched)
-                onDeckSwitched(capturedIdx);
-        };
+        btn->onClick = [this, capturedIdx] { tabClicked(capturedIdx); };
         btn->onContextMenu = [this, capturedIdx] { showDeckTabMenu(capturedIdx); };
 
         addAndMakeVisible(btn.get());
@@ -504,6 +502,16 @@ void DeckView::setupDeckTabs()
     plusTab_->setTooltip("New Deck or Load Deck...");
     plusTab_->onClick = [this] { showPlusMenu(); };
     addAndMakeVisible(plusTab_.get());
+}
+
+void DeckView::tabClicked(int deckIndex)
+{
+    // A click on the deck already showing changes nothing, so it does nothing: no switch, no rebuild (the clicked tab
+    // must survive its own onClick to receive a double-click, ruling E-R3).
+    if (composition_ == nullptr || deckIndex == composition_->activeDeckIndex)
+        return;
+    if (onDeckSwitched)
+        onDeckSwitched(deckIndex);
 }
 
 juce::String DeckView::tabTooltipFor(const Deck& deck)
