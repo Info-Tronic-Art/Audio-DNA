@@ -388,19 +388,23 @@ struct Layer
 
     // Trigger a clip: queue it for its beat / bar when beat snap is on (or a caller FORCES a granularity, global
     // Quantize) and it is not already active; otherwise trigger it immediately. An empty cell clears the layer.
+    // onlyIfActive: a GL-thread trigger DECIDED from a tuple snapshot (the autopilot advance) passes the active column
+    // it decided from; the trigger then applies only while the tuple still names that column -- tested inside the
+    // pure function of every CAS attempt, so a clear or a user trigger that landed since the snapshot stands and the
+    // call is a no-op (no tuple change, no clip tail).
     LayerRuntimeTransition triggerClip(int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
-                                       int maxAttempts = 0)
+                                       int maxAttempts = 0, std::optional<int> onlyIfActive = std::nullopt)
     {
         if (column < 0 || column >= static_cast<int>(clips.size()))
             return unchanged();
         if (!clips[static_cast<size_t>(column)].has_value())
-            return clearActiveClip(std::nullopt, maxAttempts);
+            return clearActiveClip(onlyIfActive, maxAttempts);
 
         const Clip& target = *clips[static_cast<size_t>(column)];
         const bool snapEnabled = forcedSnap != Clip::BeatSnapMode::Off
                               || target.beatSnapMode != Clip::BeatSnapMode::Off || target.beatSnap;
         const float speed = transitionSpeed;
-        return activate(column, maxAttempts, [&](LayerRuntimeSnapshot r) {
+        return activate(column, maxAttempts, onlyIfActive, [&](LayerRuntimeSnapshot r) {
             if (snapEnabled && column != r.activeClipColumn)
             {
                 r.pendingTriggerColumn = column;
@@ -418,7 +422,7 @@ struct Layer
         if (column < 0 || column >= static_cast<int>(clips.size()))
             return unchanged();
         const float speed = transitionSpeed;
-        return activate(column, maxAttempts,
+        return activate(column, maxAttempts, std::nullopt,
                         [&](const LayerRuntimeSnapshot& r) { return immediateNext(r, column, speed); });
     }
 
@@ -532,23 +536,31 @@ private:
     }
 
     // fn may queue or activate `column`; the tail runs before each CAS that would make `column` active. A retrigger
-    // with nothing queued changes no tuple field (no CAS), so its tail runs once after.
+    // with nothing queued changes no tuple field (no CAS), so its tail runs once after. onlyIfActive (see
+    // triggerClip): fn runs only while the tuple's active column is that one; otherwise the attempt is a no-op.
     template <class Fn>
-    LayerRuntimeTransition activate(int column, int maxAttempts, Fn&& fn)
+    LayerRuntimeTransition activate(int column, int maxAttempts, std::optional<int> onlyIfActive, Fn&& fn)
     {
-        auto t = updateRuntime(std::forward<Fn>(fn), maxAttempts,
+        auto guarded = [&](const LayerRuntimeSnapshot& r) -> LayerRuntimeSnapshot {
+            if (onlyIfActive.has_value() && r.activeClipColumn != *onlyIfActive)
+                return r;   // decided from a stale snapshot: what landed since stands
+            return fn(r);
+        };
+        auto t = updateRuntime(guarded, maxAttempts,
                                [&](const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to) {
                                    if (to.activeClipColumn == column)
                                        applyActivationTail(from, to);
                                });
-        if (t.applied && !t.changed() && t.after.activeClipColumn == column)
+        if (t.applied && !t.changed() && t.after.activeClipColumn == column
+            && (!onlyIfActive.has_value() || *onlyIfActive == column))
             applyActivationTail(t.before, t.after);
         return t;
     }
 
     // The clear tail: the OLD active clip stops playing, applied once after the successful CAS. No guard needed: no
-    // GL-thread path re-activates a cleared layer (autopilot needs an active playing clip; a queued trigger was
-    // cancelled in the same word).
+    // GL-thread path re-activates a cleared layer -- the autopilot needs an active playing clip, and an advance it
+    // decided before the clear landed is conditioned on the column it decided from (triggerClip's onlyIfActive), so
+    // it is a no-op on the cleared tuple; a queued trigger was cancelled in the same word.
     void applyClearTail(const LayerRuntimeTransition& t)
     {
         if (t.applied && t.before.activeClipColumn >= 0 && t.after.activeClipColumn < 0)

@@ -4,7 +4,9 @@
 namespace
 {
 // Autopilot runs on the GL thread, which never waits: its triggers try at most this many compare-exchanges of the
-// layer's tuple word (lane tsan, ruling amendment 7), then retry at the next beat crossing.
+// layer's tuple word (lane tsan, ruling amendment 7), then retry at the next beat crossing. Every advance is DECIDED
+// from the tuple processFrame loaded once (currentCol), so it passes currentCol as triggerClip's onlyIfActive: a
+// clear or a user trigger that landed since the load stands, the advance is a no-op (s-rta-1002 fix round, F2).
 constexpr int kRenderTriggerAttempts = 16;
 }
 
@@ -301,7 +303,7 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
     }
 
     if (nextCol >= 0 && nextCol != currentCol)
-        return layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts).changed();
+        return layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol).changed();
     return false;
 }
 
@@ -323,7 +325,8 @@ bool Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
     if (candidates.size() <= 2)
     {
         int nextCol = candidates[static_cast<size_t>(std::rand()) % candidates.size()];
-        return nextCol >= 0 && layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts).changed();
+        return nextCol >= 0
+            && layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol).changed();
     }
 
     // Score each candidate based on position-implied energy vs current energy state.
@@ -384,5 +387,6 @@ bool Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
         }
     }
 
-    return layer.triggerClip(candidates[bestIdx], Clip::BeatSnapMode::Off, kRenderTriggerAttempts).changed();
+    return layer.triggerClip(candidates[bestIdx], Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol)
+        .changed();
 }

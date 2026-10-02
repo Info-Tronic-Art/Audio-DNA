@@ -3301,12 +3301,14 @@ catch_discover_tests(test_relaxed)
 
 # --- test_layer_runtime (lane tsan T2: the Layer trigger tuple as ONE atomic word -- pack / unpack, exact transition
 # pairs, the stale-CAS adopt, cancelled pending, copies, bounded exhaustion, the activation-tail ordering contract,
-# momentary release). Real Clip / Layer sources like test_deck_clock.
+# momentary release; fix round F2: the autopilot advance guard, through the real Autopilot). Real Clip / Layer /
+# Autopilot sources like test_autopilot.
 add_executable(test_layer_runtime
     test_layer_runtime.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
     ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
 )
 target_include_directories(test_layer_runtime PRIVATE ${SRC_DIR})
 target_link_libraries(test_layer_runtime PRIVATE

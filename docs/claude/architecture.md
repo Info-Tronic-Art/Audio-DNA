@@ -118,7 +118,8 @@ All data flows forward. No backward dependencies on the hot path.
   (`Layer::runtime()` / `setRuntime()` / `casRuntime()` / `updateRuntime()`).
 - The render loads it ONCE per layer per frame (where its first read used to be) and publishes a fade tick with ONE CAS
   (`LayerClock::tick`, adopt-on-fail); its own triggers (autopilot, beat snap) try at most 16 CASes, then wait for the
-  next beat. The render never waits.
+  next beat; an autopilot advance applies only while the tuple still names the column it decided from (a clear or a
+  user trigger that landed first stands). The render never waits.
 - A render write-back of a message-thread intent is a CAS on the value it read (`ClipTransportSync`, syncMedia).
 - Structure (decks / layers / clips vectors) stays behind `withDeckDetached` (the fence); the GL derives the active
   deck index from the acquire-loaded deck pointer.

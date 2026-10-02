@@ -48,8 +48,9 @@ private:
     // Get the action for a clip (resolving LayerDetermined)
     Clip::AutopilotAction getActionForClip(const Clip& clip, const Layer& layer) const;
 
-    // Advance to the next clip based on action. currentCol: the active column of the tuple the caller loaded.
-    // Returns true when the trigger changed the tuple.
+    // Advance to the next clip based on action. currentCol: the active column of the tuple the caller loaded; the
+    // trigger applies only while the tuple still names it (triggerClip's onlyIfActive). Returns true when the
+    // trigger changed the tuple.
     bool advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction action,
                      int numColumns) const;
 
