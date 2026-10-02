@@ -392,3 +392,213 @@ after +20 s: adna='' audio-dna windows 0, Output-named 0
 - Self-brief files: lane report Stage A (useful: witness text, G3 table, CLAUDE.md size), plan-mkvidx.md + ruling-mkvidx.md (read in full, useful), lock.sh (useful), probe-vupload*.{py,json,sh} / probe-video.{py,json} (read).
 
 STATUS: DONE
+
+# FIX ROUND (Harmony rulings) -- lane-name mkvidx-fix, continued on lane/mkvidx from 79dd452
+
+STATUS: DONE (started Fri Oct  2 16:44:57 EDT 2026; finished Fri Oct  2 17:01:30 EDT 2026)
+
+## R1 (decode S1: intra-only Matroska rebuild per step) = d251d04
+- Finding VERIFIED against the code before fixing: readKeyIndex (VideoPlayer.cpp ~:1579) rebuilt keyRels_ / gopFramesEst_ on
+  every index change for every stream; for an intra-only stream the only readers of keyRels_ (planPrefetchRun :1281,
+  forwardRetain :1038) return first on intraOnly_; gopFramesEst_'s readers are unreachable for intra (hitsArmed_ is false for
+  intra :817, so forwardStep's after-hits threshold and forwardIdle never run; planPrefetchRun returns) except the pts-less
+  overshoot fallback in onRunDecoded (`known ? ... : max(1, gopFramesEst_) * frameDur_`, ~:1417), which keeps open()'s
+  value -- the fa9604d behaviour (INFERRED harmless: Matroska frames always carry pts).
+- Fix: `if (formatCtx_ == nullptr || videoStreamIndex_ < 0 || (!atOpen && intraOnly_)) return;` (open() still reads the
+  index once and decides the verdict); `VideoStats::keyIndexRebuilds` (relaxed atomic, ++ by the decode thread on every
+  non-open rebuild, before the members are written). The once-per-player witness is unchanged for non-intra files (an
+  intra-only player no longer logs it; Pitfall 64 (2) says "A non-intra player").
+- New case "mkvidx T2f: an intra-only Matroska file read forward never rebuilds its keyframe model per frame" (FX4e, big
+  budget, Show 1.1 s forward: the whole 30-frame file, EOF, the Loop wrap). Bars: intra 1; index entries grew by > 2
+  (non-vacuous); shown >= 30; rebuilds <= 2.
+- RED = 79dd452 + the counter only (the counter does not exist on 79dd452; the skip line absent), raw:
+```
+mkvidx T2f FX4e forward 1.1 s: intra 1 index entries 8 -> 30, rebuilds 22, shown 34 (late 0)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/mkvidx/tests/test_gop_cache_store.cpp:2090: FAILED:
+  CHECK( st.keyIndexRebuilds.load() <= 2 )
+with expansion:
+  22 <= 2
+test cases: 1 | 1 failed
+assertions: 5 | 4 passed | 1 failed
+```
+  (22 = 30 - 8: one rebuild per frame read.)
+- GREEN (the skip added), raw:
+```
+mkvidx T2f FX4e forward 1.1 s: intra 1 index entries 8 -> 30, rebuilds 0, shown 34 (late 0)
+All tests passed (5 assertions in 1 test case)
+```
+- Whole suites after R1 (build-lane): test_gop_cache_store All tests passed (1051 assertions in 33 test cases);
+  test_video_decode_trace 517 / 6; test_gop_cache 164 / 14; test_video_player_open 10 / 2. `"mkvidx*"` 389 / 7.
+  gop2 printed lines vs gop2.md:68-82: `diff` empty (15 lines).
+- Printed-value drift (expected, INFO): every mkvidx line == the Stage A GREEN block EXCEPT T3's FX4e line, whose keyRels is
+  now the open-time read-ahead `{0, 1, 2, 3, 4, 5, 6, 7}` instead of `{0, 1, ..., 29}` (the model is no longer rebuilt for an
+  intra stream); its late / shown / decodes 0 / 27 / 30 == the G3 table (G3 compares those only).
+- Docs: Pitfall 64 (2) + "never after open() for an intra-only stream ... VideoStats::keyIndexRebuilds", guard list + "mkvidx
+  T2f"; VideoPlayer.h keyRels_ comment.
+- ctest count: +1 (mkvidx T2f) -> 1123.
+
+## R2 (decode S2: adjacent first keyframes fool the open verdict) -- F8 + docs = 96229f7
+- Finding VERIFIED by reading: GopCache::keyIndexFrom sets `intraOnly = entries >= 2 && keys == entries && gopFrames == 1`
+  (GopCache.h ~:497); an open-time index of exactly two keyframes one frame apart (keys at frames 0 and 1) gives gopFrames
+  = lround(1 frame) = 1 -> intra-only, decided once in open() (readKeyIndex(true)) and never revisited. The freeze
+  consequence is the reviewer's run on the plan's proto3 binary (`adj3.mkv` late 879 / shown 1) -- NOT re-run here
+  (INFERRED for the lane binary: same rule, same open-time-only verdict).
+- Harmony's ruling: NO code change. Docs reworded so the rule is no longer called safe without qualification:
+  Pitfall 64 (3) ("The rule is NOT safe in every case -- it sees only the open-time index, and two known exceptions are
+  filed: F8 ... F6 ..."), rendering.md (the intra-only clause of the GOP-cache paragraph names F8 / F6), and the
+  GopCache::keyIndexFrom comment (comment-only; the B1 rule's definition site).
+- FILED (beside F6, not this lane):
+  - F6 (AM17, restated) an all-intra stream whose open-time index holds < 2 entries goes the cache path (E1 residual:
+    CAP 21 K 3 281 vs 273 decodes, CAP 164 late 29 once). Trigger: an all-intra MKV / WebM whose open log line lacks
+    ", intra-only".
+  - F8 (NEW, decode review S2) a long-GOP Matroska file (Cues at the end) whose first two keyframes are ADJACENT (e.g.
+    `libx264 -g 250 -bf 0 -force_key_frames "0,0.03"`: keys 0, 1, 251) opens with a 2-entry index, both keyframes, gap 1 ->
+    intra-only -> reverse freezes like X1 (reviewer, proto3: late 879 / shown 1 / 3240 decodes vs 30 / 258 for ordinary
+    keys). Not a regression (fa9604d calls ANY 2-key all-key index intra). Rare shape (min-keyint normally forbids it).
+    Candidates: require the gap rule over >= N entries, or a one-way intra -> not-intra demotion at the first rebuild when
+    keyRels_ shows a gap > 1 and nothing is cached (note: a demotion is the safe direction; the m5 freeze was a
+    PROMOTION; since R1 an intra-only player no longer rebuilds, so such a check needs its own bounded read of the index). Trigger: a performer report of a frozen MKV reverse whose open log line says ", intra-only" on a non-intra
+    codec.
+
+## R4 (gates SHOULD 2: bracket_ok / mono_ok / nonmono per launch) = c16f9da
+- Finding VERIFIED by reading 79dd452 .harmony/probe-vupload-ab.py: [FREEZE] / [MKV] / [HAP] took bracket_ok / mono_ok as
+  MEDIANS (`bo == 1 and mo == 1` on `mm(sc, "B", k)`), nonmono per launch.
+- Harmony's ruling (per launch): `bo, mo, nm = ([kv.get(k) for kv in per[sc]["B"]] for k in (...))`, `all(x == 1 for x in
+  bo)`, `all(x == 1 for x in mo)`, `all(x == 0 for x in nm)` (each list non-empty); uploads/s and late stay medians. The rule
+  line prints the three per-launch lists. Docs: the module docstring, probe-vupload.json "_u13" ("bracket_ok 1, mono_ok 1
+  and nonmono 0 in EVERY B launch (per launch, never medians -- fix round R4)"), testing-eyes.md's u13 sentence.
+  The "_u13" string changed -> the frozen JSON blob changed: Harmony records `git rev-parse HEAD:.harmony/probe-vupload.json`
+  AFTER this round, before the first G6 launch (bars unchanged: u13* keys untouched).
+- Commit split: c16f9da = the rule (the 79dd452 selftest still PASSes on it: its three TSVs have identical launches);
+  its selftest coverage (one bad launch of five per tag x bracket / mono / nonmono) lands in R3's d256d33.
+- RED = the new selftest (d256d33's) run against the 79dd452 rule code (only the selftest replaced), raw FAIL lines:
+```
+   FAIL  selftest (u13-[FREEZE]-bracket-one-launch): exit code 1
+   FAIL  selftest (u13-[FREEZE]-bracket-one-launch): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   FAIL  selftest (u13-[FREEZE]-mono-one-launch): exit code 1
+   FAIL  selftest (u13-[FREEZE]-mono-one-launch): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   FAIL  selftest (u13-[MKV]-bracket-one-launch): exit code 1
+   FAIL  selftest (u13-[MKV]-bracket-one-launch): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   FAIL  selftest (u13-[MKV]-mono-one-launch): exit code 1
+   FAIL  selftest (u13-[MKV]-mono-one-launch): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   FAIL  selftest (u13-[HAP]-bracket-one-launch): exit code 1
+   FAIL  selftest (u13-[HAP]-bracket-one-launch): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   FAIL  selftest (u13-[HAP]-mono-one-launch): exit code 1
+   FAIL  selftest (u13-[HAP]-mono-one-launch): FAIL exactly ['[HAP]'], every other u13 rule PASS
+```
+  (exactly the six median-read cases; the nonmono one-launch cases already passed -- nonmono was per launch.) GREEN: SELFTEST PASS.
+
+## R3 (gates SHOULD 1: selftest discriminates every u13 rule) = d256d33
+- Finding VERIFIED: the 79dd452 selftest had three u13 TSVs (all-pass / frozen-B (a) / too-few); 15 of 16 neutralised
+  comparisons still printed SELFTEST PASS on it (left column of the table below; the reviewer's list reproduced).
+- Fix: the u13 selftest is table-driven -- 5 launches per arm of the all-pass values, then each case's overrides
+  (arm, scene, {k: v}, launch or every launch) -- and each case asserts the exit code, 7 rule lines one per tag, the exact
+  set of FAILing tags (every other rule PASS) and the exact set of [CTRL-A] lines reading non-discriminating. 43 u13 cases
+  (3 old + 40 new): every comparison once just over its bar (that rule alone FAILs; for [CTRL-A] its line flips to STOP /
+  non-discriminating / does not reproduce) and once just under (PASS): [FREEZE] / [MKV] / [HAP] uploads 28.4 / 28.6, late
+  11 / 10, bracket / mono / nonmono one bad launch of five (R4); [HAP] decoded_per_upload 1.26 / 1.24; [CPU] A (d) 2.85 /
+  2.86 (B 2.0 vs 0.7 x A); [PARITY] B (e) 1.73 / 1.74 (B (d) 2.0 vs 1.15 x B (e)); [GUARD] B (d) late 26 / 25 (A 10 + 15),
+  per_player_min 27.4 / 27.6 (A 29.0 - 1.5); [PP-PARITY] B (f) late 26 / 25 (B (g) 10 + 15); [CTRL-A] (i) A (a) uploads
+  20.1 / 19.9, (ii) A (c) (uploads 28.6, dpu 1.24) / (28.4, 1.24) / (28.6, 1.26), (iii) A (e) 6.2 / 6.1 (A (d) 8.0 vs 1.3 x).
+  One base change: A (e) decoded_per_upload 3.0 -> 2.0 so the [CPU] cases (A (d) 2.85) keep [CTRL-A] (iii) discriminating.
+- GREEN: `python3 .harmony/probe-vupload-ab.py --selftest` -> 226 `ok` lines, 0 FAIL, `SELFTEST PASS` (rc 0) (was 25 checks).
+- Teeth ($F/abmut.py: each mutant = a scratch copy of the file + probe-vupload.json under $F/abmut/, ONE comparison replaced
+  by `True`; the same mutant applied to the 79dd452 file for the left column; the deliverable never mutated -- `git diff` empty
+  after the run), raw:
+```
+ctrl-i ua < fz                             | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 1 failed checks: SELFTEST FAIL (u13-[CTRL-A]-i-over: [CTRL-A] non-discriminating exactly ['(i)'])
+ctrl-ii uc < umin                          | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 1 failed checks: SELFTEST FAIL (u13-[CTRL-A]-ii-over: [CTRL-A] non-discriminating exactly ['(ii)'])
+ctrl-ii dc > hmax                          | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 1 failed checks: SELFTEST FAIL (u13-[CTRL-A]-ii-over: [CTRL-A] non-discriminating exactly ['(ii)'])
+ctrl-iii dd >= cm * de                     | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 1 failed checks: SELFTEST FAIL (u13-[CTRL-A]-iii-over: [CTRL-A] non-discriminating exactly ['(iii)'])
+FREEZE/MKV/HAP u >= umin                   | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 6 failed checks: SELFTEST FAIL (u13-[FREEZE]-uploads-over: exit code 1; u13-[FREEZE]-uploads-over: FAIL exactly ['[FREEZE]'], every other u13 rule PASS; u13-[MKV]-uploads-over: 
+FREEZE/MKV/HAP lt <= lmax                  | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 6 failed checks: SELFTEST FAIL (u13-[FREEZE]-late-over: exit code 1; u13-[FREEZE]-late-over: FAIL exactly ['[FREEZE]'], every other u13 rule PASS; u13-[MKV]-late-over: exit code
+FREEZE/MKV/HAP bracket                     | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 6 failed checks: SELFTEST FAIL (u13-[FREEZE]-bracket-one-launch: exit code 1; u13-[FREEZE]-bracket-one-launch: FAIL exactly ['[FREEZE]'], every other u13 rule PASS; u13-[MKV]-br
+FREEZE/MKV/HAP mono                        | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 6 failed checks: SELFTEST FAIL (u13-[FREEZE]-mono-one-launch: exit code 1; u13-[FREEZE]-mono-one-launch: FAIL exactly ['[FREEZE]'], every other u13 rule PASS; u13-[MKV]-mono-one
+FREEZE/MKV/HAP nonmono                     | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 6 failed checks: SELFTEST FAIL (u13-[FREEZE]-nonmono-one-launch: exit code 1; u13-[FREEZE]-nonmono-one-launch: FAIL exactly ['[FREEZE]'], every other u13 rule PASS; u13-[MKV]-no
+HAP dp <= hmax                             | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 2 failed checks: SELFTEST FAIL (u13-[HAP]-dpu-over: exit code 1; u13-[HAP]-dpu-over: FAIL exactly ['[HAP]'], every other u13 rule PASS)
+CPU bd <= cr * ad                          | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 2 failed checks: SELFTEST FAIL (u13-[CPU]-over: exit code 1; u13-[CPU]-over: FAIL exactly ['[CPU]'], every other u13 rule PASS)
+PARITY bd <= pm * be                       | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 2 failed checks: SELFTEST FAIL (u13-[PARITY]-over: exit code 1; u13-[PARITY]-over: FAIL exactly ['[PARITY]'], every other u13 rule PASS)
+GUARD bl <= al + ls                        | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 2 failed checks: SELFTEST FAIL (u13-[GUARD]-late-over: exit code 1; u13-[GUARD]-late-over: FAIL exactly ['[GUARD]'], every other u13 rule PASS)
+GUARD bp >= ap - ps                        | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 2 failed checks: SELFTEST FAIL (u13-[GUARD]-player-over: exit code 1; u13-[GUARD]-player-over: FAIL exactly ['[GUARD]'], every other u13 rule PASS)
+PP-PARITY fl <= gl + pp                    | 79dd452 selftest: SELFTEST PASS (rc 0) | fix selftest: rc 1, 2 failed checks: SELFTEST FAIL (u13-[PP-PARITY]-over: exit code 1; u13-[PP-PARITY]-over: FAIL exactly ['[PP-PARITY]'], every other u13 rule PASS)
+FREEZE/MKV/HAP launch gate nn(sc) >= 5     | 79dd452 selftest: SELFTEST FAIL  (rc 1) | fix selftest: rc 1, 1 failed checks: SELFTEST FAIL (u13-too-few: every u13 rule FAIL, none PASS)
+R4 bracket/mono read as MEDIANS            | fix selftest: rc 1, 12 failed checks: SELFTEST FAIL (u13-[FREEZE]-bracket-one-launch: exit code 1; u13-[FREEZE]-bracket-one-launch: FAIL exactly ['[FREEZE]'], every other u13 rule PASS; u13-[FREEZE]
+```
+  Every neutralised comparison and the median reading make the fix's selftest FAIL; on 79dd452 only the launch gate did.
+  ($F = /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/mkvidx-fix)
+
+## NITs
+- decode N1 / gates 3 (keyIndexWitnessed_ not reset by open()) -- VERIFIED by reading (open() reset keyIndexOpenKeys_ in
+  readKeyIndex's atOpen branch, never keyIndexWitnessed_). FIXED in one line = 0f8c517:
+  `keyIndexWitnessed_ = false;` in the atOpen branch. No test (an INFO log line; production opens a new VideoPlayer per file).
+- gates 4 (T3b's vfrgap bar is the base's 327, not the lane's 318) -- NOT fixed: AM11 rules the T3b bars ARE the base's
+  values ("a GUARD, not a RED ... per file decodes <= base"), and the reviewer recorded it "Ruled by AM11 -- recorded only";
+  a one-line change to 318 would override a ruling the adoption adopted. Left for Harmony.
+
+## ctest / TSan (fix round)
+- Build: `cmake --build build-lane -j3` rc 0 (only the pre-existing MainComponent.cpp:1554 unused-parameter warning).
+  `ctest -N` = 1123 (1122 + mkvidx T2f; the ruling's G1 "before + 8" is now "+ 9").
+- Full ctest serial under the cross-lane mutex ($F/ctest.sh: lock acquired 16:57:35, released 16:59:22), verbatim:
+```
+100% tests passed, 0 tests failed out of 1123
+
+Label Time Summary:
+tsan    =   0.05 sec*proc (4 tests)
+
+Total Test time (real) = 106.91 sec
+```
+- TSan (build-tsan, RelWithDebInfo, ADNA_SANITIZE=thread, libclang_rt.tsan_osx_dynamic.dylib linked;
+  TSAN_OPTIONS=halt_on_error=0:abort_on_error=0; the three targets rebuilt from this round's sources), verbatim:
+```
+test_gop_cache_store rc=0 warnings=0 | All tests passed (1051 assertions in 33 test cases)
+test_video_decode_trace rc=0 warnings=0 | All tests passed (517 assertions in 6 test cases)
+test_gop_cache rc=0 warnings=0 | All tests passed (164 assertions in 14 test cases)
+mkvidx T2f FX4e forward 1.1 s: intra 1 index entries 8 -> 30, rebuilds 0, shown 34 (late 0)
+threaded reverse video_h264_gop30_64x64.mkv: keyRels {0 30 60 } gop 30
+```
+  (probe-tsan-unit.sh not used for this lane, per the task.)
+- `python3 .harmony/probe-vupload-ab.py --selftest` -> SELFTEST PASS (226 checks).
+- G8 greps on the fix tree: (i) 1, inside runStep; (ii) 1 and 1; (iii) no reader outside VideoPlayer.{h,cpp} (0 lines);
+  (iv) decodeStep's first statement `readKeyIndex(false);`. G9: CLAUDE.md 23,976 B (untouched).
+- No live app launched in this round (no lock taken; `adna` empty, outwins "audio-dna windows 0, Output-named 0" at 17:00:33).
+  R1 changes the live decode path only for intra-only streams after open (fewer rebuilds); G6 / G7 stay Harmony's gates.
+
+## FILES CHANGED (fix round, on 79dd452)
+- d251d04 R1: src/media/VideoPlayer.cpp (intra skip + counter ++), src/media/VideoStats.h (keyIndexRebuilds),
+  src/media/VideoPlayer.h (keyRels_ comment), tests/test_gop_cache_store.cpp (mkvidx T2f), docs/claude/pitfalls.md (64 (2) +
+  guard list).
+- 96229f7 R2: docs/claude/pitfalls.md (64 (3)), docs/claude/rendering.md, src/media/GopCache.h (comment only).
+- c16f9da R4: .harmony/probe-vupload-ab.py (per-launch binding + docstring), .harmony/probe-vupload.json ("_u13" text only),
+  docs/claude/testing-eyes.md.
+- d256d33 R3: .harmony/probe-vupload-ab.py (table-driven u13 selftest, 43 cases).
+- 0f8c517 NIT: src/media/VideoPlayer.cpp (one line).
+- this report (git add -f).
+
+## Deviations / notes (fix round)
+- RED for R1 is "79dd452 + the counter" (the counter is new; the test cannot compile on 79dd452 itself).
+- R3 and R4 are two commits: R4's rule first (the old selftest stays green on it), R3's selftest second (it carries R4's
+  one-bad-launch cases); R4's RED is the new selftest on the old rule code (pasted under R4).
+- The "_u13" JSON string changed (R4 wording) -> the frozen blob hash changed; bars (u13* numbers) unchanged.
+- VideoStats.h is outside the adoption's file list (VideoPlayer* / GopCache* / VideoRing*) -- edited because Harmony's R1
+  ruling names it; a concurrent lane editing VideoStats.h would conflict at merge (one added member; INFERRED low risk).
+- Rig-rule slip: one read-only command began with `cd /tmp >/dev/null;` (a `git show | diff` snapshot check, 16:51);
+  no effect on any file; every later command used absolute paths only.
+- Mutant scratch copies under $F/abmut (never the deliverable; `git diff` of the probe file after the matrix = the committed
+  content).
+
+## Notes for .harmony/notebook.md (Harmony appends) -- fix round
+- A per-step "did the index change" rebuild is O(N) per FRAME on an all-intra Matroska file (its index grows one entry per
+  frame read); gate such rebuilds on whether the model is read at all (intra-only: never). | discovered:
+  src/media/VideoPlayer.cpp readKeyIndex, mkvidx T2f
+- A selftest only discriminates a threshold rule if it has a case just over AND just under EACH comparison (a table of
+  per-case overrides on one all-pass base + "exactly these tags FAIL"); verify by neutralising each comparison to `True` in
+  a scratch copy (`$F/abmut.py`). | discovered: .harmony/probe-vupload-ab.py selftest (R3)
+
+## PACKET QUALITY (fix round)
+- Clarity: CLEAR (four rulings, each naming the change and its test; NIT rule "one line each").
+- Missing context: none blocking. Inferred: "RED on 79dd452" for R1 = 79dd452 + the counter (the counter is part of R1).
+- Unused context: the live-app lock / screen-safety rules (no live run needed this round).
+- Self-brief files: plan-mkvidx.md + adoption, ruling-mkvidx.md (read in full), both r1 reviews (read in full), the Stage A/B
+  lane report, lock.sh (outwins / adna only).
+
+INBOX-RECHECK: none
