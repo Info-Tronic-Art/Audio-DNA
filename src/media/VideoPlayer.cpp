@@ -1575,10 +1575,12 @@ bool VideoPlayer::forwardIdle(double want)
 // the index changed -- its entry count, entry 0's or the last entry's timestamp (two O(1) accessor calls per step): a Matroska
 // file with its Cues at the end opens with ONE entry (the Cues load at its first seek) and every keyframe read adds one; an
 // MP4 / MOV index is complete at open and never changes. intraOnly_ is decided at open only (GC5): a refresh never touches
-// it. The decode thread allocates here only when the index changed (not a sacred thread).
+// it. The decode thread allocates here only when the index changed (not a sacred thread). mkvidx-fix R1: an intra-only stream
+// is never rebuilt after open -- keyRels_ is unused there (planPrefetchRun / forwardRetain return first), and an all-intra
+// Matroska file read forward grows its index by one entry per FRAME (an O(N) pass per step).
 void VideoPlayer::readKeyIndex(bool atOpen)
 {
-    if (formatCtx_ == nullptr || videoStreamIndex_ < 0)
+    if (formatCtx_ == nullptr || videoStreamIndex_ < 0 || (!atOpen && intraOnly_))
         return;
 #if LIBAVFORMAT_VERSION_MAJOR >= 59
     AVStream* stream = formatCtx_->streams[videoStreamIndex_];
@@ -1589,6 +1591,8 @@ void VideoPlayer::readKeyIndex(bool atOpen)
     const int64_t lastTs = last != nullptr ? last->timestamp : INT64_MIN;
     if (!atOpen && entries == keyIndexEntries_ && firstTs == keyIndexFirstTs_ && lastTs == keyIndexLastTs_)
         return;
+    if (!atOpen && stats_ != nullptr)
+        ++stats_->keyIndexRebuilds;
     keyIndexEntries_ = entries;
     keyIndexFirstTs_ = firstTs;
     keyIndexLastTs_ = lastTs;

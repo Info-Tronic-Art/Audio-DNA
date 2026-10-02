@@ -28,6 +28,9 @@ struct VideoStats
                           gopCacheMisses{ 0 }, gopCacheRuns{ 0 }, gopCacheRunDecodes{ 0 }, gopCacheEvictions{ 0 },
                           gopCacheDrops{ 0 }, gopCacheOverBudget{ 0 }, reverseNonmonotonic{ 0 }, directionChanges{ 0 };
     std::atomic<int>      gopCacheActive{ 0 };
+    // s-rta-1002b mkvidx-fix (R1): the decode threads' keyframe-model rebuilds (VideoPlayer::readKeyIndex after open(): the
+    // demuxer's index changed). A long-GOP Matroska file rebuilds once per keyframe read; an intra-only stream never.
+    std::atomic<int64_t>  keyIndexRebuilds{ 0 };
     std::atomic<float>    maxUploadGapMs{ 0.0f }, writerStepMaxMs{ 0.0f };   // reset on read
     static constexpr int  kPlayerSlots = 32;
     std::atomic<int>      nextPlayerSlot{ 0 };

@@ -287,8 +287,8 @@ private:
     // gopFramesEst_ are the demuxer's LIVE index -- read by readKeyIndex in open() (before start()), then re-read by the
     // decode thread at the top of every decodeStep whenever (keyIndexEntries_, keyIndexFirstTs_, keyIndexLastTs_) -- the
     // entry count, entry 0's and the last entry's timestamps -- changed (a Matroska file's Cues load at its first seek, and
-    // every keyframe read adds an entry). Written by open() before start(), then by the decode thread only; read by the
-    // decode thread only (no atomic).
+    // every keyframe read adds an entry; never after open() for an intra-only stream -- mkvidx-fix R1). Written by open()
+    // before start(), then by the decode thread only; read by the decode thread only (no atomic).
     std::vector<int> keyRels_;
     int keyIndexEntries_ = -1;
     int64_t keyIndexFirstTs_ = INT64_MIN;       // INT64_MIN: no entry

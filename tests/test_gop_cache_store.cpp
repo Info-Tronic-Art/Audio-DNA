@@ -2060,6 +2060,37 @@ TEST_CASE("mkvidx T2: a Matroska file's keyframe model follows the demuxer's ind
     }
 }
 
+// s-rta-1002b mkvidx-fix R1 (decode review S1): an all-intra Matroska file read FORWARD grows the demuxer's index by one entry
+// per frame read (FX4e opens with the find_stream_info read-ahead: 8 entries on 62.3.100, 30 frames). keyRels_ is never read
+// for an intra-only stream (planPrefetchRun and forwardRetain return first), so the decode thread must not rebuild the model
+// each step: 79dd452 (+ the VideoStats counter) rebuilt once per frame read -- an O(N) pass + allocation per frame, quadratic
+// over a long clip.
+TEST_CASE("mkvidx T2f: an intra-only Matroska file read forward never rebuilds its keyframe model per frame",
+          "[video_player][gopcache][s-rta-1002b]")
+{
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(fixture("video_h264_allintra_64x64.mkv")));
+    const int entriesAtOpen = VideoPlayerTestAccess::indexEntries(p);
+    Show s{ p };
+    for (int i = 0; i < 132; ++i)   // 1.1 s forward: the whole 30-frame file, its EOF and the Loop wrap
+        s.frame(1.0 / 120.0);
+    const int entriesNow = VideoPlayerTestAccess::indexEntries(p);
+    std::printf("mkvidx T2f FX4e forward 1.1 s: intra %d index entries %d -> %d, rebuilds %lld, shown %zu (late %ld)\n",
+                VideoPlayerTestAccess::intraOnly(p) ? 1 : 0, entriesAtOpen, entriesNow,
+                static_cast<long long>(st.keyIndexRebuilds.load()), s.shown.size(), s.late);
+    CHECK(VideoPlayerTestAccess::intraOnly(p));
+    CHECK(entriesNow > entriesAtOpen + 2);   // the index really grew under the forward read (the case is not vacuous)
+    CHECK(s.shown.size() >= 30);
+    CHECK(st.keyIndexRebuilds.load() <= 2);
+    p.close();
+}
+
 // AM4 / AM10 (plan item 3): a RUN's seek aims at the frame's middle. An intra-only file's DEMAND run must land ON its frame
 // (windowLo = rel + 1): a QuickTime 1/600 HAP file and an all-intra Matroska file (1 ms) store their frames up to a tick off
 // the nominal time, and the truncated target landed one frame low -> the run restarted every step (fa9604d: HAP late 64,
