@@ -1,7 +1,7 @@
 #include "Clip.h"
 #include "connect/ConnSerialization.h"
 
-float& manualRef(Clip& c, ClipScalar s)
+RelaxedFloat& manualRef(Clip& c, ClipScalar s)
 {
     switch (s)
     {
@@ -14,7 +14,7 @@ float& manualRef(Clip& c, ClipScalar s)
         case ClipScalar::AnchorY:  return c.anchorY;
         case ClipScalar::Count:    break;
     }
-    static float dummy = 0.0f;   // unreachable for a valid enumerator
+    static RelaxedFloat dummy = 0.0f;   // unreachable for a valid enumerator
     return dummy;
 }
 

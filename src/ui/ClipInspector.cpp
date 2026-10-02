@@ -1372,7 +1372,7 @@ void ClipInspector::syncFromClip()
     updateFitCaption();
     syncScalar(posXControl_, ClipScalar::PosX, clip_->positionX / 3840.0f + 0.5f);
     syncScalar(posYControl_, ClipScalar::PosY, clip_->positionY / 2160.0f + 0.5f);
-    syncScalar(scaleControl_, ClipScalar::Scale, std::log2(std::max(0.01f, clip_->scale)) / 2.0f + 0.5f);
+    syncScalar(scaleControl_, ClipScalar::Scale, std::log2(std::max(0.01f, clip_->scale.load())) / 2.0f + 0.5f);
     syncScalar(rotationControl_, ClipScalar::Rotation, clip_->rotation / 720.0f + 0.5f);
     syncScalar(anchorControl_, ClipScalar::AnchorX, clip_->anchorX / 3840.0f + 0.5f);
 

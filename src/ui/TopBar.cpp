@@ -397,7 +397,7 @@ void TopBar::syncMasterFromComposition()
     const auto& def = compScalarDefs()[s];
     const bool connected = composition_.scalarConns[s].isConnected();
     const float shown = connected ? def.toNorm(composition_.eff(CompScalar::Opacity))
-                                  : composition_.masterOpacity;
+                                  : composition_.masterOpacity.load();
     masterLevelSlider_.setValue(static_cast<double>(shown), juce::dontSendNotification);
 }
 
@@ -408,7 +408,7 @@ void TopBar::syncMasterSignalFromComposition()
     const auto& def = compScalarDefs()[s];
     const bool connected = composition_.scalarConns[s].isConnected();
     const float shown = connected ? def.toNorm(composition_.eff(CompScalar::Signal))
-                                  : composition_.masterSignal;
+                                  : composition_.masterSignal.load();
     masterSignalSlider_.setValue(static_cast<double>(shown), juce::dontSendNotification);
 }
 

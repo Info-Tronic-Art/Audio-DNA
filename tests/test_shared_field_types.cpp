@@ -4,6 +4,7 @@
 // T5 (the manualRef scalars) and T6 (activeDeckIndex) extend this file.
 #include <catch2/catch_test_macros.hpp>
 #include "model/Layer.h"
+#include "model/Composition.h"
 #include "model/Relaxed.h"
 #include <type_traits>
 
@@ -31,6 +32,16 @@ static_assert(std::is_same_v<decltype(Clip::playheadPosition), RelaxedDouble>,
 static_assert(std::is_same_v<decltype(Clip::beatsPlayed), RelaxedInt>, "Clip::beatsPlayed must be RelaxedInt (Pitfall 63)");
 static_assert(std::is_same_v<decltype(Clip::hasBeenTriggered), RelaxedBool>,
               "Clip::hasBeenTriggered must be RelaxedBool (Pitfall 63)");
+
+// T5: the 23 manualRef scalars (7 Clip, 7 Layer, 9 Composition) -- the message thread writes them (manualWriteCore,
+// inspectors, REST / OSC / MIDI), the GL thread reads them through eff(). Each overload returns RelaxedFloat&, which
+// pins every field it names through its switch returns (a plain float field no longer binds to RelaxedFloat&).
+static_assert(std::is_same_v<decltype(manualRef(std::declval<Clip&>(), ClipScalar::Opacity)), RelaxedFloat&>,
+              "manualRef(Clip&) must return RelaxedFloat& (Pitfall 63)");
+static_assert(std::is_same_v<decltype(manualRef(std::declval<Layer&>(), LayerScalar::Opacity)), RelaxedFloat&>,
+              "manualRef(Layer&) must return RelaxedFloat& (Pitfall 63)");
+static_assert(std::is_same_v<decltype(manualRef(std::declval<Composition&>(), CompScalar::Opacity)), RelaxedFloat&>,
+              "manualRef(Composition&) must return RelaxedFloat& (Pitfall 63)");
 
 TEST_CASE("shared model field types are pinned at compile time", "[tsan_lint][types]")
 {

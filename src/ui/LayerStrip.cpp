@@ -815,7 +815,7 @@ void LayerStrip::syncFromModel()
     if (!opacitySlider_.isMouseButtonDown())
     {
         // The LayerInspector rule: a connected control shows its effective value (opacity's toNorm is identity).
-        const double shown = conn.isConnected() ? layer_->eff(LayerScalar::Opacity) : layer_->opacity;
+        const double shown = conn.isConnected() ? layer_->eff(LayerScalar::Opacity) : layer_->opacity.load();
         if (std::abs(opacitySlider_.getValue() - shown) > 1e-4)
         {
             const double before = opacitySlider_.getValue();

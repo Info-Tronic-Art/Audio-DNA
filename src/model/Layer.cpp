@@ -1,7 +1,7 @@
 #include "Layer.h"
 #include "connect/ConnSerialization.h"
 
-float& manualRef(Layer& l, LayerScalar s)
+RelaxedFloat& manualRef(Layer& l, LayerScalar s)
 {
     switch (s)
     {
@@ -14,7 +14,7 @@ float& manualRef(Layer& l, LayerScalar s)
         case LayerScalar::AnchorY:  return l.layerAnchorY;
         case LayerScalar::Count:    break;
     }
-    static float dummy = 0.0f;   // unreachable for a valid enumerator
+    static RelaxedFloat dummy = 0.0f;   // unreachable for a valid enumerator
     return dummy;
 }
 

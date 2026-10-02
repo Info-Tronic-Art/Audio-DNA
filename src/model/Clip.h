@@ -161,7 +161,7 @@ struct Clip
     int autopilotCustomBeats = 4;
 
     // === Video Properties ===
-    float clipOpacity = 1.0f;       // Per-clip opacity [0,1]
+    RelaxedFloat clipOpacity = 1.0f;       // Per-clip opacity [0,1] (a manualRef scalar: RelaxedFloat, Pitfall 63)
     int clipWidth = 1920;           // Video width (pixels)
     int clipHeight = 1080;          // Video height (pixels)
     enum class BlendOverride : uint8_t { LayerDetermined, Override };
@@ -175,12 +175,14 @@ struct Clip
     FitMode fitMode = FitMode::Stretch;  // how the picture meets the canvas; Source clips ignore it
 
     // === Transform (per-clip, applied before layer compositing) ===
-    float positionX = 0.0f;         // Pixels offset from center
-    float positionY = 0.0f;
-    float scale = 1.0f;             // 1.0 = 100%
-    float rotation = 0.0f;          // Degrees
-    float anchorX = 0.0f;           // Anchor point offset from center
-    float anchorY = 0.0f;
+    // Lane tsan (s-rta-1002; Pitfall 63): the manualRef scalars are RelaxedFloat (message-thread writers, the GL
+    // thread reads them through eff()).
+    RelaxedFloat positionX = 0.0f;         // Pixels offset from center
+    RelaxedFloat positionY = 0.0f;
+    RelaxedFloat scale = 1.0f;             // 1.0 = 100%
+    RelaxedFloat rotation = 0.0f;          // Degrees
+    RelaxedFloat anchorX = 0.0f;           // Anchor point offset from center
+    RelaxedFloat anchorY = 0.0f;
 
     // === Connections (s167-l2) ===
     // One ParamConnection + LiveValue twin per ClipScalar (opacity, the five
@@ -381,4 +383,4 @@ struct Clip
 // The only place that names which Clip field backs each ClipScalar (s166
 // spec section 2.2's exact phrasing). Used by Clip::eff() and by
 // ConnectionEngine when publishing a shaped value into scalarLive.
-float& manualRef(Clip& c, ClipScalar s);
+RelaxedFloat& manualRef(Clip& c, ClipScalar s);

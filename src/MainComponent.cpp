@@ -2053,7 +2053,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!ref || !ref->manual) return std::nullopt;
         // The twin is in the manual field's units (ConnectionEngine publishes toModel(y) for scalars);
         // `live` may be null (macros).
-        const float model = ref->live ? ref->live->effective(*ref->manual) : *ref->manual;
+        const float model = ref->live ? ref->live->effective(ref->manual.load()) : ref->manual.load();
         return ref->toNorm ? ref->toNorm(model) : model;
     };
     routineEngine_.dispatch.notify  = [this](const std::string& msg) {

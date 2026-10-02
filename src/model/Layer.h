@@ -169,7 +169,7 @@ struct Layer
     }
 
     // === Layer Controls ===
-    float opacity = 1.0f;
+    RelaxedFloat opacity = 1.0f;   // a manualRef scalar (lane tsan: the GL thread reads it via eff(); Pitfall 63)
     bool visible = true;
     bool bypassed = false;
     bool solo = false;
@@ -253,12 +253,14 @@ struct Layer
     float transitionSpeed = -1.0f; // -1 = use global default
 
     // === Transform (per-layer, applied after clip compositing) ===
-    float positionX = 0.0f;
-    float positionY = 0.0f;
-    float layerScale = 1.0f;        // 1.0 = 100%
-    float layerRotation = 0.0f;     // Degrees
-    float layerAnchorX = 0.0f;
-    float layerAnchorY = 0.0f;
+    // Lane tsan (s-rta-1002; Pitfall 63): the manualRef scalars are RelaxedFloat -- the message thread writes them
+    // (manualWriteCore, inspectors, REST / OSC / MIDI), the GL thread reads them through eff().
+    RelaxedFloat positionX = 0.0f;
+    RelaxedFloat positionY = 0.0f;
+    RelaxedFloat layerScale = 1.0f;        // 1.0 = 100%
+    RelaxedFloat layerRotation = 0.0f;     // Degrees
+    RelaxedFloat layerAnchorX = 0.0f;
+    RelaxedFloat layerAnchorY = 0.0f;
 
     // === Connections (s167-l2) ===
     // One ParamConnection + LiveValue twin per LayerScalar (opacity -- the
@@ -561,4 +563,4 @@ private:
 // The only place that names which Layer field backs each LayerScalar (s166
 // spec section 2.2's exact phrasing). Used by Layer::eff() and by
 // ConnectionEngine when publishing a shaped value into scalarLive.
-float& manualRef(Layer& l, LayerScalar s);
+RelaxedFloat& manualRef(Layer& l, LayerScalar s);
