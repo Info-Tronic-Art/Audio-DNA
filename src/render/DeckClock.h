@@ -34,8 +34,8 @@ void tick(Deck& deck, float dt, ClockFn&& clock)
             clock(c, dt);
         // The outgoing clip runs during a fade, as on screen (CompositorEngine::applyTransition fetches it only
         // while crossfadeProgress < 1 -- so on the frame a fade completes it is not ticked, the same parity).
-        if (layer.previousClipColumn >= 0 && layer.crossfadeProgress < 1.0f)
-            if (const Clip* p = layer.getClipAt(layer.previousClipColumn); p != nullptr && p->isPlayable())
+        if (const auto rt = layer.runtime(); rt.previousClipColumn >= 0 && rt.crossfadeProgress < 1.0f)
+            if (const Clip* p = layer.getClipAt(rt.previousClipColumn); p != nullptr && p->isPlayable())
                 clock(p, dt);
     }
 }

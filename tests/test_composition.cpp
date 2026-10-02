@@ -91,7 +91,7 @@ TEST_CASE("Clip placement and triggering", "[composition]")
         auto* layer = deck.getLayer(0);
         REQUIRE(layer != nullptr);
         layer->triggerClip(0);
-        REQUIRE(layer->activeClipColumn == 0);
+        REQUIRE(layer->runtime().activeClipColumn == 0);
         REQUIRE(layer->getActiveClip() != nullptr);
         // Note: playing state is managed by MainComponent::handleClipTrigger,
         // not by triggerClipImmediate (which preserves existing playing state)
@@ -101,9 +101,9 @@ TEST_CASE("Clip placement and triggering", "[composition]")
     {
         auto* layer = deck.getLayer(0);
         layer->triggerClip(0);
-        REQUIRE(layer->activeClipColumn == 0);
+        REQUIRE(layer->runtime().activeClipColumn == 0);
         layer->clearActiveClip();
-        REQUIRE(layer->activeClipColumn == -1);
+        REQUIRE(layer->runtime().activeClipColumn == -1);
     }
 
     SECTION("clearCell vacates a cell to genuinely empty (not a blank Clip{})")
@@ -141,8 +141,8 @@ TEST_CASE("Clip placement and triggering", "[composition]")
         deck.setClip(1, 0, clip2);
 
         deck.triggerColumn(0);
-        REQUIRE(deck.getLayer(0)->activeClipColumn == 0);
-        REQUIRE(deck.getLayer(1)->activeClipColumn == 0);
+        REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == 0);
+        REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == 0);
     }
 }
 
@@ -1187,8 +1187,12 @@ TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip 
     l0.clips[0] = video;
     l0.clips[2] = image;
     l1.clips[1] = source;
-    l1.pendingTriggerColumn = 4;
-    l1.pendingTriggerSnapOverride = Clip::BeatSnapMode::Bar;
+    {
+        LayerRuntimeSnapshot rt = l1.runtime();
+        rt.pendingTriggerColumn = 4;
+        rt.pendingTriggerSnapOverride = Clip::BeatSnapMode::Bar;
+        l1.setRuntime(rt);
+    }
     src.layers = { l0, l1 };
 
     uint32_t nextClipId = 500;
@@ -1218,14 +1222,14 @@ TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip 
 
     for (const auto& layer : copy.layers)
     {
-        REQUIRE(layer.pendingTriggerColumn == -1);
-        REQUIRE(layer.pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+        REQUIRE(layer.runtime().pendingTriggerColumn == -1);
+        REQUIRE(layer.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
     }
 
     // The source is untouched.
     REQUIRE(src.name == "A");
     REQUIRE(src.layers[0].clips[0]->id == 11u);
-    REQUIRE(src.layers[1].pendingTriggerColumn == 4);
+    REQUIRE(src.layers[1].runtime().pendingTriggerColumn == 4);
 }
 
 // s-rta-0927 source-defects (plan-source-defects.md A2): a composition saved by an older build carries source params
@@ -1329,9 +1333,17 @@ TEST_CASE("compload::imagePaths: active deck first, active clips first, then the
     d0.name = "D0"; d1.name = "D1";
     Layer a, b, c;
     a.clips = { img("/i/a0.png"), img("/i/a1.png"), img("/i/a2.png") };
-    a.activeClipColumn = 2;
+    {
+        LayerRuntimeSnapshot rt = a.runtime();
+        rt.activeClipColumn = 2;
+        a.setRuntime(rt);
+    }
     b.clips = { std::nullopt, img("/i/b1.png"), img("/i/a0.png") };    // a duplicate of a0
-    b.activeClipColumn = 1;
+    {
+        LayerRuntimeSnapshot rt = b.runtime();
+        rt.activeClipColumn = 1;
+        b.setRuntime(rt);
+    }
     Clip src; src.mediaType = Clip::MediaType::Source; src.sourceType = "plasma";
     Clip none; none.mediaType = Clip::MediaType::Image;                 // no file: skipped
     c.clips = { img("/i/c0.png"), src, none };

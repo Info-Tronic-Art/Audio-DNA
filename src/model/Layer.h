@@ -5,11 +5,13 @@
 #include "connect/ScalarParams.h"
 #include <juce_core/juce_core.h>
 #include <array>
+#include <atomic>
 #include <string>
 #include <vector>
 #include <memory>
 #include <optional>
 #include <cstdint>
+#include <utility>
 
 // FeedbackConfig: per-layer feedback parameters.
 // Feedback routes a layer's output back to its input with transformation.
@@ -25,6 +27,114 @@ struct FeedbackConfig
     float lumaKey = 0.0f;     // Fade out dark areas to prevent muddiness [0,1]
     std::string presetName;   // Preset name (empty = custom)
 };
+
+// === The Layer trigger tuple (lane tsan, s-rta-1002; Pitfall 63) ===
+// A layer's per-layer trigger state: which clip is active, the clip it fades from, the fade's progress, and a
+// quantized trigger waiting for its beat. The message thread (clicks / REST / OSC / MIDI / undo) AND the GL thread
+// (the fade clock, autopilot, a queued trigger firing on its beat) both write it, and the GL thread reads it every
+// frame. So it is ONE 16-byte atomic word (LayerRuntimeCell), never five fields: every reader loads a consistent
+// tuple with one load, and every transition from either thread is a compare-exchange of the whole word, so no
+// transition is lost (a fade tick that lost the race to a trigger adopts the trigger's tuple).
+
+// A value copy of the tuple (same 5 fields as before the lane; an aggregate, so a test can write
+// layer.setRuntime({ .activeClipColumn = 1, .crossfadeProgress = 0.5f })).
+// pendingTriggerSnapOverride rides alongside pendingTriggerColumn (L5 Quantize): Off means "derive the granularity
+// from the target clip's own beatSnapMode"; non-Off means a caller (global Quantize) FORCED a granularity for this
+// one queued trigger (the clip's own beatSnapMode is never mutated).
+struct LayerRuntimeSnapshot
+{
+    int activeClipColumn = -1;       // -1 = no active clip
+    int previousClipColumn = -1;     // the clip a crossfade fades from (-1 = none)
+    float crossfadeProgress = 1.0f;  // 1.0 = fully transitioned
+    int pendingTriggerColumn = -1;   // beat snap: a queued trigger awaiting its beat / bar (-1 = none)
+    Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+};
+
+inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot& b)
+{
+    return a.activeClipColumn == b.activeClipColumn
+        && a.previousClipColumn == b.previousClipColumn
+        && a.crossfadeProgress == b.crossfadeProgress
+        && a.pendingTriggerColumn == b.pendingTriggerColumn
+        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride;
+}
+
+// One transition of the tuple: `before` is the tuple the compare-exchange replaced and `after` the tuple it
+// installed (the exact pair, so undo captures exactly what happened). before == after when the transition changed
+// nothing. applied is false only when a BOUNDED update ran out of attempts (before == after == the concurrent tuple).
+struct LayerRuntimeTransition
+{
+    LayerRuntimeSnapshot before;
+    LayerRuntimeSnapshot after;
+    bool applied = true;
+    bool changed() const { return !(before == after); }
+};
+
+// The tuple as one lock-free 16-byte atomic word: int32 active, int32 previous, float progress, uint32 pending
+// (pending + 1 in the low 28 bits, the snap override in the high 4: pending -1 .. kMaxPendingColumn). No padding
+// bits, so the compare-exchange compares exactly the tuple. Apple clang arm64: ldp + dmb (acquire load), stp
+// (release store), caspal (CAS) -- no lock, and a reader never writes the cache line. Off macOS a 16-byte atomic
+// may not be lock-free (x86_64 needs -mcx16; MSVC's are not): the static_assert below guards the Apple build only.
+class LayerRuntimeCell
+{
+public:
+    struct alignas(16) Word
+    {
+        int32_t active;
+        int32_t previous;
+        float progress;
+        uint32_t pendingPacked;
+    };
+    static constexpr int kMaxPendingColumn = 0x0FFFFFFF - 1;   // 268,435,454
+
+    static Word pack(const LayerRuntimeSnapshot& r) noexcept
+    {
+        return { r.activeClipColumn, r.previousClipColumn, r.crossfadeProgress,
+                 (static_cast<uint32_t>(r.pendingTriggerColumn + 1) & 0x0FFFFFFFu)
+                     | (static_cast<uint32_t>(r.pendingTriggerSnapOverride) << 28) };
+    }
+    static LayerRuntimeSnapshot unpack(const Word& w) noexcept
+    {
+        return { w.active, w.previous, w.progress,
+                 static_cast<int>(w.pendingPacked & 0x0FFFFFFFu) - 1,
+                 static_cast<Clip::BeatSnapMode>(w.pendingPacked >> 28) };
+    }
+
+    LayerRuntimeCell() noexcept : w_(pack(LayerRuntimeSnapshot{})) {}
+    // Copyable like LiveValue (Layer / Deck / Composition are value types): one relaxed load + one relaxed store.
+    // A live Layer copy is per-field atomic, never a snapshot of the whole Layer: use runtime() for a tuple.
+    LayerRuntimeCell(const LayerRuntimeCell& o) noexcept : w_(o.w_.load(std::memory_order_relaxed)) {}
+    LayerRuntimeCell(LayerRuntimeCell&& o) noexcept : w_(o.w_.load(std::memory_order_relaxed)) {}
+    LayerRuntimeCell& operator=(const LayerRuntimeCell& o) noexcept
+    {
+        w_.store(o.w_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        return *this;
+    }
+    LayerRuntimeCell& operator=(LayerRuntimeCell&& o) noexcept
+    {
+        w_.store(o.w_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        return *this;
+    }
+
+    LayerRuntimeSnapshot load() const noexcept { return unpack(w_.load(std::memory_order_acquire)); }
+    void store(const LayerRuntimeSnapshot& r) noexcept { w_.store(pack(r), std::memory_order_release); }
+    // ONE strong compare-exchange (acq_rel; acquire on failure). On failure `expected` receives the current tuple.
+    bool compareExchange(LayerRuntimeSnapshot& expected, const LayerRuntimeSnapshot& desired) noexcept
+    {
+        Word e = pack(expected);
+        if (w_.compare_exchange_strong(e, pack(desired), std::memory_order_acq_rel, std::memory_order_acquire))
+            return true;
+        expected = unpack(e);
+        return false;
+    }
+
+private:
+    std::atomic<Word> w_;
+#if defined(__APPLE__)
+    static_assert(std::atomic<Word>::is_always_lock_free, "the Layer trigger tuple must be one lock-free word");
+#endif
+};
+static_assert(sizeof(LayerRuntimeCell::Word) == 16, "the tuple word is 16 bytes with no padding");
 
 // Layer: a row in the deck. Contains clips across columns.
 // One clip is active per layer at a time.
@@ -177,38 +287,49 @@ struct Layer
     // Indexed by column. Use std::optional so empty cells are explicit.
     std::vector<std::optional<Clip>> clips;
 
-    // === Runtime State ===
-    int activeClipColumn = -1;  // -1 = no active clip
-    int previousClipColumn = -1; // For crossfade
-    float crossfadeProgress = 1.0f; // 1.0 = fully transitioned
-    int pendingTriggerColumn = -1;  // Beat snap: queued trigger awaiting next beat
-    // Set alongside pendingTriggerColumn whenever a trigger is queued. Off means
-    // "derive granularity from the target clip's own beatSnapMode" (today's
-    // behavior, unchanged). Non-Off means a caller (global Quantize) is FORCING
-    // a granularity for this one queued trigger, overriding the clip's own field
-    // for this trigger only — the clip's own beatSnapMode is never mutated.
-    Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+    // === Runtime State: the trigger tuple (one atomic word; see LayerRuntimeCell above) ===
+    // runtime(): ONE acquire load. setRuntime(): a release store (a value restore -- undo / redo, a load, tests).
+    // casRuntime(): ONE compare-exchange; on failure `expected` receives the current tuple.
+    // updateRuntime(fn, maxAttempts): fn is a PURE function of the current tuple; retried until its CAS lands
+    // (maxAttempts 0 = unbounded: the message thread; the GL thread always passes a bound and never waits).
+    LayerRuntimeSnapshot runtime() const noexcept { return runtime_.load(); }
+    void setRuntime(const LayerRuntimeSnapshot& r) noexcept { runtime_.store(r); }
+    bool casRuntime(LayerRuntimeSnapshot& expected, const LayerRuntimeSnapshot& desired) noexcept
+    {
+        return runtime_.compareExchange(expected, desired);
+    }
+
+    template <class Fn>
+    LayerRuntimeTransition updateRuntime(Fn&& fn, int maxAttempts = 0)
+    {
+        return updateRuntime(std::forward<Fn>(fn), maxAttempts,
+                             [](const LayerRuntimeSnapshot&, const LayerRuntimeSnapshot&) {});
+    }
+
+    // beforeCas(from, to) runs before EVERY compare-exchange attempt that would install `to` (recomputed per
+    // attempt), so whatever it writes is published by the CAS that installs `to`.
+    template <class Fn, class BeforeCas>
+    LayerRuntimeTransition updateRuntime(Fn&& fn, int maxAttempts, BeforeCas&& beforeCas)
+    {
+        LayerRuntimeSnapshot cur = runtime();
+        for (int attempt = 0; maxAttempts <= 0 || attempt < maxAttempts; ++attempt)
+        {
+            const LayerRuntimeSnapshot next = fn(cur);
+            if (next == cur)
+                return { cur, cur, true };
+            beforeCas(cur, next);
+            LayerRuntimeSnapshot seen = cur;
+            if (casRuntime(seen, next))
+                return { cur, next, true };
+            cur = seen;
+        }
+        return { cur, cur, false };
+    }
 
     // === Helpers ===
-    Clip* getActiveClip()
-    {
-        if (activeClipColumn >= 0 && activeClipColumn < static_cast<int>(clips.size()))
-        {
-            if (clips[static_cast<size_t>(activeClipColumn)].has_value())
-                return &clips[static_cast<size_t>(activeClipColumn)].value();
-        }
-        return nullptr;
-    }
-
-    const Clip* getActiveClip() const
-    {
-        if (activeClipColumn >= 0 && activeClipColumn < static_cast<int>(clips.size()))
-        {
-            if (clips[static_cast<size_t>(activeClipColumn)].has_value())
-                return &clips[static_cast<size_t>(activeClipColumn)].value();
-        }
-        return nullptr;
-    }
+    // ONE load, then the clip at that column.
+    Clip* getActiveClip() { return getClipAt(runtime().activeClipColumn); }
+    const Clip* getActiveClip() const { return getClipAt(runtime().activeClipColumn); }
 
     Clip* getClipAt(int column)
     {
@@ -220,135 +341,158 @@ struct Layer
         return nullptr;
     }
 
-    void triggerClip(int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off)
+    const Clip* getClipAt(int column) const
+    {
+        if (column >= 0 && column < static_cast<int>(clips.size()))
+        {
+            if (clips[static_cast<size_t>(column)].has_value())
+                return &clips[static_cast<size_t>(column)].value();
+        }
+        return nullptr;
+    }
+
+    // The pure tuple functions (no clip effects): an immediate trigger of `column` (a retrigger when it is already
+    // active: only the queue is cleared, the fade keeps running), and a clear.
+    static LayerRuntimeSnapshot immediateNext(LayerRuntimeSnapshot r, int column, float transitionSpeedSeconds)
+    {
+        r.pendingTriggerColumn = -1;
+        r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+        if (column == r.activeClipColumn)
+            return r;
+        r.previousClipColumn = r.activeClipColumn;
+        r.activeClipColumn = column;
+        r.crossfadeProgress = (transitionSpeedSeconds <= 0.0f) ? 1.0f : 0.0f;
+        return r;
+    }
+
+    // L5 Quantize fix: a clear also cancels any quantized trigger still queued on this layer (ONE pending slot per
+    // layer, so a trigger queued on an unrelated column is dropped too). Without this a pending trigger outlives the
+    // clear and fires on the next beat / bar crossing, reactivating a layer the caller just deactivated. It lives in
+    // the tuple function, not at call sites, so every caller inherits it.
+    static LayerRuntimeSnapshot clearedNext(LayerRuntimeSnapshot r)
+    {
+        r.previousClipColumn = r.activeClipColumn;
+        r.activeClipColumn = -1;
+        r.crossfadeProgress = 1.0f;
+        r.pendingTriggerColumn = -1;
+        r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+        return r;
+    }
+
+    // Every trigger below returns the exact transition (statement callers ignore it). maxAttempts 0 = unbounded (the
+    // message thread); the GL thread (autopilot, beat snap) passes 16 and never waits: if 16 consecutive
+    // message-thread CASes on this layer beat it inside one call, the trigger retries at the next beat crossing (a
+    // Bar / TwoBar / FourBar trigger slips to its next qualifying edge).
+
+    // Trigger a clip: queue it for its beat / bar when beat snap is on (or a caller FORCES a granularity, global
+    // Quantize) and it is not already active; otherwise trigger it immediately. An empty cell clears the layer.
+    LayerRuntimeTransition triggerClip(int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
+                                       int maxAttempts = 0)
     {
         if (column < 0 || column >= static_cast<int>(clips.size()))
-            return;
-
+            return unchanged();
         if (!clips[static_cast<size_t>(column)].has_value())
-        {
-            // Empty cell — clear the layer. clearActiveClip() itself now cancels
-            // any pending trigger too (L5 Quantize fix), so no separate reset
-            // needed here.
-            clearActiveClip();
-            return;
-        }
+            return clearActiveClip(std::nullopt, maxAttempts);
 
-        // Check beat snap: if the target clip has beat snap enabled, or a caller is
-        // forcing a granularity (global Quantize), queue for next beat/bar.
-        auto& clipOpt = clips[static_cast<size_t>(column)];
-        bool snapEnabled = forcedSnap != Clip::BeatSnapMode::Off ||
-                          (clipOpt.has_value() &&
-                          (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off || clipOpt->beatSnap));
-        if (snapEnabled && column != activeClipColumn)
-        {
-            pendingTriggerColumn = column;
-            pendingTriggerSnapOverride = forcedSnap;
-            return;
-        }
-
-        triggerClipImmediate(column);
+        const Clip& target = *clips[static_cast<size_t>(column)];
+        const bool snapEnabled = forcedSnap != Clip::BeatSnapMode::Off
+                              || target.beatSnapMode != Clip::BeatSnapMode::Off || target.beatSnap;
+        const float speed = transitionSpeed;
+        return activate(column, maxAttempts, [&](LayerRuntimeSnapshot r) {
+            if (snapEnabled && column != r.activeClipColumn)
+            {
+                r.pendingTriggerColumn = column;
+                r.pendingTriggerSnapOverride = forcedSnap;
+                return r;
+            }
+            return immediateNext(r, column, speed);
+        });
     }
 
-    // Execute a clip trigger immediately (bypasses beat snap check).
-    // Called directly or from beat snap queue processing.
-    void triggerClipImmediate(int column)
+    // Execute a clip trigger immediately (bypasses beat snap). A retrigger of the active column restarts its clip
+    // from the in-point and keeps its play / pause state.
+    LayerRuntimeTransition triggerClipImmediate(int column, int maxAttempts = 0)
     {
         if (column < 0 || column >= static_cast<int>(clips.size()))
-            return;
+            return unchanged();
+        const float speed = transitionSpeed;
+        return activate(column, maxAttempts,
+                        [&](const LayerRuntimeSnapshot& r) { return immediateNext(r, column, speed); });
+    }
 
-        pendingTriggerColumn = -1;
-        pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
-
-        if (column == activeClipColumn)
-        {
-            // Retrigger from in-point — preserve current playing state
-            if (auto* clip = getActiveClip())
+    // Fire the queued trigger if this beat qualifies. Call on each beat crossing. beatInBar: which beat within the bar
+    // (0-3). barCount: total bars elapsed. One CAS-guarded transition, so a trigger cancelled on the message thread
+    // (deck switch, clear, momentary release) can never fire afterwards.
+    LayerRuntimeTransition processPendingTrigger(int beatInBar = 0, int barCount = 0, int maxAttempts = 16)
+    {
+        const float speed = transitionSpeed;
+        auto fire = [&](LayerRuntimeSnapshot r) {
+            const int col = r.pendingTriggerColumn;
+            if (col < 0 || col >= static_cast<int>(clips.size()))
+                return r;
+            // A forced override (global Quantize) wins outright; otherwise the pending clip's own beatSnapMode.
+            auto snapMode = Clip::BeatSnapMode::Beat;
+            const auto& clipOpt = clips[static_cast<size_t>(col)];
+            if (r.pendingTriggerSnapOverride != Clip::BeatSnapMode::Off)
+                snapMode = r.pendingTriggerSnapOverride;
+            else if (clipOpt.has_value())
+                snapMode = (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off) ? clipOpt->beatSnapMode
+                                                                              : Clip::BeatSnapMode::Beat;
+            bool shouldTrigger = false;
+            switch (snapMode)
             {
-                clip->playheadPosition = static_cast<double>(clip->inPoint);
-                clip->beatsPlayed = 0;
-                // Don't change clip->playing — keep paused if paused, playing if playing
+                case Clip::BeatSnapMode::Off:
+                case Clip::BeatSnapMode::Beat:
+                    shouldTrigger = true; // Every beat
+                    break;
+                case Clip::BeatSnapMode::Bar:
+                    shouldTrigger = (beatInBar == 0); // First beat of bar
+                    break;
+                case Clip::BeatSnapMode::TwoBar:
+                    shouldTrigger = (beatInBar == 0 && (barCount % 2) == 0);
+                    break;
+                case Clip::BeatSnapMode::FourBar:
+                    shouldTrigger = (beatInBar == 0 && (barCount % 4) == 0);
+                    break;
             }
-            return;
-        }
-
-        // Start transition to new clip
-        previousClipColumn = activeClipColumn;
-        activeClipColumn = column;
-        crossfadeProgress = (transitionSpeed <= 0.0f) ? 1.0f : 0.0f;
-
-        if (auto* clip = getActiveClip())
-        {
-            clip->playheadPosition = static_cast<double>(clip->inPoint);
-            clip->beatsPlayed = 0;
-            // Only auto-play on first activation; returning clips keep their state
-            if (!clip->hasBeenTriggered)
-                clip->playing = true;
-        }
+            return shouldTrigger ? immediateNext(r, col, speed) : r;
+        };
+        return updateRuntime(fire, maxAttempts, [this](const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to) {
+            if (from.pendingTriggerColumn >= 0 && to.activeClipColumn == from.pendingTriggerColumn)
+                applyActivationTail(from, to);
+        });
     }
 
-    // Process pending beat-snapped triggers. Call on each beat detection.
-    // beatInBar: which beat within the bar (0-3). barCount: total bars elapsed.
-    void processPendingTrigger(int beatInBar = 0, int barCount = 0)
+    // Clear the layer (and cancel its queued trigger, L5). onlyIfActive: clear only if that column is the active one
+    // (one CAS: no separate check first). The old active clip stops playing.
+    LayerRuntimeTransition clearActiveClip(std::optional<int> onlyIfActive = std::nullopt, int maxAttempts = 0)
     {
-        if (pendingTriggerColumn < 0)
-            return;
-
-        // Determine the required snap granularity: a forced override (global
-        // Quantize) wins outright; otherwise fall back to the pending clip's own
-        // beatSnapMode (unchanged pre-existing behavior).
-        auto snapMode = Clip::BeatSnapMode::Beat; // default
-        auto& clipOpt = clips[static_cast<size_t>(pendingTriggerColumn)];
-        if (pendingTriggerSnapOverride != Clip::BeatSnapMode::Off)
-            snapMode = pendingTriggerSnapOverride;               // global quantize forced this
-        else if (clipOpt.has_value())
-            snapMode = (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off)
-                       ? clipOpt->beatSnapMode : Clip::BeatSnapMode::Beat;   // unchanged fallback
-
-        bool shouldTrigger = false;
-        switch (snapMode)
-        {
-            case Clip::BeatSnapMode::Off:
-            case Clip::BeatSnapMode::Beat:
-                shouldTrigger = true; // Every beat
-                break;
-            case Clip::BeatSnapMode::Bar:
-                shouldTrigger = (beatInBar == 0); // First beat of bar
-                break;
-            case Clip::BeatSnapMode::TwoBar:
-                shouldTrigger = (beatInBar == 0 && (barCount % 2) == 0);
-                break;
-            case Clip::BeatSnapMode::FourBar:
-                shouldTrigger = (beatInBar == 0 && (barCount % 4) == 0);
-                break;
-        }
-
-        if (shouldTrigger)
-            triggerClipImmediate(pendingTriggerColumn);
+        auto t = updateRuntime([&](const LayerRuntimeSnapshot& r) {
+            if (onlyIfActive.has_value() && r.activeClipColumn != *onlyIfActive)
+                return r;
+            return clearedNext(r);
+        }, maxAttempts);
+        applyClearTail(t);
+        return t;
     }
 
-    void clearActiveClip()
+    // A momentary pad released (MIDI / keyboard): ONE CAS. Its column active -> today's clear (incl. the pending
+    // cancel); else its column still QUEUED (released before the beat) -> the queued trigger is cancelled, the
+    // active clip untouched; else nothing.
+    LayerRuntimeTransition releaseMomentary(int column)
     {
-        if (activeClipColumn >= 0)
-        {
-            if (auto* clip = getActiveClip())
-                clip->playing = false;
-        }
-        previousClipColumn = activeClipColumn;
-        activeClipColumn = -1;
-        crossfadeProgress = 1.0f;
-
-        // L5 Quantize fix: a clear also cancels any quantized trigger still
-        // queued on this layer. Without this, a pending trigger silently
-        // outlives the clear and fires on the next beat/bar crossing,
-        // reactivating a layer the caller just deactivated — e.g. a momentary
-        // MIDI pad released before the beat lands (handleBindingAction's
-        // Momentary release path calls clearActiveClip() directly). Lives here,
-        // not at individual call sites, so every caller inherits it the same
-        // way the queue decision itself lives in triggerClip rather than at
-        // each trigger call site.
-        pendingTriggerColumn = -1;
-        pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+        auto t = updateRuntime([&](LayerRuntimeSnapshot r) {
+            if (r.activeClipColumn == column)
+                return clearedNext(r);
+            if (r.pendingTriggerColumn == column)
+            {
+                r.pendingTriggerColumn = -1;
+                r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+            }
+            return r;
+        });
+        applyClearTail(t);
+        return t;
     }
 
     void ensureColumns(int count)
@@ -360,6 +504,58 @@ struct Layer
     // === Serialization ===
     juce::var toVar() const;
     void fromVar(const juce::var& v);
+
+private:
+    LayerRuntimeTransition unchanged() const
+    {
+        const auto r = runtime();
+        return { r, r, true };
+    }
+
+    // The activation tail of a transition that makes a column active (a new activation, or a retrigger of the
+    // active column): the clip's playhead back to its in-point, its beat count to 0, and -- only on a NEW activation
+    // of a clip never triggered -- playing = true. Written BEFORE each CAS attempt that would install the
+    // transition (idempotent, recomputed per attempt), so the acq_rel CAS publishes it: a GL-thread load that names
+    // the column happens-after the reset (autopilot never counts a fresh trigger from a stale beatsPlayed). The
+    // clip runtime fields are per-field atomics; the tuple word is the only consistent unit.
+    void applyActivationTail(const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to)
+    {
+        if (Clip* clip = getClipAt(to.activeClipColumn))
+        {
+            clip->playheadPosition = static_cast<double>(clip->inPoint);
+            clip->beatsPlayed = 0;
+            if (to.activeClipColumn != from.activeClipColumn && !clip->hasBeenTriggered)
+                clip->playing = true;   // only auto-play on first activation; returning clips keep their state
+        }
+    }
+
+    // fn may queue or activate `column`; the tail runs before each CAS that would make `column` active. A retrigger
+    // with nothing queued changes no tuple field (no CAS), so its tail runs once after.
+    template <class Fn>
+    LayerRuntimeTransition activate(int column, int maxAttempts, Fn&& fn)
+    {
+        auto t = updateRuntime(std::forward<Fn>(fn), maxAttempts,
+                               [&](const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to) {
+                                   if (to.activeClipColumn == column)
+                                       applyActivationTail(from, to);
+                               });
+        if (t.applied && !t.changed() && t.after.activeClipColumn == column)
+            applyActivationTail(t.before, t.after);
+        return t;
+    }
+
+    // The clear tail: the OLD active clip stops playing, applied once after the successful CAS. No guard needed: no
+    // GL-thread path re-activates a cleared layer (autopilot needs an active playing clip; a queued trigger was
+    // cancelled in the same word).
+    void applyClearTail(const LayerRuntimeTransition& t)
+    {
+        if (t.applied && t.before.activeClipColumn >= 0 && t.after.activeClipColumn < 0)
+            if (Clip* clip = getClipAt(t.before.activeClipColumn))
+                clip->playing = false;
+    }
+
+    // Declared after `clips` (member order = copy order).
+    LayerRuntimeCell runtime_;
 };
 
 // The only place that names which Layer field backs each LayerScalar (s166

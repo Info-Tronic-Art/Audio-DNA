@@ -14,16 +14,22 @@ namespace LayerClock
 // completing exactly at T == duration regardless of callback rate. Not gated on the render_frame time override:
 // crossfadeProgress is persistent per-layer state (like previousClipColumn) that advances every real GL
 // callback, so there is no byte-identical-repeat contract covering it -- only the rate matters.
+// Lane tsan (s-rta-1002): the tick is ONE compare-exchange of the layer's tuple word against the tuple it loaded. If
+// a trigger landed in between, the CAS fails and the trigger's tuple stands (adopt-on-fail): the GL thread never
+// overwrites a trigger and never waits.
 inline void advanceCrossfade(Layer& layer, float dt)
 {
-    if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
+    LayerRuntimeSnapshot rt = layer.runtime();
+    if (rt.crossfadeProgress < 1.0f && rt.previousClipColumn >= 0)
     {
         float speed = layer.transitionSpeed;
         if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
         float step = dt / speed;
-        layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
-        if (layer.crossfadeProgress >= 1.0f)
-            layer.previousClipColumn = -1; // transition complete
+        LayerRuntimeSnapshot next = rt;
+        next.crossfadeProgress = std::min(rt.crossfadeProgress + step, 1.0f);
+        if (next.crossfadeProgress >= 1.0f)
+            next.previousClipColumn = -1; // transition complete
+        layer.casRuntime(rt, next);
     }
 }
 } // namespace LayerClock

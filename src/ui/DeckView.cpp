@@ -188,7 +188,7 @@ void DeckView::rebuildGrid()
             cell->setGridPosition(layerIdx, col);
             cell->setThumbnails(&thumbnails_);
             cell->setClip(layer->getClipAt(col));
-            cell->setActive(layer->activeClipColumn == col);
+            cell->setActive(layer->runtime().activeClipColumn == col);
 
             // Wire callbacks
             cell->onTrigger = [this](int li, int c) {
@@ -281,7 +281,7 @@ void DeckView::refresh()
             if (layerCells[col])
             {
                 layerCells[col]->setClip(layer->getClipAt(static_cast<int>(col)));
-                layerCells[col]->setActive(layer->activeClipColumn == static_cast<int>(col));
+                layerCells[col]->setActive(layer->runtime().activeClipColumn == static_cast<int>(col));
             }
         }
     }

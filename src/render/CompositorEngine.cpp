@@ -398,7 +398,7 @@ bool CompositorEngine::incomingImagePending(const Layer& layer, const Clip* clip
         (clip->mediaType != Clip::MediaType::Image && clip->mediaType != Clip::MediaType::ImageSequence &&
          clip->mediaType != Clip::MediaType::Video))
         return false;
-    if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+    if (const auto rt = layer.runtime(); rt.crossfadeProgress >= 1.0f || rt.previousClipColumn < 0)
         return false;   // not fading: nothing to pause
     if (layer.type != Layer::Type::Opaque && layer.type != Layer::Type::Transparent && layer.type != Layer::Type::Mask)
         return false;   // FX Only / 3D never show the clip's media
@@ -988,8 +988,8 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const 
     // clip's chain reads or writes that history this frame. Nothing happens at
     // fade end: the slot idles as the spare for the next fade.
     const uint64_t outKey = LayerStateKey::outgoingChain(deckId, layer.id);
-    if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
-                                         layer.crossfadeProgress))
+    const auto rt = layer.runtime();
+    if (crossfadeStart_[clipKey].observe(rt.previousClipColumn, rt.activeClipColumn, rt.crossfadeProgress))
         handOverClipHistory(clipKey, outKey, shaderMgr, quad, width, height);
 
     // Apply per-clip transform (position, scale, rotation) + clip opacity
@@ -1643,11 +1643,12 @@ GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t outgoingKey, GLu
     using namespace juce::gl;
 
     // If crossfade is complete or no previous clip, just return the new texture
-    if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+    const auto rt = layer.runtime();
+    if (rt.crossfadeProgress >= 1.0f || rt.previousClipColumn < 0)
         return newClipTex;
 
     // Get previous clip texture
-    Clip* prevClip = layer.getClipAt(layer.previousClipColumn);
+    Clip* prevClip = layer.getClipAt(rt.previousClipColumn);
     if (prevClip == nullptr)
         return newClipTex;
 
@@ -1737,7 +1738,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t outgoingKey, GLu
     glUniform1i(glGetUniformLocation(pid, "u_prevTexture"), 1);
 
     // Set crossfade progress
-    glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), layer.crossfadeProgress);
+    glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), rt.crossfadeProgress);
 
     quad.draw();
 

@@ -50,7 +50,11 @@ TEST_CASE("Program::compile builds the preamble from checkpoint0 in restore orde
     comp.quantizeMode = Composition::QuantizeMode::NextDownbeat;   // v = 2
 
     Layer& layer0 = comp.decks[0].layers[0];
-    layer0.activeClipColumn = 2;
+    {
+        LayerRuntimeSnapshot rt = layer0.runtime();
+        rt.activeClipColumn = 2;
+        layer0.setRuntime(rt);
+    }
     layer0.opacity = 0.5f;
     layer0.visible = false;
     layer0.solo = true;
@@ -161,7 +165,11 @@ TEST_CASE("Program::compile: an active clip with no captured ClipRuntime restore
     comp.activeDeckIndex = 0;
 
     Layer& layer1 = comp.decks[0].layers[1];
-    layer1.activeClipColumn = 0;
+    {
+        LayerRuntimeSnapshot rt = layer1.runtime();
+        rt.activeClipColumn = 0;
+        layer1.setRuntime(rt);
+    }
     layer1.clips[0] = Clip{};   // present, but every field at its default -- PerfStateCapture will
                                 // NOT capture a ClipRuntime for it (nonDefault check fails).
 
@@ -332,7 +340,11 @@ TEST_CASE("Program::compile: a layer opacity captured AT the scalar default stil
     comp.activeDeckIndex = 0;
 
     Layer& layer0 = comp.decks[0].layers[0];
-    layer0.activeClipColumn = -1;   // clean, matches the live-gate fixture exactly
+    {
+        LayerRuntimeSnapshot rt = layer0.runtime();
+        rt.activeClipColumn = -1;   // clean, matches the live-gate fixture exactly
+        layer0.setRuntime(rt);
+    }
     layer0.opacity = 1.0f;          // == LayerScalar::Opacity's defaultNorm (ScalarParams.h)
 
     Take take;

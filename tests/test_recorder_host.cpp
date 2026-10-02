@@ -972,7 +972,11 @@ TEST_CASE("PerfStateCapture -- captures non-default state from a Composition and
     Layer& layer0 = comp.decks[0].layers[0];
     Clip clip; clip.name = "TestClip"; clip.playing = true;
     layer0.clips[0] = clip;
-    layer0.activeClipColumn = 0;
+    {
+        LayerRuntimeSnapshot rt = layer0.runtime();
+        rt.activeClipColumn = 0;
+        layer0.setRuntime(rt);
+    }
 
     comp.decks[0].layers[1].opacity = 0.4f;
     comp.decks[0].layers[2].bypassed = true;

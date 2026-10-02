@@ -590,7 +590,7 @@ void Renderer::renderOpenGL()
         for (int li = 0; li < deck->getNumLayers(); ++li)
         {
             auto* layer = deck->getLayer(li);
-            if (!layer || layer->activeClipColumn < 0) continue;
+            if (!layer || layer->runtime().activeClipColumn < 0) continue;
 
             auto* clip = layer->getActiveClip();
             if (!clip || clip->sourceType != "projectm_visualizer") continue;

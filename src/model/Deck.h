@@ -108,13 +108,21 @@ struct Deck
     }
 
     // === Column Triggering ===
-    void triggerColumn(int col, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off)
+    // out (optional): one entry per layer -- the exact transition of each layer triggered, nullopt for a layer that
+    // ignores column triggers.
+    void triggerColumn(int col, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
+                       std::vector<std::optional<LayerRuntimeTransition>>* out = nullptr)
     {
-        for (auto& layer : layers)
+        if (out != nullptr)
+            out->assign(layers.size(), std::nullopt);
+        for (size_t i = 0; i < layers.size(); ++i)
         {
+            auto& layer = layers[i];
             if (layer.ignoreColumnTrigger)
                 continue;
-            layer.triggerClip(col, forcedSnap);
+            const auto t = layer.triggerClip(col, forcedSnap);
+            if (out != nullptr)
+                (*out)[i] = t;
         }
     }
 

@@ -3298,3 +3298,65 @@ target_include_directories(test_relaxed PRIVATE ${SRC_DIR})
 target_link_libraries(test_relaxed PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_relaxed)
 catch_discover_tests(test_relaxed)
+
+# --- test_layer_runtime (lane tsan T2: the Layer trigger tuple as ONE atomic word -- pack / unpack, exact transition
+# pairs, the stale-CAS adopt, cancelled pending, copies, bounded exhaustion, the activation-tail ordering contract,
+# momentary release). Real Clip / Layer sources like test_deck_clock.
+add_executable(test_layer_runtime
+    test_layer_runtime.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_layer_runtime PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_runtime PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_layer_runtime PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_runtime PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_runtime)
+catch_discover_tests(test_layer_runtime)
+
+# --- test_shared_field_types (lane tsan, ruling amendment 11: compile-time type pins of the model fields another
+# thread reads; T2 pins the Layer tuple, T4 / T5 / T6 extend it).
+add_executable(test_shared_field_types
+    test_shared_field_types.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_shared_field_types PRIVATE ${SRC_DIR})
+target_link_libraries(test_shared_field_types PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_shared_field_types PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_shared_field_types PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_shared_field_types)
+catch_discover_tests(test_shared_field_types)

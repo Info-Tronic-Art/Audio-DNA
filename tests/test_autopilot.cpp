@@ -66,7 +66,7 @@ TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancemen
     {
         for (int beat = 0; beat < 3; ++beat)
             advanceOneBeat(autopilot, deck, snap);
-        REQUIRE(layer->activeClipColumn == 0);
+        REQUIRE(layer->runtime().activeClipColumn == 0);
     }
 
     SECTION("Advances on beat 4 instead of freezing at playhead 0.0")
@@ -78,7 +78,7 @@ TEST_CASE("End-of-Video mode: non-playable clip falls through to beat advancemen
         for (int beat = 0; beat < 4; ++beat)
             advanceOneBeat(autopilot, deck, snap);
 
-        REQUIRE(layer->activeClipColumn == 1); // advanced, not stuck on column 0
+        REQUIRE(layer->runtime().activeClipColumn == 1); // advanced, not stuck on column 0
     }
 }
 
@@ -113,14 +113,14 @@ TEST_CASE("End-of-Video mode: playable (Video) clip threshold behavior unchanged
     {
         clip->playheadPosition = 0.5;
         autopilot.processFrame(deck, snap); // EoV is checked every frame, no beat cross needed
-        REQUIRE(layer->activeClipColumn == 0);
+        REQUIRE(layer->runtime().activeClipColumn == 0);
     }
 
     SECTION("Advances once playhead reaches the out-point threshold")
     {
         clip->playheadPosition = 0.995; // outPoint defaults to 1.0, threshold is 0.99
         autopilot.processFrame(deck, snap);
-        REQUIRE(layer->activeClipColumn == 1);
+        REQUIRE(layer->runtime().activeClipColumn == 1);
     }
 }
 
@@ -149,26 +149,34 @@ TEST_CASE("On-Beat mode: advancement is gated on clip->playing (source parity)",
 
     SECTION("playing = true (post-fix source-creation state) advances on beat")
     {
-        layer->activeClipColumn = 0;
+        {
+            LayerRuntimeSnapshot rt = layer->runtime();
+            rt.activeClipColumn = 0;
+            layer->setRuntime(rt);
+        }
         auto* clip = layer->getClipAt(0);
         REQUIRE(clip != nullptr);
         clip->playing = true; // matches the clip.playing = true; set at the 4
                                // MainComponent.cpp source-creation sites
 
         advanceOneBeat(autopilot, deck, snap);
-        REQUIRE(layer->activeClipColumn == 1);
+        REQUIRE(layer->runtime().activeClipColumn == 1);
     }
 
     SECTION("playing = false (pre-fix source-creation state) never advances")
     {
-        layer->activeClipColumn = 0;
+        {
+            LayerRuntimeSnapshot rt = layer->runtime();
+            rt.activeClipColumn = 0;
+            layer->setRuntime(rt);
+        }
         auto* clip = layer->getClipAt(0);
         REQUIRE(clip != nullptr);
         clip->playing = false; // the bug: sources were born playing=false
 
         for (int beat = 0; beat < 4; ++beat)
             advanceOneBeat(autopilot, deck, snap);
-        REQUIRE(layer->activeClipColumn == 0); // frozen
+        REQUIRE(layer->runtime().activeClipColumn == 0); // frozen
     }
 }
 
@@ -202,14 +210,14 @@ TEST_CASE("advanceClip column selection skips empty columns", "[autopilot]")
     SECTION("PlayNext skips column 1 (empty) and lands on column 2")
     {
         advanceOneBeat(autopilot, deck, snap);
-        REQUIRE(layer->activeClipColumn == 2);
+        REQUIRE(layer->runtime().activeClipColumn == 2);
     }
 
     SECTION("PlayNext wraps past the end back to column 0")
     {
         layer->triggerClip(4); // last occupied column
         advanceOneBeat(autopilot, deck, snap);
-        REQUIRE(layer->activeClipColumn == 0); // wraps, skipping empty tail columns
+        REQUIRE(layer->runtime().activeClipColumn == 0); // wraps, skipping empty tail columns
     }
 }
 
@@ -262,9 +270,9 @@ TEST_CASE("F3 stall: a 1.1-beat GL stall loses no beat (3.4 -> 4.5)", "[autopilo
     Autopilot ap;
     runTicks(ap, deck, 102);                                    // b = 3.4: three beats played
     REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
-    REQUIRE(deck.getLayer(0)->activeClipColumn == 0);
+    REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == 0);
     ap.processFrame(deck, beatSnap(135 / 30.0));                // one tick at b = 4.5: phase 0.4 -> 0.5, count 3 -> 4
-    CHECK(deck.getLayer(0)->activeClipColumn == 1);
+    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
 }
 
 TEST_CASE("F3 stall: a 0.7-beat stall that begins at phase 0.5 and contains the wrap (3.5 -> 4.2)", "[autopilot][stall]")
@@ -274,7 +282,7 @@ TEST_CASE("F3 stall: a 0.7-beat stall that begins at phase 0.5 and contains the 
     runTicks(ap, deck, 105);                                    // b = 3.5
     REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
     ap.processFrame(deck, beatSnap(126 / 30.0));                // b = 4.2: 0.2 < 0.5 - 0.5 is false for the wrap reader
-    CHECK(deck.getLayer(0)->activeClipColumn == 1);
+    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
 }
 
 TEST_CASE("F3 stall: a 2.3-beat stall adds two beats (3.4 -> 5.7)", "[autopilot][stall]")
@@ -284,7 +292,7 @@ TEST_CASE("F3 stall: a 2.3-beat stall adds two beats (3.4 -> 5.7)", "[autopilot]
     runTicks(ap, deck, 102);                                    // b = 3.4
     REQUIRE(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
     ap.processFrame(deck, beatSnap(171 / 30.0));                // b = 5.7: count 3 -> 5, the wrap reader sees nothing
-    CHECK(deck.getLayer(0)->activeClipColumn == 1);             // beatsPlayed 5 >= 4: one advance
+    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);             // beatsPlayed 5 >= 4: one advance
 }
 
 TEST_CASE("F3 pin: without a stall the count reader advances on exactly the ticks the wrap reader did", "[autopilot][stall]")
@@ -306,14 +314,14 @@ TEST_CASE("F3 pin: without a stall the count reader advances on exactly the tick
     REQUIRE(expected.size() == 4);
 
     std::vector<int> observed;
-    int col = deck.getLayer(0)->activeClipColumn;
+    int col = deck.getLayer(0)->runtime().activeClipColumn;
     for (int k = 0; k <= 16 * 30; ++k)
     {
         ap.processFrame(deck, beatSnap(k / 30.0));
-        if (deck.getLayer(0)->activeClipColumn != col)
+        if (deck.getLayer(0)->runtime().activeClipColumn != col)
         {
             observed.push_back(k);
-            col = deck.getLayer(0)->activeClipColumn;
+            col = deck.getLayer(0)->runtime().activeClipColumn;
         }
     }
     CHECK(observed == expected);
@@ -331,7 +339,7 @@ TEST_CASE("F3 pin: realign semantics match the wrap reader (BPMTracker hard real
         FeatureSnapshot s = beatSnap(111 / 30.0);
         s.beatPhase = 0.0f; s.totalBeatCount += 1;
         ap.processFrame(deck, s);
-        CHECK(deck.getLayer(0)->activeClipColumn == 1);
+        CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
     }
 
     SECTION("a realign from the first half counts nothing (count +0, phase -> 0)")
@@ -341,7 +349,7 @@ TEST_CASE("F3 pin: realign semantics match the wrap reader (BPMTracker hard real
         FeatureSnapshot s = beatSnap(99 / 30.0);
         s.beatPhase = 0.0f;
         ap.processFrame(deck, s);
-        CHECK(deck.getLayer(0)->activeClipColumn == 0);
+        CHECK(deck.getLayer(0)->runtime().activeClipColumn == 0);
         CHECK(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
     }
 }
@@ -355,10 +363,10 @@ TEST_CASE("F3 pin: a writer reset (count back to 0) is a baseline, not a crossin
     FeatureSnapshot cleared;                                    // test-mode /api/reset publishes a cleared snapshot
     cleared.clear();
     ap.processFrame(deck, cleared);
-    CHECK(deck.getLayer(0)->activeClipColumn == 0);
+    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 0);
     CHECK(deck.getLayer(0)->getActiveClip()->beatsPlayed == 3);
     runTicks(ap, deck, 30);                                     // the stream restarts at b = 0 and wraps once at b = 1
-    CHECK(deck.getLayer(0)->activeClipColumn == 1);
+    CHECK(deck.getLayer(0)->runtime().activeClipColumn == 1);
 }
 
 TEST_CASE("F3 law: no beat-crossing reader detects a phase wrap any more", "[autopilot][law]")
