@@ -352,8 +352,7 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 5. For deck mode: `CompositorEngine::compositeDeck()`:
    a. Per clip: load texture → apply clip effects → transition blend
    b. Per layer: apply layer effects → transform → keying → blend onto accumulator
-   c. Persistent layers from non-active decks composited after active deck
-   d. Global effects via `effectChain_` on final output
+   c. Global effects via `effectChain_` on final output
 6. Temporal buffers: per-layer `layerTemporalBuffers_` for `u_prev_frame`
 7. Frame ring buffer: 480 frames at 1/4 resolution for Screen Split / Frame Stutter
 8. Feedback: `FeedbackProcessor` per-layer Larsen loop (6 presets)
@@ -379,7 +378,7 @@ Accumulator → global FX → composition transform → swap buffers → display
 
 ### 5a. Clip-to-Clip Transitions
 
-**What it does:** Blends between the outgoing and incoming clip textures during a clip change, using one of 30 transition types defined in the `MixMode` enum. 15 of the 30 types have dedicated GLSL shaders; the remaining 15 fall back to crossfade dissolve. Each layer has its own transition mode (the "F dropdown") independent of its persistent blend mode (the "V dropdown").
+**What it does:** Blends between the outgoing and incoming clip textures during a clip change, using one of 30 transition types defined in the `MixMode` enum. 15 of the 30 types have dedicated GLSL shaders; the remaining 15 fall back to crossfade dissolve. Each layer has its own transition mode (the "F dropdown") independent of its blend mode (the "V dropdown").
 
 **Key source files:**
 - `Layer::MixMode` enum, transition subset (src/model/Layer.h:77-92) — 30 transition entries
@@ -536,7 +535,7 @@ UV centered at origin → anchor offset → rotation (2D mat2) → inverse scale
 **Behavioral notes:**
 - `masterOpacity` (Composition.h:24) and `masterLevel_` (Renderer.h:252) are separate systems: `masterOpacity` is serialized to presets, `masterLevel_` is the runtime atomic used by the render thread. The render thread reads `masterLevel_`, not `masterOpacity` directly
 - `masterSpeed` (Composition.h:25) is a global speed multiplier field but is NOT documented here as it affects playback timing, not visual compositing
-- Composition transform is applied to the entire output including all layers, global effects, and persistent layers — it is truly the last spatial operation before master level and frame present
+- Composition transform is applied to the entire output including all layers and global effects — it is truly the last spatial operation before master level and frame present
 - Scale uses inverse mapping in shader (`uv /= scale`): scale > 1.0 zooms in (magnifies), scale < 1.0 zooms out (shrinks). Clamped to minimum 0.001 to prevent division by zero
 - **Composition transform fields are NOT serialized (runtime-only).** `compPositionX/Y`, `compScale`, `compRotation`, `compAnchorX/Y` are absent from `Composition::toVar()`/`fromVar()`. Any transform adjustments are lost on preset save/load or application restart. Only `masterOpacity` is serialized.
 
@@ -835,7 +834,7 @@ FeatureSnapshot fields → SignalRegistry (named signals) → RoutingEngine → 
 
 **Implementation chain:**
 1. `Composition` owns multiple `Deck`s, each containing `Layer`s x columns of `Clip`s
-2. Active deck renders; persistent layers from other decks also render
+2. Active deck renders
 3. `Autopilot::processFrame()` runs in render thread — checks beat/video triggers
 4. On advance: `onAutopilotAdvanced_` fires async on message thread to refresh UI
 5. Smart random: uses structural state + energy level for intelligent clip selection **in `Autopilot::smartRandomEnabled_`, which has real, working logic — but is currently UNREACHABLE by any user path. Its only setter, `Renderer::setSmartRandomEnabled()`, has zero callers in UI/API/OSC. The separate `Composition::smartAutopilotEnabled` field named in Config below is written/serialized but read by nothing at runtime and set by no UI control — it does NOT gate this logic. Two different flags, same name-shaped bug, neither one reachable end-to-end.**
@@ -874,7 +873,7 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 - `tests/test_undo_commands.cpp` — 2222 lines, 59 `TEST_CASE`s, the single largest test file in the repo; covers the full Undo v1 command inventory (clip/column/deck/layer/effect/trigger operations)
 - `tests/test_autopilot.cpp` — dedicated Autopilot behavior tests (previously undocumented; not the same file as `test_compositor.cpp`'s autopilot coverage)
 - `tests/test_preset_manager.cpp` — preset save/load coverage (previously listed below as "Missing: preset save/load round-trip" — that gap is now covered)
-- Still missing: cross-deck transition test coverage, persistent layer rendering test coverage; full enumeration of every mutating UI action was not certified against Undo v1 (22+ command sites spot-checked, not individually walked one-by-one)
+- Still missing: cross-deck transition test coverage; full enumeration of every mutating UI action was not certified against Undo v1 (22+ command sites spot-checked, not individually walked one-by-one)
 
 **Gotchas:**
 - `Clip::playing` is `mutable` — render thread writes it for OneShot. After `advanceFrame()`, read player state BACK to clip model.
@@ -2421,7 +2420,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 
 ### 26h. LayerInspector
 
-**What it does:** Resolume-style layer properties panel displayed in the InspectorPanel's Layer tab. Sections: Name (editable), Dashboard (8 macro knobs), Autopilot (direction, duration, loops), Layer Master (master level, persistent toggle, ignore column trigger), Video (blend mode, opacity, width, height, auto size), Transition (blend mode, duration), Keying (mode, threshold, softness — visible for Transparent layers), DryWet (FX Only layers), 3D Controls (rotation, speed, scale — for ThreeD layers), Transform, Feedback (enable, preset, amount, scale, rotation, offset, luma key), and Layer Effects (EffectStackView).
+**What it does:** Resolume-style layer properties panel displayed in the InspectorPanel's Layer tab. Sections: Name (editable), Dashboard (8 macro knobs), Autopilot (direction, duration, loops), Layer Master (master level, ignore column trigger), Video (blend mode, opacity, width, height, auto size), Transition (blend mode, duration), Keying (mode, threshold, softness — visible for Transparent layers), DryWet (FX Only layers), 3D Controls (rotation, speed, scale — for ThreeD layers), Transform, Feedback (enable, preset, amount, scale, rotation, offset, luma key), and Layer Effects (EffectStackView).
 
 **Key source files:**
 - `LayerInspector` class (src/ui/LayerInspector.h:28, src/ui/LayerInspector.cpp)
@@ -2431,7 +2430,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 **Controls & interactions:**
 - Editable name label — rename layers inline
 - Autopilot: Rewind/Off/Forward/Random direction buttons, trigger mode selector (End of Video / On Beat), beat count selector, loops slider
-- Layer Master: UniversalParamControl + persistent toggle + ignore column trigger toggle
+- Layer Master: UniversalParamControl + ignore column trigger toggle
 - Video: blend mode dropdown, opacity control, width/height sliders, auto-size selector
 - Transition: blend mode dropdown, duration slider
 - Keying (Transparent type only): mode dropdown (13 keying modes), threshold slider, softness slider
@@ -2691,7 +2690,7 @@ N/A for traditional database — this is a C++ desktop app with in-memory data s
 
 - **Composition**: Top-level container. Owns decks[], global settings, per-type autopilot config, genre-deck assignments, composition transform (position/scale/rotation). Contains crossfader model fields (phase, blend mode, behaviour, curve) but crossfader is not wired.
 - **Deck**: Grid container. Owns layers[]. One active deck at a time.
-- **Layer**: Row in deck. Owns clips[] (columns), layer effects, opacity, blend mode, transition settings. Types: Opaque, Transparent, FXOnly, Mask. Has: persistent flag, autopilot settings.
+- **Layer**: Row in deck. Owns clips[] (columns), layer effects, opacity, blend mode, transition settings. Types: Opaque, Transparent, FXOnly, Mask. Has: autopilot settings.
 - **Clip** (struct): Media content. Fields: mediaType (None/Image/Video/Camera/Source/ImageSequence), effects[] (EffectSlot), inPoint, outPoint, speed, transportMode (Timeline/BPMSync), loopMode (Loop/PingPong/OneShot), beatDivision, beatSnap, cuepoints[8], playheadPosition (mutable).
 - **FeatureSnapshot** (POD, alignas(64)): 40 fields carrying all audio analysis results (exposed downstream as 58 mapping sources). Transferred between threads via FeatureBus's seqlock (§3 — not a triple buffer). No pointers, no vtable.
 - **Mapping**: source (Source enum, 58 entries) → targetEffectId → targetParamIndex → curve (24 types) → input/output range → smoothing → enabled.

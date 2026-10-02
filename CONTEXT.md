@@ -107,8 +107,6 @@ _Avoid_: "keyframe" except in analogies — Hits are richer than simple keyframe
 
 **Beat Snap**: Quantizes clip trigger timing to beat boundaries. Modes: Off, Beat, Bar, TwoBar, FourBar.
 
-**Persistent Layer**: A layer that keeps rendering even when its deck is not active. Enables background visuals across deck switches.
-
 ## Integration
 
 **Eyes**: Visual testing harness. HTTP test server (port 8080) with REST endpoints for headless effect/source verification. Injects audio features, captures deterministic frames, compares against golden references via PSNR/SSIM.

@@ -1566,7 +1566,7 @@ See Domain 4: Composition & Performance > Layer Controls > Layer Feedback for fu
   - Clip management [ALWAYS-VISIBLE] — Select All / Cut / Copy / Paste / Copy Effects / Paste Effects / Rename / Clear / Show in Finder / New Source / New Effect / Replace Content / Lock Content via Clip menu
   - Column trigger buttons [ALWAYS-VISIBLE] — numbered 1..K across top of grid, click fires all clips in column simultaneously (respects per-layer Ignore Column Trigger flag)
   - Deck tabs [ALWAYS-VISIBLE] — one tab per deck, click to switch active deck; active deck highlighted
-  - Active deck rendering [ALWAYS-VISIBLE] — only active deck renders; persistent layers from non-active decks also composite
+  - Active deck rendering [ALWAYS-VISIBLE] — only the active deck renders
   - Default grid: 3 layers x 12 columns per deck
 **Parameters:**
   - Composition.activeDeckIndex (int, 0..N-1)
@@ -1776,7 +1776,6 @@ See Domain 4: Composition & Performance > Layer Controls > Layer Feedback for fu
   - Solo (S button) [ALWAYS-VISIBLE] — render only this layer (olive when active)
   - Mute [PRESENTATION-HIDDEN] — audio mute for layer
   - Clear (X button) [ALWAYS-VISIBLE] — clear/stop active clip on this layer
-  - Persistent toggle [PROGRAMMING-ONLY] — keep rendering when deck is not active
   - Ignore Column Trigger [PROGRAMMING-ONLY] — layer won't respond to column triggers
   - Fold [MINIMAL-IN-PRESENTATION] — collapse layer row to save space
   - Content Lock [PROGRAMMING-ONLY] — prevent media replacement
@@ -1786,7 +1785,6 @@ See Domain 4: Composition & Performance > Layer Controls > Layer Feedback for fu
   - Layer.bypassed (bool)
   - Layer.solo (bool)
   - Layer.muted (bool)
-  - Layer.persistent (bool)
   - Layer.ignoreColumnTrigger (bool)
   - Layer.folded (bool)
 **Bindings:** Toggle Layer Bypass/Solo/Mute/Visible (keyboard/MIDI), Adjust Layer Opacity (MIDI CC)
