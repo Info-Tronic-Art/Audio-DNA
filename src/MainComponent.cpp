@@ -3020,9 +3020,10 @@ void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
     // then re-point the renderer at composition_.getActiveDeck() (the NEW
     // active deck). This is the same mechanism kCompNew already used for
     // initDefault() — closes the reallocation-under-read UAF class for a
-    // whole-composition swap too (Renderer::renderOpenGL()'s P21
-    // persistent-layer loop over composition_->decks is nested under the
-    // `deckActive` check, so nulling activeDeck_ fences it as well).
+    // whole-composition swap too (Renderer::renderOpenGL()'s off-screen-deck
+    // loop over composition_->decks -- DeckClock::tick and each deck's
+    // autopilot -- is nested under the `deckActive` check, so nulling
+    // activeDeck_ fences it as well).
     undoService_.withDeckDetached(mutation);
 
     // Close by SET DIFFERENCE, after the fence: correct for a full swap/New
@@ -3248,7 +3249,7 @@ void MainComponent::finishStagedLoad()
         // 6. APPEND -- one undoable InsertDeckCmd (plan6 §5 A1-d), not a whole-model swap: an append retires no media
         //    (nothing to close), must not stop running routines, and must not wipe undo history. The command fences
         //    the push_back (Composition::appendDeck reallocates `decks`, which the GL thread walks lock-free --
-        //    renderOpenGL()'s P21 persistent-layer loop), mints a fresh deck id, makes the deck active
+        //    renderOpenGL()'s off-screen-deck loop (DeckClock / autopilot)), mints a fresh deck id, makes the deck active
         //    (withDeckDetached re-points the renderer), and cancels any pending quantized trigger on the deck being
         //    left (restored on undo). Undo disposes the appended deck's media; redo reopens it.
         const bool dup = s->kind == stagedload::Kind::DeckDuplicate;

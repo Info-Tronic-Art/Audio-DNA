@@ -422,10 +422,9 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
             layerObj->setProperty("bypassed", layer.bypassed);
             const LayerRuntimeSnapshot rt = layer.runtime();   // one consistent tuple (lane tsan)
             layerObj->setProperty("activeClipColumn", rt.activeClipColumn);
-            // s-rta-0926b plan4 T7: the clocks of a deck that is not on screen, witnessable over REST.
+            // s-rta-0926b plan4 T7: each layer's fade state, witnessable over REST.
             layerObj->setProperty("previousClipColumn", rt.previousClipColumn);
             layerObj->setProperty("crossfadeProgress", static_cast<double>(rt.crossfadeProgress));
-            layerObj->setProperty("persistent", layer.persistent);
             layerObj->setProperty("blendMode", static_cast<int>(layer.blendMode));
             addLiveBlock<Layer, LayerScalar>(*layerObj, layer, layer.scalarConns, layerScalarDefs());
 

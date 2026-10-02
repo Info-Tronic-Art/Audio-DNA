@@ -6,13 +6,10 @@
 // CompositorEngine -- its temporal buffer (u_prev_frame), its Screen Split /
 // Frame Stutter frame ring, and its feedback processor.
 //
-// Layer ids are per DECK (Deck::initDefault numbers every deck's layers
-// 0, 1, 2 ...), so keying that state by layer id alone let a persistent layer
-// from another deck share it with the active deck's layer of the same id
-// (measured: deck 1's persistent Freeze read deck 0's frames -- 33% of the
-// other deck's image in steady state; with Frame Stutter the persistent layer
-// showed the other deck's image outright). The key carries the deck id in the
-// high 32 bits.
+// Layer ids restart at 0 on every deck (Deck::initDefault numbers every deck's
+// layers 0, 1, 2 ...), so keying that state by layer id alone would hand deck
+// A's layer-0 history to deck B's layer 0 after a deck switch. The key carries
+// the deck id in the high 32 bits.
 //
 // A layer has THREE state keys, one per effect chain that can run on it, and
 // each chain keeps its own state (s-rta-0926 xfade: a clip chain and a layer

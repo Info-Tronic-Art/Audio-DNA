@@ -152,15 +152,6 @@ LayerInspector::LayerInspector()
     masterControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
     addAndMakeVisible(masterControl_);
 
-    // P21: Persistent layer toggle
-    persistentToggle_.setColour(juce::ToggleButton::textColourId,
-                                juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    persistentToggle_.setTooltip("Keep this layer rendering when switching to another deck");
-    persistentToggle_.onClick = [this] {
-        if (layer_) layer_->persistent = persistentToggle_.getToggleState();
-    };
-    addAndMakeVisible(persistentToggle_);
-
     // Ignore Column Trigger toggle
     ignoreColumnToggle_.setColour(juce::ToggleButton::textColourId,
                                   juce::Colour(AudioDNALookAndFeel::kTextSecondary));
@@ -635,8 +626,7 @@ void LayerInspector::resized()
     y += kSectionHeaderHeight;
     masterControl_.setBounds(area.getX(), y, area.getWidth(), masterControl_.getPreferredHeight());
     y += masterControl_.getPreferredHeight();
-    persistentToggle_.setBounds(area.getX(), y, area.getWidth() / 2, kRowHeight);
-    ignoreColumnToggle_.setBounds(area.getX() + area.getWidth() / 2, y, area.getWidth() / 2, kRowHeight);
+    ignoreColumnToggle_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
     y += kRowHeight + kSectionGap;
 
     // --- Video ---
@@ -919,30 +909,6 @@ void LayerInspector::syncFromLayer()
     };
 
     syncScalar(masterControl_, LayerScalar::Opacity, layer_->opacity);
-    persistentToggle_.setToggleState(layer_->persistent, juce::dontSendNotification);
-    // s-rta-0926b R4-types: the compositor ignores the flag on Mask / 3D layers
-    // (Layer::canBePersistent), so the toggle is disabled there -- UNLESS the
-    // flag is already set (a layer loaded from a file with persistent=true on
-    // a non-persistable type): then it stays enabled so the user can clear the
-    // stale flag. Once cleared, canPersist is still false and layer_->persistent
-    // is now false too, so the next sync disables it again -- it cannot be
-    // re-set (s-rta-0926b uitoggle).
-    {
-        const bool canPersist = Layer::canBePersistent(layer_->type);
-        const bool toggleEnabled = canPersist || layer_->persistent;
-        persistentToggle_.setEnabled(toggleEnabled);
-        // The LookAndFeel's drawToggleButton dims disabled toggles itself
-        // (s-rta-0926b uitoggle), so no per-owner alpha here.
-        // Tooltip tracks canPersist, NOT toggleEnabled (s-rta-0926b uitoggle fix
-        // round): the stale-flag case is enabled but still doesn't actually
-        // persist (CompositorEngine ignores the flag on this layer type), so
-        // it gets its own explanation rather than the "working" tooltip.
-        persistentToggle_.setTooltip(canPersist
-            ? "Keep this layer rendering when switching to another deck"
-            : (layer_->persistent
-                ? "This layer type doesn't support Persistent -- this box is enabled only so you can clear the leftover flag"
-                : "Persistent is available for Opaque, Transparent and FX Only layers"));
-    }
     ignoreColumnToggle_.setToggleState(layer_->ignoreColumnTrigger, juce::dontSendNotification);
     syncScalar(opacityControl_, LayerScalar::Opacity, layer_->opacity);
     blendModeSelector_.setSelectedId(static_cast<int>(layer_->blendMode) + 1, juce::dontSendNotification);

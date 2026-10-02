@@ -91,7 +91,6 @@ private:
 
     // --- Layer (Master) ---
     UniversalParamControl masterControl_;
-    juce::ToggleButton persistentToggle_{"Persistent"};
     juce::ToggleButton ignoreColumnToggle_{"Ignore Column Trigger"};
 
     // --- Video ---

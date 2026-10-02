@@ -158,19 +158,6 @@ struct Layer
     };
     Type type = Type::Opaque;
 
-    // s-rta-0926b R4-types: which layer types can keep rendering while their
-    // deck is not active. Opaque / Transparent composite over the active deck;
-    // FX Only applies its clip's effects over whatever is on screen at that
-    // point. Mask (masking "everything below" across decks has no defined
-    // order) and 3D (not implemented on any path) cannot. ONE rule, consulted
-    // by CompositorEngine::compositePersistentLayers AND the LayerInspector
-    // Persistent toggle, so the toggle is disabled exactly when the flag would
-    // do nothing.
-    static constexpr bool canBePersistent(Type t)
-    {
-        return t == Type::Opaque || t == Type::Transparent || t == Type::FXOnly;
-    }
-
     // === Layer Controls ===
     RelaxedFloat opacity = 1.0f;   // a manualRef scalar (lane tsan: the GL thread reads it via eff(); Pitfall 63)
     bool visible = true;
@@ -179,16 +166,15 @@ struct Layer
     bool muted = false;          // Audio mute
     bool autopilotEnabled = false;
     bool ignoreColumnTrigger = false;
-    bool persistent = false;        // If true, this layer keeps rendering even when deck is not active
     bool folded = false;            // P24.12: If true, layer row is collapsed in DeckView
 
     // === Mix Mode — unified list for both layer blending and clip transitions ===
-    // V dropdown picks a MixMode for persistent layer compositing.
+    // V dropdown picks a MixMode for the layer's blend.
     // F dropdown picks a MixMode for momentary clip-to-clip transitions.
     // Same list, different contexts: V = "the look", F = "the flash".
     enum class MixMode : uint8_t
     {
-        // === Standard Compositing (persistent blend modes) ===
+        // === Standard Compositing (layer blend modes) ===
         // Basic
         Normal, Additive, Screen, Multiply, Overlay,
         // Light

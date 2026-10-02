@@ -3,7 +3,7 @@
 #include <algorithm>
 
 // LayerClock: a layer's clip-to-clip crossfade clock, pure on Layer (no GL) -- s-rta-0926b plan4 item 2 T1.
-// ONE body for every caller: CompositorEngine (the active deck and persistent layers) and DeckClock::tick (decks
+// ONE body for every caller: CompositorEngine (the active deck) and DeckClock::tick (decks
 // that are not on screen) call tick() with the tuple they loaded once for the layer this frame.
 namespace LayerClock
 {

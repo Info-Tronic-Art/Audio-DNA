@@ -689,9 +689,9 @@ void Renderer::renderOpenGL()
         : static_cast<float>(juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
     // S167-L4b DT-FIX: real measured frame delta, fed to scaledTime_ below
-    // (procedural-source clock) and to compositeDeck()/
-    // compositePersistentLayers() further down (video/image-sequence
-    // playhead advancement) -- see lastFrameTimestampMs_'s comment in
+    // (procedural-source clock) and to compositeDeck() further down
+    // (video/image-sequence playhead advancement) -- see
+    // lastFrameTimestampMs_'s comment in
     // Renderer.h for why this must be a REAL delta, not a hardcoded 1/60.
     // Clamped to [0, 0.25]s so a debugger pause, backgrounding, or the very
     // first frame (lastFrameTimestampMs_ == -1) can't make video (or
@@ -736,40 +736,13 @@ void Renderer::renderOpenGL()
                                                    static_cast<int>(renderW),
                                                    static_cast<int>(renderH));
 
-        // P21: Composite persistent layers from non-active decks
         if (composition_)
         {
-            // s-rta-0926b: an EMPTY active deck (compositeDeck returned 0) used
-            // to drop every persistent layer as well -- the fallback below was
-            // presented and the accumulator they had drawn into was discarded.
-            // When another deck has persistent content, the frame starts as over
-            // a black active deck instead.
-            if (sourceTexture == 0)
-            {
-                for (const auto& otherDeck : composition_->decks)
-                {
-                    if (&otherDeck != deck && CompositorEngine::hasPersistentContent(otherDeck))
-                    {
-                        sourceTexture = compositor_.beginEmptyActiveDeck(static_cast<int>(renderW),
-                                                                         static_cast<int>(renderH));
-                        break;
-                    }
-                }
-            }
-
-            for (auto& otherDeck : composition_->decks)
-            {
-                if (&otherDeck == deck) continue; // Skip active deck
-                compositor_.compositePersistentLayers(otherDeck, shaderMgr_, quad_, time, realDt,
-                                                       static_cast<int>(renderW),
-                                                       static_cast<int>(renderH));
-            }
-
             // plan4 item 2 -- decks that are not on screen keep time (Boris 2026-09-26: "finish the fade ...
             // does not touch the clips playing in the layer"). Inside `if (deckActive)` on purpose:
             // withDeckDetached's fence (active deck = nullptr) covers this exactly as it covers
-            // compositePersistentLayers above. Not gated on sourceTexture: an empty active deck still lets
-            // the other decks run. Persistent layers are owned by compositePersistentLayers (DeckClock).
+            // compositeDeck above. Not gated on sourceTexture: an empty active deck still lets
+            // the other decks run.
             for (size_t di = 0; di < composition_->decks.size(); ++di)
             {
                 Deck& other = composition_->decks[di];
@@ -788,7 +761,7 @@ void Renderer::renderOpenGL()
                 }
             }
         }
-        // Lane tsan (amendment 13): the active deck's and the persistent layers' fade-tick adopts this frame.
+        // Lane tsan (amendment 13): the active deck's fade-tick adopts this frame.
         renderTupleAdopts_.fetch_add(compositor_.takeTupleAdopts(), std::memory_order_relaxed);
 
         // Update persistent feedback buffer for feedback effects
@@ -797,9 +770,8 @@ void Renderer::renderOpenGL()
                                           static_cast<int>(renderH));
 
         // S166: Apply Composition::globalEffects to the fully-composited
-        // frame now that the active deck AND any persistent layers from
-        // other decks have both been written into the accumulator —
-        // CompositorEngine.h's documented pipeline stage between layer
+        // frame now that the active deck has been written into the
+        // accumulator — CompositorEngine.h's documented pipeline stage between layer
         // compositing and Master Opacity/output. Guarded on sourceTexture
         // != 0 so a deck with no active layers (compositeDeck returned 0)
         // does not run effects over nothing.

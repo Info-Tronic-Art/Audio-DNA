@@ -127,7 +127,7 @@ public:
     uint64_t getRenderAutopilotAdvances() const { return renderAutopilotAdvances_.load(std::memory_order_relaxed); }
     uint64_t getRenderTupleAdopts() const { return renderTupleAdopts_.load(std::memory_order_relaxed); }
 
-    // P21: Set composition pointer for persistent layer rendering across decks.
+    // P21: Set composition pointer (the off-screen decks' clocks walk composition_->decks).
     void setComposition(Composition* comp) { composition_ = comp; }
 
     // Callback when autopilot advances a clip (called async on message thread)
@@ -364,7 +364,7 @@ private:
     // S167-L4b DT-FIX: wall-clock timestamp (ms) of the previous
     // renderOpenGL() call, used to compute a REAL measured frame delta fed
     // to scaledTime_ above (procedural sources) and to
-    // CompositorEngine::compositeDeck()/compositePersistentLayers(), which
+    // CompositorEngine::compositeDeck(), which
     // pass it straight through to VideoPlayer::advanceFrame() and
     // ImageSequence::advanceFrame() (both do `currentTime_ += dt * speed`
     // literally, no other timing source). Previously those call sites
@@ -582,7 +582,7 @@ private:
         renderPendingFired_.fetch_add(r.pendingFired, std::memory_order_relaxed);
         renderAutopilotAdvances_.fetch_add(r.advances, std::memory_order_relaxed);
     }
-    Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
+    Composition* composition_ = nullptr; // P21: the off-screen decks' clocks walk its decks
     // Beat-synced clip advancement: one Autopilot per deck INDEX (s-rta-0926b plan4 T5) -- the active deck's
     // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 38).
     AutopilotBank autopilots_;
