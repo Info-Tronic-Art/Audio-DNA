@@ -70,7 +70,8 @@ struct DeviceInfo
 struct Config
 {
 #if AUDIODNA_TEST_SERVER
-    juce::StringArray testDeniedNames;   // TEST-ONLY (ADNA_AUDIO_DENY_DEVICES): exact JUCE names treated as denied
+    juce::StringArray testDeniedNames;   // TEST-ONLY (ADNA_AUDIO_DENY_DEVICES): exact JUCE names treated as denied;
+                                         // "*" = every device (bt2 AM16)
 #endif
 };
 
@@ -104,4 +105,12 @@ struct Lists
 // first USB; else 0 (the first allowed).
 Lists filter(const juce::StringArray& innerInputs, const juce::StringArray& innerOutputs,
              const std::vector<DeviceInfo>& scan, const Config&);
+
+// s-rta-0930 bt2: what the reconciler does once the device list settled (rows in this order): no device and anything
+// allowed listed -> NoDevice; the open input no longer listed -> InputLost; the open device stopped and anything allowed
+// listed -> DeviceStopped; no open input and an allowed input listed -> AdoptInput; else None. A still-listed, playing
+// input is never switched away from.
+enum class Reapply { None, NoDevice, AdoptInput, InputLost, DeviceStopped };
+Reapply reconcile(bool haveDevice, bool devicePlaying, const juce::String& openedInput, const Lists&);
+juce::String toString(Reapply);   // the status / stderr code: "", "no-device", "adopt-input", "input-lost", "device-stopped"
 }

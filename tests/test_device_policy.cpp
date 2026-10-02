@@ -5,7 +5,7 @@
 //   M*  a REAL juce::AudioDeviceManager (GuardedAudioDeviceManager) over the mock: every manager case asserts, through
 //       the inner SPY (every createDevice / open / start name, JUCE's temporary devices included), that no denied name
 //       was ever created; the unguarded control M2 asserts the spy DID see it (the JUCE behaviour the guard exists for).
-//   R*  the DeviceReconciler (BG4) over the same manager.
+//   R*  the DeviceReconciler (BG4; s-rta-0930 bt2: adopt / input lost / device stopped, R6-R18) over the same manager.
 //   E*  the real HAL (macOS): read-only property queries, no device is opened.
 // Fix round (btguard-fix): D1 / D4 / M6 / M7 put a hidden device BEFORE the default so the inner and the filtered default
 // index differ (JUCE moves getDefaultDeviceIndex to the front); every case added there was RED on a mutant of the code
@@ -58,6 +58,7 @@ dp::Lists filterScan(const std::vector<dp::DeviceInfo>& scan, const dp::Config& 
 struct Spy
 {
     juce::StringArray created, opened, started;   // every name, temporary devices included
+    juce::StringArray createdPairs;                 // "<out> + <in>" per duplex createDevice (JUCE's probes are one-way)
     juce::StringArray failOpen;                     // names whose open() fails (an unopenable device)
     std::function<void()> onStart;                  // runs inside start() (a list change mid-open, attack S7)
     bool saw(const juce::String& name) const
@@ -120,6 +121,9 @@ public:
     int getOutputLatencyInSamples() override { return 0; }
     int getInputLatencyInSamples() override { return 0; }
     ~MockDevice() override { stop(); }
+    // TEST (bt2 AM13): JUCE's own restart of an open device -- stop (the manager is told), then start with the SAME callback.
+    void stopKeepingCallback() { keptCallback_ = callback_; stop(); }
+    void startWithKeptCallback() { start(keptCallback_); }
 
 private:
     static juce::StringArray channelNames(int n, const juce::String& prefix)
@@ -149,6 +153,7 @@ private:
     double rate_ = 48000.0;
     bool open_ = false, playing_ = false;
     juce::AudioIODeviceCallback* callback_ = nullptr;
+    juce::AudioIODeviceCallback* keptCallback_ = nullptr;
 };
 
 // The inner type: JUCE's CoreAudio shape (named "CoreAudio", separate in/out lists, default = the "macOS default").
@@ -191,6 +196,7 @@ public:
     {
         if (out.isNotEmpty()) spy_.created.add(out);
         if (in.isNotEmpty()) spy_.created.add(in);
+        if (out.isNotEmpty() && in.isNotEmpty()) spy_.createdPairs.add(out + " + " + in);
         const Dev* o = find(out, false);
         const Dev* i = find(in, true);
         if (o == nullptr && i == nullptr)
@@ -262,6 +268,25 @@ struct GuardedRig
 void pump(int ms)
 {
     juce::MessageManager::getInstance()->runDispatchLoopUntil(ms);
+}
+
+void removeDevice(MockDeviceType& m, const juce::String& name)
+{
+    m.devs.erase(std::remove_if(m.devs.begin(), m.devs.end(), [&](const auto& d) { return d.name == name; }), m.devs.end());
+}
+
+int count(const juce::StringArray& a, const juce::String& n)
+{
+    int c = 0;
+    for (auto& x : a)
+        if (x == n)
+            ++c;
+    return c;
+}
+
+MockDevice* mockDevice(GuardedRig& rig)
+{
+    return dynamic_cast<MockDevice*>(rig.manager->getCurrentAudioDevice());
 }
 }
 
@@ -452,6 +477,46 @@ TEST_CASE("P13 the transport table spells the SDK fourccs", "[device_policy]")
     CHECK(tp::toString(tp::Unknown) == "0");
     CHECK(tp::Bluetooth == 0x626c7565u);   // 'blue' as the SDK spells it (AudioHardwareBase.h)
     CHECK(tp::BuiltIn == 0x626c746eu);     // 'bltn'
+}
+
+TEST_CASE("P15 the TEST-ONLY deny-all token hides every device", "[device_policy]")
+{
+    dp::Config cfg;
+    cfg.testDeniedNames.add("*");
+    const auto v = dp::classify(dev("Built-in Mic", tp::BuiltIn, true, false), cfg);
+    CHECK_FALSE(v.allowed);
+    CHECK(v.reason == "test-denied");
+    const std::vector<dp::DeviceInfo> scan = { dev("Built-in Mic", tp::BuiltIn, true, false, true, false),
+                                               dev("Built-in Speakers", tp::BuiltIn, false, true, false, true) };
+    const auto lists = filterScan(scan, cfg);
+    CHECK(lists.inputs.isEmpty());
+    CHECK(lists.outputs.isEmpty());
+}
+
+TEST_CASE("P14 the reconcile table (liveness row included)", "[device_policy]")
+{
+    dp::Lists l;
+    l.outputs.add("Spk");
+    CHECK(dp::reconcile(true, true, "Mic", l) == dp::Reapply::InputLost);
+    CHECK(dp::reconcile(true, false, "Mic", l) == dp::Reapply::InputLost);   // name first: the probe's code
+    l.inputs.add("Mic");
+    CHECK(dp::reconcile(true, true, "Mic", l) == dp::Reapply::None);
+    CHECK(dp::reconcile(true, false, "Mic", l) == dp::Reapply::DeviceStopped);
+    CHECK(dp::reconcile(true, true, "", l) == dp::Reapply::AdoptInput);
+    CHECK(dp::reconcile(true, false, "", l) == dp::Reapply::DeviceStopped);
+    CHECK(dp::reconcile(false, false, "", l) == dp::Reapply::NoDevice);
+    dp::Lists empty;
+    CHECK(dp::reconcile(true, true, "", empty) == dp::Reapply::None);
+    CHECK(dp::reconcile(true, false, "", empty) == dp::Reapply::None);
+    CHECK(dp::reconcile(false, false, "", empty) == dp::Reapply::None);
+    dp::Lists outOnly; outOnly.outputs.add("Spk");
+    CHECK(dp::reconcile(false, false, "", outOnly) == dp::Reapply::NoDevice);
+    CHECK(dp::reconcile(true, true, "", outOnly) == dp::Reapply::None);
+    CHECK(dp::toString(dp::Reapply::None).isEmpty());
+    CHECK(dp::toString(dp::Reapply::NoDevice) == "no-device");
+    CHECK(dp::toString(dp::Reapply::AdoptInput) == "adopt-input");
+    CHECK(dp::toString(dp::Reapply::InputLost) == "input-lost");
+    CHECK(dp::toString(dp::Reapply::DeviceStopped) == "device-stopped");
 }
 
 // ======================================================================================================================
@@ -705,6 +770,22 @@ TEST_CASE("M7 an allowed USB macOS default listed after the hidden headset opens
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
 
+TEST_CASE("M8 the launch with a hidden default opens the device ONCE, records no explicit settings, never the hidden one", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig(addHeadsetAndBuiltIn);
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(reconciler.openDefaultDevices().isEmpty());
+    pump(600);
+    int starts = 0;
+    for (auto& x : rig.spy.started) if (x == "Built-in Speakers") ++starts;
+    CHECK(starts == 1);
+    CHECK(rig.spy.started.size() == 2);   // one start: the combined pair's two names
+    CHECK(rig.manager->createStateXml() == nullptr);
+    CHECK(reconciler.reapplies() == 0);
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
 namespace
 {
 // {denied default, built-in A, built-in B}: the app's open sequence, then the OPEN output vanishes.
@@ -718,28 +799,25 @@ void addDeniedAndTwoBuiltIn(MockDeviceType& m, int micChannels)
     m.defaultOut = kDenied;
 }
 
-// AudioEngine's startup: initialiseWithDefaultDevices(2, 2), then setSourceMode(MicInput)'s re-open (kept, BG3).
-void appOpenSequence(juce::AudioDeviceManager& adm)
+// AudioEngine's launch since bt2 C3: initialiseWithDefaultDevices(2, 2) only -- setSourceMode never re-opens the device,
+// so the launch writes no explicit settings (lastExplicitSettings stays null).
+void appLaunch(juce::AudioDeviceManager& adm)
 {
     REQUIRE(adm.initialiseWithDefaultDevices(2, 2).isEmpty());
-    auto setup = adm.getAudioDeviceSetup();
-    setup.inputChannels.setRange(0, 2, true);
-    adm.setAudioDeviceSetup(setup, true);
-}
-
-void removeDevice(MockDeviceType& m, const juce::String& name)
-{
-    m.devs.erase(std::remove_if(m.devs.begin(), m.devs.end(), [&](const auto& d) { return d.name == name; }), m.devs.end());
 }
 }
 
-TEST_CASE("M5 the open output vanishes: JUCE's own re-init lands on an ALLOWED device, never the denied default",
+TEST_CASE("M5 the open output vanishes: JUCE's XML branch (explicit settings: a MIDI input enabled at launch -- "
+          "MidiHandler::start -- or any treatAsChosenDevice setup) lands on an ALLOWED device, never the denied default",
           "[device_policy]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    // mono mic (the rig's built-in shape): the startup re-open records lastExplicitSettings (JUCE's XML branch).
+    // mono mic (the rig's built-in shape): the explicit-settings step records lastExplicitSettings (JUCE's XML branch).
     GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 1); });
-    appOpenSequence(*rig.manager);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    auto setup = rig.manager->getAudioDeviceSetup();
+    setup.inputChannels.setRange(0, 2, true);
+    rig.manager->setAudioDeviceSetup(setup, true);
     CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Speakers A");
 
     removeDevice(*rig.mock, "Speakers A");
@@ -752,19 +830,19 @@ TEST_CASE("M5 the open output vanishes: JUCE's own re-init lands on an ALLOWED d
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
 
-TEST_CASE("M5b the open output vanishes with a STEREO input (the startup re-open is a no-op there): JUCE alone ends with "
+TEST_CASE("M5b the open output vanishes with no explicit settings (the app's launch since C3): JUCE alone ends with "
           "NO device; the DeviceReconciler re-applies the policy once onto an allowed device", "[device_policy]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 2); });
     DeviceReconciler reconciler(*rig.manager, 2, 2);
-    appOpenSequence(*rig.manager);
+    appLaunch(*rig.manager);
     pump(50);
     CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Speakers A");
 
     removeDevice(*rig.mock, "Speakers A");
     rig.mock->fireListChanged();
-    // JUCE's own re-init (no explicit settings: the stereo re-open was an early return) re-opens the VANISHED name,
+    // JUCE's own re-init (no explicit settings: the launch writes none) re-opens the VANISHED name,
     // gets "No such device" and leaves no device -- the case BG4 names.
     CHECK(rig.manager->getCurrentAudioDevice() == nullptr);
     pump(600);
@@ -779,12 +857,67 @@ TEST_CASE("M5b the open output vanishes with a STEREO input (the startup re-open
     CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
 }
 
+TEST_CASE("M5c MONO mic, the app's launch WITHOUT the setSourceMode re-open (C3): output vanishes -> JUCE alone ends with no device; the reconciler recovers once", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "Built-in Mic", tp::BuiltIn, 1, 0 },
+                   { "Speakers A", tp::BuiltIn, 0, 2 }, { "Speakers B", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    CHECK(rig.manager->createStateXml() == nullptr);
+    REQUIRE(rig.manager->getAudioDeviceSetup().outputDeviceName == "Speakers A");
+    removeDevice(*rig.mock, "Speakers A");
+    rig.mock->fireListChanged();
+    CHECK(rig.manager->getCurrentAudioDevice() == nullptr);   // JUCE's own re-init: "No such device"
+    // ... and JUCE cleared the setup's names (deleteCurrentDevice): with no device the restore has nothing to put back,
+    // so its `haveDevice` gate and its still-listed filter agree (fix round teeth, X6).
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName.isEmpty());
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Speakers B");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("M5r JUCE's own XML-branch re-init lands on an allowed device with its input -> the reconciler never re-applies on top of it", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "Built-in Mic", tp::BuiltIn, 1, 0 },
+                   { "Speakers A", tp::BuiltIn, 0, 2 }, { "Speakers B", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    auto setup = rig.manager->getAudioDeviceSetup();   // explicit settings (JUCE's XML branch), as M5
+    setup.inputChannels.setRange(0, 2, true);
+    rig.manager->setAudioDeviceSetup(setup, true);
+    pump(300);
+    REQUIRE(rig.manager->createStateXml() != nullptr);
+    const auto startsBefore = rig.spy.started.size();
+    removeDevice(*rig.mock, "Speakers A");
+    rig.mock->fireListChanged();
+    pump(800);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Speakers B");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK(reconciler.reapplies() == 0);
+    CHECK(rig.spy.started.size() == startsBefore + 2);   // JUCE ONE re-open (a combined pair logs two names), nothing on top
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
 TEST_CASE("R1 a storm of 20 list changes after the open device vanished -> exactly one re-apply", "[device_policy]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 2); });
     DeviceReconciler reconciler(*rig.manager, 2, 2);
-    appOpenSequence(*rig.manager);
+    appLaunch(*rig.manager);
     pump(50);
     removeDevice(*rig.mock, "Speakers A");
     rig.mock->fireListChanged();
@@ -807,7 +940,7 @@ TEST_CASE("R2 a list change that keeps the open device -> no re-apply, the devic
     juce::ScopedJuceInitialiser_GUI gui;
     GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 2); });
     DeviceReconciler reconciler(*rig.manager, 2, 2);
-    appOpenSequence(*rig.manager);
+    appLaunch(*rig.manager);
     pump(50);
     rig.mock->devs.push_back({ "USB Interface", tp::USB, 2, 2 });
     rig.mock->defaultOut = "USB Interface";   // macOS makes the new wired interface the default: kept on Speakers A
@@ -827,7 +960,7 @@ TEST_CASE("R3 the open device vanished and nothing allowed is left -> no re-appl
         m.defaultOut = kDenied;
     });
     DeviceReconciler reconciler(*rig.manager, 2, 2);
-    appOpenSequence(*rig.manager);
+    appLaunch(*rig.manager);
     pump(50);
     CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "USB Interface");
     removeDevice(*rig.mock, "USB Interface");
@@ -844,7 +977,7 @@ TEST_CASE("R4 an allowed device that cannot open: one re-apply, retried only aft
     juce::ScopedJuceInitialiser_GUI gui;
     GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 2); });
     DeviceReconciler reconciler(*rig.manager, 2, 2);
-    appOpenSequence(*rig.manager);
+    appLaunch(*rig.manager);
     pump(50);
     rig.spy.failOpen.add("Speakers B");
     removeDevice(*rig.mock, "Speakers A");
@@ -870,7 +1003,7 @@ TEST_CASE("R4b with a 50 ms bound: a failed re-apply waits for a NEW device scan
     juce::ScopedJuceInitialiser_GUI gui;
     GuardedRig rig([](MockDeviceType& m) { addDeniedAndTwoBuiltIn(m, 2); });
     DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);   // only the scan gate can hold the retry back
-    appOpenSequence(*rig.manager);
+    appLaunch(*rig.manager);
     pump(50);
     rig.spy.failOpen.add("Speakers B");
     removeDevice(*rig.mock, "Speakers A");
@@ -900,6 +1033,363 @@ TEST_CASE("R5 a device-list change fired from INSIDE the device's start() (JUCE'
     REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
     CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
     CHECK(reconciler.reapplies() == 0);
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+// ---- s-rta-0930 bt2 (plan-bt2 I3 / I4 + ruling-bt2.md AM1 / AM2 + ruling-bt2-seats AM12-AM17) -------------------------
+// R6 / R7 / R8 / R9 / R13 / M5c / M5r / R14 / R15 / R16 / R17 use MAIN's API only (initialiseWithDefaultDevices,
+// DeviceReconciler(manager, 2, 2[, settle, bound]), reapplies(), the spy) so they compile -- and are RED / guards -- on
+// the lane's base (GATE-3); M8 / P14 / R10 / R11 / R12 / R18 use the new API (openDefaultDevices, dp::reconcile,
+// lastAction, lostInput).
+
+TEST_CASE("R6 no allowed input at launch (output-only); a wired mic appears -> adopted once", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    REQUIRE(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R7 nothing allowed at launch; a built-in pair appears -> adopted once", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getCurrentAudioDevice() == nullptr);
+    rig.mock->devs.push_back({ "Built-in Mic", tp::BuiltIn, 1, 0 });
+    rig.mock->devs.push_back({ "Built-in Speakers", tp::BuiltIn, 0, 2 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R8 the opened wired input vanishes while its output stays -> the policy is re-applied (built-in mic)", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "USB Mic", tp::USB, 1, 0 },
+                   { "Built-in Mic", tp::BuiltIn, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Mic"; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    removeDevice(*rig.mock, "USB Mic");
+    rig.mock->fireListChanged();
+    pump(800);
+    INFO("input after: " << rig.manager->getAudioDeviceSetup().inputDeviceName
+         << " device " << (rig.manager->getCurrentAudioDevice() != nullptr ? "yes" : "no"));
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R9 a working input is never switched: a USB mic appears (and becomes the macOS default)", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { "Built-in Mic", tp::BuiltIn, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    const auto startsBefore = rig.spy.started.size();
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->defaultIn = "USB Mic";
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 0);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK(rig.spy.started.size() == startsBefore);
+}
+
+TEST_CASE("R10 the launch open failed while an allowed device is listed -> no re-apply until a NEW scan", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { "Built-in Mic", tp::BuiltIn, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);
+    rig.spy.failOpen.add("Built-in Speakers");
+    CHECK(reconciler.openDefaultDevices().isNotEmpty());
+    pump(800);
+    CHECK(rig.manager->getCurrentAudioDevice() == nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName.isEmpty());   // a failed open clears the names (X6)
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    CHECK(reconciler.reapplies() == 0);          // the launch's own scan is never re-tried by itself
+    rig.spy.failOpen.clear();
+    rig.mock->fireListChanged();                 // a new scan
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getCurrentAudioDevice() != nullptr);
+}
+
+TEST_CASE("R11 a mic that cannot open -> the output-only device is put back; the SAME inputs are not retried; re-plugged -> adopted", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);
+    REQUIRE(reconciler.openDefaultDevices().isEmpty());
+    pump(300);
+    rig.spy.failOpen.add("USB Mic");
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    CHECK(rig.manager->createStateXml() == nullptr);   // the put-back is no explicit choice: JUCE's XML branch stays off (X5)
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    rig.spy.failOpen.clear();
+    rig.mock->fireListChanged();          // same allowed inputs: not retried (the progress guard)
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    removeDevice(*rig.mock, "USB Mic");
+    rig.mock->fireListChanged();
+    pump(600);
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 2);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK(reconciler.lastAction() == dp::Reapply::AdoptInput);
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R12 round trip: input lost -> output-only (lostInput empty: the no-input notice speaks); the mic returns -> adopted", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "USB Mic", tp::USB, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Mic"; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);
+    REQUIRE(reconciler.openDefaultDevices().isEmpty());
+    pump(300);
+    removeDevice(*rig.mock, "USB Mic");
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    CHECK(reconciler.lostInput().isEmpty());
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 2);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK(reconciler.lostInput().isEmpty());
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R13 storm: 20 list changes while a mic appears (output-only) -> exactly one adoption, never before the settle", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(100);
+    CHECK(reconciler.reapplies() == 0);
+    for (int i = 1; i < 20; ++i) { rig.mock->fireListChanged(); pump(20); }
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R14 input lost and the fallback cannot open -> only the still-listed output is put back; the lost input is never re-opened", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "USB Mic", tp::USB, 1, 0 },
+                   { "Built-in Mic", tp::BuiltIn, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Mic"; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    rig.spy.failOpen.add("Built-in Mic");
+    removeDevice(*rig.mock, "USB Mic");
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    CHECK(rig.manager->createStateXml() == nullptr);   // the put-back is no explicit choice (X5)
+    CHECK(count(rig.spy.opened, "USB Mic") == 1);   // the launch only
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R15 a listed mic that never opens: ONE adoption attempt; list changes that leave the allowed inputs unchanged never retry; re-plugged -> tried again", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = kDenied; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);   // only the progress guard can hold a retry back
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    rig.spy.failOpen.add("USB Mic");
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getAudioDeviceSetup().outputDeviceName == "Built-in Speakers");
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName.isEmpty());
+    for (int i = 0; i < 5; ++i)   // a hidden device comes and goes (a display, a phone): the allowed inputs never change
+    {
+        rig.mock->devs.push_back({ "Other Wireless", tp::Bluetooth, 1, 2 });
+        rig.mock->fireListChanged();
+        pump(400);
+        removeDevice(*rig.mock, "Other Wireless");
+        rig.mock->fireListChanged();
+        pump(400);
+    }
+    CHECK(reconciler.reapplies() == 1);
+    rig.spy.failOpen.clear();
+    removeDevice(*rig.mock, "USB Mic");        // the performer re-plugs it
+    rig.mock->fireListChanged();
+    pump(600);
+    CHECK(reconciler.reapplies() == 1);
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 2);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK_FALSE(rig.spy.saw("Other Wireless"));
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R16 a cable jiggle: the open mic's device stops (JUCE's combiner shut down) and the mic is listed again inside the settle -> one re-apply; a later stop with no new scan waits", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "USB Mic", tp::USB, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Mic"; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    REQUIRE(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    removeDevice(*rig.mock, "USB Mic");
+    rig.mock->fireListChanged();
+    pump(50);
+    rig.manager->getCurrentAudioDevice()->stop();   // CA:1118-1127 -> the combiner's shutdown; the manager keeps it
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getCurrentAudioDevice()->isPlaying());
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "USB Mic");
+    CHECK(count(rig.spy.createdPairs, "Built-in Speakers + USB Mic") == 2);   // launch + re-apply: closed and re-created (X2)
+    CHECK(reconciler.lostInput().isEmpty());   // re-applied onto the SAME mic: no mic was lost (X1)
+    rig.manager->getCurrentAudioDevice()->stop();   // dies again with NO device-list change: waits for a new scan
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R17 JUCE restarts the open device itself (stop, 100 ms, start) -> no re-apply", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "USB Mic", tp::USB, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Mic"; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);
+    REQUIRE(rig.manager->initialiseWithDefaultDevices(2, 2).isEmpty());
+    pump(300);
+    rig.mock->fireListChanged();   // a new scan, so only the settle can hold an evaluation back
+    pump(50);
+    auto* d = mockDevice(rig);
+    REQUIRE(d != nullptr);
+    d->stopKeepingCallback();
+    pump(100);
+    d->startWithKeptCallback();
+    pump(800);
+    CHECK(reconciler.reapplies() == 0);
+    CHECK(rig.manager->getCurrentAudioDevice() == d);
+    CHECK(d->isPlaying());
+    CHECK_FALSE(rig.spy.saw(kDenied));
+}
+
+TEST_CASE("R18 the fallback is named: input lost -> the built-in mic; lostInput() names the lost mic and survives Keep and a stop re-apply onto the same mic", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    GuardedRig rig([](MockDeviceType& m) {
+        m.devs = { { kDenied, tp::Bluetooth, 1, 2 }, { "USB Mic", tp::USB, 1, 0 },
+                   { "Built-in Mic", tp::BuiltIn, 1, 0 }, { "Built-in Speakers", tp::BuiltIn, 0, 2 } };
+        m.defaultIn = "USB Mic"; m.defaultOut = kDenied;
+    });
+    DeviceReconciler reconciler(*rig.manager, 2, 2, 250, 50);
+    REQUIRE(reconciler.openDefaultDevices().isEmpty());
+    pump(300);
+    CHECK(reconciler.lostInput().isEmpty());
+    removeDevice(*rig.mock, "USB Mic");
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(reconciler.lastAction() == dp::Reapply::InputLost);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK(reconciler.lostInput() == "USB Mic");
+    rig.mock->devs.push_back({ "USB Mic", tp::USB, 1, 0 });   // re-plugged: Keep (the working built-in mic stays)
+    rig.mock->defaultIn = "USB Mic";
+    rig.mock->fireListChanged();
+    pump(800);
+    CHECK(reconciler.reapplies() == 1);
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK(reconciler.lostInput() == "USB Mic");
+    removeDevice(*rig.mock, "USB Mic");   // pulled again while the device stops: re-applied onto the SAME built-in mic (X1)
+    rig.mock->fireListChanged();
+    pump(50);
+    rig.manager->getCurrentAudioDevice()->stop();
+    pump(800);
+    CHECK(reconciler.reapplies() == 2);
+    CHECK(reconciler.lastAction() == dp::Reapply::DeviceStopped);
+    REQUIRE(rig.manager->getCurrentAudioDevice() != nullptr);
+    CHECK(rig.manager->getCurrentAudioDevice()->isPlaying());
+    CHECK(rig.manager->getAudioDeviceSetup().inputDeviceName == "Built-in Mic");
+    CHECK(reconciler.lostInput() == "USB Mic");
     CHECK_FALSE(rig.spy.saw(kDenied));
 }
 
@@ -989,5 +1479,19 @@ TEST_CASE("E2 the real CoreAudio type behind the decorator: every JUCE name is l
             INFO(name);
             CHECK(listed != skipped);
         }
+}
+
+TEST_CASE("E3 the real CoreAudio type behind the decorator with the deny-all token lists NOTHING (read-only)", "[device_policy]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    std::unique_ptr<juce::AudioIODeviceType> ca(juce::AudioIODeviceType::createAudioIODeviceType_CoreAudio());
+    REQUIRE(ca != nullptr);
+    dp::Config cfg;
+    cfg.testDeniedNames.add("*");
+    GuardedDeviceType guarded(std::move(ca), &enumerateCoreAudioDevices, cfg);
+    guarded.scanForDevices();
+    CHECK(guarded.getDeviceNames(true).isEmpty());
+    CHECK(guarded.getDeviceNames(false).isEmpty());
+    CHECK(guarded.createDevice("MacBook Pro Speakers", "") == nullptr);
 }
 #endif

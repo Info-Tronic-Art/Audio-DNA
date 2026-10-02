@@ -321,6 +321,10 @@ void ApiServer::setupRoutes()
     server_.Post("/api/debug/cancel_load", [this](const httplib::Request& req, httplib::Response& res) { handleDebugCancelLoad(req, res); });
     // s-rta-0929b btguard (TEST-ONLY, same build path): the audio device policy's last scan and the opened devices.
     server_.Get("/api/debug/audio_devices", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDevices(req, res); });
+    // s-rta-0930 bt2 (TEST-ONLY, same build path): swap the denied device names at runtime (the plug / unplug stand-in)
+    // and stop the open device (the dead-input stand-in). Both answer at once.
+    server_.Post("/api/debug/audio_deny", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDeny(req, res); });
+    server_.Post("/api/debug/audio_stop", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioStop(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -2072,7 +2076,6 @@ void ApiServer::handleDebugDuplicateDeck(const httplib::Request& req, httplib::R
     res.set_content(jsonOk(), "application/json");
 }
 
-// s-rta-0929 asyncload (TEST-ONLY): cancel the staged load (MainComponent::cancelStagedOpen, Superseded).
 // s-rta-0929b btguard (TEST-ONLY): reads ONLY the mutex-guarded copy AudioEngine publishes on the message thread.
 void ApiServer::handleDebugAudioDevices(const httplib::Request&, httplib::Response& res)
 {
@@ -2085,6 +2088,49 @@ void ApiServer::handleDebugAudioDevices(const httplib::Request&, httplib::Respon
     res.set_content(juce::JSON::toString(audioDevicesProvider_(), true).toStdString(), "application/json");
 }
 
+// s-rta-0930 bt2 (TEST-ONLY): {"names": ["<exact JUCE device name>", ...]} ([] = none) -> AudioEngine::debugSetDeniedDevices
+// on the message thread: the denied set is REPLACED and the guard's device-list-change path runs.
+void ApiServer::handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const auto* arr = json["names"].getArray();
+    bool allStrings = arr != nullptr;
+    if (arr != nullptr)
+        for (const auto& n : *arr)
+            allStrings = allStrings && n.isString();
+    if (!allStrings)
+    {
+        res.status = 400;
+        res.set_content(jsonError("names (an array of device names) required"), "application/json");
+        return;
+    }
+    if (!onDebugAudioDeny)
+    {
+        res.status = 503;
+        res.set_content(jsonError("audio_deny not wired"), "application/json");
+        return;
+    }
+    juce::StringArray names;
+    for (const auto& n : *arr)
+        names.add(n.toString());
+    juce::MessageManager::callAsync([this, names]() { onDebugAudioDeny(names); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0930 bt2 (TEST-ONLY, bodyless -- answered at once, Pitfall 31): AudioEngine::debugStopDevice on the message thread.
+void ApiServer::handleDebugAudioStop(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugAudioStop)
+    {
+        res.status = 503;
+        res.set_content(jsonError("audio_stop not wired"), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this]() { onDebugAudioStop(); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-0929 asyncload (TEST-ONLY): cancel the staged load (MainComponent::cancelStagedOpen, Superseded).
 void ApiServer::handleDebugCancelLoad(const httplib::Request&, httplib::Response& res)
 {
     if (!onDebugCancelLoad)

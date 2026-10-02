@@ -1,0 +1,30 @@
+=== teeth 2026-10-02 09:46:07  lane HEAD f89b1fa
+--- arm OLD tests (tests/test_device_policy.cpp sha 0b424e6cae59)
+baseline (src unmutated): cases 55 NONE
+OLD | X1 lostInput guard removed | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16 R18} | failing: NONE (of 55 cases)
+    reverted: git diff -- src = '' (empty)
+OLD | X2 openDefaultDevices never closes | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16} | failing: NONE (of 55 cases)
+    reverted: git diff -- src = '' (empty)
+OLD | X5 restore with treatAsChosenDevice=true (= coreaudio NIT-1) | src/audio/DeviceGuard.cpp +1 -1 | kill set {R11 R14} | failing: NONE (of 55 cases)
+    reverted: git diff -- src = '' (empty)
+OLD | X6 restore gate without haveDevice | src/audio/DeviceGuard.cpp +1 -1 | kill set {(equivalent: none expected)} | failing: NONE (of 55 cases)
+    reverted: git diff -- src = '' (empty)
+--- arm NEW tests (tests/test_device_policy.cpp sha 8a580cbda4f8)
+baseline (src unmutated): cases 55 NONE
+NEW | X1 lostInput guard removed | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16 R18} | failing: R16 R18 (of 55 cases)
+    R16: reconciler.lostInput().isEmpty()  [test_device_policy.cpp:1325]
+    R18: reconciler.lostInput() == "USB Mic"  [test_device_policy.cpp:1392]
+    reverted: git diff -- src = '' (empty)
+NEW | X2 openDefaultDevices never closes | src/audio/DeviceGuard.cpp +1 -1 | kill set {R16} | failing: R16 (of 55 cases)
+    R16: count(rig.spy.createdPairs, "Built-in Speakers + USB Mic") == 2  [test_device_policy.cpp:1324]
+    reverted: git diff -- src = '' (empty)
+NEW | X5 restore with treatAsChosenDevice=true (= coreaudio NIT-1) | src/audio/DeviceGuard.cpp +1 -1 | kill set {R11 R14} | failing: R11 R14 (of 55 cases)
+    R11: rig.manager->createStateXml() == nullptr  [test_device_policy.cpp:1167]
+    R14: rig.manager->createStateXml() == nullptr  [test_device_policy.cpp:1253]
+    reverted: git diff -- src = '' (empty)
+NEW | X6 restore gate without haveDevice | src/audio/DeviceGuard.cpp +1 -1 | kill set {(equivalent: none expected)} | failing: NONE (of 55 cases)
+    reverted: git diff -- src = '' (empty)
+post (NEW tests, all mutants reverted): cases 55 NONE
+final scratch diff vs HEAD:  1 file changed, 24 insertions(+), 1 deletion(-)
+cleanup: worktree + build dir removed
+exit=0

@@ -205,6 +205,11 @@ public:
     // s-rta-0929b btguard (TEST-ONLY route, production port, no --test-mode): GET /api/debug/audio_devices answers
     // AudioEngine::deviceStatusVar() (a mutex-guarded copy published on the message thread). Set it BEFORE start().
     void setAudioDevicesProvider(std::function<juce::var()> provider) { audioDevicesProvider_ = std::move(provider); }
+    // s-rta-0930 bt2 (TEST-ONLY routes, same build path): POST /api/debug/audio_deny {"names": [...]} replaces the denied
+    // device names ([] = none) and runs the guard's device-list-change path; POST /api/debug/audio_stop (no body) stops
+    // the open device (the manager keeps it). Marshalled to the message thread; answer at once.
+    std::function<void(const juce::StringArray& names)> onDebugAudioDeny;
+    std::function<void()> onDebugAudioStop;
 #endif
 
     ApiServer(const ApiServer&) = delete;
@@ -270,6 +275,8 @@ private:
     void handleDebugDuplicateDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
     void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
+    void handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
+    void handleDebugAudioStop(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
     std::function<juce::var()> audioDevicesProvider_;   // set before start(); see setAudioDevicesProvider
 #endif
 

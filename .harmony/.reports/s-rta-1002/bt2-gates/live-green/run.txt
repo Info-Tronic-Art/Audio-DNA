@@ -1,0 +1,65 @@
+=== live green  build c4a5938  binary Oct  2 08:52:48 2026
+        MacBook Pro Microphone:
+          Transport: Built-in
+08:56:38 lock acquired
+run start 2026-10-02 08:56:38
+--- ps (top CPU) at start:
+ 65.1 05-18:54:56 /System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd
+ 41.9 05-20:13:25 /System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+ 32.7 05-20:13:28 /usr/sbin/coreaudiod
+ 27.1       00:00 /opt/homebrew/bin/cmake
+ 12.8 05-20:13:29 /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoted
+probe exit 0
+app running: no
+audio-dna windows 0, Output-named 0
+08:58:02 lock released
+run end 2026-10-02 08:58:02
+--- TCC tripwire 2026-10-02 08:56:38 .. +16 s after 2026-10-02 08:58:02:
+audiodna requests (service, (authValue, authReason)): {('kTCCServiceListenEvent', ('1', '5')): 6, ('kTCCServiceMicrophone', ('2', '2')): 16, ('kTCCServiceAudioCapture', ('1', '0')): 3, ('kTCCServiceSystemPolicyAllFiles', ('0', '5')): 3, ('kTCCServiceMediaLibrary', ('1', '0')): 6, ('kTCCServiceSystemPolicyDesktopFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDocumentsFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDownloadsFolder', ('2', '2')): 3, ('kTCCServiceScreenCapture', ('1', '5')): 3}
+AUTHREQ_PROMPTING for audiodna: 0
+UNC windows (kCGWindowListOptionAll, >= 15 s after the last quit): 0
+--- probe summary:
+PASS  A0 launch + /api/health
+PASS  A1 GET /api/debug/audio_devices 200 ok:true
+PASS  A2 opened input "MacBook Pro Microphone" is allowed, its transport read OK and is exactly bltn
+PASS  A3 opened output "MacBook Pro Speakers" is allowed, its transport read OK and is exactly bltn
+PASS  A4 every skipped device has a reason and is not opened; unmapped == []
+PASS  A5 /api/features sourceSampleRate == opened.sample_rate (48000.0)
+PASS  A6 opens == 1 after launch (one device open per launch; reads 1, reapplies 0)
+PASS  A7 source file -> input: opened{} byte-identical
+PASS  A6b opens == 1 after the source switches file -> input (reads 1)
+PASS  A10 deny [IN] -> within 3 s one input-lost re-apply: output-only on "MacBook Pro Speakers", the no-input notice, label "Mic: no wired mic (Bluetooth is never used)"
+PASS  A11a deny [] -> at +2 s still 1 re-apply (the 10 s bound)
+PASS  A11 within 13 s: adopt-input re-apply onto "MacBook Pro Microphone" / "MacBook Pro Speakers", notice gone, label "Mic: MacBook Pro Microphone @ 48000Hz", sourceSampleRate 48000.0
+PASS  A12 deny [IN] + deny [] 0.000 s apart -> at +1.5 s still 2 re-applies, opened{} byte-identical
+INFO  A6c opens after A12 = 3 (expected 3: launch + A10 + A11)
+PASS  A13a deny [] (a fresh scan, nothing changes) -> at +1 s still 2 re-applies
+PASS  A13 audio_stop -> within 3 s one device-stopped re-apply back onto "MacBook Pro Microphone" / "MacBook Pro Speakers", opens 3 -> 4
+PASS  A8 stderr '[AudioEngine] Switched to mic input mode' x2 (launch + A7)
+PASS  A9 quit clean (1 s, no .ips, 0 dialogs)
+SKIP  D1 deny only the default output while a second allowed output exists -- the rig lists 1 allowed output(s)
+SKIP  D2 the opened output row is allowed -- no second output
+PASS  B0 launch + /api/health
+PASS  B1 the mic "MacBook Pro Microphone" is hidden: allowed:false reason test-denied
+PASS  B2 opened output-only: input "", output "MacBook Pro Speakers", state no-input, 0 input channels
+PASS  B3 the notice reads "No wired mic found - plug one in. Bluetooth is never used."
+PASS  B3b a label-writing action (source file -> input: file label "Mic: no wired mic (Bluetooth is never used)") leaves the notice shown
+PASS  B4 /api/bpm readable every second for 10 s (app alive, output-only)
+PASS  B5 output-only device still clocks the analysis: sourceSampleRate == opened.sample_rate (48000.0)
+PASS  B7 deny [] -> within 3 s the mic "MacBook Pro Microphone" is adopted (one adopt-input re-apply), notice gone, label "Mic: MacBook Pro Microphone @ 48000Hz"
+PASS  B7b opens == 2 (launch + the adoption; reads 2)
+PASS  B8 after 2 more s still 1 re-apply
+PASS  B6 quit clean (1 s, no .ips, 0 dialogs)
+PASS  C0 launch + /api/health
+PASS  C1 nothing allowed: state no-device, both opened names empty
+PASS  C2 the notice reads "No audio device found - plug one in. Bluetooth is never used."
+PASS  C3 POST /api/render_frame renders plasma with no audio device, decoded non-black (1920x1080 mean 108.4)
+PASS  C4 source file -> input answered 200, app alive
+PASS  C5 a take arms and stops with no audio device (HTTP 200 / 200 / status 200), app alive
+PASS  C5b the no-device take was saved WITHOUT audio and the recorder reports no error
+PASS  C7 deny [IN] -> within 3 s one no-device re-apply opens "MacBook Pro Speakers" output-only, the no-input notice
+PASS  C8a deny [] -> at +2 s still 1 re-apply (the 10 s bound)
+PASS  C8 within 13 s: the mic "MacBook Pro Microphone" is adopted (adopt-input), notice gone
+PASS  C6 quit clean (1 s, no .ips, 0 dialogs)
+PROBE-BTGUARD: 39 PASS / 0 FAIL / 2 SKIP (SKIP never counts)
+PROBE-BTGUARD GREEN

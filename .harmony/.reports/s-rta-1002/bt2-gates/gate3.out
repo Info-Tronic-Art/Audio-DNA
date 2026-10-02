@@ -1,0 +1,48 @@
+=== GATE-3 2026-10-02 09:01:04  lane c4a5938  base 2d38b39
+extracted R6     20 lines  TEST_CASE("R6 no allowed input at launch (output-only); a wired mic appears -> adopted once", "[devi
+extracted R7     20 lines  TEST_CASE("R7 nothing allowed at launch; a built-in pair appears -> adopted once", "[device_policy]"
+extracted R8     21 lines  TEST_CASE("R8 the opened wired input vanishes while its output stays -> the policy is re-applied (bu
+extracted R9     18 lines  TEST_CASE("R9 a working input is never switched: a USB mic appears (and becomes the macOS default)",
+extracted R13    21 lines  TEST_CASE("R13 storm: 20 list changes while a mic appears (output-only) -> exactly one adoption, nev
+extracted M5c    23 lines  TEST_CASE("M5c MONO mic, the app's launch WITHOUT the setSourceMode re-open (C3): output vanishes ->
+extracted M5r    26 lines  TEST_CASE("M5r JUCE's own XML-branch re-init lands on an allowed device with its input -> the reconc
+extracted R14    23 lines  TEST_CASE("R14 input lost and the fallback cannot open -> only the still-listed output is put back; 
+extracted R15    42 lines  TEST_CASE("R15 a listed mic that never opens: ONE adoption attempt; list changes that leave the allo
+extracted R16    28 lines  TEST_CASE("R16 a cable jiggle: the open mic's device stops (JUCE's combiner shut down) and the mic i
+extracted R17    23 lines  TEST_CASE("R17 JUCE restarts the open device itself (stop, 100 ms, start) -> no re-apply", "[device_
+extracted AE1    43 lines (#if JUCE_MAC)  TEST_CASE("AE1 setSourceMode never touches the device manager (no explicit-settings XML, no change m
+extracted AE2    11 lines  TEST_CASE("AE2 [lint] AudioEngine::setSourceMode is an atomic flag flip: its body names no device ma
+diff -r lane vs TU (test_device_policy): empty
+diff -r lane vs TU (test_audio_engine_devices): empty
+inserted the lane target block (41 lines)
+base src/ untouched: git diff --stat -- src = ''
+base tree changes (tests only):
+ M tests/CMakeLists.txt
+ M tests/test_device_policy.cpp
+?? tests/test_audio_engine_devices.cpp
+built: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/267d1ba0-b658-4610-9f47-ef72f4b49872/scratchpad/bt2-K/g3/build-base/tests/test_audio_engine_devices /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/267d1ba0-b658-4610-9f47-ef72f4b49872/scratchpad/bt2-K/g3/build-base/tests/test_device_policy 
+--- per-case verdicts (failed-assertion count) on base 2d38b39:
+AE1 FAIL 3
+AE2 FAIL 1
+M5c PASS 0
+M5r PASS 0
+R13 FAIL 2
+R14 FAIL 2
+R15 FAIL 5
+R16 FAIL 3
+R17 PASS 0
+R6 FAIL 2
+R7 FAIL 3
+R8 FAIL 2
+R9 PASS 0
+--- raw Catch2 summaries:
+test cases: 11 |  4 passed |  7 failed
+assertions: 80 | 61 passed | 19 failed
+
+test cases:  2 | 2 failed
+assertions: 11 | 7 passed | 4 failed
+
+FAIL set: {AE1 AE2 R13 R14 R15 R16 R6 R7 R8}   predicted {AE1 AE2 R13 R14 R15 R16 R6 R7 R8}
+PASS set: {M5c M5r R17 R9}   predicted {M5c M5r R17 R9}
+GATE-3: AS PREDICTED
+cleanup: worktree + build dir removed

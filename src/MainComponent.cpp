@@ -488,6 +488,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     audioDeviceNotice_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterYellow));
     audioDeviceNotice_.setJustificationType(juce::Justification::centredRight);
     audioEngine_.onDeviceStateChanged = [this] { refreshAudioDeviceNotice(true); };
+    // s-rta-0930 bt2: while the app listens to the mic, every automatic device re-apply names the mic now in use (or the
+    // no-wired-mic status) in the file label; a failed one reaches the label through onError.
+    audioEngine_.onDevicesReapplied = [this](const juce::String& error) {
+        if (error.isEmpty() && audioEngine_.getSourceMode() == AudioEngine::SourceMode::MicInput)
+            setFileLabel("Mic: " + audioEngine_.getDeviceStatus());
+    };
     refreshAudioDeviceNotice(false);
     if (audioEngine_.hasAudioDevice())
     {
@@ -2147,6 +2153,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 #if AUDIODNA_TEST_SERVER
     apiServer_->setAudioDevicesProvider([this] { return audioEngine_.deviceStatusVar(); });   // s-rta-0929b btguard, before start()
+    // s-rta-0930 bt2: the TEST-ONLY device-policy stand-ins (plug / unplug, a dead input's device stop).
+    apiServer_->onDebugAudioDeny = [this](const juce::StringArray& names) { audioEngine_.debugSetDeniedDevices(names); };
+    apiServer_->onDebugAudioStop = [this] { audioEngine_.debugStopDevice(); };
 #endif
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {
@@ -3079,6 +3088,9 @@ void MainComponent::refreshAudioDeviceNotice(bool relayout)
     {
         case AudioEngine::DeviceState::NoDevice: text = "No audio device found - plug one in. Bluetooth is never used."; break;
         case AudioEngine::DeviceState::NoInput:  text = "No wired mic found - plug one in. Bluetooth is never used."; break;
+        case AudioEngine::DeviceState::MicReplaced:   // s-rta-0930 bt2 AM17
+            text = "Mic \"" + audioEngine_.lostInput() + "\" lost - now listening on \"" + audioEngine_.openInput() + "\".";
+            break;
         case AudioEngine::DeviceState::Ok:       break;
     }
     if (text == audioDeviceNotice_.getText() && audioDeviceNotice_.isVisible() == text.isNotEmpty())
@@ -5695,8 +5707,8 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
     }
 
     // A5(c)/N8: switch to File mode only if not already there, and read
-    // deviceRate/channels AFTER the switch (a mode change can restart
-    // the device at a different rate/channel count).
+    // deviceRate/channels AFTER the switch (since bt2 C3 a mode change
+    // never restarts the device; reading after the switch stays correct).
     if (opts.audioFile.isNotEmpty())
     {
         juce::File f(opts.audioFile);

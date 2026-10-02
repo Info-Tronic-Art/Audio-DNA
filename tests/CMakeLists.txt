@@ -517,6 +517,48 @@ endif()
 apply_sanitizers(test_device_policy)
 catch_discover_tests(test_device_policy)
 
+# --- test_audio_engine_devices (s-rta-0930 bt2, plan-bt2 I2 + ruling-bt2-seats AM16): the REAL AudioEngine with every
+# real device denied through the TEST-ONLY env ("*" + every enumerated name) -- a precheck REQUIREs that the guard lists
+# nothing before the engine is built, so no device opens and no TCC prompt can appear. AE1: setSourceMode sends no
+# change message and writes no explicit settings; AE2 [lint]: its body names no device manager / reconciler (reads
+# AUDIODNA_SRC_DIR). Linked like test_bt_device_shapes plus the device guard / policy sources.
+add_executable(test_audio_engine_devices
+    test_audio_engine_devices.cpp
+    ${SRC_DIR}/audio/AudioEngine.cpp
+    ${SRC_DIR}/audio/AudioCallback.cpp
+    ${SRC_DIR}/recording/AudioTap.cpp
+    ${SRC_DIR}/audio/DeviceGuard.cpp
+    ${SRC_DIR}/audio/DevicePolicy.cpp
+    ${SRC_DIR}/audio/CoreAudioDeviceInfo.cpp
+)
+target_include_directories(test_audio_engine_devices PRIVATE ${SRC_DIR})
+target_link_libraries(test_audio_engine_devices PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_audio_basics
+    juce::juce_audio_devices
+    juce::juce_audio_formats
+    juce::juce_audio_utils
+)
+target_compile_definitions(test_audio_engine_devices PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    AUDIODNA_TEST_SERVER=1
+    AUDIODNA_SRC_DIR="${SRC_DIR}"
+)
+if(NOT MSVC)
+    target_compile_options(test_audio_engine_devices PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_audio_engine_devices)
+catch_discover_tests(test_audio_engine_devices)
+
 # --- test_undo_commands (Undo v1 step 2: clip commands + coord resolution) ---
 # Headless: bare Composition, no-op renderer/UI hooks. UndoService resolvers are
 # inline (renderer-free) so this target does NOT link UndoService.cpp/Renderer.

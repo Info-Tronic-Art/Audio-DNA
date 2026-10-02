@@ -58,7 +58,8 @@ bool hasBluetoothUidShape(const juce::String& uid)
 Verdict classify(const DeviceInfo& d, const Config& cfg)
 {
 #if AUDIODNA_TEST_SERVER
-    if ((d.inputName.isNotEmpty() && cfg.testDeniedNames.contains(d.inputName))
+    if (cfg.testDeniedNames.contains("*")   // s-rta-0930 bt2 AM16: TEST-ONLY deny-all
+        || (d.inputName.isNotEmpty() && cfg.testDeniedNames.contains(d.inputName))
         || (d.outputName.isNotEmpty() && cfg.testDeniedNames.contains(d.outputName)))
         return { false, "test-denied" };
 #else
@@ -156,5 +157,32 @@ Lists filter(const juce::StringArray& innerInputs, const juce::StringArray& inne
     buildDirection(innerInputs, true, out.inputs, out.defaultInput);
     buildDirection(innerOutputs, false, out.outputs, out.defaultOutput);
     return out;
+}
+
+Reapply reconcile(bool haveDevice, bool devicePlaying, const juce::String& openedInput, const Lists& lists)
+{
+    const bool anyAllowed = !(lists.inputs.isEmpty() && lists.outputs.isEmpty());
+    if (!haveDevice)
+        return anyAllowed ? Reapply::NoDevice : Reapply::None;
+    if (openedInput.isNotEmpty() && !lists.inputs.contains(openedInput))
+        return Reapply::InputLost;
+    if (!devicePlaying)
+        return anyAllowed ? Reapply::DeviceStopped : Reapply::None;
+    if (openedInput.isEmpty() && !lists.inputs.isEmpty())
+        return Reapply::AdoptInput;
+    return Reapply::None;
+}
+
+juce::String toString(Reapply r)
+{
+    switch (r)
+    {
+        case Reapply::NoDevice:      return "no-device";
+        case Reapply::AdoptInput:    return "adopt-input";
+        case Reapply::InputLost:     return "input-lost";
+        case Reapply::DeviceStopped: return "device-stopped";
+        case Reapply::None:          break;
+    }
+    return {};
 }
 }

@@ -1,0 +1,36 @@
+=== GATE-4 2026-10-02 09:03:28  lane commit c4a5938
+baseline (unmutated copy): cases 58, failing: NONE
+| 1 | no AdoptInput | src/audio/DevicePolicy.cpp | +1 -1 | {R6 R11 R12 R13 P14} | P14 R11 R12 R13 R15 R6 (of 58 cases) | KILLED |
+| 2 | no InputLost | src/audio/DevicePolicy.cpp | +1 -1 | {R8 R12 P14} | P14 R12 R14 R18 R8 (of 58 cases) | KILLED |
+| 3 | switch a working mic | src/audio/DevicePolicy.cpp | +1 -1 | {R9 R2} | R14 R18 R2 R8 R9 (of 58 cases) | KILLED |
+| 4 | no restore | src/audio/DeviceGuard.cpp | +1 -1 | {R11 R14} | R11 R14 R15 (of 58 cases) | KILLED |
+| 5 | launch seq not recorded | src/audio/DeviceGuard.cpp | +1 -1 | {R10 R11 R4b} | R10 R16 R4b (of 58 cases) | KILLED |
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bt2/.harmony/.reports/s-rta-1002/bt2-gates/gate4-mut.sh: line 24: 86098 Segmentation fault: 11  "$BD/tests/$b" -r junit 2> /dev/null
+| 6 | no settle | src/audio/DeviceGuard.cpp | +1 -1 | {R1 R13 R17} | R1 R13 R16 R17 (of 54 cases) | KILLED |
+| 7 | no progress guard | src/audio/DeviceGuard.cpp | +1 -1 | {R15 R11} | R11 R15 (of 58 cases) | KILLED |
+| 8 | restore without the still-listed filter | src/audio/DeviceGuard.cpp | +2 -2 | {R14} | R14 (of 58 cases) | KILLED |
+| 9 | no stopped-device row (devicePlaying forced true) | src/audio/DeviceGuard.cpp | +1 -1 | {R16} | R16 (of 58 cases) | KILLED |
+| 10 | DeviceStopped exempt from the scan gate | src/audio/DeviceGuard.cpp | +1 -1 | {R16} | R16 (of 58 cases) | KILLED |
+| 11 | lostInput never set | src/audio/DeviceGuard.cpp | +1 -1 | {R18} | R18 (of 58 cases) | KILLED |
+| 12 | setSourceMode's re-open restored | src/audio/AudioEngine.cpp | +12 -0 | {AE1 AE2} | AE1 AE2 (of 58 cases) | KILLED |
+| 13 | a re-open guarded by getCurrentAudioDevice() | src/audio/AudioEngine.cpp | +1 -0 | {AE2} | AE2 (of 58 cases) | KILLED |
+reverted: git -C wt-mut diff = '' (empty)
+post (all mutants reverted): cases 58, failing: NONE
+
+| # | mutant | file | lines changed | kill set | failing cases | verdict |
+|---|---|---|---|---|---|---|
+| 1 | no AdoptInput | src/audio/DevicePolicy.cpp | +1 -1 | {R6 R11 R12 R13 P14} | P14 R11 R12 R13 R15 R6 (of 58 cases) | KILLED |
+| 2 | no InputLost | src/audio/DevicePolicy.cpp | +1 -1 | {R8 R12 P14} | P14 R12 R14 R18 R8 (of 58 cases) | KILLED |
+| 3 | switch a working mic | src/audio/DevicePolicy.cpp | +1 -1 | {R9 R2} | R14 R18 R2 R8 R9 (of 58 cases) | KILLED |
+| 4 | no restore | src/audio/DeviceGuard.cpp | +1 -1 | {R11 R14} | R11 R14 R15 (of 58 cases) | KILLED |
+| 5 | launch seq not recorded | src/audio/DeviceGuard.cpp | +1 -1 | {R10 R11 R4b} | R10 R16 R4b (of 58 cases) | KILLED |
+| 6 | no settle | src/audio/DeviceGuard.cpp | +1 -1 | {R1 R13 R17} | R1 R13 R16 R17 (of 54 cases) | KILLED |
+| 7 | no progress guard | src/audio/DeviceGuard.cpp | +1 -1 | {R15 R11} | R11 R15 (of 58 cases) | KILLED |
+| 8 | restore without the still-listed filter | src/audio/DeviceGuard.cpp | +2 -2 | {R14} | R14 (of 58 cases) | KILLED |
+| 9 | no stopped-device row (devicePlaying forced true) | src/audio/DeviceGuard.cpp | +1 -1 | {R16} | R16 (of 58 cases) | KILLED |
+| 10 | DeviceStopped exempt from the scan gate | src/audio/DeviceGuard.cpp | +1 -1 | {R16} | R16 (of 58 cases) | KILLED |
+| 11 | lostInput never set | src/audio/DeviceGuard.cpp | +1 -1 | {R18} | R18 (of 58 cases) | KILLED |
+| 12 | setSourceMode's re-open restored | src/audio/AudioEngine.cpp | +12 -0 | {AE1 AE2} | AE1 AE2 (of 58 cases) | KILLED |
+| 13 | a re-open guarded by getCurrentAudioDevice() | src/audio/AudioEngine.cpp | +1 -0 | {AE2} | AE2 (of 58 cases) | KILLED |
+GATE-4: 13 / 13 KILLED
+cleanup: worktree + build dir removed

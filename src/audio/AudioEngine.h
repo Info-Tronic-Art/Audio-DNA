@@ -42,10 +42,16 @@ public:
     juce::String getDeviceStatus() const;
 
     // s-rta-0929b btguard: Ok = an input is open; NoInput = output-only (no allowed input); NoDevice = nothing allowed.
-    enum class DeviceState { Ok, NoInput, NoDevice };
+    // s-rta-0930 bt2: MicReplaced = a re-apply replaced a lost mic by another (lostInput() names it, openInput() the new one).
+    enum class DeviceState { Ok, NoInput, NoDevice, MicReplaced };
     DeviceState getDeviceState() const;
+    static DeviceState deviceStateFor(bool haveDevice, const juce::String& openInput, const juce::String& lostInput);
+    juce::String openInput() const;   // the open device's input name ("" when none)
+    juce::String lostInput() const;   // the mic the last input-changing re-apply lost and replaced ("" otherwise)
     // Message thread: the device manager changed (open / close / device list). MainComponent refreshes its indicator.
     std::function<void()> onDeviceStateChanged;
+    // s-rta-0930 bt2 (message thread): after each automatic device re-apply (DeviceReconciler) -- "" = no error.
+    std::function<void(const juce::String& error)> onDevicesReapplied;
 
     // Actual sample rate of the running output device, or 0.0 if none.
     double getCurrentSampleRate() const;
@@ -80,12 +86,17 @@ public:
     // state, `opens` (device starts since launch) and the reconciler's re-applies. Built on the MESSAGE thread at every
     // device change (publishDeviceStatus), read on the HTTP thread as a mutex-guarded copy: never the manager itself.
     juce::var deviceStatusVar() const;
+    // s-rta-0930 bt2 (TEST-ONLY, message thread): POST /api/debug/audio_deny replaces the denied device names and runs
+    // the guard's device-list-change path (the plug / unplug stand-in); POST /api/debug/audio_stop stops the open device
+    // as JUCE's combiner does when its input dies (the manager keeps it).
+    void debugSetDeniedDevices(const juce::StringArray& names);
+    void debugStopDevice();
 #endif
 
 private:
     // s-rta-0929b btguard: JUCE's manager with its CoreAudio type wrapped by the no-wireless device policy.
     GuardedAudioDeviceManager deviceManager_{ devguard::productionConfig() };
-    // BG4: re-applies the policy when the OPEN device vanished and JUCE's own re-init left no device (DeviceGuard.h).
+    // BG4 / bt2: re-applies the policy when the app has no allowed device / input or lost its mic (DeviceGuard.h).
     DeviceReconciler deviceReconciler_{ deviceManager_, 2, 2 };
     juce::AudioFormatManager formatManager_;
     juce::AudioSourcePlayer sourcePlayer_;
