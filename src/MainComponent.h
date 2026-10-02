@@ -205,6 +205,16 @@ private:
     // here. Trimmed; empty or equal to the deck's CURRENT name -> nothing; else one "Rename Deck" undo step + relabel.
     void applyDeckRename(int deckIndex, const juce::String& text);
     int renameFocusHomeCount_ = 0;   // s-rta-1002b ui (AM4): every rename-box close that handed focus home (REST witness)
+    // s-rta-1002b ui U2.5 (BF3 "Codec display for each video and easy access to that video in finder"; plan-ui.md U2.5).
+    // videoInfoFor: a Video clip's codec / size / rate, read from the player open for that clip id AND that file (no
+    // probe, no decode; message thread, Renderer::getVideoPlayer's map lookup). revealClipFile: Show in Finder for the
+    // clip's file (a sequence: its first image) -- under --test-mode it is only RECORDED (lastRevealPath_ /
+    // revealCount_, read by /api/debug/clip_media), never sent to Finder. revealClipAt: the active deck's clip there.
+    std::optional<VideoInfo> videoInfoFor(const Clip& clip);
+    void revealClipFile(const Clip& clip);
+    void revealClipAt(int layerIndex, int column);
+    juce::String lastRevealPath_;
+    int revealCount_ = 0;
     void duplicateDeck(int deckIndex);
     void removeDeck(int deckIndex);
     void timerCallback() override;

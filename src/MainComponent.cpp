@@ -1467,6 +1467,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
         ++renameFocusHomeCount_;
         grabKeyboardFocus();
     };
+    // s-rta-1002b ui U2.5 (BF3): the clip cells' codec line (tooltip) and their menu's "Show in Finder".
+    deckView_->setVideoInfoSource([this](const Clip& clip) { return videoInfoFor(clip); });
+    deckView_->onRevealInFinder = [this](int layerIndex, int column) { revealClipAt(layerIndex, column); };
 
     // === v2: Inspector Panel ===
     inspectorPanel_ = std::make_unique<InspectorPanel>();
@@ -1503,6 +1506,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
     inspectorPanel_->getLayerInspector().onLayerNameChanged = [this]() {
         if (deckView_) deckView_->refresh();
+    };
+    // s-rta-1002b ui U2.5 (BF3): the Clip inspector's file-info rows and its "Show in Finder" button.
+    inspectorPanel_->getClipInspector().setVideoInfoSource([this](const Clip& clip) { return videoInfoFor(clip); });
+    inspectorPanel_->getClipInspector().onRevealInFinder = [this](Clip* clip) {
+        if (clip != nullptr)
+            revealClipFile(*clip);
     };
     inspectorPanel_->getClipInspector().onSourceParamsChanged = [this](Clip* clip) {
         if (clip && clip->mediaType == Clip::MediaType::Source)
@@ -3743,6 +3752,44 @@ void MainComponent::applyDeckRename(int deckIndex, const juce::String& text)
         makeCompositionResolver(), deckIndex, current, trimmed.toStdString(), "Rename Deck"));
     pushCommands(std::move(children), "Rename Deck");
     if (deckView_) deckView_->refresh();   // relabel the tab
+}
+
+// s-rta-1002b ui U2.5 (BF3): the player open for the clip is the only source that is always true (plan F-U1); a player
+// still holding another file (a Replace in flight) or an unknown codec answers nothing ("Video file not loaded").
+std::optional<VideoInfo> MainComponent::videoInfoFor(const Clip& clip)
+{
+    if (clip.mediaType != Clip::MediaType::Video)
+        return std::nullopt;
+    auto* player = previewPanel_.getRenderer().getVideoPlayer(clip.id);
+    if (player == nullptr || player->getFile() != clip.mediaFile || !player->getInfo().known())
+        return std::nullopt;
+    return player->getInfo();
+}
+
+void MainComponent::revealClipFile(const Clip& clip)
+{
+    const auto target = clipmedia::revealTarget(clip);
+    if (target == juce::File())
+        return;
+    if (testMode_)
+    {
+        // Gates never open a Finder window on Boris's screen (plan F-U5): record what would have been shown.
+        lastRevealPath_ = target.getFullPathName();
+        ++revealCount_;
+        return;
+    }
+    // JUCE (macOS): an existing file is selected in Finder; a missing one's folder is opened instead.
+    if (target.exists() || target.getParentDirectory().isDirectory())
+        target.revealToUser();
+    else
+        setFileLabel("Show in Finder: not found - " + target.getFullPathName());
+}
+
+void MainComponent::revealClipAt(int layerIndex, int column)
+{
+    if (auto* deck = composition_.getActiveDeck())
+        if (auto* clip = deck->getClip(layerIndex, column))
+            revealClipFile(*clip);
 }
 
 void MainComponent::duplicateDeck(int deckIndex)
