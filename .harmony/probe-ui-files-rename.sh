@@ -90,7 +90,8 @@ else
   ENVS=()
   [ -n "$HOOK" ] && { rm -f "$SNAP"; ENVS=(--env "AUDIODNA_DEBUG_SHOW=$HOOK" --env "AUDIODNA_DEBUG_SNAP=$SNAP"); }
   echo "launch: $APP ${ENVS[*]:-} --test-mode"
-  open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" "${ENVS[@]}" "$APP" --args --test-mode
+  # ${ENVS[@]+...}: macOS /bin/bash 3.2 treats an EMPTY array as unbound under set -u (the default standalone path)
+  open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" ${ENVS[@]+"${ENVS[@]}"} "$APP" --args --test-mode
   for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 -H 'Connection: close' "$A/api/health")" ] && break; sleep 1; done
   OURPID="$(adna_pids | tr -d ' \n')"
   echo "app pid: ${OURPID:-none}"
