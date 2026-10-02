@@ -341,10 +341,11 @@ TEST_CASE("R4 tuple consistency and no lost fade under a paced trigger storm", "
     constexpr int kTriggers = 20000;
     bool stalled = false;
     long last = renderObs.load();
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
     for (int i = 1; i <= kTriggers && !stalled; ++i)
     {
         const long k = 1 + (i % 5);   // cycles 1..5 render observations between triggers
+        // 60 s PER WAIT (fix round, ruling F8): a slow-but-live run is not "stalled"; one wait over 60 s is.
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
         while (renderObs.load() < last + k)
         {
             if (std::chrono::steady_clock::now() > deadline) { stalled = true; break; }
