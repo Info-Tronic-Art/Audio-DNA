@@ -470,7 +470,9 @@ inline int retainFrames(int gopFrames, double decodeMs, double frameMsEff, int c
 // gopFrames = the longest keyframe interval in frames (one keyframe: totalFrames -- the whole file one GOP; none, or no
 // total: -1 = keep the current estimate); intraOnly = every entry a keyframe AND every keyframe one frame apart -- a Matroska
 // Cues index lists keyframes only, so "every entry a keyframe" alone calls a GOP-250 file with its Cues at the front intra-only
-// (its reverse froze: an intra DEMAND run per frame that never lands on a keyframe).
+// (its reverse froze: an intra DEMAND run per frame that never lands on a keyframe). Not safe in every case (filed): an index
+// holding only a long-GOP file's first two keyframes, adjacent (a key forced at frame 1), still reads intra-only (F8); an
+// all-intra index with < 2 entries reads not-intra (F6).
 struct KeyIndex
 {
     std::vector<int> rels;
