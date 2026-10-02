@@ -80,6 +80,11 @@ public:
     // state, `opens` (device starts since launch) and the reconciler's re-applies. Built on the MESSAGE thread at every
     // device change (publishDeviceStatus), read on the HTTP thread as a mutex-guarded copy: never the manager itself.
     juce::var deviceStatusVar() const;
+    // s-rta-0930 bt2 (TEST-ONLY, message thread): POST /api/debug/audio_deny replaces the denied device names and runs
+    // the guard's device-list-change path (the plug / unplug stand-in); POST /api/debug/audio_stop stops the open device
+    // as JUCE's combiner does when its input dies (the manager keeps it).
+    void debugSetDeniedDevices(const juce::StringArray& names);
+    void debugStopDevice();
 #endif
 
 private:

@@ -7,10 +7,23 @@
 # transport-classification branch (that one is unit-only: tests/test_device_policy.cpp).
 #
 # Arms (one launch each, production mode, no --test-mode, TEST_SERVER build):
-#   A  no env               A0-A5, A7-A9 (+ A6 INFO: opens)
+#   A  no env               A0-A5, A7-A9; A6 / A6b opens == 1 after launch and after file -> input (s-rta-0930 bt2 C3);
+#                           A10-A13 (bt2): the open mic denied at runtime -> input-lost re-apply (A10), allowed again ->
+#                           adopted, never within the 10 s bound (A11a / A11), two list changes inside one settle -> nothing
+#                           (A12, INFO A6c), a fresh scan -> nothing (A13a), audio_stop -> device-stopped re-apply (A13)
 #   D  deny the opened OUTPUT only, when a second allowed output exists (BG8) -- SKIP otherwise (never counted)
-#   B  deny the opened INPUT                         B0-B6 (B3b: a label-writing action keeps the notice, BG6)
-#   C  deny the opened INPUT and OUTPUT (no device)  C0-C6 (C5: a take arms / stops with no device, C5b: it is saved without audio, BG7)
+#   B  deny the opened INPUT                         B0-B6 (B3b: a label-writing action keeps the notice, BG6);
+#                                                    B7-B8 (bt2): allowed again at runtime -> adopted once (B7b opens 2)
+#   C  deny the opened INPUT and OUTPUT (no device)  C0-C6 (C5: a take arms / stops with no device, C5b: it is saved without audio, BG7);
+#                                                    C7-C8 (bt2): the output allowed -> opened (no-device re-apply), then
+#                                                    the mic -> adopted after the 10 s bound (C8a / C8)
+# s-rta-0930 bt2: TEST-ONLY POST /api/debug/audio_deny {"names": [...]} REPLACES the denied set at runtime and runs the
+# guard's device-list-change path (inner rescan -> rebuild -> JUCE's listeners -> the reconciler); audio_stop stops the
+# open device as JUCE's combiner does when its input dies; the device stays alive, so the dead-device close (R2) is not
+# reproduced. The live rows = the POLICY path (the guard's rebuild -> JUCE's list handler -> the reconciler) plus A13's
+# stop stand-in; the HAL side -- a dead input's combiner shutdown, its up-to-2-s close, per-device detail timers -- is
+# covered by JUCE source reading (CA:1118-1127, CA:1735-1752, CA:734-757) and the mock cases (R8, R14, R16, R17) only;
+# Boris check B2 is its hardware check.
 # B / C take the device names from arm A's opened{} (vj S4); if arm A has no endpoint (the pre-change app) they fall
 # back to BTGUARD_INPUT / BTGUARD_OUTPUT (default: the MacBook Pro built-in names).
 #
@@ -136,6 +149,27 @@ def check(rid, cond, text, detail=''):
 NOTICE_IN = 'No wired mic found - plug one in. Bluetooth is never used.'
 NOTICE_DEV = 'No audio device found - plug one in. Bluetooth is never used.'
 WIRELESS = {'blue', 'blea', 'airp', 'ccwl', 'ccap'}
+NOMIC = 'Mic: no wired mic (Bluetooth is never used)'
+def mic(name, rate):
+    return 'Mic: %s @ %dHz' % (name, int(rate or 0))
+# s-rta-0930 bt2: the TEST-ONLY runtime deny (replaces the denied set; [] = none) and the device stop. Fresh connection each.
+def deny(names):
+    st, _ = call('POST', '/api/debug/audio_deny', {'names': names})
+    return st
+def poll(pred, seconds):   # devices() every 0.25 s until pred(d) or the deadline; the last answer either way
+    t0 = time.time(); d = None
+    while True:
+        d, _ = devices()
+        if d is not None and pred(d):
+            return d, True
+        if time.time() - t0 >= seconds:
+            return d or {}, False
+        time.sleep(0.25)
+def brief(d):
+    d = d or {}
+    return 'reapplies %s last_reapply "%s" state %s opened %s lost_input "%s" opens %s' % (
+        d.get('reapplies'), d.get('last_reapply', ''), d.get('state'), json.dumps(d.get('opened', {}), sort_keys=True),
+        d.get('lost_input', ''), d.get('opens'))
 
 if arm == 'A':
     d, st = devices()
@@ -160,7 +194,8 @@ if arm == 'A':
     ssr = (f or {}).get('sourceSampleRate') if isinstance(f, dict) else None
     check('A5', ssr is not None and op.get('sample_rate', 0) > 0 and abs(ssr - op.get('sample_rate', -1)) < 0.5,
           '/api/features sourceSampleRate == opened.sample_rate (%s)' % op.get('sample_rate'), 'features %s' % ssr)
-    row('INFO', 'A6 opens after launch = %s (device starts since launch; reapplies %s)' % (d.get('opens'), d.get('reapplies')))
+    check('A6', d.get('opens') == 1, 'opens == 1 after launch (one device open per launch; reads %s, reapplies %s)'
+          % (d.get('opens'), d.get('reapplies')), 'opens %s' % d.get('opens'))
     before = json.dumps(op, sort_keys=True)
     s1, _ = call('POST', '/api/audio/source', {'mode': 'file'}); time.sleep(1)
     s2, _ = call('POST', '/api/audio/source', {'mode': 'input'}); time.sleep(1)
@@ -168,9 +203,86 @@ if arm == 'A':
     after = json.dumps((d2 or {}).get('opened', {}), sort_keys=True)
     check('A7', s1 == 200 and s2 == 200 and d2 is not None and before == after,
           'source file -> input: opened{} byte-identical', 'before %s after %s' % (before, after))
-    row('INFO', 'A6b opens after the source switches = %s' % ((d2 or {}).get('opens')))
+    check('A6b', (d2 or {}).get('opens') == 1, 'opens == 1 after the source switches file -> input (reads %s)'
+          % (d2 or {}).get('opens'), 'opens %s' % (d2 or {}).get('opens'))
     open(os.path.join(out, 'names.txt'), 'w').write('%s\n%s\n%d\n' % (op.get('input', ''), op.get('output', ''),
                                                                      len((d.get('lists') or {}).get('outputs', []))))
+    # s-rta-0930 bt2: the reconciler rows. IN / OUTN = this arm's opened{}; the source is the mic (A7 left it on input).
+    IN, OUTN = op.get('input', ''), op.get('output', '')
+    if not IN:
+        for rid in ('A10', 'A11a', 'A11', 'A12'):
+            row('SKIP', '%s the open mic is denied / returns -- arm A opened no input' % rid)
+    else:
+        # A10: the open mic vanishes (denied at runtime) -> input-lost re-apply -> output-only + the notice + the label.
+        st = deny([IN])
+        d, ok = poll(lambda x: x.get('reapplies') == 1 and x.get('state') == 'no-input', 3)
+        u = ui(); op10 = d.get('opened', {}) or {}
+        check('A10', st == 200 and d.get('reapplies') == 1 and d.get('last_reapply', '') == 'input-lost'
+              and d.get('state') == 'no-input' and op10.get('input') == '' and op10.get('output') == OUTN
+              and d.get('lost_input', '') == '' and u.get('audio_notice') == NOTICE_IN and u.get('file_label') == NOMIC,
+              'deny [IN] -> within 3 s one input-lost re-apply: output-only on "%s", the no-input notice, label "%s"'
+              % (OUTN, NOMIC), 'HTTP %s %s ui %s' % (st, brief(d), json.dumps(u)))
+        # A11a / A11: the mic returns -> adopt-input, but never within the 10 s bound of A10's re-apply.
+        st = deny([]); t_post = time.time()
+        time.sleep(2)
+        d, _ = devices(); d = d or {}
+        check('A11a', st == 200 and d.get('reapplies') == 1, 'deny [] -> at +2 s still 1 re-apply (the 10 s bound)',
+              'HTTP %s %s' % (st, brief(d)))
+        d, ok = poll(lambda x: x.get('reapplies') == 2, max(0.0, 13 - (time.time() - t_post)))
+        t_ref = time.time()
+        u = ui(); op11 = d.get('opened', {}) or {}
+        st, f = call('GET', '/api/features')
+        ssr = (f or {}).get('sourceSampleRate') if isinstance(f, dict) else None
+        rate = op11.get('sample_rate', 0)
+        check('A11', d.get('reapplies') == 2 and d.get('last_reapply', '') == 'adopt-input' and d.get('state') == 'ok'
+              and op11.get('input') == IN and op11.get('output') == OUTN and d.get('lost_input', '') == ''
+              and u.get('audio_notice') == '' and u.get('file_label') == mic(IN, rate)
+              and ssr is not None and rate > 0 and abs(ssr - rate) < 0.5,
+              'within 13 s: adopt-input re-apply onto "%s" / "%s", notice gone, label "%s", sourceSampleRate %s'
+              % (IN, OUTN, mic(IN, rate), ssr), '%s ui %s features %s' % (brief(d), json.dumps(u), ssr))
+        # A12 (AM4): two list changes inside one settle (the mic gone and back) -> nothing, measured against r0 / o0.
+        a12 = None
+        for attempt in (1, 2):
+            time.sleep(max(0.0, 10.5 - (time.time() - t_ref)))
+            d, _ = devices(); d = d or {}
+            r0, o0 = d.get('reapplies'), json.dumps(d.get('opened', {}), sort_keys=True)
+            s1 = deny([IN]); t1 = time.time()
+            s2 = deny([]); t2 = time.time()
+            gap = t2 - t1
+            time.sleep(1.5)
+            d, _ = devices(); d = d or {}
+            o1 = json.dumps(d.get('opened', {}), sort_keys=True)
+            a12 = (s1, s2, gap, r0, o0, d, o1)
+            t_ref = time.time()
+            if gap <= 0.15:
+                break
+            row('INFO', 'A12 attempt %d: the two POSTs were %.3f s apart (> 0.15 s) -- repeating once' % (attempt, gap))
+        s1, s2, gap, r0, o0, d, o1 = a12
+        check('A12', s1 == 200 and s2 == 200 and gap <= 0.15 and d.get('reapplies') == r0 and o1 == o0,
+              'deny [IN] + deny [] %.3f s apart -> at +1.5 s still %s re-applies, opened{} byte-identical' % (gap, r0),
+              'gap %.3f (> 0.15 = the two list changes did not land inside the 250 ms settle) r0 %s o0 %s now %s'
+              % (gap, r0, o0, brief(d)))
+        row('INFO', 'A6c opens after A12 = %s (expected 3: launch + A10 + A11)' % d.get('opens'))
+    # A13a / A13 (AM14): the open combiner stops (the dead-input end state without the death) -> device-stopped re-apply.
+    if not IN or IN == OUTN:
+        row('SKIP', 'A13a a fresh scan with nothing changed -- arm A has no combined input + output device')
+        row('SKIP', 'A13 audio_stop -> device-stopped re-apply -- arm A has no combined input + output device')
+    else:
+        d, _ = devices(); d = d or {}
+        r0, o0 = d.get('reapplies'), d.get('opens')
+        st = deny([])
+        time.sleep(1)
+        d, _ = devices(); d = d or {}
+        check('A13a', st == 200 and d.get('reapplies') == r0, 'deny [] (a fresh scan, nothing changes) -> at +1 s still %s '
+              're-applies' % r0, 'HTTP %s %s' % (st, brief(d)))
+        st, _ = call('POST', '/api/debug/audio_stop')
+        d, ok = poll(lambda x: x.get('reapplies') == (r0 or 0) + 1 and x.get('opens') == (o0 or 0) + 1, 3)
+        op13 = d.get('opened', {}) or {}
+        check('A13', st == 200 and d.get('reapplies') == (r0 or 0) + 1 and d.get('last_reapply', '') == 'device-stopped'
+              and d.get('state') == 'ok' and op13.get('input') == IN and op13.get('output') == OUTN
+              and d.get('lost_input', '') == '' and d.get('opens') == (o0 or 0) + 1,
+              'audio_stop -> within 3 s one device-stopped re-apply back onto "%s" / "%s", opens %s -> %s'
+              % (IN, OUTN, o0, d.get('opens')), 'HTTP %s %s' % (st, brief(d)))
 
 elif arm == 'D':
     d, st = devices(); d = d or {}
@@ -215,6 +327,21 @@ elif arm == 'B4':
     check('B5', ssr is not None and op.get('sample_rate', 0) > 0 and abs(ssr - op.get('sample_rate', -1)) < 0.5,
           'output-only device still clocks the analysis: sourceSampleRate == opened.sample_rate (%s)' % op.get('sample_rate'),
           'features %s opened %s' % (ssr, json.dumps(op)))
+elif arm == 'B7':
+    # s-rta-0930 bt2: the denied mic is allowed again (plugged in after launch) -> adopted (the source is the mic: B3b).
+    st = deny([])
+    d, ok = poll(lambda x: x.get('reapplies') == 1 and x.get('state') == 'ok', 3)
+    u = ui(); op = d.get('opened', {}) or {}
+    rate = op.get('sample_rate', 0)
+    check('B7', st == 200 and d.get('reapplies') == 1 and d.get('last_reapply', '') == 'adopt-input' and d.get('state') == 'ok'
+          and op.get('input') == deny_in and op.get('input_channels', 0) >= 1 and u.get('audio_notice') == ''
+          and u.get('file_label') == mic(deny_in, rate),
+          'deny [] -> within 3 s the mic "%s" is adopted (one adopt-input re-apply), notice gone, label "%s"'
+          % (deny_in, mic(deny_in, rate)), 'HTTP %s %s ui %s' % (st, brief(d), json.dumps(u)))
+    check('B7b', d.get('opens') == 2, 'opens == 2 (launch + the adoption; reads %s)' % d.get('opens'), brief(d))
+    time.sleep(2)
+    d, _ = devices(); d = d or {}
+    check('B8', d.get('reapplies') == 1, 'after 2 more s still 1 re-apply', brief(d))
 
 elif arm == 'C':
     d, st = devices(); d = d or {}
@@ -264,6 +391,26 @@ elif arm == 'C':
     except Exception as e:
         ok, info = False, 'no take.json (%s); status %s' % (e, json.dumps(ps)[:200])
     check('C5b', ok, 'the no-device take was saved WITHOUT audio and the recorder reports no error', info)
+    # s-rta-0930 bt2: nothing was allowed at launch; the output is plugged in after launch -> opened (no-device re-apply);
+    # then the mic too -> adopted, never within the 10 s bound of the first re-apply.
+    st = deny([deny_in])
+    d, ok = poll(lambda x: x.get('reapplies') == 1 and x.get('state') == 'no-input', 3)
+    u = ui(); op = d.get('opened', {}) or {}
+    check('C7', st == 200 and d.get('reapplies') == 1 and d.get('last_reapply', '') == 'no-device'
+          and d.get('state') == 'no-input' and op.get('output') == deny_out and op.get('input') == ''
+          and u.get('audio_notice') == NOTICE_IN,
+          'deny [IN] -> within 3 s one no-device re-apply opens "%s" output-only, the no-input notice' % deny_out,
+          'HTTP %s %s ui %s' % (st, brief(d), json.dumps(u)))
+    st = deny([]); t_post = time.time()
+    time.sleep(2)
+    d, _ = devices(); d = d or {}
+    check('C8a', st == 200 and d.get('reapplies') == 1, 'deny [] -> at +2 s still 1 re-apply (the 10 s bound)',
+          'HTTP %s %s' % (st, brief(d)))
+    d, ok = poll(lambda x: x.get('reapplies') == 2, max(0.0, 13 - (time.time() - t_post)))
+    u = ui(); op = d.get('opened', {}) or {}
+    check('C8', d.get('reapplies') == 2 and d.get('last_reapply', '') == 'adopt-input' and d.get('state') == 'ok'
+          and op.get('input') == deny_in and u.get('audio_notice') == '',
+          'within 13 s: the mic "%s" is adopted (adopt-input), notice gone' % deny_in, '%s ui %s' % (brief(d), json.dumps(u)))
 PYEOF
 }
 
@@ -302,6 +449,7 @@ if launch B "ADNA_AUDIO_DENY_DEVICES=$IN"; then
   rows B3b "$IN" ""
   shot B-after-label-write
   rows B4 "$IN" ""
+  rows B7 "$IN" ""
 else row FAIL "B0 app never answered /api/health"; fi
 quit_check B6
 

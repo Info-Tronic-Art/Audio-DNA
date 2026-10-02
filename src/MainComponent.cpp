@@ -2147,6 +2147,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 #if AUDIODNA_TEST_SERVER
     apiServer_->setAudioDevicesProvider([this] { return audioEngine_.deviceStatusVar(); });   // s-rta-0929b btguard, before start()
+    // s-rta-0930 bt2: the TEST-ONLY device-policy stand-ins (plug / unplug, a dead input's device stop).
+    apiServer_->onDebugAudioDeny = [this](const juce::StringArray& names) { audioEngine_.debugSetDeniedDevices(names); };
+    apiServer_->onDebugAudioStop = [this] { audioEngine_.debugStopDevice(); };
 #endif
     // s-rta-0928b mediaopen: the TEST-ONLY drop route's target (the route exists only in a TEST_SERVER build).
     apiServer_->onDebugDropFiles = [this](int layer, int column, const std::vector<juce::File>& files) {

@@ -40,6 +40,13 @@ public:
     };
     const Scan& lastScan() const noexcept { return scan_; }   // message thread
 
+#if AUDIODNA_TEST_SERVER
+    // TEST-ONLY (s-rta-0930 bt2, POST /api/debug/audio_deny): replaces the denied names, re-scans the inner type and runs
+    // the device-list-change path (rebuild, then JUCE's listeners) -- the policy-level stand-in for a plug / unplug, not
+    // the HAL's own notification. Message thread.
+    void setTestDeniedNames(const juce::StringArray& names);
+#endif
+
 private:
     void audioDeviceListChanged() override;   // from the inner type: rebuild, then tell JUCE
     void rebuild();
@@ -67,6 +74,10 @@ public:
     // The wrapped type, or nullptr (a platform without CoreAudio, or before the first scan).
     GuardedDeviceType* guardedType() const noexcept { return guarded_; }
     const audiodna::devpolicy::Config& policyConfig() const noexcept { return config_; }
+#if AUDIODNA_TEST_SERVER
+    // TEST-ONLY (s-rta-0930 bt2): replaces the denied names (policyConfig() follows) and forwards them to the guarded type.
+    void setTestDeniedNames(const juce::StringArray& names);
+#endif
 
     // TESTS ONLY: builds the inner types instead of JUCE's list (set BEFORE initialise; a mock names itself "CoreAudio").
     std::function<void(juce::OwnedArray<juce::AudioIODeviceType>&)> typeFactoryForTests;

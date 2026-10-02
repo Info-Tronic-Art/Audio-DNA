@@ -283,4 +283,19 @@ juce::var AudioEngine::deviceStatusVar() const
     obj->setProperty("opens", combinedCallback_.opens());
     return juce::var(obj);
 }
+
+void AudioEngine::debugSetDeniedDevices(const juce::StringArray& names)
+{
+    deviceManager_.setTestDeniedNames(names);
+}
+
+void AudioEngine::debugStopDevice()
+{
+    if (auto* device = deviceManager_.getCurrentAudioDevice())
+    {
+        device->stop();
+        std::cerr << "[AudioEngine] TEST-ONLY audio_stop: stopped \"" << device->getName() << "\" (the manager keeps it)"
+                  << std::endl;
+    }
+}
 #endif

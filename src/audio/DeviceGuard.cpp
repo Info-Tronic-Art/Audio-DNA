@@ -109,6 +109,17 @@ void GuardedDeviceType::rebuild()
         std::cerr << "[AudioEngine] device scan took " << juce::String(ms, 1) << " ms" << std::endl;
 }
 
+#if AUDIODNA_TEST_SERVER
+void GuardedDeviceType::setTestDeniedNames(const juce::StringArray& names)
+{
+    config_.testDeniedNames = names;
+    std::cerr << "[AudioEngine] TEST-ONLY audio_deny: "
+              << (names.isEmpty() ? juce::String("none") : names.joinIntoString("; ")) << std::endl;
+    inner_->scanForDevices();
+    audioDeviceListChanged();   // what CoreAudioIODeviceType::audioDeviceListChanged does, minus the HAL trigger
+}
+#endif
+
 GuardedAudioDeviceManager::GuardedAudioDeviceManager(dp::Config config, GuardedDeviceType::Enumerate enumerate)
     : config_(std::move(config)), enumerate_(std::move(enumerate))
 {
@@ -135,6 +146,15 @@ void GuardedAudioDeviceManager::createAudioDeviceTypes(juce::OwnedArray<juce::Au
         types.set(i, guarded_, false);   // the old pointer is owned by the decorator now
     }
 }
+
+#if AUDIODNA_TEST_SERVER
+void GuardedAudioDeviceManager::setTestDeniedNames(const juce::StringArray& names)
+{
+    config_.testDeniedNames = names;
+    if (guarded_ != nullptr)
+        guarded_->setTestDeniedNames(names);
+}
+#endif
 
 DeviceReconciler::DeviceReconciler(GuardedAudioDeviceManager& manager, int numInputChannels, int numOutputChannels,
                                    int settleMs, int minIntervalMs)
