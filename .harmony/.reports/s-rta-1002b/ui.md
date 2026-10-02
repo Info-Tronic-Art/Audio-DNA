@@ -638,3 +638,100 @@ Base for U4: 46d3ff2 (lane/ui after U2). Lane: eff2b1c..HEAD = U1, U3, U2, U4. M
   lock helper; probe-deck-tabs.sh (pattern); notebook plan6 entry (hook pattern); CLAUDE.md loaded by the harness.
   Knowledge tools: none (grep only).
 INBOX-RECHECK: none
+
+# LANE ui -- Fix round (lane-name ui-fix) -- builder report
+STATUS: DONE (3 / 3 findings verified and fixed: 92d3897 F-MUST-1, 30bd378 F-SHOULD-2, 4f6d5f8 F-SHOULD-3, + this report)
+Base for the fix round: 24e1f00 (lane/ui after U4). Lane base: eff2b1c. Findings: F-MUST-1 (probe standalone ENVS
+unbound under bash 3.2), F-SHOULD-2 (no test for "focus home BEFORE the hide"), F-SHOULD-3 (G3 V4 inspector rows for 2
+of 8 cells only).
+## Items
+### F-SHOULD-2 focus home BEFORE the hide / focus elsewhere left there -- FIXED (30bd378)
+- VERIFIED the finding: headless, keyboard focus is always nowhere (JUCE grabKeyboardFocusInternal returns unless
+  isShowing(), juce_Component.cpp:2654 in the 8.0.4 source), and the Rig only did ++closes. Mutants from a SOURCE COPY
+  (scratchpad/ui-fix/mut-src, own build dir mut-build, worktree never edited) run against the 24e1f00 test file:
+  M1 (onRenameClosed moved after setVisible(false)) "All tests passed (218 assertions in 16 test cases)";
+  M2 (the `focused == nullptr || isParentOf(focused)` test deleted) "All tests passed (218 assertions in 16 test cases)".
+- Fix: DeckView::setFocusedComponentForTests(std::function<juce::Component*()>) -- the focus finishRename reads (empty =
+  juce::Component::getCurrentlyFocusedComponent(), the shipped path; 1 changed line in DeckView.cpp). The Rig records
+  the box's isVisible() at each onRenameClosed; CHECK(r.closedBeforeHide()) in every (e) section, (f) and (i). New
+  TEST_CASE (k): focus on a component outside DeckView -> the focus-loss close keeps the name and calls NO
+  onRenameClosed; focus on the box, on a tab, or nowhere -> called once each.
+  The second half of the finding's fix ("a focused non-DeckView component") cannot be done headless without a window;
+  the seam is the cheapest way (precedent: ClipCell::setMenuLauncherForTests, ruling AM10). An off-screen window was
+  rejected (a window from ctest; screen-safety).
+- RED (new test file vs the mutants, raw): M1 "test cases:  17 |  13 passed | 4 failed" ((e), (f), (i), (k));
+  M2 "test cases:  17 |  16 passed | 1 failed" ((k)); M0 unmutated copy "All tests passed (259 assertions in 17 test cases)".
+- GREEN (build-lane, raw): "All tests passed (259 assertions in 17 test cases)".
+- numstat: src/ui/DeckView.cpp 1/1, src/ui/DeckView.h 4/0, tests/test_deck_tab_rename.cpp 55/1.
+### F-MUST-1 probe standalone mode aborts under bash 3.2 -- FIXED (92d3897)
+- VERIFIED: /bin/bash is "GNU bash, version 3.2.57(1)-release"; `set -u; ENVS=(); echo "${ENVS[@]}"` -> "ENVS[@]:
+  unbound variable" rc 127. On the real UNFIXED probe (worktree 24e1f00, sha256 b552ca31..., git diff 0 lines), default
+  standalone mode (no UIFR_ATTACH, no --hook), lock held 18:13:13, raw:
+    ".harmony/probe-ui-files-rename.sh: line 93: ENVS[@]: unbound variable"  PROBE_EXIT=1
+  (it aborted before `open`: Audio-DNA before / after '' ; outwins 0 Output-named).
+- Fix (1 line + 1 comment line): `${ENVS[@]+"${ENVS[@]}"}`. Shim check under /bin/bash with `open` as a printing
+  function: no hook -> [-g][--stdout][/x/app-out.log][--stderr][/x/app-err.log][/a b/App.app][--args][--test-mode];
+  --hook cell-menu -> the two --env pairs as separate words, an element with a space kept whole. rc 0 both.
+- GREEN: the FIXED probe in standalone mode on build-lane's app (it launched `open -g ... --test-mode` itself, pid 21914,
+  and quit only that pid), 18:18:45-18:18:52, raw: "39 PASS / 0 FAIL" ... "app running after quit: no".
+- numstat 92d3897: .harmony/probe-ui-files-rename.sh 2/1.
+### F-SHOULD-3 G3 V4 inspector rows for 2 of 8 cells -- FIXED (4f6d5f8)
+- VERIFIED (probe 24e1f00 lines 285-290): V4 inspected L0C0 and L1C3 only; --shots inspected 7 cells but only printed.
+- Fix: the two V4 rows unchanged (bars not touched); added "V4 inspect L1C3 (source) shows the clip" (inspector_shows
+  true) and one row per other cell (L0C1 L0C2 L0C3 L1C0 L1C1 L1C2): POST inspect_clip, then GET clip_media (a
+  message-thread read, FIFO after the callAsync select; video cells through the pre-registered null-video retry) ->
+  inspector_shows true AND inspector_lines == V1's lines AND inspector_button_visible true. G3 rows 32 -> 39.
+- RED (main's PRE-CHANGE app via the helper, UIFR_ATTACH=1, 18:18:33-18:18:41), raw: "1 PASS / 38 FAIL"; every V4 row
+  FAIL `{"inspector_shows": null, "inspector_lines": null, "inspector_button_visible": null}` (no debug routes before
+  this lane -- the same 404-driven RED convention as U4).
+- GREEN (build-lane, standalone, same run as F-MUST-1), raw "39 PASS / 0 FAIL"; the new rows' observed values:
+  L0C1 ["ProRes 422 HQ", "64 x 64, 29.97 frames per second"], L0C2 ["HAP Q", "64 x 64, 60 frames per second"],
+  L0C3 ["HEVC Main 10", "64 x 64, 23.976 frames per second"], L1C0 ["PNG image"], L1C1 ["Image sequence, 3 images"],
+  L1C2 ["File missing"], each inspector_shows true, button true, retries 0; L1C3 shows true, lines [], button false.
+- numstat 4f6d5f8: .harmony/probe-ui-files-rename.sh 10/0.
+## Builds / tests (fix round)
+- build-lane (existing; disk 292 GiB free): `cmake --build build-lane -j3` 18:14:28 -> 18:14:55 BUILD_EXIT=0 (DeckView.cpp
+  recompiled into AudioDNA + tests, app relinked); 0 warning lines naming DeckView.* or test_deck_tab_rename.cpp. No
+  CMakeLists change (no reconfigure needed).
+- Mutant build: source copy scratchpad/ui-fix/mut-src (rsync of the working tree minus build-lane / .git), own build dir
+  scratchpad/ui-fix/mut-build (same flags), target test_deck_tab_rename only, 18:15:39 -> 18:17:23. The worktree's
+  DeckView.cpp sha256 0b654d88... before and after; it was never edited for a mutant.
+- G1 direct runs at HEAD 4f6d5f8 (18:19:53), raw: test_video_info "All tests passed (117 assertions in 17 test cases)";
+  test_clip_media_text (82 / 8); test_clip_cell_media (42 / 9); test_clip_inspector_media (53 / 8); test_deck_tab_rename
+  "All tests passed (259 assertions in 17 test cases)"; test_deck_tab_row (110 / 5); test_undo_commands (562 / 81);
+  test_clip_inspector_paint_key (44 / 4).
+- G2 lints, raw: test_hot_thread_io_lint exit 0 (324 / 2), test_render_thread_lint exit 0 (19 / 2), test_log_line_lint
+  exit 0 (58 / 3), test_shared_field_types exit 0 (1 / 1).
+- G2b: `grep -rn AUDIODNA_DEBUG_SHOW src tests` = 0 lines; `strings` lane app binary = 0.
+- Full ctest SERIAL (no -j) 18:20:01 -> 18:21:56, raw: "100% tests passed, 0 tests failed out of 1175" (Total Test time
+  (real) = 115.12 sec). ctest -N 1174 -> 1175 (+1 = TEST_CASE (k)); `ctest -N | grep -c probe_deck` = 0.
+## Rig discipline (fix round)
+- Two locked batches (LANE=ui-fix, the helper): 18:13:13-18:13:16 (the RED standalone run; it aborted before any
+  launch) and 18:18:29-18:18:52 (RED on main's app via start_app / quit_app, then the fixed probe standalone, which
+  refuses if any Audio-DNA runs or 7070 / 8080 listen and quits only its own pid). The 45-s cooldown held (5 min
+  between). No foreign Audio-DNA at any start; "Audio-DNA after: ''" after each run; outwins Output-named 0 before /
+  during / after; UserNotificationCenter windows 16 s after the last quit: 0; app-err crash|assert lines 0.
+- open -g --test-mode only; no screen capture this round; no synthetic input; no debugger / sampler; no copied or
+  re-signed bundle; no Output window by any path; tests/visual never run; no TCC prompt seen; no .venv symlink (main
+  .venv python by absolute path via UIFR_PY); -j3; only the ui worktree + scratchpad touched (main checkout and lane
+  mkvidx untouched). Commits staged by path (item 1's hunk via `git apply --cached` of its saved patch, so items 1 and 3
+  are separate commits of the same file).
+## Notes for .harmony/notebook.md (fix round)
+- 2026-10-02 macOS /bin/bash is 3.2: under `set -u` an EMPTY array expansion "${A[@]}" aborts ("unbound variable");
+  use ${A[@]+"${A[@]}"}. A probe mode the lane never runs (here: standalone) is where it hides -- run every documented
+  entry mode once | discovered: .harmony/probe-ui-files-rename.sh:94.
+- 2026-10-02 Headless JUCE (no peer) can never hold keyboard focus (grabKeyboardFocusInternal returns unless
+  isShowing()), so any code branching on getCurrentlyFocusedComponent() needs a focus seam to be unit-tested; also
+  record STATE AT CALLBACK TIME (e.g. the box's visibility inside onRenameClosed) to pin call order | discovered:
+  src/ui/DeckView.cpp finishRename, tests/test_deck_tab_rename.cpp (k).
+## found_not_fixed (fix round)
+- none new. Carried from U4 (unchanged): F1 tooltip codec line wraps in JUCE's TooltipWindow; F2 "+" under the last
+  60-px tab (pre-existing clamp).
+## PACKET QUALITY (fix round)
+- Clarity: CLEAR for F-MUST-1 and F-SHOULD-3; HAD_TO_INFER for F-SHOULD-2's second half ("a focused non-DeckView
+  component" cannot exist headless) -> added the smallest seam (setFocusedComponentForTests, empty = shipped behaviour).
+- Missing context: none.
+- Unused context: plan U1-U3 bodies, the Boris questions, the click-target matrix (read, not needed for these fixes).
+- Self-brief: plan-ui.md incl. HARMONY ADOPTION and ruling-ui.md (read in full), the lane report U1-U4, the lock helper,
+  run-batch.sh / run-probe.sh / hook-build.sh (U4 patterns). Knowledge tools: none (grep only).
+INBOX-RECHECK: none
