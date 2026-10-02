@@ -3,7 +3,7 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-1002 (2026-10-02 08:03 → ~13:41). The newest dated
+audio-reactive VJ app). This block is CURRENT as of s-rta-1002, BUT the END section "# >>> SESSION s-rta-1002b" supersedes its STATE and START HERE (read it first). The newest dated
 section is at the END of this file ("# >>> SESSION s-rta-1002"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
 "Playback Behaviour" and .harmony/binding-decisions.md (read before touching routines, decks, outputs, fit, tempo, video,
@@ -3646,3 +3646,33 @@ live lock free, no worktrees, no full-screen capture taken. The Boris page was o
 
 ## COUNTS — run them, never inherit them
 ctest 1114/1114. Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-1002b (2026-10-02 13:49 → ~17:45, secondary) — START HERE <<<
+(Supersedes the s-rta-1002 START HERE list. Cut short by the usage limit; three build lanes were TaskStop-ped mid-run.)
+## THE ONE-LINE VERSION
+Boris sent app-evaluation feedback BF1-BF10 (verbatim + answers: .harmony/boris-feedback-backlog.md, binding-decisions.md
+"2026-10-02 (s-rta-1002b)", BORIS_DECISIONS.md "Decks are boxes of clips"). Every feature plan + mkvidx was planned,
+attacked by a blind council, ruled and ADOPTED (.harmony/.reports/s-rta-1002b/plan-*.md, each ending in a HARMONY ADOPTION
+section). Merged: hyg (fa9604d) and mkvidx (649baf7, Pitfall 64; next free 65). ctest 1123/1123. Log: .harmony/s-rta-1002b-work.md.
+## START HERE, in order
+1. Resume the three STOPPED lanes (worktrees kept, work committed on lane branches; lane script = the s-rta-1002 lane.js
+   pattern, args in the work log LAUNCH rows): bf9b (decks are boxes of clips; FIRST — unblocks bf6, bf1 S2, bug X1,
+   tsan-r5) was in stage S0; ui (codec info + double-click rename) finished U1-U4 and was in r1 REVIEW (re-run reviews,
+   merge, visual critic panel; the on-screen probe G1b only with Boris OK); bf2 (sync dial engine) was in S1a (resume point
+   in the worktree report .harmony/.reports/s-rta-1002b/bf2.md).
+2. Then build (adopted, ready): bf10 MilkDrop canvas size, bf7 bars, bf45 envelopes, bf1 S1 record-to-clip; after bf9b:
+   bf6 Timeline, bf1 S2/S3, bug X1 (clip-cell click + Return clears the top layer and stops its routines — HIGH),
+   tsan-r5 (re-plan on the post-bf9b model; analyzer fixed 5e47d17; scenario-e-digest.md).
+3. mkvidx G6 / G7 live A/B PENDING (quiet machine needed).
+4. Boris page .harmony/.reports/s-rta-1002b/boris-checks.html (39 questions with defaults; opened). No answers yet.
+## RIG LESSONS (binding)
+- Boris uses this machine and this app: an Audio-DNA a lane did not start is his. My script quit his app at 14:37
+  (incident in the work log). Use .harmony/.reports/s-rta-1002b/wf/lock.sh (start_app records the pid; quit_app refuses
+  foreign pids; acquire_lock waits while his app runs). Probes that self-launch do not record the pid: identify a lane app
+  by its executable path (worktree build dir) before quitting it.
+- The architect agent type has maxTurns 120: long plans / rulings die SILENTLY (4 deaths). Prompts carry a TURN BUDGET
+  (skeleton by turn 8, rewrite every ~10, done by 90); big research goes to sonnet recon fact sheets first.
+- No on-screen windows from planners. Never prefix commands with cd (3 slips this session).
+## SCREEN STATE AT CLOSE
+The stopped bf2 lane left its own test app running (pid 17394, worktree binary): quit gracefully; 0 Audio-DNA windows,
+0 Output-named, 0 UserNotificationCenter windows; live + ctest locks released. Full-screen capture not taken (rule).
