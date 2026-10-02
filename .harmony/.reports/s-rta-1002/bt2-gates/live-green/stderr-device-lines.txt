@@ -1,0 +1,35 @@
+err-C.log:[AudioEngine] TEST-ONLY ADNA_AUDIO_DENY_DEVICES: MacBook Pro Microphone; MacBook Pro Speakers
+err-C.log:[AudioEngine] audio devices: input none, output none; skipped: "MacBook Pro Microphone" (test-denied; input), "MacBook Pro Speakers" (test-denied; output)
+err-C.log:[AudioEngine] Switched to mic input mode
+err-C.log:[AudioEngine] Switched to file playback mode
+err-C.log:[AudioEngine] Switched to mic input mode
+err-C.log:[AudioEngine] TEST-ONLY audio_deny: MacBook Pro Microphone
+err-C.log:[AudioEngine] re-applying the device policy (no-device)
+err-C.log:[AudioEngine] audio devices: input none, output "MacBook Pro Speakers" (bltn); skipped: "MacBook Pro Microphone" (test-denied; input)
+err-C.log:[AudioEngine] TEST-ONLY audio_deny: none
+err-C.log:[AudioEngine] re-applying the device policy (adopt-input)
+err-C.log:[AudioEngine] audio devices: input "MacBook Pro Microphone" (bltn), output "MacBook Pro Speakers" (bltn); skipped: none
+err-B.log:[AudioEngine] TEST-ONLY ADNA_AUDIO_DENY_DEVICES: MacBook Pro Microphone
+err-B.log:[AudioEngine] audio devices: input none, output "MacBook Pro Speakers" (bltn); skipped: "MacBook Pro Microphone" (test-denied; input)
+err-B.log:[AudioEngine] Switched to mic input mode
+err-B.log:[AudioEngine] Switched to file playback mode
+err-B.log:[AudioEngine] Switched to mic input mode
+err-B.log:[AudioEngine] TEST-ONLY audio_deny: none
+err-B.log:[AudioEngine] re-applying the device policy (adopt-input)
+err-B.log:[AudioEngine] audio devices: input "MacBook Pro Microphone" (bltn), output "MacBook Pro Speakers" (bltn); skipped: none
+err-A.log:[AudioEngine] audio devices: input "MacBook Pro Microphone" (bltn), output "MacBook Pro Speakers" (bltn); skipped: none
+err-A.log:[AudioEngine] Switched to mic input mode
+err-A.log:[AudioEngine] Switched to file playback mode
+err-A.log:[AudioEngine] Switched to mic input mode
+err-A.log:[AudioEngine] TEST-ONLY audio_deny: MacBook Pro Microphone
+err-A.log:[AudioEngine] re-applying the device policy (input-lost)
+err-A.log:[AudioEngine] audio devices: input none, output "MacBook Pro Speakers" (bltn); skipped: "MacBook Pro Microphone" (test-denied; input)
+err-A.log:[AudioEngine] TEST-ONLY audio_deny: none
+err-A.log:[AudioEngine] re-applying the device policy (adopt-input)
+err-A.log:[AudioEngine] audio devices: input "MacBook Pro Microphone" (bltn), output "MacBook Pro Speakers" (bltn); skipped: none
+err-A.log:[AudioEngine] TEST-ONLY audio_deny: MacBook Pro Microphone
+err-A.log:[AudioEngine] TEST-ONLY audio_deny: none
+err-A.log:[AudioEngine] TEST-ONLY audio_deny: none
+err-A.log:[AudioEngine] TEST-ONLY audio_stop: stopped "MacBook Pro Speakers" (the manager keeps it)
+err-A.log:[AudioEngine] re-applying the device policy (device-stopped)
+err-A.log:[AudioEngine] audio devices: input "MacBook Pro Microphone" (bltn), output "MacBook Pro Speakers" (bltn); skipped: none
