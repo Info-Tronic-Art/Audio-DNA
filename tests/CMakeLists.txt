@@ -3562,3 +3562,32 @@ if(APPLE)
     )
     apply_sanitizers(probe_deck_tab_dispatch)
 endif()
+
+# --- s-rta-1002b ui U2.1 (BF3; plan-ui.md U2.1 + ruling-ui.md AM9 / AM12): clipmedia:: -- the words for a clip's file
+# (cell tooltip, cell menu, Clip inspector rows, REST). Pure header (juce_core + Clip + VideoInfo); Clip's link closure.
+add_executable(test_clip_media_text
+    test_clip_media_text.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_clip_media_text PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_media_text PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_clip_media_text PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_clip_media_text PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_clip_media_text)
+catch_discover_tests(test_clip_media_text)
