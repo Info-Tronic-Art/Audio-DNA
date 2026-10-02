@@ -4,15 +4,18 @@
 // CrossfadeStartDetector / TriggerClipCmd + UndoManager).
 //   R1 [tsan] message-thread triggers / undo / clear / cancel vs the render clock + autopilot on one deck, plus a
 //      third (httplib-like) reader thread and live Layer copies.
-//   R2 [tsan] clip runtime fields: trigger writes vs the render transport write-back. The render side is a MIRROR
-//      of Renderer::syncMedia (Renderer.cpp is not linkable headless), written in plain assignment syntax on
-//      purpose: with Relaxed<> fields the same source becomes atomic operations.
+//   R2 [tsan] clip runtime fields: trigger writes vs the render transport write-back. The render side drives the
+//      REAL syncMedia entry points (src/render/ClipTransportSync.h pushIntent / writeBack -- the CAS write-back)
+//      against a fake player, as Renderer::syncMedia does with a VideoPlayer (Renderer.cpp is not linkable
+//      headless). At the T0 commit R2 was a plain-syntax mirror of the pre-lane syncMedia (its RED is recorded in
+//      the lane report); the fix round (ruling F5) switched it to the real entry points.
 //   R4 [tsan] tuple consistency and no lost fade under a paced trigger storm (invariants I1-I4, also checked in
 //      the normal build: a torn tuple or a lost trigger is a counted violation).
 // Registered with LABELS tsan + FAIL_REGULAR_EXPRESSION "WARNING: ThreadSanitizer" (tests/CMakeLists.txt): in a
 // -DADNA_SANITIZE=thread build a single data race fails the case; in a normal build only the value checks bite.
-// The tuple is only ever read through captureLayerRuntime (never a field), so this file compiles against both the
-// pre-lane five plain fields and the lane's one-word cell. Run under TSan: .harmony/probe-tsan-unit.sh.
+// The tuple is only ever read through captureLayerRuntime (never a field). Since the fix round R2 needs
+// ClipTransportSync.h, so the file no longer compiles against the pre-lane tree. Run under TSan:
+// .harmony/probe-tsan-unit.sh.
 #include <catch2/catch_test_macros.hpp>
 #include "model/Deck.h"
 #include "model/Autopilot.h"
@@ -23,6 +26,7 @@
 #include "render/LayerClock.h"
 #include "render/DeckClock.h"
 #include "render/CrossfadeHistory.h"
+#include "render/ClipTransportSync.h"
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -57,6 +61,25 @@ bool snapshotOk(const LayerRuntimeSnapshot& rt, int numColumns)
         return false;   // I1
     return true;
 }
+
+// R2's player (the concept ClipTransportSync drives, as VideoPlayer / ImageSequence): play state, playhead, seek; its
+// clock moves while playing and stops at the end of the media (as the real ones).
+struct FakePlayer
+{
+    bool playingState = false;
+    double head = 0.0;
+    bool isPlaying() const { return playingState; }
+    void setPlaying(bool p) { playingState = p; }
+    double getPlayheadPosition() const { return head; }
+    void seekTo(double t) { head = t; }
+    void advance(double step)
+    {
+        if (!playingState)
+            return;
+        head += step;
+        if (head >= 1.0) { head = 1.0; playingState = false; }
+    }
+};
 
 // The third reader (GET /api/composition / /api/state shape): the whole tuple plus plain-syntax reads of the clip
 // runtime fields and the layer opacity, for every layer.
@@ -205,41 +228,32 @@ TEST_CASE("R2 clip runtime fields: trigger writes vs render transport write-back
     deck.setClip(0, 0, videoClip("a"));
     deck.setClip(0, 1, videoClip("b"));
     deck.layers[0].getClipAt(1)->loopMode = Clip::LoopMode::OneShot;
+    for (int c = 0; c < 2; ++c)
+        deck.layers[0].getClipAt(c)->outPoint = 0.9f;   // inside the clip: writeBack's out-point branch runs
     Layer& L = deck.layers[0];
 
     std::atomic<bool> go{ false }, stop{ false };
     std::atomic<long> renderFrames{ 0 };
     double readerSink = 0.0;
 
-    // MIRROR of Renderer::syncMedia's video branch (Renderer.cpp, "Sync transport state from clip" .. OneShot stop)
-    // against a fake player: read `playing` (twice, as today), write the player clock into playheadPosition, write
-    // `playing` back from the player, test the out-point, OneShot stop; plus Autopilot's beatsPlayed increment.
+    // The GL thread's syncMedia shape on the REAL entry points: one tuple load, the active clip's player (one per
+    // column, owned by the GL thread like Renderer's), ClipTransportSync::pushIntent (read the intent once, push it),
+    // the player's advance, ClipTransportSync::writeBack (the playhead, the CAS write-back of `playing`, the out-point
+    // on the local playhead: clip 0 loops back to its in-point, clip 1 is a OneShot); plus Autopilot's beatsPlayed
+    // fetchAdd. The message thread's triggers / clears / hasBeenTriggered writes race all of it.
     std::thread render([&] {
         while (!go.load()) std::this_thread::yield();
-        bool playerPlaying = false;
-        double playerClock = 0.0;
+        FakePlayer players[2];
         while (!stop.load())
         {
-            if (Clip* c = L.getActiveClip())
+            const LayerRuntimeSnapshot rt = captureLayerRuntime(L);
+            if (Clip* c = L.getClipAt(rt.activeClipColumn))
             {
-                if (c->playing && !playerPlaying)
-                    playerPlaying = true;
-                else if (!c->playing)
-                    playerPlaying = false;
-                if (playerPlaying)
-                    playerClock = playerClock >= 1.0 ? 0.0 : playerClock + 0.01;
-                c->playheadPosition = playerClock;
-                c->playing = playerPlaying;
-                if (c->playheadPosition >= static_cast<double>(c->outPoint) - 0.001)
-                {
-                    if (c->loopMode == Clip::LoopMode::OneShot)
-                    {
-                        playerPlaying = false;
-                        c->playing = false;
-                    }
-                    playerClock = 0.0;
-                }
-                c->beatsPlayed = c->beatsPlayed + 1;
+                FakePlayer& player = players[rt.activeClipColumn];
+                const bool wanted = ClipTransportSync::pushIntent(*c, player);
+                player.advance(0.01);
+                ClipTransportSync::writeBack(*c, player, wanted);
+                c->beatsPlayed.fetchAdd(1);
             }
             renderFrames.fetch_add(1);
         }
