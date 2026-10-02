@@ -830,6 +830,51 @@ endif()
 apply_sanitizers(test_projectm_preset_manager)
 catch_discover_tests(test_projectm_preset_manager)
 
+# --- test_projectm_canvas_gl (BF10, s-rta-1002b, plan-bf10 I3 + ruling-bf10 amendments 10-12): the real
+# ProjectMSource renders the frozen MilkDrop fixtures (tests/fixtures/milkdrop/bf10_*.milk) through the patched
+# libprojectM in a PRIVATE CGL 4.1 context (no window, no drawable); the returned texture is decoded. T1-T6b:
+# fill, canvas change, live, no stretch, the caller's GL state, soft cut (+ across a canvas change). SKIPs loudly
+# on a machine without a GL pixel format.
+if(APPLE AND ProjectM_FOUND)
+    add_executable(test_projectm_canvas_gl
+        test_projectm_canvas_gl.cpp
+        ${SRC_DIR}/sources/ProjectMSource.cpp
+        ${SRC_DIR}/sources/ProceduralSource.cpp
+        ${SRC_DIR}/sources/PresetSelector.cpp
+        ${SRC_DIR}/sources/ProjectMPresetManager.cpp
+        ${SRC_DIR}/render/ShaderManager.cpp
+        ${SRC_DIR}/render/TextureManager.cpp
+        ${SRC_DIR}/render/LUTLoader.cpp
+        ${SRC_DIR}/render/FullscreenQuad.cpp
+    )
+    target_include_directories(test_projectm_canvas_gl PRIVATE ${SRC_DIR})
+    target_link_libraries(test_projectm_canvas_gl PRIVATE
+        Catch2::Catch2WithMain
+        juce::juce_core
+        juce::juce_opengl
+        ProjectM::ProjectM
+        "-framework OpenGL"
+    )
+    target_compile_definitions(test_projectm_canvas_gl PRIVATE
+        AUDIODNA_HAS_PROJECTM=1
+        AUDIODNA_MILKDROP_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/milkdrop"
+        _USE_MATH_DEFINES
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+        GL_SILENCE_DEPRECATION
+    )
+    if(NOT MSVC)
+        target_compile_options(test_projectm_canvas_gl PRIVATE
+            -Wno-old-style-cast
+            -Wno-conversion
+            -Wno-sign-conversion
+        )
+    endif()
+    apply_sanitizers(test_projectm_canvas_gl)
+    catch_discover_tests(test_projectm_canvas_gl)
+endif()
+
 # --- syphon-check (headless Syphon server-discovery verification CLI) ---
 # Not a Catch2 unit test: a standalone gate tool that confirms a running
 # Audio-DNA instance is announcing a Syphon server (syphon_check.m). Needs
