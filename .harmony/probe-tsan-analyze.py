@@ -16,19 +16,29 @@ Classes (G3.2):
                 thread's creation stack;
   UNATTRIBUTED  not APP, and an access stack is empty or "[failed to restore the stack]";
   JUCE-SYSTEM   everything else.
-FAMILY keys (APP reports), judged by the racing source line (and function) of the top src/ frame of each access
-stack -- printed for every unique so each key is checkable; a deeper src/ frame is used only when the top ones name
-nothing (marked "deep"):
+FAMILY keys (APP reports), judged by the racing source line (and, only when the line names no field, the function)
+of the top src/ frame of each access stack -- printed for every unique so each key is checkable; a deeper src/ frame
+is used only when the top ones name nothing (marked "deep"):
   A  the location is std::__1::cerr, or an access stack runs in a libc++ ostream frame, with at least one side (its
-     top src/ access frame, else its thread's creation frame) in a file of T7's converted list. Both sides in the R8
+     top src access frame, else its thread's creation frame) in a file of T7's converted list. Both sides in the R8
      residual files (audio/AudioEngine.cpp, audio/DeviceGuard.cpp; adoption H3) -> PRE-EXISTING-R8 (listed, not a
      lane failure); any other cerr race -> A-UNLISTED (review).
-  B  the Layer trigger tuple, or clip playing / hasBeenTriggered / beatsPlayed (incl. the trigger / undo / autopilot /
-     fade functions that write them).
+  B  the Layer trigger tuple ONLY (the fields LayerRuntimeCell holds: activeClipColumn / previousClipColumn /
+     crossfadeProgress / pendingTriggerColumn + its snap override, and the trigger / undo / fade functions that write
+     them) plus clip playing / hasBeenTriggered / beatsPlayed. A config scalar read or written inside one of those
+     functions is NOT B: the racing field decides, not the function that holds the line (s-rta-1002b).
   C  clip playheadPosition.
   D  the 23 manualRef scalars, manualWriteCore's write, or eff().
   E  Composition::activeDeckIndex.
-  -  an APP report none of these name (review).
+Out-of-lane classes (ruling-tsan.md amendment 1, follow-up lane "tsan-r5"; listed, never a lane-family failure):
+  R5 config scalar: Layer visible / bypassed / solo / muted / autopilotEnabled / transitionSpeed / blendMode / keying /
+     feedback ..., Clip speed / reverse / loopMode / inPoint / outPoint / beatSnapMode, effect paramValues / dryWet,
+     source params, macros, Composition outputWidth / outputHeight / globalTransitionSpeed / quantizeMode.
+  R7 httplib reader: an access stack, or the creation stack of its (non-main) thread, with an ApiServer / TestServer /
+     httplib frame (the unfenced /api reads). The main thread never counts: it runs ApiServer's callAsync lambdas. It ranks BELOW E C D B: an httplib read of a lane-fixed field is still that family.
+  UNCLASSIFIED  an APP report none of the above names: printed with its top src frames, never folded into a family.
+Priority when a unique names several: E C D B R7 R5 (the rest print as "also ...").
+`--self-test` runs the synthetic classification cases and exits.
 """
 import argparse, collections, glob, json, os, re, subprocess, sys
 
@@ -42,7 +52,7 @@ MANUAL_FIELDS = ("opacity", "positionX", "positionY", "layerScale", "layerRotati
                  "clipOpacity", "scale", "rotation", "anchorX", "anchorY", "masterOpacity", "masterSpeed",
                  "masterSignal", "compPositionX", "compPositionY", "compScale", "compRotation", "compAnchorX",
                  "compAnchorY")
-FAMILY_RULES = [   # (family, regex over the source line, regex over the function name)
+FAMILY_RULES = [   # (family, regex over the source line, regex over the function name -- used only if no line names a field)
     ("E", r"\bactiveDeckIndex\b", r"$^"),
     ("C", r"\bplayheadPosition\b", r"$^"),
     ("D", r"\bmanualRef\b|\beff\s*\(|\.manual\b|->manual\b|\b(" + "|".join(MANUAL_FIELDS) + r")\b",
@@ -54,8 +64,19 @@ FAMILY_RULES = [   # (family, regex over the source line, regex over the functio
      r"TriggerClipCmd|ClearActiveClipCmd|Layer::trigger|Layer::clearActiveClip|Layer::releaseMomentary"
      r"|processPendingTrigger|LayerClock|applyLayerRuntime|captureLayerRuntime|cancelPendingTriggers|Autopilot::"
      r"|incomingImagePending|CrossfadeStartDetector|ClipTransportSync|Deck::triggerColumn"),
+    ("R5", r"\b(visible|bypassed|solo|muted|autopilotEnabled|autopilotEndOfVideo|autopilotLoops|transitionSpeed"
+           r"|blendMode|keyingMode|feedback|speed|reverse|loopMode|inPoint|outPoint|startOffset|beatSnapMode|beatSnap"
+           r"|paramValues|dryWet|effDryWet|paramLive|sourceParams|presetBeatsPlayed|macros?|outputWidth|outputHeight"
+           r"|globalTransitionSpeed|quantizeMode)\b|\blayer(\.|->)type\b",
+     r"applyLayerFlag"),
 ]
-PRIORITY = "ECDB"
+PRIORITY = ["E", "C", "D", "B", "R7", "R5"]
+FAMILY_ORDER = ["A", "B", "C", "D", "E", "R5", "R7"]   # per-arm summary order; the rest follow
+HTTP_FILES = {"ApiServer.cpp", "TestServer.cpp", "httplib.h"}
+
+
+def is_http_frame(fr):
+    return fr["file"] in HTTP_FILES or re.match(r"(httplib|ApiServer|TestServer)::", fr["func"]) is not None
 
 
 def frames_of(lines):
@@ -161,7 +182,103 @@ class Tree:
         return " || ".join(out)
 
 
+def classes_of(fr, line_of):
+    """The family names ONE src frame names: by its source line; by its function only if the line names none."""
+    text = line_of(fr["file"], fr["line"])
+    got = {name for name, lre, fre in FAMILY_RULES if re.search(lre, text)}
+    if not got:
+        got = {name for name, lre, fre in FAMILY_RULES if re.search(fre, fr["func"])}
+    return got
+
+
+def family_of(sides, loc_hdr, line_of):
+    """(family, note) of an APP report. sides: dicts with top, via, srcframes, ostream, http (see main())."""
+    if "'std::__1::cerr'" in loc_hdr or any(s["ostream"] for s in sides):
+        files = [s["top"]["file"] if s["top"] else None for s in sides]
+        if any(f in T7_LIST for f in files):
+            return "A", ""
+        if files and all(f in R8_LIST for f in files):
+            return "PRE-EXISTING-R8", ""
+        return "A-UNLISTED", ""
+    got, note = set(), ""
+    for s in sides:
+        if s["via"] == "access" and s["top"] is not None:
+            got |= classes_of(s["top"], line_of)
+    if any(s["http"] for s in sides):
+        got.add("R7")
+    if not got:
+        for s in sides:
+            for fr in s["srcframes"]:
+                got |= classes_of(fr, line_of)
+        note = "deep" if got else ""
+    if not got:
+        tops = ["%s | %s" % (s["hdr"][:40], " <- ".join("%s:%s %s" % (f["file"], f["line"], f["func"][:50])
+                for f in s["srcframes"][:4]) or "(no src/ frame)") for s in sides]
+        return "UNCLASSIFIED", "top src frames: " + " || ".join(tops)
+    fam = next(x for x in PRIORITY if x in got)
+    if len(got) > 1:
+        note = (note + " " if note else "") + "also " + " ".join(sorted(got - {fam}))
+    return fam, note
+
+
+def self_test():
+    """Synthetic classification cases (no TSan data needed). Exit non-zero on the first failure."""
+    def fr(file, line, func="f()"):
+        return {"file": file, "line": str(line), "func": func, "mod": "Audio-DNA"}
+
+    def side(top, http=False, ostream=False):
+        return {"hdr": "x", "thr": "T1", "top": top, "via": "access", "srcframes": [top] if top else [],
+                "ostream": ostream, "http": http}
+    lines = {("MainComponent.cpp", "1"): 'else if (flag == "autopilot") layer->autopilotEnabled = value;',
+             ("Autopilot.cpp", "2"): "if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)",
+             ("Layer.h", "3"): "triggerClipImmediate(column);",
+             ("Renderer.cpp", "4"): "if (!layer || layer->activeClipColumn < 0) continue;",
+             ("TriggerCommands.h", "5"): "void execute() override { apply(after_, targetPlayingAfter_); }",
+             ("ApiServer.cpp", "6"): "j[\"name\"] = clip.name;",
+             ("Renderer.cpp", "7"): "DeckClock::tick(other, realDt, cb);",
+             ("Odd.cpp", "8"): "doSomething(x);",
+             ("Layer.h", "9"): "const float speed = transitionSpeed;"}
+    lo = lambda f, n: lines.get((f, str(n)), "")
+    cases = [
+        ("config scalar read in Autopilot:: is R5, not B (s-rta-1002 F76)",
+         [side(fr("Autopilot.cpp", 2, "Autopilot::processFrame")), side(fr("MainComponent.cpp", 1, "MainComponent::applyLayerFlag"))],
+         "R5"),
+        ("tuple field read vs trigger write is B",
+         [side(fr("Renderer.cpp", 4, "Renderer::renderOpenGL")), side(fr("Layer.h", 3, "Layer::triggerClip"))], "B"),
+        ("function-only match (undo command) is still B",
+         [side(fr("Renderer.cpp", 4, "Renderer::renderOpenGL")), side(fr("TriggerCommands.h", 5, "TriggerClipCmd::execute"))],
+         "B"),
+        ("config scalar read inside a trigger function is R5",
+         [side(fr("Layer.h", 9, "Layer::triggerClip")), side(fr("MainComponent.cpp", 1, "MainComponent::applyLayerFlag"))],
+         "R5"),
+        ("httplib reader of an unnamed field is R7",
+         [side(fr("ApiServer.cpp", 6, "ApiServer::handle"), http=True), side(fr("Odd.cpp", 8, "Odd::run"))], "R7"),
+        ("httplib reader of a tuple field stays B (R7 ranks below the lane families)",
+         [side(fr("ApiServer.cpp", 6, "ApiServer::handle"), http=True), side(fr("Layer.h", 3, "Layer::triggerClip"))],
+         "B"),
+        ("nothing named is UNCLASSIFIED",
+         [side(fr("Odd.cpp", 8, "Odd::run")), side(fr("Renderer.cpp", 7, "Renderer::renderOpenGL"))], "UNCLASSIFIED"),
+    ]
+    bad = 0
+    for name, frm, want in [
+            ("httplib.h frame is http", {"file": "httplib.h", "func": "x"}, True),
+            ("ApiServer::start frame is http", {"file": "ApiServer.cpp", "func": "ApiServer::start()"}, True),
+            ("callAsync lambda wrapper naming ApiServer in a template arg is not http",
+             {"file": "function.h", "func": "std::__1::__function::__func<ApiServer::handlePerfPlay(httplib::Request const&)::$_0>"},
+             False)]:
+        ok = is_http_frame(dict(frm, line="1", mod="Audio-DNA")) == want
+        print("%-4s %s" % ("ok" if ok else "FAIL", name))
+        bad += not ok
+    for name, sides, want in cases:
+        got, note = family_of(sides, "", lo)
+        print("%-4s %s -> %s%s" % ("ok" if got == want else "FAIL", name, got, " (%s)" % note if note else ""))
+        bad += got != want
+    sys.exit(1 if bad else 0)
+
+
 def main():
+    if "--self-test" in sys.argv:
+        self_test()
     ap = argparse.ArgumentParser()
     ap.add_argument("sweep")
     ap.add_argument("--src", action="append", default=[])
@@ -250,38 +367,11 @@ def main():
                 top, via = (cf[0], "thread-creation") if cf else (None, "-")
             sides.append({"hdr": x["hdr"], "thr": x["thr"], "top": top, "via": via, "srcframes": srcfr,
                           "ostream": any(fr["file"] in OSTREAM_FILES for fr in x["frames"]),
+                          "http": x["thr"] != "main thread" and any(is_http_frame(fr) for fr in x["frames"] + t.get("frames", [])),
                           "thread": t.get("desc", "")})
         fam, famnote = "", ""
         if cls == "APP":
-            loc = r["loc"]["hdr"] if r["loc"] else ""
-            if "'std::__1::cerr'" in loc or any(s["ostream"] for s in sides):
-                files = [s["top"]["file"] if s["top"] else None for s in sides]
-                if any(f in T7_LIST for f in files):
-                    fam = "A"
-                elif files and all(f in R8_LIST for f in files):
-                    fam = "PRE-EXISTING-R8"
-                else:
-                    fam = "A-UNLISTED"
-            else:
-                def fams_of(frs):
-                    got = set()
-                    for fr in frs:
-                        text = tree.line(fr["file"], fr["line"])
-                        for name, lre, fre in FAMILY_RULES:
-                            if re.search(lre, text) or re.search(fre, fr["func"]):
-                                got.add(name)
-                    return got
-                got = set()
-                for s in sides:
-                    if s["via"] == "access" and s["top"] is not None:
-                        got |= fams_of([s["top"]])
-                if not got:
-                    for s in sides:
-                        got |= fams_of(s["srcframes"])
-                    famnote = "deep" if got else ""
-                fam = next((x for x in PRIORITY if x in got), "-")
-                if len(got) > 1:
-                    famnote = (famnote + " " if famnote else "") + "also " + "".join(sorted(got - {fam}))
+            fam, famnote = family_of(sides, r["loc"]["hdr"] if r["loc"] else "", tree.line)
         e["cls"], e["fam"], e["famnote"], e["sides"] = cls, fam, famnote, sides
         for launch in e["_launch_reports"]:
             per_launch[launch]["classes"][cls] += 1
@@ -324,7 +414,7 @@ def main():
                     fam_u[e["fam"] or e["cls"]].add(i)
                     fam_l[e["fam"] or e["cls"]].add((l, s))
         scen_n = collections.Counter(v["scen"] for l, v in launches.items() if v["arm"] == arm)
-        for f in sorted(fam_u, key=lambda x: ("ABCDE".find(x) if x in "ABCDE" else 9, x)):
+        for f in sorted(fam_u, key=lambda x: (FAMILY_ORDER.index(x) if x in FAMILY_ORDER else 99, x)):
             by = collections.Counter(s for l, s in fam_l[f])
             print("  %-16s uniques %-3d launches %-3d  %s" % (f, len(fam_u[f]), len(fam_l[f]),
                   " ".join("%s %d/%d" % (s, by[s], scen_n.get(s, 0)) for s in sorted(by))))
