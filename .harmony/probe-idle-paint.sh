@@ -2,7 +2,7 @@
 # probe-idle-paint.sh -- s-rta-0928b idlepaint (.harmony/.reports/s-rta-0928b/plan-idlepaint.md section 3.2 + HARMONY
 # ADOPTION I1-I8). Live witness that the message thread is quiet at idle: JUCE 8's mac peer redraws the UNION of every
 # rect repainted since the last vblank, so four always-animating widgets at opposite window edges used to repaint the
-# whole window 30 times a second (Pitfall NN). Rows, fixtures and thresholds: the docstring of .harmony/probe-idle-paint.py
+# whole window 30 times a second (Pitfall 57). Rows, fixtures and thresholds: the docstring of .harmony/probe-idle-paint.py
 # and .harmony/probe-idle-paint.json.
 #
 # Clone of .harmony/probe-seq-vram.sh's header (live-lock gate / refuse / port check / venv discovery / fresh out dir /

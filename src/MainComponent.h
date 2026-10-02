@@ -159,7 +159,7 @@ private:
     // survives, nothing is closed). s-rta-0929 asyncload: the three loads share
     // one STAGED flow (beginStagedOpen, below) -- openMediaForDeck is gone.
     void appendDeckFromFile(const juce::File& file);
-    // s-rta-0929 asyncload (Pitfall NN): a composition / deck load is STAGED -- its video players open on MediaOpener's
+    // s-rta-0929 asyncload (Pitfall 58): a composition / deck load is STAGED -- its video players open on MediaOpener's
     // pool, each landing writes the STAGED clip (never a live Clip) and installs the player under its re-minted id; the
     // last landing runs the completion (staged sequences opened, then today's swap / InsertDeckCmd / label). One staged
     // load at a time: a newer Composition load, swapCompositionModel (any caller), an explicit cancel or destruction
@@ -468,7 +468,7 @@ private:
     BindingManager bindingManager_;
     std::unique_ptr<BindingOverlay> bindingOverlay_;
     std::unique_ptr<MidiLearnOverlay> midiLearnOverlay_;
-    // s-rta-0928b idlepaint (Pitfall NN): the two always-animating full-width panels draw in their own CoreGraphics
+    // s-rta-0928b idlepaint (Pitfall 57): the two always-animating full-width panels draw in their own CoreGraphics
     // layers; an in-peer overlay crossing one hands it back to JUCE painting. Declared AFTER signalBar_,
     // waveformDisplay_ and the two overlays (destroyed BEFORE them); the watch before the hosts that use it.
     std::unique_ptr<OverlayWatch> overlayWatch_;

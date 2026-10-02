@@ -119,7 +119,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
-**Outputs**: the Output menu and the TopBar "Outputs" button are ONE item list (`OutputManager::populateMenu`); an output window never takes the keyboard; Cmd+Shift+Esc = all off, Cmd+` = app to front, Cmd+F = main display, plain Esc never touches outputs; the app never opens an output by itself -- the saved set (settings.json `outputs`, beside `milkDropPresetDir`, both via `AppSettings`) opens only by Output > Restore Last Outputs; an unplugged display's output returns when it is plugged back (`docs/claude/integration.md`).
+**Outputs**: the Output menu and the TopBar "Outputs" button are ONE item list; an output window never takes the keyboard; Cmd+Shift+Esc = all off, plain Esc never touches outputs; the app never opens an output by itself (only Output > Restore Last Outputs does; other keys, settings.json keys, hot-plug return: `docs/claude/integration.md` "Output windows").
 
 **Preview/Output panel never reshapes the picture**: it letter/pillar-boxes the composition canvas, never stretches it; the Resolution dropdown never names a size the canvas is not (`docs/claude/rendering.md`).
 
@@ -220,6 +220,7 @@ the named area; this index is triage-only.
 56. Video decodes off the GL thread: the render thread picks the newest ring frame <= its clock and never waits; a hold is not pending -- before touching VideoPlayer or syncMedia's video branch.
 57. The mac peer repaints the UNION of every dirty rect -- before adding any timer-driven repaint().
 58. A load is staged off the message thread; a command during the window acts on the live composition -- before touching loadComposition / appendDeckFromFile / duplicateDeck / the load REST handler.
+59. A model-driven widget's change test compares what it PAINTS, never what it reads -- before adding a timer-driven `repaint()` to a widget that shows a model value.
 60. Video uploads are budgeted, fenced IOSurface blits; the shown slot stays the reader's -- before touching `uploadToTexture`, `releaseGL` or a ring release.
 61. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
 62. Reverse / ping-pong video = the decode thread's GOP cache + a direction-aware pick -- before touching `decodeStep`, `VideoRing::pick`, a direction change or a keyframe gate.

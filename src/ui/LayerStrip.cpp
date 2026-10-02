@@ -776,7 +776,7 @@ void LayerStrip::timerCallback()
 
 void LayerStrip::timerTick()
 {
-    // s-rta-0928b idlepaint (Pitfall NN): JUCE's mac peer repaints the UNION of every rect repainted since the last
+    // s-rta-0928b idlepaint (Pitfall 57): JUCE's mac peer repaints the UNION of every rect repainted since the last
     // vblank, so a per-tick repaint here made the whole window repaint 30 times a second. The transport rect repaints
     // only when what it paints changed; the clip-name box paints nothing time-varying (updateClipName() repaints it).
     updateTransportView();

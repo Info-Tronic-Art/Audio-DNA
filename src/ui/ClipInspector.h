@@ -57,7 +57,7 @@ public:
 
     void refresh();
 
-    // s-rta-0928b idlepaint (Pitfall NN): EVERY input paint() / paintTimeline() / paintSectionHeader() read. refresh()
+    // s-rta-0928b idlepaint (Pitfall 57): EVERY input paint() / paintTimeline() / paintSectionHeader() read. refresh()
     // (10 Hz) repaints only when it changes; the child widgets repaint themselves. A superset is fine; a missing field
     // is a stale inspector -- add, never remove. Public for tests/test_clip_inspector_paint_key.cpp.
     struct PaintKey

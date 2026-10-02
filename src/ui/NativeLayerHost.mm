@@ -1,4 +1,4 @@
-// s-rta-0928b idlepaint (Pitfall NN): see NativeLayerHost.h. macOS only; built without ARC (like JUCE's own Obj-C++).
+// s-rta-0928b idlepaint (Pitfall 57): see NativeLayerHost.h. macOS only; built without ARC (like JUCE's own Obj-C++).
 #import <AppKit/AppKit.h>                          // before JUCE: its CoreGraphics helpers use AppKit types
 #import <objc/message.h>                           // (and its ObjC helpers the runtime)
 #import <objc/runtime.h>

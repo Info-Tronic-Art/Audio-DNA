@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <ctime>
 
-// s-rta-0928b idlepaint (Pitfall NN): witnesses of WHO repaints at idle. Relaxed atomics, bumped on the message thread,
+// s-rta-0928b idlepaint (Pitfall 57): witnesses of WHO repaints at idle. Relaxed atomics, bumped on the message thread,
 // read by GET /api/debug/ui_paint (TEST_SERVER builds). No behaviour depends on them.
 namespace uipaint {
 enum Layer : int { Waveform = 0, SignalBar = 1, LayerCount = 2 };
