@@ -2,12 +2,14 @@
 // ruling-tsan.md amendments 4 / 5 / 10). The Layer trigger tuple as ONE atomic word (LayerRuntimeCell, src/model/
 // Layer.h): pack / unpack, the exact transition pair every trigger returns, the compare-exchange that keeps a stale
 // GL-thread write from erasing a trigger, a cancelled queued trigger never firing, value copies, the activation-tail
-// ordering contract, and the momentary release. GREEN-only (normal build); the teeth are the named mutants of
-// amendment 16 (casRuntime as a plain store; releaseMomentary without its pending branch; the activation tail after
-// the CAS).
+// ordering contract, and the momentary release; T3 (B2): the GL thread's fade tick (LayerClock::tick) adopting a
+// concurrent trigger, and the amendment-4 contention test. GREEN-only (normal build); the teeth are the named
+// mutants of amendment 16 (casRuntime as a plain store; tick as a plain store; releaseMomentary without its pending
+// branch; the activation tail after the CAS).
 #include <catch2/catch_test_macros.hpp>
 #include "model/Deck.h"
 #include "core/DeckCommands.h"
+#include "render/LayerClock.h"
 #include <atomic>
 #include <chrono>
 #include <climits>
@@ -305,4 +307,101 @@ TEST_CASE("releaseMomentary: a release after the trigger fired clears, as before
     CHECK(t.after.activeClipColumn == -1);
     CHECK(t.after.previousClipColumn == 1);
     CHECK(L.clips[1]->playing == false);
+}
+
+TEST_CASE("LayerClock::tick on a stale tuple after a concurrent trigger adopts it and keeps the new fade's previous",
+          "[layer_runtime][layer_clock]")
+{
+    // The GL thread loaded the tuple near the END of a fade (its tick would clear previous) ...
+    Layer L = restingLayer();
+    L.setRuntime({ 1, 0, 0.95f, -1, Clip::BeatSnapMode::Off });
+    LayerRuntimeSnapshot rt = L.runtime();
+    // ... the message thread triggers column 2 (a NEW fade from column 1) ...
+    const auto trig = L.triggerClip(2);
+    REQUIRE(trig.after == LayerRuntimeSnapshot{ 2, 1, 0.0f, -1, Clip::BeatSnapMode::Off });
+    // ... and the GL thread publishes its tick from the stale tuple: it must lose, and adopt the trigger's tuple.
+    CHECK(LayerClock::advanced(rt, L.transitionSpeed, 0.1f) == LayerRuntimeSnapshot{ 1, -1, 1.0f, -1,
+                                                                                      Clip::BeatSnapMode::Off });
+    CHECK_FALSE(LayerClock::tick(L, rt, 0.1f));
+    CHECK(rt == trig.after);                          // the caller's tuple is the trigger's (adopt), un-advanced
+    CHECK(L.runtime() == trig.after);                 // the trigger stands
+    CHECK(L.runtime().previousClipColumn == 1);       // the new fade still fades FROM column 1
+    // The next frame's tick advances the adopted fade normally.
+    CHECK(LayerClock::tick(L, rt, 0.1f));
+    CHECK(rt == LayerRuntimeSnapshot{ 2, 1, 0.2f, -1, Clip::BeatSnapMode::Off });
+    CHECK(L.runtime() == rt);
+    // No fade: nothing to publish, no CAS, true.
+    L.setRuntime({ 2, -1, 1.0f, -1, Clip::BeatSnapMode::Off });
+    LayerRuntimeSnapshot idle = L.runtime();
+    CHECK(LayerClock::tick(L, idle, 0.1f));
+    CHECK(idle == L.runtime());
+}
+
+TEST_CASE("contention: GL-thread fade ticks and beat-fired triggers vs a message-thread trigger storm",
+          "[layer_runtime][layer_clock]")
+{
+    // Ruling amendment 4. Two threads, a start barrier, until the tick has adopted at least once (or 2 s):
+    //  - the GL thread loads the tuple, checks R4's I1 / I2 on it, ticks the fade (LayerClock::tick, ONE CAS, counted
+    //    adopts) and calls processPendingTrigger(0, 0, 16) (a queued trigger fires on every call);
+    //  - the message thread triggers the columns cyclically (never a retrigger), alternately immediate and queued
+    //    (forced Beat snap); after a queued one it waits until the GL thread fired it, so the activation order stays
+    //    cyclic and I2 stays exact. Every message-thread transition must equal its intent.
+    // Fades never end inside the run (transitionSpeed 1000 s), so every GL tick is a real CAS a trigger can beat.
+    Deck deck;   // heap-allocated Layer (Deck::initDefault), as R4
+    deck.numColumns = 4;
+    deck.initDefault();
+    for (int c = 0; c < 4; ++c)
+        deck.setClip(0, c, Clip{});
+    Layer& L = deck.layers[0];
+    L.transitionSpeed = 1000.0f;
+    L.setRuntime({ 0, -1, 1.0f, -1, Clip::BeatSnapMode::Off });
+
+    std::atomic<int> arrived{ 0 };
+    std::atomic<bool> stop{ false };
+    std::atomic<long> adopts{ 0 }, ticks{ 0 }, i1{ 0 }, i2{ 0 }, fired{ 0 };
+    std::thread render([&] {
+        arrived.fetch_add(1);
+        while (arrived.load() < 2) std::this_thread::yield();
+        while (!stop.load())
+        {
+            LayerRuntimeSnapshot rt = L.runtime();
+            if (rt.activeClipColumn >= 0 && rt.previousClipColumn == rt.activeClipColumn)
+                i1.fetch_add(1);
+            if (rt.previousClipColumn != -1 && rt.previousClipColumn != (rt.activeClipColumn + 3) % 4)
+                i2.fetch_add(1);
+            if (!LayerClock::tick(L, rt, 0.001f))
+                adopts.fetch_add(1);
+            ticks.fetch_add(1);
+            if (L.processPendingTrigger(0, 0, 16).changed())
+                fired.fetch_add(1);
+        }
+    });
+
+    arrived.fetch_add(1);
+    while (arrived.load() < 2) std::this_thread::yield();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    long intentMismatches = 0, triggers = 0;
+    bool stalled = false;
+    for (int i = 1; adopts.load() == 0 && std::chrono::steady_clock::now() < deadline && !stalled; ++i)
+    {
+        const int col = i % 4;
+        const bool queued = (i % 2) == 0;
+        const auto t = L.triggerClip(col, queued ? Clip::BeatSnapMode::Beat : Clip::BeatSnapMode::Off);
+        ++triggers;
+        if (queued ? t.after.pendingTriggerColumn != col : t.after.activeClipColumn != col)
+            ++intentMismatches;
+        if (queued)
+            while (L.runtime().activeClipColumn != col)
+                if (std::chrono::steady_clock::now() > deadline + std::chrono::seconds(5)) { stalled = true; break; }
+    }
+    stop.store(true);
+    render.join();
+
+    INFO("triggers " << triggers << ", GL ticks " << ticks.load() << ", adopts " << adopts.load() << ", fired "
+         << fired.load() << "; intent mismatches " << intentMismatches << ", I1 " << i1.load() << " I2 " << i2.load());
+    REQUIRE_FALSE(stalled);
+    CHECK(intentMismatches == 0);
+    REQUIRE(adopts.load() > 0);   // the adopt path ran
+    CHECK(i1.load() == 0);
+    CHECK(i2.load() == 0);
 }

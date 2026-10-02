@@ -120,6 +120,12 @@ public:
     void detachActiveDeckFenced() { activeDeck_.detachFenced(); }
     int64_t getFenceHoldFrames() const { return fenceHoldFrames_.load(std::memory_order_relaxed); }
     int64_t getFenceBlackFrames() const { return fenceBlackFrames_.load(std::memory_order_relaxed); }
+    // Lane tsan (s-rta-1002; ruling amendment 13): the GL thread's writes of the Layer trigger tuple (cumulative,
+    // /api/state): queued triggers it fired on a beat, autopilot advances it applied, and fade ticks that lost their
+    // compare-exchange to a concurrent trigger and adopted its tuple (LayerClock::tick; reported, never a bar).
+    uint64_t getRenderPendingFired() const { return renderPendingFired_.load(std::memory_order_relaxed); }
+    uint64_t getRenderAutopilotAdvances() const { return renderAutopilotAdvances_.load(std::memory_order_relaxed); }
+    uint64_t getRenderTupleAdopts() const { return renderTupleAdopts_.load(std::memory_order_relaxed); }
 
     // P21: Set composition pointer for persistent layer rendering across decks.
     void setComposition(Composition* comp) { composition_ = comp; }
@@ -569,6 +575,13 @@ private:
     // s-rta-0928b mediaopen: fenced deck-less frames -- hold = re-presented the canvas; black = could not (no canvas yet)
     // or did not hold, and fell to the "nothing to render" path.
     std::atomic<int64_t> fenceHoldFrames_{ 0 }, fenceBlackFrames_{ 0 };
+    // Lane tsan (amendment 13): written on the GL thread only (relaxed fetch_add), read by /api/state.
+    std::atomic<uint64_t> renderPendingFired_{ 0 }, renderAutopilotAdvances_{ 0 }, renderTupleAdopts_{ 0 };
+    void countAutopilot(const Autopilot::FrameReport& r)
+    {
+        renderPendingFired_.fetch_add(r.pendingFired, std::memory_order_relaxed);
+        renderAutopilotAdvances_.fetch_add(r.advances, std::memory_order_relaxed);
+    }
     Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
     // Beat-synced clip advancement: one Autopilot per deck INDEX (s-rta-0926b plan4 T5) -- the active deck's
     // and, every frame, the decks that are not on screen (never one instance for two decks: Pitfall 38).

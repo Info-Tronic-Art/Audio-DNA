@@ -87,6 +87,11 @@ public:
     int framePendingImages() const { return pendingImagesThisFrame_; }
     void notePendingImage() { ++pendingImagesThisFrame_; }
 
+    // Lane tsan (s-rta-1002; ruling amendment 13): fade ticks that lost their compare-exchange to a concurrent trigger
+    // and adopted its tuple (LayerClock::tick returned false) since the previous call. GL thread only: the Renderer
+    // drains it once per frame into its /api/state counter render_tuple_adopts.
+    uint64_t takeTupleAdopts() { const uint64_t n = tupleAdopts_; tupleAdopts_ = 0; return n; }
+
     // s-rta-0928 R1.2: /api/state (any thread; relaxed atomics written on the GL thread).
     int64_t getImageHoldFrames() const { return imageHoldFrames_.load(std::memory_order_relaxed); }
     int64_t getImageSkipFrames() const { return imageSkipFrames_.load(std::memory_order_relaxed); }
@@ -287,7 +292,9 @@ private:
     // C1 (Harmony adoption): a crossfade onto an image that is still decoding does not advance -- the dissolve starts
     // when the picture lands. True only while the layer fades and its incoming image is not resident, or its incoming
     // image sequence has nothing to show yet (renderleft-fix). No side effect.
-    bool incomingImagePending(const Layer& layer, const Clip* clip) const;
+    // rt: the layer's tuple as loaded ONCE for this layer this frame (lane tsan).
+    bool incomingImagePending(const Layer& layer, const LayerRuntimeSnapshot& rt, const Clip* clip) const;
+    uint64_t tupleAdopts_ = 0;   // GL thread only (takeTupleAdopts)
 
     std::atomic<int64_t> imageHoldFrames_{ 0 };
     std::atomic<int64_t> imageSkipFrames_{ 0 };
@@ -513,15 +520,18 @@ private:
     // outgoingKey: LayerStateKey::outgoingChain of the layer -- the outgoing
     // clip's chain keeps its own temporal buffer / frame ring for the whole
     // fade, never the incoming clip's (s-rta-0926b R1, handOverClipHistory).
-    GLuint applyTransition(Layer& layer, uint64_t outgoingKey, GLuint newClipTex, float time,
-                           ShaderManager& shaderMgr, FullscreenQuad& quad,
+    // rt: the layer's tuple as loaded once this frame (progress / outgoing column / incoming column; lane tsan).
+    GLuint applyTransition(Layer& layer, const LayerRuntimeSnapshot& rt, uint64_t outgoingKey, GLuint newClipTex,
+                           float time, ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
 
     // P14 + S167-L4b DT-FIX: advance a layer's clip-to-clip crossfade by the
     // real frame delta (see compositeDeck()'s header comment). Called once per
     // frame for every visible layer that is composited, active deck or
-    // persistent (s-rta-0926b R4).
-    static void advanceCrossfade(Layer& layer, float dt);
+    // persistent (s-rta-0926b R4). Lane tsan: publishes from the tuple `rt` the
+    // caller loaded (LayerClock::tick, ONE compare-exchange); false = a trigger
+    // landed since the load and rt is now its tuple (adopt, counted).
+    bool advanceCrossfade(Layer& layer, LayerRuntimeSnapshot& rt, float dt);
 
     // s-rta-0926b R4: every stage an Opaque/Transparent layer applies to its
     // active clip's texture before compositing -- clip transform + opacity,
@@ -529,7 +539,9 @@ private:
     // transform. ONE function for the active deck (compositeDeck) and for
     // persistent layers of other decks (compositePersistentLayers), so a
     // persistent layer renders like the same layer would on the active deck.
-    GLuint renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,
+    // rt: the layer's tuple as loaded once this frame (after its fade tick).
+    GLuint renderLayerStages(Layer& layer, const LayerRuntimeSnapshot& rt, uint32_t deckId, const Clip& clip,
+                             GLuint clipTex,
                              ShaderManager& shaderMgr, FullscreenQuad& quad,
                              float time, float dt, int w, int h);
 

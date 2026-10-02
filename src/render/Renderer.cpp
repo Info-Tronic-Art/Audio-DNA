@@ -544,7 +544,9 @@ void Renderer::renderOpenGL()
         if (composition_ != nullptr && !composition_->decks.empty()
             && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
             activeIndex = static_cast<size_t>(deck - composition_->decks.data());
-        bool clipAdvanced = autopilots_.forIndex(activeIndex).processFrame(*deck, snap);
+        Autopilot::FrameReport apReport;
+        bool clipAdvanced = autopilots_.forIndex(activeIndex).processFrame(*deck, snap, &apReport);
+        countAutopilot(apReport);
         if (clipAdvanced && onAutopilotAdvanced_)
         {
             // Notify UI thread to refresh deck view
@@ -590,9 +592,9 @@ void Renderer::renderOpenGL()
         for (int li = 0; li < deck->getNumLayers(); ++li)
         {
             auto* layer = deck->getLayer(li);
-            if (!layer || layer->runtime().activeClipColumn < 0) continue;
+            if (!layer) continue;
 
-            auto* clip = layer->getActiveClip();
+            auto* clip = layer->getActiveClip();   // lane tsan: ONE tuple load (null when no clip is active)
             if (!clip || clip->sourceType != "projectm_visualizer") continue;
             if (!clip->hasPresetPlaylist()) continue;
             if (clip->presetPlaylist.size() <= 1) continue;
@@ -768,14 +770,21 @@ void Renderer::renderOpenGL()
                 Deck& other = composition_->decks[di];
                 if (&other == deck) continue;
                 // B2 (Boris Q1: "keep playing"): media clocks run without decoding; autopilot keeps advancing.
-                DeckClock::tick(other, realDt, [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
-                if (autopilots_.forIndex(di).processFrame(other, snap) && onAutopilotAdvanced_)
+                const int adopts = DeckClock::tick(other, realDt,
+                                                   [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
+                renderTupleAdopts_.fetch_add(static_cast<uint64_t>(adopts), std::memory_order_relaxed);
+                Autopilot::FrameReport apReport;
+                const bool advanced = autopilots_.forIndex(di).processFrame(other, snap, &apReport);
+                countAutopilot(apReport);
+                if (advanced && onAutopilotAdvanced_)
                 {
                     auto callback = onAutopilotAdvanced_;
                     juce::MessageManager::callAsync([callback]() { callback(); });
                 }
             }
         }
+        // Lane tsan (amendment 13): the active deck's and the persistent layers' fade-tick adopts this frame.
+        renderTupleAdopts_.fetch_add(compositor_.takeTupleAdopts(), std::memory_order_relaxed);
 
         // Update persistent feedback buffer for feedback effects
         compositor_.updateFeedbackBuffer(shaderMgr_, quad_,

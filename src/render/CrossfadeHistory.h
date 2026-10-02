@@ -19,15 +19,15 @@
 // tests/test_crossfade_history.cpp drives it directly; one instance per clip
 // chain lives in CompositorEngine (compositor state, not a Layer field).
 //
-// Threads: Layer fields are written on the message thread and read on the GL
-// thread without atomics, like every other Layer field the compositor reads.
-// Every observable write ordering of Layer::triggerClipImmediate
-// (previousClipColumn = activeClipColumn; activeClipColumn = column;
-// crossfadeProgress = 0) is handled: the intermediate states (prev=X, active=X,
-// p=1) and (prev=X, active=Y, p=1) are "not running"; the first frame that shows
-// p < 1 with the new pair fires. CompositorEngine::advanceCrossfade runs before
-// the stages and only increases progress, so one fade never fires twice; a
-// zero dt keeps progress equal (not lower), so it never fires a false start.
+// Threads (lane tsan, s-rta-1002): the layer's trigger tuple is ONE atomic
+// word (Layer::runtime(), Pitfall 63), and renderLayerStages passes observe()
+// the tuple the compositor loaded ONCE for this layer this frame, so a call
+// never sees a half-written trigger (no intermediate (prev, active, p) state
+// exists). The fade tick (CompositorEngine::advanceCrossfade, LayerClock::tick)
+// runs before the stages and only increases progress, so one fade never fires
+// twice; a zero dt keeps progress equal (not lower), so it never fires a false
+// start. A tick that adopted a concurrent trigger hands observe() that
+// trigger's tuple: a new pair, which fires as a new fade.
 struct CrossfadeStartDetector
 {
     bool wasRunning = false;
