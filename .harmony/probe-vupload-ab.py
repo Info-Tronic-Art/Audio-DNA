@@ -19,8 +19,9 @@ u8 (s-rta-0930 gop2): ruled per cap group of B; A's lines at that cap are the ba
 only A ran prints INFO; no B u8 line at all = FAIL "u8: no B launch".
 u13_container_reverse (s-rta-1002b mkvidx, plan-mkvidx.md item 4 + ruling-mkvidx.md AM14; bars: probe-vupload.json "_u13"):
 per scene the medians per arm; [CTRL-A] (i)-(iii) first, as INFO verdicts on the pre-lane arm that fix how the rules read;
-then one rule line each: [FREEZE] (a), [MKV] (b), [HAP] (c), [CPU] (d) B vs A, [PARITY] (d) vs (e) in B, [GUARD] (d) B vs
-A, [PP-PARITY] (f) vs (g) in B -- each FAILs with < 5 launches per arm of the scenes it reads; INFO: the big-share turn.
+then one rule line each: [FREEZE] (a), [MKV] (b), [HAP] (c) (B medians of uploads/s and late; bracket_ok 1, mono_ok 1 and
+nonmono 0 in EVERY B launch -- fix round R4), [CPU] (d) B vs A, [PARITY] (d) vs (e) in B, [GUARD] (d) B vs A, [PP-PARITY]
+(f) vs (g) in B -- each FAILs with < 5 launches per arm of the scenes it reads; INFO: the big-share turn.
 probe-vupload-ab.py --selftest: runs this file on synthetic TSVs (in a mkdtemp dir) and checks the exact u8 rule lines
 (three TSVs) and the u13 rule lines (three: all-pass, a frozen B (a), too few launches); prints SELFTEST PASS / FAIL
 (exit 0 / 1).
@@ -328,15 +329,18 @@ for row, recs in sorted(rows.items()):
             "the live app does not reproduce the emulated Matroska cost -- a [CPU] FAIL is the expected outcome")
             + f" (launches {len(per[SD]['A'])} / {len(per[SE]['A'])})")
         for tg, sc, lab in (("[FREEZE]", SA, "(a)"), ("[MKV]", SB, "(b)"), ("[HAP]", SC, "(c)")):
-            u, lt, bo, mo = (mm(sc, "B", k) for k in ("uploads_per_s", "late", "bracket_ok", "mono_ok"))
-            nm = [kv.get("nonmono") for kv in per[sc]["B"]]; dp = mm(sc, "B", "decoded_per_upload")
-            good = (nn(sc) >= 5 and u is not None and u >= umin and lt is not None and lt <= lmax and bo == 1 and mo == 1
+            # fix round R4 (Harmony): bracket_ok 1, mono_ok 1 and nonmono 0 bind in EVERY B launch, never as medians
+            u, lt = (mm(sc, "B", k) for k in ("uploads_per_s", "late"))
+            bo, mo, nm = ([kv.get(k) for kv in per[sc]["B"]] for k in ("bracket_ok", "mono_ok", "nonmono"))
+            dp = mm(sc, "B", "decoded_per_upload")
+            good = (nn(sc) >= 5 and u is not None and u >= umin and lt is not None and lt <= lmax
+                    and len(bo) > 0 and all(x == 1 for x in bo) and len(mo) > 0 and all(x == 1 for x in mo)
                     and len(nm) > 0 and all(x == 0 for x in nm))
             extra = ""
             if tg == "[HAP]":
                 good = good and dp is not None and dp <= hmax; extra = f", decoded_per_upload {dp} <= {hmax:g}"
-            rule(good, f"{tg} {lab} {sc}: B medians uploads/s {u} >= {umin:g}, late {lt} <= {lmax:g}, bracket_ok {bo} == 1, "
-                       f"mono_ok {mo} == 1{extra}; nonmono every B launch {nm} == 0 (A medians uploads/s "
+            rule(good, f"{tg} {lab} {sc}: B medians uploads/s {u} >= {umin:g}, late {lt} <= {lmax:g}{extra}; every B launch "
+                       f"bracket_ok {bo} == 1, mono_ok {mo} == 1, nonmono {nm} == 0 (A medians uploads/s "
                        f"{mm(sc, 'A', 'uploads_per_s')}, late {mm(sc, 'A', 'late')}); launches {nn(sc)}")
         bd, ad = mm(SD, "B", "decoded_per_upload"), mm(SD, "A", "decoded_per_upload"); cr = float(VU["u13CpuRatioMax"])
         be = mm(SE, "B", "decoded_per_upload"); pm = float(VU["u13ParityMax"])
