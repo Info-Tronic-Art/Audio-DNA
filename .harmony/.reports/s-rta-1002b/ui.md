@@ -91,8 +91,9 @@ INBOX-RECHECK: none
 
 ---------------------------------------------------------------------------------------------------------------------
 # LANE ui -- stage U3 (BF8 double-click rename) -- builder report
-STATUS: PENDING (stage U3 of 4, in progress; U1 above is DONE and unchanged)
-Base for U3: 9af61b2 (lane/ui after U1).
+STATUS: DONE (stage U3 of 4: U3.1-U3.5 committed; U2 / U4 not started -- later stages)
+Base for U3: 9af61b2 (lane/ui after U1). Head: the report commit after 2274abf. Commits: b7186be U3.1, 6a3a731 U3.2,
+92e7ff8 U3.3, 9f8bb0f U3.4, 2274abf U3.5 (+ this report).
 ## Items
 ### U3.1 active-tab click = no-op -- DONE
 - src/ui/DeckView.h/.cpp: private `tabClicked(int)` (the tab's onClick is `[this, capturedIdx] { tabClicked(capturedIdx); }`):
@@ -198,7 +199,62 @@ Base for U3: 9af61b2 (lane/ui after U1).
   grep -c probe_deck` = 0 (Total Tests: 1148). NEVER RUN by this lane (adoption 3): its RED evidence is the unit RED of
   test_deck_tab_rename / test_deck_tab_row above; whether P1-P9 PASS is unknown until Harmony runs it.
 ## Builds / tests (U3)
+- Reconfigured after each tests/CMakeLists.txt append (U3.1 test_deck_tab_rename, U3.5 probe_deck_tab_dispatch).
+  Disk 294 GiB free (no new build dir). -j3 throughout, one build at a time.
+- Full incremental build 16:47:14 BUILD_EXIT=0. Compiler warnings naming the touched files (U1 base log vs this
+  stage's full logs): DeckView.h 0 -> 0, DeckView.cpp 0 -> 0, DeckTabRow.h 0 -> 0, MainComponent.h 2 -> 2,
+  MainComponent.cpp 8 -> 8 (all pre-existing lines), ApiServer.h 0 -> 0, ApiServer.cpp 2 -> 2; probe + both test files
+  0 (touch-rebuild). G0's own touch-every-file baseline is Harmony's.
+- Direct runs 16:47 (raw): test_deck_tab_rename All tests passed (218 assertions in 16 test cases); test_deck_tab_row
+  (110 / 5); test_undo_commands (562 / 81); test_deck_thumbnails (62 / 4); test_video_info (117 / 17);
+  test_clip_thumbnails (112 / 6); lints test_hot_thread_io_lint (323 / 2), test_render_thread_lint (19 / 2),
+  test_log_line_lint (58 / 3), test_shared_field_types (1 / 1) -- each "All tests passed".
+- FULL ctest -j3 on the branch 16:47:15 -> 16:47:48, raw: 100% tests passed, 0 tests failed out of 1148 (U1: 1131;
+  +17 = the editorRect case + the 16 test_deck_tab_rename cases). `ctest -N` lists no probe_deck_tab_dispatch.
+- G2b: `grep -rn AUDIODNA_DEBUG_SHOW src tests` -> 0 lines.
+
 ## Rig discipline (U3)
+- ONE live batch (the U3.4 smoke): lock taken with the helper (LANE=ui-U3) 16:42:31, lane app started by start_app in
+  --test-mode (open -g), REST only, quit_app ("app running after quit: no"), lock released 16:42:40. Output-named windows
+  0 before / during / after; UserNotificationCenter windows 16 s after the quit: 0. No foreign Audio-DNA was running.
+- No Output window, no screen capture, no synthetic OS input, no debugger / sampler, no temporary hook, no copied or
+  re-signed bundle. probe_deck_tab_dispatch BUILT, NEVER RUN. The .venv symlink was never created (the smoke used the
+  main .venv python by absolute path).
+- Worked only in the ui worktree; lane mkvidx's worktree / files untouched (VideoPlayer.* not edited in U3).
+- Commit hook: every commit printed "[graphify hook] launching background rebuild" (a repo hook, not started by me).
+
 ## Notes for .harmony/notebook.md (U3)
-## Next stage notes (U3 -> U2)
+- 2026-10-02 A juce::MouseEvent for a headless listener test is built with Desktop::getInstance().getMainMouseSource()
+  (exists without a peer: MouseInputSourceList adds source 0 in its constructor) and the 15-argument constructor; a
+  nested DeckView listener can then be driven in JUCE's verified order | discovered: tests/test_deck_tab_rename.cpp.
+- 2026-10-02 Headless (no peer) grabKeyboardFocus never sets the focused component, so DeckView::finishRename sees
+  "focus nowhere" and calls onRenameClosed -- the same branch the background gate app takes (a background peer is never
+  focused) | discovered: src/ui/DeckView.cpp finishRename, live smoke focus_home_count.
+- 2026-10-02 build-target greps that match "warning: .*<file>" miss every warning: clang prints the PATH before
+  "warning:"; count warnings with `awk -F': warning:'` on the path | discovered: scratchpad/ui-U3/warn-check.sh.
+
+## Next stage notes (U3 -> U2 / U4)
+- U2 shares the files U3 touched: DeckView.h (public block: U3 added onDeckRenamed .. tabRowStateForTests after
+  getNaturalHeight / tabRowBuilds; private: tabClicked, DeckNameEditor, renameEditor_, TabRowMouse ... after deckTabs_),
+  DeckView.cpp (constructor end, rebuildGrid top, resized tab block, setupDeckTabs end, tabTooltipFor + the rename
+  functions after it), MainComponent.cpp (wiring after onUndoHint; TEST-ONLY block after onDebugUiRepaintAll; renameDeck
+  + applyDeckRename), ApiServer.h/.cpp (a new public #if block after the bt2 one; handlers after handleDebugCancelLoad).
+  U2.3's cell-loop fan-out is untouched by U3. U2.5's videoInfoFor: use p->getInfo().known() (U1 hand-over).
+- U4 probe (G3 R1-R10): the routes answer as AM6 says; editor.deck_id is -1 while closed. The builder smoke showed R1-R9
+  PASS on the lane app; R10 (load_composition of a saved file) is still unexercised live. NB1 / C5 caution: in the
+  gate app the tab row is 1720 px wide (smoke row_width), so 12 decks still get 100-px tabs (12 x 102 + 24 = 1248 <=
+  1720); a 60-px last tab needs >= 25 decks at that width (or a narrower window) -- C5's "12 decks (60-px tabs)" will
+  not produce 60-px tabs as written. NB1's numeric bars (w 100, inside the row) hold either way.
+- Docs (AM16: performance-controls.md, pitfalls.md "Pitfall NN" four points, CLAUDE.md UI bullet, testing-eyes.md eight
+  routes + the probe, APP-INVENTORY rows) are U4; nothing of them was written in U3.
+
 ## PACKET QUALITY (U3)
+- Clarity: CLEAR -- AM2-AM8 gave the code shapes verbatim; the adoption fixed the probe as build-only.
+- Missing context: none blocking. Inferred: (1) the RED for (a) / (a2) / (h) is RED(stub) on a tree whose tab-click and
+  tooltip code is main's byte-identical behaviour (the file uses new API, so it cannot compile on main); (2) "editor
+  deck_id" while closed reported as -1; (3) deck_rename "type" sets the text even with the box closed (harmless).
+- Unused context: plan U2 / U4 bodies, G3 V-rows, G4 (later stages / Harmony).
+- Self-brief: plan-ui.md (incl. HARMONY ADOPTION) and ruling-ui.md read in full; the U1 report; CLAUDE.md loaded by the
+  harness. Knowledge tools: grep only (no KNOWLEDGE_TOOLS block); impact taken conservatively (every DeckView.cpp
+  consumer target rebuilt and run: test_deck_thumbnails, test_deck_tab_rename, the app).
+INBOX-RECHECK: none
