@@ -111,3 +111,39 @@ TEST_CASE("DeckTabRow::tabMenu / plusMenu -- items, order, separators, Remove on
     // Menu item ids are the Action values (a JUCE PopupMenu result of 0 means "dismissed").
     CHECK(static_cast<int>(Action::NewDeck) == 1);
 }
+
+TEST_CASE("DeckTabRow::editorRect -- the rename box is at least a full tab wide, covers its tab and never leaves the row", "[decktabrow]")
+{
+    using namespace DeckTabRow;
+    // Every case: the box covers its tab, starts inside the row and ends inside it.
+    auto covers = [](Rect box, Rect tab, int rowWidth) {
+        INFO("box " << box.x << "+" << box.w << " tab " << tab.x << "+" << tab.w << " row " << rowWidth);
+        CHECK(box.x <= tab.x);
+        CHECK(box.x + box.w >= tab.x + tab.w);
+        CHECK(box.x >= 0);
+        CHECK(box.x + box.w <= rowWidth);
+    };
+
+    // A 100-px tab: the same rect.
+    const auto three = layout(1000, 3);
+    CHECK(rectIs(editorRect(three.tabs[1], 1000), 102, 100));
+    covers(editorRect(three.tabs[1], 1000), three.tabs[1], 1000);
+
+    // A 60-px tab (20 decks in 1000 px): 100 wide, from the tab's x.
+    const auto twenty = layout(1000, 20);
+    REQUIRE(twenty.tabs[3].w == kMinTabWidth);
+    CHECK(rectIs(editorRect(twenty.tabs[3], 1000), 186, 100));
+    covers(editorRect(twenty.tabs[3], 1000), twenty.tabs[3], 1000);
+
+    // The LAST 60-px tab at the row end (12 decks in 12 * 62 + 24 = 768 px): shifted left inside the row.
+    const auto full = layout(768, 12);
+    REQUIRE(full.tabs[11].w == kMinTabWidth);
+    REQUIRE(full.tabs[11].x == 682);
+    CHECK(rectIs(editorRect(full.tabs[11], 768), 668, 100));
+    covers(editorRect(full.tabs[11], 768), full.tabs[11], 768);
+
+    // One tab in a 100-px row (the tab shrinks to 74): the box fills the row.
+    const auto tiny = layout(100, 1);
+    CHECK(rectIs(editorRect(tiny.tabs[0], 100), 0, 100));
+    covers(editorRect(tiny.tabs[0], 100), tiny.tabs[0], 100);
+}

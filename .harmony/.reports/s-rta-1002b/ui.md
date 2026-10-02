@@ -110,7 +110,40 @@ Base for U3: 9af61b2 (lane/ui after U1).
   (fails: (a) calls.empty(); (a2) builds == b0 after the showing-tab click; (a2) builds == b0 + 1 after tab C, because
   the showing-tab click had already rebuilt once.)
 - GREEN 16:33:33, raw: All tests passed (21 assertions in 3 test cases)
-### U3.2 editor + listener (AM2-AM5) + editorRect -- PENDING
+### U3.2 editor + listener (AM2-AM5) + editorRect -- DONE
+- src/ui/DeckTabRow.h: pure `editorRect(Rect tab, int rowWidth)` = { max(0, min(tab.x, rowWidth - w)), w = max(tab.w,
+  kTabWidth) }.
+- src/ui/DeckView.h/.cpp (AM2-AM5 as written): DeckTabButton UNCHANGED (no double-click override). Private
+  `DeckNameEditor : juce::TextEditor` (onClose(keep); keyPressed: classifyOutputKey CloseAll / RaiseApp / ToggleMain ->
+  false; Return or Tab (any modifiers) -> onClose(true), true; Esc -> onClose(false), true; else base. keyStateChanged:
+  base, then true). `renameEditor_` created once in the constructor (addChildComponent; onFocusLost = `if (renaming_ &&
+  !hasKeyboardFocus(true)) finishRename(true)`; onReturnKey / onEscapeKey unused; setPopupMenuEnabled(false); font
+  FontOptions(14); centred; tooltip "Enter keeps the new name, Esc cancels"). Nested `TabRowMouse` listener
+  (addMouseListener(&tabRowMouse_, true); removed in the new ~DeckView): tabRowMouseDown = (1) a press outside the open
+  box -> finishRename(true); (2) arm by originalComponent -> tab index -> deck ID, firstClick_ / armed_ exactly as AM2,
+  kRenameOnlyTheShowingTab = true; tabRowDoubleClick reads no position, opens beginRename(armed deck) unless that deck is
+  already being renamed. finishRename (AM4): renaming_ = false first; onRenameClosed BEFORE the hide when focus is in
+  DeckView or nowhere; keep -> onDeckRenamed(index of the ID, trimmed) iff non-empty and != the current name.
+  Rebuild: rebuildGrid closes (discard) a box whose deck ID is gone; setupDeckTabs ends with toFront(false) when open;
+  resized() stores tabRow_ and re-places the box over its deck's tab (editorRect). Tab tooltip (AM5): line 2
+  "Double-click: rename" only on the showing tab (setupDeckTabs and refresh() pass showing); line 3 byte-identical.
+  Public: onDeckRenamed, onRenameClosed, beginRename, cancelDeckRename, isRenaming, renamingDeckIndex,
+  tabRowMouseForTests, renameEditorForTests.
+- tests/test_deck_tab_rename.cpp (AM7 (c) (c2) (c3) (c4) (d) (d2) (d3) (e: 6 SECTIONs) (f) (g) (h) (i) (j)): the test
+  owns its own copy of JUCE's order (press = listener mouseDown, then the tab's onClick via a copy; double-click =
+  press 1, press 2 on the tab as rebuilt, then mouseDoubleClick to that tab if it survived (SafePointer) else to
+  DeckView); MouseEvents from Desktop::getMainMouseSource(); a rebuilding switch handler by default.
+  tests/test_deck_tab_row.cpp: editorRect case (100-px tab same; 60-px tab -> 100 wide; LAST 60-px tab of 12 in a
+  768-px row -> x 668; one 74-px tab in a 100-px row -> 0 / 100; the box covers its tab and stays in the row).
+- RED(stub) 16:37:04 -- stubs: editorRect {0,0}; every new DeckView function an empty body; the editor added hidden and
+  unconfigured; DeckNameEditor forwarding to the base; tooltip = main's. raw:
+    test_deck_tab_rename:  test cases:  16 |   6 passed | 10 failed
+                           assertions: 170 | 151 passed | 19 failed
+    test_deck_tab_row:     test cases:   5 |   4 passed | 1 failed
+                           assertions: 110 | 102 passed | 8 failed
+  (the 6 passing = (a) (a2) (b) and the "no box" guards (c2) (d) (d2), which a do-nothing stub satisfies.)
+- GREEN 16:37:59, raw: All tests passed (218 assertions in 16 test cases) / All tests passed (110 assertions in 5 test
+  cases); 5 / 5 repeats of test_deck_tab_rename print the same line.
 ### U3.3 one rename funnel (AM4 wiring, AM12 cancel placement) -- PENDING
 ### U3.4 TEST-ONLY REST (AM6) -- PENDING
 ### U3.5 probe_deck_tab_dispatch (AM8; BUILT, NEVER RUN) -- PENDING
