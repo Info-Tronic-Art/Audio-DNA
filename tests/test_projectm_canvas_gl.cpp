@@ -759,7 +759,10 @@ void softCut(Rig& rig, double changeAt)
         if (sinceChange >= 0) ++sinceChange;
         const double tr = std::chrono::duration<double>(Clock::now() - t0).count();
         const bool extra = sinceChange >= 1 && sinceChange <= 3;
-        if (frame % 10 == 0 || extra)
+        // T6 reads EVERY frame between 0.2 s and 1.2 s of the blend (rulings-bf10-s2.md STOP 3): a soft-edged wipe
+        // can slip between two every-10th-frame reads. The clause and its bars are unchanged.
+        const bool dense = changeAt < 0 && tr >= 0.2 && tr <= 1.2;
+        if (frame % 10 == 0 || extra || dense)
         {
             if (extra) std::printf("DATA soft-cut change+%d\n", sinceChange);
             reads.push_back(readSoftCut(tex, w, h, tr));
@@ -805,7 +808,7 @@ void softCut(Rig& rig, double changeAt)
 
 // T6 -- soft cut in wall time (amendment 11; mid-transition clause per rulings-bf10-s2.md STOP 2): every read alpha 255
 // inside the A..B box, one read mid-transition (wipe or cross-fade), the window's last read >= 95 % near B, every read
-// after 1.5 s equals B.
+// after 1.5 s equals B. Reads: every 10th frame, EVERY frame from 0.2 s to 1.2 s (STOP 3), and the last 5.
 TEST_CASE("T6 a MilkDrop soft cut draws into the canvas texture", "[bf10][T6]")
 {
     Rig rig;
