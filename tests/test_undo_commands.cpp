@@ -3158,3 +3158,31 @@ TEST_CASE("D1c a trigger's first perform after its queued trigger fired keeps it
     CHECK(captureLayerRuntime(L).activeClipColumn == 1);
     CHECK(captureLayerRuntime(L).pendingTriggerColumn == -1);
 }
+
+// s-rta-1002 fix round (ruling F4, review-tsan-tests-r1 S1): ClearActiveClipCmd is mutate-then-push too, so its FIRST
+// execute() must not re-apply `after` over a transition that landed between the live clear and the push (here a
+// triggerClipImmediate stands in for any tuple change in that window). Later execute() calls (redo) apply `after`.
+TEST_CASE("D1d a clear's first perform keeps a transition that landed after the live clear", "[undo][trigger][tsan_lane]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
+    UndoManager mgr;
+    Layer& L = restingLayer(comp, 0.5f);
+
+    const LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    L.clearActiveClip();                       // the X clear, applied live by the handler
+    const LayerRuntimeSnapshot after = captureLayerRuntime(L);
+    REQUIRE(after.activeClipColumn == -1);
+
+    L.triggerClipImmediate(1);                 // a transition lands before the push
+    const LayerRuntimeSnapshot landed = captureLayerRuntime(L);
+    REQUIRE(landed.activeClipColumn == 1);
+
+    mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 0, before, after, "Clear Layer"));
+    CHECK(captureLayerRuntime(L) == landed);   // the transition stands (a re-applied `after` would clear it)
+
+    mgr.undo();
+    CHECK(captureLayerRuntime(L) == before);
+    mgr.redo();
+    CHECK(captureLayerRuntime(L) == after);    // redo applies `after`
+}
