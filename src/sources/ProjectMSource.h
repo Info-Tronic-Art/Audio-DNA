@@ -24,8 +24,9 @@
 //   5. Returns the FBO texture
 //
 // projectM draws its final picture straight into outputFBO_ (canvas-sized); it never touches the window framebuffer
-// (BF10, Pitfall NN). render() saves the caller's GL state before anything else (initGL / resize / a preset load
-// included), restores it on every return, and leaves no sampler object bound (restoreGLState).
+// (BF10, Pitfall 66). render() saves the caller's GL state before anything else (initGL / resize / a preset load
+// included), restores it on every return, and leaves no sampler object bound (restoreGLState). The picture is opaque:
+// render() forces outputFBO_'s alpha to 1 after projectM draws (a preset without a comp shader writes its own alpha).
 class ProjectMSource : public ProceduralSource
 {
 public:

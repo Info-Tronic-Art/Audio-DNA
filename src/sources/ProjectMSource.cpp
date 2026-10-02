@@ -169,10 +169,21 @@ GLuint ProjectMSource::render(ShaderManager& /*shaderMgr*/, FullscreenQuad& /*qu
     }
 
     // projectM draws its final picture straight into outputFBO_ (canvas-sized). Framebuffer 0 is the Preview
-    // panel's drawable, never the canvas (BF10, Pitfall NN).
+    // panel's drawable, never the canvas (BF10, Pitfall 66).
     glBindFramebuffer(GL_FRAMEBUFFER, outputFBO_);
     glViewport(0, 0, fboWidth_, fboHeight_);
     projectm_opengl_render_frame_fbo(pm_, static_cast<uint32_t>(outputFBO_));
+
+    // A preset without a comp shader writes its own alpha (< 1, often 0) into outputFBO_. MilkDrop is a full-frame
+    // generator, so a layer expects an opaque picture: force alpha to 1 on draw buffer 0 only, through a clear that
+    // leaves the clear colour alone, then put the caller's mask back (BF10 FOUND 1, Pitfall 66).
+    GLboolean colourMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+    glGetBooleani_v(GL_COLOR_WRITEMASK, 0, colourMask);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, outputFBO_);
+    glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    const GLfloat opaque[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glClearBufferfv(GL_COLOR, 0, opaque);
+    glColorMaski(0, colourMask[0], colourMask[1], colourMask[2], colourMask[3]);
 #else
     // No projectM: render a placeholder pattern
     // (Rendered by base class shader if one were set, but we don't have one)
