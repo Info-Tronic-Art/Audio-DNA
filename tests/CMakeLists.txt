@@ -3277,8 +3277,9 @@ apply_sanitizers(test_manual_scalar_race)
 catch_discover_tests(test_manual_scalar_race PROPERTIES ${ADNA_TSAN_TEST_PROPERTIES})
 
 # --- test_log_line_lint (D6: no std::cerr in code that runs off the message thread; textual, like
-# test_hot_thread_io_lint).
+# test_hot_thread_io_lint. Fix round F3: the zero-heap logLinef -- the analysis thread's lines, its output pinned).
 add_executable(test_log_line_lint test_log_line_lint.cpp)
+target_include_directories(test_log_line_lint PRIVATE ${SRC_DIR})
 target_link_libraries(test_log_line_lint PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_log_line_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_log_line_lint)

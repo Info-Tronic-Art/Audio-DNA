@@ -124,7 +124,8 @@ All data flows forward. No backward dependencies on the hot path.
 - Structure (decks / layers / clips vectors) stays behind `withDeckDetached` (the fence); the GL derives the active
   deck index from the acquire-loaded deck pointer.
 - Code that can run off the message thread logs with `logLine(...)` (`src/core/LogLine.h`), never `std::cerr`
-  (test_log_line_lint).
+  (test_log_line_lint); a thread that must not allocate (the analysis thread, the GL thread's periodic lines) uses
+  the zero-heap `logLinef(fmt, ...)` (stack buffer, one fwrite).
 
 ---
 

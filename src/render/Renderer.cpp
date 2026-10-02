@@ -999,9 +999,8 @@ void Renderer::renderOpenGL()
                 if (fx != nullptr && fx->isEnabled())
                 {
                     fx->setEnabled(false);
-                    logLine("[Renderer] Adaptive quality: disabled '",
-                              fx->getName(), "' (frame time ",
-                              static_cast<int>(frameMs * 10) / 10.0, "ms)");
+                    logLinef("[Renderer] Adaptive quality: disabled '%s' (frame time %gms)",
+                             fx->getName().toRawUTF8(), static_cast<int>(frameMs * 10) / 10.0);
                     break;
                 }
             }
@@ -1024,9 +1023,9 @@ void Renderer::renderOpenGL()
             if (auto* fx = effectChain_.getEffect(i))
                 if (fx->isEnabled()) ++numEnabled;
         }
-        logLine("[Render Profile] Avg frame: ", static_cast<int>(avgMs * 100) / 100.0,
-                  " ms, ", numEnabled, " effects active, ",
-                  static_cast<int>(renderW), "x", static_cast<int>(renderH));
+        // Zero-heap on the GL thread (a periodic line): logLinef, never logLine.
+        logLinef("[Render Profile] Avg frame: %g ms, %d effects active, %dx%d", static_cast<int>(avgMs * 100) / 100.0,
+                 numEnabled, static_cast<int>(renderW), static_cast<int>(renderH));
         renderProfileAccum_ = 0.0;
         renderProfileCount_ = 0;
     }
