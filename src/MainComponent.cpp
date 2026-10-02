@@ -2205,6 +2205,30 @@ MainComponent::MainComponent(bool testMode, int testPort)
                         [](int) {});
     };
     apiServer_->onDebugUiRepaintAll = [this] { repaint(); };
+    // s-rta-1002b ui U3.4 (TEST-ONLY routes; ruling-ui.md AM6): the deck tab row and its in-place rename box -- the same
+    // DeckView functions the mouse and keys reach, and Edit > Undo / Redo. All run on the message thread.
+    apiServer_->onDebugDeckTabs = [this]() -> juce::var {
+        auto state = deckView_ ? deckView_->tabRowStateForTests() : juce::var(new juce::DynamicObject());
+        if (auto* o = state.getDynamicObject())
+        {
+            o->setProperty("focus_home_count", renameFocusHomeCount_);
+            auto* undo = new juce::DynamicObject();
+            undo->setProperty("top", juce::String(undoManager_.undoDescription()));
+            undo->setProperty("redo_top", juce::String(undoManager_.redoDescription()));
+            undo->setProperty("index", undoManager_.undoIndex());
+            undo->setProperty("size", undoManager_.historySize());
+            o->setProperty("undo", juce::var(undo));
+        }
+        return state;
+    };
+    apiServer_->onDebugDeckRename = [this](int deckIndex, const juce::String& op, const juce::String& text) {
+        if (deckView_) deckView_->renameOpForTests(op, deckIndex, text);
+    };
+    apiServer_->onDebugTabClick = [this](int deckIndex) { if (deckView_) deckView_->clickTabForTests(deckIndex); };
+    apiServer_->onDebugTabDoubleClick = [this](int deckIndex) { if (deckView_) deckView_->doubleClickTabForTests(deckIndex); };
+    apiServer_->onDebugUndo = [this](bool redo) {
+        handleMenuCommand(redo ? AudioDNAMenuBar::kCompRedo : AudioDNAMenuBar::kCompUndo);
+    };
 #endif
     apiServer_->start();
 

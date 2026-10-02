@@ -326,6 +326,12 @@ void ApiServer::setupRoutes()
     // and stop the open device (the dead-input stand-in). Both answer at once.
     server_.Post("/api/debug/audio_deny", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDeny(req, res); });
     server_.Post("/api/debug/audio_stop", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioStop(req, res); });
+    // s-rta-1002b ui U3.4 (TEST-ONLY, same build path; ruling-ui.md AM6): the deck tab row and its in-place rename box.
+    server_.Get("/api/debug/deck_tabs", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDeckTabs(req, res); });
+    server_.Post("/api/debug/deck_rename", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDeckRename(req, res); });
+    server_.Post("/api/debug/tab_click", [this](const httplib::Request& req, httplib::Response& res) { handleDebugTabClick(req, res); });
+    server_.Post("/api/debug/tab_dblclick", [this](const httplib::Request& req, httplib::Response& res) { handleDebugTabDoubleClick(req, res); });
+    server_.Post("/api/debug/undo", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUndo(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -2148,6 +2154,121 @@ void ApiServer::handleDebugCancelLoad(const httplib::Request&, httplib::Response
         return;
     }
     juce::MessageManager::callAsync([this]() { onDebugCancelLoad(); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): the deck tab row + rename box, read ON the message thread (the handleDebugUiText
+// shape: <= 2 s wait; a frozen message thread answers {"ok":false,...}; the shared box outlives a late answer).
+void ApiServer::handleDebugDeckTabs(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugDeckTabs)
+    {
+        res.status = 503;
+        res.set_content(jsonError("deck_tabs not wired"), "application/json");
+        return;
+    }
+    struct Box { juce::WaitableEvent done; juce::var state; };
+    auto box = std::make_shared<Box>();
+    const bool posted = juce::MessageManager::callAsync([this, box]() {
+        auto state = onDebugDeckTabs();
+        if (auto* o = state.getDynamicObject())
+            o->setProperty("ok", true);
+        box->state = state;
+        box->done.signal();
+    });
+    if (!posted || !box->done.wait(2000))
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("ok", false);
+        obj->setProperty("reason", "message thread did not answer within 2 s");
+        res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+        return;
+    }
+    res.set_content(juce::JSON::toString(box->state).toStdString(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"deck": i, "op": "begin"|"type"|"enter"|"tab"|"escape"|"focus_lost"|"outside_click",
+// "text": "..."} -> the rename box function a click / key reaches (DeckView::renameOpForTests).
+void ApiServer::handleDebugDeckRename(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const juce::String op = json.getProperty("op", "").toString();
+    static const juce::StringArray kOps { "begin", "type", "enter", "tab", "escape", "focus_lost", "outside_click" };
+    if (!kOps.contains(op) || (op == "begin" && !json.hasProperty("deck")))
+    {
+        res.status = 400;
+        res.set_content(jsonError("op (begin|type|enter|tab|escape|focus_lost|outside_click) required; begin needs deck"),
+                        "application/json");
+        return;
+    }
+    if (!onDebugDeckRename)
+    {
+        res.status = 503;
+        res.set_content(jsonError("deck_rename not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json.getProperty("deck", -1));
+    const juce::String text = json.getProperty("text", "").toString();
+    juce::MessageManager::callAsync([this, deck, op, text]() { onDebugDeckRename(deck, op, text); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"deck": i} -> the tab button's own onClick (DeckView::clickTabForTests).
+void ApiServer::handleDebugTabClick(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("deck"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("deck (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugTabClick)
+    {
+        res.status = 503;
+        res.set_content(jsonError("tab_click not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json["deck"]);
+    juce::MessageManager::callAsync([this, deck]() { onDebugTabClick(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"deck": i} -> a double-click on that tab in JUCE's order
+// (DeckView::doubleClickTabForTests).
+void ApiServer::handleDebugTabDoubleClick(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("deck"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("deck (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugTabDoubleClick)
+    {
+        res.status = 503;
+        res.set_content(jsonError("tab_dblclick not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json["deck"]);
+    juce::MessageManager::callAsync([this, deck]() { onDebugTabDoubleClick(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"redo": false|true} (body optional, answered at once -- Pitfall 31) -> Edit > Undo /
+// Redo (MainComponent::handleMenuCommand kCompUndo / kCompRedo).
+void ApiServer::handleDebugUndo(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onDebugUndo)
+    {
+        res.status = 503;
+        res.set_content(jsonError("undo not wired"), "application/json");
+        return;
+    }
+    const auto json = juce::JSON::parse(juce::String(req.body));
+    const bool redo = static_cast<bool>(json.getProperty("redo", false));
+    juce::MessageManager::callAsync([this, redo]() { onDebugUndo(redo); });
     res.set_content(jsonOk(), "application/json");
 }
 #endif

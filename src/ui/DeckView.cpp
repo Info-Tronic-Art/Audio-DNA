@@ -700,6 +700,117 @@ void DeckView::tabRowMouseDown(const juce::MouseEvent& e)
     }
 }
 
+namespace
+{
+// A left-button event of the main mouse source (the TEST-ONLY replays; no position is ever read).
+juce::MouseEvent leftMouseEventForTests(juce::Component* c, int clicks)
+{
+    const auto now = juce::Time::getCurrentTime();
+    return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), {},
+                            juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier),
+                            juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation,
+                            juce::MouseInputSource::defaultRotation, juce::MouseInputSource::defaultTiltX,
+                            juce::MouseInputSource::defaultTiltY, c, c, now, {}, now, clicks, false);
+}
+} // namespace
+
+void DeckView::clickTabForTests(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(deckTabs_.size()))
+        return;
+    auto onClickCopy = deckTabs_[static_cast<size_t>(deckIndex)]->onClick;   // the click may rebuild the row
+    if (onClickCopy)
+        onClickCopy();
+}
+
+void DeckView::doubleClickTabForTests(int deckIndex)
+{
+    // JUCE's order (ruling E-R3): mouseDown (n = 1) -> the tab's onClick -> mouseDown (n = 2, the tab as rebuilt) -> its
+    // onClick -> the double-click, to that tab if it survived, else to DeckView.
+    juce::Component::SafePointer<juce::Component> second;
+    for (int clicks = 1; clicks <= 2; ++clicks)
+    {
+        if (deckIndex < 0 || deckIndex >= static_cast<int>(deckTabs_.size()))
+            return;
+        auto* tab = deckTabs_[static_cast<size_t>(deckIndex)].get();
+        second = tab;
+        tabRowMouseDown(leftMouseEventForTests(tab, clicks));
+        clickTabForTests(deckIndex);
+    }
+    juce::Component* target = second != nullptr ? second.getComponent() : static_cast<juce::Component*>(this);
+    tabRowDoubleClick(leftMouseEventForTests(target, 2));
+}
+
+bool DeckView::renameOpForTests(const juce::String& op, int deckIndex, const juce::String& text)
+{
+    if (op == "begin")
+        beginRename(deckIndex);
+    else if (op == "type")
+        renameEditor_.setText(text, false);
+    else if (op == "enter")
+        renameEditor_.keyPressed(juce::KeyPress(juce::KeyPress::returnKey));
+    else if (op == "tab")
+        renameEditor_.keyPressed(juce::KeyPress(juce::KeyPress::tabKey));
+    else if (op == "escape")
+        renameEditor_.keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
+    else if (op == "focus_lost")
+    {
+        if (renameEditor_.onFocusLost)
+            renameEditor_.onFocusLost();
+    }
+    else if (op == "outside_click")
+    {
+        juce::Component* cell = this;   // DeckView's background when the grid has no cell
+        for (const auto& row : clipCells_)
+            for (const auto& c : row)
+                if (c != nullptr && cell == this)
+                    cell = c.get();
+        tabRowMouseDown(leftMouseEventForTests(cell, 1));
+    }
+    else
+        return false;
+    return true;
+}
+
+juce::var DeckView::tabRowStateForTests() const
+{
+    auto* state = new juce::DynamicObject();
+    state->setProperty("active", composition_ != nullptr ? composition_->activeDeckIndex.load() : -1);
+    state->setProperty("row_width", tabRow_.getWidth());
+    state->setProperty("tab_row_builds", tabRowBuilds_);
+    juce::Array<juce::var> tabs;
+    for (size_t i = 0; i < deckTabs_.size(); ++i)
+    {
+        auto* t = new juce::DynamicObject();
+        const auto b = deckTabs_[i]->getBounds();
+        const bool known = composition_ != nullptr && i < composition_->decks.size();
+        t->setProperty("index", static_cast<int>(i));
+        t->setProperty("id", known ? static_cast<juce::int64>(composition_->decks[i].id) : juce::int64(-1));
+        t->setProperty("name", known ? juce::String(composition_->decks[i].name) : juce::String());
+        t->setProperty("label", deckTabs_[i]->getButtonText());
+        t->setProperty("tooltip", deckTabs_[i]->getTooltip());
+        t->setProperty("x", b.getX());
+        t->setProperty("y", b.getY());
+        t->setProperty("w", b.getWidth());
+        t->setProperty("h", b.getHeight());
+        t->setProperty("showing", known && static_cast<int>(i) == composition_->activeDeckIndex);
+        tabs.add(juce::var(t));
+    }
+    state->setProperty("tabs", tabs);
+    auto* ed = new juce::DynamicObject();
+    const auto eb = renameEditor_.getBounds();
+    ed->setProperty("open", renaming_);
+    ed->setProperty("deck_id", renaming_ ? static_cast<juce::int64>(renamingDeckId_) : juce::int64(-1));
+    ed->setProperty("deck_index", renamingDeckIndex());
+    ed->setProperty("text", renameEditor_.getText());
+    ed->setProperty("x", eb.getX());
+    ed->setProperty("y", eb.getY());
+    ed->setProperty("w", eb.getWidth());
+    ed->setProperty("h", eb.getHeight());
+    state->setProperty("editor", juce::var(ed));
+    return juce::var(state);
+}
+
 void DeckView::tabRowDoubleClick(const juce::MouseEvent& e)
 {
     // NEVER read e.position / getEventRelativeTo here: once the tab died in its own onClick, JUCE delivers this to

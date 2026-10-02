@@ -135,6 +135,15 @@ public:
     // Tests: the nested tab-row listener (driven in JUCE's order) and the box itself.
     juce::MouseListener& tabRowMouseForTests() { return tabRowMouse_; }
     juce::TextEditor* renameEditorForTests() { return &renameEditor_; }
+    // s-rta-1002b ui U3.4 (ruling AM6; the TEST-ONLY REST routes /api/debug/deck_tabs, deck_rename, tab_click,
+    // tab_dblclick): the same functions a click / key reaches. clickTabForTests runs the tab button's own onClick (what
+    // Button::mouseUp reaches) through a copy that outlives a rebuild; doubleClickTabForTests replays a double-click in
+    // JUCE's order (ruling E-R3); renameOpForTests runs one box op ("begin" "type" "enter" "tab" "escape" "focus_lost"
+    // "outside_click"; false for any other); tabRowStateForTests answers the row and the box (message thread only).
+    void clickTabForTests(int deckIndex);
+    void doubleClickTabForTests(int deckIndex);
+    bool renameOpForTests(const juce::String& op, int deckIndex, const juce::String& text);
+    juce::var tabRowStateForTests() const;
 
 private:
     Composition* composition_ = nullptr;

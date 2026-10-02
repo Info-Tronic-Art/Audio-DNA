@@ -154,7 +154,32 @@ Base for U3: 9af61b2 (lane/ui after U1).
   clearSelection / rebuildGrid (AM12).
 - No unit test (MainComponent is not headless-testable): the live rows R5-R10 of probe-ui-files-rename (U4) cover it;
   RenameDeckCmd itself is covered by test_undo_commands. App build 16:39:44 BUILD_EXIT=0.
-### U3.4 TEST-ONLY REST (AM6) -- PENDING
+### U3.4 TEST-ONLY REST (AM6) -- DONE
+- src/api/ApiServer.h/.cpp, inside `#if AUDIODNA_TEST_SERVER` (callbacks in a public block after the bt2 one, handlers
+  after handleDebugCancelLoad, routes after audio_stop): GET /api/debug/deck_tabs (onDebugDeckTabs read ON the message
+  thread, the handleDebugUiText Box + 2-s wait; "ok" set on the message thread), POST /api/debug/deck_rename {deck, op,
+  text} (400 unless op is one of begin|type|enter|tab|escape|focus_lost|outside_click; begin needs deck), POST
+  /api/debug/tab_click {deck}, POST /api/debug/tab_dblclick {deck}, POST /api/debug/undo {redo} (body optional). POSTs:
+  callAsync, answered at once.
+- src/ui/DeckView.h/.cpp: public clickTabForTests (a COPY of deckTabs_[i]->onClick, invoked), doubleClickTabForTests
+  (JUCE's order: mouseDown n=1 -> onClick -> mouseDown n=2 on the tab as rebuilt -> onClick -> double-click to that tab if
+  it survived (SafePointer) else DeckView; left-button MouseEvents of Desktop's main mouse source), renameOpForTests
+  (begin = beginRename; type = setText; enter / tab / escape = renameEditor_.keyPressed(KeyPress) -- the real key path;
+  focus_lost = the editor's onFocusLost; outside_click = tabRowMouseDown(left, 1 click, the first ClipCell, else
+  DeckView)), tabRowStateForTests (active, row_width, tab_row_builds, tabs[{index,id,name,label,tooltip,x,y,w,h,showing}],
+  editor{open, deck_id (-1 closed), deck_index, text, x, y, w, h}).
+- src/MainComponent.cpp TEST-ONLY block (after onDebugUiRepaintAll): onDebugDeckTabs adds focus_home_count and
+  undo{top, redo_top, index, size}; deck_rename / tab_click / tab_dblclick -> the DeckView functions; undo ->
+  handleMenuCommand(kCompUndo / kCompRedo).
+- App build 16:41:38 BUILD_EXIT=0 (strings: "api/debug/deck_rename" present once).
+- BUILDER SMOKE (sanity only, NOT the G3 gate; one locked batch 16:42:31 -> 16:42:40, lane app --test-mode, open -g,
+  2 decks made with /api/debug/duplicate_deck): R1 R2 R3 R4a R4b R5 R6 R7 R8 (outside_click / focus_lost / tab) R9a R9b
+  all PASS -> "SMOKE fails=0"; deck_rename {"op":"nope"} -> {"ok": false, "error": ...}. Observed e.g. R4b editor
+  {x 102, y 332, w 100, h 24} == tab 1 {x 102, y 332, w 100, h 24}, row 1720; R5 undo.index 4 -> 5, focus 0 -> 1;
+  R7 focus +3, undo unchanged; R9a box stays on deck id 0 after /api/switch_deck {2} (builds +1). R10 (load) NOT run
+  (needs a composition file: U4's probe). Raw log scratchpad/ui-U3/smoke-164231/smoke.txt. Outwins before / after:
+  "audio-dna windows 2, Output-named 0"; after quit 0 / 0; UserNotificationCenter windows 16 s after the quit: 0;
+  app-err.log: 0 lines matching crash|assert.
 ### U3.5 probe_deck_tab_dispatch (AM8; BUILT, NEVER RUN) -- PENDING
 ## Builds / tests (U3)
 ## Rig discipline (U3)
