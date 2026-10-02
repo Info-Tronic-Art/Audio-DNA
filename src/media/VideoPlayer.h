@@ -276,12 +276,25 @@ private:
     GopCache::Budget* cacheBudget_ = nullptr;   // GopCache::sharedBudget() unless a ctest set one before open()
     std::unique_ptr<GopCache::Run> run_;
     int playerId_ = 0;                          // GC9: the one-PREFETCH-run token's owner id
-    bool intraOnly_ = false;                    // GC5: every frame a keyframe (codec or container index) -- no cache
+    // GC5: every frame a keyframe -- no cache. The codec's verdict, or the container index's: every entry a keyframe AND
+    // every keyframe one frame apart (s-rta-1002b mkvidx: GopCache::keyIndexFrom -- a Matroska Cues index lists keyframes
+    // only). Decided in open() ONLY: readKeyIndex never changes it after open (re-deriving it from a growing Matroska index
+    // with the all-key rule froze every Matroska file).
+    bool intraOnly_ = false;
     int gopFramesEst_ = 250;                    // the container index's longest keyframe interval (R-9)
     // s-rta-0930 gop2 (A1): the container index's keyframes, relative and sorted (empty = no index: the longest-interval
-    // grid) -- a PREFETCH window's lead-in is measured from the real keyframe below it. Written in open(), read by the
-    // decode thread (like gopFramesEst_).
+    // grid) -- a PREFETCH window's lead-in is measured from the real keyframe below it. s-rta-1002b mkvidx: keyRels_ and
+    // gopFramesEst_ are the demuxer's LIVE index -- read by readKeyIndex in open() (before start()), then re-read by the
+    // decode thread at the top of every decodeStep whenever (keyIndexEntries_, keyIndexFirstTs_, keyIndexLastTs_) -- the
+    // entry count, entry 0's and the last entry's timestamps -- changed (a Matroska file's Cues load at its first seek, and
+    // every keyframe read adds an entry; never after open() for an intra-only stream -- mkvidx-fix R1). Written by open()
+    // before start(), then by the decode thread only; read by the decode thread only (no atomic).
     std::vector<int> keyRels_;
+    int keyIndexEntries_ = -1;
+    int64_t keyIndexFirstTs_ = INT64_MIN;       // INT64_MIN: no entry
+    int64_t keyIndexLastTs_ = INT64_MIN;
+    bool keyIndexWitnessed_ = false;            // the once-per-player "Keyframe index:" log line was written
+    int keyIndexOpenKeys_ = 0;                  // the keyframes open() saw (the witness line's "open saw")
     double decodeMsEma_ = 0.0;                  // measured decode ms per frame (seeded per megapixel)
     double firstPts_ = 0.0;                     // relative frame 0 (open()'s first decoded frame)
     int nFrames_ = 0;                           // the trajectory's length (totalFrames_; the real count once EOF is met)
@@ -378,6 +391,9 @@ private:
     void park();                                                   // wait until notified (threadsAwake accounting)
     void noteNoFirstFrame(const char* why);                        // W3: EOF / a decode error before any frame
     bool seekToTimestamp(double timeSec);
+    // s-rta-1002b mkvidx: the demuxer's index -> keyRels_ / gopFramesEst_ (GopCache::keyIndexFrom); intraOnly_ only when
+    // atOpen. After open: O(1) unless the index changed (the trigger triple). open() before start(), then the decode thread.
+    void readKeyIndex(bool atOpen);
     bool decodeNextFrame();
     void convertInto(const AVFrame* src, int slot);                // sws_scale bottom-up (negative stride) into a slot
     void uploadSlot(int slot);                                     // GL thread: slot -> texture_ (created on first use)

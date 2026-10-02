@@ -16,8 +16,10 @@
 #include <cmath>
 #include <map>
 #include <string>
+#include <cstdio>
 #include <thread>
 #include <tuple>
+#include <vector>
 
 struct VideoPlayerTestAccess
 {
@@ -56,6 +58,11 @@ struct VideoPlayerTestAccess
 
     static bool reverseNow(const VideoPlayer& p) { return p.reverseNow_; }
     static uint32_t gen(const VideoPlayer& p) { return p.gen_.load(std::memory_order_acquire); }
+    // s-rta-1002b mkvidx T2e: the decode thread's keyframe model, read only after join() (the thread has exited: JUCE's
+    // stopThread waits for run() to return)
+    static void join(VideoPlayer& p) { p.thread_.stopThread(3000); }
+    static std::vector<int> keyRels(const VideoPlayer& p) { return p.keyRels_; }
+    static int gopEst(const VideoPlayer& p) { return p.gopFramesEst_; }
 
     static long readerPick(VideoPlayer& p)
     {
@@ -261,16 +268,17 @@ TEST_CASE("golden trace, pts-less AVI, stepped: decodeStep() without a thread re
 // like uploadToTexture. Asserts: frames keep coming, and within one request generation a reversing reader never picks a
 // frame above the one it picked before (GC4 at the pick). Run under TSan (ADNA_SANITIZE=thread) it guards the pending /
 // generation / direction hand-off between the GL-thread side and the decode thread.
-TEST_CASE("threaded reverse: flips, turns, seeks and speed changes against the real decode thread -- monotonic per generation",
-          "[video_player][gopcache][s-rta-0929b]")
+// s-rta-1002b mkvidx T2e (ruling AM9): the body is a function of the fixture; with `keyRels` / `gop` set it joins the decode
+// thread after close() and returns the thread's keyframe model (its rebuild ran on the decode thread: TSan sees it).
+namespace
 {
-    const auto f = fixture("video_h264_gop30_64x64.mp4");
+void threadedReverse(const juce::File& f, std::vector<int>* keyRels = nullptr, int* gop = nullptr)
+{
     VideoStats st;
     VideoPlayer p;
     p.setStats(&st);
     REQUIRE(p.open(f));
     p.start();
-    const double fd = VideoPlayerTestAccess::frameDur(p);
     long shown = 0, violations = 0;
     uint32_t lastGen = 0;
     long lastPick = -1;
@@ -303,9 +311,45 @@ TEST_CASE("threaded reverse: flips, turns, seeks and speed changes against the r
     p.setLoopMode(VideoPlayer::LoopMode::Loop);
     p.setReverse(true);   run(90);             // the Loop wrap while reversing
     p.close();
+    if (keyRels != nullptr || gop != nullptr)
+    {
+        VideoPlayerTestAccess::join(p);   // the decode thread has exited: its model is readable without a race
+        if (keyRels != nullptr)
+            *keyRels = VideoPlayerTestAccess::keyRels(p);
+        if (gop != nullptr)
+            *gop = VideoPlayerTestAccess::gopEst(p);
+    }
     CAPTURE(shown, violations, st.seeks.load(), st.gopCacheHits.load(), st.directionChanges.load());
+    std::printf("threaded reverse %s: shown %ld violations %ld hits %lld seeks %lld direction changes %lld\n",
+                f.getFileName().toRawUTF8(), shown, violations, static_cast<long long>(st.gopCacheHits.load()),
+                static_cast<long long>(st.seeks.load()), static_cast<long long>(st.directionChanges.load()));
     CHECK(shown >= 100);   // ~4.9 s of clock: ~160 content frames at 30 fps (+ the 2x span)
     CHECK(violations == 0);
     CHECK(st.gopCacheHits.load() > 0);
     CHECK(st.directionChanges.load() >= 6);
+}
+} // namespace
+
+TEST_CASE("threaded reverse: flips, turns, seeks and speed changes against the real decode thread -- monotonic per generation",
+          "[video_player][gopcache][s-rta-0929b]")
+{
+    threadedReverse(fixture("video_h264_gop30_64x64.mp4"));
+}
+
+// s-rta-1002b mkvidx T2e (ruling AM9 / E10): the same on a Matroska file with its Cues at the END (FX5, the GOP-30 fixture
+// remuxed: tests/test_gop_cache_store.cpp lists the command) -- the decode thread rebuilds its keyframe model from the
+// demuxer's live index (the open-time index holds frame 0 only); after the thread exits: keyRels {0, 30, 60}, gop 30 (RED on
+// fa9604d: {0}, 90 -- the whole file one GOP).
+TEST_CASE("threaded reverse on a Matroska file (Cues at the end): the decode thread's keyframe model follows the demuxer's "
+          "index -- monotonic per generation", "[video_player][gopcache][s-rta-1002b]")
+{
+    std::vector<int> keys;
+    int gop = 0;
+    threadedReverse(fixture("video_h264_gop30_64x64.mkv"), &keys, &gop);
+    std::string ks;
+    for (int k : keys)
+        ks += std::to_string(k) + " ";
+    std::printf("threaded reverse video_h264_gop30_64x64.mkv: keyRels {%s} gop %d\n", ks.c_str(), gop);
+    CHECK(keys == std::vector<int>{ 0, 30, 60 });
+    CHECK(gop == 30);
 }

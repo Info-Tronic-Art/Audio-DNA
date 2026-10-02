@@ -263,8 +263,9 @@ bool VideoPlayer::open(const juce::File& file)
 
     // s-rta-0929b gopcache: the GOP cache is configured here (nothing allocated -- Pitfall 58; the first store allocates, on
     // the decode thread). Relative frame 0 = the first decoded frame's pts (GC3: a stream need not start at 0). GC5:
-    // intra-only = the codec says so (HAP / ProRes / MJPEG / DNxHD / raw) or every index entry is a keyframe -- never
-    // learned from runs. The GOP estimate = the index's longest keyframe interval (R-9; no index: kDefaultGopFrames).
+    // intra-only = the codec says so (HAP / ProRes / MJPEG / DNxHD / raw) or every index entry is a keyframe one frame apart
+    // (s-rta-1002b mkvidx: readKeyIndex) -- never learned from runs. The GOP estimate = the index's longest keyframe interval
+    // (R-9; no index: kDefaultGopFrames).
     // gopcache-fix2 R1: the first frame's INDEX time (a pts-less first frame: its best-effort time, the scale every later
     // frame of the stream is indexed on).
     double firstIndexTime = 0.0;
@@ -274,34 +275,7 @@ bool VideoPlayer::open(const juce::File& file)
         const auto id = codecpar->codec_id;
         intraOnly_ = id == AV_CODEC_ID_HAP || id == AV_CODEC_ID_PRORES || id == AV_CODEC_ID_MJPEG || id == AV_CODEC_ID_DNXHD
                      || id == AV_CODEC_ID_RAWVIDEO;
-        int keys = 0, entries = 0;
-        int64_t lastKeyTs = 0, maxGapTs = 0;   // index timestamps are DTS: the first may be negative (B-frame delay)
-        std::vector<int64_t> keyTs;            // gop2 (A1): every keyframe entry's timestamp, in index order
-#if LIBAVFORMAT_VERSION_MAJOR >= 59
-        entries = avformat_index_get_entries_count(stream);
-        for (int i = 0; i < entries; ++i)
-        {
-            const AVIndexEntry* e = avformat_index_get_entry(stream, i);
-            if (e == nullptr || (e->flags & AVINDEX_KEYFRAME) == 0)
-                continue;
-            if (keys > 0)
-                maxGapTs = std::max(maxGapTs, e->timestamp - lastKeyTs);
-            ++keys;
-            lastKeyTs = e->timestamp;
-            keyTs.push_back(e->timestamp);
-        }
-#endif
-        if (entries >= 2 && keys == entries)
-            intraOnly_ = true;
-        // gop2 (A1): the keyframes as relative indices, from the FIRST keyframe's timestamp (index timestamps are DTS: this
-        // removes the B-frame delay); none without keyframe entries (the grid fallback)
-        keyRels_.clear();
-        for (const int64_t ts : keyTs)
-            keyRels_.push_back(std::max(0, static_cast<int>(std::lround(static_cast<double>(ts - keyTs.front()) * timeBase_ / frameDur_))));
-        if (keys >= 2 && maxGapTs > 0)
-            gopFramesEst_ = std::max(1, static_cast<int>(std::lround(static_cast<double>(maxGapTs) * timeBase_ / frameDur_)));
-        else if (keys == 1 && totalFrames_ > 0)
-            gopFramesEst_ = totalFrames_;   // one keyframe: the whole file is one GOP
+        readKeyIndex(true);   // mkvidx: the index's keyframes, longest interval and intra verdict (open() before start())
     }
     decodeMsEma_ = GopCache::kDecodeMsSeedPerMpix * static_cast<double>(width_) * static_cast<double>(height_) / 1.0e6;
     if (cacheBudget_ == nullptr)
@@ -806,6 +780,7 @@ void VideoPlayer::decodeLoop()
 
 bool VideoPlayer::decodeStep()
 {
+    readKeyIndex(false);   // mkvidx: the keyframe model follows the demuxer's live index (O(1) unless the index changed)
     // A frame waiting for a ring slot: one attempt (today's ring-full loop body). Reverse: a DEMAND run's frame -- while it
     // waits, the run's decodes continue (it lives in pendingFrame_, never in decodedFrame_: GC1).
     if (pendingPublish_)
@@ -1349,7 +1324,9 @@ bool VideoPlayer::runStep(double want)
     auto& r = *run_;
     if (r.seekPending)
     {
-        seekToTimestamp(ptsOfRel(r.seekFrom) - runSeekBackSec_);   // F1: further back after an overshoot
+        // mkvidx: aim at the frame's middle -- container times are rounded (Matroska 1 ms, QuickTime 1/600) and the conversion
+        // truncates; relOf rounds at the half. F1: further back after an overshoot
+        seekToTimestamp(ptsOfRel(r.seekFrom) + 0.5 * frameDur_ - runSeekBackSec_);
         r.seekPending = false;
         haveDecoded_ = false;
         runSawKey_ = false;
@@ -1592,6 +1569,61 @@ bool VideoPlayer::forwardIdle(double want)
     else if (stats_ != nullptr)
         ++stats_->framesDropped;
     return true;
+}
+
+// s-rta-1002b mkvidx (plan items 1-2 + ruling AM2 / AM3): the keyframe model is the demuxer's LIVE index. Rebuilt whenever
+// the index changed -- its entry count, entry 0's or the last entry's timestamp (two O(1) accessor calls per step): a Matroska
+// file with its Cues at the end opens with ONE entry (the Cues load at its first seek) and every keyframe read adds one; an
+// MP4 / MOV index is complete at open and never changes. intraOnly_ is decided at open only (GC5): a refresh never touches
+// it. The decode thread allocates here only when the index changed (not a sacred thread). mkvidx-fix R1: an intra-only stream
+// is never rebuilt after open -- keyRels_ is unused there (planPrefetchRun / forwardRetain return first), and an all-intra
+// Matroska file read forward grows its index by one entry per FRAME (an O(N) pass per step).
+void VideoPlayer::readKeyIndex(bool atOpen)
+{
+    if (formatCtx_ == nullptr || videoStreamIndex_ < 0 || (!atOpen && intraOnly_))
+        return;
+#if LIBAVFORMAT_VERSION_MAJOR >= 59
+    AVStream* stream = formatCtx_->streams[videoStreamIndex_];
+    const int entries = avformat_index_get_entries_count(stream);
+    const AVIndexEntry* first = entries > 0 ? avformat_index_get_entry(stream, 0) : nullptr;
+    const AVIndexEntry* last = entries > 0 ? avformat_index_get_entry(stream, entries - 1) : nullptr;
+    const int64_t firstTs = first != nullptr ? first->timestamp : INT64_MIN;
+    const int64_t lastTs = last != nullptr ? last->timestamp : INT64_MIN;
+    if (!atOpen && entries == keyIndexEntries_ && firstTs == keyIndexFirstTs_ && lastTs == keyIndexLastTs_)
+        return;
+    if (!atOpen && stats_ != nullptr)
+        ++stats_->keyIndexRebuilds;
+    keyIndexEntries_ = entries;
+    keyIndexFirstTs_ = firstTs;
+    keyIndexLastTs_ = lastTs;
+    std::vector<int64_t> keyTs;   // index timestamps are DTS in MP4 / MOV: the first may be negative (B-frame delay)
+    for (int i = 0; i < entries; ++i)
+    {
+        const AVIndexEntry* e = avformat_index_get_entry(stream, i);
+        if (e != nullptr && (e->flags & AVINDEX_KEYFRAME) != 0)
+            keyTs.push_back(e->timestamp);
+    }
+    const auto k = GopCache::keyIndexFrom(keyTs, entries, timeBase_, frameDur_, totalFrames_);
+    keyRels_ = k.rels;
+    if (k.gopFrames > 0)
+        gopFramesEst_ = k.gopFrames;
+    if (atOpen)
+    {
+        if (k.intraOnly)
+            intraOnly_ = true;
+        keyIndexOpenKeys_ = static_cast<int>(keyRels_.size());
+        keyIndexWitnessed_ = false;   // once per open file (a re-opened player logs again)
+    }
+    else if (!keyIndexWitnessed_ && keyIndexOpenKeys_ <= 1 && keyRels_.size() >= 2)
+    {
+        // once per player: the model first holds a real GOP after open() saw none (the Matroska Cues / keyframes read)
+        keyIndexWitnessed_ = true;
+        logLine("[VideoPlayer] Keyframe index: ", keyRels_.size(), " keyframes, longest interval ", gopFramesEst_,
+                " frames (open saw ", keyIndexOpenKeys_, "): ", sourceFile_.getFullPathName());
+    }
+#else
+    (void) atOpen;
+#endif
 }
 
 bool VideoPlayer::seekToTimestamp(double timeSec)
