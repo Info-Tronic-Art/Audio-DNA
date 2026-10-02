@@ -1,0 +1,35 @@
+== START 2026-10-02 10:06:39 input transport:  Transport: Built-in
+burners: clang;clang;clang;
+== PRE sha 2cdd5b4f9cabfc42
+== merge 10:06:40 base 92eacf9d654db9b9dc0b1e79c43cfebabac5c792
+d4e81bd merge(s-rta-1002): lane/bt2 - one audio device open per launch (C3: setSourceMode 
+code diff merge vs lane head (src tests docs CMakeLists CLAUDE.md probe): [] (empty = identical, or = the other lane's merged change)
+GATE-1 build rc 0 10:07:23
+GATE-1 warnings in touched files:       10 (touched: MainComponent.cpp|ApiServer.cpp|ApiServer.h|AudioEngine.cpp|AudioEngine.h|DeviceGuard.cpp|DeviceGuard.h|DevicePolicy.cpp|DevicePolicy.h|CMakeLists.txt|test_audio_engine_devices.cpp|test_device_policy.cpp)
+/Users/boriskarpman/projects/RealTimeAudio/src/api/ApiServer.cpp:1033:92: warning: missing field 'conn' initializer [-Wmissing-field-initializers]
+/Users/boriskarpman/projects/RealTimeAudio/src/api/ApiServer.cpp:1850:18: warning: lambda capture 'rl' is not required to be captured for this use [-Wunused-lambda-capture]
+/Users/boriskarpman/projects/RealTimeAudio/src/MainComponent.cpp:1556:56: warning: lambda capture 'this' is not used [-Wunused-lambda-capture]
+/Users/boriskarpman/projects/RealTimeAudio/src/MainComponent.cpp:1556:82: warning: unused parameter 'effectName' [-Wunused-parameter]
+/Users/boriskarpman/projects/RealTimeAudio/src/MainComponent.cpp:2301:43: warning: lambda capture 'this' is not used [-Wunused-lambda-capture]
+== GATE-2 ctest 10:07:23
+100% tests passed, 0 tests failed out of 1077
+Total Test time (real) = 104.06 sec
+expected 1077; ctest -N: Total Tests: 1077
+== GATE-10 sacred: callback diff lines        0 (0 = PASS); new std::mutex lines: 0
+== GATE-11 docs: CLAUDE.md    23996 B (base    23996)
+  'The startup `setSourceMode` re-open stays' = 0 (want 0)
+  pitfalls 'the one exception is `DeviceReconciler`' = 1 (want 1)
+  pitfalls 'the open device is STOPPED and nothing restarted it' = 1 (want 1)
+  pitfalls 'tried once per distinct list of allowed inputs' = 1 (want 1)
+  pitfalls 'lost - now listening on' = 1 (want 1)
+  pitfalls 'M5r (JUCE' = 1 (want 1)
+  testing-eyes 'audio_stop' = 1 (want >=1)
+  testing-eyes 'device-stopped' = 1 (want >=1)
+  testing-eyes 'lost_input' = 1 (want >=1)
+== GATE-6 + GATE-7 btguard x5 + tripwire 10:09:07
+10:09:07 compiler running -- waiting
+10:11:07 compiler running -- waiting
+10:13:08 compiler running -- waiting
+10:15:08 compiler running -- waiting
+10:17:08 compiler running -- waiting
+10:19:09 compiler running -- waiting

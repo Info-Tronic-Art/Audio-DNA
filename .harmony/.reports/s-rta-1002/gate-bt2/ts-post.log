@@ -1,0 +1,60 @@
+app under test: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+run id 2026100210460796431  cycles 20  stall 40 ms  witness runs 0  2026-10-02 10:46:07
+PASS  app launched (production), /api/health answered, PID=96445
+mode: STALL-ASSISTED (40 ms message-thread sleep before each pair)
+INFO  W1 gap 0.17 ms anchors [('start', 120.0, 0.0)] startBeatInBar 0.021333333104849
+INFO  W1 routine save (beats 0-4, slot 7): lastSaved.slot 7 lastError ""
+PASS  W1 first take after launch: start anchor start bpm 120.0, lock anchor False, startBeatInBar 0.021333333104849, routine from beat 0 saved
+PASS  W1 (see above)
+PASS  W1b liveness: bpm 120.0, totalBeatCount 1 -> 3 in 1 s
+PASS  W1b liveness
+  W2 00 sent  90.0 gap   0.15 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 01 sent 150.0 gap   0.18 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 02 sent  90.0 gap   0.24 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 03 sent 150.0 gap   0.20 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 04 sent  90.0 gap   0.29 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 05 sent 150.0 gap   0.54 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 06 sent  90.0 gap   0.31 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 07 sent 150.0 gap   0.60 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 08 sent  90.0 gap   0.16 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 09 sent 150.0 gap   0.38 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 10 sent  90.0 gap   0.52 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 11 sent 150.0 gap   3.84 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 12 sent  90.0 gap   2.53 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 13 sent 150.0 gap   0.28 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 14 sent  90.0 gap   0.44 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 15 sent 150.0 gap   0.19 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 16 sent  90.0 gap   0.42 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 17 sent 150.0 gap   0.36 ms start bpm 150.0  early "bpm" anchor False ok
+  W2 18 sent  90.0 gap   0.30 ms start bpm 90.0   early "bpm" anchor False ok
+  W2 19 sent 150.0 gap   0.31 ms start bpm 150.0  early "bpm" anchor False ok
+PASS  W2 start anchor carries the set_bpm sent just before Record: 20/20
+PASS  W2 (see above)
+  W3 00 gap   0.39 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 01 gap   0.24 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 02 gap   0.38 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 03 gap   0.17 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 04 gap   0.22 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 05 gap   0.18 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 06 gap   0.15 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 07 gap   0.26 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 08 gap   0.21 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 09 gap   0.22 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 10 gap   0.24 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 11 gap   0.55 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 12 gap   1.02 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 13 gap   0.16 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 14 gap   0.20 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 15 gap   0.66 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 16 gap   0.47 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 17 gap   0.29 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 18 gap   0.23 ms start bpm 120.0  startBeatInBar 0.0                    ok
+  W3 19 gap   0.15 ms start bpm 120.0  startBeatInBar 0.0                    ok
+PASS  W3 a Resync sent just before Record is beat 0 of bar 1 (startBeatInBar in [0, 0.25)): 20/20
+PASS  W3 (see above)
+PASS  W4 0 "take start:" lines in the app's stderr (every take started by the handshake)
+PASS  the probe's takes were removed (tstart-2026100210460796431-*)
+PASS  app terminated, no process remains
+PASS  0 Audio-DNA Output windows in the FULL window list (SCREEN-SAFETY LAW held)
+
+PASS 9 / FAIL 0   (artifacts in /tmp/audiodna-tempo-start)

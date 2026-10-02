@@ -1,0 +1,57 @@
+== GATE-6 + GATE-7 btguard x5 + tripwire 10:19:39
+10:19:39 lock acquired
+### green-btguard-1 10:19:39 load={ 5.70 6.75 6.68 }
+rc=0 :: PROBE-BTGUARD: 39 PASS / 0 FAIL / 2 SKIP (SKIP never counts) PROBE-BTGUARD GREEN 
+  run 1 UNC=0 tcc audiodna AUTHREQ {('kTCCServiceListenEvent', ('1', '5')): 6, ('kTCCServiceMicrophone', ('2', '2')): 16, ('kTCCServiceAudioCapture', ('1', '0')): 3, ('kTCCServiceSystemPolicyAllFiles', ('0', '5')): 3, ('kTCCServiceMediaLibrary', ('1', '0')): 6, ('kTCCServiceSystemPolicyDesktopFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDocumentsFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDownloadsFolder', ('2', '2')): 3, ('kTCCServiceScreenCapture', ('1', '5')): 3}
+### green-btguard-2 10:21:21 load={ 6.27 6.62 6.63 }
+rc=0 :: PROBE-BTGUARD: 39 PASS / 0 FAIL / 2 SKIP (SKIP never counts) PROBE-BTGUARD GREEN 
+  run 2 UNC=0 tcc audiodna AUTHREQ {('kTCCServiceListenEvent', ('1', '5')): 6, ('kTCCServiceMicrophone', ('2', '2')): 16, ('kTCCServiceAudioCapture', ('1', '0')): 3, ('kTCCServiceSystemPolicyAllFiles', ('0', '5')): 3, ('kTCCServiceMediaLibrary', ('1', '0')): 6, ('kTCCServiceSystemPolicyDesktopFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDocumentsFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDownloadsFolder', ('2', '2')): 3, ('kTCCServiceScreenCapture', ('1', '5')): 3}
+### green-btguard-3 10:23:00 load={ 6.36 7.02 6.82 }
+rc=0 :: PROBE-BTGUARD: 39 PASS / 0 FAIL / 2 SKIP (SKIP never counts) PROBE-BTGUARD GREEN 
+  run 3 UNC=0 tcc audiodna AUTHREQ {('kTCCServiceListenEvent', ('1', '5')): 6, ('kTCCServiceMicrophone', ('2', '2')): 16, ('kTCCServiceAudioCapture', ('1', '0')): 3, ('kTCCServiceSystemPolicyAllFiles', ('0', '5')): 3, ('kTCCServiceMediaLibrary', ('1', '0')): 6, ('kTCCServiceSystemPolicyDesktopFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDocumentsFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDownloadsFolder', ('2', '2')): 3, ('kTCCServiceScreenCapture', ('1', '5')): 3}
+### green-btguard-4 10:24:40 load={ 5.20 6.47 6.63 }
+rc=0 :: PROBE-BTGUARD: 39 PASS / 0 FAIL / 2 SKIP (SKIP never counts) PROBE-BTGUARD GREEN 
+  run 4 UNC=0 tcc audiodna AUTHREQ {('kTCCServiceListenEvent', ('1', '5')): 6, ('kTCCServiceMicrophone', ('2', '2')): 16, ('kTCCServiceAudioCapture', ('1', '0')): 3, ('kTCCServiceSystemPolicyAllFiles', ('0', '5')): 3, ('kTCCServiceMediaLibrary', ('1', '0')): 6, ('kTCCServiceSystemPolicyDesktopFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDocumentsFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDownloadsFolder', ('2', '2')): 3, ('kTCCServiceScreenCapture', ('1', '5')): 3}
+### green-btguard-5 10:26:20 load={ 5.30 6.25 6.53 }
+rc=0 :: PROBE-BTGUARD: 39 PASS / 0 FAIL / 2 SKIP (SKIP never counts) PROBE-BTGUARD GREEN 
+  run 5 UNC=0 tcc audiodna AUTHREQ {('kTCCServiceListenEvent', ('1', '5')): 6, ('kTCCServiceMicrophone', ('2', '2')): 16, ('kTCCServiceAudioCapture', ('1', '0')): 3, ('kTCCServiceSystemPolicyAllFiles', ('0', '5')): 3, ('kTCCServiceMediaLibrary', ('1', '0')): 6, ('kTCCServiceSystemPolicyDesktopFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDocumentsFolder', ('2', '2')): 3, ('kTCCServiceSystemPolicyDownloadsFolder', ('2', '2')): 3, ('kTCCServiceScreenCapture', ('1', '5')): 3}
+10:28:00 lock released
+== GATE-8 audio battery 10:28:00 burners: clang;clang;clang;
+10:28:00 compiler running -- waiting
+10:30:00 compiler running -- waiting
+10:32:00 compiler running -- waiting
+10:32:41 lock acquired
+### step3 10:32:41 load={ 6.04 6.08 6.29 }
+rc=0 :: 94 PASS / 0 FAIL   (artifacts in /tmp/audiodna-step3; take folders under /Users/boriskarpman/Documents/Audio-DNA/Takes; asset under /Users/boriskarpman/Documents/Audio-DNA/Audio) 
+### manual-bpm 10:36:36 load={ 3.12 4.80 5.72 }
+rc=0 :: 22 PASS / 0 FAIL   (artifacts in /tmp/audiodna-manual-bpm/run-20261002-103636-90112) 
+### resync 10:37:36 load={ 3.94 4.73 5.63 }
+rc=0 :: 16 PASS / 0 FAIL   (artifacts in /tmp/audiodna-resync) 
+### downbeat 10:37:55 load={ 4.00 4.69 5.60 }
+rc=0 :: 14 PASS / 0 FAIL   (artifacts in /tmp/audiodna-downbeat-level) 
+### onset-render 10:38:39 load={ 3.66 4.52 5.49 }
+rc=0 :: 13 PASS / 0 FAIL   (artifacts in /tmp/audiodna-onset-render) 
+### tempo-start 10:39:31 load={ 4.03 4.48 5.41 }
+rc=0 :: PASS 9 / FAIL 0   (artifacts in /tmp/audiodna-tempo-start) 
+### finalize-loop 10:39:53 load={ 3.58 4.35 5.34 }
+rc=0 :: 40 cycles, 0 truncations.  8 PASS / 0 FAIL 
+10:41:09 lock released
+10:41:09 re-acquire cooldown 45 s
+10:41:54 lock acquired
+### routines 10:41:54 load={ 2.85 4.06 5.11 }
+rc=0 :: 109 PASS / 0 FAIL   (artifacts in /tmp/audiodna-routines/run-20261002-104154-93636) 
+### async-load 10:43:38 load={ 3.90 3.98 4.95 }
+rc=0 :: PY 83 PASS / 0 FAIL PY 3 PASS / 0 FAIL PROBE-ASYNC-LOAD GREEN 
+10:44:27 lock released
+outwins: audio-dna windows 0, Output-named 0
+UNC windows (OptionAll): 0
+new Audio-DNA ips today:        0
+### GATE DONE 2026-10-02 10:44:43
+== GATE-9 production absence 10:44:43
+G9 src/audio/AudioEngine.cpp: built (dropped ['-DAUDIODNA_TEST_SERVER=1']); token hits 0
+G9 src/audio/DeviceGuard.cpp: built (dropped ['-DAUDIODNA_TEST_SERVER=1']); token hits 0
+G9 src/audio/DevicePolicy.cpp: built (dropped ['-DAUDIODNA_TEST_SERVER=1']); token hits 0
+G9 src/api/ApiServer.cpp: built (dropped ['-DAUDIODNA_TEST_SERVER=1']); token hits 0
+G9 src/MainComponent.cpp: built (dropped ['-DAUDIODNA_TEST_SERVER=1']); token hits 0
+GATE-9 PASS
+### GATE-9 DONE 2026-10-02 10:45:08

@@ -643,3 +643,8 @@ they differ:
   B1's T0 run and passed isolated. From now on every FULL ctest run takes the cross-lane mutex
   (until mkdir /tmp/audiodna-ctest.lock 2>/dev/null; do sleep 15; done; run; rm -rf /tmp/audiodna-ctest.lock), and a failure in
   those targets is re-run isolated before any verdict.
+- H13 (2026-10-02 11:08:24) FIX-ROUND RULINGS over the round-1 reviews (review-tsan-{memmodel,tests,render}-r1.md): tests M1 (R1/R2/R3 false-fail
+  under load: start handshake) MUST; memmodel S1 RULED MUST as the GUARD fix (a render-side trigger decided from a snapshot is a
+  no-op when the tuple no longer names the column it decided from) -- not the comment softening; render SHOULD-1 RULED MUST
+  (Sacred Rule 3: the analysis thread's steady-loop logging is zero-heap via a stack-buffer formatter); tests S1 / S2 / S3,
+  memmodel S2 / S3, tests N1 fixed. Full text: .harmony/.reports/s-rta-1002/tsan-fix-rulings.txt.
