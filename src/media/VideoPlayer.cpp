@@ -1612,6 +1612,7 @@ void VideoPlayer::readKeyIndex(bool atOpen)
         if (k.intraOnly)
             intraOnly_ = true;
         keyIndexOpenKeys_ = static_cast<int>(keyRels_.size());
+        keyIndexWitnessed_ = false;   // once per open file (a re-opened player logs again)
     }
     else if (!keyIndexWitnessed_ && keyIndexOpenKeys_ <= 1 && keyRels_.size() >= 2)
     {
