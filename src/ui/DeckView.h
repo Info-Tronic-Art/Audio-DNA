@@ -21,6 +21,7 @@ class DeckView : public juce::Component
 {
 public:
     DeckView();
+    ~DeckView() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -47,6 +48,16 @@ public:
     // s-rta-0928: the grid's image thumbnails, decoded off the message thread; every ClipCell / LayerStrip pulls from
     // it. Public for tests (setBackendsForTests before setComposition).
     ClipThumbnails& getThumbnails() { return thumbnails_; }
+
+    // s-rta-1002b ui U2.3 (BF3): fan-out only. Every clip cell reads a Video clip's codec / size / rate through this
+    // source (MainComponent::videoInfoFor) when its tooltip is asked for, and its menu's "Show in Finder" bubbles up as
+    // onRevealInFinder(layerIndex, column). Message thread.
+    void setVideoInfoSource(VideoInfoSource source) { videoInfoSource_ = std::move(source); }
+    std::function<void(int layerIndex, int column)> onRevealInFinder;
+    // TEST-ONLY hooks (ruling-ui.md AM10; /api/debug/reveal_clip and /api/debug/clip_media): the cell showing (layer,
+    // column) -- nullptr if none -- and its menu's completion path, menuChosen(1), as if "Show in Finder" was chosen.
+    ClipCell* cellForTests(int layerIndex, int column) const;
+    void revealCellForTests(int layerIndex, int column);
 
     // Callbacks — forwarded from child components
     std::function<void(int layerIndex, int column)> onClipTriggered;
@@ -115,9 +126,42 @@ public:
     // Get the natural height that fits all layers + triggers + tabs exactly
     int getNaturalHeight() const;
 
+    // s-rta-1002b ui U3.1 (BF8): how many times the tab row was built (setupDeckTabs) -- the witness that a click on the
+    // deck already showing rebuilds nothing.
+    int tabRowBuilds() const { return tabRowBuilds_; }
+
+    // s-rta-1002b ui U3.2 (BF8 "rename each deck with double click"; ruling-ui.md AM2-AM5): a double-click on the tab of
+    // the deck showing opens a text box over that tab. Enter, Tab and a click anywhere else keep the typed name, Esc
+    // discards it; an empty or unchanged name keeps the old one (no callback). Bound to the deck's ID: it follows that
+    // deck through every rebuild and closes (discarding) when the deck is gone.
+    std::function<void(int deckIndex, const juce::String& name)> onDeckRenamed;   // MainComponent::applyDeckRename
+    // Every close while keyboard focus is inside DeckView or nowhere -- called BEFORE the box hides, so JUCE never parks
+    // focus on a column trigger or a strip's X button (ruling E-R4 / E-R5). MainComponent takes the focus back.
+    std::function<void()> onRenameClosed;
+    void beginRename(int deckIndex);
+    void cancelDeckRename();                       // close and discard, no onDeckRenamed (a composition swap)
+    bool isRenaming() const { return renaming_; }
+    int renamingDeckIndex() const;                 // the deck the box is on, -1 when closed
+    // Tests: the nested tab-row listener (driven in JUCE's order) and the box itself.
+    juce::MouseListener& tabRowMouseForTests() { return tabRowMouse_; }
+    juce::TextEditor* renameEditorForTests() { return &renameEditor_; }
+    // Tests: the keyboard focus the close reads (headless, no component can hold focus: it is always nowhere).
+    // Empty = juce::Component::getCurrentlyFocusedComponent().
+    void setFocusedComponentForTests(std::function<juce::Component*()> f) { focusedForTests_ = std::move(f); }
+    // s-rta-1002b ui U3.4 (ruling AM6; the TEST-ONLY REST routes /api/debug/deck_tabs, deck_rename, tab_click,
+    // tab_dblclick): the same functions a click / key reaches. clickTabForTests runs the tab button's own onClick (what
+    // Button::mouseUp reaches) through a copy that outlives a rebuild; doubleClickTabForTests replays a double-click in
+    // JUCE's order (ruling E-R3); renameOpForTests runs one box op ("begin" "type" "enter" "tab" "escape" "focus_lost"
+    // "outside_click"; false for any other); tabRowStateForTests answers the row and the box (message thread only).
+    void clickTabForTests(int deckIndex);
+    void doubleClickTabForTests(int deckIndex);
+    bool renameOpForTests(const juce::String& op, int deckIndex, const juce::String& text);
+    juce::var tabRowStateForTests() const;
+
 private:
     Composition* composition_ = nullptr;
     ClipThumbnails thumbnails_;   // declared before the strips / cells: destroyed after them
+    VideoInfoSource videoInfoSource_;   // s-rta-1002b ui U2.3: the cells hold its address -- declared before them too
 
     // Grid components
     std::vector<std::unique_ptr<LayerStrip>> layerStrips_;
@@ -144,6 +188,49 @@ private:
         void mouseUp(const juce::MouseEvent& e) override   { if (! e.mods.isPopupMenu()) juce::TextButton::mouseUp(e); }
     };
     std::vector<std::unique_ptr<DeckTabButton>> deckTabs_;
+    int tabRowBuilds_ = 0;                               // ++ in setupDeckTabs (U3.1 witness)
+    // s-rta-1002b ui U3.1 (BF8): a tab's left click. A click on the deck already showing does NOTHING: it must not
+    // rebuild the row, or the clicked tab dies before JUCE can deliver its double-click (plan-ui E4 / E5, ruling E-R3).
+    void tabClicked(int deckIndex);
+
+    // s-rta-1002b ui U3.2 (ruling AM3): the deck-name box. It handles Return / Tab / Esc in keyPressed, synchronously
+    // (a TextEditor POSTS its own Return / Esc / focus-loss callbacks, ruling E-R9), lets the output keys
+    // (Cmd+Shift+Esc, Cmd+`, Cmd+F) reach MainComponent (a TextEditor's Escape test is modifier-blind, plan E7), and
+    // swallows every key-state change, so no key-up reaches MainComponent's momentary-release sweep while typing.
+    struct DeckNameEditor : juce::TextEditor
+    {
+        std::function<void(bool keep)> onClose;
+        bool keyPressed(const juce::KeyPress& key) override;
+        bool keyStateChanged(bool isKeyDown) override;
+    };
+    DeckNameEditor renameEditor_;                        // created once, hidden (Pitfall 34), never rebuilt
+    bool renaming_ = false;
+    uint32_t renamingDeckId_ = 0;
+    std::function<juce::Component*()> focusedForTests_;   // empty = the real focus (setFocusedComponentForTests)
+    juce::Rectangle<int> tabRow_;                        // the tab row in DeckView coordinates (resized)
+    void finishRename(bool keep);
+    void placeRenameEditor();
+    int deckIndexOfId(uint32_t deckId) const;
+
+    // s-rta-1002b ui U3.2 (ruling AM2): ONE nested listener sees every mouseDown / double-click in DeckView. It never
+    // reads a position: once the tab died in its own onClick, JUCE hands the parent the DEAD tab's local position
+    // (ruling E-R3 S1), so the tab is identified by the mouseDown's originalComponent, which is still alive then.
+    struct TabRowMouse : juce::MouseListener
+    {
+        explicit TabRowMouse(DeckView& d) : dv(d) {}
+        void mouseDown(const juce::MouseEvent& e) override        { dv.tabRowMouseDown(e); }
+        void mouseDoubleClick(const juce::MouseEvent& e) override { dv.tabRowDoubleClick(e); }
+        DeckView& dv;
+    };
+    TabRowMouse tabRowMouse_ { *this };
+    struct TabArm { uint32_t deckId = 0; bool wasShowing = false; bool valid = false; };
+    TabArm firstClick_, armed_;
+    // Boris Q1 default (a): a double-click renames only when its FIRST click landed on the tab already showing (a quick
+    // double-click while flicking through decks never opens a box). Answer (b) => false.
+    static constexpr bool kRenameOnlyTheShowingTab = true;
+    int tabIndexOf(const juce::Component* c) const;      // index in deckTabs_, else -1
+    void tabRowMouseDown(const juce::MouseEvent& e);
+    void tabRowDoubleClick(const juce::MouseEvent& e);
     std::unique_ptr<juce::TextButton> plusTab_;          // "+" -- New Deck / Load Deck... (rebuilt with the tabs)
     std::unique_ptr<juce::TextButton> undoHintBtn_;      // "Undo Remove \"<name>\"" -- created once, hidden (Pitfall 34)
     int undoHintGeneration_ = 0;                         // bumps on every show/hide: a stale 10-s timer does nothing
@@ -172,7 +259,7 @@ private:
     void setupColumnTriggers();
     void setupDeckTabs();
     void fanRoutineBands();
-    static juce::String tabTooltipFor(const Deck& deck);
+    static juce::String tabTooltipFor(const Deck& deck, bool showing);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DeckView)
 };

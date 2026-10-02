@@ -436,6 +436,26 @@ ClipInspector::ClipInspector()
 
     // --- Effects ---
     addAndMakeVisible(effectStackView_);
+
+    // --- s-rta-1002b ui U2.4 (BF3; ruling-ui.md AM9): Show in Finder + the file-info rows. Created once, hidden
+    // (Pitfall 34); updateMediaInfo shows them for a clip with a file.
+    revealBtn_.setComponentID("revealClipFile");
+    revealBtn_.setColour(juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kSurface));
+    revealBtn_.setColour(juce::TextButton::textColourOffId, juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    revealBtn_.setWantsKeyboardFocus(false);   // a click never parks the keyboard here (a later Return would reveal again)
+    revealBtn_.onClick = [this] {
+        if (clip_ && onRevealInFinder)
+            onRevealInFinder(clip_);
+    };
+    addChildComponent(revealBtn_);
+    for (auto* label : { &mediaInfoLabel1_, &mediaInfoLabel2_ })
+    {
+        label->setFont(juce::Font(juce::FontOptions(10.5f)));
+        label->setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        label->setJustificationType(juce::Justification::centredLeft);
+        label->setMinimumHorizontalScale(1.0f);   // never squash the text: ellipsize (the full path is the tooltip)
+        addChildComponent(*label);
+    }
 }
 
 void ClipInspector::paint(juce::Graphics& g)
@@ -472,11 +492,11 @@ void ClipInspector::paint(juce::Graphics& g)
     g.fillRect(nameBar);
     g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
     g.setFont(juce::Font(juce::FontOptions(12.0f)).boldened());
-    g.drawText(juce::String(clip_->name), nameBar.withTrimmedLeft(4).withTrimmedRight(40),
+    g.drawText(juce::String(clip_->name), nameTextBounds(getWidth(), revealShown_),
                juce::Justification::centredLeft, true);
 
-    // Section headers
-    int y = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
+    // Section headers (s-rta-1002b ui U2.4: below the file-info rows)
+    int y = kNameBarHeight + infoRowHeight() + MacroPanel::kPreferredHeight + kSectionGap;
 
     // Transport header — mode selector is placed inside the header row by resized()
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transport");
@@ -575,8 +595,12 @@ void ClipInspector::resized()
     auto area = getLocalBounds().reduced(kInset, 0);
     int y = 0;
 
-    // Name bar
+    // Name bar (s-rta-1002b ui U2.4: the Show in Finder button at its right), then the file-info rows
+    revealBtn_.setBounds(revealButtonBounds(getWidth()));
     y += kNameBarHeight;
+    mediaInfoLabel1_.setBounds(area.getX(), y, area.getWidth(), kInfoRowHeight);
+    mediaInfoLabel2_.setBounds(area.getX(), y + kInfoRowHeight, area.getWidth(), kInfoRowHeight);
+    y += infoRowHeight();
 
     // Dashboard
     macroPanel_.setBounds(area.getX(), y, area.getWidth(), MacroPanel::kPreferredHeight);
@@ -803,6 +827,7 @@ void ClipInspector::setClip(Clip* clip, EffectScope scope)
         for (auto& pc : sourceParamControls_) pc->forgetConnection();
         sourceParamControls_.clear();
     }
+    updateMediaInfo(true);   // s-rta-1002b ui U2.4
     bindScalarControls();
     resized();
     repaint();
@@ -961,6 +986,7 @@ void ClipInspector::refresh()
 {
     if (clip_)
     {
+        updateMediaInfo(false);   // s-rta-1002b ui U2.4: only when the file changed, or a video's player has not answered
         syncFromClip();
         effectStackView_.refresh();
         macroPanel_.refresh();
@@ -997,6 +1023,8 @@ ClipInspector::PaintKey ClipInspector::paintKeyNow() const
     k.fxDrop = fxDropHighlight_;
     k.width = getWidth();
     k.height = getHeight();
+    k.infoRows = infoRows_;          // s-rta-1002b ui U2.4: paint() offsets the sections by the rows
+    k.revealShown = revealShown_;    // ... and trims the name for the button
     if (clip_ == nullptr)
         return k;
     k.name = clip_->name;
@@ -1031,6 +1059,89 @@ void ClipInspector::updateFitCaption()
     fitCaption_.setText(text, juce::dontSendNotification);
 }
 
+// s-rta-1002b ui U2.4 (BF3; ruling-ui.md AM9) --------------------------------------------------------------------------
+void ClipInspector::setVideoInfoSource(VideoInfoSource source)
+{
+    videoInfoSource_ = std::move(source);
+    updateMediaInfo(true);
+}
+
+// The name text: main's rect without the button; with it, the name stops 4 px before the button (AM9 (i)).
+juce::Rectangle<int> ClipInspector::nameTextBounds(int width, bool buttonShown)
+{
+    return juce::Rectangle<int>(0, 0, width, kNameBarHeight)
+        .withTrimmedLeft(4)
+        .withTrimmedRight(buttonShown ? kRevealButtonWidth + kInset + 4 : 40);
+}
+
+// The button: 104 x 20, centred in the 28-px name bar, kInset from the right edge (the sections' own inset).
+juce::Rectangle<int> ClipInspector::revealButtonBounds(int width)
+{
+    constexpr int kButtonHeight = 20;
+    return { width - kInset - kRevealButtonWidth, (kNameBarHeight - kButtonHeight) / 2, kRevealButtonWidth, kButtonHeight };
+}
+
+juce::StringArray ClipInspector::mediaInfoLinesShown() const
+{
+    juce::StringArray lines;
+    for (const auto* label : { &mediaInfoLabel1_, &mediaInfoLabel2_ })
+        if (label->isVisible())
+            lines.add(label->getText());
+    return lines;
+}
+
+// Re-describe the clip's file (clipmedia::describe) when what it is made from changed, or -- bounded to that case --
+// while a Video clip's player has not answered yet. Compare-before-set; re-lays out only when a row or the button
+// appears or goes.
+void ClipInspector::updateMediaInfo(bool force)
+{
+    MediaKey key;
+    if (clip_ != nullptr)
+    {
+        key.clip = clip_;
+        key.mediaType = static_cast<int>(clip_->mediaType);
+        key.path = clipmedia::revealTarget(*clip_).getFullPathName();
+        key.missing = clip_->mediaMissing;
+    }
+    if (!force && mediaKeyValid_ && key == mediaKey_ && !videoPending_)
+        return;
+    mediaKey_ = key;
+    mediaKeyValid_ = true;
+
+    const bool isVideo = clip_ != nullptr && clip_->mediaType == Clip::MediaType::Video;
+    std::optional<VideoInfo> video;
+    if (isVideo && videoInfoSource_)
+        video = videoInfoSource_(*clip_);
+    const auto d = clip_ != nullptr ? clipmedia::describe(*clip_, video) : Described {};
+    videoPending_ = isVideo && d.fileBacked && !d.missing && !(video.has_value() && video->known());
+
+    const juce::Colour colour(d.missing ? 0xffcc3333u : AudioDNALookAndFeel::kTextSecondary);   // the cell's missing red
+    juce::Label* labels[] = { &mediaInfoLabel1_, &mediaInfoLabel2_ };
+    for (size_t i = 0; i < 2; ++i)
+    {
+        auto& label = *labels[i];
+        const bool show = i < d.lines.size();
+        const juce::String text = show ? d.lines[i] : juce::String();
+        if (label.getText() != text)
+            label.setText(text, juce::dontSendNotification);
+        if (label.findColour(juce::Label::textColourId) != colour)
+            label.setColour(juce::Label::textColourId, colour);
+        if (label.getTooltip() != d.pathTip)
+            label.setTooltip(d.pathTip);
+        if (label.isVisible() != show)
+            label.setVisible(show);
+    }
+    if (revealBtn_.isVisible() != d.fileBacked)
+        revealBtn_.setVisible(d.fileBacked);
+    const int rows = static_cast<int>(std::min<size_t>(d.lines.size(), 2));
+    if (rows != infoRows_ || d.fileBacked != revealShown_)
+    {
+        infoRows_ = rows;
+        revealShown_ = d.fileBacked;
+        resized();
+    }
+}
+
 int ClipInspector::getPreferredHeight() const
 {
     // Dashboard (macroPanel_) is always live, even with no clip selected (it's the single Global MacroBank,
@@ -1041,7 +1152,7 @@ int ClipInspector::getPreferredHeight() const
     // rendering entirely.
     if (!clip_) return kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap + kEmptyStateHeight;
 
-    int h = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
+    int h = kNameBarHeight + infoRowHeight() + MacroPanel::kPreferredHeight + kSectionGap;   // U2.4: + the info rows
     int transportH = kTimelineHeight + 2 + kRowHeight + 2 + kRowHeight + kRowHeight; // timeline+2 + buttons+2 + speed + duration (mode in header)
     if (clip_->isPlayable())
     {

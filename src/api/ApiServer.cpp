@@ -326,6 +326,16 @@ void ApiServer::setupRoutes()
     // and stop the open device (the dead-input stand-in). Both answer at once.
     server_.Post("/api/debug/audio_deny", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDeny(req, res); });
     server_.Post("/api/debug/audio_stop", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioStop(req, res); });
+    // s-rta-1002b ui U3.4 (TEST-ONLY, same build path; ruling-ui.md AM6): the deck tab row and its in-place rename box.
+    server_.Get("/api/debug/deck_tabs", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDeckTabs(req, res); });
+    server_.Post("/api/debug/deck_rename", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDeckRename(req, res); });
+    server_.Post("/api/debug/tab_click", [this](const httplib::Request& req, httplib::Response& res) { handleDebugTabClick(req, res); });
+    server_.Post("/api/debug/tab_dblclick", [this](const httplib::Request& req, httplib::Response& res) { handleDebugTabDoubleClick(req, res); });
+    server_.Post("/api/debug/undo", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUndo(req, res); });
+    // s-rta-1002b ui U2.6 (TEST-ONLY, same build path; plan-ui.md U2.6 + ruling-ui.md AM10): a clip's file info + Show in Finder.
+    server_.Get("/api/debug/clip_media", [this](const httplib::Request& req, httplib::Response& res) { handleDebugClipMedia(req, res); });
+    server_.Post("/api/debug/reveal_clip", [this](const httplib::Request& req, httplib::Response& res) { handleDebugRevealClip(req, res); });
+    server_.Post("/api/debug/inspect_clip", [this](const httplib::Request& req, httplib::Response& res) { handleDebugInspectClip(req, res); });
 #endif
 
     // s-rta-0926 routines slice 1 (plan-routines-s1-final.md 5.1): save a slice of the loaded take
@@ -2148,6 +2158,214 @@ void ApiServer::handleDebugCancelLoad(const httplib::Request&, httplib::Response
         return;
     }
     juce::MessageManager::callAsync([this]() { onDebugCancelLoad(); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): the deck tab row + rename box, read ON the message thread (the handleDebugUiText
+// shape: <= 2 s wait; a frozen message thread answers {"ok":false,...}; the shared box outlives a late answer).
+void ApiServer::handleDebugDeckTabs(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugDeckTabs)
+    {
+        res.status = 503;
+        res.set_content(jsonError("deck_tabs not wired"), "application/json");
+        return;
+    }
+    struct Box { juce::WaitableEvent done; juce::var state; };
+    auto box = std::make_shared<Box>();
+    const bool posted = juce::MessageManager::callAsync([this, box]() {
+        auto state = onDebugDeckTabs();
+        if (auto* o = state.getDynamicObject())
+            o->setProperty("ok", true);
+        box->state = state;
+        box->done.signal();
+    });
+    if (!posted || !box->done.wait(2000))
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("ok", false);
+        obj->setProperty("reason", "message thread did not answer within 2 s");
+        res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+        return;
+    }
+    res.set_content(juce::JSON::toString(box->state).toStdString(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"deck": i, "op": "begin"|"type"|"enter"|"tab"|"escape"|"focus_lost"|"outside_click",
+// "text": "..."} -> the rename box function a click / key reaches (DeckView::renameOpForTests).
+void ApiServer::handleDebugDeckRename(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const juce::String op = json.getProperty("op", "").toString();
+    static const juce::StringArray kOps { "begin", "type", "enter", "tab", "escape", "focus_lost", "outside_click" };
+    if (!kOps.contains(op) || (op == "begin" && !json.hasProperty("deck")))
+    {
+        res.status = 400;
+        res.set_content(jsonError("op (begin|type|enter|tab|escape|focus_lost|outside_click) required; begin needs deck"),
+                        "application/json");
+        return;
+    }
+    if (!onDebugDeckRename)
+    {
+        res.status = 503;
+        res.set_content(jsonError("deck_rename not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json.getProperty("deck", -1));
+    const juce::String text = json.getProperty("text", "").toString();
+    juce::MessageManager::callAsync([this, deck, op, text]() { onDebugDeckRename(deck, op, text); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"deck": i} -> the tab button's own onClick (DeckView::clickTabForTests).
+void ApiServer::handleDebugTabClick(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("deck"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("deck (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugTabClick)
+    {
+        res.status = 503;
+        res.set_content(jsonError("tab_click not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json["deck"]);
+    juce::MessageManager::callAsync([this, deck]() { onDebugTabClick(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"deck": i} -> a double-click on that tab in JUCE's order
+// (DeckView::doubleClickTabForTests).
+void ApiServer::handleDebugTabDoubleClick(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("deck"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("deck (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugTabDoubleClick)
+    {
+        res.status = 503;
+        res.set_content(jsonError("tab_dblclick not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json["deck"]);
+    juce::MessageManager::callAsync([this, deck]() { onDebugTabDoubleClick(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U3.4 (TEST-ONLY): {"redo": false|true} (body optional, answered at once -- Pitfall 31) -> Edit > Undo /
+// Redo (MainComponent::handleMenuCommand kCompUndo / kCompRedo).
+void ApiServer::handleDebugUndo(const httplib::Request& req, httplib::Response& res)
+{
+    if (!onDebugUndo)
+    {
+        res.status = 503;
+        res.set_content(jsonError("undo not wired"), "application/json");
+        return;
+    }
+    const auto json = juce::JSON::parse(juce::String(req.body));
+    const bool redo = static_cast<bool>(json.getProperty("redo", false));
+    juce::MessageManager::callAsync([this, redo]() { onDebugUndo(redo); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U2.6 (TEST-ONLY): ?layer=L&column=C -> the active deck's clip there, its cell and the Clip inspector,
+// read ON the message thread (the handleDebugDeckTabs shape: <= 2 s wait; the shared box outlives a late answer).
+void ApiServer::handleDebugClipMedia(const httplib::Request& req, httplib::Response& res)
+{
+    if (!req.has_param("layer") || !req.has_param("column"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("layer and column (int) query parameters required"), "application/json");
+        return;
+    }
+    if (!onDebugClipMedia)
+    {
+        res.status = 503;
+        res.set_content(jsonError("clip_media not wired"), "application/json");
+        return;
+    }
+    const int layer = juce::String(req.get_param_value("layer")).getIntValue();
+    const int column = juce::String(req.get_param_value("column")).getIntValue();
+    struct Box { juce::WaitableEvent done; juce::var state; };
+    auto box = std::make_shared<Box>();
+    const bool posted = juce::MessageManager::callAsync([this, box, layer, column]() {
+        auto state = onDebugClipMedia(layer, column);
+        if (auto* o = state.getDynamicObject())
+            o->setProperty("ok", true);
+        box->state = state;
+        box->done.signal();
+    });
+    if (!posted || !box->done.wait(2000))
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("ok", false);
+        obj->setProperty("reason", "message thread did not answer within 2 s");
+        res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+        return;
+    }
+    res.set_content(juce::JSON::toString(box->state).toStdString(), "application/json");
+}
+
+namespace
+{
+// {"layer": L, "column": C} -> true and the two ints, else false.
+bool parseLayerColumn(const httplib::Request& req, int& layer, int& column)
+{
+    const auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("layer") || !json.hasProperty("column"))
+        return false;
+    layer = static_cast<int>(json["layer"]);
+    column = static_cast<int>(json["column"]);
+    return true;
+}
+} // namespace
+
+// s-rta-1002b ui U2.6 (TEST-ONLY): {"layer": L, "column": C} -> that cell's menu completion (as if "Show in Finder" was
+// chosen; DeckView::revealCellForTests -> MainComponent::revealClipAt, which only records under --test-mode).
+void ApiServer::handleDebugRevealClip(const httplib::Request& req, httplib::Response& res)
+{
+    int layer = 0, column = 0;
+    if (!parseLayerColumn(req, layer, column))
+    {
+        res.status = 400;
+        res.set_content(jsonError("layer and column (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugRevealClip)
+    {
+        res.status = 503;
+        res.set_content(jsonError("reveal_clip not wired"), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this, layer, column]() { onDebugRevealClip(layer, column); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// s-rta-1002b ui U2.6 (TEST-ONLY): {"layer": L, "column": C} -> that cell's name-bar click (select + inspect).
+void ApiServer::handleDebugInspectClip(const httplib::Request& req, httplib::Response& res)
+{
+    int layer = 0, column = 0;
+    if (!parseLayerColumn(req, layer, column))
+    {
+        res.status = 400;
+        res.set_content(jsonError("layer and column (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugInspectClip)
+    {
+        res.status = 503;
+        res.set_content(jsonError("inspect_clip not wired"), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this, layer, column]() { onDebugInspectClip(layer, column); });
     res.set_content(jsonOk(), "application/json");
 }
 #endif

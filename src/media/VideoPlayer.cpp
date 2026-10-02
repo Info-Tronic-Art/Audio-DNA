@@ -154,6 +154,20 @@ bool VideoPlayer::open(const juce::File& file)
         frameRate_ = 30.0;
     frameDur_ = 1.0 / frameRate_;
 
+    // BF3 (s-rta-1002b ui): what the file is, from the stream already open (no extra I/O, no decode). The rate is the
+    // stream's own -- never the made-up 30.0 above (0 = the stream has no rate).
+    info_.width = width_;
+    info_.height = height_;
+    if (stream->avg_frame_rate.den > 0 && stream->avg_frame_rate.num > 0)
+        info_.fps = av_q2d(stream->avg_frame_rate);
+    else if (stream->r_frame_rate.den > 0 && stream->r_frame_rate.num > 0)
+        info_.fps = av_q2d(stream->r_frame_rate);
+    else
+        info_.fps = 0.0;
+    const char* profileName = avcodec_profile_name(codecpar->codec_id, codecpar->profile);
+    info_.codec = videoinfo::codecLabel(avcodec_get_name(codecpar->codec_id), codecpar->codec_tag,
+                                        profileName != nullptr ? profileName : "");
+
     // s-rta-0929b gopcache c1b: the decode thread's policy, set here (decodeStep() runs it with or without the loop).
     // The writer runs up to kWriterLookAhead frames ahead of the shown frame (the old decode ran at most one): "behind"
     // must exceed that look-ahead, or forward play of a slow clip (a 24 fps clip: 3 frames > 0.1 s) would re-seek after

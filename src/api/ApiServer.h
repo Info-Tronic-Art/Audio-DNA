@@ -211,6 +211,30 @@ public:
     std::function<void(const juce::StringArray& names)> onDebugAudioDeny;
     std::function<void()> onDebugAudioStop;
 #endif
+#if AUDIODNA_TEST_SERVER
+    // s-rta-1002b ui U3.4 (TEST-ONLY routes, AUDIODNA_BUILD_TEST_SERVER; ruling-ui.md AM6) -- the deck tab row and its
+    // in-place rename box. GET /api/debug/deck_tabs answers onDebugDeckTabs() read ON the message thread (<= 2 s wait):
+    // {ok, active, row_width, tab_row_builds, focus_home_count, undo:{top, redo_top, index, size}, tabs:[{index, id, name,
+    // label, tooltip, x, y, w, h, showing}], editor:{open, deck_id, deck_index, text, x, y, w, h}}. POST
+    // /api/debug/deck_rename {deck, op, text} (op: begin | type | enter | tab | escape | focus_lost | outside_click), POST
+    // /api/debug/tab_click {deck} (the tab's own onClick), POST /api/debug/tab_dblclick {deck} (a double-click in JUCE's
+    // order) and POST /api/debug/undo {redo} (Edit > Undo / Redo) are marshalled to the message thread and answer at once.
+    std::function<juce::var()> onDebugDeckTabs;
+    std::function<void(int deckIndex, const juce::String& op, const juce::String& text)> onDebugDeckRename;
+    std::function<void(int deckIndex)> onDebugTabClick;
+    std::function<void(int deckIndex)> onDebugTabDoubleClick;
+    std::function<void(bool redo)> onDebugUndo;
+    // s-rta-1002b ui U2.6 (TEST-ONLY routes, same build path; plan-ui.md U2.6 + ruling-ui.md AM10) -- a clip's file info
+    // and Show in Finder. GET /api/debug/clip_media?layer=L&column=C answers onDebugClipMedia(L, C) read ON the message
+    // thread (<= 2 s wait), for the ACTIVE deck: {ok, layer, column, cell, media_type, line, lines, tooltip (the cell's
+    // own), path_tip, reveal_target, file_backed, missing, video:{codec, width, height, fps}|null, menu:[...],
+    // inspector_shows, inspector_line, inspector_lines, inspector_button_visible, last_revealed, reveal_count}. POST
+    // /api/debug/reveal_clip {layer, column} (through the cell's menu completion, DeckView::revealCellForTests) and POST
+    // /api/debug/inspect_clip {layer, column} (the cell's name-bar click) are marshalled and answer at once.
+    std::function<juce::var(int layer, int column)> onDebugClipMedia;
+    std::function<void(int layer, int column)> onDebugRevealClip;
+    std::function<void(int layer, int column)> onDebugInspectClip;
+#endif
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
@@ -277,6 +301,16 @@ private:
     void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
     void handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
     void handleDebugAudioStop(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
+    // s-rta-1002b ui U3.4 (TEST-ONLY): see onDebugDeckTabs / onDebugDeckRename / onDebugTabClick / onDebugUndo.
+    void handleDebugDeckTabs(const httplib::Request& req, httplib::Response& res);
+    void handleDebugDeckRename(const httplib::Request& req, httplib::Response& res);
+    void handleDebugTabClick(const httplib::Request& req, httplib::Response& res);
+    void handleDebugTabDoubleClick(const httplib::Request& req, httplib::Response& res);
+    void handleDebugUndo(const httplib::Request& req, httplib::Response& res);
+    // s-rta-1002b ui U2.6 (TEST-ONLY): see onDebugClipMedia / onDebugRevealClip / onDebugInspectClip.
+    void handleDebugClipMedia(const httplib::Request& req, httplib::Response& res);
+    void handleDebugRevealClip(const httplib::Request& req, httplib::Response& res);
+    void handleDebugInspectClip(const httplib::Request& req, httplib::Response& res);
     std::function<juce::var()> audioDevicesProvider_;   // set before start(); see setAudioDevicesProvider
 #endif
 

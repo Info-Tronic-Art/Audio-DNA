@@ -1,5 +1,6 @@
 #include "ui/DeckView.h"
 #include "ui/UiPaintCounters.h"
+#include "output/OutputMenuModel.h"   // output::classifyOutputKey (the rename box passes the output keys on)
 
 DeckView::DeckView()
 {
@@ -23,6 +24,21 @@ DeckView::DeckView()
     };
     addChildComponent(undoHintBtn_.get());
 
+    // s-rta-1002b ui U3.2 (BF8; ruling AM2 / AM3): the deck-name box -- created once, hidden (Pitfall 34), never rebuilt
+    // with the tabs -- and the ONE nested listener that opens it on a double-click and commits it on a click elsewhere.
+    renameEditor_.onClose = [this](bool keep) { finishRename(keep); };
+    // A POSTED callback (ruling E-R9): a stale one that lands after a new rename opened (and took focus) does nothing.
+    renameEditor_.onFocusLost = [this] {
+        if (renaming_ && ! renameEditor_.hasKeyboardFocus(true))
+            finishRename(true);
+    };
+    renameEditor_.setPopupMenuEnabled(false);
+    renameEditor_.setFont(juce::Font(juce::FontOptions(14.0f)));   // the tab's own font (LookAndFeel drawButtonText)
+    renameEditor_.setJustification(juce::Justification::centred);
+    renameEditor_.setTooltip("Enter keeps the new name, Esc cancels");
+    addChildComponent(renameEditor_);
+    addMouseListener(&tabRowMouse_, true);
+
     // s-rta-0927: the eight routine pads, created once (never in rebuildGrid).
     for (int i = 0; i < RoutineEngine::kBankSize; ++i)
     {
@@ -33,6 +49,11 @@ DeckView::DeckView()
         addAndMakeVisible(pad.get());
         routinePads_[static_cast<size_t>(i)] = std::move(pad);
     }
+}
+
+DeckView::~DeckView()
+{
+    removeMouseListener(&tabRowMouse_);
 }
 
 void DeckView::paint(juce::Graphics& g)
@@ -91,6 +112,7 @@ void DeckView::resized()
     // Deck tabs immediately after the grid (attached to bottom of last layer); the "+" after the last tab and the
     // Remove-Deck undo hint flush right (plan6 §6.1 DeckTabRow::layout -- tabs never move for the hint).
     auto tabArea = area.removeFromTop(kDeckTabHeight);
+    tabRow_ = tabArea;
     const auto L = DeckTabRow::layout(tabArea.getWidth(), static_cast<int>(deckTabs_.size()),
                                       undoHintBtn_->isVisible() ? undoHintBtn_->getWidth() : 0);
     for (size_t i = 0; i < deckTabs_.size(); ++i)
@@ -101,6 +123,7 @@ void DeckView::resized()
         undoHintBtn_->setBounds(tabArea.getX() + L.hint.x, tabArea.getY(), L.hint.w, kDeckTabHeight);
     else if (undoHintBtn_->isVisible())
         hideUndoHint();                         // no room next to the "+": never overlap it
+    placeRenameEditor();                        // s-rta-1002b ui U3.2: the open box follows its deck's tab
 
     // Layout grid content inside viewport
     layoutGrid();
@@ -123,6 +146,10 @@ void DeckView::rebuildGrid()
     columnTriggers_.clear();
     deckTabs_.clear();
     gridContent_->removeAllChildren();
+
+    // s-rta-1002b ui U3.2: a rename box whose deck is gone (removed by another path) closes, discarding the edit.
+    if (renaming_ && deckIndexOfId(renamingDeckId_) < 0)
+        finishRename(false);
 
     if (!composition_)
         return;
@@ -187,6 +214,7 @@ void DeckView::rebuildGrid()
             auto cell = std::make_unique<ClipCell>();
             cell->setGridPosition(layerIdx, col);
             cell->setThumbnails(&thumbnails_);
+            cell->setVideoInfoSource(&videoInfoSource_);   // s-rta-1002b ui U2.3 (BF3)
             cell->setClip(layer->getClipAt(col));
             cell->setActive(layer->runtime().activeClipColumn == col);
 
@@ -225,6 +253,9 @@ void DeckView::rebuildGrid()
             };
             cell->onClipMove = [this](int srcL, int srcC, int dstL, int dstC) {
                 if (onClipMoved) onClipMoved(srcL, srcC, dstL, dstC);
+            };
+            cell->onRevealInFinder = [this](int li, int c) {   // s-rta-1002b ui U2.3 (BF3): the cell menu's Show in Finder
+                if (onRevealInFinder) onRevealInFinder(li, c);
             };
 
             gridContent_->addAndMakeVisible(cell.get());
@@ -308,7 +339,7 @@ void DeckView::refresh()
             const juce::String label(composition_->decks[i].name);
             if (deckTabs_[i]->getButtonText() != label)
                 deckTabs_[i]->setButtonText(label);
-            const auto tip = tabTooltipFor(composition_->decks[i]);
+            const auto tip = tabTooltipFor(composition_->decks[i], isActive);
             if (deckTabs_[i]->getTooltip() != tip)
                 deckTabs_[i]->setTooltip(tip);
         }
@@ -411,6 +442,21 @@ void DeckView::setupColumnTriggers()
     }
 }
 
+ClipCell* DeckView::cellForTests(int layerIndex, int column) const
+{
+    for (const auto& row : clipCells_)
+        for (const auto& cell : row)
+            if (cell != nullptr && cell->getLayerIndex() == layerIndex && cell->getColumn() == column)
+                return cell.get();
+    return nullptr;
+}
+
+void DeckView::revealCellForTests(int layerIndex, int column)
+{
+    if (auto* cell = cellForTests(layerIndex, column))
+        cell->menuChosen(1);   // what choosing "Show in Finder" in that cell's menu does (ruling-ui.md AM10)
+}
+
 void DeckView::clearSelection()
 {
     selectedCells_.clear();
@@ -471,6 +517,7 @@ void DeckView::updateSelectionVisuals()
 void DeckView::setupDeckTabs()
 {
     deckTabs_.clear();
+    ++tabRowBuilds_;
 
     if (!composition_) return;
 
@@ -484,13 +531,10 @@ void DeckView::setupDeckTabs()
                        static_cast<int>(i) == composition_->activeDeckIndex ? juce::Colour(0xff3a5a4a)
                                                                            : juce::Colour(0xff2a2a2a));
         btn->setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcccccc));
-        btn->setTooltip(tabTooltipFor(deck));
+        btn->setTooltip(tabTooltipFor(deck, static_cast<int>(i) == composition_->activeDeckIndex));
 
         int capturedIdx = static_cast<int>(i);
-        btn->onClick = [this, capturedIdx] {
-            if (onDeckSwitched)
-                onDeckSwitched(capturedIdx);
-        };
+        btn->onClick = [this, capturedIdx] { tabClicked(capturedIdx); };
         btn->onContextMenu = [this, capturedIdx] { showDeckTabMenu(capturedIdx); };
 
         addAndMakeVisible(btn.get());
@@ -504,13 +548,301 @@ void DeckView::setupDeckTabs()
     plusTab_->setTooltip("New Deck or Load Deck...");
     plusTab_->onClick = [this] { showPlusMenu(); };
     addAndMakeVisible(plusTab_.get());
+
+    // s-rta-1002b ui U3.2: the fresh tabs were added above the open rename box -- put it back on top (rebuildGrid's
+    // resized() then lays it over its deck's new tab).
+    if (renaming_)
+        renameEditor_.toFront(false);
 }
 
-juce::String DeckView::tabTooltipFor(const Deck& deck)
+void DeckView::tabClicked(int deckIndex)
 {
+    // A click on the deck already showing changes nothing, so it does nothing: no switch, no rebuild (the clicked tab
+    // must survive its own onClick to receive a double-click, ruling E-R3).
+    if (composition_ == nullptr || deckIndex == composition_->activeDeckIndex)
+        return;
+    if (onDeckSwitched)
+        onDeckSwitched(deckIndex);
+}
+
+juce::String DeckView::tabTooltipFor(const Deck& deck, bool showing)
+{
+    // s-rta-1002b ui U3.2 (ruling AM5): three short lines; "Double-click: rename" only where a double-click renames.
     return (deck.sourceFile == juce::File() ? juce::String("Not in the library yet - Save Deck As... adds it")
                                             : deck.sourceFile.getFullPathName())
+         + ((showing || ! kRenameOnlyTheShowingTab) ? "\nDouble-click: rename" : "")
          + "\nRight-click: Save / Rename / Duplicate / Remove";
+}
+
+// ---- s-rta-1002b ui U3.2 (BF8): rename a deck in place (ruling-ui.md AM2-AM4) ----
+
+bool DeckView::DeckNameEditor::keyPressed(const juce::KeyPress& key)
+{
+    // The output keys first: Cmd+Shift+Esc is an Escape to a modifier-blind test (plan E7). MainComponent acts on
+    // them; the box stays open.
+    const auto outputKey = output::classifyOutputKey(key);
+    if (outputKey == output::OutputKey::CloseAll || outputKey == output::OutputKey::RaiseApp
+        || outputKey == output::OutputKey::ToggleMain)
+        return false;
+    // Return and Tab (any modifiers: Shift+Tab too) keep, Esc discards -- here, synchronously, never through the
+    // TextEditor's posted onReturnKey / onEscapeKey. Tab is consumed: it never reaches a key binding (ruling E-R8).
+    if (key.isKeyCode(juce::KeyPress::returnKey) || key.isKeyCode(juce::KeyPress::tabKey))
+    {
+        if (onClose) onClose(true);
+        return true;
+    }
+    if (key.isKeyCode(juce::KeyPress::escapeKey))
+    {
+        if (onClose) onClose(false);
+        return true;
+    }
+    return juce::TextEditor::keyPressed(key);
+}
+
+bool DeckView::DeckNameEditor::keyStateChanged(bool isKeyDown)
+{
+    juce::TextEditor::keyStateChanged(isKeyDown);
+    return true;   // a key-up while typing never reaches MainComponent's momentary-release sweep (plan E7)
+}
+
+int DeckView::deckIndexOfId(uint32_t deckId) const
+{
+    if (composition_ == nullptr)
+        return -1;
+    for (size_t i = 0; i < composition_->decks.size(); ++i)
+        if (composition_->decks[i].id == deckId)
+            return static_cast<int>(i);
+    return -1;
+}
+
+int DeckView::renamingDeckIndex() const
+{
+    return renaming_ ? deckIndexOfId(renamingDeckId_) : -1;
+}
+
+int DeckView::tabIndexOf(const juce::Component* c) const
+{
+    for (size_t i = 0; i < deckTabs_.size(); ++i)
+        if (deckTabs_[i].get() == c)
+            return static_cast<int>(i);
+    return -1;
+}
+
+void DeckView::beginRename(int deckIndex)
+{
+    if (composition_ == nullptr || deckIndex < 0 || deckIndex >= static_cast<int>(composition_->decks.size()))
+        return;
+    if (renaming_)
+        finishRename(true);   // one box: the edit in progress is kept first
+    if (deckIndex >= static_cast<int>(composition_->decks.size()) || deckIndex >= static_cast<int>(deckTabs_.size()))
+        return;
+
+    const auto& deck = composition_->decks[static_cast<size_t>(deckIndex)];
+    renamingDeckId_ = deck.id;
+    renaming_ = true;
+    renameEditor_.setText(juce::String(deck.name), false);
+    placeRenameEditor();
+    renameEditor_.setVisible(true);
+    renameEditor_.toFront(false);
+    renameEditor_.grabKeyboardFocus();
+    renameEditor_.selectAll();
+}
+
+void DeckView::cancelDeckRename()
+{
+    finishRename(false);
+}
+
+void DeckView::finishRename(bool keep)
+{
+    if (! renaming_)
+        return;
+    renaming_ = false;   // FIRST: hiding a focused editor fires its focus loss again
+    const auto text = renameEditor_.getText().trim();
+    const auto deckId = renamingDeckId_;
+
+    // Hand the keyboard home BEFORE the hide: hiding a focused box makes JUCE give focus to DeckView's first focusable
+    // descendant (column trigger "1"), and the next Return would fire that column (ruling E-R4). Focus that is already
+    // elsewhere (the BPM field, a browser search box) is left there.
+    auto* focused = focusedForTests_ ? focusedForTests_() : juce::Component::getCurrentlyFocusedComponent();
+    if ((focused == nullptr || isParentOf(focused)) && onRenameClosed)
+        onRenameClosed();
+    renameEditor_.setVisible(false);
+
+    if (! keep)
+        return;
+    const int i = deckIndexOfId(deckId);
+    if (i >= 0 && text.isNotEmpty() && text != juce::String(composition_->decks[static_cast<size_t>(i)].name)
+        && onDeckRenamed)
+        onDeckRenamed(i, text);
+}
+
+void DeckView::placeRenameEditor()
+{
+    const int i = renamingDeckIndex();
+    if (i < 0 || i >= static_cast<int>(deckTabs_.size()))
+        return;
+    const auto tab = deckTabs_[static_cast<size_t>(i)]->getBounds();
+    const auto r = DeckTabRow::editorRect({ tab.getX() - tabRow_.getX(), tab.getWidth() }, tabRow_.getWidth());
+    renameEditor_.setBounds(tabRow_.getX() + r.x, tab.getY(), r.w, tab.getHeight());
+}
+
+void DeckView::tabRowMouseDown(const juce::MouseEvent& e)
+{
+    auto* target = e.originalComponent;
+
+    // 1. A press anywhere outside the open box keeps the typed name (click-away). Synchronous: a press on a clip cell,
+    //    a strip, the background or a tab inside DeckView does not always move focus away from the box (ruling E-R5).
+    if (renaming_ && target != &renameEditor_ && ! renameEditor_.isParentOf(target))
+        finishRename(true);
+
+    // 2. Arm a rename: only a left, non-popup press on a tab. The deck is kept by ID (the tab may die in its onClick).
+    const int idx = tabIndexOf(target);
+    if (idx < 0 || composition_ == nullptr || idx >= static_cast<int>(composition_->decks.size())
+        || ! e.mods.isLeftButtonDown() || e.mods.isPopupMenu())
+    {
+        firstClick_ = armed_ = TabArm{};
+        return;
+    }
+    const auto deckId = composition_->decks[static_cast<size_t>(idx)].id;
+    if (e.getNumberOfClicks() <= 1)
+    {
+        firstClick_ = TabArm{ deckId, idx == composition_->activeDeckIndex, true };
+        armed_ = TabArm{};
+    }
+    else
+    {
+        armed_ = (firstClick_.valid && firstClick_.deckId == deckId
+                  && (firstClick_.wasShowing || ! kRenameOnlyTheShowingTab))
+                     ? TabArm{ deckId, true, true }
+                     : TabArm{};
+    }
+}
+
+namespace
+{
+// A left-button event of the main mouse source (the TEST-ONLY replays; no position is ever read).
+juce::MouseEvent leftMouseEventForTests(juce::Component* c, int clicks)
+{
+    const auto now = juce::Time::getCurrentTime();
+    return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), {},
+                            juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier),
+                            juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation,
+                            juce::MouseInputSource::defaultRotation, juce::MouseInputSource::defaultTiltX,
+                            juce::MouseInputSource::defaultTiltY, c, c, now, {}, now, clicks, false);
+}
+} // namespace
+
+void DeckView::clickTabForTests(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(deckTabs_.size()))
+        return;
+    auto onClickCopy = deckTabs_[static_cast<size_t>(deckIndex)]->onClick;   // the click may rebuild the row
+    if (onClickCopy)
+        onClickCopy();
+}
+
+void DeckView::doubleClickTabForTests(int deckIndex)
+{
+    // JUCE's order (ruling E-R3): mouseDown (n = 1) -> the tab's onClick -> mouseDown (n = 2, the tab as rebuilt) -> its
+    // onClick -> the double-click, to that tab if it survived, else to DeckView.
+    juce::Component::SafePointer<juce::Component> second;
+    for (int clicks = 1; clicks <= 2; ++clicks)
+    {
+        if (deckIndex < 0 || deckIndex >= static_cast<int>(deckTabs_.size()))
+            return;
+        auto* tab = deckTabs_[static_cast<size_t>(deckIndex)].get();
+        second = tab;
+        tabRowMouseDown(leftMouseEventForTests(tab, clicks));
+        clickTabForTests(deckIndex);
+    }
+    juce::Component* target = second != nullptr ? second.getComponent() : static_cast<juce::Component*>(this);
+    tabRowDoubleClick(leftMouseEventForTests(target, 2));
+}
+
+bool DeckView::renameOpForTests(const juce::String& op, int deckIndex, const juce::String& text)
+{
+    if (op == "begin")
+        beginRename(deckIndex);
+    else if (op == "type")
+        renameEditor_.setText(text, false);
+    else if (op == "enter")
+        renameEditor_.keyPressed(juce::KeyPress(juce::KeyPress::returnKey));
+    else if (op == "tab")
+        renameEditor_.keyPressed(juce::KeyPress(juce::KeyPress::tabKey));
+    else if (op == "escape")
+        renameEditor_.keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
+    else if (op == "focus_lost")
+    {
+        if (renameEditor_.onFocusLost)
+            renameEditor_.onFocusLost();
+    }
+    else if (op == "outside_click")
+    {
+        juce::Component* cell = this;   // DeckView's background when the grid has no cell
+        for (const auto& row : clipCells_)
+            for (const auto& c : row)
+                if (c != nullptr && cell == this)
+                    cell = c.get();
+        tabRowMouseDown(leftMouseEventForTests(cell, 1));
+    }
+    else
+        return false;
+    return true;
+}
+
+juce::var DeckView::tabRowStateForTests() const
+{
+    auto* state = new juce::DynamicObject();
+    state->setProperty("active", composition_ != nullptr ? composition_->activeDeckIndex.load() : -1);
+    state->setProperty("row_width", tabRow_.getWidth());
+    state->setProperty("tab_row_builds", tabRowBuilds_);
+    juce::Array<juce::var> tabs;
+    for (size_t i = 0; i < deckTabs_.size(); ++i)
+    {
+        auto* t = new juce::DynamicObject();
+        const auto b = deckTabs_[i]->getBounds();
+        const bool known = composition_ != nullptr && i < composition_->decks.size();
+        t->setProperty("index", static_cast<int>(i));
+        t->setProperty("id", known ? static_cast<juce::int64>(composition_->decks[i].id) : juce::int64(-1));
+        t->setProperty("name", known ? juce::String(composition_->decks[i].name) : juce::String());
+        t->setProperty("label", deckTabs_[i]->getButtonText());
+        t->setProperty("tooltip", deckTabs_[i]->getTooltip());
+        t->setProperty("x", b.getX());
+        t->setProperty("y", b.getY());
+        t->setProperty("w", b.getWidth());
+        t->setProperty("h", b.getHeight());
+        t->setProperty("showing", known && static_cast<int>(i) == composition_->activeDeckIndex);
+        tabs.add(juce::var(t));
+    }
+    state->setProperty("tabs", tabs);
+    auto* ed = new juce::DynamicObject();
+    const auto eb = renameEditor_.getBounds();
+    ed->setProperty("open", renaming_);
+    ed->setProperty("deck_id", renaming_ ? static_cast<juce::int64>(renamingDeckId_) : juce::int64(-1));
+    ed->setProperty("deck_index", renamingDeckIndex());
+    ed->setProperty("text", renameEditor_.getText());
+    ed->setProperty("x", eb.getX());
+    ed->setProperty("y", eb.getY());
+    ed->setProperty("w", eb.getWidth());
+    ed->setProperty("h", eb.getHeight());
+    state->setProperty("editor", juce::var(ed));
+    return juce::var(state);
+}
+
+void DeckView::tabRowDoubleClick(const juce::MouseEvent& e)
+{
+    // NEVER read e.position / getEventRelativeTo here: once the tab died in its own onClick, JUCE delivers this to
+    // DeckView with the DEAD tab's local position (ruling E-R3 S1).
+    if (! armed_.valid || e.mods.isPopupMenu())
+        return;
+    const auto deckId = armed_.deckId;
+    firstClick_ = armed_ = TabArm{};
+    if (renaming_ && renamingDeckId_ == deckId)
+        return;
+    const int i = deckIndexOfId(deckId);
+    if (i >= 0)
+        beginRename(i);
 }
 
 void DeckView::showDeckTabMenu(int deckIndex)

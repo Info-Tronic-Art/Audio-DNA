@@ -8,6 +8,7 @@
 #include "ui/EffectStackView.h"
 #include "ui/UniversalParamControl.h"
 #include "ui/LookAndFeel.h"
+#include "ui/ClipMediaText.h"
 #include <optional>
 
 // ClipInspector: Resolume-style clip properties panel.
@@ -70,6 +71,8 @@ public:
         double playhead = 0.0;
         float inPoint = 0.0f, outPoint = 0.0f, beatDivision = 0.0f;
         int sourceParamControls = 0, sectionHeights = 0, width = 0, height = 0;
+        int infoRows = 0;               // s-rta-1002b ui U2.4: the file-info rows under the name bar (paint offsets)
+        bool revealShown = false;       // s-rta-1002b ui U2.4: the name is trimmed for the Show in Finder button
         bool operator==(const PaintKey&) const = default;
     };
     PaintKey paintKeyNow() const;
@@ -90,6 +93,22 @@ public:
 
     // Called when a cuepoint is set (for potential undo tracking)
     std::function<void(Clip* clip, int cuepointIndex)> onCuepointSet;
+
+    // s-rta-1002b ui U2.4 (BF3 "Codec display for each video and easy access to that video in finder"; ruling-ui.md
+    // AM9): for a clip with a file (video, picture, image sequence) a "Show in Finder" button at the right of the name
+    // bar and one or two info rows under it (a video: its codec, then its size + frame rate; clipmedia::describe).
+    // A Video clip's info comes from this source (MainComponent::videoInfoFor: the player open for the clip).
+    void setVideoInfoSource(VideoInfoSource source);
+    std::function<void(Clip* clip)> onRevealInFinder;
+    static constexpr int kRevealButtonWidth = 104;   // "Show in Finder" is 84.7 px at the 14-px button font (AM9 (h))
+    static constexpr int kInfoRowHeight = 18;
+    // Pure layout (tests): where the name text goes in a `width`-wide name bar, and the button's place in it.
+    static juce::Rectangle<int> nameTextBounds(int width, bool buttonShown);
+    static juce::Rectangle<int> revealButtonBounds(int width);
+    // What the info rows and the button show now (tests and /api/debug/clip_media).
+    juce::StringArray mediaInfoLinesShown() const;
+    bool revealButtonShown() const { return revealShown_; }
+    juce::TextButton& revealButtonForTests() { return revealBtn_; }
 
 private:
     Clip* clip_ = nullptr;
@@ -201,6 +220,28 @@ private:
     bool fxDropHighlight_ = false;
     PaintKey lastPaintKey_;               // s-rta-0928b idlepaint: what the last refresh() repaint showed
     bool paintKeyValid_ = false;
+
+    // --- s-rta-1002b ui U2.4: file info + Show in Finder ---
+    VideoInfoSource videoInfoSource_;
+    juce::TextButton revealBtn_ { "Show in Finder" };
+    juce::Label mediaInfoLabel1_, mediaInfoLabel2_;
+    int infoRows_ = 0;                    // labels shown (0, 1 or 2)
+    bool revealShown_ = false;
+    // What the rows were made from: re-described only when this changes, or while a Video clip's player has not
+    // answered yet (a player that opens later is picked up by the next refresh; bounded to that case).
+    struct MediaKey
+    {
+        const Clip* clip = nullptr;
+        int mediaType = 0;
+        juce::String path;
+        bool missing = false;
+        bool operator==(const MediaKey&) const = default;
+    };
+    MediaKey mediaKey_;
+    bool mediaKeyValid_ = false;
+    bool videoPending_ = false;
+    void updateMediaInfo(bool force);
+    int infoRowHeight() const { return kInfoRowHeight * infoRows_; }
 
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);
