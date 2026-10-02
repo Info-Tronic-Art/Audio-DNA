@@ -569,3 +569,38 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - Call 1 implementation: BUILT + live-verified 2026-09-25 (merges 85afb70 + rr-fix; probe-step3 79/0 incl. snap-back rows
   in both replay modes). Not restored by design: tempo, audio transport, video playheads, per-slot effect bypass,
   layer transform (plan-roadmap.md §3.1).
+
+## 2026-10-02 (s-rta-1002b) — App-evaluation feedback BF1-BF9: Boris's answers (full message: .harmony/boris-feedback-backlog.md)
+- BF1 record-to-clip — Boris: "whole ouput of select layer, stop start and snap to bar, next empty cell on top layer no
+  need to select it, video files yes" -> Harmony's reading: the source is the whole output OR the selected layer (both
+  offered; covers either reading of "of / or"); press to start, press to stop, both snapped to the bar; the recording
+  lands in the next empty cell of the TOP layer automatically; saved as video files.
+- BF2 sync dial — Boris: "default, -500 to +500 in 1 ms steps plus can enter in the amount then click plus or minus to
+  fine tune, we will rarely have an early delay so that is not a worry just a control we have in case we want to have
+  all early without loudness signals" -> one dial per venue profile (saved by name), -500..+500 ms, 1 ms steps, a typed
+  value plus +/- fine-tune buttons; EARLY moves beat-locked signals only (no loudness), accepted by Boris.
+- BF3 codec + Show in Finder; BF7 bars wherever beats; BF8 double-click deck rename — defaults taken (no objection).
+  BF7 must reconcile with the 2026-09-26 bar-counting ruling (BORIS_DECISIONS.md "Routines feel rulings": "we only need
+  longer than 4 bar counts for routines ... Top bar count should go 1-2-3-4-1 etc").
+- BF4 envelope editor — Boris: "default is good, bigger envelope, what would it's own window look like? perhaps we don't
+  create it's own window till later when we have finalized the ui or would you rather do it now to build it then change
+  the ui placement?" -> draggable / add / delete points, bendable segments, bar lengths, a BIGGER editor; Harmony's
+  recommendation given: build it as one self-contained editor component in a bigger in-place panel now, own window later.
+- BF5 envelope from a sample — Boris: "all defaults good" -> silent sample, stretched to the set beat / bar length,
+  envelopes pulled out per band (lows / mids / highs).
+- BF6 timeline source — Boris: "when I set any clip parameter to timeline it should be locked to the clips playhead, same
+  with layer, not necessary for composition controls" -> a clip parameter connected to Timeline follows the clip's
+  playhead; a layer parameter follows its layer's playing clip's playhead; composition parameters need not support it.
+- BF9 — Boris (verbatim in BORIS_DECISIONS.md "Deck change stops the old deck; Persistent removed"): switching decks
+  stops the old deck's clips (nothing plays invisibly); the Persistent layer feature is REMOVED; ignore-column stays as
+  the only "keep this layer" control. Supersedes 2026-09-26 (persistent over another deck, deck switch mid-fade,
+  persistent in the layer strip) and CLAUDE.md rule 15. OPEN follow-up asked: what a deck shows when you come back to it.
+- BF9 CLARIFIED (2026-10-02 14:44:36) — Boris: "when I switch between decks, do not change the clips playing in the layers or how they are
+  playing. treat the decks as just a box of clips and I can switch between 20 decks looking for a clip and the playing
+  will not be affected. does that make sense?" -> SUPERSEDES Harmony's earlier reading "deck change stops the old deck"
+  and the follow-up question (resume vs empty) — moot. Model: layers = one shared playing stack; decks = boxes of clips;
+  a deck switch changes only the grid; firing a clip puts it in its row's layer, replacing what played there. Consequence
+  DEFAULTS put to Boris (no answer yet = default): layer settings (layer effects / opacity / blend / transition /
+  autopilot) belong to the shared layer, one set for all decks (old shows: the first deck's layer settings win); every
+  deck shows the show's layer rows; the deck-to-deck transition fade is removed (a deck switch has nothing to fade); the
+  layer strip shows each layer's playing clip and the deck it came from; Persistent removed; ignore-column stays.

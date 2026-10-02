@@ -334,11 +334,27 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
   - Bar counting: "we only need longer than 4 bar counts for routines and that should be displayed with the routine and
     nothing else. Top bar count should go 1-2-3-4-1 etc" (verbatim; interpretation being confirmed with Boris).
 
-- **Persistent layers over another deck (2026-09-26):** a persistent layer sits on top of the other deck with its own blend
+- **[SUPERSEDED 2026-10-02 — see "Deck change stops the old deck"] Persistent layers over another deck (2026-09-26):** a persistent layer sits on top of the other deck with its own blend
   and opacity, never blacking it out — "yes. unless we override it. how does the override work currently?"
-- **Deck switch mid-fade (2026-09-26):** "finish the fade. when we load a new deck that does not touch the clips playing in
+- **[SUPERSEDED 2026-10-02 — see "Deck change stops the old deck"] Deck switch mid-fade (2026-09-26):** "finish the fade. when we load a new deck that does not touch the clips playing in
   the layer" — a fade keeps running while its deck is not on screen; switching decks does not disturb the clips playing
   in layers.
+- **[CLARIFIED same day — see "Decks are boxes of clips"] Deck change stops the old deck; Persistent removed (2026-10-02, s-rta-1002b, verbatim):** "When I change decks, they
+  clipped kept playing, and it was invisible. This is not good. Whatever is in the layer should be what is playing and
+  there should be nothing else. I'm going back on what I asked for before and I want to remove the persistent. The only
+  thing remotely persistent should be to ignore column controls so if we want to have something stay on a certain layer
+  and we want to play with the other layers in the composition, that stays in the other layers can be switched by a
+  column switch." -> Supersedes the three 2026-09-26 entries above (persistent over another deck, deck switch mid-fade,
+  persistent in the layer strip) and CLAUDE.md rule 15 "An inactive deck keeps time". Ignore-column stays.
+
+- **Decks are boxes of clips; the layers are what plays (2026-10-02, s-rta-1002b, verbatim):** "when I switch between decks,
+  do not change the clips playing in the layers or how they are playing. treat the decks as just a box of clips and I can
+  switch between 20 decks looking for a clip and the playing will not be affected. does that make sense?" -> Together with
+  the entry above: the layers are ONE shared stack for the show; what is in a layer is what plays and is on screen,
+  whichever deck is being looked at; switching decks changes only which clips the grid shows; nothing plays invisibly;
+  Persistent is removed (redundant); ignore-column stays. Consequence defaults put to Boris the same turn are recorded in
+  .harmony/binding-decisions.md "2026-10-02 (s-rta-1002b)".
+
 - **No stop model; routines live like clips (2026-09-26, verbatim):** "this is a playing app. there is no stop buttons
   anywhere. to end a routine it is replaced or removed from the layer control. it would be smart to figure out the best way
   to display routines in the players so they act like all things that are seen. A clip has a image or video and effects
@@ -361,7 +377,7 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
 - **Stop button (2026-09-26):** "ok we can keep stop for routines only" -> the TopBar Stop stops routines only (no clip rewind).
 - **Deck save/load (2026-09-26):** "we will have decks that can be loaded with deck tabs below the active deck. is save
   next to decks more intuitive than in comp tab?" (asked for a recommendation).
-- **Persistent layers (2026-09-26):** "just keep the persistent clip in the layer strip, nowhere else. this simplifies our
+- **[SUPERSEDED 2026-10-02 — see "Deck change stops the old deck"] Persistent layers (2026-09-26):** "just keep the persistent clip in the layer strip, nowhere else. this simplifies our
   ui" -> no extra UI for other decks' persistent layers.
 - **Routine glide (2026-09-26):** length "what do you recommend?"; loop return eases — "yes, but we should have controls for
   jump or ease in each" -> per-routine Ease / Jump control.
