@@ -1,0 +1,105 @@
+== START 2026-10-02 11:49:30 burners: mediaanalysisd;mds_stores; 17.0 claude;
+counts: main 1077, lane 1092 (base 1055) -> expected merged 1114
+merged b844b65 merge(s-rta-1002): lane/tsan - the cross-thread mode base 575deca3ef9781d4c2f533c5cc46a94bd701331d; code diff vs lane head over lane-only paths: []
+G1 build rc 0 11:52:08
+G1 100% tests passed, 0 tests failed out of 1114 | ctest -N Total Tests: 1114 | expected 1114
+  G1 target test_layer_runtime_race: 3 test cases
+  G1 target test_manual_scalar_race: 
+  G1 target test_layer_runtime: 15 test cases
+  G1 target test_clip_transport_sync: 4 test cases
+  G1 target test_relaxed: 4 test cases
+  G1 target test_log_line_lint: 3 test cases
+  G1 target test_render_thread_lint: 2 test cases
+  G1 target test_shared_field_types: 
+== G2 RED arm (T0 2c04a03) 11:53:49
+G2 RED rc=8 :: 0% tests passed, 4 tests failed out of 4
+1/4 Test #110: R1 message-thread triggers vs render clock / autopilot on one deck ......***Failed Error regular expression found in output. Regex=[WAR
+2/4 Test #111: R2 clip runtime fields: trigger writes vs render transport write-back ...***Failed Error regular expression found in output. Regex=[WAR
+3/4 Test #112: R4 tuple consistency and no lost fade under a paced trigger storm .......***Failed Error regular expression found in output. Regex=[WAR
+4/4 Test #113: R3 manual scalar writes vs eff() reads ..................................***Failed Error regular expression found in output. Regex=[WAR
+G2 RED races naming src/: 120 warnings; src frames 20
+== G2 GREEN arm (merged) 11:56:40
+G2 GREEN rc=0 :: 100% tests passed, 0 tests failed out of 4  warnings=0
+TSan lane app build rc 0 (2 tsan dylib)
+== G3 sweep 11:59:47
+G3 round 1 rc=0 12:03:53
+G3 round 2 rc=0 12:08:35
+G3 round 3 rc=0 12:13:17
+G3 e round 1 rc=0 12:15:07
+G3 e round 2 rc=0 12:16:56
+G3 analyze rc=0 (full: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/267d1ba0-b658-4610-9f47-ef72f4b49872/scratchpad/gate/tsan/g3-analyze.txt)
+G3 launches.tsv rows:       27
+== G4 parity 12:16:56
+G4 rc=0 :: G4: DEFERRED (runs as its own job)
+== G6 perf 12:16:56 burners: WindowServer;  3.0 claude;opendirectoryd;
+G6 rc=0 :: G6: DEFERRED (runs as its own job)
+outwins: audio-dna windows 0, Output-named 0
+UNC windows: 0; new Audio-DNA ips today:        0
+### GATE DONE 2026-10-02 12:17:13
+G4 [A] crossfade rc=0 :: G4: PASS 12:30:36
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [A] render-state rc=0 :: G4: PASS 12:40:05
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [A] deck-clock rc=0 :: G4: PASS 12:45:46
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [A] step3 rc=0 :: G4: PASS 13:02:29
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [A] routines rc=0 :: G4: PASS 13:10:23
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [A] routine-display rc=0 :: G4: PASS 13:13:57
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] async-load rc=0 :: G4: PASS 13:15:42
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] lane3 rc=0 :: G4: PASS 13:17:38
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] mastersignal rc=0 :: G4: PASS 13:19:45
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] deck-tabs rc=0 :: G4: PASS 13:21:27
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] deck-path rc=0 :: G4: PASS 13:23:36
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] media-open rc=0 :: G4: PASS 13:25:11
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+G4 [B] video rc=0 :: G4: PASS 13:27:38
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS). Final line: "G4: PASS" or "G4: FAIL <rows>".
+   G4 pre-registered verdict (verbatim): FAIL iff the row PASSED on PRE in >= 1 of 2 AND FAILED on POST in 2 of 2; a row red on both arms = PRE-EXISTING (listed); a row missing on an arm = MISSING (listed, never PASS).
+   PRE-EXISTING (red on both arms): none
+   MISSING (never PASS): none
+== G6 perf 13:27:38 burners: mds_stores;mediaanalysisd;mediaanalysisd-access;tccd; load { 2.56 2.86 3.21 }
+G6 rc=0 :: G6: PASS 13:41:10

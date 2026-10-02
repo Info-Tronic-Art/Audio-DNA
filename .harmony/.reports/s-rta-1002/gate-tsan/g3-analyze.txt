@@ -1,0 +1,614 @@
+probe-tsan-analyze: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/267d1ba0-b658-4610-9f47-ef72f4b49872/scratchpad/gate/tsan/g3 -- 16 launches with reports, 299 warnings, 81 unique (src trees: lane=/Users/boriskarpman/projects/RealTimeAudio, main=git:575deca3ef9781d4c2f533c5cc46a94bd701331d)
+
+== launches (warnings by class / family)
+  tsan-1    a@main   warnings   1  {'APP': 1}  {'A': 1}  valid=yes
+  tsan-3    b@main   warnings   6  {'APP': 6}  {'A': 2, 'B': 1, 'C': 3}  valid=yes
+  tsan-5    c@main   warnings  23  {'APP': 23}  {'A': 3, 'B': 12, 'C': 6, 'E': 1, 'D': 1}  valid=yes
+  tsan-7    d@main   warnings  57  {'APP': 57}  {'A': 2, 'B': 40, 'C': 12, 'E': 1, 'D': 2}  valid=yes
+  tsan-9    a@main   warnings   1  {'APP': 1}  {'A': 1}  valid=yes
+  tsan-11   b@main   warnings  10  {'APP': 10}  {'A': 2, 'B': 4, 'C': 4}  valid=yes
+  tsan-13   c@main   warnings  21  {'APP': 21}  {'A': 1, 'B': 9, 'C': 9, 'E': 1, 'D': 1}  valid=yes
+  tsan-15   d@main   warnings  47  {'APP': 47}  {'A': 2, 'C': 10, 'B': 33, 'E': 1, 'D': 1}  valid=yes
+  tsan-17   a@main   warnings   1  {'APP': 1}  {'A': 1}  valid=yes
+  tsan-19   b@main   warnings   4  {'APP': 4}  {'A': 1, 'C': 3}  valid=yes
+  tsan-21   c@main   warnings  19  {'APP': 19}  {'A': 1, 'B': 8, 'C': 8, 'E': 1, 'D': 1}  valid=yes
+  tsan-23   d@main   warnings  55  {'APP': 55}  {'A': 2, 'B': 41, 'C': 9, 'E': 1, 'D': 2}  valid=yes
+  tsan-25   e@main   warnings  21  {'APP': 21}  {'A': 3, 'C': 3, 'B': 12, '-': 3}  valid=yes
+  tsan-26   e@lane   warnings   4  {'APP': 4}  {'-': 3, 'B': 1}  valid=yes
+  tsan-27   e@main   warnings  25  {'APP': 25}  {'A': 1, 'B': 17, 'C': 5, '-': 2}  valid=yes
+  tsan-28   e@lane   warnings   4  {'APP': 4}  {'-': 2, 'B': 2}  valid=yes
+  tsan-2    a@lane   warnings   0  {}  {}  valid=yes
+  tsan-4    b@lane   warnings   0  {}  {}  valid=yes
+  tsan-6    c@lane   warnings   0  {}  {}  valid=yes
+  tsan-8    d@lane   warnings   0  {}  {}  valid=yes
+  tsan-10   a@lane   warnings   0  {}  {}  valid=yes
+  tsan-12   b@lane   warnings   0  {}  {}  valid=yes
+  tsan-14   c@lane   warnings   0  {}  {}  valid=yes
+  tsan-16   d@lane   warnings   0  {}  {}  valid=yes
+  tsan-18   a@lane   warnings   0  {}  {}  valid=yes
+  tsan-20   b@lane   warnings   0  {}  {}  valid=yes
+  tsan-22   c@lane   warnings   0  {}  {}  valid=yes
+  tsan-24   d@lane   warnings   0  {}  {}  valid=yes
+
+== unique reports
+F1   APP           family A                | tsan-1(a@main), tsan-3(b@main), tsan-5(c@main), tsan-7(d@main), tsan-9(a@main), tsan-11(b@main), tsan-13(c@main), tsan-15(d@main), tsan-17(a@main), tsan-19(b@main), tsan-21(c@main), tsan-23(d@main), tsan-25(e@main), tsan-27(e@main)
+      key: data race |  <> AnalysisThread.cpp:84/juce_Thread.cpp:110/juce_Threads_mac.mm:143
+      Read of size 8 at 0x0001ef720380 by thread T28:            [T28] top src (thread-creation): ApiServer.cpp:93 ApiServer::start()
+          | serverThread_ = std::thread([this, bindAddress]() {
+      Previous write of size 8 at 0x0001ef720380 by thread T27:  [T27] top src (access): AnalysisThread.cpp:84 AnalysisThread::run()
+          | << ", bandwidth " << static_cast<int>(resampler_.inputBandwidthHz()) << " Hz\n";
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F2   APP           family A                | tsan-3(b@main)
+      key: data race | VideoPlayer.cpp:314/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:323/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Write of size 8 at 0x0001ef720380 by thread T21:           [T21] top src (access): VideoPlayer.cpp:323 VideoPlayer::open(juce::File const&)
+          | << (intraOnly_ ? ", intra-only" : "") << ", firstPts=" << firstPts_ << ")" << std::endl;
+      Previous read of size 8 at 0x0001ef720380 by thread T22:   [T22] top src (access): VideoPlayer.cpp:314 VideoPlayer::open(juce::File const&)
+          | std::cerr << "[VideoPlayer] Opened: " << path
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F3   APP           family B                | tsan-3(b@main), tsan-5(c@main), tsan-7(d@main), tsan-11(b@main), tsan-13(c@main), tsan-21(c@main), tsan-23(d@main), tsan-27(e@main)
+      key: data race | Layer.h:250/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93 <> Renderer.cpp:593/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891
+      Write of size 4 at 0x000135aa76a8 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x000135aa76a8 by thread T45 (m [T45] top src (access): Renderer.cpp:593 Renderer::renderOpenGL()
+          | if (!layer || layer->activeClipColumn < 0) continue;
+      Location is heap block of size 6400 at 0x000135aa6400 allocated by main thread:
+F4   APP           family C                | tsan-3(b@main), tsan-5(c@main), tsan-7(d@main), tsan-11(b@main), tsan-13(c@main), tsan-15(d@main), tsan-19(b@main), tsan-21(c@main), tsan-23(d@main), tsan-25(e@main), tsan-27(e@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:783/LayerStrip.cpp:None/juce_Timer.cpp:170 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Atomic read of size 8 at 0x000135a8fe80 by main thread:    [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Previous write of size 8 at 0x000135a8fe80 by thread T45 ( [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Location is heap block of size 6816 at 0x000135a8f800 allocated by main thread:
+F5   APP           family A                | tsan-5(c@main), tsan-25(e@main)
+      key: data race | VideoPlayer.cpp:314/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:315/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Read of size 8 at 0x0001ef720380 by thread T22:            [T22] top src (access): VideoPlayer.cpp:314 VideoPlayer::open(juce::File const&)
+          | std::cerr << "[VideoPlayer] Opened: " << path
+      Previous write of size 8 at 0x0001ef720380 by thread T21:  [T21] top src (access): VideoPlayer.cpp:315 VideoPlayer::open(juce::File const&)
+          | << " (" << width_ << "x" << height_
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F6   APP           family A                | tsan-5(c@main)
+      key: data race | VideoPlayer.cpp:317/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:317/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Write of size 8 at 0x0001ef720380 by thread T21:           [T21] top src (access): VideoPlayer.cpp:317 VideoPlayer::open(juce::File const&)
+          | << ", " << duration_ << "s"
+      Previous write of size 8 at 0x0001ef720380 by thread T22:  [T22] top src (access): VideoPlayer.cpp:317 VideoPlayer::open(juce::File const&)
+          | << ", " << duration_ << "s"
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F7   APP           family B                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main), tsan-27(e@main)
+      key: data race | Renderer.cpp:593/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Read of size 4 at 0x00011638e228 by thread T45 (mutexes: w [T45] top src (access): Renderer.cpp:593 Renderer::renderOpenGL()
+          | if (!layer || layer->activeClipColumn < 0) continue;
+      Previous write of size 8 at 0x00011638e228 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 3200 at 0x00011638dc00 allocated by main thread:
+F8   APP           family B                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Read of size 4 at 0x00011638e230 by thread T45 (mutexes: w [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Previous write of size 4 at 0x00011638e230 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 3200 at 0x00011638dc00 allocated by main thread:
+F9   APP           family B                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main)
+      key: data race | Renderer.cpp:1787/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Read of size 1 at 0x00013608fe7e by thread T45 (mutexes: w [T45] top src (access): Renderer.cpp:1787 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | if (clip->playing && !player->isPlaying())
+      Previous write of size 1 at 0x00013608fe7e by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6816 at 0x00013608f800 allocated by main thread:
+F10  APP           family C                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-23(d@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:737/DeckView.cpp:276/MainComponent.cpp:4772 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 8 at 0x00013608fe80 by thread T45 (mutexes:  [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Previous atomic read of size 8 at 0x00013608fe80 by main t [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Location is heap block of size 6816 at 0x00013608f800 allocated by main thread:
+F11  APP           family B                | tsan-5(c@main), tsan-7(d@main), tsan-21(c@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x00011638e870 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x00011638e870 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Location is heap block of size 3200 at 0x00011638dc00 allocated by main thread:
+F12  APP           family E                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main)
+      key: data race | MainComponent.cpp:5537/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104 <> Renderer.cpp:471/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891
+      Write of size 4 at 0x000119f13f10 by main thread:          [main thread] top src (access): MainComponent.cpp:5537 MainComponent::handleDeckSwitch(int, Origin)
+          | composition_.activeDeckIndex = deckIndex;
+      Previous read of size 4 at 0x000119f13f10 by thread T45 (m [T45] top src (access): Renderer.cpp:471 Renderer::renderOpenGL()
+          | const int currentDeckIdx = composition_->activeDeckIndex;
+      Location is heap block of size 97344 at 0x000119f00000 allocated by main thread:
+F13  APP           family B                | tsan-5(c@main), tsan-13(c@main)
+      key: data race | CompositorEngine.cpp:992/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001163bc070 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001163bc070 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:992 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | layer.crossfadeProgress))
+      Location is heap block of size 3200 at 0x0001163bb400 allocated by main thread:
+F14  APP           family C                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:694/juce_Component.cpp:872/juce_Component.cpp:840 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Atomic read of size 8 at 0x000136090bd0 by main thread:    [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Previous write of size 8 at 0x000136090bd0 by thread T45 ( [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Location is heap block of size 6816 at 0x00013608f800 allocated by main thread:
+F15  APP           family B                | tsan-5(c@main), tsan-13(c@main), tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:991/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x00011638e22c by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x00011638e22c by thread T45 (m [T45] top src (access): CompositorEngine.cpp:991 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
+      Location is heap block of size 3200 at 0x00011638dc00 allocated by main thread:
+F16  APP           family D                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main)
+      key: data race | Layer.cpp:23/CompositorEngine.cpp:1157/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> ManualWrite.cpp:187/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104
+      Write of size 4 at 0x00011638dc20 by main thread:          [main thread] top src (access): ManualWrite.cpp:187 manualWriteCore(ControlRef const&, float, Hand, ParamConnection::Grip:
+          | *r.manual = r.toModel ? r.toModel(valueNorm) : valueNorm;
+      Previous read of size 4 at 0x00011638dc20 by thread T45 (m [T45] top src (access): Layer.cpp:23 Layer::eff(LayerScalar) const
+          | return scalarLive[static_cast<size_t>(s)].effective(manualRef(const_cast<Layer&>(*this), s));
+      Location is heap block of size 3200 at 0x00011638dc00 allocated by main thread:
+F17  APP           family B                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main), tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:991/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:250/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001163bc06c by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001163bc06c by thread T45 (m [T45] top src (access): CompositorEngine.cpp:991 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
+      Location is heap block of size 3200 at 0x0001163bb400 allocated by main thread:
+F18  APP           family B                | tsan-5(c@main), tsan-7(d@main), tsan-13(c@main)
+      key: data race | CompositorEngine.cpp:992/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:250/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001163bc070 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001163bc070 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:992 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | layer.crossfadeProgress))
+      Location is heap block of size 3200 at 0x0001163bb400 allocated by main thread:
+F19  APP           family C                | tsan-5(c@main), tsan-13(c@main), tsan-21(c@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:737/DeckView.cpp:276/MainComponent.cpp:4917 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 8 at 0x00013609fa80 by thread T45 (mutexes:  [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Previous atomic read of size 8 at 0x00013609fa80 by main t [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Location is heap block of size 6816 at 0x00013609f400 allocated by main thread:
+F20  APP           family A                | tsan-7(d@main), tsan-23(d@main)
+      key: data race | VideoPlayer.cpp:314/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:314/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Write of size 8 at 0x0001ef720380 by thread T21:           [T21] top src (access): VideoPlayer.cpp:314 VideoPlayer::open(juce::File const&)
+          | std::cerr << "[VideoPlayer] Opened: " << path
+      Previous write of size 8 at 0x0001ef720380 by thread T22:  [T22] top src (access): VideoPlayer.cpp:314 VideoPlayer::open(juce::File const&)
+          | std::cerr << "[VideoPlayer] Opened: " << path
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F21  APP           family B                | tsan-7(d@main), tsan-11(b@main), tsan-15(d@main), tsan-21(c@main), tsan-27(e@main)
+      key: data race | Renderer.cpp:593/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891 <> TriggerCommands.h:68/CompositeCommand.h:35/UndoManager.cpp:15/MainComponent.cpp:5165
+      Read of size 4 at 0x0001383a6a28 by thread T45 (mutexes: w [T45] top src (access): Renderer.cpp:593 Renderer::renderOpenGL()
+          | if (!layer || layer->activeClipColumn < 0) continue;
+      Previous write of size 8 at 0x0001383a6a28 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F22  APP           family B                | tsan-7(d@main), tsan-11(b@main), tsan-15(d@main), tsan-21(c@main), tsan-23(d@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/CompositeCommand.h:35/UndoManager.cpp:15/MainComponent.cpp:5165
+      Read of size 4 at 0x0001383a6a30 by thread T45 (mutexes: w [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Previous write of size 4 at 0x0001383a6a30 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F23  APP           family B                | tsan-7(d@main), tsan-11(b@main), tsan-15(d@main), tsan-23(d@main)
+      key: data race | Renderer.cpp:1787/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/CompositeCommand.h:35/UndoManager.cpp:15/MainComponent.cpp:5165
+      Read of size 1 at 0x00013838fe7e by thread T45 (mutexes: w [T45] top src (access): Renderer.cpp:1787 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | if (clip->playing && !player->isPlaying())
+      Previous write of size 1 at 0x00013838fe7e by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6816 at 0x00013838f800 allocated by main thread:
+F24  APP           family C                (also B) | tsan-7(d@main), tsan-11(b@main), tsan-15(d@main), tsan-23(d@main)
+      key: data race | Layer.h:250/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 8 at 0x00013838fe80 by thread T45 (mutexes:  [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Previous write of size 8 at 0x00013838fe80 by main thread: [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Location is heap block of size 6816 at 0x00013838f800 allocated by main thread:
+F25  APP           family B                | tsan-7(d@main), tsan-15(d@main), tsan-23(d@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Write of size 4 at 0x0001383a6a30 by thread T45 (mutexes:  [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Previous write of size 4 at 0x0001383a6a30 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F26  APP           family B                | tsan-7(d@main), tsan-15(d@main), tsan-23(d@main), tsan-25(e@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:4632/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104
+      Write of size 4 at 0x0001383a7070 by thread T45 (mutexes:  [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Previous read of size 4 at 0x0001383a7070 by main thread:  [main thread] top src (access): MainComponent.cpp:4632 MainComponent::handleClipTrigger(int, int, Origin, int, bool)
+          | const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(*layer);
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F27  APP           family B                | tsan-7(d@main), tsan-23(d@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> Layer.h:250/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001383a7070 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous write of size 4 at 0x0001383a7070 by thread T45 ( [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F28  APP           family B                | tsan-7(d@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/CompositeCommand.h:35/UndoManager.cpp:15/MainComponent.cpp:5165
+      Write of size 4 at 0x0001383a7070 by thread T45 (mutexes:  [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Previous write of size 4 at 0x0001383a7070 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F29  APP           family B                | tsan-7(d@main)
+      key: data race | CompositorEngine.cpp:991/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Write of size 8 at 0x0001383a6a28 by main thread:          [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Previous read of size 4 at 0x0001383a6a2c by thread T45 (m [T45] top src (access): CompositorEngine.cpp:991 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F30  APP           family B                | tsan-7(d@main), tsan-21(c@main), tsan-25(e@main)
+      key: data race | CompositorEngine.cpp:1072/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001383ae068 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001383ae068 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1072 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | const Clip* clip = layer.getActiveClip();
+      Location is heap block of size 6400 at 0x0001383ad400 allocated by main thread:
+F31  APP           family B                | tsan-7(d@main), tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001383a6a2c by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001383a6a2c by thread T45 (m [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F32  APP           family B                | tsan-7(d@main), tsan-13(c@main), tsan-15(d@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:250/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x0001383ada30 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001383ada30 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Location is heap block of size 6400 at 0x0001383ad400 allocated by main thread:
+F33  APP           family B                | tsan-7(d@main)
+      key: data race | CompositorEngine.cpp:1072/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Write of size 8 at 0x0001383ada28 by main thread:          [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Previous read of size 4 at 0x0001383ada28 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1072 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | const Clip* clip = layer.getActiveClip();
+      Location is heap block of size 6400 at 0x0001383ad400 allocated by main thread:
+F34  APP           family B                | tsan-7(d@main), tsan-23(d@main)
+      key: data race | Renderer.cpp:1787/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4908
+      Read of size 1 at 0x0001383aa926 by thread T45 (mutexes: w [T45] top src (access): Renderer.cpp:1787 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | if (clip->playing && !player->isPlaying())
+      Previous write of size 1 at 0x0001383aa926 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6816 at 0x0001383a9c00 allocated by main thread:
+F35  APP           family B                | tsan-7(d@main), tsan-23(d@main)
+      key: data race | Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Write of size 1 at 0x0001383a23ce by main thread:          [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Previous write of size 1 at 0x0001383a23ce by thread T45 ( [T45] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Location is heap block of size 6816 at 0x0001383a1000 allocated by main thread:
+F36  APP           family B                | tsan-7(d@main), tsan-15(d@main), tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:4856/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104
+      Read of size 4 at 0x0001383ae070 by main thread:           [main thread] top src (access): MainComponent.cpp:4856 MainComponent::handleColumnTrigger(int, Origin, int)
+          | before[static_cast<size_t>(l)] = captureLayerRuntime(*layer);
+      Previous write of size 4 at 0x0001383ae070 by thread T45 ( [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Location is heap block of size 6400 at 0x0001383ad400 allocated by main thread:
+F37  APP           family B                | tsan-7(d@main), tsan-15(d@main)
+      key: data race | Layer.h:250/Autopilot.cpp:288/Autopilot.cpp:105/Renderer.cpp:547 <> LayerStrip.cpp:843/LayerStrip.cpp:785/LayerStrip.cpp:None/juce_Timer.cpp:170
+      Write of size 4 at 0x0001383a7068 by thread T45 (mutexes:  [T45] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x0001383a7068 by main thread:  [main thread] top src (access): LayerStrip.cpp:843 LayerStrip::syncFromModel()
+          | const auto* clip = layer_->getActiveClip();
+      Location is heap block of size 6400 at 0x0001383a6400 allocated by main thread:
+F38  APP           family A                | tsan-11(b@main)
+      key: data race | VideoPlayer.cpp:315/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:323/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Write of size 8 at 0x0001ef720380 by thread T22:           [T22] top src (access): VideoPlayer.cpp:323 VideoPlayer::open(juce::File const&)
+          | << (intraOnly_ ? ", intra-only" : "") << ", firstPts=" << firstPts_ << ")" << std::endl;
+      Previous read of size 8 at 0x0001ef720380 by thread T21:   [T21] top src (access): VideoPlayer.cpp:315 VideoPlayer::open(juce::File const&)
+          | << " (" << width_ << "x" << height_
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F39  APP           family C                | tsan-13(c@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:737/DeckView.cpp:276/ClipThumbnails.h:97 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 8 at 0x000138498a80 by thread T45 (mutexes:  [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Previous atomic read of size 8 at 0x000138498a80 by main t [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Location is heap block of size 6816 at 0x000138498400 allocated by main thread:
+F40  APP           family A                | tsan-15(d@main)
+      key: data race | VideoPlayer.cpp:314/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:316/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Write of size 8 at 0x0001ef720380 by thread T22:           [T22] top src (access): VideoPlayer.cpp:314 VideoPlayer::open(juce::File const&)
+          | std::cerr << "[VideoPlayer] Opened: " << path
+      Previous read of size 8 at 0x0001ef720380 by thread T21:   [T21] top src (access): VideoPlayer.cpp:316 VideoPlayer::open(juce::File const&)
+          | << ", " << frameRate_ << " fps"
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F41  APP           family B                | tsan-15(d@main)
+      key: data race | CompositorEngine.cpp:1740/CompositorEngine.cpp:1004/CompositorEngine.cpp:1135/Renderer.cpp:728 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Write of size 4 at 0x000139c9de30 by main thread:          [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Previous read of size 4 at 0x000139c9de30 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1740 CompositorEngine::applyTransition(Layer&, unsigned long long, unsigned
+          | glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), layer.crossfadeProgress);
+      Location is heap block of size 6400 at 0x000139c9d800 allocated by main thread:
+F42  APP           family B                | tsan-15(d@main), tsan-23(d@main), tsan-25(e@main)
+      key: data race | Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93 <> Renderer.cpp:593/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891
+      Write of size 4 at 0x000139ca4e28 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous read of size 4 at 0x000139ca4e28 by thread T45 (m [T45] top src (access): Renderer.cpp:593 Renderer::renderOpenGL()
+          | if (!layer || layer->activeClipColumn < 0) continue;
+      Location is heap block of size 6400 at 0x000139ca4800 allocated by main thread:
+F43  APP           family B                | tsan-15(d@main)
+      key: data race | CompositorEngine.cpp:1072/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> Layer.h:233/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x000139ca5aa8 by main thread:          [main thread] top src (access): Layer.h:233 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | clearActiveClip();
+      Previous read of size 4 at 0x000139ca5aa8 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1072 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | const Clip* clip = layer.getActiveClip();
+      Location is heap block of size 6400 at 0x000139ca4800 allocated by main thread:
+F44  APP           family B                | tsan-15(d@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:233/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x000139ca5aac by main thread:          [main thread] top src (access): Layer.h:233 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | clearActiveClip();
+      Previous read of size 4 at 0x000139ca5aac by thread T45 (m [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Location is heap block of size 6400 at 0x000139ca4800 allocated by main thread:
+F45  APP           family B                | tsan-15(d@main)
+      key: data race | MainComponent.cpp:4634/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Read of size 1 at 0x000139c9c27e by main thread:           [main thread] top src (access): MainComponent.cpp:4634 MainComponent::handleClipTrigger(int, int, Origin, int, bool)
+          | if (const Clip* tc = layer->getClipAt(column)) playBefore = tc->playing;
+      Previous write of size 1 at 0x000139c9c27e by thread T45 ( [T45] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Location is heap block of size 6816 at 0x000139c9bc00 allocated by main thread:
+F46  APP           family C                (also B) | tsan-15(d@main)
+      key: data race | Layer.h:250/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 8 at 0x000139c9c280 by main thread:          [main thread] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous write of size 8 at 0x000139c9c280 by thread T45 ( [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Location is heap block of size 6816 at 0x000139c9bc00 allocated by main thread:
+F47  APP           family B                | tsan-15(d@main), tsan-23(d@main)
+      key: data race | MainComponent.cpp:4858/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 1 at 0x000139c9cfce by thread T45 (mutexes:  [T45] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Previous read of size 1 at 0x000139c9cfce by main thread:  [main thread] top src (access): MainComponent.cpp:4858 MainComponent::handleColumnTrigger(int, Origin, int)
+          | playBefore[static_cast<size_t>(l)] = tc->playing;
+      Location is heap block of size 6816 at 0x000139c9bc00 allocated by main thread:
+F48  APP           family B                | tsan-15(d@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4908
+      Read of size 4 at 0x000139c9e470 by thread T45 (mutexes: w [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Previous write of size 4 at 0x000139c9e470 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x000139c9d800 allocated by main thread:
+F49  APP           family B                | tsan-15(d@main), tsan-23(d@main)
+      key: data race | Layer.h:233/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 1 at 0x000139ca07ce by main thread:          [main thread] top src (access): Layer.h:233 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | clearActiveClip();
+      Previous write of size 1 at 0x000139ca07ce by thread T45 ( [T45] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Location is heap block of size 6816 at 0x000139c9f400 allocated by main thread:
+F50  APP           family C                | tsan-21(c@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:737/DeckView.cpp:276/DeckView.cpp:323 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Atomic read of size 8 at 0x000135a9cfd0 by main thread:    [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Previous write of size 8 at 0x000135a9cfd0 by thread T45 ( [T45] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Location is heap block of size 6816 at 0x000135a9bc00 allocated by main thread:
+F51  APP           family B                | tsan-23(d@main)
+      key: data race | Autopilot.cpp:54/Renderer.cpp:547/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Read of size 4 at 0x000139fa1c74 by thread T45 (mutexes: w [T45] top src (access): Autopilot.cpp:54 Autopilot::processFrame(Deck&, FeatureSnapshot const&)
+          | if (layer.pendingTriggerColumn >= 0)
+      Previous write of size 4 at 0x000139fa1c74 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F52  APP           family B                | tsan-23(d@main)
+      key: data race | Autopilot.cpp:67/Renderer.cpp:547/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Read of size 4 at 0x000139fa1c68 by thread T45 (mutexes: w [T45] top src (access): Autopilot.cpp:67 Autopilot::processFrame(Deck&, FeatureSnapshot const&)
+          | Clip* clip = layer.getActiveClip();
+      Previous write of size 8 at 0x000139fa1c68 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F53  APP           family B                | tsan-23(d@main)
+      key: data race | Autopilot.cpp:68/Renderer.cpp:547/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Read of size 1 at 0x000139f9de7e by thread T45 (mutexes: w [T45] top src (access): Autopilot.cpp:68 Autopilot::processFrame(Deck&, FeatureSnapshot const&)
+          | if (clip == nullptr || !clip->playing)
+      Previous write of size 1 at 0x000139f9de7e by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6816 at 0x000139f9d800 allocated by main thread:
+F54  APP           family B                | tsan-23(d@main)
+      key: data race | Layer.h:250/Autopilot.cpp:288/Autopilot.cpp:105/Renderer.cpp:547 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4789
+      Write of size 1 at 0x000139fa1c78 by thread T45 (mutexes:  [T45] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Previous write of size 1 at 0x000139fa1c78 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F55  APP           family B                | tsan-23(d@main)
+      key: data race | Layer.h:233/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 1 at 0x000139fa3fce by main thread:          [main thread] top src (access): Layer.h:233 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | clearActiveClip();
+      Previous write of size 1 at 0x000139fa3fce by thread T45 ( [T45] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Location is heap block of size 6816 at 0x000139fa2c00 allocated by main thread:
+F56  APP           family B                | tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:991/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:233/MainComponent.cpp:4865/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x000139fa22a8 by main thread:          [main thread] top src (access): Layer.h:233 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | clearActiveClip();
+      Previous read of size 4 at 0x000139fa22a8 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:991 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F57  APP           family B                | tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:992/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> Layer.h:233/MainComponent.cpp:4659/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93
+      Write of size 4 at 0x000139fa22b0 by main thread:          [main thread] top src (access): Layer.h:233 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | clearActiveClip();
+      Previous read of size 4 at 0x000139fa22b0 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:992 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | layer.crossfadeProgress))
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F58  APP           family B                | tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> TriggerCommands.h:68/UndoManager.cpp:15/MainComponent.cpp:5158/MainComponent.cpp:4908
+      Write of size 4 at 0x000139fa1c70 by thread T45 (mutexes:  [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Previous write of size 4 at 0x000139fa1c70 by main thread: [main thread] top src (access): TriggerCommands.h:68 TriggerClipCmd::execute()
+          | void execute() override { apply(after_, targetPlayingAfter_); }
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F59  APP           family B                | tsan-23(d@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:4662/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104
+      Read of size 4 at 0x000139fa1630 by main thread:           [main thread] top src (access): MainComponent.cpp:4662 MainComponent::handleClipTrigger(int, int, Origin, int, bool)
+          | const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
+      Previous write of size 4 at 0x000139fa1630 by thread T45 ( [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Location is heap block of size 6400 at 0x000139fa1000 allocated by main thread:
+F60  APP           family B                | tsan-23(d@main)
+      key: data race | MainComponent.cpp:4884/juce_MessageManager.cpp:212/juce_MessageQueue_mac.h:93/juce_MessageQueue_mac.h:104 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Read of size 1 at 0x000139fa6276 by main thread:           [main thread] top src (access): MainComponent.cpp:4884 MainComponent::handleColumnTrigger(int, Origin, int)
+          | playAfter = tc->playing;
+      Previous write of size 1 at 0x000139fa6276 by thread T45 ( [T45] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Location is heap block of size 6816 at 0x000139fa4800 allocated by main thread:
+F61  APP           family A                | tsan-25(e@main)
+      key: data race | VideoPlayer.cpp:314/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50 <> VideoPlayer.cpp:317/MediaOpener.cpp:33/juce_ThreadPool.cpp:389/juce_ThreadPool.cpp:50
+      Write of size 8 at 0x0001ef720380 by thread T21:           [T21] top src (access): VideoPlayer.cpp:317 VideoPlayer::open(juce::File const&)
+          | << ", " << duration_ << "s"
+      Previous write of size 8 at 0x0001ef720380 by thread T20:  [T20] top src (access): VideoPlayer.cpp:314 VideoPlayer::open(juce::File const&)
+          | std::cerr << "[VideoPlayer] Opened: " << path
+      Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+F62  APP           family B                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | PerfStateCapture.cpp:91/RecorderHost.cpp:381/MainComponent.cpp:5766/juce_MessageManager.cpp:212 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 1 at 0x000137c9cfce by thread T44 (mutexes:  [T44] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Previous read of size 1 at 0x000137c9cfce by main thread:  [main thread] top src (access): PerfStateCapture.cpp:91 capturePerfState(Composition const&, float, std::__1::basic_string<cha
+          | clipRT.playing = clip.playing;
+      Location is heap block of size 6816 at 0x000137c9bc00 allocated by main thread:
+F63  APP           family B                | tsan-25(e@main)
+      key: data race | Layer.h:250/Autopilot.cpp:288/Autopilot.cpp:105/Renderer.cpp:547 <> LayerStrip.cpp:763/LayerStrip.cpp:783/LayerStrip.cpp:None/juce_Timer.cpp:170
+      Read of size 4 at 0x000137c9e468 by main thread:           [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Previous write of size 4 at 0x000137c9e468 by thread T44 ( [T44] top src (access): Layer.h:250 Layer::triggerClip(int, Clip::BeatSnapMode)
+          | triggerClipImmediate(column);
+      Location is heap block of size 6400 at 0x000137c9d800 allocated by main thread:
+F64  APP           family -                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:1069/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6348/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 1 at 0x000137c9d824 by main thread:          [main thread] top src (access): MainComponent.cpp:6348 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | if (flag == "visible") layer->visible = value;
+      Previous read of size 1 at 0x000137c9d824 by thread T44 (m [T44] top src (access): CompositorEngine.cpp:1069 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
+      Location is heap block of size 6400 at 0x000137c9d800 allocated by main thread:
+F65  APP           family B                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | Autopilot.cpp:11/Renderer.cpp:547/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6352/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 1 at 0x000137c9d828 by main thread:          [main thread] top src (access): MainComponent.cpp:6352 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | else if (flag == "autopilot") layer->autopilotEnabled = value;
+      Previous read of size 1 at 0x000137c9d828 by thread T44 (m [T44] top src (access): Autopilot.cpp:11 Autopilot::processFrame(Deck&, FeatureSnapshot const&)
+          | if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
+      Location is heap block of size 6400 at 0x000137c9d800 allocated by main thread:
+F66  APP           family B                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | MainComponent.cpp:5583/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823 <> Renderer.cpp:1826/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 1 at 0x000137c9cfce by main thread:          [main thread] top src (access): MainComponent.cpp:5583 MainComponent::applyClearActiveClip(int, Origin, int)
+          | layer->clearActiveClip();
+      Previous write of size 1 at 0x000137c9cfce by thread T44 ( [T44] top src (access): Renderer.cpp:1826 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playing = player->isPlaying();
+      Location is heap block of size 6816 at 0x000137c9bc00 allocated by main thread:
+F67  APP           family B                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:991/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> MainComponent.cpp:5583/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 4 at 0x000137c9de2c by main thread:          [main thread] top src (access): MainComponent.cpp:5583 MainComponent::applyClearActiveClip(int, Origin, int)
+          | layer->clearActiveClip();
+      Previous read of size 4 at 0x000137c9de2c by thread T44 (m [T44] top src (access): CompositorEngine.cpp:991 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
+      Location is heap block of size 6400 at 0x000137c9d800 allocated by main thread:
+F68  APP           family B                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:992/CompositorEngine.cpp:1135/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> MainComponent.cpp:5583/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 4 at 0x000137c9de30 by main thread:          [main thread] top src (access): MainComponent.cpp:5583 MainComponent::applyClearActiveClip(int, Origin, int)
+          | layer->clearActiveClip();
+      Previous read of size 4 at 0x000137c9de30 by thread T44 (m [T44] top src (access): CompositorEngine.cpp:992 CompositorEngine::renderLayerStages(Layer&, unsigned int, Clip const&,
+          | layer.crossfadeProgress))
+      Location is heap block of size 6400 at 0x000137c9d800 allocated by main thread:
+F69  APP           family B                | tsan-25(e@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:5583/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 4 at 0x000137c9e46c by main thread:          [main thread] top src (access): MainComponent.cpp:5583 MainComponent::applyClearActiveClip(int, Origin, int)
+          | layer->clearActiveClip();
+      Previous write of size 4 at 0x000137c9e46c by thread T44 ( [T44] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Location is heap block of size 6400 at 0x000137c9d800 allocated by main thread:
+F70  APP           family -                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | MainComponent.cpp:6348/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823 <> Renderer.cpp:771/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891
+      Write of size 1 at 0x000137ca4824 by main thread:          [main thread] top src (access): MainComponent.cpp:6348 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | if (flag == "visible") layer->visible = value;
+      Previous read of size 1 at 0x000137ca4824 by thread T44 (m [T44] top src (access): Renderer.cpp:771 Renderer::renderOpenGL()
+          | DeckClock::tick(other, realDt, [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
+      Location is heap block of size 6400 at 0x000137ca4800 allocated by main thread:
+F71  APP           family B                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | Autopilot.cpp:11/Renderer.cpp:772/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6352/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 1 at 0x000137ca4828 by main thread:          [main thread] top src (access): MainComponent.cpp:6352 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | else if (flag == "autopilot") layer->autopilotEnabled = value;
+      Previous read of size 1 at 0x000137ca4828 by thread T44 (m [T44] top src (access): Autopilot.cpp:11 Autopilot::processFrame(Deck&, FeatureSnapshot const&)
+          | if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
+      Location is heap block of size 6400 at 0x000137ca4800 allocated by main thread:
+F72  APP           family -                | tsan-25(e@main)
+      key: data race | CompositorEngine.cpp:1265/Renderer.cpp:744/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6349/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Read of size 1 at 0x000137ca4826 by thread T44 (mutexes: w [T44] top src (access): CompositorEngine.cpp:1265 CompositorEngine::hasPersistentContent(Deck const&)
+          | if (layer.solo) { anySolo = true; break; }
+      Previous write of size 1 at 0x000137ca4826 by main thread: [main thread] top src (access): MainComponent.cpp:6349 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | else if (flag == "solo") layer->solo = value;
+      Location is heap block of size 6400 at 0x000137ca4800 allocated by main thread:
+F73  APP           family C                | tsan-25(e@main), tsan-27(e@main)
+      key: data race | LayerStrip.cpp:763/LayerStrip.cpp:737/DeckView.cpp:276/juce_MessageManager.cpp:212 <> Renderer.cpp:1823/CompositorEngine.cpp:1103/Renderer.cpp:728/juce_OpenGLContext.cpp:414
+      Write of size 8 at 0x000137c9cfd0 by thread T44 (mutexes:  [T44] top src (access): Renderer.cpp:1823 Renderer::syncMedia(Clip const*, float, bool, bool*)
+          | clip->playheadPosition = player->getPlayheadPosition();
+      Previous atomic read of size 8 at 0x000137c9cfd0 by main t [main thread] top src (access): LayerStrip.cpp:763 LayerStrip::updateTransportView()
+          | const auto tv = transportViewOf(layer_, transportBounds_);
+      Location is heap block of size 6816 at 0x000137c9bc00 allocated by main thread:
+F74  APP           family -                | tsan-26(e@lane), tsan-28(e@lane)
+      key: data race | CompositorEngine.cpp:1072/Renderer.cpp:735/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6348/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 1 at 0x00013979e4a4 by main thread:          [main thread] top src (access): MainComponent.cpp:6348 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | if (flag == "visible") layer->visible = value;
+      Previous read of size 1 at 0x00013979e4a4 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1072 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
+      Location is heap block of size 6400 at 0x00013979d800 allocated by main thread:
+F75  APP           family -                | tsan-26(e@lane), tsan-28(e@lane)
+      key: data race | MainComponent.cpp:6348/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823 <> Renderer.cpp:778/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802/juce_OpenGLContext.cpp:891
+      Write of size 1 at 0x0001397a4824 by main thread:          [main thread] top src (access): MainComponent.cpp:6348 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | if (flag == "visible") layer->visible = value;
+      Previous read of size 1 at 0x0001397a4824 by thread T45 (m [T45] top src (access): Renderer.cpp:778 Renderer::renderOpenGL()
+          | const int adopts = DeckClock::tick(other, realDt,
+      Location is heap block of size 6400 at 0x0001397a4800 allocated by main thread:
+F76  APP           family B                | tsan-26(e@lane), tsan-28(e@lane)
+      key: data race | Autopilot.cpp:28/Renderer.cpp:782/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6352/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 1 at 0x0001397a4828 by main thread:          [main thread] top src (access): MainComponent.cpp:6352 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | else if (flag == "autopilot") layer->autopilotEnabled = value;
+      Previous read of size 1 at 0x0001397a4828 by thread T45 (m [T45] top src (access): Autopilot.cpp:28 Autopilot::processFrame(Deck&, FeatureSnapshot const&, Autopilot::Fram
+          | if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
+      Location is heap block of size 6400 at 0x0001397a4800 allocated by main thread:
+F77  APP           family -                | tsan-26(e@lane)
+      key: data race | CompositorEngine.cpp:1272/Renderer.cpp:751/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6349/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Read of size 1 at 0x0001397a4e66 by thread T45 (mutexes: w [T45] top src (access): CompositorEngine.cpp:1272 CompositorEngine::hasPersistentContent(Deck const&)
+          | if (layer.solo) { anySolo = true; break; }
+      Previous write of size 1 at 0x0001397a4e66 by main thread: [main thread] top src (access): MainComponent.cpp:6349 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | else if (flag == "solo") layer->solo = value;
+      Location is heap block of size 6400 at 0x0001397a4800 allocated by main thread:
+F78  APP           family B                | tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:1075/Renderer.cpp:728/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> PerfStateCapture.cpp:72/RecorderHost.cpp:381/MainComponent.cpp:5766/juce_MessageManager.cpp:212
+      Write of size 4 at 0x000137d9e470 by thread T45 (mutexes:  [T45] top src (access): CompositorEngine.cpp:1075 CompositorEngine::compositeDeck(Deck&, ShaderManager&, FullscreenQuad&
+          | advanceCrossfade(layer, dt);
+      Previous read of size 4 at 0x000137d9e470 by main thread:  [main thread] top src (access): PerfStateCapture.cpp:72 capturePerfState(Composition const&, float, std::__1::basic_string<cha
+          | layerRT.crossfadeProgress = layer.crossfadeProgress;
+      Location is heap block of size 6400 at 0x000137d9d800 allocated by main thread:
+F79  APP           family B                | tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:401/CompositorEngine.cpp:1074/Renderer.cpp:728/juce_OpenGLContext.cpp:414 <> MainComponent.cpp:5583/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 4 at 0x000137d9e46c by main thread:          [main thread] top src (access): MainComponent.cpp:5583 MainComponent::applyClearActiveClip(int, Origin, int)
+          | layer->clearActiveClip();
+      Previous read of size 4 at 0x000137d9e46c by thread T45 (m [T45] top src (access): CompositorEngine.cpp:401 CompositorEngine::incomingImagePending(Layer const&, Clip const*) cons
+          | if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+      Location is heap block of size 6400 at 0x000137d9d800 allocated by main thread:
+F80  APP           family B                | tsan-27(e@main)
+      key: data race | CompositorEngine.cpp:1740/CompositorEngine.cpp:1004/CompositorEngine.cpp:1135/Renderer.cpp:728 <> MainComponent.cpp:5583/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 4 at 0x000137d9e470 by main thread:          [main thread] top src (access): MainComponent.cpp:5583 MainComponent::applyClearActiveClip(int, Origin, int)
+          | layer->clearActiveClip();
+      Previous read of size 4 at 0x000137d9e470 by thread T45 (m [T45] top src (access): CompositorEngine.cpp:1740 CompositorEngine::applyTransition(Layer&, unsigned long long, unsigned
+          | glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), layer.crossfadeProgress);
+      Location is heap block of size 6400 at 0x000137d9d800 allocated by main thread:
+F81  APP           family B                | tsan-28(e@lane)
+      key: data race | Autopilot.cpp:28/Renderer.cpp:553/juce_OpenGLContext.cpp:414/juce_OpenGLContext.cpp:802 <> MainComponent.cpp:6352/RecorderHost.cpp:79/Player.cpp:86/RecorderHost.cpp:823
+      Write of size 1 at 0x000136e9e4a8 by main thread:          [main thread] top src (access): MainComponent.cpp:6352 MainComponent::applyLayerFlag(int, std::__1::basic_string<char, std::_
+          | else if (flag == "autopilot") layer->autopilotEnabled = value;
+      Previous read of size 1 at 0x000136e9e4a8 by thread T45 (m [T45] top src (access): Autopilot.cpp:28 Autopilot::processFrame(Deck&, FeatureSnapshot const&, Autopilot::Fram
+          | if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
+      Location is heap block of size 6400 at 0x000136e9d800 allocated by main thread:
+
+== arm lane: per family (uniques / launches with >= 1 report, by scenario)
+  B                uniques 2   launches 2    e 2/2
+  -                uniques 3   launches 2    e 2/2
+  reports by scenario x class: e/APP 8
+
+== arm main: per family (uniques / launches with >= 1 report, by scenario)
+  A                uniques 8   launches 14   a 3/3 b 3/3 c 3/3 d 3/3 e 2/2
+  B                uniques 54  launches 10   b 2/3 c 3/3 d 3/3 e 2/2
+  C                uniques 9   launches 11   b 3/3 c 3/3 d 3/3 e 2/2
+  D                uniques 1   launches 6    c 3/3 d 3/3
+  E                uniques 1   launches 6    c 3/3 d 3/3
+  -                uniques 3   launches 2    e 2/2
+  reports by scenario x class: a/APP 3, b/APP 20, c/APP 63, d/APP 159, e/APP 46

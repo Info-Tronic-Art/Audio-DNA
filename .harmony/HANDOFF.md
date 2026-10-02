@@ -3,45 +3,38 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of session s-rta-0930 (2026-09-30 11:53 → ~16:15). The newest dated
-section is at the END of this file ("# >>> SESSION s-rta-0930"); read it first, then the SCREEN-SAFETY LAW section.
+audio-reactive VJ app). This block is CURRENT as of session s-rta-1002 (2026-10-02 08:03 → ~13:41). The newest dated
+section is at the END of this file ("# >>> SESSION s-rta-1002"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
 "Playback Behaviour" and .harmony/binding-decisions.md (read before touching routines, decks, outputs, fit, tempo, video,
-audio devices). CLAUDE.md is 23,996 B of its 25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) +
+audio devices). CLAUDE.md is 24,006 B of its 25,000-byte cap (pay for ANY addition by moving text into docs/claude/*.md) +
 docs/claude/*.md (trigger table). Ultracode: use workflows. Law #11: plans by Fable (architect) — Fable was OUT for all of
-s-rta-0930 and Boris said (verbatim) "just so you know, we are out of fable usage so you will need to do all fable work with
+s-rta-0930 and s-rta-1002 and Boris said (verbatim) "just so you know, we are out of fable usage so you will need to do all fable work with
 opus 5.5": pin plans / rulings to model 'opus', effort 'max' until Boris says Fable is back; on "You've reached your Fable
 limit" re-pin to opus max, record the deviation, tell Boris.
 
-STATE: s-rta-0930 shipped ONE merge, gated by Harmony (RED arm = a copy of pre-merge main 655d232): GOP2 -> 7123b9d
-(Pitfall 62 amended): the capped reverse window now counts the slots the clock frees during a run's lead-in from the index's
-real keyframe — GC7 MET (four 1080p GOP-250 reversers at 256 MB: late 100 -> 0, slowest 30.2/s, over-budget 0), 4K reverse at
-512 MB 2.4 -> 13.8/s, 192 MB late 543 -> 0; intra-refresh H.264 reverse now cached (R3 store gate on demuxer-key landing
-packets); VFR residual documented by design; probe-vupload-ab u8 artefact fixed (+ --selftest, burner taint). G1 ctest
-1055/1055, G2 TSan 0, G3-G7 PASS, forward pixel identity on 3 upload paths, a pre-registered flip-gap re-run (INFO tail).
-TWO PLANS ARE READY TO BUILD (rulings say ready_to_build) but were NOT built (Boris: "finish current tasks then eos"): tsan
-and bt2. A TSan RED baseline exists for main 655d232 (25 unique, all 5 families) — main has moved to 7123b9d since.
+STATE: s-rta-1002 built, gated and merged BOTH plans s-rta-0930 left ready (each RED-first, Builder -> independent
+reviewers -> Harmony's own gates): BT2 -> d4e81bd (one audio device open per launch; the reconciler adopts a wired mic
+plugged in after launch only when the app has none, with a progress guard; a lost / stopped / jiggled mic recovers onto the
+macOS default / built-in mic; the yellow note names a replaced mic; TEST-ONLY audio_deny / audio_stop; Pitfall 61) and
+TSAN -> b844b65 (the Layer trigger tuple is ONE lock-free 16-byte CAS word; Clip runtime fields, the 23 manual scalars and
+activeDeckIndex are Relaxed<T>; syncMedia's write-back is a CAS; render triggers decided from a snapshot are no-ops once the
+tuple moved; an undo command's first execute is a no-op; a momentary pad released before its beat cancels its queued
+trigger; worker-thread std::cerr -> logLine, zero-heap logLinef on the analysis thread; Pitfall 63). TSan app sweep: lane
+arm 0 reports in 12 a/b/c/d launches vs main arm 299 warnings / 81 uniques (all 5 families). ctest 1114/1114.
 
 START HERE, in order:
-1. START HERE — long task, begin at session start: lane TSAN. Read .harmony/.reports/s-rta-0930/plan-tsan.md, then
-   ruling-tsan.md (18 amendments OVERRIDE the plan; the seats' papers are in attack-tsan-papers.md). Design: the Layer
-   trigger tuple becomes ONE lock-free 16-byte atomic word per Layer (LayerRuntimeCell, CAS from both threads; undo takes
-   the exact before / after CAS pair; getActiveClip loads once), Clip runtime fields Relaxed<T>, 23 manual scalars
-   RelaxedFloat, activeDeckIndex derived from the loaded deck pointer, logLine() for worker-thread std::cerr, threaded
-   Catch2 tests labelled tsan (exit 66 on main), an in-repo probe-tsan (scenario d). Write the HARMONY ADOPTION section
-   (decide with Boris-page defaults Q3-Q5), build in a worktree (opus high builder), reviewers pinned; RED = TSan build of
-   PRE-MERGE main (wf/tsan-main.sh; rebuild it — 655d232's build is stale), harness .harmony/.reports/s-rta-0930/tsan-harness/
-   (README). Follow-up lane tsan-r5 (config scalars R5, REST reader R7) is filed by the ruling.
-2. Lane BT2 (can run beside tsan; name the MainComponent.cpp regions in the adoption to fence them): plan-bt2.md +
-   ruling-bt2.md (AM1-AM11) + ruling-bt2-seats.md (AM12+, FINAL GATE LIST there, overrides both). Scope: drop the redundant
-   startup setSourceMode re-open (opens counter = the teeth), adopt a newly plugged allowed mic ONLY when the app has no
-   allowed input, a progress guard on adoption, cable-jiggle recovery; defaults for Boris Q6 / Q7.
-3. Filed (ledger below): gop2 F1-F4 (flip-to-forward keyframe catch-up hitch, 4K avail0 guard, MPEG-4-in-TS publish gate,
-   no-share degrade policy), MKV / WebM 1-entry index (keyRels_ refresh after the first seek), the G5 flip-gap INFO tail,
-   plus the older items (btguard C3 is IN bt2; "Pitfall NN" comments in src/; pitfalls.md order; s-rta-0929 residues).
-4. Boris answers pending: page .harmony/.reports/s-rta-0930/boris-checks.html (7 questions, each with a default; opened
-   for him).
-
+1. START HERE — long task, begin at session start: lane tsan-r5 (filed by ruling-tsan amendments 1 / 15): plan it (architect; opus max while Fable is out) from the
+   scenario-e reports of s-rta-1002 (.harmony/.reports/s-rta-1002/gate-tsan/): the R5 config-scalar class (Layer visible /
+   bypassed / solo / mute / autopilotEnabled written by perf/play's preamble applyLayerFlag MainComponent.cpp ~6348-6352;
+   Clip speed / reverse / loop / in / out / beatSnapMode; effect params / dryWet / source params / macros; Composition
+   output size / globalTransitionSpeed / quantizeMode) + R7 (the httplib thread reads the live model unfenced:
+   /api/composition, /api/state). FIRST tighten .harmony/probe-tsan-analyze.py's family-B regex (it keys
+   layer.autopilotEnabled as family B -- ledger 3).
+2. Mechanical sweep (residual R8): std::cerr in src/audio/AudioEngine.cpp + src/audio/DeviceGuard.cpp -> logLine /
+   logLinef; add both files to test_log_line_lint.
+3. Filed items (ledger below), incl. the gop2 / older ones carried.
+4. Boris page .harmony/.reports/s-rta-1002/boris-checks.html (opened for him): live feel checks + the defaults taken.
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build lanes);
 remove each worktree the turn it merges. A user message that arrives mid-turn is RELAYED to every lane started later in that
 turn and a builder may take it as its task: answer it, YIELD the turn, launch new lanes from a fresh turn. MINIMAL builders
@@ -74,22 +67,55 @@ lane report's named pattern, never by reading source (Iron Law #1); never `git c
 ignored notes). Workflow habits (s-rta-0930): a stage passes the previous stage's OUTPUT inline in the next prompt (council seats return
 StructuredOutput and do NOT write their REPORT_FILE); planners write a SKELETON plan file within ~10 tool calls, then rewrite;
 never git commit while a perf A/B runs (each commit fires the graphify rebuild hook); Spotlight mds_stores at ~100 % after
-builds is a system service, not a burner. COUNTS: run them — ctest 1055/1055 at close (111 targets registered, 110 built);
-unpushed 0.
+builds is a system service, not a burner. COUNTS: run them — ctest 1114/1114 at close (s-rta-1002).
+Habits (s-rta-1002): functional live rows take acquire_lock (acquire_quiet_lock only for perf -- it aborts after 30 min of
+another lane compiling); every FULL ctest while another lane runs takes /tmp/audiodna-ctest.lock (fixed temp names collide);
+a background Bash run is capped at 2 h -- split long gates; copy gate strings only from a ruling chain's FINAL list; a
+workflow's automatic fix round gets TaskStop-ped and relaunched fix-only when the findings need rulings (lane.js
+args fixFrom / base / rulings / reviewFiles). Scripts: .harmony/.reports/s-rta-1002/gate-tsan/ (lane.js, tsan-gate.sh,
+g4-run.sh, gatetools/g4-parity.real.sh + g6-perf.real.sh) and gate-bt2/ (bt2-gate*.sh, g9.py). Unpushed 0.
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-0930 -->
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-1002 -->
 BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
-SHIPPED: reverse video smooth under a memory cap (4 x 1080p at 256 MB: 100 late frames -> 0; 4K at 512 MB 2.4 -> 13.8 fps)
-· intra-refresh clips reverse from memory · screen-recording reverse gap documented · A/B probe fixed.
-IN-FLIGHT: none built. Two plans READY to build: thread-race fix (tsan) and Bluetooth-guard follow-ups (bt2).
-NEXT: (1) build the thread-race fix (long, start of session) · (2) build bt2 beside it · (3) filed small items · (4) Boris
-answers (7 questions, defaults).
-BLOCKERS: none (Boris questions have defaults; Fable out -> plans on Opus 5.5).
-YOU ARE HERE: reverse video done incl. low memory; the top risk left is still the UI-vs-renderer thread races — now planned.
+SHIPPED: thread-race fix (screen vs controls threads agree on one state per layer per frame; TSan 0 reports) · momentary pad
+released before its beat cancels · mic follow-ups (one device open at launch, wired mic adopted when the app has none, lost
+mic recovers with a named note).
+IN-FLIGHT: none.
+NEXT: (1) plan + build tsan-r5 (the remaining config-slider races + the web API reading live data) · (2) move the audio
+files' log lines to the race-free logger · (3) filed small items · (4) Boris live checks (page opened).
+BLOCKERS: none (Boris questions all have defaults; Fable out -> plans on Opus 5.5).
+YOU ARE HERE: the core thread-safety risk is closed by design; what is left is the config-slider class and the web API.
 
-## LOOSE-ENDS LEDGER — s-rta-0930 (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-1002 (CURRENT)
+
+1. [OPEN, START 1] lane tsan-r5: R5 config scalars + R7 unfenced httplib reader (see START HERE 1). Baseline: G3 scenario e
+   lane arm = 8 reports (applyLayerFlag visible / solo / autopilotEnabled vs CompositorEngine / Autopilot / DeckClock reads).
+2. [OPEN, START 2] residual R8: std::cerr in src/audio/AudioEngine.cpp + DeviceGuard.cpp (bt2's files; message thread
+   mostly) -> logLine / logLinef + lint.
+3. [OPEN] probe-tsan-analyze.py family-B regex mis-keys layer.autopilotEnabled (R5) as family B (G3 lane-e F76 / F81 read
+   "family B" until the printed source lines were checked; bar a judged on the ruling's definition). Tighten B to the tuple
+   fields + playing / hasBeenTriggered / beatsPlayed.
+4. [OPEN, unit-evidence-only] the fade-tick lost-update fix: the main arm's scenario d showed NO LayerClock.h frame in 6
+   launches (3 + 3 extras, G3.4) -> the claim rests on R4's I3 invariant, the T3 stale-snapshot test and the tick mutant.
+5. [OPEN, pre-existing residual] a user trigger QUEUED by beat snap after the autopilot's snapshot (or a retrigger of the
+   same column) is still cancelled by the autopilot advance, as on main before the lane (docs now say so exactly).
+6. [OPEN, by design] the 16-byte lock-free static_assert is __APPLE__-only: a Linux / Windows build of LayerRuntimeCell
+   could compile to a locked atomic (Pitfall 63 rule 2; plan R2).
+7. [INFO] bt2 X6 is an equivalent mutant (JUCE 8.0.4 deleteCurrentDevice clears the setup names; premise asserts added);
+   tempo-start reads 9 PASS / 0 FAIL on BOTH arms (plan said 10: stale count, not a regression).
+8. [OPEN, Boris] page .harmony/.reports/s-rta-1002/boris-checks.html (live checks; wired-mic checks need the 8.0.4 E1
+   buffer check first -- bt2 AM7). Older pages still open with defaults.
+9. [OPEN, carried from s-rta-0930 ledger 3-5, 7] gop2 F1-F4; MKV / WebM 1-entry index; G5 flip-gap INFO tail; VFR
+   documented; ledger-7 residues ("Pitfall NN" comments in src/, pitfalls.md physical order, JUCE >= 8.0.9).
+10. WARN fable-usage-audit: BYPASS-SUSPECT -- 0 Fable plans this session. Every build traces to the s-rta-0930 plans
+   (Opus 5.5 max during Boris's declared Fable outage). Deviation recorded: the tsan fix-round rulings F1-F8 and the bt2
+   teeth packet were Harmony-authored rulings over reviewer findings, with no architect dispatch.
+11. Session-index -- skipped (foreign-repo lane, no transport yet). Carried: .harmony/.harmony-version dirty and AGENTS.md
+   untracked at boot -- not this session's, untouched.
+
+## (HISTORICAL, s-rta-0930 — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-0930
 
 1. [OPEN, START 1] lane tsan: plan-tsan.md + ruling-tsan.md READY (not built). TSan RED baseline on 655d232 (25 unique,
    tsan-red-main-655d232.txt); rebuild the RED arm on the pre-merge main of that day. Follow-up lane tsan-r5 filed by ruling.
@@ -3578,3 +3604,45 @@ browser.
 
 ## COUNTS — run them, never inherit them
 ctest 1055/1055 (111 Catch2 targets registered, 110 built). Unpushed 0 after the close commit.
+
+# >>> SESSION s-rta-1002 (2026-10-02 08:03 → ~13:41, secondary) — START HERE <<<
+
+## THE ONE-LINE VERSION
+Built, gated and merged both plans left ready by s-rta-0930: bt2 (audio device follow-ups) -> d4e81bd and tsan (the
+thread-race fix) -> b844b65. Session log .harmony/sessions/2026-10-02-s-rta-1002-secondary.md; running log
+.harmony/s-rta-1002-work.md; reports / reviews / gate evidence .harmony/.reports/s-rta-1002/.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate)
+bt2 -> d4e81bd: GATE-1 build, 0 warnings inside bt2 hunks; GATE-2 ctest 1077/1077; GATE-3 unit RED AS PREDICTED (builder,
+reviewed); GATE-4 13/13 mutants killed (builder) + teeth round X1 / X2 / X5 killed, X6 equivalent (independent reviewer
+re-ran each); GATE-5 live RED of record K1 27/12/2 exact set (builder); GATE-6 probe-btguard 5/5 = 39/0/2 (A12 gap 0.001 s);
+GATE-7 0 UNC + 0 AUTHREQ_PROMPTING every run; GATE-8 step3 94/0, manual-bpm 22/0, resync 16/0, downbeat 14/0, onset-render
+13/0, tempo-start 9/0 (= PRE), finalize-loop 8/0, routines 109/0, async-load 83/0 + 3/0; GATE-9 5 TUs build without
+TEST_SERVER, 0 debug tokens; GATE-10 callback diff 0, new mutex 0; GATE-11 docs strings exact, CLAUDE.md unchanged.
+tsan -> b844b65: G1 ctest 1114/1114 = expected (new targets present; lint case 2 = G5 PASS); G2 RED arm = T0 2c04a03
+worktree, 4/4 [tsan] cases fail on races naming src/ (104 / 8 / 4 / 4), GREEN arm merged 4/4, 0 TSan warnings; G3 TSan app
+sweep 28 + 3 launches: lane a/b/c/d 0 reports, main 299 warnings / 81 uniques with A-E all present, bars a-e PASS (lane-e
+autopilotEnabled mis-keyed B = R5, ledger 3), G3.4 lane-d witnesses 3/3 valid, LayerClock frame absent -> unit-evidence-only
+(ledger 4), G3.5 power met; G4 parity (13 probes x 2 x 2, PRE = copy of d4e81bd): PASS (13 / 13 probes, 301 rows; no row PASS on PRE and FAIL on merged; no pre-existing, no missing); G6 perf: PASS (Release, interleaved 5 x 2 per scenario: b peak frame +0.32 ms / +4.2 %, b peak callback +0.97 ms / +11.7 %, d peak frame -3.30 ms, d peak callback -0.88 ms; bar 15 % AND 0.5 ms).
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-1002/boris-checks.html, opened for him)
+- A live set with fades on, MIDI / keyboard: no unexpected hard cuts; first trigger auto-plays a video; retrigger restarts;
+  Undo after a trigger does not jump the fade; a deck switch mid-fade finishes.
+- A momentary + Quantize pad released before its beat no longer starts the clip (the one deliberate behaviour change).
+- With a wired mic / interface (after the 8.0.4 E1 buffer check): plug in, pull, re-plug, jiggle, plug while on MacBook mic.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. Two `cd`s early (the persistent shell cwd moved; restored, no effect). 2. My bt2 dispatch listed a GATE-11 string
+("R13 (20 list changes") from the EARLIER ruling's list, which the seats addendum replaced -> a reviewer SHOULD against
+correct work. 3. My bt2 gate used acquire_quiet_lock for the non-perf btguard rows and stalled behind the tsan lane's
+compiles (stopped before any run, relaunched with acquire_lock). 4. I launched the full tsan gate as one 2-h-capped
+background run though it needed ~3.5 h (caught at once; G4 / G6 stubbed out and run as separate jobs).
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every launch was open -g (production, --test-mode via the probes, or the TSan builds), main window only; no gate opened an
+Output window (0 Output-named windows after every batch). 0 UserNotificationCenter windows (Quartz kCGWindowListOptionAll)
+after every batch; 0 new Audio-DNA .ips today; no TCC prompt (AUTHREQ_PROMPTING 0). At close: no Audio-DNA process, the
+live lock free, no worktrees, no full-screen capture taken. The Boris page was opened in his browser.
+
+## COUNTS — run them, never inherit them
+ctest 1114/1114. Unpushed 0 after the close commit.

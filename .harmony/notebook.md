@@ -2148,3 +2148,68 @@ INBOX-RECHECK: none
 - 2026-10-02 s-rta-1002: two worktree lanes running FULL ctest at the same time collide on fixed temp names (test_preset_manager preset_manager_test_<suffix>.json; test_app_settings audiodna-test-app-settings via getNonexistentChildFile) -> spurious 464/471/472/821/823 failures that pass isolated. Serialize full ctest across lanes (mkdir /tmp/audiodna-ctest.lock) and re-run those targets isolated before any verdict.
 - 2026-10-02 s-rta-1002 (my error): I wrote a gate string list into a dispatch from an EARLIER ruling's gate list that a later addendum had REPLACED. When a ruling chain has 'replaces the earlier list', copy gate strings only from the final list, never merge lists from memory.
 - 2026-10-02 s-rta-1002 (my error): my bt2 gate used acquire_quiet_lock for the btguard runs, which are NOT perf; with another lane compiling, wait_quiet would have aborted the gate after 30 min (exit 70). Use acquire_lock for functional live rows; reserve acquire_quiet_lock for perf / timing batteries, and decide up front what happens when quiet never comes.
+- 2026-10-02 s-rta-1002: probe-tsan-analyze.py's family-B regex keys any racing line mentioning autopilot (e.g. layer.autopilotEnabled, an R5 config flag) as family B, so a scenario-e lane run reads as a bar-(a) failure until the printed source lines are checked by hand. Tighten B to the tuple fields + playing / hasBeenTriggered / beatsPlayed before tsan-r5 relies on it.
+
+## s-rta-1002 lane notes (appended by Harmony from the lane reports, verbatim)
+### lane tsan (.harmony/.reports/s-rta-1002/tsan.md)
+- 2026-10-02 -- mutant restore inside the build's second leaves the mutant object | Files: any mutant run against
+  build-lane | this make (Apple GNU make 3.81, CMake Unix Makefiles) compares mtimes at 1-second resolution: restoring
+  a mutated header in the SAME second the mutant object was written leaves that object "up to date", so the "clean"
+  rebuild relinks the mutant. Sleep >= 1.2 s before restoring and `touch` the restored file; verify by disassembly or
+  a re-run. | discovered: s-rta-1002 B1 m4 (Layer.h).
+- 2026-10-02 -- TSan race tests: keep the raced object on the HEAP, allocated by src/ code | Files:
+  tests/test_layer_runtime_race.cpp | Apple clang 17's TSan reported 0 races on a Layer living on the main thread's
+  stack (4/4 runs, thousands of torn tuples seen by value checks); on the heap it reports. With every Layer call
+  inlined, a report's access stacks name only the test file, so "a src/ frame in any stack" comes from the allocation
+  stack (Deck::initDefault, Deck.h). | discovered: R4 sizing.
+- 2026-10-02 -- two worktrees' ctest at once collide on fixed temp files | Files: tests/test_preset_manager.cpp
+  (tempPresetFile), tests/test_app_settings.cpp (getNonexistentChildFile) | 5 cases failed once in a full ctest while
+  the bt2 lane ran its own, and passed on isolated re-runs (INFERRED cause). | discovered: T0 normal RED run.
+- 2026-10-02 -- the Layer trigger tuple is one private atomic word | Files: src/model/Layer.h | read it with ONE
+  runtime() per use, write it only through the Layer API (trigger*/clearActiveClip/releaseMomentary/updateRuntime/
+  setRuntime); a test that needs a state writes `L.setRuntime({...})`. captureLayerRuntime / applyLayerRuntime are
+  the compat wrappers. | discovered: T2.
+- 2026-10-02 -- Relaxed<T> compile fallout patterns | Files: src/model/Relaxed.h and any model field converted to it |
+  juce::var has NO conversion from Relaxed<T> (`setProperty("x", clip.playing)` fails: write `.load()`); a ternary
+  `cond ? float : RelaxedFloat` is ambiguous (both convert); `std::max(0.01f, relaxedField)` cannot deduce -- all
+  three need `.load()`. Plain reads, arithmetic, assignment and Catch2 CHECK / Approx compile unchanged. |
+  discovered: s-rta-1002 B2 T4 / T5 (ApiServer.cpp:437/439, TopBar.cpp:399/410, LayerStrip.cpp:818,
+  ClipInspector.cpp:1375, LayerInspector.cpp:970).
+- 2026-10-02 -- the GL thread reads a layer's trigger tuple ONCE per layer per pass | Files: src/render/
+  CompositorEngine.cpp, src/render/DeckClock.h, src/render/Renderer.cpp, src/model/Autopilot.cpp,
+  tests/test_render_thread_lint.cpp (case 2) | pass the loaded LayerRuntimeSnapshot down (renderLayerStages /
+  applyTransition / incomingImagePending take `rt`); publish the fade with LayerClock::tick(layer, rt, dt) (ONE CAS;
+  false = adopt, rt = the trigger's tuple, re-fetch the clip). A new `.runtime()` / `getActiveClip(` in those four
+  files fails the pinned-count lint until re-justified. | discovered: T3.
+- 2026-10-02 -- a render write-back of a message-thread intent is a CAS on the value read | Files:
+  src/render/ClipTransportSync.h, src/render/Renderer.cpp (syncMedia) | pushIntent reads `playing` once; writeBack
+  CASes it to the player's state, tests the out-point on the local playhead, and a OneShot stop CASes only the value
+  this sync wrote. Never store `playing` plainly in Renderer.cpp (test_render_thread_lint case 1). | discovered: T4.
+- 2026-10-02 -- a std::cerr chain converts to logLine mechanically | Files: src/core/LogLine.h, tests/test_log_line_lint.cpp
+  | `std::cerr << a << b << std::endl;` -> `logLine(a, b);` (split on top-level `<<` only); a chain ending in a
+  `"...\n"` literal drops the `\n` (logLine appends it). Verify by re-parsing both operand lists (scratch
+  cerr_verify.py in s-rta-1002 B3), not by eye. | discovered: T7 (75 statements, 14 files).
+- 2026-10-02 -- TSan prints "Atomic read of size N" with a CAPITAL A | Files: .harmony/probe-tsan-analyze.py | an
+  access-header regex that only accepts "Previous atomic ..." drops one side of every mixed atomic / plain race (the
+  LayerStrip atomic_ref read vs the plain playheadPosition write) | discovered: T8 first archive run.
+- 2026-10-02 -- Relaxed<T> has no compound operators by design | Files: src/model/Relaxed.h | `--field` / `++field` /
+  `field += x` do not compile: spell a single-writer decrement as `f = f - 1` (DeckCommands.h:930) or use fetchAdd for a
+  shared counter | discovered: T6.
+- 2026-10-02 -- a threaded Catch2 case needs a START handshake | Files: tests/test_layer_runtime_race.cpp,
+  tests/test_manual_scalar_race.cpp | a render thread spawned right before a ~10 ms main loop is often not scheduled
+  inside it on a loaded machine: `render frames 0` (R1 14/30, R2 14/30 under 10 burners); wait (bounded) for its first
+  frame before the loop and for a floor after it | discovered: s-rta-1002 fix round F1.
+- 2026-10-02 -- a GL-thread trigger decided from a tuple snapshot must be conditioned on it | Files: src/model/Layer.h,
+  src/model/Autopilot.cpp | `triggerClip(col, snap, 16, onlyIfActive = decidedFrom)`: the check sits INSIDE the pure
+  CAS function (not before the call), and the post-CAS retrigger tail must also respect it | discovered: F2.
+- 2026-10-02 -- logLine allocates, logLinef does not | Files: src/core/LogLine.h | an ostringstream line of 20+ chars
+  costs 2-3 mallocs (measured with a DYLD_INSERT_LIBRARIES interposer); a thread under Sacred Rule 3 uses
+  logLinef(fmt, ...) (stack buffer); `%g` prints a double byte-identically to an ostream (4M values compared) |
+  discovered: F3.
+- 2026-10-02 -- `ctest -L <label>` with no matching test exits 0 | Files: .harmony/probe-tsan-unit.sh | count with
+  `ctest -L <label> -N` ("Total Tests:") and pass `--no-tests=error` | discovered: F7.
+### lane bt2 (.harmony/.reports/s-rta-1002/bt2.md)
+- Catch2 v3 exits with code 42 when tests fail. In a `set -euo pipefail` script, `bin -r junit | parser` therefore aborts the script, so wrap it as `{ bin -r junit || true; } | parser`. (`.harmony/.reports/s-rta-1002/bt2-gates/gate3-red.sh`)
+- test_preset_manager writes fixed filenames in $TMPDIR (`tests/test_preset_manager.cpp:39`). Two lanes running ctest at the same time can collide on T3 and T5. Rerun the target before blaming a lane.
+- A cheap one-tree RED / mutant rig: `git worktree add --detach <scratch>/wt <sha>`, a cmake configure with the FETCHCONTENT_SOURCE_DIR_* deps, then `cmake --build --target <2 targets>`. Configure plus build takes about 2-3 minutes, and each mutant is an incremental rebuild. (`bt2-gates/gate4-mut.sh`)
+- probe-btguard now takes about 100 s per run (3 launches) and has 39 counted rows. `audio_deny` replaces the denied set at runtime ("*" = every device). `audio_stop` stops the combiner, which keeps it.

@@ -1,0 +1,8 @@
+probe	row	pre1	pre2	post1	post2	verdict
+render-state	r1_temporal	PASS	PASS	PASS	PASS	ok
+render-state	r1_control	PASS	PASS	PASS	PASS	ok
+render-state	r1_ring	PASS	PASS	PASS	PASS	ok
+render-state	r1_retrigger	PASS	PASS	PASS	PASS	ok
+render-state	r1_counts	PASS	PASS	PASS	PASS	ok
+render-state	r1_cells	PASS	PASS	PASS	PASS	ok
+render-state	_hygiene	PASS	PASS	PASS	PASS	ok

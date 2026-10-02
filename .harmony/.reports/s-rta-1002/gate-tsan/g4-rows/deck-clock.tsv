@@ -1,0 +1,9 @@
+probe	row	pre1	pre2	post1	post2	verdict
+deck-clock	d_fade_finishes	PASS	PASS	PASS	PASS	ok
+deck-clock	d_persistent_single_advance	PASS	PASS	PASS	PASS	ok
+deck-clock	d_pending_trigger_still_cancelled	PASS	PASS	PASS	PASS	ok
+deck-clock	d_video_keeps_time	PASS	PASS	PASS	PASS	ok
+deck-clock	d_imageseq_keeps_time	PASS	PASS	PASS	PASS	ok
+deck-clock	d_autopilot_keeps_time	PASS	PASS	PASS	PASS	ok
+deck-clock	d_return_hitch	PASS	PASS	PASS	PASS	ok
+deck-clock	_hygiene	PASS	PASS	PASS	PASS	ok

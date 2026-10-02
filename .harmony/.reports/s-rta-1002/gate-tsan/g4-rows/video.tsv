@@ -1,0 +1,4 @@
+probe	row	pre1	pre2	post1	post2	verdict
+video	w3_retrigger_midgop_1080	PASS	PASS	PASS	PASS	ok
+video	w6b_retrigger_mid_fade	PASS	PASS	PASS	PASS	ok
+video	_hygiene	PASS	PASS	PASS	PASS	ok

@@ -1,0 +1,14 @@
+probe	row	pre1	pre2	post1	post2	verdict
+crossfade	a_both_effected	PASS	PASS	PASS	PASS	ok
+crossfade	b_only_incoming_effected	PASS	PASS	PASS	PASS	ok
+crossfade	c_only_outgoing_effected	PASS	PASS	PASS	PASS	ok
+crossfade	d_neither_effected	PASS	PASS	PASS	PASS	ok
+crossfade	e_two_effects_each	PASS	PASS	PASS	PASS	ok
+crossfade	f_same_source_type	PASS	PASS	PASS	PASS	ok
+crossfade	k_outgoing_transform	PASS	PASS	PASS	PASS	ok
+crossfade	l_outgoing_opacity_effect	PASS	PASS	PASS	PASS	ok
+crossfade	g_drywet_second_effect	PASS	PASS	PASS	PASS	ok
+crossfade	h_transparent_layer_transform	PASS	PASS	PASS	PASS	ok
+crossfade	i_layer_router_self	PASS	PASS	PASS	PASS	ok
+crossfade	j_temporal_clip_vs_layer_chain	PASS	PASS	PASS	PASS	ok
+crossfade	_hygiene	PASS	PASS	PASS	PASS	ok

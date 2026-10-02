@@ -1,0 +1,13 @@
+probe	row	pre1	pre2	post1	post2	verdict
+deck-path	o01	PASS	PASS	PASS	PASS	ok
+deck-path	o02	PASS	PASS	PASS	PASS	ok
+deck-path	o03	PASS	PASS	PASS	PASS	ok
+deck-path	o04	PASS	PASS	PASS	PASS	ok
+deck-path	o05	PASS	PASS	PASS	PASS	ok
+deck-path	o06	PASS	PASS	PASS	PASS	ok
+deck-path	o07	PASS	PASS	PASS	PASS	ok
+deck-path	o08	PASS	PASS	PASS	PASS	ok
+deck-path	o09	PASS	PASS	PASS	PASS	ok
+deck-path	o10	PASS	PASS	PASS	PASS	ok
+deck-path	o11	PASS	PASS	PASS	PASS	ok
+deck-path	_hygiene	PASS	PASS	PASS	PASS	ok

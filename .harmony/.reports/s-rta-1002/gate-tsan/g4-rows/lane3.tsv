@@ -1,0 +1,12 @@
+probe	row	pre1	pre2	post1	post2	verdict
+lane3	o01	PASS	PASS	PASS	PASS	ok
+lane3	o02	PASS	PASS	PASS	PASS	ok
+lane3	o03	PASS	PASS	PASS	PASS	ok
+lane3	o04	PASS	PASS	PASS	PASS	ok
+lane3	o05	PASS	PASS	PASS	PASS	ok
+lane3	o06	PASS	PASS	PASS	PASS	ok
+lane3	o07	PASS	PASS	PASS	PASS	ok
+lane3	o08	PASS	PASS	PASS	PASS	ok
+lane3	o09	PASS	PASS	PASS	PASS	ok
+lane3	o10	PASS	PASS	PASS	PASS	ok
+lane3	_hygiene	PASS	PASS	PASS	PASS	ok

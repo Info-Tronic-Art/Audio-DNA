@@ -1,0 +1,3 @@
+probe	row	pre1	pre2	post1	post2	verdict
+async-load	a4_load_then_trigger	PASS	PASS	PASS	PASS	ok
+async-load	_hygiene	PASS	PASS	PASS	PASS	ok

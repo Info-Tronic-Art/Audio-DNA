@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Audio-DNA — what only you can check (s-rta-1002)</title>
+<style>body{font:16px/1.5 -apple-system,system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1d1d1f;background:#fafafa}
+h1{font-size:22px}h2{font-size:17px;margin-top:28px}li{margin:6px 0}.def{color:#555}.note{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 16px}
+code{background:#eee;padding:1px 4px;border-radius:4px}</style></head><body>
+<h1>Audio-DNA — what only you can check (2 Oct)</h1>
+<div class="note">
+<p><b>Shipped today, two pieces, both through every automated check I have:</b></p>
+<ul>
+<li><b>The thread-race fix.</b> The screen thread and the controls thread no longer step on each other. A clip trigger, a fade, autopilot and Undo now agree on one state per layer per frame. Under the race detector the app went from 1–57 race reports per run (before) to <b>zero</b> in every normal scenario (12 runs). Nothing on screen should look different; any difference is a bug.</li>
+<li><b>Microphone follow-ups.</b> The app now opens the sound device once at launch instead of twice. If you plug in a wired mic while the app has none, it starts using it within about a second. If your wired mic drops out, it moves to the MacBook mic and a yellow note says so. It still never opens a Bluetooth device.</li>
+</ul>
+<p>Your open questions from the last page were answered with their defaults (nothing waited on you). You can still change any of them — just say which.</p>
+</div>
+
+<h2>1. Feel checks (only if you want to)</h2>
+<ul>
+<li><b>A live set, 5 minutes, fades on, Launchpad / keyboard:</b> firing clips and columns never gives a hard cut where you expect a fade; a never-played video starts by itself when first triggered; retriggering the playing cell restarts it; Undo right after a trigger does not make the fade jump; switching decks mid-fade finishes the fade.</li>
+<li><b>Momentary pad with Quantize on:</b> press and let go <i>before</i> the beat — the clip should now <b>not</b> start (it used to start on the beat and stay on). This is the one deliberate behaviour change; it was your page's default.</li>
+<li><b>Normal launch:</b> looks and feels the same (one device open instead of two).</li>
+<li><b>Only with a wired mic or interface</b> (this machine has none, so it was simulated). First, I need to check that your interface takes the app's buffer size — two minutes with it set as the Mac's default input; tell me when you have it with you. Then:
+  <ul>
+  <li>With the "No wired mic found — plug one in" note showing, plug it in: within about a second the note goes and the visuals react.</li>
+  <li>Pull its cable while the app runs: within about a second the app listens on the MacBook mic and the yellow note reads <i>Mic "&lt;your mic&gt;" lost - now listening on "MacBook Pro Microphone".</i> Watch for a pause of up to ~2 s.</li>
+  <li>Plug it back: by default the app stays on the MacBook mic and the note stays until you relaunch.</li>
+  <li>Wiggle the cable so it cuts out for a split second: within about a second the app is listening again.</li>
+  <li>With the app on the MacBook mic, plug the wired mic in: by default nothing changes.</li>
+  </ul></li>
+</ul>
+
+<h2>2. Calls already made with your defaults (change any by saying so)</h2>
+<ul>
+<li>Firing a column that is already playing does not restart its videos (clicking a single playing cell still does). <span class="def">Kept as today.</span></li>
+<li>When you fire a column, one layer can switch one frame (1/120 s) before the others. <span class="def">Kept as today (lowest latency).</span></li>
+<li>Momentary pad released before its quantized beat: <span class="def">now cancels (built).</span></li>
+<li>Wired mic plugged back in while the app is on the MacBook mic: <span class="def">stay on the MacBook mic until relaunch (built).</span></li>
+<li>The "mic lost" yellow note: <span class="def">kept (built).</span></li>
+<li>Reverse video gaps on screen recordings, four 4K reversers not fully smooth: <span class="def">documented, fixed on request.</span></li>
+</ul>
+<p class="def">Older pages (29–30 Sep) are still open with their defaults.</p>
+</body></html>

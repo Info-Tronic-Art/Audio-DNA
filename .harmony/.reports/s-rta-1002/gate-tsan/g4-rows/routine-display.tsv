@@ -1,0 +1,16 @@
+probe	row	pre1	pre2	post1	post2	verdict
+routine-display	d0#1	PASS	PASS	PASS	PASS	ok
+routine-display	d1#1	PASS	PASS	PASS	PASS	ok
+routine-display	d2#1	PASS	PASS	PASS	PASS	ok
+routine-display	d13#1	PASS	PASS	PASS	PASS	ok
+routine-display	d3#1	PASS	PASS	PASS	PASS	ok
+routine-display	d3#2	PASS	PASS	PASS	PASS	ok
+routine-display	d14#1	PASS	PASS	PASS	PASS	ok
+routine-display	d15#1	PASS	PASS	PASS	PASS	ok
+routine-display	d4#1	PASS	PASS	PASS	PASS	ok
+routine-display	d5#1	PASS	PASS	PASS	PASS	ok
+routine-display	_hygiene	PASS	PASS	PASS	PASS	ok
+routine-display	d8#1	PASS	PASS	PASS	PASS	ok
+routine-display	d9#1	PASS	PASS	PASS	PASS	ok
+routine-display	d9#2	PASS	PASS	PASS	PASS	ok
+routine-display	d12#1	PASS	PASS	PASS	PASS	ok

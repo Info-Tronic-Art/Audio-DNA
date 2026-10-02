@@ -1,0 +1,7 @@
+probe	row	pre1	pre2	post1	post2	verdict
+deck-tabs	R1#1	PASS	PASS	PASS	PASS	ok
+deck-tabs	R2#1	PASS	PASS	PASS	PASS	ok
+deck-tabs	R3#1	PASS	PASS	PASS	PASS	ok
+deck-tabs	R4#1	PASS	PASS	PASS	PASS	ok
+deck-tabs	R5#1	PASS	PASS	PASS	PASS	ok
+deck-tabs	_hygiene	PASS	PASS	PASS	PASS	ok
