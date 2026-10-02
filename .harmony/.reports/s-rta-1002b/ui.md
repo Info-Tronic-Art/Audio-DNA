@@ -448,3 +448,193 @@ Base for U2: f2690de (lane/ui after U3). Commits: da1eaa6 U2.1, 52db1a3 U2.2, 25
   of ClipCell / DeckView / ClipInspector rebuilt and run: test_deck_thumbnails, test_deck_tab_rename,
   test_clip_inspector_paint_key, probe_deck_tab_dispatch (built only), the app, the full ctest).
 INBOX-RECHECK: none
+
+---------------------------------------------------------------------------------------------------------------------
+# LANE ui -- stage U4 (probe, docs, report) -- builder report
+STATUS: DONE (stage U4 of 4: U4.1 probe 9af069e, U4.2 hook (scratch, never committed), U4.3 docs e5d81c2, this report)
+Base for U4: 46d3ff2 (lane/ui after U2). Lane: eff2b1c..HEAD = U1, U3, U2, U4. Merge, G0-G4 on the merged tree, G1b, critic panel: Harmony.
+## Items
+### U4.1 .harmony/probe-ui-files-rename.sh -- DONE (9af069e)
+- NEW .harmony/probe-ui-files-rename.sh (bash + embedded python, the probe-deck-tabs.sh shape): live-lock gate (exit 64
+  without /tmp/audiodna-live.lock/owner or with a mismatching AUDIODNA_LOCK_OWNER); `OUT [--shots] [--hook STATE]`;
+  UIFR_APP (default <root>/build/...), UIFR_ATTACH=1 (the caller started ONE Audio-DNA --test-mode and quits it -- how
+  this lane ran it, through the helper's start_app / quit_app), standalone: refuses if any Audio-DNA runs or 7070 / 8080
+  listen, launches `open -g ... --args --test-mode`, quits ONLY the pid it launched. Every request Connection: close;
+  a 404 / error is a FAIL row, never a crash.
+- Composition written at run time into OUT with absolute paths, exactly G3's: deck A L0 = h264 / prores HQ / HAP Q /
+  HEVC Main 10 fixtures, L1 = test_card.png / a sequence of 3 PNG copies in OUT/media / OUT/media/missing_clip.mp4
+  (folder exists, file never) / source perlin_noise (hand-over U4 note); B, C = copies, fresh deck ids 1 2 3 and clip
+  ids (100s / 200s / 300s); active 0. L0C3's CLIP NAME is long ("A very long clip name that runs right up to the Show
+  in Finder button") so C14 needs no extra deck (V rows read file names / codec lines only, not clip names).
+- Rows = G3's strings: S0 (load ok + settle), V1 x8, V2 x4, V3 x3, V4 x2, R1, R2, R3, R4a/R4b, R5, R6, R7, R8 x3, R9a/R9b,
+  R10 = 32 rows. Settle exactly as pre-registered; every null-video retry is printed (none happened: retries 0).
+  Inferred detail: R8 checks "one Rename Deck step" (index +1) for all three ops, the ruling writes it for outside_click
+  only (a stronger bar, same semantics). Names for R5-R10 come from GET /api/composition AFTER a GET deck_tabs barrier
+  (see the R6 note below).
+- --shots (G4, hook-free binary): C1-C4, NB2, C8-C14, then C5 + NB1. Window-only captures (`screencapture -x -o -l
+  <CGWindowID>` of the largest on-screen Audio-DNA window, never one named Output), each DECODED (CGImageSource: size +
+  distinct sampled colours). C5: N = the smallest deck count >= 12 whose DeckTabRow::layout tab width is 60 at the live
+  row_width (1720 px -> N = 27; the hand-over's ">= 25" was approximate: 25 decks give 65-px tabs), box on tab N-1.
+  NB1 = editor w 100, x >= 0, x + w <= row_width, y == tabs[N-1].y, h 24, the last tab 60 px, the box covers it.
+- --hook STATE (cell-menu = C6, cell-tooltip = C7): loads the composition and waits for the hook's snapshot file, decodes
+  it. V / R rows skipped in this mode.
+- PROBE FIX caught during my first GREEN run (17:26): R6 FAILED -- "after redo ['A', 'B', 'C']" while deck_tabs a moment
+  later showed the redo landed. Cause: the debug POSTs are callAsync, GET /api/composition is answered on the HTTP thread
+  (not ordered after them); deck_tabs is read ON the message thread (FIFO after the queued actions). Fix: names() first
+  reads deck_tabs as a barrier. Not a product defect; the RED / GREEN below are on the fixed probe.
+- RED on main's pre-change app (/Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release, read-only,
+  --test-mode), final probe, 17:30:25, raw summary line:
+    1 PASS / 31 FAIL   (artifacts in .../scratchpad/ui-U4/red-final-173016)
+  (every V / R row FAILs on `{'_http': 404}` for /api/debug/*; only S0 load passes; first RED 17:25:31 on the pre-fix
+  probe: "1 PASS / 31 FAIL", PROBE_EXIT=1.)
+- GREEN on the lane app (build-lane, 46d3ff2 src), --shots, 17:29:14-17:29:31, raw:
+    46 PASS / 0 FAIL   (artifacts in .../scratchpad/ui-U4/green-lane-172814)
+  G3 rows only, 5 / 5 separate launches 17:30:33-17:31:16, raw each: "32 PASS / 0 FAIL".
+  Observed values (green-lane-172814): V1 video non-null on the first read (retries 0) for all four codecs, ProRes fps
+  29.97002997, HEVC 23.976023976; V3 last_revealed = the fixture path, count 0 -> 1 -> 1 -> 2; deck_tabs row_width 1720,
+  R4b editor {x 102, y 236, w 100, h 24} == tab 1; R5 undo {Switch Deck, 2, 2} -> {Rename Deck, 3, 3}, focus 0 -> 1;
+  R7 focus 1 -> 4, undo unchanged; R9a editor stays on deck id 1 at x 0 with builds 6 -> 7; R10 focus 8 -> 9, names A B C;
+  NB2 editor {0, 236, 100, 24} == tab 0; NB1 27 decks, last tab {x 1612, y 140, w 60, h 24}, editor {1612, 140, 100, 24}.
+- I LOOKED at C2 (box open on tab A, name selected), C5 (box "Deck 27" over the last 60-px tab; at 27 decks the "+" is
+  clamped under the last tab and the box covers it -- pre-existing layout clamp, DeckTabRow.h), C8 (inspector: "Show in
+  Finder" at the name bar's right, rows "H.264 High" / "64 x 64, 30 frames per second") and C14 (the long name ellipsized
+  "... the Show i..." before the button, 2 info rows). Captures are full-window 3456 x 2158 PNGs (Retina); the file
+  browser in them lists folder names of the home directory.
+### U4.2 C6 / C7 TEMPORARY hook (scratch patch, separate build dir, never committed) -- DONE
+- The worktree was never edited: a SOURCE COPY of 46d3ff2 (`git archive HEAD | tar -x` into scratchpad/ui-U4/hook-src),
+  the hook written into the copy's src/MainComponent.cpp by scratchpad/ui-U4/mkhook.py, patch kept as
+  scratchpad/ui-U4/hook.patch (79 lines: 2 includes + one block at the constructor end), configured into its own build
+  dir scratchpad/ui-U4/hook-build (same flags as build-lane) and built with `--target AudioDNA -j3` (17:22:24 ->
+  17:24:10 BUILD_EXIT=0; a normal cmake build, signed by the build's own 'Audio-DNA Dev' step -- no copied bundle).
+- Hook: AUDIODNA_DEBUG_SHOW=cell-menu | cell-tooltip, AUDIODNA_DEBUG_SNAP=<png>; polls 250 ms until cell (0, 0)'s own
+  getTooltip contains "frames per second", then a right-button mouseDown ON the cell (the AM10 menu path; PopupMenu
+  parented to the top-level window) or the app's TooltipWindow::displayTip over the cell, then a synchronous
+  createComponentSnapshot of the top-level window -> PngWrite::writeReplacing; dismisses after 1.5 s.
+- Run (one locked batch 17:32:05-17:32:29, the hook app launched open -g --env ... --args --test-mode, pid recorded in
+  the helper's file, quit by quit_app): raw "3 PASS / 0 FAIL" for cell-menu and for cell-tooltip; app-err:
+  "DEBUG_SHOW cell-menu: snapshot .../C6-cell-menu.png 1728x1051 ok=1 cell=254,290 90x96" (same for C7).
+  LOOKED: C6 = a menu under the H.264 cell, header "video_h264_64x64", item "Show in Finder", app LookAndFeel.
+  C7 = the tooltip over the cell: "video_h264_64x64.mp4" / "H.264 High, 64 x 64, 30 frames per" / "second" /
+  "Right-click: Show in Finder" -- JUCE's TooltipWindow WRAPS the 41-character line (see found_not_fixed F1).
+- STRINGS CHECK (raw): `strings <hook app binary> | grep -c AUDIODNA_DEBUG_SHOW` = 1 (teeth);
+  `strings build-lane/.../Audio-DNA | grep -c AUDIODNA_DEBUG_SHOW` = 0; G2b `grep -rn AUDIODNA_DEBUG_SHOW src tests` on
+  the worktree = 0 lines (re-run at the end of U4, below).
+### U4.3 Docs (AM16) -- DONE (e5d81c2)
+- docs/claude/performance-controls.md: two paragraphs after "Deck tab row": "Deck rename in place (BF8)" (AM16 rules
+  word for word: double-click the deck on screen; Enter / Tab / click-away keep; Esc discards; empty / unchanged keeps;
+  one "Rename Deck" step; a double-click on a tab not on screen just shows it; right-click > Rename Deck... still the
+  dialog; a click on the showing deck does nothing -- it must not rebuild the row; every close hands the keyboard home)
+  and "Clip file info and Show in Finder (BF3)" (cell tooltip / menu, inspector rows + button, pictures / sequences /
+  sources / missing, where the info comes from: VideoPlayer::open, never a probe or decode on the message / GL thread,
+  Pitfalls 51 / 55 / 56 / 58; --test-mode records the reveal).
+- docs/claude/pitfalls.md: NEW "65." (AM16's four points + the rebuild / load cases + guards). NUMBER: main already has
+  64 (lane mkvidx, 649baf7); this branch (base eff2b1c) does not, so the merge will conflict at the end of pitfalls.md
+  and at the CLAUDE.md index (64 + 65 both appended after 63): keep both, 64 first. Harmony may renumber.
+- docs/claude/testing-eyes.md: one paragraph listing the eight TEST-ONLY routes (deck_tabs, deck_rename, tab_click,
+  tab_dblclick, undo, clip_media, reveal_clip, inspect_clip) with their JSON, the message-thread ordering note (GET
+  /api/composition is not ordered after the callAsync actions), the probe, and probe_deck_tab_dispatch (on-screen, not in
+  ctest, Harmony only).
+- .harmony/APP-INVENTORY.md: DeckView row (:58, deck tabs: click / showing-tab no-op / double-click rename / right-click
+  menu), ClipCell row (:60, right-click "Show in Finder" menu on file clips, Ctrl+click unchanged, video / picture
+  tooltip, sequence tooltip "images per second"), ClipInspector row (:72 of the Inspector table, the button + info rows),
+  and the route list paragraph after s-rta-0930 bt2 (8 routes, the probe, probe_deck_tab_dispatch, ctest 1114 -> 1174).
+- CLAUDE.md: UI bullet "**Deck tab row**: right-click a tab = its menu, never a deck switch; double-click the deck on
+  screen = rename in place (...)" and index line "65. Rename box over a rebuilt row -- before a double-click or in-place
+  editor." Paid by removing the "### Common Build Issues" pointer block (its four topics are rows of
+  docs/claude/build-other-platforms.md's table, which the Trigger Table's build row routes to). Bytes 24,002 -> 24,001
+  (net -1; bar "net growth <= 0" met). Main's CLAUDE.md is 23,976 B after mkvidx; the merged file = 23,975 B by
+  arithmetic (INFERRED, not measured -- the merge is Harmony's).
+## Gate list status (G0-G4; G1b is Harmony's) -- builder sanity runs on lane/ui e5d81c2, NOT the merged-tree gate
+- G0 BUILD + WARNINGS: touch of the 15 listed files + `cmake --build build-lane -j3` 17:37:10 -> 17:38:01 BUILD_EXIT=0
+  (45 TUs). Baseline = the U1 full build of eff2b1c (scratchpad/ui-U1/build-base.log, every TU compiled). Counted as
+  UNIQUE warning lines per file (path:line:col:text, sort -u; raw counts repeat a header's warning per TU), base ->
+  branch: VideoInfo.h 0 -> 0, VideoPlayer.h 0 -> 0, VideoPlayer.cpp 0 -> 0, ClipMediaText.h 0 -> 0, ClipCell.h 0 -> 0,
+  ClipCell.cpp 0 -> 0, DeckTabRow.h 0 -> 0, DeckView.h 0 -> 0, DeckView.cpp 0 -> 0, ClipInspector.h 0 -> 0,
+  ClipInspector.cpp 0 -> 0, MainComponent.h 1 -> 1, MainComponent.cpp 8 -> 7, ApiServer.h 0 -> 0, ApiServer.cpp 2 -> 2.
+  Bar (branch <= base per file) holds on this count. Harmony's G0 (base = the merge base, same method) is the gate.
+- G1 UNIT: direct runs 17:38:01, raw: test_video_info All tests passed (117 assertions in 17 test cases);
+  test_clip_media_text (82 / 8); test_clip_cell_media (42 / 9); test_clip_inspector_media (53 / 8); test_deck_tab_rename
+  (218 / 16); test_deck_tab_row (110 / 5); test_undo_commands (562 / 81); test_clip_inspector_paint_key (44 / 4) -- each
+  "All tests passed". Full ctest -j3 17:38:02 -> 17:38:38, raw: "100% tests passed, 0 tests failed out of 1174".
+  ctest -N DELTA: base eff2b1c 1114 -> branch 1174 (+60) = test_video_info 17, test_deck_tab_rename 16,
+  test_clip_media_text 8, test_clip_cell_media 9, test_clip_inspector_media 8, +1 test_deck_tab_row (4 -> 5 TEST_CASEs,
+  `git show eff2b1c:`), +1 test_clip_inspector_paint_key (3 -> 4); measured per executable from `ctest --show-only=
+  json-v1`. `ctest -N | grep -c probe_deck` = 0. The base-vs-branch pass-list comparison needs a base ctest run: Harmony's.
+  RED quotes for every new TEST_CASE are in the U1 / U3 / U2 sections above and their commit messages.
+- G1b: NOT RUN (Harmony's, adoption 3). probe_deck_tab_dispatch is built (rebuilt in G0's touch build), never run.
+- G2 LINTS 17:38: test_hot_thread_io_lint exit 0 (324 / 2), test_render_thread_lint exit 0 (19 / 2), test_log_line_lint
+  exit 0 (58 / 3), test_shared_field_types exit 0 (1 / 1).
+- G2b GREP: `grep -rn AUDIODNA_DEBUG_SHOW src tests` = 0 lines (17:38:38); strings: lane app 0, hook app 1.
+- G3 LIVE: probe written; RED on main's app "1 PASS / 31 FAIL"; GREEN on the lane app "46 PASS / 0 FAIL" (--shots) and
+  5 / 5 "32 PASS / 0 FAIL" (G3 rows only). Harmony re-runs it on the merged build (standalone, or UIFR_ATTACH=1 with the
+  helper).
+- G4 VISUAL: captures C1-C5, C8-C14 (green-lane-172814/*.png, 3456 x 2158, decoded) + NB1 / NB2 PASS; C6 / C7 hook
+  snapshots (hook-173205/C6-cell-menu.png, C7-cell-tooltip.png, 1728 x 1051, decoded). NB3 = G1's AM9 (g)-(i) + AM7 (c)
+  cases: PASS in the G1 direct runs above. C15 = G1b's P4 (Harmony). The critic panel and the matrix's "observed" column
+  are Harmony's. Notes for the critic brief: (1) inspector "Show in Finder" at (w - 110, 4, 104, 20), the name stops at
+  w - 114 (U2.4 deviation); (2) C5 at 27 decks: the "+" is already clamped under the 27th tab by DeckTabRow::layout and
+  the open box covers both (pre-existing clamp); (3) C7: JUCE's TooltipWindow wraps the 41-character codec line ("30
+  frames per" / "second") -- F1 below; (4) captures show the app in the background: no caret / focus outline in C2 / C3.
+  Capture dirs (scratch): .../scratchpad/ui-U4/green-lane-172814 and .../scratchpad/ui-U4/hook-173205.
+
+## Builds / tests (U4)
+- No src change in U4 (probe + docs only); build-lane relinked by G0's touch rebuild (BUILD_EXIT=0). Hook build:
+  separate source copy + separate build dir (U4.2), 17:22:24 -> 17:24:10 BUILD_EXIT=0. Disk 296 GiB free before it.
+- Live batches (all through the helper, LANE=ui-U4, lock released after each): 17:25:19-17:25:31 RED (pre-fix probe),
+  17:26:16-17:26:34 GREEN (pre-fix, R6 FAIL -> probe fix), 17:29:14-17:29:31 GREEN --shots, 17:30:16-17:31:20 RED final +
+  GREEN x5, 17:32:05-17:32:29 hook C6 / C7. One wait on bf2-S1a's lock (17:28:14-17:29:14), never touched.
+- Wrapper note: run-batch.sh printed "PROBE_EXIT=0" for red-final -- my echo read `$?` after a `$(date)` substitution
+  (wrapper bug, not the probe); the probe's own exit on RED is 1 (run-probe.sh 17:25: "PROBE_EXIT=1"), and red-final's
+  summary line is "1 PASS / 31 FAIL".
+
+## Rig discipline (U4)
+- Every app launch: open -g, --test-mode, started by the helper's start_app (or, for the hook build, my start_env that
+  repeats start_app's refusals and records the pid in the helper's file), quit by quit_app ("app running after quit: no"
+  every time). No foreign Audio-DNA ran at any start. outwins Output-named 0 before / during / after every batch;
+  UserNotificationCenter windows 16 s after each batch's last quit: 0; app-err crash|assert lines 0.
+- Window-only captures by Quartz window id (screencapture -x -o -l); no full-screen capture, no synthetic OS input (the
+  hook's right-button mouseDown and displayTip are in-process calls inside the TEMPORARY build only), no debugger /
+  sampler, no copied or re-signed bundle (the hook app is a normal cmake build, signed by its own build step), no Output
+  window by any path, no TCC prompt seen, tests/visual never run.
+- The worktree was never edited for the hook; .venv symlink never created (main .venv python by absolute path); worked
+  only in the ui worktree + scratchpad; main checkout and lane mkvidx untouched; -j3 respected.
+- Commit hook: every commit printed "[graphify hook] launching background rebuild" (a repo hook, not started by me). The
+  harness stash-guard blocked one combined command (it read `git add -f .harmony/...` as a whole-tree add); re-run as
+  separate commands staging the one file by path.
+- Left on disk for Harmony (scratch, not committed): hook source copy scratchpad/ui-U4/hook-src, hook build
+  scratchpad/ui-U4/hook-build (Audio-DNA.app with the hook), hook.patch, mkhook.py, the capture dirs.
+
+## Notes for .harmony/notebook.md (U4)
+- 2026-10-02 The debug POST routes are callAsync and GET /api/debug/deck_tabs is read ON the message thread, so it is
+  FIFO after them; GET /api/composition is answered on the HTTP thread and races them (a redo read back as not yet
+  applied). Read deck_tabs (or any message-thread GET) first as a barrier | discovered: .harmony/probe-ui-files-rename.sh
+  names(), first GREEN R6.
+- 2026-10-02 A TEMPORARY hook build without touching the worktree: `git archive HEAD | tar -x` into scratch, patch the
+  copy, configure a separate build dir with the same FETCHCONTENT_SOURCE_DIR_* flags; building only `--target AudioDNA`
+  took < 2 min (compiler cache) | discovered: scratchpad/ui-U4/hook-build.sh.
+- 2026-10-02 DeckTabRow tabs reach the 60-px floor only at N >= (row - 24) / 63 decks (27 at a 1720-px row), not 12;
+  at that count the "+" is clamped under the last tab | discovered: probe C5 / NB1.
+- 2026-10-02 A PopupMenu / TooltipWindow parented to the top-level window is a CHILD component, so
+  createComponentSnapshot of the top-level window captures it synchronously even in a background app (where JUCE
+  dismisses the menu within ~50 ms) | discovered: hook C6 / C7.
+
+## found_not_fixed (U4)
+- F1 (should / nit, for the critic panel): the cell tooltip's codec line wraps in JUCE's TooltipWindow ("H.264 High, 64
+  x 64, 30 frames per" / "second"; C7) -- the tooltip's max width cuts the 41-character line; a 1920 x 1080, 29.97 line is
+  longer. Not a bar in G3 / NB3 (those pin the strings and the inspector widths); out of U4's scope (probe + docs).
+- F2 (pre-existing): at the 60-px tab floor the "+" button sits under the last tab (DeckTabRow::layout clamps it to
+  row - 24); with the rename box open on the last tab both are covered.
+
+## PACKET QUALITY (U4)
+- Clarity: HAD_TO_INFER (small). Inferred: (1) "the TEMPORARY C6 / C7 hook ... in a separate build dir" -- built from a
+  scratch SOURCE COPY so the worktree never carried the hook; (2) G4 captures are Harmony's gate, but I added --shots /
+  --hook to the probe and ran them once so the C-files exist and decode (critic panel untouched); (3) C5's deck count is
+  derived from row_width (27), the ruling's "12 decks" does not give 60-px tabs at 1720 px (U3 hand-over); (4) Pitfall
+  number 65 (64 is mkvidx's on main); (5) R8 checks the index +1 for all three ops.
+- Missing context: the pre-change app has no TEST_SERVER debug routes, so the RED is 404-driven for every V / R row
+  (expected: the routes are new).
+- Unused context: plan U1-U3 bodies, Boris questions.
+- Self-brief: the lane report (U1 / U3 / U2), plan-ui.md incl. HARMONY ADOPTION, ruling-ui.md (all read in full); the
+  lock helper; probe-deck-tabs.sh (pattern); notebook plan6 entry (hook pattern); CLAUDE.md loaded by the harness.
+  Knowledge tools: none (grep only).
+INBOX-RECHECK: none
