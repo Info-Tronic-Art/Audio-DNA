@@ -585,3 +585,52 @@ R14 Strongest argument against the whole design: "a mailbox (single writer) is s
   switch on exactly the same frame, even if that makes some layers one frame later? DEFAULT: keep today's timing.
 
 STATUS: DONE
+
+## HARMONY ADOPTION (s-rta-1002, 2026-10-02 08:07:54)
+ADOPTED: the section "## ARCHITECT RULING (s-rta-0930)" of .harmony/.reports/s-rta-0930/ruling-tsan.md IN FULL (amendments 1-18,
+"FINAL GATES (pre-registered; override plan (5))" G1-G6, the risks). Where the ruling differs from this plan body, the RULING wins.
+The ruling ruled the three blind seats' papers (verbatim in attack-tsan-papers.md). These Harmony decisions override both where
+they differ:
+- H1 BASE = main 02b2913, not 655d232. VERIFIED (git diff --stat 655d232 HEAD -- src tests): only gop2's files moved
+  (src/media/VideoPlayer.cpp / .h, src/media/GopCache.h, tests/test_gop_cache*.cpp, three fixtures). Every file:line the plan /
+  ruling cites outside VideoPlayer.cpp is unchanged; re-locate VideoPlayer.cpp lines by content. Baseline ctest = 1055 cases
+  (not 1049), 111 Catch2 targets registered. G1 total = 1055 + the sum of the new per-target counts the Builder records.
+  Every "RED on 655d232" in the ruling means RED on the lane's base / T0 commit.
+- H2 Boris questions (s-rta-0930 page items 3-5, unanswered) -> defaults: plan Q1 (column retrigger restarts its videos?) =
+  keep today's behaviour, no code, filed; plan Q2 (column switch on one frame?) = keep today's per-layer load (Fork 6);
+  ruling Q3 (momentary + Quantize released before the beat) = CANCEL: amendment 10 is ADOPTED (releaseMomentary, its three
+  tests, its mutant, the performance-controls.md line, Boris live-check line "a momentary pad released before its beat does
+  not latch on").
+- H3 T7 WIDENED: gop2 has merged, so the reason to exclude VideoPlayer.cpp is gone. Convert EVERY std::cerr statement in
+  src/media/VideoPlayer.cpp (14 on 02b2913, decode / MediaOpen / message threads alike) and put the whole file in the D6 lint
+  list. R8 residual = src/audio/AudioEngine.cpp + src/audio/DeviceGuard.cpp ONLY (lane bt2 owns them now; never touch them
+  here; a post-merge sweep converts them). G3.2's PRE-EXISTING-R8 class shrinks to those two files.
+- H4 The new pitfall is "Pitfall 63" (write the number; do not write NN). CLAUDE.md is 23,996 B on the base; bar <= 24,999 B
+  after the edit (the 25,000-B cap), paid for as plan (6) says.
+- H5 FENCES vs lane bt2 (built concurrently on branch lane/bt2; merge order not fixed). This lane NEVER edits: src/audio/*,
+  tests/test_device_policy.cpp, tests/test_audio_engine_devices.cpp, .harmony/probe-btguard.sh, Pitfall 61, the btguard rows
+  of docs/claude/testing-eyes.md. src/MainComponent.cpp lines owned by bt2 on 02b2913: 484-494 (onDeviceStateChanged /
+  notice wiring), 2144-2160 (the debug wiring inside #if AUDIODNA_TEST_SERVER), 3070-3095 (refreshAudioDeviceNotice),
+  5690-5705 (perfRecord comment) -- no hunk of this lane may touch them (a compile-forced edit there is a named deviation in
+  the report). src/api/ApiServer.{h,cpp}: bt2 owns the debug route list (~323), the handlers after ~2086, ApiServer.h ~204-208
+  / ~272; this lane's hunks are :93-96 (cerr), 360 / 384 / 418-421, /api/state 1370-1544 (amendment 17).
+  tests/CMakeLists.txt: bt2 appends after the test_device_policy block (~:518); this lane appends its targets at the END of
+  the file only.
+- H6 LANE SPLIT (bounds each builder's context): three sequential builders on ONE branch lane/tsan in worktree
+  .claude/worktrees/tsan. B1 = T0 + T1 + T2. B2 = T3 + T4 + T5. B3 = T6 + T7 + T8 + docs (plan (6) + amendment 14) + the
+  amendment-16 mutant evidence + the lane smoke (H8). Each builder continues from the previous head (no reset), reads the lane
+  report so far, appends its own section, and commits per item.
+- H7 TSan builds in the lane: build dir <worktree>/build-tsan, configured with the prebuild recipe (RelWithDebInfo,
+  -DADNA_SANITIZE=thread, TEST_SERVER ON, SYPHON ON, FETCHCONTENT_FULLY_DISCONNECTED=ON, FETCHCONTENT_SOURCE_DIR_<DEP> ->
+  main's build/_deps/<dep>-src incl. MELATONIN_INSPECTOR; template .harmony/.reports/s-rta-1002/evidence-0930/prebuild/
+  configure.sh, but -S <worktree>). B1 runs amendment 2's T0 RED bar on the T0 commit (both builds) and pastes it verbatim;
+  each later item runs its GREEN.
+- H8 LANE SMOKE (B3, under the live lock): ONE lane-d launch of the lane's TSan app with the in-repo probe-tsan tooling ->
+  launch validity + the final /api/state render_pending_fired >= 1 AND render_autopilot_advances >= 1 (G3.4), pasted; plus the
+  analyzer over the fresh-RED archive .harmony/.reports/s-rta-1002/evidence-0930/sweep-red1-archive/runs: it must key the 25
+  uniques into families A-E (table pasted). G1-G6 themselves are Harmony's, after the merge.
+- H9 Evidence the plan / ruling cite under the old scratchpad (44b528dd: a128, logline, tsanflags, prebuild,
+  sweep-red1-archive) is mirrored, text only, at .harmony/.reports/s-rta-1002/evidence-0930/ -- use the mirror if the old
+  path is gone.
+- H10 Filed, not built here: follow-up lane "tsan-r5" (R5 config scalars incl. the perf/play preamble writes, R7 the unfenced
+  httplib reader), starting from scenario e's reports.

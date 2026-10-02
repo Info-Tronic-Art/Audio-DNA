@@ -1,0 +1,22 @@
+12:02:56 scenario a: idle
+12:03:02 health 200 {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 119.997589111328125,
+  "effects_count": 135
+}
+12:03:07 health 200 {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 120.26739501953125,
+  "effects_count": 135
+}
+12:03:11 health 200 {
+  "ok": true,
+  "status": "ready",
+  "version": "0.1.0",
+  "fps": 119.995635986328125,
+  "effects_count": 135
+}

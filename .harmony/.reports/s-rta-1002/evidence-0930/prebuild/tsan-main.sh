@@ -1,0 +1,5 @@
+#!/bin/bash
+R=/Users/boriskarpman/projects/RealTimeAudio
+echo "main-build START $(date '+%F %T')"; cmake --build $R/build --target AudioDNA -j6 2>&1 | tail -3; echo "main-build END rc=${PIPESTATUS[0]} $(date '+%F %T') head=$(git -C $R rev-parse --short HEAD)"
+bash /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/prebuild/configure.sh /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/build-tsan-main thread > /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/prebuild/cfg-tsan-main.log 2>&1; echo "configure rc=$? $(date '+%F %T')"
+echo "tsan-build START $(date '+%F %T')"; cmake --build /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/build-tsan-main --target AudioDNA -j6 > /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/prebuild/build-tsan-main.log 2>&1; echo "tsan-build END rc=$? $(date '+%F %T')"

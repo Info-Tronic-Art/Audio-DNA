@@ -1,0 +1,208 @@
+{
+ "name": "sweepmix",
+ "activeDeckIndex": 0,
+ "masterOpacity": 1.0,
+ "globalTransitionSpeed": 0.0,
+ "outputWidth": 1920,
+ "outputHeight": 1080,
+ "decks": [
+  {
+   "name": "A",
+   "id": 0,
+   "numColumns": 4,
+   "layers": [
+    {
+     "name": "L9200",
+     "id": 9200,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v400",
+       "id": 400,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_00.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v401",
+       "id": 401,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_01.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v402",
+       "id": 402,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_02.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v403",
+       "id": 403,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_03.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L9201",
+     "id": 9201,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "c410",
+       "id": 410,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_0.png",
+       "effects": []
+      },
+      {
+       "name": "c411",
+       "id": 411,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_1.png",
+       "effects": []
+      },
+      {
+       "name": "c412",
+       "id": 412,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_2.png",
+       "effects": []
+      },
+      {
+       "name": "c413",
+       "id": 413,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_3.png",
+       "effects": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "B",
+   "id": 1,
+   "numColumns": 4,
+   "layers": [
+    {
+     "name": "L9210",
+     "id": 9210,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "c420",
+       "id": 420,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_1.png",
+       "effects": []
+      },
+      {
+       "name": "c421",
+       "id": 421,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_2.png",
+       "effects": []
+      },
+      {
+       "name": "c422",
+       "id": 422,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_3.png",
+       "effects": []
+      },
+      {
+       "name": "c423",
+       "id": 423,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_0.png",
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L9211",
+     "id": 9211,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v430",
+       "id": 430,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_04.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v431",
+       "id": 431,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_05.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v432",
+       "id": 432,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_06.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v433",
+       "id": 433,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_07.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

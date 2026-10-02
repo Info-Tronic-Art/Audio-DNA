@@ -1,0 +1,324 @@
+{
+ "name": "sweepbig",
+ "activeDeckIndex": 0,
+ "masterOpacity": 1.0,
+ "globalTransitionSpeed": 0.0,
+ "outputWidth": 1920,
+ "outputHeight": 1080,
+ "decks": [
+  {
+   "name": "A",
+   "id": 0,
+   "numColumns": 4,
+   "layers": [
+    {
+     "name": "L9100",
+     "id": 9100,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v101",
+       "id": 101,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_00.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v102",
+       "id": 102,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_01.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v103",
+       "id": 103,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_02.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v104",
+       "id": 104,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_03.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L9101",
+     "id": 9101,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v105",
+       "id": 105,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_04.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v106",
+       "id": 106,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_05.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v107",
+       "id": 107,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_06.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v108",
+       "id": 108,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_07.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L9102",
+     "id": 9102,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v109",
+       "id": 109,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_08.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v110",
+       "id": 110,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_09.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v111",
+       "id": 111,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_10.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v112",
+       "id": 112,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_11.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L9103",
+     "id": 9103,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v113",
+       "id": 113,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_12.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v114",
+       "id": 114,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_13.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v115",
+       "id": 115,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_14.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v116",
+       "id": 116,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v1080_15.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "B",
+   "id": 1,
+   "numColumns": 4,
+   "layers": [
+    {
+     "name": "L9110",
+     "id": 9110,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "v300",
+       "id": 300,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v4k_0.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v301",
+       "id": 301,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v4k_1.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v302",
+       "id": 302,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v4k_2.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      },
+      {
+       "name": "v303",
+       "id": 303,
+       "mediaType": 2,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/v4k_3.mp4",
+       "transportMode": 0,
+       "loopMode": 0,
+       "speed": 1.0,
+       "effects": []
+      }
+     ]
+    },
+    {
+     "name": "L9111",
+     "id": 9111,
+     "opacity": 1.0,
+     "visible": true,
+     "blendMode": 0,
+     "type": 0,
+     "transitionSpeed": 0.0,
+     "layerEffects": [],
+     "clips": [
+      {
+       "name": "c310",
+       "id": 310,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_0.png",
+       "effects": []
+      },
+      {
+       "name": "c311",
+       "id": 311,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_1.png",
+       "effects": []
+      },
+      {
+       "name": "c312",
+       "id": 312,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_2.png",
+       "effects": []
+      },
+      {
+       "name": "c313",
+       "id": 313,
+       "mediaType": 1,
+       "mediaFile": "/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/44b528dd-1232-4d5c-a683-0145bc3a700e/scratchpad/sweep/media/img_3.png",
+       "effects": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

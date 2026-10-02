@@ -1,0 +1,47 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=24881)
+  Read of size 8 at 0x0001ef720380 by thread T29:
+    #0 std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>> std::__1::__pad_and_output[abi:ne200100]<char, std::__1::char_traits<char>>(std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>>, char const*, char const*, char const*, std::__1::ios_base&, char) pad_and_output.h:54 (Audio-DNA:arm64+0x100075434)
+    #1 std::__1::basic_ostream<char, std::__1::char_traits<char>>& std::__1::__put_character_sequence[abi:ne200100]<char, std::__1::char_traits<char>>(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, char const*, unsigned long) put_character_sequence.h:37 (Audio-DNA:arm64+0x100075318)
+    #2 void* std::__1::__thread_proxy[abi:ne200100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, ApiServer::start()::$_0>>(void*) thread.h:214 (Audio-DNA:arm64+0x1003987d4)
+
+  Previous write of size 8 at 0x0001ef720380 by thread T28:
+    #0 std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>> std::__1::__pad_and_output[abi:ne200100]<char, std::__1::char_traits<char>>(std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>>, char const*, char const*, char const*, std::__1::ios_base&, char) pad_and_output.h:80 (Audio-DNA:arm64+0x100075594)
+    #1 std::__1::basic_ostream<char, std::__1::char_traits<char>>& std::__1::__put_character_sequence[abi:ne200100]<char, std::__1::char_traits<char>>(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, char const*, unsigned long) put_character_sequence.h:37 (Audio-DNA:arm64+0x100075318)
+    #2 AnalysisThread::run() AnalysisThread.cpp:84 (Audio-DNA:arm64+0x1000dbce4)
+    #3 juce::Thread::threadEntryPoint() juce_Thread.cpp:110 (Audio-DNA:arm64+0x1004a3a10)
+    #4 juce::Thread::createNativeThread(juce::Thread::Priority)::$_0::__invoke(void*) juce_Threads_mac.mm:143 (Audio-DNA:arm64+0x10051b614)
+
+  Location is global 'std::__1::cerr' at 0x0001ef720360 (libc++.1.dylib+0x6e0ba380)
+
+  Thread T29 (tid=84599051, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x2f708)
+    #1 ApiServer::start() ApiServer.cpp:93 (Audio-DNA:arm64+0x100324d20)
+    #2 MainComponent::MainComponent(bool, int) MainComponent.cpp:2195 (Audio-DNA:arm64+0x1000159cc)
+    #3 MainComponent::MainComponent(bool, int) MainComponent.cpp:212 (Audio-DNA:arm64+0x10001966c)
+    #4 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:48 (Audio-DNA:arm64+0x10000daa0)
+    #5 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000d6c0)
+    #6 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100553978)
+    #7 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x1006db290)
+    #8 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100553604)
+    #9 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x1005534f4)
+    #10 main Main.cpp:99 (Audio-DNA:arm64+0x10000d334)
+
+  Thread T28 (tid=84599050, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x2f708)
+    #1 juce::Thread::createNativeThread(juce::Thread::Priority) juce_Threads_mac.mm:143 (Audio-DNA:arm64+0x1004a4028)
+    #2 juce::Thread::startThread(juce::Thread::Priority) juce_Thread.cpp:169 (Audio-DNA:arm64+0x1004a42d8)
+    #3 MainComponent::MainComponent(bool, int) MainComponent.cpp:1858 (Audio-DNA:arm64+0x1000136a0)
+    #4 MainComponent::MainComponent(bool, int) MainComponent.cpp:212 (Audio-DNA:arm64+0x10001966c)
+    #5 AudioDNAApplication::MainWindow::MainWindow(juce::String const&, bool, int) Main.cpp:48 (Audio-DNA:arm64+0x10000daa0)
+    #6 AudioDNAApplication::initialise(juce::String const&) Main.cpp:26 (Audio-DNA:arm64+0x10000d6c0)
+    #7 juce::JUCEApplicationBase::initialiseApp() juce_ApplicationBase.cpp:312 (Audio-DNA:arm64+0x100553978)
+    #8 juce::JUCEApplication::initialiseApp() juce_Application.cpp:97 (Audio-DNA:arm64+0x1006db290)
+    #9 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:271 (Audio-DNA:arm64+0x100553604)
+    #10 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x1005534f4)
+    #11 main Main.cpp:99 (Audio-DNA:arm64+0x10000d334)
+
+SUMMARY: ThreadSanitizer: data race pad_and_output.h:54 in std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>> std::__1::__pad_and_output[abi:ne200100]<char, std::__1::char_traits<char>>(std::__1::ostreambuf_iterator<char, std::__1::char_traits<char>>, char const*, char const*, char const*, std::__1::ios_base&, char)
+==================
+ThreadSanitizer: reported 1 warnings
+ThreadSanitizer: reported 1 warnings

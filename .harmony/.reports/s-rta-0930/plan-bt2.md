@@ -533,3 +533,38 @@ label write I5 (default yes); H4 the 10 s-bound and coalescing live rows A11a / 
   tests (+1 target), probe-btguard, docs; CLAUDE.md untouched.
 
 STATUS: COMPLETE -- plan ready for the builder; 2 Boris questions and 4 Harmony decisions defaulted; no source edited; scratch evidence in SBX.
+
+## HARMONY ADOPTION (s-rta-1002, 2026-10-02 08:08:12)
+ADOPTED, in this precedence (later wins): this plan body < ruling-bt2.md "ARCHITECT RULING (s-rta-0930)" AM1-AM11 <
+ruling-bt2-seats.md "ARCHITECT RULING ADDENDUM -- SEATS (s-rta-0930)" AM12-AM22 and its "FINAL GATE LIST" (which replaces the
+earlier ruling's list and plan section 5). The addendum ruled both seats' papers (attack-bt2-coreaudio.md,
+attack-bt2-gates.md). These Harmony decisions override all three where they differ:
+- H1 BASE = main 02b2913, not 655d232. VERIFIED (git diff --stat 655d232 HEAD -- src tests): only gop2's video files moved;
+  src/audio/*, src/api/*, src/MainComponent.cpp and tests/test_device_policy.cpp are byte-identical, so every file:line the
+  plan / rulings cite holds. Every "RED on 655d232" = RED on the lane's base: AM5's clean worktree is
+  git worktree add <scratch>/wt-base <base sha>. GATE-2's count becomes 1055 + TDP 19 + test_audio_engine_devices 3 =
+  1077 cases, 112 targets (111 registered on the base).
+- H2 Boris questions (s-rta-0930 page items 6-7, unanswered) -> defaults: Q1 (AM9) = (a) Keep: never switch away from a
+  working mic (Keep stays the build default); Q2 (AM21) = keep the "Mic ... lost - now listening on ..." note (AM17 ships).
+- H3 Harmony decisions: H1 (ship I4: InputLost, the stopped-device row, the named swap) YES; H2 (restore-on-failure) YES;
+  H3 (label write I5) YES; H4 (the 10-s bound + coalescing live rows A11a / A12 / C8a) YES; H5 resolved by the addendum;
+  H6 (TEST-ONLY POST /api/debug/audio_stop + A13a / A13) YES -> GATE-5 K1 = 27 / 12 / 2, GATE-6 GREEN = 39 / 0 / 2.
+- H4 FENCES vs lane tsan (built concurrently on branch lane/tsan; merge order not fixed). This lane NEVER edits:
+  src/model/*, src/render/*, src/core/{TriggerCommands,DeckCommands,UndoService}.*, src/connect/*, src/media/*,
+  src/recording/*, any Layer tuple / Clip runtime / manual-scalar / activeDeckIndex site, any std::cerr outside src/audio/.
+  src/MainComponent.cpp ONLY at plan section 10's regions (~490, the #if AUDIODNA_TEST_SERVER block ~2144-2160 incl. AM14's
+  wiring, 5697-5699) plus AM17's refreshAudioDeviceNotice switch (3075-3090). src/api/ApiServer.{h,cpp}: ONLY the TEST-ONLY
+  hunks (route list ~323, handlers after ~2086, ApiServer.h ~204-208 / ~272) -- lane tsan owns ApiServer.cpp :93-96, 360,
+  384, 418-421 and /api/state 1370-1544. tests/CMakeLists.txt: append the new target directly after the test_device_policy
+  block (~:518), never at the end of the file (lane tsan appends there). New stderr lines in AudioEngine / DeviceGuard stay
+  std::cerr (message thread; tsan's logLine sweep covers src/audio after both merge).
+- H5 Docs: CLAUDE.md byte count unchanged from the base (23,996 B; GATE-11's "still 23,999 B" reads "unchanged") unless the
+  Pitfall 61 index line must change, and always <= 24,999 B. Pitfall 61 is edited in place; no new pitfall number.
+- H6 Live: the builder runs GATE-5 (the K1 build's live RED of record, and the SHOULD K2 run) under the live lock with
+  AM8's tripwire per run; GATE-6 / GATE-8 / GATE-9 / GATE-10 are Harmony's after the merge.
+- H7 Evidence the plan / rulings cite under SP (old scratchpad 44b528dd: bt2/, ruling/, ruling2/) is mirrored, sources
+  only, at .harmony/.reports/s-rta-1002/evidence-0930/{bt2,ruling,ruling2}/ -- use the mirror if the old path is gone
+  (AM22's "copy verbatim" applies to the mirror's files).
+- H8 AM7's precondition, B1-B3 (with AM9 (d) and AM21 (b) / (c) / (e)) go on the s-rta-1002 Boris page; the ledger gains
+  "bt2 adds mid-show opens of a wired interface (8.0.4 E1 check before B2)" and, after Q1, AM21's optional "new mic plugged
+  but not used" hint.

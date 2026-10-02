@@ -1,0 +1,1 @@
+12:02:52 audio: defaults=3 non-builtin-transport=0 bt[          State: Off]  Default Input Device: Yes; Transport: Built-in; Default Output Device: Yes; Default System Output Device: Yes; Transport: Built-in;
