@@ -224,6 +224,16 @@ public:
     std::function<void(int deckIndex)> onDebugTabClick;
     std::function<void(int deckIndex)> onDebugTabDoubleClick;
     std::function<void(bool redo)> onDebugUndo;
+    // s-rta-1002b ui U2.6 (TEST-ONLY routes, same build path; plan-ui.md U2.6 + ruling-ui.md AM10) -- a clip's file info
+    // and Show in Finder. GET /api/debug/clip_media?layer=L&column=C answers onDebugClipMedia(L, C) read ON the message
+    // thread (<= 2 s wait), for the ACTIVE deck: {ok, layer, column, cell, media_type, line, lines, tooltip (the cell's
+    // own), path_tip, reveal_target, file_backed, missing, video:{codec, width, height, fps}|null, menu:[...],
+    // inspector_shows, inspector_line, inspector_lines, inspector_button_visible, last_revealed, reveal_count}. POST
+    // /api/debug/reveal_clip {layer, column} (through the cell's menu completion, DeckView::revealCellForTests) and POST
+    // /api/debug/inspect_clip {layer, column} (the cell's name-bar click) are marshalled and answer at once.
+    std::function<juce::var(int layer, int column)> onDebugClipMedia;
+    std::function<void(int layer, int column)> onDebugRevealClip;
+    std::function<void(int layer, int column)> onDebugInspectClip;
 #endif
 
     ApiServer(const ApiServer&) = delete;
@@ -297,6 +307,10 @@ private:
     void handleDebugTabClick(const httplib::Request& req, httplib::Response& res);
     void handleDebugTabDoubleClick(const httplib::Request& req, httplib::Response& res);
     void handleDebugUndo(const httplib::Request& req, httplib::Response& res);
+    // s-rta-1002b ui U2.6 (TEST-ONLY): see onDebugClipMedia / onDebugRevealClip / onDebugInspectClip.
+    void handleDebugClipMedia(const httplib::Request& req, httplib::Response& res);
+    void handleDebugRevealClip(const httplib::Request& req, httplib::Response& res);
+    void handleDebugInspectClip(const httplib::Request& req, httplib::Response& res);
     std::function<juce::var()> audioDevicesProvider_;   // set before start(); see setAudioDevicesProvider
 #endif
 

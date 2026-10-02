@@ -2238,6 +2238,68 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugUndo = [this](bool redo) {
         handleMenuCommand(redo ? AudioDNAMenuBar::kCompRedo : AudioDNAMenuBar::kCompUndo);
     };
+    // s-rta-1002b ui U2.6 (TEST-ONLY routes; plan-ui.md U2.6 + ruling-ui.md AM10): a clip's file info as the cell, its
+    // menu and the Clip inspector show it, plus the reveal record (test mode never calls Finder). Message thread.
+    apiServer_->onDebugClipMedia = [this](int layer, int column) -> juce::var {
+        static constexpr const char* kMediaTypes[] = { "none", "image", "video", "camera", "source", "image_sequence" };
+        auto* o = new juce::DynamicObject();
+        o->setProperty("layer", layer);
+        o->setProperty("column", column);
+        auto* deck = composition_.getActiveDeck();
+        Clip* clip = deck != nullptr ? deck->getClip(layer, column) : nullptr;
+        const auto typeIndex = clip != nullptr ? static_cast<size_t>(clip->mediaType) : size_t(0);
+        o->setProperty("media_type", typeIndex < std::size(kMediaTypes) ? kMediaTypes[typeIndex] : "unknown");
+        const auto video = clip != nullptr ? videoInfoFor(*clip) : std::optional<VideoInfo>();
+        const auto d = clip != nullptr ? clipmedia::describe(*clip, video) : Described {};
+        o->setProperty("line", d.line);
+        juce::Array<juce::var> lines;
+        for (const auto& line : d.lines)
+            lines.add(line);
+        o->setProperty("lines", lines);
+        auto* cell = deckView_ ? deckView_->cellForTests(layer, column) : nullptr;
+        o->setProperty("cell", cell != nullptr);
+        o->setProperty("tooltip", cell != nullptr ? cell->getTooltip() : juce::String());
+        o->setProperty("path_tip", d.pathTip);
+        o->setProperty("reveal_target", d.revealTarget.getFullPathName());
+        o->setProperty("file_backed", d.fileBacked);
+        o->setProperty("missing", d.missing);
+        if (video.has_value())
+        {
+            auto* v = new juce::DynamicObject();
+            v->setProperty("codec", juce::String(video->codec));
+            v->setProperty("width", video->width);
+            v->setProperty("height", video->height);
+            v->setProperty("fps", video->fps);
+            o->setProperty("video", juce::var(v));
+        }
+        else
+            o->setProperty("video", juce::var());
+        juce::Array<juce::var> menu;
+        for (const auto& item : clipmedia::menuItems(clip))
+            menu.add(item);
+        o->setProperty("menu", menu);
+        auto& inspector = inspectorPanel_->getClipInspector();
+        o->setProperty("inspector_shows", clip != nullptr && inspector.getClip() == clip
+                                              && inspectorPanel_->getActiveTab() == InspectorPanel::Tab::Clip);
+        const auto shown = inspector.mediaInfoLinesShown();
+        juce::Array<juce::var> inspectorLines;
+        for (const auto& line : shown)
+            inspectorLines.add(line);
+        o->setProperty("inspector_lines", inspectorLines);
+        o->setProperty("inspector_line", shown.joinIntoString(", "));
+        o->setProperty("inspector_button_visible", inspector.revealButtonForTests().isVisible());
+        o->setProperty("last_revealed", lastRevealPath_);
+        o->setProperty("reveal_count", revealCount_);
+        return juce::var(o);
+    };
+    apiServer_->onDebugRevealClip = [this](int layer, int column) {
+        if (deckView_) deckView_->revealCellForTests(layer, column);
+    };
+    apiServer_->onDebugInspectClip = [this](int layer, int column) {   // the cell's name-bar click (select + inspect)
+        if (auto* cell = deckView_ ? deckView_->cellForTests(layer, column) : nullptr)
+            if (auto onSelect = cell->onSelect)
+                onSelect(layer, column, false);
+    };
 #endif
     apiServer_->start();
 
