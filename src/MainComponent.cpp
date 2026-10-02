@@ -13,6 +13,7 @@
 #include "model/AppSettings.h"
 #include "ui/UiPaintCounters.h"
 #include <algorithm>
+#include <cstdlib>
 
 static uint32_t s_nextClipId = 1000;
 
@@ -2325,6 +2326,21 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 #endif
     setSize(1280, 800);
+#if AUDIODNA_TEST_SERVER
+    // TEST-ONLY (test-server builds): visual gates of the Layer tab -- ADNA_INSPECT_LAYER=<n> selects layer n of the
+    // shown deck and opens the Layer tab once startup is done. Inert unless the variable is set.
+    if (const char* e = std::getenv("ADNA_INSPECT_LAYER"))
+    {
+        const int layerIdx = std::atoi(e);
+        juce::MessageManager::callAsync([safe = juce::Component::SafePointer<MainComponent>(this), layerIdx] {
+            if (safe == nullptr || safe->deckView_ == nullptr || safe->inspectorPanel_ == nullptr)
+                return;
+            if (safe->deckView_->onLayerSelected)
+                safe->deckView_->onLayerSelected(layerIdx);
+            safe->inspectorPanel_->setActiveTab(InspectorPanel::Tab::Layer);
+        });
+    }
+#endif
 }
 
 void MainComponent::setTooltipsEnabled(bool enabled)
