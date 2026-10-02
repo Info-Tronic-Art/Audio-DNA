@@ -59,7 +59,7 @@ quotes — the rest of an entry is Harmony's consequence text); an ESTABLISHED l
 diagnosing a crash signature, grep .harmony/ for it and `log show` for bluetoothd connects around it. Keep a COPY of the
 pre-merge app for BEFORE arms. MERGE SEQUENCE: commit notes -> RED on the PRE-MERGE copy -> merge (source conflicts ->
 builder rebase lane; doc-only conflicts Harmony may resolve) -> cmake + build -> ctest -> GREEN. Pitfall numbers: lanes
-write "NN"; Harmony assigns the next free number (next = 63). Battery / workflow scripts: .harmony/.reports/s-rta-0930/wf/
+write "NN"; Harmony assigns the next free number (next = 64). Battery / workflow scripts: .harmony/.reports/s-rta-0930/wf/
 (gop2-gate.sh = merge + G1-G7 + identity template; build-lane.js = one lane: builder -> pinned reviews -> <= 1 fix round;
 plans2.js = plan -> blind seats -> ruling with the papers INLINE; tsan-main.sh + configure.sh = TSan build of main; adapt
 paths) + .harmony/.reports/s-rta-0929b/wf/ (gop-final.sh = full battery + Tier-1, ab-rerun.sh). Main-loop habits: never cd; stamp EVERY log row from date; syntax-check workflow scripts (wf/check.sh); teeth by the
