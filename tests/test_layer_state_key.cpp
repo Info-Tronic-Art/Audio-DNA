@@ -5,14 +5,14 @@
 // feedback processor): render/LayerStateKey.h. It is pure (no GL), so this is
 // not a mirror of compositor logic.
 //
-// The bug it pins: layer ids are per deck (Deck::initDefault numbers each
-// deck's layers 0, 1, 2 ...), and the state used to be keyed by layer id alone,
-// so a persistent layer of another deck shared state with the active deck's
-// layer of the same id.
+// The bug it pins: layer ids repeat across decks (Deck::initDefault numbers each
+// deck's layers 0, 1, 2 ...), so keying the state by layer id alone would hand
+// deck A's layer-0 history to deck B's layer 0 after a deck switch -- history
+// must not cross a deck switch.
 //
 // What it does NOT cover: that every compositor call site passes the right key
-// (GL call sites) -- covered live by .harmony/probe-render-state.sh rows
-// R2-temporal and R2-ring (pixel-decoded frames).
+// (GL call sites). The live per-deck call-site rows r2_* were retired with
+// Persistent (bf9 Stage P); successor: bf9b gate K1t.
 
 #include <catch2/catch_test_macros.hpp>
 #include "model/Deck.h"
@@ -68,8 +68,8 @@ TEST_CASE("LayerStateKey: every (deck, layer, chain) is unique and never the Glo
 
 TEST_CASE("LayerStateKey: a deck's own keys are stable (same inputs, same key)", "[layer_state_key]")
 {
-    // A persistent layer is composited by compositeDeck while its deck is active
-    // and by compositePersistentLayers otherwise; both must reach the SAME state.
+    // A layer reaches its state through the key every frame its deck is shown;
+    // the same inputs must reach the SAME state.
     REQUIRE(LayerStateKey::clipChain(3u, 2u) == LayerStateKey::clipChain(3u, 2u));
     REQUIRE(LayerStateKey::layerChain(3u, 2u) == LayerStateKey::layerChain(3u, 2u));
     REQUIRE(LayerStateKey::outgoingChain(3u, 2u) == LayerStateKey::outgoingChain(3u, 2u));

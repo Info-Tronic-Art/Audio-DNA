@@ -624,6 +624,34 @@ TEST_CASE("Backward compatibility: old-format presets load with struct defaults"
     }
 }
 
+// bf9 Stage P (s-rta-1002b; ruling-bf9 amendment 5): the Persistent layer feature is removed. A show saved with
+// "persistent": true loads cleanly with the key ignored, saving never writes it back, and every other Layer field
+// (Ignore Column Trigger, the one "keep this layer" control left, among them) round-trips unchanged.
+TEST_CASE("Layer: a file's persistent key is ignored and never written back; every other field round-trips "
+          "(bf9 Stage P)", "[composition][serialization][backcompat]")
+{
+    Layer layer;
+    layer.ignoreColumnTrigger = true;
+    layer.opacity = 0.4f;
+    layer.blendMode = Layer::MixMode::Screen;
+    REQUIRE(static_cast<int>(layer.blendMode) != 0);
+    layer.transitionSpeed = 2.5f;
+
+    juce::var v0 = layer.toVar();
+    v0.getDynamicObject()->removeProperty("persistent");   // a no-op once the field is gone
+    juce::var v1 = juce::JSON::parse(juce::JSON::toString(v0));
+    REQUIRE(v1.getDynamicObject() != nullptr);
+    v1.getDynamicObject()->setProperty("persistent", true);   // an older file's flag
+
+    Layer fresh;
+    fresh.fromVar(v1);
+    const juce::var out = fresh.toVar();
+
+    CHECK(fresh.ignoreColumnTrigger);
+    CHECK_FALSE(out.getDynamicObject()->hasProperty("persistent"));
+    CHECK(juce::JSON::toString(out) == juce::JSON::toString(v0));
+}
+
 // ============================================================
 // L3 — Composition Persistence, Step 1: id-mint bumps, appendDeck,
 // compload:: validate/remint/idsRetired helpers.

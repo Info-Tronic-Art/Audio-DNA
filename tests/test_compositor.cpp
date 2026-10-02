@@ -419,19 +419,3 @@ TEST_CASE("Layer keying and blend properties", "[layer]")
         REQUIRE_THAT(loaded.chromaKeyTolerance, WithinAbs(0.3f, 0.001f));
     }
 }
-
-// s-rta-0926b R4-types: the ONE rule for which layer types can be persistent.
-// Drives the REAL Layer::canBePersistent -- CompositorEngine::
-// compositePersistentLayers skips every other type with it and LayerInspector
-// disables its Persistent toggle with it (the GL path is covered live by
-// .harmony/probe-render-state.sh rows r4_fxonly_*, r4_mask_skipped).
-TEST_CASE("Layer::canBePersistent: Opaque, Transparent and FX Only; never Mask or 3D (s-rta-0926b)",
-          "[layer][persistent]")
-{
-    REQUIRE(Layer::canBePersistent(Layer::Type::Opaque));
-    REQUIRE(Layer::canBePersistent(Layer::Type::Transparent));
-    REQUIRE(Layer::canBePersistent(Layer::Type::FXOnly));
-    REQUIRE_FALSE(Layer::canBePersistent(Layer::Type::Mask));
-    REQUIRE_FALSE(Layer::canBePersistent(Layer::Type::ThreeD));
-    static_assert(Layer::canBePersistent(Layer::Type::Opaque), "constexpr: usable at compile time");
-}

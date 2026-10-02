@@ -185,7 +185,7 @@ static bool operator==(const Layer& a, const Layer& b)
         // Controls
         && a.opacity == b.opacity && a.visible == b.visible && a.bypassed == b.bypassed
         && a.solo == b.solo && a.muted == b.muted && a.autopilotEnabled == b.autopilotEnabled
-        && a.ignoreColumnTrigger == b.ignoreColumnTrigger && a.persistent == b.persistent
+        && a.ignoreColumnTrigger == b.ignoreColumnTrigger
         && a.folded == b.folded
         // Blend / keying
         && a.blendMode == b.blendMode

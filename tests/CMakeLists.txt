@@ -121,9 +121,10 @@ catch_discover_tests(test_scratch_pool)
 
 # --- test_layer_state_key (s-rta-0926b render R2: a layer's temporal buffer /
 # frame ring / feedback state is keyed by deck AND layer id -- layer ids repeat
-# across decks). Tests the REAL key function (render/LayerStateKey.h, pure, no
-# GL) against decks built by the real Deck::initDefault; the GL call sites are
-# covered live by .harmony/probe-render-state.sh.
+# across decks, so history must not cross a deck switch). Tests the REAL key
+# function (render/LayerStateKey.h, pure, no GL) against decks built by the real
+# Deck::initDefault. The live per-deck call-site rows r2_* were retired with
+# Persistent (bf9 Stage P); successor: bf9b gate K1t.
 add_executable(test_layer_state_key
     test_layer_state_key.cpp
     ${SRC_DIR}/model/Clip.cpp
@@ -2196,13 +2197,13 @@ endif()
 apply_sanitizers(test_effect_stack_binding)
 catch_discover_tests(test_effect_stack_binding)
 
-# --- test_layer_inspector_persistent_toggle (s-rta-0926b uitoggle): the Persistent toggle's
-# enable rule widens to canBePersistent(type) || layer->persistent, so a stale flag on a
-# non-persistable type can be cleared but not re-set. Same headless-widgets harness and link
-# closure as test_effect_stack_binding above, plus LayerInspector.cpp/MacroPanel.cpp/Knob.cpp
-# for the inspector under test.
-add_executable(test_layer_inspector_persistent_toggle
-    test_layer_inspector_persistent_toggle.cpp
+# --- test_layer_inspector_layer_row (bf9 Stage P, s-rta-1002b; ruling-bf9 amendment 11): the Layer tab's Layer
+# section with Persistent removed -- no Persistent toggle, Ignore Column Trigger unchanged for every layer type and
+# laid out on the full row under Master. Replaces test_layer_inspector_persistent_toggle (s-rta-0926b uitoggle). Same
+# headless-widgets harness and link closure as test_effect_stack_binding above, plus LayerInspector.cpp/MacroPanel.cpp/
+# Knob.cpp for the inspector under test.
+add_executable(test_layer_inspector_layer_row
+    test_layer_inspector_layer_row.cpp
     ${SRC_DIR}/ui/LayerInspector.cpp
     ${SRC_DIR}/ui/MacroPanel.cpp
     ${SRC_DIR}/ui/Knob.cpp
@@ -2224,27 +2225,27 @@ add_executable(test_layer_inspector_persistent_toggle
     ${SRC_DIR}/model/Layer.cpp
     ${SRC_DIR}/connect/ConnSerialization.cpp
 )
-target_include_directories(test_layer_inspector_persistent_toggle PRIVATE ${SRC_DIR})
-target_link_libraries(test_layer_inspector_persistent_toggle PRIVATE
+target_include_directories(test_layer_inspector_layer_row PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_inspector_layer_row PRIVATE
     Catch2::Catch2WithMain
     juce::juce_gui_basics
     juce::juce_opengl
 )
-target_compile_definitions(test_layer_inspector_persistent_toggle PRIVATE
+target_compile_definitions(test_layer_inspector_layer_row PRIVATE
     _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 if(NOT MSVC)
-    target_compile_options(test_layer_inspector_persistent_toggle PRIVATE
+    target_compile_options(test_layer_inspector_layer_row PRIVATE
         -Wno-old-style-cast
         -Wno-conversion
         -Wno-sign-conversion
     )
 endif()
-apply_sanitizers(test_layer_inspector_persistent_toggle)
-catch_discover_tests(test_layer_inspector_persistent_toggle)
+apply_sanitizers(test_layer_inspector_layer_row)
+catch_discover_tests(test_layer_inspector_layer_row)
 
 # --- tool_uitoggle_snapshot (s-rta-0926b uitoggle SHOTS): a ctest-EXCLUDED headless snapshot
 # tool -- deliberately never registered with catch_discover_tests, same posture as
@@ -3084,7 +3085,7 @@ apply_sanitizers(test_overlay_watch)
 catch_discover_tests(test_overlay_watch)
 
 # --- test_clip_inspector_paint_key (s-rta-0928b idlepaint, plan-idlepaint.md 3.1 test 4): ClipInspector::refresh() (10 Hz)
-# repaints only when a painted input changed (ClipInspector::paintKeyNow). The test_layer_inspector_persistent_toggle
+# repaints only when a painted input changed (ClipInspector::paintKeyNow). The test_layer_inspector_layer_row
 # headless-widgets harness and link closure, with ClipInspector.cpp for the inspector under test.
 add_executable(test_clip_inspector_paint_key
     test_clip_inspector_paint_key.cpp
@@ -3328,7 +3329,8 @@ apply_sanitizers(test_log_line_lint)
 catch_discover_tests(test_log_line_lint)
 
 # --- test_render_thread_lint (ruling amendment 8: case 1 no plain store to a clip's playing in Renderer.cpp, syncMedia
-# through ClipTransportSync; case 2 (T3) pins the per-layer tuple loads).
+# through ClipTransportSync; case 2 (T3) pins the per-layer tuple loads; case 3 (bf9 Stage P, ruling-bf9 amendment 9)
+# no Persistent-feature identifier left in src/).
 add_executable(test_render_thread_lint test_render_thread_lint.cpp)
 target_link_libraries(test_render_thread_lint PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_render_thread_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")

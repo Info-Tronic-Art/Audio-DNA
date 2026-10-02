@@ -6,6 +6,8 @@
 // DEBT (like test_hot_thread_io_lint): TEXTUAL. Line comments are stripped; a store reached through another name is
 // not seen.
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <regex>
@@ -59,11 +61,10 @@ TEST_CASE("Renderer.cpp: no plain store to a clip's playing; syncMedia goes thro
 // first read always sat (plan Fork 6), and every read of that layer in the pass uses the one tuple. The counts below
 // are PINNED: a changed count is a new (or a lost) GL-thread load of the tuple and must be re-justified in review.
 // A load is `runtime()` through `.` or `->`, or `getActiveClip(` (one load inside); line comments stripped. Sites:
-//   CompositorEngine.cpp  runtime() 2: compositeDeck's layer loop; compositePersistentLayers' layer loop (each feeds
-//                         incomingImagePending, the fade tick, renderLayerStages' observe and applyTransition).
-//                         getActiveClip( 2: compositeDeck's hasActiveLayers pre-scan; hasPersistentContent (a
-//                         separate yes / no pre-scan, ruling R-A9: a clear between it and the layer loop shows the
-//                         layer empty one frame early, which the clear shows next frame anyway).
+//   CompositorEngine.cpp  runtime() 1: compositeDeck's layer loop (feeds incomingImagePending, the fade tick,
+//                         renderLayerStages' observe and applyTransition). getActiveClip( 1: compositeDeck's
+//                         hasActiveLayers pre-scan. (Both were 2 until bf9 Stage P removed the second deck-pass and
+//                         its pre-scan -- s-rta-1002b, ruling-bf9 amendment 8: a pin update, not a behaviour change.)
 //   Renderer.cpp          runtime() 0; getActiveClip( 1: the MilkDrop preset-playlist loop (renderOpenGL).
 //   DeckClock.h           runtime() 1: tick's layer loop (fade tick, active clock, outgoing clock); getActiveClip( 0.
 //   Autopilot.cpp         runtime() 3: processFrame's end-of-video pass, pending-trigger pass, beat pass (advanceClip /
@@ -79,7 +80,7 @@ TEST_CASE("render thread: one trigger-tuple load per layer per pass (pinned coun
         int activeClipLoads;
     };
     const Pin pins[] = {
-        { "render/CompositorEngine.cpp", 2, 2 },
+        { "render/CompositorEngine.cpp", 1, 1 },
         { "render/Renderer.cpp", 0, 1 },
         { "render/DeckClock.h", 1, 0 },
         { "model/Autopilot.cpp", 3, 0 },
@@ -113,4 +114,40 @@ TEST_CASE("render thread: one trigger-tuple load per layer per pass (pinned coun
         CHECK(activeClipLoads == pin.activeClipLoads);
         CHECK(otherLoads == 0);
     }
+}
+
+// Case 3 (bf9 Stage P, s-rta-1002b; ruling-bf9 amendment 9): the Persistent layer feature is removed end to end. No
+// identifier of it is left in any code line of src/ (*.h / *.cpp / *.mm, recursively; line comments stripped). The
+// word is bare-word matched so the field's own declaration is caught too. Empty allow-list.
+TEST_CASE("no Persistent-feature identifier left in src/", "[lint][bf9]")
+{
+    namespace fs = std::filesystem;
+    const std::regex feature(
+        R"(\bpersistent\b|canBePersistent|compositePersistentLayers|hasPersistentContent|beginEmptyActiveDeck|persistentToggle_)");
+    const fs::path root(AUDIODNA_SRC_DIR);
+    std::vector<std::string> files;
+    for (const auto& e : fs::recursive_directory_iterator(root))
+    {
+        if (!e.is_regular_file())
+            continue;
+        const auto ext = e.path().extension().string();
+        if (ext == ".h" || ext == ".cpp" || ext == ".mm")
+            files.push_back(fs::relative(e.path(), root).generic_string());
+    }
+    std::sort(files.begin(), files.end());
+    REQUIRE(files.size() > 50);   // the walk reached src/
+    std::string hits;
+    int count = 0;
+    for (const auto& rel : files)
+    {
+        const auto lines = codeLines(rel);
+        for (size_t i = 0; i < lines.size(); ++i)
+            if (std::regex_search(lines[i], feature))
+            {
+                ++count;
+                hits += "\n  " + rel + ":" + std::to_string(i + 1);
+            }
+    }
+    INFO(count << " Persistent-feature hit(s) in src/ code lines:" << (hits.empty() ? std::string(" none") : hits));
+    CHECK(count == 0);
 }

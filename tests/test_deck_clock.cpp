@@ -12,8 +12,9 @@ using Catch::Approx;
 // s-rta-0926b plan4 item 2: a deck that is not on screen keeps time (Boris 2026-09-26: "finish the fade. when we
 // load a new deck that does not touch the clips playing in the layer"). DeckClock::tick is the inactive-deck
 // clock (pure, no GL); Renderer::renderOpenGL calls it for every deck except the active one, inside the deckActive
-// fence. LayerClock::advanceCrossfade is the ONE crossfade clock (CompositorEngine::advanceCrossfade forwards to
-// it). These drive the real headers on real Deck / Layer / Clip objects.
+// fence; it ticks every visible layer of such a deck, whatever its type or saved flags (bf9 Stage P, case (b)).
+// LayerClock::advanceCrossfade is the ONE crossfade clock (CompositorEngine::advanceCrossfade forwards to it). These
+// drive the real headers on real Deck / Layer / Clip objects.
 
 namespace
 {
@@ -49,7 +50,7 @@ struct Recorder
 auto noop = [](const Clip*, float) {};
 } // namespace
 
-TEST_CASE("(a) an inactive deck's non-persistent layer finishes its fade at the real rate", "[deck_clock]")
+TEST_CASE("(a) an inactive deck's layer finishes its fade at the real rate", "[deck_clock]")
 {
     Deck deck; deck.initDefault();
     startFade(deck, 0, 2.0f);
@@ -68,34 +69,43 @@ TEST_CASE("(a) an inactive deck's non-persistent layer finishes its fade at the 
     CHECK(layer->runtime().activeClipColumn == 1);          // the clips are not touched
 }
 
-TEST_CASE("(b) persistent layers are owned by compositePersistentLayers: never advanced twice", "[deck_clock]")
+// bf9 Stage P (s-rta-1002b, ruling-bf9 amendment 10): the Persistent layer feature is removed. A layer whose file still
+// carries "persistent": true is an ordinary layer -- DeckClock::tick advances its fade once per tick and clocks its media,
+// whatever its type.
+TEST_CASE("(b) a layer loaded with \"persistent\": true is an ordinary layer: DeckClock::tick advances its fade once "
+          "per tick and clocks its media (bf9 Stage P)", "[deck_clock]")
 {
     Deck deck; deck.initDefault();
+    auto loadWithPersistentKey = [&deck] {
+        auto v = deck.getLayer(1)->toVar();
+        v.getDynamicObject()->setProperty("persistent", true);
+        deck.getLayer(1)->fromVar(v);
+    };
 
-    SECTION("a persistent Transparent layer's fade is untouched by the tick")
+    SECTION("Transparent")
     {
+        loadWithPersistentKey();
         startFade(deck, 1, 2.0f, Clip::MediaType::Video, Clip::MediaType::Video);
         auto* layer = deck.getLayer(1);
         layer->type = Layer::Type::Transparent;
-        layer->persistent = true;
         Recorder rec;
         DeckClock::tick(deck, 0.5f, std::ref(rec));
-        CHECK(layer->runtime().crossfadeProgress == Approx(0.0f));
-        CHECK(layer->runtime().previousClipColumn == 0);
-        CHECK(rec.ticked.empty());               // its media is rendered (and clocked) by compositePersistentLayers
+        CHECK(layer->runtime().crossfadeProgress == Approx(0.25f));
+        REQUIRE(rec.ticked.size() == 2);
+        CHECK(rec.ticked[0] == layer->getClipAt(1));
+        CHECK(rec.ticked[1] == layer->getClipAt(0));
     }
 
-    SECTION("a persistent Mask layer (loaded persistent, not persistable): fade untouched, media clocked here")
+    SECTION("Mask")
     {
+        loadWithPersistentKey();
         startFade(deck, 1, 2.0f, Clip::MediaType::Video, Clip::MediaType::Video);
         auto* layer = deck.getLayer(1);
         layer->type = Layer::Type::Mask;
-        layer->persistent = true;
-        REQUIRE_FALSE(Layer::canBePersistent(layer->type));
         Recorder rec;
         DeckClock::tick(deck, 0.5f, std::ref(rec));
-        CHECK(layer->runtime().crossfadeProgress == Approx(0.0f));    // compositePersistentLayers advances it (before its type check)
-        REQUIRE(rec.ticked.size() == 2);                     // ... but never renders its media
+        CHECK(layer->runtime().crossfadeProgress == Approx(0.25f));
+        REQUIRE(rec.ticked.size() == 2);
         CHECK(rec.ticked[0] == layer->getClipAt(1));
         CHECK(rec.ticked[1] == layer->getClipAt(0));
     }
