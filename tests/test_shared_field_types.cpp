@@ -43,6 +43,11 @@ static_assert(std::is_same_v<decltype(manualRef(std::declval<Layer&>(), LayerSca
 static_assert(std::is_same_v<decltype(manualRef(std::declval<Composition&>(), CompScalar::Opacity)), RelaxedFloat&>,
               "manualRef(Composition&) must return RelaxedFloat& (Pitfall 63)");
 
+// T6: the message thread writes activeDeckIndex (deck switch, deck remove / undo); the httplib thread reads it
+// (/api/status, /api/composition, /api/state). The GL thread derives its index from the acquire-loaded deck pointer.
+static_assert(std::is_same_v<decltype(Composition::activeDeckIndex), RelaxedInt>,
+              "Composition::activeDeckIndex must be RelaxedInt (Pitfall 63)");
+
 TEST_CASE("shared model field types are pinned at compile time", "[tsan_lint][types]")
 {
     // The static_asserts above are the test; this case registers the target with ctest.

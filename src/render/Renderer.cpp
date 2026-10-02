@@ -447,9 +447,9 @@ void Renderer::renderOpenGL()
     float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
 
     {
-        // Plain-int reads of message-thread-written fields: the house class (globalTransitionSpeed and
-        // activeDeckIndex below). The debounce removes the one new hazard -- a half-applied pair (the
-        // Composition inspector writes width, then height) reallocating everything for one frame.
+        // Plain-int reads of message-thread-written fields: the house class (globalTransitionSpeed below; the R5
+        // config scalars, not yet Relaxed<T> -- Pitfall 63). The debounce removes the one new hazard -- a half-applied
+        // pair (the Composition inspector writes width, then height) reallocating everything for one frame.
         const int reqW = composition_ != nullptr ? composition_->outputWidth : 0;
         const int reqH = composition_ != nullptr ? composition_->outputHeight : 0;
         if (reqW != candW_ || reqH != candH_) { candW_ = reqW; candH_ = reqH; }   // first sight: wait a frame
@@ -465,11 +465,14 @@ void Renderer::renderOpenGL()
     // last picture, exactly what was on screen (mid-transition too). Detected after the composite (as it used to
     // be), the "outgoing" copy was the NEW deck's first frame and every deck transition was a cut. Blitted
     // (scaled if the canvas size changes this frame) into prevDeckFBO_ before ensureCanvasFBO / the clear (R5).
-    // activeDeckIndex is read after the acquire-load of activeDeck_ above: a frame that already renders the new
-    // deck always sees the new index.
-    if (composition_ != nullptr)
+    // s-rta-1002 tsan T6: the deck index is DERIVED from the acquire-loaded deck pointer above (as the autopilot
+    // block below does), never read from Composition::activeDeckIndex (the message thread's field): the index and
+    // the deck this frame renders can never disagree. No deck this frame (fenced before the first canvas, or none)
+    // keeps prevActiveDeckIndex_.
+    if (composition_ != nullptr && deck != nullptr && !composition_->decks.empty()
+        && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
     {
-        const int currentDeckIdx = composition_->activeDeckIndex;
+        const int currentDeckIdx = static_cast<int>(deck - composition_->decks.data());
         if (currentDeckIdx != prevActiveDeckIndex_)
         {
             // globalTransitionSpeed is a DURATION in seconds (see its comment in Composition.h), same

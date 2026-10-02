@@ -927,7 +927,7 @@ public:
             {
                 comp->decks.erase(comp->decks.begin() + deckIndex_);
                 if (deckIndex_ < comp->activeDeckIndex)
-                    --comp->activeDeckIndex;                       // the deck on screen slid down one slot: the same OBJECT stays active
+                    comp->activeDeckIndex = comp->activeDeckIndex - 1;   // the deck on screen slid down one slot: the same OBJECT stays active
                 else if (comp->activeDeckIndex >= static_cast<int>(comp->decks.size()))
                     comp->activeDeckIndex = static_cast<int>(comp->decks.size()) - 1;   // the active deck was last: its previous neighbour
                 // (deckIndex_ == active, not last: the next deck slides into the slot — unchanged from today)

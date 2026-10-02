@@ -658,3 +658,71 @@ none. B2 edited no existing test's body. Two existing-test notes (no edit, meani
   integration.md needs the three /api/state fields.
 - Gotchas: the mutant-restore mtime trap (B1 note; B2's runner kept sleep 1.2 s + touch); ControlRef::manual is a
   ManualSlot (use load() / store(); `!ref->manual` still works); Relaxed<T> fallout patterns (notebook note).
+
+
+
+## B3 (T6 + T7 + T8 + docs + lane evidence) -- Builder, started 2026-10-02 09:39 EDT
+
+STATUS: PENDING
+Base for B3: adeece2 (B2 report commit). INBOX-RECHECK: (pending)
+
+### T6 -- activeDeckIndex (family E) (amendment 9)
+Files (src): src/model/Composition.h (field + getActiveDeck const / non-const + toVar :308), src/render/Renderer.cpp
+(the deck-switch detection block + the :449-451 "house class" comment), src/api/ApiServer.cpp (:360 /api/status, :384
+/api/composition, :1547 /api/state -- `.load()`; inside this lane's 360 / 384 / 1370-1544+ hunks), src/test/TestServer.cpp
+(:816, its /api/state twin, `.load()`), src/core/DeckCommands.h (:930), src/MainComponent.cpp (6 compile-forced `.load()`
+in `(deckIndex < 0) ? composition_.activeDeckIndex : deckIndex` ternaries: hunk heads 4607, 4826, 5572, 6343, 6368, 6402
+-- none inside bt2's fences 484-494 / 2144-2160 / 3070-3095 / 5690-5705). Tests: tests/test_shared_field_types.cpp (+1 pin).
+What landed:
+- `RelaxedInt activeDeckIndex = 0;` (+ a comment: message-thread writer, httplib readers, the GL never reads it).
+- getActiveDeck() const and non-const: `const int idx = activeDeckIndex.load();` ONCE, then range check + subscript on idx.
+- Renderer::renderOpenGL deck-switch detection: `if (composition_ && deck && !decks.empty() && deck in [data, data+size))
+  currentDeckIdx = deck - decks.data()` (the autopilot block's arithmetic, :543-546), compared with prevActiveDeckIndex_
+  exactly as before; no deck this frame keeps prevActiveDeckIndex_. No GL-thread read of the field remains (grep of
+  src/render, src/model/Autopilot.cpp, src/output, src/analysis: only a comment names it).
+- DEVIATION (mechanical, the ruling said "grep found no compound operators"): DeckCommands.h:930 `--comp->activeDeckIndex;`
+  (RemoveDeckCmd, inside its fence) does not compile with Relaxed<T> (no compound operators by design) and became
+  `comp->activeDeckIndex = comp->activeDeckIndex - 1;` (the same single-writer arithmetic).
+- Every other reference (129 src / 92 test) compiled through the implicit conversions; the only fallout was the 6
+  ternaries (the B2 notebook's ambiguous-ternary pattern) and the 4 juce::var sites.
+
+RED (the pin, the current test_shared_field_types.cpp compiled -fsyntax-only with the target's own compile command against
+the pre-T6 src = 2e72850 + the T6 test edit only), verbatim:
+```
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/tsan/tests/test_shared_field_types.cpp:48:15: error: static assertion failed due to requirement 'std::is_same_v<int, Relaxed<int>>': Composition::activeDeckIndex must be RelaxedInt (Pitfall 63)
+1 error generated.
+compile exit: 1
+```
+Family E's behavioural RED is the app sweep (Renderer.cpp:471 vs MainComponent.cpp:5525, fresh RED 3/3 c launches): no
+[tsan] unit case covers it (Harmony's G3).
+GREEN (normal build: build 09:41:40-09:43:07 rc=0), targeted binaries, verbatim:
+```
+test_composition           All tests passed (364 assertions in 27 test cases)
+test_program_preamble      All tests passed (169 assertions in 6 test cases)
+test_recorder_host         All tests passed (1806 assertions in 40 test cases)
+test_routine_engine        All tests passed (1145 assertions in 37 test cases)
+test_shared_field_types    All tests passed (1 assertion in 1 test case)
+test_tempo_start           All tests passed (311 assertions in 13 test cases)
+test_undo_commands         All tests passed (557 assertions in 80 test cases)
+test_deck_clock            All tests passed (42 assertions in 6 test cases)
+test_autopilot             All tests passed (49 assertions in 11 test cases)
+test_compositor            All tests passed (47 assertions in 9 test cases)
+```
+(the tests that name activeDeckIndex / getActiveDeck, plus the render-adjacent targets). The renderer's deck-switch
+detection is not linkable headless: its live witness is the H8 smoke's switch_deck steps + Harmony's G4
+probe-deck-tabs / probe-deck-path.
+
+### T7 -- std::cerr -> logLine (family A)
+(pending)
+
+### T8 -- probe-tsan tooling
+(pending)
+
+### Docs
+(pending)
+
+### Lane final evidence
+(pending)
+
+### Amendment-16 mutant evidence (B1-B3)
+(pending)

@@ -357,7 +357,7 @@ void ApiServer::handleStatus(const httplib::Request&, httplib::Response& res)
     obj->setProperty("masterLevel", static_cast<double>(composition_.eff(CompScalar::Opacity)));
     // s-rta-0925 mastersignal Step 1: same pattern, for the Signal fader.
     obj->setProperty("masterSignal", static_cast<double>(composition_.eff(CompScalar::Signal)));
-    obj->setProperty("activeDeck", composition_.activeDeckIndex);
+    obj->setProperty("activeDeck", composition_.activeDeckIndex.load());
     // Onset render-path fix: frames on which the main Renderer's onset pulse
     // fired. Live oracle: after a click train its delta must EQUAL the
     // /api/features onsetCount delta (one pulse frame per onset at any fps).
@@ -381,7 +381,7 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
 {
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
-    obj->setProperty("activeDeck", composition_.activeDeckIndex);
+    obj->setProperty("activeDeck", composition_.activeDeckIndex.load());
     obj->setProperty("numDecks", static_cast<int>(composition_.decks.size()));
     obj->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
     // s-rta-0925 mastersignal Step 1: the raw field, next to masterOpacity;
@@ -1544,7 +1544,7 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
         effectsArr.add(juce::var(fxObj));
     }
     obj->setProperty("effects", effectsArr);
-    obj->setProperty("active_deck", composition_.activeDeckIndex);
+    obj->setProperty("active_deck", composition_.activeDeckIndex.load());
     obj->setProperty("num_decks", static_cast<int>(composition_.decks.size()));
 
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");

@@ -813,7 +813,7 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("effects", effectsArr);
 
     // Composition state
-    obj->setProperty("active_deck", composition_.activeDeckIndex);
+    obj->setProperty("active_deck", composition_.activeDeckIndex.load());
     obj->setProperty("num_decks", static_cast<int>(composition_.decks.size()));
 
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");

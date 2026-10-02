@@ -32,7 +32,10 @@ struct Composition
 
     // === Decks ===
     std::vector<Deck> decks;
-    int activeDeckIndex = 0;
+    // Written by the message thread (deck switch, deck remove / undo, load); read by the httplib thread (/api/status,
+    // /api/composition, /api/state): a relaxed atomic (Pitfall 63). The GL thread never reads it -- it derives its
+    // index from the acquire-loaded deck pointer (Renderer::renderOpenGL).
+    RelaxedInt activeDeckIndex = 0;
 
     // === Global Effects (post-composite chain) ===
     std::vector<Clip::EffectSlot> globalEffects;
@@ -189,17 +192,20 @@ struct Composition
     }
 
     // === Active Deck Access ===
+    // ONE load of the index: the range check and the subscript see the same value.
     Deck* getActiveDeck()
     {
-        if (activeDeckIndex >= 0 && activeDeckIndex < static_cast<int>(decks.size()))
-            return &decks[static_cast<size_t>(activeDeckIndex)];
+        const int idx = activeDeckIndex.load();
+        if (idx >= 0 && idx < static_cast<int>(decks.size()))
+            return &decks[static_cast<size_t>(idx)];
         return nullptr;
     }
 
     const Deck* getActiveDeck() const
     {
-        if (activeDeckIndex >= 0 && activeDeckIndex < static_cast<int>(decks.size()))
-            return &decks[static_cast<size_t>(activeDeckIndex)];
+        const int idx = activeDeckIndex.load();
+        if (idx >= 0 && idx < static_cast<int>(decks.size()))
+            return &decks[static_cast<size_t>(idx)];
         return nullptr;
     }
 
@@ -305,7 +311,7 @@ struct Composition
     {
         auto* obj = new juce::DynamicObject();
         obj->setProperty("name", juce::String(name));
-        obj->setProperty("activeDeckIndex", activeDeckIndex);
+        obj->setProperty("activeDeckIndex", activeDeckIndex.load());
         obj->setProperty("masterOpacity", static_cast<double>(masterOpacity));
         obj->setProperty("globalTransitionSpeed", static_cast<double>(globalTransitionSpeed));
         obj->setProperty("bpmMultiplier", bpmMultiplier);

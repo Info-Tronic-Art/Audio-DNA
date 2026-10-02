@@ -4604,7 +4604,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
             recorderHost_.dispatch.notify("handleClipTrigger: deck unresolved");
         return;
     }
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
@@ -4823,7 +4823,7 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             recorderHost_.dispatch.notify("handleColumnTrigger: deck unresolved");
         return;
     }
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
     // Undo capture (mutate-then-push, spec §2 row 2 / step 8): a column trigger
     // is a composite of one TriggerClipCmd per NON-ignoring layer that actually
@@ -5569,7 +5569,7 @@ void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deck
     if (!layer || layer->runtime().activeClipColumn < 0) return;
 
     layer->clearActiveClip();
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
     if (resolvedDeckIndex == composition_.activeDeckIndex)
     {
         previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
@@ -6340,7 +6340,7 @@ void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool
     else if (flag == "autopilot") layer->autopilotEnabled = value;
     else return;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
     if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
@@ -6365,7 +6365,7 @@ void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, b
     auto& slot = clip->effects[static_cast<size_t>(fxIndex)];
     slot.bypassed = value;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
     if (origin == Origin::Replay) return;
     ControlPath key = clipScalarPath(composition_, resolvedDeckIndex, layerIndex, column, "");
@@ -6399,7 +6399,7 @@ void MainComponent::applyClipPlaying(int layerIndex, int column, const std::stri
     else if (action == "reverse") { clip->reverse = !clip->reverse; }
     else return;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
     if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
