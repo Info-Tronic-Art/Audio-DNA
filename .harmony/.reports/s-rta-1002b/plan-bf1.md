@@ -517,3 +517,14 @@ FOUND, not fixed (for the loose-ends ledger): E5 (the menu recorder's speed, gap
 the tempo).
 
 STATUS: COMPLETE -- plan-bf1 ready for Harmony (S1 buildable now, no shared source files; S2 / S3 at bf1's slot after bf9b).
+
+## HARMONY ADOPTION (s-rta-1002b, 2026-10-02 16:48:04) — overrides the ruling, which overrides the plan body
+1. ADOPTED: ruling-bf1.md IN FULL (17 amendments; gates G1-G7). S1 buildable now; S2 only after bf9b merges (AM9 stop
+   rule); S3 after S2 + lane ui.
+2. DECISION D1 (Sacred Rule 2): the two off-hot-path mutexes M1 (worker condition-variable mutex: worker + message thread)
+   and M2 (status copy: worker + message tick, read by httplib) are APPROVED by Harmony — neither is reachable from the
+   GL, audio or analysis thread; lint RL1 bans locks / waits / allocation on the GL tap path. D2-D4 as the ruling says.
+3. BORIS QUESTIONS — defaults until he answers: Q1 first empty spot from the left; Q2 appears ready (no auto-play); Q3
+   auto-end after 64 bars; Q4 see-through parts become black; Q5 plays like other clips (Quantize decides); Q6 lands in
+   the deck shown when REC was pressed.
+4. Harmony constraint: BORIS USES THIS MACHINE AND THIS APP — an Audio-DNA your lane did not start is his (s-rta-1002b incident): never quit / kill / touch it; the lock helper waits for it; if start_app refuses, stop the batch and release. Visual work: Harmony's critic panel on decoded captures before Boris sees it. MERGE by Harmony; rebase onto whatever main is at launch.

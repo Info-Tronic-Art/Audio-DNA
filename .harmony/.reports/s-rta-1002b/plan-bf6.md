@@ -761,3 +761,13 @@ Notes for other lanes:
   (UniversalParamControl.cpp:426-437).
 
 STATUS: DONE
+
+## HARMONY ADOPTION (s-rta-1002b, 2026-10-02 16:48:04) — overrides the ruling, which overrides the plan body
+1. ADOPTED: ruling-bf6.md IN FULL (AM-1..AM-18). NOT buildable until bf9b merges with contracts C1 (playing-clip
+   accessor), C2 (the walk) and C3 (playhead == player at activation) — relayed into bf9b's plan prompt; Stage 1 starts
+   at P0 on bf9b's merged tree. Stage 2 waits for Boris's Q1.
+2. BORIS QUESTIONS — defaults until he answers: Q1 (a) Timeline greyed out "video clips only" on pictures / sources
+   (asked in chat); Q2 keep both "Clip Position" and "Timeline"; Q3 Master Signal also turns down Timeline knobs. Q4 only
+   if the pre-merge scan finds an old file.
+3. G1 per AM-16: run the test binaries by path and check --list-tests (a ctest -R on file names can select 0 tests).
+4. Harmony constraint: BORIS USES THIS MACHINE AND THIS APP — an Audio-DNA your lane did not start is his (s-rta-1002b incident): never quit / kill / touch it; the lock helper waits for it; if start_app refuses, stop the batch and release. Visual work: Harmony's critic panel on decoded captures before Boris sees it. MERGE by Harmony; rebase onto whatever main is at launch.

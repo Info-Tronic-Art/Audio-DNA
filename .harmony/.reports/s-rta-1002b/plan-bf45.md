@@ -737,3 +737,13 @@ G6 VISUAL WORK GATE, before Boris sees anything.
   lane; for now they are saved with the set.
 
 STATUS: COMPLETE -- plan ready for Harmony adoption (stages S1-S6, gates G1-G6, 6 Boris questions with defaults)
+
+## HARMONY ADOPTION (s-rta-1002b, 2026-10-02 16:48:04) — overrides the ruling, which overrides the plan body
+1. ADOPTED: ruling-bf45.md IN FULL (AM1-AM30; stages S1 -> S2 -> S5 -> S3 -> S4 (-> S6); gates G1-G6).
+2. BORIS QUESTIONS — defaults until he answers: Q1 the bigger view opens over the clip grid (preview / inspector / browser
+   stay; keys + MIDI still fire; Close / Esc returns); Q2 moving playhead line in the big view only; Q3 "Play once" START
+   waits for the next bar; Q4 no pad / key for START now; Q5 the whole sample squeezed into the length (<= 10 min); Q6
+   envelopes stay with the set (not carried by Save Deck); Q7 "live" = the whole file read once, silently. The answer to
+   his own-window question was relayed in chat (build in place now, window later).
+3. QUEUED behind the in-flight lanes; shares SignalInspector with bf7 and UniversalParamControl / ConnPicker with bf7 / bf6.
+4. Harmony constraint: BORIS USES THIS MACHINE AND THIS APP — an Audio-DNA your lane did not start is his (s-rta-1002b incident): never quit / kill / touch it; the lock helper waits for it; if start_app refuses, stop the batch and release. Visual work: Harmony's critic panel on decoded captures before Boris sees it. MERGE by Harmony; rebase onto whatever main is at launch.
