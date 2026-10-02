@@ -872,7 +872,8 @@ if(APPLE AND ProjectM_FOUND)
         )
     endif()
     apply_sanitizers(test_projectm_canvas_gl)
-    catch_discover_tests(test_projectm_canvas_gl)
+    # The prefix makes `ctest -R test_projectm_canvas_gl` (gate G1.1) select exactly these cases.
+    catch_discover_tests(test_projectm_canvas_gl TEST_PREFIX "test_projectm_canvas_gl: ")
 endif()
 
 # --- syphon-check (headless Syphon server-discovery verification CLI) ---
