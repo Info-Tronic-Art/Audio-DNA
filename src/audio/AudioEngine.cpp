@@ -123,6 +123,9 @@ double AudioEngine::getCurrentSampleRate() const
     return device != nullptr ? device->getCurrentSampleRate() : 0.0;
 }
 
+// bt2 C3 (Pitfall 61): the source mode is an atomic flag CombinedCallback reads every block -- never a device call here.
+// The old setAudioDeviceSetup re-open changed nothing (JUCE re-enables the default input channels, updateSetupChannels)
+// and sent the device through JUCE 8.0.4's CoreAudio open again at launch and on every switch.
 void AudioEngine::setSourceMode(SourceMode mode)
 {
     sourceMode_ = mode;
@@ -135,22 +138,12 @@ void AudioEngine::setSourceMode(SourceMode mode)
         // Enable input channels
         combinedCallback_.useInputForAnalysis.store(true, std::memory_order_relaxed);
 
-        // Re-open device with input enabled
-        auto setup = deviceManager_.getAudioDeviceSetup();
-        setup.inputChannels.setRange(0, 2, true);  // Enable stereo input
-        deviceManager_.setAudioDeviceSetup(setup, true);
-
         std::cerr << "[AudioEngine] Switched to mic input mode" << std::endl;
     }
     else
     {
         // Disable input analysis mode
         combinedCallback_.useInputForAnalysis.store(false, std::memory_order_relaxed);
-
-        // Can disable input channels to reduce latency
-        auto setup = deviceManager_.getAudioDeviceSetup();
-        setup.inputChannels.clear();
-        deviceManager_.setAudioDeviceSetup(setup, true);
 
         std::cerr << "[AudioEngine] Switched to file playback mode" << std::endl;
     }

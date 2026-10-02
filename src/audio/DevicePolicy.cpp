@@ -58,7 +58,8 @@ bool hasBluetoothUidShape(const juce::String& uid)
 Verdict classify(const DeviceInfo& d, const Config& cfg)
 {
 #if AUDIODNA_TEST_SERVER
-    if ((d.inputName.isNotEmpty() && cfg.testDeniedNames.contains(d.inputName))
+    if (cfg.testDeniedNames.contains("*")   // s-rta-0930 bt2 AM16: TEST-ONLY deny-all
+        || (d.inputName.isNotEmpty() && cfg.testDeniedNames.contains(d.inputName))
         || (d.outputName.isNotEmpty() && cfg.testDeniedNames.contains(d.outputName)))
         return { false, "test-denied" };
 #else

@@ -70,7 +70,8 @@ struct DeviceInfo
 struct Config
 {
 #if AUDIODNA_TEST_SERVER
-    juce::StringArray testDeniedNames;   // TEST-ONLY (ADNA_AUDIO_DENY_DEVICES): exact JUCE names treated as denied
+    juce::StringArray testDeniedNames;   // TEST-ONLY (ADNA_AUDIO_DENY_DEVICES): exact JUCE names treated as denied;
+                                         // "*" = every device (bt2 AM16)
 #endif
 };
 

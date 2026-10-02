@@ -5698,8 +5698,8 @@ std::string MainComponent::perfRecord(const ApiServer::PerfRecordOpts& opts)
     }
 
     // A5(c)/N8: switch to File mode only if not already there, and read
-    // deviceRate/channels AFTER the switch (a mode change can restart
-    // the device at a different rate/channel count).
+    // deviceRate/channels AFTER the switch (since bt2 C3 a mode change
+    // never restarts the device; reading after the switch stays correct).
     if (opts.audioFile.isNotEmpty())
     {
         juce::File f(opts.audioFile);
