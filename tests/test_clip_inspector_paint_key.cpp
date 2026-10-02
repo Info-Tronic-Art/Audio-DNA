@@ -84,3 +84,30 @@ TEST_CASE("ClipInspector::paintKeyNow: setClip(nullptr) gives a null-clip key an
     r.insp.refresh();
     CHECK(repaints() == base + 1);
 }
+
+TEST_CASE("ClipInspector::paintKeyNow: the file-info rows and the Show in Finder button are painted inputs "
+          "(s-rta-1002b ui U2.4)", "[idlepaint][inspector]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Rig r;                                               // an image sequence with no image: no row, no button
+    const auto k0 = r.insp.paintKeyNow();
+    CHECK(k0.infoRows == 0);
+    CHECK_FALSE(k0.revealShown);
+
+    r.clip.sequenceFiles.push_back(juce::File("/no/such/folder/frame0.png"));   // now it has a file
+    const auto base = repaints();
+    r.insp.refresh();
+    const auto k1 = r.insp.paintKeyNow();
+    CHECK(k1.infoRows == 1);
+    CHECK(k1.revealShown);
+    CHECK_FALSE(k1 == k0);
+    CHECK(repaints() == base + 1);
+    r.insp.refresh();
+    CHECK(repaints() == base + 1);                       // idle again
+
+    r.clip.sequenceFiles.clear();
+    r.insp.refresh();
+    CHECK(r.insp.paintKeyNow().infoRows == 0);
+    CHECK_FALSE(r.insp.paintKeyNow().revealShown);
+    CHECK(repaints() == base + 2);
+}

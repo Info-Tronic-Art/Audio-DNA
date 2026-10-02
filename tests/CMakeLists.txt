@@ -3638,3 +3638,52 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_clip_cell_media)
 catch_discover_tests(test_clip_cell_media)
+
+# --- s-rta-1002b ui U2.4 (BF3; plan-ui.md U2.4 + ruling-ui.md AM9): the Clip inspector's "Show in Finder" button and file
+# info rows (a fake VideoInfoSource; text-width bars under AudioDNALookAndFeel). test_clip_inspector_paint_key's recipe
+# plus LookAndFeel.cpp.
+add_executable(test_clip_inspector_media
+    test_clip_inspector_media.cpp
+    ${SRC_DIR}/ui/ClipInspector.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/MacroPanel.cpp
+    ${SRC_DIR}/ui/Knob.cpp
+    ${SRC_DIR}/render/FeedbackProcessor.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_clip_inspector_media PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_inspector_media PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_gui_basics
+    juce::juce_opengl
+)
+target_compile_definitions(test_clip_inspector_media PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_clip_inspector_media PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_clip_inspector_media)
+catch_discover_tests(test_clip_inspector_media)
