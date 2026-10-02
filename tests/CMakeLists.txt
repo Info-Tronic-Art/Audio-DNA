@@ -3185,3 +3185,109 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_media_opener)
 catch_discover_tests(test_media_opener)
+
+# --- lane tsan (s-rta-1002; .harmony/.reports/s-rta-0930/plan-tsan.md T0 + ruling-tsan.md amendments 2 / 3 / 8 / 11):
+# race-free cross-thread model publication. The two [tsan] targets are threaded stress tests of real model code; in a
+# -DADNA_SANITIZE=thread build (.harmony/probe-tsan-unit.sh) a single "WARNING: ThreadSanitizer" fails the case: the
+# ENVIRONMENT property pins TSAN_OPTIONS (it overrides the caller's shell, so an exitcode=0 there cannot make them
+# pass) and FAIL_REGULAR_EXPRESSION catches a report even if the exit code were 0. In a normal build both are inert
+# and only the value checks bite. `ctest -L tsan` selects them.
+set(ADNA_TSAN_TEST_PROPERTIES
+    LABELS tsan
+    TIMEOUT 300
+    ENVIRONMENT "TSAN_OPTIONS=exitcode=66:halt_on_error=0:abort_on_error=0:report_signal_unsafe=0:history_size=4"
+    FAIL_REGULAR_EXPRESSION "WARNING: ThreadSanitizer"
+)
+
+# --- test_layer_runtime_race (R1 / R2 / R4: the Layer trigger tuple + clip runtime fields, message thread vs GL
+# thread). Sources as test_autopilot + UndoManager.cpp; link set as test_undo_commands.
+add_executable(test_layer_runtime_race
+    test_layer_runtime_race.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_layer_runtime_race PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_runtime_race PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_layer_runtime_race PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_layer_runtime_race PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_layer_runtime_race)
+catch_discover_tests(test_layer_runtime_race PROPERTIES ${ADNA_TSAN_TEST_PROPERTIES})
+
+# --- test_manual_scalar_race (R3: manualWriteCore on the message thread vs eff() on the GL thread). Link set of
+# test_manual_write.
+add_executable(test_manual_scalar_race
+    test_manual_scalar_race.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnectionShaper.cpp
+    ${SRC_DIR}/connect/ConnectionEngine.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_manual_scalar_race PRIVATE ${SRC_DIR})
+target_link_libraries(test_manual_scalar_race PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+    juce::juce_opengl
+)
+target_compile_definitions(test_manual_scalar_race PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_manual_scalar_race PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_manual_scalar_race)
+catch_discover_tests(test_manual_scalar_race PROPERTIES ${ADNA_TSAN_TEST_PROPERTIES})
+
+# --- test_log_line_lint (D6: no std::cerr in code that runs off the message thread; textual, like
+# test_hot_thread_io_lint).
+add_executable(test_log_line_lint test_log_line_lint.cpp)
+target_link_libraries(test_log_line_lint PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_log_line_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_log_line_lint)
+catch_discover_tests(test_log_line_lint)
+
+# --- test_render_thread_lint (ruling amendment 8: case 1 no plain store to a clip's playing in Renderer.cpp, syncMedia
+# through ClipTransportSync; case 2 (T3) pins the per-layer tuple loads).
+add_executable(test_render_thread_lint test_render_thread_lint.cpp)
+target_link_libraries(test_render_thread_lint PRIVATE Catch2::Catch2WithMain)
+target_compile_definitions(test_render_thread_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
+apply_sanitizers(test_render_thread_lint)
+catch_discover_tests(test_render_thread_lint)

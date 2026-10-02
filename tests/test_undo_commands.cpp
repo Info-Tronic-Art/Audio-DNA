@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "model/Composition.h"
 #include "core/UndoManager.h"
 #include "core/Command.h"
@@ -10,6 +11,7 @@
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
 #include "render/LayerStateKey.h"
+#include "render/LayerClock.h"
 #include <optional>
 #include <random>
 
@@ -3032,4 +3034,99 @@ TEST_CASE("Layer::clearActiveClip: cancels a pending trigger too, even one queue
     // The queued trigger on column 2 — never itself cleared — is dropped too.
     REQUIRE(L.pendingTriggerColumn == -1);
     REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+}
+
+// ---------------------------------------------------------------------------
+// lane tsan (s-rta-1002; plan-tsan.md T0 D1, ruling-tsan.md amendment 6 D1b / D1c): a trigger is MUTATE-THEN-PUSH,
+// so the command's FIRST execute() (UndoManager::perform) must not re-apply `after` over whatever the GL thread did
+// to the tuple between the live trigger and the push (a fade tick, a fade end, a queued trigger firing). Later
+// execute() calls (redo) apply `after`; undo applies `before`. The tuple is read only through captureLayerRuntime.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+    // A layer at rest on column 0 (no fade running), clips in columns 0 and 1.
+    Layer& restingLayer(Composition& comp, float transitionSpeed)
+    {
+        Deck& deck = comp.decks[0];
+        deck.setClip(0, 0, richClip(1, "c0"));
+        deck.setClip(0, 1, richClip(2, "c1"));
+        Layer& L = *deck.getLayer(0);
+        L.transitionSpeed = transitionSpeed;
+        applyLayerRuntime(L, { 0, -1, 1.0f, -1, Clip::BeatSnapMode::Off });
+        return L;
+    }
+}
+
+TEST_CASE("D1 a trigger's first perform does not restart a running fade", "[undo][trigger][tsan_lane]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
+    UndoManager mgr;
+    Layer& L = restingLayer(comp, 0.5f);
+
+    const LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    L.triggerClip(1);
+    const LayerRuntimeSnapshot after = captureLayerRuntime(L);
+    REQUIRE(after.activeClipColumn == 1);
+    REQUIRE(after.previousClipColumn == 0);
+    REQUIRE(after.crossfadeProgress == 0.0f);
+
+    LayerClock::advanceCrossfade(L, 0.1f);   // the GL thread ticks the fade before the push: 0.1 / 0.5 = 0.2
+    REQUIRE(captureLayerRuntime(L).crossfadeProgress == Catch::Approx(0.2f));
+
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 1, before, after,
+                std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
+    CHECK(captureLayerRuntime(L).crossfadeProgress == Catch::Approx(0.2f));   // the fade keeps running
+    CHECK(captureLayerRuntime(L).activeClipColumn == 1);
+    CHECK(captureLayerRuntime(L).previousClipColumn == 0);
+
+    mgr.undo();
+    CHECK(captureLayerRuntime(L) == before);
+    mgr.redo();
+    CHECK(captureLayerRuntime(L) == after);   // redo applies `after` (progress 0)
+}
+
+TEST_CASE("D1b a trigger's first perform after the fade ended keeps the ended fade", "[undo][trigger][tsan_lane]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
+    UndoManager mgr;
+    Layer& L = restingLayer(comp, 0.5f);
+
+    const LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    L.triggerClip(1);
+    const LayerRuntimeSnapshot after = captureLayerRuntime(L);
+    LayerClock::advanceCrossfade(L, 1.0f);   // the fade ends before the push: (1, -1, 1.0)
+    const LayerRuntimeSnapshot ended = captureLayerRuntime(L);
+    REQUIRE(ended.activeClipColumn == 1);
+    REQUIRE(ended.previousClipColumn == -1);
+    REQUIRE(ended.crossfadeProgress == 1.0f);
+
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 1, before, after,
+                std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
+    CHECK(captureLayerRuntime(L) == ended);   // not restarted
+}
+
+TEST_CASE("D1c a trigger's first perform after its queued trigger fired keeps it fired", "[undo][trigger][quantize][tsan_lane]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
+    UndoManager mgr;
+    Layer& L = restingLayer(comp, 0.5f);
+    L.getClipAt(1)->beatSnapMode = Clip::BeatSnapMode::Beat;
+
+    const LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    L.triggerClip(1);   // queued for the next beat
+    const LayerRuntimeSnapshot after = captureLayerRuntime(L);
+    REQUIRE(after.activeClipColumn == 0);
+    REQUIRE(after.pendingTriggerColumn == 1);
+
+    L.processPendingTrigger(0, 0);   // the beat arrives before the push: it fires
+    REQUIRE(captureLayerRuntime(L).activeClipColumn == 1);
+
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 1, before, after,
+                std::optional<bool>(false), std::optional<bool>(false), "Trigger Clip"));
+    CHECK(captureLayerRuntime(L).activeClipColumn == 1);
+    CHECK(captureLayerRuntime(L).pendingTriggerColumn == -1);
 }
