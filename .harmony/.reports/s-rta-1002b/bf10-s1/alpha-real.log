@@ -1,0 +1,28 @@
+=== EVET - Superstrings I.milk
+draw binding after last call=1 (ours=1)
+FINAL size=320x180 median=(46,26,2,255) medmax=46 within6=42.175% alpha255=100.000% lit=100.000% mean=(59.19,37.28,1.98)
+ERRORS calls=120 none
+--- stock plain (FB0 path) same preset:
+FINAL size=320x180 median=(0,0,0,255) medmax=0 within6=100.000% alpha255=100.000% lit=0.000% mean=(0.00,0.00,0.00)
+ERRORS calls=120 0x506 x120
+=== flexi - grind my glitch up [319].milk
+draw binding after last call=1 (ours=1)
+FINAL size=320x180 median=(51,97,25,255) medmax=97 within6=0.123% alpha255=100.000% lit=100.000% mean=(57.52,97.39,36.88)
+ERRORS calls=120 0x506 x1
+--- stock plain (FB0 path) same preset:
+FINAL size=320x180 median=(0,0,0,255) medmax=0 within6=100.000% alpha255=100.000% lit=0.000% mean=(0.00,0.00,0.00)
+ERRORS calls=120 0x506 x120
+=== Geiss - Confetti (Jelly).milk
+draw binding after last call=1 (ours=1)
+FINAL size=320x180 median=(31,51,127,255) medmax=127 within6=0.019% alpha255=100.000% lit=100.000% mean=(50.46,77.92,141.38)
+ERRORS calls=120 0x506 x1
+--- stock plain (FB0 path) same preset:
+FINAL size=320x180 median=(0,0,0,255) medmax=0 within6=100.000% alpha255=100.000% lit=0.000% mean=(0.00,0.00,0.00)
+ERRORS calls=120 0x506 x120
+=== yin - 363 - Organic circuits (warming up).milk
+draw binding after last call=1 (ours=1)
+FINAL size=320x180 median=(166,175,204,120) medmax=204 within6=0.014% alpha255=23.887% lit=100.000% mean=(163.87,177.72,197.96)
+ERRORS calls=120 none
+--- stock plain (FB0 path) same preset:
+FINAL size=320x180 median=(0,0,0,255) medmax=0 within6=100.000% alpha255=100.000% lit=0.000% mean=(0.00,0.00,0.00)
+ERRORS calls=120 0x506 x120

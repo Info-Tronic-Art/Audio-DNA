@@ -1,0 +1,221 @@
+build-projectm: work dir /var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T//projectm-fbo1.OMYaNy
+-- The C compiler identification is AppleClang 17.0.0.17000603
+-- The CXX compiler identification is AppleClang 17.0.0.17000603
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Git: /usr/bin/git (found version "2.50.1 (Apple Git-155)")
+-- Building for OpenGL Core Profile
+-- Found OpenGL: /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+-- Performing Test FAST_MATH_OPTIMIZATION_SUPPORTED
+-- Performing Test FAST_MATH_OPTIMIZATION_SUPPORTED - Success
+-- Performing Test NO_MATH_LIB_REQUIRED
+-- Performing Test NO_MATH_LIB_REQUIRED - Success
+-- Could NOT find BISON: Found unsuitable version "2.3", but required is at least "3.8" (found /usr/bin/bison)
+-- Found FLEX: /usr/bin/flex (found suitable version "2.6.4", minimum required is "2.6")
+-- Performing Test CXXFLAG_-Wpedantic_SUPPORTED
+-- Performing Test CXXFLAG_-Wpedantic_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wextra_SUPPORTED
+-- Performing Test CXXFLAG_-Wextra_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wall_SUPPORTED
+-- Performing Test CXXFLAG_-Wall_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wchar-subscripts_SUPPORTED
+-- Performing Test CXXFLAG_-Wchar-subscripts_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wformat-security_SUPPORTED
+-- Performing Test CXXFLAG_-Wformat-security_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wpointer-arith_SUPPORTED
+-- Performing Test CXXFLAG_-Wpointer-arith_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wshadow_SUPPORTED
+-- Performing Test CXXFLAG_-Wshadow_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wsign-compare_SUPPORTED
+-- Performing Test CXXFLAG_-Wsign-compare_SUPPORTED - Success
+-- Performing Test CXXFLAG_-Wtype-limits_SUPPORTED
+-- Performing Test CXXFLAG_-Wtype-limits_SUPPORTED - Success
+-- Performing Test STD_FILESYSTEM_EXISTS
+-- Performing Test STD_FILESYSTEM_EXISTS - Success
+-- Performing Test COMPILER_HAS_HIDDEN_VISIBILITY
+-- Performing Test COMPILER_HAS_HIDDEN_VISIBILITY - Success
+-- Performing Test COMPILER_HAS_HIDDEN_INLINE_VISIBILITY
+-- Performing Test COMPILER_HAS_HIDDEN_INLINE_VISIBILITY - Success
+-- Performing Test COMPILER_HAS_DEPRECATED_ATTR
+-- Performing Test COMPILER_HAS_DEPRECATED_ATTR - Success
+-- 
+-- libprojectM v4.1.1
+-- ==============================================
+-- 
+--     prefix:                  /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1
+--     libdir:                  lib
+--     includedir:              include
+--     bindir:                  bin
+-- 
+--     compiler:                /usr/bin/c++
+--     cflags:                  
+--     cxxflags:                
+--     ldflags:                 
+-- 
+-- Features:
+-- ==============================================
+-- 
+--     Build shared libraries:  ON
+--     Filesystem support:      C++17 STL
+--     SDL2:                    OFF
+--     OpenGL ES:               OFF
+--     Emscripten:              OFF
+--     Use system GLM:          OFF
+--     Link UI with shared lib: 
+-- 
+-- Targets and applications:
+-- ==============================================
+-- 
+--     libprojectM:             (always built)
+--     Playlist library:        ON
+--     SDL2 Test UI:            OFF
+--     Tests:                   OFF
+--     Documentation:           OFF
+-- 
+-- Configuring done (3.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: /var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/projectm-fbo1.OMYaNy/build
+[  0%] Built target glm
+[  1%] Building CXX object vendor/hlslparser/CMakeFiles/hlslparser.dir/src/CodeWriter.cpp.o
+[  2%] Built target GenerateScanner
+[  3%] Building CXX object vendor/hlslparser/CMakeFiles/hlslparser.dir/src/Engine.cpp.o
+[  4%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/Compiler.c.o
+[  5%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/Scanner.c.o
+[  6%] Building CXX object vendor/hlslparser/CMakeFiles/hlslparser.dir/src/GLSLGenerator.cpp.o
+[  7%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/CompileContext.c.o
+[  8%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/CompilerFunctions.c.o
+[  9%] Building CXX object vendor/hlslparser/CMakeFiles/hlslparser.dir/src/HLSLParser.cpp.o
+[ 10%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/ExpressionTree.c.o
+[ 11%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/MemoryBuffer.c.o
+/var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/projectm-fbo1.OMYaNy/src/vendor/hlslparser/src/GLSLGenerator.cpp:759:45: warning: data argument not used by format string [-Wformat-extra-args]
+  759 |                         m_writer.Write(",", op);
+      |                                        ~~~  ^
+[ 12%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/TreeFunctions.c.o
+[ 13%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/TreeVariables.c.o
+[ 14%] Building C object vendor/projectm-eval/projectm-eval/CMakeFiles/projectM_eval.dir/api/projectm-eval.c.o
+[ 15%] Linking C static library libprojectM_eval.a
+[ 16%] Built target projectM_eval
+1 warning generated.
+[ 18%] Building CXX object vendor/hlslparser/CMakeFiles/hlslparser.dir/src/HLSLTokenizer.cpp.o
+[ 18%] Building C object vendor/SOIL2/CMakeFiles/SOIL2.dir/etc1_utils.c.o
+/var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/projectm-fbo1.OMYaNy/src/vendor/hlslparser/src/HLSLTokenizer.cpp:641:9: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  641 |         sprintf(buffer, "%f", m_fValue);
+      |         ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_stdio.h:278:1: note: 'sprintf' has been explicitly marked deprecated here
+  278 | __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
+      | ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:227:48: note: expanded from macro '__deprecated_msg'
+  227 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+/var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/projectm-fbo1.OMYaNy/src/vendor/hlslparser/src/HLSLTokenizer.cpp:645:9: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  645 |         sprintf(buffer, "%d", m_iValue);
+      |         ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_stdio.h:278:1: note: 'sprintf' has been explicitly marked deprecated here
+  278 | __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
+      | ^
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:227:48: note: expanded from macro '__deprecated_msg'
+  227 |         #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+      |                                                       ^
+2 warnings generated.
+[ 19%] Building CXX object vendor/hlslparser/CMakeFiles/hlslparser.dir/src/HLSLTree.cpp.o
+[ 20%] Building C object vendor/SOIL2/CMakeFiles/SOIL2.dir/image_DXT.c.o
+[ 21%] Building C object vendor/SOIL2/CMakeFiles/SOIL2.dir/image_helper.c.o
+[ 22%] Building C object vendor/SOIL2/CMakeFiles/SOIL2.dir/SOIL2.c.o
+[ 22%] Built target projectM_api
+[ 23%] Building CXX object src/libprojectM/Audio/CMakeFiles/Audio.dir/MilkdropFFT.cpp.o
+[ 23%] Built target hlslparser
+[ 25%] Building CXX object src/playlist/CMakeFiles/projectM_playlist_main.dir/Filter.cpp.o
+[ 26%] Building CXX object src/playlist/CMakeFiles/projectM_playlist_main.dir/Item.cpp.o
+[ 27%] Building CXX object src/libprojectM/Audio/CMakeFiles/Audio.dir/PCM.cpp.o
+[ 28%] Building CXX object src/playlist/CMakeFiles/projectM_playlist_main.dir/Playlist.cpp.o
+[ 29%] Building CXX object src/libprojectM/Audio/CMakeFiles/Audio.dir/Loudness.cpp.o
+[ 30%] Building CXX object src/libprojectM/Audio/CMakeFiles/Audio.dir/WaveformAligner.cpp.o
+[ 31%] Building CXX object src/playlist/CMakeFiles/projectM_playlist_main.dir/PlaylistCWrapper.cpp.o
+[ 31%] Built target Audio
+[ 32%] Generating MilkdropStaticShaders.cpp, MilkdropStaticShaders.hpp
+[ 33%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/MilkdropStaticShaders.cpp.o
+[ 33%] Built target SOIL2
+[ 34%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/BlurTexture.cpp.o
+[ 34%] Built target projectM_playlist_main
+[ 35%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Border.cpp.o
+[ 36%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/CustomShape.cpp.o
+[ 37%] Generating BuiltInTransitionsResources.hpp
+[ 39%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/CustomWaveform.cpp.o
+[ 39%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/CopyTexture.cpp.o
+[ 40%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/FileScanner.cpp.o
+[ 41%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/DarkenCenter.cpp.o
+[ 42%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/Framebuffer.cpp.o
+[ 43%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/EvalLibMutex.cpp.o
+[ 44%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/MilkdropNoise.cpp.o
+[ 45%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Factory.cpp.o
+[ 46%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/PresetTransition.cpp.o
+[ 47%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/RenderItem.cpp.o
+[ 48%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Filters.cpp.o
+[ 50%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/Sampler.cpp.o
+[ 51%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/Shader.cpp.o
+[ 52%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/FinalComposite.cpp.o
+[ 53%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/IdlePreset.cpp.o
+[ 54%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/Texture.cpp.o
+[ 55%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/TextureAttachment.cpp.o
+[ 56%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/MilkdropPreset.cpp.o
+[ 57%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/TextureManager.cpp.o
+[ 58%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/MilkdropShader.cpp.o
+[ 59%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/TextureSamplerDescriptor.cpp.o
+[ 60%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/MotionVectors.cpp.o
+[ 61%] Building CXX object src/libprojectM/Renderer/CMakeFiles/Renderer.dir/TransitionShaderManager.cpp.o
+[ 62%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/PerFrameContext.cpp.o
+[ 62%] Built target Renderer
+[ 63%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/PerPixelContext.cpp.o
+[ 64%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/PerPixelMesh.cpp.o
+[ 65%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/PresetFileParser.cpp.o
+[ 66%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/PresetState.cpp.o
+[ 67%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/ShapePerFrameContext.cpp.o
+[ 68%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/VideoEcho.cpp.o
+[ 69%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveform.cpp.o
+[ 70%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/WaveformPerFrameContext.cpp.o
+[ 71%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/WaveformPerPointContext.cpp.o
+In file included from /var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/projectm-fbo1.OMYaNy/src/src/libprojectM/MilkdropPreset/Waveform.cpp:1:
+/var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T/projectm-fbo1.OMYaNy/src/src/libprojectM/MilkdropPreset/Waveform.hpp:39:9: warning: private field 'm_samples' is not used [-Wunused-private-field]
+   39 |     int m_samples{};         //!< Number of samples in the current waveform. Depends on the mode.
+      |         ^
+1 warning generated.
+[ 72%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/CenteredSpiro.cpp.o
+[ 73%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Circle.cpp.o
+[ 75%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/DerivativeLine.cpp.o
+[ 76%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/DoubleLine.cpp.o
+[ 77%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/ExplosiveHash.cpp.o
+[ 78%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Factory.cpp.o
+[ 79%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Line.cpp.o
+[ 80%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/LineBase.cpp.o
+[ 81%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077Wave11.cpp.o
+[ 82%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077Wave9.cpp.o
+[ 83%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077WaveFlower.cpp.o
+[ 84%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077WaveLasso.cpp.o
+[ 85%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077WaveSkewed.cpp.o
+[ 86%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077WaveStar.cpp.o
+[ 87%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/Milkdrop2077WaveX.cpp.o
+[ 88%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/SpectrumLine.cpp.o
+[ 89%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/WaveformMath.cpp.o
+[ 90%] Building CXX object src/libprojectM/MilkdropPreset/CMakeFiles/MilkdropPreset.dir/Waveforms/XYOscillationSpiral.cpp.o
+[ 90%] Built target MilkdropPreset
+[ 93%] Building CXX object src/libprojectM/CMakeFiles/projectM_main.dir/PresetFactory.cpp.o
+[ 93%] Building CXX object src/libprojectM/CMakeFiles/projectM_main.dir/ProjectM.cpp.o
+[ 93%] Building CXX object src/libprojectM/CMakeFiles/projectM_main.dir/PresetFactoryManager.cpp.o
+[ 94%] Building CXX object src/libprojectM/CMakeFiles/projectM_main.dir/ProjectMCWrapper.cpp.o
+[ 95%] Building CXX object src/libprojectM/CMakeFiles/projectM_main.dir/TimeKeeper.cpp.o
+[ 95%] Built target projectM_main
+[ 96%] Building CXX object src/libprojectM/CMakeFiles/projectM.dir/__/__/dummy.cpp.o
+[ 97%] Linking CXX shared library libprojectM-4.dylib
+[ 97%] Built target projectM
+[ 98%] Building CXX object src/playlist/CMakeFiles/projectM_playlist.dir/__/__/dummy.cpp.o
+[100%] Linking CXX shared library libprojectM-4-playlist.dylib
+[100%] Built target projectM_playlist
+build-projectm: installed /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1 (_projectm_opengl_render_frame_fbo: yes, install name @rpath/libprojectM-4.4.dylib)

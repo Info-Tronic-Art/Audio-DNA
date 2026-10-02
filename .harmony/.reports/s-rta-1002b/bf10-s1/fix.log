@@ -1,0 +1,62 @@
+Fri Oct  2 18:14:02 EDT 2026
+=== solid bf10_solid 320 180
+READ f=30 size=320x180 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+READ f=60 size=320x180 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+READ f=90 size=320x180 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== solid bf10_solid_b 320 180
+READ f=30 size=320x180 median=(26,178,229,255) medmax=229 within6=100.000% alpha255=100.000% lit=100.000% mean=(26.00,178.00,229.00)
+READ f=60 size=320x180 median=(26,178,229,255) medmax=229 within6=100.000% alpha255=100.000% lit=100.000% mean=(26.00,178.00,229.00)
+READ f=90 size=320x180 median=(26,178,229,255) medmax=229 within6=100.000% alpha255=100.000% lit=100.000% mean=(26.00,178.00,229.00)
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== time bf10_time 320 180
+PAIR 0 dt=0.304s meanA=127.33 meanB=108.67 delta=18.67 alpha255A=100.000% alpha255B=100.000% within6B=100.000%
+PAIR 1 dt=0.303s meanA=108.67 meanB=77.33 delta=31.33 alpha255A=100.000% alpha255B=100.000% within6B=100.000%
+PAIR 2 dt=0.303s meanA=77.33 meanB=60.00 delta=17.33 alpha255A=100.000% alpha255B=100.000% within6B=100.000%
+TIME min_delta=17.33 frames=87
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== circle bf10_circle 320 180
+READ f=90 size=320x180 median=(0,0,0,0) medmax=0 within6=97.042% alpha255=2.892% lit=2.958% mean=(6.20,5.27,6.47)
+CIRCLE blobs=1 largest=1576 bbox=(138,68)-(181,111) w=44 h=44 w/h=1.0000 |w/h-1|=0.0000 centre_off=(0.00%,0.00%)
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== solid bf10_solid 180 320
+READ f=30 size=180x320 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+READ f=60 size=180x320 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+READ f=90 size=180x320 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== solid bf10_solid_b 180 320
+READ f=30 size=180x320 median=(26,178,229,255) medmax=229 within6=100.000% alpha255=100.000% lit=100.000% mean=(26.00,178.00,229.00)
+READ f=60 size=180x320 median=(26,178,229,255) medmax=229 within6=100.000% alpha255=100.000% lit=100.000% mean=(26.00,178.00,229.00)
+READ f=90 size=180x320 median=(26,178,229,255) medmax=229 within6=100.000% alpha255=100.000% lit=100.000% mean=(26.00,178.00,229.00)
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== time bf10_time 180 320
+PAIR 0 dt=0.304s meanA=127.33 meanB=108.67 delta=18.67 alpha255A=100.000% alpha255B=100.000% within6B=100.000%
+PAIR 1 dt=0.303s meanA=108.67 meanB=77.33 delta=31.33 alpha255A=100.000% alpha255B=100.000% within6B=100.000%
+PAIR 2 dt=0.303s meanA=77.33 meanB=60.00 delta=17.33 alpha255A=100.000% alpha255B=100.000% within6B=100.000%
+TIME min_delta=17.33 frames=87
+ERRORS calls=90 none
+RESULT OK
+exit=0
+=== circle bf10_circle 180 320
+READ f=90 size=180x320 median=(0,0,0,0) medmax=0 within6=90.833% alpha255=9.078% lit=9.208% mean=(17.44,21.88,18.70)
+CIRCLE blobs=1 largest=5024 bbox=(51,120)-(128,199) w=78 h=80 w/h=0.9750 |w/h-1|=0.0250 centre_off=(0.00%,0.00%)
+ERRORS calls=90 none
+RESULT OK
+exit=0
+99603d96cfd91df09ba1791eb7cab9e91d1186411d326cde2b57bdaeaedbbc7c  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_circle.milk
+cd8038fdd7d37e26146f7298e3e5124ce30d46df4fabfeab79e2cbab09cc2fc8  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_solid_b.milk
+bd5f90035ee94fdf2a9a4a1960fb87b9bee2cdedd0e2f6c550959b3c50cc376c  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_solid.milk
+d64fc1d27b9c83a52f33ec886636772eaec1d86835b8a6b2eaefae4ccc21bb57  /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_time.milk
+Fri Oct  2 18:14:15 EDT 2026

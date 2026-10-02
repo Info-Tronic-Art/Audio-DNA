@@ -1,0 +1,18 @@
+=== Fri Oct  2 18:10:20 EDT 2026 remove first install (wrong VCS SHA, created by this lane 18:09)
+=== Fri Oct  2 18:10:20 EDT 2026 BLOCKED path (proxy to a dead port, scratch prefix)
+build-projectm: work dir /var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T//projectm-fbo1.DeUD2q
+BLOCKED: no network -- set PROJECTM_SRC=<dir|tarball>
+exit=3
+ls: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/pfx-blocked: No such file or directory
+=== Fri Oct  2 18:10:20 EDT 2026 OFFLINE path -> real prefix
+exit=0
+-- Installing: /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/pkgconfig/projectM-4-playlist.pc
+build-projectm: installed /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1 (_projectm_opengl_render_frame_fbo: yes, install name @rpath/libprojectM-4.4.dylib)
+=== Fri Oct  2 18:10:38 EDT 2026 NETWORK path -> scratch prefix
+exit=0
+build-projectm: installed /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/pfx-net (_projectm_opengl_render_frame_fbo: yes, install name @rpath/libprojectM-4.4.dylib)
+-- Git revision: 03aa8a7ffdf81165136ee64643c6a781f5c6a391
+=== Fri Oct  2 18:11:15 EDT 2026 idempotent re-run on the real prefix
+build-projectm: /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1 already exports _projectm_opengl_render_frame_fbo -- nothing to do
+exit=0
+Fri Oct  2 18:11:15 EDT 2026
