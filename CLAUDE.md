@@ -59,10 +59,6 @@ cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 
 Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew install ffmpeg`. JUCE is fetched automatically.
 
-### Common Build Issues
-
-FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/build-other-platforms.md`.
-
 ---
 
 ## Development Rules
@@ -125,7 +121,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **Periodic repaints**: a timed `repaint()` costs the whole window (Pitfall 57): an always-animating widget draws in its own layer (`NativeLayerHost`) or repaints only on change.
 
-**Deck tab row**: right-click a tab = its menu, never a deck switch (`docs/claude/performance-controls.md`).
+**Deck tab row**: right-click a tab = its menu, never a deck switch; double-click the deck on screen = rename in place (`docs/claude/performance-controls.md`).
 
 **Routine pads and bands**: the rules -- a pad's press, how a routine leaves, "Delete routine", the model-driven pads / bands / strip faders / bound controls, the reserved routine cue `AudioDNALookAndFeel::kRoutineCue` -- live verbatim in `docs/claude/recording.md` "Surfaces": read them before touching a routine pad, band, strip fader or the routine cue.
 
@@ -225,6 +221,7 @@ the named area; this index is triage-only.
 61. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
 62. Reverse / ping-pong video = the decode thread's GOP cache + a direction-aware pick -- before touching `decodeStep`, `VideoRing::pick`, a direction change or a keyframe gate.
 63. The Layer trigger tuple is one CAS word; shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.
+65. Rename box over a rebuilt row -- before a double-click or in-place editor.
 
 ---
 
