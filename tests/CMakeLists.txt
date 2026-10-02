@@ -3360,3 +3360,33 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_shared_field_types)
 catch_discover_tests(test_shared_field_types)
+
+# --- test_clip_transport_sync (lane tsan T4, ruling amendment 8: Renderer::syncMedia's transport sync --
+# src/render/ClipTransportSync.h, pure, templated on the player -- against a fake player: the CAS write-back keeps a
+# trigger / pause that lands inside the sync window; a OneShot stop writes false).
+add_executable(test_clip_transport_sync
+    test_clip_transport_sync.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_clip_transport_sync PRIVATE ${SRC_DIR})
+target_link_libraries(test_clip_transport_sync PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_clip_transport_sync PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_clip_transport_sync PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_clip_transport_sync)
+catch_discover_tests(test_clip_transport_sync)

@@ -4,6 +4,7 @@
 // T5 (the manualRef scalars) and T6 (activeDeckIndex) extend this file.
 #include <catch2/catch_test_macros.hpp>
 #include "model/Layer.h"
+#include "model/Relaxed.h"
 #include <type_traits>
 
 namespace
@@ -21,6 +22,15 @@ static_assert(!LooseTuple<Layer>, "Layer::activeClipColumn is back as a loose fi
 static_assert(!LooseTupleAny<Layer>, "a Layer trigger-tuple field is back as a loose field (Pitfall 63)");
 static_assert(std::is_same_v<decltype(std::declval<const Layer&>().runtime()), LayerRuntimeSnapshot>);
 static_assert(sizeof(LayerRuntimeCell::Word) == 16);
+
+// T4: the clip runtime fields the message thread, the GL thread (syncMedia's write-back, autopilot) and the httplib
+// thread share are relaxed atomics; `playing` / `playheadPosition` stay mutable (written through const Clip*).
+static_assert(std::is_same_v<decltype(Clip::playing), RelaxedBool>, "Clip::playing must be RelaxedBool (Pitfall 63)");
+static_assert(std::is_same_v<decltype(Clip::playheadPosition), RelaxedDouble>,
+              "Clip::playheadPosition must be RelaxedDouble (Pitfall 63)");
+static_assert(std::is_same_v<decltype(Clip::beatsPlayed), RelaxedInt>, "Clip::beatsPlayed must be RelaxedInt (Pitfall 63)");
+static_assert(std::is_same_v<decltype(Clip::hasBeenTriggered), RelaxedBool>,
+              "Clip::hasBeenTriggered must be RelaxedBool (Pitfall 63)");
 
 TEST_CASE("shared model field types are pinned at compile time", "[tsan_lint][types]")
 {

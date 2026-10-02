@@ -35,11 +35,12 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
 
         if (clip->playheadPosition >= threshold)
         {
-            // Check loops: count how many times we've looped
-            clip->beatsPlayed++; // Reuse beatsPlayed as loop counter for end-of-video mode
+            // Check loops: count how many times we've looped. Reuse beatsPlayed as loop counter for end-of-video
+            // mode. Lane tsan: ONE atomic add (a trigger's concurrent reset to 0 is never lost), tested on its result.
+            const int loopsPlayed = clip->beatsPlayed.fetchAdd(1) + 1;
             int loopsTarget = std::max(1, layer.autopilotLoops);
 
-            if (clip->beatsPlayed >= loopsTarget)
+            if (loopsPlayed >= loopsTarget)
             {
                 Clip::AutopilotAction action = getActionForClip(*clip, layer);
                 if (action != Clip::AutopilotAction::DoNothing)
@@ -89,8 +90,8 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
                       // a non-playable active clip (Source/Image/Camera) falls through
                       // to beat-based advancement instead of freezing.
 
-        // Add the beats played on this clip since the previous frame
-        clip->beatsPlayed += static_cast<int>(beats);
+        // Add the beats played on this clip since the previous frame (lane tsan: ONE atomic add, tested on its result)
+        const int beatsPlayed = clip->beatsPlayed.fetchAdd(static_cast<int>(beats)) + static_cast<int>(beats);
 
         // P20: Use per-type timing if enabled, otherwise use per-clip/layer timing
         int targetBeats;
@@ -110,7 +111,7 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
         if (targetBeats <= 0)
             continue;
 
-        if (clip->beatsPlayed >= targetBeats)
+        if (beatsPlayed >= targetBeats)
         {
             if (action != Clip::AutopilotAction::DoNothing)
             {

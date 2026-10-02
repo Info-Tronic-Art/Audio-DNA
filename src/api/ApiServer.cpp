@@ -434,9 +434,9 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
                     clipObj->setProperty("id", static_cast<int>(clip.id));
                     clipObj->setProperty("name", juce::String(clip.name));
                     clipObj->setProperty("column", static_cast<int>(ci));
-                    clipObj->setProperty("playing", clip.playing);
+                    clipObj->setProperty("playing", clip.playing.load());
                     clipObj->setProperty("fitMode", static_cast<int>(clip.fitMode));   // plan-fitmode
-                    clipObj->setProperty("playheadPosition", clip.playheadPosition);   // plan4 T7
+                    clipObj->setProperty("playheadPosition", clip.playheadPosition.load());   // plan4 T7
                     clipObj->setProperty("mediaType", static_cast<int>(clip.mediaType));
                     clipObj->setProperty("sourceType", juce::String(clip.sourceType));
                     // s-rta-0928b mediaopen: presence (Clip::mediaMissing, the 1 Hz sweep), the media's size, and the

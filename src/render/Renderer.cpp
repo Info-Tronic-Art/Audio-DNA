@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
+#include "render/ClipTransportSync.h"
 #include "render/PixelConvert.h"
 #include "render/PngWrite.h"
 #include "sources/ProjectMSource.h"
@@ -1792,11 +1793,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         }
 
         // Sync transport state from clip (only set playing if clip wants to play,
-        // don't override if player stopped due to OneShot boundary)
-        if (clip->playing && !player->isPlaying())
-            player->setPlaying(true);
-        else if (!clip->playing)
-            player->setPlaying(false);
+        // don't override if player stopped due to OneShot boundary). Lane tsan: the intent is read ONCE; the
+        // write-back below compare-exchanges against it (ClipTransportSync.h).
+        const bool wanted = ClipTransportSync::pushIntent(*clip, *player);
 
         // Only sync reverse for non-PingPong modes (PingPong manages direction internally)
         if (clip->loopMode != Clip::LoopMode::PingPong)
@@ -1829,25 +1828,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             player->advanceFrame(static_cast<double>(dt));
         else
             player->advanceClock(static_cast<double>(dt));   // plan4 T4: the clock only, no decode
-        clip->playheadPosition = player->getPlayheadPosition();
-
-        // Propagate player state back to clip model (OneShot stops, PingPong reverses)
-        clip->playing = player->isPlaying();
-
-        // Enforce in/out points
-        if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
-        {
-            if (clip->loopMode == Clip::LoopMode::OneShot)
-            {
-                clip->playing = false;
-                player->setPlaying(false);
-            }
-            else
-            {
-                player->seekTo(static_cast<double>(clip->inPoint));
-                clip->playheadPosition = static_cast<double>(clip->inPoint);
-            }
-        }
+        // The playhead, the player's state back to the clip model (OneShot stops, PingPong reverses) as a CAS on the
+        // intent read above, and the in/out points on the playhead just read (ClipTransportSync.h).
+        ClipTransportSync::writeBack(*clip, *player, wanted);
 
         if (!decode)
             return 0;
@@ -1882,10 +1865,7 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
                                           clip->transportMode == Clip::TransportMode::BPMSync));
         if (clip->loopMode != Clip::LoopMode::PingPong)
             seq->setReverse(clip->reverse);
-        if (clip->playing && !seq->isPlaying())
-            seq->setPlaying(true);
-        else if (!clip->playing)
-            seq->setPlaying(false);
+        const bool wanted = ClipTransportSync::pushIntent(*clip, *seq);   // lane tsan: the intent, read once
         seq->setFps(clip->sequenceFps);
         switch (clip->loopMode)
         {
@@ -1916,23 +1896,8 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         {
             seq->advanceFrame(static_cast<double>(dt));
         }
-        clip->playheadPosition = seq->getPlayheadPosition();
-        clip->playing = seq->isPlaying();
-
-        // Enforce in/out points
-        if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
-        {
-            if (clip->loopMode == Clip::LoopMode::OneShot)
-            {
-                clip->playing = false;
-                seq->setPlaying(false);
-            }
-            else
-            {
-                seq->seekTo(static_cast<double>(clip->inPoint));
-                clip->playheadPosition = static_cast<double>(clip->inPoint);
-            }
-        }
+        // The playhead, the CAS write-back of the play state, the in/out points (ClipTransportSync.h; as the video).
+        ClipTransportSync::writeBack(*clip, *seq, wanted);
 
         // plan4 T4: no lazy PNG load for a deck that is not on screen. s-rta-0928 R1.4: the frames decode off the GL
         // thread (look-ahead); a sequence with nothing to show yet is PENDING, and counts for the render_frame gate
