@@ -7,7 +7,7 @@ registered there in test mode) and decodes every captured PNG with PIL+numpy. Ev
 checked; a failed capture is a FAIL. The output dir is fresh per run.
 
 usage: probe-deck-clock.py <root> <fresh-outdir> <media-dir> [row,row,...]
-rows (B1): d_fade_finishes d_persistent_single_advance d_pending_trigger_still_cancelled
+rows (B1): d_fade_finishes d_single_advance d_pending_trigger_still_cancelled
 rows (B2): d_video_keeps_time d_imageseq_keeps_time d_autopilot_keeps_time d_return_hitch
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. Reference frames are captured in the same run (probe-crossfade
@@ -19,9 +19,11 @@ B1 d_fade_finishes (RED): deck 0 L0 transitionSpeed T = 4 s, col0 = A, col1 = B.
   poll /api/composition every 0.5 s: deck 0 L0 crossfadeProgress rises by >= 0.15 between the first and third
   sample and reaches 1.0 with previousClipColumn == -1 by T + 1 s; back on deck 0 at T + 2 s, 0.5 s later the
   frame == refB within floor. Base: the fields are absent, and the frozen fade resumes on return (p ~ 0.2).
-B1 d_persistent_single_advance (guard; needs the new fields -- N/A on the base): deck 0 layer id 5 persistent
-  Transparent fading col0 -> col1 over T = 4 s while deck 1 is shown: crossfadeProgress T/2 after the switch is in
-  [0.35, 0.65] (compositePersistentLayers advances it; a second advance by the inactive-deck tick reads ~1.0).
+B1 d_single_advance (guard; needs the new fields -- N/A on the base; was d_persistent_single_advance until bf9 Stage
+  P): deck 0 layer id 5 Transparent fading col0 -> col1 over T = 4 s while deck 1 is shown: crossfadeProgress T/2
+  after the switch is in [0.35, 0.65] (one advance per frame; a double advance reads ~1.0). The fixture is unchanged:
+  the layer JSON keeps "persistent": True, which the app ignores after bf9 Stage P (on a pre-Stage-P build the old
+  persistent pass advanced it instead of the inactive-deck tick -- once per frame either way).
 B1 d_pending_trigger_still_cancelled (guard, GREEN on both): deck 0 col0 = A, col1 = B with beatSnap; trigger col0,
   then col1 (queued), leave at once (L5 cancels it), 4 injected beat crossings (totalBeatCount moves with the phase
   -- Pitfall 42): deck 0 activeClipColumn still 0.
@@ -253,10 +255,10 @@ def d_fade_finishes():
                               f"(d(f, refB)={dfb:.2f}, floor {fl:.2f}; d(f, refA)={d(f, ra):.2f})")
 
 
-def d_persistent_single_advance():
-    T = float(FIX["persistent"]["T"]); lo, hi = FIX["persistent"]["range"]
-    subj = layer(5, [clip(1, IMG_A), clip(2, IMG_B)], ltype=1, speed=T, persistent=True)
-    if not load("persist", [deck(0, [subj], ncols=2), away_deck()]):
+def d_single_advance():
+    T = float(FIX["single_advance"]["T"]); lo, hi = FIX["single_advance"]["range"]
+    subj = layer(5, [clip(1, IMG_A), clip(2, IMG_B)], ltype=1, speed=T, persistent=True)   # key ignored (bf9 Stage P)
+    if not load("single", [deck(0, [subj], ncols=2), away_deck()]):
         return
     prime_away_deck()
     trig(0, 0); time.sleep(1.0)
@@ -265,10 +267,10 @@ def d_persistent_single_advance():
     L = layer_json(comp(), 0, 0) or {}
     p = L.get("crossfadeProgress")
     if p is None:
-        na("d_persistent_single_advance: /api/composition has no crossfadeProgress field (pre-change binary)")
+        na("d_single_advance: /api/composition has no crossfadeProgress field (pre-change binary)")
         return
     (ok if lo <= float(p) <= hi else no)(
-        f"d_persistent_single_advance: a persistent layer's fade advances once per frame while its deck is away "
+        f"d_single_advance: a layer's fade advances once per frame while its deck is away "
         f"(progress {float(p):.2f} at T/2 = {T / 2:.1f} s, expected in [{lo}, {hi}])")
 
 
@@ -412,7 +414,7 @@ def d_return_hitch():
 
 def main():
     rows = [("d_fade_finishes", d_fade_finishes),
-            ("d_persistent_single_advance", d_persistent_single_advance),
+            ("d_single_advance", d_single_advance),
             ("d_pending_trigger_still_cancelled", d_pending_trigger_still_cancelled)]
     rows += [("d_video_keeps_time", d_video_keeps_time),
              ("d_imageseq_keeps_time", d_imageseq_keeps_time),

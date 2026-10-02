@@ -2,8 +2,9 @@
 # probe-deck-clock.sh -- s-rta-0926b plan4 item 2 (.harmony/.reports/s-rta-0926b/plan4-final.md section 3.6).
 # Live witness that a deck which is NOT on screen keeps time (Boris 2026-09-26: "finish the fade. when we load a
 # new deck that does not touch the clips playing in the layer"; Q1 answered "keep playing"):
-#   B1  a clip-to-clip crossfade started on a deck finishes while another deck is shown; a persistent layer's fade
-#       is advanced exactly once per frame; a quantized trigger left waiting on the deck is still cancelled (L5)
+#   B1  a clip-to-clip crossfade started on a deck finishes while another deck is shown; a layer's fade is advanced
+#       exactly once per frame (d_single_advance; its file still says "persistent": true, which bf9 Stage P
+#       ignores); a quantized trigger left waiting on the deck is still cancelled (L5)
 #   B2  video / image-sequence clocks advance while hidden (no decode), autopilot keeps advancing clips to the beat,
 #       and the return frame's catch-up decode stays bounded (d_return_hitch)
 # Cases, fixtures: .harmony/probe-deck-clock.json; assertions + calibration: the docstring of
@@ -14,8 +15,9 @@
 # (`open -g ... --args --test-mode`) because the autopilot / pending-trigger rows drive beat crossings through
 # 7070 /api/inject_features (registered only in test mode). ADDITIONALLY REFUSES when ffmpeg is not on PATH.
 # Screen-safe: open -g (never plain open / foreground exec), no screen capture, no Output window, no synthetic
-# input; graceful quit, pkill only if still running after 30 s. REFUSES if Audio-DNA is already running. The
-# caller holds /tmp/audiodna-live.lock (PROBE RIG GATE below).
+# input. QUITS ONLY THE APP IT LAUNCHED (quit_ours, .harmony/probe-quit-ours.sh; bf9 Stage P): graceful quit, kill
+# of that one pid only if still running after 30 s; any other Audio-DNA is never touched. REFUSES if Audio-DNA is
+# already running. The caller holds /tmp/audiodna-live.lock (PROBE RIG GATE below).
 #
 # usage: probe-deck-clock.sh [out-base] [row,row,...]
 #   DCLOCK_APP   app bundle to launch (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app)
@@ -35,8 +37,8 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # record_ourpid / ours_running / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${DCLOCK_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${DCLOCK_PY:-}"
@@ -55,6 +57,7 @@ echo "app: $APP"; echo "out: $OUT"
 ENVARGS=(); [ -n "${DCLOCK_ENV:-}" ] && ENVARGS=(--env "$DCLOCK_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP" --args --test-mode
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 sleep 2
 RC=1
 L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
@@ -69,9 +72,7 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
   RC=1
 else echo "PASS  no foreign render_frame traffic during the run"; fi
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
-if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
+quit_ours || RC=1
+if ours_running; then echo "FAIL  app still running (pid $OURPID)"; RC=1; else echo "PASS  app terminated"; fi
 echo; [ "$RC" -eq 0 ] && echo "PROBE-DECK-CLOCK GREEN" || echo "PROBE-DECK-CLOCK RED"
 exit "$RC"
