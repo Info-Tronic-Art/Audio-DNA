@@ -78,6 +78,24 @@ double readAll(Deck& deck)
     }
     return sink;
 }
+
+// Start / finish handshake (s-rta-1002 fix round, ruling F1): the render thread publishes "running" by counting its
+// first frame. Without it, a loaded machine may not schedule the render thread inside the main loop's ~10 ms (a
+// normal build), and the case false-fails `render frames 0` -- or passes having overlapped 1-2 frames. Bounded: a
+// render thread that never runs is a FAIL, never a hang.
+constexpr long kMinRenderFrames = 100;
+bool waitForFrames(const std::atomic<long>& frames, long atLeast,
+                   std::chrono::seconds limit = std::chrono::seconds(10))
+{
+    const auto deadline = std::chrono::steady_clock::now() + limit;
+    while (frames.load() < atLeast)
+    {
+        if (std::chrono::steady_clock::now() > deadline)
+            return false;
+        std::this_thread::yield();
+    }
+    return true;
+}
 } // namespace
 
 TEST_CASE("R1 message-thread triggers vs render clock / autopilot on one deck", "[tsan][layer_runtime]")
@@ -140,6 +158,13 @@ TEST_CASE("R1 message-thread triggers vs render clock / autopilot on one deck", 
     });
 
     go.store(true);
+    if (!waitForFrames(renderFrames, 1))
+    {
+        stop.store(true);
+        render.join();
+        reader.join();
+        FAIL("render thread never started");
+    }
     constexpr int kIterations = 20000;
     for (int i = 0; i < kIterations; ++i)
     {
@@ -160,6 +185,7 @@ TEST_CASE("R1 message-thread triggers vs render clock / autopilot on one deck", 
         if (i % 13 == 0) cancelPendingTriggers(deck);
         if (i % 17 == 0) { Layer copy = L; REQUIRE(copy.clips.size() == L.clips.size()); }
     }
+    waitForFrames(renderFrames, kMinRenderFrames);   // bounded; the `> 0` check below stays the vacuity guard
     stop.store(true);
     render.join();
     reader.join();
@@ -226,6 +252,13 @@ TEST_CASE("R2 clip runtime fields: trigger writes vs render transport write-back
     });
 
     go.store(true);
+    if (!waitForFrames(renderFrames, 1))
+    {
+        stop.store(true);
+        render.join();
+        reader.join();
+        FAIL("render thread never started");
+    }
     constexpr int kIterations = 40000;
     for (int i = 0; i < kIterations; ++i)
     {
@@ -233,6 +266,7 @@ TEST_CASE("R2 clip runtime fields: trigger writes vs render transport write-back
         if (i % 3 == 0) L.clearActiveClip();
         if (Clip* c = L.getClipAt(i % 2)) c->hasBeenTriggered = true;
     }
+    waitForFrames(renderFrames, kMinRenderFrames);   // bounded; the `> 0` check below stays the vacuity guard
     stop.store(true);
     render.join();
     reader.join();

@@ -13,6 +13,7 @@
 #include "model/ControlPath.h"
 #include "routing/MacroBank.h"
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <optional>
 #include <thread>
@@ -33,6 +34,23 @@ ControlPath clipScalar(int deck, int layer, int col, const std::string& key)
 {
     ControlPath p; p.scope = ControlPath::Scope::Clip; p.deck = deck; p.layer = layer; p.col = col;
     p.control = "scalar"; p.scalar = key; return p;
+}
+
+// Start / finish handshake (s-rta-1002 fix round, ruling F1): the render thread publishes "running" by counting its
+// first frame. Without it, a loaded machine may not schedule the render thread inside the main loop (a normal
+// build), and the case false-fails `render frames 0`. Bounded: a render thread that never runs is a FAIL, never a hang.
+constexpr long kMinRenderFrames = 100;
+bool waitForFrames(const std::atomic<long>& frames, long atLeast,
+                   std::chrono::seconds limit = std::chrono::seconds(10))
+{
+    const auto deadline = std::chrono::steady_clock::now() + limit;
+    while (frames.load() < atLeast)
+    {
+        if (std::chrono::steady_clock::now() > deadline)
+            return false;
+        std::this_thread::yield();
+    }
+    return true;
 }
 } // namespace
 
@@ -70,6 +88,12 @@ TEST_CASE("R3 manual scalar writes vs eff() reads", "[tsan][manual_scalar]")
     });
 
     go.store(true);
+    if (!waitForFrames(renderFrames, 1))
+    {
+        stop.store(true);
+        render.join();
+        FAIL("render thread never started");
+    }
     constexpr int kIterations = 40000;
     int refused = 0;
     for (int i = 0; i < kIterations; ++i)
@@ -83,6 +107,7 @@ TEST_CASE("R3 manual scalar writes vs eff() reads", "[tsan][manual_scalar]")
                 ++refused;
         }
     }
+    waitForFrames(renderFrames, kMinRenderFrames);   // bounded; the `> 0` check below stays the vacuity guard
     stop.store(true);
     render.join();
 
