@@ -488,6 +488,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
     audioDeviceNotice_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterYellow));
     audioDeviceNotice_.setJustificationType(juce::Justification::centredRight);
     audioEngine_.onDeviceStateChanged = [this] { refreshAudioDeviceNotice(true); };
+    // s-rta-0930 bt2: while the app listens to the mic, every automatic device re-apply names the mic now in use (or the
+    // no-wired-mic status) in the file label; a failed one reaches the label through onError.
+    audioEngine_.onDevicesReapplied = [this](const juce::String& error) {
+        if (error.isEmpty() && audioEngine_.getSourceMode() == AudioEngine::SourceMode::MicInput)
+            setFileLabel("Mic: " + audioEngine_.getDeviceStatus());
+    };
     refreshAudioDeviceNotice(false);
     if (audioEngine_.hasAudioDevice())
     {
@@ -3082,6 +3088,9 @@ void MainComponent::refreshAudioDeviceNotice(bool relayout)
     {
         case AudioEngine::DeviceState::NoDevice: text = "No audio device found - plug one in. Bluetooth is never used."; break;
         case AudioEngine::DeviceState::NoInput:  text = "No wired mic found - plug one in. Bluetooth is never used."; break;
+        case AudioEngine::DeviceState::MicReplaced:   // s-rta-0930 bt2 AM17
+            text = "Mic \"" + audioEngine_.lostInput() + "\" lost - now listening on \"" + audioEngine_.openInput() + "\".";
+            break;
         case AudioEngine::DeviceState::Ok:       break;
     }
     if (text == audioDeviceNotice_.getText() && audioDeviceNotice_.isVisible() == text.isNotEmpty())

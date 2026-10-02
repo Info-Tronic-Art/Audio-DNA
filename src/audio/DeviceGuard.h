@@ -88,15 +88,19 @@ private:
     GuardedDeviceType* guarded_ = nullptr;   // owned by the manager's availableDeviceTypes
 };
 
-// HARMONY ADOPTION BG4: JUCE's own device-list-changed re-init runs through the guarded type, but when the OPEN device
-// vanishes and the manager holds no explicit settings (lastExplicitSettings null -- e.g. a stereo input, where the startup
-// setSourceMode re-open is a no-op), JUCE re-opens the VANISHED names, gets "No such device" and stays with NO device
-// while an allowed one exists (tests/test_device_policy.cpp M5b). This re-applies the policy in exactly that case --
-// "device gone" -- and nothing else (a working device is never switched away from; a newly plugged device is not
-// adopted). Coalesced: re-evaluated `settleMs` after the LAST change message, at most one re-apply per `minIntervalMs`,
-// and a failed re-apply is retried only after a NEW device-list change (never on its own change messages).
-// It only ever acts when the manager has no device object, so no JUCE restart of a device can be pending.
-// MESSAGE THREAD (ChangeListener + Timer).
+// s-rta-0930 bt2 (plan-bt2 I3 / I4 + ruling-bt2-seats AM12 / AM13 / AM17; Pitfall 61): `openDefaultDevices()` is the
+// app's ONE device choice -- at launch and on every re-apply: close, then JUCE's default open through the guarded type.
+// The reconciler re-applies it once the device list settled in exactly four cases (devpolicy::reconcile, in this
+// order): no device is open and an allowed one is listed (JUCE's own list-changed re-init re-opened the VANISHED names
+// -> "No such device", tests/test_device_policy.cpp M5b; or nothing was allowed at launch); the open INPUT is no longer
+// listed (JUCE's combiner stops the whole device when its input dies and never re-inits it -- its name is the
+// OUTPUT's); the open device is STOPPED and nothing restarted it (a cable jiggle re-lists the same name while the
+// combiner stays dead); the open device has no input and an allowed input is listed (the notice's "plug one in").
+// A still-listed, playing input is never switched away from. Gates: evaluated `settleMs` after the LAST change message;
+// never twice on the same device scan (openDefaultDevices records the scan it ran on -- the launch's included, so only
+// a change AFTER launch counts); at most one re-apply per `minIntervalMs`; AdoptInput waits for a DIFFERENT list of
+// allowed inputs after a re-apply that could open none of them. A re-apply that fails while a device was open puts
+// back what is still listed of it (output-only), through the guarded manager. MESSAGE THREAD (ChangeListener + Timer).
 class DeviceReconciler final : private juce::ChangeListener, private juce::Timer
 {
 public:
@@ -104,7 +108,14 @@ public:
                      int settleMs = 250, int minIntervalMs = 10000);
     ~DeviceReconciler() override;
 
+    // The app's ONE device choice -- at launch and on every re-apply: close any device, JUCE's default open through the
+    // guarded type. Records the device scan it ran on: a later re-apply waits for a NEWER scan. Returns JUCE's error.
+    juce::String openDefaultDevices();
+
     int reapplies() const noexcept { return reapplies_; }
+    audiodna::devpolicy::Reapply lastAction() const noexcept { return lastAction_; }
+    // The input a re-apply lost and replaced by ANOTHER input ("" otherwise); updated whenever a re-apply changes the input.
+    const juce::String& lostInput() const noexcept { return lostInput_; }
     // After each re-apply (message thread): the error initialiseWithDefaultDevices returned ("" = none).
     std::function<void(const juce::String& error)> onReapplied;
 
@@ -114,9 +125,11 @@ private:
 
     GuardedAudioDeviceManager& manager_;
     const int numIns_, numOuts_, settleMs_, minIntervalMs_;
-    bool hadDevice_ = false;   // a device was open when last observed: its disappearance is "device gone"
     double lastReapplyMs_ = 0.0;
-    uint64_t lastReappliedSeq_ = 0;   // the device scan a re-apply ran on: a failed one waits for a newer scan
+    uint64_t lastAttemptSeq_ = 0;   // the device scan the last open / re-apply ran on
+    juce::StringArray noInputOn_;   // the allowed inputs a re-apply could not open: AdoptInput waits for a different list
+    juce::String lostInput_;
+    audiodna::devpolicy::Reapply lastAction_ = audiodna::devpolicy::Reapply::None;
     int reapplies_ = 0;
 
     JUCE_DECLARE_NON_COPYABLE(DeviceReconciler)

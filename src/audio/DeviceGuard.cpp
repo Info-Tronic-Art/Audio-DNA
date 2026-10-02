@@ -172,33 +172,38 @@ DeviceReconciler::~DeviceReconciler()
 
 void DeviceReconciler::changeListenerCallback(juce::ChangeBroadcaster*)
 {
+    startTimer(settleMs_);   // restarts: re-evaluated after the LAST change message
+}
+
+juce::String DeviceReconciler::openDefaultDevices()
+{
     if (manager_.getCurrentAudioDevice() != nullptr)
-    {
-        hadDevice_ = true;
-        stopTimer();
-        return;
-    }
-    if (hadDevice_)
-        startTimer(settleMs_);   // restarts: re-evaluated after the LAST change message
+        manager_.closeAudioDevice();
+    const auto error = manager_.initialiseWithDefaultDevices(numIns_, numOuts_);
+    if (const auto* guarded = manager_.guardedType())
+        lastAttemptSeq_ = guarded->lastScan().seq;   // AFTER the open: a list change the open itself caused is not new
+    return error;
 }
 
 void DeviceReconciler::timerCallback()
 {
     stopTimer();
-    if (manager_.getCurrentAudioDevice() != nullptr)
-    {
-        hadDevice_ = true;
-        return;
-    }
-    if (!hadDevice_)
-        return;
     const auto* guarded = manager_.guardedType();
-    if (guarded == nullptr
-        || (guarded->lastScan().lists.inputs.isEmpty() && guarded->lastScan().lists.outputs.isEmpty()))
-        return;   // nothing allowed now; the next device-list change re-evaluates
-
-    if (reapplies_ > 0 && guarded->lastScan().seq == lastReappliedSeq_)
-        return;   // a failed re-apply is retried only after a NEW device-list change
+    if (guarded == nullptr)
+        return;
+    const auto& scan = guarded->lastScan();
+    if (!noInputOn_.isEmpty() && noInputOn_ != scan.lists.inputs)
+        noInputOn_.clear();   // the allowed inputs changed: an adoption may try again
+    auto* device = manager_.getCurrentAudioDevice();
+    const bool haveDevice = device != nullptr;
+    const auto previous = manager_.getAudioDeviceSetup();
+    const auto action = dp::reconcile(haveDevice, haveDevice && device->isPlaying(), previous.inputDeviceName, scan.lists);
+    if (action == dp::Reapply::None)
+        return;
+    if (action == dp::Reapply::AdoptInput && noInputOn_ == scan.lists.inputs)
+        return;   // no listed input could be opened: wait for a DIFFERENT list of allowed inputs
+    if (scan.seq == lastAttemptSeq_)
+        return;   // this scan was already acted on (or opened at launch): wait for a NEW device-list change
 
     const double now = juce::Time::getMillisecondCounterHiRes();
     if (reapplies_ > 0 && now - lastReapplyMs_ < minIntervalMs_)
@@ -207,13 +212,33 @@ void DeviceReconciler::timerCallback()
         return;
     }
     lastReapplyMs_ = now;
-    lastReappliedSeq_ = guarded->lastScan().seq;
     ++reapplies_;
-    std::cerr << "[AudioEngine] the open audio device is gone -- re-applying the device policy" << std::endl;
-    manager_.closeAudioDevice();
-    const auto error = manager_.initialiseWithDefaultDevices(numIns_, numOuts_);
-    if (manager_.getCurrentAudioDevice() != nullptr)
-        hadDevice_ = true;
+    lastAction_ = action;
+    std::cerr << "[AudioEngine] re-applying the device policy (" << dp::toString(action) << ")" << std::endl;
+    const auto lists = scan.lists;   // copy: the open below may rebuild the scan
+    const auto error = openDefaultDevices();
+    if (haveDevice && manager_.getCurrentAudioDevice() == nullptr)
+    {
+        // A re-apply never leaves the app worse off: put back what is still listed of the device it had (output-only).
+        auto keep = previous;
+        if (!lists.inputs.contains(keep.inputDeviceName))
+            keep.inputDeviceName = {};
+        if (!lists.outputs.contains(keep.outputDeviceName))
+            keep.outputDeviceName = {};
+        if (keep.inputDeviceName.isNotEmpty() || keep.outputDeviceName.isNotEmpty())
+        {
+            const auto restoreError = manager_.setAudioDeviceSetup(keep, false);
+            std::cerr << "[AudioEngine] the re-apply failed (" << error << "); kept the previous device"
+                      << (restoreError.isEmpty() ? juce::String() : " -- that failed too: " + restoreError) << std::endl;
+        }
+    }
+    const bool nowDevice = manager_.getCurrentAudioDevice() != nullptr;
+    const auto nowInput = nowDevice ? manager_.getAudioDeviceSetup().inputDeviceName : juce::String();
+    noInputOn_ = (nowDevice && nowInput.isEmpty() && !lists.inputs.isEmpty()) ? lists.inputs : juce::StringArray();
+    if (nowInput != previous.inputDeviceName)
+        lostInput_ = ((action == dp::Reapply::InputLost || action == dp::Reapply::DeviceStopped)
+                      && previous.inputDeviceName.isNotEmpty() && nowInput.isNotEmpty())
+                         ? previous.inputDeviceName : juce::String();
     if (onReapplied)
         onReapplied(error);
 }

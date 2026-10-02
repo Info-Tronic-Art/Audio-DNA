@@ -15,13 +15,17 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
         std::cerr << devguard::describeDevices(deviceManager_, deviceManager_.guardedType()) << std::endl;
         if (error.isNotEmpty() && onError)
             onError("Audio device: " + error);
+        if (onDevicesReapplied)
+            onDevicesReapplied(error);
     };
 
     // Initialize with both input and output channels available
     // Input channels are needed for mic mode
     // s-rta-0929b btguard: the manager's device type hides every Bluetooth / wireless device, so the "default devices"
     // here are the macOS defaults when allowed, else the built-in ones (DeviceGuard.h).
-    auto result = deviceManager_.initialiseWithDefaultDevices(2, 2);
+    // s-rta-0930 bt2: the reconciler's openDefaultDevices() is the app's ONE device choice (launch + every re-apply);
+    // it records the launch's device scan, so only a device change AFTER launch is ever acted on.
+    auto result = deviceReconciler_.openDefaultDevices();
     if (result.isNotEmpty())
     {
         std::cerr << "[AudioEngine] Device init error: " << result << std::endl;
@@ -98,11 +102,31 @@ bool AudioEngine::hasInputDevice() const
     return hasAudioDevice() && deviceManager_.getAudioDeviceSetup().inputDeviceName.isNotEmpty();
 }
 
+AudioEngine::DeviceState AudioEngine::deviceStateFor(bool haveDevice, const juce::String& openInput,
+                                                     const juce::String& lostInput)
+{
+    if (!haveDevice)
+        return DeviceState::NoDevice;
+    if (openInput.isEmpty())
+        return DeviceState::NoInput;
+    if (lostInput.isNotEmpty() && lostInput != openInput)
+        return DeviceState::MicReplaced;
+    return DeviceState::Ok;
+}
+
 AudioEngine::DeviceState AudioEngine::getDeviceState() const
 {
-    if (!hasAudioDevice())
-        return DeviceState::NoDevice;
-    return hasInputDevice() ? DeviceState::Ok : DeviceState::NoInput;
+    return deviceStateFor(hasAudioDevice(), openInput(), deviceReconciler_.lostInput());
+}
+
+juce::String AudioEngine::openInput() const
+{
+    return hasAudioDevice() ? deviceManager_.getAudioDeviceSetup().inputDeviceName : juce::String();
+}
+
+juce::String AudioEngine::lostInput() const
+{
+    return deviceReconciler_.lostInput();
 }
 
 juce::String AudioEngine::getDeviceStatus() const
@@ -175,7 +199,9 @@ void AudioEngine::publishDeviceStatus()
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
     const auto state = getDeviceState();
-    obj->setProperty("state", state == DeviceState::Ok ? "ok" : (state == DeviceState::NoInput ? "no-input" : "no-device"));
+    obj->setProperty("state", state == DeviceState::Ok ? "ok"
+                              : state == DeviceState::NoInput ? "no-input"
+                              : state == DeviceState::MicReplaced ? "mic-replaced" : "no-device");
 
     auto* opened = new juce::DynamicObject();
     opened->setProperty("input", device != nullptr ? setup.inputDeviceName : juce::String());
@@ -186,6 +212,8 @@ void AudioEngine::publishDeviceStatus()
     opened->setProperty("output_channels", device != nullptr ? device->getActiveOutputChannels().countNumberOfSetBits() : 0);
     obj->setProperty("opened", juce::var(opened));
     obj->setProperty("reapplies", deviceReconciler_.reapplies());
+    obj->setProperty("last_reapply", dp::toString(deviceReconciler_.lastAction()));   // s-rta-0930 bt2
+    obj->setProperty("lost_input", deviceReconciler_.lostInput());
 
     const auto strings = [](const juce::StringArray& a) {
         juce::Array<juce::var> v;

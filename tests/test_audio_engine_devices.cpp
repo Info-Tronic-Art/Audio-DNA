@@ -5,6 +5,7 @@
 //        then setSourceMode must send no change message and write no explicit settings (one device open per launch).
 //   AE2  [lint] setSourceMode's body names no device manager / reconciler (also catches a re-open GUARDED by
 //        getCurrentAudioDevice(), which AE1's deny-everything engine cannot see).
+//   AE3  the device-state table (Ok / NoInput / NoDevice / MicReplaced) the notice reads.
 #include <catch2/catch_test_macros.hpp>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_events/juce_events.h>
@@ -125,4 +126,14 @@ TEST_CASE("AE2 [lint] AudioEngine::setSourceMode is an atomic flag flip: its bod
     REQUIRE_FALSE(body.empty());   // the function is found: a rename never makes this lint vacuous
     CHECK(body.find("deviceManager_") == std::string::npos);
     CHECK(body.find("deviceReconciler_") == std::string::npos);
+}
+
+TEST_CASE("AE3 the device-state table (s-rta-0930 bt2 AM17: a replaced mic is named in the notice)", "[audio_engine_devices]")
+{
+    using S = AudioEngine::DeviceState;
+    CHECK(AudioEngine::deviceStateFor(false, "", "") == S::NoDevice);
+    CHECK(AudioEngine::deviceStateFor(true, "", "X") == S::NoInput);
+    CHECK(AudioEngine::deviceStateFor(true, "A", "") == S::Ok);
+    CHECK(AudioEngine::deviceStateFor(true, "A", "A") == S::Ok);
+    CHECK(AudioEngine::deviceStateFor(true, "A", "B") == S::MicReplaced);
 }
