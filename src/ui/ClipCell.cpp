@@ -219,8 +219,14 @@ void ClipCell::resized() {}
 
 void ClipCell::mouseDown(const juce::MouseEvent& event)
 {
+    // s-rta-1002b ui U2.2 (ruling-ui.md AM10): a real right button on a clip with a file opens its menu ("Show in
+    // Finder"); every other right-click still does nothing, and Ctrl+left-click stays a left click (trigger / select).
     if (event.mods.isRightButtonDown())
+    {
+        if (clip_ != nullptr && !clipmedia::menuItems(clip_).isEmpty())
+            showContextMenu();
         return;
+    }
 
     if (isInThumbnailArea(event.getPosition()))
     {
@@ -231,6 +237,61 @@ void ClipCell::mouseDown(const juce::MouseEvent& event)
         bool addToSel = event.mods.isCommandDown() || event.mods.isShiftDown();
         if (onSelect) onSelect(layerIndex_, column_, addToSel);
     }
+}
+
+// s-rta-1002b ui U2.2 (BF3): built when JUCE's TooltipWindow asks (it polls the hovered component, ~8 / s), so a
+// player that opens after the grid was built shows its codec without any refresh. Sources / empty cells: "".
+juce::String ClipCell::getTooltip()
+{
+    return clip_ != nullptr ? clipmedia::cellTooltip(*clip_, lookupVideo()) : juce::String();
+}
+
+std::optional<VideoInfo> ClipCell::lookupVideo() const
+{
+    if (clip_ == nullptr || clip_->mediaType != Clip::MediaType::Video || videoInfo_ == nullptr || !*videoInfo_)
+        return std::nullopt;
+    return (*videoInfo_)(*clip_);
+}
+
+// s-rta-1002b ui U2.2 (ruling-ui.md AM10): the right-click menu. Launched through menuLauncher_ (a test's) or a real
+// PopupMenu (the DeckView::showDeckTabMenu idiom); either way the result comes back through menuChosen, guarded by a
+// SafePointer -- a rebuildGrid while the menu is up destroys this cell.
+void ClipCell::showContextMenu()
+{
+    if (clip_ == nullptr)
+        return;
+    const auto items = clipmedia::menuItems(clip_);
+    if (items.isEmpty())
+        return;
+    std::function<void(int)> done = [safe = juce::Component::SafePointer<ClipCell>(this)](int result) {
+        if (safe != nullptr)
+            safe->menuChosen(result);
+    };
+    const juce::String header(clip_->name);
+    if (menuLauncher_)
+    {
+        menuLauncher_(header, items, std::move(done));
+        return;
+    }
+    juce::PopupMenu menu;
+    menu.addSectionHeader(header);
+    for (int i = 0; i < items.size(); ++i)
+        menu.addItem(i + 1, items[i]);
+    menu.setLookAndFeel(&getLookAndFeel());   // the app LookAndFeel: a menu parented to the top-level window would draw stock
+    menu.showMenuAsync(juce::PopupMenu::Options()
+                           .withTargetComponent(this)
+                           .withParentComponent(getTopLevelComponent()),
+                       std::move(done));
+}
+
+// The ONE completion path of the cell menu (the menu, the tests, /api/debug/reveal_clip via DeckView::revealCellForTests).
+// Item 1 = "Show in Finder", acted on only while this cell still shows a clip with a file.
+void ClipCell::menuChosen(int result)
+{
+    if (result != 1 || clip_ == nullptr || clipmedia::revealTarget(*clip_) == juce::File())
+        return;
+    if (onRevealInFinder)
+        onRevealInFinder(layerIndex_, column_);
 }
 
 void ClipCell::mouseDrag(const juce::MouseEvent& event)
@@ -371,18 +432,8 @@ void ClipCell::setClip(Clip* clip)
     clip_ = clip;
     updateThumbnail();
 
-    // Sequence cells get a dynamic tooltip (600ms hover, shipped app-wide
-    // TooltipWindow — MainComponent.cpp) spelling out what the SEQ badge
-    // abbreviates. Other cells set no tooltip, unchanged from before.
-    if (clip_ && clip_->mediaType == Clip::MediaType::ImageSequence)
-    {
-        setTooltip("Image sequence — " + juce::String((int) clip_->sequenceFiles.size())
-                   + " images at " + juce::String(clip_->sequenceFps, 1) + " images/sec");
-    }
-    else
-    {
-        setTooltip({});
-    }
+    // The tooltip (the sequence line that spells out the SEQ badge, and since s-rta-1002b ui U2.2 every video / picture
+    // cell's file info) is built on demand by getTooltip() -- clipmedia::cellTooltip.
 
     repaint();
 }

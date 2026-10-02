@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "model/Clip.h"
+#include "ui/ClipMediaText.h"
 #include "ui/LookAndFeel.h"
 
 class ClipThumbnails;
@@ -8,7 +9,10 @@ class ClipThumbnails;
 // ClipCell: a single cell in the deck grid (layer × column intersection).
 // Two interaction zones:
 //   - Thumbnail area: click = trigger/retrigger clip
-//   - Name bar: click = select for inspection (no trigger), right-click = context menu
+//   - Name bar: click = select for inspection (no trigger)
+// Right-click (a real right button) on a clip with a file (video, picture, image sequence) = a menu headed by the
+// clip's name with "Show in Finder"; any other right-click does nothing, and Ctrl+left-click is a left click (s-rta-1002b
+// ui U2.2, ruling-ui.md AM10). Hover = the clip's file name, codec / size / rate and the menu hint (clipmedia::).
 // Supports drag-and-drop (receive images from Finder or browser).
 class ClipCell : public juce::Component,
                  public juce::FileDragAndDropTarget,
@@ -43,6 +47,19 @@ public:
     // s-rta-0928: where an Image clip's thumbnail comes from (DeckView's store; set before setClip).
     void setThumbnails(ClipThumbnails* store) { thumbs_ = store; }
 
+    // s-rta-1002b ui U2.2 (BF3): where a Video clip's codec / size / rate come from (DeckView's source, which outlives
+    // the cells -- the setThumbnails shape). The tooltip is built when JUCE asks for it (hover only), never stored.
+    void setVideoInfoSource(const VideoInfoSource* source) { videoInfo_ = source; }
+    juce::String getTooltip() override;
+
+    // s-rta-1002b ui U2.2 (ruling-ui.md AM10): the right-click menu. The launcher shows it (default: a PopupMenu, the
+    // DeckView::showDeckTabMenu idiom) and calls done(result) when it closes; menuChosen is the ONE completion path
+    // (the menu, a test and /api/debug/reveal_clip all end there). A launcher is injectable so no test opens a menu.
+    using MenuLauncher = std::function<void(const juce::String& header, const juce::StringArray& items,
+                                            std::function<void(int)> done)>;
+    void setMenuLauncherForTests(MenuLauncher launcher) { menuLauncher_ = std::move(launcher); }
+    void menuChosen(int result);
+
     // Set active state (cyan border highlight — this clip is playing)
     void setActive(bool active);
     bool isActive() const { return active_; }
@@ -71,6 +88,7 @@ public:
     std::function<void(int srcLayer, int srcCol, int dstLayer, int dstCol)> onClipMove; // Clip dragged from one cell to another
     std::function<void(int layerIndex, int column, const std::string& presetPath)> onMilkDropDrop; // Single MilkDrop preset
     std::function<void(int layerIndex, int column, const std::vector<std::string>& presetPaths)> onMilkDropPlaylistDrop; // Multi-preset playlist
+    std::function<void(int layerIndex, int column)> onRevealInFinder;  // s-rta-1002b ui U2.2: the menu's "Show in Finder"
 
     // Update the thumbnail from the clip's media -- never decodes (s-rta-0928)
     void updateThumbnail();
@@ -91,6 +109,8 @@ private:
     juce::Rectangle<int> getThumbnailBounds() const;
     juce::Rectangle<int> getNameBarBounds() const;
     bool isInThumbnailArea(const juce::Point<int>& pos) const;
+    void showContextMenu();
+    std::optional<VideoInfo> lookupVideo() const;   // the source's answer for a Video clip, else nothing
 
     Clip* clip_ = nullptr;
     int layerIndex_ = 0;
@@ -106,6 +126,8 @@ private:
     ClipThumbnails* thumbs_ = nullptr;
     Clip::MediaType shownType_ = Clip::MediaType::None;
     juce::String shownPath_;
+    const VideoInfoSource* videoInfo_ = nullptr;   // s-rta-1002b ui U2.2: DeckView's; nullptr = no video info
+    MenuLauncher menuLauncher_;                     // empty = the real PopupMenu
 
     static constexpr int kNameBarHeight = 20;
 
