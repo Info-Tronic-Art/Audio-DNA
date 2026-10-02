@@ -201,6 +201,10 @@ private:
     void saveDeckAs(int deckIndex);
     bool writeDeckFile(const Deck& deck, const juce::File& file);
     void renameDeck(int deckIndex);
+    // s-rta-1002b ui U3.3 (BF8): the ONE rename funnel -- the Rename Deck... dialog and the in-place tab box both end
+    // here. Trimmed; empty or equal to the deck's CURRENT name -> nothing; else one "Rename Deck" undo step + relabel.
+    void applyDeckRename(int deckIndex, const juce::String& text);
+    int renameFocusHomeCount_ = 0;   // s-rta-1002b ui (AM4): every rename-box close that handed focus home (REST witness)
     void duplicateDeck(int deckIndex);
     void removeDeck(int deckIndex);
     void timerCallback() override;

@@ -1460,6 +1460,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (undoManager_.undoDescription() == "Remove Deck")
             handleMenuCommand(AudioDNAMenuBar::kCompUndo);
     };
+    // s-rta-1002b ui U3.3 (BF8): the tab's in-place rename box. Every close hands the keyboard back here, BEFORE the box
+    // hides (ruling AM4): JUCE would otherwise park it on column trigger "1" and the next Return would fire that column.
+    deckView_->onDeckRenamed = [this](int deckIndex, const juce::String& name) { applyDeckRename(deckIndex, name); };
+    deckView_->onRenameClosed = [this] {
+        ++renameFocusHomeCount_;
+        grabKeyboardFocus();
+    };
 
     // === v2: Inspector Panel ===
     inspectorPanel_ = std::make_unique<InspectorPanel>();
@@ -2936,6 +2943,11 @@ void MainComponent::refreshUiAfterModelSwap()
         inspectorPanel_->getLayerInspector().setLayer(nullptr);
     }
 
+    // s-rta-1002b ui U3.3 (ruling AM12): an open deck-name box is discarded -- the loaded composition may reuse its deck
+    // id (Pitfall 36). After the inspector nulling, before the rebuild; it reads no model data when it discards.
+    if (deckView_)
+        deckView_->cancelDeckRename();
+
     // DEVIATION from the work packet's literal step order (flagged in the
     // build report): the packet's §1 sequence calls
     // deckView_->clearSelection()/selectLayer(-1)/setActiveColumn(-1) here,
@@ -3687,18 +3699,26 @@ void MainComponent::renameDeck(int deckIndex)
     // deleteWhenDismissed = true: ModalComponentManager runs this callback BEFORE
     // it deletes the window, so reading w's text editor inside it is safe.
     w->enterModalState(true, juce::ModalCallbackFunction::create(
-        [this, deckIndex, w, oldName](int result) {
-            const auto text = w->getTextEditorContents("name").trim();
-            if (result != 1 || text.isEmpty()
-                || deckIndex >= static_cast<int>(composition_.decks.size())
-                || text.toStdString() == oldName)
+        [this, deckIndex, w](int result) {
+            if (result != 1)
                 return;
-            std::vector<std::unique_ptr<Command>> children;
-            children.push_back(std::make_unique<RenameDeckCmd>(
-                makeCompositionResolver(), deckIndex, oldName, text.toStdString(), "Rename Deck"));
-            pushCommands(std::move(children), "Rename Deck");
-            if (deckView_) deckView_->refresh();   // relabel the tab
+            applyDeckRename(deckIndex, w->getTextEditorContents("name"));
         }), true);
+}
+
+void MainComponent::applyDeckRename(int deckIndex, const juce::String& text)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+    const auto trimmed = text.trim();
+    const std::string current = composition_.decks[static_cast<size_t>(deckIndex)].name;
+    if (trimmed.isEmpty() || trimmed.toStdString() == current)
+        return;
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<RenameDeckCmd>(
+        makeCompositionResolver(), deckIndex, current, trimmed.toStdString(), "Rename Deck"));
+    pushCommands(std::move(children), "Rename Deck");
+    if (deckView_) deckView_->refresh();   // relabel the tab
 }
 
 void MainComponent::duplicateDeck(int deckIndex)

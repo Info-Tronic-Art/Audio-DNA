@@ -144,7 +144,16 @@ Base for U3: 9af61b2 (lane/ui after U1).
   (the 6 passing = (a) (a2) (b) and the "no box" guards (c2) (d) (d2), which a do-nothing stub satisfies.)
 - GREEN 16:37:59, raw: All tests passed (218 assertions in 16 test cases) / All tests passed (110 assertions in 5 test
   cases); 5 / 5 repeats of test_deck_tab_rename print the same line.
-### U3.3 one rename funnel (AM4 wiring, AM12 cancel placement) -- PENDING
+### U3.3 one rename funnel (AM4 wiring, AM12 cancel placement) -- DONE
+- src/MainComponent.h/.cpp: NEW `applyDeckRename(int, const juce::String&)` (guard index; trim; empty or == the deck's
+  CURRENT name -> return; else RenameDeckCmd(current -> trimmed, "Rename Deck") via pushCommands + deckView_->refresh()).
+  renameDeck's modal callback keeps only `result != 1 -> return` and calls applyDeckRename (it used to compare with the
+  name captured when the dialog opened; now with the current name -- plan U3.3). Wiring beside onUndoHint:
+  `onDeckRenamed -> applyDeckRename`; `onRenameClosed -> ++renameFocusHomeCount_; grabKeyboardFocus()` (AM4).
+  refreshUiAfterModelSwap: `deckView_->cancelDeckRename()` right AFTER the inspector-nulling block, before
+  clearSelection / rebuildGrid (AM12).
+- No unit test (MainComponent is not headless-testable): the live rows R5-R10 of probe-ui-files-rename (U4) cover it;
+  RenameDeckCmd itself is covered by test_undo_commands. App build 16:39:44 BUILD_EXIT=0.
 ### U3.4 TEST-ONLY REST (AM6) -- PENDING
 ### U3.5 probe_deck_tab_dispatch (AM8; BUILT, NEVER RUN) -- PENDING
 ## Builds / tests (U3)
