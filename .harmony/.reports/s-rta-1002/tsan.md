@@ -330,3 +330,331 @@ no-ops either way.
   runtime()/setRuntime(); (3) LayerRuntimeSnapshot now lives in Layer.h (DeckCommands.h only wraps it); (4) the T0
   normal-build bar deviation (R1 / R4 also RED on the base by value checks) is Harmony's to rule.
 
+
+
+## B2 (T3 + T4 + T5) -- Builder, started 2026-10-02 09:11 EDT
+
+STATUS: DONE (B2 items T3, T4, T5 committed; all four [tsan] cases GREEN; full normal ctest 1084/1085 -- the one
+failure is D6, T7's pre-registered RED for B3)
+Base for B2: 738af45 (B1 report commit). INBOX-RECHECK: 0 addenda folded (none received).
+B2 heads: T3 = 9d9444e, T4 = 3400c08, T5 = 2e72850, then this report commit (docs) on top. Branch lane/tsan; not
+merged, not pushed. No app was launched in B2 (no live lock taken; no Output window; no UNC check needed).
+
+### T3 -- render path (one load per layer, one CAS per fade tick) (commit 9d9444e)
+Files (src): src/render/LayerClock.h, src/render/DeckClock.h, src/render/CompositorEngine.{h,cpp},
+src/render/CrossfadeHistory.h (comment only), src/render/Renderer.{h,cpp}, src/model/Autopilot.{h,cpp},
+src/api/ApiServer.cpp (/api/state, one hunk at :1487 -- inside this lane's 1370-1544), src/test/TestServer.cpp (the
+/api/state twin). Tests: tests/test_layer_runtime.cpp (+2 cases), tests/test_render_thread_lint.cpp (+ case 2).
+What landed:
+- LayerClock: `advanced(rt, transitionSpeed, dt)` (pure: the old math), `bool tick(Layer&, LayerRuntimeSnapshot& rt,
+  float dt)` (next == rt -> true with no CAS; else ONE casRuntime: success rt = next, failure rt = the concurrent
+  tuple and false = adopt), `bool advanceCrossfade(Layer&, float)` = load + tick (tests only now).
+- CompositorEngine: compositeDeck and compositePersistentLayers take ONE `layer.runtime()` per layer where the first
+  read sat (Fork 6): `clip = getClipAt(rt.active)`; `if (!incomingImagePending(layer, rt, clip) &&
+  !advanceCrossfade(layer, rt, dt)) clip = getClipAt(rt.active)` (an adopt re-fetches the clip). renderLayerStages /
+  applyTransition take `const LayerRuntimeSnapshot& rt` (observe(rt.previous, rt.active, rt.progress); the outgoing /
+  incoming clips via getClipAt(rt.previous / rt.active); u_crossfadeProgress = rt.progress). advanceCrossfade is now a
+  member: LayerClock::tick + `++tupleAdopts_` on false; takeTupleAdopts() (GL thread) drains it. hasActiveLayers /
+  hasPersistentContent keep getActiveClip() (one load each, R-A9).
+- DeckClock::tick: one runtime() per layer, tick unless fadeOwnedElsewhere, active / outgoing clips from the same rt;
+  returns the adopt count.
+- Renderer.cpp: the MilkDrop playlist loop drops its runtime() pre-check (getActiveClip() alone, null when inactive:
+  same result, one load). Amendment 13: `std::atomic<uint64_t> renderPendingFired_ / renderAutopilotAdvances_ /
+  renderTupleAdopts_` (relaxed fetch_add on the GL thread; getters), fed by Autopilot::FrameReport (both
+  processFrame calls), DeckClock::tick's return and compositor_.takeTupleAdopts() once per frame (inside deckActive).
+  /api/state (ApiServer AND TestServer, which mirrors it): render_pending_fired, render_autopilot_advances,
+  render_tuple_adopts.
+- Autopilot: one runtime() per layer per pass (end-of-video, pending, beat); advanceClip / smartAdvanceClip take the
+  column from it (PlaySpecific: getClipAt(currentCol), no second load) and return t.changed(); processFrame(deck,
+  snap, FrameReport* = nullptr) counts pendingFired (processPendingTrigger(...).changed()) and advances. Its triggers
+  keep maxAttempts 16; processPendingTrigger's default 16 (amendment 7). The fade tick stays ONE attempt.
+- CrossfadeHistory.h: the "Layer fields written without atomics / every write ordering" comment rewritten (one
+  tuple per layer per frame; an adopt hands observe() a new pair).
+- beatsPlayed stays a plain int at T3 (`++` / `+=`): its fetchAdd lands with the Relaxed type at T4.
+
+New tests (GREEN-only; teeth = the amendment-16 mutant "tick as a plain store", below):
+- test_layer_runtime `LayerClock::tick on a stale tuple after a concurrent trigger adopts it and keeps the new
+  fade's previous` (the stale tick would end the fade: (1,-1,1.0); it must return false, rt == trigger (2,1,0.0),
+  previous stays 1, the next tick advances to 0.2; no fade = no CAS).
+- test_layer_runtime `contention: GL-thread fade ticks and beat-fired triggers vs a message-thread trigger storm`
+  (amendment 4, B1's hand-over): start barrier; GL thread = load, R4 I1 / I2, LayerClock::tick (adopts counted),
+  processPendingTrigger(0, 0, 16); message thread = cyclic triggers, alternately immediate / queued (forced Beat),
+  waiting for each queued one to fire; every transition == its intent; REQUIRE adopts > 0; I1 == I2 == 0. Normal
+  build, verbatim: `triggers 2, GL ticks 3358, adopts 1, fired 1; intent mismatches 0, I1 0 I2 0` -- All tests passed.
+- test_render_thread_lint case 2 `render thread: one trigger-tuple load per layer per pass (pinned counts)`:
+  CompositorEngine.cpp runtime() 2 / getActiveClip( 2; Renderer.cpp 0 / 1; DeckClock.h 1 / 0; Autopilot.cpp 3 / 0
+  (`.` or `->` runtime(), line comments stripped; each site's function in the file comment).
+
+RED (lint case 2, the current test compiled against the PRE-CHANGE sources of 738af45 copied to scratch), verbatim:
+```
+  CHECK( runtimeLoads == pin.runtimeLoads )  with expansion:  3 == 2   render/CompositorEngine.cpp: runtime() 3, getActiveClip( 5 at lines 401 991 ...
+  CHECK( activeClipLoads == pin.activeClipLoads )  with expansion:  5 == 2
+  CHECK( runtimeLoads == pin.runtimeLoads )  with expansion:  1 == 0   render/Renderer.cpp: runtime() 1, getActiveClip( 1 at lines 593 595
+  CHECK( activeClipLoads == pin.activeClipLoads )  with expansion:  1 == 0   render/DeckClock.h: runtime() 1, getActiveClip( 1 at lines 33 37
+  CHECK( runtimeLoads == pin.runtimeLoads )  with expansion:  5 == 3   model/Autopilot.cpp: runtime() 5, getActiveClip( 3 at lines 21 41 43 61 74
+  CHECK( activeClipLoads == pin.activeClipLoads )  with expansion:  3 == 0
+test cases:  1 | 1 failed
+assertions: 12 | 6 passed | 6 failed
+```
+GREEN (normal build, full build 09:17:59-09:18:25 rc=0; targeted test binaries), verbatim:
+```
+test_layer_runtime         All tests passed (1081 assertions in 12 test cases)
+test_render_thread_lint    test cases:  2 |  1 passed | 1 failed      <- case 1 = T4's pre-registered RED; case 2 alone: All tests passed (12 assertions in 1 test case)
+test_deck_clock            All tests passed (42 assertions in 6 test cases)
+test_autopilot             All tests passed (49 assertions in 11 test cases)
+test_crossfade_history     All tests passed (39 assertions in 7 test cases)
+test_compositor            All tests passed (47 assertions in 9 test cases)
+test_layer_runtime_race    All tests passed (1189 assertions in 3 test cases)
+test_undo_commands         All tests passed (557 assertions in 80 test cases)
+```
+TSan build (direct runs with the ENVIRONMENT options) after T3, verbatim:
+```
+R1 rc=66 time=3.17s races=23 | All tests passed (1182 assertions in 1 test case) | src: reports=23 kinds={'data race': 23} reports_with_src_frame=23 src_files={'Deck.h': 23, 'Layer.h': 22, 'Autopilot.cpp': 20, 'UndoManager.cpp': 3, 'TriggerCommands.h': 3}
+R2 rc=66 time=3.47s races=5 | All tests passed (5 assertions in 1 test case) | src: reports=5 kinds={'data race': 5} reports_with_src_frame=5 src_files={'Deck.h': 5, 'Layer.h': 2}
+R4 rc=0 time=0.21s races=0 | All tests passed (2 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R3 rc=66 time=3.60s races=4 | All tests passed (9 assertions in 1 test case) | src: ...
+test_layer_runtime [layer_clock] rc=0 races=0 | All tests passed (16 assertions in 2 test cases)
+```
+T3 closes no [tsan] case by itself: every remaining R1 / R2 report is a CLIP runtime field write (access sizes 1 / 4 / 8
+= playing / beatsPlayed / playheadPosition; frames Layer.h:320 / :537 / :543 (the activation tail), Layer.h:401,
+Autopilot.cpp:70 (processPendingTrigger's tail) / :93 (beatsPlayed +=), TriggerCommands.h:83) -> T4. R4 stays GREEN.
+
+### T4 -- Clip runtime fields + ClipTransportSync (commit 3400c08)
+Files (src): src/model/Clip.h, NEW src/render/ClipTransportSync.h, src/render/Renderer.cpp (syncMedia: video and
+sequence branches; + include), src/model/Autopilot.cpp (fetchAdd), src/ui/LayerStrip.cpp (atomic_ref -> .load() +
+comment), src/connect/ConnectionEngine.h (the L5 comment), src/api/ApiServer.cpp (/api/composition :437 / :439
+`clip.playing.load()` / `clip.playheadPosition.load()` -- juce::var has no conversion from Relaxed<T>; inside this
+lane's 380-440). Tests: NEW tests/test_clip_transport_sync.cpp (3 cases), tests/test_shared_field_types.cpp (+4 Clip
+pins, + #include "model/Relaxed.h"), tests/CMakeLists.txt (test_clip_transport_sync appended at the END).
+What landed:
+- Clip: `mutable RelaxedBool playing`, `mutable RelaxedDouble playheadPosition`, `RelaxedInt beatsPlayed`,
+  `RelaxedBool hasBeenTriggered` (+ a comment: per-field atomics, never a consistent unit; the tuple is). Everything
+  else compiled through the implicit conversions; the only compile fallout was ApiServer :437 / :439.
+- ClipTransportSync (namespace, pure, templated on the player): `bool pushIntent(const Clip&, Player&)` (read the
+  intent ONCE, push it as before) and `void writeBack(const Clip&, Player&, bool wanted)` (ph = player playhead ->
+  store; `bool e = wanted; wrote = playing.compareExchange(e, player.isPlaying())`; the out-point test on the LOCAL ph;
+  OneShot stop = CAS of the value just written (only if this sync wrote it) -> false + player.setPlaying(false); Loop /
+  PingPong = seek to inPoint + store). The M-A8 ABA note is in the header (grep-verified: outside src/media the only
+  setPlaying callers are syncMedia's, now this header's).
+- Renderer::syncMedia: video AND sequence branch each call `ClipTransportSync::pushIntent` + `ClipTransportSync::
+  writeBack` (4 qualified call sites; no plain store to `playing` left). Call order inside each branch unchanged.
+- Autopilot: `clip->beatsPlayed.fetchAdd(1) + 1` (end-of-video loop counter) and `fetchAdd(beats) + beats` (beat pass);
+  the threshold tests use the fetchAdd result (no re-load).
+Parity note: with no concurrent intent change the CAS always succeeds (expected == the value read), so the model ends
+exactly as the old plain stores left it, incl. the OneShot stop.
+
+RED: R1 / R2 under TSan (the T3 run above: 23 / 5 clip-field reports) and lint case 1 (T0). Type pins: the CURRENT
+test_shared_field_types.cpp compiled (-fsyntax-only, the target's own compile command) against the src/ of 9d9444e
+(T3 head) -- verbatim:
+```
+test_shared_field_types.cpp:28:15: error: static assertion failed due to requirement 'std::is_same_v<bool, Relaxed<bool>>': Clip::playing must be RelaxedBool (Pitfall 63)
+test_shared_field_types.cpp:29:15: error: static assertion failed due to requirement 'std::is_same_v<double, Relaxed<double>>': Clip::playheadPosition must be RelaxedDouble (Pitfall 63)
+test_shared_field_types.cpp:31:15: error: static assertion failed due to requirement 'std::is_same_v<int, Relaxed<int>>': Clip::beatsPlayed must be RelaxedInt (Pitfall 63)
+test_shared_field_types.cpp:32:15: error: static assertion failed due to requirement 'std::is_same_v<bool, Relaxed<bool>>': Clip::hasBeenTriggered must be RelaxedBool (Pitfall 63)
+compile exit: 1
+```
+test_clip_transport_sync is GREEN-only (its header does not exist before T4); its teeth = mutant m6 below.
+GREEN (normal build: reconfigure 09:23:34-09:23:35, full build 09:25:10-09:26:53 rc=0), verbatim:
+```
+test_clip_transport_sync   All tests passed (13 assertions in 3 test cases)
+test_shared_field_types    All tests passed (1 assertion in 1 test case)
+test_render_thread_lint    All tests passed (15 assertions in 2 test cases)      <- lint case 1 (T0 RED) now GREEN
+test_layer_runtime         All tests passed (1081 assertions in 12 test cases)
+test_layer_runtime_race    All tests passed (1189 assertions in 3 test cases)
+test_autopilot             All tests passed (49 assertions in 11 test cases)
+test_deck_clock            All tests passed (42 assertions in 6 test cases)
+test_undo_commands         All tests passed (557 assertions in 80 test cases)
+test_compositor            All tests passed (47 assertions in 9 test cases)
+```
+GREEN (TSan build: reconfigure 09:27:27, targets built 09:27:29-09:28:03 rc=0), direct runs, verbatim:
+```
+R1 rc=0 time=0.32s races=0 | All tests passed (1182 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R2 rc=0 time=0.28s races=0 | All tests passed (5 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R4 rc=0 time=0.23s races=0 | All tests passed (2 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R3 rc=66 time=3.73s races=4 | All tests passed (9 assertions in 1 test case) | src: reports=4 ... src_files={'ManualWrite.cpp': 4, 'Deck.h': 3, 'Composition.h': 3, 'Layer.cpp': 2, 'Clip.cpp': 1}
+test_layer_runtime rc=0 races=0 | All tests passed (1081 assertions in 12 test cases)
+test_clip_transport_sync rc=0 races=0 | All tests passed (13 assertions in 3 test cases)
+```
+and through ctest (G2's shape, `env -u TSAN_OPTIONS ctest --test-dir <wt>/build-tsan -L tsan --output-on-failure`):
+```
+1/4 Test #110: R1 message-thread triggers vs render clock / autopilot on one deck ......   Passed    0.29 sec
+2/4 Test #111: R2 clip runtime fields: trigger writes vs render transport write-back ...   Passed    0.25 sec
+3/4 Test #112: R4 tuple consistency and no lost fade under a paced trigger storm .......   Passed    0.22 sec
+4/4 Test #113: R3 manual scalar writes vs eff() reads ..................................***Failed  Error regular expression found in output. Regex=[WARNING: ThreadSanitizer]  0.35 sec
+75% tests passed, 1 tests failed out of 4
+```
+R1 / R2 (families B + C) are GREEN at T4. The short TSan times are real work, not skipped threads: `-s` runs show
+`render frames 16267 / 17108 / 13289` (R1) and `104793 / 102427 / 96358` (R2) overlapping the 20,000 / 40,000 main
+iterations; with zero reports TSan no longer pays for report symbolization (R1 was 3.17 s with 23 reports at T3).
+
+### T5 -- manual scalars (family D) (commit 2e72850)
+Files (src): src/model/Layer.h / Layer.cpp (7 fields + manualRef), src/model/Clip.h / Clip.cpp (7 + manualRef),
+src/model/Composition.h (9 + the inline manualRef), src/connect/ManualWrite.h (ManualSlot; + #include
+"model/Relaxed.h") / ManualWrite.cpp (:187 store), src/MainComponent.cpp (:2056 only -- the routine engine's read
+lambda; outside every bt2 fence: `git diff -U0` hunk head `@@ -2056 +2056 @@`). Compile-forced `.load()` (mechanical:
+a ternary `cond ? float : RelaxedFloat` is ambiguous, `std::max(0.01f, RelaxedFloat)` cannot deduce):
+src/ui/LayerStrip.cpp:818, src/ui/TopBar.cpp:399 / :410, src/ui/ClipInspector.cpp:1375, src/ui/LayerInspector.cpp:970.
+src/connect/ConnectionEngine.cpp needed no edit (toNorm(manualRef(...)) converts implicitly). Tests:
+tests/test_shared_field_types.cpp (+3 manualRef return-type pins, + #include "model/Composition.h").
+What landed:
+- The 23 manualRef fields are RelaxedFloat: Layer opacity / positionX / positionY / layerScale / layerRotation /
+  layerAnchorX / layerAnchorY; Clip clipOpacity / positionX / positionY / scale / rotation / anchorX / anchorY;
+  Composition masterOpacity / masterSpeed / masterSignal / compPositionX / compPositionY / compScale / compRotation /
+  compAnchorX / compAnchorY. The three manualRef overloads return RelaxedFloat& (their unreachable dummy too).
+- ControlRef::manual is a ManualSlot {RelaxedFloat* atomicField; float* plainField; implicit ctors from either
+  pointer; load(); store() (const: it writes THROUGH the pointer, as `*r.manual = ...` did through a const
+  ControlRef); explicit operator bool; operator== against either pointer type}. Effect params / dryWet / source
+  params / macros keep the plain pointer (R5). manualWriteCore: `r.manual.store(...)`; the routine read lambda:
+  `ref->manual.load()`. eff() keeps its shape (its argument is now one relaxed load).
+- The ManualSlot operator== lets tests/test_manual_write.cpp's 9 `REQUIRE(ref->manual == &<field>)` lines compile
+  UNCHANGED (they still check which field a control resolves to) -- no test edit.
+
+RED: R3 under TSan (T0, and still RED after T4: 4 reports, ManualWrite.cpp / Layer.cpp / Clip.cpp / Composition.h).
+Type pins: the CURRENT test_shared_field_types.cpp compiled against the src/ of 3400c08 (T4 head), verbatim:
+```
+test_shared_field_types.cpp:39:15: error: static assertion failed due to requirement 'std::is_same_v<float &, Relaxed<float> &>': manualRef(Clip&) must return RelaxedFloat& (Pitfall 63)
+test_shared_field_types.cpp:41:15: error: static assertion failed due to requirement 'std::is_same_v<float &, Relaxed<float> &>': manualRef(Layer&) must return RelaxedFloat& (Pitfall 63)
+test_shared_field_types.cpp:43:15: error: static assertion failed due to requirement 'std::is_same_v<float &, Relaxed<float> &>': manualRef(Composition&) must return RelaxedFloat& (Pitfall 63)
+compile exit: 1
+```
+GREEN (normal build: keep-going builds 09:31:12-09:34:11, rc=0 after the 5 compile-forced .load() edits; app binary
+09:34), verbatim:
+```
+test_manual_write              All tests passed (83 assertions in 11 test cases)
+test_manual_scalar_race        All tests passed (9 assertions in 1 test case)
+test_shared_field_types        All tests passed (1 assertion in 1 test case)
+test_connection                All tests passed (159 assertions in 39 test cases)
+test_composition_tier_oracle   All tests passed (25 assertions in 5 test cases)
+test_layer_runtime_race        All tests passed (1189 assertions in 3 test cases)
+test_layer_runtime             All tests passed (1081 assertions in 12 test cases)
+test_clip_transport_sync       All tests passed (13 assertions in 3 test cases)
+```
+GREEN (TSan build, targets built 09:34:46-09:35:01 rc=0), direct runs + ctest, verbatim:
+```
+R1 rc=0 time=0.28s races=0 | All tests passed (1182 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R2 rc=0 time=0.23s races=0 | All tests passed (5 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R4 rc=0 time=0.21s races=0 | All tests passed (2 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+R3 rc=0 time=0.24s races=0 | All tests passed (9 assertions in 1 test case) | src: reports=0 kinds={} reports_with_src_frame=0 src_files={}
+1/4 Test #110: R1 message-thread triggers vs render clock / autopilot on one deck ......   Passed    0.27 sec
+2/4 Test #111: R2 clip runtime fields: trigger writes vs render transport write-back ...   Passed    0.23 sec
+3/4 Test #112: R4 tuple consistency and no lost fade under a paced trigger storm .......   Passed    0.21 sec
+4/4 Test #113: R3 manual scalar writes vs eff() reads ..................................   Passed    0.23 sec
+100% tests passed, 0 tests failed out of 4
+```
+and the committed runner on the lane TSan dir (`env -u TSAN_OPTIONS bash .harmony/probe-tsan-unit.sh <wt>/build-tsan`):
+`100% tests passed, 0 tests failed out of 4` / `probe-tsan-unit: ctest rc=0 2026-10-02 09:35:10`.
+ALL FOUR [tsan] cases (R1, R2, R3, R4) are GREEN at the end of B2. (probe-tsan-unit.sh's TARGETS list needed no
+change: B2 added no tsan-labelled target.)
+
+### Mutants (amendment 16, B2's items) -- each a normal build of a modified tree in build-lane, run once,
+restored byte-identically (sha256 checked by the runner, sleep 1.2 s + touch before the clean rebuild; `git diff --stat
+-- src tests` empty after each; the lane binaries re-run green after the restore)
+- m5 tick as a plain store (LayerClock::tick: `layer.setRuntime(next); rt = next; return true;`), verbatim:
+```
+test_layer_runtime.cpp:325: FAILED:  CHECK_FALSE( LayerClock::tick(L, rt, 0.1f) )
+test_layer_runtime.cpp:326: FAILED:  CHECK( rt == trig.after )
+test_layer_runtime.cpp:327: FAILED:  CHECK( L.runtime() == trig.after )
+test_layer_runtime.cpp:328: FAILED:  CHECK( L.runtime().previousClipColumn == 1 )  with expansion:  -1 == 1
+test_layer_runtime.cpp:331: FAILED:  CHECK( rt == LayerRuntimeSnapshot{ 2, 1, 0.2f, -1, Clip::BeatSnapMode::Off } )
+contention: ... test_layer_runtime.cpp:402: FAILED:  REQUIRE_FALSE( stalled )  with message:  triggers 6, GL ticks 978144323, adopts 0, fired 2; intent mismatches 0, I1 0
+test cases:  2 | 2 failed
+R4 (normal build) x3:
+  render observations 327798; I1 0 I2 11725 I3 0 I4 0   test cases: 1 | 1 failed
+  render observations 321304; I1 0 I2 12053 I3 0 I4 0   test cases: 1 | 1 failed
+  render observations 326460; I1 0 I2 12112 I3 0 I4 0   test cases: 1 | 1 failed
+```
+  NOTE vs the ruling's wording ("fails R4 I3"): R4 fails 3/3, but through I2, not I3 -- the plain tick overwrites the
+  trigger before the render ever observes it (a LOST activation, so no "first observation of a new active" exists for
+  I3 to judge); the next cyclic trigger then installs previous = the column before the lost one, which I2 counts. The
+  contention test stalls under the mutant (a fired queued trigger is overwritten, so the message thread waits for an
+  activation that never stands) and fails by REQUIRE_FALSE(stalled).
+- m6 the syncMedia write-back as a plain store (ClipTransportSync::writeBack: `clip.playing.store(now); wrote = true`),
+  verbatim:
+```
+test_clip_transport_sync.cpp:48: FAILED:  CHECK( clip.playing.load() == true )  with expansion:  false == true
+test_clip_transport_sync.cpp:51: FAILED:  CHECK( next == true )  with expansion:  false == true
+test_clip_transport_sync.cpp:52: FAILED:  CHECK( player.isPlaying() )  with expansion:  false
+test_clip_transport_sync.cpp:99: FAILED:  CHECK( clip.playing.load() == false )  with expansion:  true == false
+test_clip_transport_sync.cpp:101: FAILED:  CHECK_FALSE( player.isPlaying() )
+test cases:  3 | 1 passed | 2 failed
+assertions: 13 | 8 passed | 5 failed
+```
+  (the trigger-in-window and pause-in-window cases fail; the OneShot case passes under the mutant, as expected: it
+  has no concurrent intent change).
+
+### Full normal ctest (B2 stage end; serial, under the H12 cross-lane mutex /tmp/audiodna-ctest.lock;
+`ctest --test-dir <wt>/build-lane -j1`, build 09:36:06-09:36:10 rc=0 (no-op), ctest 09:36:10-09:37:16), verbatim:
+```
+99% tests passed, 1 tests failed out of 1085
+Total Test time (real) =  65.83 sec
+The following tests FAILED:
+	1062 - no std::cerr in code that runs off the message thread (Failed)
+```
+1062 = D6, T7's pre-registered RED (B3). Lint case 1 (1063 at B1) is now GREEN (T4). Count 1085 = 1079 (B1) + 6
+(T3: test_layer_runtime +2, test_render_thread_lint case 2 +1; T4: test_clip_transport_sync 3). Per-target case counts
+of the lane's targets now (G1): test_layer_runtime_race 3, test_manual_scalar_race 1, test_layer_runtime 12,
+test_clip_transport_sync 3, test_relaxed 4, test_log_line_lint 1, test_render_thread_lint 2, test_shared_field_types 1
+(+ test_undo_commands' D1 / D1b / D1c = 3 in an existing target). 1085 = 1055 + 30.
+
+### Non-mechanical test migrations (B2)
+none. B2 edited no existing test's body. Two existing-test notes (no edit, meaning unchanged):
+- tests/test_manual_write.cpp: its 9 `REQUIRE(ref->manual == &<field>)` lines now compare through
+  ManualSlot::operator== (RelaxedFloat* / float* overloads) -- still "which field does this control resolve to".
+- tests/test_layer_runtime_race.cpp R2: its plain-syntax mirror (`c->playing = ...`, `c->beatsPlayed =
+  c->beatsPlayed + 1`) now compiles to relaxed atomic operations through Relaxed<T>, exactly as T0 designed it.
+
+### Rig notes (B2)
+- 09:21 an accidental `bash configure.sh` with NO arguments (a typo'd `| head -0` pipe): checked at once -- no
+  CMakeCache.txt / CMakeFiles appeared in the main checkout, its build/ (CMakeCache.txt still Sep 25 20:41) or the
+  worktree root, and `git -C <main> status` is identical to the session start. Harmless; recorded for completeness.
+- Observation (not this builder's): main's build/CMakeFiles directory mtime is 2026-10-02 08:11 (before B2 started,
+  matching B1's first configure at 08:11:41 that reads build/_deps as FETCHCONTENT_SOURCE_DIR_*). Harmony may want to
+  check that a FETCHCONTENT_SOURCE_DIR configure does not touch main's build/.
+- A post-commit "[graphify hook] launching background rebuild" printed after each commit (a user-level hook); the
+  worktree stayed clean (`git status` showed only the report file and build-lane/).
+
+### Notebook notes (for Harmony to append)
+- 2026-10-02 -- Relaxed<T> compile fallout patterns | Files: src/model/Relaxed.h and any model field converted to it |
+  juce::var has NO conversion from Relaxed<T> (`setProperty("x", clip.playing)` fails: write `.load()`); a ternary
+  `cond ? float : RelaxedFloat` is ambiguous (both convert); `std::max(0.01f, relaxedField)` cannot deduce -- all
+  three need `.load()`. Plain reads, arithmetic, assignment and Catch2 CHECK / Approx compile unchanged. |
+  discovered: s-rta-1002 B2 T4 / T5 (ApiServer.cpp:437/439, TopBar.cpp:399/410, LayerStrip.cpp:818,
+  ClipInspector.cpp:1375, LayerInspector.cpp:970).
+- 2026-10-02 -- the GL thread reads a layer's trigger tuple ONCE per layer per pass | Files: src/render/
+  CompositorEngine.cpp, src/render/DeckClock.h, src/render/Renderer.cpp, src/model/Autopilot.cpp,
+  tests/test_render_thread_lint.cpp (case 2) | pass the loaded LayerRuntimeSnapshot down (renderLayerStages /
+  applyTransition / incomingImagePending take `rt`); publish the fade with LayerClock::tick(layer, rt, dt) (ONE CAS;
+  false = adopt, rt = the trigger's tuple, re-fetch the clip). A new `.runtime()` / `getActiveClip(` in those four
+  files fails the pinned-count lint until re-justified. | discovered: T3.
+- 2026-10-02 -- a render write-back of a message-thread intent is a CAS on the value read | Files:
+  src/render/ClipTransportSync.h, src/render/Renderer.cpp (syncMedia) | pushIntent reads `playing` once; writeBack
+  CASes it to the player's state, tests the out-point on the local playhead, and a OneShot stop CASes only the value
+  this sync wrote. Never store `playing` plainly in Renderer.cpp (test_render_thread_lint case 1). | discovered: T4.
+
+### next_stage_notes for B3 (T6 + T7 + T8 + docs + mutant evidence + lane smoke)
+- Heads: T3 9d9444e, T4 3400c08, T5 2e72850, then the B2 report commit. Build dirs: <wt>/build-lane (normal Release,
+  full build current at T5, ctest 1084/1085: only 1062 D6 RED = T7) and <wt>/build-tsan (TSan RelWithDebInfo,
+  reconfigured at 09:27 after T4's CMakeLists change; built targets: test_layer_runtime_race, test_manual_scalar_race,
+  test_layer_runtime, test_clip_transport_sync). Reconfigure both after any tests/CMakeLists.txt change.
+- [tsan] state: R1, R2, R3, R4 all GREEN (0 warnings, ctest -L tsan 4/4, probe-tsan-unit.sh rc=0 on build-tsan).
+  probe-tsan-unit.sh's TARGETS list is unchanged (B2 added no tsan-labelled target); add one there if B3 does.
+- T6 (amendment 9): Composition::activeDeckIndex -> RelaxedInt, getActiveDeck() one load, juce::var sites need
+  `.load()` (var has no Relaxed conversion -- see the notebook note; ApiServer :360 / :384 / :1540, Composition.h
+  :306), Renderer.cpp:467-495 derives the index from the acquire-loaded deck pointer. Pin it in
+  tests/test_shared_field_types.cpp (that file now already includes model/Composition.h). The Renderer.cpp:449-451
+  "house class" comment is T6's to rewrite.
+- T7: test_log_line_lint (1062) is the only RED left in the normal ctest. H3: VideoPlayer.cpp is in the list whole.
+- Amendment-16 mutant evidence is COMPLETE across B1 + B2: m1 casRuntime plain store, m2 execute() without the
+  first-call skip, m3 releaseMomentary without its pending branch, m4 activation tail after the CAS (fired 3/30),
+  m5 tick as a plain store, m6 syncMedia write-back as a plain store. B3 only collects them for the docs / review.
+  NOTE for the pitfall / docs wording: m5 fails R4 through I2 (a LOST activation), not I3 as the ruling worded it.
+- Amendment 13 is wired: /api/state (ApiServer AND TestServer) render_pending_fired / render_autopilot_advances /
+  render_tuple_adopts (Renderer::getRender*; Autopilot::FrameReport out-param; DeckClock::tick returns adopts;
+  CompositorEngine::takeTupleAdopts). Not yet seen live: B2 launched no app. H8 / G3.4's lane-d smoke is the first
+  live read (Manual BPM via POST /api/set_bpm gives the beats). render_tuple_adopts is INFO only (G3.6).
+- Docs inputs (amendment 14 + plan (6)) already true in code: CrossfadeHistory.h comment rewritten; LayerStrip.cpp
+  :747 and ConnectionEngine.h L5 comments rewritten (playheadPosition is RelaxedDouble); ClipTransportSync.h carries
+  the M-A8 ABA note; ManualSlot documents the R5 plain residue (effect params / dryWet / source params / macros).
+  integration.md needs the three /api/state fields.
+- Gotchas: the mutant-restore mtime trap (B1 note; B2's runner kept sleep 1.2 s + touch); ControlRef::manual is a
+  ManualSlot (use load() / store(); `!ref->manual` still works); Relaxed<T> fallout patterns (notebook note).
