@@ -73,8 +73,10 @@ struct LayerRuntimeTransition
 // The tuple as one lock-free 16-byte atomic word: int32 active, int32 previous, float progress, uint32 pending
 // (pending + 1 in the low 28 bits, the snap override in the high 4: pending -1 .. kMaxPendingColumn). No padding
 // bits, so the compare-exchange compares exactly the tuple. Apple clang arm64: ldp + dmb (acquire load), stp
-// (release store), caspal (CAS) -- no lock, and a reader never writes the cache line. Off macOS a 16-byte atomic
-// may not be lock-free (x86_64 needs -mcx16; MSVC's are not): the static_assert below guards the Apple build only.
+// (release store), caspal (CAS) -- no lock, and a reader never writes the cache line. Apple clang x86_64 is lock-free
+// too, without -mcx16, but its load is a lock cmpxchg16b (a reader writes the line). Elsewhere a 16-byte atomic may
+// not be lock-free (GCC x86_64 needs -mcx16 and reports it not always-lock-free; MSVC's are not): the static_assert
+// below guards the Apple build only.
 class LayerRuntimeCell
 {
 public:
@@ -135,6 +137,7 @@ private:
 #endif
 };
 static_assert(sizeof(LayerRuntimeCell::Word) == 16, "the tuple word is 16 bytes with no padding");
+static_assert(static_cast<int>(Clip::BeatSnapMode::FourBar) < 16, "the snap override packs into 4 bits");
 
 // Layer: a row in the deck. Contains clips across columns.
 // One clip is active per layer at a time.
@@ -523,7 +526,10 @@ private:
     // of a clip never triggered -- playing = true. Written BEFORE each CAS attempt that would install the
     // transition (idempotent, recomputed per attempt), so the acq_rel CAS publishes it: a GL-thread load that names
     // the column happens-after the reset (autopilot never counts a fresh trigger from a stale beatsPlayed). The
-    // clip runtime fields are per-field atomics; the tuple word is the only consistent unit.
+    // clip runtime fields are per-field atomics; the tuple word is the only consistent unit. Not reverted when the
+    // CAS never lands (a concurrent cancel, or a bounded update out of attempts): harmless -- the clip is inactive,
+    // nothing reads its playhead / beat count until its next activation re-runs this tail (a never-triggered clip
+    // may be left playing = true, which its next first activation sets anyway).
     void applyActivationTail(const LayerRuntimeSnapshot& from, const LayerRuntimeSnapshot& to)
     {
         if (Clip* clip = getClipAt(to.activeClipColumn))

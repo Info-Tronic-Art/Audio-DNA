@@ -68,6 +68,8 @@ TEST_CASE("Renderer.cpp: no plain store to a clip's playing; syncMedia goes thro
 //   DeckClock.h           runtime() 1: tick's layer loop (fade tick, active clock, outgoing clock); getActiveClip( 0.
 //   Autopilot.cpp         runtime() 3: processFrame's end-of-video pass, pending-trigger pass, beat pass (advanceClip /
 //                         smartAdvanceClip take the column from it); getActiveClip( 0.
+// The two other spellings of a load -- captureLayerRuntime( (the compat surface) and LayerClock::advanceCrossfade(
+// (load + tick) -- are pinned at 0 in all four files (fix-round NIT, review-tsan-tests-r1 N5).
 TEST_CASE("render thread: one trigger-tuple load per layer per pass (pinned counts)", "[tsan_lint][lint]")
 {
     struct Pin
@@ -84,10 +86,11 @@ TEST_CASE("render thread: one trigger-tuple load per layer per pass (pinned coun
     };
     const std::regex runtimeLoad(R"((\.|->)\s*runtime\s*\(\s*\))");
     const std::regex activeClipLoad(R"(getActiveClip\s*\()");
+    const std::regex otherLoad(R"(captureLayerRuntime\s*\(|LayerClock::advanceCrossfade\s*\()");
     for (const auto& pin : pins)
     {
         const auto lines = codeLines(pin.file);
-        int runtimeLoads = 0, activeClipLoads = 0;
+        int runtimeLoads = 0, activeClipLoads = 0, otherLoads = 0;
         std::string where;
         for (size_t i = 0; i < lines.size(); ++i)
         {
@@ -96,14 +99,18 @@ TEST_CASE("render thread: one trigger-tuple load per layer per pass (pinned coun
                                                          std::sregex_iterator()));
             const int a = static_cast<int>(std::distance(std::sregex_iterator(l.begin(), l.end(), activeClipLoad),
                                                          std::sregex_iterator()));
-            if (r + a > 0)
+            const int o = static_cast<int>(std::distance(std::sregex_iterator(l.begin(), l.end(), otherLoad),
+                                                         std::sregex_iterator()));
+            if (r + a + o > 0)
                 where += " " + std::to_string(i + 1);
             runtimeLoads += r;
             activeClipLoads += a;
+            otherLoads += o;
         }
-        INFO(pin.file << ": runtime() " << runtimeLoads << ", getActiveClip( " << activeClipLoads << " at lines"
-                      << where);
+        INFO(pin.file << ": runtime() " << runtimeLoads << ", getActiveClip( " << activeClipLoads
+                      << ", captureLayerRuntime( / LayerClock::advanceCrossfade( " << otherLoads << " at lines" << where);
         CHECK(runtimeLoads == pin.runtimeLoads);
         CHECK(activeClipLoads == pin.activeClipLoads);
+        CHECK(otherLoads == 0);
     }
 }

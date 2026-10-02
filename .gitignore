@@ -2,6 +2,7 @@
 /build/
 /build-asan/
 /build-tsan/
+/build-lane/
 /out/
 /cmake-build-*/
 CMakeFiles/

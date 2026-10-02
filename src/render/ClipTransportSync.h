@@ -25,9 +25,10 @@
 // Player concept: bool isPlaying(); void setPlaying(bool); double getPlayheadPosition(); void seekTo(double).
 namespace ClipTransportSync
 {
-// Step 1: read the intent once and push it to the player (only start a stopped player when the clip wants to play;
-// never override a player that stopped itself at a OneShot boundary while the intent still says play -- the
-// write-back then clears the intent). Returns the intent read, for writeBack.
+// Step 1: read the intent once and push it to the player: start a stopped player when the clip wants to play (also
+// one that stopped itself at a OneShot boundary -- the base did the same; writeBack's OneShot stop / CAS clears the
+// intent in that sync, so the next push leaves it stopped), stop it when the clip does not. Returns the intent read,
+// for writeBack.
 template <class Player>
 bool pushIntent(const Clip& clip, Player& player)
 {

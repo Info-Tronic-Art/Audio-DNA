@@ -200,6 +200,8 @@ TEST_CASE("updateRuntime: a bounded update gives up after exactly maxAttempts an
     int calls = 0;
     const auto t = L.updateRuntime([&](LayerRuntimeSnapshot r) {
         ++calls;
+        if (calls > 1000)
+            return r;   // a call cap (fix-round NIT): an ignored bound ends here and fails `calls == 16`, never hangs
         L.setRuntime({ 100 + calls, -1, 1.0f, -1, Clip::BeatSnapMode::Off });   // a concurrent writer wins each time
         r.crossfadeProgress = 0.5f;
         return r;
