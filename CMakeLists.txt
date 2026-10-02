@@ -188,6 +188,7 @@ target_sources(AudioDNA PRIVATE
     src/model/Deck.h
     src/model/Layer.h
     src/model/Layer.cpp
+    src/model/ClipRef.h
     src/model/Clip.h
     src/model/Clip.cpp
     src/model/Autopilot.h

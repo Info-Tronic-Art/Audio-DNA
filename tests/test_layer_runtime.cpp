@@ -16,9 +16,11 @@
 #include <atomic>
 #include <chrono>
 #include <climits>
+#include <string>
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 static_assert(std::is_nothrow_move_constructible_v<Layer>);   // holds on the base 02b2913 too (checked)
 
@@ -44,11 +46,12 @@ Layer restingLayer(int columns = 4, float transitionSpeed = 0.5f)
 
 TEST_CASE("LayerRuntimeCell: pack / unpack round trip over the whole range", "[layer_runtime]")
 {
-    const int cols[] = { -1, 0, 9999, 10000, INT_MAX };
-    const int pendings[] = { -1, 0, 9999, LayerRuntimeCell::kMaxPendingColumn };
+    const int cols[] = { -1, 0, 9999, 10000, ClipRef::kMaxColumn };
+    const int pendings[] = { -1, 0, 9999, ClipRef::kMaxColumn };
     const Clip::BeatSnapMode snaps[] = { Clip::BeatSnapMode::Off, Clip::BeatSnapMode::Beat, Clip::BeatSnapMode::Bar,
                                          Clip::BeatSnapMode::TwoBar, Clip::BeatSnapMode::FourBar };
-    REQUIRE(LayerRuntimeCell::kMaxPendingColumn == 268435454);
+    REQUIRE(LayerRuntimeCell::kMaxPendingColumn == ClipRef::kMaxColumn);
+    REQUIRE(ClipRef::kMaxColumn == 16382);
     Layer L;
     int checked = 0;
     for (int a : cols)
@@ -63,6 +66,161 @@ TEST_CASE("LayerRuntimeCell: pack / unpack round trip over the whole range", "[l
                     ++checked;
                 }
     CHECK(checked == 5 * 5 * 4 * 5);
+}
+
+// bf9b S1 (plan-bf9b S1.1; ruling-bf9b amendment 2): each tuple slot names a clip as a ClipRef (deck id, column),
+// packed into the SAME 16-byte word. Inert in S1: no caller writes a deck id yet.
+TEST_CASE("LayerRuntimeCell packs a ClipRef per slot: deck ids and columns round-trip at 0 and the limits, a ref "
+          "without a deck round-trips, pending + snap still share the last word (bf9b S1)", "[layer_runtime]")
+{
+    constexpr uint32_t kD = ClipRef::kMaxDeckId;
+    constexpr int kC = ClipRef::kMaxColumn;
+    REQUIRE(kD == 0x3FFEu);
+    REQUIRE(kC == 0x3FFE);
+
+    SECTION("deck 0 / column 0 and deck kMaxDeckId / column kMaxColumn in every slot")
+    {
+        for (const ClipRef ref : { ClipRef{ 0, 0 }, ClipRef{ kD, kC }, ClipRef{ 0, kC }, ClipRef{ kD, 0 } })
+        {
+            LayerRuntimeSnapshot r;
+            r.activeClipColumn = ref.column;     r.activeDeckId = ref.deckId;
+            r.previousClipColumn = ref.column;   r.previousDeckId = ref.deckId;
+            r.pendingTriggerColumn = ref.column; r.pendingDeckId = ref.deckId;
+            r.crossfadeProgress = 0.5f;
+            r.pendingTriggerSnapOverride = Clip::BeatSnapMode::FourBar;
+            const LayerRuntimeSnapshot u = LayerRuntimeCell::unpack(LayerRuntimeCell::pack(r));
+            CHECK(u == r);
+            CHECK(u.activeRef() == ref);
+            CHECK(u.previousRef() == ref);
+            CHECK(u.pendingRef() == ref);
+            CHECK(u.activeRef().valid());
+            Layer L;
+            L.setRuntime(r);
+            CHECK(L.runtime() == r);
+        }
+    }
+
+    SECTION("a ref without a deck round-trips (the pre-bf9b column-only tuple), and decodes distinct from deck 0")
+    {
+        const LayerRuntimeSnapshot noDeck{ 3, 1, 0.25f, 7, Clip::BeatSnapMode::Bar };
+        CHECK(noDeck.activeDeckId == ClipRef::kNoDeck);
+        CHECK(noDeck.previousDeckId == ClipRef::kNoDeck);
+        CHECK(noDeck.pendingDeckId == ClipRef::kNoDeck);
+        const LayerRuntimeSnapshot u = LayerRuntimeCell::unpack(LayerRuntimeCell::pack(noDeck));
+        CHECK(u == noDeck);
+        CHECK(u.activeRef() == ClipRef{ ClipRef::kNoDeck, 3 });
+        CHECK(u.previousRef() == ClipRef{ ClipRef::kNoDeck, 1 });
+        CHECK(u.pendingRef() == ClipRef{ ClipRef::kNoDeck, 7 });
+        CHECK_FALSE(u.activeRef().valid());   // deck-less: S2 refuses it at every trigger entry (amendment 2(c))
+
+        LayerRuntimeSnapshot deck0 = noDeck;
+        deck0.activeDeckId = 0;
+        deck0.previousDeckId = 0;
+        deck0.pendingDeckId = 0;
+        const LayerRuntimeSnapshot u0 = LayerRuntimeCell::unpack(LayerRuntimeCell::pack(deck0));
+        CHECK(u0 == deck0);
+        CHECK_FALSE(u0 == u);
+        CHECK(u0.activeDeckId == 0u);
+        CHECK(u0.previousDeckId == 0u);
+        CHECK(u0.pendingDeckId == 0u);
+
+        const LayerRuntimeSnapshot rest{};   // the default tuple: no clip anywhere
+        CHECK(LayerRuntimeCell::unpack(LayerRuntimeCell::pack(rest)) == rest);
+        CHECK(rest.activeRef() == ClipRef{});
+        CHECK_FALSE(ClipRef{}.valid());
+        CHECK_FALSE((ClipRef{ 0, -1 }).valid());
+        CHECK_FALSE((ClipRef{ kD + 1, 0 }).valid());
+        CHECK_FALSE((ClipRef{ 0, kC + 1 }).valid());
+    }
+
+    SECTION("pending + snap share the last word: the 28-bit ref under the 4-bit snap override")
+    {
+        LayerRuntimeSnapshot r;
+        r.pendingTriggerColumn = kC;
+        r.pendingDeckId = kD;
+        r.pendingTriggerSnapOverride = Clip::BeatSnapMode::FourBar;
+        const LayerRuntimeCell::Word w = LayerRuntimeCell::pack(r);
+        CHECK((w.pendingPacked & 0x0FFFFFFFu) == 0x0FFFBFFFu);   // deck 0x3FFE + column 0x3FFE (plan S1 limit case)
+        CHECK((w.pendingPacked >> 28) == static_cast<uint32_t>(Clip::BeatSnapMode::FourBar));
+        CHECK(w.active == -1);                                   // active / previous: -1 = no clip, no deck
+        CHECK(w.previous == -1);
+        const LayerRuntimeSnapshot u = LayerRuntimeCell::unpack(w);
+        CHECK(u.pendingRef() == ClipRef{ kD, kC });
+        CHECK(u.pendingTriggerSnapOverride == Clip::BeatSnapMode::FourBar);
+
+        LayerRuntimeSnapshot a;
+        a.activeClipColumn = kC;
+        a.activeDeckId = kD;
+        CHECK(LayerRuntimeCell::pack(a).active == static_cast<int32_t>((kD << 16) | static_cast<uint32_t>(kC)));
+    }
+}
+
+TEST_CASE("ClipRef packing is a bijection on the valid domain (bf9b S1)", "[layer_runtime]")
+{
+    const uint32_t decks[] = { 0, 1, 100, 0x3FFE, ClipRef::kNoDeck };
+    const int cols[] = { -1, 0, 1, 9999, 10000, 0x3FFE };
+    const Clip::BeatSnapMode snaps[] = { Clip::BeatSnapMode::Off, Clip::BeatSnapMode::Beat, Clip::BeatSnapMode::Bar,
+                                         Clip::BeatSnapMode::TwoBar, Clip::BeatSnapMode::FourBar };
+    std::vector<ClipRef> refs;
+    for (uint32_t d : decks)
+        for (int c : cols)
+            refs.push_back({ d, c });
+    REQUIRE(refs.size() == 30);
+
+    // unpack(pack(x)) == x with every ref in the active, previous AND pending slot, under every snap override.
+    long checked = 0;
+    long failures = 0;
+    std::string firstFailure;
+    for (const ClipRef& a : refs)
+        for (const ClipRef& p : refs)
+            for (const ClipRef& q : refs)
+                for (auto s : snaps)
+                {
+                    LayerRuntimeSnapshot r;
+                    r.activeClipColumn = a.column;     r.activeDeckId = a.deckId;
+                    r.previousClipColumn = p.column;   r.previousDeckId = p.deckId;
+                    r.crossfadeProgress = 0.625f;
+                    r.pendingTriggerColumn = q.column; r.pendingDeckId = q.deckId;
+                    r.pendingTriggerSnapOverride = s;
+                    const LayerRuntimeSnapshot u = LayerRuntimeCell::unpack(LayerRuntimeCell::pack(r));
+                    const bool ok = u == r && u.activeRef() == a && u.previousRef() == p && u.pendingRef() == q
+                                    && u.pendingTriggerSnapOverride == s;
+                    if (!ok && failures++ == 0)
+                        firstFailure = "active (" + std::to_string(a.deckId) + ", " + std::to_string(a.column)
+                                     + ") previous (" + std::to_string(p.deckId) + ", " + std::to_string(p.column)
+                                     + ") pending (" + std::to_string(q.deckId) + ", " + std::to_string(q.column)
+                                     + ") snap " + std::to_string(static_cast<int>(s)) + " -> active ("
+                                     + std::to_string(u.activeDeckId) + ", " + std::to_string(u.activeClipColumn)
+                                     + ") previous (" + std::to_string(u.previousDeckId) + ", "
+                                     + std::to_string(u.previousClipColumn) + ") pending ("
+                                     + std::to_string(u.pendingDeckId) + ", "
+                                     + std::to_string(u.pendingTriggerColumn) + ")";
+                    ++checked;
+                }
+    INFO("first failure: " << firstFailure);
+    CHECK(failures == 0);
+    CHECK(checked == 30L * 30L * 30L * 5L);
+
+    // Injective: distinct refs never share a packed form in any slot (deck 0 and kNoDeck decode distinct).
+    for (size_t i = 0; i < refs.size(); ++i)
+        for (size_t j = i + 1; j < refs.size(); ++j)
+        {
+            LayerRuntimeSnapshot x, y;
+            x.activeClipColumn = refs[i].column;     x.activeDeckId = refs[i].deckId;
+            x.previousClipColumn = refs[i].column;   x.previousDeckId = refs[i].deckId;
+            x.pendingTriggerColumn = refs[i].column; x.pendingDeckId = refs[i].deckId;
+            y.activeClipColumn = refs[j].column;     y.activeDeckId = refs[j].deckId;
+            y.previousClipColumn = refs[j].column;   y.previousDeckId = refs[j].deckId;
+            y.pendingTriggerColumn = refs[j].column; y.pendingDeckId = refs[j].deckId;
+            const LayerRuntimeCell::Word wx = LayerRuntimeCell::pack(x), wy = LayerRuntimeCell::pack(y);
+            CHECK(wx.active != wy.active);
+            CHECK(wx.previous != wy.previous);
+            CHECK(wx.pendingPacked != wy.pendingPacked);
+        }
+    const LayerRuntimeSnapshot d0{ .activeClipColumn = 5, .activeDeckId = 0 };
+    const LayerRuntimeSnapshot dn{ .activeClipColumn = 5 };
+    CHECK(LayerRuntimeCell::unpack(LayerRuntimeCell::pack(d0)).activeDeckId == 0u);
+    CHECK(LayerRuntimeCell::unpack(LayerRuntimeCell::pack(dn)).activeDeckId == ClipRef::kNoDeck);
 }
 
 TEST_CASE("Layer triggers return the exact transition pair", "[layer_runtime]")

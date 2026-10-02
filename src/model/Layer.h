@@ -1,5 +1,6 @@
 #pragma once
 #include "model/Clip.h"
+#include "model/ClipRef.h"
 #include "connect/ParamConnection.h"
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
@@ -38,6 +39,8 @@ struct FeedbackConfig
 
 // A value copy of the tuple (same 5 fields as before the lane; an aggregate, so a test can write
 // layer.setRuntime({ .activeClipColumn = 1, .crossfadeProgress = 0.5f })).
+// bf9b S1: each clip slot also carries the id of the deck it names (activeRef() / previousRef() / pendingRef() =
+// a ClipRef); the deck ids default to ClipRef::kNoDeck and come last, so a column-only tuple is written as before.
 // pendingTriggerSnapOverride rides alongside pendingTriggerColumn (L5 Quantize): Off means "derive the granularity
 // from the target clip's own beatSnapMode"; non-Off means a caller (global Quantize) FORCED a granularity for this
 // one queued trigger (the clip's own beatSnapMode is never mutated).
@@ -48,6 +51,13 @@ struct LayerRuntimeSnapshot
     float crossfadeProgress = 1.0f;  // 1.0 = fully transitioned
     int pendingTriggerColumn = -1;   // beat snap: a queued trigger awaiting its beat / bar (-1 = none)
     Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+    uint32_t activeDeckId = ClipRef::kNoDeck;     // the deck box each slot's column is in (kNoDeck = none)
+    uint32_t previousDeckId = ClipRef::kNoDeck;
+    uint32_t pendingDeckId = ClipRef::kNoDeck;
+
+    ClipRef activeRef() const { return { activeDeckId, activeClipColumn }; }
+    ClipRef previousRef() const { return { previousDeckId, previousClipColumn }; }
+    ClipRef pendingRef() const { return { pendingDeckId, pendingTriggerColumn }; }
 };
 
 inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot& b)
@@ -56,7 +66,10 @@ inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot
         && a.previousClipColumn == b.previousClipColumn
         && a.crossfadeProgress == b.crossfadeProgress
         && a.pendingTriggerColumn == b.pendingTriggerColumn
-        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride;
+        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride
+        && a.activeDeckId == b.activeDeckId
+        && a.previousDeckId == b.previousDeckId
+        && a.pendingDeckId == b.pendingDeckId;
 }
 
 // One transition of the tuple: `before` is the tuple the compare-exchange replaced and `after` the tuple it
@@ -70,11 +83,14 @@ struct LayerRuntimeTransition
     bool changed() const { return !(before == after); }
 };
 
-// The tuple as one lock-free 16-byte atomic word: int32 active, int32 previous, float progress, uint32 pending
-// (pending + 1 in the low 28 bits, the snap override in the high 4: pending -1 .. kMaxPendingColumn). No padding
-// bits, so the compare-exchange compares exactly the tuple. Apple clang arm64: ldp + dmb (acquire load), stp
-// (release store), caspal (CAS) -- no lock, and a reader never writes the cache line. Apple clang x86_64 is lock-free
-// too, without -mcx16, but its load is a lock cmpxchg16b (a reader writes the line). Elsewhere a 16-byte atomic may
+// The tuple as one lock-free 16-byte atomic word: int32 active, int32 previous, float progress, uint32 pending.
+// Each clip slot packs a ClipRef (bf9b S1): active / previous = (deck << 16) | uint16(column) -- a deck-less ref
+// stores deck field 0xFFFF, so "no clip" is -1 as before; pending = the low 28 bits ((deck << 14) | (column + 1),
+// deck field 0x3FFF = no deck) under the snap override in the high 4. Columns -1 .. ClipRef::kMaxColumn, deck ids
+// 0 .. ClipRef::kMaxDeckId; every value in those ranges round-trips (the bijection test). No padding bits, so the
+// compare-exchange compares exactly the tuple. Apple clang arm64: ldp + dmb (acquire load), stp (release store),
+// caspal (CAS) -- no lock, and a reader never writes the cache line. Apple clang x86_64 is lock-free too, without
+// -mcx16, but its load is a lock cmpxchg16b (a reader writes the line). Elsewhere a 16-byte atomic may
 // not be lock-free (GCC x86_64 needs -mcx16 and reports it not always-lock-free; MSVC's are not): the static_assert
 // below guards the Apple build only.
 class LayerRuntimeCell
@@ -87,19 +103,23 @@ public:
         float progress;
         uint32_t pendingPacked;
     };
-    static constexpr int kMaxPendingColumn = 0x0FFFFFFF - 1;   // 268,435,454
+    static constexpr int kMaxPendingColumn = ClipRef::kMaxColumn;   // 16,382
 
     static Word pack(const LayerRuntimeSnapshot& r) noexcept
     {
-        return { r.activeClipColumn, r.previousClipColumn, r.crossfadeProgress,
-                 (static_cast<uint32_t>(r.pendingTriggerColumn + 1) & 0x0FFFFFFFu)
+        return { packSlot(r.activeDeckId, r.activeClipColumn), packSlot(r.previousDeckId, r.previousClipColumn),
+                 r.crossfadeProgress,
+                 packPending(r.pendingDeckId, r.pendingTriggerColumn)
                      | (static_cast<uint32_t>(r.pendingTriggerSnapOverride) << 28) };
     }
     static LayerRuntimeSnapshot unpack(const Word& w) noexcept
     {
-        return { w.active, w.previous, w.progress,
-                 static_cast<int>(w.pendingPacked & 0x0FFFFFFFu) - 1,
-                 static_cast<Clip::BeatSnapMode>(w.pendingPacked >> 28) };
+        const uint32_t pendingDeck = (w.pendingPacked >> 14) & 0x3FFFu;
+        return { slotColumn(w.active), slotColumn(w.previous), w.progress,
+                 static_cast<int>(w.pendingPacked & 0x3FFFu) - 1,
+                 static_cast<Clip::BeatSnapMode>(w.pendingPacked >> 28),
+                 slotDeck(w.active), slotDeck(w.previous),
+                 pendingDeck == 0x3FFFu ? ClipRef::kNoDeck : pendingDeck };
     }
 
     LayerRuntimeCell() noexcept : w_(pack(LayerRuntimeSnapshot{})) {}
@@ -131,6 +151,24 @@ public:
     }
 
 private:
+    // One ClipRef slot <-> its packed field (see the word layout above).
+    static int32_t packSlot(uint32_t deckId, int column) noexcept
+    {
+        const uint32_t deck = deckId == ClipRef::kNoDeck ? 0xFFFFu : (deckId & 0xFFFFu);
+        return static_cast<int32_t>((deck << 16) | (static_cast<uint32_t>(column) & 0xFFFFu));
+    }
+    static uint32_t slotDeck(int32_t v) noexcept
+    {
+        const uint32_t deck = static_cast<uint32_t>(v) >> 16;
+        return deck == 0xFFFFu ? ClipRef::kNoDeck : deck;
+    }
+    static int slotColumn(int32_t v) noexcept { return static_cast<int16_t>(static_cast<uint32_t>(v) & 0xFFFFu); }
+    static uint32_t packPending(uint32_t deckId, int column) noexcept
+    {
+        const uint32_t deck = deckId == ClipRef::kNoDeck ? 0x3FFFu : (deckId & 0x3FFFu);
+        return (deck << 14) | (static_cast<uint32_t>(column + 1) & 0x3FFFu);
+    }
+
     std::atomic<Word> w_;
 #if defined(__APPLE__)
     static_assert(std::atomic<Word>::is_always_lock_free, "the Layer trigger tuple must be one lock-free word");
