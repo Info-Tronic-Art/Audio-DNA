@@ -145,6 +145,9 @@ public:
     // Tests: the nested tab-row listener (driven in JUCE's order) and the box itself.
     juce::MouseListener& tabRowMouseForTests() { return tabRowMouse_; }
     juce::TextEditor* renameEditorForTests() { return &renameEditor_; }
+    // Tests: the keyboard focus the close reads (headless, no component can hold focus: it is always nowhere).
+    // Empty = juce::Component::getCurrentlyFocusedComponent().
+    void setFocusedComponentForTests(std::function<juce::Component*()> f) { focusedForTests_ = std::move(f); }
     // s-rta-1002b ui U3.4 (ruling AM6; the TEST-ONLY REST routes /api/debug/deck_tabs, deck_rename, tab_click,
     // tab_dblclick): the same functions a click / key reaches. clickTabForTests runs the tab button's own onClick (what
     // Button::mouseUp reaches) through a copy that outlives a rebuild; doubleClickTabForTests replays a double-click in
@@ -203,6 +206,7 @@ private:
     DeckNameEditor renameEditor_;                        // created once, hidden (Pitfall 34), never rebuilt
     bool renaming_ = false;
     uint32_t renamingDeckId_ = 0;
+    std::function<juce::Component*()> focusedForTests_;   // empty = the real focus (setFocusedComponentForTests)
     juce::Rectangle<int> tabRow_;                        // the tab row in DeckView coordinates (resized)
     void finishRename(bool keep);
     void placeRenameEditor();

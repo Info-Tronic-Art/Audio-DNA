@@ -192,6 +192,7 @@ struct Rig
     std::vector<std::pair<int, juce::String>> renames;
     int closes = 0;
     int switches = 0;
+    std::vector<bool> boxVisibleAtClose;   // onRenameClosed must run BEFORE the box hides (ruling E-R4, AM4)
 
     explicit Rig(bool rebuildingSwitch = true)
     {
@@ -199,7 +200,7 @@ struct Rig
         dv.setSize(1400, 600);
         dv.setComposition(&comp);
         dv.onDeckRenamed = [this](int i, const juce::String& t) { renames.emplace_back(i, t); };
-        dv.onRenameClosed = [this] { ++closes; };
+        dv.onRenameClosed = [this] { ++closes; boxVisibleAtClose.push_back(dv.renameEditorForTests()->isVisible()); };
         if (rebuildingSwitch)
             dv.onDeckSwitched = [this](int i) { ++switches; comp.activeDeckIndex = i; dv.rebuildGrid(); };
         else
@@ -207,6 +208,14 @@ struct Rig
     }
 
     void key(const juce::KeyPress& k) { dv.renameEditorForTests()->keyPressed(k); }
+    // Every onRenameClosed so far ran while the box was still visible (focus handed home BEFORE the hide).
+    bool closedBeforeHide() const
+    {
+        for (bool v : boxVisibleAtClose)
+            if (! v)
+                return false;
+        return static_cast<int>(boxVisibleAtClose.size()) == closes;
+    }
 };
 
 const juce::KeyPress kReturn(juce::KeyPress::returnKey);
@@ -330,6 +339,7 @@ TEST_CASE("DeckView rename (e): Return / Tab / Shift+Tab / click-away / focus lo
         CHECK_FALSE(r.dv.renameEditorForTests()->isVisible());
         CHECK_FALSE(r.dv.isRenaming());
         CHECK(r.closes == 1);
+        CHECK(r.closedBeforeHide());
     }
     SECTION("Esc discards: no rename, closed, focus home once")
     {
@@ -340,6 +350,7 @@ TEST_CASE("DeckView rename (e): Return / Tab / Shift+Tab / click-away / focus lo
         CHECK(r.renames.empty());
         CHECK_FALSE(r.dv.renameEditorForTests()->isVisible());
         CHECK(r.closes == 1);
+        CHECK(r.closedBeforeHide());
     }
     SECTION("an empty name or the unchanged name keeps the old one (no rename)")
     {
@@ -352,6 +363,7 @@ TEST_CASE("DeckView rename (e): Return / Tab / Shift+Tab / click-away / focus lo
         r.key(kReturn);
         CHECK(r.renames.empty());
         CHECK(r.closes == 2);
+        CHECK(r.closedBeforeHide());
     }
     SECTION("Tab and Shift+Tab keep")
     {
@@ -366,6 +378,7 @@ TEST_CASE("DeckView rename (e): Return / Tab / Shift+Tab / click-away / focus lo
         CHECK(r.renames[0].second == "T1");
         CHECK(r.renames[1].second == "T2");
         CHECK(r.closes == 2);
+        CHECK(r.closedBeforeHide());
     }
     SECTION("a press on a clip cell keeps; a press on the box or one of its children leaves it open")
     {
@@ -386,6 +399,7 @@ TEST_CASE("DeckView rename (e): Return / Tab / Shift+Tab / click-away / focus lo
         REQUIRE(r.renames.size() == 1);
         CHECK(r.renames[0] == std::make_pair(1, juce::String("Cell")));
         CHECK(r.closes == 1);
+        CHECK(r.closedBeforeHide());
     }
     SECTION("the box's focus-loss callback while it has no focus keeps")
     {
@@ -399,6 +413,7 @@ TEST_CASE("DeckView rename (e): Return / Tab / Shift+Tab / click-away / focus lo
         REQUIRE(r.renames.size() == 1);
         CHECK(r.renames[0].second == "Lost");
         CHECK(r.closes == 1);
+        CHECK(r.closedBeforeHide());
     }
 }
 
@@ -426,6 +441,7 @@ TEST_CASE("DeckView rename (f): a rebuild keeps the box on its deck, on top; the
     CHECK_FALSE(ed->isVisible());
     CHECK(r.renames.empty());
     CHECK(r.closes == 1);
+    CHECK(r.closedBeforeHide());
 }
 
 TEST_CASE("DeckView rename (g): key-ups are swallowed; the output keys pass through and leave the box open; plain Esc discards", "[decktabs][rename]")
@@ -474,6 +490,7 @@ TEST_CASE("DeckView rename (i): cancelDeckRename while open closes, renames noth
     CHECK_FALSE(r.dv.renameEditorForTests()->isVisible());
     CHECK(r.renames.empty());
     CHECK(r.closes == 1);
+    CHECK(r.closedBeforeHide());
     r.dv.cancelDeckRename();                              // closed already: nothing
     CHECK(r.closes == 1);
 }
@@ -484,4 +501,41 @@ TEST_CASE("DeckView rename (j): the box's tooltip names its keys, and it has no 
     auto* ed = r.dv.renameEditorForTests();
     CHECK(ed->getTooltip() == "Enter keeps the new name, Esc cancels");
     CHECK_FALSE(ed->isPopupMenuEnabled());
+}
+
+TEST_CASE("DeckView rename (k): focus held OUTSIDE DeckView stays there (no onRenameClosed); inside DeckView or nowhere goes home", "[decktabs][rename]")
+{
+    // Headless, nothing can hold keyboard focus, so the close reads it through the test seam. The real case: Boris
+    // clicks into the BPM field or a browser search box while the box is open -> the box's (posted) focus loss keeps
+    // the name, and focus must be LEFT in that field (ruling AM4: "If focus is elsewhere ... it is left there").
+    Rig r;
+    juce::Component elsewhere;                            // not inside DeckView (e.g. the TopBar BPM field)
+    juce::Component* focus = &elsewhere;
+    r.dv.setFocusedComponentForTests([&focus] { return focus; });
+
+    doubleClick(r.dv, "B");
+    auto* ed = r.dv.renameEditorForTests();
+    ed->setText("Kept", false);
+    REQUIRE(ed->onFocusLost != nullptr);
+    ed->onFocusLost();
+    CHECK_FALSE(ed->isVisible());
+    REQUIRE(r.renames.size() == 1);
+    CHECK(r.renames[0].second == "Kept");
+    CHECK(r.closes == 0);
+
+    focus = ed;                                           // inside DeckView: the box itself
+    doubleClick(r.dv, "B");
+    r.key(kEsc);
+    CHECK(r.closes == 1);
+
+    focus = tabNamed(r.dv, "A");                          // inside DeckView: a tab button
+    doubleClick(r.dv, "B");
+    r.key(kEsc);
+    CHECK(r.closes == 2);
+
+    focus = nullptr;                                      // nowhere
+    doubleClick(r.dv, "B");
+    r.key(kEsc);
+    CHECK(r.closes == 3);
+    CHECK(r.closedBeforeHide());
 }

@@ -664,7 +664,7 @@ void DeckView::finishRename(bool keep)
     // Hand the keyboard home BEFORE the hide: hiding a focused box makes JUCE give focus to DeckView's first focusable
     // descendant (column trigger "1"), and the next Return would fire that column (ruling E-R4). Focus that is already
     // elsewhere (the BPM field, a browser search box) is left there.
-    auto* focused = juce::Component::getCurrentlyFocusedComponent();
+    auto* focused = focusedForTests_ ? focusedForTests_() : juce::Component::getCurrentlyFocusedComponent();
     if ((focused == nullptr || isParentOf(focused)) && onRenameClosed)
         onRenameClosed();
     renameEditor_.setVisible(false);
