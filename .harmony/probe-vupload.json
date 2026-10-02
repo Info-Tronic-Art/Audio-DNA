@@ -42,12 +42,22 @@
   "u9LateMax": 10,
   "_u9": "u9: at s0 bytes >= u9BytesMinMb and <= the budget, frames >= floorFrames (INFO: >= u9FramesFracInfo x 300, adoption S7); after the idle trim bytes / frames / active == 0 and phys_footprint dropped by >= u9FootprintDropFracMin x the counted bytes (GC10); back on screen the code within its bracket, late <= u9LateMax over 3 s",
   "_u11": "u11 (GC9): after the switch back to a column of four reversers -- the lane app's median pooled upload gap <= the pre-lane app's (absolute values recorded)",
+  "_u13": "u13_container_reverse (s-rta-1002b mkvidx: .harmony/.reports/s-rta-1002b/plan-mkvidx.md item 4 + ruling-mkvidx.md AM14; FROZEN -- Harmony records `git rev-parse HEAD:.harmony/probe-vupload.json` before the first G6 launch, a changed blob voids the run). Scenes (a) mkv_cuesfront_reverse (b) mkv_reverse (c) hap600_reverse (d) mkv_long_column_1080x4 (e) mp4_long_column_1080x4 (f) mkv_long_pingpong_turn (g) mp4_long_pingpong_turn. Every rule needs >= 5 launches per arm of the scenes it reads (else FAIL). [CTRL-A] (INFO verdicts, first; they fix how the rules read, never a lane defect): (i) A (a) median uploads/s < u13CtrlAFreezeMax, else STOP (the live pre-lane app does not reproduce the front-Cues freeze: check the fixture's index before judging B); (ii) A (c) fails [HAP]'s bars (median uploads/s < u7ReverseUploadsMin or median decoded_per_upload > u13HapDecPerUploadMax), else [HAP] is non-discriminating in this run (check hap1080_tb600.mov's time base, 1/600); (iii) A (d) median decoded_per_upload >= u13CtrlACpuMin x A (e)'s, else the live app does not reproduce the emulated Matroska cost and a [CPU] FAIL is the expected outcome. [FREEZE] (a) / [MKV] (b): B medians uploads/s >= u7ReverseUploadsMin, late <= u7ReverseLateMax, bracket_ok 1, mono_ok 1, and nonmono 0 in every B launch. [HAP] (c): the same + B median decoded_per_upload <= u13HapDecPerUploadMax. [CPU]: B median decoded_per_upload (d) <= u13CpuRatioMax x A's (d) (bar frozen, never re-registered; FAIL with [PARITY] PASS = the recorded verdict 'live Matroska cost ratio R', not a merge blocker). [PARITY]: B median decoded_per_upload (d) <= u13ParityMax x B's (e). [GUARD]: B median late (d) <= A's (d) + u13LateSlack and B median per_player_min (d) >= A's - u13PerPlayerSlack. [PP-PARITY]: B median late (f) <= B median late (g) + u13PpLateSlack. INFO: the big-share turn (A mkv / B mkv / B mp4 late, max gaps; decision (iv): B mkv late - A mkv late > 60 per window -> Q1 to Boris), kf_lines (the decode thread's 'Keyframe index:' witness).",
+  "u13CtrlAFreezeMax": 20,
+  "u13CtrlACpuMin": 1.3,
+  "u13HapDecPerUploadMax": 1.25,
+  "u13CpuRatioMax": 0.7,
+  "u13ParityMax": 1.15,
+  "u13LateSlack": 15,
+  "u13PerPlayerSlack": 1.5,
+  "u13PpLateSlack": 15,
   "layers": {
     "u4a_context_cycle": [140, 141, 142, 143],
     "u4b_idle_ring_trim": [144, 145, 146, 147], "u4b_away": 148,
     "u6_crossfade_video": [150, 151, 152, 153],
     "u7_reverse_pingpong": 154,
     "u8_reverse_column_1080x4": [155, 156, 157, 158], "u9_reverse_cache_drop": 159, "u9_away": 160, "u10_reverse_4k": 161,
-    "u11_reverse_column_return": [162, 163, 164, 165], "u11_away": 166, "u12_reverse_pixel_identity": [167, 168]
+    "u11_reverse_column_return": [162, 163, 164, 165], "u11_away": 166, "u12_reverse_pixel_identity": [167, 168],
+    "u13_container_reverse": [169, 170, 171, 172]
   }
 }

@@ -35,6 +35,7 @@
   "bandRows": { "1080": 64, "4k": 128 },
   "keyframesG250": [0.0, 8.333],
   "keyframesG30": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+  "keyframesG250x60": [0.0, 8.333, 16.667, 25.0, 33.333, 41.667, 50.0, 58.333],
   "w1cLoads": 3,
   "w1cPeakMedianMaxMs": 4.0,
   "w1cFpsMin": 118.5,
@@ -65,8 +66,14 @@
     "pr1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"], "keys": null },
     "pr4444a_1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "dur": 2, "alpha": true, "enc": ["-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuva444p10le"], "keys": null },
     "hapa_1080.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "dur": 2, "alpha": true, "enc": ["-c:v", "hap", "-format", "hap_alpha"], "keys": null },
-    "x265_10_1080.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "needEncoder": "libx265", "enc": ["-c:v", "libx265", "-preset", "ultrafast", "-x265-params", "keyint=250:min-keyint=250:scenecut=0:log-level=error", "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1"], "keys": null }
+    "x265_10_1080.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "needEncoder": "libx265", "enc": ["-c:v", "libx265", "-preset", "ultrafast", "-x265-params", "keyint=250:min-keyint=250:scenecut=0:log-level=error", "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1"], "keys": null },
+    "a1080_g250.mkv": { "remux": "a1080_g250.mp4", "mux": [], "keys": "keyframesG250" },
+    "a1080_g250_cuesfront.mkv": { "remux": "a1080_g250.mp4", "mux": ["-cues_to_front", "1"], "keys": "keyframesG250" },
+    "a1080_g250_60s.mp4": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "dur": 60, "enc": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-g", "250", "-keyint_min", "250", "-sc_threshold", "0", "-pix_fmt", "yuv420p"], "keys": "keyframesG250x60" },
+    "a1080_g250_60s.mkv": { "remux": "a1080_g250_60s.mp4", "mux": [], "keys": "keyframesG250x60" },
+    "hap1080_tb600.mov": { "size": "1920x1080", "band": 64, "base": 0, "src": "testsrc2", "enc": ["-c:v", "hap", "-video_track_timescale", "600"], "keys": null }
   },
+  "_mkvidx": "s-rta-1002b mkvidx (probe-vupload u13): a1080_g250.mkv / a1080_g250_cuesfront.mkv = container copies of a1080_g250.mp4 (Matroska Cues at the end: a 1-entry index until the first seek; at the front: every keyframe at open, the case main called intra-only and froze in reverse); a1080_g250_60s.mp4 / .mkv = a 60 s (1800-frame) GOP-250 stream and its Matroska copy (u13's column and ping-pong-turn scenes: counters only, the code band wraps at 1024 frames); hap1080_tb600.mov = HAP on a QuickTime 1/600 time base (a truncated frame seek lands a frame low: main showed about half of a reversing clip)",
   "_b1080": "b1080 is the NEGATED testsrc2 picture (plus code bit 9): a crossfade mid-point is then a blend distinguishable from both A and B (w6 (c)); the band is drawn after the negate, so it decodes like A's",
   "warm": [256, 144, [200, 120, 40]]
 }
