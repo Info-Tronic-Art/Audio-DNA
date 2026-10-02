@@ -4,9 +4,9 @@
 // TSan sweep: AnalysisThread vs the ApiServer thread; VideoPlayer's "Opened" line on two MediaOpen threads). Those
 // files log with logLine(...) (src/core/LogLine.h: one std::fwrite of a whole formatted line).
 // DEBT (like test_hot_thread_io_lint): TEXTUAL. Line comments are stripped; a std::cerr reached through another name
-// is not seen. The list is the worker-thread file list of plan T7 (VideoPlayer.cpp whole, H3).
-// Post-merge residual (R8, owned by lane bt2 until it merges): audio/AudioEngine.cpp and audio/DeviceGuard.cpp still
-// write std::cerr; a post-merge sweep converts them and adds them here.
+// is not seen. The list is the worker-thread file list of plan T7 (VideoPlayer.cpp whole, H3) plus the two bt2 audio
+// files (R8 closed, s-rta-1002b hyg: audio/AudioEngine.cpp + audio/DeviceGuard.cpp; none of their lines is reachable
+// from the audio device callback, so logLine's syscall is allowed there).
 // Fix round (ruling F3, CLAUDE.md Sacred Rule 3): a thread that must not allocate in its steady state logs with the
 // zero-heap logLinef (a stack buffer, one fwrite): the analysis thread never calls logLine (its ostringstream +
 // std::string allocate), nor do the GL thread's periodic Render Profile / Adaptive quality lines; logLinef's output
@@ -88,7 +88,8 @@ TEST_CASE("no std::cerr in code that runs off the message thread", "[tsan_lint][
         "render/Renderer.cpp",         "render/ImageDecode.h",     "render/TextureManager.cpp",
         "render/LUTLoader.cpp",        "recording/VideoRecorder.cpp", "core/MediaOpener.cpp",
         "media/ImageSequence.cpp",     "output/SyphonOutput.mm",   "output/SharedFrameSet.cpp",
-        "output/OutputPresenter.cpp",  "media/VideoPlayer.cpp",
+        "output/OutputPresenter.cpp",  "media/VideoPlayer.cpp",     "audio/AudioEngine.cpp",
+        "audio/DeviceGuard.cpp",
     };
     int total = 0;
     for (const auto& rel : workerFiles)

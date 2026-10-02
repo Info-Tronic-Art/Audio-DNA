@@ -1,6 +1,6 @@
 #include "DeviceGuard.h"
 #include <cstdlib>
-#include <iostream>
+#include "core/LogLine.h"
 
 namespace dp = audiodna::devpolicy;
 
@@ -52,7 +52,7 @@ juce::AudioIODevice* GuardedDeviceType::createDevice(const juce::String& outputD
 {
     // "" is always fine (that direction stays closed); any other name must be in the filtered list.
     const auto refuse = [](const juce::String& name) {
-        std::cerr << "[AudioEngine] refused device \"" << name << "\" (not allowed by the device policy)" << std::endl;
+        logLine("[AudioEngine] refused device \"", name, "\" (not allowed by the device policy)");
         return nullptr;
     };
     if (outputDeviceName.isNotEmpty() && !scan_.lists.outputs.contains(outputDeviceName))
@@ -103,18 +103,19 @@ void GuardedDeviceType::rebuild()
     if (hidden != lastLogged_)
     {
         lastLogged_ = hidden;
-        std::cerr << hidden;
+        if (hidden.isNotEmpty())
+            logLine(hidden.dropLastCharacters(1));   // `hidden` ends in the last line's '\n'; logLine appends its own
     }
     if (ms > 50.0)
-        std::cerr << "[AudioEngine] device scan took " << juce::String(ms, 1) << " ms" << std::endl;
+        logLine("[AudioEngine] device scan took ", juce::String(ms, 1), " ms");
 }
 
 #if AUDIODNA_TEST_SERVER
 void GuardedDeviceType::setTestDeniedNames(const juce::StringArray& names)
 {
     config_.testDeniedNames = names;
-    std::cerr << "[AudioEngine] TEST-ONLY audio_deny: "
-              << (names.isEmpty() ? juce::String("none") : names.joinIntoString("; ")) << std::endl;
+    logLine("[AudioEngine] TEST-ONLY audio_deny: ",
+            (names.isEmpty() ? juce::String("none") : names.joinIntoString("; ")));
     inner_->scanForDevices();
     audioDeviceListChanged();   // what CoreAudioIODeviceType::audioDeviceListChanged does, minus the HAL trigger
 }
@@ -214,7 +215,7 @@ void DeviceReconciler::timerCallback()
     lastReapplyMs_ = now;
     ++reapplies_;
     lastAction_ = action;
-    std::cerr << "[AudioEngine] re-applying the device policy (" << dp::toString(action) << ")" << std::endl;
+    logLine("[AudioEngine] re-applying the device policy (", dp::toString(action), ")");
     const auto lists = scan.lists;   // copy: the open below may rebuild the scan
     const auto error = openDefaultDevices();
     if (haveDevice && manager_.getCurrentAudioDevice() == nullptr)
@@ -228,8 +229,8 @@ void DeviceReconciler::timerCallback()
         if (keep.inputDeviceName.isNotEmpty() || keep.outputDeviceName.isNotEmpty())
         {
             const auto restoreError = manager_.setAudioDeviceSetup(keep, false);
-            std::cerr << "[AudioEngine] the re-apply failed (" << error << "); kept the previous device"
-                      << (restoreError.isEmpty() ? juce::String() : " -- that failed too: " + restoreError) << std::endl;
+            logLine("[AudioEngine] the re-apply failed (", error, "); kept the previous device",
+                    (restoreError.isEmpty() ? juce::String() : " -- that failed too: " + restoreError));
         }
     }
     const bool nowDevice = manager_.getCurrentAudioDevice() != nullptr;
@@ -254,8 +255,7 @@ dp::Config productionConfig()
         config.testDeniedNames.addTokens(juce::String::fromUTF8(env), ";", "");
         config.testDeniedNames.trim();
         config.testDeniedNames.removeEmptyStrings();
-        std::cerr << "[AudioEngine] TEST-ONLY ADNA_AUDIO_DENY_DEVICES: "
-                  << config.testDeniedNames.joinIntoString("; ") << std::endl;
+        logLine("[AudioEngine] TEST-ONLY ADNA_AUDIO_DENY_DEVICES: ", config.testDeniedNames.joinIntoString("; "));
     }
 #endif
     return config;

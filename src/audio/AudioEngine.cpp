@@ -1,4 +1,5 @@
 #include "AudioEngine.h"
+#include "core/LogLine.h"
 
 AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
     : audioCallback_(ringBuffer),
@@ -12,7 +13,7 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
     // s-rta-0929b btguard: every device change (open / close / device list) reaches changeListenerCallback.
     deviceManager_.addChangeListener(this);
     deviceReconciler_.onReapplied = [this](const juce::String& error) {
-        std::cerr << devguard::describeDevices(deviceManager_, deviceManager_.guardedType()) << std::endl;
+        logLine(devguard::describeDevices(deviceManager_, deviceManager_.guardedType()));
         if (error.isNotEmpty() && onError)
             onError("Audio device: " + error);
         if (onDevicesReapplied)
@@ -28,12 +29,12 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
     auto result = deviceReconciler_.openDefaultDevices();
     if (result.isNotEmpty())
     {
-        std::cerr << "[AudioEngine] Device init error: " << result << std::endl;
+        logLine("[AudioEngine] Device init error: ", result);
         // Will report via onError callback once set up
     }
 
     deviceManager_.addAudioCallback(&combinedCallback_);
-    std::cerr << devguard::describeDevices(deviceManager_, deviceManager_.guardedType()) << std::endl;
+    logLine(devguard::describeDevices(deviceManager_, deviceManager_.guardedType()));
 #if AUDIODNA_TEST_SERVER
     publishDeviceStatus();
 #endif
@@ -162,14 +163,14 @@ void AudioEngine::setSourceMode(SourceMode mode)
         // Enable input channels
         combinedCallback_.useInputForAnalysis.store(true, std::memory_order_relaxed);
 
-        std::cerr << "[AudioEngine] Switched to mic input mode" << std::endl;
+        logLine("[AudioEngine] Switched to mic input mode");
     }
     else
     {
         // Disable input analysis mode
         combinedCallback_.useInputForAnalysis.store(false, std::memory_order_relaxed);
 
-        std::cerr << "[AudioEngine] Switched to file playback mode" << std::endl;
+        logLine("[AudioEngine] Switched to file playback mode");
     }
 }
 
@@ -315,8 +316,7 @@ void AudioEngine::debugStopDevice()
     if (auto* device = deviceManager_.getCurrentAudioDevice())
     {
         device->stop();
-        std::cerr << "[AudioEngine] TEST-ONLY audio_stop: stopped \"" << device->getName() << "\" (the manager keeps it)"
-                  << std::endl;
+        logLine("[AudioEngine] TEST-ONLY audio_stop: stopped \"", device->getName(), "\" (the manager keeps it)");
     }
 }
 #endif
