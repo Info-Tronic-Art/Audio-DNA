@@ -184,7 +184,7 @@ bool manualWriteCore(const ControlRef& r, float valueNorm, Hand hand, ParamConne
         return false;
     if (!manualTouchCore(r, hand, kind, now, gripHoldMs))
         return false;
-    *r.manual = r.toModel ? r.toModel(valueNorm) : valueNorm;
+    r.manual.store(r.toModel ? r.toModel(valueNorm) : valueNorm);
     return true;
 }
 

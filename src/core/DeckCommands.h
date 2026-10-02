@@ -174,46 +174,17 @@ private:
     std::string description_;
 };
 
-// Value snapshot of one layer's RUNTIME fields — the per-layer trigger state
-// that clearActiveClip / clear-clips reset (activeClipColumn / previousClipColumn
-// / crossfadeProgress; pendingTriggerColumn rounds out the trigger runtime;
-// pendingTriggerSnapOverride rides alongside pendingTriggerColumn — L5 Quantize —
-// so undo/redo of a queued-but-not-fired trigger restores the forced granularity
-// too, not just which column is pending).
-// Factored out so both the clips-row snapshot (below) and ClearActiveClipCmd
-// (the X-button clear, which touches ONLY these fields) share one definition.
-struct LayerRuntimeSnapshot
-{
-    int activeClipColumn = -1;
-    int previousClipColumn = -1;
-    float crossfadeProgress = 1.0f;
-    int pendingTriggerColumn = -1;
-    Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
-};
-
-inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot& b)
-{
-    return a.activeClipColumn == b.activeClipColumn
-        && a.previousClipColumn == b.previousClipColumn
-        && a.crossfadeProgress == b.crossfadeProgress
-        && a.pendingTriggerColumn == b.pendingTriggerColumn
-        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride;
-}
-
+// The per-layer trigger tuple (LayerRuntimeSnapshot, src/model/Layer.h -- moved there by lane tsan, s-rta-1002: the
+// tuple is ONE atomic word inside Layer). These two keep their signatures as the compat surface: capture is ONE
+// acquire load of the whole tuple, apply is ONE release store (a value restore).
 inline LayerRuntimeSnapshot captureLayerRuntime(const Layer& layer)
 {
-    return { layer.activeClipColumn, layer.previousClipColumn,
-             layer.crossfadeProgress, layer.pendingTriggerColumn,
-             layer.pendingTriggerSnapOverride };
+    return layer.runtime();
 }
 
 inline void applyLayerRuntime(Layer& layer, const LayerRuntimeSnapshot& r)
 {
-    layer.activeClipColumn = r.activeClipColumn;
-    layer.previousClipColumn = r.previousClipColumn;
-    layer.crossfadeProgress = r.crossfadeProgress;
-    layer.pendingTriggerColumn = r.pendingTriggerColumn;
-    layer.pendingTriggerSnapOverride = r.pendingTriggerSnapOverride;
+    layer.setRuntime(r);
 }
 
 // Sparse per-layer snapshot of a quantized trigger a deck DEACTIVATION is about
@@ -238,18 +209,23 @@ struct PendingTriggerSnapshot
 // activation, MainComponent.cpp's appendDeckFromFile). Before
 // this was factored out, the loop was pasted at each site; a review round found
 // two of the three had been added without it entirely (AddDeckCmd, deck-append).
+// Each layer's cancel is ONE compare-exchange of its tuple word (lane tsan), so the returned entry is exactly the
+// trigger that was cancelled and a beat on the GL thread can never fire it afterwards.
 inline std::vector<PendingTriggerSnapshot> cancelPendingTriggers(Deck& deck)
 {
     std::vector<PendingTriggerSnapshot> cancelled;
     for (int l = 0; l < deck.getNumLayers(); ++l)
     {
         auto* layer = deck.getLayer(l);
-        if (layer && layer->pendingTriggerColumn >= 0)
-        {
-            cancelled.push_back({ l, layer->pendingTriggerColumn, layer->pendingTriggerSnapOverride });
-            layer->pendingTriggerColumn = -1;
-            layer->pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
-        }
+        if (layer == nullptr)
+            continue;
+        const auto t = layer->updateRuntime([](LayerRuntimeSnapshot r) {
+            r.pendingTriggerColumn = -1;
+            r.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+            return r;
+        });
+        if (t.before.pendingTriggerColumn >= 0)
+            cancelled.push_back({ l, t.before.pendingTriggerColumn, t.before.pendingTriggerSnapOverride });
     }
     return cancelled;
 }
@@ -270,9 +246,11 @@ inline void applyPendingTriggerCancellation(Deck& deck,
     {
         if (auto* layer = deck.getLayer(c.layerIndex))
         {
-            layer->pendingTriggerColumn = restore ? c.pendingTriggerColumn : -1;
-            layer->pendingTriggerSnapOverride = restore ? c.pendingTriggerSnapOverride
-                                                          : Clip::BeatSnapMode::Off;
+            layer->updateRuntime([&](LayerRuntimeSnapshot r) {
+                r.pendingTriggerColumn = restore ? c.pendingTriggerColumn : -1;
+                r.pendingTriggerSnapOverride = restore ? c.pendingTriggerSnapOverride : Clip::BeatSnapMode::Off;
+                return r;
+            });
         }
     }
 }
@@ -390,7 +368,10 @@ private:
 // resets ONLY the per-layer runtime (activeClipColumn/previousClipColumn/
 // crossfadeProgress; pendingTriggerColumn is snapshotted for completeness).
 // The clips ROW is untouched, so this is a runtime-only before/after restore and
-// needs NO GL fence (field-level write, status-quo risk). NOTE: clearActiveClip
+// needs NO GL fence (the tuple is one atomic word: undo / redo is one release
+// store, lane tsan). MUTATE-THEN-PUSH like TriggerClipCmd: the FIRST execute()
+// (UndoManager::perform) is a no-op, the handler already cleared live; redo
+// applies `after`, undo `before` (value restores). NOTE: clearActiveClip
 // also sets the (previously) active clip's `playing` flag false; per spec risk
 // #5 (runtime playback state in undo is accepted/imperfect) this command does
 // not restore that flag — it restores the 4 layer runtime fields only.
@@ -404,7 +385,15 @@ public:
           layerIndex_(layerIndex), before_(before), after_(after),
           description_(std::move(description)) {}
 
-    void execute() override { apply(after_); }
+    void execute() override
+    {
+        if (firstExecute_)
+        {
+            firstExecute_ = false;   // perform(): the live clear already happened
+            return;
+        }
+        apply(after_);
+    }
     void undo() override    { apply(before_); }
     std::string description() const override { return description_; }
 
@@ -414,12 +403,13 @@ private:
         Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
         if (layer == nullptr)
             return;
-        applyLayerRuntime(*layer, r);
+        layer->setRuntime(r);
     }
 
     ClipLayerResolver resolver_;
     int deckIndex_, layerIndex_;
     LayerRuntimeSnapshot before_, after_;
+    bool firstExecute_ = true;
     std::string description_;
 };
 
@@ -937,7 +927,7 @@ public:
             {
                 comp->decks.erase(comp->decks.begin() + deckIndex_);
                 if (deckIndex_ < comp->activeDeckIndex)
-                    --comp->activeDeckIndex;                       // the deck on screen slid down one slot: the same OBJECT stays active
+                    comp->activeDeckIndex = comp->activeDeckIndex - 1;   // the deck on screen slid down one slot: the same OBJECT stays active
                 else if (comp->activeDeckIndex >= static_cast<int>(comp->decks.size()))
                     comp->activeDeckIndex = static_cast<int>(comp->decks.size()) - 1;   // the active deck was last: its previous neighbour
                 // (deckIndex_ == active, not last: the next deck slides into the slot — unchanged from today)

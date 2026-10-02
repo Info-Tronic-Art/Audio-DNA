@@ -3,6 +3,7 @@
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
 #include "model/ClipFit.h"
+#include "model/Relaxed.h"
 #include <juce_core/juce_core.h>
 #include <juce_graphics/juce_graphics.h>
 #include <array>
@@ -160,7 +161,7 @@ struct Clip
     int autopilotCustomBeats = 4;
 
     // === Video Properties ===
-    float clipOpacity = 1.0f;       // Per-clip opacity [0,1]
+    RelaxedFloat clipOpacity = 1.0f;       // Per-clip opacity [0,1] (a manualRef scalar: RelaxedFloat, Pitfall 63)
     int clipWidth = 1920;           // Video width (pixels)
     int clipHeight = 1080;          // Video height (pixels)
     enum class BlendOverride : uint8_t { LayerDetermined, Override };
@@ -174,12 +175,14 @@ struct Clip
     FitMode fitMode = FitMode::Stretch;  // how the picture meets the canvas; Source clips ignore it
 
     // === Transform (per-clip, applied before layer compositing) ===
-    float positionX = 0.0f;         // Pixels offset from center
-    float positionY = 0.0f;
-    float scale = 1.0f;             // 1.0 = 100%
-    float rotation = 0.0f;          // Degrees
-    float anchorX = 0.0f;           // Anchor point offset from center
-    float anchorY = 0.0f;
+    // Lane tsan (s-rta-1002; Pitfall 63): the manualRef scalars are RelaxedFloat (message-thread writers, the GL
+    // thread reads them through eff()).
+    RelaxedFloat positionX = 0.0f;         // Pixels offset from center
+    RelaxedFloat positionY = 0.0f;
+    RelaxedFloat scale = 1.0f;             // 1.0 = 100%
+    RelaxedFloat rotation = 0.0f;          // Degrees
+    RelaxedFloat anchorX = 0.0f;           // Anchor point offset from center
+    RelaxedFloat anchorY = 0.0f;
 
     // === Connections (s167-l2) ===
     // One ParamConnection + LiveValue twin per ClipScalar (opacity, the five
@@ -225,10 +228,16 @@ struct Clip
     bool contentLocked = false;    // When true, prevents accidental media replacement via drag-drop
 
     // === Runtime State (not serialized) ===
-    mutable bool playing = false; // mutable: render thread updates for OneShot/PingPong stop
-    mutable double playheadPosition = 0.0; // [0,1] normalized — mutable for render-thread updates via const Clip*
-    int beatsPlayed = 0;
-    bool hasBeenTriggered = false; // true after first user trigger (used to auto-play on first click)
+    // Lane tsan (s-rta-1002; Pitfall 63): the message thread (triggers, transport UI, REST / undo), the GL thread
+    // (syncMedia's write-back, autopilot) and the httplib thread (/api/composition) all touch these, so each is a
+    // Relaxed<T> (one relaxed atomic per access; no compound operators). They are PER-FIELD atomics, never a
+    // consistent unit: the Layer's trigger tuple is (LayerRuntimeCell). The render write-back of `playing` is a
+    // compare-exchange on the intent it read (render/ClipTransportSync.h), so a trigger or a pause landing inside a
+    // sync is never overwritten; beatsPlayed counts with fetchAdd, so a concurrent reset to 0 is never lost.
+    mutable RelaxedBool playing = false; // mutable: render thread updates for OneShot/PingPong stop
+    mutable RelaxedDouble playheadPosition = 0.0; // [0,1] normalized — mutable for render-thread updates via const Clip*
+    RelaxedInt beatsPlayed = 0;
+    RelaxedBool hasBeenTriggered = false; // true after first user trigger (used to auto-play on first click)
     juce::Image thumbnail;          // Cached thumbnail for UI display
     // s-rta-0928b mediaopen: MediaPresence found mediaFile absent (Image / Video; a 1 Hz off-thread sweep, seeded at load
     // / drop). Read by the compositor and ClipCell::paint instead of a stat(). Runtime, not serialized.
@@ -374,4 +383,4 @@ struct Clip
 // The only place that names which Clip field backs each ClipScalar (s166
 // spec section 2.2's exact phrasing). Used by Clip::eff() and by
 // ConnectionEngine when publishing a shaped value into scalarLive.
-float& manualRef(Clip& c, ClipScalar s);
+RelaxedFloat& manualRef(Clip& c, ClipScalar s);

@@ -3,6 +3,7 @@
 #include "connect/LiveValue.h"
 #include "connect/ScalarParams.h"
 #include "model/ControlPath.h"
+#include "model/Relaxed.h"
 #include <optional>
 #include <cstdint>
 
@@ -23,12 +24,37 @@ class MacroBank;
 // rank (critic amendment #3, src/connect/ParamConnection.h).
 enum class Hand : uint8_t { None = 0, Lane = 1, HumanDecaying = 2, HumanHeld = 3 };
 
+// The raw model field behind a control (lane tsan, s-rta-1002; plan T5): the 23 manualRef scalars (Clip / Layer /
+// Composition) are RelaxedFloat because the GL thread reads them (eff()); effect params, dryWet, source params and
+// macros stay plain floats (risk R5, the follow-up lane "tsan-r5"). Exactly one pointer is set; every access goes
+// through load() / store().
+struct ManualSlot
+{
+    RelaxedFloat* atomicField = nullptr;
+    float*        plainField = nullptr;
+
+    ManualSlot() = default;
+    ManualSlot(RelaxedFloat* f) : atomicField(f) {}
+    ManualSlot(float* f) : plainField(f) {}
+
+    float load() const { return atomicField ? atomicField->load() : (plainField ? *plainField : 0.0f); }
+    void store(float v) const   // writes THROUGH the pointer (a const ControlRef still writes its field, as before)
+    {
+        if (atomicField) atomicField->store(v);
+        else if (plainField) *plainField = v;
+    }
+    explicit operator bool() const { return atomicField != nullptr || plainField != nullptr; }
+    // Which field it names (tests: `ref->manual == &layer.positionX`).
+    bool operator==(const RelaxedFloat* f) const { return atomicField == f && plainField == nullptr; }
+    bool operator==(const float* f) const { return plainField == f && atomicField == nullptr; }
+};
+
 // Everything a manual writer needs about ONE continuous control, resolved
 // from a ControlPath.
 struct ControlRef
 {
     ParamConnection* conn = nullptr;   // the grip lives here even when kind == None (arrays are dense)
-    float*           manual = nullptr; // the raw model field (MODEL units for scalars, [0,1] otherwise)
+    ManualSlot       manual;           // the raw model field (MODEL units for scalars, [0,1] otherwise)
     LiveValue*       live = nullptr;   // the twin (only needed by disconnect; may be null for macros)
     float (*toModel)(float norm) = nullptr;   // ScalarDef::toModel for scalars; identity for params/dryWet/macro
     float (*toNorm)(float model) = nullptr;   // ScalarDef::toNorm for scalars; identity for params/dryWet/macro

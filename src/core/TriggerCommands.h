@@ -20,8 +20,12 @@
 // PATTERN (two-pattern rule): a trigger is an IDEMPOTENT field write — undo/redo
 // is a plain value-assignment of before/after snapshots, not a re-run of
 // Layer::triggerClip — so it is MUTATE-THEN-PUSH (the handler performs the live
-// trigger, then wraps the captured before/after; execute() re-applies `after`, a
-// harmless no-op because the model is already there). This is the same shape as
+// trigger, then wraps the exact before/after pair the trigger returned). The
+// FIRST execute() (UndoManager::perform) is a NO-OP (lane tsan, s-rta-1002): the
+// live trigger already produced `after`, and the GL thread may have moved the
+// tuple on since (a fade tick, the fade ending, the queued trigger firing) --
+// re-applying `after` there would restart or re-queue the trigger. Later
+// execute() calls (redo) apply `after`. This is the same shape as
 // ClearActiveClipCmd (#13) and SwitchDeckCmd (#24), NOT the command-owns-the-
 // mutation shape used for the non-idempotent structural layer/deck ops.
 //
@@ -31,9 +35,11 @@
 // (Renderer::renderOpenGL → Autopilot::processFrame → Layer::triggerClip), so
 // autopilot-driven triggers create NO commands.
 //
-// NO GL FENCE: a trigger only writes per-layer runtime fields (and one clip's
-// `playing` flag) in place — status-quo field-level race, exactly like today's
-// direct writes. The fence is reserved for vector-structure ops.
+// NO GL FENCE: a trigger only writes the layer's trigger tuple (ONE atomic word,
+// Layer::runtime()) and one clip's `playing` flag. The fence is reserved for
+// vector-structure ops. Undo and redo are VALUE RESTORES (one release store of
+// the tuple): they supersede any GL-thread transition since the gesture (a fade
+// tick, an autopilot advance, a fired queued trigger), as main always did.
 
 // Snapshot payload for one clip trigger (spec §2 row 1): the four per-layer
 // runtime fields (via LayerRuntimeSnapshot — activeClipColumn / previousClipColumn
@@ -65,7 +71,15 @@ public:
           targetPlayingAfter_(targetPlayingAfter),
           description_(std::move(description)) {}
 
-    void execute() override { apply(after_, targetPlayingAfter_); }
+    void execute() override
+    {
+        if (firstExecute_)
+        {
+            firstExecute_ = false;   // perform(): the live trigger already applied `after` (incl. `playing`)
+            return;
+        }
+        apply(after_, targetPlayingAfter_);
+    }
     void undo() override    { apply(before_, targetPlayingBefore_); }
     std::string description() const override { return description_; }
 
@@ -106,7 +120,7 @@ private:
         Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
         if (layer == nullptr)
             return;                             // stale coordinate → safe no-op
-        applyLayerRuntime(*layer, runtime);
+        layer->setRuntime(runtime);
         if (playing.has_value())
             if (Clip* clip = layer->getClipAt(column_))
                 clip->playing = *playing;
@@ -116,5 +130,6 @@ private:
     int deckIndex_, layerIndex_, column_;
     LayerRuntimeSnapshot before_, after_;
     std::optional<bool> targetPlayingBefore_, targetPlayingAfter_;
+    bool firstExecute_ = true;
     std::string description_;
 };

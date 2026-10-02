@@ -160,8 +160,10 @@ inline Deck duplicateDeck(const Deck& src, uint32_t& nextClipId)
     remintClipIds(copy, nextClipId);
     for (auto& layer : copy.layers)
     {
-        layer.pendingTriggerColumn = -1;
-        layer.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+        auto rt = layer.runtime();
+        rt.pendingTriggerColumn = -1;
+        rt.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+        layer.setRuntime(rt);
     }
     return copy;
 }
@@ -198,9 +200,12 @@ inline std::vector<std::string> imagePaths(const Composition& c)
             if (const Clip* a = l.getActiveClip())
                 add(*a);
         for (const auto& l : d.layers)
+        {
+            const int activeCol = l.runtime().activeClipColumn;
             for (size_t ci = 0; ci < l.clips.size(); ++ci)
-                if (l.clips[ci].has_value() && static_cast<int>(ci) != l.activeClipColumn)
+                if (l.clips[ci].has_value() && static_cast<int>(ci) != activeCol)
                     add(*l.clips[ci]);
+        }
     };
     const int active = c.activeDeckIndex;
     if (active >= 0 && active < static_cast<int>(c.decks.size()))

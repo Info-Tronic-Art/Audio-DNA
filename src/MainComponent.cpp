@@ -203,7 +203,7 @@ namespace
     bool triggerWillAutoPlay(Layer& layer, int column)
     {
         const Clip* clip = layer.getClipAt(column);
-        return clip != nullptr && column != layer.activeClipColumn && !clip->hasBeenTriggered && !clip->playing;
+        return clip != nullptr && column != layer.runtime().activeClipColumn && !clip->hasBeenTriggered && !clip->playing;
     }
 }
 
@@ -623,8 +623,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
             const uint64_t group = recorderHost_.nextGroupId();
             for (int l = 0; l < deck->getNumLayers(); ++l)
                 if (auto* layer = deck->getLayer(l))
-                    if (layer->getActiveClip())
-                        applyClipPlaying(l, layer->activeClipColumn, "play", Origin::Human, group);
+                    if (const int col = layer->runtime().activeClipColumn; layer->getClipAt(col))
+                        applyClipPlaying(l, col, "play", Origin::Human, group);
         }
     };
     topBar_->onPause = [this] {
@@ -633,8 +633,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
             const uint64_t group = recorderHost_.nextGroupId();
             for (int l = 0; l < deck->getNumLayers(); ++l)
                 if (auto* layer = deck->getLayer(l))
-                    if (layer->getActiveClip())
-                        applyClipPlaying(l, layer->activeClipColumn, "pause", Origin::Human, group);
+                    if (const int col = layer->runtime().activeClipColumn; layer->getClipAt(col))
+                        applyClipPlaying(l, col, "pause", Origin::Human, group);
         }
     };
     topBar_->onStop = [this] {
@@ -760,15 +760,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* layer = deck->getLayer(layerIdx);
         if (!layer) return;
         routineEngine_.stopOnLayer(composition_.activeDeckIndex, layerIdx);   // s-rta-0927: X clears the layer of routines too (not undoable, like Stop)
-        LayerRuntimeSnapshot before = captureLayerRuntime(*layer);
-        layer->clearActiveClip();
-        LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
-        if (!(before == after))
+        const LayerRuntimeTransition t = layer->clearActiveClip();   // the exact before / after pair
+        if (t.changed())
         {
             std::vector<std::unique_ptr<Command>> children;
             children.push_back(std::make_unique<ClearActiveClipCmd>(
                 makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
-                before, after, "Clear Layer Clip"));
+                t.before, t.after, "Clear Layer Clip"));
             pushCommands(std::move(children), "Clear Layer Clip");
         }
         // A1 fix (2026-07-30): clearActiveClip() only resets the MODEL
@@ -2061,7 +2059,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!ref || !ref->manual) return std::nullopt;
         // The twin is in the manual field's units (ConnectionEngine publishes toModel(y) for scalars);
         // `live` may be null (macros).
-        const float model = ref->live ? ref->live->effective(*ref->manual) : *ref->manual;
+        const float model = ref->live ? ref->live->effective(ref->manual.load()) : ref->manual.load();
         return ref->toNorm ? ref->toNorm(model) : model;
     };
     routineEngine_.dispatch.notify  = [this](const std::string& msg) {
@@ -4618,36 +4616,33 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
             recorderHost_.dispatch.notify("handleClipTrigger: deck unresolved");
         return;
     }
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
 
-    // Undo capture (mutate-then-push, spec §2 row 1 / step 8). Snapshot the
-    // per-layer runtime + the target cell clip's `playing` BEFORE the trigger.
-    // Runtime-only field writes → NO GL fence; the command re-resolves its target
+    // Undo capture (mutate-then-push, spec §2 row 1 / step 8). The trigger returns
+    // the exact before / after pair of the layer's tuple (one compare-exchange,
+    // lane tsan); the target cell clip's `playing` is read BEFORE the trigger.
+    // Runtime-only writes → NO GL fence; the command re-resolves its target
     // by coordinate. Autopilot never reaches this handler (it calls
     // Layer::triggerClip directly from the GL thread), so autopilot triggers
     // create no commands.
-    const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(*layer);
     std::optional<bool> playBefore;
     if (const Clip* tc = layer->getClipAt(column)) playBefore = tc->playing;
-
-    // Retrigger-restart (2026-07-30, Boris's recorded expectation): clicking the
-    // already-playing cell is this same column == layer->activeClipColumn case.
-    const bool wasRetrigger = (column == layer->activeClipColumn);
     const bool autoPlays = triggerWillAutoPlay(*layer, column);   // captured below (concern (a))
 
+    LayerRuntimeTransition t;
     if (immediate)
     {
         // s-rta-0925 (D4 preamble): the checkpoint-0 restore bypasses beat-snap/quantize entirely --
         // it is putting the model back the way it was at Record, not a performance trigger. Mirrors
-        // Layer::triggerClip's own empty-cell branch (Layer.h:215-221) since triggerClipImmediate
-        // alone would leave activeClipColumn pointing at an empty cell.
+        // Layer::triggerClip's own empty-cell branch since triggerClipImmediate
+        // alone would leave the active column pointing at an empty cell.
         if (layer->getClipAt(column))
-            layer->triggerClipImmediate(column);
+            t = layer->triggerClipImmediate(column);
         else
-            layer->clearActiveClip();
+            t = layer->clearActiveClip();
     }
     else
     {
@@ -4656,10 +4651,14 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
         // locked yet — see quantizeModeToForcedSnap above.
         const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
         const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
-        layer->triggerClip(column, forcedSnap);
+        t = layer->triggerClip(column, forcedSnap);
     }
 
-    const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
+    const LayerRuntimeSnapshot rtBefore = t.before;
+    const LayerRuntimeSnapshot rtAfter = t.after;
+    // Retrigger-restart (2026-07-30, Boris's recorded expectation): clicking the
+    // already-playing cell is the column-already-active case.
+    const bool wasRetrigger = (t.before.activeClipColumn == column);
     std::optional<bool> playAfter;
     if (const Clip* tc = layer->getClipAt(column)) playAfter = tc->playing;
 
@@ -4670,7 +4669,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column, Origin origin,
     if (resolvedDeckIndex == composition_.activeDeckIndex)
     {
     // Load the clip content into preview
-    if (auto* clip = layer->getActiveClip())
+    if (auto* clip = layer->getClipAt(t.after.activeClipColumn))
     {
         // Mark as triggered (for future use)
         clip->hasBeenTriggered = true;
@@ -4836,14 +4835,14 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
             recorderHost_.dispatch.notify("handleColumnTrigger: deck unresolved");
         return;
     }
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
     // Undo capture (mutate-then-push, spec §2 row 2 / step 8): a column trigger
     // is a composite of one TriggerClipCmd per NON-ignoring layer that actually
     // changes — mirroring Deck::triggerColumn, which skips ignoreColumnTrigger
-    // layers. Snapshot each considered layer's runtime + target-`playing` BEFORE.
+    // layers. Each layer's before / after is the exact pair its trigger returned
+    // (Deck::triggerColumn's out vector); target-`playing` is read BEFORE.
     const int numLayers = deck->getNumLayers();
-    std::vector<LayerRuntimeSnapshot> before(static_cast<size_t>(numLayers));
     std::vector<std::optional<bool>> playBefore(static_cast<size_t>(numLayers));
     std::vector<bool> considered(static_cast<size_t>(numLayers), false);
     std::vector<bool> autoPlays(static_cast<size_t>(numLayers), false);   // concern (a), see captureAutoPlay
@@ -4853,7 +4852,6 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
         if (!layer || layer->ignoreColumnTrigger) continue;  // excluded, as triggerColumn does
         considered[static_cast<size_t>(l)] = true;
         autoPlays[static_cast<size_t>(l)] = triggerWillAutoPlay(*layer, column);
-        before[static_cast<size_t>(l)] = captureLayerRuntime(*layer);
         if (const Clip* tc = layer->getClipAt(column))
             playBefore[static_cast<size_t>(l)] = tc->playing;
     }
@@ -4862,7 +4860,8 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     // for the whole column so every non-ignoring layer queues/fires together.
     const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
     const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
-    deck->triggerColumn(column, forcedSnap);
+    std::vector<std::optional<LayerRuntimeTransition>> transitions;
+    deck->triggerColumn(column, forcedSnap, &transitions);
 
     // One child per considered layer whose runtime or target-`playing` changed;
     // pushCommands composites them into one slot (a single changed layer collapses
@@ -4877,17 +4876,16 @@ void MainComponent::handleColumnTrigger(int column, Origin origin, int deckIndex
     {
         if (!considered[static_cast<size_t>(l)]) continue;
         auto* layer = deck->getLayer(l);
-        if (!layer) continue;
-        const LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
+        if (!layer || static_cast<size_t>(l) >= transitions.size() || !transitions[static_cast<size_t>(l)]) continue;
+        const LayerRuntimeTransition& t = *transitions[static_cast<size_t>(l)];
         std::optional<bool> playAfter;
         if (const Clip* tc = layer->getClipAt(column))
             playAfter = tc->playing;
-        const bool changed = !(before[static_cast<size_t>(l)] == after)
-                            || playBefore[static_cast<size_t>(l)] != playAfter;
+        const bool changed = t.changed() || playBefore[static_cast<size_t>(l)] != playAfter;
         if (changed && origin == Origin::Human)
             children.push_back(std::make_unique<TriggerClipCmd>(
                 makeLayerResolver(), resolvedDeckIndex, l, column,
-                before[static_cast<size_t>(l)], after,
+                t.before, t.after,
                 playBefore[static_cast<size_t>(l)], playAfter, "Trigger Column"));
 
         if (origin != Origin::Replay)
@@ -5578,10 +5576,12 @@ void MainComponent::applyClearActiveClip(int layerIndex, Origin origin, int deck
     auto* deck = deckForDispatch(deckIndex, "applyClearActiveClip", origin);
     if (!deck) return;
     auto* layer = deck->getLayer(layerIndex);
-    if (!layer || layer->activeClipColumn < 0) return;
+    // One load for the early-out; a GL-thread transition landing before the clear can only make a clip active (a fade
+    // tick, autopilot, a fired queued trigger -- never a clear), so the clear below is still the dispatched intent.
+    if (!layer || layer->runtime().activeClipColumn < 0) return;
 
     layer->clearActiveClip();
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
     if (resolvedDeckIndex == composition_.activeDeckIndex)
     {
         previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
@@ -6352,7 +6352,7 @@ void MainComponent::applyLayerFlag(int layerIndex, const std::string& flag, bool
     else if (flag == "autopilot") layer->autopilotEnabled = value;
     else return;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
     if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
@@ -6377,7 +6377,7 @@ void MainComponent::applyEffectBypass(int layerIndex, int column, int fxIndex, b
     auto& slot = clip->effects[static_cast<size_t>(fxIndex)];
     slot.bypassed = value;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
 
     if (origin == Origin::Replay) return;
     ControlPath key = clipScalarPath(composition_, resolvedDeckIndex, layerIndex, column, "");
@@ -6411,7 +6411,7 @@ void MainComponent::applyClipPlaying(int layerIndex, int column, const std::stri
     else if (action == "reverse") { clip->reverse = !clip->reverse; }
     else return;
 
-    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex : deckIndex;
+    const int resolvedDeckIndex = (deckIndex < 0) ? composition_.activeDeckIndex.load() : deckIndex;
     if (resolvedDeckIndex == composition_.activeDeckIndex && deckView_) deckView_->refresh();
 
     if (origin == Origin::Replay) return;
@@ -6917,15 +6917,15 @@ void MainComponent::handleMenuCommand(int commandId)
                             // cell. Wrap the runtime reset as its own undo child
                             // (ClearActiveClipCmd) so undo restores the layer's
                             // active-cell pointer alongside the clip content.
-                            if (layer != nullptr && layer->activeClipColumn == cell.column)
+                            if (layer != nullptr)
                             {
-                                LayerRuntimeSnapshot rtBefore = captureLayerRuntime(*layer);
-                                layer->clearActiveClip();
-                                LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
-                                if (!(rtBefore == rtAfter))
+                                // Clears only if cell.column is the active one (one compare-exchange, no
+                                // separate check first); the exact before / after pair.
+                                const LayerRuntimeTransition t = layer->clearActiveClip(cell.column);
+                                if (t.changed())
                                     runtimeChildren.push_back(std::make_unique<ClearActiveClipCmd>(
                                         makeLayerResolver(), deckIdx, cell.layer,
-                                        rtBefore, rtAfter, "Clear Clip"));
+                                        t.before, t.after, "Clear Clip"));
                             }
                         }
                     });
@@ -7548,10 +7548,10 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             // Find the selected clip — use the first layer's active clip
             for (int li = 0; li < static_cast<int>(deck->layers.size()); ++li)
             {
-                if (deck->layers[static_cast<size_t>(li)].activeClipColumn >= 0)
+                if (const int col = deck->layers[static_cast<size_t>(li)].runtime().activeClipColumn; col >= 0)
                 {
                     resolvedLayer = li;
-                    resolvedColumn = deck->layers[static_cast<size_t>(li)].activeClipColumn;
+                    resolvedColumn = col;
                     break;
                 }
             }
@@ -7598,13 +7598,14 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             }
             else if (binding.triggerMode == Binding::TriggerMode::Momentary)
             {
-                // Momentary release: clear the active clip on this layer
+                // Momentary release: clear this layer if the pad's clip is active, or cancel its
+                // trigger if it is still queued (released before its beat: it never latches on).
+                // One compare-exchange (Layer::releaseMomentary), no separate check first.
                 if (auto* deck = composition_.getActiveDeck())
                 {
                     auto* layer = deck->getLayer(resolvedLayer);
-                    if (layer && layer->activeClipColumn == resolvedColumn)
+                    if (layer && layer->releaseMomentary(resolvedColumn).changed())
                     {
-                        layer->clearActiveClip();
                         previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
                         if (deckView_) deckView_->refresh();
                     }
@@ -7636,14 +7637,12 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             }
             else if (binding.triggerMode == Binding::TriggerMode::Momentary)
             {
-                // Momentary release: clear all layers in this column
+                // Momentary release: clear every layer playing this column, and cancel the
+                // column's trigger on every layer where it is still queued (Layer::releaseMomentary).
                 if (auto* deck = composition_.getActiveDeck())
                 {
                     for (auto& layer : deck->layers)
-                    {
-                        if (layer.activeClipColumn == resolvedColumn)
-                            layer.clearActiveClip();
-                    }
+                        layer.releaseMomentary(resolvedColumn);
                     previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
                     if (deckView_) deckView_->refresh();
                 }
@@ -7777,11 +7776,12 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     auto* layer = deck->getLayer(resolvedLayer);
                     if (layer)
                     {
-                        auto* clip = layer->getActiveClip();
+                        const int col = layer->runtime().activeClipColumn;
+                        auto* clip = layer->getClipAt(col);
                         if (clip)
                             // "resume" (not "play") on the pause->play leg: a live
                             // pad toggle must not force a reversed clip forward.
-                            applyClipPlaying(resolvedLayer, layer->activeClipColumn,
+                            applyClipPlaying(resolvedLayer, col,
                                              clip->playing ? "pause" : "resume", Origin::Human);
                     }
                 }
@@ -7798,12 +7798,13 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                     auto* layer = deck->getLayer(resolvedLayer);
                     if (layer)
                     {
-                        auto* clip = layer->getActiveClip();
+                        const int col = layer->runtime().activeClipColumn;
+                        auto* clip = layer->getClipAt(col);
                         if (clip && binding.targetEffectIndex >= 0 &&
                             binding.targetEffectIndex < static_cast<int>(clip->effects.size()))
                         {
                             auto& fx = clip->effects[static_cast<size_t>(binding.targetEffectIndex)];
-                            applyEffectBypass(resolvedLayer, layer->activeClipColumn,
+                            applyEffectBypass(resolvedLayer, col,
                                               binding.targetEffectIndex, !fx.bypassed, Origin::Human);
                         }
                     }

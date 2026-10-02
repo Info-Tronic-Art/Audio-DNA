@@ -13,9 +13,12 @@ namespace DeckClock
 // (before its type check) and the media of the types it renders (Layer::canBePersistent) -- never advance those
 // twice.
 // ClockFn: void(const Clip*, float dt) -- ticks one playable clip's transport, no decode.
+// Lane tsan (s-rta-1002): ONE tuple load per layer; the fade tick publishes from it (LayerClock::tick, adopt-on-fail)
+// and the active / outgoing clips come from the same tuple. Returns the number of adopts (render_tuple_adopts).
 template <class ClockFn>
-void tick(Deck& deck, float dt, ClockFn&& clock)
+int tick(Deck& deck, float dt, ClockFn&& clock)
 {
+    int adopts = 0;
     bool anySolo = false;
     for (const auto& l : deck.layers)
         if (l.solo) { anySolo = true; break; }
@@ -26,17 +29,19 @@ void tick(Deck& deck, float dt, ClockFn&& clock)
             continue;
         const bool fadeOwnedElsewhere  = layer.persistent;
         const bool mediaOwnedElsewhere = layer.persistent && Layer::canBePersistent(layer.type);
-        if (!fadeOwnedElsewhere)
-            LayerClock::advanceCrossfade(layer, dt);
+        LayerRuntimeSnapshot rt = layer.runtime();
+        if (!fadeOwnedElsewhere && !LayerClock::tick(layer, rt, dt))
+            ++adopts;
         if (mediaOwnedElsewhere)
             continue;
-        if (const Clip* c = layer.getActiveClip(); c != nullptr && c->isPlayable())
+        if (const Clip* c = layer.getClipAt(rt.activeClipColumn); c != nullptr && c->isPlayable())
             clock(c, dt);
         // The outgoing clip runs during a fade, as on screen (CompositorEngine::applyTransition fetches it only
         // while crossfadeProgress < 1 -- so on the frame a fade completes it is not ticked, the same parity).
-        if (layer.previousClipColumn >= 0 && layer.crossfadeProgress < 1.0f)
-            if (const Clip* p = layer.getClipAt(layer.previousClipColumn); p != nullptr && p->isPlayable())
+        if (rt.previousClipColumn >= 0 && rt.crossfadeProgress < 1.0f)
+            if (const Clip* p = layer.getClipAt(rt.previousClipColumn); p != nullptr && p->isPlayable())
                 clock(p, dt);
     }
+    return adopts;
 }
 } // namespace DeckClock

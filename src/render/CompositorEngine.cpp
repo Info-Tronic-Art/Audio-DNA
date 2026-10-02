@@ -392,13 +392,13 @@ void CompositorEngine::touchLayerOutput(uint32_t layerId, uint32_t deckId)
     layerOutputOwner_[layerId] = LayerOutputOwner{ deckId, frameSerial_ };
 }
 
-bool CompositorEngine::incomingImagePending(const Layer& layer, const Clip* clip) const
+bool CompositorEngine::incomingImagePending(const Layer& layer, const LayerRuntimeSnapshot& rt, const Clip* clip) const
 {
     if (clip == nullptr ||
         (clip->mediaType != Clip::MediaType::Image && clip->mediaType != Clip::MediaType::ImageSequence &&
          clip->mediaType != Clip::MediaType::Video))
         return false;
-    if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+    if (rt.crossfadeProgress >= 1.0f || rt.previousClipColumn < 0)
         return false;   // not fading: nothing to pause
     if (layer.type != Layer::Type::Opaque && layer.type != Layer::Type::Transparent && layer.type != Layer::Type::Mask)
         return false;   // FX Only / 3D never show the clip's media
@@ -966,15 +966,19 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 
 // === Deck/Layer-based compositing ===
 
-void CompositorEngine::advanceCrossfade(Layer& layer, float dt)
+bool CompositorEngine::advanceCrossfade(Layer& layer, LayerRuntimeSnapshot& rt, float dt)
 {
     // s-rta-0926b plan4 T1: the body lives in LayerClock (pure) so DeckClock::tick -- decks that are not on
     // screen -- runs the very same clock. Real dt (function param), not a hardcoded 1/60 -- see
-    // compositeDeck()'s header comment and LayerClock::advanceCrossfade's.
-    LayerClock::advanceCrossfade(layer, dt);
+    // compositeDeck()'s header comment and LayerClock::advanced's.
+    if (LayerClock::tick(layer, rt, dt))
+        return true;
+    ++tupleAdopts_;
+    return false;
 }
 
-GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const Clip& clip, GLuint clipTex,
+GLuint CompositorEngine::renderLayerStages(Layer& layer, const LayerRuntimeSnapshot& rt, uint32_t deckId,
+                                           const Clip& clip, GLuint clipTex,
                                            ShaderManager& shaderMgr, FullscreenQuad& quad,
                                            float time, float dt, int width, int height)
 {
@@ -988,8 +992,7 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const 
     // clip's chain reads or writes that history this frame. Nothing happens at
     // fade end: the slot idles as the spare for the next fade.
     const uint64_t outKey = LayerStateKey::outgoingChain(deckId, layer.id);
-    if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.activeClipColumn,
-                                         layer.crossfadeProgress))
+    if (crossfadeStart_[clipKey].observe(rt.previousClipColumn, rt.activeClipColumn, rt.crossfadeProgress))
         handOverClipHistory(clipKey, outKey, shaderMgr, quad, width, height);
 
     // Apply per-clip transform (position, scale, rotation) + clip opacity
@@ -1001,7 +1004,7 @@ GLuint CompositorEngine::renderLayerStages(Layer& layer, uint32_t deckId, const 
     // P14: Apply clip-to-clip transition if crossfading. S167-L4b
     // DT-FIX: real measured dt (function param) -- see
     // compositeDeck()'s header comment.
-    clipTex = applyTransition(layer, outKey, clipTex, time, shaderMgr, quad, width, height, dt);
+    clipTex = applyTransition(layer, rt, outKey, clipTex, time, shaderMgr, quad, width, height, dt);
 
     // P16: Apply feedback (Larsen loop) if enabled
     if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
@@ -1069,10 +1072,14 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
-        const Clip* clip = layer.getActiveClip();
+        // Lane tsan (s-rta-1002; Fork 6): ONE tuple load for this layer this frame, where its first read always sat;
+        // every read below (incoming clip, fade tick, crossfade start, transition) uses this one tuple. A fade tick
+        // that adopted a concurrent trigger re-fetches the clip it names.
+        LayerRuntimeSnapshot rt = layer.runtime();
+        const Clip* clip = layer.getClipAt(rt.activeClipColumn);
         // C1 (s-rta-0928): a crossfade onto an image that is still decoding waits for it (the layer holds meanwhile).
-        if (!incomingImagePending(layer, clip))
-            advanceCrossfade(layer, dt);
+        if (!incomingImagePending(layer, rt, clip) && !advanceCrossfade(layer, rt, dt))
+            clip = layer.getClipAt(rt.activeClipColumn);
 
         if (clip == nullptr)
             continue;
@@ -1132,7 +1139,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     // Clip transform + opacity, clip effects, transition, feedback,
                     // layer effects, layer transform (s-rta-0926b R4: shared with
                     // compositePersistentLayers).
-                    clipTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+                    clipTex = renderLayerStages(layer, rt, deck.id, *clip, clipTex, shaderMgr, quad,
                                                 time, dt, width, height);
 
                     // P20: Save layer output for Layer Router sources
@@ -1326,10 +1333,11 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         // deck is inactive, exactly as it would on the active deck (it used to
         // freeze until the deck was active again, and the layer hard-cut to the
         // incoming clip meanwhile). C1 (s-rta-0928): except while its incoming
-        // image is still decoding.
-        const Clip* clip = layer.getActiveClip();
-        if (!incomingImagePending(layer, clip))
-            advanceCrossfade(layer, dt);
+        // image is still decoding. Lane tsan: ONE tuple load for this layer this frame (as compositeDeck).
+        LayerRuntimeSnapshot rt = layer.runtime();
+        const Clip* clip = layer.getClipAt(rt.activeClipColumn);
+        if (!incomingImagePending(layer, rt, clip) && !advanceCrossfade(layer, rt, dt))
+            clip = layer.getClipAt(rt.activeClipColumn);
 
         if (clip == nullptr)
             continue;
@@ -1397,7 +1405,7 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         // layer opacity (it never clears the accumulator); no Layer Router
         // output is saved (the router addresses the active deck only); Mask /
         // 3D persistent layers are skipped above.
-        GLuint processedTex = renderLayerStages(layer, deck.id, *clip, clipTex, shaderMgr, quad,
+        GLuint processedTex = renderLayerStages(layer, rt, deck.id, *clip, clipTex, shaderMgr, quad,
                                                 time, dt, width, height);
         if (processedTex == 0) processedTex = clipTex;
 
@@ -1636,18 +1644,19 @@ juce::String CompositorEngine::getTransitionShaderName(Layer::MixMode mode)
 
 // === Phase 14: Transition rendering ===
 
-GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t outgoingKey, GLuint newClipTex, float time,
+GLuint CompositorEngine::applyTransition(Layer& layer, const LayerRuntimeSnapshot& rt, uint64_t outgoingKey,
+                                          GLuint newClipTex, float time,
                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
                                           int w, int h, float dt)
 {
     using namespace juce::gl;
 
     // If crossfade is complete or no previous clip, just return the new texture
-    if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+    if (rt.crossfadeProgress >= 1.0f || rt.previousClipColumn < 0)
         return newClipTex;
 
     // Get previous clip texture
-    Clip* prevClip = layer.getClipAt(layer.previousClipColumn);
+    Clip* prevClip = layer.getClipAt(rt.previousClipColumn);
     if (prevClip == nullptr)
         return newClipTex;
 
@@ -1664,7 +1673,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t outgoingKey, GLu
     //     no pass of it writes the incoming result (both clips effected: the
     //     incoming result sat in effectTex_A_, the outgoing chain started at
     //     effectFBO_A_ and overwrote it).
-    const Clip* newClip = layer.getActiveClip();
+    const Clip* newClip = layer.getClipAt(rt.activeClipColumn);
     if (newClip != nullptr
         && newClip->mediaType == Clip::MediaType::Source && prevClip->mediaType == Clip::MediaType::Source
         && !newClip->sourceType.empty() && newClip->sourceType == prevClip->sourceType
@@ -1737,7 +1746,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, uint64_t outgoingKey, GLu
     glUniform1i(glGetUniformLocation(pid, "u_prevTexture"), 1);
 
     // Set crossfade progress
-    glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), layer.crossfadeProgress);
+    glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), rt.crossfadeProgress);
 
     quad.draw();
 

@@ -1,6 +1,7 @@
 #if __APPLE__
 
 #include "output/SyphonOutput.h"
+#include "core/LogLine.h"
 #include <iostream>
 
 // AUDIODNA_HAS_SYPHON is defined by CMake (=1) when the Syphon OpenGL-subset
@@ -134,10 +135,10 @@ void SyphonOutput::init(void* nsOpenGLContext)
         impl_ = (__bridge_retained void*)impl;
     }
     initialized_.store(true, std::memory_order_relaxed);
-    std::cerr << "[Syphon] Output initialized" << std::endl;
+    logLine("[Syphon] Output initialized");
 #else
     (void)nsOpenGLContext;
-    std::cerr << "[Syphon] Not available (not built — see AUDIODNA_BUILD_SYPHON)" << std::endl;
+    logLine("[Syphon] Not available (not built — see AUDIODNA_BUILD_SYPHON)");
 #endif
 }
 

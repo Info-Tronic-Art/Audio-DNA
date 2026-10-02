@@ -54,18 +54,18 @@ TEST_CASE("(a) an inactive deck's non-persistent layer finishes its fade at the 
     Deck deck; deck.initDefault();
     startFade(deck, 0, 2.0f);
     auto* layer = deck.getLayer(0);
-    REQUIRE(layer->crossfadeProgress == Approx(0.0f));
-    REQUIRE(layer->previousClipColumn == 0);
+    REQUIRE(layer->runtime().crossfadeProgress == Approx(0.0f));
+    REQUIRE(layer->runtime().previousClipColumn == 0);
 
     DeckClock::tick(deck, 0.5f, noop);
-    CHECK(layer->crossfadeProgress == Approx(0.25f));
-    CHECK(layer->previousClipColumn == 0);
+    CHECK(layer->runtime().crossfadeProgress == Approx(0.25f));
+    CHECK(layer->runtime().previousClipColumn == 0);
 
     for (int i = 0; i < 3; ++i)
         DeckClock::tick(deck, 0.5f, noop);
-    CHECK(layer->crossfadeProgress == Approx(1.0f));
-    CHECK(layer->previousClipColumn == -1);       // transition complete
-    CHECK(layer->activeClipColumn == 1);          // the clips are not touched
+    CHECK(layer->runtime().crossfadeProgress == Approx(1.0f));
+    CHECK(layer->runtime().previousClipColumn == -1);       // transition complete
+    CHECK(layer->runtime().activeClipColumn == 1);          // the clips are not touched
 }
 
 TEST_CASE("(b) persistent layers are owned by compositePersistentLayers: never advanced twice", "[deck_clock]")
@@ -80,8 +80,8 @@ TEST_CASE("(b) persistent layers are owned by compositePersistentLayers: never a
         layer->persistent = true;
         Recorder rec;
         DeckClock::tick(deck, 0.5f, std::ref(rec));
-        CHECK(layer->crossfadeProgress == Approx(0.0f));
-        CHECK(layer->previousClipColumn == 0);
+        CHECK(layer->runtime().crossfadeProgress == Approx(0.0f));
+        CHECK(layer->runtime().previousClipColumn == 0);
         CHECK(rec.ticked.empty());               // its media is rendered (and clocked) by compositePersistentLayers
     }
 
@@ -94,7 +94,7 @@ TEST_CASE("(b) persistent layers are owned by compositePersistentLayers: never a
         REQUIRE_FALSE(Layer::canBePersistent(layer->type));
         Recorder rec;
         DeckClock::tick(deck, 0.5f, std::ref(rec));
-        CHECK(layer->crossfadeProgress == Approx(0.0f));    // compositePersistentLayers advances it (before its type check)
+        CHECK(layer->runtime().crossfadeProgress == Approx(0.0f));    // compositePersistentLayers advances it (before its type check)
         REQUIRE(rec.ticked.size() == 2);                     // ... but never renders its media
         CHECK(rec.ticked[0] == layer->getClipAt(1));
         CHECK(rec.ticked[1] == layer->getClipAt(0));
@@ -112,23 +112,23 @@ TEST_CASE("(c) hidden, bypassed and solo-excluded layers are left alone (composi
     {
         deck.getLayer(0)->visible = false;
         DeckClock::tick(deck, 0.5f, noop);
-        CHECK(deck.getLayer(0)->crossfadeProgress == Approx(0.0f));
-        CHECK(deck.getLayer(1)->crossfadeProgress == Approx(0.25f));
+        CHECK(deck.getLayer(0)->runtime().crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(1)->runtime().crossfadeProgress == Approx(0.25f));
     }
     SECTION("bypassed")
     {
         deck.getLayer(1)->bypassed = true;
         DeckClock::tick(deck, 0.5f, noop);
-        CHECK(deck.getLayer(1)->crossfadeProgress == Approx(0.0f));
-        CHECK(deck.getLayer(0)->crossfadeProgress == Approx(0.25f));
+        CHECK(deck.getLayer(1)->runtime().crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(0)->runtime().crossfadeProgress == Approx(0.25f));
     }
     SECTION("solo on another layer")
     {
         deck.getLayer(2)->solo = true;
         DeckClock::tick(deck, 0.5f, noop);
-        CHECK(deck.getLayer(0)->crossfadeProgress == Approx(0.0f));
-        CHECK(deck.getLayer(1)->crossfadeProgress == Approx(0.0f));
-        CHECK(deck.getLayer(2)->crossfadeProgress == Approx(0.25f));
+        CHECK(deck.getLayer(0)->runtime().crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(1)->runtime().crossfadeProgress == Approx(0.0f));
+        CHECK(deck.getLayer(2)->runtime().crossfadeProgress == Approx(0.25f));
     }
 }
 
@@ -147,7 +147,7 @@ TEST_CASE("(d) the media clock ticks playable clips only: the active one, and th
 
     rec.ticked.clear();
     DeckClock::tick(deck, 0.5f, std::ref(rec));    // this tick completes the fade
-    REQUIRE(layer->previousClipColumn == -1);
+    REQUIRE(layer->runtime().previousClipColumn == -1);
     REQUIRE(rec.ticked.size() == 1);               // outgoing not ticked on the completing frame (applyTransition parity)
     CHECK(rec.ticked[0] == layer->getClipAt(1));
 
@@ -161,36 +161,44 @@ TEST_CASE("(e) LayerClock::advanceCrossfade: step = dt / duration, 0.5 s default
 {
     Layer layer;
     layer.ensureColumns(2);
-    layer.previousClipColumn = 0;
-    layer.activeClipColumn = 1;
-    layer.crossfadeProgress = 0.0f;
+    {
+        LayerRuntimeSnapshot rt = layer.runtime();
+        rt.previousClipColumn = 0;
+        rt.activeClipColumn = 1;
+        rt.crossfadeProgress = 0.0f;
+        layer.setRuntime(rt);
+    }
 
     SECTION("step = dt / duration")
     {
         layer.transitionSpeed = 4.0f;
         LayerClock::advanceCrossfade(layer, 1.0f);
-        CHECK(layer.crossfadeProgress == Approx(0.25f));
-        CHECK(layer.previousClipColumn == 0);
+        CHECK(layer.runtime().crossfadeProgress == Approx(0.25f));
+        CHECK(layer.runtime().previousClipColumn == 0);
     }
     SECTION("duration <= 0 uses 0.5 s")
     {
         layer.transitionSpeed = 0.0f;
         LayerClock::advanceCrossfade(layer, 0.125f);
-        CHECK(layer.crossfadeProgress == Approx(0.25f));
+        CHECK(layer.runtime().crossfadeProgress == Approx(0.25f));
     }
     SECTION("clamps at 1.0 and clears previousClipColumn")
     {
         layer.transitionSpeed = 1.0f;
         LayerClock::advanceCrossfade(layer, 5.0f);
-        CHECK(layer.crossfadeProgress == Approx(1.0f));
-        CHECK(layer.previousClipColumn == -1);
+        CHECK(layer.runtime().crossfadeProgress == Approx(1.0f));
+        CHECK(layer.runtime().previousClipColumn == -1);
     }
     SECTION("no fade in progress: untouched")
     {
-        layer.previousClipColumn = -1;
+        {
+            LayerRuntimeSnapshot rt = layer.runtime();
+            rt.previousClipColumn = -1;
+            layer.setRuntime(rt);
+        }
         layer.transitionSpeed = 1.0f;
         LayerClock::advanceCrossfade(layer, 0.5f);
-        CHECK(layer.crossfadeProgress == Approx(0.0f));
+        CHECK(layer.runtime().crossfadeProgress == Approx(0.0f));
     }
 }
 
@@ -224,8 +232,8 @@ TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (P
             bank.forIndex(0).processFrame(d0, snap); bank.forIndex(1).processFrame(d1, snap);
         }
         CHECK(bank.size() == 2);
-        CHECK(d0.getLayer(0)->activeClipColumn == 1);
-        CHECK(d1.getLayer(0)->activeClipColumn == 1);
+        CHECK(d0.getLayer(0)->runtime().activeClipColumn == 1);
+        CHECK(d1.getLayer(0)->runtime().activeClipColumn == 1);
     }
 
     SECTION("teeth: ONE shared Autopilot driven for both decks lets only the first see each crossing")
@@ -238,8 +246,8 @@ TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (P
             snap.beatPhase = 0.01f; snap.totalBeatCount++;
             shared.processFrame(d0, snap); shared.processFrame(d1, snap);
         }
-        CHECK(d0.getLayer(0)->activeClipColumn == 1);
-        CHECK(d1.getLayer(0)->activeClipColumn == 0);   // the second call never sees a crossing
+        CHECK(d0.getLayer(0)->runtime().activeClipColumn == 1);
+        CHECK(d1.getLayer(0)->runtime().activeClipColumn == 0);   // the second call never sees a crossing
     }
 
     SECTION("config set from any thread reaches every instance handed out")
@@ -251,6 +259,6 @@ TEST_CASE("(f) AutopilotBank: every deck keeps its own beat-crossing baseline (P
         bank.setPerTypeConfig(&cfg);
         snap.beatPhase = 0.99f; bank.forIndex(1).processFrame(d1, snap);
         snap.beatPhase = 0.01f; snap.totalBeatCount++; bank.forIndex(1).processFrame(d1, snap);
-        CHECK(d1.getLayer(0)->activeClipColumn == 1);
+        CHECK(d1.getLayer(0)->runtime().activeClipColumn == 1);
     }
 }

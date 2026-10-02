@@ -93,7 +93,7 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
             snap.beatPhase = 0.01f; snap.totalBeatCount++;
             autopilot.processFrame(deck, snap);
         }
-        REQUIRE(layer->activeClipColumn == 0); // Still on first clip
+        REQUIRE(layer->runtime().activeClipColumn == 0); // Still on first clip
     }
 
     SECTION("Advance after duration reached")
@@ -107,7 +107,7 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
             autopilot.processFrame(deck, snap);
         }
         // Should have advanced to column 1
-        REQUIRE(layer->activeClipColumn == 1);
+        REQUIRE(layer->runtime().activeClipColumn == 1);
     }
 
     SECTION("Autopilot never selects a genuinely-cleared cell")
@@ -126,7 +126,7 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
             snap.beatPhase = 0.01f; snap.totalBeatCount++;
             autopilot.processFrame(deck, snap);
         }
-        REQUIRE(layer->activeClipColumn == 2); // column 1 skipped (cleared)
+        REQUIRE(layer->runtime().activeClipColumn == 2); // column 1 skipped (cleared)
     }
 }
 

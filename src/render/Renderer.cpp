@@ -1,6 +1,8 @@
 #include "Renderer.h"
+#include "core/LogLine.h"
 #include "render/EmbeddedShaders.h"
 #include "render/DeckClock.h"
+#include "render/ClipTransportSync.h"
 #include "render/PixelConvert.h"
 #include "render/PngWrite.h"
 #include "sources/ProjectMSource.h"
@@ -65,7 +67,7 @@ void Renderer::detach()
 
 void Renderer::loadImage(const juce::File& imageFile)
 {
-    std::cerr << "[Renderer] loadImage: " << imageFile.getFullPathName() << std::endl;
+    logLine("[Renderer] loadImage: ", imageFile.getFullPathName());
     std::lock_guard<std::mutex> lock(pendingImageMutex_);
     legacyReq_ = LegacyRequest{ imageFile, false, legacyReq_.gen + 1 };
 }
@@ -231,8 +233,8 @@ void Renderer::updateActiveSourceParamsFor(const std::string& sourceType,
 void Renderer::newOpenGLContextCreated()
 {
     glContextGen_.fetch_add(1, std::memory_order_relaxed);   // s-rta-0929 vupload: the context-cycle witness
-    std::cerr << "[Renderer] GL context created. Version: "
-              << glGetString(GL_VERSION) << std::endl;
+    logLine("[Renderer] GL context created. Version: ",
+              glGetString(GL_VERSION));
 
     quad_.init();
     initShaders();
@@ -246,8 +248,8 @@ void Renderer::newOpenGLContextCreated()
     // outputs-c1: the output window compiles no programs any more).
     for (const char* name : { "passthrough", "hue_shift", "vignette" })
         if (auto* p = shaderMgr_.getProgram(name))
-            std::cerr << "[Renderer] programID(" << name << ")="
-                      << p->getProgramID() << std::endl;
+            logLine("[Renderer] programID(", name, ")=",
+                      p->getProgramID());
 
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
@@ -446,9 +448,9 @@ void Renderer::renderOpenGL()
     float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
 
     {
-        // Plain-int reads of message-thread-written fields: the house class (globalTransitionSpeed and
-        // activeDeckIndex below). The debounce removes the one new hazard -- a half-applied pair (the
-        // Composition inspector writes width, then height) reallocating everything for one frame.
+        // Plain-int reads of message-thread-written fields: the house class (globalTransitionSpeed below; the R5
+        // config scalars, not yet Relaxed<T> -- Pitfall 63). The debounce removes the one new hazard -- a half-applied
+        // pair (the Composition inspector writes width, then height) reallocating everything for one frame.
         const int reqW = composition_ != nullptr ? composition_->outputWidth : 0;
         const int reqH = composition_ != nullptr ? composition_->outputHeight : 0;
         if (reqW != candW_ || reqH != candH_) { candW_ = reqW; candH_ = reqH; }   // first sight: wait a frame
@@ -464,11 +466,14 @@ void Renderer::renderOpenGL()
     // last picture, exactly what was on screen (mid-transition too). Detected after the composite (as it used to
     // be), the "outgoing" copy was the NEW deck's first frame and every deck transition was a cut. Blitted
     // (scaled if the canvas size changes this frame) into prevDeckFBO_ before ensureCanvasFBO / the clear (R5).
-    // activeDeckIndex is read after the acquire-load of activeDeck_ above: a frame that already renders the new
-    // deck always sees the new index.
-    if (composition_ != nullptr)
+    // s-rta-1002 tsan T6: the deck index is DERIVED from the acquire-loaded deck pointer above (as the autopilot
+    // block below does), never read from Composition::activeDeckIndex (the message thread's field): the index and
+    // the deck this frame renders can never disagree. No deck this frame (fenced before the first canvas, or none)
+    // keeps prevActiveDeckIndex_.
+    if (composition_ != nullptr && deck != nullptr && !composition_->decks.empty()
+        && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
     {
-        const int currentDeckIdx = composition_->activeDeckIndex;
+        const int currentDeckIdx = static_cast<int>(deck - composition_->decks.data());
         if (currentDeckIdx != prevActiveDeckIndex_)
         {
             // globalTransitionSpeed is a DURATION in seconds (see its comment in Composition.h), same
@@ -544,7 +549,9 @@ void Renderer::renderOpenGL()
         if (composition_ != nullptr && !composition_->decks.empty()
             && deck >= composition_->decks.data() && deck < composition_->decks.data() + composition_->decks.size())
             activeIndex = static_cast<size_t>(deck - composition_->decks.data());
-        bool clipAdvanced = autopilots_.forIndex(activeIndex).processFrame(*deck, snap);
+        Autopilot::FrameReport apReport;
+        bool clipAdvanced = autopilots_.forIndex(activeIndex).processFrame(*deck, snap, &apReport);
+        countAutopilot(apReport);
         if (clipAdvanced && onAutopilotAdvanced_)
         {
             // Notify UI thread to refresh deck view
@@ -590,9 +597,9 @@ void Renderer::renderOpenGL()
         for (int li = 0; li < deck->getNumLayers(); ++li)
         {
             auto* layer = deck->getLayer(li);
-            if (!layer || layer->activeClipColumn < 0) continue;
+            if (!layer) continue;
 
-            auto* clip = layer->getActiveClip();
+            auto* clip = layer->getActiveClip();   // lane tsan: ONE tuple load (null when no clip is active)
             if (!clip || clip->sourceType != "projectm_visualizer") continue;
             if (!clip->hasPresetPlaylist()) continue;
             if (clip->presetPlaylist.size() <= 1) continue;
@@ -768,14 +775,21 @@ void Renderer::renderOpenGL()
                 Deck& other = composition_->decks[di];
                 if (&other == deck) continue;
                 // B2 (Boris Q1: "keep playing"): media clocks run without decoding; autopilot keeps advancing.
-                DeckClock::tick(other, realDt, [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
-                if (autopilots_.forIndex(di).processFrame(other, snap) && onAutopilotAdvanced_)
+                const int adopts = DeckClock::tick(other, realDt,
+                                                   [this](const Clip* c, float dt) { tickMediaClock(c, dt); });
+                renderTupleAdopts_.fetch_add(static_cast<uint64_t>(adopts), std::memory_order_relaxed);
+                Autopilot::FrameReport apReport;
+                const bool advanced = autopilots_.forIndex(di).processFrame(other, snap, &apReport);
+                countAutopilot(apReport);
+                if (advanced && onAutopilotAdvanced_)
                 {
                     auto callback = onAutopilotAdvanced_;
                     juce::MessageManager::callAsync([callback]() { callback(); });
                 }
             }
         }
+        // Lane tsan (amendment 13): the active deck's and the persistent layers' fade-tick adopts this frame.
+        renderTupleAdopts_.fetch_add(compositor_.takeTupleAdopts(), std::memory_order_relaxed);
 
         // Update persistent feedback buffer for feedback effects
         compositor_.updateFeedbackBuffer(shaderMgr_, quad_,
@@ -985,9 +999,8 @@ void Renderer::renderOpenGL()
                 if (fx != nullptr && fx->isEnabled())
                 {
                     fx->setEnabled(false);
-                    std::cerr << "[Renderer] Adaptive quality: disabled '"
-                              << fx->getName() << "' (frame time "
-                              << static_cast<int>(frameMs * 10) / 10.0 << "ms)" << std::endl;
+                    logLinef("[Renderer] Adaptive quality: disabled '%s' (frame time %gms)",
+                             fx->getName().toRawUTF8(), static_cast<int>(frameMs * 10) / 10.0);
                     break;
                 }
             }
@@ -1010,9 +1023,9 @@ void Renderer::renderOpenGL()
             if (auto* fx = effectChain_.getEffect(i))
                 if (fx->isEnabled()) ++numEnabled;
         }
-        std::cerr << "[Render Profile] Avg frame: " << static_cast<int>(avgMs * 100) / 100.0
-                  << " ms, " << numEnabled << " effects active, "
-                  << static_cast<int>(renderW) << "x" << static_cast<int>(renderH) << std::endl;
+        // Zero-heap on the GL thread (a periodic line): logLinef, never logLine.
+        logLinef("[Render Profile] Avg frame: %g ms, %d effects active, %dx%d", static_cast<int>(avgMs * 100) / 100.0,
+                 numEnabled, static_cast<int>(renderW), static_cast<int>(renderH));
         renderProfileAccum_ = 0.0;
         renderProfileCount_ = 0;
     }
@@ -1783,11 +1796,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         }
 
         // Sync transport state from clip (only set playing if clip wants to play,
-        // don't override if player stopped due to OneShot boundary)
-        if (clip->playing && !player->isPlaying())
-            player->setPlaying(true);
-        else if (!clip->playing)
-            player->setPlaying(false);
+        // don't override if player stopped due to OneShot boundary). Lane tsan: the intent is read ONCE; the
+        // write-back below compare-exchanges against it (ClipTransportSync.h).
+        const bool wanted = ClipTransportSync::pushIntent(*clip, *player);
 
         // Only sync reverse for non-PingPong modes (PingPong manages direction internally)
         if (clip->loopMode != Clip::LoopMode::PingPong)
@@ -1820,25 +1831,9 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
             player->advanceFrame(static_cast<double>(dt));
         else
             player->advanceClock(static_cast<double>(dt));   // plan4 T4: the clock only, no decode
-        clip->playheadPosition = player->getPlayheadPosition();
-
-        // Propagate player state back to clip model (OneShot stops, PingPong reverses)
-        clip->playing = player->isPlaying();
-
-        // Enforce in/out points
-        if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
-        {
-            if (clip->loopMode == Clip::LoopMode::OneShot)
-            {
-                clip->playing = false;
-                player->setPlaying(false);
-            }
-            else
-            {
-                player->seekTo(static_cast<double>(clip->inPoint));
-                clip->playheadPosition = static_cast<double>(clip->inPoint);
-            }
-        }
+        // The playhead, the player's state back to the clip model (OneShot stops, PingPong reverses) as a CAS on the
+        // intent read above, and the in/out points on the playhead just read (ClipTransportSync.h).
+        ClipTransportSync::writeBack(*clip, *player, wanted);
 
         if (!decode)
             return 0;
@@ -1873,10 +1868,7 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
                                           clip->transportMode == Clip::TransportMode::BPMSync));
         if (clip->loopMode != Clip::LoopMode::PingPong)
             seq->setReverse(clip->reverse);
-        if (clip->playing && !seq->isPlaying())
-            seq->setPlaying(true);
-        else if (!clip->playing)
-            seq->setPlaying(false);
+        const bool wanted = ClipTransportSync::pushIntent(*clip, *seq);   // lane tsan: the intent, read once
         seq->setFps(clip->sequenceFps);
         switch (clip->loopMode)
         {
@@ -1907,23 +1899,8 @@ GLuint Renderer::syncMedia(const Clip* clip, float dt, bool decode, bool* pendin
         {
             seq->advanceFrame(static_cast<double>(dt));
         }
-        clip->playheadPosition = seq->getPlayheadPosition();
-        clip->playing = seq->isPlaying();
-
-        // Enforce in/out points
-        if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
-        {
-            if (clip->loopMode == Clip::LoopMode::OneShot)
-            {
-                clip->playing = false;
-                seq->setPlaying(false);
-            }
-            else
-            {
-                seq->seekTo(static_cast<double>(clip->inPoint));
-                clip->playheadPosition = static_cast<double>(clip->inPoint);
-            }
-        }
+        // The playhead, the CAS write-back of the play state, the in/out points (ClipTransportSync.h; as the video).
+        ClipTransportSync::writeBack(*clip, *seq, wanted);
 
         // plan4 T4: no lazy PNG load for a deck that is not on screen. s-rta-0928 R1.4: the frames decode off the GL
         // thread (look-ahead); a sequence with nothing to show yet is PENDING, and counts for the render_frame gate
@@ -1969,9 +1946,9 @@ void Renderer::compileAllShaders()
 {
     auto compile = [&](const juce::String& name, const char* frag) {
         if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag))
-            std::cerr << "[Renderer]   " << name << ": OK" << std::endl;
+            logLine("[Renderer]   ", name, ": OK");
         else
-            std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
+            logLine("[Renderer]   ", name, ": FAILED");
     };
 
     // Core
@@ -2319,7 +2296,7 @@ void Renderer::compileAllShaders()
     compile("source_fluid_dynamics",    EmbeddedShaders::sourceFluidDynamics);
     compile("source_layer_router",      EmbeddedShaders::sourceLayerRouter);
 
-    std::cerr << "[Renderer] All shaders compiled." << std::endl;
+    logLine("[Renderer] All shaders compiled.");
 }
 
 void Renderer::compileShaderWithUtils(const juce::String& name, const char* frag,
@@ -2355,9 +2332,9 @@ void Renderer::compileShaderWithUtils(const juce::String& name, const char* frag
     combined += afterVersion;
 
     if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, combined.c_str()))
-        std::cerr << "[Renderer]   " << name << ": OK (with utils)" << std::endl;
+        logLine("[Renderer]   ", name, ": OK (with utils)");
     else
-        std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
+        logLine("[Renderer]   ", name, ": FAILED");
 }
 
 void Renderer::initEffectChain()
@@ -2399,8 +2376,8 @@ void Renderer::initEffectChain()
         }
     }
 
-    std::cerr << "[Renderer] Loaded " << effectChain_.getNumEffects()
-              << " effects from library." << std::endl;
+    logLine("[Renderer] Loaded ", effectChain_.getNumEffects(),
+              " effects from library.");
 
     // No demo effects — user enables what they want via the FX browser.
     // A4 (outputwindow-arc-design.md): the mappingEngine_.clearAll() that
@@ -2430,7 +2407,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     std::unique_lock<std::timed_mutex> flight(captureFlight_, std::defer_lock);
     if (!flight.try_lock_for(std::chrono::seconds(5)))
     {
-        std::cerr << "[Eyes] Frame capture timed out after 5s (another capture in flight)" << std::endl;
+        logLine("[Eyes] Frame capture timed out after 5s (another capture in flight)");
         return false;
     }
     const uint64_t prevLock = lockedSize_.load(std::memory_order_relaxed);
@@ -2458,7 +2435,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     if (status == std::future_status::timeout)
     {
-        std::cerr << "[Eyes] Frame capture timed out after 5s" << std::endl;
+        logLine("[Eyes] Frame capture timed out after 5s");
         std::lock_guard<std::mutex> lock(captureMutex_);
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
@@ -2483,7 +2460,7 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
     const double readMs = read.readMs;
     if (readW <= 0 || readH <= 0 || pixels.size() != static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4)
     {
-        std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
+        logLine("[Eyes] Invalid capture dimensions: ", readW, "x", readH);
         return false;
     }
 
@@ -2525,13 +2502,13 @@ bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
 
     // C0's split: read = the GL thread's whole share; convert + png ran here.
     if (ok)
-        std::cerr << "[Eyes] Captured frame: " << outputPath.getFullPathName()
-                  << " (" << readW << "x" << readH << ")"
-                  << " read=" << juce::String(readMs, 1) << " convert=" << juce::String(convertMs, 1)
-                  << " png=" << juce::String(pngMs, 1) << " ms"
-                  << (enc == CaptureEncoding::Fast ? " enc=fast" : " enc=archive") << std::endl;
+        logLine("[Eyes] Captured frame: ", outputPath.getFullPathName(),
+                  " (", readW, "x", readH, ")",
+                  " read=", juce::String(readMs, 1), " convert=", juce::String(convertMs, 1),
+                  " png=", juce::String(pngMs, 1), " ms",
+                  (enc == CaptureEncoding::Fast ? " enc=fast" : " enc=archive"));
     else
-        std::cerr << "[Eyes] Failed to write PNG: " << outputPath.getFullPathName() << std::endl;
+        logLine("[Eyes] Failed to write PNG: ", outputPath.getFullPathName());
 
     return ok;
 }
@@ -2566,11 +2543,11 @@ void Renderer::processPendingCapture()
     // plan4 item 1: the capture is the whole canvas, exactly its size.
     const int readW = canvasW_;
     const int readH = canvasH_;
-    std::cerr << "[Eyes] Processing capture: canvas " << readW << "x" << readH << std::endl;
+    logLine("[Eyes] Processing capture: canvas ", readW, "x", readH);
 
     if (canvasFBO_ == 0 || readW <= 0 || readH <= 0)
     {
-        std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
+        logLine("[Eyes] Invalid capture dimensions: ", readW, "x", readH);
         capturePromise_->set_value(CaptureRead{});
         pendingCapture_.store(false, std::memory_order_relaxed);
         capturePromise_ = nullptr;
@@ -2618,7 +2595,7 @@ juce::File Renderer::takeSnapshot()
 
     if (ok)
     {
-        std::cerr << "[Snapshot] Saved: " << outputFile.getFullPathName() << std::endl;
+        logLine("[Snapshot] Saved: ", outputFile.getFullPathName());
         if (onSnapshotTaken)
         {
             auto file = outputFile;
@@ -2628,7 +2605,7 @@ juce::File Renderer::takeSnapshot()
         return outputFile;
     }
 
-    std::cerr << "[Snapshot] Failed to save snapshot" << std::endl;
+    logLine("[Snapshot] Failed to save snapshot");
     return {};
 }
 

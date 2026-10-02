@@ -744,10 +744,9 @@ LayerStrip::TransportView LayerStrip::transportViewOf(const Layer* layer, juce::
     const Clip* clip = layer != nullptr ? layer->getActiveClip() : nullptr;
     if (clip == nullptr || !clip->isPlayable())
         return v;                                   // paint() draws only the fill + border then
-    // Clip::playheadPosition is a GL-written `mutable double` (ConnectionEngine.h: s166 spec L5 names two acceptable
-    // reads -- std::atomic_ref<double> on BOTH sides, or convert the field). This is the atomic_ref read, ONE per update
-    // (adoption I2); the GL-side writers (Layer.h, Renderer) still write it plainly -- L5's open item, outside this lane.
-    const double pos = std::atomic_ref<double>(clip->playheadPosition).load(std::memory_order_relaxed);
+    // Clip::playheadPosition is GL-written; lane tsan (s-rta-1002) converted the field to RelaxedDouble (s166 spec L5's
+    // "convert the field"), so every writer and reader is a relaxed atomic. ONE load per update (adoption I2).
+    const double pos = clip->playheadPosition.load();
     const auto tb = transportBounds.toFloat();
     v.showsClip = true;
     v.inPoint = clip->inPoint;
@@ -816,7 +815,7 @@ void LayerStrip::syncFromModel()
     if (!opacitySlider_.isMouseButtonDown())
     {
         // The LayerInspector rule: a connected control shows its effective value (opacity's toNorm is identity).
-        const double shown = conn.isConnected() ? layer_->eff(LayerScalar::Opacity) : layer_->opacity;
+        const double shown = conn.isConnected() ? layer_->eff(LayerScalar::Opacity) : layer_->opacity.load();
         if (std::abs(opacitySlider_.getValue() - shown) > 1e-4)
         {
             const double before = opacitySlider_.getValue();

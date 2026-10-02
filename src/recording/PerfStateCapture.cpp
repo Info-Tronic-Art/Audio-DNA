@@ -67,11 +67,12 @@ PerfState capturePerfState(const Composition& comp, float bpm, const std::string
             const Layer& layer = deck.layers[layerIdx];
             PerfState::LayerRuntime layerRT;
             layerRT.layer = layer.name;
-            layerRT.activeClipColumn = layer.activeClipColumn;
-            layerRT.previousClipColumn = layer.previousClipColumn;
-            layerRT.crossfadeProgress = layer.crossfadeProgress;
-            layerRT.pendingTriggerColumn = layer.pendingTriggerColumn;
-            layerRT.pendingTriggerSnapOverride = static_cast<int>(layer.pendingTriggerSnapOverride);
+            const LayerRuntimeSnapshot rt = layer.runtime();   // one consistent tuple
+            layerRT.activeClipColumn = rt.activeClipColumn;
+            layerRT.previousClipColumn = rt.previousClipColumn;
+            layerRT.crossfadeProgress = rt.crossfadeProgress;
+            layerRT.pendingTriggerColumn = rt.pendingTriggerColumn;
+            layerRT.pendingTriggerSnapOverride = static_cast<int>(rt.pendingTriggerSnapOverride);
             layerRT.opacity = layer.opacity;
             layerRT.visible = layer.visible;
             layerRT.bypassed = layer.bypassed;

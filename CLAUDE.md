@@ -71,7 +71,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 1. **The audio callback is sacred**: No heap allocation (`new`, `malloc`, `vector::push_back`), no mutexes (`std::mutex`, `std::lock_guard`), no system calls (`printf`, file I/O, `std::cout`), no exceptions. It copies samples to the ring buffer and returns. Budget: <100μs.
 
-2. **All inter-thread data goes through established lock-free channels**: Audio→Analysis via SPSC ring buffer. Analysis→Render via triple-buffer FeatureBus. UI→hot path via `std::atomic<T>`. Never add a new mutex without explicit discussion.
+2. **All inter-thread data goes through established lock-free channels**: Audio→Analysis via SPSC ring buffer. Analysis→Render via triple-buffer FeatureBus. UI→hot path via `std::atomic<T>` (model fields: `Relaxed<T>`, Pitfall 63). Never add a new mutex without explicit discussion.
 
 3. **Analysis thread pre-allocates everything**: All FFT plans, work buffers, Aubio objects, filter states created at startup. Zero allocation in the steady-state loop.
 
@@ -125,7 +125,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **Periodic repaints**: a timed `repaint()` costs the whole window (Pitfall 57): an always-animating widget draws in its own layer (`NativeLayerHost`) or repaints only on change.
 
-**Deck tab row**: '+' = New / Load Deck; right-click a tab = its menu (Save / Save As / Rename / Duplicate / Remove + 10-s Undo), never a deck switch: `DeckTabButton` intercepts `isPopupMenu()` (a JUCE Button fires `onClick` on ANY mouse button); `docs/claude/performance-controls.md`.
+**Deck tab row**: right-click a tab = its menu, never a deck switch (`docs/claude/performance-controls.md`).
 
 **Routine pads and bands**: the rules -- a pad's press, how a routine leaves, "Delete routine", the model-driven pads / bands / strip faders / bound controls, the reserved routine cue `AudioDNALookAndFeel::kRoutineCue` -- live verbatim in `docs/claude/recording.md` "Surfaces": read them before touching a routine pad, band, strip fader or the routine cue.
 
@@ -223,6 +223,7 @@ the named area; this index is triage-only.
 60. Video uploads are budgeted, fenced IOSurface blits; the shown slot stays the reader's -- before touching `uploadToTexture`, `releaseGL` or a ring release.
 61. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
 62. Reverse / ping-pong video = the decode thread's GOP cache + a direction-aware pick -- before touching `decodeStep`, `VideoRing::pick`, a direction change or a keyframe gate.
+63. The Layer trigger tuple is one CAS word; shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.
 
 ---
 

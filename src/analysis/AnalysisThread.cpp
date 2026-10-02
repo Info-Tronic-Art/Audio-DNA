@@ -1,4 +1,5 @@
 #include "AnalysisThread.h"
+#include "core/LogLine.h"
 #include <chrono>
 #include "FFTProcessor.h"
 #include "SpectralFeatures.h"
@@ -79,9 +80,10 @@ void AnalysisThread::run()
             lastSourceRate_ = rate;
             resampler_.setSourceRate(rate);
             spectralFeatures_->setInputBandwidthHz(resampler_.inputBandwidthHz());
-            std::cerr << "[Analysis] source rate " << static_cast<int>(rate) << " Hz -> "
-                      << (resampler_.isBypass() ? "48 kHz path (no resampling)" : "resampling to 48000 Hz")
-                      << ", bandwidth " << static_cast<int>(resampler_.inputBandwidthHz()) << " Hz\n";
+            // Zero-heap (Sacred Rule 3: no allocation even at a device-rate change): logLinef, never logLine.
+            logLinef("[Analysis] source rate %d Hz -> %s, bandwidth %d Hz", static_cast<int>(rate),
+                     resampler_.isBypass() ? "48 kHz path (no resampling)" : "resampling to 48000 Hz",
+                     static_cast<int>(resampler_.inputBandwidthHz()));
         }
 
         auto resampleStart = std::chrono::high_resolution_clock::now();
@@ -363,15 +365,16 @@ void AnalysisThread::run()
                 "Structural", "Genre", "Advanced", "Resample"
             };
             double total = 0.0;
-            std::cerr << "[Analysis Profile] Per-stage avg (us) over " << kProfileInterval << " hops:" << std::endl;
+            // Zero-heap (Sacred Rule 3: the steady loop never allocates): logLinef, never logLine.
+            logLinef("[Analysis Profile] Per-stage avg (us) over %d hops:", kProfileInterval);
             for (int s = 0; s < 14; ++s)
             {
                 double avg = stageTimesUs_[static_cast<size_t>(s)] / kProfileInterval;
                 total += avg;
-                std::cerr << "  " << stageNames[s] << ": " << static_cast<int>(avg + 0.5) << " us" << std::endl;
+                logLinef("  %s: %d us", stageNames[s], static_cast<int>(avg + 0.5));
             }
-            std::cerr << "  TOTAL: " << static_cast<int>(total + 0.5) << " us ("
-                      << static_cast<int>(total / hopPeriodUs * 100.0 + 0.5) << "% of hop period)" << std::endl;
+            logLinef("  TOTAL: %d us (%d%% of hop period)", static_cast<int>(total + 0.5),
+                     static_cast<int>(total / hopPeriodUs * 100.0 + 0.5));
 
             stageTimesUs_.fill(0.0);
             profileFrameCount_ = 0;

@@ -170,7 +170,11 @@ TEST_CASE("DeckView B0: a refresh never decodes a fresh image on the calling thr
     deck.setClip(0, 0, imageClip(101, a));
     deck.setClip(0, 2, imageClip(102, b));
     deck.setClip(2, 1, imageClip(103, a));
-    deck.layers[0].activeClipColumn = 0;
+    {
+        LayerRuntimeSnapshot rt = deck.layers[0].runtime();
+        rt.activeClipColumn = 0;
+        deck.layers[0].setRuntime(rt);
+    }
 
     DeckView dv;
     dv.setSize(1400, 600);
@@ -218,7 +222,11 @@ struct StormRig
         {
             for (int c = 0; c < 4; ++c)
                 deck.setClip(l, c, imageClip(id++, files[static_cast<size_t>(c)]));
-            deck.layers[static_cast<size_t>(l)].activeClipColumn = 0;
+            {
+                LayerRuntimeSnapshot rt = deck.layers[static_cast<size_t>(l)].runtime();
+                rt.activeClipColumn = 0;
+                deck.layers[static_cast<size_t>(l)].setRuntime(rt);
+            }
         }
         dv.getThumbnails().setBackendsForTests(dec.decoder(), post.poster());
         dv.setSize(1400, 900);
@@ -279,7 +287,11 @@ TEST_CASE("DeckView B2: an unchanged cell re-derives nothing; a changed strip re
         rig.dv.refresh();
     CHECK(store.lookups() == lookups);                // 32 image cells + 8 strips x 30 refreshes: compares only
 
-    rig.comp.decks[0].layers[0].activeClipColumn = 1;
+    {
+        LayerRuntimeSnapshot rt = rig.comp.decks[0].layers[0].runtime();
+        rt.activeClipColumn = 1;
+        rig.comp.decks[0].layers[0].setRuntime(rt);
+    }
     rig.dv.refresh();
     CHECK(store.lookups() == lookups + 1);            // only L0's strip: its active clip's source changed
     CHECK(rig.dec.calls() == 4);                      // that file is already decoded
@@ -305,7 +317,11 @@ TEST_CASE("DeckView B3: a SEQUENCE cell's thumbnail comes from ClipThumbnails (i
     seq.mediaType = Clip::MediaType::ImageSequence;
     seq.sequenceFiles = frames;
     deck.setClip(0, 0, seq);
-    deck.layers[0].activeClipColumn = 0;
+    {
+        LayerRuntimeSnapshot rt = deck.layers[0].runtime();
+        rt.activeClipColumn = 0;
+        deck.layers[0].setRuntime(rt);
+    }
     Clip cachedSeq = seq;                             // a clip that already carries its picture
     cachedSeq.id = 302;
     cachedSeq.sequenceFiles = { scratch.dir.getChildFile("other0.png") };

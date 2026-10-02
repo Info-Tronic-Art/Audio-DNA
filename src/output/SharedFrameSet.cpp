@@ -1,6 +1,7 @@
 // SharedFrameSet -- the GL half (the main context is the only writer). The IOSurface half is SurfacePool.cpp.
 // Protocol: .harmony/.reports/s-rta-0926b/plan5-final.md section 8.1; nothing else touches front_.
 #include "output/SharedFrameSet.h"
+#include "core/LogLine.h"
 #include <juce_opengl/juce_opengl.h>   // juce_gl.h must precede any Apple GL header
 #if JUCE_MAC
  #include <OpenGL/OpenGL.h>
@@ -104,7 +105,7 @@ bool SharedFrameSet::bindCurrentGeneration()
         glBindTexture(GL_TEXTURE_RECTANGLE, 0);
         if (err != kCGLNoError)
         {
-            std::cerr << "[SharedFrameSet] CGLTexImageIOSurface2D failed: " << CGLErrorString(err) << std::endl;
+            logLine("[SharedFrameSet] CGLTexImageIOSurface2D failed: ", CGLErrorString(err));
             ok = false;
             break;
         }
@@ -112,7 +113,7 @@ bool SharedFrameSet::bindCurrentGeneration()
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, tex_[i], 0);
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            std::cerr << "[SharedFrameSet] slot FBO incomplete" << std::endl;
+            logLine("[SharedFrameSet] slot FBO incomplete");
             ok = false;
         }
     }

@@ -10,8 +10,9 @@ struct Composition;
 struct Clip;
 
 // ClipClock: the narrow interface a real per-clip playhead will implement
-// against (Clip::playheadPosition is a GL-written `mutable double` -- s166
-// spec section 8 names two acceptable read strategies, both Lane 5's call).
+// against (Clip::playheadPosition is GL-written; lane tsan s-rta-1002 made it
+// a RelaxedDouble, the "convert the field" option of s166 spec section 8, so
+// any thread reads it with one relaxed load).
 // L2 only needs the SHAPE of this seam so ConnSource::Kind::ClipPosition and
 // Envelope::Clock::ClipPosition are evaluable and unit-testable today;
 // nothing in this lane constructs one against a live Clip, and

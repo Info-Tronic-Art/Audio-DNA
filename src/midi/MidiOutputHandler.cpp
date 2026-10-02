@@ -81,7 +81,7 @@ void MidiOutputHandler::updateFromDeck(const Deck* deck)
                 clip = &(*layer.clips[static_cast<size_t>(ci)]);
             if (clip)
             {
-                if (layer.activeClipColumn == ci)
+                if (layer.runtime().activeClipColumn == ci)
                 {
                     if (clip->playing)
                     {

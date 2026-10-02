@@ -31,7 +31,11 @@ void activate(Layer& layer, const Clip& clip)
 {
     layer.clips.resize(2);
     layer.clips[0] = clip;
-    layer.activeClipColumn = 0;
+    {
+        LayerRuntimeSnapshot rt = layer.runtime();
+        rt.activeClipColumn = 0;
+        layer.setRuntime(rt);
+    }
 }
 
 uint64_t transportRepaints() { return uipaint::counters().layerStripTransportRepaints.load(); }

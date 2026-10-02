@@ -1,4 +1,5 @@
 #include "TextureManager.h"
+#include "core/LogLine.h"
 #include "render/LUTLoader.h"
 #include "render/PixelConvert.h"
 #include <vector>
@@ -70,8 +71,8 @@ bool TextureManager::uploadPixels(const uint8_t* rgbaPixels, int w, int h)
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    std::cerr << "[TextureManager] texture uploaded, ID=" << imageTexID_
-              << ", size=" << w << "x" << h << std::endl;
+    logLine("[TextureManager] texture uploaded, ID=", imageTexID_,
+              ", size=", w, "x", h);
     return true;
 }
 

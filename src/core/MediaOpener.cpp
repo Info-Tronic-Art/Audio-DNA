@@ -1,4 +1,5 @@
 #include "core/MediaOpener.h"
+#include "core/LogLine.h"
 #include "media/VideoPlayer.h"
 #include <juce_events/juce_events.h>
 #include <iostream>
@@ -79,8 +80,8 @@ MediaOpener::~MediaOpener()
         // AL2: a job is still inside VideoPlayer::open (FFmpeg may block forever, e.g. open(2) of a FIFO). ~ThreadPool
         // would stopThread(500) and then KILL that thread inside FFmpeg -- a crash at quit. Leak the pool instead: its
         // threads end with the process; the job holds only its own player and a WeakReference (now null).
-        std::cerr << "[MediaOpener] an open did not return within " << kShutdownTimeoutMs
-                  << " ms at shutdown: its pool is left running (intentional leak)" << std::endl;
+        logLine("[MediaOpener] an open did not return within ", kShutdownTimeoutMs,
+                  " ms at shutdown: its pool is left running (intentional leak)");
         (void) pool_.release();
     }
 }

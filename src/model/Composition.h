@@ -20,7 +20,7 @@ struct Composition;
 // an inline member defined inside the class body -- can call it; ordinary
 // name lookup for a free function needs the declaration to precede its use
 // textually, unlike a class's own later-declared members.
-float& manualRef(Composition& c, CompScalar s);
+RelaxedFloat& manualRef(Composition& c, CompScalar s);
 
 // Composition: the complete app state saved to disk.
 // Contains all decks, global effects, global settings.
@@ -32,7 +32,10 @@ struct Composition
 
     // === Decks ===
     std::vector<Deck> decks;
-    int activeDeckIndex = 0;
+    // Written by the message thread (deck switch, deck remove / undo, load); read by the httplib thread (/api/status,
+    // /api/composition, /api/state): a relaxed atomic (Pitfall 63). The GL thread never reads it -- it derives its
+    // index from the acquire-loaded deck pointer (Renderer::renderOpenGL).
+    RelaxedInt activeDeckIndex = 0;
 
     // === Global Effects (post-composite chain) ===
     std::vector<Clip::EffectSlot> globalEffects;
@@ -50,8 +53,10 @@ struct Composition
     std::string routineLoadNote;
 
     // === Composition Master ===
-    float masterOpacity = 1.0f;
-    float masterSpeed = 1.0f;       // Global speed multiplier
+    // Lane tsan (s-rta-1002; Pitfall 63): the 9 manualRef scalars (master opacity / speed / signal, the comp
+    // transform) are RelaxedFloat -- message-thread writers, GL-thread reads through eff().
+    RelaxedFloat masterOpacity = 1.0f;
+    RelaxedFloat masterSpeed = 1.0f;       // Global speed multiplier
     // Master Signal depth (s-rta-0925 mastersignal Step 1): 1 = every
     // signal->parameter connection moves the controls it drives fully;
     // 0 = every one of those controls sits at its hand value. Backs
@@ -61,7 +66,7 @@ struct Composition
     // MappingEngine::processFrame) -- never on any GL thread (Boris Q2:
     // effects/sources reading the beat clock or audio uniforms directly
     // keep pulsing at 0%).
-    float masterSignal = 1.0f;
+    RelaxedFloat masterSignal = 1.0f;
 
     // === CrossFader ===
     float crossfaderPhase = 0.5f;   // [0,1] A↔B
@@ -73,12 +78,12 @@ struct Composition
     CrossfaderCurve crossfaderCurve = CrossfaderCurve::Linear;
 
     // === Transform (composition-level, applied to final output) ===
-    float compPositionX = 0.0f;
-    float compPositionY = 0.0f;
-    float compScale = 1.0f;         // 1.0 = 100%
-    float compRotation = 0.0f;      // Degrees
-    float compAnchorX = 0.0f;
-    float compAnchorY = 0.0f;
+    RelaxedFloat compPositionX = 0.0f;
+    RelaxedFloat compPositionY = 0.0f;
+    RelaxedFloat compScale = 1.0f;         // 1.0 = 100%
+    RelaxedFloat compRotation = 0.0f;      // Degrees
+    RelaxedFloat compAnchorX = 0.0f;
+    RelaxedFloat compAnchorY = 0.0f;
 
     // === Connections (s167-l2) ===
     // One ParamConnection + LiveValue twin per CompScalar. Opacity targets
@@ -187,17 +192,20 @@ struct Composition
     }
 
     // === Active Deck Access ===
+    // ONE load of the index: the range check and the subscript see the same value.
     Deck* getActiveDeck()
     {
-        if (activeDeckIndex >= 0 && activeDeckIndex < static_cast<int>(decks.size()))
-            return &decks[static_cast<size_t>(activeDeckIndex)];
+        const int idx = activeDeckIndex.load();
+        if (idx >= 0 && idx < static_cast<int>(decks.size()))
+            return &decks[static_cast<size_t>(idx)];
         return nullptr;
     }
 
     const Deck* getActiveDeck() const
     {
-        if (activeDeckIndex >= 0 && activeDeckIndex < static_cast<int>(decks.size()))
-            return &decks[static_cast<size_t>(activeDeckIndex)];
+        const int idx = activeDeckIndex.load();
+        if (idx >= 0 && idx < static_cast<int>(decks.size()))
+            return &decks[static_cast<size_t>(idx)];
         return nullptr;
     }
 
@@ -303,7 +311,7 @@ struct Composition
     {
         auto* obj = new juce::DynamicObject();
         obj->setProperty("name", juce::String(name));
-        obj->setProperty("activeDeckIndex", activeDeckIndex);
+        obj->setProperty("activeDeckIndex", activeDeckIndex.load());
         obj->setProperty("masterOpacity", static_cast<double>(masterOpacity));
         obj->setProperty("globalTransitionSpeed", static_cast<double>(globalTransitionSpeed));
         obj->setProperty("bpmMultiplier", bpmMultiplier);
@@ -697,7 +705,7 @@ private:
     }
 };
 
-inline float& manualRef(Composition& c, CompScalar s)
+inline RelaxedFloat& manualRef(Composition& c, CompScalar s)
 {
     switch (s)
     {
@@ -712,6 +720,6 @@ inline float& manualRef(Composition& c, CompScalar s)
         case CompScalar::Signal:   return c.masterSignal;
         case CompScalar::Count:    break;
     }
-    static float dummy = 0.0f;   // unreachable for a valid enumerator
+    static RelaxedFloat dummy = 0.0f;   // unreachable for a valid enumerator
     return dummy;
 }

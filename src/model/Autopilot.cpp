@@ -1,9 +1,26 @@
 #include "Autopilot.h"
 #include <cstdlib>
 
-bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
+namespace
+{
+// Autopilot runs on the GL thread, which never waits: its triggers try at most this many compare-exchanges of the
+// layer's tuple word (lane tsan, ruling amendment 7), then retry at the next beat crossing. Every advance is DECIDED
+// from the tuple processFrame loaded once (currentCol), so it passes currentCol as triggerClip's onlyIfActive: a
+// clear or an immediate user trigger of another column that landed since the load stands, the advance is a no-op
+// (s-rta-1002 fix round, F2). A user trigger queued by beat snap after the load, or a retrigger of the same column,
+// can still be cancelled by the advance, as before this guard.
+constexpr int kRenderTriggerAttempts = 16;
+}
+
+bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameReport* report)
 {
     bool anyAdvanced = false;
+    FrameReport counts;
+    auto finish = [&] {
+        if (report != nullptr)
+            *report = counts;
+        return anyAdvanced;
+    };
 
     // === End of Video mode: check every frame (not just on beat crossings) ===
     for (auto& layer : deck.layers)
@@ -11,7 +28,8 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
             continue;
 
-        Clip* clip = layer.getActiveClip();
+        const int activeCol = layer.runtime().activeClipColumn;   // lane tsan: ONE tuple load for this layer
+        Clip* clip = layer.getClipAt(activeCol);
         if (clip == nullptr || !clip->isPlayable() || !clip->playing)
             continue;
 
@@ -21,19 +39,20 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
 
         if (clip->playheadPosition >= threshold)
         {
-            // Check loops: count how many times we've looped
-            clip->beatsPlayed++; // Reuse beatsPlayed as loop counter for end-of-video mode
+            // Check loops: count how many times we've looped. Reuse beatsPlayed as loop counter for end-of-video
+            // mode. Lane tsan: ONE atomic add (a trigger's concurrent reset to 0 is never lost), tested on its result.
+            const int loopsPlayed = clip->beatsPlayed.fetchAdd(1) + 1;
             int loopsTarget = std::max(1, layer.autopilotLoops);
 
-            if (clip->beatsPlayed >= loopsTarget)
+            if (loopsPlayed >= loopsTarget)
             {
                 Clip::AutopilotAction action = getActionForClip(*clip, layer);
                 if (action != Clip::AutopilotAction::DoNothing)
                 {
-                    if (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
-                        smartAdvanceClip(layer, layer.activeClipColumn, deck.numColumns, snapshot);
-                    else
-                        advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
+                    const bool changed = (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
+                        ? smartAdvanceClip(layer, activeCol, deck.numColumns, snapshot)
+                        : advanceClip(layer, activeCol, action, deck.numColumns);
+                    counts.advances += changed ? 1u : 0u;
                     anyAdvanced = true;
                 }
             }
@@ -45,16 +64,17 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
     // whole beats a wrap reader lost (Pitfall 42).
     const uint32_t beats = beatCrossings_.consume(snapshot.totalBeatCount);
     if (beats == 0)
-        return anyAdvanced;
+        return finish();
 
     // Process any beat-snapped pending triggers on beat crossing
     // P21: pass beat position info for bar/2-bar/4-bar snap granularity
     for (auto& layer : deck.layers)
     {
-        if (layer.pendingTriggerColumn >= 0)
+        if (layer.runtime().pendingTriggerColumn >= 0)   // lane tsan: ONE tuple load for this layer
         {
-            layer.processPendingTrigger(static_cast<int>(snapshot.beatInBar),
-                                         static_cast<int>(snapshot.barCount));
+            const auto t = layer.processPendingTrigger(static_cast<int>(snapshot.beatInBar),
+                                                       static_cast<int>(snapshot.barCount));
+            counts.pendingFired += t.changed() ? 1u : 0u;
             anyAdvanced = true;
         }
     }
@@ -64,7 +84,8 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         if (!layer.autopilotEnabled)
             continue;
 
-        Clip* clip = layer.getActiveClip();
+        const int activeCol = layer.runtime().activeClipColumn;   // lane tsan: ONE tuple load for this layer
+        Clip* clip = layer.getClipAt(activeCol);
         if (clip == nullptr || !clip->playing)
             continue;
 
@@ -73,8 +94,8 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
                       // a non-playable active clip (Source/Image/Camera) falls through
                       // to beat-based advancement instead of freezing.
 
-        // Add the beats played on this clip since the previous frame
-        clip->beatsPlayed += static_cast<int>(beats);
+        // Add the beats played on this clip since the previous frame (lane tsan: ONE atomic add, tested on its result)
+        const int beatsPlayed = clip->beatsPlayed.fetchAdd(static_cast<int>(beats)) + static_cast<int>(beats);
 
         // P20: Use per-type timing if enabled, otherwise use per-clip/layer timing
         int targetBeats;
@@ -94,21 +115,21 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         if (targetBeats <= 0)
             continue;
 
-        if (clip->beatsPlayed >= targetBeats)
+        if (beatsPlayed >= targetBeats)
         {
             if (action != Clip::AutopilotAction::DoNothing)
             {
                 // P23: Use smart random when enabled and action is PlayRandom
-                if (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
-                    smartAdvanceClip(layer, layer.activeClipColumn, deck.numColumns, snapshot);
-                else
-                    advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
+                const bool changed = (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
+                    ? smartAdvanceClip(layer, activeCol, deck.numColumns, snapshot)
+                    : advanceClip(layer, activeCol, action, deck.numColumns);
+                counts.advances += changed ? 1u : 0u;
                 anyAdvanced = true;
             }
         }
     }
 
-    return anyAdvanced;
+    return finish();
 }
 
 int Autopilot::getPerTypeBeats(const Layer& layer) const
@@ -191,11 +212,11 @@ Clip::AutopilotAction Autopilot::getActionForClip(const Clip& clip, const Layer&
     return action;
 }
 
-void Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction action,
+bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction action,
                              int numColumns) const
 {
     if (currentCol < 0)
-        return;
+        return false;
 
     int nextCol = -1;
 
@@ -267,8 +288,8 @@ void Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
         }
         case Clip::AutopilotAction::PlaySpecific:
         {
-            // Use the clip's autopilotSpecificCol
-            if (auto* clip = layer.getActiveClip())
+            // Use the clip's autopilotSpecificCol (the active clip of the caller's tuple: no second load)
+            if (auto* clip = layer.getClipAt(currentCol))
             {
                 if (clip->autopilotSpecificCol >= 0
                     && clip->autopilotSpecificCol < numColumns
@@ -284,12 +305,11 @@ void Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
     }
 
     if (nextCol >= 0 && nextCol != currentCol)
-    {
-        layer.triggerClip(nextCol);
-    }
+        return layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol).changed();
+    return false;
 }
 
-void Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
+bool Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
                                   int numColumns, const FeatureSnapshot& snapshot) const
 {
     // Collect all columns with clips (excluding current)
@@ -301,14 +321,14 @@ void Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
     }
 
     if (candidates.empty())
-        return;
+        return false;
 
     // If only 1-2 candidates, just pick randomly (not enough for smart selection)
     if (candidates.size() <= 2)
     {
         int nextCol = candidates[static_cast<size_t>(std::rand()) % candidates.size()];
-        if (nextCol >= 0) layer.triggerClip(nextCol);
-        return;
+        return nextCol >= 0
+            && layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol).changed();
     }
 
     // Score each candidate based on position-implied energy vs current energy state.
@@ -369,5 +389,6 @@ void Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
         }
     }
 
-    layer.triggerClip(candidates[bestIdx]);
+    return layer.triggerClip(candidates[bestIdx], Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol)
+        .changed();
 }

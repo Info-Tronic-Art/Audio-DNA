@@ -967,7 +967,7 @@ void LayerInspector::syncFromLayer()
 
     syncScalar(posXControl_, LayerScalar::PosX, layer_->positionX / 3840.0f + 0.5f);
     syncScalar(posYControl_, LayerScalar::PosY, layer_->positionY / 2160.0f + 0.5f);
-    syncScalar(scaleControl_, LayerScalar::Scale, std::log2(std::max(0.01f, layer_->layerScale)) / 2.0f + 0.5f);
+    syncScalar(scaleControl_, LayerScalar::Scale, std::log2(std::max(0.01f, layer_->layerScale.load())) / 2.0f + 0.5f);
     syncScalar(rotationControl_, LayerScalar::Rotation, layer_->layerRotation / 720.0f + 0.5f);
     syncScalar(anchorControl_, LayerScalar::AnchorX, layer_->layerAnchorX / 3840.0f + 0.5f);
 

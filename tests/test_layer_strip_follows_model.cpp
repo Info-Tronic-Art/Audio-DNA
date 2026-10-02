@@ -170,7 +170,11 @@ TEST_CASE("LayerStrip: the S fader follows the active clip's speed", "[layerstri
     Clip clip;
     clip.speed = 1.0f;
     layer.clips[0] = clip;
-    layer.activeClipColumn = 0;
+    {
+        LayerRuntimeSnapshot rt = layer.runtime();
+        rt.activeClipColumn = 0;
+        layer.setRuntime(rt);
+    }
     REQUIRE(layer.getActiveClip() != nullptr);
     LayerStrip strip;
     strip.setLayer(&layer, 0);

@@ -1,6 +1,7 @@
 // ImageSequence.cpp — Treats a set of images as a playable video clip.
 
 #include "ImageSequence.h"
+#include "core/LogLine.h"
 #include <algorithm>
 #include <iostream>
 #include <cstring>
@@ -64,8 +65,8 @@ bool ImageSequence::open(const std::vector<juce::File>& imageFiles)
     playing_.store(true, std::memory_order_relaxed);
     open_.store(true, std::memory_order_relaxed);
 
-    std::cerr << "[ImageSequence] Opened " << files_.size() << " images"
-              << " at " << fps_.load() << " fps" << std::endl;
+    logLine("[ImageSequence] Opened ", files_.size(), " images",
+              " at ", fps_.load(), " fps");
 
     return true;
 }
