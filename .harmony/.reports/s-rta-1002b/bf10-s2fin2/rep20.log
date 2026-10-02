@@ -1,0 +1,24 @@
+start 2026-10-02 19:32:48 binary sha=fb9614779a16362d
+cpu top:  42.2 06-06:49:38 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer; 33.6 00:27 /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA; 17.9 01:18:01 /Applications/Stremio.app/Contents/MacOS/Stremio;
+T6 run 1 rc=0 | All tests passed (185 assertions in 1 test case) | soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=31 wipe_reads(5%/5%)=9 xfade_reads(median>=10)=2
+T6 run 2 rc=0 | All tests passed (181 assertions in 1 test case) | soft-cut frames=121 reads=43 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=30 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=7
+T6 run 3 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 4 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=11 xfade_reads(median>=10)=2
+T6 run 5 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 6 rc=0 | All tests passed (181 assertions in 1 test case) | soft-cut frames=121 reads=43 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=30 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=7
+T6 run 7 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 8 rc=0 | All tests passed (185 assertions in 1 test case) | soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=31 wipe_reads(5%/5%)=2 xfade_reads(median>=10)=8
+T6 run 9 rc=0 | All tests passed (177 assertions in 1 test case) | soft-cut frames=121 reads=42 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=29 wipe_reads(5%/5%)=5 xfade_reads(median>=10)=3
+T6 run 10 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 11 rc=0 | All tests passed (185 assertions in 1 test case) | soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=31 wipe_reads(5%/5%)=7 xfade_reads(median>=10)=2
+T6 run 12 rc=0 | All tests passed (185 assertions in 1 test case) | soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=31 wipe_reads(5%/5%)=1 xfade_reads(median>=10)=8
+T6 run 13 rc=0 | All tests passed (181 assertions in 1 test case) | soft-cut frames=121 reads=43 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=30 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=7
+T6 run 14 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 15 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 16 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=1 xfade_reads(median>=10)=7
+T6 run 17 rc=0 | All tests passed (185 assertions in 1 test case) | soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=31 wipe_reads(5%/5%)=9 xfade_reads(median>=10)=2
+T6 run 18 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=1 xfade_reads(median>=10)=7
+T6 run 19 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=0 xfade_reads(median>=10)=23
+T6 run 20 rc=0 | All tests passed (189 assertions in 1 test case) | soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% | dense_reads=32 wipe_reads(5%/5%)=1 xfade_reads(median>=10)=7
+T6 PASS 20/20
+end 2026-10-02 19:33:40

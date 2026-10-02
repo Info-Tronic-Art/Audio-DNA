@@ -1,0 +1,16 @@
+swapped in pre-change e89bb5f ProjectMSource.cpp: bd514bffe4a4423c
+[redPre] build start 2026-10-02 19:31:54 HEAD=30364a8 ProjectMSource.cpp sha=bd514bffe4a4423c test sha=2cee8caee720641b
+[redPre] build exit=0 2026-10-02 19:31:57 warnings=0 errors=0
+[redPre] ctest exit=8 2026-10-02 19:32:10
+1/7 Test #500: test_projectm_canvas_gl:T1 MilkDrop fills its whole canvas-sized texture at every size ....***Failed    2.18 sec
+2/7 Test #501: test_projectm_canvas_gl:T2 MilkDrop follows a canvas change from the first frame ..........***Failed    0.43 sec
+3/7 Test #502: test_projectm_canvas_gl:T3 MilkDrop keeps every region of the canvas live .................***Failed    0.99 sec
+4/7 Test #503: test_projectm_canvas_gl:T4 MilkDrop draws round shapes round at the canvas's shape ........***Failed    3.01 sec
+5/7 Test #504: test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it ...***Failed    1.11 sec
+6/7 Test #505: test_projectm_canvas_gl:T6 a MilkDrop soft cut draws into the canvas texture ..............***Failed    2.57 sec
+7/7 Test #506: test_projectm_canvas_gl:T6b a MilkDrop soft cut survives a canvas change ..................***Failed    2.56 sec
+0% tests passed, 7 tests failed out of 7
+[redPre] direct T6 exit=42 | test cases:   1 |  0 passed |   1 failed | soft-cut frames=121 reads=47 soft-cut mid_transition_read=1 last_read_near_B=0.0000% 
+[redPre] T6 reads by t: <0.2 1 | 0.2-1.2 34 | >1.2 12
+restored: sha before=9871911bab4a59e40689c6f4757d546304fde6c64f3ce91c9dc48aea99270f6e after=9871911bab4a59e40689c6f4757d546304fde6c64f3ce91c9dc48aea99270f6e IDENTICAL
+git diff ProjectMSource.cpp lines: 0
