@@ -183,7 +183,7 @@ def main():
             continue
         arm = f[3] if len(f) > 3 and "=" not in f[3] and f[3] and not f[3].startswith("SKIPPED") else a.default_arm
         launches["%s-%s" % (f[0], f[1])] = {"scen": f[2], "arm": arm, "row": f[3:]}
-    arms = sorted({v["arm"] for v in launches.values()} | {a.default_arm})
+    arms = sorted({v["arm"] for v in launches.values()}) or [a.default_arm]
     srcspec = dict(s.split("=", 1) for s in a.src)
     trees = {arm: Tree(srcspec.get(arm, here), a.repo) for arm in arms}
     srcbase = set()
@@ -211,6 +211,10 @@ def main():
                     key=lambda p: int(re.search(r"tsan-(\d+)", p).group(1))):
         launch = f.split("/runs/")[1].split("/")[0]
         info = launches.get(launch, {"scen": "?", "arm": a.default_arm})
+        if info["arm"] not in trees:
+            trees[info["arm"]] = Tree(srcspec.get(info["arm"], here), a.repo)
+            arms.append(info["arm"])
+            srcbase |= set(trees[info["arm"]].by_base)
         pl = per_launch.setdefault(launch, {"scen": info["scen"], "arm": info["arm"], "warnings": 0,
                                             "classes": collections.Counter(), "families": collections.Counter()})
         for r in parse(f):

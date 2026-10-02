@@ -663,8 +663,11 @@ none. B2 edited no existing test's body. Two existing-test notes (no edit, meani
 
 ## B3 (T6 + T7 + T8 + docs + lane evidence) -- Builder, started 2026-10-02 09:39 EDT
 
-STATUS: PENDING
-Base for B3: adeece2 (B2 report commit). INBOX-RECHECK: (pending)
+STATUS: DONE (B3 items T6, T7, T8 + docs committed; full normal ctest 1085/1085 serial; probe-tsan-unit 4/4 GREEN with 0
+TSan warnings; full TSan ctest 1085/1085; H8 lane-d smoke valid, 0 warnings, pending_fired 1 / autopilot_advances 26;
+the analyzer keys all 25 fresh-RED uniques into A-E)
+Base for B3: adeece2 (B2 report commit). INBOX-RECHECK: 0 addenda folded (none received).
+T0 sha: 2c04a03e59304efca134df617f7e4ff05675bb8f
 
 ### T6 -- activeDeckIndex (family E) (amendment 9)
 Files (src): src/model/Composition.h (field + getActiveDeck const / non-const + toVar :308), src/render/Renderer.cpp
@@ -888,8 +891,151 @@ Syntax: `bash -n .harmony/probe-tsan.sh` ok; py_compile of both .py ok (main .ve
 - For Harmony (not a repo doc): plan (8)'s Boris live check gains "a momentary pad released before its beat does not
   latch on" (amendment 14 / H2) -- the plan file is Harmony's.
 
-### Lane final evidence
-(pending)
+### Lane final evidence (B3)
+(1) Full normal ctest, serial, under the H12 mutex (`ctest --test-dir <wt>/build-lane -j1`; build 09:57:45-09:57:50
+rc=0, ctest 09:57:50-09:58:57), verbatim:
+```
+100% tests passed, 0 tests failed out of 1085
+Total Test time (real) =  66.82 sec
+```
+G1 per-target case counts (each binary's `--list-tests`): test_layer_runtime_race 3, test_manual_scalar_race 1,
+test_layer_runtime 12, test_clip_transport_sync 3, test_relaxed 4, test_log_line_lint 1, test_render_thread_lint 2,
+test_shared_field_types 1 (= 27) + test_undo_commands' D1 / D1b / D1c 3 (target now 80 cases) = 30 new cases;
+1055 + 30 = 1085. B3 added no case (T6's pin is a static_assert in the existing case; T7 turned 1062 D6 GREEN).
 
-### Amendment-16 mutant evidence (B1-B3)
-(pending)
+(2) `.harmony/probe-tsan-unit.sh <wt>/build-tsan` (no TSAN_OPTIONS in the shell; re-run after the full TSan build,
+10:51), verbatim:
+```
+probe rc=0
+probe-tsan-unit: build test_layer_runtime_race test_manual_scalar_race 2026-10-02 10:51:15
+probe-tsan-unit: ctest -L tsan 2026-10-02 10:51:16
+1/4 Test #1058: R1 message-thread triggers vs render clock / autopilot on one deck  ...    Passed    0.29 sec
+2/4 Test #1059: R2 clip runtime fields: trigger writes vs render transport write-back  ...    Passed    0.26 sec
+3/4 Test #1060: R4 tuple consistency and no lost fade under a paced trigger storm  ...    Passed    0.22 sec
+4/4 Test #1061: R3 manual scalar writes vs eff() reads  ...    Passed    0.26 sec
+100% tests passed, 0 tests failed out of 4
+probe-tsan-unit: ctest rc=0 2026-10-02 10:51:17
+WARNING: ThreadSanitizer count: 0
+```
+(the first run at 09:59:13-09:59:21, before the full TSan build, gave the same 4/4 Passed, rc=0, 0 warnings, as #110-#113.)
+probe-tsan-unit.sh's TARGETS list is unchanged: B3 added no tsan-labelled target.
+
+(3) INFO: the full TSan ctest (`env -u TSAN_OPTIONS ctest --test-dir <wt>/build-tsan -j1 --timeout 600`, under the H12
+mutex; full TSan build 10:00-10:32:26 rc=0; ctest 10:32:58-10:50:46), verbatim:
+```
+100% tests passed, 0 tests failed out of 1085
+Label Time Summary:
+tsan    =   1.04 sec*proc (4 tests)
+Total Test time (real) = 1068.11 sec
+```
+No failing case, so there is nothing to compare at the base. (The non-tsan targets run with TSan's default
+exitcode 66, so any race in them would have failed its case.)
+
+(4) H8 lane smoke under the live lock (LANE=tsan-B3; lock 09:59:49-10:00:35): ONE lane-d launch of
+<wt>/build-tsan/AudioDNA_artefacts/RelWithDebInfo/Audio-DNA.app (built 09:56, after T7; links
+libclang_rt.tsan_osx_dynamic.dylib) through the in-repo tooling: `TSAN_APP_lane=<that app> TSAN_MEDIA=<scratch>/media
+bash .harmony/probe-tsan.sh <scratch>/smoke "1:d@lane"` (history_size=4). ps top before: a clang at 100 % (00:02 old;
+another lane's build, not ours), mds_stores, mediaanalysisd. Verbatim:
+```
+UNC windows (OptionAll) before: 0
+--- tsan-1 scenario d arm lane  09:59:51  app .../build-tsan/AudioDNA_artefacts/RelWithDebInfo/Audio-DNA.app
+health after 3 s gone=0
+7070 listener: Audio-DNA; pids: 57832 ; Output-named / Audio-DNA windows: 0 2
+scenario rc=0
+alive at end: yes; Output-named / Audio-DNA windows: 0 2
+graceful=yes
+Output-named / Audio-DNA windows after quit: 0 0
+VALIDITY tsan-1 d@lane: yes  warnings=0 render_pending_fired=1 render_autopilot_advances=26 render_tuple_adopts=0
+last quit 10:00:18
+UNC windows (OptionAll) >= 15 s after the last quit: 0
+new Audio-DNA .ips: none
+=== probe-tsan batch 20261002-095950 done 2026-10-02 10:00:34  batch-valid=yes
+```
+launches.tsv row: `tsan 1 d lane healthS=3 gone=0 alive_end=yes graceful=yes sanfiles=0 warnings=0 output_named=0
+valid=yes pending_fired=1 autopilot_advances=26 tuple_adopts=0`. Audio pre-check: `Default Input Device: Yes;
+Transport: Built-in; Default Output Device: Yes; Default System Output Device: Yes; Transport: Built-in`.
+Final /api/state (state.json): render_pending_fired 1, render_autopilot_advances 26, render_tuple_adopts 0 (INFO),
+fps 118.6, active_deck 0. G3.4's lane-d bar (pending >= 1 AND advances >= 1) holds: the render writers ran (Manual BPM
+via set_bpm 240 gave the beats). scen.log: 126 REST steps at 0.25 s spacing, every answer 200, worst lateness 0.093 s.
+The app's stderr shows whole logLine lines (9 `[VideoPlayer] Opened: ...` from concurrent MediaOpen threads, each one
+line) and 0 "ThreadSanitizer" lines; no tsan.* report file (0 warnings). Analyzer over the smoke dir: `0 launches
+with reports, 0 warnings, 0 unique` (`tsan-1 d@lane warnings 0 {} {} valid=yes`).
+Caveat (named): 0 warnings in ONE launch is evidence, not proof (R10); the positive control for the same tooling is the
+archive keying above, and the full RED / GREEN arms are Harmony's G3.
+After the batch: lock released, no Audio-DNA running, `audio-dna windows 0, Output-named 0`. The .venv symlink was
+created for the run and removed at 10:00 (before any commit).
+
+H8 part 2 (the analyzer over the fresh-RED archive keying all 25 uniques into A-E): see T8 above (table pasted there).
+
+T8 follow-up (in this commit): probe-tsan-analyze.py lists only the arms its launches name (the smoke printed an empty
+default "main" arm); the archive output is byte-identical before / after (diff empty).
+
+### Non-mechanical test migrations (B3)
+none. B3 edited one existing test file: tests/test_shared_field_types.cpp (+1 static_assert, the T6 pin; amendment 11
+names this extension). No assertion, expected value or call order of any other test changed; every activeDeckIndex
+reference in tests (92) compiled unchanged through Relaxed<int>'s conversions.
+
+### Rig notes (B3)
+- No app other than the one smoke launch; no Output window by any path; no synthetic input; no screen capture; no
+  lldb / sample / dtrace. No TCC prompt and no unexpected dialog (UNC 0 before and after).
+- The main checkout and its build/ were only read (FETCHCONTENT sources, the .venv via a symlink, git objects for
+  655d232 / 2d38b39 through the worktree's git).
+- A post-commit "[graphify hook] launching background rebuild" printed after each commit (user-level hook); the
+  worktree stayed clean.
+
+### Notebook notes (for Harmony to append)
+- 2026-10-02 -- a std::cerr chain converts to logLine mechanically | Files: src/core/LogLine.h, tests/test_log_line_lint.cpp
+  | `std::cerr << a << b << std::endl;` -> `logLine(a, b);` (split on top-level `<<` only); a chain ending in a
+  `"...\n"` literal drops the `\n` (logLine appends it). Verify by re-parsing both operand lists (scratch
+  cerr_verify.py in s-rta-1002 B3), not by eye. | discovered: T7 (75 statements, 14 files).
+- 2026-10-02 -- TSan prints "Atomic read of size N" with a CAPITAL A | Files: .harmony/probe-tsan-analyze.py | an
+  access-header regex that only accepts "Previous atomic ..." drops one side of every mixed atomic / plain race (the
+  LayerStrip atomic_ref read vs the plain playheadPosition write) | discovered: T8 first archive run.
+- 2026-10-02 -- Relaxed<T> has no compound operators by design | Files: src/model/Relaxed.h | `--field` / `++field` /
+  `field += x` do not compile: spell a single-writer decrement as `f = f - 1` (DeckCommands.h:930) or use fetchAdd for a
+  shared counter | discovered: T6.
+
+### next_stage_notes (lane end -> Harmony)
+- Lane heads: T0 2c04a03, T1 7422e10, T2 3fec609, T3 9d9444e, T4 3400c08, T5 2e72850, T6 bdb9824, T7 ea00c93, T8 0cdda8e,
+  docs 0314fbf, then this report commit. Branch lane/tsan; NOT merged, NOT pushed.
+- Build dirs: build-lane (normal Release, current, ctest 1085/1085) and build-tsan (TSan RelWithDebInfo, ALL targets
+  built at the lane head minus the docs-only commits, ctest 1085/1085, app at AudioDNA_artefacts/RelWithDebInfo).
+- Harmony's gates: G1 (count 1085 = 1055 + 30, per-target counts above), G2 (RED arm = a worktree at the T0 sha
+  2c04a03e59304efca134df617f7e4ff05675bb8f), G3 with .harmony/probe-tsan.sh (main arm = a TSan build of the actual
+  pre-merge commit; `--src main=git:<sha>` for the analyzer), G4 probes, G5 review (test_render_thread_lint case 2),
+  G6 perf.
+- Merge surface vs bt2: MainComponent.cpp hunks of this stage at 4607 / 4826 / 5572 / 6343 / 6368 / 6402 (one-token
+  `.load()` edits); ApiServer.cpp: the LogLine include at line 2, :94 / :97 / :124 (cerr), :360 / :384 / :1547 (.load());
+  pitfalls.md: Pitfall 63 appended after 62; CLAUDE.md: Sacred Rule 2, the index line 63, the Deck tab row pointer.
+- Filed (H10): tsan-r5 (R5 config scalars + perf/play preamble writes, R7 unfenced httplib reader) from scenario e.
+
+### Final per-target case counts (G1; normal build, lane head)
+| target | cases |
+|---|---|
+| test_layer_runtime_race | 3 |
+| test_manual_scalar_race | 1 |
+| test_layer_runtime | 12 |
+| test_clip_transport_sync | 3 |
+| test_relaxed | 4 |
+| test_log_line_lint | 1 |
+| test_render_thread_lint | 2 |
+| test_shared_field_types | 1 |
+| test_undo_commands (+ D1 / D1b / D1c) | +3 (80 total) |
+| new cases | 30 -> ctest 1055 + 30 = 1085 |
+
+T0 sha: 2c04a03e59304efca134df617f7e4ff05675bb8f
+
+### Amendment-16 mutant evidence (B1-B3) -- ONE table
+Each mutant: a normal cmake build of a modified tree in build-lane, run once (m4 30x), restored byte-identically (sha256
+checked; B2's runner sleeps 1.2 s + touches the file, the mtime trap); `git diff` empty after each. B3's items (T6, T7,
+T8) carry no amendment-16 mutant; their RED-first teeth are the T6 type pin (compile RED on the pre-T6 src) and D6 (RED
+on every tree before T7).
+
+| # | mutant (amendment 16) | stage | failed | verbatim evidence (excerpt; full lines in B1 / B2 above) |
+|---|---|---|---|---|
+| m1 | casRuntime as a plain store | B1 (T2) | test_layer_runtime 2 of 10 cases; R4 (normal) 3/3 | `test_layer_runtime.cpp:145: FAILED: CHECK_FALSE( L.casRuntime(stale, ticked) )`; `:203: FAILED: CHECK( calls == 16 ) with expansion: 1 == 16`; R4 `I1 0 I2 4540 I3 0 I4 0` / `I2 2790` / `I2 3204` |
+| m2 | TriggerClipCmd::execute() without the first-call skip | B1 (T2) | test_undo_commands D1, D1b, D1c (77 of 80 pass) | `test_undo_commands.cpp:3108: FAILED: CHECK( captureLayerRuntime(L).crossfadeProgress == Catch::Approx(0.2f) ) with expansion: 0.0f == Approx( 0.20000000298023224 )`; `:3136: FAILED: CHECK( captureLayerRuntime(L) == ended )`; `:3158: ... 0 == 1` |
+| m3 | releaseMomentary without its pending branch | B1 (T2) | test_layer_runtime "a release before the beat cancels ..." | `test_layer_runtime.cpp:275: FAILED: CHECK( L.runtime().activeClipColumn == 0 ) with expansion: 1 == 0`; `:276: FAILED: CHECK( L.clips[1]->playing == false )` |
+| m4 | activation tail moved after the CAS | B1 (T2) | contract test, rarely: 3 of 30 runs (4 of 20 in a first batch); lane 30/30 pass | `activations seen 20000, stale beatsPlayed seen 1 -- test cases: 1 / 1 failed` (fired, as the ruling predicted: rare, so the order is also a review item) |
+| m5 | LayerClock::tick as a plain store | B2 (T3) | stale-tick test + contention test; R4 (normal) 3/3 | `test_layer_runtime.cpp:325: FAILED: CHECK_FALSE( LayerClock::tick(L, rt, 0.1f) )`; `:402: FAILED: REQUIRE_FALSE( stalled ) ... adopts 0`; R4 `I1 0 I2 11725 I3 0 I4 0` / `I2 12053` / `I2 12112` -- through I2 (a LOST activation), not I3 as the ruling worded it |
+| m6 | syncMedia write-back as a plain store | B2 (T4) | test_clip_transport_sync 2 of 3 cases (OneShot passes, no concurrent intent) | `test_clip_transport_sync.cpp:48: FAILED: CHECK( clip.playing.load() == true ) with expansion: false == true`; `:99: FAILED: CHECK( clip.playing.load() == false ) with expansion: true == false` |
