@@ -778,8 +778,88 @@ test_seq_vram                  All tests passed (4889364 assertions in 21 test c
 Family A has no [tsan] unit case (its behavioural RED / GREEN is the app sweep, G3; the H8 smoke below is the first
 lane read).
 
-### T8 -- probe-tsan tooling
-(pending)
+### T8 -- the TSan app-sweep tooling (in-repo; plan T8 + amendment 12 + G3.2 + H3)
+Files: NEW .harmony/probe-tsan.sh, NEW .harmony/probe-tsan.py, NEW .harmony/probe-tsan-analyze.py (adapted from
+.harmony/.reports/s-rta-0930/tsan-harness/ run_batch.sh / scen.py / mkfix.sh / analyze.py).
+- probe-tsan.sh `<out-dir> "<N:scen@arm> ..."`: the PROBE RIG GATE + adna_pids / adna_running / adna_kill cloned from
+  probe-crossfade.sh (refuses without /tmp/audiodna-live.lock/owner; AUDIODNA_LOCK_OWNER must match); the app per arm
+  from TSAN_APP_<arm> (refuses a bundle without libclang_rt.tsan, a reused run N, a running Audio-DNA, a 7070 / 8080
+  listener); fixtures via its mkfix (ffmpeg) into TSAN_MEDIA (default <out>/media); TSAN_OPTIONS
+  `halt_on_error=0:abort_on_error=0:exitcode=0:report_signal_unsafe=0:history_size=<TSAN_HISTORY, default 4>:log_path=
+  <run>/tsan` (G3); `open -g` only; per launch: built-in audio pre-check, health, the scenario under a 240 s alarm,
+  alive at end, Output-named windows (must be 0), graceful quit (osascript; kill only after 30 s = invalid); per
+  batch: UNC windows >= 15 s after the last quit and new Audio-DNA .ips; launches.tsv gains the arm + the validity
+  fields + the three /api/state witnesses; a d launch whose final /api/state carries the witnesses is INVALID unless
+  render_pending_fired >= 1 AND render_autopilot_advances >= 1 (G3.4); exit 0 only when every launch + the batch is
+  valid.
+- probe-tsan.py: scenarios a / b / c as the harness (unchanged REST sequence), d per amendment 12 (fixture: 2 decks x 3
+  layers x 4 columns of v1080 videos + images, every layer transitionSpeed 0.5, deck 0 layer 1 autopilotEnabled +
+  PlayNext + Beat1, deck 0 L0 col 2 beatSnapMode Beat, deck 1 L2 col 1 Bar, layer 2 col 3 empty on both decks, all at
+  load; set_bpm 240; 48 steps 0.25 s apart: opacity every step (rotating), set_master_signal every other step,
+  switch_deck every 8th, one trigger per step cycling trigger_column / a new cell / the same cell again / the empty cell
+  / layer 1 / layer 2; /api/health only while stepping; ONE /api/state at the end -> state.json) and INFO e (d fixture
+  + perf/record -> 3 triggers -> perf/stop -> perf/load -> perf/play -> perf/stop_play; removes the take folder it
+  recorded). Every request is a fresh connection (requests.get/post per call, `Connection: close`). Choice of mine,
+  named: d's composition sets globalTransitionSpeed 0.5 (the harness used 0.0) so the deck switches run the
+  cross-deck transition branch T6 touched; amendment 12 does not fix this value.
+- probe-tsan-analyze.py `<sweep> [--src ARM=PATH|ARM=git:REV] [--deps DIR] [--default-arm NAME] [--json F]`: key = the
+  harness's (kind + top-4 Audio-DNA frames over src/ + _deps basenames of both access stacks); classes APP /
+  UNATTRIBUTED / JUCE-SYSTEM per G3.2 (APP: a src/ frame in either access stack, the location's heap-allocation stack
+  or either access thread's creation stack); FAMILY keys A-E from the top src/ frame of each access stack (source
+  line + function, printed for every unique), A = location std::__1::cerr or a libc++ ostream frame with a side (access
+  frame, else creation frame) in T7's list, PRE-EXISTING-R8 = both sides in audio/AudioEngine.cpp /
+  audio/DeviceGuard.cpp only (H3), A-UNLISTED = any other cerr race; prints per launch, per unique (with stacks' top
+  src lines), per arm x family x scenario, per arm x scenario x class. The archive format (rows without an arm) is
+  read with --default-arm.
+- Fix while sizing (caught on the first archive run): the access-header regex missed TSan's capitalised "Atomic read of
+  size 8" (F3 / F10 keyed one side only); now `(Previous )?([Aa]tomic )?(Read|Write|read|write) of size`.
+
+RED evidence (H8 part 2): the analyzer over the fresh-RED archive of the pre-change app
+(.harmony/.reports/s-rta-1002/evidence-0930/sweep-red1-archive, 655d232, 9 launches a / b / c), source lines from
+`--src main=git:655d232`, verbatim summary:
+```
+probe-tsan-analyze: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/tsan/.harmony/.reports/s-rta-1002/evidence-0930/sweep-red1-archive -- 9 launches with reports, 63 warnings, 25 unique (src trees: main=git:655d232)
+  A                uniques 4   launches 9    a 3/3 b 3/3 c 3/3
+  B                uniques 12  launches 4    b 1/3 c 3/3
+  C                uniques 7   launches 6    b 3/3 c 3/3
+  D                uniques 1   launches 2    c 2/3
+  E                uniques 1   launches 3    c 3/3
+  reports by scenario x class: a/APP 3, b/APP 19, c/APP 41
+```
+All 25 uniques are APP and keyed into families A-E (none "-", none UNATTRIBUTED / JUCE-SYSTEM); the per-family launch
+rates equal the ruling's G-A2 table (A 9/9; B c 3/3, b 1/3; C b + c 6/6; D c 2/3; E c 3/3):
+
+| F | family | class | launches (scen) | side 1: top src frame, source line at 655d232 | side 2 |
+|---|---|---|---|---|---|
+| F1 | A | APP | 1(a),2(b),3(c),4(a),5(b),6(c),7(a),8(b),9(c) | ApiServer.cpp:93 [creation] `serverThread_ = std::thread([this, bindAddress]() {` | AnalysisThread.cpp:84 `<< ", bandwidth " << static_cast<int>(resampler_.inputBandwidthHz()) <` |
+| F2 | A | APP | 2(b),5(b) | VideoPlayer.cpp:308 `<< " (" << width_ << "x" << height_` | VideoPlayer.cpp:307 `std::cerr << "[VideoPlayer] Opened: " << path` |
+| F3 | C | APP | 2(b),3(c),5(b),6(c),8(b),9(c) | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` | LayerStrip.cpp:763 `const auto tv = transportViewOf(layer_, transportBounds_);` |
+| F4 | A | APP | 3(c) | VideoPlayer.cpp:307 `std::cerr << "[VideoPlayer] Opened: " << path` | VideoPlayer.cpp:310 `<< ", " << duration_ << "s"` |
+| F5 | B | APP | 3(c) | Renderer.cpp:593 `if (!layer // layer->activeClipColumn < 0) continue;` | TriggerCommands.h:68 `void execute() override { apply(after_, targetPlayingAfter_); }` |
+| F6 | B | APP | 3(c),9(c) | CompositorEngine.cpp:401 `if (layer.crossfadeProgress >= 1.0f // layer.previousClipColumn < 0)` | TriggerCommands.h:68 `void execute() override { apply(after_, targetPlayingAfter_); }` |
+| F7 | B | APP | 3(c),5(b),6(c),9(c) | Layer.h:250 `triggerClipImmediate(column);` | Renderer.cpp:593 `if (!layer // layer->activeClipColumn < 0) continue;` |
+| F8 | B | APP | 3(c),5(b) | CompositorEngine.cpp:401 `if (layer.crossfadeProgress >= 1.0f // layer.previousClipColumn < 0)` | TriggerCommands.h:68 `void execute() override { apply(after_, targetPlayingAfter_); }` |
+| F9 | E | APP | 3(c),6(c),9(c) | MainComponent.cpp:5525 `composition_.activeDeckIndex = deckIndex;` | Renderer.cpp:471 `const int currentDeckIdx = composition_->activeDeckIndex;` |
+| F10 | C | APP | 3(c),6(c),9(c) | LayerStrip.cpp:763 `const auto tv = transportViewOf(layer_, transportBounds_);` | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` |
+| F11 | B | APP | 3(c),6(c) | Layer.h:250 `triggerClipImmediate(column);` | CompositorEngine.cpp:991 `if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.a` |
+| F12 | B | APP | 3(c),6(c) | Layer.h:250 `triggerClipImmediate(column);` | CompositorEngine.cpp:401 `if (layer.crossfadeProgress >= 1.0f // layer.previousClipColumn < 0)` |
+| F13 | C | APP | 3(c) | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` | LayerStrip.cpp:763 `const auto tv = transportViewOf(layer_, transportBounds_);` |
+| F14 | B | APP | 3(c),6(c) | Layer.h:250 `triggerClipImmediate(column);` | CompositorEngine.cpp:992 `layer.crossfadeProgress))` |
+| F15 | C | APP | 3(c) | LayerStrip.cpp:763 `const auto tv = transportViewOf(layer_, transportBounds_);` | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` |
+| F16 | B | APP | 5(b) | Renderer.cpp:1787 `if (clip->playing && !player->isPlaying())` | TriggerCommands.h:68 `void execute() override { apply(after_, targetPlayingAfter_); }` |
+| F17 | C (also B) | APP | 5(b) | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` | Layer.h:250 `triggerClipImmediate(column);` |
+| F18 | C | APP | 6(c) | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` | LayerStrip.cpp:763 `const auto tv = transportViewOf(layer_, transportBounds_);` |
+| F19 | D | APP | 6(c),9(c) | Layer.cpp:23 `return scalarLive[static_cast<size_t>(s)].effective(manualRef(const_ca` | ManualWrite.cpp:187 `*r.manual = r.toModel ? r.toModel(valueNorm) : valueNorm;` |
+| F20 | B | APP | 6(c) | Layer.h:250 `triggerClipImmediate(column);` | CompositorEngine.cpp:1072 `const Clip* clip = layer.getActiveClip();` |
+| F21 | A | APP | 8(b) | VideoPlayer.cpp:307 `std::cerr << "[VideoPlayer] Opened: " << path` | VideoPlayer.cpp:316 `<< (intraOnly_ ? ", intra-only" : "") << ", firstPts=" << firstPts_ <<` |
+| F22 | B | APP | 9(c) | Renderer.cpp:1787 `if (clip->playing && !player->isPlaying())` | TriggerCommands.h:68 `void execute() override { apply(after_, targetPlayingAfter_); }` |
+| F23 | B | APP | 9(c) | Layer.h:250 `triggerClipImmediate(column);` | CompositorEngine.cpp:991 `if (crossfadeStart_[clipKey].observe(layer.previousClipColumn, layer.a` |
+| F24 | B | APP | 9(c) | Layer.h:250 `triggerClipImmediate(column);` | CompositorEngine.cpp:992 `layer.crossfadeProgress))` |
+| F25 | C | APP | 9(c) | Renderer.cpp:1823 `clip->playheadPosition = player->getPlayheadPosition();` | LayerStrip.cpp:763 `const auto tv = transportViewOf(layer_, transportBounds_);` |
+
+(F-numbers are this analyzer's order, not tsan-red-main-655d232.txt's; the 25 keys are the same set.)
+GREEN for the lane: the H8 smoke below (one lane-d launch). The app sweep's full RED / GREEN arms are Harmony's G3.
+Syntax: `bash -n .harmony/probe-tsan.sh` ok; py_compile of both .py ok (main .venv python).
 
 ### Docs
 (pending)
