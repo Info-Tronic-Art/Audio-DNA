@@ -3291,3 +3291,10 @@ target_link_libraries(test_render_thread_lint PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(test_render_thread_lint PRIVATE AUDIODNA_SRC_DIR="${SRC_DIR}")
 apply_sanitizers(test_render_thread_lint)
 catch_discover_tests(test_render_thread_lint)
+
+# --- test_relaxed (lane tsan T1: Relaxed<T>, src/model/Relaxed.h -- the copyable relaxed-atomic model field).
+add_executable(test_relaxed test_relaxed.cpp)
+target_include_directories(test_relaxed PRIVATE ${SRC_DIR})
+target_link_libraries(test_relaxed PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_relaxed)
+catch_discover_tests(test_relaxed)
