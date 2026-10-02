@@ -15,7 +15,11 @@
 //   d64fc1d27b9c83a52f33ec886636772eaec1d86835b8a6b2eaefae4ccc21bb57  bf10_time.milk     red = f(time), period 2 s
 //   99603d96cfd91df09ba1791eb7cab9e91d1186411d326cde2b57bdaeaedbbc7c  bf10_circle.milk   one round blob, centred
 // S1 error baseline (every glGetError after each fbo-mode call, our complete FBO bound): NONE for all four fixtures,
-// so T5 tolerates no GL error code.
+// so T5 tolerates no GL error code -- with ONE exception (rulings-bf10-s2.md STOP 1): libprojectM 4.1.1's own
+// projectm_create and the FIRST preset load raise GL_INVALID_ENUM (0x500), stock and patched alike, so the INIT frame
+// (T5 (b)) tolerates exactly {0x500}; every other code, and any error on a later frame, still fails.
+// FOUND 1 (rulings-bf10-s2.md): a preset without a comp shader writes its own alpha < 1; render() forces alpha 1, and
+// T4 asserts bf10_circle (a no-comp preset) is alpha 255 on 100 % of its pixels.
 #include <catch2/catch_test_macros.hpp>
 #include <juce_opengl/juce_opengl.h>   // juce_gl.h must precede any Apple GL header
 #include <OpenGL/OpenGL.h>
@@ -437,13 +441,16 @@ TEST_CASE("T4 MilkDrop draws round shapes round at the canvas's shape", "[bf10][
         const Stats s = stats(px, w, h);
         std::printf("DATA T4 %dx%d blobs=%d bbox=(%d,%d)-(%d,%d) w=%d h=%d |w/h-1|=%.4f centre_off=(%.2f%%,%.2f%%)\n", w,
                     h, comps, bx0, by0, bx1, by1, bw, bh, std::fabs(ratio - 1.0), offx, offy);
-        // INFO only (FOUND 1, S1): a no-comp-shader preset writes its own alpha; bf10_circle's background is alpha 0.
-        std::printf("DATA T4 %dx%d alpha255=%.4f%% median_alpha=%d (INFO, not asserted)\n", w, h, s.alpha255, s.med[3]);
-        INFO(w << "x" << h << " blobs=" << comps << " w/h=" << ratio << " off=(" << offx << "%," << offy << "%)");
+        // FOUND 1 (rulings-bf10-s2.md): bf10_circle has no comp shader, so libprojectM writes the preset's own alpha
+        // (its background is alpha 0); MilkDrop is a full-frame generator, so its output must be opaque.
+        std::printf("DATA T4 %dx%d alpha255=%.4f%% median_alpha=%d\n", w, h, s.alpha255, s.med[3]);
+        INFO(w << "x" << h << " blobs=" << comps << " w/h=" << ratio << " off=(" << offx << "%," << offy << "%)"
+               << " alpha255=" << s.alpha255 << "%");
         CHECK(comps == 1);
         CHECK(std::fabs(ratio - 1.0) <= 0.04);
         CHECK(std::fabs(offx) <= 2.0);
         CHECK(std::fabs(offy) <= 2.0);
+        CHECK(s.alpha255 == 100.0);
         src->releaseGL();
     }
 }
@@ -580,8 +587,10 @@ struct CallerObjects
     }
 };
 
-// Measure one render(): the entry state is set right before it, then compared field by field.
-void measuredFrame(const char* tag, Rig& rig, ProjectMSource& src, CallerObjects& caller, int w, int h)
+// Measure one render(): the entry state is set right before it, then compared field by field. `tolerated` = the GL
+// error codes this frame may raise (empty = none; the init frame's {0x500} is libprojectM's own, STOP 1).
+void measuredFrame(const char* tag, Rig& rig, ProjectMSource& src, CallerObjects& caller, int w, int h,
+                   const std::set<GLenum>& tolerated = {})
 {
     caller.enter();
     const CallerState before = capture();
@@ -622,7 +631,13 @@ void measuredFrame(const char* tag, Rig& rig, ProjectMSource& src, CallerObjects
     CHECK(after.masks == before.masks);
     CHECK(samplers.empty());
     CHECK(intact == 100.0);
-    CHECK(errors.empty());   // S1 baseline for the fixtures: no code tolerated
+    std::set<GLenum> untolerated;
+    for (const GLenum e : errors)
+        if (tolerated.count(e) == 0) untolerated.insert(e);
+    if (!tolerated.empty())
+        std::printf("DATA T5 %s drained=[%s ] tolerated={0x500} (INFO: libprojectM projectm_create + first load)\n", tag,
+                    errs.c_str());
+    CHECK(untolerated.empty());   // the drained set is empty or a subset of `tolerated`
 }
 } // namespace
 
@@ -648,8 +663,12 @@ TEST_CASE("T5 render() leaves the caller's GL state exactly as it found it", "[b
     }
     SECTION("(b) init frame")
     {
+        // rulings-bf10-s2.md STOP 1: projectm_create + the first preset load raise GL_INVALID_ENUM inside libprojectM
+        // (stock and patched alike, bf10-s2/errprobe.log). The init frame tolerates exactly {0x500}; the frame after
+        // it tolerates nothing.
         auto src = makeSource(kSolid);
-        measuredFrame("(b) init", rig, *src, caller, w, h);
+        measuredFrame("(b) init", rig, *src, caller, w, h, { GLenum(GL_INVALID_ENUM) });
+        measuredFrame("(b) init +1", rig, *src, caller, w, h);
         src->releaseGL();
     }
     SECTION("(c) resize frame")
@@ -686,7 +705,7 @@ TEST_CASE("T5 render() leaves the caller's GL state exactly as it found it", "[b
 
 namespace
 {
-struct SoftCutRead { double t = 0; int w = 0, h = 0, tw = 0, th = 0; Stats s; double inBox = 0, nearB = 0; };
+struct SoftCutRead { double t = 0; int w = 0, h = 0, tw = 0, th = 0; Stats s; double inBox = 0, nearA = 0, nearB = 0; };
 
 SoftCutRead readSoftCut(GLuint tex, int w, int h, double t)
 {
@@ -695,18 +714,22 @@ SoftCutRead readSoftCut(GLuint tex, int w, int h, double t)
     const Pixels px = readTex(tex, w, h);
     r.s = stats(px, w, h);
     r.inBox = pctInBox(px);
+    r.nearA = pctNear(px, kA, 6);
     r.nearB = pctNear(px, kB, 6);
     std::printf("DATA soft-cut t=%.3fs size=%dx%d tex=%dx%d median=(%d,%d,%d,%d) alpha255=%.4f%% in_box=%.4f%% "
-                "near_B=%.4f%%\n", t, w, h, r.tw, r.th, r.s.med[0], r.s.med[1], r.s.med[2], r.s.med[3], r.s.alpha255,
-                r.inBox, r.nearB);
+                "near_B=%.4f%% near_A=%.4f%%\n", t, w, h, r.tw, r.th, r.s.med[0], r.s.med[1], r.s.med[2], r.s.med[3],
+                r.s.alpha255, r.inBox, r.nearB, r.nearA);
     return r;
 }
 
-// A read's median lies >= 10 levels from both A and B in some channel (a frame mid-transition).
-bool between(const Stats& s)
+// A read mid-transition (rulings-bf10-s2.md STOP 2; covers a cross-fade AND a wipe -- projectM picks its transition
+// shader at random): >= 5 % of the pixels within 6 of A AND >= 5 % within 6 of B (a wipe), OR the median >= 10 levels
+// from both A and B in some channel (a cross-fade). Only a read inside the blend can meet it.
+bool midTransition(const SoftCutRead& r)
 {
+    if (r.nearA >= 5.0 && r.nearB >= 5.0) return true;
     for (size_t c = 0; c < 3; ++c)
-        if (std::abs(s.med[c] - kA[c]) >= 10 && std::abs(s.med[c] - kB[c]) >= 10) return true;
+        if (std::abs(r.s.med[c] - kA[c]) >= 10 && std::abs(r.s.med[c] - kB[c]) >= 10) return true;
     return false;
 }
 
@@ -752,7 +775,7 @@ void softCut(Rig& rig, double changeAt)
     }
     for (const auto& r : tail) reads.push_back(r);
     std::printf("DATA soft-cut frames=%d reads=%zu\n", frame, reads.size());
-    bool anyBetween = false;
+    bool anyMid = false;
     for (const auto& r : reads)
     {
         INFO("t=" << r.t << " size=" << r.w << "x" << r.h << " tex=" << r.tw << "x" << r.th << " median=(" << r.s.med[0]
@@ -763,16 +786,26 @@ void softCut(Rig& rig, double changeAt)
         CHECK(r.s.alpha255 == 100.0);
         if (r.inBox >= 0.0) CHECK(r.inBox == 100.0);
         if (r.t > 1.5) CHECK(r.nearB >= 99.99);
-        anyBetween = anyBetween || between(r.s);
+        anyMid = anyMid || midTransition(r);
     }
-    INFO("a read mid-transition (median >= 10 from both A and B in some channel): " << anyBetween);
-    if (changeAt < 0) CHECK(anyBetween);   // T6 only: the transition itself drew into our FBO
+    if (changeAt < 0)   // T6 only: the transition itself drew into our FBO, and the window ends on B
+    {
+        const auto last = std::max_element(reads.begin(), reads.end(),
+                                           [](const SoftCutRead& a, const SoftCutRead& b) { return a.t < b.t; });
+        const double lastNearB = last == reads.end() ? 0.0 : last->nearB;
+        std::printf("DATA soft-cut mid_transition_read=%d last_read_near_B=%.4f%%\n", anyMid ? 1 : 0, lastNearB);
+        INFO("a read mid-transition (>= 5 % near A AND >= 5 % near B, or a median >= 10 from both): " << anyMid
+             << "; the window's last read near_B=" << lastNearB << "%");
+        CHECK(anyMid);
+        CHECK(lastNearB >= 95.0);
+    }
     src->releaseGL();
 }
 } // namespace
 
-// T6 -- soft cut in wall time (amendment 11): every read alpha 255 inside the A..B box, one read mid-transition, every
-// read after 1.5 s equals B.
+// T6 -- soft cut in wall time (amendment 11; mid-transition clause per rulings-bf10-s2.md STOP 2): every read alpha 255
+// inside the A..B box, one read mid-transition (wipe or cross-fade), the window's last read >= 95 % near B, every read
+// after 1.5 s equals B.
 TEST_CASE("T6 a MilkDrop soft cut draws into the canvas texture", "[bf10][T6]")
 {
     Rig rig;
