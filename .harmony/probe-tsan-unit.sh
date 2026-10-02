@@ -3,6 +3,9 @@
 # G2). The ThreadSanitizer unit gate: configures a -DADNA_SANITIZE=thread build dir (the prebuild recipe:
 # RelWithDebInfo, TEST_SERVER ON, SYPHON ON, FetchContent sources from a local _deps dir) if it is absent, builds the
 # tsan-labelled ctest targets, runs `ctest -L tsan --output-on-failure` and exits with ctest's code.
+# Fails closed (s-rta-1002 fix round, ruling F7): exit 3 when `ctest -L tsan` finds no [tsan] case or fewer than
+# EXPECTED_TSAN_CASES (a dropped label, a failed catch_discover_tests, a target missing from TARGETS), and ctest runs
+# with --no-tests=error -- "No tests were found" is never a pass.
 # REQUIRED before merging any change to a model field another thread reads (Pitfall 63).
 # Launches NO app. Puts no TSAN_OPTIONS in the environment: each [tsan] test's ENVIRONMENT property pins them
 # (exitcode=66:halt_on_error=0:abort_on_error=0:report_signal_unsafe=0:history_size=4) and its
@@ -18,8 +21,11 @@ set -u
 TREE=$(cd "$(dirname "$0")/.." && pwd)
 B=${1:-$TREE/build-tsan}
 JOBS=${ADNA_JOBS:-3}
-# The [tsan] targets (each registered with LABELS tsan in tests/CMakeLists.txt).
+# The [tsan] targets (each registered with LABELS tsan in tests/CMakeLists.txt). A new [tsan] target must be added
+# here AND counted in EXPECTED_TSAN_CASES: a target missing from this list is not (re)built.
 TARGETS=(test_layer_runtime_race test_manual_scalar_race)
+# R1 / R2 / R4 (test_layer_runtime_race) + R3 (test_manual_scalar_race).
+EXPECTED_TSAN_CASES=4
 
 if [ ! -f "$B/CMakeCache.txt" ]; then
     COMMON=$(git -C "$TREE" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
@@ -45,8 +51,15 @@ fi
 echo "probe-tsan-unit: build ${TARGETS[*]} $(date '+%F %T')"
 cmake --build "$B" --target "${TARGETS[@]}" -j"$JOBS" || { echo "probe-tsan-unit: build FAILED" >&2; exit 2; }
 
+FOUND=$(ctest --test-dir "$B" -L tsan -N 2>/dev/null | sed -n 's/^Total Tests: *//p')
+FOUND=${FOUND:-0}
+echo "probe-tsan-unit: ctest -L tsan finds $FOUND [tsan] cases (expected $EXPECTED_TSAN_CASES)"
+if [ "$FOUND" -lt "$EXPECTED_TSAN_CASES" ]; then
+    echo "probe-tsan-unit: FAIL -- $FOUND [tsan] cases, expected $EXPECTED_TSAN_CASES (label dropped or discovery failed?)" >&2
+    exit 3
+fi
 echo "probe-tsan-unit: ctest -L tsan $(date '+%F %T')"
-ctest --test-dir "$B" -L tsan --output-on-failure
+ctest --test-dir "$B" -L tsan --no-tests=error --output-on-failure
 rc=$?
 echo "probe-tsan-unit: ctest rc=$rc $(date '+%F %T')"
 exit $rc
