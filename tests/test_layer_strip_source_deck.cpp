@@ -356,3 +356,102 @@ TEST_CASE("M-t the deck tabs say nothing about playing: the tab row is byte-equa
     g.show(c, 7);
     CHECK(diffOutside(idle, snapshot(g.dv, row), {}) > 0);
 }
+
+namespace
+{
+// A show whose deck 1 is 8 columns wide among 4-column decks (a switch to or from it rebuilds the grid).
+Composition makeShowWithWideDeck(int decks, int layers)
+{
+    Composition c = makeShow(decks, layers, 4);
+    c.decks[1].numColumns = 8;
+    for (auto& r : c.decks[1].rows)
+        r.ensureColumns(8);
+    Clip wide;
+    wide.id = 9001;
+    wide.name = "wide c6";
+    wide.mediaType = Clip::MediaType::Image;
+    c.decks[1].setClip(1, 6, wide);
+    return c;
+}
+
+std::set<int> litHeaders(DeckView& dv, int columns)
+{
+    std::set<int> on;
+    for (int col = 0; col < columns; ++col)
+        if (dv.columnHeaderLitForTest(col))
+            on.insert(col);
+    return on;
+}
+} // namespace
+
+TEST_CASE("G1' a switch between a 4-column and an 8-column deck: the strip column is byte-equal across showDeck(0) / "
+          "(wide) / (0) and the selected layer keeps its highlight (bf9b, ruling-bf9b-merge AM-11, FM-5)", "[show][grid]")
+{
+    Composition c = makeShowWithWideDeck(3, 3);
+    fireNamed(c, 0, 0, 1);   // layer 0 <- deck 0
+    fireNamed(c, 1, 1, 6);   // layer 1 <- the wide deck's column 6
+    Grid g(c);
+    g.dv.selectLayer(1);
+    const auto column = g.dv.getStripColumnBounds();
+    REQUIRE_FALSE(column.isEmpty());
+
+    g.show(c, 0);
+    const auto shot0 = snapshot(g.dv, column);
+    REQUIRE(stripFor(g.dv, 1)->isSelected());
+
+    const int builds = g.dv.tabRowBuilds();
+    g.show(c, 1);
+    REQUIRE(g.dv.tabRowBuilds() == builds + 1);   // VALID: the width differs, so this switch DID rebuild
+    REQUIRE(g.dv.getStripColumnBounds() == column);
+    const auto shotWide = snapshot(g.dv, column);
+    saveShot(shot0, "g1-strip-column-4-columns");
+    saveShot(shotWide, "g1-strip-column-8-columns");
+    CHECK(stripFor(g.dv, 1)->isSelected());
+    CHECK(diffOutside(shot0, shotWide, {}) == 0);
+
+    g.show(c, 0);
+    REQUIRE(g.dv.tabRowBuilds() == builds + 2);
+    CHECK(stripFor(g.dv, 1)->isSelected());
+    CHECK(diffOutside(shot0, snapshot(g.dv, column), {}) == 0);
+
+    // VALID: the highlight and the playing clips are in the picture.
+    g.dv.selectLayer(-1);
+    const auto unselected = snapshot(g.dv, column);
+    CHECK(diffOutside(shot0, unselected, {}) > 0);
+    c.layers[1].clearActiveClip(c.rowClips(1));
+    g.dv.refresh();
+    CHECK(diffOutside(unselected, snapshot(g.dv, column), {}) > 0);
+}
+
+TEST_CASE("G2 the fired column's header is lit at once after any rebuild: column 3 fired on deck 0, showDeck(wide), "
+          "showDeck(0), then a full rebuildGrid (bf9b, ruling-bf9b-merge AM-11 (a))", "[show][grid]")
+{
+    Composition c = makeShowWithWideDeck(2, 2);
+    Grid g(c);
+    g.dv.setActiveColumn(3, c.decks[0].id);   // handleColumnTrigger: fired on deck 0
+    REQUIRE(litHeaders(g.dv, 4) == std::set<int>{ 3 });
+
+    const int builds = g.dv.tabRowBuilds();
+    g.show(c, 1);                             // the wide deck: a rebuild; the column was not fired from it
+    REQUIRE(g.dv.tabRowBuilds() == builds + 1);
+    CHECK(litHeaders(g.dv, 8).empty());
+    g.show(c, 0);                             // back: a rebuild again, and NO refresh after it
+    REQUIRE(g.dv.tabRowBuilds() == builds + 2);
+    CHECK(litHeaders(g.dv, 4) == std::set<int>{ 3 });
+    g.dv.rebuildGrid();
+    CHECK(litHeaders(g.dv, 4) == std::set<int>{ 3 });
+}
+
+TEST_CASE("G3 after rebuildGrid the selected layer's strip is highlighted (bf9b, ruling-bf9b-merge AM-11 (b))",
+          "[show][grid]")
+{
+    Composition c = makeShow(2, 3, 2);
+    Grid g(c);
+    g.dv.selectLayer(1);
+    REQUIRE(stripFor(g.dv, 1)->isSelected());
+    g.dv.rebuildGrid();
+    CHECK(g.dv.getSelectedLayerIndex() == 1);
+    CHECK(stripFor(g.dv, 1)->isSelected());
+    CHECK_FALSE(stripFor(g.dv, 0)->isSelected());
+    CHECK_FALSE(stripFor(g.dv, 2)->isSelected());
+}

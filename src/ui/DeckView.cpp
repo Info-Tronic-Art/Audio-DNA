@@ -157,6 +157,7 @@ void DeckView::rebuildGrid()
         auto strip = std::make_unique<LayerStrip>();
         strip->setThumbnails(&thumbnails_);
         strip->setLayer(layer, layerIdx, composition_);
+        strip->setSelected(layerIdx == selectedLayerIndex_);   // a rebuild keeps the selected layer's highlight
 
         // Wire callbacks
         strip->onSelect = [this](int idx) {
@@ -304,12 +305,7 @@ void DeckView::refresh()
     // Update column trigger highlights (lane bf9b, ruling-bf9b 16(e): lit only on the deck the column was fired from --
     // a column remembered without a deck lights on none)
     for (size_t col = 0; col < columnTriggers_.size(); ++col)
-    {
-        bool isActive = static_cast<int>(col) == activeColumn_ && activeColumnDeckId_ == deck->id;
-        columnTriggers_[col]->setColour(
-            juce::TextButton::buttonColourId,
-            isActive ? juce::Colour(0xff3a5a4a) : juce::Colour(0xff2a2a2a));
-    }
+        columnTriggers_[col]->setColour(juce::TextButton::buttonColourId, columnHeaderColour(static_cast<int>(col)));
 
     // Update deck tabs: active colour, plus the label and tooltip (a Rename / Save As changes them) --
     // compare-before-set, refresh runs at UI rate.
@@ -417,6 +413,13 @@ void DeckView::layoutGrid()
     }
 }
 
+juce::Colour DeckView::columnHeaderColour(int col) const
+{
+    const Deck* deck = composition_ != nullptr ? composition_->getActiveDeck() : nullptr;
+    const bool lit = deck != nullptr && col == activeColumn_ && activeColumnDeckId_ == deck->id;
+    return juce::Colour(lit ? kHeaderLit : juce::uint32 { 0xff2a2a2a });
+}
+
 void DeckView::setupColumnTriggers()
 {
     columnTriggers_.clear();
@@ -428,7 +431,8 @@ void DeckView::setupColumnTriggers()
     for (int col = 0; col < deck->numColumns; ++col)
     {
         auto btn = std::make_unique<juce::TextButton>(juce::String(col + 1));
-        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a2a));
+        // Lit at creation too (refresh()'s predicate): a rebuild is not always followed by refresh().
+        btn->setColour(juce::TextButton::buttonColourId, columnHeaderColour(col));
         btn->setColour(juce::TextButton::textColourOffId, juce::Colour(0xff888888));
 
         int capturedCol = col;

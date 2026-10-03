@@ -264,6 +264,7 @@ private:
 
     void layoutGrid();
     void setupColumnTriggers();
+    juce::Colour columnHeaderColour(int col) const;   // lit iff `col` was fired from the deck on screen
     void setupDeckTabs();
     void fanRoutineBands();
     static juce::String tabTooltipFor(const Deck& deck, bool showing);
