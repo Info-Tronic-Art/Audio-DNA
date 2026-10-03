@@ -1,0 +1,57 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M3/m9b/green/milkdrop.E5MHYh
+mode: lane arm: ? attach: 0
+ours: pid 29056
+P1 = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/resources/projectm_presets/BEST OF ADAMFX 2 Flexi + Geiss - Bipolar vs reaction diffusion + Another Flexi + Fishbrain  + Phat Zylot 5.milk
+--- m9b_deck_switch_live
+      m9b A first (deck 0, before the walk): alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204
+      m9b A deck  1: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  2: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  3: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  4: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  5: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  6: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  7: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  8: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  9: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 10: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 11: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 12: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 13: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 14: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 15: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 16: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 17: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 18: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck 19: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b A deck  0: ok  PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 max |median - first| = 0
+      m9b B deck  1: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 69.5%
+      m9b B deck  2: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 62.1%
+      m9b B deck  3: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 69.9%
+      m9b B deck  4: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 71.3%
+      m9b B deck  5: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 75.3%
+      m9b B deck  6: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 75.8%
+      m9b B deck  7: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 72.1%
+      m9b B deck  8: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 71.3%
+      m9b B deck  9: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 79.0%
+      m9b B deck 10: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 82.6%
+      m9b B deck 11: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 70.4%
+      m9b B deck 12: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 77.4%
+      m9b B deck 13: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 59.0%
+      m9b B deck 14: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 73.0%
+      m9b B deck 15: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 69.2%
+      m9b B deck 16: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 68.5%
+      m9b B deck 17: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 80.9%
+      m9b B deck 18: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 74.8%
+      m9b B deck 19: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 65.0%
+      m9b B deck  0: ok  PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 44.4%
+PASS  m9b_deck_switch_live[H1]: 20 decks; first (deck 0) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; solid walk: 20/20 captures uniform within +-6 of the first (bad decks []); live walk (P1): 20/20 pairs meet m2's bar (bad decks [])
+      m9b C INFO back on deck 0: alpha255=100.0000% within6=100.0000% median=(26, 178, 229) medmax=229
+PASS  m9b_deck_switch_live[H3]: inject_features HTTP 200; reference (deck 0) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; deck 7 shown, one beat injected, +3.5 s: uniform alpha255=100.0000% within6=100.0000% median=(26, 178, 229) medmax=229; max |median - reference| = 203 (bar >= 40)
+PASS  m9b_deck_switch_live[H2]: (load_preset, resize, release_gl) across the solid walk (0, 0, 0), the live walk (0, 0, 0) (bar (0, 0, 0) each), the [H3] switch + one beat (1, 0, 0) (bar (1, 0, 0)); every capture at the canvas size: True; CONTROL load_milkdrop_preset + canvas round trip (1, 2, 0), + gl_context_cycle (HTTP 200) (2, 2, 1) (bar >= 1 each): alive
+
+PY 3 PASS / 0 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-MILKDROP GREEN

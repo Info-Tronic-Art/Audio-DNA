@@ -346,3 +346,246 @@ INBOX-RECHECK: none
 probe-boxes.py -- see `git diff --stat 555983a..HEAD`) + 1 new selftest + 1 test file; every line traces to R-N1 / H-4. New helper surface: 3 functions
 (refuse_foreign_start, ask_ours_to_quit, kill_ours). No src, no CMake, no threshold. Smells named: the 33 scripts
 still each carry their own copy of the lock gate + adna_pids preamble (duplicated code, pre-existing, not touched).
+
+---
+
+## Stage M3 -- MilkDrop deck-switch row (R-S1; H1-H3) + post-merge probe re-runs (H-5, H-6)
+
+STATUS: DONE_WITH_CONCERNS (2026-10-03 14:17 -> 14:53, from 753b302; times from `date`). Concerns = the deviations and
+stop items below. Scratch (scripts, full logs, capture dirs): `<session scratchpad>/bf9b-merge-M3/`; evidence copied
+into the repo: `.harmony/.reports/s-rta-1003/bf9b-merge-M3/`.
+INBOX-RECHECK: none
+
+### Verdict
+The required gate row `m9b_deck_switch_live` is in `.harmony/probe-milkdrop.py`: RED on the pre-bf9b main app
+(0 PASS / 3 FAIL), GREEN on the lane app (3 PASS / 0 FAIL). Every post-merge re-run matches what was expected:
+probe-boxes main arm RED with the STAGE_P pattern, lane arm 65 PASS / 0 FAIL / 1 BLOCKED (k5 Link-on); probe-canvas 11 / 0;
+probe-milkdrop full 23 / 0 (bf10's 20 + m9b's 3); the ui probe 54 / 0 after the H-6 change (53 + the new control).
+ctest 1234 / 1234, probe-tsan-unit 5 / 5 with 0 warnings. Everything below was RUN this stage unless marked INFERRED.
+All lane-arm runs used the app built 14:21 (M3's src); the RED arm is `/Users/boriskarpman/projects/RealTimeAudio/
+build/AudioDNA_artefacts/Release/Audio-DNA.app` (binary dated Oct 2 21:44:58, main 5abdf01's build, read-only).
+
+### Commits
+| sha | what |
+|---|---|
+| d03bf5e | m9b row (probe-milkdrop.py / .json) + the H2 reader: `ProjectMCallStats` (ProjectMSource.h / .cpp), 8080 `/api/state.milkdrop` (TestServer.cpp), docs/claude/testing-eyes.md |
+| c1bd8cd | H-6: probe-ui-files-rename R3 / R4a / R9a "builds +0", new R11 positive control |
+| (next) | this report + evidence |
+
+### Step 1 -- m9b_deck_switch_live
+Design = ruling-bf10 "HANDOFF to bf9b" H1 verbatim (20 decks, deck 0 L0 = MilkDrop, triggered; decks 1-19 one
+untriggered clip each; `load_source plasma`; walk `switch_deck` 1..19 then 0 at 0.5 s per deck) plus the packet's H2 / H3.
+Three records. EXISTING floors and readers used (none invented, none loosened):
+- "live MilkDrop picture" = m2's bar (`tiles()`, probe-milkdrop.json `m2`: alpha 255 on 100 % in both captures, every
+  64x64 tile has >= 20 % of its pixels changed by > 8 levels, captures 0.5 s apart, 3 s warm). Non-black floor =
+  `uniform()`'s `medianMaxMin` 64 (+ alpha 255 on 100 %, >= 99.99 % within +-6), median within +-6 of the first capture
+  (m9's `medTol` value).
+- "current preset" = m5's reader and bar: the canvas median of a `uniform()` capture, `|median - reference| >= 40`
+  (`m5.minDiff`). No REST field names the current preset; the existing rows read it by colour (bf10_solid =
+  (204, 51, 26), bf10_solid_b = (26, 178, 229)).
+- H2: NO reader existed (no log line, no counter in ProjectMSource; grep). Added, per the packet: `ProjectMCallStats`
+  (three relaxed `std::atomic<uint32_t>`: loadPreset calls, resize calls that changed the size, releaseGL calls;
+  static, every ProjectMSource; nothing in the app reads them; no lock, no allocation; not on the audio callback),
+  shown ONLY by the TestServer's 8080 `GET /api/state` as `"milkdrop": {load_preset, resize, release_gl}`.
+  Documented in docs/claude/testing-eyes.md ("MilkDrop captures"). CLAUDE.md untouched (24,224 B).
+- H3 driver: deck 0's clip carries a two-preset playlist (bf10_solid, bf10_solid_b; Sequential; Beats; every 1 beat =
+  the shortest interval). Test mode runs no analysis, so the beat is injected: 7070 `inject_features
+  {"totalBeatCount": 100}` before the show, `101` while deck 7 is shown; the capture is taken 3.5 s later (the
+  playlist's soft cut is 2 s) with deck 7 still shown.
+- H2 control (inside the row, last): `load_milkdrop_preset` -> load_preset +1, canvas 1280x720 and back -> resize +2,
+  `gl_context_cycle` -> release_gl +1. A dead counter fails [H2].
+Raw lines (logs `bf9b-merge-M3/m9b/red.log`, `green.log`):
+```
+RED  (main 5abdf01's app, 14:21:35, ours: pid 28741)
+FAIL  m9b_deck_switch_live[H1]: 20 decks; first (deck 0) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; solid walk: 1/20 captures uniform within +-6 of the first (bad decks [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]); live walk (P1): 1/20 pairs meet m2's bar (bad decks [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19])
+FAIL  m9b_deck_switch_live[H3]: inject_features HTTP 200; reference (deck 0) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; deck 7 shown, one beat injected, +3.5 s: NOT uniform alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0; max |median - reference| = 204 (bar >= 40)
+FAIL  m9b_deck_switch_live[H2]: no reader: this app's 8080 /api/state has no "milkdrop" counters (a build from before this row); every capture at the canvas size: True
+PY 0 PASS / 3 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-MILKDROP RED
+GREEN (lane app, 14:23:51, ours: pid 29056)
+PASS  m9b_deck_switch_live[H1]: 20 decks; first (deck 0) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; solid walk: 20/20 captures uniform within +-6 of the first (bad decks []); live walk (P1): 20/20 pairs meet m2's bar (bad decks [])
+PASS  m9b_deck_switch_live[H3]: inject_features HTTP 200; reference (deck 0) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; deck 7 shown, one beat injected, +3.5 s: uniform alpha255=100.0000% within6=100.0000% median=(26, 178, 229) medmax=229; max |median - reference| = 203 (bar >= 40)
+PASS  m9b_deck_switch_live[H2]: (load_preset, resize, release_gl) across the solid walk (0, 0, 0), the live walk (0, 0, 0) (bar (0, 0, 0) each), the [H3] switch + one beat (1, 0, 0) (bar (1, 0, 0)); every capture at the canvas size: True; CONTROL load_milkdrop_preset + canvas round trip (1, 2, 0), + gl_context_cycle (HTTP 200) (2, 2, 1) (bar >= 1 each): alive
+PY 3 PASS / 0 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+PROBE-MILKDROP GREEN
+```
+RED is by BEHAVIOUR for [H1] and [H3]: on main, deck 0 passes (first, the return to 0, and the live pair on deck 0:
+min tile 64.4 %), every other deck fails. [H2] on main is RED only for want of the reader (the counters do not exist in
+that build) -- it has no behavioural RED arm; its teeth are the in-row control.
+Frames LOOKED AT (session scratch `bf9b-merge-M3/frames/`; copies in the repo evidence dir `frames/`, the live one at 960x540):
+- `m9b_RED_main_solidwalk_deck07.png` (main, deck 7 shown, bf10_solid playing from deck 0): the whole 1920x1080
+  canvas is plain BLACK -- the picture is gone (main shows deck 7's own layer, where nothing is triggered). Not plasma:
+  the packet / hand-off expected "their own content or plasma"; it is black.
+- `m9b_GREEN_lane_livewalk_deck07.png` (lane, deck 7 shown, P1 playing): a full-canvas MilkDrop picture -- grey-white
+  radial streaks bursting from a small bright centre on black, edge to edge, no box, no bars.
+- also saved: `m9b_GREEN_lane_solidwalk_deck07.png` (one flat orange-red (204, 51, 26)), `m9b_GREEN_lane_H3_deck07_after_beat.png`
+  (flat blue (26, 178, 229): the playlist's second preset, deck 7 shown), `m9b_RED_main_first_deck00.png`,
+  `m9b_RED_main_livewalk_deck07.png` (black).
+Alternative explanation checked: "the lane passes because the plasma fallback or a stale texture shows" -- no: the
+solid walk reads MilkDrop's exact fixture colour, the live walk moves in every tile on every deck, and the canvas
+turns to the SECOND preset's colour while deck 7 is shown.
+
+### Step 2a -- probe-boxes, all rows, both arms (three launches per arm, S4's batching)
+```
+RED arm = main 5abdf01's app (14:31:50 -> 14:35:12; ours: pid 34297 / 34528 / 34836)
+PY 3 PASS / 10 FAIL / 0 BLOCKED (arm STAGE_P)   -> PROBE-BOXES RED
+PY 7 PASS / 10 FAIL / 1 BLOCKED (arm STAGE_P)   -> PROBE-BOXES RED
+PY 5 PASS / 5 FAIL / 0 BLOCKED (arm STAGE_P)    -> PROBE-BOXES RED
+GREEN arm = lane app (14:35:57 -> 14:40:27; ours: pid 35354 / 35596 / 35923; BOXES_OLD_TAKE = the take the RED arm recorded in this run, red/boxes.e4qAo8/k7-old-take.adna-take)
+PY 15 PASS / 0 FAIL / 0 BLOCKED (arm BF9B)      -> PROBE-BOXES GREEN
+PY 24 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)      -> PROBE-BOXES BLOCKED 1 (0 FAIL; 1 pre-registered bar(s) did not run -- not a pass)   (rc 3)
+PY 26 PASS / 0 FAIL / 0 BLOCKED (arm BF9B)      -> PROBE-BOXES GREEN
+every launch: PASS  no foreign render_frame traffic during the run / PASS  app terminated
+```
+Lane total 65 PASS / 0 FAIL / 1 BLOCKED = the fix round's totals (15 / 24+1 / 26). The one BLOCKED is
+`k5_queue_link_on` (no Link build, no driver) on both arms -- verdict line prints BLOCKED, rc 3 (R-N3); not built here.
+k1a_undo / k9c ran through the ONE `/api/debug/undo {"redo": false}` (R-S3): PASS.
+THE LIST (H-5): RED pattern on main 5abdf01 vs the lane report's S4.1 STAGE_P table -- row by row the SAME verdicts
+(k1a rest / osc / load_deck FAIL d 63.84, duplicate PASS; k1b FAIL t 0.00; k1c FAIL; k1t x2 FAIL 63.84 / 80.76; k1d
+ia / ib / ii / iii FAIL with the same numbers; k2 FAIL 1 unseen; k3 FAIL x2; k4 FAIL; k5 off FAIL; k7_old_show settings
+PASS + 3 FAIL; k7_old_take 3 PASS + capture FAIL 63.84; k8 time PASS + 19 bad). NO row differs because main still has
+Persistent or gained ui / bf10 code. The only differences are the probe's own later changes and sample noise:
+1. `k1b_duplicate` is a row of its own now (fix round + M2): FAIL on main (t 1.93 s, expected 8.60) -- the fix round's
+   STAGE_P RED (1.93 vs 6.57); S4's table predates the row. Batch 1 reads 10 FAIL instead of 9 for that reason.
+2. `k7_old_show` save half: S4 printed BLOCKED; since the fix round it is `N/A ... BF9B-only driver (HTTP 404 on this
+   arm)` -- batch 3 reads 0 BLOCKED instead of 1.
+3. `k1c_switch_midfade` "0/9 frames on the line" (S4: 0/10): one capture fewer fitted the window; same FAIL.
+4. Decimal noise: k2 unseen +0.0844 (S4 0.0849), k8 1.72 s (1.77), k1b playhead 0.1675 (0.1659).
+Rows N/A on main (BF9B-only drivers), as in S4: k1a remove / undo, k2v, k4b, k8b, k9a-c, k10.
+
+### Step 2b -- probe-canvas, non-perf rows, lane app (14:41:12, ours: pid 36776)
+`PY 11 PASS / 0 FAIL`, `PASS  no foreign render_frame traffic during the run`, `PASS  app terminated`,
+`PROBE-CANVAS GREEN` (rows c_default_shape, c_4k_shape, c_custom_4x3, c_runtime_change_keeps_history,
+c_legacy_image_fit, c_capture_deterministic; f2_deck_transition is retired, R-S2; perf rows not run).
+
+### Step 2c -- probe-milkdrop full, lane app (14:42:38, ours: pid 37156)
+`PY 23 PASS / 0 FAIL; errors 0`, `PASS  no foreign render_frame traffic during the run`, `PASS  app terminated`,
+`PROBE-MILKDROP GREEN` = bf10's 20 gated rows (m6 x3, m1 x5, m2 x2, m3 x3, m4 x2, m5, m7, m9, m10, m8 -- all PASS, as
+on main) + m9b's 3. `m3_rewarm` INFO. m9b runs LAST (its control cycles the GL context). probe-milkdrop-selftest
+(no app): `SELFTEST 51 ok / 0 FAIL`.
+
+### Step 2d -- the ui lane's probe (H-6) + probe-deck-tabs, lane app
+The ui lane added ONE live probe, `.harmony/probe-ui-files-rename.sh` (its "53 PASS / 0 FAIL" on main = the `--shots`
+run, Harmony's G3 line in s-rta-1002b-work.md:45). The packet says "three probes": the other two things the ui lane
+added are that probe's `--hook` mode (needs a TEMPORARY hook build: not run) and `tests/probe_deck_tab_dispatch` (real
+on-screen dispatch, "PENDING Boris OK": NOT run). I also ran the older `probe-deck-tabs.sh`.
+```
+(1) UNCHANGED probe (753b302's file), lane app, --shots (14:46:37, app pid 38665):
+FAIL  R3 tab_click 2 -> builds +1, active 2  | builds 2 -> 2 active 2
+FAIL  R4a tab_dblclick 1 (not showing) -> active 1, builds +1, editor closed  | builds 2 -> 2 active 1 editor {'open': False, ...}
+FAIL  R9a /api/switch_deck 2 while the box is open on A -> box stays on A over its tab, builds +1  | editor {'open': True, 'deck_id': 1, 'deck_index': 0, 'text': 'Q', 'x': 0, 'y': 236, 'w': 100, 'h': 24} builds 4 -> 4 active 2
+50 PASS / 3 FAIL
+(2)-(4) after c1bd8cd, lane app (14:47:56, app pid 38978):
+PASS  R3 tab_click 2 -> builds +0 (same-shape decks), active 2  | builds 2 -> 2 active 2
+PASS  R4a tab_dblclick 1 (not showing) -> active 1, builds +0 (same-shape decks), editor closed  | builds 2 -> 2 active 1 ...
+PASS  R9a /api/switch_deck 2 while the box is open on A -> box stays on A over its tab, builds +0 (same-shape decks)  | ... builds 4 -> 4 active 2
+PASS  R11 CONTROL duplicate_deck 0 -> 4 tabs, builds +1 (the counter is alive)  | duplicate_deck {'ok': True} tabs 3 -> 4 builds 5 -> 6 active 3
+54 PASS / 0 FAIL
+same probe, pre-merge main app (14:49:15, app pid 39333):
+FAIL  R3 ... builds +0 (same-shape decks), active 2  | builds 2 -> 3 active 2
+FAIL  R4a ... builds +0 (same-shape decks), editor closed  | builds 3 -> 4 active 1 ...
+FAIL  R9a ... builds +0 (same-shape decks)  | ... builds 6 -> 7 active 2
+PASS  R11 CONTROL duplicate_deck 0 -> 4 tabs, builds +1 (the counter is alive)  | ... builds 8 -> 9 active 3
+51 PASS / 3 FAIL
+probe-deck-tabs.sh, lane app (14:50:34, ours: pid 39859): 6 PASS / 0 FAIL (R1-R6)
+```
+As H-6 predicted, ONLY the build-count clause of R3 / R4a / R9a differs on the unchanged probe; nothing else failed
+(no STOP item). The ui lane's verdict holds: 53 of 53 pre-existing rows PASS once those three clauses read +0, plus the
+control. Capture LOOKED AT (`ui/h6-lane/C4-renamed-tab.png`, half-size copy in scratch frames/): the main window, the
+first deck tab reads "Intro" (highlighted), then "B", "C", "+"; the 2 x 4 grid shows the four video thumbnails, the
+test card, SEQ, the red-bordered missing_clip and the SRC perlin_noise cell; no rename box left open.
+
+### Step 3 -- build / ctest / TSan (src changed: 3 files, +31 lines)
+- Incremental build of build-lane 14:20 -> 14:21:18 `build rc=0`, 0 `error:` lines (a first attempt failed to compile:
+  a nested struct with default member initialisers used as a static member inside its own class; the struct moved to
+  namespace scope -- caught by the build, nothing was run on the broken tree). No CMake change, no reconfigure.
+- ctest SERIAL under /tmp/audiodna-ctest.lock 14:25:43 -> 14:27:49: `100% tests passed, 0 tests failed out of 1234`,
+  `Total Test time (real) = 125.90 sec`.
+- `.harmony/probe-tsan-unit.sh build-tsan` 14:27:49 -> 14:29:53: `probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases
+  (expected 5)`, `100% tests passed, 0 tests failed out of 5`, "WARNING: ThreadSanitizer" count 0.
+- probe-quit-ours-selftest (static, no app): `SELFTEST 55 ok / 0 FAIL` after the probe edits.
+- After every live batch (10 lock holds, 14:21 -> 14:51): `adna after: []`, `audio-dna windows 0, Output-named 0`,
+  `UserNotificationCenter windows (OptionAll): 0` (16 s after the quit). No REFUSE / FOREIGN line in any log. No Output
+  window was opened; no synthetic input; no temporary hook was built (strings AUDIODNA_DEBUG_SHOW in the lane app: 0);
+  no .venv symlink was created. Lock released 14:51:01.
+
+### Deviations (flagged)
+1. probe-ui-files-rename `--shots` captures with `screencapture -x -o -l <window id>` (window-only, by id), not with
+   pyobjc. It is the existing probe and the only way to reproduce the 53 / 0 verdict; nothing full-screen was captured.
+2. m9b is three records ([H1] / [H2] / [H3]) and sits LAST in the default row order (after m8), not next to m9: its H2
+   control cycles the GL context.
+3. [H2] has no behavioural RED arm (see step 1). [H3]'s FAIL on main bites through the `uniform` clause (the canvas is
+   black, median max 0 < 64); the |median - reference| clause alone would pass on a black frame.
+4. "Three ui probes": one exists (step 2d).
+
+### stop items for Harmony
+1. (carried from M2) 15 archived evidence scripts under `.harmony/.reports/**` still quit / kill Audio-DNA by name --
+   neutralise, convert or leave as records.
+2. `tests/probe_deck_tab_dispatch` (ui lane G1b, on screen) is still "PENDING Boris OK" -- not run on the merged build.
+3. H-3 deviation from M2 (one added message line at the top of quit_ours; a second only-ours by-name line in
+   ask_ours_to_quit) still awaits a ruling.
+
+### found_not_fixed
+1. `Clip::playlistBlendSeconds` is written by the MilkDrop browser (MainComponent.cpp:1361) and saved / loaded, but the
+   playlist advance never reads it: Renderer.cpp calls `loadPreset(path, true)` and the soft cut length comes from
+   `PresetSelector::getBlendSeconds()` (2.0 s). INFERRED from reading (grep: no other reader); pre-existing on main.
+2. On the PRE-bf9b main app a deck with an untriggered layer shows BLACK, not the legacy fallback source, once a deck
+   clip has played (m9b RED frames). testing-eyes.md's "an empty deck shows MilkDrop through the legacy fallback" did
+   not apply there. Not a lane matter; recorded because the hand-off text expected plasma.
+3. One shared ProjectMSource for every MilkDrop clip (ruling-bf10 H4 / F1): two layers playing MilkDrop share one
+   preset. Note only; unchanged.
+4. APP-INVENTORY.md does not list `/api/state` fields; the new `milkdrop` object is documented in testing-eyes.md only.
+5. The graphify post-commit hook fired on each commit (not mine; worktree stayed clean).
+6. Out-of-scope items (use-after-free read, Undo of Add / Load / Duplicate Deck, wiring lint, K5 Link-on, S2b 4.B
+   omissions, grid NITs, strip badge): not tripped over, not touched.
+
+### HAND-OVER TO THE FIX STAGE
+- Head: see `git log -1` (this report's commit); src head = d03bf5e (src differs from M2 only by ProjectMSource.h /
+  .cpp + TestServer.cpp, +31 lines); probes head = c1bd8cd.
+- build-lane: Release app + all tests, built 14:21:18 from d03bf5e's src, configure unchanged (TEST_SERVER ON, SYPHON
+  ON, patched projectM prefix). build-tsan: current (probe-tsan-unit rebuilt it at 14:27). No reconfigure needed
+  unless a CMake file changes. ctest count 1234.
+- Gate rows to re-run after any src change: `probe-milkdrop.sh <out>` (23 / 0; m9b last), `probe-boxes.sh` in three
+  launches (rows as in scratch run_boxes.sh; lane 15 / 24+1 BLOCKED / 26; the third needs BOXES_OLD_TAKE = a take a
+  PRE-bf9b app recorded -- this run's is in session scratch only, so re-record it on main's app first),
+  `probe-canvas.sh` non-perf rows (11 / 0), `probe-ui-files-rename.sh <out> --shots` (54 / 0).
+- 8080 `/api/state.milkdrop` {load_preset, resize, release_gl} exists now: a fix that touches deck switching, the
+  canvas or source lifetime can read it.
+- If the fix stage removes the strip's source-deck badge or changes the grid, the ui probe's captures (C1-C14) change;
+  its rows read REST state, not pixels.
+- Every probe launches and quits its own pid; a `REFUSE: Audio-DNA already running (pid N)` means Boris is using the
+  app: stop the batch, release the lock.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- Test mode runs no analysis: a beat-driven feature (MilkDrop playlist advance, queued triggers) is driven
+  deterministically with 7070 `inject_features {"totalBeatCount": N}` then `N + 1`; inject the baseline BEFORE the clip
+  plays, or the first delta counts as N beats. | discovered: .harmony/probe-milkdrop.py m9b
+- A nested struct with default member initialisers cannot be a `static inline` member of its enclosing class (clang:
+  "default member initializer needed within definition of enclosing class"); declare the struct at namespace scope.
+  | discovered: src/sources/ProjectMSource.h
+- A wait loop that greps a log for "BLOCKED" also matches "0 BLOCKED" in a probe's PY line; wait on the helper's
+  "lock released" line instead. | discovered: scratch bf9b-merge-M3 run scripts
+- The MilkDrop playlist's soft cut is PresetSelector's blend (2.0 s), not the clip's playlistBlendSeconds: a probe
+  waits >= 3.5 s after the beat before reading a uniform picture. | discovered: src/render/Renderer.cpp:551-641
+
+### PACKET QUALITY
+- Clarity: CLEAR, three HAD_TO_INFER points: (a) "the three probes the ui lane added" (one exists); (b) H-6 was added to
+  the rulings file after the hand-over note that said R3 "still awaits the ruling" -- I followed the file; (c) the
+  packet's short H1 text vs ruling-bf10's fuller pre-registered H1 (solid walk + live walk) -- I built the fuller one,
+  which contains the packet's.
+- Missing context: that no reader existed for the current preset or for H2; where the "53 / 0" figure came from.
+- Unused context: plan-bf9b / ruling-bf9b beyond the HARMONY ADOPTION item 2; the fix-round found_not_fixed list.
+- Self-brief files: rulings-bf9b-merge.md, rulings-bf9b-mergein.md (H-6), ruling-bf10.md "HANDOFF to bf9b", bf9b.md
+  S4.1 table + Resume point, ui.md G3 lines, s-rta-1002b-work.md:45 -- all useful, none stale. No DEPARTMENT /
+  KNOWLEDGE_TOOLS block: no knowledge tools -- grep-only (nothing judged dead on "no callers").
+- pulse.json: GREEN; claims "general" by two harmony sessions (the dispatcher), no area conflict.
+
+### SLIM CHECK
+3 src files (+31 lines: three counters, three increments, one JSON object), 1 doc paragraph, 2 probes + 1 probe
+config. Every line traces to step 1 (R-S1 / H2 reader) or H-6. No new abstraction beyond the counter struct; no
+threshold changed (H-6's three clauses changed by ruling). Smells named: probe-milkdrop.py's row functions repeat the
+"load_comp / trig / load_md / load_source" preamble (duplicated code, pre-existing; m9b's local `show()` adds one more).

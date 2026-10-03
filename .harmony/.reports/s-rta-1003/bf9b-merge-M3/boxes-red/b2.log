@@ -1,0 +1,55 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/build/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M3/boxes/red/boxes.xSvbre
+ours: pid 34528
+--- k1d_ia_speed_half
+FAIL  k1d_ia_speed_half: speed 0.5 keeps its clock across 0 -> 1 -> 0 (deck shown at W 1; t(W) 0.00, t(W+1.5) 2.73, delta 2.73 in [0.25, 1.25])
+PASS  k1d_ia_speed_half: REST playheadPosition moved 0.0627 (expected 0.0625 +- 0.06)
+--- k1d_ib_pingpong
+FAIL  k1d_ib_pingpong: speed 1.0 keeps its clock across 0 -> 1 -> 0 (deck shown at W 1; t(W) 0.00, t(W+1.5) 9.41, delta 9.41 in [-2.0, -1.0])
+PASS  k1d_ib_pingpong: REST playheadPosition moved -0.1244 (expected -0.125 +- 0.06)
+--- k1d_ii_opacity_blend
+      k1d_ii: noise d(ref1, ref2) = 0.00 -> floor 1.50
+PASS  k1d_ii_opacity_blend: VALID -- layer 1's opacity 0.5 + Screen shows (d(R, A-only)=45.75 >= 5.0)
+FAIL  k1d_ii_opacity_blend: opacity + blend unchanged across 0 -> 1 -> 0 (deck shown at W+0.5 1; d to R at W, W+0.5, W+2.0 = [109.59, 109.59, 0.0], floor 1.50)
+--- k1d_iii_connection
+      k1d_iii_connection: source = signal 'Volume' (RMS) driven by POST /api/inject_features rms
+      k1d_iii_max: noise d(ref1, ref2) = 0.00 -> floor 1.50
+PASS  k1d_iii_connection: VALID -- the connection drives the clip opacity (d(Rmax, Rmin)=51.26 >= 5.0)
+FAIL  k1d_iii_connection: the connected clip parameter keeps working with deck 1 shown (activeDeck 1; d(Cmax, Rmax)=63.84, d(Cmin, Rmin)=12.58, floor 1.50)
+--- k2_nothing_unseen
+      k2_nothing_unseen: 5 switches in 7.6 s; activeDeck 0
+      k2_nothing_unseen: advancing clips (deck, row, col) [(0, 0, 0), (1, 1, 0)]
+PASS  k2_nothing_unseen: VALID -- 2 clips advance (>= 2)
+FAIL  k2_nothing_unseen: no clip advances unseen (advancing AND not in a layer = 1: [((1, 1, 0), 0.0844)])
+--- k2v_decode
+N/A   k2v_decode: BF9B-only (the driver / the top-level layers do not exist on STAGE_P)
+--- k3_autopilot
+      k3_R1: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k3_R2: noise d(ref1, ref2) = 0.00 -> floor 1.50
+PASS  k3_autopilot: VALID -- R1's autopilot advanced (layer 0 at beat 4 plays (0, 1), expected (0, 1))
+FAIL  k3_autopilot: R2 (switches at beats 3 and 9) shows R1's frames at beats 4 / 8 / 12 (d {4: 82.4, 8: 102.39, 12: 0.0}, floor 1.50)
+FAIL  k3_autopilot: nothing outside a playing layer changes (activeClipColumn / playheadPosition; 2 changes: [(4, 'deck 0 row 0 activeClipColumn 0 -> 1'), (8, 'deck 0 row 0 activeClipColumn 1 -> 2')])
+      k3_autopilot: beatsPlayed is not in GET /api/composition on either arm -- not read
+--- k4_ignore_column_across
+      k4_ignore_column_across: before (deck 0 shown): layers play [(0, 0), (0, 0), (0, 1)]
+      k4: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k4_ignore_column_across: after (deck 1 shown, column 1 fired): layers play [(1, 1), (1, 1), None]
+FAIL  k4_ignore_column_across: the Ignore Column layer keeps deck 0's X (REST None; its region d=83.08, floor 1.50)
+PASS  k4_ignore_column_across: the other layers play deck 1's column 1 ([(1, 1), (1, 1)])
+      k4_ignore_column_across: regions 0 / 1 moved d=55.70 / 55.58
+--- k4b_empty_cell
+N/A   k4b_empty_cell: BF9B-only (the driver / the top-level layers do not exist on STAGE_P)
+--- k5_queue_link_off
+      k5_refB: noise d(ref1, ref2) = 0.00 -> floor 1.50
+      k5_queue_link_off: queued at beatInBar 1: layer 0 active (0, 0), pending None
+      k5_queue_link_off: activeDeck 1; layer 0 before the bar None, after None
+FAIL  k5_queue_link_off: the queued trigger survives the switch and fires ON the bar (before the bar None, after None; expected (0, 0) -> (0, 1))
+FAIL  k5_queue_link_off: the frame after the bar is B (d=82.40, floor 1.50)
+--- k5_queue_link_on
+BLOCKED  k5_queue_link_on: no driver -- neither arm is built with Ableton Link (CMake AUDIODNA_BUILD_LINK OFF, build-lane/CMakeCache.txt) and Link's only switch is the TopBar toggle (no REST / OSC route; no synthetic input). Bar unchanged; needs a Link build + a Link driver (Harmony's call)
+
+PY 7 PASS / 10 FAIL / 1 BLOCKED (arm STAGE_P)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-BOXES RED
