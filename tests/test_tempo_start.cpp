@@ -51,8 +51,7 @@ namespace
     Composition makeComposition()
     {
         Composition c;
-        c.decks.resize(1);
-        c.decks[0].initDefault();
+        c.initDefault();   // lane bf9b: 3 shared layers + one deck of 3 rows (a bare deck would leave rows != layers)
         c.activeDeckIndex = 0;
         return c;
     }
