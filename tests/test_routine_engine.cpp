@@ -1829,6 +1829,34 @@ TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that sha
     }
 }
 
+// Fix stage (ruling-bf9b-merge AM-10, 4.B row 1): the positive half of the removed "another deck: nothing" step --
+// plan-bf9b :332-333 "`RoutineEngine::stopOnLayer(int layer)` (was (deck, layer)): stops every running routine
+// touching that shared layer, whatever deck it fired from."
+TEST_CASE("RoutineEngine display D3b: stopOnLayer stops a routine that was fired with another deck shown", "[routine][engine][display]")
+{
+    Rig rig;
+    Deck second;
+    second.name = "Deck 2";
+    second.initDefault();
+    REQUIRE(rig.comp.appendDeck(std::move(second)) == 1);
+    rig.comp.activeDeckIndex = 1;                                            // deck 1 is shown at the fire
+    addToBank(rig.comp, test7Routine(), 0);                                  // layers {0, 1}
+    rig.tick();
+    rig.runTo(1.0);
+    CHECK(rig.fire(0).empty());
+    REQUIRE(rig.slot(0).deck == 1);
+    rig.comp.activeDeckIndex = 0;                                            // Boris looks at deck 0 now
+    rig.runTo(6.5);
+    REQUIRE(rig.slot(0).state == "running");
+    REQUIRE(rig.slot(0).deck == 1);
+    CHECK(rig.fd.count(Ev::Release, opacityKey(0)) == 0);
+
+    rig.eng.stopOnLayer(1);                                                  // the layer X, pressed with deck 0 shown
+    CHECK(rig.slot(0).state == "idle");
+    CHECK(rig.slot(0).layers.empty());
+    CHECK(rig.fd.count(Ev::Release, opacityKey(0)) == 1);                    // whole, its grip on layer 0 released
+}
+
 TEST_CASE("RoutineEngine display D4: a finished run's warning stays on its idle pad until stopAll", "[routine][engine][display]")
 {
     Rig rig;
