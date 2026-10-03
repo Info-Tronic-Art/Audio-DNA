@@ -11,8 +11,10 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "model/Composition.h"
 #include "render/LayerClock.h"
+#include "ui/DeckTabRow.h"
 #include "ui/DeckView.h"
 #include "ui/LayerStrip.h"
+#include "ui/LoadNotice.h"
 #include "ShowFixture.h"
 #include <cmath>
 #include <set>
@@ -513,4 +515,39 @@ TEST_CASE("S3.2 a 0 -> 5 -> 0 showDeck walk: every LayerStrip the same object, t
     CHECK(now == before);
     const auto shotBack = snapshot(g.dv, column);
     CHECK(diffOutside(shot0, shotBack, {}) == 0);   // back to the first deck: byte-equal everywhere
+}
+
+TEST_CASE("S3.4 the Remove Deck undo hint names the layers that keep playing a clip from the removed deck (bf9b, "
+          "ruling-bf9b 16(d))", "[show][notice]")
+{
+    CHECK(DeckTabRow::undoRemoveHint("Breakdown", {}) == "Undo Remove \"Breakdown\"");
+    CHECK(DeckTabRow::undoRemoveHint("Breakdown", { "Layer 2" })
+          == "Undo Remove \"Breakdown\" -- Layer 2 keeps playing its clip");
+    CHECK(DeckTabRow::undoRemoveHint("Breakdown", { "Layer 1", "Layer 3" })
+          == "Undo Remove \"Breakdown\" -- Layer 1, Layer 3 keep playing their clips");
+}
+
+TEST_CASE("S3.4 the load notice: an old show's conversion (details = the whole note), a routine-pad note, both, or "
+          "nothing (bf9b, ruling-bf9b 9(d))", "[show][notice]")
+{
+    const std::string conv = "old show converted: layer settings come from the first deck that has each row; "
+                             "Deck 2 row 3: settings dropped; deck fade 0.30 s dropped";
+    const std::string pads = "1 routine pad was left empty: the routine it pointed at is not in this file";
+
+    const auto none = LoadNotice::forLoad("", "");
+    CHECK_FALSE(none.shown());
+    CHECK(none.text.empty());
+
+    const auto c = LoadNotice::forLoad(conv, "");
+    CHECK(c.shown());
+    CHECK(c.text == "Old show converted -- layer looks now come from the first deck (hover for details)");
+    CHECK(c.details == conv);
+
+    const auto r = LoadNotice::forLoad("", pads);
+    CHECK(r.text == pads);
+    CHECK(r.details == pads);
+
+    const auto both = LoadNotice::forLoad(conv, pads);
+    CHECK(both.text == c.text);
+    CHECK(both.details == conv + "\n" + pads);
 }

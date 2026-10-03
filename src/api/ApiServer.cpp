@@ -2064,12 +2064,14 @@ void ApiServer::handleDebugUiText(const httplib::Request&, httplib::Response& re
         res.set_content(jsonError("ui_text not wired"), "application/json");
         return;
     }
-    struct Box { juce::WaitableEvent done; juce::String text, notice; };
+    struct Box { juce::WaitableEvent done; juce::String text, notice, load; };
     auto box = std::make_shared<Box>();
     const bool posted = juce::MessageManager::callAsync([this, box]() {
         box->text = onDebugUiText();
         if (onDebugAudioNotice)
             box->notice = onDebugAudioNotice();   // s-rta-0929b btguard
+        if (onDebugLoadNotice)
+            box->load = onDebugLoadNotice();      // lane bf9b S3.4
         box->done.signal();
     });
     auto* obj = new juce::DynamicObject();
@@ -2083,6 +2085,7 @@ void ApiServer::handleDebugUiText(const httplib::Request&, httplib::Response& re
         obj->setProperty("ok", true);
         obj->setProperty("file_label", box->text);
         obj->setProperty("audio_notice", box->notice);
+        obj->setProperty("load_notice", box->load);
     }
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }

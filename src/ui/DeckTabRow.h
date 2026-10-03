@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <string>
 #include <vector>
 
 // DeckTabRow -- s-rta-0926b plan6 §6.1. The deck tab row under the clip grid: one tab per deck, a square "+" button
@@ -30,6 +31,21 @@ inline Layout layout(int rowWidth, int numDecks, int hintWidth = 0)
                  ? Rect{ rowWidth - hintWidth, hintWidth }
                  : Rect{ 0, 0 };
     return L;
+}
+
+// Lane bf9b S3.4 (ruling-bf9b 16(d)): the "Undo Remove" button's text. A deck removed while layers play its clips is
+// kept (retired) and those clips keep playing until replaced -- the hint names the layers, so the removal never looks
+// like it did nothing.
+inline std::string undoRemoveHint(const std::string& deckName, const std::vector<std::string>& playingLayers)
+{
+    std::string s = "Undo Remove \"" + deckName + "\"";
+    if (playingLayers.empty())
+        return s;
+    s += " -- ";
+    for (size_t i = 0; i < playingLayers.size(); ++i)
+        s += (i > 0 ? ", " : "") + playingLayers[i];
+    s += playingLayers.size() == 1 ? " keeps playing its clip" : " keep playing their clips";
+    return s;
 }
 
 // Menu item ids ARE these values (a JUCE PopupMenu result of 0 means "dismissed").

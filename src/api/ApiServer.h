@@ -205,6 +205,9 @@ public:
     // s-rta-0929b btguard (TEST-ONLY): /api/debug/ui_text "audio_notice" -- the no-input / no-device notice beside the
     // file label ("" when hidden), read in the same message-thread hop as file_label.
     std::function<juce::String()> onDebugAudioNotice;
+    // Lane bf9b S3.4 (TEST-ONLY): /api/debug/ui_text "load_notice" -- the load notice's text ("" when hidden), read in
+    // the same message-thread hop as file_label.
+    std::function<juce::String()> onDebugLoadNotice;
 #if AUDIODNA_TEST_SERVER
     // s-rta-0929b btguard (TEST-ONLY route, production port, no --test-mode): GET /api/debug/audio_devices answers
     // AudioEngine::deviceStatusVar() (a mutex-guarded copy published on the message thread). Set it BEFORE start().
