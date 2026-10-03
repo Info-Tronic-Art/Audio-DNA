@@ -525,3 +525,21 @@ TEST_CASE("bf9b B4i: no Link identifier in the model, render, core, the deck gri
         CHECK_FALSE(std::regex_search(body, link));
     }
 }
+
+// Case 10 (lane bf9b fix stage 5, s-rta-1003; visual gate B7 problem 5 = B4k). MainComponent::removeDeck is not
+// reachable headless (case AS8 of test_show_model drives the command and the hand-over under it), so its two
+// statements that took the Layer tab off its layer are pinned as TEXT (code lines, line comments stripped): its body
+// holds no `setLayer(` (the Layer inspector is never emptied by a Remove Deck) and no `selectLayer(` (the selected
+// layer row and its highlight stay, also when the removed deck is the one shown), and still empties the Clip
+// inspector (its effect scope names a deck index the erase shifts).
+TEST_CASE("bf9b B4k: MainComponent::removeDeck never empties the Layer inspector nor drops the selected layer row",
+          "[lint][bf9b]")
+{
+    const auto mc = codeLines("MainComponent.cpp");
+    const std::string body = bodyAfter(mc, "void MainComponent::removeDeck(");
+    INFO("MainComponent::removeDeck:\n" << body);
+    REQUIRE(body.find("RemoveDeckCmd") != std::string::npos);   // the right function, whole
+    CHECK(body.find("setLayer(") == std::string::npos);
+    CHECK(body.find("selectLayer(") == std::string::npos);
+    CHECK(body.find("getClipInspector().setClip(nullptr)") != std::string::npos);
+}

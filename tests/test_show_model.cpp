@@ -2029,6 +2029,95 @@ TEST_CASE("N1 LayerInspector::setLayer(B) leaves a routine's grip and a touch on
     CHECK(inspector.opacityControlForTest().boundConnection() == nullptr);
 }
 
+// Lane bf9b fix stage 5 (visual gate B7, problem 5): the layers are the show's, a deck is a box of clips -- Remove Deck
+// takes no layer away, so the Layer inspector stays on its layer through the command, its undo and its redo. Driven
+// here: the real RemoveDeckCmd through the real fence and the production hook functions (the hand-over the app
+// uses). MainComponent::removeDeck's own statements are not reachable headless: lint B4k pins that it never empties
+// the Layer inspector nor drops the selected layer row (the live run: bf9b-fix.md, stage FIX-5).
+TEST_CASE("AS8 Remove Deck -- of an empty deck and of a deck a layer plays from -- its undo and its redo leave the "
+          "Layer inspector on its layer; the Clip inspector keeps a clip the show still owns (bf9b fix stage 5)",
+          "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(3, 3, 2);
+    c.decks[2].initDefault(3);                                         // deck 2: an empty box nobody plays from
+    c.fire(1, 1, 0, Snap::Off, true);                                  // layer 1 plays deck 1's clip
+    Clip* const playing = c.playingClip(1);
+    REQUIRE(playing != nullptr);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    Layer* const inspected = &c.layers[1];
+    ui.layer.setLayer(inspected, EffectScope::layer(-1, 1));
+    Clip* const shown = c.decks[0].getClip(0, 0);                      // the Clip tab: a clip of a deck that stays
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 0, 0));
+    const auto stillOnItsLayer = [&] {
+        REQUIRE(ui.layer.getLayer() == inspected);
+        REQUIRE(ui.layer.getLayer() == c.getLayer(1));                 // and that is still the show's layer 1
+        CHECK(ui.layer.opacityControlForTest().boundConnection() == &c.layers[1].scalarConns[kOpacity]);
+        CHECK(ui.layer.titleTextForTest() == juce::String(c.layers[1].name));
+        CHECK(ui.clip.getClip() == shown);
+        ui.timers();
+    };
+
+    SECTION("an empty deck nobody plays from")
+    {
+        RemoveDeckCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 2, c.decks[2], c.activeDeckIndex,
+                          "Remove Deck");
+        rem.execute();
+        REQUIRE(c.decks.size() == 2);
+        REQUIRE_FALSE(rem.retired());
+        stillOnItsLayer();
+        rem.undo();
+        REQUIRE(c.decks.size() == 3);
+        stillOnItsLayer();
+        rem.execute();                                                 // redo
+        REQUIRE(c.decks.size() == 2);
+        stillOnItsLayer();
+    }
+    SECTION("the deck the inspected layer plays from")
+    {
+        RemoveDeckCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 1, c.decks[1], c.activeDeckIndex,
+                          "Remove Deck");
+        rem.execute();
+        REQUIRE(c.decks.size() == 2);
+        REQUIRE(rem.retired());
+        REQUIRE(c.playingClip(1) == playing);                          // it keeps playing from the retired deck
+        stillOnItsLayer();
+        rem.undo();
+        REQUIRE(c.decks.size() == 3);
+        REQUIRE(c.getNumRetiredDecks() == 0);
+        stillOnItsLayer();
+        rem.execute();                                                 // redo
+        REQUIRE(rem.retired());
+        stillOnItsLayer();
+    }
+}
+
+// Lane bf9b fix stage 5 (visual gate B7, capture P1): the Layer inspector with NO layer (a composition load unbinds
+// it) is an empty panel under the words "No layer selected" -- no title of the layer it left, no dashboard knobs.
+TEST_CASE("LayerInspector with no layer shows no title and no dashboard; a layer brings both back (bf9b fix stage 5)",
+          "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    LayerInspector inspector;
+    inspector.setSize(300, 900);
+    CHECK(inspector.titleTextForTest().isEmpty());                     // as built: no layer yet
+    CHECK_FALSE(inspector.dashboardVisibleForTest());
+    inspector.setLayer(&c.layers[2], EffectScope::layer(-1, 2));
+    CHECK(inspector.titleTextForTest() == juce::String(c.layers[2].name));
+    CHECK(inspector.dashboardVisibleForTest());
+    inspector.setLayer(nullptr);
+    CHECK(inspector.titleTextForTest().isEmpty());
+    CHECK_FALSE(inspector.dashboardVisibleForTest());
+    inspector.setLayer(&c.layers[0], EffectScope::layer(-1, 0));
+    CHECK(inspector.titleTextForTest() == juce::String(c.layers[0].name));
+    CHECK(inspector.dashboardVisibleForTest());
+}
+
 // Harmony's adoption item 9 (s-rta-1003; Boris: "I don't wanna see an under removed button at all. We just use control
 // Z. The only place that we will see undo remove, will be in the top edit menu."). The menu that holds Undo is
 // "Composition" (AudioDNAMenuBar has no menu named Edit); its first item names the action on top of the Undo history.

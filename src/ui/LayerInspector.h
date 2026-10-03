@@ -41,6 +41,9 @@ public:
     Layer* getLayer() const { return layer_; }
     // Test seam (lane bf9b fix): the Opacity row's control (what it is bound to after a re-point).
     const UniversalParamControl& opacityControlForTest() const { return opacityControl_; }
+    // Test seams (lane bf9b fix stage 5): what the title bar and the dashboard show (nothing, with no layer).
+    juce::String titleTextForTest() const { return nameLabel_.isVisible() ? nameLabel_.getText() : juce::String(); }
+    bool dashboardVisibleForTest() const { return macroPanel_.isVisible(); }
 
     void setEffectLibrary(EffectLibrary* lib);
     void setSignalRegistry(SignalRegistry* reg);
