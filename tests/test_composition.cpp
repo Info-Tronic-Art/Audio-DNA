@@ -5,6 +5,7 @@
 #include "core/UndoManager.h"
 #include "core/Command.h"
 #include "core/CompositeCommand.h"
+#include "ShowFixture.h"
 #include <algorithm>
 #include <vector>
 
@@ -23,7 +24,8 @@ TEST_CASE("Composition default initialization", "[composition]")
 
     auto* deck = comp.getActiveDeck();
     REQUIRE(deck != nullptr);
-    REQUIRE(deck->getNumLayers() == 3);
+    REQUIRE(comp.getNumLayers() == 3);   // lane bf9b: 3 shared layers; the deck holds a row of clips for each
+    REQUIRE(deck->getNumRows() == 3);
     REQUIRE(deck->numColumns == 12);
 }
 
@@ -38,39 +40,40 @@ TEST_CASE("Composition::initDefault resets masterSignal to 1.0 (s-rta-0925 maste
     REQUIRE(comp.masterSignal == 1.0f);
 }
 
-TEST_CASE("Deck layer management", "[composition]")
+// Lane bf9b: layers are the show's (Composition::layers); a deck only holds a row of clips per layer.
+TEST_CASE("Layer management on the shared stack", "[composition]")
 {
-    Deck deck;
-    deck.initDefault();
+    Composition show;
+    show.initDefault();
 
     SECTION("Add layer")
     {
-        int initialCount = deck.getNumLayers();
-        deck.addLayer(Layer::Type::Transparent);
-        REQUIRE(deck.getNumLayers() == initialCount + 1);
-        REQUIRE(deck.getLayer(initialCount)->type == Layer::Type::Transparent);
+        int initialCount = show.getNumLayers();
+        show.insertLayer(show.getNumLayers(), show.makeLayer(Layer::Type::Transparent));
+        REQUIRE(show.getNumLayers() == initialCount + 1);
+        REQUIRE(show.getLayer(initialCount)->type == Layer::Type::Transparent);
     }
 
     SECTION("Remove layer")
     {
-        int initialCount = deck.getNumLayers();
-        REQUIRE(deck.removeLayer(1));
-        REQUIRE(deck.getNumLayers() == initialCount - 1);
+        int initialCount = show.getNumLayers();
+        REQUIRE(show.eraseLayer(1));
+        REQUIRE(show.getNumLayers() == initialCount - 1);
     }
 
     SECTION("Cannot remove last layer")
     {
-        while (deck.getNumLayers() > 1)
-            deck.removeLayer(0);
-        REQUIRE_FALSE(deck.removeLayer(0));
-        REQUIRE(deck.getNumLayers() == 1);
+        while (show.getNumLayers() > 1)
+            show.eraseLayer(0);
+        REQUIRE_FALSE(show.eraseLayer(0));
+        REQUIRE(show.getNumLayers() == 1);
     }
 }
 
 TEST_CASE("Clip placement and triggering", "[composition]")
 {
-    Deck deck;
-    deck.initDefault();
+    Composition show = ShowFixture::makeShow(1, 3, 12, false);   // lane bf9b: one deck box under the shared layers
+    Deck& deck = show.decks[0];
 
     Clip clip;
     clip.name = "test_image";
@@ -88,21 +91,21 @@ TEST_CASE("Clip placement and triggering", "[composition]")
 
     SECTION("Trigger clip activates it")
     {
-        auto* layer = deck.getLayer(0);
+        auto* layer = show.getLayer(0);
         REQUIRE(layer != nullptr);
-        layer->triggerClip(0);
+        show.fire(0, 0, 0);
         REQUIRE(layer->runtime().activeClipColumn == 0);
-        REQUIRE(layer->getActiveClip() != nullptr);
+        REQUIRE(show.playingClip(0) != nullptr);
         // Note: playing state is managed by MainComponent::handleClipTrigger,
         // not by triggerClipImmediate (which preserves existing playing state)
     }
 
     SECTION("Clear layer deactivates clip")
     {
-        auto* layer = deck.getLayer(0);
-        layer->triggerClip(0);
+        auto* layer = show.getLayer(0);
+        show.fire(0, 0, 0);
         REQUIRE(layer->runtime().activeClipColumn == 0);
-        layer->clearActiveClip();
+        layer->clearActiveClip(show.rowClips(0));
         REQUIRE(layer->runtime().activeClipColumn == -1);
     }
 
@@ -115,7 +118,7 @@ TEST_CASE("Clip placement and triggering", "[composition]")
         REQUIRE(deck.getClip(0, 0) != nullptr);   // occupied by the setup clip
         deck.clearCell(0, 0);
         REQUIRE(deck.getClip(0, 0) == nullptr);
-        REQUIRE(deck.getLayer(0)->getClipAt(0) == nullptr);
+        REQUIRE(deck.getRow(0)->getClipAt(0) == nullptr);
 
         // Out-of-range / already-empty clears are safe no-ops.
         deck.clearCell(0, 999);
@@ -125,11 +128,10 @@ TEST_CASE("Clip placement and triggering", "[composition]")
 
     SECTION("Retrigger resets playhead")
     {
-        auto* layer = deck.getLayer(0);
-        layer->triggerClip(0);
-        auto* active = layer->getActiveClip();
+        show.fire(0, 0, 0);
+        auto* active = show.playingClip(0);
         active->playheadPosition = 0.5;
-        layer->triggerClip(0); // retrigger
+        show.fire(0, 0, 0); // retrigger
         REQUIRE(active->playheadPosition == 0.0);
     }
 
@@ -140,9 +142,9 @@ TEST_CASE("Clip placement and triggering", "[composition]")
         clip2.mediaType = Clip::MediaType::Image;
         deck.setClip(1, 0, clip2);
 
-        deck.triggerColumn(0);
-        REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == 0);
-        REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == 0);
+        show.triggerColumn(0, 0);
+        REQUIRE(show.getLayer(0)->runtime().activeClipColumn == 0);
+        REQUIRE(show.getLayer(1)->runtime().activeClipColumn == 0);
     }
 }
 
@@ -171,7 +173,7 @@ TEST_CASE("Composition JSON roundtrip", "[composition][serialization]")
     comp.decks[0].setClip(0, 0, clip);
 
     // Set layer properties
-    auto* layer = comp.decks[0].getLayer(1);
+    auto* layer = comp.getLayer(1);   // lane bf9b: the shared layer
     layer->type = Layer::Type::Transparent;
     layer->blendMode = Layer::MixMode::Screen;
     layer->opacity = 0.75f;
@@ -192,7 +194,8 @@ TEST_CASE("Composition JSON roundtrip", "[composition][serialization]")
     REQUIRE(loaded.bpmMultiplier == 2);
     REQUIRE(loaded.quantizeMode == Composition::QuantizeMode::NextBeat);
     REQUIRE(loaded.decks.size() == 1);
-    REQUIRE(loaded.decks[0].getNumLayers() == 3);
+    REQUIRE(loaded.getNumLayers() == 3);
+    REQUIRE(loaded.decks[0].getNumRows() == 3);
 
     auto* loadedClip = loaded.decks[0].getClip(0, 0);
     REQUIRE(loadedClip != nullptr);
@@ -204,7 +207,7 @@ TEST_CASE("Composition JSON roundtrip", "[composition][serialization]")
     REQUIRE(loadedClip->effects[0].effectName == "ripple");
     REQUIRE(loadedClip->effects[0].paramValues.size() == 3);
 
-    auto* loadedLayer = loaded.decks[0].getLayer(1);
+    auto* loadedLayer = loaded.getLayer(1);
     REQUIRE(loadedLayer->type == Layer::Type::Transparent);
     REQUIRE(loadedLayer->blendMode == Layer::MixMode::Screen);
     REQUIRE_THAT(loadedLayer->opacity, WithinAbs(0.75f, 0.001f));
@@ -657,15 +660,15 @@ TEST_CASE("Layer: a file's persistent key is ignored and never written back; eve
 // compload:: validate/remint/idsRetired helpers.
 // ============================================================
 
-TEST_CASE("Deck::fromVar bumps the layer-id mint past every loaded id", "[composition][serialization]")
+// Lane bf9b: the layer-id mint is the show's (Composition::makeLayer); a bf9b file carries the layers top-level.
+TEST_CASE("Composition::fromVar bumps the layer-id mint past every loaded id", "[composition][serialization]")
 {
     // A file whose layers already hold ids at/past the private nextLayerId_
-    // default (100) — without the bump, a post-load addLayer() re-mints an id
+    // default (100) — without the bump, a post-load Add Layer re-mints an id
     // a loaded layer already holds, aliasing two layers onto one GL resource.
-    auto* deckObj = new juce::DynamicObject();
-    deckObj->setProperty("name", "Loaded Deck");
-    deckObj->setProperty("id", 0);
-    deckObj->setProperty("numColumns", 12);
+    Composition source;
+    source.initDefault();
+    juce::var v = source.toVar();
 
     juce::Array<juce::var> layerArray;
     for (uint32_t id : { 0u, 1u, 2u, 100u, 101u })
@@ -674,19 +677,19 @@ TEST_CASE("Deck::fromVar bumps the layer-id mint past every loaded id", "[compos
         layer.id = id;
         layerArray.add(layer.toVar());
     }
-    deckObj->setProperty("layers", layerArray);
+    v.getDynamicObject()->setProperty("layers", layerArray);
 
-    Deck deck;
-    deck.fromVar(juce::var(deckObj));
-    REQUIRE(deck.layers.size() == 5);
+    Composition comp;
+    comp.fromVar(v);
+    REQUIRE(comp.layers.size() == 5);
 
-    deck.addLayer(Layer::Type::Transparent);
-    REQUIRE(deck.layers.back().id == 102);
+    comp.insertLayer(comp.getNumLayers(), comp.makeLayer(Layer::Type::Transparent));
+    REQUIRE(comp.layers.back().id == 102);
 
-    // No behavior change for a deck that never loaded ids past the default mint.
-    Deck fresh;
+    // No behavior change for a show that never loaded ids past the default mint.
+    Composition fresh;
     fresh.initDefault();
-    fresh.addLayer(Layer::Type::Transparent);
+    fresh.insertLayer(fresh.getNumLayers(), fresh.makeLayer(Layer::Type::Transparent));
     REQUIRE(fresh.layers.back().id == 100);
 }
 
@@ -755,7 +758,7 @@ TEST_CASE("compload::validateComposition refuses structurally-empty files and re
         Composition comp;
         Deck deck;
         deck.name = "Empty Deck";
-        deck.layers.clear();
+        deck.rows.clear();   // lane bf9b: a deck's "layers" are its rows of clips
         comp.decks = { deck };
         auto reason = compload::validateComposition(comp);
         REQUIRE_FALSE(reason.empty());
@@ -778,9 +781,9 @@ TEST_CASE("compload::validateComposition refuses structurally-empty files and re
         Deck deck;
         deck.name = "Deck";
         deck.numColumns = 0;
-        Layer layer;
-        layer.clips.resize(5);
-        deck.layers = { layer };
+        ClipRow row;   // lane bf9b: one row of clips (the show gets its one shared layer from normalizeRows)
+        row.clips.resize(5);
+        deck.rows = { row };
 
         Composition comp;
         comp.decks = { deck };
@@ -789,8 +792,8 @@ TEST_CASE("compload::validateComposition refuses structurally-empty files and re
         auto reason = compload::validateComposition(comp);
         REQUIRE(reason.empty());
         REQUIRE(comp.decks[0].numColumns == 5);
-        for (const auto& l : comp.decks[0].layers)
-            REQUIRE(l.clips.size() == 5);
+        for (const auto& r : comp.decks[0].rows)
+            REQUIRE(r.clips.size() == 5);
     }
 
     SECTION("An implausible numColumns is refused, not resized toward (crash-on-open guard)")
@@ -809,9 +812,9 @@ TEST_CASE("compload::validateComposition refuses structurally-empty files and re
         Deck deck;
         deck.name = "Huge Deck";
         deck.numColumns = 50000;
-        Layer layer;
-        layer.clips.resize(3);
-        deck.layers = { layer };
+        ClipRow row;
+        row.clips.resize(3);
+        deck.rows = { row };
 
         Composition comp;
         comp.decks = { deck };
@@ -821,7 +824,7 @@ TEST_CASE("compload::validateComposition refuses structurally-empty files and re
         REQUIRE_FALSE(reason.empty());
         // Refused before any resize attempt — the layer's clips vector must
         // be untouched, not grown toward the implausible count.
-        REQUIRE(comp.decks[0].layers[0].clips.size() == 3);
+        REQUIRE(comp.decks[0].rows[0].clips.size() == 3);
     }
 }
 
@@ -850,8 +853,8 @@ TEST_CASE("compload::remintClipIds gives every clip a unique monotonic id and ad
 
     std::vector<uint32_t> ids;
     for (auto& deck : comp.decks)
-        for (auto& layer : deck.layers)
-            for (auto& cell : layer.clips)
+        for (auto& row : deck.rows)
+            for (auto& cell : row.clips)
                 if (cell.has_value()) ids.push_back(cell->id);
 
     REQUIRE(ids.size() == 4);
@@ -1185,43 +1188,29 @@ TEST_CASE("Composition::fromVar re-mints duplicate deck ids", "[composition][ser
     REQUIRE(comp.decks[3].id != comp.decks[2].id);
 }
 
-// plan6 §5 A1-e: Duplicate Deck = a value copy under "<name> copy" with the library link dropped,
-// every clip re-minted (media is closed BY CLIP ID, so a copy must never share one with its source)
-// and no queued (quantized) trigger (the copy becomes the active deck at once — a copied pending
-// trigger would fire on it at the next beat). Layer ids, layer count, columns and clip content
-// are kept. id 0 = re-minted by Composition::appendDeck.
-TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip re-minted and no queued trigger", "[composition][compload]")
+// plan6 §5 A1-e: Duplicate Deck = a value copy under "<name> copy" with the library link dropped and
+// every clip re-minted (media is closed BY CLIP ID, so a copy must never share one with its source).
+// Row count, columns and clip content are kept. id 0 = re-minted by Composition::appendDeck.
+// Lane bf9b (plan-bf9b S2.3): a deck is a box of clip rows -- it holds no layer ids and no trigger tuple, so there
+// is no queued trigger to clear any more (the layer-id and pending-trigger checks went with them; "no ref names the
+// copy" is T8 in test_show_model.cpp).
+TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip re-minted (a deck holds no tuple)", "[composition][compload]")
 {
     Deck src;
     src.name = "A";
     src.id = 42;
     src.numColumns = 6;
     src.sourceFile = juce::File("/tmp/plan6-A.json");
-
-    Layer l0;
-    l0.id = 0;
-    l0.name = "L0";
-    l0.ensureColumns(6);
-    Layer l1;
-    l1.id = 7;
-    l1.name = "L1";
-    l1.ensureColumns(6);
+    src.initDefault(2);   // two rows of 6 empty cells
 
     Clip video;  video.id = 11; video.name = "vid"; video.mediaType = Clip::MediaType::Video;
     video.mediaFile = juce::File("/tmp/plan6-vid.mp4");
     Clip image;  image.id = 12; image.name = "img"; image.mediaType = Clip::MediaType::Image;
     Clip source; source.id = 13; source.name = "src"; source.mediaType = Clip::MediaType::Source;
     source.sourceType = "plasma";
-    l0.clips[0] = video;
-    l0.clips[2] = image;
-    l1.clips[1] = source;
-    {
-        LayerRuntimeSnapshot rt = l1.runtime();
-        rt.pendingTriggerColumn = 4;
-        rt.pendingTriggerSnapOverride = Clip::BeatSnapMode::Bar;
-        l1.setRuntime(rt);
-    }
-    src.layers = { l0, l1 };
+    src.rows[0].clips[0] = video;
+    src.rows[0].clips[2] = image;
+    src.rows[1].clips[1] = source;
 
     uint32_t nextClipId = 500;
     const Deck copy = compload::duplicateDeck(src, nextClipId);
@@ -1230,34 +1219,25 @@ TEST_CASE("compload::duplicateDeck copies under \"<name> copy\" with every clip 
     REQUIRE(copy.id == 0u);
     REQUIRE(copy.sourceFile == juce::File());
     REQUIRE(copy.numColumns == src.numColumns);
-    REQUIRE(copy.layers.size() == 2);
-    REQUIRE(copy.layers[0].id == 0u);
-    REQUIRE(copy.layers[1].id == 7u);
-    REQUIRE(copy.layers[0].clips[0].has_value());
-    REQUIRE(copy.layers[0].clips[0]->name == "vid");
-    REQUIRE(copy.layers[0].clips[0]->mediaFile == video.mediaFile);
-    REQUIRE(copy.layers[0].clips[2]->name == "img");
-    REQUIRE(copy.layers[1].clips[1]->name == "src");
+    REQUIRE(copy.rows.size() == 2);
+    REQUIRE(copy.rows[0].clips[0].has_value());
+    REQUIRE(copy.rows[0].clips[0]->name == "vid");
+    REQUIRE(copy.rows[0].clips[0]->mediaFile == video.mediaFile);
+    REQUIRE(copy.rows[0].clips[2]->name == "img");
+    REQUIRE(copy.rows[1].clips[1]->name == "src");
 
     std::vector<uint32_t> copyIds;
-    for (const auto& layer : copy.layers)
-        for (const auto& cell : layer.clips)
+    for (const auto& row : copy.rows)
+        for (const auto& cell : row.clips)
             if (cell.has_value()) copyIds.push_back(cell->id);
     REQUIRE(copyIds.size() == 3);
     for (auto id : copyIds)
         REQUIRE((id != 11u && id != 12u && id != 13u));   // disjoint from the source's clip ids
     REQUIRE(nextClipId == 503u);
 
-    for (const auto& layer : copy.layers)
-    {
-        REQUIRE(layer.runtime().pendingTriggerColumn == -1);
-        REQUIRE(layer.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
-    }
-
     // The source is untouched.
     REQUIRE(src.name == "A");
-    REQUIRE(src.layers[0].clips[0]->id == 11u);
-    REQUIRE(src.layers[1].runtime().pendingTriggerColumn == 4);
+    REQUIRE(src.rows[0].clips[0]->id == 11u);
 }
 
 // s-rta-0927 source-defects (plan-source-defects.md A2): a composition saved by an older build carries source params
@@ -1347,8 +1327,10 @@ TEST_CASE("compload::reconcileSourceParams brings an old file's source clips to 
     REQUIRE(compload::reconcileSourceParams(incoming, lookup) == 0);   // idempotent
 }
 
-TEST_CASE("compload::imagePaths: active deck first, active clips first, then the other columns and decks; deduplicated",
-          "[composition][compload][s-rta-0928]")
+// Lane bf9b (plan-bf9b 4.B, test_composition.cpp:1322): the clips the shared layers PLAY come first, from any deck,
+// then the shown deck's other cells, then the other decks.
+TEST_CASE("compload::imagePaths: the playing clips first (any deck), then the shown deck, then the other decks; "
+          "deduplicated", "[composition][compload][s-rta-0928]")
 {
     auto img = [](const char* path) {
         Clip c;
@@ -1357,30 +1339,39 @@ TEST_CASE("compload::imagePaths: active deck first, active clips first, then the
         return c;
     };
     Composition comp;
+    comp.initDefault();
+    while (comp.getNumLayers() > 2)
+        comp.eraseLayer(comp.getNumLayers() - 1);
     Deck d0, d1;
     d0.name = "D0"; d1.name = "D1";
-    Layer a, b, c;
+    ClipRow a, b, c;
     a.clips = { img("/i/a0.png"), img("/i/a1.png"), img("/i/a2.png") };
-    {
-        LayerRuntimeSnapshot rt = a.runtime();
-        rt.activeClipColumn = 2;
-        a.setRuntime(rt);
-    }
     b.clips = { std::nullopt, img("/i/b1.png"), img("/i/a0.png") };    // a duplicate of a0
-    {
-        LayerRuntimeSnapshot rt = b.runtime();
-        rt.activeClipColumn = 1;
-        b.setRuntime(rt);
-    }
     Clip src; src.mediaType = Clip::MediaType::Source; src.sourceType = "plasma";
     Clip none; none.mediaType = Clip::MediaType::Image;                 // no file: skipped
     c.clips = { img("/i/c0.png"), src, none };
-    d0.layers = { c };
-    d1.layers = { a, b };
-    comp.decks = { d0, d1 };
+    d0.rows = { c, ClipRow{} };
+    d1.rows = { a, b };
+    d0.numColumns = d1.numColumns = 3;
+    comp.decks.clear();
+    REQUIRE(comp.appendDeck(d0) == 0);
+    REQUIRE(comp.appendDeck(d1) == 1);
     comp.activeDeckIndex = 1;
 
-    const auto p = compload::imagePaths(comp);
-    const std::vector<std::string> expect = { "/i/a2.png", "/i/b1.png", "/i/a0.png", "/i/a1.png", "/i/c0.png" };
-    CHECK(p == expect);
+    SECTION("the shown deck's playing clips")
+    {
+        comp.fire(0, 1, 2);   // layer 0 plays D1 a2
+        comp.fire(1, 1, 1);   // layer 1 plays D1 b1
+        const auto p = compload::imagePaths(comp);
+        const std::vector<std::string> expect = { "/i/a2.png", "/i/b1.png", "/i/a0.png", "/i/a1.png", "/i/c0.png" };
+        CHECK(p == expect);
+    }
+
+    SECTION("a clip playing from a deck that is not shown still comes first")
+    {
+        comp.fire(0, 0, 0);   // layer 0 plays D0 c0 while D1 is shown
+        const auto p = compload::imagePaths(comp);
+        const std::vector<std::string> expect = { "/i/c0.png", "/i/a0.png", "/i/a1.png", "/i/a2.png", "/i/b1.png" };
+        CHECK(p == expect);
+    }
 }

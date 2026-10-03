@@ -146,22 +146,30 @@ TEST_CASE("RoutineDeckView playing pad: bar 5 of 8, progress, layer names, bands
     }
 }
 
-TEST_CASE("RoutineDeckView off-deck: dimmed pad, no bands, the corner names the deck", "[routine][deckview]")
+// Lane bf9b (plan-bf9b S2.9 / F9; S2a deviation 16): every routine plays on the SHARED layers, which are on screen
+// whatever deck the grid shows -- a routine fired from deck A is never "off deck": its pad is lit, its bands sit on
+// its layers and no corner note names a deck (the old off-deck dimming, band hiding and "on A" note are gone).
+TEST_CASE("RoutineDeckView fired from another deck: lit pad, bands on its shared layers, no deck note (bf9b)", "[routine][deckview]")
 {
     RoutineEngine::Status s;
     s.slots[0] = live(0, "Drop", "running", 0, { 0, 2 }, 1, 4.0);
     const auto v = deriveRoutineDeckView(s, 1, kDecks, kLayers);
-    CHECK_FALSE(v.pads[0].onShownDeck);
+    CHECK(v.pads[0].onShownDeck);
     CHECK(v.pads[0].state == State::Playing);
-    CHECK(v.bandsByLayer.empty());
-    CHECK(v.cornerNote == kDot + " Drop on A");
-    CHECK(v.pads[0].tooltip == "Playing on A. Switch decks to see its layers.");
+    REQUIRE(v.bandsByLayer.count(0) == 1);
+    REQUIRE(v.bandsByLayer.count(2) == 1);
+    CHECK(v.bandsByLayer.count(1) == 0);
+    CHECK(v.bandsByLayer.at(0)[0].name == "Drop");
+    CHECK(v.cornerNote.isEmpty());
+    CHECK(v.pads[0].tooltip == "Playing on Layer 1, Layer 3. Press to restart from the top.");
 
-    SECTION("two routines on one other deck are named together")
+    SECTION("two routines fired from another deck: both banded, still no deck note")
     {
         auto t = s;
         t.slots[1] = live(1, "Build", "running", 0, { 0 }, 2, 1.0);
-        CHECK(deriveRoutineDeckView(t, 1, kDecks, kLayers).cornerNote == kDot + " Drop, Build on A");
+        const auto v2 = deriveRoutineDeckView(t, 1, kDecks, kLayers);
+        CHECK(v2.cornerNote.isEmpty());
+        CHECK(v2.bandsByLayer.at(0).size() == 2);
     }
 }
 

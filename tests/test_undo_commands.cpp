@@ -152,8 +152,9 @@ static bool operator==(const Clip& a, const Clip& b)
 //
 // FIELD COVERAGE: every field of the CURRENT Layer struct is compared —
 // identity, controls, blend/keying, 3D, video props, transition, transform,
-// feedback, per-layer effect chain, autopilot defaults, the clips row, and the
-// runtime trigger fields. RemoveLayerCmd stores + restores a full Layer VALUE,
+// feedback, per-layer effect chain, autopilot defaults and the whole trigger
+// tuple (lane bf9b: a Layer holds no clips -- its row of clips lives in each
+// deck, compared by the ClipRow / Deck operators below). RemoveLayerCmd stores + restores a full Layer VALUE,
 // so nothing is deliberately excluded: a future added/dropped field surfaces as
 // a test failure rather than a silent weakening. Floats use exact == because the
 // restore is a bit-identical value copy (no arithmetic).
@@ -217,24 +218,22 @@ static bool operator==(const Layer& a, const Layer& b)
         && a.defaultAutopilotDuration == b.defaultAutopilotDuration
         && a.defaultAutopilotCustomBeats == b.defaultAutopilotCustomBeats
         && a.autopilotLoops == b.autopilotLoops && a.autopilotEndOfVideo == b.autopilotEndOfVideo
-        // Clips row + runtime
-        && clipsEq(a.clips, b.clips)
-        && a.runtime().activeClipColumn == b.runtime().activeClipColumn && a.runtime().previousClipColumn == b.runtime().previousClipColumn
-        && a.runtime().crossfadeProgress == b.runtime().crossfadeProgress && a.runtime().pendingTriggerColumn == b.runtime().pendingTriggerColumn
-        && a.runtime().pendingTriggerSnapOverride == b.runtime().pendingTriggerSnapOverride;
+        // The trigger tuple (every slot's ClipRef, the fade, the queue)
+        && a.runtime() == b.runtime();
+}
+
+static bool operator==(const ClipRow& a, const ClipRow& b)
+{
+    return clipsEq(a.clips, b.clips);
 }
 
 // ---------------------------------------------------------------------------
 // Hand-written deep-equality for Deck (step-6 RemoveDeckCmd full-Deck restore).
 //
 // FIELD COVERAGE against Deck.h: every PUBLIC instance field — name, id,
-// sourceFile, numColumns, and the layers vector (element-wise via Layer
-// operator==). The only Deck member NOT compared is the private `nextLayerId_`
-// id counter: it is inaccessible to a free operator== AND is an internal
-// allocation counter, not structural identity — the same class of exclusion as
-// Clip/Layer runtime fields. A full-Deck VALUE copy (RemoveDeckCmd) still
-// restores nextLayerId_ bit-identically via the implicit copy ctor; it is simply
-// not asserted here.
+// sourceFile, numColumns, and the rows vector (element-wise via ClipRow
+// operator==). Lane bf9b: a deck is a box of clip rows -- it has no layers and
+// no private members.
 // HAND-WRITTEN: a new public Deck field is NOT detected by the compiler —
 // whoever adds one to Deck.h must add it here (or record the exclusion) by hand.
 // ---------------------------------------------------------------------------
@@ -244,7 +243,7 @@ static bool operator==(const Deck& a, const Deck& b)
     return a.name == b.name && a.id == b.id
         && a.sourceFile == b.sourceFile
         && a.numColumns == b.numColumns
-        && vecEq(a.layers, b.layers);
+        && vecEq(a.rows, b.rows);
 }
 
 // ---------------------------------------------------------------------------
@@ -256,14 +255,48 @@ namespace
     Composition makeComp()
     {
         Composition comp;
-        comp.initDefault();   // 1 deck, 3 layers, 12 columns of empty cells
+        comp.initDefault();   // 3 shared layers + 1 deck of 3 rows x 12 columns of empty cells
         return comp;
     }
 
-    // Resolver bound through UndoService (also exercises resolveLayer).
-    ClipLayerResolver resolverFor(UndoService& svc)
+    // A tuple in the old column form on deck `deckId`: a slot with a column names that deck, a -1 slot none.
+    LayerRuntimeSnapshot tupleOn(uint32_t deckId, int active, int previous, float progress, int pending,
+                                 Clip::BeatSnapMode snap = Clip::BeatSnapMode::Off)
     {
-        return [&svc](int d, int l) { return svc.resolveLayer(d, l); };
+        LayerRuntimeSnapshot r{ active, previous, progress, pending, snap };
+        r.activeDeckId = active >= 0 ? deckId : ClipRef::kNoDeck;
+        r.previousDeckId = previous >= 0 ? deckId : ClipRef::kNoDeck;
+        r.pendingDeckId = pending >= 0 ? deckId : ClipRef::kNoDeck;
+        return r;
+    }
+
+    // Mirrors kLayerClearClips / kDeckClearClips (lane bf9b): deck `d`'s row `l` cleared; the shared layer's tuple
+    // only when it plays or queues from that row of that deck (clearTupleForRow). Returns {before, after}.
+    std::pair<LayerClipsSnapshot, LayerClipsSnapshot> liveClearRow(Composition& comp, int d, int l)
+    {
+        LayerClipsSnapshot before = captureLayerClips(comp, d, l);
+        Deck& deck = comp.decks[static_cast<size_t>(d)];
+        ClipRow* row = deck.getRow(l);
+        row->clips.clear();
+        row->ensureColumns(deck.numColumns);
+        const LayerRuntimeTransition t = clearTupleForRow(*comp.getLayer(l), deck.id);
+        LayerClipsSnapshot after;
+        after.clips = row->clips;
+        if (before.runtime.has_value())
+            after.runtime = t.after;
+        return { std::move(before), std::move(after) };
+    }
+
+    // Lane bf9b: a clip command addresses a deck's ROW (UndoService::resolveRow); a layer command the SHARED
+    // layer (UndoService::resolveLayer).
+    ClipRowResolver resolverFor(UndoService& svc)
+    {
+        return [&svc](int d, int r) { return svc.resolveRow(d, r); };
+    }
+
+    ClipLayerResolver layerResolverFor(UndoService& svc)
+    {
+        return [&svc](int l) { return svc.resolveLayer(l); };
     }
 
     // Deck resolver bound through UndoService (SwapClipsCmd re-resolves the Deck
@@ -693,15 +726,17 @@ TEST_CASE("UndoService::resolveLayer returns null for stale layer coordinates", 
     Composition comp = makeComp();
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
 
-    REQUIRE(svc.resolveLayer(0, 0) != nullptr);
-    REQUIRE(svc.resolveLayer(0, 2) != nullptr);      // 3 layers: 0,1,2
-    REQUIRE(svc.resolveLayer(0, 3) == nullptr);      // beyond count
-    REQUIRE(svc.resolveLayer(0, -1) == nullptr);
-    REQUIRE(svc.resolveLayer(9, 0) == nullptr);      // stale deck
+    // Lane bf9b: a layer is a SHARED layer (no deck in its address); a deck's row carries the deck.
+    REQUIRE(svc.resolveLayer(0) != nullptr);
+    REQUIRE(svc.resolveLayer(2) != nullptr);         // 3 layers: 0,1,2
+    REQUIRE(svc.resolveLayer(3) == nullptr);         // beyond count
+    REQUIRE(svc.resolveLayer(-1) == nullptr);
+    REQUIRE(svc.resolveRow(9, 0) == nullptr);        // stale deck
 
     // Remove a layer; the previously-valid trailing index is now stale.
-    REQUIRE(comp.decks[0].removeLayer(2));
-    REQUIRE(svc.resolveLayer(0, 2) == nullptr);
+    REQUIRE(comp.eraseLayer(2));
+    REQUIRE(svc.resolveLayer(2) == nullptr);
+    REQUIRE(svc.resolveRow(0, 2) == nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -759,8 +794,8 @@ TEST_CASE("SetColumnCountCmd: add column grows count, undo/redo round-trip", "[u
                 0, before, after, "Add Column"));
 
     REQUIRE(deck.numColumns == after);
-    for (auto& L : deck.layers)
-        REQUIRE(static_cast<int>(L.clips.size()) >= after);   // every layer grown
+    for (auto& R : deck.rows)
+        REQUIRE(static_cast<int>(R.clips.size()) >= after);   // every row grown
     REQUIRE(mgr.undoDescription() == "Add Column");
 
     mgr.undo();
@@ -814,8 +849,8 @@ TEST_CASE("RemoveColumnCmd: remove-column-with-clips restores cells + count", "[
 
     // Mirror kColumnRemove: snapshot the removed column, then remove.
     std::vector<std::optional<Clip>> removed;
-    for (auto& L : deck.layers)
-        removed.push_back(L.getClipAt(col) ? std::optional<Clip>(*L.getClipAt(col))
+    for (auto& R : deck.rows)
+        removed.push_back(R.getClipAt(col) ? std::optional<Clip>(*R.getClipAt(col))
                                            : std::nullopt);
     deck.removeColumn(col);
 
@@ -860,8 +895,8 @@ TEST_CASE("RemoveColumnCmd: fence fires once per execute/undo/redo", "[undo][col
     const int col = deck.numColumns - 1;
     const int before = deck.numColumns;
     std::vector<std::optional<Clip>> removed;
-    for (auto& L : deck.layers)
-        removed.push_back(L.getClipAt(col) ? std::optional<Clip>(*L.getClipAt(col))
+    for (auto& R : deck.rows)
+        removed.push_back(R.getClipAt(col) ? std::optional<Clip>(*R.getClipAt(col))
                                            : std::nullopt);
     deck.removeColumn(col);
 
@@ -883,6 +918,8 @@ TEST_CASE("RemoveColumnCmd: fence fires once per execute/undo/redo", "[undo][col
 // ClearLayerClipsCmd (#19): clear one layer's clips row + runtime
 // ---------------------------------------------------------------------------
 
+// Lane bf9b (plan-bf9b 4.B :886): Clear Layer Clips clears THAT deck's row; the shared layer's tuple only when it plays
+// from that row of that deck (here it does).
 TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", "[undo][clearclips]")
 {
     Composition comp = makeComp();
@@ -894,18 +931,15 @@ TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", 
     deck.setClip(1, 0, a);
     deck.setClip(1, 4, b);
     {
-        LayerRuntimeSnapshot rt = deck.getLayer(1)->runtime();
-        rt.activeClipColumn = 4;          // mark an active clip
-        deck.getLayer(1)->setRuntime(rt);
+        LayerRuntimeSnapshot rt = comp.getLayer(1)->runtime();
+        rt.activeClipColumn = 4;          // mark an active clip (of this deck's row)
+        rt.activeDeckId = deck.id;
+        comp.getLayer(1)->setRuntime(rt);
     }
 
     // Mirror kLayerClearClips (Wave 1-D: selected layer only).
-    LayerClipsSnapshot before = captureLayerClips(*deck.getLayer(1));
+    auto [before, after] = liveClearRow(comp, 0, 1);
     REQUIRE(layerClipsSnapshotHasContent(before));
-    deck.getLayer(1)->clips.clear();
-    deck.getLayer(1)->ensureColumns(deck.numColumns);
-    deck.getLayer(1)->clearActiveClip();
-    LayerClipsSnapshot after = captureLayerClips(*deck.getLayer(1));
 
     // Family coverage (trap c): both cleared clips dispose exactly once per
     // execute/redo, none on undo (reconnect instead).
@@ -913,26 +947,54 @@ TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", 
     ClipMediaHook reconnect = [&reconnectCalls](const Clip&) { ++reconnectCalls; };
     ClipMediaDisposeHook dispose = [&disposeCalls](const Clip&) { ++disposeCalls; };
 
-    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopFence(), reconnect, dispose,
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(compResolverFor(comp), noopFence(), reconnect, dispose,
                 0, 1, before, after, "Clear Layer Clips"));
 
     REQUIRE(deck.getClip(1, 0) == nullptr);
     REQUIRE(deck.getClip(1, 4) == nullptr);
-    REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == -1);
+    REQUIRE(comp.getLayer(1)->runtime().activeClipColumn == -1);
     REQUIRE(disposeCalls == 2);                      // a AND b disposed
     REQUIRE(reconnectCalls == 0);
 
     mgr.undo();
     REQUIRE(*deck.getClip(1, 0) == a);               // clips restored (deep-equal)
     REQUIRE(*deck.getClip(1, 4) == b);
-    REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == 4);// runtime restored
+    REQUIRE(comp.getLayer(1)->runtime().activeClipColumn == 4);// runtime restored
     REQUIRE(disposeCalls == 2);                      // undo reconnects, does not dispose
     REQUIRE(reconnectCalls == 2);
 
     mgr.redo();
     REQUIRE(deck.getClip(1, 0) == nullptr);
-    REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == -1);
+    REQUIRE(comp.getLayer(1)->runtime().activeClipColumn == -1);
     REQUIRE(disposeCalls == 4);                      // redo disposes both again
+}
+
+// Lane bf9b (plan-bf9b 4.B :886 NEW SECTION, kept as its own case): a shared layer playing ANOTHER deck's clip keeps
+// playing through a clear of the shown deck's row -- execute, undo and redo leave its tuple alone.
+TEST_CASE("ClearLayerClipsCmd: a layer playing another deck's clip keeps playing (bf9b)", "[undo][clearclips]")
+{
+    Composition comp = makeComp();
+    REQUIRE(comp.addDeck("Deck 2"));
+    UndoManager mgr;
+    comp.decks[0].setClip(1, 0, richClip(1, "shown"));
+    comp.decks[1].setClip(1, 2, richClip(2, "other"));
+    comp.fire(1, 1, 2, Clip::BeatSnapMode::Off, true);          // layer 1 plays deck 1's (1, 2)
+    const LayerRuntimeSnapshot playing = comp.getLayer(1)->runtime();
+    REQUIRE(playing.activeRef() == (ClipRef{ comp.decks[1].id, 2 }));
+
+    auto [before, after] = liveClearRow(comp, 0, 1);            // clear deck 0's row 1 (deck 0 shown)
+    REQUIRE_FALSE(before.runtime.has_value());                  // the tuple is not this row's to touch
+    CHECK(comp.getLayer(1)->runtime() == playing);
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                0, 1, before, after, "Clear Layer Clips"));
+    CHECK(comp.decks[0].getClip(1, 0) == nullptr);
+    CHECK(comp.getLayer(1)->runtime() == playing);
+    CHECK(comp.playingClip(1) == comp.decks[1].getClip(1, 2));
+    mgr.undo();
+    CHECK(comp.decks[0].getClip(1, 0) != nullptr);
+    CHECK(comp.getLayer(1)->runtime() == playing);
+    mgr.redo();
+    CHECK(comp.getLayer(1)->runtime() == playing);
 }
 
 // Fence invocation count (family-fence fix, 2026-07-28): ClearLayerClipsCmd
@@ -946,17 +1008,13 @@ TEST_CASE("ClearLayerClipsCmd: fence fires once per execute/undo/redo", "[undo][
 
     Clip a = richClip(1, "a");
     deck.setClip(1, 0, a);
-    LayerClipsSnapshot before = captureLayerClips(*deck.getLayer(1));
-    deck.getLayer(1)->clips.clear();
-    deck.getLayer(1)->ensureColumns(deck.numColumns);
-    deck.getLayer(1)->clearActiveClip();
-    LayerClipsSnapshot after = captureLayerClips(*deck.getLayer(1));
+    auto [before, after] = liveClearRow(comp, 0, 1);
 
     int fenceCalls = 0;
     DeckFenceHook countingFence =
         [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
 
-    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), countingFence, noopMedia(), noopDispose(),
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(compResolverFor(comp), countingFence, noopMedia(), noopDispose(),
                 0, 1, before, after, "Clear Layer Clips"));
     REQUIRE(fenceCalls == 1);                           // execute fenced
     mgr.undo();
@@ -981,18 +1039,13 @@ TEST_CASE("Deck clear-clips composite: clear all layers, one entry, undo restore
     deck.setClip(0, 2, a);                 // layer 0 has content
     deck.setClip(2, 7, b);                 // layer 2 has content; layer 1 empty
 
-    // Mirror kDeckClearClips: one ClearLayerClipsCmd per layer WITH content.
+    // Mirror kDeckClearClips: one ClearLayerClipsCmd per row WITH content.
     auto composite = std::make_unique<CompositeCommand>("Clear Deck Clips");
-    for (int l = 0; l < deck.getNumLayers(); ++l)
+    for (int l = 0; l < deck.getNumRows(); ++l)
     {
-        auto* layer = deck.getLayer(l);
-        LayerClipsSnapshot cBefore = captureLayerClips(*layer);
-        if (!layerClipsSnapshotHasContent(cBefore)) continue;   // skip empty layer 1
-        layer->clips.clear();
-        layer->ensureColumns(deck.numColumns);
-        layer->clearActiveClip();
-        LayerClipsSnapshot cAfter = captureLayerClips(*layer);
-        composite->add(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopFence(), noopMedia(), noopDispose(),
+        if (!layerClipsSnapshotHasContent(captureLayerClips(comp, 0, l))) continue;   // skip empty row 1
+        auto [cBefore, cAfter] = liveClearRow(comp, 0, l);
+        composite->add(std::make_unique<ClearLayerClipsCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
                        0, l, cBefore, cAfter, "Clear Layer Clips"));
     }
     REQUIRE(composite->size() == 2);       // only layers 0 and 2 contributed
@@ -1031,7 +1084,7 @@ TEST_CASE("Multi-video drop composite: N cells + column growth, undo restores bo
     while (deck.numColumns < colsAfter)
     {
         deck.numColumns++;
-        for (auto& L : deck.layers) L.clips.resize(static_cast<size_t>(deck.numColumns));
+        for (auto& R : deck.rows) R.clips.resize(static_cast<size_t>(deck.numColumns));
     }
     deck.setClip(0, startCol + 0, v0);
     deck.setClip(0, startCol + 1, v1);
@@ -1122,27 +1175,21 @@ TEST_CASE("kClipClear composite: clearing the active cell empties it AND resets 
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = deck.layers[0];
+    Layer& L = comp.layers[0];
 
     Clip a = richClip(1, "active");
     deck.setClip(0, 3, a);
-    {
-        LayerRuntimeSnapshot rt = L.runtime();
-        rt.activeClipColumn = 3;
-        rt.previousClipColumn = 1;
-        rt.crossfadeProgress = 0.5f;
-        L.setRuntime(rt);
-    }
+    L.setRuntime(tupleOn(deck.id, 3, 1, 0.5f, -1));
 
     LayerRuntimeSnapshot rtBefore = captureLayerRuntime(L);
-    L.clearActiveClip();                     // live: active -> -1, previous -> 3
+    L.clearActiveClip(comp.rowClips(0));     // live: active -> -1, previous -> 3
     LayerRuntimeSnapshot rtAfter = captureLayerRuntime(L);
     REQUIRE_FALSE(rtBefore == rtAfter);
 
     auto composite = std::make_unique<CompositeCommand>("Clear Clip");
     composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(), noopDispose(),
                    0, 0, 3, std::optional<Clip>(a), std::nullopt, "Clear Clip"));
-    composite->add(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 0,
+    composite->add(std::make_unique<ClearActiveClipCmd>(layerResolverFor(svc), 0,
                    rtBefore, rtAfter, "Clear Clip"));
     mgr.perform(std::move(composite));
 
@@ -1191,7 +1238,7 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][reso
 
     // Stale LAYER index → ClearLayerClipsCmd apply is a safe no-op.
     LayerClipsSnapshot emptySnap;
-    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopFence(), noopMedia(), noopDispose(),
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
                 0, 9, emptySnap, emptySnap, "Clear Layer Clips"));
     REQUIRE(comp.decks[0].getClip(0, 0) != nullptr); // layer 0 untouched
 }
@@ -1204,52 +1251,54 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][reso
 // AddLayerCmd (#16): append a layer; undo erases; redo re-adds the EXACT layer.
 // ---------------------------------------------------------------------------
 
+// Lane bf9b (plan-bf9b 4.B :1207): a layer is the SHOW's -- Add Layer adds a shared layer and an empty row to every
+// deck.
 TEST_CASE("AddLayerCmd: add appends, undo removes, redo restores same layer", "[undo][layer]")
 {
     Composition comp = makeComp();          // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    const int before = deck.getNumLayers(); // 3
+    const int before = comp.getNumLayers(); // 3
 
-    mgr.perform(std::make_unique<AddLayerCmd>(deckResolverFor(svc), noopFence(), 0, "Add Layer"));
-    REQUIRE(deck.getNumLayers() == before + 1);
-    const uint32_t addedId = deck.layers.back().id;   // capture for determinism
+    mgr.perform(std::make_unique<AddLayerCmd>(compResolverFor(comp), noopFence(), "Add Layer"));
+    REQUIRE(comp.getNumLayers() == before + 1);
+    REQUIRE(deck.getNumRows() == before + 1);
+    const uint32_t addedId = comp.layers.back().id;   // capture for determinism
     REQUIRE(mgr.undoDescription() == "Add Layer");
 
     mgr.undo();
-    REQUIRE(deck.getNumLayers() == before);
+    REQUIRE(comp.getNumLayers() == before);
+    REQUIRE(deck.getNumRows() == before);
     mgr.redo();
-    REQUIRE(deck.getNumLayers() == before + 1);
-    REQUIRE(deck.layers.back().id == addedId);        // redo re-inserts the SAME layer
+    REQUIRE(comp.getNumLayers() == before + 1);
+    REQUIRE(deck.getNumRows() == before + 1);
+    REQUIRE(comp.layers.back().id == addedId);        // redo re-inserts the SAME layer
 }
 
 // ---------------------------------------------------------------------------
 // RemoveLayerCmd (#17): full-Layer restore on undo (deep-equal, field-complete).
 // ---------------------------------------------------------------------------
 
+// Lane bf9b (plan-bf9b 4.B :1231): Remove Layer removes the shared layer AND that row of every deck; undo restores
+// the layer and every deck's row (deep-equal).
 TEST_CASE("RemoveLayerCmd: remove restores the full layer on undo (deep-equal)", "[undo][layer]")
 {
     Composition comp = makeComp();          // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
     // Give the last layer distinctive state + a clip so the full-Layer restore bites.
-    const int idx = deck.getNumLayers() - 1;   // 2
-    Layer& L = deck.layers[static_cast<size_t>(idx)];
+    const int idx = comp.getNumLayers() - 1;   // 2
+    Layer& L = comp.layers[static_cast<size_t>(idx)];
     L.name = "victim"; L.bypassed = true; L.solo = true; L.opacity = 0.33f;
     L.blendMode = Layer::MixMode::Multiply; L.layerScale = 2.0f; L.folded = true;
     L.feedback.enabled = true; L.feedback.amount = 0.7f;
-    {
-        LayerRuntimeSnapshot rt = L.runtime();
-        rt.activeClipColumn = 4;
-        L.setRuntime(rt);
-    }
+    L.setRuntime(tupleOn(deck.id, 4, -1, 1.0f, -1));
     deck.setClip(idx, 4, richClip(77, "onlayer"));
     const Layer expected = L;                  // full value snapshot for compare
+    const ClipRow expectedRow = *deck.getRow(idx);
 
-    Layer removedCopy = *deck.getLayer(idx);
+    Layer removedCopy = *comp.getLayer(idx);
 
     // Family coverage (media-leak fix, L1 round 2): the removed layer carries
     // clip 77 (richClip -> MediaType::Video, playable) — real counting hooks
@@ -1258,22 +1307,24 @@ TEST_CASE("RemoveLayerCmd: remove restores the full layer on undo (deep-equal)",
     ClipMediaHook reconnect = [&reconnectCalls](const Clip&) { ++reconnectCalls; };
     ClipMediaDisposeHook dispose = [&disposeCalls](const Clip&) { ++disposeCalls; };
 
-    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), reconnect, dispose,
-                0, idx, removedCopy, "Remove Layer"));
+    mgr.perform(std::make_unique<RemoveLayerCmd>(compResolverFor(comp), noopFence(), reconnect, dispose,
+                idx, removedCopy, "Remove Layer"));
 
-    REQUIRE(deck.getNumLayers() == 2);         // removed
+    REQUIRE(comp.getNumLayers() == 2);         // removed
+    REQUIRE(deck.getNumRows() == 2);
     REQUIRE(mgr.undoDescription() == "Remove Layer");
     REQUIRE(disposeCalls == 1);                // clip 77 disposed
     REQUIRE(reconnectCalls == 0);
 
     mgr.undo();
-    REQUIRE(deck.getNumLayers() == 3);
-    REQUIRE(deck.layers[static_cast<size_t>(idx)] == expected);   // full-Layer deep-equal
+    REQUIRE(comp.getNumLayers() == 3);
+    REQUIRE(comp.layers[static_cast<size_t>(idx)] == expected);   // full-Layer deep-equal
+    REQUIRE(*deck.getRow(idx) == expectedRow);                     // and the deck's row
     REQUIRE(disposeCalls == 1);                // undo reconnects, does not dispose
     REQUIRE(reconnectCalls == 1);
 
     mgr.redo();
-    REQUIRE(deck.getNumLayers() == 2);
+    REQUIRE(comp.getNumLayers() == 2);
     REQUIRE(disposeCalls == 2);                // redo disposes again
 }
 
@@ -1285,22 +1336,21 @@ TEST_CASE("RemoveLayerCmd: remove restores the full layer on undo (deep-equal)",
 TEST_CASE("RemoveLayerCmd: refuses when only 1 layer remains, does not dispose", "[undo][layer]")
 {
     Composition comp = makeComp();          // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
-    while (deck.getNumLayers() > 1)
-        deck.removeLayer(deck.getNumLayers() - 1);
-    REQUIRE(deck.getNumLayers() == 1);
+    while (comp.getNumLayers() > 1)
+        comp.eraseLayer(comp.getNumLayers() - 1);
+    REQUIRE(comp.getNumLayers() == 1);
     deck.setClip(0, 0, richClip(1, "onlylayer"));
 
-    Layer removedCopy = deck.layers[0];
+    Layer removedCopy = comp.layers[0];
     int disposeCalls = 0;
     ClipMediaDisposeHook dispose = [&disposeCalls](const Clip&) { ++disposeCalls; };
-    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(), dispose,
-                0, 0, removedCopy, "Remove Layer"));
+    mgr.perform(std::make_unique<RemoveLayerCmd>(compResolverFor(comp), noopFence(), noopMedia(), dispose,
+                0, removedCopy, "Remove Layer"));
 
-    REQUIRE(deck.getNumLayers() == 1);         // guard held — layer kept
+    REQUIRE(comp.getNumLayers() == 1);         // guard held — layer kept
     REQUIRE(disposeCalls == 0);                // still-live clip must NOT be disposed
 }
 
@@ -1308,29 +1358,33 @@ TEST_CASE("RemoveLayerCmd: refuses when only 1 layer remains, does not dispose",
 // MoveLayerCmd (#18): move + undo restores order (moveLayer(to,from) is inverse).
 // ---------------------------------------------------------------------------
 
+// Lane bf9b (plan-bf9b 4.B :1311): the shared layer moves, and row `from` of every deck with it.
 TEST_CASE("MoveLayerCmd: move up then undo restores original order", "[undo][layer]")
 {
     Composition comp = makeComp();          // layers 0,1,2
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
-    Deck& deck = comp.decks[0];
-    deck.layers[0].name = "A"; deck.layers[1].name = "B"; deck.layers[2].name = "C";
+    comp.layers[0].name = "A"; comp.layers[1].name = "B"; comp.layers[2].name = "C";
+    comp.decks[0].setClip(2, 0, richClip(5, "rowC"));
 
     // Move layer 2 (C) up to index 1.
-    mgr.perform(std::make_unique<MoveLayerCmd>(deckResolverFor(svc), noopFence(),
-                0, 2, 1, "Move Layer Up"));
-    REQUIRE(deck.layers[0].name == "A");
-    REQUIRE(deck.layers[1].name == "C");
-    REQUIRE(deck.layers[2].name == "B");
+    mgr.perform(std::make_unique<MoveLayerCmd>(compResolverFor(comp), noopFence(),
+                2, 1, "Move Layer Up"));
+    REQUIRE(comp.layers[0].name == "A");
+    REQUIRE(comp.layers[1].name == "C");
+    REQUIRE(comp.layers[2].name == "B");
+    REQUIRE(comp.decks[0].getClip(1, 0) != nullptr);   // C's row moved with it
+    REQUIRE(comp.decks[0].getClip(1, 0)->id == 5u);
 
     mgr.undo();
-    REQUIRE(deck.layers[0].name == "A");
-    REQUIRE(deck.layers[1].name == "B");    // original order restored
-    REQUIRE(deck.layers[2].name == "C");
+    REQUIRE(comp.layers[0].name == "A");
+    REQUIRE(comp.layers[1].name == "B");    // original order restored
+    REQUIRE(comp.layers[2].name == "C");
+    REQUIRE(comp.decks[0].getClip(2, 0) != nullptr);
+    REQUIRE(comp.decks[0].getClip(2, 0)->id == 5u);
 
     mgr.redo();
-    REQUIRE(deck.layers[1].name == "C");
-    REQUIRE(deck.layers[2].name == "B");
+    REQUIRE(comp.layers[1].name == "C");
+    REQUIRE(comp.layers[2].name == "B");
 }
 
 // ---------------------------------------------------------------------------
@@ -1342,13 +1396,12 @@ TEST_CASE("ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently", 
     Composition comp = makeComp();
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
-    Deck& deck = comp.decks[0];
-    Layer& L = deck.layers[1];
+    Layer& L = comp.layers[1];
     L.bypassed = false; L.solo = false; L.folded = false;
 
     // Bypass — LayerStrip toggles live, command wraps (before=false, after=true).
     L.bypassed = true;
-    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 1,
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), 1,
                 ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
     REQUIRE(L.bypassed == true);
     mgr.undo();  REQUIRE(L.bypassed == false);
@@ -1356,7 +1409,7 @@ TEST_CASE("ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently", 
 
     // Solo — independent field; the bypass command must not have touched it.
     L.solo = true;
-    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 1,
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), 1,
                 ToggleLayerFlagCmd::Flag::Solo, false, true, "Solo Layer"));
     REQUIRE(L.solo == true);
     REQUIRE(L.bypassed == true);            // bypass unaffected by the solo toggle
@@ -1364,7 +1417,7 @@ TEST_CASE("ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently", 
 
     // Fold.
     L.folded = true;
-    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 1,
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), 1,
                 ToggleLayerFlagCmd::Flag::Folded, false, true, "Fold Layer"));
     REQUIRE(L.folded == true);
     mgr.undo();  REQUIRE(L.folded == false);
@@ -1381,22 +1434,16 @@ TEST_CASE("ClearActiveClipCmd: X-button clear restores layer runtime on undo", "
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = deck.layers[0];
+    Layer& L = comp.layers[0];
     deck.setClip(0, 3, richClip(1, "active"));
-    {
-        LayerRuntimeSnapshot rt = L.runtime();
-        rt.activeClipColumn = 3;
-        rt.previousClipColumn = 1;
-        rt.crossfadeProgress = 0.5f;
-        L.setRuntime(rt);
-    }
+    L.setRuntime(tupleOn(deck.id, 3, 1, 0.5f, -1));
 
     LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    L.clearActiveClip();                    // live: active -> -1, previous -> 3, crossfade -> 1
+    L.clearActiveClip(comp.rowClips(0));    // live: active -> -1, previous -> 3, crossfade -> 1
     LayerRuntimeSnapshot after = captureLayerRuntime(L);
     REQUIRE_FALSE(before == after);
 
-    mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 0,
+    mgr.perform(std::make_unique<ClearActiveClipCmd>(layerResolverFor(svc), 0,
                 before, after, "Clear Layer Clip"));
     REQUIRE(L.runtime().activeClipColumn == -1);      // cleared (execute idempotent with live)
 
@@ -1419,29 +1466,28 @@ TEST_CASE("Layer index consistency: remove+undo keeps later-layer commands resol
     Composition comp = makeComp();          // layers 0,1,2
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
-    Deck& deck = comp.decks[0];
 
     // Toggle bypass on the last layer, then remove it, then undo the remove.
-    deck.layers[2].bypassed = true;
-    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 2,
+    comp.layers[2].bypassed = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), 2,
                 ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
 
-    Layer removed = deck.layers[2];
+    Layer removed = comp.layers[2];
     // This test is about coordinate resolution across a remove/undo, not
     // media — layer 2 carries no clip here, so noopDispose() is deliberate,
     // not a placeholder (real dispose coverage lives in the RemoveLayerCmd
     // deep-equal test above).
-    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(), noopDispose(),
-                0, 2, removed, "Remove Layer"));
-    REQUIRE(deck.getNumLayers() == 2);
+    mgr.perform(std::make_unique<RemoveLayerCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                2, removed, "Remove Layer"));
+    REQUIRE(comp.getNumLayers() == 2);
 
     mgr.undo();                             // undo remove → layer 2 back (bypassed==true)
-    REQUIRE(deck.getNumLayers() == 3);
-    REQUIRE(svc.resolveLayer(0, 2) != nullptr);      // later index resolves again
-    REQUIRE(deck.layers[2].bypassed == true);
+    REQUIRE(comp.getNumLayers() == 3);
+    REQUIRE(svc.resolveLayer(2) != nullptr);         // later index resolves again
+    REQUIRE(comp.layers[2].bypassed == true);
 
     mgr.undo();                             // undo the earlier bypass → layer 2 resolves, false
-    REQUIRE(deck.layers[2].bypassed == false);
+    REQUIRE(comp.layers[2].bypassed == false);
 }
 
 // ---------------------------------------------------------------------------
@@ -1454,20 +1500,22 @@ TEST_CASE("Layer commands no-op on stale coordinates (never crash)", "[undo][lay
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
-    // Stale DECK index → AddLayerCmd / MoveLayerCmd apply are safe no-ops.
-    mgr.perform(std::make_unique<AddLayerCmd>(deckResolverFor(svc), noopFence(), 9, "Add Layer"));
-    REQUIRE(comp.decks[0].getNumLayers() == 3);      // untouched
-    mgr.perform(std::make_unique<MoveLayerCmd>(deckResolverFor(svc), noopFence(),
-                9, 0, 1, "Move Layer Up"));
-    REQUIRE(comp.decks[0].layers[0].id == 0);        // order untouched
+    // Lane bf9b: a layer command carries no deck any more. Stale composition → AddLayerCmd is a safe no-op; stale
+    // LAYER index → MoveLayerCmd is a safe no-op.
+    CompositionResolver nullComp = []() -> Composition* { return nullptr; };
+    mgr.perform(std::make_unique<AddLayerCmd>(nullComp, noopFence(), "Add Layer"));
+    REQUIRE(comp.getNumLayers() == 3);               // untouched
+    mgr.perform(std::make_unique<MoveLayerCmd>(compResolverFor(comp), noopFence(),
+                9, 1, "Move Layer Up"));
+    REQUIRE(comp.layers[0].id == 0);                 // order untouched
 
     // Stale LAYER index → ToggleLayerFlagCmd / ClearActiveClipCmd are safe no-ops.
-    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 9,
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), 9,
                 ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
     LayerRuntimeSnapshot rt;
-    mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 9,
+    mgr.perform(std::make_unique<ClearActiveClipCmd>(layerResolverFor(svc), 9,
                 rt, rt, "Clear Layer Clip"));
-    REQUIRE(comp.decks[0].getLayer(0) != nullptr);   // survived; deck intact
+    REQUIRE(comp.getLayer(0) != nullptr);            // survived; show intact
 }
 
 // ===========================================================================
@@ -1477,23 +1525,15 @@ TEST_CASE("Layer commands no-op on stale coordinates (never crash)", "[undo][lay
 
 namespace
 {
-    // A deck with a name + distinctive layer/clip state, so full-Deck deep-equal
-    // (RemoveDeckCmd) actually bites. initDefault gives 3 layers × 12 columns.
+    // A deck with a name + a distinctive clip, so full-Deck deep-equal (RemoveDeckCmd) actually bites. initDefault
+    // gives 3 rows × 12 columns. Lane bf9b: a deck is a box of clip rows -- no layer settings, no tuple.
     Deck richDeck(const std::string& name, uint32_t id)
     {
         Deck d;
         d.name = name;
         d.id = id;
         d.initDefault();
-        d.layers[1].bypassed = true;
-        d.layers[1].opacity = 0.4f;
-        d.layers[2].name = "top";
-        d.layers[0].clips[3] = richClip(id * 10 + 3, name + "c3");
-        {
-            LayerRuntimeSnapshot rt = d.layers[0].runtime();
-            rt.activeClipColumn = 3;
-            d.layers[0].setRuntime(rt);
-        }
+        d.rows[0].clips[3] = richClip(id * 10 + 3, name + "c3");
         return d;
     }
 }
@@ -1516,7 +1556,7 @@ TEST_CASE("AddDeckCmd: add appends + activates, undo removes, redo restores same
     REQUIRE(comp.decks[1].name == "Deck 2");            // faithful to kDeckNew naming
     // plan6 §3 E1 (deliberate behaviour change): New Deck now arrives initDefault()ed —
     // a zero-layer deck cannot be saved and loaded back (compload::validateDeck refuses it).
-    REQUIRE(comp.decks[1].getNumLayers() == Deck::kDefaultLayers);
+    REQUIRE(comp.decks[1].getNumRows() == comp.getNumLayers());   // lane bf9b: one row per shared layer
     REQUIRE(mgr.undoDescription() == "Add Deck");
     const Deck expected = comp.decks[1];               // capture for redo compare
 
@@ -1601,35 +1641,32 @@ TEST_CASE("InsertDeckCmd: appends a prebuilt deck under a fresh id and activates
     REQUIRE(fenceCalls == 3);
 }
 
-// Same shape as the AddDeckCmd pending-trigger test below: inserting a deck
-// deactivates the deck that was active, so its queued trigger is cancelled —
-// restored on undo, re-cancelled on redo.
-TEST_CASE("InsertDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels",
+// Lane bf9b (plan-bf9b 4.B :1607, F11): inserting a deck changes only which box the grid shows -- a trigger queued
+// from the deck that was shown lands in the shared, visible stack, so execute, undo and redo leave it untouched.
+TEST_CASE("InsertDeckCmd: leaves a queued trigger untouched; undo and redo too (bf9b)",
           "[undo][deck][trigger][quantize]")
 {
     Composition comp = makeComp();                   // 1 deck (index 0), active 0
     UndoManager mgr;
 
-    comp.decks[0].getLayer(0)->clips[5] = richClip(99, "queued");
-    comp.decks[0].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);   // queues: col(5) != active(-1)
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == 5);
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    comp.decks[0].rows[0].clips[5] = richClip(99, "queued");
+    comp.fire(0, 0, 5, Clip::BeatSnapMode::Bar);     // queues: col(5) != active(-1)
+    const LayerRuntimeSnapshot queued = comp.layers[0].runtime();
+    REQUIRE(queued.pendingRef() == (ClipRef{ comp.decks[0].id, 5 }));
+    REQUIRE(queued.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 
     mgr.perform(std::make_unique<InsertDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
                 richDeck("Loaded", 2), "Load Deck"));
-    REQUIRE(comp.activeDeckIndex == 1);                                          // inserted deck active
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == -1);              // cancelled by the insert
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.activeDeckIndex == 1);                                          // inserted deck shown
+    REQUIRE(comp.layers[0].runtime() == queued);                                 // untouched
 
     mgr.undo();
     REQUIRE(comp.activeDeckIndex == 0);
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == 5);               // restored — not stranded
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.layers[0].runtime() == queued);
 
     mgr.redo();
     REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == -1);              // re-cancelled
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.layers[0].runtime() == queued);
 }
 
 // ---------------------------------------------------------------------------
@@ -1793,9 +1830,9 @@ TEST_CASE("RemoveDeckCmd: undoing a background-deck removal keeps the active dec
     comp.activeDeckIndex = 2;                           // "C" on screen
     UndoManager mgr;
 
-    comp.decks[2].getLayer(0)->clips[5] = richClip(99, "queued");
-    comp.decks[2].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);
-    REQUIRE(comp.decks[2].getLayer(0)->runtime().pendingTriggerColumn == 5);
+    comp.decks[2].rows[0].clips[5] = richClip(99, "queued");
+    comp.fire(0, 2, 5, Clip::BeatSnapMode::Bar);        // queued from "C" into the shared layer 0
+    REQUIRE(comp.layers[0].runtime().pendingTriggerColumn == 5);
 
     Deck removedCopy = comp.decks[0];
     mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
@@ -1803,14 +1840,15 @@ TEST_CASE("RemoveDeckCmd: undoing a background-deck removal keeps the active dec
     REQUIRE(comp.decks.size() == 2);
     REQUIRE(comp.decks[1].name == "C");                 // "C" slid down to 1
     REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(comp.decks[1].getLayer(0)->runtime().pendingTriggerColumn == 5);
+    REQUIRE(comp.layers[0].runtime().pendingTriggerColumn == 5);
+    REQUIRE(comp.layers[0].runtime().pendingDeckId == comp.decks[1].id);   // still names "C"
 
     mgr.undo();
     REQUIRE(comp.decks.size() == 3);
     REQUIRE(comp.activeDeckIndex == 2);
     REQUIRE(comp.decks[2].name == "C");
-    REQUIRE(comp.decks[2].getLayer(0)->runtime().pendingTriggerColumn == 5);   // survives the background undo
-    REQUIRE(comp.decks[2].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.layers[0].runtime().pendingTriggerColumn == 5);   // survives the background undo
+    REQUIRE(comp.layers[0].runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 }
 
 // ---------------------------------------------------------------------------
@@ -1970,7 +2008,7 @@ static Clip::EffectSlot mkFx(const std::string& name, bool bypassed = false)
 TEST_CASE("EffectStackCmd: whole-vector round-trip for all three scopes", "[undo][effect]")
 {
     Composition comp = makeComp();                 // 1 deck, 3 layers, 12 empty cols
-    comp.decks[0].getLayer(1)->clips[2] = Clip{};  // a clip for the Clip scope
+    comp.decks[0].rows[1].clips[2] = Clip{};       // a clip for the Clip scope
 
     // add-shaped edit ({ripple} -> {ripple,blur}); deep-equal both ways + the UI
     // refresh hook must fire exactly on execute / undo / redo.
@@ -1995,7 +2033,7 @@ TEST_CASE("EffectStackCmd: whole-vector round-trip for all three scopes", "[undo
 
     SECTION("global") { roundTrip(EffectScope::global(), &comp.globalEffects); }
     SECTION("layer")  { roundTrip(EffectScope::layer(0, 1),
-                                  &comp.decks[0].getLayer(1)->layerEffects); }
+                                  &comp.getLayer(1)->layerEffects); }   // lane bf9b: the shared layer
     SECTION("clip")   { roundTrip(EffectScope::clip(0, 1, 2),
                                   &comp.decks[0].getClip(1, 2)->effects); }
 }
@@ -2059,7 +2097,7 @@ TEST_CASE("EffectStackCmd: stale coordinate is a safe no-op (never crash)", "[un
 TEST_CASE("EffectStackCmd: two scopes in history undo to their own vectors", "[undo][effect]")
 {
     Composition comp = makeComp();
-    comp.decks[0].getLayer(1)->clips[2] = Clip{};
+    comp.decks[0].rows[1].clips[2] = Clip{};
     comp.globalEffects.clear();
     comp.decks[0].getClip(1, 2)->effects.clear();
 
@@ -2206,35 +2244,36 @@ TEST_CASE("TriggerClipCmd: trigger activates clip, undo restores runtime + playi
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = *deck.getLayer(0);
+    Layer& L = comp.layers[0];               // lane bf9b: the shared layer; its clips are deck 0's row 0
     deck.setClip(0, 3, richClip(1, "c3"));   // nothing active yet (activeClipColumn -1)
+    const ClipRef target{ deck.id, 3 };
 
     const Layer initial = L;                 // full-layer snapshot BEFORE the trigger
 
     // Mirror handleClipTrigger's mutate-then-push capture.
     const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(L);
     std::optional<bool> playBefore;
-    if (const Clip* tc = L.getClipAt(3)) playBefore = tc->playing;   // false
-    L.triggerClip(3);                        // live: activate col 3, playing -> true
+    if (const Clip* tc = deck.getClip(0, 3)) playBefore = tc->playing;   // false
+    comp.fire(0, 0, 3);                      // live: activate col 3, playing -> true
     const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(L);
     std::optional<bool> playAfter;
-    if (const Clip* tc = L.getClipAt(3)) playAfter = tc->playing;    // true
+    if (const Clip* tc = deck.getClip(0, 3)) playAfter = tc->playing;    // true
     REQUIRE_FALSE(rtBefore == rtAfter);      // runtime changed (active -1 -> 3)
 
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 3,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, target,
                 rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
     const Layer post = L;                    // snapshot AFTER (execute idempotent w/ live)
     REQUIRE(L.runtime().activeClipColumn == 3);
-    REQUIRE(L.getClipAt(3)->playing == true);
+    REQUIRE(deck.getClip(0, 3)->playing == true);
     REQUIRE(mgr.undoDescription() == "Trigger Clip");
 
     mgr.undo();
     REQUIRE(L == initial);                   // execute→undo == initial (deep-equal)
-    REQUIRE(L.getClipAt(3)->playing == false);   // target clip `playing` restored
+    REQUIRE(deck.getClip(0, 3)->playing == false);   // target clip `playing` restored
 
     mgr.redo();
     REQUIRE(L == post);                      // execute→undo→redo == post (deep-equal)
-    REQUIRE(L.getClipAt(3)->playing == true);
+    REQUIRE(deck.getClip(0, 3)->playing == true);
 }
 
 // ---------------------------------------------------------------------------
@@ -2250,26 +2289,20 @@ TEST_CASE("TriggerClipCmd: empty-cell trigger clears active clip, undo restores 
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = *deck.getLayer(0);
+    Layer& L = comp.layers[0];
     deck.setClip(0, 3, richClip(1, "active"));
-    {
-        LayerRuntimeSnapshot rt = L.runtime();
-        rt.activeClipColumn = 3;
-        rt.previousClipColumn = 0;
-        rt.crossfadeProgress = 0.5f;
-        L.setRuntime(rt);
-    }
+    L.setRuntime(tupleOn(deck.id, 3, 0, 0.5f, -1));
 
     const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(L);
     std::optional<bool> playBefore;
-    if (const Clip* tc = L.getClipAt(7)) playBefore = tc->playing;   // empty → nullopt
-    L.triggerClip(7);                        // empty col 7 → clearActiveClip
+    if (const Clip* tc = deck.getClip(0, 7)) playBefore = tc->playing;   // empty → nullopt
+    comp.fire(0, 0, 7);                      // empty col 7 → clearActiveClip
     const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(L);
     std::optional<bool> playAfter;
-    if (const Clip* tc = L.getClipAt(7)) playAfter = tc->playing;    // nullopt
+    if (const Clip* tc = deck.getClip(0, 7)) playAfter = tc->playing;    // nullopt
     REQUIRE_FALSE(rtBefore == rtAfter);      // active 3 -> -1
 
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 7,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 7 },
                 rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
     REQUIRE(L.runtime().activeClipColumn == -1);
 
@@ -2293,28 +2326,28 @@ TEST_CASE("TriggerClipCmd: consecutive same-layer triggers merge (original befor
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = *deck.getLayer(0);
+    Layer& L = comp.layers[0];
     deck.setClip(0, 2, richClip(1, "c2"));
     deck.setClip(0, 5, richClip(2, "c5"));
 
     // First trigger: col 2.
     const LayerRuntimeSnapshot b0 = captureLayerRuntime(L);
-    std::optional<bool> p0; if (const Clip* tc = L.getClipAt(2)) p0 = tc->playing;
-    L.triggerClip(2);
+    std::optional<bool> p0; if (const Clip* tc = deck.getClip(0, 2)) p0 = tc->playing;
+    comp.fire(0, 0, 2);
     const LayerRuntimeSnapshot a0 = captureLayerRuntime(L);
-    std::optional<bool> pa0; if (const Clip* tc = L.getClipAt(2)) pa0 = tc->playing;
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 2,
+    std::optional<bool> pa0; if (const Clip* tc = deck.getClip(0, 2)) pa0 = tc->playing;
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 2 },
                 b0, a0, p0, pa0, "Trigger Clip"));
     REQUIRE(mgr.historySize() == 1);
     REQUIRE(L.runtime().activeClipColumn == 2);
 
     // Second trigger: col 5, SAME layer → merges into the first slot.
     const LayerRuntimeSnapshot b1 = captureLayerRuntime(L);
-    std::optional<bool> p1; if (const Clip* tc = L.getClipAt(5)) p1 = tc->playing;
-    L.triggerClip(5);
+    std::optional<bool> p1; if (const Clip* tc = deck.getClip(0, 5)) p1 = tc->playing;
+    comp.fire(0, 0, 5);
     const LayerRuntimeSnapshot a1 = captureLayerRuntime(L);
-    std::optional<bool> pa1; if (const Clip* tc = L.getClipAt(5)) pa1 = tc->playing;
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 5,
+    std::optional<bool> pa1; if (const Clip* tc = deck.getClip(0, 5)) pa1 = tc->playing;
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 5 },
                 b1, a1, p1, pa1, "Trigger Clip"));
 
     REQUIRE(mgr.historySize() == 1);         // MERGED — still one slot
@@ -2326,7 +2359,7 @@ TEST_CASE("TriggerClipCmd: consecutive same-layer triggers merge (original befor
 
     mgr.redo();
     REQUIRE(L.runtime().activeClipColumn == 5);        // update-latest-after
-    REQUIRE(L.getClipAt(5)->playing == true);
+    REQUIRE(deck.getClip(0, 5)->playing == true);
 }
 
 // ---------------------------------------------------------------------------
@@ -2339,21 +2372,21 @@ TEST_CASE("TriggerClipCmd: different-layer triggers do NOT merge", "[undo][trigg
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L0 = *deck.getLayer(0);
-    Layer& L1 = *deck.getLayer(1);
+    Layer& L0 = comp.layers[0];
+    Layer& L1 = comp.layers[1];
     deck.setClip(0, 2, richClip(1, "l0c2"));
     deck.setClip(1, 4, richClip(2, "l1c4"));
 
     const LayerRuntimeSnapshot b0 = captureLayerRuntime(L0);
-    L0.triggerClip(2);
+    comp.fire(0, 0, 2);
     const LayerRuntimeSnapshot a0 = captureLayerRuntime(L0);
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 2,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 2 },
                 b0, a0, std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
 
     const LayerRuntimeSnapshot b1 = captureLayerRuntime(L1);
-    L1.triggerClip(4);
+    comp.fire(1, 0, 4);
     const LayerRuntimeSnapshot a1 = captureLayerRuntime(L1);
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 1, 4,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 1, ClipRef{ deck.id, 4 },
                 b1, a1, std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
 
     REQUIRE(mgr.historySize() == 2);         // two slots — no cross-layer merge
@@ -2376,30 +2409,31 @@ TEST_CASE("TriggerClipCmd: retrigger of the already-active cell pushes nothing",
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = *deck.getLayer(0);
+    Layer& L = comp.layers[0];
     deck.setClip(0, 3, richClip(1, "c3"));
+    const ClipRef target{ deck.id, 3 };
 
     const LayerRuntimeSnapshot b0 = captureLayerRuntime(L);
-    std::optional<bool> p0; if (const Clip* tc = L.getClipAt(3)) p0 = tc->playing;
-    L.triggerClip(3);
+    std::optional<bool> p0; if (const Clip* tc = deck.getClip(0, 3)) p0 = tc->playing;
+    comp.fire(0, 0, 3);
     const LayerRuntimeSnapshot a0 = captureLayerRuntime(L);
-    std::optional<bool> pa0; if (const Clip* tc = L.getClipAt(3)) pa0 = tc->playing;
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 3,
+    std::optional<bool> pa0; if (const Clip* tc = deck.getClip(0, 3)) pa0 = tc->playing;
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, target,
                 b0, a0, p0, pa0, "Trigger Clip"));
     REQUIRE(mgr.historySize() == 1);
 
     // Retrigger the SAME active cell → only a playhead reset. The handler guard
     // (replicated here) sees no change and pushes nothing.
     const LayerRuntimeSnapshot b1 = captureLayerRuntime(L);
-    std::optional<bool> p1; if (const Clip* tc = L.getClipAt(3)) p1 = tc->playing;
-    L.triggerClip(3);
+    std::optional<bool> p1; if (const Clip* tc = deck.getClip(0, 3)) p1 = tc->playing;
+    comp.fire(0, 0, 3);
     const LayerRuntimeSnapshot a1 = captureLayerRuntime(L);
-    std::optional<bool> pa1; if (const Clip* tc = L.getClipAt(3)) pa1 = tc->playing;
+    std::optional<bool> pa1; if (const Clip* tc = deck.getClip(0, 3)) pa1 = tc->playing;
 
     REQUIRE(b1 == a1);                        // runtime unchanged
     REQUIRE(p1 == pa1);                       // target `playing` unchanged
     if (!(b1 == a1) || p1 != pa1)             // the handler guard
-        mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 3,
+        mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, target,
                     b1, a1, p1, pa1, "Trigger Clip"));
     REQUIRE(mgr.historySize() == 1);          // still ONE slot — nothing pushed
 }
@@ -2418,48 +2452,48 @@ TEST_CASE("TriggerColumnCmd composite: triggers all non-ignoring layers, exclude
     deck.setClip(0, 4, richClip(1, "l0"));
     deck.setClip(1, 4, richClip(2, "l1"));
     deck.setClip(2, 4, richClip(3, "l2"));
-    deck.getLayer(1)->ignoreColumnTrigger = true;   // layer 1 opts out of column triggers
+    comp.getLayer(1)->ignoreColumnTrigger = true;   // layer 1 opts out of column triggers
 
     // Mirror handleColumnTrigger: snapshot considered layers, triggerColumn, build.
-    const int numLayers = deck.getNumLayers();
+    const int numLayers = comp.getNumLayers();
     std::vector<LayerRuntimeSnapshot> before(static_cast<size_t>(numLayers));
     std::vector<bool> considered(static_cast<size_t>(numLayers), false);
     for (int l = 0; l < numLayers; ++l)
     {
-        auto* layer = deck.getLayer(l);
+        auto* layer = comp.getLayer(l);
         if (!layer || layer->ignoreColumnTrigger) continue;
         considered[static_cast<size_t>(l)] = true;
         before[static_cast<size_t>(l)] = captureLayerRuntime(*layer);
     }
-    deck.triggerColumn(4);
+    comp.triggerColumn(0, 4);
 
     auto composite = std::make_unique<CompositeCommand>("Trigger Column");
     for (int l = 0; l < numLayers; ++l)
     {
         if (!considered[static_cast<size_t>(l)]) continue;
-        auto* layer = deck.getLayer(l);
+        auto* layer = comp.getLayer(l);
         const LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
         if (!(before[static_cast<size_t>(l)] == after))
-            composite->add(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, l, 4,
+            composite->add(std::make_unique<TriggerClipCmd>(compResolverFor(comp), l, ClipRef{ deck.id, 4 },
                            before[static_cast<size_t>(l)], after,
                            std::nullopt, std::nullopt, "Trigger Column"));
     }
     REQUIRE(composite->size() == 2);          // only layers 0 and 2 (layer 1 excluded)
     mgr.perform(std::move(composite));
 
-    REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == 4);
-    REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == -1);   // ignoring layer untouched
-    REQUIRE(deck.getLayer(2)->runtime().activeClipColumn == 4);
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == 4);
+    REQUIRE(comp.getLayer(1)->runtime().activeClipColumn == -1);   // ignoring layer untouched
+    REQUIRE(comp.getLayer(2)->runtime().activeClipColumn == 4);
     REQUIRE(mgr.historySize() == 1);          // one gesture, one slot
 
     mgr.undo();
-    REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == -1);   // both restored
-    REQUIRE(deck.getLayer(1)->runtime().activeClipColumn == -1);
-    REQUIRE(deck.getLayer(2)->runtime().activeClipColumn == -1);
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == -1);   // both restored
+    REQUIRE(comp.getLayer(1)->runtime().activeClipColumn == -1);
+    REQUIRE(comp.getLayer(2)->runtime().activeClipColumn == -1);
 
     mgr.redo();
-    REQUIRE(deck.getLayer(0)->runtime().activeClipColumn == 4);
-    REQUIRE(deck.getLayer(2)->runtime().activeClipColumn == 4);
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == 4);
+    REQUIRE(comp.getLayer(2)->runtime().activeClipColumn == 4);
 }
 
 // ---------------------------------------------------------------------------
@@ -2474,18 +2508,19 @@ TEST_CASE("TriggerClipCmd: stale coordinate is a safe no-op (never crash)", "[un
     comp.decks[0].setClip(0, 0, richClip(1, "keep"));
 
     LayerRuntimeSnapshot rt;                   // default runtime (active -1)
-    LayerRuntimeSnapshot rt2; rt2.activeClipColumn = 5;
+    LayerRuntimeSnapshot rt2 = tupleOn(comp.decks[0].id, 5, -1, 1.0f, -1);
 
     // Stale LAYER index → resolver returns nullptr → apply is a safe no-op.
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 9, 0,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 9, ClipRef{ comp.decks[0].id, 0 },
                 rt, rt2, std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().activeClipColumn == -1);   // real layer untouched
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == -1);   // real layer untouched
     REQUIRE(comp.decks[0].getClip(0, 0) != nullptr);             // deck intact
 
-    // Stale DECK index → same.
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 9, 0, 0,
+    // Lane bf9b: a trigger addresses the SHARED layer (no deck coordinate); a stale composition → same.
+    CompositionResolver nullComp = []() -> Composition* { return nullptr; };
+    mgr.perform(std::make_unique<TriggerClipCmd>(nullComp, 0, ClipRef{ comp.decks[0].id, 0 },
                 rt, rt2, std::nullopt, std::nullopt, "Trigger Clip"));
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().activeClipColumn == -1);
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == -1);
 }
 
 TEST_CASE("TriggerColumnCmd composite: stale coordinates are safe no-ops (never crash)", "[undo][trigger][composite][resolve]")
@@ -2496,21 +2531,21 @@ TEST_CASE("TriggerColumnCmd composite: stale coordinates are safe no-ops (never 
     comp.decks[0].setClip(0, 0, richClip(1, "keep"));
 
     LayerRuntimeSnapshot rt;
-    LayerRuntimeSnapshot rt2; rt2.activeClipColumn = 4;
+    LayerRuntimeSnapshot rt2 = tupleOn(comp.decks[0].id, 4, -1, 1.0f, -1);
 
-    // A column composite whose children target a STALE deck index → each child
-    // apply resolves nullptr → the whole gesture is a safe no-op.
+    // A column composite whose children target STALE coordinates (lane bf9b: a trigger's coordinate is the shared
+    // layer index) → each child apply resolves nullptr → the whole gesture is a safe no-op.
     auto composite = std::make_unique<CompositeCommand>("Trigger Column");
-    composite->add(std::make_unique<TriggerClipCmd>(resolverFor(svc), 9, 0, 4,
+    composite->add(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 9, ClipRef{ comp.decks[0].id, 4 },
                    rt, rt2, std::nullopt, std::nullopt, "Trigger Column"));
-    composite->add(std::make_unique<TriggerClipCmd>(resolverFor(svc), 9, 2, 4,
+    composite->add(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 11, ClipRef{ comp.decks[0].id, 4 },
                    rt, rt2, std::nullopt, std::nullopt, "Trigger Column"));
     mgr.perform(std::move(composite));
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().activeClipColumn == -1);   // untouched
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == -1);   // untouched
     REQUIRE(comp.decks[0].getClip(0, 0) != nullptr);
 
     mgr.undo();                                // no-op undo → still safe
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().activeClipColumn == -1);
+    REQUIRE(comp.getLayer(0)->runtime().activeClipColumn == -1);
 }
 
 // ===========================================================================
@@ -2541,9 +2576,11 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
+    // Lane bf9b: the deck holds the clips, the shared stack the layer flags -- both are the oracle.
     const Deck initial = deck;                 // deep snapshot BEFORE any command
+    const std::vector<Layer> initialLayers = comp.layers;
 
-    const int numLayers = deck.getNumLayers();
+    const int numLayers = comp.getNumLayers();
     const int numCols = deck.numColumns;
     auto pick = [&rng](int loIncl, int hiIncl) {
         return std::uniform_int_distribution<int>(loIncl, hiIncl)(rng);
@@ -2572,11 +2609,11 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
             {
                 const int l = pick(0, numLayers - 1);
                 const auto flag = static_cast<ToggleLayerFlagCmd::Flag>(pick(0, 2));
-                Layer* L = deck.getLayer(l);
+                Layer* L = comp.getLayer(l);
                 const bool cur = (flag == ToggleLayerFlagCmd::Flag::Bypassed) ? L->bypassed
                                : (flag == ToggleLayerFlagCmd::Flag::Solo)     ? L->solo
                                                                               : L->folded;
-                mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, l,
+                mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), l,
                             flag, cur, !cur, "flag"));
                 break;
             }
@@ -2596,12 +2633,15 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
     }
 
     const Deck finalState = deck;              // deep snapshot AFTER the whole sequence
+    const std::vector<Layer> finalLayers = comp.layers;
 
     while (mgr.canUndo()) mgr.undo();
     REQUIRE(deck == initial);                  // undo ALL → back to initial (deep-equal)
+    REQUIRE(vecEq(comp.layers, initialLayers));
 
     while (mgr.canRedo()) mgr.redo();
     REQUIRE(deck == finalState);               // redo ALL → back to final (deep-equal)
+    REQUIRE(vecEq(comp.layers, finalLayers));
 }
 
 // ---------------------------------------------------------------------------
@@ -2616,54 +2656,53 @@ TEST_CASE("Coordinate resolution: remove MIDDLE layer + undo keeps later-layer c
     Composition comp = makeComp();             // layers 0,1,2
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
-    Deck& deck = comp.decks[0];
-    deck.layers[0].name = "A"; deck.layers[1].name = "B"; deck.layers[2].name = "C";
+    comp.layers[0].name = "A"; comp.layers[1].name = "B"; comp.layers[2].name = "C";
 
     // Command A targets the LATER layer (index 2): bypass it.
-    deck.layers[2].bypassed = true;
-    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 2,
+    comp.layers[2].bypassed = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(layerResolverFor(svc), 2,
                 ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
 
     // Command B removes the MIDDLE layer (index 1) → "C" shifts from index 2 to 1.
     // Coordinate-shift test, no clip content on this layer — noopDispose() deliberate.
-    Layer removed = deck.layers[1];
-    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(), noopDispose(),
-                0, 1, removed, "Remove Layer"));
-    REQUIRE(deck.getNumLayers() == 2);
-    REQUIRE(deck.layers[1].name == "C");       // survivor shifted down
+    Layer removed = comp.layers[1];
+    mgr.perform(std::make_unique<RemoveLayerCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                1, removed, "Remove Layer"));
+    REQUIRE(comp.getNumLayers() == 2);
+    REQUIRE(comp.layers[1].name == "C");       // survivor shifted down
 
     // Linear history undoes B before A: undo B restores the middle layer, so the
     // later-layer command (index 2) resolves again when it is undone next.
     mgr.undo();                                // undo remove
-    REQUIRE(deck.getNumLayers() == 3);
-    REQUIRE(deck.layers[2].name == "C");       // "C" back at index 2
-    REQUIRE(svc.resolveLayer(0, 2) != nullptr);// later index resolves again
-    REQUIRE(deck.layers[2].bypassed == true);  // A's effect intact after the remove-undo
+    REQUIRE(comp.getNumLayers() == 3);
+    REQUIRE(comp.layers[2].name == "C");       // "C" back at index 2
+    REQUIRE(svc.resolveLayer(2) != nullptr);   // later index resolves again
+    REQUIRE(comp.layers[2].bypassed == true);  // A's effect intact after the remove-undo
 
     mgr.undo();                                // undo bypass → resolves at index 2, reverts
-    REQUIRE(deck.layers[2].bypassed == false);
+    REQUIRE(comp.layers[2].bypassed == false);
 }
 
 // ---------------------------------------------------------------------------
 // RemoveLayerCmd own stale-coordinate no-op (step-5 fold — its 2 siblings
 // AddLayerCmd / MoveLayerCmd are already covered by "Layer commands no-op on
 // stale coordinates"). RemoveLayerCmd has no ctor invariant, so any values are
-// in-invariant; a stale DECK index makes apply resolve nullptr → safe no-op.
+// in-invariant; lane bf9b: it addresses the shared layer only, so a stale LAYER
+// index makes execute a safe no-op (and undo of a no-op inserts nothing).
 // ---------------------------------------------------------------------------
 
 TEST_CASE("RemoveLayerCmd: stale coordinate is a safe no-op (never crash)", "[undo][layer][resolve]")
 {
     Composition comp = makeComp();             // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
-    Layer dummy = comp.decks[0].layers[0];     // a valid Layer value; deck index is stale
-    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(), noopDispose(),
-                9, 0, dummy, "Remove Layer"));
-    REQUIRE(comp.decks[0].getNumLayers() == 3);// untouched (bad deck index → no erase)
+    Layer dummy = comp.layers[0];              // a valid Layer value; the layer index is stale
+    mgr.perform(std::make_unique<RemoveLayerCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                9, dummy, "Remove Layer"));
+    REQUIRE(comp.getNumLayers() == 3);         // untouched (bad layer index → no erase)
 
     mgr.undo();                                // undo is a safe no-op too
-    REQUIRE(comp.decks[0].getNumLayers() == 3);
+    REQUIRE(comp.getNumLayers() == 3);
 }
 
 // ---------------------------------------------------------------------------
@@ -2679,15 +2718,15 @@ TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, roun
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = *deck.getLayer(0);
+    Layer& L = comp.layers[0];
 
-    // Snapshot pair differing ONLY in pendingTriggerColumn (-1 -> 5).
+    // Snapshot pair differing ONLY in the pending ref (-1 -> (deck 0, 5)).
     const LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    LayerRuntimeSnapshot after = before; after.pendingTriggerColumn = 5;
+    LayerRuntimeSnapshot after = before; after.pendingTriggerColumn = 5; after.pendingDeckId = deck.id;
     REQUIRE_FALSE(before == after);            // differs, so the handler guard would push
 
     applyLayerRuntime(L, after);              // mutate-then-push: live-apply, then wrap
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 5,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 5 },
                 before, after, std::nullopt, std::nullopt, "Trigger Clip"));
     REQUIRE(mgr.historySize() == 1);           // pushed (NOT skipped as a no-op)
     REQUIRE(L.runtime().pendingTriggerColumn == 5);
@@ -2696,7 +2735,7 @@ TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, roun
     const LayerRuntimeSnapshot before2 = captureLayerRuntime(L);
     LayerRuntimeSnapshot after2 = before2; after2.pendingTriggerColumn = 8;
     applyLayerRuntime(L, after2);
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 8,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 8 },
                 before2, after2, std::nullopt, std::nullopt, "Trigger Clip"));
     REQUIRE(mgr.historySize() == 1);           // MERGED — still one slot
 
@@ -2714,92 +2753,83 @@ TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, roun
 // hardcoded case count — a fixed number here goes stale the moment a future
 // round appends another case, which is exactly how the count this comment
 // used to carry (naming a fixed number of tests) went stale twice already.
-// Covers, at the Layer/Deck level (no MainComponent needed):
+// Covers, at the Layer / Composition level (no MainComponent needed):
 //   - the queue itself: a forced-snap trigger queues instead of firing
 //     immediately (Layer::triggerClip);
 //   - granularity: the queued override picks the drain condition
 //     (Layer::processPendingTrigger), independent of the target clip's own
 //     beatSnapMode;
-//   - column fan-out: a column trigger queues on every non-ignoring layer of
-//     a deck and skips ignoring ones (Deck::triggerColumn);
+//   - column fan-out: a column trigger queues on every non-ignoring shared
+//     layer and skips ignoring ones (Composition::triggerColumn);
 //   - the undo/redo round-trip of the new pendingTriggerSnapOverride field
 //     through TriggerClipCmd's snapshot capture/apply;
-//   - and cancellation on each of the FIVE paths that can deactivate a deck
-//     or a layer's active clip out from under a still-queued trigger: a deck
-//     switch (SwitchDeckCmd), adding a new deck (AddDeckCmd, the Deck-menu
-//     "New" command, which appends to the deck list and activates the new
-//     entry), undoing a
-//     deck removal (RemoveDeckCmd::undo() reactivating whatever deck the
-//     removal's clamp had deactivated), Layer::clearActiveClip() (the
-//     X-button clear and everything that routes through it, e.g. Clear Deck /
-//     Clear Layer Clips), and appendDeckFromFile's deck-append
-//     (MainComponent.cpp — loading a deck from a file, which also reassigns
-//     activeDeckIndex). All five share the same cancelPendingTriggers()
-//     mechanism in the app, but ONLY THE FIRST FOUR ARE TESTED HERE:
-//     appendDeckFromFile needs a live MainComponent (file I/O, the GL fence,
-//     the renderer) and is not reachable from this headless test target. That
-//     fifth path is fixed in code and deliberately UNCOVERED by this file —
-//     naming it here so the gap is visible instead of silently rounding to
-//     "four" (this comment previously said "four" without naming a fifth
-//     path that exists; if this path ever becomes testable, the coverage it
-//     needs is the same shape as the other four above).
+//   - Layer::clearActiveClip() still cancels the layer's queued trigger (the
+//     X-button clear and everything routed through it).
+// Lane bf9b (plan-bf9b F11, 4.B :1607 / :2840 / :2909 / :2946 / :2989): a deck
+// switch, Add / Insert Deck and the undo of a Remove Deck change only which box
+// the grid shows -- a queued trigger lands in the shared, visible stack, so
+// those paths no longer cancel it: their cases below pin "untouched". The only
+// deck path that still cancels is Remove Deck, for triggers queued INTO the
+// deck it removes (cancelPendingInto; test_show_model T6d).
 // ===========================================================================
 
 TEST_CASE("Layer::triggerClip: forced snap queues a non-active column instead of firing immediately", "[layer][trigger][quantize]")
 {
-    Layer L;
-    L.ensureColumns(4);
-    L.clips[2] = richClip(1, "target");
+    Composition comp = makeComp();                      // lane bf9b: the shared layer 0 over deck 0's row 0
+    Layer& L = comp.layers[0];
+    comp.decks[0].rows[0].clips[2] = richClip(1, "target");
     REQUIRE(L.runtime().activeClipColumn == -1);
 
-    L.triggerClip(2, Clip::BeatSnapMode::Beat);
+    L.triggerClip(ClipRef{ comp.decks[0].id, 2 }, comp.rowClips(0), Clip::BeatSnapMode::Beat);
     REQUIRE(L.runtime().pendingTriggerColumn == 2);               // queued, not fired
     REQUIRE(L.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Beat);
     REQUIRE(L.runtime().activeClipColumn == -1);                  // did NOT activate immediately
-    REQUIRE_FALSE(L.clips[2]->playing);                 // never started playing
+    REQUIRE_FALSE(comp.decks[0].getClip(0, 2)->playing);          // never started playing
 }
 
 TEST_CASE("Layer::processPendingTrigger: forced override picks granularity independent of the clip's own beatSnapMode", "[layer][trigger][quantize]")
 {
-    Layer L;
-    L.ensureColumns(4);
-    L.clips[2] = richClip(1, "target");
-    REQUIRE(L.clips[2]->beatSnapMode == Clip::BeatSnapMode::Off);   // clip itself has no snap set
+    Composition comp = makeComp();                      // lane bf9b: the shared layer 0 over deck 0's row 0
+    Layer& L = comp.layers[0];
+    const RowClips rows = comp.rowClips(0);
+    const uint32_t d0 = comp.decks[0].id;
+    comp.decks[0].rows[0].clips[2] = richClip(1, "target");
+    REQUIRE(comp.decks[0].getClip(0, 2)->beatSnapMode == Clip::BeatSnapMode::Off);   // clip itself has no snap set
 
     // Beat override: fires on ANY beat, regardless of beatInBar.
-    L.triggerClip(2, Clip::BeatSnapMode::Beat);
-    L.processPendingTrigger(2, 0);                      // beatInBar=2 — NOT a downbeat
+    L.triggerClip(ClipRef{ d0, 2 }, rows, Clip::BeatSnapMode::Beat);
+    L.processPendingTrigger(2, 0, rows);                // beatInBar=2 — NOT a downbeat
     REQUIRE(L.runtime().activeClipColumn == 2);                   // fired anyway: Beat granularity
     REQUIRE(L.runtime().pendingTriggerColumn == -1);
 
     // Bar override: only fires on beatInBar == 0, even though THIS clip's own
     // beatSnapMode is Off (proves the override, not the clip field, drives it).
-    L.clips[3] = richClip(2, "target2");
-    L.triggerClip(3, Clip::BeatSnapMode::Bar);
-    L.processPendingTrigger(2, 0);                      // NOT beat 0 — must NOT fire
+    comp.decks[0].rows[0].clips[3] = richClip(2, "target2");
+    L.triggerClip(ClipRef{ d0, 3 }, rows, Clip::BeatSnapMode::Bar);
+    L.processPendingTrigger(2, 0, rows);                // NOT beat 0 — must NOT fire
     REQUIRE(L.runtime().pendingTriggerColumn == 3);                // still queued
     REQUIRE(L.runtime().activeClipColumn == 2);                    // unchanged — no premature fire
 
-    L.processPendingTrigger(0, 0);                       // beat 0 of the bar — fires now
+    L.processPendingTrigger(0, 0, rows);                 // beat 0 of the bar — fires now
     REQUIRE(L.runtime().activeClipColumn == 3);
     REQUIRE(L.runtime().pendingTriggerColumn == -1);
 }
 
-TEST_CASE("Deck::triggerColumn: forced snap queues on every non-ignoring layer, skips ignoring ones", "[deck][trigger][quantize]")
+// Lane bf9b: Deck::triggerColumn moved to Composition::triggerColumn (a deck is a box of clips; the shared layers fire).
+TEST_CASE("Composition::triggerColumn: forced snap queues on every non-ignoring layer, skips ignoring ones", "[deck][trigger][quantize]")
 {
-    Deck d;
-    d.initDefault();                                     // 3 layers, 12 columns
-    for (auto& layer : d.layers)
-        layer.clips[4] = richClip(1, "col4");
-    d.layers[1].ignoreColumnTrigger = true;               // must be skipped
+    Composition comp = makeComp();                       // 3 shared layers, deck 0 of 3 rows x 12 columns
+    for (auto& row : comp.decks[0].rows)
+        row.clips[4] = richClip(1, "col4");
+    comp.layers[1].ignoreColumnTrigger = true;           // must be skipped
 
-    d.triggerColumn(4, Clip::BeatSnapMode::Bar);
+    comp.triggerColumn(0, 4, Clip::BeatSnapMode::Bar);
 
-    REQUIRE(d.layers[0].runtime().pendingTriggerColumn == 4);
-    REQUIRE(d.layers[0].runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
-    REQUIRE(d.layers[1].runtime().pendingTriggerColumn == -1);      // skipped entirely — untouched
-    REQUIRE(d.layers[2].runtime().pendingTriggerColumn == 4);
-    REQUIRE(d.layers[2].runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.layers[0].runtime().pendingTriggerColumn == 4);
+    REQUIRE(comp.layers[0].runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.layers[1].runtime().pendingTriggerColumn == -1);      // skipped entirely — untouched
+    REQUIRE(comp.layers[2].runtime().pendingTriggerColumn == 4);
+    REQUIRE(comp.layers[2].runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 }
 
 TEST_CASE("TriggerClipCmd: undo of a queued forced-snap trigger restores pendingTriggerSnapOverride too", "[undo][trigger][quantize]")
@@ -2808,8 +2838,8 @@ TEST_CASE("TriggerClipCmd: undo of a queued forced-snap trigger restores pending
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
-    Layer& L = *deck.getLayer(0);
-    L.clips[6] = richClip(1, "queued");
+    Layer& L = comp.layers[0];
+    deck.rows[0].clips[6] = richClip(1, "queued");
 
     // Snapshot pair differing in BOTH pendingTriggerColumn AND the new
     // pendingTriggerSnapOverride field (-1/Off -> 6/Bar) — TRAP #3's exact
@@ -2818,12 +2848,12 @@ TEST_CASE("TriggerClipCmd: undo of a queued forced-snap trigger restores pending
     // pendingTriggerColumn but silently leave pendingTriggerSnapOverride stuck
     // at Bar (the field would never have been captured/restored at all).
     const LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    L.triggerClip(6, Clip::BeatSnapMode::Bar);           // live: queues (mutate-then-push)
+    comp.fire(0, 0, 6, Clip::BeatSnapMode::Bar);         // live: queues (mutate-then-push)
     const LayerRuntimeSnapshot after = captureLayerRuntime(L);
     REQUIRE(after.pendingTriggerColumn == 6);
     REQUIRE(after.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 6,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ deck.id, 6 },
                 before, after, std::nullopt, std::nullopt, "Trigger Clip"));
     REQUIRE(L.runtime().pendingTriggerColumn == 6);
     REQUIRE(L.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
@@ -2837,113 +2867,70 @@ TEST_CASE("TriggerClipCmd: undo of a queued forced-snap trigger restores pending
     REQUIRE(L.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 }
 
-TEST_CASE("SwitchDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels",
+// Lane bf9b (plan-bf9b 4.B :2840, F11): a deck switch changes only which box the grid shows; a queued trigger lands in
+// the shared, visible stack -- SwitchDeckCmd's execute / undo / redo leave it untouched (S2c retires SwitchDeckCmd).
+TEST_CASE("SwitchDeckCmd: leaves a queued trigger untouched on execute, undo and redo (bf9b)",
           "[undo][deck][trigger][quantize]")
 {
-    Composition comp = makeComp();                 // deck 0: 3 layers, 12 cols
+    Composition comp = makeComp();                 // deck 0: 3 rows, 12 cols
     comp.decks.push_back(richDeck("Deck 2", 2));    // deck 1: switch target
     comp.activeDeckIndex = 0;
     UndoManager mgr;
 
-    Layer& L0 = *comp.decks[0].getLayer(0);
-    L0.clips[5] = richClip(99, "queued");
-    L0.triggerClip(5, Clip::BeatSnapMode::Bar);     // queues: col(5) != active(-1), forced snap
-    REQUIRE(L0.runtime().pendingTriggerColumn == 5);
-    REQUIRE(L0.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    comp.decks[0].rows[0].clips[5] = richClip(99, "queued");
+    comp.fire(0, 0, 5, Clip::BeatSnapMode::Bar);    // queues: col(5) != active(-1), forced snap
+    const LayerRuntimeSnapshot queued = comp.layers[0].runtime();
+    REQUIRE(queued.pendingTriggerColumn == 5);
+    REQUIRE(queued.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 
-    // Mirror the app's onDeckSwitched shape: capture what's about to be
-    // cancelled BEFORE the live switch (MainComponent isn't linked into this
-    // test target, so handleDeckSwitch's cancellation loop is reproduced
-    // headlessly here) — same idiom as handleClipTrigger's rtBefore/rtAfter
-    // capture around a live mutation, not the mutation reporting itself.
-    std::vector<PendingTriggerSnapshot> cancelled;
-    for (int l = 0; l < comp.decks[0].getNumLayers(); ++l)
-    {
-        auto* layer = comp.decks[0].getLayer(l);
-        if (layer->runtime().pendingTriggerColumn >= 0)
-            cancelled.push_back({ l, layer->runtime().pendingTriggerColumn, layer->runtime().pendingTriggerSnapOverride });
-    }
-    REQUIRE(cancelled.size() == 1);
-
-    // Live cancellation + switch (what handleDeckSwitch performs for every
-    // switch path — user tab click, REST, OSC, MIDI, genre auto-switch alike).
-    for (auto& layer : comp.decks[0].layers)
-    {
-        {
-            LayerRuntimeSnapshot rt = layer.runtime();
-            rt.pendingTriggerColumn = -1;
-            rt.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
-            layer.setRuntime(rt);
-        }
-    }
-    comp.activeDeckIndex = 1;
-
-    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr,
-                0, 1, "Switch Deck", std::move(cancelled)));
+    comp.activeDeckIndex = 1;                       // the live switch (index only)
+    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr, 0, 1, "Switch Deck"));
     REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(L0.runtime().pendingTriggerColumn == -1);          // stays cancelled after execute (idempotent replay)
+    REQUIRE(comp.layers[0].runtime() == queued);
 
     mgr.undo();
     REQUIRE(comp.activeDeckIndex == 0);
-    REQUIRE(L0.runtime().pendingTriggerColumn == 5);           // restored — not stranded by the switch's undo
-    REQUIRE(L0.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.layers[0].runtime() == queued);
 
     mgr.redo();
     REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(L0.runtime().pendingTriggerColumn == -1);          // re-cancelled
-    REQUIRE(L0.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.layers[0].runtime() == queued);
 }
 
-// Fix round 2 (review-named gap): AddDeckCmd is a SECOND deck-deactivation path
-// that bypassed handleDeckSwitch's cancel entirely — Add Deck deactivates
-// whichever deck was active without touching its pending trigger. Covers
-// AddDeckCmd's OWN command-owns-the-mutation capture/cancel (execute's first-do
-// branch), not a caller-side capture like the SwitchDeckCmd test above (there is
-// no caller-side capture here — AddDeckCmd does it all internally).
+// Lane bf9b (plan-bf9b 4.B :2909): Add Deck shows the new box and leaves a queued trigger untouched.
 //
-// NOTE: AddDeckCmd's execute()/undo() push_back/insert/erase on comp.decks,
-// which can reallocate the vector and move every Deck (and its Layer objects)
-// to a new address — so this test deliberately never caches a Layer&/Deck&
-// across those calls; it re-resolves comp.decks[0].getLayer(0) fresh at each
-// assertion instead.
-TEST_CASE("AddDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels",
+// NOTE: AddDeckCmd's execute()/undo() push_back/insert/erase on comp.decks, which can reallocate the vector -- this
+// test never caches a Deck& across those calls.
+TEST_CASE("AddDeckCmd: leaves a queued trigger untouched; undo and redo too (bf9b)",
           "[undo][deck][trigger][quantize]")
 {
     Composition comp = makeComp();                   // 1 deck (index 0), active 0
     UndoManager mgr;
 
-    comp.decks[0].getLayer(0)->clips[5] = richClip(99, "queued");
-    comp.decks[0].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);   // queues: col(5) != active(-1)
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == 5);
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    comp.decks[0].rows[0].clips[5] = richClip(99, "queued");
+    comp.fire(0, 0, 5, Clip::BeatSnapMode::Bar);     // queues: col(5) != active(-1)
+    const LayerRuntimeSnapshot queued = comp.layers[0].runtime();
+    REQUIRE(queued.pendingTriggerColumn == 5);
+    REQUIRE(queued.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 
     mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
-    REQUIRE(comp.activeDeckIndex == 1);                                          // new deck active
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == -1);              // cancelled by the add
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.activeDeckIndex == 1);              // new deck shown
+    REQUIRE(comp.layers[0].runtime() == queued);
 
     mgr.undo();
     REQUIRE(comp.activeDeckIndex == 0);
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == 5);               // restored — not stranded
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.layers[0].runtime() == queued);
 
     mgr.redo();
     REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerColumn == -1);              // re-cancelled
-    REQUIRE(comp.decks[0].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.layers[0].runtime() == queued);
 }
 
-// Fix round 4 (review-named gap #4): RemoveDeckCmd::undo() is a SECOND deck-
-// deactivation path missed by rounds 2 and 3 — reactivating the restored deck
-// deactivates whatever deck the removal's clamp had made active, with no call
-// to the cancellation helper. Repro is the reviewer's exact scenario: remove
-// the active deck (clamps active elsewhere), arm a Quantize trigger on THAT
-// deck, undo the removal — the deactivated deck's trigger must not stay armed.
+// Lane bf9b (plan-bf9b 4.B :2946): undoing a Remove Deck reactivates the restored box -- only the grid changes, so a
+// trigger queued (from the clamped-to deck) while it was gone stays queued.
 //
-// NOTE: RemoveDeckCmd's execute()/undo() erase/insert on comp.decks, which can
-// reallocate the vector — same discipline as the AddDeckCmd test above: never
-// cache a Layer&/Deck& across mgr.perform/undo/redo, re-resolve fresh instead.
-TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger on the deck the reactivation deactivates",
+// NOTE: RemoveDeckCmd's execute()/undo() erase/insert on comp.decks -- never cache a Deck& across them.
+TEST_CASE("RemoveDeckCmd: undo leaves a queued trigger untouched (a reactivation changes only the grid)",
           "[undo][deck][trigger][quantize]")
 {
     Composition comp = makeComp();                   // deck 0
@@ -2960,33 +2947,21 @@ TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger on the deck the reactiv
     REQUIRE(comp.decks.size() == 2);
     REQUIRE(comp.activeDeckIndex == 1);               // clamped to deck 1 ("Deck 2")
 
-    // Arm a Quantize trigger on the now-active deck (1) — the reviewer's exact
-    // "performer keeps working on the clamped-to deck" scenario.
-    comp.decks[1].getLayer(0)->clips[5] = richClip(77, "queued");
-    comp.decks[1].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);
-    REQUIRE(comp.decks[1].getLayer(0)->runtime().pendingTriggerColumn == 5);
-    REQUIRE(comp.decks[1].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    // Arm a Quantize trigger from the now-shown deck (1).
+    comp.decks[1].rows[0].clips[5] = richClip(77, "queued");
+    comp.fire(0, 1, 5, Clip::BeatSnapMode::Bar);
+    const LayerRuntimeSnapshot queued = comp.layers[0].runtime();
+    REQUIRE(queued.pendingTriggerColumn == 5);
+    REQUIRE(queued.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 
     mgr.undo();
     REQUIRE(comp.decks.size() == 3);
-    REQUIRE(comp.activeDeckIndex == 2);               // deck 2 restored + reactivated
-    // Deck 1 (deactivated by this reactivation) must not keep an armed
-    // trigger — without the fix this reads 5/Bar, not -1/Off.
-    REQUIRE(comp.decks[1].getLayer(0)->runtime().pendingTriggerColumn == -1);
-    REQUIRE(comp.decks[1].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.activeDeckIndex == 2);               // deck 2 restored + shown
+    REQUIRE(comp.layers[0].runtime() == queued);      // untouched
 }
 
-// Second sub-case of the same fix, found while re-deriving it (not reviewer-
-// named): a NON-last removal leaves activeDeckIndex numerically UNCHANGED
-// across execute() (no clamp needed), because the survivor deck shifts DOWN to
-// fill the gap and keeps the same index number. An index-equality guard
-// ("only cancel if activeDeckIndex changed") would silently miss this case —
-// the deck NUMBER stays the same but the deck OBJECT at that number changes
-// when undo's insert() shifts the survivor back off the active slot. This test
-// specifically falsifies that guard shape (an earlier draft of this fix used
-// `comp->activeDeckIndex != priorActiveIndex_` and passed the OTHER new test
-// above while silently failing this one).
-TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger even when activeDeckIndex numerically stays the same",
+// Lane bf9b (plan-bf9b 4.B :2989): the same when activeDeckIndex numerically stays the same across the undo.
+TEST_CASE("RemoveDeckCmd: undo leaves a queued trigger untouched even when activeDeckIndex numerically stays the same",
           "[undo][deck][trigger][quantize]")
 {
     Composition comp = makeComp();                    // deck 0
@@ -3003,19 +2978,17 @@ TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger even when activeDeckInd
     REQUIRE(comp.decks.size() == 2);
     REQUIRE(comp.activeDeckIndex == 1);                // NOT clamped — "Deck 3" shifted down into slot 1
 
-    // Arm a Quantize trigger on the survivor now occupying slot 1 ("Deck 3").
-    comp.decks[1].getLayer(0)->clips[5] = richClip(88, "queued");
-    comp.decks[1].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Beat);
-    REQUIRE(comp.decks[1].getLayer(0)->runtime().pendingTriggerColumn == 5);
+    // Arm a Quantize trigger from the survivor now occupying slot 1 ("Deck 3").
+    comp.decks[1].rows[0].clips[5] = richClip(88, "queued");
+    comp.fire(0, 1, 5, Clip::BeatSnapMode::Beat);
+    const LayerRuntimeSnapshot queued = comp.layers[0].runtime();
+    REQUIRE(queued.pendingTriggerColumn == 5);
 
     mgr.undo();
     REQUIRE(comp.decks.size() == 3);
-    REQUIRE(comp.activeDeckIndex == 1);                // index UNCHANGED (1 -> 1)...
-    // ...but the deck now AT slot 1 is the restored "Deck 2" — "Deck 3" shifted
-    // back up to slot 2 and was deactivated by this undo. Without the fix (or
-    // with the falsified index-equality guard), this would still read 5.
-    REQUIRE(comp.decks[2].getLayer(0)->runtime().pendingTriggerColumn == -1);
-    REQUIRE(comp.decks[2].getLayer(0)->runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+    REQUIRE(comp.activeDeckIndex == 1);                // index UNCHANGED (1 -> 1), "Deck 3" back at slot 2
+    REQUIRE(comp.layers[0].runtime() == queued);       // untouched: it still names "Deck 3" by id
+    REQUIRE(comp.layers[0].runtime().pendingDeckId == comp.decks[2].id);
 }
 
 // ---------------------------------------------------------------------------
@@ -3042,23 +3015,23 @@ TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger even when activeDeckInd
 
 TEST_CASE("Layer::clearActiveClip: cancels a pending trigger too, even one queued on an unrelated column", "[layer][trigger][quantize]")
 {
-    Layer L;
-    L.ensureColumns(4);
-    L.clips[0] = richClip(1, "active");
-    L.clips[2] = richClip(2, "queued");
+    Composition comp = makeComp();                      // lane bf9b: the shared layer 0 over deck 0's row 0
+    Layer& L = comp.layers[0];
+    comp.decks[0].rows[0].clips[0] = richClip(1, "active");
+    comp.decks[0].rows[0].clips[2] = richClip(2, "queued");
 
-    L.triggerClip(0);                                   // no snap on this clip -> fires immediately
+    comp.fire(0, 0, 0);                                 // no snap on this clip -> fires immediately
     REQUIRE(L.runtime().activeClipColumn == 0);
-    REQUIRE(L.clips[0]->playing == true);
+    REQUIRE(comp.decks[0].getClip(0, 0)->playing == true);
 
-    L.triggerClip(2, Clip::BeatSnapMode::Bar);           // unrelated column — queues (2 != active 0)
+    comp.fire(0, 0, 2, Clip::BeatSnapMode::Bar);         // unrelated column — queues (2 != active 0)
     REQUIRE(L.runtime().pendingTriggerColumn == 2);
     REQUIRE(L.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
 
-    L.clearActiveClip();                                 // clears column 0 by contract
+    L.clearActiveClip(comp.rowClips(0));                 // clears column 0 by contract
 
     REQUIRE(L.runtime().activeClipColumn == -1);
-    REQUIRE(L.clips[0]->playing == false);
+    REQUIRE(comp.decks[0].getClip(0, 0)->playing == false);
     // The queued trigger on column 2 — never itself cleared — is dropped too.
     REQUIRE(L.runtime().pendingTriggerColumn == -1);
     REQUIRE(L.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
@@ -3073,15 +3046,16 @@ TEST_CASE("Layer::clearActiveClip: cancels a pending trigger too, even one queue
 
 namespace
 {
-    // A layer at rest on column 0 (no fade running), clips in columns 0 and 1.
+    // A layer at rest on column 0 (no fade running), clips in columns 0 and 1 (lane bf9b: the shared layer 0 over
+    // deck 0's row 0).
     Layer& restingLayer(Composition& comp, float transitionSpeed)
     {
         Deck& deck = comp.decks[0];
         deck.setClip(0, 0, richClip(1, "c0"));
         deck.setClip(0, 1, richClip(2, "c1"));
-        Layer& L = *deck.getLayer(0);
+        Layer& L = comp.layers[0];
         L.transitionSpeed = transitionSpeed;
-        applyLayerRuntime(L, { 0, -1, 1.0f, -1, Clip::BeatSnapMode::Off });
+        applyLayerRuntime(L, tupleOn(deck.id, 0, -1, 1.0f, -1));
         return L;
     }
 }
@@ -3094,7 +3068,7 @@ TEST_CASE("D1 a trigger's first perform does not restart a running fade", "[undo
     Layer& L = restingLayer(comp, 0.5f);
 
     const LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    L.triggerClip(1);
+    comp.fire(0, 0, 1);
     const LayerRuntimeSnapshot after = captureLayerRuntime(L);
     REQUIRE(after.activeClipColumn == 1);
     REQUIRE(after.previousClipColumn == 0);
@@ -3103,7 +3077,7 @@ TEST_CASE("D1 a trigger's first perform does not restart a running fade", "[undo
     LayerClock::advanceCrossfade(L, 0.1f);   // the GL thread ticks the fade before the push: 0.1 / 0.5 = 0.2
     REQUIRE(captureLayerRuntime(L).crossfadeProgress == Catch::Approx(0.2f));
 
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 1, before, after,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ comp.decks[0].id, 1 }, before, after,
                 std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
     CHECK(captureLayerRuntime(L).crossfadeProgress == Catch::Approx(0.2f));   // the fade keeps running
     CHECK(captureLayerRuntime(L).activeClipColumn == 1);
@@ -3123,7 +3097,7 @@ TEST_CASE("D1b a trigger's first perform after the fade ended keeps the ended fa
     Layer& L = restingLayer(comp, 0.5f);
 
     const LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    L.triggerClip(1);
+    comp.fire(0, 0, 1);
     const LayerRuntimeSnapshot after = captureLayerRuntime(L);
     LayerClock::advanceCrossfade(L, 1.0f);   // the fade ends before the push: (1, -1, 1.0)
     const LayerRuntimeSnapshot ended = captureLayerRuntime(L);
@@ -3131,7 +3105,7 @@ TEST_CASE("D1b a trigger's first perform after the fade ended keeps the ended fa
     REQUIRE(ended.previousClipColumn == -1);
     REQUIRE(ended.crossfadeProgress == 1.0f);
 
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 1, before, after,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ comp.decks[0].id, 1 }, before, after,
                 std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
     CHECK(captureLayerRuntime(L) == ended);   // not restarted
 }
@@ -3142,18 +3116,18 @@ TEST_CASE("D1c a trigger's first perform after its queued trigger fired keeps it
     UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Layer& L = restingLayer(comp, 0.5f);
-    L.getClipAt(1)->beatSnapMode = Clip::BeatSnapMode::Beat;
+    comp.decks[0].getClip(0, 1)->beatSnapMode = Clip::BeatSnapMode::Beat;
 
     const LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    L.triggerClip(1);   // queued for the next beat
+    comp.fire(0, 0, 1);   // queued for the next beat
     const LayerRuntimeSnapshot after = captureLayerRuntime(L);
     REQUIRE(after.activeClipColumn == 0);
     REQUIRE(after.pendingTriggerColumn == 1);
 
-    L.processPendingTrigger(0, 0);   // the beat arrives before the push: it fires
+    L.processPendingTrigger(0, 0, comp.rowClips(0));   // the beat arrives before the push: it fires
     REQUIRE(captureLayerRuntime(L).activeClipColumn == 1);
 
-    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 1, before, after,
+    mgr.perform(std::make_unique<TriggerClipCmd>(compResolverFor(comp), 0, ClipRef{ comp.decks[0].id, 1 }, before, after,
                 std::optional<bool>(false), std::optional<bool>(false), "Trigger Clip"));
     CHECK(captureLayerRuntime(L).activeClipColumn == 1);
     CHECK(captureLayerRuntime(L).pendingTriggerColumn == -1);
@@ -3170,15 +3144,15 @@ TEST_CASE("D1d a clear's first perform keeps a transition that landed after the 
     Layer& L = restingLayer(comp, 0.5f);
 
     const LayerRuntimeSnapshot before = captureLayerRuntime(L);
-    L.clearActiveClip();                       // the X clear, applied live by the handler
+    L.clearActiveClip(comp.rowClips(0));       // the X clear, applied live by the handler
     const LayerRuntimeSnapshot after = captureLayerRuntime(L);
     REQUIRE(after.activeClipColumn == -1);
 
-    L.triggerClipImmediate(1);                 // a transition lands before the push
+    comp.fire(0, 0, 1, Clip::BeatSnapMode::Off, true);   // a transition lands before the push
     const LayerRuntimeSnapshot landed = captureLayerRuntime(L);
     REQUIRE(landed.activeClipColumn == 1);
 
-    mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 0, before, after, "Clear Layer"));
+    mgr.perform(std::make_unique<ClearActiveClipCmd>(layerResolverFor(svc), 0, before, after, "Clear Layer"));
     CHECK(captureLayerRuntime(L) == landed);   // the transition stands (a re-applied `after` would clear it)
 
     mgr.undo();
