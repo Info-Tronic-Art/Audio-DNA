@@ -3376,21 +3376,56 @@ endif()
 apply_sanitizers(test_layer_runtime)
 catch_discover_tests(test_layer_runtime)
 
-# --- test_show_model (lane bf9b, plan-bf9b S2.12: decks are boxes of clips over ONE shared layer stack -- the
-# ClipRef trigger API, C1 playing(i), C2 walks, retired decks, refusal of refs the tuple cannot hold). Real Clip / Layer
-# / Composition sources; builds alone (model headers only).
+# --- test_show_model (lane bf9b, plan-bf9b S2.12 + ruling-bf9b amendments 2(c), 4, 6, 7, 8, 9, 12, 20, 21, 22: decks are
+# boxes of clips over ONE shared layer stack -- the ClipRef trigger API, C1 playing(i), C2 walks, retired decks, the
+# switch fingerprint (T1, incl. a headless DeckView walk and a running routine), the deck / layer commands, autopilot,
+# routines pinned by deck id, pad lights, binding targets, old-file conversion (M1-M7)). Real sources: the model,
+# the commands, UndoService (withDeckDetached's headless branch: no renderer is ever set -- the Renderer members it
+# names are inline), Autopilot, the RoutineEngine set (as test_routine_engine), the DeckView set (as
+# test_deck_thumbnails), MidiOutputHandler (padStateFor).
 add_executable(test_show_model
     test_show_model.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
     ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+    ${SRC_DIR}/core/UndoService.cpp
+    ${SRC_DIR}/midi/MidiOutputHandler.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/recording/TempoMap.cpp
+    ${SRC_DIR}/recording/PerfState.cpp
+    ${SRC_DIR}/recording/PerfStateCapture.cpp
+    ${SRC_DIR}/recording/Take.cpp
+    ${SRC_DIR}/recording/Program.cpp
+    ${SRC_DIR}/recording/RoutineSlice.cpp
+    ${SRC_DIR}/recording/Player.cpp
+    ${SRC_DIR}/recording/RecorderClock.cpp
+    ${SRC_DIR}/recording/RoutineEngine.cpp
+    ${SRC_DIR}/binding/BindingManager.cpp
+    ${SRC_DIR}/ui/DeckView.cpp
+    ${SRC_DIR}/ui/ClipCell.cpp
+    ${SRC_DIR}/ui/RoutinePad.cpp
+    ${SRC_DIR}/ui/LayerStrip.cpp
+    ${SRC_DIR}/ui/LookAndFeel.cpp
+    ${SRC_DIR}/ui/UniversalParamControl.cpp
+    ${SRC_DIR}/connect/ConnPicker.cpp
+    ${SRC_DIR}/connect/ManualWrite.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
 )
 target_include_directories(test_show_model PRIVATE ${SRC_DIR})
 target_link_libraries(test_show_model PRIVATE
     Catch2::Catch2WithMain
-    juce::juce_core
-    juce::juce_events
-    juce::juce_graphics
+    juce::juce_gui_basics
+    juce::juce_opengl
+    juce::juce_audio_devices
 )
 target_compile_definitions(test_show_model PRIVATE
     _USE_MATH_DEFINES
