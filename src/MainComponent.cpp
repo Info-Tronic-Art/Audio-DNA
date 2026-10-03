@@ -2142,6 +2142,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         const bool movesLayer = undoManager_.undoAffectsLayerOrder();
         if (undoManager_.undo()) refreshAfterUndoRedo(movesLayer);
     };
+    // Lane bf9b fix round: File > Save As... to a given file, no chooser (K7 / B5 "save + reload").
+    apiServer_->onDebugSaveComposition = [this](juce::File f) { saveCompositionTo(f); };
     apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
     apiServer_->onDebugAudioNotice = [this] {   // s-rta-0929b btguard
         return audioDeviceNotice_.isVisible() ? audioDeviceNotice_.getText() : juce::String();
@@ -3485,6 +3487,23 @@ void MainComponent::saveComposition()
     }
 }
 
+bool MainComponent::saveCompositionTo(const juce::File& saveFile)
+{
+    // Save As's success path (the chooser's and /api/debug/save_composition's).
+    if (!composition_.saveToFile(saveFile))
+        return false;
+    // saveToFile() is const and never sets filePath — only
+    // loadFromFile() does. Save As must set it here, or a later
+    // plain Save cannot find it.
+    composition_.filePath = saveFile;
+    composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
+    clearLoadNotice();   // lane bf9b S3.4: a save retires the load notice
+    setFileLabel("Saved: " + saveFile.getFileName());
+    if (browserPanel_)
+        browserPanel_->getCompDecksBrowser().refresh();
+    return true;
+}
+
 void MainComponent::saveCompositionAs()
 {
     auto dir = CompDecksBrowser::getCompositionsDir();
@@ -3507,19 +3526,7 @@ void MainComponent::saveCompositionAs()
         auto saveFile = file.hasFileExtension(".json") ? file
                             : file.withFileExtension("json");
 
-        if (composition_.saveToFile(saveFile))
-        {
-            // saveToFile() is const and never sets filePath — only
-            // loadFromFile() does. Save As must set it here, or a later
-            // plain Save cannot find it.
-            composition_.filePath = saveFile;
-            composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
-            clearLoadNotice();   // lane bf9b S3.4: a save retires the load notice
-            setFileLabel("Saved: " + saveFile.getFileName());
-            if (browserPanel_)
-                browserPanel_->getCompDecksBrowser().refresh();
-        }
-        else if (!testMode_)
+        if (!saveCompositionTo(saveFile) && !testMode_)
         {
             juce::AlertWindow::showMessageBoxAsync(
                 juce::MessageBoxIconType::WarningIcon,

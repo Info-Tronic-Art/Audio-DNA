@@ -324,6 +324,8 @@ void ApiServer::setupRoutes()
     // function) and the app's Undo (the Cmd+Z function). Marshalled to the message thread; answer at once.
     server_.Post("/api/debug/remove_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugRemoveDeck(req, res); });
     server_.Post("/api/debug/undo", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUndo(req, res); });
+    // Lane bf9b fix round (TEST-ONLY, same build path): Save As... to an absolute path, no chooser (K7 / B5 save half).
+    server_.Post("/api/debug/save_composition", [this](const httplib::Request& req, httplib::Response& res) { handleDebugSaveComposition(req, res); });
     // s-rta-0929b btguard (TEST-ONLY, same build path): the audio device policy's last scan and the opened devices.
     server_.Get("/api/debug/audio_devices", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDevices(req, res); });
     // s-rta-0930 bt2 (TEST-ONLY, same build path): swap the denied device names at runtime (the plug / unplug stand-in)
@@ -2164,6 +2166,28 @@ void ApiServer::handleDebugUndo(const httplib::Request&, httplib::Response& res)
         return;
     }
     juce::MessageManager::callAsync([this]() { onDebugUndo(); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// Lane bf9b fix round (TEST-ONLY): {"path": "<absolute .json>"} -> File > Save As... to that file, no chooser.
+void ApiServer::handleDebugSaveComposition(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    const juce::String path = json.getProperty("path", "").toString();
+    if (path.isEmpty() || !juce::File::isAbsolutePath(path) || !juce::File(path).getParentDirectory().isDirectory())
+    {
+        res.status = 400;
+        res.set_content(jsonError("path (an absolute file in an existing folder) required"), "application/json");
+        return;
+    }
+    if (!onDebugSaveComposition)
+    {
+        res.status = 503;
+        res.set_content(jsonError("save_composition not wired"), "application/json");
+        return;
+    }
+    const juce::File f(path);
+    juce::MessageManager::callAsync([this, f]() { onDebugSaveComposition(f); });
     res.set_content(jsonOk(), "application/json");
 }
 

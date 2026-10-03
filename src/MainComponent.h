@@ -146,6 +146,8 @@ private:
     void loadComposition(const juce::File& file, std::shared_ptr<LoadTicket> ticket = nullptr);
     void saveComposition();
     void saveCompositionAs();
+    // Save As's success path to a chosen file (the chooser and /api/debug/save_composition); false = not written.
+    bool saveCompositionTo(const juce::File& saveFile);
     void swapCompositionModel(const std::function<void()>& mutation);
     void refreshUiAfterModelSwap();
     // plan6 §7: "replace everything playing?" before the library row click and New Composition.

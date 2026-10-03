@@ -229,7 +229,7 @@ upload_cap, max_uploads_per_frame); TEST_SERVER env `ADNA_VIDEO_FORCE_FALLBACK=m
 `probe-vupload.{sh,py,json}` + `probe-vupload-ab.{sh,py}` (NEW) and probe-video rows w1c / w1d / w2c / w10.
 s-rta-0929b btguard: `GET /api/debug/audio_devices` returns the audio device policy's last scan (every device's
 transport, allowed flag and reason, the filtered lists), the opened devices, `state` (ok / no-input / no-device), `opens`
-and `reapplies`, from a mutex-guarded copy; `GET /api/debug/ui_text` also answers `audio_notice` (and `load_notice`, bf9b). bf9b TEST-ONLY: `POST /api/debug/remove_deck {"deck": i}` (the tab menu's Remove Deck), `POST /api/debug/undo` (Cmd+Z). TEST_SERVER env
+and `reapplies`, from a mutex-guarded copy; `GET /api/debug/ui_text` also answers `audio_notice` (and `load_notice`, bf9b). bf9b TEST-ONLY: `POST /api/debug/remove_deck {"deck": i}` (the tab menu's Remove Deck), `POST /api/debug/undo` (Cmd+Z), `POST /api/debug/save_composition {"path": p}` (Save As... to p, no chooser). TEST_SERVER env
 `ADNA_AUDIO_DENY_DEVICES=<name>[;<name>]` (read once) treats those exact device names as denied; probe `probe-btguard.sh`
 (NEW); ctest +1 Catch2 target (`test_device_policy`).
 s-rta-0930 bt2: TEST-ONLY `POST /api/debug/audio_deny {"names": [...]}` swaps the denied set at runtime (the plug /

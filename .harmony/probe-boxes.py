@@ -82,8 +82,11 @@ k5_queue_link_on    BLOCKED: neither arm is built with Ableton Link (CMake AUDIO
 k7_old_show         K7: an old 2-deck show (layer settings differ; Deck 1 / L1 "persistent": true; a Deck-2 layer
                     connection; a 1.2 s deck fade). PASS iff layer settings == Deck 1's (per-arm reader), exactly one
                     "old show converted:" logLine (the app's stdout + stderr logs in the out dir), /api/debug/ui_text
-                    "load_notice" non-empty; then a new-format show: no new logLine and load_notice empty. The "save"
-                    half of "save + reload" has no driver (no REST save route on either arm): BLOCKED, said.
+                    "load_notice" non-empty; save + reload (bf9b fix round; BF9B-only driver POST
+                    /api/debug/save_composition, N/A on STAGE_P): the saved file has top-level "layers", no
+                    "persistent" / "globalTransitionSpeed", the save empties load_notice, its reload logs no note,
+                    load_notice stays empty and the first deck's settings come back; then a new-format show: no new
+                    logLine and load_notice empty.
 k7_old_take         K7 (+ K1's take-replay driver): a take recorded on the STAGE_P arm (pre-bf9b PerfState: no "layers"
                     in checkpoint0) with an activeDeck lane replays (perf/load + perf/play, wall clock) with no error,
                     its lane moves activeDeck, and every capture during the replay is within floor of before.
@@ -1092,6 +1095,7 @@ def k7_old_show():
         ui = {"error": str(e)}
     info(f"k7_old_show: /api/debug/ui_text -> {code} {json.dumps(ui)[:300]}")
     check(bool(str(ui.get("load_notice", "")).strip()), "k7_old_show: /api/debug/ui_text load_notice is non-empty")
+    k7_save_reload(pat, n1)
     # the reload half: a NEW-format show (what Save writes: top-level layers, rows of clips only)
     new = {"name": "boxes-k7-new", "activeDeckIndex": 0, "masterOpacity": 1.0,
            "layers": [{k: v for k, v in x.items() if k not in ("clips", "persistent")} for x in d1],
@@ -1110,9 +1114,60 @@ def k7_old_show():
     check(n2 == n1 and "load_notice" in ui2 and not str(ui2.get("load_notice", "")).strip(),
           f"k7_old_show: a new-format show loads with no note (new logLines {n2 - n1}) and load_notice empty "
           f"({json.dumps(ui2.get('load_notice'))})")
-    blocked("k7_old_show: 'save + reload' -- the save half has no driver (no REST save route on either arm; no synthetic "
-            "input); the reload half ran on a new-format file the probe wrote in the saved shape; the save round trip "
-            "is unit M2 (test_show_migration)")
+
+
+def k7_save_reload(pat, n_before):
+    """K7 / B5 "save + reload" (bf9b fix round): with the converted old show loaded, POST /api/debug/save_composition
+    (File > Save As... to a file in the out dir, no chooser) -> the file is written in the new shape (top-level
+    "layers"; no "persistent", no "globalTransitionSpeed") and the save retires the load notice; POST /api/load_composition
+    of that file -> no new "old show converted:" logLine and load_notice empty. The route is BF9B-only (STAGE_P has no
+    save driver: N/A)."""
+    saved = os.path.join(OUT, "k7_saved.json")
+    code, body = post("/api/debug/save_composition", {"path": saved})
+    if code == 404:
+        na(f"k7_old_show save + reload: /api/debug/save_composition is a BF9B-only driver (HTTP {code} on this arm)")
+        return
+    if code != 200 or body.get("ok") is not True:
+        no(f"k7_old_show save + reload: save_composition rejected (HTTP {code} {json.dumps(body)[:160]})"); return
+    t0 = time.time()
+    while not os.path.exists(saved) and time.time() - t0 < 5.0:
+        time.sleep(0.1)
+    time.sleep(0.3)
+    try:
+        sj = json.load(open(saved))
+    except Exception as e:  # noqa: BLE001
+        no(f"k7_old_show save + reload: the saved file is missing or unreadable ({e})"); return
+    txt = open(saved).read()
+    has_persist, has_fade = '"persistent"' in txt, '"globalTransitionSpeed"' in txt
+    nl = len(sj.get("layers") or []) if isinstance(sj.get("layers"), list) else -1
+    check(nl == 2 and not has_persist and not has_fade,
+          f"k7_old_show save: the saved show has the new shape (top-level layers {nl}; key 'persistent' {has_persist}; "
+          f"key 'globalTransitionSpeed' {has_fade})")
+    try:
+        ui = S.get(A + "/api/debug/ui_text", timeout=6).json()
+    except Exception as e:  # noqa: BLE001
+        ui = {"error": str(e)}
+    check("load_notice" in ui and not str(ui.get("load_notice", "")).strip(),
+          f"k7_old_show save: the save retires the load notice ({json.dumps(ui.get('load_notice'))})")
+    try:
+        r = S.post(A + "/api/load_composition", json={"path": saved}, timeout=15)
+        good = r.ok and r.json().get("ok") is True
+    except Exception as e:  # noqa: BLE001
+        good = False; r = e
+    if not good:
+        no(f"k7_old_show reload: load_composition of the saved file rejected: {str(getattr(r, 'text', r))[:160]}"); return
+    time.sleep(1.2)
+    n2 = logcount(pat)
+    c = comp() or {}
+    got = [(round(float(x.get("opacity", -1)), 2), x.get("blendMode")) for x in c.get("layers", [])]
+    try:
+        ui2 = S.get(A + "/api/debug/ui_text", timeout=6).json()
+    except Exception as e:  # noqa: BLE001
+        ui2 = {"error": str(e)}
+    check(n2 == n_before and "load_notice" in ui2 and not str(ui2.get("load_notice", "")).strip()
+          and got == [(1.0, 0), (0.8, 0)],
+          f"k7_old_show reload: the saved show reloads with no note (new logLines {n2 - n_before}), load_notice empty "
+          f"({json.dumps(ui2.get('load_notice'))}) and the first deck's layer settings {got}")
 
 
 def take_is_old(folder):

@@ -201,6 +201,10 @@ public:
     // Remove Deck; POST /api/debug/undo = the app's Undo (Cmd+Z). Marshalled to the message thread; answer at once.
     std::function<void(int deckIndex)> onDebugRemoveDeck;
     std::function<void()> onDebugUndo;
+    // Lane bf9b fix round (TEST-ONLY): POST /api/debug/save_composition {path} = File > Save As... to that absolute
+    // path (no chooser) -- the live driver of K7 / B5's "save + reload". Marshalled to the message thread; answers at
+    // once (the caller polls for the file).
+    std::function<void(juce::File)> onDebugSaveComposition;
     std::function<juce::String()> onDebugUiText;
     // s-rta-0929b btguard (TEST-ONLY): /api/debug/ui_text "audio_notice" -- the no-input / no-device notice beside the
     // file label ("" when hidden), read in the same message-thread hop as file_label.
@@ -283,6 +287,7 @@ private:
     void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
     void handleDebugRemoveDeck(const httplib::Request& req, httplib::Response& res);   // lane bf9b
     void handleDebugUndo(const httplib::Request& req, httplib::Response& res);         // lane bf9b
+    void handleDebugSaveComposition(const httplib::Request& req, httplib::Response& res);   // lane bf9b fix round
     void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
     void handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
     void handleDebugAudioStop(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
