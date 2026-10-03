@@ -606,21 +606,25 @@ struct Composition
         return static_cast<int>(pos);
     }
 
-    // Does any shared layer's active or previous ref name deck `id`? (a fading-out clip keeps its deck alive.)
+    // Does any shared layer's active ref, or the previous ref of a fade still running, name deck `id`? (a fading-out
+    // clip keeps its deck alive until its fade completes -- ruling-bf9b amendment 4(b). A Cut or a clear leaves
+    // `previous` set at progress 1: nothing draws that clip, so it keeps nothing alive.)
     bool deckIsPlaying(uint32_t id) const
     {
         for (const auto& l : layers)
         {
             const auto rt = l.runtime();
-            if ((rt.activeClipColumn >= 0 && rt.activeDeckId == id) || (rt.previousClipColumn >= 0 && rt.previousDeckId == id))
+            if ((rt.activeClipColumn >= 0 && rt.activeDeckId == id)
+                || (rt.previousClipColumn >= 0 && rt.previousDeckId == id && rt.crossfadeProgress < 1.0f))
                 return true;
         }
         return false;
     }
 
-    // Remove live deck `index` (plan-bf9b F3): while a layer plays from it (its active or previous ref names it) it
-    // is RETIRED -- moved, with every clip at its address, to the retired list -- else erased. Returns true when it
-    // was retired; `erased` (optional) receives an erased deck. The caller fences and adjusts activeDeckIndex.
+    // Remove live deck `index` (plan-bf9b F3): while a layer plays from it (deckIsPlaying: its active ref, or a running
+    // fade's previous ref, names it) it is RETIRED -- moved, with every clip at its address, to the retired list --
+    // else erased. Returns true when it was retired; `erased` (optional) receives an erased deck. The caller fences
+    // and adjusts activeDeckIndex.
     bool retireOrEraseDeck(int index, std::optional<Deck>* erased = nullptr)
     {
         if (index < 0 || index >= static_cast<int>(decks.size()))
@@ -647,7 +651,7 @@ struct Composition
         return true;
     }
 
-    // Every retired deck no layer's active or previous ref names leaves the model; the caller disposes their media
+    // Every retired deck no layer plays from (deckIsPlaying) leaves the model; the caller disposes their media
     // (ruling-bf9b amendment 4(a): called inside every fenced edit, UndoService::withDeckDetached).
     std::vector<Deck> reapRetiredDecks()
     {
