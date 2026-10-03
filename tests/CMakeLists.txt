@@ -3378,6 +3378,38 @@ endif()
 apply_sanitizers(test_layer_runtime)
 catch_discover_tests(test_layer_runtime)
 
+# --- test_show_model (lane bf9b, plan-bf9b S2.12: decks are boxes of clips over ONE shared layer stack -- the
+# ClipRef trigger API, C1 playing(i), C2 walks, retired decks, refusal of refs the tuple cannot hold). Real Clip / Layer
+# / Composition sources; builds alone (model headers only).
+add_executable(test_show_model
+    test_show_model.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+)
+target_include_directories(test_show_model PRIVATE ${SRC_DIR})
+target_link_libraries(test_show_model PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_show_model PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_show_model PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_show_model)
+catch_discover_tests(test_show_model)
+
 # --- test_shared_field_types (lane tsan, ruling amendment 11: compile-time type pins of the model fields another
 # thread reads; T2 pins the Layer tuple, T4 / T5 / T6 extend it).
 add_executable(test_shared_field_types

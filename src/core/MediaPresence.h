@@ -38,18 +38,16 @@ inline std::vector<juce::String> mediaPaths(const Composition& comp)
 {
     std::vector<juce::String> out;
     juce::StringArray seen;
-    for (const auto& deck : comp.decks)
-        for (const auto& layer : deck.layers)
-            for (const auto& cell : layer.clips)
-                if (cell.has_value() && tracks(*cell))
-                {
-                    const auto p = cell->mediaFile.getFullPathName();
-                    if (!seen.contains(p))
-                    {
-                        seen.add(p);
-                        out.push_back(p);
-                    }
-                }
+    comp.forEachClip([&](const Clip& cell, const ClipSite&) {   // every deck box, retired ones included (bf9b)
+        if (!tracks(cell))
+            return;
+        const auto p = cell.mediaFile.getFullPathName();
+        if (!seen.contains(p))
+        {
+            seen.add(p);
+            out.push_back(p);
+        }
+    });
     return out;
 }
 
@@ -59,28 +57,26 @@ inline int apply(Composition& comp, const std::vector<Seen>& seen)
     for (const auto& s : seen)
         exists[s.path] = s.exists;
     int changed = 0;
-    for (auto& deck : comp.decks)
-        for (auto& layer : deck.layers)
-            for (auto& cell : layer.clips)
-                if (cell.has_value() && tracks(*cell))
-                {
-                    const auto it = exists.find(cell->mediaFile.getFullPathName());
-                    if (it == exists.end())
-                        continue;   // not in this sweep (a clip added since the snapshot): its seed stands
-                    const bool missing = !it->second;
-                    if (cell->mediaMissing != missing)
-                    {
-                        cell->mediaMissing = missing;
-                        ++changed;
-                    }
-                }
+    comp.forEachClip([&](Clip& cell, const ClipSite&) {
+        if (!tracks(cell))
+            return;
+        const auto it = exists.find(cell.mediaFile.getFullPathName());
+        if (it == exists.end())
+            return;   // not in this sweep (a clip added since the snapshot): its seed stands
+        const bool missing = !it->second;
+        if (cell.mediaMissing != missing)
+        {
+            cell.mediaMissing = missing;
+            ++changed;
+        }
+    });
     return changed;
 }
 
 inline void seed(Deck& deck)
 {
-    for (auto& layer : deck.layers)
-        for (auto& cell : layer.clips)
+    for (auto& row : deck.rows)
+        for (auto& cell : row.clips)
             if (cell.has_value())
                 cell->mediaMissing = tracks(*cell) && !cell->mediaFile.existsAsFile();
 }

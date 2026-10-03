@@ -1,5 +1,5 @@
 #pragma once
-#include "model/Layer.h"
+#include "model/ClipRow.h"
 #include <juce_core/juce_core.h>
 #include <algorithm>
 #include <string>
@@ -8,8 +8,9 @@
 #include <cstdint>
 #include <type_traits>
 
-// Deck: the clip grid — layers (rows) × columns.
-// Multiple decks can exist within a Composition, switched via deck tabs.
+// Deck: a box of clips -- rows x columns (lane bf9b, s-rta-1002b). Row N of every deck feeds the show's shared
+// layer N (Composition::layers); a deck has no layers and no playing state of its own, and switching decks changes
+// only which box the grid shows. Composition keeps every deck (live or retired) at exactly layers.size() rows.
 struct Deck
 {
     // === Identity ===
@@ -18,7 +19,7 @@ struct Deck
     juce::File sourceFile;  // library file this deck was loaded from / last saved to; NOT serialized (like Composition::filePath)
 
     // === Grid ===
-    std::vector<Layer> layers;
+    std::vector<ClipRow> rows;
     int numColumns = 12;
 
     // === Defaults ===
@@ -26,122 +27,76 @@ struct Deck
     static constexpr int kDefaultColumns = 12;
 
     // === Initialization ===
-    void initDefault()
+    void initDefault(int numRows = kDefaultLayers)
     {
-        layers.clear();
-        for (int i = 0; i < kDefaultLayers; ++i)
-        {
-            Layer layer;
-            layer.name = "Layer " + std::to_string(i + 1);
-            layer.id = static_cast<uint32_t>(i);
-            layer.type = (i == 0) ? Layer::Type::Opaque : Layer::Type::Transparent;
-            layer.ensureColumns(numColumns);
-            layers.push_back(std::move(layer));
-        }
+        rows.clear();
+        rows.resize(static_cast<size_t>(std::max(0, numRows)));
+        for (auto& row : rows)
+            row.ensureColumns(numColumns);
     }
 
-    // === Layer Management ===
-    Layer* getLayer(int index)
+    // === Rows ===
+    ClipRow* getRow(int index)
     {
-        if (index >= 0 && index < static_cast<int>(layers.size()))
-            return &layers[static_cast<size_t>(index)];
+        if (index >= 0 && index < static_cast<int>(rows.size()))
+            return &rows[static_cast<size_t>(index)];
         return nullptr;
     }
 
-    int getNumLayers() const { return static_cast<int>(layers.size()); }
-
-    void addLayer(Layer::Type type = Layer::Type::Transparent)
+    const ClipRow* getRow(int index) const
     {
-        Layer layer;
-        layer.name = "Layer " + std::to_string(layers.size() + 1);
-        layer.id = nextLayerId_++;
-        layer.type = type;
-        layer.ensureColumns(numColumns);
-        layers.push_back(std::move(layer));
+        if (index >= 0 && index < static_cast<int>(rows.size()))
+            return &rows[static_cast<size_t>(index)];
+        return nullptr;
     }
 
-    bool removeLayer(int index)
-    {
-        if (index < 0 || index >= static_cast<int>(layers.size()))
-            return false;
-        if (layers.size() <= 1)
-            return false; // Must have at least one layer
-        layers.erase(layers.begin() + index);
-        return true;
-    }
-
-    // P24.13: Move a layer from one index to another
-    bool moveLayer(int fromIndex, int toIndex)
-    {
-        if (fromIndex < 0 || fromIndex >= static_cast<int>(layers.size()))
-            return false;
-        if (toIndex < 0 || toIndex >= static_cast<int>(layers.size()))
-            return false;
-        if (fromIndex == toIndex)
-            return false;
-
-        Layer temp = std::move(layers[static_cast<size_t>(fromIndex)]);
-        layers.erase(layers.begin() + fromIndex);
-        layers.insert(layers.begin() + toIndex, std::move(temp));
-        return true;
-    }
+    int getNumRows() const { return static_cast<int>(rows.size()); }
 
     // === Column Management ===
     void addColumn()
     {
         ++numColumns;
-        for (auto& layer : layers)
-            layer.ensureColumns(numColumns);
+        for (auto& row : rows)
+            row.ensureColumns(numColumns);
     }
 
     bool removeColumn(int col)
     {
         if (col < 0 || col >= numColumns || numColumns <= 1)
             return false;
-        for (auto& layer : layers)
+        for (auto& row : rows)
         {
-            if (col < static_cast<int>(layer.clips.size()))
-                layer.clips.erase(layer.clips.begin() + col);
+            if (col < static_cast<int>(row.clips.size()))
+                row.clips.erase(row.clips.begin() + col);
         }
         --numColumns;
         return true;
     }
 
-    // === Column Triggering ===
-    // out (optional): one entry per layer -- the exact transition of each layer triggered, nullopt for a layer that
-    // ignores column triggers.
-    void triggerColumn(int col, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off,
-                       std::vector<std::optional<LayerRuntimeTransition>>* out = nullptr)
-    {
-        if (out != nullptr)
-            out->assign(layers.size(), std::nullopt);
-        for (size_t i = 0; i < layers.size(); ++i)
-        {
-            auto& layer = layers[i];
-            if (layer.ignoreColumnTrigger)
-                continue;
-            const auto t = layer.triggerClip(col, forcedSnap);
-            if (out != nullptr)
-                (*out)[i] = t;
-        }
-    }
-
     // === Clip Access ===
-    Clip* getClip(int layerIndex, int column)
+    Clip* getClip(int rowIndex, int column)
     {
-        if (auto* layer = getLayer(layerIndex))
-            return layer->getClipAt(column);
+        if (auto* row = getRow(rowIndex))
+            return row->getClipAt(column);
         return nullptr;
     }
 
-    void setClip(int layerIndex, int column, const Clip& clip)
+    const Clip* getClip(int rowIndex, int column) const
     {
-        if (auto* layer = getLayer(layerIndex))
+        if (const auto* row = getRow(rowIndex))
+            return row->getClipAt(column);
+        return nullptr;
+    }
+
+    void setClip(int rowIndex, int column, const Clip& clip)
+    {
+        if (auto* row = getRow(rowIndex))
         {
-            layer->ensureColumns(column + 1);
+            if (column < 0)
+                return;
+            row->setClip(column, clip);
             if (numColumns < column + 1)
                 numColumns = column + 1;
-            layer->clips[static_cast<size_t>(column)] = clip;
         }
     }
 
@@ -152,16 +107,16 @@ struct Deck
     // paint, serialization) all key off the optional being empty. No
     // ensureColumns() growth: clearing an out-of-range or already-empty cell
     // is a safe no-op.
-    void clearCell(int layerIndex, int column)
+    void clearCell(int rowIndex, int column)
     {
-        if (auto* layer = getLayer(layerIndex))
-        {
-            if (column >= 0 && column < static_cast<int>(layer->clips.size()))
-                layer->clips[static_cast<size_t>(column)].reset();
-        }
+        if (auto* row = getRow(rowIndex))
+            row->clearCell(column);
     }
 
     // === Serialization ===
+    // {"name","id","numColumns","layers":[{"clips":[...]}, ...]} -- the key "layers" is kept so one reader serves old
+    // and new deck files (Load Deck's shape check); a new row carries "clips" only (no "type": ShowMigration tells a
+    // legacy row by its "type" key, ruling-bf9b amendment 8).
     juce::var toVar() const
     {
         auto* obj = new juce::DynamicObject();
@@ -169,14 +124,16 @@ struct Deck
         obj->setProperty("id", static_cast<int>(id));
         obj->setProperty("numColumns", numColumns);
 
-        juce::Array<juce::var> layerArray;
-        for (const auto& layer : layers)
-            layerArray.add(layer.toVar());
-        obj->setProperty("layers", layerArray);
+        juce::Array<juce::var> rowArray;
+        for (const auto& row : rows)
+            rowArray.add(row.toVar());
+        obj->setProperty("layers", rowArray);
 
         return juce::var(obj);
     }
 
+    // Reads the clips of every row (old and new deck objects alike); a legacy row's layer settings are read by
+    // ShowMigration, never here.
     void fromVar(const juce::var& v)
     {
         if (auto* obj = v.getDynamicObject())
@@ -185,33 +142,25 @@ struct Deck
             id = static_cast<uint32_t>(static_cast<int>(obj->getProperty("id")));
             numColumns = static_cast<int>(obj->getProperty("numColumns"));
 
-            layers.clear();
-            if (auto* layerArray = obj->getProperty("layers").getArray())
+            rows.clear();
+            if (auto* rowArray = obj->getProperty("layers").getArray())
             {
-                for (const auto& layerVar : *layerArray)
+                for (const auto& rowVar : *rowArray)
                 {
-                    Layer layer;
-                    layer.fromVar(layerVar);
-                    layers.push_back(std::move(layer));
+                    ClipRow row;
+                    row.fromVar(rowVar);
+                    rows.push_back(std::move(row));
                 }
             }
-
-            // L3: nextLayerId_ resets to its default on every Deck constructed by
-            // fromVar; without this, a post-load addLayer() re-mints an id a loaded
-            // layer already holds, aliasing two layers onto one GL resource set.
-            for (const auto& layer : layers)
-                nextLayerId_ = std::max(nextLayerId_, layer.id + 1u);
         }
     }
-
-private:
-    uint32_t nextLayerId_ = 100;
 };
 
-// decks-followup ITEM 3: inspectors keep raw Clip*/Layer* across a Composition::decks reallocation
+// decks-followup ITEM 3: inspectors keep raw Clip* across a Composition::decks reallocation
 // (New/Load/Duplicate deck). That is only safe because moving a Deck can never throw, so
-// std::vector::push_back/insert on `decks` moves each Deck's Layer vector rather than copying or
-// leaving it in a state where an old pointer could dangle mid-throw (decks.md UNKNOWNS 5).
+// std::vector::push_back/insert on `decks` moves each Deck's row vector rather than copying or
+// leaving it in a state where an old pointer could dangle mid-throw (decks.md UNKNOWNS 5). bf9b: retiring a deck
+// moves it between Composition::decks and its retired list the same way -- every Clip keeps its address.
 static_assert(std::is_nothrow_move_constructible_v<Deck>,
               "Deck must be nothrow-move-constructible: Composition::decks reallocation moves Deck "
-              "(and its Layer/Clip buffers) while inspectors hold raw Clip*/Layer* across the call");
+              "(and its row/Clip buffers) while inspectors hold raw Clip* across the call");
