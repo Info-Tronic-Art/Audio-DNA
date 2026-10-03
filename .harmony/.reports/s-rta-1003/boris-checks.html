@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Audio-DNA — deck change is in your app (Oct 3)</title>
+<style>body{font:16px/1.5 -apple-system,Helvetica,Arial,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;background:#14161a;color:#e6e6e6}
+h1{font-size:26px}h2{font-size:20px;margin-top:34px;border-bottom:1px solid #333;padding-bottom:6px}
+li{margin:8px 0}.exp{color:#9fd3a4}.bad{color:#e3a19a}.dim{color:#9aa0a6}code{background:#23262c;padding:1px 5px;border-radius:4px}
+.box{background:#1c1f25;border:1px solid #2c3038;border-radius:8px;padding:12px 16px;margin:14px 0}</style></head><body>
+<h1>Audio-DNA — the deck change is in your app (Oct 3, evening)</h1>
+<p class="dim">Nothing waits on you. This page is only for looking and saying what feels wrong.</p>
+
+<h2>1. What is different in your app now</h2>
+<ul>
+<li><b>Decks are boxes of clips.</b> The layers hold what plays. Switching decks changes only the grid — never the picture.</li>
+<li>The layer strips show the clip that is playing. No deck number on a strip, no dot on a deck tab.</li>
+<li>Delete a deck while one of its clips plays: the clip keeps playing. No button, no message. Cmd+Z brings the deck back.</li>
+<li>"Persistent" is gone from the Layer tab. "Ignore Column Trigger" stays.</li>
+<li>The top bar has no "Fade:" (a deck switch has nothing to fade).</li>
+<li>MilkDrop keeps playing, and keeps changing presets, while you browse other decks.</li>
+<li>Under the hood: a memory fault that could hit when a wide deck was loaded is fixed; 33 test scripts can no longer quit an app they did not start (after yesterday's incident).</li>
+</ul>
+
+<h2>2. Check it — about 5 minutes</h2>
+<div class="box">A test show is ready: in the app, <b>Composition → Load…</b> and pick<br><code>Documents / AudioDNA-deck-check / bf9b-check.json</code><br>20 decks. Every clip is a picture with big letters like "D3 C2" (deck 3, column 2). Deck 1 column 4 is a video with a running clock.</div>
+<ol>
+<li>On Deck 1 click "D1 C1" in the Layer 1 row and the clock video (column 4) in the Layer 3 row. Click the Deck 3 tab and click "D3 C2" in the Layer 2 row. Now click through all 20 deck tabs and back.<br><span class="exp">Expect: the picture keeps D1 C1 and D3 C2, the clock keeps counting. Only the grid changes.</span><br><span class="bad">Wrong: a picture changes, a flash, the clock jumps or stops.</span></li>
+<li>While you click through the tabs, watch the layer strips on the left.<br><span class="exp">Expect: they do not change at all. No number, no dot. On Deck 3 the "D3 C2" cell is lit; on other decks no cell in that row is lit — that is correct.</span></li>
+<li>Select Layer 2, open the Layer tab, tick "Ignore Column Trigger". Click the Deck 5 tab, then the column number 4 above the grid.<br><span class="exp">Expect: Layer 2 keeps D3 C2; Layers 1 and 3 show D5 C4.</span></li>
+<li>Untick it. Click the Deck 6 tab and the column number 2 (Deck 6 has nothing in the Layer 2 row there).<br><span class="exp">Expect: Layer 2 goes empty; Layers 1 and 3 show D6 C2.</span></li>
+<li>On Deck 3 click "D3 C2" in the Layer 2 row, click the Deck 1 tab, then right-click the Deck 3 tab → Remove Deck.<br><span class="exp">Expect: D3 C2 keeps playing, the Deck 3 tab is gone, nothing is announced, and the Layer tab still shows your layer. Cmd+Z: the tab is back, still playing.</span></li>
+<li>Layer tab: <span class="exp">"Persistent" is gone; "Ignore Column Trigger" sits alone on its row.</span></li>
+<li>Open your own show "test with harry".<br><span class="exp">Expect: your layers look as they did. No note appears.</span></li>
+<li>Deck menu → Load Deck… → <code>five-rows.json</code> in the same folder (a deck with five rows; the show has three layers).<br><span class="exp">Expect: a new deck tab, two more layer rows, the picture does not change. Cmd+Z takes the deck and the two rows away again.</span></li>
+</ol>
+
+<h2>3. One thing to look at for taste</h2>
+<p>The top bar now has an empty stretch where "Fade:" was (between Quantize and Master Signal). The sync-dial work fills that area (longer Gain, the SYNC button). Fine until then, or does it bother you?</p>
+
+<h2>4. Not changed yet — so you do not need to report these</h2>
+<ul>
+<li><b>Cmd+Z still takes back a clip you fired.</b> Your rule "Cmd+Z never changes what is live" is the next build.</li>
+<li><b>A video you played, replaced and fire again still continues where it was.</b> "Every fire restarts" comes in the same build, with column re-fire and playhead drag.</li>
+<li><b>Messages like "Loaded: …", "Saved: …" still appear</b> in the second row. All 23 event messages and 21 failure messages are listed and come out in their own build.</li>
+<li><b>Undo is under the Composition menu.</b> The Edit menu you asked for comes with the next screen pass.</li>
+<li>Deleting a deck empties the Clip tab (the Layer tab now stays). A 20-character deck name is cut on its tab without "…". A strip shows the clip's file name, not its clip name.</li>
+<li>Keying slider and the Creative / 3D blend choices: confirmed not working (only 6 of the 55 blend choices are real). Audit and fixes are queued.</li>
+</ul>
+
+<h2>5. One open question</h2>
+<p>With every "what happened" message removed, a save that fails, or a file that will not load, shows nothing. If you want to keep only those failure messages, say <b>"keep failures"</b>. Otherwise they go with the rest.</p>
+
+<h2>6. Next, in this order</h2>
+<ol>
+<li>Sync dial: taps go through the dial, the beat wheel stays on the music, SYNC button in the top bar, Gain twice as long, every show remembers its sync.</li>
+<li>Fires and Undo: every fire restarts, column re-fire restarts, playhead drag plays on from the drop, Cmd+Z never changes what is live, BPM-synced clips get a BPM box (starts at 120) and a beats box with ×2 and ÷2.</li>
+<li>All event and failure messages removed.</li>
+<li>Keying and blend menus: every entry tested on real pixels; you get a works / fix / remove table.</li>
+<li>Bars (Quantize 1, 1/2, 1/4, 1/8, 1/16), envelopes in the Signal tab, record to clip, the Edit menu.</li>
+</ol>
+</body></html>

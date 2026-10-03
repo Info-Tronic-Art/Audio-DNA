@@ -311,3 +311,233 @@ status-note:
 artifact:
 history:     NEW(2026-10-02)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-03-RealTimeAudio-1791066975859007673
+raw:         # Boris feedback of 2026-10-03 (received ~13:28, recorded 2026-10-03 13:32:39, session s-rta-1003) — answers to the Oct 2 page (39 questions) + new items
+## VERBATIM (his whole message; lead-in: "here is my feedback. organize it as you wish and give me list of questions to clarify, if needed:")
+```
+Firing a column that is already playing should restart its videos
+
+What does this mean: Momentary pad released before its quantized beat: now cancels
+
+Little correction. When record to clip, we want to see the recording in the layer it is recording to while it is being recorded. Can you do that?
+
+The layer strip does not need to show the deck a clip is playing from.
+
+Recording a clip should be prominently displayed, so it can be recorded as long as the user likes. There's no limit except hard drive Space.
+
+The recording should look exactly like the output. If there's a logo, it should look exactly as it's displayed.
+
+The recording will always play like a regular clip once it is recorded. 
+
+As far as a video clip is concerned, it is in two categories, either BPM synced throughout the whole thing, or just playing with a speed control. If it is BPM synced, regardless of the length, it is synced to the current playing BPM and it has bars that the user can set. We automatically set bars for a cliff, but the user can change the bars in it by amount. Let me know if you have any questions on that. Regardless of the clip being BPM or speed controlled, if we are in Qantize mode, it is triggered on time by the Qantize method.  There should be no problem playing clips that are set up for BPM and clips that are set up for speed at the same time. Their speeds are just controlled differently.
+
+For sync control we should have a way to remember it as part of a composition save. I imagine if a user is doing this professionally, they will set up the venue and save it in case of a computer crash or something and if they come back to that venue, they have the settings already.
+
+Sync lives in top bar
+
+For sync and setting the BPM. The user of the application will tap tempo and keep the application in time with the music. It is hard to tap ahead or behind the beat. The user will try to have the beat matched exactly to the music so the user can see it pulsing exactly to the time of the music. Sometimes the visual system is a little delayed and will need to be a little ahead or sometimes the visual system is a little faster than the music and that's what this is for. The visuals should be on the delay. The music is in time and the visuals should be delayed or a little ahead depending on how the system is wired. Let me know if you have questions to clarify. 
+
+Long samples: squeeze the whole sample into the envelope length (up to 10 minutes), or pick a section? Default: the whole sample. I want to be able to use the whole thing or to shorten it manually but clicking to timing marks.
+
+For Milk drop there is no timeline, but there are effects.
+
+Explain this to me. Where do I draw the timeline curve? [ After this fix, “Clip Position” and “Timeline” do the same thing: the knob goes from its low end to its high end as the clip plays. Once you can draw the Timeline curve, Timeline follows your drawing and Clip Position stays a straight line. Keep both, or remove Clip Position? Default: keep both.]
+
+Quantize 1 bar, 1/2 bar, 1/4, 1/8, 1/6
+
+Let’s get rid of beats and just have bars in most places unless beats are necessary. For setting a clips beats, these are done with beats and not bars. For most other things, we will use bars. For the circle at the top that counts off 1234 and then starts over, those are beats as well. 
+
+We should pick the most optimal Kodex to use and not worry about the other ones. Web M is not necessary. I want codecs that decode easily and play well
+
+If there are ‘/‘ characters in a decks file name, do not worry about adding sub folders. They are just characters. If there are characters that are no good, then let me know and we will create a fix together
+
+Can you figure out how to get everything working in the keying menu? Does the keying slider actually do anything? Maybe we get rid of it. Some elements in the keying menu work and some don’t. Should we use the transparency slider to do the work for keying elements? Also review the compositing menu, right slider in layer strip. These elements don’t work: Creative, 3D, 
+
+When I grab the play head and move the timeline, I do not want it to jump back to where it was or where it should be playing before I grabbed it. I wanted to keep playing at the same speed, but play from wherever I drop the play head. Does this make sense?
+
+
+Testing some of your work. When I switch decks, the clips in the layers disappear. They should remain. The output also goes black when I switch decks in there are clips playing in a layer.
+
+
+How do I access the bigger envelope, editor? I don't think I need it? I am fine using the envelope editor in the signal tab. I want all of the controls to work in that one rather than an extra bigger envelope window.
+
+I have beats and seconds in the milkdrop editor. I only need beats.
+
+Gain slider in top bar could be twice as long. I have very little space to move it because I start at a quarter from the left edge and move down from there so I have very little distance to make a lot of fine adjustment.
+
+All the other defaults are good.
+```
+
+## Items (Harmony's reading — consequence text, not Boris's words). Page = .harmony/.reports/s-rta-1002b/boris-checks.html (questions 1-39).
+BF11 [NEW, READY] Firing a column that is already playing restarts its videos (today a column re-fire leaves them running).
+BF12 [EXPLAIN] "Momentary pad released before its quantized beat: now cancels" (s-rta-1002 page, feel check) — explanation owed, no build.
+BF13 [bf1 DELTA] Record to clip: (a) the recording is visible in the layer / cell it records into WHILE recording (OPEN-Q: how —
+     a live picture in the destination cell vs played into the layer; a whole-output recording played into its own layer would
+     record itself); (b) page Q7 ANSWERED: no automatic end; REC shown prominently; the only limit is disk space (a disk-space
+     guard is Harmony's consequence); (c) page Q8 ANSWERED: "should look exactly like the output ... logo ... exactly as it's
+     displayed" (OPEN-Q: single-layer recording keeps see-through parts? default now YES); (d) page Q9 = default (plays like a
+     regular clip; Quantize decides).
+BF14 [bf9b DELTA, READY] The layer strip does NOT show the source deck: remove the strip's source-deck badge (ruling-bf9b
+     amendment 16(a)-(c): badge + badge click) before the merge. OPEN-Q: the deck TAB dot (default keep).
+BF15 [NEW MODEL STATEMENT] A video clip is either BPM-synced (always follows the current BPM; a length the user can set; the app
+     sets it automatically, the user changes it) or speed-controlled; Quantize times the START of both kinds; both kinds play
+     side by side. (Today: transport mode "BPM Sync" with beat-division presets exists — docs/claude/history.md:55,
+     architecture.md:92 beatDivision.) OPEN-Q: unit (his message says "bars" here and "beats" under BF21), how "by amount"
+     works, the automatic length rule.
+BF16 [bf2 DELTA] Sync: (a) saved as part of the composition (venue recall after a crash / return visit); (b) page Q14 ANSWERED:
+     it lives in the TOP BAR; (c) page Q16: the user taps in time with the music; the beat stays in time with the music; the
+     VISUALS are what gets delayed / advanced (confirm: beat wheel unshifted, output shifted).
+BF17 [bf45 DELTA] Long samples (page Q21): whole sample by default, AND shorten it by hand by clicking timing marks.
+BF18 [bf6] Page Q24 = (a): MilkDrop has no timeline (Timeline greyed out); its effects remain.
+BF19 [EXPLAIN] Page Q25: where the Timeline curve is drawn — explanation owed; the default (keep both) stands until he says.
+BF20 [bf7 DELTA] Quantize menu: 1 bar, 1/2 bar, 1/4, 1/8, "1/6" (OPEN-Q: read as 1/16).
+BF21 [bf7 DELTA] Bars in most places; a clip's length is set in BEATS; the top circle counts BEATS (1-2-3-4).
+BF22 [NEW] Codecs: pick the one that decodes easily and plays best; do not chase the others; WebM not needed (page Q39: no job).
+BF23 [BUG, page section 3] "/" in a deck name is just a character — never a sub-folder. Characters a file name cannot hold:
+     tell him, fix together.
+BF24 [NEW AUDIT] Keying menu: make every entry work or propose removal; does the Keying slider do anything (maybe remove; maybe
+     the transparency slider does the keying amount); compositing (blend) menu on the layer strip's right slider: the
+     "Creative" and "3D" groups do not work.
+BF25 [BUG] Dragging the playhead: after the drop the clip plays on from the drop point at the same speed; it must not jump
+     back to where it was / would have been.
+BF26 [REPORT] "When I switch decks, the clips in the layers disappear ... output also goes black" = the app WITHOUT the deck
+     change (lane bf9b is built, not merged: main 5abdf01 vs lane/bf9b a7491d4; the lane's own probe shows the pre-change app
+     changing the picture on a switch). Merge = this session's first job.
+BF27 [bf45 REVERSAL] No bigger envelope editor. Every control works in the Signal tab's envelope editor (supersedes BF4
+     "bigger envelope" and page Q17 / Q18).
+BF28 [bf7] MilkDrop editor: beats and seconds shown today; only the musical unit is needed (OPEN-Q: label in bars or beats).
+BF29 [NEW, ui] Top bar Gain slider twice as long (he works in the lower quarter of its travel).
+BF30 "All the other defaults are good." -> every page question not named above takes its default (decks Q1-Q4; record Q5, Q6,
+     Q10; sync Q11 bar-not-dial, Q12, Q13, Q15; envelopes Q19, Q20, Q22, Q23; Timeline Q26; bars Q27, Q29, Q30 (except clip
+     length = beats); deck rename Q32, Q33; picture info Q34; Q35 on-screen test strip NOT OK'd; MilkDrop Q36, Q37; MKV Q38).
+
+## Boris's answers to Harmony's 14 clarifying questions (received ~14:02, recorded 2026-10-03 14:03:17, s-rta-1003)
+VERBATIM:
+```
+1 drop
+2 restart
+3 yes
+4 yes
+5 beats
+6 both
+7 not current bpm but have a bpm and beats input so user can do it by numbers and a x2 and /2 control to double or half easily
+8 yes
+9 yes
+10 yes
+11 drag handles that snap
+12 bars
+13 switch to - is fine for all bad chars
+14 no more tuning
+```
+The questions as asked (Harmony's wording) and what each answer settles:
+1 Deck tab dot (a small dot on a deck's tab when one of its clips is playing): keep or drop? -> DROP. bf9b: the tab dot
+  (ruling-bf9b amendment 16(b), machine check M-e) is removed together with the strip badge (BF14).
+2 A video you played, replaced, then fire again: continue where it left off (today) or restart? -> RESTART. Every fire of a
+  video starts it from its start (in point). Changes the bf9b C3 "resume" contract (K10 (ii), Boris-page step 8.11) ->
+  built in the transport lane after the bf9b merge; bf9b's Boris page drops 8.11.
+3 While recording, the destination cell shows a live picture, a REC mark and the running length; it is not played into the
+  output. -> YES.
+4 Recording one layer with see-through parts keeps them see-through. -> YES (needs an alpha codec; H.264 cannot carry alpha).
+5 BPM-synced clip length unit. -> BEATS.
+6 "Change it by amount": type a number plus /2 and x2 buttons. -> BOTH.
+7 Automatic length = closest of 1, 2, 4, 8, 16, 32 bars at the current BPM? -> NO: "not current bpm but have a bpm and beats
+  input so user can do it by numbers and a x2 and /2 control to double or half easily". Harmony's reading: a BPM-synced clip
+  carries its own BPM and its length in beats, both typed as numbers, with x2 and /2. OPEN: what the two numbers start at.
+8 "1/6" in the Quantize list = 1/16. -> YES.
+9 Sync: the beat wheel stays exactly where he tapped; only the picture is shifted. -> YES (lane/bf2's wheel follows the
+  shifted beat today: must change).
+10 Opening a composition loads its saved venue and sync value, replacing what the app had; the SYNC note shows. -> YES.
+11 Trimming a long sample: drag the two end handles; they snap to the bar lines. -> DRAG HANDLES THAT SNAP.
+12 MilkDrop preset change labels. -> BARS (seconds removed).
+13 Characters a file name cannot hold. -> "switch to - is fine for all bad chars": every bad character becomes "-".
+14 Other codecs still open and play as today; no more tuning for them. -> NO MORE TUNING.
+
+## Follow-up on answer 7 (recorded 2026-10-03 14:10:11) — Harmony asked: "What should the two boxes start at when you first switch a clip to BPM sync? Default: read a BPM from the file name if it has one (like \"128bpm\"); otherwise pick the beat count (4, 8, 16, 32, 64) that puts the clip closest to 120 BPM."
+Boris (verbatim): "7 follow up: default and bpms for clips to 120"
+Harmony's reading (INFERRED, put back to him): the default stands, with 120 as the BPM a clip is assumed to be when its file name gives none. Second reading, if he corrects: the BPM box starts at exactly 120 and the beats box shows whatever the clip's length gives at 120 (2 beats per second, possibly not a whole number).
+CLARIFIED by Boris (verbatim, recorded 2026-10-03 14:10:25): "default all bpms to 120" -> every clip's BPM box starts at exactly 120 (no
+file-name rule, no nearest-power-of-two rule); the beats box shows what the clip's length gives at 120 BPM; he then types a
+number or uses x2 and /2. Harmony's first reading above ("the default stands") was WRONG and is superseded.
+
+## Boris's answers to questions A-E (recorded 2026-10-03 14:55:32, s-rta-1003)
+VERBATIM:
+```
+a Let's not allow control Z to change anything that is live in the layer strip. It changes anything else
+b yes it stays in clip tab regardless of deck
+c can you clarify?
+d yes
+e every show remembers it's sync
+```
+The questions as asked (Harmony's wording):
+A "You duplicate or load a deck, a routine starts one of its clips, then you press Cmd+Z. Should that clip keep playing,
+  like when you delete a deck? Default: yes. One exception for now: if the loaded deck added layers to your show, Cmd+Z
+  takes those layers and their clips away."
+B "A clip is selected and you click another deck tab. Should the Clip tab stay on that clip, or jump to the same spot on
+  the new deck? Default: stays, as today."
+C "After deleting a deck, the 'Undo Remove' button only shows when the tab row has room; with many decks only the text line
+  at the top says it. Enough? Default: yes."
+D "Gain: twice as long, same scale? Default: yes. Alternative: also stretch the low end so 0 to 1 takes half the slider."
+E "A show saved while Sync sits on 'Default' at 0 does not remember a sync setting, so opening it later leaves the room's
+  sync alone. Default: yes. Alternative: every show remembers its sync, 0 included — then a show saved at home resets the
+  room to 0."
+BF31 [NEW RULE, from answer a] Undo (Cmd+Z) never changes what is live in the layer strip; it undoes everything else.
+  Harmony's reading (consequence text): a fired clip is not an Undo step; undoing a structural edit (add / load / duplicate
+  / remove deck, add / remove layer, clear) leaves what is playing playing. Today a trigger IS an Undo step (TriggerClipCmd)
+  and Undo of a Load Deck that added layers stops that deck's clips (ruling-bf9b-merge AM-7's pinned exception, T6h).
+  NOT built in the bf9b lane (no regression there: both behaviours are main's today) -> its own lane right after the merge,
+  with pre-registered expectation changes (T6h, the trigger-undo tests, Boris-page step 8.6). OPEN: the exact edges (Undo of
+  Clear, Undo of Add Layer while that layer plays) -> the plan decides, council attacks.
+Answer b: the Clip tab stays on the clip he is working on, whatever deck is shown (= today; ruling Q-C closed).
+Answer c: he asks for a clarification of question C (owed in plain words).
+Answer d: Gain twice as long, same scale.
+Answer e: EVERY show remembers its sync, 0 included (REVERSES the ruling-bf2-delta default "a show saved at Default 0 does
+  not remember a sync setting").
+
+## Boris on the "Undo Remove" button (recorded 2026-10-03 14:58:10) — after Harmony's clarification of question C
+VERBATIM: "I don't wanna see an under removed button at all. We just use control Z. The only place that we will see undo remove, will be in the top edit menu."
+Harmony's reading: the "Undo Remove" button in the deck tab row is removed entirely (ruling-bf9b amendment 16(d)'s button); Cmd+Z is the way back; the Edit menu's Undo item is where "Undo Remove" is read. The information sentence in the top text line (Removed deck "..." -- Layer N keeps playing its clip) is not a control and stays. Built in bf9b FIX-3 (adoption item 9).
+FOLLOW-UP (recorded 2026-10-03 14:59:28) — Harmony said the one-line sentence at the top after deleting a deck (Removed deck "Deck 3" -- Layer 2 keeps playing its clip) would stay, "Say so if you want that gone too." Boris (verbatim): "yes remove the visible line. not needed" -> that sentence is removed as well (bf9b FIX-3, adoption item 10).
+
+## Boris on notices (recorded 2026-10-03 15:30:49) — after Harmony said the yellow "old show converted" note would stay
+VERBATIM: "We don't need any text indicating what has happened or what has happened. That is something that happens online and is not necessary in this application. It is extra overhead and bloat. Please remove it cleanly and completely."
+BF32 [RULE] The app shows no text that announces what has just happened. In the deck change (bf9b FIX-3, adoption item 11): the whole load notice goes (old show converted / routine pads left empty / deck-id refusal), with the Undo Remove button and the Remove Deck sentence (items 9, 10). The app log keeps its lines (not on screen). Sync-dial plan: no "sync changed" notice on a composition open (bf2 adoption item 7). OPEN (asked): the same rule for notices that were in the app before today (inventory owed).
+FOLLOW-UP (recorded 2026-10-03 15:42:01) — Harmony asked: "For texts that were already in the app before today (for example the yellow note when a wired mic drops and the app falls back to the MacBook mic), should they go too? Default: I send you the full list first; informational ones go, ones that report a failure stay until you've seen the list." Boris (verbatim): "remove the list entirely and cleanly" -> BF32 is APP-WIDE: every on-screen text that announces what has happened is removed, the ones that were in the app before today too, failure reports included; no list review first. Own lane after the bf9b merge (inventory -> plan -> council -> ruling -> build). Harmony flags ONE risk back to him (a failed save would show nothing).
+
+## Boris on the Edit menu + session end (recorded 2026-10-03 16:06:40)
+VERBATIM: "we should have an edit menu. note this, finish current tasks then eos"
+BF33 [NEW, ui] The app gets a standard Edit menu (Undo / Redo at least; today Undo is the first item of the "Composition" menu and names the action, e.g. "Undo Remove Deck"). Next UI pass (ui-polish lane), VISUAL + interaction gate.
+SESSION: finish the tasks in flight (the deck change: last build stage -> reviews -> Harmony's gates -> merge), then EOS. Nothing new starts.
+context:     s-rta-1003 secondary (RealTimeAudio / Audio-DNA), 2026-10-03: Boris's answers to the Oct 2 question page + new product rules BF11-BF33, every message verbatim with the question as asked. Product rules worth the primary's attention as patterns: (1) no on-screen text that announces what happened, app-wide; (2) Undo never changes what is live; (3) every fire restarts a clip; (4) decks are boxes of clips (merged today).
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-03
+status:      NEW
+status-changed: 2026-10-03
+status-note:
+artifact:
+history:     NEW(2026-10-03)
+--- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-03-RealTimeAudio-17910669758592217668
+raw:         REPORT UP (s-rta-1003, RealTimeAudio): (A) T26 secondary boot-prefix cut — STEP 0 MEASURED, steps 1-3 not built yet (deck-change merge took the session; STEP 3 handoff slim + archive landed at this close). Numbers (.harmony/.reports/s-rta-1003/t26-step0.md): first-call tokens RTA main session 54,114; RTA builder today 29,598 (slim builder spec) vs 41,152 yesterday (32 builders 37.7k-43.7k); Harmony_Main primary today 39,520 (not 30k). RTA main contributors: harmony.md 34.5 KB (9.6k-15.5k tok), RTA CLAUDE.md 24 KB (6.7k-10.8k), workflow-authoring skill text 17.3 KB (loaded by the launch command), pasted birth prompt 10.1 KB, agent listing 5.5 KB. In a builder CLAUDE.md is ~36 % of the first call. The global ~/.claude/CLAUDE.md loads ONCE per agent (not twice); the primary avoids it with claudeMdExcludes; RTA has none (STEP 2 = add it, supply layer0 in-project). HANDOFF.md is NOT in any first-call prefix: only the pasted birth prompt rides (now cut from 10 KB to ~4 KB by moving rig rules to .harmony/RIG-RULES.md). Estimated savings: STEP 1 4.4k-7.2k tok / call, STEP 2 1.4k-2.3k. (B) BUILDER-SPEC TRIP-WIRE (inbox notice of 2026-10-03): 8 builder dispatches with test authoring (M1-M3, FIX-1..5): builder-playbook referenced in every transcript checked, the INBOX-RECHECK line present in every stage report, review fix rounds 0 after the 4-lens round (this repo's normal: 1). No regression signal from the slim spec. (C) GAP: a foreign-repo lane cannot write memory/DISPATCH_LOG.md, so fable-usage-audit WARNs LAW11-LOG-GAP every session (3 architect dispatches today: 2 plans opus high, 2 rulings opus max; Fable not used, per Boris's 2026-10-02 instruction).
+context:     s-rta-1003 secondary close: report-up for inbox items down-2026-10-03-RealTimeAudio-179104415559333541 (T26) and -17910451953639312704 (builder-spec notice)
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-03
+status:      NEW
+status-changed: 2026-10-03
+status-note:
+artifact:
+history:     NEW(2026-10-03)
+--- /IDEA ---

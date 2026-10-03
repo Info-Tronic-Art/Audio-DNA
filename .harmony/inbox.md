@@ -160,8 +160,8 @@ origin:      memory/.reports/s243/TA-trim-plan-final.md:172
 why-routed:  edits RTA-repo files (CLAUDE.md, .harmony/HANDOFF.md, project settings) — project work, not primary
 source-idea: 
 routed-by:   harmony-70786     date: 2026-10-03
-status:      ACK
-status-note: s-rta-1003 (2026-10-03): ADOPTED. STEP 0 measurement first (report under .harmony/.reports/s-rta-1003/); STEP 1 (CLAUDE.md <= 8 KB) after the bf9b merge (that lane edits CLAUDE.md); STEP 2 after STEP 0 shows the duplicate; STEP 3 (HANDOFF <= 20 KB + archive) at close through secondary-close-gate-verify.sh.
+status:      IN-PROGRESS
+status-note: s-rta-1003: STEP 0 MEASURED (.harmony/.reports/s-rta-1003/t26-step0.md: RTA main first call 54,114 tok; builder 29,598; primary 39,520; HANDOFF not in any prefix, the pasted birth prompt is). STEP 3 LANDED at close: HANDOFF.md 291 KB -> 14.5 KB live + HANDOFF-ARCHIVE.md (git mv, nothing deleted) + RIG-RULES.md; close gate ALLOW; the birth prompt went 10.1 KB -> ~4 KB. STEP 1 (CLAUDE.md <= 8 KB) and STEP 2 (claudeMdExcludes) OPEN -> next session, then re-measure. Reported up: idea-2026-10-03-RealTimeAudio-17910669758592217668.
 --- /ROUTED-ITEM ---
 
 --- ROUTED-ITEM ---
@@ -171,6 +171,6 @@ origin:      core/WORK_INDEX.s247.md
 why-routed:  awareness + a monitoring check that only the project session can run (its builders, its transcripts)
 source-idea: 
 routed-by:   harmony-70786     date: 2026-10-03
-status:      ACK
-status-note: s-rta-1003 (2026-10-03): read. Trip-wire running on the next 5 builder dispatches with test authoring (tally in .harmony/s-rta-1003-work.md); read-only roles get a literal REPORT_FILE under .harmony/.reports/; plans = architect opus high, rulings opus max while Fable is out (Boris 2026-10-02).
+status:      DONE
+status-note: s-rta-1003: trip-wire run over 8 builder dispatches with test authoring (M1-M3, FIX-1..5): playbook referenced, INBOX-RECHECK line in every stage report, 0 fix rounds after the 4-lens review. No regression signal. Reported up: idea-2026-10-03-RealTimeAudio-17910669758592217668.
 --- /ROUTED-ITEM ---
