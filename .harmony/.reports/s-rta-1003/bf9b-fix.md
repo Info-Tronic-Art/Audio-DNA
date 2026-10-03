@@ -801,7 +801,7 @@ four places and kHeaderLit's value 0xff3a5a4a literally in two (setupDeckTabs, r
 left: the ruling asked for ONE helper for the header only.
 
 ## STAGE FIX-4 PROBES, GATES, DOCS (AM-6's script, AM-9, AM-15, the rest of AM-14; H-7; adoption items 3, 9-11 probe half)
-STATUS: PENDING
+STATUS: DONE_WITH_CONCERNS (every item built and run; 10 stop items for Harmony, the first one an ASan report in main's REST reader)
 Started 2026-10-03 15:57:16 on 8202802 (branch lane/bf9b). No file under src/ changes in this stage. Scratch: <scratch>/bf9b-fix-FIX-4/.
 df at start: 294 GiB free on /System/Volumes/Data.
 
@@ -867,3 +867,259 @@ FM-3 (VERIFIED): ASAN-MU3 is RED at step L1, the pre-registered step.
 NOT REACHED by the row (as the ruling says): the Clip inspector, Layer > Add / Remove Layer. NOTE: the merged tree has
 POST /api/debug/inspect_clip (the ui lane's route), so "no REST route selects a cell" is no longer true; the row was
 built as ruled (STOP ITEM 2 asks whether a Clip-inspector step should be added).
+
+### Item AM-9 probe-boxes verdict names + the row-count pin; adoption items 9-11, the PROBE half (e0f9321)
+CHANGED ROWS (each changed ONLY the named clause; Boris's sentence is at the row):
+| probe | row | clause removed | what stays |
+|---|---|---|---|
+| probe-boxes.py | k7_old_show | "/api/debug/ui_text load_notice is non-empty" | first deck's settings win; exactly one "old show converted:" logLine |
+| probe-boxes.py | k7_old_show save (B5) | "the save retires the load notice" | the saved file's new shape |
+| probe-boxes.py | k7_old_show reload (B5) | "load_notice empty" | no new logLine; the first deck's settings come back |
+| probe-boxes.py | k7_old_show new-format | "load_notice empty" | no new logLine |
+| probe-deck-tabs.sh | Phase 2 state remove_hint:0 | the capture was named 11-remove-hint (the button) -> 11-after-remove | its REST clause (decks B,C, active 0). NOT RUN: Phase 2 needs the temporary hook build that is never committed |
+Quote at the k7 rows -- Boris: "We don't need any text indicating what has happened or what has happened. That is
+something that happens online and is not necessary in this application. It is extra overhead and bloat. Please remove
+it cleanly and completely." At probe-deck-tabs -- Boris: "I don't wanna see an under removed button at all. We just
+use control Z."
+NOT CHANGED, read: probe-boxes k9a / k9b / k9c read no hint and no sentence (REST state + frames only);
+probe-ui-files-rename's "undo" field is the Undo HISTORY (top / index / size), not the button.
+Also (AM-18, gates-r2 NIT 5): the Boris quote as a comment at k1b_duplicate and at k7_save_reload.
+VERDICT NAMES + PIN: the .py prints `PY-ROWS registered <n>` and `PY-BLOCKED-ROWS [<names>]`; the .sh puts the names
+in the verdict line and, on a FULL run, fails unless `--- <row>` headers == registered == EXPECTED_ROWS (25).
+RED / GREEN:
+- changed row on the PRE-bf9b main app (16:32:52, rows k7_old_show,k7_old_take; it also recorded the old take):
+  `FAIL  k7_old_show: exactly one 'old show converted:' logLine for the load (0)` /
+  `FAIL  k7_old_take: the lane changes only the grid -- every capture during the replay within floor (max 63.84, floor 1.50, 17 captures)` /
+  `PY 5 PASS / 2 FAIL / 0 BLOCKED (arm STAGE_P)` / `PROBE-BOXES RED` (the row still fails there on a remaining clause).
+- the pin's RED arm (16:39:14; a scratch COPY of the probe whose list holds 2 rows, full run, lane app):
+  `FAIL  rows run 2, registered 2 != EXPECTED_ROWS 25 (full run)` / `PROBE-BOXES RED`, rc 1.
+- FULL run on the lane app (16:34:21 -> 16:38:12, ONE launch, BOXES_OLD_TAKE = the take recorded above):
+  `PY-BLOCKED-ROWS [k5_queue_link_on]` / `PY 63 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)` /
+  `PASS  rows run 25 == EXPECTED_ROWS 25 (registered 25)` /
+  `PROBE-BOXES BLOCKED 1 [k5_queue_link_on] (0 FAIL; 1 pre-registered bar(s) did not run -- not a pass)`  rc 3.
+  63 PASS, not M3's 65: the two checks that were ONLY a load_notice clause are gone. k7's logLine on the lane:
+  `PASS  k7_old_show: exactly one 'old show converted:' logLine for the load (1)`.
+  Frame looked at: k9c_after2.png (one flat green of the ramp video, as the row's t-from-green oracle expects).
+
+### Item (7) m9b_deck_switch_live [H2] teeth (the row has a behavioural RED arm now)
+Mutant (never committed; scratch Release dir <scratch>/bf9b-fix-FIX-4/build-mut, outside git): in Renderer's frame,
+when the shown deck (the fence token) changes, the MilkDrop source is resized to 64 x 64 (8 lines after
+`const auto deckView = activeDeck_.view();`). Row on the mutant app (16:14:34):
+`FAIL  m9b_deck_switch_live[H2]: (load_preset, resize, release_gl) across the solid walk (0, 40, 0), the live walk (0, 40, 0) (bar (0, 0, 0) each), the [H3] switch + one beat (1, 2, 0) (bar (1, 0, 0)); every capture at the canvas size: True; CONTROL load_milkdrop_preset + canvas round trip (1, 2, 0), + gl_context_cycle (HTTP 200) (2, 2, 1) (bar >= 1 each): alive`
+/ `PROBE-MILKDROP RED` rc 1 ([H1] and [H3] PASS under it: the next frame resizes back). Source restored: sha256
+50c4433af9da... before == after, `git diff --quiet -- src rc 0`.
+
+### Item AM-15 .harmony/probe-boxes-perf.sh / .py; the dry pass; fact FM-6 (9e16730)
+Driver: definitions as AM-15 (run value, SD of run means, pooled SD, THR); B6(i) / (ii) / (ii-b) / (iii); --selftest;
+--dry; `PROBE-BOXES-PERF BLOCKED (machine not quiet: <ps line>)` rc 3. It imports probe-boxes.py for the fixtures
+(K2v's 60 videos, K8's 20 picture decks), so the fixture code is the K rows' own.
+- selftest RED (before any number was recorded): `SELFTEST FAIL (no recorded numbers in this script)` rc 1.
+- DRY PASS (16:22:43 -> 16:26:05, lane app, quiet lock, PERF_PARTS=ii PERF_RUNS=5 PERF_SECS=12; no verdict):
+  `B6(ii) DRY (no verdict) -- mean(20 decks) 2.403 ms - mean(1 deck) 2.387 ms = +0.016 ms; SD 0.052 / 0.098, pooled 0.078, THR 1.000 ms; widest arm spread (max - min) 0.272 ms; run means 20: [2.432, 2.367, 2.421, 2.46, 2.333] 1: [2.541, 2.376, 2.269, 2.368, 2.382]`
+  `B6(ii-b) DRY (no verdict) (gpu_time_ms) -- mean(20) 2.258 - mean(1) 2.255 = +0.004 ms; THR 1.000 ms`
+  `B6(ii-b) DRY (no verdict) (callback cost) -- mean(20) 10.898 - mean(1) 11.326 = -0.428 ms; THR 1.424 ms`
+  `PROBE-BOXES-PERF DONE (dry pass: no verdict)`; ps before run 1:
+  `47.9 WindowServer | 46.1 00:06 Audio-DNA | 15.8 coreaudiod | 8.9 Firefox GPU Helper`.
+  A first dry pass (16:19:34) printed `PROBE-BOXES-PERF BLOCKED (machine not quiet: 51.0 07-03:38:28 .../WindowServer)`
+  after 6 runs: WindowServer runs at 47-51 % BECAUSE the app renders, so it is exempt now (said in the docstring).
+- selftest GREEN (the dry pass's run means are the recorded numbers):
+  `SELFTEST PASS (recorded numbers: B6(ii) PASS; shifted by 2 ms: B6(ii) FAIL; expected PASS and FAIL)` rc 0.
+- FM-6 (16:27:07 -> 16:31:49; mutant = a 2 ms busy loop per deck right before compositor_.compositeShow, built into
+  the scratch dir, 1 object, never committed; quiet lock; PERF_PARTS=ii, 5 runs per arm, PERF_SECS=20):
+  `RUN   ii FH one run 1: n 40 mean frame_time_ms 3.94 gpu_time_ms 1.967 callback 10.734`
+  `RUN   ii FH twenty run 1: n 40 mean frame_time_ms 40.988 gpu_time_ms 1.303 callback 41.246`
+  `B6(ii) FAIL -- mean(20 decks) 41.014 ms - mean(1 deck) 3.974 ms = +37.040 ms; SD 0.017 / 0.057, pooled 0.042, THR 1.000 ms; widest arm spread (max - min) 0.141 ms; run means 20: [40.988, 41.02, 41.019, 41.011, 41.033] 1: [3.94, 3.959, 4.073, 3.969, 3.932]`
+  `B6(ii-b) STOP-FOR-A-LOOK (callback cost) -- mean(20) 41.299 - mean(1) 10.933 = +30.366 ms; THR 1.000 ms`
+  ps before the first two runs: `65.3 Audio-DNA | 47.3 WindowServer | 14.6 coreaudiod | 9.8 Firefox GPU Helper` /
+  `100.7 Audio-DNA | 17.2 WindowServer | 10.2 coreaudiod | 7.0 Firefox GPU Helper`.
+  Source restored: sha256 50c4433af9da... before == after; `git diff --quiet -- src rc 0`. The script's FM6_PROVEN
+  is set, so a B6(ii) PASS no longer carries "(metric sensitivity not proven)".
+  The mutant's 1-deck arm reads 3.97 ms against the lane's 2.39 ms: one deck's 2 ms loop minus rounding -- the
+  metric sees the loop on both arms.
+
+### Item (6) H-7: the archived evidence scripts (05f4c82)
+ONE inserted line 2 in each of 14 scripts (`echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by
+name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64` -- for the 7 sourced lock.sh helpers
+`return 64 2>/dev/null || exit 64`); `git show --shortstat`: 14 files changed, 14 insertions(+). Exercised: a run
+script `rc 64`; a sourced helper `source rc 64; quit_app defined: no`.
+The by-name grep over .harmony/.reports script files (pattern `tell application "Audio-DNA" to quit|quit app
+"Audio-DNA"|osascript.*Audio-DNA|pkill|killall|adna_kill|kill $(adna`), every remaining hit by file:
+```
+2 hit(s)  s-rta-0926b/render-evidence/run_diag.sh  -> NEUTRALISED (line 2 stops: exit / return 64)
+2 hit(s)  s-rta-0926b/routines-followup-evidence/stop-witness.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0927/beatclock-evidence/scripts/witness.sh  -> NEUTRALISED
+3 hit(s)  s-rta-0927/renderperf-evidence/fix/scripts/capture_race.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0927/renderperf-evidence/fix/scripts/lock.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0927/renderperf-evidence/scripts/lock.sh  -> NEUTRALISED
+9 hit(s)  s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0927/routines-timing-evidence/scripts/run-t2.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0927/source-defects-evidence/live.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0928/gate-scripts/lock.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0928b/wf/lock.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0929/wf/lock.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0929b/wf/lock.sh  -> NEUTRALISED
+2 hit(s)  s-rta-0930/wf/lock.sh  -> NEUTRALISED
+2 hit(s)  s-rta-1002b/wf/lock.sh  -> only-ours guard: :51 `if [ -z "$ours" ] || [ "$run" != "$ours" ]; then echo "REFUSE quit: ...`
+```
+H-7 says 15 scripts: M2's list of 15 INCLUDES s-rta-1002b/wf/lock.sh, which H-7 itself exempts -> 14 neutralised +
+1 guarded. s-rta-1003/wf/lock.sh is not in this worktree (the main checkout's file; not mine to touch). Other hits
+are prose in .md / .log / .txt / lane.js records, not commands.
+
+### Item AM-14 the remaining docs (3f8c3bf)
+performance-controls.md: the Remove Deck bullet gains AM-7's rule and its exception (T6h); the resume sentence gains
+`(Boris 2026-10-03: "restart" -- changed by the transport lane)`; Guards name T6f-T6j, AS0-AS7 / N1, B4a-B4j, the two
+asan probes, the row-count pin and the perf driver; the Link paragraph gains "K5 with Link on has no live driver:
+BLOCKED in probe-boxes". pitfalls.md: Pitfall 33 gains AM-14's sentence. integration.md + APP-INVENTORY: ui_text's
+`inspected_layer` / `inspected_clip` / `inspector_tab`; test count 1249; the three new probes. No CLAUDE.md line, no
+pitfall: `wc -c CLAUDE.md` 24224. Docs grep of gate B4 (`strip badge|source-deck badge|badge, dots|tab dot|shows a
+dot` over docs/claude CLAUDE.md APP-INVENTORY tests/CMakeLists.txt): 0 hits; "Undo Remove" in those files: ONE hit,
+performance-controls.md:49, the Composition menu's wording `Undo Remove Deck`.
+
+### FINAL GATE TABLE (ruling section 5 ids -> this stage's raw lines; FH = this report's commit, src == 7decfaa)
+| id | result at FH | raw line |
+|---|---|---|
+| G-1 | list for Harmony | the pattern over probe-boxes.sh/.py, probe-milkdrop.sh, probe-ui-files-rename.sh, probe-asan-live.sh, probe-boxes-perf.sh/.py, probe-quit-ours.sh: 2 hits, both probe-quit-ours.sh (:60 quit_ours, :84 ask_ours_to_quit; H-3 / H-8) |
+| B1 | rc 0 | `cmake --build build-lane -j8` all targets rc 0 (16:47; 0 objects left to compile) |
+| B2 | 1249 / 1249 | `100% tests passed, 0 tests failed out of 1249` (serial, 131.58 s, 16:47:11 -> 16:49:23) = 1248 + B4i |
+| B3 | green | `probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)` / `100% tests passed, 0 tests failed out of 5`, rc 0, 0 "WARNING: ThreadSanitizer" |
+| B3b | green | `PROBE-ASAN-UNIT GREEN (10 cases, 0 reports)` rc 0 |
+| B4 h / i / j | green | tests #1109 B4h, #1111 B4i, #1110 B4j passed in the full ctest; MU10 fails B4i; docs grep 0 hits |
+| ASAN-LIVE | GREEN / RED L1 | `PROBE-ASAN-LIVE GREEN (7 steps, 0 INVALID, 0 "ERROR: AddressSanitizer", app alive at the end)` (3 runs; the last at 16:49:37 on the final binary, sha256 9c635c97726e0532) ; ASAN-MU3: `PROBE-ASAN-LIVE RED (step L1)` |
+| K | exact line | `PROBE-BOXES BLOCKED 1 [k5_queue_link_on] (0 FAIL; 1 pre-registered bar(s) did not run -- not a pass)` rc 3, `rows run 25 == EXPECTED_ROWS 25` (lane app sha256 87a10c736d13d228). MAIN0's full K batch: NOT re-run here (only its k7 rows) |
+| H1 | green | `PASS  m9b_deck_switch_live[H1]` / `[H3]` / `[H2] ... solid walk (0, 0, 0), the live walk (0, 0, 0) ... (1, 0, 0) ... alive` ; `PROBE-MILKDROP GREEN` (full run 16:40:25, every row PASS). MAIN0 `RED-OK` line: M3's, not re-run. [H2] under a mutant: FAIL (above) |
+| U1 | green | `PASS  R11 CONTROL duplicate_deck 0 -> 4 tabs, builds +1 (the counter is alive)` / `54 PASS / 0 FAIL` (16:44:23). MAIN0 arm: M3's, not re-run (the probe is unchanged since) |
+| B5 | in K | k7_old_show's save / reload clauses PASS in the K run (load_notice clauses removed by adoption item 11) |
+| B6 | NOT RUN as a gate | driver + selftest + dry pass + FM-6 only; the 5 x 60 s verdict run with MAIN0 is Harmony's |
+| B7 | machine part in B2 | live states and critics: Harmony's. One window capture looked at (ui probe C1): tabs A / B / C and "+", no dot, no badge, no button, no notice |
+Windows after every live batch: `audio-dna windows 0, Output-named 0`, `UserNotificationCenter windows (OptionAll): 0`
+(each read >= 16 s after the quit). Lock released after every batch. No .venv symlink was created.
+
+### THE SIX 4.B ROWS (AM-10; late rows of plan-bf9b 4.B, with the sentence that licenses each)
+1. test_routine_engine, D3's "another deck" step removed -- plan-bf9b :332-333 "`RoutineEngine::stopOnLayer(int
+   layer)` (was (deck, layer)): stops every running routine touching that shared layer, whatever deck it fired from."
+   (positive test D3b added in FIX-2, RED under its mutant.)
+2. test_routine_deck_view, the "off-deck" case -- :334-335 "deriveRoutineDeckView: bands for every running routine on
+   its shared layer, whatever deck is shown (shownDeck stays for labels only)."
+3. test_composition, duplicateDeck -- the queued-trigger half: :269 "there is no tuple to clear any more"; the layer-id
+   half: :441-442 "a deck has no layers any more". (The ":1607" reference is struck.)
+4. test_undo_commands, the "stale DECK index" sub-steps -- :271-272 "TriggerClipCmd: addressed by shared layer index".
+5. test_layer_state_key, case 1 -- :441-442 (as 3); the two-half key stays pinned (Pitfall 35).
+6. test_recorder_host / test_program_preamble -- :340-341 "PerfStateCapture captures the shared layers once and, per
+   deck, only clip runtime."
+FIX-2's two proofs are in its section (D3b; the recording.md grep: 0 hits, nothing to correct).
+
+### FILED (ruling section 8 + what the fix stages found; for Harmony to schedule)
+SF-1 DONE in this lane (adoption item 2, FIX-1: the owned-or-clear check after every fenced edit, case AS7).
+SF-2 grip lifetime against widget lifetime (strip / inspector slider destroyed or re-pointed mid-drag; a routine's
+     grip after Move Layer; the grip rule extended to effect rows) -- needs a TSan case.
+SF-3 the rebuildCells split (a switch between decks of different widths rebuilds strips and tabs); G1' -> identity.
+SF-4 MOOT: the Undo Remove button is gone (adoption item 9).
+SF-5 Undo of a Load Deck that added layers still erases a playing deck (T6h) -> lane BF31 ("Undo never changes what
+     is live", adoption item 8) re-registers T6h and the trigger-undo tests.
+SF-6 K5 with Link on needs a Link build + a toggle route; k5_queue_tempo_feed with it (sync lanes).
+SF-7 stable Layer storage (the root cure of the whole class).
+SF-8 ApiServer reads retiredDecks_.size() on the http thread -- AND, NEW from this stage (SF-12 below).
+SF-9 Composition::crossfaderBlendMode has no reader. SF-10 the Clip tab after a deck switch: Boris answered "yes it
+     stays in clip tab regardless of deck" -- nothing to build.
+SF-11 (H-11) after Add / Remove Column the Clip tab goes empty when its clip moved in memory (ui lane).
+SF-12 NEW: GET /api/composition (ApiServer::handleComposition, the http thread) walks composition_.decks with no
+     lock while the message thread appends a deck: `AddressSanitizer: container-overflow ... ApiServer.cpp:488`
+     (run fh2). Same handler shape on main. Any REST client that polls during a load / duplicate / remove can meet
+     it; in a Release build it is a silent torn read.
+ALSO: transport lane (Boris "restart": K10 (ii) re-registered); Composition::routineLoadNote has no reader left
+(FIX-3 stop 6: the empty pads are said nowhere, not even in the log -- src was frozen in FIX-4, so no logLine was
+added); the event-text inventory of FIX-3's FOUND 1 (main's texts; probe-asan-live now WAITS on three of them, see
+stop item 4); BORIS_DECISIONS.md:358 stale badge sentence; B4f's pin { "ui/InspectorRepoint.h", 1 } (H-10: confirmed).
+
+### FACTS MEASURED (FIX-4)
+FM-1 VERIFIED -- the ASan app links (libclang_rt.asan_osx_dynamic.dylib), starts in --test-mode under the lock,
+     answers /api/health, and ends on a report with no crash dialog (abort_on_error=0, log_path): UNC windows 0.
+FM-3 VERIFIED -- `PROBE-ASAN-LIVE RED (step L1)` on ASAN-MU3 (heap-use-after-free, asan.11495).
+FM-6 VERIFIED -- `B6(ii) FAIL -- mean(20 decks) 41.014 ms - mean(1 deck) 3.974 ms = +37.040 ms ... THR 1.000 ms`.
+FM-7 fell away (adoption item 9). FM-8 is Harmony's (B8's diff).
+
+### STOP ITEMS FOR HARMONY (FIX-4)
+1. SF-12: the unmutated ASan app printed `PROBE-ASAN-LIVE RED (step L4)` ONCE (run fh2), a container-overflow in
+   GET /api/composition's reader racing Duplicate Deck. It is NOT the lane's memory fix and it is on main too, but it
+   IS an ASan report on the final src. I changed the PROBE (it no longer polls that reader while a command may still
+   change the model) and 3 runs after that are GREEN; I did not change src. Harmony rules: accept the probe's wait,
+   or fix the reader (a message-thread hop like ui_text) in this lane.
+2. AM-6 says "no REST route selects a cell"; the merged tree has POST /api/debug/inspect_clip. The row was built as
+   ruled (it does not reach the Clip inspector). A Clip-inspector step is possible now -- not built, no ruling.
+3. H-7's "15 scripts" = 14 neutralised + s-rta-1002b/wf/lock.sh (guarded, exempt by H-7's own text).
+4. probe-asan-live waits for a staged command on the top text line ("Loaded deck:", "Duplicated deck:", "Loaded:"),
+   three of main's event texts. If a later lane removes them (Boris's sentence, app-wide), the waits time out
+   (15 s / 40 s) and the probe falls back to 1 s re-reads: slower, and it would poll the SF-12 reader again.
+5. B6(ii)'s order of tests: I read section 5 as FAIL when the difference exceeds THR even on a noisy arm, INFO-NOISY
+   only where a PASS would otherwise be printed. The quiet rule's numbers are mine (a build tool running, or any
+   process but Audio-DNA and WindowServer at >= 50 % CPU): the ruling gives none.
+6. FM-6 ran with 20 s runs (5 per arm), not 60 s: +37 ms against a 1 ms threshold does not need the length; the
+   gate run keeps 60 s.
+7. The K line was produced before this report's commits; src, tests and the probe files are byte-identical at the
+   final head (`git diff --quiet 7decfaa HEAD -- src` rc 0; the final build compiled 0 objects; same binary).
+8. MAIN0 arms NOT re-run in this stage: the full K batch, m9b's RED-OK, U1's three RED rows (M3 has them; the ui and
+   milkdrop probes are unchanged since M3; probe-boxes' changed row was run on main: RED above).
+9. probe-deck-tabs Phase 2 was not run (it needs a temporary hook build); only its capture name changed.
+10. Timeline: one cooldown message says "re-acquire cooldown"; no lock was ever taken from another owner.
+
+### HAND-OVER TO HARMONY
+- Final head: this report's commit on lane/bf9b (git -C <WT> log -1). src == 7decfaa; tests == 7decfaa + B4i.
+- WT = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b. Build dirs: build-lane = the Release lane
+  app (build-lane/AudioDNA_artefacts/Release/Audio-DNA.app, sha256 87a10c736d13d228) + every test; build-asan-app =
+  ASAN-FH (build-asan-app/AudioDNA_artefacts/RelWithDebInfo/Audio-DNA.app, sha256 9c635c97726e0532; app target
+  only); build-asan = the asan unit gate; build-tsan = the tsan unit gate. The scratch mutant dir
+  (<scratch>/bf9b-fix-FIX-4/build-mut) holds the FM-6 MUTANT app: never use it as an arm; it can be deleted.
+- Commands (lock helper: LANE=<name> . <scratch>/lib/lock.sh; acquire_lock / acquire_quiet_lock ... release_lock):
+  B1  cmake --build WT/build-lane -j8
+  B2  until mkdir /tmp/audiodna-ctest.lock 2>/dev/null; do sleep 15; done; ctest --test-dir WT/build-lane
+      --output-on-failure; rm -rf /tmp/audiodna-ctest.lock
+  B3  bash WT/.harmony/probe-tsan-unit.sh          B3b  bash WT/.harmony/probe-asan-unit.sh
+  ASAN-LIVE  ASAN_LIVE_APP=WT/build-asan-app/AudioDNA_artefacts/RelWithDebInfo/Audio-DNA.app bash
+      WT/.harmony/probe-asan-live.sh <out-base>     (ASAN-MU3: delete the 5 lines of `undoService_.onLayerStackMoved
+      = ...` in src/MainComponent.cpp, cmake --build WT/build-asan-app --target AudioDNA, put the source back, touch
+      it, run, rebuild; <scratch>/bf9b-fix-FIX-4/mu3_build.sh does exactly this)
+  K   MAIN0 first: BOXES_APP=<MAIN0> bash WT/.harmony/probe-boxes.sh <out-base> (its k7_old_take prints "recorded
+      take <folder>"); then BOXES_OLD_TAKE=<folder> BOXES_APP=WT/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+      bash WT/.harmony/probe-boxes.sh <out-base>     (NO row list: the pin needs a full run; ~4 min)
+  H1  MILKDROP_APP=<lane app> bash WT/.harmony/probe-milkdrop.sh <out-base>; MAIN0: MILKDROP_MODE=pre
+      MILKDROP_APP=<MAIN0> bash WT/.harmony/probe-milkdrop.sh <out-base> m9b_deck_switch_live
+  U1  UIFR_APP=<app> bash WT/.harmony/probe-ui-files-rename.sh <out-dir> --shots
+  B6  bash WT/.harmony/probe-boxes-perf.sh --selftest; then under acquire_quiet_lock, no commit meanwhile:
+      PERF_FH_APP=<lane app> PERF_MAIN_APP=<MAIN0> bash WT/.harmony/probe-boxes-perf.sh <out-base>   (~30 min)
+- Evidence: <scratch>/bf9b-fix-FIX-4/{asan-live,boxes,md,ui,perf}/*.log, ctest.log, tsan-unit.log, asan-unit.log.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- GET /api/composition is served on the http thread and reads the deck list unlocked: a probe must not poll it while
+  a staged load / duplicate may still land (ASan: container-overflow). Wait on /api/debug/ui_text (message thread),
+  then read once. | discovered: .harmony/probe-asan-live.sh, src/api/ApiServer.cpp handleComposition
+- A deck loaded with Load Deck is named after its FILE ("nine-rows"), not the "name" in the file; Duplicate Deck
+  appends the copy at the END. | discovered: .harmony/probe-asan-live.sh L4 / L5
+- WindowServer sits at 47-51 % CPU while Audio-DNA renders: a "machine quiet" rule must exempt it. | discovered:
+  .harmony/probe-boxes-perf.py
+- A hook that guards whole-tree commits matches the words of a heredoc: a script text holding "commit" and a later
+  "-a" flag was blocked. Keep those words out of generated script comments. | discovered: this stage
+- An ASan Audio-DNA app builds in ~80 s on this machine (RelWithDebInfo, -j6) and starts as fast as Release.
+
+INBOX-RECHECK: none (no message channel in this workflow run)
+
+### PACKET QUALITY (FIX-4)
+- Clarity: CLEAR, three HAD_TO_INFER: the B6(ii) test order (stop item 5); "15 scripts" against H-7's own exemption
+  (stop item 3); whether the K line "on the FINAL head" needs a run after the last docs commit (stop item 7).
+- Missing context: that /api/composition is read off the message thread; that a loaded deck takes its file's name;
+  that /api/debug/inspect_clip exists after the merge-in.
+- Unused context: the three r2 reviews, plan-bf9b-merge's body, rulings-bf9b-merge.md (1002b).
+- Self-brief files: ruling-bf9b-merge.md (full), the plan's HARMONY ADOPTION (full), rulings-bf9b-mergein.md,
+  bf9b-merge.md's hand-over, this report's FIX-3 end sections, ruling-bf9b's B6 text -- useful, none stale.
+  No DEPARTMENT / KNOWLEDGE_TOOLS block: no knowledge tools -- grep-only; nothing judged dead on "no callers".
+  pulse.json not read (the rig gives this worktree to this lane alone).
+
+### SLIM CHECK (FIX-4)
+src: 0 lines. tests: +47 (one lint case). Probes: probe-asan-live.sh (new), probe-boxes-perf.sh / .py (new),
+probe-boxes.py -26 net (four clauses out, names + pin in), probe-boxes.sh +21, probe-deck-tabs.sh +3. Docs: 8 lines
+over 4 files. Archived scripts: 14 inserted lines. Not built (as ruled): k9d, k5_queue_tempo_feed, B7 state 9 / 3b,
+any CLAUDE.md line, a Clip-inspector step, an src fix for SF-12. What I would cut if asked: probe-boxes-perf's
+PERF_PARTS switch (kept: FM-6 and the dry pass need part ii alone). Smell named: probe-boxes-perf.py imports
+probe-boxes.py by path and sets sys.argv for it (inappropriate intimacy) -- cheaper than a second copy of the
+fixtures, and the K rows' fixture code is then the perf rows' own.
+
+Ended 2026-10-03 16:52:39.
