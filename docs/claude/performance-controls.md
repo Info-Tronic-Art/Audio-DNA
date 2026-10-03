@@ -74,4 +74,6 @@ Composition-level automation that sets different beat timings per layer type:
 
 **Key-up routing**: `MainComponent::keyStateChanged()` polls all momentary-bound keys and fires release actions. MIDI note-off already routed through `BindingManager::processMidiNoteOff()`. A momentary release calls `Layer::releaseMomentary(column)` (one CAS, no pre-check): the clip it started is cleared, and a release BEFORE its quantized beat cancels its own queued trigger -- the pad never latches on (lane tsan, ruling amendment 10).
 
+**A deck switch is never an Undo step** (lane bf9b, ruling-bf9b amendment 10; Boris Q4's default): every switch entry is `MainComponent::handleDeckSwitch`, which pushes no command (`SwitchDeckCmd` is deleted; the deck tab's click is exactly `handleDeckSwitch(deckIdx);`, lint "bf9b B4g"), so Cmd+Z after browsing undoes the last real change -- a clip fired, a deck removed -- never a deck flip.
+
 ---
