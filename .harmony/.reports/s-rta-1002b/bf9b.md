@@ -1728,3 +1728,154 @@ INBOX-RECHECK: none
   positionX i + positionY 0.5 = a half). | discovered: src/render/EmbeddedShaders.h layer_transform
 - A test show for Boris must be generated where he opens it (clips name media by absolute path). |
   discovered: .harmony/make-bf9b-check.py
+
+## Fix round (bf9b-fix) -- builder started 22:52:32, done 23:22
+STATUS(fix): DONE
+Base of the fix round: eef400c (lane head after S4; lane base 11820fa). Findings: 13 (1 MUST, 12 SHOULD; 5 are
+duplicates). Inputs read in full: plan-bf9b.md incl. its HARMONY ADOPTION, ruling-bf9b.md, this report's S2b / S4
+sections. ALSO READ (found on main during the round, commit e6fcca7 22:53:13, after the findings were written):
+.harmony/.reports/s-rta-1002b/rulings-bf9b-merge.md (Harmony's rulings R-S1 / R-S2 / R-S3 / R-N1 / R-N3). Where a
+ruling and a finding's suggested fix differ, the ruling was followed (R-N3 overrides the finding's "GREEN-WITH-BLOCKED"
+wording).
+
+### Fix progress log
+- 22:53 skeleton; findings verified against the code (below).
+- 22:55-22:59 MUST: UndoService::onLayerStackMoved + MainComponent::repointLayerInspector; headless test; RED (compile
+  on eef400c's UndoService + a mutant), GREEN; full build, ctest 1157 / 0 (-j3). Commit 8dbfa20.
+- 22:59-23:03 probe-boxes verdict (exit 3 when BLOCKED), the test-only save route + k7 save half, k1b_duplicate.
+- 23:04-23:12 live (lock bf9b-fix, every app launched and quit by the probe itself, quit_ours): RED of the verdict fix
+  on eef400c's probe; STAGE_P k1b / k7; BF9B probe-boxes FULL (3 batches). Commits 1bfee9c, dc1dd5c, 9c701d8.
+- 23:13 read rulings-bf9b-merge.md on main -> R-N3 wording, R-N1 probe-canvas quit_ours, R-S2 f2 retired.
+- 23:16-23:18 live: probe-canvas (quit_ours) BF9B non-perf rows; probe-boxes R-N3 line. Commits 20b41ac, 6020627,
+  4f33a38.
+- 23:19-23:21 B1 build rc 0, ctest SERIAL 1157 / 0, probe-tsan-unit 5 / 5, 0 warnings.
+
+### Per-finding verdicts (VERIFIED = re-read / run this round; INFERRED = reasoned, not run)
+| # | sev | finding | verdict | action |
+|---|---|---|---|---|
+| 1 | MUST | UAF: Load / Duplicate Deck of a wider deck moves `Composition::layers`; LayerInspector keeps a raw `Layer*` | VERIFIED: LayerInspector.cpp:728-741 stores `layer_` and points EffectStackView at `&layer->layerEffects` and UniversalParamControl at `layer_->scalarConns[..]`; InspectorPanel.cpp:170-178 ticks it unconditionally; DeckCommands.h:795-807 InsertDeckCmd grows the stack via insertLayer; finishStagedLoad's append branch (MainComponent.cpp ~3300-3315 at eef400c) only rebuilds the grid. The move itself is reproduced headless (the new case REQUIREs `&c.layers[1] != before` after a 5-row Load Deck). The crash in the running app: INFERRED (not reproduced; no sanitizer app). Clip pointers do NOT move (Deck / ClipRow moves carry their vector buffers) -- no clip-inspector change. Add Layer (pre-existing) and Remove Layer of the inspected last layer (pre-existing, dangling) have the same shape | FIXED 8dbfa20 |
+| 2, 13 | SHOULD | H1 m9b_deck_switch_live missing from found_not_fixed / resume point | VERIFIED (S2b deviation 11 only). bf10 is on main (be23460; main has .harmony/probe-milkdrop.py); this branch is not rebased, so the row cannot be added here | carried below (R-S1: a REQUIRED gate row in the rebase lane) |
+| 3, 7, 12 | SHOULD | probe-canvas f2_deck_transition RED on BF9B; json:20 `_why` names compositeDeck | VERIFIED. Harmony ruled R-S2: RETIRED | FIXED 4f33a38 (row + fixture + its two orphan helpers removed; docstring names ruling + successors; compositeDeck -> compositeShow in json:20 and the c_legacy docstring / comment) |
+| 4 | SHOULD | rebase hazards: Pitfall NN vs main's 64-66; two /api/debug/undo registrations | VERIFIED: main's ApiServer.cpp:334 registers /api/debug/undo (ui lane); the lane's :326 registers another; main's CLAUDE.md index ends at 66. R-S3: NN = 67; keep main's route only | rebase-time -> resume point (cannot be done before the rebase) |
+| 5, 11 | SHOULD | probe-boxes prints GREEN with BLOCKED rows | VERIFIED (.py exit 0 iff FAIL == 0; .sh maps rc 0 to GREEN) | FIXED 1bfee9c (exit 3) + 20b41ac (R-N3: the line says BLOCKED, never GREEN) |
+| 6, 11 | SHOULD | K5 Link-on and K7 / B5 save + reload have no live driver | VERIFIED both | K7 / B5 save: FIXED dc1dd5c (test-only POST /api/debug/save_composition; k7 save half runs, BF9B 6 / 6). K5 Link-on: NOT FIXED -- needs a Link build (AUDIODNA_BUILD_LINK OFF in both arms) + a Link toggle driver + a Link-built STAGE_P arm; not cheap; Harmony's ruling (options: rule it covered by T5 + performance-controls.md "tempo only, never the phase", or a Link lane) |
+| 8 | SHOULD | H3 pinned only by a text lint | VERIFIED: Renderer.cpp:551-565 walks `playingClip(li)` over every shared layer inside `deckActive`; tests/test_render_thread_lint.cpp:72 pins it as text | carried: m9b_deck_switch_live (R-S1) is its behavioural row, added in the rebase lane to probe-milkdrop.py |
+| 9 | SHOULD | the lane ran probe-canvas.sh, which quits by NAME (osascript :70) and kills EVERY Audio-DNA (adna_kill :37 / :72) | VERIFIED at eef400c; the S4 runner's comment "each probe launches and quits its own app; quit-ours" (scratch bf9b-S4/run_other.sh:2-3) was FALSE for probe-canvas. No harm evidenced (launch-time REFUSE + the lock) | FIXED 6020627 (probe-canvas sources probe-quit-ours.sh; adna_kill deleted) + CORRECTION below |
+| 10 | SHOULD | K1a duplicate_deck driver GREEN on STAGE_P | VERIFIED (S4 deviation 2) | FIXED 9c701d8: k1b_duplicate = the driver on K1b's video, K1b's bar; RED on STAGE_P, GREEN on BF9B |
+
+CORRECTION (finding 9): S4 ran `.harmony/probe-canvas.sh f2_deck_transition` live on both arms (scratch
+bf9b-S4/run_other.sh, 22:31-22:35) while that probe still quit Audio-DNA by NAME and killed every Audio-DNA pid. The
+claim that every probe the lane ran quit only its own app was wrong for probe-canvas (probe-render-state and probe-boxes
+did use quit_ours). Since 6020627 probe-canvas uses quit_ours; this round re-ran it only after that change.
+
+### The MUST fix (8dbfa20)
+- src/core/UndoService.{h,cpp}: `std::function<void()> onLayerStackMoved`; withDeckDetached records
+  `composition_->layers.data()` / `.size()` before the mutation and calls the hook after the fence (and after
+  onDecksReaped) when either changed -- in both the renderer and the headless branch. Every structure command runs in
+  that fence (InsertDeckCmd = Load / Duplicate Deck, AddLayerCmd, RemoveLayerCmd, MoveLayerCmd and their undo / redo),
+  so the one hook covers the menu's Add / Remove Layer too.
+- src/MainComponent.{cpp,h}: `repointLayerInspector()` = refreshAfterUndoRedo's layer re-point, extracted (by the
+  DeckView's selected layer row; a stale row -> nullptr, cleared null-safely); refreshAfterUndoRedo calls it; the hook
+  is wired beside onDecksReaped. LayerStrips need nothing: every such path rebuilds the grid synchronously.
+- tests/test_show_model.cpp (+ the LayerInspector set in its CMake sources): TEST_CASE "bf9b fix: a fenced edit that
+  moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a
+  moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos)" [show]:
+  3 SECTIONs (5-row Load Deck: storage moved, 1 call, inspector == getLayer(1), tickModulation + refresh, undo -> 2
+  calls; a 3-row Load Deck: 0 calls; Add Layer -> re-pointed, Remove Layer of the inspected last layer -> nullptr).
+- RED, raw (scratch bf9b-fix/red1.sh on a COPY of the tree, mut/build; worktree never edited):
+  base arm (eef400c's UndoService.{h,cpp}): `build rc=2` /
+  `tests/test_show_model.cpp:1476:16: error: no member named 'onLayerStackMoved' in 'UndoService'`;
+  mutant "withDeckDetached never calls onLayerStackMoved": `FAILED: CHECK( calls == 1 )`, `FAILED: CHECK(
+  inspector.getLayer() == c.getLayer(1) )`, ... -> `test cases:  1 |  0 passed | 1 failed` / `assertions: 20 | 12
+  passed | 8 failed`; copy restored (`after: copy src == worktree src`).
+- GREEN: `All tests passed (20 assertions in 1 test case)`.
+
+### Live (lock bf9b-fix; each probe launched and quit ONLY its own app; logs scratch bf9b-fix/live/)
+Arms: BF9B = build-lane app built 23:03 from the tree of dc1dd5c (src unchanged since: `git diff --stat dc1dd5c HEAD --
+src tests CMakeLists.txt cmake` empty); STAGE_P = scratch bf9b-S0/apps/stagep-head.app (3dac692). After EVERY batch:
+`audio-dna windows 0, Output-named 0` and `UserNotificationCenter windows: 0` (16 s after the quit).
+- Verdict line RED (eef400c's probe, sha 998dfd815571b36f / 37093ca3f50508e6, BF9B app, row k5_queue_link_on;
+  redold-OLDPROBE-230423.log): `PY 0 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)` -> `PROBE-BOXES GREEN`, `probe rc=0`.
+- Verdict line after R-N3 (rn3-BF9B-231743.log, rows k5_queue_link_off,k5_queue_link_on): `PY 2 PASS / 0 FAIL / 1
+  BLOCKED (arm BF9B)` -> `PROBE-BOXES BLOCKED 1 (0 FAIL; 1 pre-registered bar(s) did not run -- not a pass)`, `probe
+  rc=3`. (Before R-N3 the same state printed `PROBE-BOXES GREEN-WITH-BLOCKED 1 ...`, greennew-BF9B-230451.log.)
+- k1b_duplicate: STAGE_P (sp1-STAGE_P-*.log) `FAIL  k1b_duplicate: the video keeps playing on screen across Duplicate
+  Deck (HTTP 200; numDecks 3 (was 2), activeDeck 2; t_dup 4.56 s, t at +2.00 s = 1.93 s, expected 6.57 +- 0.5)`;
+  BF9B (full1) `PASS  k1b_duplicate: ... (HTTP 200; numDecks 3 (was 2), activeDeck 2; t_dup 6.54 s, t at +2.00 s = 8.52
+  s, expected 8.55 +- 0.5)`. LOOKED (live/look-sp-dup.png, look-bf9b-dup.png): STAGE_P olive -> red (the copy
+  restarted near t 0), BF9B olive -> brighter green (t moved on ~2 s).
+- k7 save half: STAGE_P `N/A   k7_old_show save + reload: /api/debug/save_composition is a BF9B-only driver (HTTP 404
+  on this arm)` (its other k7 FAILs unchanged: RED); BF9B `PASS  k7_old_show save: the saved show has the new shape
+  (top-level layers 2; key 'persistent' False; key 'globalTransitionSpeed' False)`, `PASS  k7_old_show save: the save
+  retires the load notice ("")`, `PASS  k7_old_show reload: the saved show reloads with no note (new logLines 0),
+  load_notice empty ("") and the first deck's layer settings [(1.0, 0), (0.8, 0)]`.
+- probe-boxes BF9B FULL re-run (the src changed: UndoService fences every deck / layer command), probe sha
+  e38dbbaf278e2366 / f8d4ac3fa0b6c8e4 (== 9c701d8's; 20b41ac changed only a comment and the verdict text):
+  full1 `PY 15 PASS / 0 FAIL / 0 BLOCKED (arm BF9B)` -> `PROBE-BOXES GREEN`; full2 `PY 24 PASS / 0 FAIL / 1 BLOCKED
+  (arm BF9B)` -> (then) `PROBE-BOXES GREEN-WITH-BLOCKED 1 ...` (now prints `PROBE-BOXES BLOCKED 1 ...`, rc 3); full3
+  (BOXES_OLD_TAKE = S4's STAGE_P take) `PY 26 PASS / 0 FAIL / 0 BLOCKED (arm BF9B)` -> `PROBE-BOXES GREEN`. Total BF9B
+  65 PASS / 0 FAIL / 1 BLOCKED (k5_queue_link_on). Every K row's numbers match S4's (e.g. k2v decoded 448 in [225,
+  705], k8 peak <= 50 ms 0 bad, k9a t 4.00 -> 5.98, k10 (ii) t_r 4.28 -> 4.56).
+- probe-canvas after quit_ours + f2 retired (canvas-BF9B-231658.log; sha 2f32470c545c0ceb / 411758cd16f8d5eb /
+  c36ec67693b75202 == 4f33a38's): `ours: pid 45205`, rows c_default_shape .. c_capture_deterministic `PY 11 PASS / 0
+  FAIL`, `PASS  app terminated`, `PROBE-CANVAS GREEN`. Perf rows (c_capture_cost, c_perf_1080, c_perf_4k) not run (no
+  perf claim made).
+
+### Fix commits
+| sha | item | build / run |
+|---|---|---|
+| 8dbfa20 | MUST: onLayerStackMoved + repointLayerInspector + the headless case | B1 rc 0 (app + all tests); ctest 1157 / 0 |
+| 1bfee9c | probe-boxes exit 3 when BLOCKED (verdict wording superseded by 20b41ac) | live RED / GREEN above |
+| dc1dd5c | test-only POST /api/debug/save_composition; MainComponent::saveCompositionTo (Save As's success path, extracted); k7 save half; integration.md + APP-INVENTORY.md | B1 rc 0; ctest -j3 1156 / 1157 (the KNOWN parallel flake test_app_settings.cpp:19 `REQUIRE( dir.createDirectory() )`, S0's found_not_fixed -- not re-run; the serial run below is 1157 / 0) |
+| 9c701d8 | probe-boxes k1b_duplicate | live RED (STAGE_P) / GREEN (BF9B) |
+| 20b41ac | R-N3: the verdict says BLOCKED, never GREEN | live |
+| 6020627 | R-N1 / finding 9: probe-canvas quit_ours | live |
+| 4f33a38 | R-S2: probe-canvas f2_deck_transition RETIRED; compositeDeck -> compositeShow text | live |
+
+### Gates re-run at the fix head (raw)
+- B1 `cmake --build build-lane -j3 -- -k`: `B1 rc=0 errors=0` (23:19).
+- B2 SERIAL `ctest --test-dir build-lane --output-on-failure` (23:19:12-23:20:58): `100% tests passed, 0 tests failed
+  out of 1157` / `Total Test time (real) = 101.82 sec`. 1157 = S4's 1156 + 1 added (the fix case), 0 retired.
+- B3 `.harmony/probe-tsan-unit.sh` (23:21:04-23:21:09) rc 0: `100% tests passed, 0 tests failed out of 5`; "WARNING:
+  ThreadSanitizer" 0. (The tsan targets do not link UndoService.cpp -- tests/CMakeLists.txt:564-565 -- so nothing
+  rebuilt.)
+- B4 a-g: in ctest (PASS above); B4f's pinned structure-writer counts unchanged (the hook reads data() / size() only).
+- CLAUDE.md untouched (24,264 B).
+
+### found_not_fixed (fix round)
+- K5 Link-on: no driver on either arm (needs a Link build + a toggle route + a Link-built STAGE_P arm) -- Harmony's
+  ruling (T5 + "tempo only, never the phase", or a Link lane). probe-boxes now prints `PROBE-BOXES BLOCKED 1` for it.
+- R-N1 beyond probe-canvas: 32 other .harmony scripts still quit Audio-DNA by name or kill by name (grep of `tell
+  application "Audio-DNA" to quit|pkill.*Audio-DNA|killall.*Audio-DNA|adna_kill`): gate-s165.sh probe-beatclock.sh
+  probe-async-load.sh probe-btguard.sh probe-capture.sh probe-crossfade.sh probe-deck-path.sh probe-deck-tabs.sh
+  probe-downbeat-level.sh probe-effects-parity.sh probe-finalize-loop.sh probe-fitmode.sh probe-idle-paint.sh (+ .py)
+  probe-image-load.sh probe-lane3.sh probe-manual-bpm.sh probe-mastersignal.sh probe-media-open.sh probe-outputs.sh
+  probe-onset-render.sh probe-routines.sh probe-seq-vram.sh probe-routine-display.sh probe-resync.sh
+  probe-tempo-silence.sh probe-tempo-start.sh probe-step3.sh probe-tsan.sh probe-video.sh probe-vupload.sh
+  (probe-quit-ours.sh's own osascript is the only-ours branch). R-N1: fix before any live gate runs them.
+- The MUST's crash was not reproduced live (a Release app reads freed memory silently); the proof is the headless case.
+- Carried: the rebuildGrid header bug (S3); the S2b 4.B omissions ruling; the B7 critic panel.
+
+## Resume point (after the fix round) -- the rebase lane's checklist (Harmony: rulings-bf9b-merge.md)
+1. Rebase lane/bf9b onto main (hyg + mkvidx + ui + bf10 merged; resolve source conflicts preserving both sides).
+2. R-S3: "Pitfall NN" -> 67 in CLAUDE.md's index and docs/claude/pitfalls.md (64 mkvidx, 65 ui, 66 bf10; bf2 gets 68).
+3. R-S3: keep ONE /api/debug/undo -- main's (ui lane); drop the lane's registration (ApiServer.cpp:326 here) and its
+   handleDebugUndo / onDebugUndo if main's does the same Cmd+Z function, and point probe-boxes (k1a_undo, k9c) at it.
+   Keep the lane's /api/debug/remove_deck and /api/debug/save_composition (no main counterpart).
+4. R-S1 / adoption H1 (+ H2, H3): add m9b_deck_switch_live to main's .harmony/probe-milkdrop.py -- 20 decks, MilkDrop
+   on deck 0 layer 0; across switches the preset playlist still advances (H3) and ProjectMSource::loadPreset / resize
+   / releaseGL are not triggered by a switch (H2); RED on pre-bf9b main, GREEN on the rebased lane. REQUIRED gate row.
+5. R-N1: every probe a live gate runs must quit only its own pid (list above) before it runs.
+6. After the rebase: probe-boxes on both arms (STAGE_P first: k7_old_take records the take; BF9B with BOXES_OLD_TAKE),
+   probe-canvas (non-perf rows), ctest serial, probe-tsan-unit.
+INBOX-RECHECK: none
+
+## Notes for .harmony/notebook.md (Harmony appends) -- fix round
+- A raw `Layer*` into `Composition::layers` dangles after ANY fenced edit that grows / shrinks the shared stack (Load /
+  Duplicate Deck of a wider deck, Add / Remove Layer). UndoService::onLayerStackMoved fires after such an edit;
+  MainComponent re-points the Layer inspector there; LayerStrips are re-pointed by the grid rebuild. A new holder of a
+  Layer* must hook it too. | discovered: src/core/UndoService.cpp withDeckDetached; src/ui/LayerInspector.cpp:728
+- A probe's verdict line is what gate lists copy: BLOCKED bars must make it say BLOCKED (exit 3), never GREEN (Harmony
+  R-N3). | discovered: .harmony/probe-boxes.sh
+- A Duplicate-Deck driver needs a moving fixture (video) to separate the arms: a static picture restarted by the copy
+  looks the same. | discovered: .harmony/probe-boxes.py k1b_duplicate
