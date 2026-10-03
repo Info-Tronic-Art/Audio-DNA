@@ -161,40 +161,6 @@ inline const char* compTransform = R"(
     }
 )";
 
-// P25: Cross-deck transition shader
-// Blends two textures with configurable blend mode during deck transitions.
-inline const char* deckTransition = R"(
-    #version 410 core
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-    uniform sampler2D u_textureA;   // Outgoing deck
-    uniform sampler2D u_textureB;   // Incoming deck
-    uniform float u_progress;       // 0 = full A, 1 = full B
-    uniform int u_blendMode;        // 0=Alpha, 1=Add, 2=Multiply
-
-    void main() {
-        vec4 a = texture(u_textureA, v_texCoord);
-        vec4 b = texture(u_textureB, v_texCoord);
-        float t = clamp(u_progress, 0.0, 1.0);
-
-        vec4 result;
-        if (u_blendMode == 1) {
-            // Additive: lerp but add the contributions
-            result = a * (1.0 - t) + b * t;
-            result.rgb = min(result.rgb + a.rgb * b.rgb * t * (1.0 - t) * 4.0, vec3(1.0));
-            result.a = 1.0;
-        } else if (u_blendMode == 2) {
-            // Multiply: lerp with multiply blending at crossover
-            vec4 mul = vec4(a.rgb * b.rgb, 1.0);
-            result = mix(mix(a, mul, t), mix(mul, b, t), t);
-        } else {
-            // Alpha (default): simple crossfade
-            result = mix(a, b, t);
-        }
-        fragColor = result;
-    }
-)";
-
 // === Shared GLSL Utility Functions ===
 // These are prepended to shaders that need them during compilation.
 

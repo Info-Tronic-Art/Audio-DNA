@@ -1,6 +1,6 @@
 #pragma once
 #include <juce_opengl/juce_opengl.h>
-#include "model/Deck.h"
+#include "model/Composition.h"
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
@@ -129,9 +129,11 @@ public:
     using MediaPendingFn = std::function<bool(const Clip* clip)>;
     void setMediaPendingProvider(MediaPendingFn fn) { mediaPendingFn_ = std::move(fn); }
 
-    // === Deck/Layer-based compositing ===
-    // Composite all layers in the deck and return the result texture.
-    // Returns 0 if no layers have active clips.
+    // === Show compositing (lane bf9b) ===
+    // Composite the show's SHARED layer stack (Composition::layers, bottom to top) -- each layer draws the clip its
+    // tuple names, from whatever deck box it came from (never "the shown deck's" clips: the grid is not the screen).
+    // Returns 0 if no layers have active clips. GL thread, inside the fence's deckActive gate (Pitfall 55): it reads
+    // the layers and the rows of any live or retired deck.
     // dt: REAL measured seconds since the last frame (see Renderer::
     // renderOpenGL's lastFrameTimestampMs_) -- fed straight into video/
     // image-sequence playhead advancement (VideoPlayer::advanceFrame,
@@ -141,7 +143,7 @@ public:
     // second instance). A hardcoded 1/60 at both sites used to silently
     // couple playback speed / transition duration to the actual GL
     // callback rate (half speed/duration at 30fps, double at 120fps).
-    GLuint compositeDeck(Deck& deck,
+    GLuint compositeShow(Composition& show,
                          ShaderManager& shaderMgr,
                          FullscreenQuad& quad,
                          float time, float dt,
@@ -150,12 +152,12 @@ public:
     bool hasActiveLayers() const { return hasActiveLayers_; }
 
     // Copy the current composited frame into the persistent feedback buffer.
-    // Call AFTER compositeDeck() each frame.
+    // Call AFTER compositeShow() each frame.
     void updateFeedbackBuffer(ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
 
     // S166: Apply the composition-wide Global Effects stack (see
     // Composition::globalEffects / EffectScope::global()) to the FINAL
-    // composited frame. Call once per frame, AFTER compositeDeck() has
+    // composited frame. Call once per frame, AFTER compositeShow() has
     // finished writing into the accumulator — this is the "Global Effects"
     // stage of the pipeline
     // documented in the class comment above (Global Effects -> Master
@@ -251,9 +253,10 @@ private:
     GLuint uploadImageTexture(const ImageDecode::Result& r);
     void deleteImageTexture(GLuint tex);
 
-    // The hold (R1-a): while a layer's image decodes, an active-deck Opaque/Transparent layer shows its LAST picture --
-    // its Layer Router output (layerOutputTexStorage_) saved by the previous frame for the same deck. Owner = which
-    // deck saved it and in which frame (frameSerial_); anything older, or another deck's, is nothing to hold.
+    // The hold (R1-a): while a layer's image decodes, an Opaque/Transparent layer shows its LAST picture -- its Layer
+    // Router output (layerOutputTexStorage_) saved by the previous frame under the same stack key. Owner = which key
+    // saved it (bf9b: always LayerStateKey::kShowStackKey) and in which frame (frameSerial_); anything older is
+    // nothing to hold.
     uint64_t frameSerial_ = 0;
     int pendingImagesThisFrame_ = 0;
     struct LayerOutputOwner { uint32_t deckId = 0; uint64_t frame = 0; };
@@ -290,7 +293,7 @@ private:
 
 public:
     // Set the latest audio feature snapshot for audio-reactive effects.
-    // Call before compositeDeck() each frame; the snapshot is copied.
+    // Call before compositeShow() each frame; the snapshot is copied.
     void setLatestSnapshot(const FeatureSnapshot& snap) { latestSnapshot_ = snap; }
 
 private:
@@ -481,8 +484,8 @@ private:
     GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt, bool* pending = nullptr);
 
     // Does this clip give its layer something to draw -- media that exists, or
-    // effects to apply (FX Only)? The rule compositeDeck uses to decide whether
-    // the active deck has anything to show.
+    // effects to apply (FX Only)? The rule compositeShow uses to decide whether
+    // the shared stack has anything to show.
     static bool clipHasContent(const Clip& clip);
 
     // Apply transition shader: blend previous clip texture with new clip texture
@@ -492,14 +495,16 @@ private:
     // outgoingKey: LayerStateKey::outgoingChain of the layer -- the outgoing
     // clip's chain keeps its own temporal buffer / frame ring for the whole
     // fade, never the incoming clip's (s-rta-0926b R1, handOverClipHistory).
-    // rt: the layer's tuple as loaded once this frame (progress / outgoing column / incoming column; lane tsan).
-    GLuint applyTransition(Layer& layer, const LayerRuntimeSnapshot& rt, uint64_t outgoingKey, GLuint newClipTex,
+    // rt: the layer's tuple as loaded once this frame (progress / outgoing ref / incoming ref; lane tsan). rows:
+    // the layer's row in every deck (bf9b: the outgoing clip may sit in another deck than the incoming one).
+    GLuint applyTransition(Layer& layer, const LayerRuntimeSnapshot& rt, const RowClips& rows, uint64_t outgoingKey,
+                           GLuint newClipTex,
                            float time, ShaderManager& shaderMgr, FullscreenQuad& quad,
                            int w, int h, float dt);
 
     // P14 + S167-L4b DT-FIX: advance a layer's clip-to-clip crossfade by the
-    // real frame delta (see compositeDeck()'s header comment). Called once per
-    // frame for every visible layer of the active deck that is composited.
+    // real frame delta (see compositeShow()'s header comment). Called once per
+    // frame for every visible shared layer that is composited.
     // Lane tsan: publishes from the tuple `rt` the
     // caller loaded (LayerClock::tick, ONE compare-exchange); false = a trigger
     // landed since the load and rt is now its tuple (adopt, counted).
@@ -508,10 +513,11 @@ private:
     // s-rta-0926b R4: every stage an Opaque/Transparent layer applies to its
     // active clip's texture before compositing -- clip transform + opacity,
     // clip effects, clip-to-clip transition, feedback, layer effects, layer
-    // transform. Called from the active deck's layer loop (compositeDeck).
-    // rt: the layer's tuple as loaded once this frame (after its fade tick).
-    GLuint renderLayerStages(Layer& layer, const LayerRuntimeSnapshot& rt, uint32_t deckId, const Clip& clip,
-                             GLuint clipTex,
+    // transform. Called from the shared stack's layer loop (compositeShow).
+    // rt: the layer's tuple as loaded once this frame (after its fade tick). stackKey: the GL-history key half of the
+    // layer's state (LayerStateKey::kShowStackKey since bf9b: no GL key carries a deck, Pitfall 35).
+    GLuint renderLayerStages(Layer& layer, const LayerRuntimeSnapshot& rt, const RowClips& rows, uint32_t stackKey,
+                             const Clip& clip, GLuint clipTex,
                              ShaderManager& shaderMgr, FullscreenQuad& quad,
                              float time, float dt, int w, int h);
 
@@ -520,7 +526,7 @@ private:
 
     // === Layer Router Support (P20) ===
     // Per-layer saved output textures, keyed by layer ID.
-    // Updated during compositeDeck() after each layer is rendered.
+    // Updated during compositeShow() after each layer is rendered.
     // Layer Router sources read from this map.
     std::unordered_map<uint32_t, GLuint> layerOutputTextures_;
 
@@ -531,8 +537,8 @@ private:
     // Create/get a layer output FBO/texture pair
     void ensureLayerOutputFBO(uint32_t layerId, int w, int h);
 
-    // Save the current clip texture into the layer's output storage (and record deckId + this frame as its owner:
-    // the picture a pending image holds, R1.2)
+    // Save the current clip texture into the layer's output storage (and record the stack key + this frame as its
+    // owner: the picture a pending image holds, R1.2)
     void saveLayerOutput(uint32_t layerId, uint32_t deckId, GLuint srcTex,
                          ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
 

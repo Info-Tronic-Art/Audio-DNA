@@ -26,7 +26,7 @@ namespace GopCache { class Store; struct Budget; struct Run; }
 //   - message thread: open() (the FFmpeg contexts, the ring's 3 slots, frame 0 into slot 0, the thumbnail),
 //     start() (the decode thread), close() (signals the thread, returns at once), getThumbnail(), and the
 //     transport setters (atomics; seekTo from any thread is a request).
-//   - GL thread: advanceFrame() / advanceClock() (the transport clock; a seek or Loop wrap bumps the request
+//   - GL thread: advanceFrame() (the transport clock; a seek or Loop wrap bumps the request
 //     generation), uploadToTexture() (picks the newest ring frame <= the clock, uploads it only when it is new,
 //     never waits), releaseGL(), neverShown().
 //   - decode thread (after start()): everything FFmpeg -- seek, decode, sws into a ring slot. It owns the contexts
@@ -97,12 +97,6 @@ public:
     // Advance the playhead by dt seconds (scaled by speed/reverse/loop), post the wanted time to the decode thread
     // (a seek or a Loop wrap bumps the request generation) and wake it when it needs to run. Never decodes.
     void advanceFrame(double dt);
-
-    // s-rta-0926b plan4 T3 (rule 15): advance the playhead exactly like advanceFrame() -- same transport math -- but
-    // post nothing and wake nothing: for a clip whose deck is not on screen the decode thread idles, and the next
-    // advanceFrame() makes it re-seek and catch up while the layer holds its last frame. A seek or wrap still bumps
-    // the request generation (the ring's frames are stale). GL thread.
-    void advanceClock(double dt);
 
     // Pick the newest ring frame with pts <= the clock (+ half a frame) of the current request generation and upload
     // it when it is new (glTexImage2D once, then glTexSubImage2D). Nothing picked: the texture of the last shown frame
@@ -339,7 +333,7 @@ private:
     };
     DecodeThread thread_{ *this };
 
-    // plan4 T3: the transport math shared by advanceFrame() and advanceClock() -- speed / reverse / loop /
+    // plan4 T3: the transport math of advanceFrame() -- speed / reverse / loop /
     // ping-pong / one-shot, the playhead store. A Loop wrap sets discontinuity_ (s-rta-0928b: was a demuxer seek on
     // the GL thread). Returns false when the clock did not run (not playing, or no duration).
     bool advanceTransport(double dt);

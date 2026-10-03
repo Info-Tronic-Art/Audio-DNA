@@ -5,14 +5,20 @@ namespace
 {
 // Autopilot runs on the GL thread, which never waits: its triggers try at most this many compare-exchanges of the
 // layer's tuple word (lane tsan, ruling amendment 7), then retry at the next beat crossing. Every advance is DECIDED
-// from the tuple processFrame loaded once (currentCol), so it passes currentCol as triggerClip's onlyIfActive: a
+// from the tuple processFrame loaded once (its active ref), so it passes that ref as triggerClip's onlyIfActive: a
 // clear or an immediate user trigger of another column that landed since the load stands, the advance is a no-op
 // (s-rta-1002 fix round, F2). A user trigger queued by beat snap after the load, or a retrigger of the same column,
 // can still be cancelled by the advance, as before this guard.
 constexpr int kRenderTriggerAttempts = 16;
 }
 
-bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameReport* report)
+const Deck* Autopilot::sourceDeck(const Composition& show, ClipRef current)
+{
+    const int idx = show.findDeckIndexById(current.deckId);   // live decks only: a retired source never advances
+    return idx >= 0 ? &show.decks[static_cast<size_t>(idx)] : nullptr;
+}
+
+bool Autopilot::processFrame(Composition& show, const FeatureSnapshot& snapshot, FrameReport* report)
 {
     bool anyAdvanced = false;
     FrameReport counts;
@@ -23,13 +29,14 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
     };
 
     // === End of Video mode: check every frame (not just on beat crossings) ===
-    for (auto& layer : deck.layers)
+    for (int i = 0; i < show.getNumLayers(); ++i)
     {
+        Layer& layer = show.layers[static_cast<size_t>(i)];
         if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
             continue;
 
-        const int activeCol = layer.runtime().activeClipColumn;   // lane tsan: ONE tuple load for this layer
-        Clip* clip = layer.getClipAt(activeCol);
+        const auto playing = show.playing(i);   // lane tsan: ONE tuple load for this layer
+        Clip* clip = playing.clip;
         if (clip == nullptr || !clip->isPlayable() || !clip->playing)
             continue;
 
@@ -47,11 +54,13 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
             if (loopsPlayed >= loopsTarget)
             {
                 Clip::AutopilotAction action = getActionForClip(*clip, layer);
-                if (action != Clip::AutopilotAction::DoNothing)
+                const Deck* source = sourceDeck(show, playing.ref);
+                if (action != Clip::AutopilotAction::DoNothing && source != nullptr)
                 {
+                    const RowClips rows = show.rowClips(i);
                     const bool changed = (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
-                        ? smartAdvanceClip(layer, activeCol, deck.numColumns, snapshot)
-                        : advanceClip(layer, activeCol, action, deck.numColumns);
+                        ? smartAdvanceClip(layer, rows, *source, playing.ref, snapshot)
+                        : advanceClip(layer, rows, *source, playing.ref, action);
                     counts.advances += changed ? 1u : 0u;
                     anyAdvanced = true;
                 }
@@ -66,26 +75,28 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
     if (beats == 0)
         return finish();
 
-    // Process any beat-snapped pending triggers on beat crossing
+    // Process any beat-snapped pending triggers on beat crossing (whatever deck they were fired from: bf9b F11)
     // P21: pass beat position info for bar/2-bar/4-bar snap granularity
-    for (auto& layer : deck.layers)
+    for (int i = 0; i < show.getNumLayers(); ++i)
     {
+        Layer& layer = show.layers[static_cast<size_t>(i)];
         if (layer.runtime().pendingTriggerColumn >= 0)   // lane tsan: ONE tuple load for this layer
         {
             const auto t = layer.processPendingTrigger(static_cast<int>(snapshot.beatInBar),
-                                                       static_cast<int>(snapshot.barCount));
+                                                       static_cast<int>(snapshot.barCount), show.rowClips(i));
             counts.pendingFired += t.changed() ? 1u : 0u;
             anyAdvanced = true;
         }
     }
 
-    for (auto& layer : deck.layers)
+    for (int i = 0; i < show.getNumLayers(); ++i)
     {
+        Layer& layer = show.layers[static_cast<size_t>(i)];
         if (!layer.autopilotEnabled)
             continue;
 
-        const int activeCol = layer.runtime().activeClipColumn;   // lane tsan: ONE tuple load for this layer
-        Clip* clip = layer.getClipAt(activeCol);
+        const auto playing = show.playing(i);   // lane tsan: ONE tuple load for this layer
+        Clip* clip = playing.clip;
         if (clip == nullptr || !clip->playing)
             continue;
 
@@ -117,12 +128,14 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot, FrameR
 
         if (beatsPlayed >= targetBeats)
         {
-            if (action != Clip::AutopilotAction::DoNothing)
+            const Deck* source = sourceDeck(show, playing.ref);
+            if (action != Clip::AutopilotAction::DoNothing && source != nullptr)
             {
+                const RowClips rows = show.rowClips(i);
                 // P23: Use smart random when enabled and action is PlayRandom
                 const bool changed = (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
-                    ? smartAdvanceClip(layer, activeCol, deck.numColumns, snapshot)
-                    : advanceClip(layer, activeCol, action, deck.numColumns);
+                    ? smartAdvanceClip(layer, rows, *source, playing.ref, snapshot)
+                    : advanceClip(layer, rows, *source, playing.ref, action);
                 counts.advances += changed ? 1u : 0u;
                 anyAdvanced = true;
             }
@@ -212,10 +225,15 @@ Clip::AutopilotAction Autopilot::getActionForClip(const Clip& clip, const Layer&
     return action;
 }
 
-bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction action,
-                             int numColumns) const
+bool Autopilot::advanceClip(Layer& layer, const RowClips& rows, const Deck& source, ClipRef current,
+                             Clip::AutopilotAction action) const
 {
+    const int currentCol = current.column;
     if (currentCol < 0)
+        return false;
+    const int numColumns = source.numColumns;
+    const ClipRow* row = source.getRow(rows.row);
+    if (row == nullptr)
         return false;
 
     int nextCol = -1;
@@ -228,7 +246,7 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
             for (int offset = 1; offset < numColumns; ++offset)
             {
                 int col = (currentCol + offset) % numColumns;
-                if (layer.getClipAt(col) != nullptr)
+                if (row->getClipAt(col) != nullptr)
                 {
                     nextCol = col;
                     break;
@@ -241,7 +259,7 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
             for (int offset = 1; offset < numColumns; ++offset)
             {
                 int col = (currentCol - offset + numColumns) % numColumns;
-                if (layer.getClipAt(col) != nullptr)
+                if (row->getClipAt(col) != nullptr)
                 {
                     nextCol = col;
                     break;
@@ -255,7 +273,7 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
             std::vector<int> candidates;
             for (int c = 0; c < numColumns; ++c)
             {
-                if (c != currentCol && layer.getClipAt(c) != nullptr)
+                if (c != currentCol && row->getClipAt(c) != nullptr)
                     candidates.push_back(c);
             }
             if (!candidates.empty())
@@ -266,7 +284,7 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
         {
             for (int c = 0; c < numColumns; ++c)
             {
-                if (layer.getClipAt(c) != nullptr)
+                if (row->getClipAt(c) != nullptr)
                 {
                     nextCol = c;
                     break;
@@ -278,7 +296,7 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
         {
             for (int c = numColumns - 1; c >= 0; --c)
             {
-                if (layer.getClipAt(c) != nullptr)
+                if (row->getClipAt(c) != nullptr)
                 {
                     nextCol = c;
                     break;
@@ -289,11 +307,11 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
         case Clip::AutopilotAction::PlaySpecific:
         {
             // Use the clip's autopilotSpecificCol (the active clip of the caller's tuple: no second load)
-            if (auto* clip = layer.getClipAt(currentCol))
+            if (auto* clip = row->getClipAt(currentCol))
             {
                 if (clip->autopilotSpecificCol >= 0
                     && clip->autopilotSpecificCol < numColumns
-                    && layer.getClipAt(clip->autopilotSpecificCol) != nullptr)
+                    && row->getClipAt(clip->autopilotSpecificCol) != nullptr)
                 {
                     nextCol = clip->autopilotSpecificCol;
                 }
@@ -305,18 +323,24 @@ bool Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
     }
 
     if (nextCol >= 0 && nextCol != currentCol)
-        return layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol).changed();
+        return layer.triggerClip(ClipRef{ source.id, nextCol }, rows, Clip::BeatSnapMode::Off, kRenderTriggerAttempts,
+                                 current).changed();
     return false;
 }
 
-bool Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
-                                  int numColumns, const FeatureSnapshot& snapshot) const
+bool Autopilot::smartAdvanceClip(Layer& layer, const RowClips& rows, const Deck& source, ClipRef current,
+                                  const FeatureSnapshot& snapshot) const
 {
+    const int currentCol = current.column;
+    const int numColumns = source.numColumns;
+    const ClipRow* row = source.getRow(rows.row);
+    if (row == nullptr)
+        return false;
     // Collect all columns with clips (excluding current)
     std::vector<int> candidates;
     for (int c = 0; c < numColumns; ++c)
     {
-        if (c != currentCol && layer.getClipAt(c) != nullptr)
+        if (c != currentCol && row->getClipAt(c) != nullptr)
             candidates.push_back(c);
     }
 
@@ -328,7 +352,8 @@ bool Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
     {
         int nextCol = candidates[static_cast<size_t>(std::rand()) % candidates.size()];
         return nextCol >= 0
-            && layer.triggerClip(nextCol, Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol).changed();
+            && layer.triggerClip(ClipRef{ source.id, nextCol }, rows, Clip::BeatSnapMode::Off, kRenderTriggerAttempts,
+                                 current).changed();
     }
 
     // Score each candidate based on position-implied energy vs current energy state.
@@ -389,6 +414,6 @@ bool Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
         }
     }
 
-    return layer.triggerClip(candidates[bestIdx], Clip::BeatSnapMode::Off, kRenderTriggerAttempts, currentCol)
-        .changed();
+    return layer.triggerClip(ClipRef{ source.id, candidates[bestIdx] }, rows, Clip::BeatSnapMode::Off,
+                             kRenderTriggerAttempts, current).changed();
 }
