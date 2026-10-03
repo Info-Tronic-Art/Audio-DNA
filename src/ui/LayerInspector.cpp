@@ -585,6 +585,10 @@ void LayerInspector::resized()
     rotXSlider_.setVisible(false); rotYSlider_.setVisible(false); rotZSlider_.setVisible(false);
     rotSpeedSlider_.setVisible(false); scale3DSlider_.setVisible(false);
 
+    // No layer (a composition load unbinds the tab): paint() prints "No layer selected" on an empty panel -- not over
+    // the title of the layer it left and the dashboard knobs.
+    nameLabel_.setVisible(layer_ != nullptr);
+    macroPanel_.setVisible(layer_ != nullptr);
     if (!layer_) return;
 
     bool isTransparent = layer_->type == Layer::Type::Transparent;
