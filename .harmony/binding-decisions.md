@@ -654,3 +654,37 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - Gain — Boris: "Gain slider in top bar could be twice as long."
 - Everything else — Boris: "All the other defaults are good." -> every Oct 2 page question he did not name takes its default
   (list: boris-feedback-backlog.md BF30). Page item 35 (on-screen test strip) keeps its default: NOT run without his OK.
+
+## 2026-10-03 (s-rta-1003) — Boris's answers to the 14 clarifying questions (recorded 2026-10-03 14:03:17; questions as asked: boris-feedback-backlog.md)
+- Q1 deck tab dot — Boris: "drop" -> no dot on a deck's tab; with BF14 nothing on screen shows which deck a playing clip
+  came from. SUPERSEDES ruling-bf9b amendment 16(a)-(c).
+- Q2 fire again a video that was replaced — Boris: "restart" -> every fire starts a video from its start; the "resume where
+  it left off" behaviour (bf9b C3, K10 (ii)) goes. Built in the transport lane.
+- Q3 live picture in the destination cell while recording, not played into the output — Boris: "yes".
+- Q4 a single-layer recording keeps its see-through parts — Boris: "yes".
+- Q5 unit of a BPM-synced clip's length — Boris: "beats". Q6 number box plus /2 and x2 — Boris: "both".
+- Q7 automatic length from the current BPM — Boris: "not current bpm but have a bpm and beats input so user can do it by
+  numbers and a x2 and /2 control to double or half easily" -> a BPM-synced clip has a BPM input and a beats input.
+- Q8 "1/6" = 1/16 — Boris: "yes". Q12 MilkDrop preset change labels — Boris: "bars".
+- Q9 the beat wheel stays where he tapped, only the picture is shifted — Boris: "yes". Q10 opening a composition loads its
+  saved venue and sync value — Boris: "yes".
+- Q11 sample trim — Boris: "drag handles that snap".
+- Q13 bad characters in a deck file name — Boris: "switch to - is fine for all bad chars".
+- Q14 other codecs — Boris: "no more tuning" (they still open and play as today).
+- Q7 follow-up (recorded 2026-10-03 14:10:11; starting values of a BPM-synced clip's BPM and beats boxes) — Boris: "7 follow up: default and
+  bpms for clips to 120" -> a clip with no BPM in its file name is taken to be 120 BPM (Harmony's reading of "default": the
+  proposed rule stands; the exact-120 reading is noted in boris-feedback-backlog.md).
+- Q7 starting values, CLARIFIED (recorded 2026-10-03 14:10:25) — Boris: "default all bpms to 120" -> every clip's BPM starts at 120.
+  SUPERSEDES the line above (Harmony's reading "the proposed rule stands" was wrong).
+
+## 2026-10-03 (s-rta-1003) — Boris's answers A-E (recorded 2026-10-03 14:55:32; questions as asked: boris-feedback-backlog.md)
+- Undo and the live layers — Boris: "Let's not allow control Z to change anything that is live in the layer strip. It changes
+  anything else" -> Undo never changes what is playing in a layer; it undoes every other kind of change. SUPERSEDES the
+  2026-10-02 default Q4 wording "Cmd+Z always undoes your last real change, like a clip you fired" (a fired clip is no
+  longer undone) and ruling-bf9b-merge AM-7's exception (Undo of a Load Deck that added layers). Built in its own lane
+  after the bf9b merge.
+- Clip tab on a deck switch — Boris: "yes it stays in clip tab regardless of deck" -> the Clip tab keeps the clip being
+  edited whatever deck is shown.
+- Gain — Boris: "yes" (twice as long, same scale).
+- Sync in a show — Boris: "every show remembers it's sync" -> every saved composition carries its venue and sync value, 0
+  included; opening it sets the dial to that value. SUPERSEDES ruling-bf2-delta's default for a show saved at "Default" 0.

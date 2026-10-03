@@ -175,3 +175,85 @@ BF29 [NEW, ui] Top bar Gain slider twice as long (he works in the lower quarter 
 BF30 "All the other defaults are good." -> every page question not named above takes its default (decks Q1-Q4; record Q5, Q6,
      Q10; sync Q11 bar-not-dial, Q12, Q13, Q15; envelopes Q19, Q20, Q22, Q23; Timeline Q26; bars Q27, Q29, Q30 (except clip
      length = beats); deck rename Q32, Q33; picture info Q34; Q35 on-screen test strip NOT OK'd; MilkDrop Q36, Q37; MKV Q38).
+
+## Boris's answers to Harmony's 14 clarifying questions (received ~14:02, recorded 2026-10-03 14:03:17, s-rta-1003)
+VERBATIM:
+```
+1 drop
+2 restart
+3 yes
+4 yes
+5 beats
+6 both
+7 not current bpm but have a bpm and beats input so user can do it by numbers and a x2 and /2 control to double or half easily
+8 yes
+9 yes
+10 yes
+11 drag handles that snap
+12 bars
+13 switch to - is fine for all bad chars
+14 no more tuning
+```
+The questions as asked (Harmony's wording) and what each answer settles:
+1 Deck tab dot (a small dot on a deck's tab when one of its clips is playing): keep or drop? -> DROP. bf9b: the tab dot
+  (ruling-bf9b amendment 16(b), machine check M-e) is removed together with the strip badge (BF14).
+2 A video you played, replaced, then fire again: continue where it left off (today) or restart? -> RESTART. Every fire of a
+  video starts it from its start (in point). Changes the bf9b C3 "resume" contract (K10 (ii), Boris-page step 8.11) ->
+  built in the transport lane after the bf9b merge; bf9b's Boris page drops 8.11.
+3 While recording, the destination cell shows a live picture, a REC mark and the running length; it is not played into the
+  output. -> YES.
+4 Recording one layer with see-through parts keeps them see-through. -> YES (needs an alpha codec; H.264 cannot carry alpha).
+5 BPM-synced clip length unit. -> BEATS.
+6 "Change it by amount": type a number plus /2 and x2 buttons. -> BOTH.
+7 Automatic length = closest of 1, 2, 4, 8, 16, 32 bars at the current BPM? -> NO: "not current bpm but have a bpm and beats
+  input so user can do it by numbers and a x2 and /2 control to double or half easily". Harmony's reading: a BPM-synced clip
+  carries its own BPM and its length in beats, both typed as numbers, with x2 and /2. OPEN: what the two numbers start at.
+8 "1/6" in the Quantize list = 1/16. -> YES.
+9 Sync: the beat wheel stays exactly where he tapped; only the picture is shifted. -> YES (lane/bf2's wheel follows the
+  shifted beat today: must change).
+10 Opening a composition loads its saved venue and sync value, replacing what the app had; the SYNC note shows. -> YES.
+11 Trimming a long sample: drag the two end handles; they snap to the bar lines. -> DRAG HANDLES THAT SNAP.
+12 MilkDrop preset change labels. -> BARS (seconds removed).
+13 Characters a file name cannot hold. -> "switch to - is fine for all bad chars": every bad character becomes "-".
+14 Other codecs still open and play as today; no more tuning for them. -> NO MORE TUNING.
+
+## Follow-up on answer 7 (recorded 2026-10-03 14:10:11) — Harmony asked: "What should the two boxes start at when you first switch a clip to BPM sync? Default: read a BPM from the file name if it has one (like \"128bpm\"); otherwise pick the beat count (4, 8, 16, 32, 64) that puts the clip closest to 120 BPM."
+Boris (verbatim): "7 follow up: default and bpms for clips to 120"
+Harmony's reading (INFERRED, put back to him): the default stands, with 120 as the BPM a clip is assumed to be when its file name gives none. Second reading, if he corrects: the BPM box starts at exactly 120 and the beats box shows whatever the clip's length gives at 120 (2 beats per second, possibly not a whole number).
+CLARIFIED by Boris (verbatim, recorded 2026-10-03 14:10:25): "default all bpms to 120" -> every clip's BPM box starts at exactly 120 (no
+file-name rule, no nearest-power-of-two rule); the beats box shows what the clip's length gives at 120 BPM; he then types a
+number or uses x2 and /2. Harmony's first reading above ("the default stands") was WRONG and is superseded.
+
+## Boris's answers to questions A-E (recorded 2026-10-03 14:55:32, s-rta-1003)
+VERBATIM:
+```
+a Let's not allow control Z to change anything that is live in the layer strip. It changes anything else
+b yes it stays in clip tab regardless of deck
+c can you clarify?
+d yes
+e every show remembers it's sync
+```
+The questions as asked (Harmony's wording):
+A "You duplicate or load a deck, a routine starts one of its clips, then you press Cmd+Z. Should that clip keep playing,
+  like when you delete a deck? Default: yes. One exception for now: if the loaded deck added layers to your show, Cmd+Z
+  takes those layers and their clips away."
+B "A clip is selected and you click another deck tab. Should the Clip tab stay on that clip, or jump to the same spot on
+  the new deck? Default: stays, as today."
+C "After deleting a deck, the 'Undo Remove' button only shows when the tab row has room; with many decks only the text line
+  at the top says it. Enough? Default: yes."
+D "Gain: twice as long, same scale? Default: yes. Alternative: also stretch the low end so 0 to 1 takes half the slider."
+E "A show saved while Sync sits on 'Default' at 0 does not remember a sync setting, so opening it later leaves the room's
+  sync alone. Default: yes. Alternative: every show remembers its sync, 0 included — then a show saved at home resets the
+  room to 0."
+BF31 [NEW RULE, from answer a] Undo (Cmd+Z) never changes what is live in the layer strip; it undoes everything else.
+  Harmony's reading (consequence text): a fired clip is not an Undo step; undoing a structural edit (add / load / duplicate
+  / remove deck, add / remove layer, clear) leaves what is playing playing. Today a trigger IS an Undo step (TriggerClipCmd)
+  and Undo of a Load Deck that added layers stops that deck's clips (ruling-bf9b-merge AM-7's pinned exception, T6h).
+  NOT built in the bf9b lane (no regression there: both behaviours are main's today) -> its own lane right after the merge,
+  with pre-registered expectation changes (T6h, the trigger-undo tests, Boris-page step 8.6). OPEN: the exact edges (Undo of
+  Clear, Undo of Add Layer while that layer plays) -> the plan decides, council attacks.
+Answer b: the Clip tab stays on the clip he is working on, whatever deck is shown (= today; ruling Q-C closed).
+Answer c: he asks for a clarification of question C (owed in plain words).
+Answer d: Gain twice as long, same scale.
+Answer e: EVERY show remembers its sync, 0 included (REVERSES the ruling-bf2-delta default "a show saved at Default 0 does
+  not remember a sync setting").

@@ -2237,3 +2237,8 @@ INBOX-RECHECK: none
 - macOS bash 3.2: "${ARR[@]}" of an EMPTY array under set -u aborts ("unbound variable"); use ${ARR[@]+"${ARR[@]}"}.
 - probe-vupload-ab.sh: a re-run launch was never sampled for compilers ($LOG.done survived the tainted attempt) — fixed in
   bf10 (R3); A/B evidence taken before be23460 may contain unsampled compiler-loaded launches.
+
+## s-rta-1003 (2026-10-03 14:10:11)
+- Boris INTERRUPTED an 8-minute in-turn wait (wait.sh) to get an answer in. While lanes run and nothing needs Harmony, YIELD the turn instead of blocking: workflow / agent completions re-invoke the session anyway, and a message he sends then starts a FRESH turn, so the mid-turn relay hazard (no lane launch in a turn that received a message) does not arise at all. Block in-turn only for short waits (<= ~2 min) that gate the very next step. | discovered: s-rta-1003 14:06, rejected tool call
+- An answer to Boris built from two grep hits is INFERRED, not fact: the "where do I draw the Timeline curve" answer was wrong (no lane builds it; no plan says where). Label it or have a reader check first. | discovered: facts-envelope.md vs my 13:32 reply
+- 'git log <lane-base>..HEAD' on a lane that has merged main lists every main commit: use --first-parent. | discovered: bf9b after M1
