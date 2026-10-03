@@ -27,13 +27,9 @@ inline std::vector<Clip::EffectSlot>* resolveEffectVector(Composition* comp,
             return &comp->globalEffects;
 
         case EffectScope::Kind::Layer:
-            if (scope.deckIndex >= 0
-                && scope.deckIndex < static_cast<int>(comp->decks.size()))
-            {
-                Deck& deck = comp->decks[static_cast<size_t>(scope.deckIndex)];
-                if (Layer* layer = deck.getLayer(scope.layerIndex))
-                    return &layer->layerEffects;
-            }
+            // Lane bf9b: the SHARED layer (Composition::layers); the scope's deckIndex is ignored.
+            if (Layer* layer = comp->getLayer(scope.layerIndex))
+                return &layer->layerEffects;
             return nullptr;
 
         case EffectScope::Kind::Clip:

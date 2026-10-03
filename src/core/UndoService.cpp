@@ -55,14 +55,24 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
         ~FenceResetGuard() { flag = false; }
     } fenceReset{ fenceActive_ };
 
+    // Lane bf9b (amendment 4(a)): the decks this edit reaps, handed to onDecksReaped once the fence has ended.
+    std::vector<Deck> reaped;
+    auto handOver = [this, &reaped] {
+        if (!reaped.empty() && onDecksReaped)
+            onDecksReaped(std::move(reaped));
+    };
+
     if (renderer_ == nullptr)
     {
         if (mutation)
             mutation();
+        if (composition_ != nullptr)
+            reaped = composition_->reapRetiredDecks();
+        handOver();
         return;   // fenceReset resets fenceActive_ on scope exit
     }
 
-    Deck* saved = renderer_->getActiveDeck();
+    Deck* saved = renderer_->getFenceToken();
     // s-rta-0928b mediaopen: no deck AND fenced, in ONE store (Renderer's FencedPtrSlot, adoption P3). The GL thread
     // counts a fenced deck-less frame (fence_hold_frames / fence_black_frames); restoreDeck's setActiveDeck below ends
     // the fence in the same single store that restores the deck.
@@ -83,18 +93,25 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
             // address.
             renderer->setActiveDeck(composition != nullptr ? composition->getActiveDeck() : saved);
         }
-    } restoreDeck{ renderer_, composition_, saved };
+    };
 
-    // Fence: block until the GL thread finishes any in-flight frame reading the
-    // deck. With setComponentPaintingEnabled(false) the GL thread never takes
-    // the message-manager lock, so blocking here from the message thread cannot
-    // deadlock (validated empirically, Undo v1 build step 1).
-    renderer_->getContext().executeOnGLThread([](juce::OpenGLContext&) {}, true);
+    {
+        // The restore runs at the end of THIS scope (before the hand-over below): the reap happens inside the
+        // fence, its media disposal after it.
+        ActiveDeckRestoreGuard restoreDeck{ renderer_, composition_, saved };
 
-    if (mutation)
-        mutation();
+        // Fence: block until the GL thread finishes any in-flight frame reading the
+        // deck. With setComponentPaintingEnabled(false) the GL thread never takes
+        // the message-manager lock, so blocking here from the message thread cannot
+        // deadlock (validated empirically, Undo v1 build step 1).
+        renderer_->getContext().executeOnGLThread([](juce::OpenGLContext&) {}, true);
 
-    // restoreDeck + fenceReset run on scope exit below (destructors fire in
-    // reverse construction order; the two operations are independent so the
-    // order between them does not matter).
+        if (mutation)
+            mutation();
+        if (composition_ != nullptr)
+            reaped = composition_->reapRetiredDecks();
+    }
+    handOver();
+
+    // fenceReset runs on scope exit.
 }

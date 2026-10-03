@@ -1,6 +1,7 @@
 #pragma once
 #include "model/Composition.h"   // Composition / Deck / Layer / Clip (for inline resolvers)
 #include <functional>
+#include <vector>
 
 class Renderer;
 class DeckView;
@@ -56,17 +57,24 @@ public:
         return &composition_->decks[static_cast<size_t>(deckIndex)];
     }
 
-    Layer* resolveLayer(int deckIndex, int layerIndex) const
+    // Lane bf9b: a layer is a SHARED layer (Composition::layers) -- no deck in its address.
+    Layer* resolveLayer(int layerIndex) const
+    {
+        return composition_ != nullptr ? composition_->getLayer(layerIndex) : nullptr;
+    }
+
+    // A deck box's row (the clips row `row` of deck `deckIndex`).
+    ClipRow* resolveRow(int deckIndex, int row) const
     {
         if (Deck* deck = resolveDeck(deckIndex))
-            return deck->getLayer(layerIndex);
+            return deck->getRow(row);
         return nullptr;
     }
 
-    Clip* resolveClip(int deckIndex, int layerIndex, int column) const
+    Clip* resolveClip(int deckIndex, int row, int column) const
     {
         if (Deck* deck = resolveDeck(deckIndex))
-            return deck->getClip(layerIndex, column);
+            return deck->getClip(row, column);
         return nullptr;
     }
 
@@ -84,7 +92,15 @@ public:
     // inside another's `mutation` — fenced call sites are structured to run
     // sequentially (guarded by a jassert in the .cpp, see 2026-07-28 family-
     // fence fix).
+    // Lane bf9b (ruling-bf9b amendment 4(a)): after `mutation` returns and before
+    // the restore, every retired deck no layer's active or previous ref names is
+    // reaped (Composition::reapRetiredDecks); after the restore the reaped decks go
+    // to onDecksReaped (MainComponent disposes their media). So ANY fenced edit reaps
+    // -- headless too (no renderer: the same reap, the same hook).
     void withDeckDetached(const std::function<void()>& mutation);
+
+    // Receives the decks a fenced edit reaped, after the fence ends (message thread).
+    std::function<void(std::vector<Deck>&&)> onDecksReaped;
 
 private:
     Composition* composition_ = nullptr;

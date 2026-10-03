@@ -1,8 +1,8 @@
 #pragma once
 #include "core/Command.h"
-#include "core/ClipCommands.h"   // ClipLayerResolver
+#include "core/ClipCommands.h"   // CompositionResolver
 #include "core/DeckCommands.h"   // LayerRuntimeSnapshot / capture / applyLayerRuntime
-#include "model/Layer.h"         // Layer / Clip (getClipAt, runtime fields)
+#include "model/Composition.h"   // the shared layer + clipAt (lane bf9b)
 #include <optional>
 #include <string>
 #include <utility>
@@ -55,17 +55,19 @@
 // the auto-play branch (Layer.h ~247) — the clip goes active but does not
 // auto-play. Documented here + on the step-9 manual checklist.
 //
-// TriggerClipCmd re-resolves the Layer by (deckIndex, layerIndex) on every apply
-// and never stores a raw Layer*/Clip* (which dangle across vector reallocation).
+// Lane bf9b: TriggerClipCmd is addressed by the SHARED layer index; before / after tuples carry deck ids (ClipRef
+// slots), and the target's `playing` flag is resolved through the composition (Composition::clipAt: the target may
+// sit in any deck box). It re-resolves on every apply and never stores a raw Layer*/Clip* (which dangle across
+// vector reallocation).
 class TriggerClipCmd : public Command
 {
 public:
-    TriggerClipCmd(ClipLayerResolver resolver, int deckIndex, int layerIndex,
-                   int column, LayerRuntimeSnapshot before, LayerRuntimeSnapshot after,
+    TriggerClipCmd(CompositionResolver resolver, int layerIndex,
+                   ClipRef target, LayerRuntimeSnapshot before, LayerRuntimeSnapshot after,
                    std::optional<bool> targetPlayingBefore,
                    std::optional<bool> targetPlayingAfter, std::string description)
-        : resolver_(std::move(resolver)), deckIndex_(deckIndex),
-          layerIndex_(layerIndex), column_(column),
+        : resolver_(std::move(resolver)),
+          layerIndex_(layerIndex), target_(target),
           before_(before), after_(after),
           targetPlayingBefore_(targetPlayingBefore),
           targetPlayingAfter_(targetPlayingAfter),
@@ -86,15 +88,14 @@ public:
     // Merge rule (spec §3): consecutive triggers on the SAME layer coalesce into
     // one history slot — keep the ORIGINAL before-state, update the after-state —
     // so mashing cells mid-set costs one slot per layer run, not one per click.
-    // Only same-(deck,layer) TriggerClipCmds merge; different-layer triggers do
+    // Only same-(shared)-layer TriggerClipCmds merge, whatever deck each fired from; different-layer triggers do
     // NOT (each layer run is its own slot). A column trigger is a CompositeCommand,
     // whose base canMergeWith is false, so column triggers never merge (chosen:
     // simplest conforming behavior — spec does not require column-to-column merge).
     bool canMergeWith(const Command& other) const override
     {
         const auto* o = dynamic_cast<const TriggerClipCmd*>(&other);
-        return o != nullptr && o->deckIndex_ == deckIndex_
-            && o->layerIndex_ == layerIndex_;
+        return o != nullptr && o->layerIndex_ == layerIndex_;
     }
 
     void mergeWith(const Command& other) override
@@ -109,7 +110,7 @@ public:
         // (an earlier mashed clip's `playing` may linger, accepted per spec
         // risk #5). The runtime restore — which clip is active — stays exact.
         after_ = o->after_;
-        column_ = o->column_;
+        target_ = o->target_;
         targetPlayingBefore_ = o->targetPlayingBefore_;
         targetPlayingAfter_ = o->targetPlayingAfter_;
     }
@@ -117,17 +118,19 @@ public:
 private:
     void apply(const LayerRuntimeSnapshot& runtime, const std::optional<bool>& playing)
     {
-        Layer* layer = resolver_ ? resolver_(deckIndex_, layerIndex_) : nullptr;
+        Composition* comp = resolver_ ? resolver_() : nullptr;
+        Layer* layer = comp != nullptr ? comp->getLayer(layerIndex_) : nullptr;
         if (layer == nullptr)
             return;                             // stale coordinate → safe no-op
         layer->setRuntime(runtime);
         if (playing.has_value())
-            if (Clip* clip = layer->getClipAt(column_))
+            if (Clip* clip = comp->clipAt(target_, layerIndex_))
                 clip->playing = *playing;
     }
 
-    ClipLayerResolver resolver_;
-    int deckIndex_, layerIndex_, column_;
+    CompositionResolver resolver_;
+    int layerIndex_;
+    ClipRef target_;
     LayerRuntimeSnapshot before_, after_;
     std::optional<bool> targetPlayingBefore_, targetPlayingAfter_;
     bool firstExecute_ = true;
