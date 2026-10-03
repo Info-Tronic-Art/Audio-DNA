@@ -1,6 +1,6 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 DONE at e1cd314 -- B7 critic panel is Harmony's; S4 next)
+STATUS: PENDING (S4 in progress; S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 DONE at e1cd314 -- B7 critic panel is Harmony's)
 Stage in progress: S3 DONE (badge / tab dot / badge click 06e26bd, grid f39ca40, TopBar fade 5cdf218, load notice + undo hint e1cd314; ctest 1156 / 0; TSAN 5 / 5; MS7 bites; B7 live captures taken). S2c DONE (Undo skips deck switches, 9cce864; ctest 1144 / 0; TSAN 5 / 5; B4g; MS1 / MS4 on showDeck). S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
@@ -1397,3 +1397,73 @@ INBOX-RECHECK: none
   discovered: src/model/Layer.cpp fromVar
 - DeckView::rebuildGrid leaves the column header unlit until the next refresh() (pre-existing). | discovered:
   src/ui/DeckView.cpp setupColumnTriggers
+
+## S4 (ruling-bf9b S4 row: probe-boxes K rows with per-arm readers; docs (amendment 23 + plan section 6); the Boris test show bf9b-check.json + page (amendment 24); lane report complete) -- builder started 21:50
+STATUS(S4): PENDING
+### S4 progress log (appended per item)
+- 21:50 read the lane report, plan-bf9b (incl. HARMONY ADOPTION) and ruling-bf9b in full. Branch lane/bf9b at 7a6fce1,
+  worktree clean. Disk 292 GiB free.
+- 21:55-22:03 S4.1 probe-boxes: explore session on the BF9B app (scratch bf9b-S4/explore.sh, 21:56:59-21:57:20, lock
+  bf9b-S4) to check the probe's assumptions before writing it: thirds by layer transform (layerScale 1/3, positionX i,
+  positionY 1 -> only the middle band lit), /api/state video_* fields, OSC /audiodna/deck/1 moves activeDeck, a clip
+  opacity connection on the signal "Volume" follows inject_features rms LINEARLY (means 20.2 / 12.12 / 4.04 at rms 1 /
+  0.5 / 0 -> deterministic, so K1d-iii is not a STOP), /api/perf/record works in --test-mode and writes an activeDeck
+  lane. The explore take (bf9b-s4-explore.adna-take, ours) was deleted from ~/Documents/Audio-DNA/Takes.
+- 22:03 S4.1a 729a76e: `git mv` probe-deck-clock.{sh,py,json} -> probe-boxes.* (rename-only commit: history kept).
+- 22:06-22:17 S4.1b c8e8dd6: the rows (below). Both arms run in 3 batches each, every batch under the lock (bf9b-S4),
+  launched and quit by the probe itself (quit_ours), test mode. Probe sha256 at the runs (== c8e8dd6's content):
+  probe-boxes.sh 998dfd815571b36f.., .py 37093ca3f50508e6.., .json 82b4217d3f4b0596...
+
+### S4.1 probe-boxes -- K rows RED (STAGE_P_HEAD app) / GREEN (BF9B app at e1cd314's src), raw lines
+Arms: STAGE_P = scratchpad/bf9b-S0/apps/stagep-head.app (3dac692), BF9B = build-lane app (built 21:35 from e1cd314; the
+S4 commits touch no src). Logs (scratch bf9b-S4/live/): dbg1-STAGE_P-220813.log, dbg2-STAGE_P-221212.log,
+dbg3-STAGE_P-221417.log; dbg1-BF9B-220643.log, dbg2-BF9B-220949.log, dbg3-BF9B-221537.log. The BF9B arm's k7_old_take
+replays the take the STAGE_P arm recorded (BOXES_OLD_TAKE = live/STAGE_P/boxes.5BVXCQ/k7-old-take.adna-take).
+Summary lines VERBATIM: STAGE_P `PY 3 PASS / 9 FAIL / 0 BLOCKED (arm STAGE_P)`, `PY 7 PASS / 10 FAIL / 1 BLOCKED (arm
+STAGE_P)`, `PY 5 PASS / 5 FAIL / 1 BLOCKED (arm STAGE_P)` -> `PROBE-BOXES RED` x3; BF9B `PY 14 PASS / 0 FAIL / 0 BLOCKED
+(arm BF9B)`, `PY 24 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)`, `PY 23 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)` -> `PROBE-BOXES
+GREEN` x3. Every batch: `PASS  no foreign render_frame traffic during the run`, `PASS  app terminated`; after every
+batch `audio-dna windows 0, Output-named 0` and `UserNotificationCenter windows: 0` (16 s after the quit).
+LOOKED at frames (scratch live/BF9B/look-k1.png): k1a ref "D0 C0", k1c mid-dissolve "D0 C0" -> "D0 C1", the k1t feedback
+trails, the k1b ramp frame (olive = t ~ 6.5 s) -- the decoded numbers describe what is on the canvas.
+| row | STAGE_P (RED arm) | BF9B (GREEN arm) |
+|---|---|---|
+| k1a REST switch_deck | FAIL d at +0 / +0.5 / +2 s = 63.84 (floor 1.50) | PASS d 0.0 / 0.0 / 0.0 |
+| k1a OSC /audiodna/deck/1 | FAIL d 63.84 x3 | PASS d 0.0 x3 |
+| k1a duplicate_deck 0 | PASS d 0.0 x3 (GUARD on STAGE_P: its Duplicate copies the playing column, and a static picture restarted looks the same -- see deviations) | PASS d 0.0 x3 |
+| k1a load_deck | FAIL d 63.84 x3 | PASS d 0.0 x3 |
+| k1a remove_deck (shown, unplayed deck) / undo | N/A (BF9B-only) | PASS / PASS d 0.0 x3 each |
+| k1b_switch_video | FAIL t at +2 s = 0.00 (expected 6.47 +- 0.5); playhead PASS (0.1659; STAGE_P's off-screen DeckClock moved it) | PASS t 4.47 -> 6.45 (exp 6.47); playhead 0.1659 (exp 0.1668 +- 0.06) |
+| k1c_switch_midfade | FAIL 0/10 on line (p -1.25, residual 41.83); p 1.0 -> 1.0; final d 82.40 (completion PASS: deck 1's layer reads complete) | PASS 11/11 on line (residual 0.13-0.26); p 0.414 -> 0.789; complete at 4.07 s after the fire; final d 0.00 |
+| k1t_history_freeze | FAIL d 63.84 / 63.84 | PASS d 0.0 / 0.0 |
+| k1t_history_feedback | FAIL d 80.76 / 80.76 | PASS d 0.0 / 0.0 |
+| k1d_ia_speed_half | FAIL t(W) 0.00, delta 2.73; playhead PASS 0.0621 | PASS t 1.98 -> 2.73 (delta 0.75 in [0.25, 1.25]); playhead 0.0621 |
+| k1d_ib_pingpong | FAIL t(W) 0.00, delta 9.41; playhead PASS -0.1247 | PASS t 10.96 -> 9.41 (delta -1.55 in [-2, -1]); playhead -0.1236 |
+| k1d_ii_opacity_blend | VALID 45.75; FAIL d at W / W+0.5 / W+2 = 109.59 / 109.59 / 0.0 | VALID 45.75; PASS d 0.0 x3 |
+| k1d_iii_connection | VALID 51.26; FAIL d(Cmax, Rmax) 63.84, d(Cmin, Rmin) 12.58 | VALID 51.26; PASS 0.00 / 0.00 |
+| k2_nothing_unseen | VALID 2 advance; FAIL 1 unseen: (deck 1, row 1, col 0) +0.0849 in 1 s | VALID 2 advance; PASS 0 unseen |
+| k2v_decode | N/A (BF9B-only) | VALID players 60; PASS awake [3 x10]; decoded 1795 -> 2244 = 449 in [225, 705]; nothing else moved |
+| k3_autopilot | VALID (col 1 at beat 4); FAIL d at beats 4 / 8 / 12 = 82.4 / 102.39 / 0.0; FAIL 2 changes off screen (deck 0 row 0 activeClipColumn 0 -> 1 at beat 4, 1 -> 2 at beat 8) | VALID; PASS d 0.0 x3; PASS 0 changes |
+| k4_ignore_column_across | FAIL layer 2 REST None, region d 83.08; others PASS (1, 1) | PASS layer 2 (0, 1) region d 0.00; others (1, 1) |
+| k4b_empty_cell | N/A (BF9B-only) | PASS layer 0 {101, 1}; layer 1 empty, region d 0.00; layer 2 {100, 0} region d 0.00 |
+| k5_queue_link_off | FAIL before / after the bar None / None (pending cancelled by the switch, L5); frame d 82.40 | PASS (0, 0) -> (0, 1) on the bar; frame d 0.00 |
+| k5_queue_link_on | BLOCKED (no Link build, no driver) | BLOCKED (same) |
+| k7_old_show | settings PASS (STAGE_P keeps per-deck); FAIL logLine count 0; FAIL ui_text has no load_notice; FAIL (new-format: no load_notice key); save BLOCKED | PASS settings [(0, 1.0, 0), (1, 0.8, 0)]; PASS exactly 1 logLine; PASS load_notice "Old show converted -- layer looks now come from the first deck (hover for details)"; PASS new-format: 0 lines, load_notice ""; save BLOCKED |
+| k7_old_take | PASS old take (checkpoint0 without "layers", 3 lane points), PASS replay, PASS lane moves; FAIL capture max d 63.84 | PASS x4; captures max d 0.0 (16) |
+| k8_twenty_decks | PASS 1.77 s; FAIL 19 switches d 63.84 | PASS 1.83 s; PASS 20 switches d 0.0, peak 0.7-6.3 ms |
+| k8b_browse_fire | N/A (BF9B-only) | PASS left d 0.0 at all 20; right d 0.0 from the fire; layer 1 {107, 2}; peak 0.6-4.3 ms |
+| k9a_remove_playing | N/A | PASS t 4.00 -> 5.98 over 2.01 s; numDecks 3 -> 2, retiredDeckCount 1, retired True |
+| k9b_remove_midfade | N/A | PASS 10/10 on line; p 0.458 -> 0.834; complete 4.03 s; retired 1 while p < 1; duplicate reaps: video_players 2 -> 0 |
+| k9c_remove_undo | N/A | PASS t 5.04 -> 7.06 over 2.00 s; deck 2 back at index 2 id 102, retiredDeckCount 0, layer 1 {102, 0} |
+| k10_fresh_and_resume | N/A | PASS (i) t 0.14 at +0.25 s; (ii) t_r 4.28 -> t 4.47 at +0.20 s; playhead 0.35878 -> 0.35878 |
+
+### K6 -- probe-deck-clock's rows (ruling-bf9 K6 dispositions, in probe-boxes.py's docstring)
+| old row | disposition | new row / bar |
+|---|---|---|
+| d_fade_finishes | INVERTED | k1c_switch_midfade (K1c) |
+| d_single_advance | RETIRED with DeckClock (S2a deleted it) | K1c's "p rises >= 0.15" |
+| d_pending_trigger_still_cancelled | INVERTED | k5_queue_link_off / k5_queue_link_on (K5) |
+| d_video_keeps_time, d_imageseq_keeps_time | INVERTED | k1b_switch_video + k2_nothing_unseen (+ k2v_decode, k10) |
+| d_autopilot_keeps_time | INVERTED | k3_autopilot (K3) |
+| d_return_hitch | RETIRED | its 50 ms bar moved to k8_twenty_decks / k8b_browse_fire |
+New rows (ruling-bf9b amendment 14): K1d (4 sub-rows), K2v, K4b, K8b, K9 (a / b / c), K10.
