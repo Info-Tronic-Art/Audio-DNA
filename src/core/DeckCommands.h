@@ -565,7 +565,7 @@ public:
                 snap(d);
             for (const auto& d : comp->retiredDecks())
                 snap(d);
-            comp->eraseLayer(layerIndex_);
+            erased_ = comp->eraseLayer(layerIndex_);
             // Family coverage (media-leak fix, L1 round 2): this guard is the ONLY place the removal happens, so the
             // dispose is gated on it too; undo's mediaHook_ call below reconnects them if the layer comes back.
             if (disposeHook_)
@@ -581,8 +581,9 @@ public:
         runFenced([this]
         {
             Composition* comp = resolve();
-            if (comp == nullptr)
-                return;
+            if (comp == nullptr || !erased_)
+                return;                         // execute refused (a stale index / the last layer): nothing to put back
+            erased_ = false;
             const int at = comp->insertLayerWithRows(layerIndex_, removed_, rows_);
             if (mediaHook_)
                 comp->forEachClip([&](const Clip& c, const ClipSite& site) {
@@ -605,6 +606,7 @@ private:
     int layerIndex_;
     Layer removed_;
     std::vector<std::pair<uint32_t, ClipRow>> rows_;   // row layerIndex_ of every deck, by deck id
+    bool erased_ = false;                              // the last execute() erased the layer (undo puts it back)
     std::string description_;
 };
 
