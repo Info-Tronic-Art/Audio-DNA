@@ -9,7 +9,7 @@
 # Rows, fixtures and calibration: the docstring of .harmony/probe-video.py (REST on 7070, every PNG decoded with
 # PIL+numpy); thresholds: .harmony/probe-video.json. Fixtures (ffmpeg, nice'd, -threads 2) are encoded per run into
 # <out>/media (deleted after the quit), or reused from $VIDEO_FIXTURES when that dir holds them. ADDITIONALLY REFUSES
-# when ffmpeg / ffprobe are not on PATH (probe-deck-clock.sh precedent).
+# when ffmpeg / ffprobe are not on PATH (probe-boxes.sh, was probe-deck-clock.sh, precedent).
 #
 # Clone of .harmony/probe-render-state.sh (refuse / fresh out dir / foreign-traffic check / graceful quit).
 # Production mode (no --test-mode). Screen-safe: open -g (never plain open / foreground exec), no screen capture,

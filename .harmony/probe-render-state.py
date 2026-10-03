@@ -24,7 +24,7 @@ RETIRED with the Persistent layer feature (bf9 Stage P, s-rta-1002b; ruling-bf9 
     clip opacity      probe-crossfade.json:44 (clipOpacity 0.5)        -- active deck
     layer transform   probe-crossfade.json:59-60, probe-fitmode.py:340 (layerScale 0.5)
     layer effects     probe-effects-parity (V1 / V5 / V6), probe-crossfade
-    clip transitions  probe-crossfade (a-f, k-l); an off-screen fade: probe-deck-clock d_fade_finishes
+    clip transitions  probe-crossfade (a-f, k-l); a fade across a deck switch: probe-boxes k1c_switch_midfade
     layer feedback    a4_feedback (below)                              -- NO other live coverage before
     FX Only layer     a4_fxonly (below)                                -- NO other live coverage before
     media-less effect clip on a Transparent layer: a4_fxonly_medialess -- NO other live coverage before

@@ -1,5 +1,5 @@
 # probe-quit-ours.sh -- QUIT ONLY WHAT YOU LAUNCHED (rig safety; bf9 Stage P, s-rta-1002b, ruling-bf9 amendment 12(e)).
-# Sourced (never run) by .harmony/probe-render-state.sh and .harmony/probe-deck-clock.sh, AFTER they define adna_pids
+# Sourced (never run) by .harmony/probe-render-state.sh and .harmony/probe-boxes.sh, AFTER they define adna_pids
 # (the kernel-ucomm "Audio-DNA" pid list). Boris uses this machine and this app: an Audio-DNA the probe did not launch
 # is never quit by name and never killed (the s-rta-1002b incident: a gate script quit his running app).
 #   record_ourpid  call right after /api/health answers: OURPID = the one ucomm "Audio-DNA" pid then running. The
