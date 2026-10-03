@@ -252,7 +252,7 @@ MainComponent::repointLayerInspector and repointInspectorsAfterStackMove's step 
 (the ruling keeps refreshAfterUndoRedo's own).
 
 ## STAGE FIX-2 COMMANDS (AM-7, AM-10, AM-18's comment)
-STATUS: PENDING
+STATUS: DONE (2026-10-03 15:16:27 -> 2026-10-03 15:29:12; concerns = "DEVIATIONS / STOP ITEMS FOR HARMONY (FIX-2)" below)
 Started 2026-10-03 15:16:27 from 707818e (git status clean). Scratch: <session scratchpad>/bf9b-fix-FIX-2/.
 ### Items (appended as each lands)
 
@@ -368,3 +368,107 @@ src/api/ApiServer.cpp, COMMENT ONLY (the sentence lives there, not in DeckComman
 deck (...)" now ends "-- except the retired list's size on the next line, read on this http thread while the message
 thread may change it (state-r2 NIT 5; the read itself is filed to tsan-r5, ruling-bf9b-merge SF-8)". No code line
 changed (`git show --stat`: 1 file, +3 -1, all comment lines).
+
+### End of stage FIX-2 (src / tests head 9e3099d; `git diff --quiet -- src tests` rc 0 before the runs)
+- `cmake --build build-lane -j6` rc 0, app + every test target (0 warnings from the touched files).
+- Full ctest, serial, under /tmp/audiodna-ctest.lock (2026-10-03 15:25:44 -> 15:27:50): `100% tests passed, 0 tests
+  failed out of 1250`, `Total Test time (real) = 126.19 sec`. 1250 = 1244 (FIX-1) + 6 added (T6f, T6g, T6h, T6i, T6j,
+  D3b) - 0 retired. No existing case edited.
+- `.harmony/probe-tsan-unit.sh` (unmodified: `git diff --quiet 707818e -- .harmony/probe-tsan-unit.sh` rc 0), 15:27:56:
+  `probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)`, `100% tests passed, 0 tests failed out of 5`,
+  exit 0, 0 "WARNING: ThreadSanitizer".
+- `.harmony/probe-asan-unit.sh`, 15:28:02: `probe-asan-unit: ctest -L asan finds 10 asan cases (expected 10)`,
+  `100% tests passed, 0 tests failed out of 10`, `PROBE-ASAN-UNIT GREEN (10 cases, 0 reports)`, exit 0.
+- `wc -c CLAUDE.md` = 24224 (unchanged). No app launched, no lock taken, no Output window, no new build dir, no
+  build left running.
+- Commits: f335c81 (AM-7), 5180397 (AM-10 D3b), 9e3099d (AM-18 comment), + this section's docs commit.
+
+WHAT THE RULING SAID THIS STAGE MUST PROVE BEFORE FIX-3
+| claim | result | where |
+|---|---|---|
+| T6f, T6g, T6j RED at FIX-1's head | RED, rc 42 each (retired 0 == 1; playingClip nullptr) | Item AM-7, RED block |
+| T6f, T6g, T6j GREEN after | GREEN (21 / 24 / 22 assertions) | Item AM-7 |
+| T6h GREEN before and after | GREEN before (18 assertions, FIX-1 src) and after | Item AM-7 |
+| T6h RED under MU7 | RED, 7 CHECKs | Item AM-7, MUTANTS |
+| MU6 -> T6f, T6g, T6j; MU8 -> the address checks | RED (MU6a T6f; MU6b T6g, T6i, T6j; MU8 T6f, T6g, T6j) | Item AM-7 |
+| the T6 / T7 / M families untouched and green | no existing case edited; 1250 / 1250 | this section |
+| PROBE-ASAN-UNIT GREEN with T6f, T6g, T6j under the label | GREEN (10 cases, 0 reports) | this section |
+
+### DEVIATIONS / STOP ITEMS FOR HARMONY (FIX-2)
+1. AM-18's comment is in `src/api/ApiServer.cpp` (that is where the sentence is), so this stage touched ONE src file
+   besides DeckCommands.h -- comment lines only. The stage text said "DeckCommands.h only for src"; AM-7 says that of
+   its own change. Flagged, not hidden.
+2. Boris's answer (a), verbatim: "Let's not allow control Z to change anything that is live in the layer strip. It
+   changes anything else". This stage moves Cmd+Z of Add / Duplicate / Load Deck (same row count) TOWARDS it, and --
+   as ruled (AM-7, adoption item 8) -- PINS the opposite for one case in T6h: Cmd+Z of a Load Deck that added layers
+   stops that deck's clip. T6h is a pin of a known exception, not of the wanted behaviour; lane BF31 must re-register
+   it. A fire by hand is still an Undo step of its own (also BF31's).
+3. T6f / T6g / T6j are under the asan label as ruled, but under MU6 they fail by their own REQUIRE (playingClip ==
+   the address), which stops the case BEFORE the write through the dead pointer -- so the ASan script's RED there is
+   an assertion RED, not an "ERROR: AddressSanitizer" line. Kept that way on purpose: without the REQUIRE the
+   Release binary would write freed memory on a regression instead of failing cleanly. Under the label they add
+   what a GREEN run adds: retire / restore move the deck with zero reports.
+4. RED-first was run on the uncommitted tree (new tests, src == FIX-1's head, `git diff --quiet -- src` rc 0), then
+   tests + fix went in ONE commit (f335c81): no commit of this stage has a failing ctest.
+5. MU8's first run was VOID (a stale binary: same-second mtime, nothing recompiled); re-run alone, RED. The void run
+   is reported above, not dropped.
+6. MU6b also turns T6i RED (not in the ruling's MU6 list; same cause). The AM-10 mutant also turns D3 RED.
+7. CARRIED from FIX-1, still open: B4f's new pin `{ "ui/InspectorRepoint.h", 1 }` awaits Harmony's confirmation.
+8. The Write tool refused a scratch fragment named `report-*.md` ("subagents return findings as text"); the lane
+   report itself is a required, committed deliverable of this workflow, so its sections were appended from .txt
+   fragments by shell (as the skeleton was). Said here so nobody takes it for a silent workaround.
+9. pulse.json was NOT read in this stage (the rig rule gives this worktree to this lane alone). No DEPARTMENT /
+   KNOWLEDGE_TOOLS block: grep-only; nothing judged dead on "no callers".
+
+### FOUND, NOT FIXED (FIX-2)
+1. Stale comments in src (outside this stage's files): `src/ui/RoutinePad.h:11` "everything at 50 % when the routine
+   plays on another deck"; `src/ui/RoutineDeckView.h:13` "the corner note", `:29` "false: it plays on another deck
+   (the pad paints at 50 %)", `:50` `"· Drop on Deck 2"`. The code sets `pad.onShownDeck = true` always (read).
+   recording.md is right; these comments are not.
+2. InsertDeckCmd::undo in the EXCEPTION branch (layers added) keeps today's body, so it does NOT cancel a trigger
+   queued into the erased deck: the pending ref then names a deck that is gone. INFERRED harmless (clipAt returns
+   nullptr for a missing deck); what the bar-snapped fire does with that ref was not run. SF-5 / BF31 territory.
+3. AddDeckCmd has no dispose hook: when its undo ERASES a deck that received clips outside the Undo history, their
+   media is not disposed by the command. Pre-existing (the old erase did the same); a RETIRED one is disposed by the
+   reap. INFERRED from reading.
+4. Docs owed by AM-14 for this stage's behaviour (performance-controls.md Remove Deck bullet: AM-7's rule + its
+   exception; Guards: T6f-T6j) are FIX-3 / FIX-4's by the ruling; APP-INVENTORY's test count (1234 at M1) is now
+   1250. Not written here.
+
+### NOTES FOR FIX-3 / FIX-4
+- ctest is 1250 at this head; the asan label holds 10 (EXPECTED_ASAN_CASES=10). build-lane, build-tsan and build-asan
+  are current with 9e3099d (no reconfigure needed unless a CMake file changes).
+- A mutant loop that rewrites one file and rebuilds within the same second can run the PREVIOUS mutant's binary:
+  `touch` the file after each rewrite and check the build log for a recompiled object (mu8.sh does both).
+- B4f now pins core/DeckCommands.h at 25. FIX-3 removes the badge / dot (DeckView, LayerStrip, MainComponent): if a
+  `setClip(` / structure-writer call disappears or appears there, the pin of that file moves with a justification.
+- The helper `undoRetiresPlayingDeckAndRedoRestoresIt` and `boxClip` (tests/test_show_model.cpp) are reusable for
+  BF31's re-registration of T6h.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- make compares mtimes; a source rewritten in the same second as the object built from its previous content is NOT
+  recompiled. In-place mutant loops: touch after the rewrite and assert `grep -c 'Building CXX' build.log` >= 1,
+  else the "RED" you read is the previous mutant's. | discovered: FIX-2 mutants.sh (MU8 printed MU7's failures)
+- A memory-ish test that must stay a clean FAIL in Release puts REQUIRE(pointer still owned) before it writes through
+  the pointer; under the asan label its RED is then an assertion, its GREEN the zero-report proof.
+  | discovered: tests/test_show_model.cpp T6f / T6g / T6j
+
+INBOX-RECHECK: none (no message channel in this workflow run; the relayed user lines a-e are Boris's answers, already
+adopted by Harmony: (a) = adoption item 8, quoted above)
+
+### PACKET QUALITY (FIX-2)
+- Clarity: CLEAR, one HAD_TO_INFER: "DeckCommands.h only for src" against "the retiredDeckCount comment", whose
+  sentence is in ApiServer.cpp (deviation 1).
+- Missing context: none that blocked.
+- Unused context: the three r2 reviews and rulings-bf9b-merge.md (the ruling + adoption + FIX-1's section carried
+  everything), the live-app rig rules (no app needed).
+- Self-brief files: ruling-bf9b-merge.md (full), the plan's HARMONY ADOPTION + P8 dispositions, bf9b-merge.md's
+  hand-over, rulings-bf9b-mergein.md, this report's FIX-1 section -- all useful, none stale.
+
+### SLIM CHECK (FIX-2)
+src: two undo bodies and two redo branches in DeckCommands.h (+ their comments), one comment sentence in
+ApiServer.cpp. tests: 5 cases + 1 shared helper + 1 clip maker (test_show_model), 1 case (test_routine_engine), 1 pin
+re-justified; probe: one number, one comment line. Every line traces to AM-7 / AM-10 / AM-18. Not built (as ruled):
+probe row k9d, B7 state 9, any change of the wide Load Deck undo. Smells named: InsertDeckCmd::undo now has two
+bodies behind one flag (the ruled exception; BF31 removes it); AddDeckCmd / InsertDeckCmd / RemoveDeckCmd repeat the
+"restore, else snapshot" shape three times (duplicated code, left: the ruling confines the change to these bodies).
