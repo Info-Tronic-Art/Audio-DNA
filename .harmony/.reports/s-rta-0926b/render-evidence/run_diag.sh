@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64
 # Diagnosis runner (lane render, s-rta-0926b). Screen-safe: open -g only, graceful quit.
 # usage: run_diag.sh <app> <outbase> <cases> [ENV=VAL]
 set -u

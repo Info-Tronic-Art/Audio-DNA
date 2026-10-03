@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64
 # probe-routines.sh -- s-rta-0926 L-R Routines slice 1, lane 1b live gate
 # (.harmony/.reports/s-rta-0926/plan-routines-s1-final.md section 6.2).
 #

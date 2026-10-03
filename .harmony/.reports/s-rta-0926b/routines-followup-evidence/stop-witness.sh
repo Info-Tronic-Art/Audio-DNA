@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; exit 64
 # stop-witness.sh APPBUNDLE OUTDIR -- launch (open -g), run stop-witness.py, quit. Caller holds the live lock.
 APP="$1"; OUT="$2"; mkdir -p "$OUT"
 SP=/private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a07fe8e4-258f-47f0-88b1-97bfb5129bb6/scratchpad/routines-followup

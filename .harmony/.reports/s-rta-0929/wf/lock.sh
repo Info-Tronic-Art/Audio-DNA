@@ -1,4 +1,5 @@
 # source me with LANE=<name> set: acquire_lock / release_lock / wait_quiet / adna / quit_app / outwins / start_app
+echo "ARCHIVED RECORD (R-N1, s-rta-1003): this script quits Audio-DNA by name -- never run or source it; use .harmony/probe-quit-ours.sh" >&2; return 64 2>/dev/null || exit 64
 : "${LANE:?set LANE=<lane-name> before sourcing}"
 # NOTE: bash drops a VAR=x prefix on "." after sourcing, so pin the name in a real assignment here.
 LOCK_LANE="$LANE"; export LOCK_LANE; export AUDIODNA_LOCK_OWNER="$LOCK_LANE"
