@@ -11,8 +11,10 @@
 # with ONE difference: the app is launched in TEST MODE (`open -g ... --args --test-mode`) -- the
 # c_runtime_change_keeps_history row changes the resolution through 8080 /api/set_composition_params
 # (test mode only). Screen-safe: open -g (never plain open / foreground exec), no screen capture, no Output
-# window, no synthetic input; graceful quit, pkill only if still running after 30 s. REFUSES if Audio-DNA is
-# already running. The caller holds /tmp/audiodna-live.lock (see PROBE RIG GATE below).
+# window, no synthetic input. QUITS ONLY THE APP IT LAUNCHED (quit_ours, .harmony/probe-quit-ours.sh; lane bf9b fix
+# round, Harmony ruling R-N1): graceful quit, kill of that one pid only if still running after 30 s; any other
+# Audio-DNA is never touched. REFUSES if Audio-DNA is already running. The caller holds /tmp/audiodna-live.lock (see
+# PROBE RIG GATE below).
 #
 # usage: probe-canvas.sh [out-base] [row,row,...]
 #   CANVAS_APP       app bundle to launch (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app)
@@ -34,8 +36,8 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # record_ourpid / ours_running / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${CANVAS_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${CANVAS_PY:-}"
@@ -53,6 +55,7 @@ echo "app: $APP"; echo "out: $OUT"
 ENVARGS=(); [ -n "${CANVAS_ENV:-}" ] && ENVARGS=(--env "$CANVAS_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP" --args --test-mode
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 sleep 2
 RC=1
 L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
@@ -67,9 +70,7 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
   RC=1
 else echo "PASS  no foreign render_frame traffic during the run"; fi
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
-if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
+quit_ours || RC=1
+if ours_running; then echo "FAIL  app still running (pid $OURPID)"; RC=1; else echo "PASS  app terminated"; fi
 echo; [ "$RC" -eq 0 ] && echo "PROBE-CANVAS GREEN" || echo "PROBE-CANVAS RED"
 exit "$RC"
