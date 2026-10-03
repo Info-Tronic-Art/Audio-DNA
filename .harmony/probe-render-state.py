@@ -95,6 +95,11 @@ P (the Persistent layer feature is removed; floor/tol = tol 1.5):
     the same without the key. Each: load, persist_setup(active_layer_idx_list=()), settle 2.0 s, cap at lock 756x878.
     VALID iff mean RGB(control) <= 2.0 (switch(0)'s refresh cleared the fallback: black). PASS iff d(subject,
     control) <= tol. BASE expected: black + B (FAIL).
+  lane bf9b (plan-bf9b 4.B, one shared layer stack; the arm is read from GET /api/composition's top-level "layers"):
+    p_flag_ignored's fixture is the case "B's row is A's row" (both row 0: persist_setup fires B, then A replaces it in
+    the one shared layer) -> VALID unchanged (control == A alone). p_flag_ignored_empty's fixture is the case "B's
+    layer is not replaced" (persist_setup(()) fires nothing after B) -> VALID iff control == B's picture (a 1-deck
+    reference: B in an Opaque layer, the shared layer's settings being deck 0's Opaque row); PASS clause unchanged.
   p_api_no_field: the p_flag_ignored subject loaded; no decks[].layers[] object of GET /api/composition has
     "persistent", and every one has id, visible and activeClipColumn. BASE: the key is present (FAIL).
   p_ignore_column: deck 0 = 2 layers x 2 image columns, layer 1 "ignoreColumnTrigger": true. trigger_clip(1, 0);
@@ -509,6 +514,9 @@ def p_flag_ignored(spec):
     dva = d(out["control"], a); dsc = d(out["subject"], out["control"]); nb = nonblank(out["subject"])
     print(f"      p_flag_ignored: d(control, A-only)={dva:.2f} d(subject, control)={dsc:.2f} "
           f"d(subject, A-only)={d(out['subject'], a):.2f} non-blank={nb}", flush=True)
+    if isinstance((comp() or {}).get("layers"), list):
+        print("      p_flag_ignored: bf9b shared stack -- fixture case 'B's row is A's row' (row 0 on both decks): "
+              "VALID = control == A alone (plan-bf9b 4.B)", flush=True)
     if dva > TOL:
         no(f"p_flag_ignored: INVALID -- the control is not A-only (d={dva:.2f} > tol {TOL})"); return
     (ok if nb and dsc <= TOL else no)(
@@ -524,9 +532,25 @@ def p_flag_ignored_empty(spec):
             return
         persist_setup(active_layer_idx_list=()); time.sleep(2.0)
         out[key] = cap(f"pfie_{key}", lock)
-    if any(v is None for v in out.values()):
+    shared = isinstance((comp() or {}).get("layers"), list)   # lane bf9b: one shared layer stack (4.B)
+    bref = None
+    if shared:
+        if load("pfie_Bonly", [deck(0, [layer(0, [clip(2, IMG_B)])])]):
+            trig(0, 0); time.sleep(2.0)
+            bref = cap("pfie_Bonly", lock)
+    if any(v is None for v in out.values()) or (shared and bref is None):
         no("p_flag_ignored_empty: capture failed"); return
     mc = float(out["control"][..., :3].mean()); dsc = d(out["subject"], out["control"])
+    if shared:
+        dcb = d(out["control"], bref)
+        print(f"      p_flag_ignored_empty: bf9b shared stack -- fixture case 'B's layer is not replaced': control == "
+              f"B's picture? d(control, B-only)={dcb:.2f}; d(subject, control)={dsc:.2f}", flush=True)
+        if dcb > TOL:
+            no(f"p_flag_ignored_empty: INVALID -- the control is not B's picture (d={dcb:.2f} > tol {TOL})"); return
+        (ok if dsc <= TOL else no)(
+            f"p_flag_ignored_empty: a file's \"persistent\": true changes nothing on the shared stack "
+            f"(d(subject, control)={dsc:.2f}, tol {TOL})")
+        return
     print(f"      p_flag_ignored_empty: control mean RGB {mc:.2f}, subject mean RGB "
           f"{float(out['subject'][..., :3].mean()):.2f}, d(subject, control)={dsc:.2f}", flush=True)
     if mc > 2.0:
