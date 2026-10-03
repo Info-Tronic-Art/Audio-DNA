@@ -1,7 +1,7 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: PENDING (S4 in progress; S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 DONE at e1cd314 -- B7 critic panel is Harmony's)
-Stage in progress: S3 DONE (badge / tab dot / badge click 06e26bd, grid f39ca40, TopBar fade 5cdf218, load notice + undo hint e1cd314; ctest 1156 / 0; TSAN 5 / 5; MS7 bites; B7 live captures taken). S2c DONE (Undo skips deck switches, 9cce864; ctest 1144 / 0; TSAN 5 / 5; B4g; MS1 / MS4 on showDeck). S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
+STATUS: DONE (S4 DONE at 7a56bf4 -- one STOP item + 3 no-driver items for Harmony; S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 DONE at e1cd314 -- B7 critic panel is Harmony's)
+Stage in progress: none -- S4 DONE (probe-boxes RED/GREEN, docs, Boris show + page, B1-B4 at 7a56bf4). S3 DONE (badge / tab dot / badge click 06e26bd, grid f39ca40, TopBar fade 5cdf218, load notice + undo hint e1cd314; ctest 1156 / 0; TSAN 5 / 5; MS7 bites; B7 live captures taken). S2c DONE (Undo skips deck switches, 9cce864; ctest 1144 / 0; TSAN 5 / 5; B4g; MS1 / MS4 on showDeck). S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
 STAGE_P_HEAD: 3dac692 (C4)
@@ -1399,7 +1399,7 @@ INBOX-RECHECK: none
   src/ui/DeckView.cpp setupColumnTriggers
 
 ## S4 (ruling-bf9b S4 row: probe-boxes K rows with per-arm readers; docs (amendment 23 + plan section 6); the Boris test show bf9b-check.json + page (amendment 24); lane report complete) -- builder started 21:50
-STATUS(S4): PENDING
+STATUS(S4): DONE
 ### S4 progress log (appended per item)
 - 21:50 read the lane report, plan-bf9b (incl. HARMONY ADOPTION) and ruling-bf9b in full. Branch lane/bf9b at 7a6fce1,
   worktree clean. Disk 292 GiB free.
@@ -1467,3 +1467,264 @@ trails, the k1b ramp frame (olive = t ~ 6.5 s) -- the decoded numbers describe w
 | d_autopilot_keeps_time | INVERTED | k3_autopilot (K3) |
 | d_return_hitch | RETIRED | its 50 ms bar moved to k8_twenty_decks / k8b_browse_fire |
 New rows (ruling-bf9b amendment 14): K1d (4 sub-rows), K2v, K4b, K8b, K9 (a / b / c), K10.
+
+### S4 progress log (continued)
+- 22:18-22:27 S4.2 docs b90e1ff + S4.2b c46dba1 (below). CLAUDE.md 23,943 -> 24,264 B (`wc -c`; cap 25,000).
+- 22:28-22:30 S4.3 dd1509f: .harmony/make-bf9b-check.py (Boris's test show generator) + a live check of the generated
+  show on the BF9B app (scratch bf9b-S4/check_show.sh -> live/check_show.log, lock bf9b-S4 22:29:29-22:30:01).
+- 22:31-22:35 S4.4 7a56bf4: probe-render-state p_flag rows per plan 4.B (below); probe-canvas f2_deck_transition run on
+  both arms (a 4.B omission -- STOP item for Harmony, not edited).
+- 22:35-22:36 B1-B4 at 7a56bf4 (scratch bf9b-S4/gates.sh -> gates.log).
+
+### S4 commits
+| sha | item | build / run |
+|---|---|---|
+| 729a76e | S4.1a `git mv` probe-deck-clock.{sh,py,json} -> probe-boxes.* (rename only) | no build input |
+| c8e8dd6 | S4.1b probe-boxes rows K1a-K10, per-arm readers, K6 dispositions in the docstring; quit-ours / render-state / video comments renamed | live: STAGE_P RED, BF9B GREEN 61 / 0 / 2 BLOCKED |
+| 4750272 | lane report: K rows RED / GREEN | -- |
+| b90e1ff | S4.2 docs (amendment 23 + plan section 6) | no build input |
+| c46dba1 | S4.2b "A deck switch is never an Undo step" (performance-controls.md, its own hunk AND commit: a Q4 "keep" = revert 9cce864 + c46dba1) | -- |
+| dd1509f | S4.3 make-bf9b-check.py (`git add -f`: .harmony/*.py is gitignored) | generated + live-checked |
+| 7a56bf4 | S4.4 probe-render-state p_flag_ignored / _empty on the shared stack (4.B) | BF9B 4 / 0, STAGE_P 4 / 0 |
+No S4 commit touches src/, tests/ or CMake (`git diff --stat e1cd314..HEAD -- src tests CMakeLists.txt cmake` empty), so
+the BF9B app of every live run is e1cd314's build.
+
+### S4.2 docs (ruling-bf9b amendment 23 + plan-bf9b section 6)
+- CLAUDE.md (23,943 -> 24,264 B): rule 15 = plan section 6's text VERBATIM ("Decks are boxes; the layers play: ...");
+  capability line: "decks are boxes of clips over one shared layer stack" added, "cross-deck transitions with 3 blend
+  modes" dropped; trigger table: "or cross-deck transitions (P25)" dropped (S0 already dropped "persistent layers");
+  pitfall index 35 / 36 / 38 / 63 reworded and ONE new line written as "NN." (Harmony assigns at merge; main now has 64
+  mkvidx, 65 ui, 66 bf10).
+- docs/claude/pitfalls.md: 35 (history keyed by the SHARED layer, kShowStackKey), 36 (deck ids <= kMaxDeckId, never
+  reused, renumber at load, refusal text), 38 (one show autopilot, source-deck rule), 63 (the tuple packs a ClipRef per
+  slot, refusal, (7) the GL never dereferences the fenced pointer; the R5 list loses globalTransitionSpeed), 37 / 53
+  stale words (deck transition pass, compositeDeck), NEW "NN. The shown deck is the grid, never the screen".
+- performance-controls.md: "Decks are boxes of clips" replaces "Inactive decks keep time" + the Persistent paragraph:
+  the model, the switch (grid only), firing (any deck -> its row's layer; column fire = shown deck, Ignore Column skips,
+  an empty cell empties the layer = Q5), queued triggers survive, autopilot source deck, the leave rule (amendment 5),
+  retired decks + reaping in withDeckDetached (4), what saving keeps (4(e)), old shows + the note + the load notice (9),
+  the store table (9(a)), the badge / tab dot / badge click / grid / column header / undo hint (16), Persistent; Layer
+  Router "every layer of the shared stack"; beat snap: a deck switch never cancels. "A deck switch is never an Undo step"
+  is its own paragraph at the file's end -> its own hunk (`git diff -U3` shows it as a separate @@) and its own commit.
+- rendering.md: "Cross-Deck Transitions (P25)" replaced by a REMOVED note; LayerStateKey = kShowStackKey; image set
+  order; hold owner; video / sequence idle wording ("a player no layer draws decodes nothing", no off-screen clock);
+  compositeShow; the output tap's last canvas writer.
+- architecture.md: the show model paragraph; the tuple (refs); structure fence + B4f + reaping in withDeckDetached
+  (4(a)); source tree (+ ClipRow.h, ClipRef.h, ShowMigration.h; Layer / Deck / Composition / CompositorEngine lines).
+- recording.md: routines pinned by deck id (6), Layer scope = shared layer, stopOnLayer, bands on any deck, PerfState v2
+  "layers", old takes (M5), a removed deck's clip records -1; the pad no longer dims "on another deck".
+- integration.md: /api/composition's top-level layers + retiredDeckCount + the F8 mirror; REST / OSC fire the shown
+  deck's cells; no REST / OSC fade field ever; debug remove_deck / undo; ui_text load_notice; genre auto-switch inert.
+- effects.md: one show autopilot (source deck), genre deck auto-switch inert (19). APP-INVENTORY: transitions / shaders
+  (243 -> 242: deck_transition), TopBar Fade, DeckView (dots, lit cells, header), LayerStrip badge, /api/composition,
+  set_layer_opacity, switch_deck, debug routes, runtime-only table, genre. BORIS_DECISIONS.md: :350 "Built (bf9b)" +
+  defaults Q1-Q5; :370 gains "[CLARIFIED 2026-10-02 -- see "Decks are boxes of clips": clips in layers keep playing on
+  screen; nothing plays unseen]" (VERBATIM). binding-decisions.md: Built + defaults. CONTEXT.md glossary (Layer, Deck,
+  Composition; Deck gains an _Avoid_ "active deck" for what plays). FEATURES.md / design/FEATURE_INVENTORY.md: deck-fade
+  and globalTransitionSpeed lines marked removed.
+- Stale-term scan after the edits (scratch bf9b-S4/stale.py over docs/claude/*.md, CLAUDE.md, APP-INVENTORY, CONTEXT):
+  every remaining hit of DeckClock / deck transition / globalTransitionSpeed / persistent / off-screen is a "removed /
+  deleted / never" statement.
+
+### S4.3 Boris's test show (amendment 24) -- generated, live-checked
+`.harmony/make-bf9b-check.py <out-dir>` writes bf9b-check.json (the bf9b save format: top-level "layers" + decks of rows
+of clips, every key as Composition / Layer / Clip::toVar write it), 237 PIL pictures "D<d> C<c>" + "layer <l>" (1-based,
+one colour per deck) and two 60 s time-code videos (PIL frames piped to ffmpeg). 20 decks x 3 rows x 4 columns:
+`numColumns` 4 on EVERY deck and every row exactly 4 cells (S3's found_not_fixed fixed in the fixture). Layers 1-3
+Transparent, each in its own part of the picture (left half / right half / a small box at an edge). Deck 1 / Layer 3 /
+col 4 = video A, Deck 2 / Layer 3 / col 4 = video B, Deck 6 / Layer 2 / col 2 EMPTY (step 8.4). Generated into scratch
+bf9b-S4/bf9b-check/ (6.1 MB, 7 s). The show names its media by absolute path: generate it where Boris will open it.
+Live check on the BF9B app (raw lines, live/check_show.log):
+```
+load: {'ok': True}
+layers [('Layer 1', 1, 0), ('Layer 2', 1, 0), ('Layer 3', 1, 0)] numDecks 20 retired 0
+decks numColumns [4] rows [3] clips per deck [12, 12, 12, 12, 12, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12]
+ui_text {'ok': True, 'file_label': 'Loaded: bf9b-check', 'audio_notice': '', 'load_notice': ''}
+8.1 after fires: layers play (deck, col) 1-based [(1, 1), (3, 2), (1, 4)]
+8.1 walk: d(layer 1 + layer 2 halves vs before) per switch [0.0 x 21] layers play [(1, 1), (3, 2), (1, 4)]
+8.4 deck 6 column 2 fired: layers play [(6, 2), None, (6, 2)]
+8.5 removed deck 3: numDecks 19 retired 1 layer 2 {'deck': -1, 'deckId': 102, 'column': 1, 'clipId': -1, 'retired': True}
+8.5 undo: numDecks 20 retired 0 layer 2 {'deck': 2, 'deckId': 102, 'column': 1, 'clipId': 1029, 'retired': False}
+"old show converted:" lines: 0 (a new-format show: no note)
+```
+(the 8.1 walk line is abbreviated here: 21 values, all 0.0.) LOOKED at the canvas (live/show-222929/look-s81-canvas.png:
+"D1 C1 / layer 1" left, "D3 C2 / layer 2" right, the "00:03.1 video A" box bottom-centre) and the window
+(look-win-s81.png: Deck 3 shown, badges "1" / "3" / "1" on the strips, dots on the Deck 1 and Deck 3 tabs, the D3 C2
+cell lit in the Layer 2 row). Window captures: win-s81-deck3, win-s81-back-deck1, win-s84-deck6, win-s85-removed.
+
+### BORIS PAGE (amendment 24 "WHAT ONLY BORIS CAN CHECK"; content for Harmony's ONE artifact page, after the B7 critics)
+Open: in Audio-DNA, open the test show "bf9b-check" (Harmony: generate it with `.harmony/make-bf9b-check.py <folder>` in
+the folder you give Boris, then name that folder here). The picture shows Layer 1 on the left half, Layer 2 on the right
+half and Layer 3 in a small box at the bottom; every picture says which deck and column it is ("D3 C2"), and two
+videos show a running clock. Easiest first; each step: do -> expect -> wrong looks like.
+- 8.1 On Deck 1 click "D1 C1" in the Layer 1 row and "D1 C4" (video A, a running clock) in the Layer 3 row; click the
+  Deck 3 tab and click "D3 C2" in the Layer 2 row. Then click through all 20 deck tabs and back to Deck 1. Expect: the
+  picture keeps D1 C1, D3 C2 and the clock keeps counting; only the grid changes. Wrong: a picture changes, a flash, the
+  clock jumps or stops.
+- 8.2 Look at the layer strips left of the grid: the small number at the bottom-left of each strip's picture is the deck
+  tab its clip came from (grey when that deck is the one shown, white when another). The Deck 1 and Deck 3 tabs show a
+  small dot. Click the "3" on Layer 2's strip: the grid jumps to Deck 3. Taste: easy to read, not loud?
+- 8.3 Ignore Column: select Layer 2, open the Layer tab, tick "Ignore Column Trigger"; click the Deck 5 tab; click the
+  column number 4 above the grid. Expect: Layer 2 keeps D3 C2; Layers 1 and 3 show D5 C4. Wrong: Layer 2 changes.
+- 8.4 Untick "Ignore Column Trigger" on Layer 2 again. Click the Deck 6 tab (its column 2 has nothing in the Layer 2 row)
+  and click column number 2. Expect: Layer 2 goes empty (the right half turns black); Layers 1 and 3 show D6 C2.
+  Question Q5 below: is that right?
+- 8.5 On Deck 3 click "D3 C2" in the Layer 2 row again; click the Deck 1 tab; right-click the Deck 3 tab -> Remove Deck.
+  Expect: D3 C2 keeps playing on the right, its strip number turns into "x", and the button at the end of the tab row
+  reads: Undo Remove "Deck 3" -- Layer 2 keeps playing its clip. Press Cmd+Z: Deck 3 comes back, D3 C2 still playing.
+- 8.6 Click "D2 C1" on Deck 2 (Layer 1 row), then click 5 different deck tabs, then press Cmd+Z once. Expect: the D2 C1
+  you fired is undone (Layer 1 shows what it showed before); deck clicks are not Undo steps (Q4).
+- 8.7 Select a layer, Layer tab: "Persistent" is gone; "Ignore Column Trigger" sits alone on its row.
+- 8.8 The top bar has no "Fade:" control: a deck change never changes the picture, so there is nothing to fade.
+- 8.9 Open your show "test with harry": a yellow note in the top row says it was converted (hover it for the details);
+  your layers look as they did.
+- 8.10 Save "bf9b-check", close it, open it again: the decks and the layer looks come back; the layers start empty (as
+  before: what is playing is not saved).
+- 8.11 On Deck 1 click "D1 C4" (video A) in the Layer 3 row, let its clock reach about 00:10, click "D1 C3" (a picture) in
+  the same row, wait 10 seconds, click "D1 C4" again. Expect: video A continues from about 00:10 (not 00:20, not
+  00:00). Then on Deck 2 click "D2 C4" (video B, never played): it starts at 00:00.
+Questions (each has a default, the build does not wait): Q1 "If you delete a deck while one of its clips is playing,
+should that clip keep playing until you fire something else on that layer?" DEFAULT yes. Q2 "If you load a deck that
+has more rows than your show has layers, should the show add the missing (empty) layers so you can see all of that
+deck's clips?" DEFAULT yes. Q4 "Clicking a deck tab used to be an Undo step (Cmd+Z flipped you back a deck). Now that
+switching decks never changes the picture, Undo skips deck clicks, so Cmd+Z always undoes your last real change, like a
+clip you fired. OK?" DEFAULT Undo skips deck clicks. Q5 "If you fire a column on a deck where some rows of that column
+are empty, should those layers go empty (as today) or keep what they are playing?" DEFAULT go empty (Ignore Column
+still keeps a layer). (Q3 withdrawn.)
+
+### S4.4 probe-render-state p_flag rows on the shared stack (plan 4.B: "the builder records which case the fixture is")
+- p_flag_ignored: the fixture is the case "B's row is A's row" (deck 0 and deck 1 each hold ONE row: persist_setup fires
+  B, then A replaces it in the one shared layer) -> VALID unchanged (control == A alone).
+- p_flag_ignored_empty: the case "B's layer is not replaced" (persist_setup(()) fires nothing after B) -> VALID iff
+  control == B's picture (a 1-deck B-only reference at the same 756 x 878 lock); PASS clause unchanged. Without this
+  4.B change the row reads INVALID on BF9B (the control is B, not black). The STAGE_P path is unchanged.
+Runs (scratch live/other-BF9B-223138.log, other-STAGE_P-*.log), VERBATIM: BF9B `PY 4 PASS / 0 FAIL` (`p_flag_ignored:
+bf9b shared stack -- fixture case 'B's row is A's row' ...`, `d(control, A-only)=0.00 d(subject, control)=0.00`;
+`p_flag_ignored_empty: bf9b shared stack -- fixture case 'B's layer is not replaced': control == B's picture?
+d(control, B-only)=0.00; d(subject, control)=0.00`; p_api_no_field 2 layer objects, no "persistent"; p_ignore_column
+PASS) -> `PROBE-RENDER-STATE GREEN`; STAGE_P `PY 4 PASS / 0 FAIL` -> `PROBE-RENDER-STATE GREEN`.
+
+### STOP ITEM for Harmony: probe-canvas f2_deck_transition (a plan 4.B omission; NOT edited)
+The row asserts the deck-to-deck fade that amendment 18 deletes; plan 4.B / the ruling do not list it, and the rule is
+"any OTHER changed assertion = STOP and report". Runs: STAGE_P `PASS  f2_deck_transition: a deck switch with a 4 s
+transition shows the OUTGOING deck fading into the new one (p per trial [[0.25, 0.5], [0.25, 0.5], [0.25, 0.51]]; ...)`
+-> `PROBE-CANVAS GREEN`; BF9B `FAIL  f2_deck_transition: references not distinct (d(A,B)=0.00 < 20)` -> `PROBE-CANVAS
+RED` (its two "deck" references are the same shared layer, so they are equal). Proposed disposition for the ruling:
+RETIRED with the deck fade (consequence text "the deck-to-deck transition fade is REMOVED"; successors K1a / K1c / K8
+-- a switch shows no transition at all). probe-canvas's other rows were not run in S4.
+
+### B1-B4 at the lane head 7a56bf4 (src == e1cd314's; scratch bf9b-S4/gates.sh -> gates.log, 22:35:30-22:36:10)
+- B1 `cmake --build build-lane -j3 -- -k` (all targets): `B1 rc=0`, 0 "error:" lines (incremental: nothing to rebuild).
+- B2 `ctest --test-dir build-lane -j3 --output-on-failure`, VERBATIM: `100% tests passed, 0 tests failed out of 1156` /
+  `Total Test time (real) =  33.31 sec`.
+- B2 bookkeeping vs STAGE_P_HEAD (multiset diff of names: S0's ctest-head.log vs `ctest -N` now; one name is listed
+  twice in both, "Deck commands no-op on stale coordinates (never crash)"): 1117 + 60 added - 21 retired = 1156. Lists:
+  scratch bf9b-S4/added.txt, retired.txt. RETIRED (21): test_deck_clock (a) (b) (c) (d) (f); AddDeckCmd / InsertDeckCmd /
+  SwitchDeckCmd "cancels a pending trigger ..." (3); RemoveDeckCmd "undo cancels ..." (2); SwitchDeckCmd double-switch +
+  switch / undo (2, S2c); "Deck layer management", "Deck::fromVar bumps the layer-id mint ...", "Deck::triggerColumn:
+  forced snap ...", "a queued trigger cancelled by cancelPendingTriggers ...", "compload::duplicateDeck ... and no queued
+  trigger", "compload::imagePaths: active deck first ...", "RoutineDeckView off-deck ...", "RoutineEngine display D3:
+  stopOnLayer ... of that deck ...", "layout: the Signal fader sits to the right of Fade ...". ADDED (60): S1 packing +
+  bijection; T1 x2, T2-T16 incl. T6c / T6d / T6e / T7b; M1-M7; R-bf9b TSAN; the S3 cases (11) + "bf9b S3.3: the TopBar has
+  no deck Fade control"; B4d / H2, B4f, B4g lints; the 4.B successors ("AddDeckCmd / InsertDeckCmd: leaves a queued
+  trigger untouched", RemoveDeckCmd x2 "undo leaves ...", "ClearLayerClipsCmd: a layer playing another deck's clip keeps
+  playing", "Layer management on the shared stack", "Composition::fromVar bumps the layer-id mint ...",
+  "Composition::triggerColumn: forced snap ...", "a queued trigger cancelled by cancelPendingInto never fires",
+  "compload::duplicateDeck ... (a deck holds no tuple)", "compload::imagePaths: the playing clips first ...",
+  "RoutineDeckView fired from another deck ...", "RoutineEngine display D3: ... shared layer ...", "layout: ... right of
+  Quantize ..."). Every case B2 requires is present and passing (incl. "(e) LayerClock::advanceCrossfade ...").
+- B3 `.harmony/probe-tsan-unit.sh` exit 0, `ctest -L tsan` `100% tests passed, 0 tests failed out of 5` (R1, R2, R4,
+  R-bf9b, R3; 1.34 s), "WARNING: ThreadSanitizer" count 0 (build-tsan incremental: nothing changed since S3).
+- B4 (b4.py, code lines): B4a = `model/ShowMigration.h:166` / `:168` only (the allowed "globalTransitionSpeed" literals;
+  zero SwitchDeckCmd, zero DeckClock / AutopilotBank / deck_transition / deckTransition / prevDeckFBO_ / compositeDeck /
+  cancelPendingTriggers / tickMediaClock / advanceClock); B4b 0 hits; B4c / B4d / B4e / B4f / B4g in ctest (PASS above).
+
+### LANE GATE STATUS (ruling-bf9b FINAL CONSOLIDATED GATE LIST) at the S4 head
+| gate | status | where |
+|---|---|---|
+| G0-G7 (Stage P) | PASS at STAGE_P_HEAD 3dac692 (G7 critics = Harmony's) | S0 RESULT |
+| K1 / K1a-c / K1t | RED on STAGE_P, GREEN on BF9B -- except K1a's duplicate_deck driver, GREEN on BOTH arms (a guard: see deviations) | S4.1 table |
+| K1d i-a / i-b / ii / iii | RED / GREEN | S4.1 table |
+| K2, K3, K4, K5 (Link off), K8 | RED / GREEN | S4.1 table |
+| K5 Link on | BLOCKED (no Link build, no driver) | S4.1 table, found_not_fixed |
+| K6 | dispositions listed | S4.1 K6 table |
+| K7 old show | RED / GREEN; its save half BLOCKED (no save driver) | S4.1 table |
+| K7 old take | RED / GREEN | S4.1 table |
+| K2v, K4b, K8b, K9a-c, K10 | BF9B-only, GREEN | S4.1 table |
+| B1 | rc 0 at every S-stage commit outside S2a..S2b, and at the S4 head | S1-S3 tables + above |
+| B2 | 1156 / 0; 1117 + 60 - 21 | above |
+| B3 | 4 / 4 at S1's end; 5 / 5 at the head, 0 warnings | S1 + above |
+| B4 a-g | PASS (B4a: the two allowed ShowMigration.h literals) | above |
+| B5, B6, B8 | Harmony's (not run by the builder); B5's save + reload has no live driver (see K7) | -- |
+| B7 | machine checks M-a..M-f PASS (S3); live captures taken (S3); critic panel = Harmony's | S3 |
+| MS1-MS7 | each bites (S2b, S2c, S3) | S2b / S2c / S3 |
+| probe-render-state p_flag (4.B rows) | GREEN on both arms | S4.4 |
+| probe-canvas f2_deck_transition | STOP: not in 4.B; RED on BF9B by design | STOP item |
+
+### S4 deviations / decisions (for the reviewer and Harmony)
+1. K1's drivers were applied to K1a (REST, OSC, duplicate_deck, load_deck, BF9B-only remove_deck + undo); K1b / K1c /
+   K1t use REST switch_deck (the ruling's driver list does not ask every sub-row to run every driver). The take-replay
+   activeDeck lane is K7's k7_old_take with K1a's bar.
+2. k1a_duplicate is GREEN on STAGE_P too: STAGE_P's Duplicate Deck shows the copy, which plays the same static picture
+   (verified: activeDeck 3, numDecks 4, d 0.0 x3). So that driver has no RED arm with a static fixture -- reported, not
+   re-thresholded; a video fixture would separate the arms (Harmony's call).
+3. k1b's "+2 s" bar uses the measured time between the two capture requests (2.00-2.01 s, printed) in place of the
+   literal 2.0 (same bar, the real elapsed).
+4. k2v's 5-s decode delta reads sample 0 -> sample 10 (11 reads 0.5 s apart; samples 0-9 are the 10 awake samples) so
+   the delta spans exactly 5.0 s.
+5. k3: "beatsPlayed" has no field in GET /api/composition on either arm -- not read (printed); the activeClipColumn and
+   playheadPosition halves of the clause are read per arm.
+6. k4: the only column entry with a non-synthetic driver is REST trigger_column (OSC has no column route; MIDI /
+   keyboard need synthetic input); every entry is handleColumnTrigger (unit T4, plan K4).
+7. k5_queue_link_on and k7_old_show's save half print BLOCKED (counted, never PASS): neither arm has a driver (Link:
+   AUDIODNA_BUILD_LINK OFF, TopBar toggle only -- performance-controls.md says so; save: no REST save route). Bars
+   unchanged.
+8. k1d_iii's deterministic source: the signal "Volume" (= RMS) via inject_features rms (test mode runs no analysis
+   thread; measured linear in the explore run) -- not a STOP.
+9. The probe writes OLD-format compositions with identical layer settings on every deck, so one file serves both arms
+   (BF9B converts it without a note); k7_old_show writes differing settings on purpose.
+10. Probe python: the .sh falls back to the main checkout's .venv (read-only); no .venv symlink was created.
+11. Rig slip (self-reported): one build-check command ran as `cd /tmp && (time cmake --build build-lane ... --target
+    AudioDNA)` (21:5x, a no-op incremental build of the app, absolute paths) -- the rule says never cd in a command; no
+    other effect.
+12. The Boris page is a section of this report (no separate page file); Harmony builds the artifact page from it.
+13. pitfalls.md "NN" and CLAUDE.md "NN." are placeholders for Harmony's number (adoption 4).
+
+### found_not_fixed (S4)
+- probe-canvas f2_deck_transition: RED on BF9B by design (the STOP item above) -- needs a ruling (proposed RETIRED).
+- K5 Link on: no driver on either arm (no Link build; TopBar toggle only). Options: a Link build + a test-only REST
+  toggle, or a ruling that K5 Link-on is covered by T5 + "tempo only, never the phase".
+- K7 / B5 save + reload: no REST save route; a test-only `/api/debug/save_composition {path}` (the remove_deck pattern)
+  would give B5 its live driver.
+- K1a duplicate_deck driver: no RED arm with a static picture (deviation 2).
+- Carried, still open: the S2b 4.B omissions ruling; the pre-existing DeckView::rebuildGrid header bug (S3); the S3
+  B7 critic panel; test_app_settings.cpp:19 parallel-ctest flake (S0; not seen in S4's ctest run).
+
+## S4 RESULT
+S4 DONE at 7a56bf4 (+ this report commit): probe-boxes (K1a-K10, per-arm readers, K6 dispositions) RED on STAGE_P / GREEN
+on BF9B (61 PASS / 0 FAIL / 2 BLOCKED-no-driver sub-rows); docs (amendment 23 + plan section 6; the Undo hunk its own
+commit; CLAUDE.md 24,264 B); Boris's test show generator + a live check + the page; probe-render-state's 4.B rows GREEN on
+both arms; B1 rc 0, B2 1156 / 0 (1117 + 60 - 21), B3 5 / 5 0 warnings, B4 PASS. One STOP item (probe-canvas
+f2_deck_transition) and three no-driver items for Harmony.
+
+## Resume point (after S4)
+The lane's build stages are complete. Harmony owes: the B7 critic panel; the S2b 4.B omissions ruling; the rebuildGrid
+header decision; the probe-canvas f2_deck_transition disposition (STOP item); K5 Link-on and K7 save drivers (or rulings);
+the Pitfall number for "NN"; where Boris's show is generated (`.harmony/make-bf9b-check.py <folder>`); the rebase over
+main (hyg + mkvidx + ui + bf10 merged: CLAUDE.md pitfall index 64-66, ApiServer debug routes incl. main's own
+/api/debug/undo, docs) -- do not rebase until Harmony says. Rerun probe-boxes after the rebase: STAGE_P arm first (it
+records the old take: `k7_old_take: recorded take <folder>`), then BF9B with BOXES_OLD_TAKE=<folder>.
+INBOX-RECHECK: none
+
+## Notes for .harmony/notebook.md (Harmony appends) -- S4
+- probe-boxes: one OLD-format composition with identical layer settings on every deck serves both arms (STAGE_P reads it
+  natively, BF9B converts it with no note); the arm is read from GET /api/composition's top-level "layers". |
+  discovered: .harmony/probe-boxes.py show() / load()
+- A probe that needs a pre-bf9b TAKE records it on the STAGE_P arm (perf/record works in --test-mode; wall-clock
+  replay) and moves it out of ~/Documents/Audio-DNA/Takes into its own out dir. | discovered: .harmony/probe-boxes.py
+  k7_old_take
+- On the shared stack, a probe's "regions" come from layer transforms: layer_transform maps uv / scale - translate with
+  anchor 0, so scale 1/3 + positionX i + positionY 1 puts a layer in the i-th third of the middle band (scale 0.5 +
+  positionX i + positionY 0.5 = a half). | discovered: src/render/EmbeddedShaders.h layer_transform
+- A test show for Boris must be generated where he opens it (clips name media by absolute path). |
+  discovered: .harmony/make-bf9b-check.py
