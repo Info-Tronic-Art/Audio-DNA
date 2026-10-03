@@ -1,0 +1,77 @@
+== lane2 start 20:16:40 app /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app (b64e94db137e5a7f) mode lane arm B rows ''
+UNC before: UserNotificationCenter windows 0 []
+outwins before: audio-dna windows 0, Output-named 0
+20:16:41 re-acquire cooldown 20 s
+20:17:01 lock acquired
+top cpu at start:
+ 42.9 06-07:33:51 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  7.8 06-07:33:47 /System/Library/PrivateFrameworks/TelephonyUtilities.framework/callservicesd
+  7.7       09:19 /System/Library/ExtensionKit/Extensions/FaceTimeNotificationExtension.appex/Contents/MacOS/FaceTimeNotificationExtension
+  6.4 06-07:33:51 /usr/sbin/coreaudiod
+  4.2    06:28:20 claude
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/runs/lane2/milkdrop.hn25N9
+mode: lane arm: B attach: 0
+20:17:04 app up: 91785 
+--- m6_panel_bars
+      winshot m6_ctl_640x360_1: window 37209 bounds 0,38 1728x1079 onscreen=True image 3456x2158
+      m6 control 640x360 attempt 1: present rect (8, 1338, 763, 1762, 1.0)
+      winshot m6_ctl_3840x2160_1: window 37209 bounds 0,38 1728x1079 onscreen=True image 3456x2158
+      m6 control 3840x2160 attempt 1: present rect (8, 1338, 763, 1762, 1.0)
+      winshot m6_ctl_1080x1920_1: window 37209 bounds 0,38 1728x1079 onscreen=True image 3456x2158
+      m6 control 1080x1920 attempt 1: present rect (150, 1130, 621, 1969, 1.0)
+      m6: panel estimate 756x840 px (landscape rect width x portrait rect height), aspect 0.900
+      m6 control 640x360 rect (8, 1338, 763, 1762) bar sides ('top', 'bottom'): top mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072; bottom mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072 -> VALID
+      m6 control 3840x2160 rect (8, 1338, 763, 1762) bar sides ('top', 'bottom'): top mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072; bottom mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072 -> VALID
+      m6 control 1080x1920 rect (150, 1130, 621, 1969) bar sides ('left', 'right'): left mean=(10.0,10.0,19.0) std=0.00 max=19 n=10080; right mean=(10.0,10.0,19.0) std=0.00 max=19 n=10080 -> VALID
+      winshot m6_md_640x360: window 37209 bounds 0,38 1728x1079 onscreen=True image 3456x2158
+PASS  m6_panel_bars@640x360: inside rect 100.000% within +-10 of median (188, 64, 41); strips top mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072; bottom mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072; |mean - control| per side top 0.0, bottom 0.0
+      winshot m6_md_3840x2160: window 37209 bounds 0,38 1728x1079 onscreen=True image 3456x2158
+PASS  m6_panel_bars@3840x2160: inside rect 100.000% within +-10 of median (188, 64, 41); strips top mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072; bottom mean=(10.0,10.0,19.0) std=0.00 max=19 n=9072; |mean - control| per side top 0.0, bottom 0.0
+      winshot m6_md_1080x1920: window 37209 bounds 0,38 1728x1079 onscreen=True image 3456x2158
+PASS  m6_panel_bars@1080x1920: inside rect 100.000% within +-10 of median (188, 64, 41); strips left mean=(10.0,10.0,19.0) std=0.00 max=19 n=10080; right mean=(10.0,10.0,19.0) std=0.00 max=19 n=10080; |mean - control| per side left 0.0, right 0.0
+--- m1_fill_legacy
+PASS  m1_fill_legacy@1280x720: PNG (1280, 720) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1280x720 at (0,0)-(1279,719) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 59.06%)
+PASS  m1_fill_legacy@1920x1080: PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m1_fill_legacy@3840x2160: PNG (3840, 2160) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 3840x2160 at (0,0)-(3839,2159) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 7.66%)
+PASS  m1_fill_legacy@1080x1920: PNG (1080, 1920) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m1_fill_legacy@640x360: PNG (640, 360) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 
+--- m2_live_no_stale
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 70.2%; A fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 68.6%; A fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m3_runtime_change
+PASS  m3_runtime_change[0]@1920x1080: PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%) (INFO peak_frame_time_ms 2.621334075927734)
+PASS  m3_runtime_change[1]@2560x1440: PNG (2560, 1440) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 2560x1440 at (0,0)-(2559,1439) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 17.23%) (INFO peak_frame_time_ms 15.891583442687988)
+PASS  m3_runtime_change[2]@1920x1080: PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%) (INFO peak_frame_time_ms 9.35341739654541)
+--- m3_rewarm
+      m3_rewarm: L0=37.14 (alpha-255 mean luminance at 1920x1080); per capture: send +0.105s recv +0.544s L/L0=4.783 PNG (2560, 1440) alpha255=100.00%; send +0.595s recv +0.946s L/L0=1.108 PNG (2560, 1440) alpha255=100.00%; send +0.997s recv +1.345s L/L0=1.223 PNG (2560, 1440) alpha255=100.00%; send +1.399s recv +1.745s L/L0=1.321 PNG (2560, 1440) alpha255=100.00%; send +2.005s recv +2.382s L/L0=1.338 PNG (2560, 1440) alpha255=100.00%
+DATA m3_rewarm arm=B t=0.105:4.783 t=0.595:1.108 t=0.997:1.223 t=1.399:1.321 t=2.005:1.338 peak_frame_ms=10.532999992370605
+PASS  m3_rewarm: INFO (amendment 17; no gate) set_composition_params HTTP 200
+--- m4_comp_load_clip
+PASS  m4_comp_load_clip@1280x720: PNG (1280, 720) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1280x720 at (0,0)-(1279,719) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 59.06%)
+PASS  m4_comp_load_clip@1080x1920: PNG (1080, 1920) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m5_preset_switch
+PASS  m5_preset_switch: A alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; B PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(26, 178, 229) medmax=229; max |median B - median A| = 203; fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m7_output_tap
+PASS  m7_output_tap: output_probe (1920, 1080) (canvas 1920x1080) within6=100.0000% median=(204, 51, 26); outside +-6 of bf10_solid 0.00% (RED bar >= 60%, expected ~69.4%)
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+PASS  m9_deck_roundtrip: C0 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; C3 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; max |median C3 - C0| = 0; live pair: alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 69.8%; C0 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m10_layer_over
+PASS  m10_layer_over: steady: 100.0000% within +-3 of the quadrant PNG; after round trip: 100.0000% within +-3 of the quadrant PNG
+--- m8_context_cycle
+      m8 INFO right after the cycle (before the reload): PNG (1920, 1080) alpha255=100.0000% within6=0.1392% median=(207, 4, 44) medmax=207
+PASS  m8_context_cycle: gl_context_cycle gen_before 1; PNG (1920, 1080) alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+
+PY 20 PASS / 0 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+app running after quit: no
+PASS  app terminated
+
+PROBE-MILKDROP GREEN
+probe rc 0 at 20:18:48
+outwins after: audio-dna windows 0, Output-named 0
+20:18:48 lock released
+UNC 16 s after quit: UserNotificationCenter windows 0 []
+== lane2 end 20:19:04
