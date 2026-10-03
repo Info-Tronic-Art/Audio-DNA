@@ -14,7 +14,9 @@ env:  MILKDROP_MODE  lane (default): every RED / GUARD row must meet its GREEN b
                      pre: calibration on the PRE-LANE app (amendment 2): every RED row must FAIL its GREEN bar AND
                      show the box fingerprint (else VOID -> the lane stops); every GUARD row must PASS.
       MILKDROP_ARM   label for the m3_rewarm DATA line (A = pre-lane, B = lane).
-      MILKDROP_P1    a bundled preset file name that replaces the pinned P1 (only to calibrate P1 -- plan I4 m2).
+      MILKDROP_P1    a bundled preset file name that replaces the pinned P1 (only to calibrate P1 -- plan I4 m2):
+                     accepted ONLY with MILKDROP_MODE=pre; in lane (gate) mode the probe exits 2 before any request
+                     (Harmony ruling R2). Every run prints "P1 = <preset path>" as its first line.
 
 Capture rules (FINAL GATE LIST): every capture is an 8080 render_frame WITHOUT a width/height override; the canvas is
 set through 8080 set_composition_params, then >= 1.5 s (m3: 0.5 s by design); every request uses Connection: close;
@@ -77,10 +79,16 @@ ROOT, OUT = sys.argv[1], sys.argv[2]
 ONLY = [r for r in sys.argv[3].split(",") if r] if len(sys.argv) > 3 and sys.argv[3] else None
 MODE = os.environ.get("MILKDROP_MODE", "lane")
 ARM = os.environ.get("MILKDROP_ARM", "?")
+P1_OVERRIDE = os.environ.get("MILKDROP_P1", "")
+if P1_OVERRIDE and MODE != "pre":   # R2: a gate run never silently swaps its content proxy
+    print("REFUSE: MILKDROP_P1 overrides the pinned P1 only in calibration mode (MILKDROP_MODE=pre); lane / gate runs "
+          "use the pinned P1", flush=True)
+    sys.exit(2)
 FIX = json.load(open(os.path.join(ROOT, ".harmony", "probe-milkdrop.json")))
 SOLID = os.path.join(ROOT, FIX["fixtures"]["solid"])
 SOLID_B = os.path.join(ROOT, FIX["fixtures"]["solid_b"])
-P1 = os.path.join(ROOT, FIX["presetDir"], os.environ.get("MILKDROP_P1") or FIX["p1"])   # override: P1 calibration only
+P1 = os.path.join(ROOT, FIX["presetDir"], P1_OVERRIDE or FIX["p1"])
+print(f"P1 = {P1}" + ("  (OVERRIDE via MILKDROP_P1 -- calibration only)" if P1_OVERRIDE else ""), flush=True)
 HEAVY = os.path.join(ROOT, FIX["presetDir"], FIX["heavy"])
 CA, CB = np.array(FIX["colourA"], float), np.array(FIX["colourB"], float)
 U = FIX["uniform"]; FP = FIX["fingerprint"]

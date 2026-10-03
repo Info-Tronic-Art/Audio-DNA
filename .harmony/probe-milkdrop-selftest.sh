@@ -1,14 +1,17 @@
 #!/bin/bash
-# probe-milkdrop-selftest.sh -- s-rta-1002b lane bf10 fix round (Harmony ruling R1 on review-bf10-gates-r1).
+# probe-milkdrop-selftest.sh -- s-rta-1002b lane bf10 fix round (Harmony rulings R1 / R2 on review-bf10-gates-r1).
 # Proves, with NO app launched and NO request sent to any app:
 #   R1  probe-milkdrop.sh MILKDROP_ATTACH=1 attaches ONLY to the test-mode app this run's harness started: the one
 #       running Audio-DNA pid must equal MILKDROP_ATTACH_PID, or else the pid the lock helper's start_app recorded
 #       (LOCK_LIB + LANE); its pid must own the 8080 listener and 8080 /api/health must answer. Otherwise it prints
 #       "REFUSE: the running Audio-DNA is not a test-mode app this run started (it may be Boris's)" and exits 2 before
 #       any request (the pid / listener checks send nothing; /api/health is asked only once both match).
+#   R2  MILKDROP_P1 replaces the pinned P1 only in calibration mode (MILKDROP_MODE=pre); in lane (gate) mode the probe
+#       exits 2; every probe-milkdrop.py run prints "P1 = <preset path>" first.
 # How: the REAL probe-milkdrop.sh runs with PATH shims for ps / lsof / curl (a fake Audio-DNA pid table, a fake 8080
 # listener, a fake /api/health that logs every call) and MILKDROP_PY = a stub python that only records whether the
-# probe body would have run -- the body (probe-milkdrop.py) is where every 7070 / 8080 request is sent.
+# probe body would have run -- the body (probe-milkdrop.py) is where every 7070 / 8080 request is sent. The py cases
+# run the REAL probe-milkdrop.py with a row name that does not exist, so neither version sends a request.
 # Needs: the live lock held by the caller (probe-milkdrop.sh's own lock gate runs first -- nothing is launched while it
 # is held); a python with numpy + requests + PIL for the py cases (SELFTEST_PY, else <root>/.venv, else the main
 # checkout's .venv).
@@ -89,6 +92,10 @@ run_sh(){
     body)
       check "$([ $rc = 0 ] && echo 1)" "$name: exit 0 (got $rc)"
       check "$([ $body = 1 ] && echo 1)" "$name: the probe body ran (our own test-mode app)";;
+    p1refuse)
+      check "$([ $rc = 2 ] && echo 1)" "$name: exit 2 (got $rc)"
+      check "$(grep -q 'REFUSE: MILKDROP_P1' <<< "$out" && echo 1)" "$name: prints the MILKDROP_P1 REFUSE line"
+      check "$([ $body = 0 ] && echo 1)" "$name: the probe body never ran";;
   esac
   [ "$BAD" -gt 0 ] && [ -n "${SELFTEST_VERBOSE:-}" ] && echo "$out" | sed 's/^/      | /'
   return 0
@@ -106,6 +113,30 @@ run_sh "a8 8080 listener is another pid" refuse_nocurl SHIM_PIDS=4242 SHIM_L8080
 echo 4242 > "$D/.ours-pid-selftest"
 run_sh "p1 ours via the start_app record (LOCK_LIB + LANE)" body SHIM_PIDS=4242 SHIM_L8080=4242 SHIM_HEALTH=1 LOCK_LIB="$D/fake-lock.sh" LANE=selftest
 run_sh "p2 ours via MILKDROP_ATTACH_PID" body SHIM_PIDS=4242 SHIM_L8080=4242 SHIM_HEALTH=1 MILKDROP_ATTACH_PID=4242
+echo "R2 -- MILKDROP_P1 (probe-milkdrop.sh, on an attach that R1 accepts)"
+run_sh "b1 MILKDROP_P1 in lane mode" p1refuse SHIM_PIDS=4242 SHIM_L8080=4242 SHIM_HEALTH=1 MILKDROP_ATTACH_PID=4242 MILKDROP_P1=x.milk
+run_sh "b2 MILKDROP_P1 in gate mode (MILKDROP_MODE=lane, explicit)" p1refuse SHIM_PIDS=4242 SHIM_L8080=4242 SHIM_HEALTH=1 MILKDROP_ATTACH_PID=4242 MILKDROP_P1=x.milk MILKDROP_MODE=lane
+run_sh "b3 MILKDROP_P1 in calibration mode (MILKDROP_MODE=pre)" body SHIM_PIDS=4242 SHIM_L8080=4242 SHIM_HEALTH=1 MILKDROP_ATTACH_PID=4242 MILKDROP_P1=x.milk MILKDROP_MODE=pre
+echo "R2 -- probe-milkdrop.py (the real file; row 'selftest_no_such_row' -> no request in any version)"
+PIN="$("$RPY" -c "import json,sys; print(json.load(open(sys.argv[1]))['p1'])" "$ROOT/.harmony/probe-milkdrop.json")"
+PDIR="$("$RPY" -c "import json,sys; print(json.load(open(sys.argv[1]))['presetDir'])" "$ROOT/.harmony/probe-milkdrop.json")"
+run_py(){  # run_py <name> [VAR=value ...]  -> sets PO (output) and PRC
+  local name=$1; shift
+  PO="$(env -u MILKDROP_P1 -u MILKDROP_MODE "$@" "$RPY" "$PYF" "$ROOT" "$D/out" selftest_no_such_row 2>&1)"; PRC=$?
+  echo "-- $name: rc $PRC, first line: $(head -1 <<< "$PO")"
+}
+run_py "c1 MILKDROP_P1 in lane mode" MILKDROP_P1=x.milk
+check "$([ $PRC = 2 ] && echo 1)" "c1: exit 2 (got $PRC)"
+check "$(grep -q 'REFUSE: MILKDROP_P1' <<< "$PO" && echo 1)" "c1: prints the MILKDROP_P1 REFUSE line"
+check "$(grep -q 'ERROR unknown row' <<< "$PO" || echo 1)" "c1: refused before any row ran"
+run_py "c2 no override, lane mode"
+check "$([ "$(head -1 <<< "$PO")" = "P1 = $ROOT/$PDIR/$PIN" ] && echo 1)" "c2: first line is 'P1 = <pinned preset path>'"
+check "$([ $PRC = 1 ] && echo 1)" "c2: runs on (the unknown row -> exit 1; got $PRC)"
+run_py "c3 MILKDROP_P1 in calibration mode" MILKDROP_P1=x.milk MILKDROP_MODE=pre
+check "$(head -1 <<< "$PO" | grep -qF "P1 = $ROOT/$PDIR/x.milk" && head -1 <<< "$PO" | grep -q OVERRIDE && echo 1)" "c3: first line is 'P1 = <override path>' marked OVERRIDE"
+check "$([ $PRC = 1 ] && echo 1)" "c3: runs on (the unknown row -> exit 1; got $PRC)"
+run_py "c4 MILKDROP_P1 empty = no override" MILKDROP_P1=
+check "$([ "$(head -1 <<< "$PO")" = "P1 = $ROOT/$PDIR/$PIN" ] && echo 1)" "c4: first line is the pinned P1"
 rm -rf "$D"
 echo; echo "SELFTEST $OK ok / $BAD FAIL"
 [ "$BAD" -eq 0 ]

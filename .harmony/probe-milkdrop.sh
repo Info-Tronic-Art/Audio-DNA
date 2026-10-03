@@ -25,6 +25,8 @@
 #   MILKDROP_PY                python with PIL+numpy+requests+pyobjc (default: <root>/.venv, else the main checkout's)
 #   MILKDROP_MODE              lane (default) | pre  (calibration on the pre-lane app: see probe-milkdrop.py)
 #   MILKDROP_ARM               A | B label for the m3_rewarm DATA line
+#   MILKDROP_P1                replaces the pinned P1 ONLY with MILKDROP_MODE=pre (calibration); in lane (gate) mode
+#                              the probe exits 2 (Harmony ruling R2). probe-milkdrop.py prints "P1 = <path>" first.
 #   MILKDROP_ATTACH_PID        the pid MILKDROP_ATTACH=1 may attach to (see above)
 # Every run captures into a FRESH dir: mktemp -d "<out-base>/milkdrop.XXXXXX" (out-base default /tmp).
 # PROBE RIG GATE: refuses (exit 64) unless /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set it must
@@ -44,6 +46,11 @@ APP="${MILKDROP_APP:-${VIDEO_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-D
 PY="${MILKDROP_PY:-}"
 if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"; do [ -x "$c" ] && { PY="$c"; break; }; done; fi
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests, Quartz' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests+pyobjc (set MILKDROP_PY)"; exit 64; }
+# R2: the override is for calibrating P1 only; probe-milkdrop.py enforces the same rule, refused here too so no app is
+# launched for a run that would refuse.
+if [ -n "${MILKDROP_P1:-}" ] && [ "${MILKDROP_MODE:-lane}" != pre ]; then
+  echo "REFUSE: MILKDROP_P1 overrides the pinned P1 only in calibration mode (MILKDROP_MODE=pre); lane / gate runs use the pinned P1"; exit 2
+fi
 ATTACH="${MILKDROP_ATTACH:-0}"
 if [ "$ATTACH" = 1 ]; then
   adna_running || { echo "REFUSE: MILKDROP_ATTACH=1 but no Audio-DNA is running"; exit 64; }
