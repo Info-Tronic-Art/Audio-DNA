@@ -1,0 +1,75 @@
+target sh: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-fix/M2/.harmony/probe-milkdrop.sh
+target py: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/.harmony/probe-milkdrop.py
+R1 -- MILKDROP_ATTACH=1
+-- a1 foreign app, no record, no MILKDROP_ATTACH_PID: rc 2, probe body ran 0, curl calls 0
+   ok    a1 foreign app, no record, no MILKDROP_ATTACH_PID: exit 2 (got 2)
+   ok    a1 foreign app, no record, no MILKDROP_ATTACH_PID: prints the R1 REFUSE line
+   ok    a1 foreign app, no record, no MILKDROP_ATTACH_PID: the probe body (every 7070 / 8080 request) never ran
+   ok    a1 foreign app, no record, no MILKDROP_ATTACH_PID: no request at all (not even /api/health; got 0)
+-- a2 production app (no 8080), MILKDROP_ATTACH_PID matches: rc 2, probe body ran 0, curl calls 0
+   ok    a2 production app (no 8080), MILKDROP_ATTACH_PID matches: exit 2 (got 2)
+   ok    a2 production app (no 8080), MILKDROP_ATTACH_PID matches: prints the R1 REFUSE line
+   ok    a2 production app (no 8080), MILKDROP_ATTACH_PID matches: the probe body (every 7070 / 8080 request) never ran
+   ok    a2 production app (no 8080), MILKDROP_ATTACH_PID matches: no request at all (not even /api/health; got 0)
+-- a3 MILKDROP_ATTACH_PID != the running pid: rc 0, probe body ran 1, curl calls 1
+   FAIL  a3 MILKDROP_ATTACH_PID != the running pid: exit 2 (got 0)
+   FAIL  a3 MILKDROP_ATTACH_PID != the running pid: prints the R1 REFUSE line
+   FAIL  a3 MILKDROP_ATTACH_PID != the running pid: the probe body (every 7070 / 8080 request) never ran
+   FAIL  a3 MILKDROP_ATTACH_PID != the running pid: no request at all (not even /api/health; got 1)
+-- a4 start_app record != the running pid: rc 0, probe body ran 1, curl calls 1
+   FAIL  a4 start_app record != the running pid: exit 2 (got 0)
+   FAIL  a4 start_app record != the running pid: prints the R1 REFUSE line
+   FAIL  a4 start_app record != the running pid: the probe body (every 7070 / 8080 request) never ran
+   FAIL  a4 start_app record != the running pid: no request at all (not even /api/health; got 1)
+-- a5 8080 listener is ours but /api/health is silent: rc 2, probe body ran 0, curl calls 1
+   ok    a5 8080 listener is ours but /api/health is silent: exit 2 (got 2)
+   ok    a5 8080 listener is ours but /api/health is silent: prints the R1 REFUSE line
+   ok    a5 8080 listener is ours but /api/health is silent: the probe body (every 7070 / 8080 request) never ran
+-- a6 two Audio-DNA running: rc 2, probe body ran 0, curl calls 0
+   ok    a6 two Audio-DNA running: exit 2 (got 2)
+   ok    a6 two Audio-DNA running: prints the R1 REFUSE line
+   ok    a6 two Audio-DNA running: the probe body (every 7070 / 8080 request) never ran
+   ok    a6 two Audio-DNA running: no request at all (not even /api/health; got 0)
+-- a7 LOCK_LIB set but no record for this LANE: rc 2, probe body ran 0, curl calls 0
+   ok    a7 LOCK_LIB set but no record for this LANE: exit 2 (got 2)
+   ok    a7 LOCK_LIB set but no record for this LANE: prints the R1 REFUSE line
+   ok    a7 LOCK_LIB set but no record for this LANE: the probe body (every 7070 / 8080 request) never ran
+   ok    a7 LOCK_LIB set but no record for this LANE: no request at all (not even /api/health; got 0)
+-- a8 8080 listener is another pid: rc 2, probe body ran 0, curl calls 0
+   ok    a8 8080 listener is another pid: exit 2 (got 2)
+   ok    a8 8080 listener is another pid: prints the R1 REFUSE line
+   ok    a8 8080 listener is another pid: the probe body (every 7070 / 8080 request) never ran
+   ok    a8 8080 listener is another pid: no request at all (not even /api/health; got 0)
+-- p1 ours via the start_app record (LOCK_LIB + LANE): rc 0, probe body ran 1, curl calls 1
+   ok    p1 ours via the start_app record (LOCK_LIB + LANE): exit 0 (got 0)
+   ok    p1 ours via the start_app record (LOCK_LIB + LANE): the probe body ran (our own test-mode app)
+-- p2 ours via MILKDROP_ATTACH_PID: rc 0, probe body ran 1, curl calls 1
+   ok    p2 ours via MILKDROP_ATTACH_PID: exit 0 (got 0)
+   ok    p2 ours via MILKDROP_ATTACH_PID: the probe body ran (our own test-mode app)
+R2 -- MILKDROP_P1 (probe-milkdrop.sh, on an attach that R1 accepts)
+-- b1 MILKDROP_P1 in lane mode: rc 2, probe body ran 0, curl calls 0
+   ok    b1 MILKDROP_P1 in lane mode: exit 2 (got 2)
+   ok    b1 MILKDROP_P1 in lane mode: prints the MILKDROP_P1 REFUSE line
+   ok    b1 MILKDROP_P1 in lane mode: the probe body never ran
+-- b2 MILKDROP_P1 in gate mode (MILKDROP_MODE=lane, explicit): rc 2, probe body ran 0, curl calls 0
+   ok    b2 MILKDROP_P1 in gate mode (MILKDROP_MODE=lane, explicit): exit 2 (got 2)
+   ok    b2 MILKDROP_P1 in gate mode (MILKDROP_MODE=lane, explicit): prints the MILKDROP_P1 REFUSE line
+   ok    b2 MILKDROP_P1 in gate mode (MILKDROP_MODE=lane, explicit): the probe body never ran
+-- b3 MILKDROP_P1 in calibration mode (MILKDROP_MODE=pre): rc 0, probe body ran 1, curl calls 1
+   ok    b3 MILKDROP_P1 in calibration mode (MILKDROP_MODE=pre): exit 0 (got 0)
+   ok    b3 MILKDROP_P1 in calibration mode (MILKDROP_MODE=pre): the probe body ran (our own test-mode app)
+R2 -- probe-milkdrop.py (the real file; row 'selftest_no_such_row' -> no request in any version)
+-- c1 MILKDROP_P1 in lane mode: rc 2, first line: REFUSE: MILKDROP_P1 overrides the pinned P1 only in calibration mode (MILKDROP_MODE=pre); lane / gate runs use the pinned P1
+   ok    c1: exit 2 (got 2)
+   ok    c1: prints the MILKDROP_P1 REFUSE line
+   ok    c1: refused before any row ran
+-- c2 no override, lane mode: rc 1, first line: P1 = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/resources/projectm_presets/BEST OF ADAMFX 2 Flexi + Geiss - Bipolar vs reaction diffusion + Another Flexi + Fishbrain  + Phat Zylot 5.milk
+   ok    c2: first line is 'P1 = <pinned preset path>'
+   ok    c2: runs on (the unknown row -> exit 1; got 1)
+-- c3 MILKDROP_P1 in calibration mode: rc 1, first line: P1 = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/resources/projectm_presets/x.milk  (OVERRIDE via MILKDROP_P1 -- calibration only)
+   ok    c3: first line is 'P1 = <override path>' marked OVERRIDE
+   ok    c3: runs on (the unknown row -> exit 1; got 1)
+-- c4 MILKDROP_P1 empty = no override: rc 1, first line: P1 = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/resources/projectm_presets/BEST OF ADAMFX 2 Flexi + Geiss - Bipolar vs reaction diffusion + Another Flexi + Fishbrain  + Phat Zylot 5.milk
+   ok    c4: first line is the pinned P1
+
+SELFTEST 43 ok / 8 FAIL

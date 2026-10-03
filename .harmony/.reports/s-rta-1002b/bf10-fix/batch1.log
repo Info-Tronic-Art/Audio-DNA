@@ -1,0 +1,26 @@
+21:31:41 acquiring
+21:31:41 lock held by: bf2-S3 74563 1790990903 -- waiting
+21:32:01 lock acquired
+21:32:01 Audio-DNA running now: '' (must be empty)
+21:32:01 RED on e3c73a2
+rc 1
+SELFTEST 15 ok / 36 FAIL
+21:32:03 GREEN
+rc 0
+SELFTEST 51 ok / 0 FAIL
+rc 0
+SELFTEST 51 ok / 0 FAIL
+21:32:08 mutant M1
+rc 1
+SELFTEST 48 ok / 3 FAIL
+21:32:10 mutant M2
+rc 1
+SELFTEST 43 ok / 8 FAIL
+21:32:13 mutant M3
+rc 1
+SELFTEST 46 ok / 5 FAIL
+21:32:15 mutant M4
+rc 1
+SELFTEST 45 ok / 6 FAIL
+21:32:18 Audio-DNA running now: ''
+21:32:18 lock released
