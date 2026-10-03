@@ -529,6 +529,7 @@ void LayerStrip::paint(juce::Graphics& g)
     }
 
     paintRoutineBands(g);   // s-rta-0927: over the top of the picture
+    paintSourceBadge(g);    // lane bf9b S3.1: the bottom-left corner of the picture
 
     // Transport/playhead display (between left buttons and right sliders)
     if (!transportBounds_.isEmpty())
@@ -726,6 +727,7 @@ void LayerStrip::setLayer(Layer* layer, int index, Composition* show)
         updateThumbnail();
         updateClipName();
     }
+    updateSourceBadge();     // lane bf9b S3.1
     updateTransportView();   // s-rta-0928b idlepaint
 }
 
@@ -735,6 +737,7 @@ void LayerStrip::refresh()
     layerName_ = juce::String(layer_->name);
     updateThumbnail();
     updateClipName();
+    updateSourceBadge();     // lane bf9b S3.1
     updateTransportView();   // s-rta-0928b idlepaint: read before the whole-strip repaint paints it
     repaint();
 }
@@ -781,6 +784,7 @@ void LayerStrip::timerTick()
     // vblank, so a per-tick repaint here made the whole window repaint 30 times a second. The transport rect repaints
     // only when what it paints changed; the clip-name box paints nothing time-varying (updateClipName() repaints it).
     updateTransportView();
+    updateSourceBadge();   // lane bf9b S3.1: a GL-thread fire (autopilot, a queued trigger) moves it (Pitfall 41)
 
     syncFromModel();   // s-rta-0927: the faders follow the model
 
@@ -929,6 +933,16 @@ void LayerStrip::paintRoutineBands(juce::Graphics& g)
 
 juce::String LayerStrip::tooltipAt(juce::Point<int> pos) const
 {
+    const auto bb = sourceBadgeBounds();   // lane bf9b S3.1
+    if (!bb.isEmpty() && bb.contains(pos))
+    {
+        if (badge_.removed)
+            return "From a removed deck";
+        if (show_ != nullptr && badge_.tab > 0 && badge_.tab <= static_cast<int>(show_->decks.size()))
+            return "From deck '" + juce::String(show_->decks[static_cast<size_t>(badge_.tab - 1)].name) + "' (tab "
+                 + juce::String(badge_.tab) + ")";
+        return {};
+    }
     if (!bandsShown())
         return {};
     const int n = std::min(2, static_cast<int>(routineBands_.size()));
@@ -955,6 +969,19 @@ void LayerStrip::mouseDown(const juce::MouseEvent& event)
         }
     }
 
+    // Lane bf9b S3.1 (ruling-bf9b 16(c)): the source-deck badge shows that deck in the grid (a removed deck's does
+    // nothing); either way the press never reaches the strip's own select.
+    if (event.mods.isLeftButtonDown())
+    {
+        const auto bb = sourceBadgeBounds();
+        if (!bb.isEmpty() && bb.contains(event.getPosition()))
+        {
+            if (badge_.tab > 0 && onSourceDeckClicked)
+                onSourceDeckClicked(badge_.deckId);
+            return;
+        }
+    }
+
     // Scrub playhead if clicking in the transport bar area
     if (!transportBounds_.isEmpty() && transportBounds_.contains(event.getPosition()))
     {
@@ -974,6 +1001,68 @@ void LayerStrip::mouseDrag(const juce::MouseEvent& event)
     {
         scrubPlayhead(event.getPosition());
     }
+}
+
+LayerStrip::SourceBadge LayerStrip::sourceBadgeOf(const Composition* show, int layerIndex)
+{
+    SourceBadge b;
+    if (show == nullptr)
+        return b;
+    const auto p = show->playing(layerIndex);   // ONE runtime() load
+    if (p.clip == nullptr)
+        return b;                               // nothing plays on this layer
+    if (p.deckIndex >= 0)
+    {
+        b.tab = p.deckIndex + 1;
+        b.dim = p.deckIndex == show->activeDeckIndex;
+        b.deckId = p.ref.deckId;
+    }
+    else if (p.retired)
+    {
+        b.removed = true;
+        b.deckId = p.ref.deckId;
+    }
+    return b;
+}
+
+juce::Font LayerStrip::badgeFont()
+{
+    return juce::Font(juce::FontOptions(10.0f, juce::Font::bold));
+}
+
+juce::Rectangle<int> LayerStrip::sourceBadgeBounds() const
+{
+    if (!badge_.shown() || thumbnailBounds_.getHeight() < kBadgeMinThumb)
+        return {};
+    // Width = text + 6 px: never truncated. Inside the thumbnail's 1-px border, on its bottom-left corner.
+    const int w = juce::GlyphArrangement::getStringWidthInt(badgeFont(), badge_.text()) + 6;
+    return { thumbnailBounds_.getX() + 1, thumbnailBounds_.getBottom() - 1 - kBadgeHeight, w, kBadgeHeight };
+}
+
+void LayerStrip::updateSourceBadge()
+{
+    const auto b = sourceBadgeOf(layer_ != nullptr ? show_ : nullptr, layerIndex_);
+    if (b == badge_)
+        return;
+    const auto before = sourceBadgeBounds();
+    badge_ = b;
+    const auto after = sourceBadgeBounds();
+    if (!before.isEmpty())
+        repaint(before);
+    if (!after.isEmpty())
+        repaint(after);
+}
+
+void LayerStrip::paintSourceBadge(juce::Graphics& g)
+{
+    const auto bb = sourceBadgeBounds();
+    if (bb.isEmpty())
+        return;
+    g.setColour(juce::Colour(kBadgeBg));
+    g.fillRect(bb);
+    g.setColour(juce::Colour(badge_.dim ? kBadgeTextDim : kBadgeText));
+    g.setFont(badgeFont());
+    g.drawText(badge_.text(), bb, juce::Justification::centred, false);   // ASCII digits / "x" (Pitfall 6)
 }
 
 void LayerStrip::scrubPlayhead(juce::Point<int> pos)

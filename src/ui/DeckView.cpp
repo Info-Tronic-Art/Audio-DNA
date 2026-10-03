@@ -174,6 +174,9 @@ void DeckView::rebuildGrid()
         strip->onRoutineRemove = [this](int slot) {   // s-rta-0927: a band's x
             if (onRoutineRemoved) onRoutineRemoved(slot);
         };
+        strip->onSourceDeckClicked = [this](uint32_t deckId) {   // lane bf9b S3.1: the source-deck badge
+            if (onSourceDeckClicked) onSourceDeckClicked(deckId);
+        };
 
         gridContent_->addAndMakeVisible(strip.get());
         layerStrips_.push_back(std::move(strip));
@@ -317,8 +320,23 @@ void DeckView::refresh()
                 deckTabs_[i]->setTooltip(tip);
         }
     }
+    syncTabDots();
 
     repaint();
+}
+
+void DeckView::syncTabDots()
+{
+    if (!composition_) return;
+    for (size_t i = 0; i < deckTabs_.size() && i < composition_->decks.size(); ++i)
+    {
+        const bool dot = composition_->deckIsPlaying(composition_->decks[i].id);
+        if (deckTabs_[i]->dot != dot)
+        {
+            deckTabs_[i]->dot = dot;
+            deckTabs_[i]->repaint();
+        }
+    }
 }
 
 void DeckView::setActiveColumn(int col, uint32_t deckId)
@@ -509,6 +527,7 @@ void DeckView::setupDeckTabs()
                 onDeckSwitched(capturedIdx);
         };
         btn->onContextMenu = [this, capturedIdx] { showDeckTabMenu(capturedIdx); };
+        btn->dot = composition_->deckIsPlaying(deck.id);   // lane bf9b S3.1: a fresh row shows its dots at once
 
         addAndMakeVisible(btn.get());
         deckTabs_.push_back(std::move(btn));

@@ -50,6 +50,16 @@ public:
     // Refresh display state (active clips, button states, etc.)
     void refresh();
 
+    // Lane bf9b S3.1 (ruling-bf9b 16(b)): a deck tab shows a dot while some shared layer plays from that deck (its
+    // active ref, or the previous ref of a running fade -- Composition::deckIsPlaying). Compare-before-set, repaints
+    // only a tab whose dot changed; run by refresh() and by MainComponent's 30 Hz tick (a fade completes, an autopilot
+    // or a queued trigger fires on the GL thread with no grid refresh -- Pitfall 41).
+    void syncTabDots();
+    bool tabDotShownForTest(int deckIndex) const
+    {
+        return deckIndex >= 0 && deckIndex < static_cast<int>(deckTabs_.size()) && deckTabs_[static_cast<size_t>(deckIndex)]->dot;
+    }
+
     // s-rta-0928: the grid's image thumbnails, decoded off the message thread; every ClipCell / LayerStrip pulls from
     // it. Public for tests (setBackendsForTests before setComposition).
     ClipThumbnails& getThumbnails() { return thumbnails_; }
@@ -69,6 +79,9 @@ public:
     std::function<void(int layerIndex, int column, const std::string& presetPath)> onMilkDropDropped;
     std::function<void(int layerIndex, int column, const std::vector<std::string>& presetPaths)> onMilkDropPlaylistDropped;
     std::function<void(int deckIndex)> onDeckSwitched;
+    // Lane bf9b S3.1 (ruling-bf9b 16(c)): a layer strip's source-deck badge was clicked -- show that deck (MainComponent:
+    // handleDeckSwitch(findDeckIndexById(id)), never an Undo step).
+    std::function<void(uint32_t deckId)> onSourceDeckClicked;
     std::function<void(int layerIndex)> onLayerFoldToggle;         // P24.12
     std::function<void(int fromIndex, int toIndex)> onLayerReorder; // P24.13
     std::function<void(int layerIndex)> onLayerClearClip;          // Undo v1 #13 (X button)
@@ -143,6 +156,20 @@ private:
     {
         using juce::TextButton::TextButton;
         std::function<void()> onContextMenu;
+        // Lane bf9b S3.1 (ruling-bf9b 16(b)): a layer plays a clip from this deck. A 4-px dot in the top-right corner,
+        // inside the button text's right indent (LookAndFeel_V4::drawButtonText) so it never covers the name.
+        bool dot = false;
+        static constexpr juce::uint32 kDotColour = 0xffcccccc;   // the tab text's colour
+        juce::Rectangle<int> dotBounds() const { return { getWidth() - 6, 3, 4, 4 }; }
+        void paintButton(juce::Graphics& g, bool over, bool down) override
+        {
+            juce::TextButton::paintButton(g, over, down);
+            if (dot)
+            {
+                g.setColour(juce::Colour(kDotColour));
+                g.fillEllipse(dotBounds().toFloat());
+            }
+        }
         void mouseDown(const juce::MouseEvent& e) override
         {
             if (e.mods.isPopupMenu()) { if (onContextMenu) onContextMenu(); return; }

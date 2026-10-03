@@ -76,9 +76,44 @@ public:
     std::function<void(int slot)> onRoutineRemove;
 
     // s-rta-0927 fix round: the strip's own tooltip -- over a band's x it says the WHOLE routine stops on every
-    // layer it plays on and that this cannot be undone; empty elsewhere (the child buttons carry their own).
+    // layer it plays on and that this cannot be undone; over the source-deck badge it names the deck; empty elsewhere
+    // (the child buttons carry their own).
     juce::String getTooltip() override { return tooltipAt(getMouseXYRelative()); }
     juce::String tooltipAt(juce::Point<int> pos) const;
+
+    // Lane bf9b S3.1 (ruling-bf9b amendment 16(a)-(c)): the SOURCE-DECK BADGE on the thumbnail's bottom-left corner
+    // (routine bands own the top) names the deck box the playing clip came from -- its 1-based tab position, or "x"
+    // when that deck was removed while the clip plays; dim text when it is the deck the grid shows, normal text when
+    // another. Drawn only on a thumbnail >= kBadgeMinThumb px (a folded row shows none). Re-read in refresh() and on
+    // the strip's timer, compare-before-set (Pitfall 41: an autopilot advance or a queued trigger moves it), and only
+    // the badge rect repaints (Pitfall 57). A click on it shows that deck in the grid (onSourceDeckClicked; nothing
+    // for a removed deck) and never selects the layer.
+    struct SourceBadge
+    {
+        int tab = 0;                          // 1-based tab position of the clip's deck; 0 = no live deck
+        bool removed = false;                 // the clip's deck was removed while the clip plays
+        bool dim = false;                     // the clip's deck is the deck the grid shows
+        uint32_t deckId = ClipRef::kNoDeck;
+        bool shown() const { return tab > 0 || removed; }
+        juce::String text() const { return removed ? juce::String("x") : tab > 0 ? juce::String(tab) : juce::String(); }
+        bool operator==(const SourceBadge&) const = default;
+    };
+    // Pure: the badge of shared layer `layerIndex` of `show` (none when nothing plays on it).
+    static SourceBadge sourceBadgeOf(const Composition* show, int layerIndex);
+    const SourceBadge& getSourceBadge() const { return badge_; }
+    juce::Rectangle<int> sourceBadgeBounds() const;   // empty when no badge is drawn
+    static juce::Font badgeFont();
+    static constexpr int kBadgeHeight = 14;
+    static constexpr int kBadgeMinThumb = 40;
+    static constexpr juce::uint32 kBadgeBg      = 0xff111111;   // opaque
+    static constexpr juce::uint32 kBadgeText    = 0xffe0e0e0;   // another deck
+    static constexpr juce::uint32 kBadgeTextDim = 0xff7a7a7a;   // the shown deck
+    std::function<void(uint32_t deckId)> onSourceDeckClicked;
+
+    // tests (tests/test_layer_strip_source_deck.cpp)
+    juce::Rectangle<int> thumbnailBoundsForTest() const { return thumbnailBounds_; }
+    juce::Rectangle<int> clipNameBoundsForTest() const { return clipNameBounds_; }
+    juce::Rectangle<int> routineBandRowsForTest() const { return thumbnailBounds_.withHeight(kBandHeight * 2); }
 
     void setSelected(bool sel) { if (selected_ != sel) { selected_ = sel; repaint(); } }
     bool isSelected() const { return selected_; }
@@ -123,6 +158,10 @@ private:
     juce::Rectangle<int> bandXBounds(int k) const;
     void paintRoutineBands(juce::Graphics& g);
     std::vector<RoutineDeckView::Band> routineBands_;
+
+    SourceBadge badge_;          // lane bf9b S3.1: as last read from the model (paint() draws exactly this)
+    void updateSourceBadge();    // read, compare, repaint the badge rect on change
+    void paintSourceBadge(juce::Graphics& g);
 
     Layer* layer_ = nullptr;
     int layerIndex_ = 0;

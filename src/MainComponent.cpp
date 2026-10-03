@@ -1378,6 +1378,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
     };
+    // Lane bf9b S3.1 (ruling-bf9b 16(c)): a strip's source-deck badge shows the deck its clip came from -- the same
+    // switch (never an Undo step); a removed deck's id resolves to -1, which handleDeckSwitch ignores.
+    deckView_->onSourceDeckClicked = [this](uint32_t deckId) {
+        handleDeckSwitch(composition_.findDeckIndexById(deckId));
+    };
 
     // plan6 §6.4: the deck tab row -- "+" (New Deck / Load Deck..., deckIndex -1) and a tab's right-click menu.
     deckView_->onDeckAction = [this](int deckIndex, DeckTabRow::Action action) {
@@ -4203,6 +4208,7 @@ void MainComponent::timerCallback()
             layerNames.push_back(juce::String(l.name));
         deckView_->setRoutineView(deriveRoutineDeckView(routineEngine_.status(), composition_.activeDeckIndex,
                                                         deckNames, layerNames));
+        deckView_->syncTabDots();   // lane bf9b S3.1: a fade completing / a GL-thread fire moves a dot (compare-before-set)
     }
 }
 
