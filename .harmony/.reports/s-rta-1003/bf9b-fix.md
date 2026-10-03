@@ -799,3 +799,71 @@ sentence, B7 state 9 / 3b, any CLAUDE.md line, any probe edit, any background bu
 B4j's second regex (stop item 4) and saveShot. Smells named: DeckView still spells the unlit colour 0xff2a2a2a in
 four places and kHeaderLit's value 0xff3a5a4a literally in two (setupDeckTabs, refresh's tab loop) -- magic numbers,
 left: the ruling asked for ONE helper for the header only.
+
+## STAGE FIX-4 PROBES, GATES, DOCS (AM-6's script, AM-9, AM-15, the rest of AM-14; H-7; adoption items 3, 9-11 probe half)
+STATUS: PENDING
+Started 2026-10-03 15:57:16 on 8202802 (branch lane/bf9b). No file under src/ changes in this stage. Scratch: <scratch>/bf9b-fix-FIX-4/.
+df at start: 294 GiB free on /System/Volumes/Data.
+
+### Items (appended as each lands)
+
+### Item AM-9 lint B4i + MU10 (tests/test_render_thread_lint.cpp, Case 9)
+New case "bf9b B4i: no Link identifier in the model, render, core, the deck grid or the switch / trigger handlers":
+`LinkSync|linkSync_|AUDIODNA_HAS_LINK` has zero hits in src/model, src/render, src/core (recursive, code lines),
+src/ui/DeckView.cpp and in the bodies of handleDeckSwitch / handleClipTrigger / handleColumnTrigger. No count pin on
+MainComponent.cpp.
+- GREEN (16:01:16, build-lane): `All tests passed (74 assertions in 1 test case)`.
+- RED = MU10 (`(void) linkSync_;` as the first statement of handleDeckSwitch; the lint reads src at run time, no
+  build): `test cases:  1 |  0 passed | 1 failed` / `assertions: 74 | 73 passed | 1 failed` (the failing CHECK_FALSE
+  prints handleDeckSwitch's body). Restored with cp -p: sha256 a6addb03b949... before == after;
+  `git diff --quiet -- src rc 0`; the case green again.
+- ctest count: +1 (1248 -> 1249).
+
+### Item AM-6 the live call-chain row: .harmony/probe-asan-live.sh, facts FM-1 and FM-3
+ASAN-FH = build-asan-app (NEW build dir, configured like build-asan: -DADNA_SANITIZE=address RelWithDebInfo,
+TEST_SERVER ON, SYPHON ON, FetchContent sources from the main checkout's build/_deps; configure rc 0), target
+AudioDNA built in the FOREGROUND 15:57:51 -> 15:59:12, rc 0. `otool -L` shows @rpath/libclang_rt.asan_osx_dynamic.dylib.
+src == 7decfaa's (`git diff --stat 7decfaa -- src` empty).
+Script: the ruling's launch line, steps L0-L6 and four verdict lines. Fixtures come from make-bf9b-check.py into the
+run's fresh out dir (absolute media paths). quit_ours only; lock gate; no G-1 pattern hit.
+RUNS (raw, <scratch>/bf9b-fix-FIX-4/asan-live/*.log):
+1. fh (16:03:30) `PROBE-ASAN-LIVE INVALID (step L5: a deck named "Nine Rows" exists (decks ['Deck 1', 'nine-rows',
+   'Deck 1 copy']))` -- MY script's bug: a loaded deck is named after its FILE, and it sits at index 1 as the ruling
+   says. Fixed (deck 1, as the ruling writes it).
+2. fh2 (16:04:54) `PROBE-ASAN-LIVE RED (step L4)` on the UNMUTATED app -- A REAL REPORT, NOT of the memory fix:
+   `==10293==ERROR: AddressSanitizer: container-overflow on address 0x6120002076e8` / `READ of size 4 ... thread T33`
+   / `#0 ApiServer::handleComposition(...) ApiServer.cpp:488` ; the region was `allocated by thread T0` in
+   `Composition::appendDeck Composition.h:592 <- InsertDeckCmd::execute <- finishStagedLoad <- stageDeckDuplicate`.
+   CAUSE (read): GET /api/composition runs on the http thread and walks composition_.decks with no lock; my script
+   polled it every 0.2 s while Duplicate Deck's push_back ran on the message thread. The same handler shape is on
+   main (`git show main:src/api/ApiServer.cpp` :395). It is the SF-8 class (the http thread reads the model), one
+   reader wider. NOT fixed (no src change in FIX-4; STOP ITEM 1). THE PROBE now never polls that reader while a
+   command may still change the model: a staged command is awaited on the top text line (/api/debug/ui_text, read on
+   the message thread: "Loaded deck:", "Duplicated deck:", "Loaded: bf9b-check"), then the ruling's 1.0 s, health, and
+   ONE read (re-read at 1 s steps only when the VALID clause does not hold yet).
+3. fh3 (16:06:59) and, after the mutant was reverted and the app rebuilt, fh4 (16:10:20, binary sha256
+   16f73991b95f7647):
+   `PASS  L0: inspected_layer "Layer 2", inspector_tab "Layer", default show (layers 3, numDecks 1)`
+   `PASS  L1: load_deck nine-rows.json -> layers 9, numDecks 2, inspected_layer "Layer 2", decks ['Deck 1', 'nine-rows']`
+   `PASS  L2: undo -> layers 3, numDecks 1, inspected_layer "Layer 2"`
+   `PASS  L3: redo -> layers 9, numDecks 2, inspected_layer "Layer 2"`
+   `PASS  L4: duplicate_deck 0 / undo / redo -> numDecks 3 -> 2 -> 3, decks ['Deck 1', 'nine-rows', 'Deck 1 copy']`
+   `PASS  L5: remove_deck 1 (its row-1 clip playing) -> numDecks 2, retiredDeckCount 1, layers[1].activeClip.retired true; undo -> numDecks 3, retiredDeckCount 0, not retired`
+   `PASS  L6: load_composition bf9b-check.json -> 20 decks, 3 layers, inspected_layer ""`
+   `PROBE-ASAN-LIVE GREEN (7 steps, 0 INVALID, 0 "ERROR: AddressSanitizer", app alive at the end)`  rc 0 (both runs)
+4. ASAN-MU3 (16:08:28; the five lines of `undoService_.onLayerStackMoved = ...` deleted, ONE object recompiled
+   (`Building CXX object CMakeFiles/AudioDNA.dir/src/MainComponent.cpp.o`), binary sha256 7c504523bfb4a89f; the
+   source was put back BEFORE the run -- the mutant lived only in the build dir; no bundle was copied or re-signed):
+   `PASS  L0: inspected_layer "Layer 2", inspector_tab "Layer", default show (layers 3, numDecks 1)`
+   `RED   L1: an AddressSanitizer report was written; 1 "ERROR: AddressSanitizer" line(s): asan.11495: ==11495==ERROR: AddressSanitizer: heap-use-after-free on address 0x62300002c337 ...`
+   `PROBE-ASAN-LIVE RED (step L1)`  rc 1
+   After the revert: source sha256 a6addb03b949... (== before), touched, ONE object recompiled, rebuild rc 0,
+   `git diff --quiet -- src rc 0` (tests/ then still carried this stage's uncommitted B4i case; the src+tests line
+   is printed again at the end of the stage).
+FM-1 (VERIFIED by the runs): the ASan app links, starts in --test-mode under the lock, answers /api/health, and on a
+  report ENDS (abort_on_error=0, log_path=<out>/asan -> asan.<pid>) with no crash dialog: UserNotificationCenter
+  windows 0 before and >= 16 s after every one of the five runs; Output-named windows 0.
+FM-3 (VERIFIED): ASAN-MU3 is RED at step L1, the pre-registered step.
+NOT REACHED by the row (as the ruling says): the Clip inspector, Layer > Add / Remove Layer. NOTE: the merged tree has
+POST /api/debug/inspect_clip (the ui lane's route), so "no REST route selects a cell" is no longer true; the row was
+built as ruled (STOP ITEM 2 asks whether a Clip-inspector step should be added).
