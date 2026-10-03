@@ -3,7 +3,7 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony, SECONDARY lane, in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
-audio-reactive VJ app). This block is CURRENT as of s-rta-1002, BUT the END section "# >>> SESSION s-rta-1002b" supersedes its STATE and START HERE (read it first). The newest dated
+audio-reactive VJ app). This block is CURRENT as of session s-rta-1002b (2026-10-02 13:49 → ~23:40). The newest dated section is at the END ("# >>> SESSION s-rta-1002b"). The newest dated
 section is at the END of this file ("# >>> SESSION s-rta-1002"); read it first, then the SCREEN-SAFETY LAW section.
 Everything between is history — older blocks lose to the end sections. Boris's rulings are in BORIS_DECISIONS.md
 "Playback Behaviour" and .harmony/binding-decisions.md (read before touching routines, decks, outputs, fit, tempo, video,
@@ -13,28 +13,32 @@ s-rta-0930 and s-rta-1002 and Boris said (verbatim) "just so you know, we are ou
 opus 5.5": pin plans / rulings to model 'opus', effort 'max' until Boris says Fable is back; on "You've reached your Fable
 limit" re-pin to opus max, record the deviation, tell Boris.
 
-STATE: s-rta-1002 built, gated and merged BOTH plans s-rta-0930 left ready (each RED-first, Builder -> independent
-reviewers -> Harmony's own gates): BT2 -> d4e81bd (one audio device open per launch; the reconciler adopts a wired mic
-plugged in after launch only when the app has none, with a progress guard; a lost / stopped / jiggled mic recovers onto the
-macOS default / built-in mic; the yellow note names a replaced mic; TEST-ONLY audio_deny / audio_stop; Pitfall 61) and
-TSAN -> b844b65 (the Layer trigger tuple is ONE lock-free 16-byte CAS word; Clip runtime fields, the 23 manual scalars and
-activeDeckIndex are Relaxed<T>; syncMedia's write-back is a CAS; render triggers decided from a snapshot are no-ops once the
-tuple moved; an undo command's first execute is a no-op; a momentary pad released before its beat cancels its queued
-trigger; worker-thread std::cerr -> logLine, zero-heap logLinef on the analysis thread; Pitfall 63). TSan app sweep: lane
-arm 0 reports in 12 a/b/c/d launches vs main arm 299 warnings / 81 uniques (all 5 families). ctest 1114/1114.
+STATE: s-rta-1002b turned into Boris's app-evaluation feedback (BF1-BF10, verbatim + answers in .harmony/boris-feedback-backlog.md,
+binding-decisions.md "2026-10-02 (s-rta-1002b)", BORIS_DECISIONS.md "Decks are boxes of clips" — he REVERSED the 09-26 deck rulings:
+decks are boxes of clips, the layers are one shared playing stack, a deck switch never changes what plays, Persistent removed,
+ignore-column stays). Every item was planned (opus; Fable still out), attacked by a blind council, ruled and ADOPTED
+(.harmony/.reports/s-rta-1002b/plan-*.md, each ends with a HARMONY ADOPTION section). MERGED + gated: hyg (fa9604d: R8 cerr ->
+logLine, Pitfall NN numbered), mkvidx (649baf7: MKV / WebM reverse fix, Pitfall 64), ui (3262fb6: codec info + Show in Finder +
+double-click deck rename, Pitfall 65), bf10 (be23460: MilkDrop fills the canvas via a patched libprojectM 4.1.1 in
+~/.local/opt/projectm-4.1.1-fbo1, Pitfall 66). ctest 1191/1191. Next free Pitfall 67 (reserved for bf9b), 68 (bf2).
 
 START HERE, in order:
-1. START HERE — long task, begin at session start: lane tsan-r5 (filed by ruling-tsan amendments 1 / 15): plan it (architect; opus max while Fable is out) from the
-   scenario-e reports of s-rta-1002 (.harmony/.reports/s-rta-1002/gate-tsan/): the R5 config-scalar class (Layer visible /
-   bypassed / solo / mute / autopilotEnabled written by perf/play's preamble applyLayerFlag MainComponent.cpp ~6348-6352;
-   Clip speed / reverse / loop / in / out / beatSnapMode; effect params / dryWet / source params / macros; Composition
-   output size / globalTransitionSpeed / quantizeMode) + R7 (the httplib thread reads the live model unfenced:
-   /api/composition, /api/state). FIRST tighten .harmony/probe-tsan-analyze.py's family-B regex (it keys
-   layer.autopilotEnabled as family B -- ledger 3).
-2. Mechanical sweep (residual R8): std::cerr in src/audio/AudioEngine.cpp + src/audio/DeviceGuard.cpp -> logLine /
-   logLinef; add both files to test_log_line_lint.
-3. Filed items (ledger below), incl. the gop2 / older ones carried.
-4. Boris page .harmony/.reports/s-rta-1002/boris-checks.html (opened for him): live feel checks + the defaults taken.
+1. START HERE — long task, begin at session start: MERGE lane bf9b (decks are boxes of clips; worktree .claude/worktrees/bf9b,
+   branch lane/bf9b, built S0-S4 + a fix round for review M1 (UAF on Load / Duplicate Deck wider than the show); head a7491d4;
+   r2 reviews state / live / gates all PASS_WITH_NITS, 0 MUST, 7 SHOULD: .harmony/.reports/s-rta-1002b/review-bf9b-*-r2.md). It conflicts with main (ui / bf10 merged since):
+   a builder REBASE lane applying .harmony/.reports/s-rta-1002b/rulings-bf9b-merge.md (f2_deck_transition RETIRED by Boris's
+   ruling; Pitfall 67; ONE /api/debug/undo route; H1 20-deck MilkDrop row REQUIRED; probe-canvas.sh must quit only its own pid;
+   BLOCKED bars never print GREEN). Then Harmony gates from ruling-bf9b.md's FINAL list incl. K1-K8 + B7 visual critic panel.
+2. Lane bf2 (sync dial): S1a-S2 DONE on lane/bf2, S3 PARTIAL at 4a1f240 — rule its 5 items (R7 median bar unmeetable at 1 ms
+   on the 1.333-ms marker lattice; replay-end; R7b; a quiet [timing] re-run; S2 origin cap / "did not move back" / G6 -500 arm)
+   then S4, reviews, merge (Pitfall 68). S5 (the on-screen control) waits for Boris's Q1 (bar vs round dial).
+3. Then (adopted, ready): ui-polish (.harmony/.reports/s-rta-1002b/packet-ui-polish.md P1-P5 from the critic panel), bf7 bars,
+   bf45 envelopes, bf1 S1 record-to-clip; after bf9b: bf6 Timeline (needs bf9b's C1-C3), bf1 S2/S3, bug X1 (clip-cell click +
+   Return clears the top layer + stops its routines — HIGH, LayerStrip focus), tsan-r5 (re-plan on the post-bf9b model with a
+   TURN BUDGET; analyzer fixed 5e47d17; scenario-e-digest.md).
+4. Pending gates: mkvidx G6 / G7 and bf10 G3 perf (quiet machine — no lane compiling); ui G1b on-screen probe (only with Boris's
+   OK — page item 35); bf10 G5 evidence top-up (real-preset Preview crops at non-16:9, pre-lane rewarm sheet, m9 from the final P1).
+5. Boris page .harmony/.reports/s-rta-1002b/boris-checks.html (39 numbered questions with defaults; opened; no answers yet).
 Rig rules that cost runs (binding): df -h /System/Volumes/Data before worktree lanes (8 GB/lane + 20 GB; max 3 build lanes);
 remove each worktree the turn it merges. A user message that arrives mid-turn is RELAYED to every lane started later in that
 turn and a builder may take it as its task: answer it, YIELD the turn, launch new lanes from a fresh turn. MINIMAL builders
@@ -68,6 +72,13 @@ ignored notes). Workflow habits (s-rta-0930): a stage passes the previous stage'
 StructuredOutput and do NOT write their REPORT_FILE); planners write a SKELETON plan file within ~10 tool calls, then rewrite;
 never git commit while a perf A/B runs (each commit fires the graphify rebuild hook); Spotlight mds_stores at ~100 % after
 builds is a system service, not a burner. COUNTS: run them — ctest 1114/1114 at close (s-rta-1002).
+Habits (s-rta-1002b): BORIS USES THIS MACHINE AND THIS APP — an Audio-DNA a lane did not start is his: use the lock helper
+.harmony/.reports/s-rta-1002b/wf/lock.sh (copy to the scratchpad lib, fix SPL; start_app records the pid, quit_app refuses foreign
+pids, acquire_lock waits while his app runs) and never quit / kill by name. The architect agent type stops SILENTLY at maxTurns 120:
+every architect prompt carries a TURN BUDGET (skeleton by turn 8, rewrite every ~10, done by 90) and broad research goes to sonnet
+Explore fact sheets first. A mid-turn user message is relayed to agents launched later that turn: add a "ignore a relayed message
+about X" line to lane notes. Lane scripts: .harmony/.reports/s-rta-1002b/wf/ (lock.sh) + the session scratch wf/ pattern
+(lane.js with planText / fixFrom; wait2.sh + sig.py wake only on non-recon results). Never prefix a command with cd.
 Habits (s-rta-1002): functional live rows take acquire_lock (acquire_quiet_lock only for perf -- it aborts after 30 min of
 another lane compiling); every FULL ctest while another lane runs takes /tmp/audiodna-ctest.lock (fixed temp names collide);
 a background Bash run is capped at 2 h -- split long gates; copy gate strings only from a ruling chain's FINAL list; a
@@ -77,18 +88,40 @@ g4-run.sh, gatetools/g4-parity.real.sh + g6-perf.real.sh) and gate-bt2/ (bt2-gat
 
 ## WHERE WE ARE IN THE BUILD
 
-<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-1002 -->
-BUILD: Audio-DNA live VJ app. Arc: performance recorder -> Routines -> show structure (decks, canvas, outputs) -> polish.
-SHIPPED: thread-race fix (screen vs controls threads agree on one state per layer per frame; TSan 0 reports) · momentary pad
-released before its beat cancels · mic follow-ups (one device open at launch, wired mic adopted when the app has none, lost
-mic recovers with a named note).
-IN-FLIGHT: none.
-NEXT: (1) plan + build tsan-r5 (the remaining config-slider races + the web API reading live data) · (2) move the audio
-files' log lines to the race-free logger · (3) filed small items · (4) Boris live checks (page opened).
-BLOCKERS: none (Boris questions all have defaults; Fable out -> plans on Opus 5.5).
-YOU ARE HERE: the core thread-safety risk is closed by design; what is left is the config-slider class and the web API.
+<!-- caveman positional status — Boris-facing, skimmable; updated s-rta-1002b -->
+BUILD: Audio-DNA live VJ app. Arc: Boris's app-evaluation feedback (10 items) -> decks become boxes of clips -> show polish.
+SHIPPED: MKV / WebM reverse no longer freezes · clip codec info + Show in Finder + double-click deck rename · MilkDrop fills the
+whole picture at any composition size · audio log lines on the race-free logger.
+IN-FLIGHT: deck change "boxes of clips" (built, fixed, needs a rebase + merge) · sync dial (engine half built; 5 rulings then the
+last stage) · all other feedback items planned and ruled, queued.
+NEXT: (1) merge the deck change · (2) finish the sync dial · (3) UI polish from the critic panel · (4) bars everywhere, envelope
+editor, record-to-clip, Timeline-follows-the-clip, the clip-cell + Return bug.
+BLOCKERS: none (39 questions on Boris's page all have defaults; the round-dial question gates only the dial's on-screen part).
+YOU ARE HERE: 4 of Boris's 10 items are in his app; the big one (decks as boxes of clips) is built and waiting to merge.
 
-## LOOSE-ENDS LEDGER — s-rta-1002 (CURRENT)
+## LOOSE-ENDS LEDGER — s-rta-1002b (CURRENT)
+
+1. [OPEN, START 1] bf9b merge: rebase lane + rulings-bf9b-merge.md + ruling-bf9b FINAL gates (K1-K8, B7 critic panel). Reviews:
+   r1 live PASS, gates PASS_WITH_NITS, state FAIL M1 -> fix round (head a7491d4) -> r2 state / live / gates PASS_WITH_NITS, 0 MUST, 7 SHOULD (rule them in the rebase lane).
+2. [OPEN, START 2] bf2 S3 PARTIAL (5 rulings) + S4 + merge; S5 waits Boris Q1 (bar vs round dial); S6 only if Q6 = later.
+3. [OPEN] ui-polish packet P1-P5 (dim info rows, layout jump by clip kind, rename box not reading editable, tooltip orphan word,
+   100-px box on a middle 60-px tab); "Video file not loaded" wording (F-ui-1) for Boris.
+4. [OPEN, gates] mkvidx G6 / G7 live A/B; bf10 G3 perf (UNPROVEN, medians under bars); ui G1b (Boris OK); bf10 G5 evidence top-up.
+5. [OPEN, queued, adopted] bf7, bf45, bf1 (S1 now; S2/S3 after bf9b), bf6 (after bf9b), bug X1 (HIGH), X2-X4, tsan-r5 re-plan.
+6. [OPEN, filed] mkvidx F6 / F8 (intra-only verdict edge cases), F7 first ping-pong turn +1 seek; bf10 F1 (one shared projectM
+   for two MilkDrop layers), F2 (stateful sources reset on canvas change), F3 (texture units), F4 (canvas-change flash, Boris Q2:
+   bright-noise flash ~0.1-0.4 s on some presets / dark-then-recover ~0.56 s on others, pause ~15 ms, old app the same).
+7. [INCIDENT, closed] 14:37 my gate script quit Boris's running app; lock helper fixed (foreign pids refused); probe-milkdrop
+   attach refuses; probe-canvas.sh still quits by name (fix in the bf9b rebase lane, rulings-bf9b-merge R-N1).
+8. [INFO] Four architect deaths = maxTurns 120 (not context); turn budget fixed it. Architect frontmatter is Harmony_Main's
+   (outside this lane's fence): for the primary — a long ruling hitting 120 turns returns "" silently.
+9. [OPEN, Boris] Page .harmony/.reports/s-rta-1002b/boris-checks.html (39 questions). Older pages still open with defaults.
+10. WARN fable-usage-audit: LAW11-LOG-GAP — 22 architect dispatches (all model opus: Fable out per Boris), 0 DISPATCH_LOG rows
+   (a foreign-repo secondary cannot write Harmony_Main's log). Quality: every built lane followed its ruling + adoption.
+11. Session-index — skipped (foreign-repo lane, no transport yet). Carried: .harmony/.harmony-version dirty and AGENTS.md
+   untracked at boot — not this session's, untouched.
+
+## (HISTORICAL, s-rta-1002 — superseded by the block above) LOOSE-ENDS LEDGER — s-rta-1002
 
 1. [OPEN, START 1] lane tsan-r5: R5 config scalars + R7 unfenced httplib reader (see START HERE 1). Baseline: G3 scenario e
    lane arm = 8 reports (applyLayerFlag visible / solo / autopilotEnabled vs CompositorEngine / Autopilot / DeckClock reads).
@@ -3647,32 +3680,40 @@ live lock free, no worktrees, no full-screen capture taken. The Boris page was o
 ## COUNTS — run them, never inherit them
 ctest 1114/1114. Unpushed 0 after the close commit.
 
-# >>> SESSION s-rta-1002b (2026-10-02 13:49 → ~17:45, secondary) — START HERE <<<
-(Supersedes the s-rta-1002 START HERE list. Cut short by the usage limit; three build lanes were TaskStop-ped mid-run.)
+# >>> SESSION s-rta-1002b (2026-10-02 13:49 → ~23:40, secondary) — START HERE <<<
+
 ## THE ONE-LINE VERSION
-Boris sent app-evaluation feedback BF1-BF10 (verbatim + answers: .harmony/boris-feedback-backlog.md, binding-decisions.md
-"2026-10-02 (s-rta-1002b)", BORIS_DECISIONS.md "Decks are boxes of clips"). Every feature plan + mkvidx was planned,
-attacked by a blind council, ruled and ADOPTED (.harmony/.reports/s-rta-1002b/plan-*.md, each ending in a HARMONY ADOPTION
-section). Merged: hyg (fa9604d) and mkvidx (649baf7, Pitfall 64; next free 65). ctest 1123/1123. Log: .harmony/s-rta-1002b-work.md.
-## START HERE, in order
-1. Resume the three STOPPED lanes (worktrees kept, work committed on lane branches; lane script = the s-rta-1002 lane.js
-   pattern, args in the work log LAUNCH rows): bf9b (decks are boxes of clips; FIRST — unblocks bf6, bf1 S2, bug X1,
-   tsan-r5) was in stage S0; ui (codec info + double-click rename) finished U1-U4 and was in r1 REVIEW (re-run reviews,
-   merge, visual critic panel; the on-screen probe G1b only with Boris OK); bf2 (sync dial engine) was in S1a (resume point
-   in the worktree report .harmony/.reports/s-rta-1002b/bf2.md).
-2. Then build (adopted, ready): bf10 MilkDrop canvas size, bf7 bars, bf45 envelopes, bf1 S1 record-to-clip; after bf9b:
-   bf6 Timeline, bf1 S2/S3, bug X1 (clip-cell click + Return clears the top layer and stops its routines — HIGH),
-   tsan-r5 (re-plan on the post-bf9b model; analyzer fixed 5e47d17; scenario-e-digest.md).
-3. mkvidx G6 / G7 live A/B PENDING (quiet machine needed).
-4. Boris page .harmony/.reports/s-rta-1002b/boris-checks.html (39 questions with defaults; opened). No answers yet.
-## RIG LESSONS (binding)
-- Boris uses this machine and this app: an Audio-DNA a lane did not start is his. My script quit his app at 14:37
-  (incident in the work log). Use .harmony/.reports/s-rta-1002b/wf/lock.sh (start_app records the pid; quit_app refuses
-  foreign pids; acquire_lock waits while his app runs). Probes that self-launch do not record the pid: identify a lane app
-  by its executable path (worktree build dir) before quitting it.
-- The architect agent type has maxTurns 120: long plans / rulings die SILENTLY (4 deaths). Prompts carry a TURN BUDGET
-  (skeleton by turn 8, rewrite every ~10, done by 90); big research goes to sonnet recon fact sheets first.
-- No on-screen windows from planners. Never prefix commands with cd (3 slips this session).
-## SCREEN STATE AT CLOSE
-The stopped bf2 lane left its own test app running (pid 17394, worktree binary): quit gracefully; 0 Audio-DNA windows,
-0 Output-named, 0 UserNotificationCenter windows; live + ctest locks released. Full-screen capture not taken (rule).
+Boris's app-evaluation feedback (BF1-BF10) became this session's work: every item planned, council-attacked, ruled and adopted;
+four lanes merged (hyg, mkvidx, ui, bf10); the deck change (bf9b) is built and fixed, waiting for a rebase + merge; the sync dial
+(bf2) is half built. Session log .harmony/sessions/2026-10-02-s-rta-1002b-secondary.md; work log .harmony/s-rta-1002b-work.md;
+everything else .harmony/.reports/s-rta-1002b/.
+
+## VERIFICATION — PROVEN, AND HOW (Harmony ran every gate)
+hyg -> fa9604d: build, ctest 1114/1114, lint 58/3 PASS, cerr counts 13 -> 0, pitfalls.md order + CLAUDE.md index 1..63.
+mkvidx -> 649baf7: G1 ctest 1123/1123; G2 fresh TSan build 3 targets 0 warnings; G3 values = lane GREEN; G4 selftest PASS;
+G5 10/10 fixture hashes; G8 greps; G9 docs. G6 / G7 live A/B PENDING (quiet machine).
+ui -> 3262fb6: G0 warnings = baseline; G1 8 executables + ctest 1184/1184; G2 lints; G2b 0; G3 probe 53/0; G4 12 captures +
+critic panel 4 x PASS_WITH_NITS (0 MUST) -> ui-polish packet. G1b PENDING (Boris OK).
+bf10 -> be23460: G0.1-G0.5 (patched lib found, rpath = prefix only, negative control fails loudly), G1 727/7 + ctest 1191/1191,
+G2 probe-milkdrop 20/0 GREEN, critic panel 3 x PASS_WITH_NITS. G3 perf UNPROVEN (INFO).
+
+## NOT VERIFIED — WHAT ONLY BORIS CAN CHECK (page .harmony/.reports/s-rta-1002b/boris-checks.html)
+- MilkDrop at his composition size on his presets (fills the picture; the size-change flash is pre-existing — Q2).
+- His own MKV / WebM clips in reverse and ping-pong.
+- Double-click rename feel; the clip info rows' readability on stage (the polish lane brightens them).
+- After bf9b merges: switching through many decks while clips play changes nothing on screen.
+
+## MY OWN ERRORS THIS SESSION — recorded because no gate would surface them
+1. 14:37: my gate script quit Boris's running Audio-DNA (start_app refused, the script still called quit_app). Fixed in the
+   lock helper; rule in the birth prompt. 2. First planner-death diagnosis (context size) was wrong — correlation from one
+   source; corrected with the maxTurns evidence. 3. ~5 commands prefixed with cd (cwd restored each time). 4. Relaunching a lane
+   in a turn with a mid-turn user message (mitigated with a relay disclaimer in the lane notes).
+
+## SCREEN STATE AT CLOSE (screen-safety law #4)
+Every gate launch was open -g, main window only, via the lock helper; no gate opened an Output window; 0 Audio-DNA / Output /
+UserNotificationCenter windows after every batch; the stopped bf2 lane's test app was quit by its worktree path. At close: no
+lane app running, live + ctest locks free, worktrees kept: .claude/worktrees/bf2, .claude/worktrees/bf9b (unmerged lanes). The
+ui architect ran a small always-on-top test window during planning (not a gate) — filed as a rule. No full-screen capture.
+
+## COUNTS — run them, never inherit them
+ctest 1191/1191 on main be23460 (+ docs commits). Unpushed: see git status at boot.

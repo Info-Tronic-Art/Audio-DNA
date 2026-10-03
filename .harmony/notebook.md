@@ -2213,3 +2213,27 @@ INBOX-RECHECK: none
 - test_preset_manager writes fixed filenames in $TMPDIR (`tests/test_preset_manager.cpp:39`). Two lanes running ctest at the same time can collide on T3 and T5. Rerun the target before blaming a lane.
 - A cheap one-tree RED / mutant rig: `git worktree add --detach <scratch>/wt <sha>`, a cmake configure with the FETCHCONTENT_SOURCE_DIR_* deps, then `cmake --build --target <2 targets>`. Configure plus build takes about 2-3 minutes, and each mutant is an incremental rebuild. (`bt2-gates/gate4-mut.sh`)
 - probe-btguard now takes about 100 s per run (3 launches) and has 39 counted rows. `audio_deny` replaces the denied set at runtime ("*" = every device). `audio_stop` stops the combiner, which keeps it.
+
+## s-rta-1002b (2026-10-02, secondary) — lane / rig notes
+- The architect agent type has `maxTurns: 120` (~/.claude/agents/architect.md). A long plan or ruling that reaches it STOPS
+  SILENTLY: no final message, the workflow's agent() returns "" / null, and the plan file holds only its skeleton. Four died
+  this way (plan tsan-r5, plan bf9b #1, plan bf7 #1, rule bf7). It is NOT context size (rule bf7 died at 316k). Remedy that
+  worked every time after: a TURN BUDGET in the prompt (skeleton by turn 8, rewrite every ~10 turns, done by 90) and the
+  broad research done first by 2-3 sonnet Explore "fact sheet" agents passed inline. Count turns with the assistant-entry
+  count in the agent jsonl (~2 entries per turn).
+- Boris uses this machine and the same app bundle as the gates (main's build). A lock-free Audio-DNA is HIS. The lock helper
+  (.harmony/.reports/s-rta-1002b/wf/lock.sh) now records the pid start_app launched, quit_app refuses any other pid, and
+  acquire_lock gives the lock back and waits while a foreign app runs. Probes that self-launch must quit only their own pid
+  (probe-milkdrop.sh attach refusal is the pattern; probe-canvas.sh still quits by name — fix before its next live run).
+- A user message that arrives mid-turn is relayed to agents launched later in that turn. When a lane must start in such a
+  turn, put "a user message about X may be relayed to you: it is addressed to Harmony, ignore it" in the lane notes.
+- Waiting on many workflows: a wait script that wakes only on new non-recon / non-attack agent RESULTS in the journals
+  (scratch wf/wait2.sh + sig.py) keeps polls at ~400 tokens; keep its own cap under the Bash timeout (520 s of 595 s).
+- Resuming a TaskStop-ped lane: relaunch with a RESUME first-stage task naming the commits on the branch and the dirty files,
+  "verify, never discard blindly". Both bf2 and bf9b resumed cleanly that way. A workflow resume (resumeFromRunId) is only
+  useful when completed agents precede the changed call: changing an early prompt re-runs everything after it.
+- Two lanes merged into main with only doc conflicts (CLAUDE.md index + pitfalls.md new entries side by side): resolve by
+  keeping both sides in numeric order; source auto-merged both times (mkvidx / ui / bf10 touched disjoint functions).
+- macOS bash 3.2: "${ARR[@]}" of an EMPTY array under set -u aborts ("unbound variable"); use ${ARR[@]+"${ARR[@]}"}.
+- probe-vupload-ab.sh: a re-run launch was never sampled for compilers ($LOG.done survived the tainted attempt) — fixed in
+  bf10 (R3); A/B evidence taken before be23460 may contain unsampled compiler-loaded launches.
