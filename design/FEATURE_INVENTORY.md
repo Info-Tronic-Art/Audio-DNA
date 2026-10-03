@@ -2155,7 +2155,7 @@ Note: Crossfader code EXISTS in the Composition model (crossfaderPhase, crossfad
   - BPM edit field [MINIMAL-IN-PRESENTATION] — manual BPM entry (visible only in manual mode)
   - BPM multiplier buttons (/4, /2, x1, x2, x4) [ALWAYS-VISIBLE] — 5 buttons for tempo scaling
   - Quantize dropdown [ALWAYS-VISIBLE] — Off / Next Beat / Next Downbeat for clip launch timing
-  - Fade slider (0-5s) [ALWAYS-VISIBLE] — global transition speed between clips
+  - Fade slider (0-5s) — REMOVED (lane bf9b): it was the deck-to-deck fade (`globalTransitionSpeed`); a deck switch now changes only the grid
   - Master slider (0-1) [ALWAYS-VISIBLE] — master output brightness/opacity
   - Output dropdown [ALWAYS-VISIBLE] — select output display (Off / Fullscreen / Windowed)
   - FPS label [MINIMAL-IN-PRESENTATION] — real-time frame rate counter
@@ -2406,9 +2406,9 @@ Note: Crossfader code EXISTS in the Composition model (crossfaderPhase, crossfad
 **Level:** PRIMARY
 **Current UI:** NO UI — code only (Composition::toVar/fromVar, Deck::toVar/fromVar, Layer::toVar/fromVar, Clip::toVar/fromVar)
 **Sub-features:**
-  - Composition to JSON [ALWAYS-VISIBLE] — Composition.toVar() serializes name, activeDeckIndex, masterOpacity, globalTransitionSpeed, bpmMultiplier, quantizeMode, outputWidth/Height/Display, all decks, global effects
-  - Deck to JSON [ALWAYS-VISIBLE] — Deck.toVar() serializes name, id, numColumns, all layers
-  - Layer to JSON [ALWAYS-VISIBLE] — Layer.toVar() serializes name, id, type, all layer fields (opacity, blend mode, keying, transition, transform, feedback, autopilot, effects, clips)
+  - Composition to JSON [ALWAYS-VISIBLE] — Composition.toVar() serializes name, activeDeckIndex, masterOpacity, bpmMultiplier, quantizeMode, outputWidth/Height/Display, all decks, global effects
+  - Deck to JSON [ALWAYS-VISIBLE] — Deck.toVar() serializes name, id, numColumns, its rows of clips (key "layers", each {"clips": [...]}; lane bf9b)
+  - Layer to JSON [ALWAYS-VISIBLE] — Layer.toVar() serializes name, id, type, all layer fields (opacity, blend mode, keying, transition, transform, feedback, autopilot, effects); the shared layers are a top-level "layers" array (lane bf9b; clips live in the decks' rows)
   - Clip to JSON [ALWAYS-VISIBLE] — Clip.toVar() serializes name, id, mediaType, mediaFile, sourceType, sourceParams, effects, transport, in/out points, beat snap, cuepoints, autopilot, video properties, transform, MilkDrop playlist, content lock
   - JSON parse/write [ALWAYS-VISIBLE] — via JUCE var/DynamicObject + JSON::toString/parse
   - File I/O [ALWAYS-VISIBLE] — Composition.saveToFile / loadFromFile (replaceWithText / loadFileAsString)

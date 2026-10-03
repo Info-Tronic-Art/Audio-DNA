@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), output to any number of connected displays incl. the main screen (macOS), beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once; eight routine pads above the deck's column numbers, the routine's name banded on every layer it plays), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), decks are boxes of clips over one shared layer stack, output to any number of connected displays incl. the main screen (macOS), beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once; eight routine pads above the deck's column numbers, the routine's name banded on every layer it plays), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation).
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -103,7 +103,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 14. **When this document says something, it overrides any default behavior**: If CLAUDE.md and a research doc disagree, CLAUDE.md wins (research docs are pre-decision references).
 
-15. **An inactive deck keeps time**: crossfades, media clocks (no decode) and autopilot keep running on off-screen decks (`DeckClock::tick` in the `deckActive` fence; `docs/claude/performance-controls.md`).
+15. **Decks are boxes; the layers play**: one shared layer stack (`Composition::layers`) plays whatever deck the grid shows; a deck switch changes only the grid; a layer names its clip by (deck id, column) (`docs/claude/performance-controls.md`).
 
 ---
 
@@ -196,10 +196,10 @@ the named area; this index is triage-only.
 32. `downbeatDetected` is a beat-long LEVEL, not a pulse -- before reading `downbeatDetected` as an edge/pulse.
 33. Effect/source-param rows are engine-driven -- before writing to `paramValues`/`sourceParams[].value` directly.
 34. A JUCE `Component` is invisible by default -- before writing a headless visibility-gated widget test.
-35. A crossfading layer has two live clip chains -- before keying any per-chain GL history (never by deck + layer alone).
-36. Deck ids are unique per composition; a Duplicate re-mints clip ids -- before creating or copying a deck (mint via `appendDeck`/`addDeck`).
+35. A crossfading layer has two live clip chains; GL history is keyed by the shared layer (`kShowStackKey`), never a deck -- before keying any per-chain GL history.
+36. Deck ids are unique, <= `ClipRef::kMaxDeckId`, never reused in a session; a Duplicate re-mints clip ids -- before creating or copying a deck (mint via `appendDeck`/`addDeck`).
 37. The canvas is the composition -- before sizing any render target, capture or recording (never from a Component).
-38. Autopilot keeps one beat-crossing baseline per instance -- before calling `Autopilot::processFrame` for more than one deck.
+38. One Autopilot for the show (one beat-crossing baseline) -- never call `Autopilot::processFrame` twice in a frame.
 39. `layer_transform` is one program shared by clip and layer transforms -- before adding a uniform to it or reading a picture's size.
 40. Output windows: normal level, never key -- before touching `OutputWindow`.
 41. `LayerStrip` faders must follow the model from the timer -- before adding a strip/inspector widget that shows a model value a routine, REST, MIDI or OSC can write.
@@ -224,7 +224,8 @@ the named area; this index is triage-only.
 60. Video uploads are budgeted, fenced IOSurface blits; the shown slot stays the reader's -- before touching `uploadToTexture`, `releaseGL` or a ring release.
 61. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
 62. Reverse / ping-pong video = the decode thread's GOP cache + a direction-aware pick -- before touching `decodeStep`, `VideoRing::pick`, a direction change or a keyframe gate.
-63. The Layer trigger tuple is one CAS word; shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.
+63. The Layer trigger tuple is one CAS word packing (deck id, column) per slot (compare ClipRefs, never columns alone); shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.
+NN. The shown deck is the grid, never the screen -- before resolving what a layer plays (`Composition::playing(i)`, never `getActiveDeck()->rows[i]`).
 
 ---
 
@@ -244,7 +245,7 @@ these are NOT @-imported, so they cost nothing at boot and are read on demand.
 | Touching `FeatureSnapshot`/`Mapping`/`Effect`/`Clip` struct fields, the lock-free communication chain, the technology-stack table, the source tree/file layout, the latency budget, naming a new file/class/method/uniform (Naming Conventions), or debugging audio-thread/threading issues | `docs/claude/architecture.md` |
 | Adding/changing an audio analysis feature (amplitude, spectral, rhythm/onset, pitch/harmony, structural) or the 14-stage analysis pipeline order | `docs/claude/analysis.md` |
 | Adding/changing a GLSL effect, a transition shader, the effect-chain architecture, FX drag-and-drop, the Autopilot System, Manual BPM Mode, or the Tooltip System | `docs/claude/effects.md` |
-| Touching Mapping System internals (curve/scale/smooth pipeline, Master Signal), temporal/time effects (P16), the audio uniform system (P18), composition-level transform or cross-deck transitions (P25), or debugging visual/render issues | `docs/claude/rendering.md` |
+| Touching Mapping System internals (curve/scale/smooth pipeline, Master Signal), temporal/time effects (P16), the audio uniform system (P18), composition-level transform (P25), or debugging visual/render issues | `docs/claude/rendering.md` |
 | Touching the Layer Router, Per-Type Autopilot, or Live Performance Controls (bindings, beat snap granularity, Ableton Link) (P20-P21) | `docs/claude/performance-controls.md` |
 | Touching the Audio Store or the performance take recorder (Ruling 28) | `docs/claude/recording.md` |
 | Touching the production REST API, OSC input, MIDI output, video recording, Syphon output, genre detection, ISF shader import, smart BPM recovery, or Advanced Audio Analysis (P22/P23/P25) | `docs/claude/integration.md` |

@@ -76,7 +76,9 @@ Autopilot auto-advances clips in a layer. Two trigger modes:
 - **On Beat** — advances after N beats (1/2/4/8/16/32), multiplied by the loops count
 - **End of Video** — advances when `clip->playheadPosition >= outPoint` (checked every frame, not just on beat crossings)
 
-The `Autopilot` class runs in `Renderer::renderOpenGL()` via `autopilot_.processFrame()`. When clips advance, `onAutopilotAdvanced_` fires async on the message thread to refresh the DeckView.
+ONE `Autopilot` runs for the whole show in `Renderer::renderOpenGL()` via `showAutopilot_.processFrame(Composition&, ...)`, inside the frame's `deckActive` gate (lane bf9b; Pitfall 38: never two calls in a frame). It walks the SHARED layers: it fires their queued (beat-snapped) triggers whatever deck they were fired from, and advances a layer within the deck its playing clip came from (the SOURCE deck), never the shown deck -- browsing decks never changes what autopilot plays next; a layer playing a removed deck's clip does not advance until it is fired. When clips advance, `onAutopilotAdvanced_` fires async on the message thread to refresh the DeckView.
+
+**Genre deck auto-switch: inert** (lane bf9b, ruling-bf9b amendment 19): a detected genre used to switch to its assigned deck (`Composition::genreDeckAssignment`); a deck switch now changes only the grid, so it would only yank the box Boris is browsing. Nothing in the app can set an assignment (no UI or REST writer); a file's assignments are kept, and the first genre change with one logs once per session `[P23] genre deck auto-switch is off: ...`.
 
 Layer autopilot fields: `autopilotEnabled`, `autopilotEndOfVideo`, `autopilotLoops`, `defaultAutopilotAction`, `defaultAutopilotDuration`.
 

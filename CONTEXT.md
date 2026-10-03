@@ -76,11 +76,12 @@ _Avoid_: "connection", "link" — too vague.
 **Clip**: Media content (image, video, camera, procedural source, image sequence) with per-clip effects, transport settings (timeline or BPM sync), cue points, and in/out points.
 _Avoid_: "media", "content" — too vague.
 
-**Layer**: A horizontal row in a deck. Contains columns of clips, layer-level effects, opacity, blend mode, transition settings. Types: Opaque, Transparent, FX Only, Mask.
+**Layer**: One of the show's shared layers (`Composition::layers`) -- what plays and is on screen, whatever deck the grid shows. Holds layer-level effects, opacity, blend mode, transition settings and the clip it plays (a (deck id, column) ref); its clips live in every deck's matching row. Types: Opaque, Transparent, FX Only, Mask.
 
-**Deck**: A grid of layers × columns. One deck is active at a time. Decks can switch with cross-deck transitions.
+**Deck**: A box of clips -- one row per shared layer × columns. The grid shows one deck at a time; switching decks changes only the grid, never what plays.
+_Avoid_: "active deck" for what is playing -- the shown deck is the grid only.
 
-**Composition**: Top-level container. Owns multiple decks, global settings, per-type autopilot config, genre-deck assignments.
+**Composition**: Top-level container (the show). Owns the shared layers, the decks (boxes), global settings, per-type autopilot config, genre-deck assignments (inert).
 
 **Autopilot**: Auto-advances clips in a layer. Trigger modes: On Beat (N beats × loops) or End of Video. Smart mode uses structural state + energy level for intelligent selection.
 

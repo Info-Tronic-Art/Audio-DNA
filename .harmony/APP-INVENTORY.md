@@ -23,7 +23,7 @@ control API.
 3 windows · ~28 panel classes (18 live in v2) · 22 tabs · ~8 overlay/popup surfaces
 (2 live, 1 orphaned, 3 popup pickers) + ~15 FileChoosers + 1 AlertWindow · 9-menu
 menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle added Wave 1-A) · **135 effects** / 11 categories / 333 params ·
-**15 transitions** (+1 deck transition) · **243 embedded shaders** · **108 sources**
+**15 transitions** (the deck transition removed, bf9b) · **242 embedded shaders** (243 - deck_transition, bf9b) · **108 sources**
 / 19 categories / 678 params (108 GUI-selectable; 759 -> 681 s-rta-0927 source-defects: 78 controls no shader read removed; 681 -> 678 s-rta-0928 tier1: kifs Fold Type, spectrum_landscape Smoothing, band_tower Reflection removed) · **30 audio features** / 14-stage
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
 (Global bank only) · **41 registered REST routes** (all functional; 27 core control + 7 `/api/perf/*` + `POST /api/audio/source` + 6 `/api/routine/*` [s-rta-0926 routines slice 1]; counted from `src/api/ApiServer.cpp`, s-rta-0926) ·
@@ -53,10 +53,10 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
-| TopBar (`TopBar.h:12`) | Always visible (top, 34px) | Audio-source combo (Mic/File); input-gain slider; **Play/Pause/Stop (WIRED Wave 1-D — global transport over the active deck's layers' active clips; Stop = pause + rewind to in-point; TopBar.cpp:31-33 → MainComponent.cpp:533)**; Tap-tempo; Resync; manual-BPM toggle + BPM edit; 5 multiplier buttons (/4 /2 x1 x2 x4); Quantize combo; Fade slider; Master slider (= composition master opacity; two-way linked with the Composition tab's Master knob, s-rta-0925); "Outputs: Off / N" button (opens the Output menu's display list; outputs-c2 — the Output-display combo is gone); beat wheel + bar-in-four + FPS/DSP readouts | yes |
+| TopBar (`TopBar.h:12`) | Always visible (top, 34px) | Audio-source combo (Mic/File); input-gain slider; **Play/Pause/Stop (WIRED Wave 1-D — global transport over the active deck's layers' active clips; Stop = pause + rewind to in-point; TopBar.cpp:31-33 → MainComponent.cpp:533)**; Tap-tempo; Resync; manual-BPM toggle + BPM edit; 5 multiplier buttons (/4 /2 x1 x2 x4); Quantize combo; (the deck "Fade:" slider was removed in bf9b: a deck switch changes only the grid); Master slider (= composition master opacity; two-way linked with the Composition tab's Master knob, s-rta-0925); "Outputs: Off / N" button (opens the Output menu's display list; outputs-c2 — the Output-display combo is gone); beat wheel + bar-in-four + FPS/DSP readouts | yes |
 | SignalBar (`SignalBar.h:15`) | Always visible (3 size modes) | `[+]` add-signal popup; shrink/grow buttons; N SignalStrip children (click = select for Signal inspector; display-only meter) | yes |
-| DeckView (`DeckView.h:15`) | Main content grid (scrollable) | **ROUTINES row (s-rta-0927): 8 routine pads over the column numbers -- press = fire/restart (waiting: no-op), right-click = settings menu (Loop/Once, Restore first/Start from now, Start: Ease/Jump, Quantize, Rename..., Remove from layers, Delete routine... behind a confirm); waiting/playing frames, sweep + "5/8", red "!", 50 % off-deck + corner note ("· Drop on B" / "· Save one in the Record tab")**; column-trigger buttons (click = trigger column); deck-tab buttons (switch deck); hosts LayerStrip + ClipCell | yes |
-| LayerStrip (`LayerStrip.h:23`) | Per-layer header in DeckView | Clear/Bypass/Solo (Clear also takes every routine off the layer, s-rta-0927); transport `< || > >|`; Speed/Keying/Opacity sliders (V and S follow the model at 30 Hz; V fill in the routine cue (chartreuse `kRoutineCue`) while a routine's hand grips opacity, s-rta-0927); Blend+keying combo (13 keying + ~55 mix modes); Fade-speed slider + transition-mode combo; name-click select; clip-bar drag = scrub; **routine bands over the picture (name + progress hairline; x = remove that routine from every layer; two at most, "+N"), s-rta-0927**. Right-click: none | yes |
+| DeckView (`DeckView.h:15`) | Main content grid (scrollable) | **ROUTINES row (s-rta-0927): 8 routine pads over the column numbers -- press = fire/restart (waiting: no-op), right-click = settings menu (Loop/Once, Restore first/Start from now, Start: Ease/Jump, Quantize, Rename..., Remove from layers, Delete routine... behind a confirm); waiting/playing frames, sweep + "5/8", red "!", corner note ("· Save one in the Record tab"; bf9b: no "on Deck N" note, no 50 % off-deck pad -- every routine plays on the shared layers)**; column-trigger buttons (click = trigger column; the header lights only on the deck the column was fired from, bf9b); deck-tab buttons (switch deck = the grid only, bf9b; a small dot while a layer plays one of the deck's clips); a cell lights only on the deck its playing clip came from; hosts LayerStrip + ClipCell | yes |
+| LayerStrip (`LayerStrip.h:23`) | Per-layer header in DeckView | Clear/Bypass/Solo (Clear also takes every routine off the layer, s-rta-0927); transport `< || > >|`; Speed/Keying/Opacity sliders (V and S follow the model at 30 Hz; V fill in the routine cue (chartreuse `kRoutineCue`) while a routine's hand grips opacity, s-rta-0927); Blend+keying combo (13 keying + ~55 mix modes); Fade-speed slider + transition-mode combo; name-click select; clip-bar drag = scrub; **source-deck badge (bf9b): bottom-left of the thumbnail, the tab number of the deck the playing clip came from (dim = the shown deck, "x" = a removed deck, none when empty or folded); click = show that deck (never selects); tooltip names the deck**; **routine bands over the picture (name + progress hairline; x = remove that routine from every layer; two at most, "+N"), s-rta-0927**. Right-click: none | yes |
 | ClipCell (`ClipCell.h:11`) | Per layer×column cell | Thumbnail click = trigger/retrigger; name-bar click = select (Cmd/Shift = multi-select); name-bar drag = move clip; drop targets: files, `fx:`, `source:`, `clip:`, `milkdrop:`, `milkdrop_playlist:`. Right-click: no-op. **"SEQ N" badge on image-sequence cells** (9pt bold, SRC-tag slot, `kMeterGreen`) + **hover tooltip** ("Image sequence — N images at X.X images/sec") + name-bar right-anchors the "(N frames)" suffix so it survives truncation — all `7d3a203`. NOTE: sequence cells were previously INDISTINGUISHABLE from video cells (same paint branch) — that was the defect | yes |
 | PreviewPanel (`PreviewPanel.h:12`) | Bottom row | Preview / Output tab buttons (labels only — same GL host); GL preview | yes |
 | WaveformDisplay (`WaveformDisplay.h:14`) | Under Preview | Scrolling waveform readout — no controls | yes (readout) |
@@ -149,13 +149,13 @@ routines slice-1 surface (s-rta-0926 -- see "Routines" in `docs/claude/recording
 |---|---|---|---|
 | 1 | GET | /api/health | ok, version 0.1.0, fps, effects_count |
 | 2 | GET | /api/status | fps, frameTime, masterLevel (= composition master opacity eff(), s-rta-0925), activeDeck, renderOnsetPulses, bpm/phase/genre/energy |
-| 3 | GET | /api/composition | full deck→layer→clip tree |
+| 3 | GET | /api/composition | bf9b: top-level `layers` (the shared stack: settings + `activeClip` / `previousClip` / `pendingClip` = {deck, deckId, column, clipId, retired} + `crossfadeProgress`) + `retiredDeckCount` + `decks[d].layers[l]` legacy mirror (settings, activeClipColumn / previousClipColumn as seen from deck d, deck d's row-l clips) |
 | 4 | POST | /api/trigger_clip | onTriggerClip(layer, column) |
 | 5 | POST | /api/trigger_column | onTriggerColumn(column) |
 | 6 | POST | /api/set_param | set clip-effect or global-chain param |
-| 7 | POST | /api/set_layer_opacity | active-deck layer opacity |
+| 7 | POST | /api/set_layer_opacity | shared layer opacity (bf9b) |
 | 8 | POST | /api/set_master_signal | Master Signal depth (s-rta-0925 mastersignal Step 1), via manualWrite(compScalarPath("signal")) |
-| 9 | POST | /api/switch_deck | onSwitchDeck(deck) |
+| 9 | POST | /api/switch_deck | onSwitchDeck(deck) = handleDeckSwitch: the grid only (bf9b) |
 | 10 | POST | /api/snapshot | takeSnapshot() (blocks), returns path |
 | 11 | GET | /api/bpm | bpm, beatPhase, barPhase, phrasePhase, beatInBar, barCount, totalBarCount, resyncBarOrigin, totalBeatCount (s-rta-0927 beat clock), downbeatDetected (level) |
 | 12 | POST | /api/set_bpm | manual BPM override — setManualMode+setManualBPM via message thread (wired Wave 0) |
@@ -229,7 +229,7 @@ upload_cap, max_uploads_per_frame); TEST_SERVER env `ADNA_VIDEO_FORCE_FALLBACK=m
 `probe-vupload.{sh,py,json}` + `probe-vupload-ab.{sh,py}` (NEW) and probe-video rows w1c / w1d / w2c / w10.
 s-rta-0929b btguard: `GET /api/debug/audio_devices` returns the audio device policy's last scan (every device's
 transport, allowed flag and reason, the filtered lists), the opened devices, `state` (ok / no-input / no-device), `opens`
-and `reapplies`, from a mutex-guarded copy; `GET /api/debug/ui_text` also answers `audio_notice`. TEST_SERVER env
+and `reapplies`, from a mutex-guarded copy; `GET /api/debug/ui_text` also answers `audio_notice` (and `load_notice`, bf9b). bf9b TEST-ONLY: `POST /api/debug/remove_deck {"deck": i}` (the tab menu's Remove Deck), `POST /api/debug/undo` (Cmd+Z). TEST_SERVER env
 `ADNA_AUDIO_DENY_DEVICES=<name>[;<name>]` (read once) treats those exact device names as denied; probe `probe-btguard.sh`
 (NEW); ctest +1 Catch2 target (`test_device_policy`).
 s-rta-0930 bt2: TEST-ONLY `POST /api/debug/audio_deny {"names": [...]}` swaps the denied set at runtime (the plug /
@@ -265,8 +265,8 @@ what *genuinely remains runtime-only* (deliberately excluded), not a loss.
 | Entity | Path | Runtime-only (deliberately NOT serialized) |
 |---|---|---|
 | Clip | `Clip::toVar/fromVar` (Clip.cpp) | playing, playheadPosition, beatsPlayed, hasBeenTriggered, thumbnail (GL/UI); presetPlaylistIndex + presetBeatsPlayed (mutable playlist cursors) |
-| Layer | `Layer::toVar/fromVar` (Layer.cpp) | activeClipColumn, previousClipColumn, crossfadeProgress, pendingTriggerColumn |
-| Composition | `Composition::toVar/fromVar` (Composition.h) | filePath (set on load), nextDeckId_ (runtime id counter) |
+| Layer | `Layer::toVar/fromVar` (Layer.cpp) | the trigger tuple: active / previous / pending ClipRef (deck id, column), crossfadeProgress (bf9b: a layer is a SHARED layer, saved in the top-level "layers"; its clips are saved in the decks' rows) |
+| Composition | `Composition::toVar/fromVar` (Composition.h) | filePath (set on load), nextDeckId_ / nextLayerId_ (runtime id counters), retiredDecks_ (bf9b: removed decks a layer still plays; never saved), migrationNote |
 | Bindings | `BindingManager` (BindingManager.cpp:214-306) | separate preset JSON (keyboard/MIDI bindings) — complete |
 
 ---
@@ -294,7 +294,7 @@ Source: lanes 2 + 4.
   `CompositorEngine::updateFeedbackBuffer` accumulator passthrough. **6 presets**: Zoom In,
   Spiral, Drift, Kaleidoscope, Echo, Stretch (`FeedbackProcessor.cpp:131-142`).
 - **Transitions** — 15 clip-to-clip (Dissolve default … ToBlack), enum-mapped +
-  compiled + dedicated `transitionFBO_`; plus 1 separate `deck_transition` (cross-deck A/B).
+  compiled + dedicated `transitionFBO_`. (The separate `deck_transition` -- the cross-deck A/B fade -- was removed in bf9b.)
 - **Recording / snapshot** — `VideoRecorder` (REAL: FFmpeg H.264/ProRes/MJPEG,
   triple-buffered GL readback, wired to Output menu, video-only no audio); PNG snapshot
   (REAL, via REST/OSC/menu); performance take recorder (`src/recording/`: `AudioTap` second
@@ -305,7 +305,7 @@ Source: lanes 2 + 4.
   (s-rta-0926), probe-onset-render 13/0 (s-rta-0924b), probe-finalize-loop 40/0
   (s-rta-0924b), STEP3_LONG 20 min 82/0, drift +0.28 ms (s-rta-0924b).
 - **Genre / energy intelligence** — `GenreDetector` (8 genres + 3-band energy, ~2s EMA +
-  ~3s hysteresis internally); drives auto-preset/deck switch + structural scene triggering.
+  ~3s hysteresis internally); drives auto-preset + structural scene triggering (the genre deck switch is inert since bf9b).
   (GenreSmoothing + MappingSuggester removed Wave 0 — see §8.)
 
 ---

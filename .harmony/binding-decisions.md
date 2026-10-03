@@ -604,3 +604,9 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
   autopilot) belong to the shared layer, one set for all decks (old shows: the first deck's layer settings win); every
   deck shows the show's layer rows; the deck-to-deck transition fade is removed (a deck switch has nothing to fade); the
   layer strip shows each layer's playing clip and the deck it came from; Persistent removed; ignore-column stays.
+  Built (bf9b, s-rta-1002b; ruling-bf9b): Composition::layers + Deck::rows + ClipRef (deck id, column) in the tuple;
+  a deck switch changes only the grid; the strip badge (deck tab number, "x" for a removed deck; click = show it), the
+  tab dot, the column header only on the firing deck; the TopBar Fade removed; old shows -> the first deck's settings +
+  one note (load notice). Defaults taken: Q1 a deleted deck's playing clip keeps playing until replaced; Q2 a loaded
+  deck with more rows adds layers; Q3 withdrawn (genre deck auto-switch inert); Q4 Undo skips deck switches (ruling-bf9b
+  amendment 10 flipped the plan's default); Q5 a column fire empties a layer whose cell is empty.

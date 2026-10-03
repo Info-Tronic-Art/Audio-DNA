@@ -96,6 +96,8 @@
 | `playheadPosition` | `mutable RelaxedDouble` | [0,1] runtime position (synced from player each frame; Pitfall 63) |
 | `playing` | `mutable RelaxedBool` | Transport intent (UI / triggers write it; the render's write-back is a CAS, Pitfall 63) |
 
+**The show model (lane bf9b, s-rta-1002b)** -- `Composition` owns ONE shared layer stack (`std::vector<Layer> layers`: settings + the trigger tuple, no clips) and the decks, which are boxes of clips (`Deck::rows`: one `ClipRow` of clips per shared layer, `rows.size() == layers.size()` in every deck), plus `retiredDecks_` (removed decks a layer still plays or fades out of: not shown, not saved, not indexed). Composition -> layers (what plays) + decks -> rows -> clips (the boxes). A layer names its clip by `ClipRef` = (deck id, column) in each tuple slot; `Composition::playing(i)` resolves it (one `runtime()` load) into ANY live or retired deck, `forEachLayer` / `forEachClip` walk what plays / every clip. The shown deck (`activeDeckIndex`) is the grid only (Pitfall NN; `docs/claude/performance-controls.md` "Decks are boxes of clips").
+
 ---
 
 ### Lock-Free Communication Chain
@@ -113,7 +115,8 @@ All data flows forward. No backward dependencies on the hot path.
 - Single-writer scalars another thread reads are `Relaxed<T>` (`src/model/Relaxed.h`: relaxed atomic, copyable, no
   compound operators): the 23 manualRef scalars, `Composition::activeDeckIndex`, the clip runtime fields
   (`playing`, `playheadPosition`, `beatsPlayed`, `hasBeenTriggered`).
-- The Layer trigger tuple (active / previous column, crossfade progress, pending column + snap) is ONE 16-byte atomic
+- The Layer trigger tuple (active / previous ref, crossfade progress, pending ref + snap; a ref is a `ClipRef` = (deck id,
+  column), packed per slot -- lane bf9b) is ONE 16-byte atomic
   word (`LayerRuntimeCell`) written by both the message and the GL thread, every transition a compare-exchange
   (`Layer::runtime()` / `setRuntime()` / `casRuntime()` / `updateRuntime()`).
 - The render loads it ONCE per layer per frame (where its first read used to be) and publishes a fade tick with ONE CAS
@@ -123,8 +126,13 @@ All data flows forward. No backward dependencies on the hot path.
   snapshot, or a retrigger of the same column, can still be cancelled by the advance, as before the guard). The render
   never waits.
 - A render write-back of a message-thread intent is a CAS on the value it read (`ClipTransportSync`, syncMedia).
-- Structure (decks / layers / clips vectors) stays behind `withDeckDetached` (the fence); the GL derives the active
-  deck index from the acquire-loaded deck pointer.
+- Structure (the shared `layers`, the `decks` / `retiredDecks_` boxes, `Deck::rows`, `ClipRow::clips`) changes only inside
+  `withDeckDetached` (the fence) or on a staged, unpublished composition (Pitfall 58) -- every writer site is audited and
+  pinned (`tests/test_render_thread_lint.cpp` "bf9b: box / stack structure writers sit only in audited sites"). The GL
+  thread resolves refs into ANY live or retired deck inside its `deckActive` gate and never dereferences the fenced deck
+  pointer (a fence token only). After its mutation `withDeckDetached` reaps every retired deck no ref names
+  (`Composition::reapRetiredDecks`) and, after the restore, hands them to a hook that disposes their media (lane bf9b,
+  ruling-bf9b amendment 4(a)): any fenced edit reaps; nothing reaps on a timer.
 - Code that can run off the message thread logs with `logLine(...)` (`src/core/LogLine.h`), never `std::cerr`
   (test_log_line_lint); a thread that must not allocate (the analysis thread, the GL thread's periodic lines) uses
   the zero-heap `logLinef(fmt, ...)` (stack buffer, one fwrite).
@@ -226,9 +234,12 @@ AudioDNA/
 │   │   └── MappingSuggester.h/cpp       # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated, no UI/API caller)
 │   ├── model/                           # [v2] Core data model
 │   │   ├── Clip.h/cpp                    # Media + per-clip effects/transport/transform/cuepoints/autopilot
-│   │   ├── Layer.h/cpp                   # Row of columns: type, opacity, blend/keying, layer effects, feedback
-│   │   ├── Deck.h                        # Grid of layers × columns; one active at a time
-│   │   ├── Composition.h                 # Top container: decks, master, crossfader, per-type/smart autopilot
+│   │   ├── Layer.h/cpp                   # A SHARED layer: type, opacity, blend/keying, layer effects, feedback + the playing tuple (no clips; bf9b)
+│   │   ├── ClipRow.h                     # [bf9b] A deck's row of clips (one per shared layer)
+│   │   ├── ClipRef.h                     # [bf9b] (deck id, column): how a layer names its clip; RowClips (the GL-safe resolver)
+│   │   ├── ShowMigration.h               # [bf9b] Old-show converter: the first deck's layer settings win, ONE note
+│   │   ├── Deck.h                        # A box of clips: rows (one per shared layer) × columns; the grid shows one at a time
+│   │   ├── Composition.h                 # Top container: the shared layers, decks (boxes) + retired decks, master, crossfader, per-type/smart autopilot
 │   │   ├── Autopilot.h/cpp               # Beat / end-of-video / per-type / smart-energy clip advancement
 │   │   └── AppSettings.h/cpp         ✅ # [s-rta-0927 outputs-c3] settings.json read-modify-write (milkDropPresetDir, outputs); never clobbers a key
 │   ├── signal/                          # [v2] Signal system (feeds RoutingEngine)
@@ -299,7 +310,7 @@ AudioDNA/
 │   │   ├── LUTLoader.h/cpp           ✅ # Loads color LUT images (Color Grade effect)
 │   │   ├── EmbeddedShaders.h         ✅ # 135 effect + 15 transition + 93 source shaders (244 embedded strings)
 │   │   ├── ScratchPool.h             ✅ # [s-rta-0926 xfade] pickEffectTarget(readTex, holdTex): the one rule for CompositorEngine's shared effect scratch FBOs -- never render into a texture a pass samples or its caller still holds
-│   │   └── CompositorEngine.h/cpp    ✅ # [v2] Deck/layer compositing: clip FX → transition → layer FX → transform → keying → blend
+│   │   └── CompositorEngine.h/cpp    ✅ # [v2] Shared-stack compositing (compositeShow): clip FX → transition → layer FX → transform → keying → blend
 │   └── ui/                              # [v2] Performance UI (~37 panels — actual files on disk, grouped by area)
 │       ├── TopBar, SignalBar, SignalStrip           # Top chrome: tempo/transport + audio-feature meter strips
 │       ├── DeckView, LayerStrip, ClipCell           # Resolume-style layer × column deck grid

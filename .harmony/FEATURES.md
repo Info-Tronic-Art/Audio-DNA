@@ -412,7 +412,7 @@ Accumulator → global FX → composition transform → swap buffers → display
 - `transitionSpeed`: per-layer, in seconds. -1.0 = instant cut (no crossfade). Default fallback: 0.5s
 - `transitionMode`: per-layer MixMode enum value, selected via F dropdown in UI
 - `transitionBlendMode`: separate per-layer field for transition blend method (Layer.h:125)
-- `globalTransitionSpeed`: composition-level default (Composition.h:48), 0.3s
+- `globalTransitionSpeed`: REMOVED (lane bf9b, s-rta-1002b) -- it was the deck-to-deck fade's speed (the TopBar "Fade:" slider), never a clip-transition default; an old show's value is read only to name it in the conversion note
 
 **Behavioral notes:**
 - Transitions render into a dedicated `transitionFBO_` to avoid conflicts with `scratchFBO_` (used by keying) and `effectFBO_A_/B_` (used by effect chains)
@@ -421,7 +421,7 @@ Accumulator → global FX → composition transform → swap buffers → display
 - Instant cut (`transitionSpeed <= 0` or `transitionSpeed == -1`) sets `crossfadeProgress = 1.0` immediately, skipping the blend entirely
 - **Transition shader coverage: 15 of 30 enum entries have dedicated shaders.** Shader-mapped: Cut, Dissolve, WipeLeft/Right/Up/Down, WipeEllipse (iris), PushLeft/Right/Up/Down, ZoomIn/Out, Flip, ToBlack. The remaining 15 (WipeDiagonal, RotateX/Y, Spin, Cube, Fold, ToWhite, Pixelate, Blur, Noise, RGBSplit, GlitchBlocks, Strobe, Slide, Stretch, Displace) fall back to dissolve via the `default:` case in `getTransitionShaderName()` (CompositorEngine.cpp:1083). See Renderer.cpp:1468-1483 for compiled shaders.
 - **No test coverage** for transitions — no test file exercises `applyTransition()` or validates per-mode shader output.
-- **A 16th, separate transition mechanism exists at the deck level, undocumented until now.** `Renderer` tracks `deckTransitionProgress_`/`deckTransitionSpeed_` (Renderer.h:286-294), detects `composition_->activeDeckIndex` changes, and blends old→new deck output through a dedicated `deck_transition` shader (`EmbeddedShaders::deckTransition`, EmbeddedShaders.h:111-113), reading `composition_->crossfaderBlendMode` as its blend uniform (Renderer.cpp:~508-592, "P25: Cross-deck transition blending"). This is real, currently-firing, and user-visible on every deck switch — it is entirely separate from the 15/30 clip-level transitions above and from the (unwired) live Crossfader ghost feature described in §22b; §22b's mention of `crossfaderBlendMode` at `Renderer.cpp:508` is this same one-shot deck-switch blend, not a live crossfader. No test file greps positive for `deckTransition` or `deckTransitionProgress_`.
+- **[REMOVED lane bf9b, s-rta-1002b: a deck switch now changes only the grid -- one shared layer stack -- so the deck transition, its shader and `globalTransitionSpeed` are deleted; the text below is history]** **A 16th, separate transition mechanism exists at the deck level, undocumented until now.** `Renderer` tracks `deckTransitionProgress_`/`deckTransitionSpeed_` (Renderer.h:286-294), detects `composition_->activeDeckIndex` changes, and blends old→new deck output through a dedicated `deck_transition` shader (`EmbeddedShaders::deckTransition`, EmbeddedShaders.h:111-113), reading `composition_->crossfaderBlendMode` as its blend uniform (Renderer.cpp:~508-592, "P25: Cross-deck transition blending"). This is real, currently-firing, and user-visible on every deck switch — it is entirely separate from the 15/30 clip-level transitions above and from the (unwired) live Crossfader ghost feature described in §22b; §22b's mention of `crossfaderBlendMode` at `Renderer.cpp:508` is this same one-shot deck-switch blend, not a live crossfader. No test file greps positive for `deckTransition` or `deckTransitionProgress_`.
 
 ### 5b. Keying & Masking System
 
@@ -873,7 +873,7 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 - `tests/test_undo_commands.cpp` — 2222 lines, 59 `TEST_CASE`s, the single largest test file in the repo; covers the full Undo v1 command inventory (clip/column/deck/layer/effect/trigger operations)
 - `tests/test_autopilot.cpp` — dedicated Autopilot behavior tests (previously undocumented; not the same file as `test_compositor.cpp`'s autopilot coverage)
 - `tests/test_preset_manager.cpp` — preset save/load coverage (previously listed below as "Missing: preset save/load round-trip" — that gap is now covered)
-- Still missing: cross-deck transition test coverage; full enumeration of every mutating UI action was not certified against Undo v1 (22+ command sites spot-checked, not individually walked one-by-one)
+- Still missing: (cross-deck transition test coverage: moot, the deck transition was removed in lane bf9b); full enumeration of every mutating UI action was not certified against Undo v1 (22+ command sites spot-checked, not individually walked one-by-one)
 
 **Gotchas:**
 - `Clip::playing` is `mutable` — render thread writes it for OneShot. After `advanceFrame()`, read player state BACK to clip model.
@@ -1921,14 +1921,14 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **Implementation chain:**
 - 22a MacroBanks: `MacroBank` stores 8 `Macro` structs in `std::array`. `updateValues(SignalRegistry&)` reads signal values for signal-driven macros or uses `manualValue` for manual. `MacroPanel` UI displays 8 knob slots, reads/writes via `setMacroBank()`. `InspectorPanel` distributes the bank pointer to `ClipInspector`, `LayerInspector`, `CompositionInspector`. `UniversalParamControl` populates a macro source dropdown from the bank (line 448). MIDI handler writes `globalMacroBank_.getMacro(idx).manualValue = value`. Per-link distribution (MacroLink vector with `RouteTarget`, `outputMin`, `outputMax`, `inverted`) is defined but no code iterates `links` to apply values to target parameters.
-- 22b Crossfader: Fields declared in `Composition.h:31-37`. `crossfaderBlendMode` is read at `Renderer.cpp:508` as a uniform for the deck transition shader — this is a one-time transition blend, not a live crossfader. `crossfaderPhase` (float [0,1]) is never read. `crossfaderBehaviour` and `crossfaderCurve` enums are never read. None of these fields appear in `toVar()`/`fromVar()` — not serialized.
+- 22b Crossfader: Fields declared in `Composition.h:31-37`. `crossfaderBlendMode` was read at `Renderer.cpp:508` as a uniform for the deck transition shader (deleted in lane bf9b: no reader now) — a one-time transition blend, not a live crossfader. `crossfaderPhase` (float [0,1]) is never read. `crossfaderBehaviour` and `crossfaderCurve` enums are never read. None of these fields appear in `toVar()`/`fromVar()` — not serialized.
 - 22c Route scope: `RoutingEngine::processFrame()` iterates routes and calls a lambda. The lambda at `Renderer.cpp:198-206` checks `route.targetScope == Global` and writes to `effectChain_`. Non-Global scopes fall through to the TODO comment with no action.
 - 22d requestBeatAtTime: Captures Ableton Link session state, calls `sessionState.requestBeatAtTime(0.0, now, quantum_)`, commits back. Guarded by `#if AUDIODNA_HAS_LINK` and `enabled_` atomic check.
 - 22e MappingSuggester: Stateless utility. `suggestMappings()` calls `addUniversalSuggestions()` (13 mappings based on feature activity levels) + `addGenreSuggestions()` (genre-specific), sorts by relevance descending, truncates to `maxSuggestions`. `suggestGenreMappings()` calls only `addGenreSuggestions()`. Each `Suggestion` carries `sourceName`, `targetCategory`, `targetEffect`, `targetParam`, `curveType`, `reason`, `relevance`.
 
 **Data flow:**
 - 22a: `SignalRegistry` (cached signal values) -> `MacroBank::updateValues()` -> `Macro.currentValue` -> (gap: no code distributes to `MacroLink.target` parameters)
-- 22b: `Composition.crossfaderPhase` <- never written after init (default 0.5). `Composition.crossfaderBlendMode` -> `Renderer.cpp:508` uniform `u_blendMode` (deck transition shader only)
+- 22b: `Composition.crossfaderPhase` <- never written after init (default 0.5). `Composition.crossfaderBlendMode` -> no reader since lane bf9b (was `Renderer.cpp:508` uniform `u_blendMode`, the deleted deck transition shader)
 - 22c: `Signal values` -> `RoutingEngine::processFrame()` -> lambda with `Route` -> only `Global` scope reaches `EffectChain::setParamValue()`. `Clip/Layer` scope routes are evaluated but their values are discarded (no handler)
 - 22d: (no data flow — `requestBeatAtTime()` is a one-shot command to Ableton Link peers, no return value)
 - 22e: `FeatureSnapshot` + genre -> `MappingSuggester::suggestMappings()` -> `vector<Suggestion>` (sorted by relevance). No downstream consumer exists.
@@ -1965,7 +1965,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **Gotchas:**
 - 22a: `MacroBank::updateValues()` is called but `Macro.links` vector is never iterated to distribute values to linked parameters — the "last mile" distribution is unimplemented despite the data model being complete.
-- 22b: `crossfaderBlendMode` at `Renderer.cpp:508` is used for deck transitions (one-time blend during `deckTransitionProgress_`), not live crossfading. Renaming or repurposing this field for live crossfading would break existing deck transition behavior.
+- 22b: `crossfaderBlendMode` was used for deck transitions (one-time blend during `deckTransitionProgress_`), not live crossfading; since lane bf9b deleted the deck transition it has no reader.
 - 22c: The routing lambda at `Renderer.cpp:198-206` runs per-frame per-route. Adding Clip/Layer handling requires access to the compositor's per-layer effect chains, which the lambda does not currently have.
 - 22e: `MappingSuggester::Suggestion` uses `std::string` for all fields (7 strings per suggestion, up to 8 suggestions) — heap allocation on every call. Not real-time safe but acceptable since it would only be called on user action, not per-frame.
 - Across all 5 sub-features: none are referenced by any test file in `tests/`.
