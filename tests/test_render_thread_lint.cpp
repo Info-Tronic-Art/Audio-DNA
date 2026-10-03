@@ -253,3 +253,66 @@ TEST_CASE("bf9b: box / stack structure writers sit only in audited sites (pinned
     INFO("counts that differ from the audited pins:" << (diff.empty() ? std::string(" none") : diff));
     CHECK(diff.empty());
 }
+
+namespace
+{
+// The body of the first function / lambda whose header line contains `header`, from its first '{' to the matching
+// '}' (code lines, line comments stripped; braces inside string literals are not expected in these bodies).
+std::string bodyAfter(const std::vector<std::string>& lines, const std::string& header, size_t from = 0)
+{
+    for (size_t i = from; i < lines.size(); ++i)
+    {
+        if (lines[i].find(header) == std::string::npos)
+            continue;
+        std::string body;
+        int depth = 0;
+        bool open = false;
+        for (size_t j = i; j < lines.size(); ++j)
+        {
+            for (char ch : lines[j])
+            {
+                if (ch == '{') { ++depth; open = true; }
+                else if (ch == '}') --depth;
+                if (open) body += ch;
+                if (open && depth == 0)
+                    return body;
+            }
+            if (open) body += '\n';
+        }
+        return body;
+    }
+    return {};
+}
+} // namespace
+
+// Case 5 (lane bf9b; ruling-bf9b B4d SMOKE + ruling-bf10 H2 relayed in the plan's adoption item 2): a deck switch does
+// exactly the index, the renderer's fence token, the grid's cells and the take capture (rulebook R7). The bodies of
+// handleDeckSwitch, the tab click's onDeckSwitched handler, SwitchDeckCmd::apply and DeckView::showDeck -- one level,
+// TEXT only (the behavioural proofs are T1 / K1 / K8) -- name none of the tuple writers or the preview refresh (B4d),
+// and none of the MilkDrop / canvas calls (H2: a switch never loads a preset, resizes or releases projectM, never
+// changes the canvas).
+TEST_CASE("bf9b B4d / H2: a deck switch path touches nothing that plays (smoke, one level)", "[lint][bf9b]")
+{
+    const std::regex b4d(R"(triggerClip|clearActiveClip|setRuntime|updateRuntime|cancelPending|refreshPreview)");
+    const std::regex h2(R"(loadPreset|releaseGL|ProjectM|projectM|outputWidth|outputHeight|setCanvas|[Cc]anvas\s*\()");
+    struct Site { const char* file; const char* header; std::string from; };
+    const Site sites[] = {
+        { "MainComponent.cpp", "void MainComponent::handleDeckSwitch(", "" },
+        { "MainComponent.cpp", "deckView_->onDeckSwitched = [", "" },
+        { "core/DeckCommands.h", "void apply(int index)", "class SwitchDeckCmd" },
+        { "ui/DeckView.cpp", "void DeckView::showDeck()", "" },
+    };
+    for (const auto& site : sites)
+    {
+        const auto lines = codeLines(site.file);
+        size_t from = 0;
+        if (!site.from.empty())
+            for (size_t i = 0; i < lines.size(); ++i)
+                if (lines[i].find(site.from) != std::string::npos) { from = i; break; }
+        const std::string body = bodyAfter(lines, site.header, from);
+        INFO(site.file << " " << site.header << ":\n" << body);
+        REQUIRE_FALSE(body.empty());
+        CHECK_FALSE(std::regex_search(body, b4d));
+        CHECK_FALSE(std::regex_search(body, h2));
+    }
+}
