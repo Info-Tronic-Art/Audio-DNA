@@ -9,6 +9,10 @@ never copy the folder elsewhere afterwards):
   img/D<d>C<c>L<l>.png   one picture per cell: big "D<d> C<c>" + "layer <l>" (1-based, like the tabs and Boris's page),
                          one colour per deck
   vid/timecode-A.mp4, vid/timecode-B.mp4   60 s, 30 fps, a big running time code "A 00:12.3" over a green ramp
+  five-rows.json    a DECK file (Deck > Load Deck...) with five rows of 4 pictures -- two more rows than the show has
+                    layers, so loading it adds two layers (page step 8.12; ruling-bf9b-merge section 6)
+  nine-rows.json    a DECK file with nine rows, one picture in row 1 / column 0 (0-based) and nothing else -- the
+                    live ASan row's deck (ruling-bf9b-merge AM-6, steps L1-L5)
 Needs python with Pillow, and ffmpeg on PATH. Opens no app, touches nothing else.
 
 The show: 20 decks ("Deck 1".."Deck 20"), each 4 columns and exactly 3 rows (numColumns and every row's length set
@@ -113,6 +117,26 @@ def timecode_video(out, tag, seconds=60, fps=30):
     return p
 
 
+def deck_file(out, fname, name, d, rows, cells):
+    """A deck file as Deck::toVar writes it: rows of "clips" only (a new-format row: Load Deck adds a default layer
+    for each row beyond the show's). `cells` = the (row, column) pairs, 1-based, that hold a picture."""
+    cid = 0
+    row_list = []
+    for l in range(1, rows + 1):
+        clips = []
+        for c in range(1, COLS + 1):
+            if (l, c) not in cells:
+                clips.append(None)
+                continue
+            cid += 1
+            clips.append(dict(CLIP_TEMPLATE, name=f"D{d} C{c}", id=cid, mediaFile=picture(out, d, c, l)))
+        row_list.append({"clips": clips})
+    path = os.path.join(out, fname)
+    with open(path, "w") as f:
+        json.dump({"name": name, "id": 99 + d, "numColumns": COLS, "layers": row_list}, f, indent=1)
+    print(f"wrote {path}: deck \"{name}\", {rows} rows x {COLS} columns, {cid} clip(s)")
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -151,6 +175,8 @@ def main():
     with open(path, "w") as f:
         json.dump(comp, f, indent=1)
     print(f"wrote {path}: {DECKS} decks x {ROWS} rows x {COLS} columns, {cid} clips (2 videos), 1 empty cell")
+    deck_file(out, "five-rows.json", "Five Rows", 21, 5, {(l, c) for l in range(1, 6) for c in range(1, COLS + 1)})
+    deck_file(out, "nine-rows.json", "Nine Rows", 22, 9, {(2, 1)})
 
 
 if __name__ == "__main__":
