@@ -337,3 +337,34 @@ BORIS'S ANSWER (a), verbatim: "Let's not allow control Z to change anything that
 changes anything else". T6h PINS the one place this stage leaves against it (Cmd+Z of a Load Deck that added layers
 stops that deck's clip) -- as the ruling's AM-7 and adoption item 8 order (lane BF31 re-registers T6h). Not widened
 here.
+
+### Item AM-10 -- the two proofs FIX-2 owes (the six 4.B rows themselves go into FIX-4's final section)
+PROOF 1, a positive stopOnLayer test with another deck shown: ABSENT before (D3 fires both routines with deck 0 shown;
+D2 fires with deck 1 shown but never calls stopOnLayer) -> ADDED, tests/test_routine_engine.cpp:
+"RoutineEngine display D3b: stopOnLayer stops a routine that was fired with another deck shown" -- deck 1 shown at the
+fire (`slot(0).deck == 1`), deck 0 shown at the stop, `stopOnLayer(1)` -> idle, no layers, its layer-0 grip released.
+It pins behaviour the lane already has, so it is GREEN at once (`"RoutineEngine display D3*"`: `All tests passed (34
+assertions in 2 test cases)`); its failing arm is ONE mutant, never committed (mu-am10.sh; the old deck filter put
+back: `if (r.deck == 0 && ...)` in RoutineEngine::stopOnLayer; 1 object recompiled):
+```
+test_routine_engine.cpp:1855: FAILED:  CHECK( rig.slot(0).state == "idle" )   "running" == "idle"
+test_routine_engine.cpp:1856: FAILED:  CHECK( rig.slot(0).layers.empty() )
+test_routine_engine.cpp:1857: FAILED:  CHECK( rig.fd.count(Ev::Release, opacityKey(0)) == 1 )
+test cases:  2 |  0 passed | 2 failed
+```
+(D3 fails under it too: its routine "b" has no clip target, so its deck is not 0.) Restored: sha256 of
+RoutineEngine.cpp equal before / after (07a08f547965ac8cd0779de675642c30a87011d14b8a2df5491571939f4eb7d2); whole
+binary after the restore: `All tests passed (1155 assertions in 38 test cases)`.
+PROOF 2, `git grep -n -i "corner note\|off-deck" -- docs/claude/recording.md`: NO OUTPUT, rc 1 (0 hits). The
+sentences of that file that speak of routines and decks were read against the code (:97 "no pad dims for "another
+deck" and the corner never names one"; :99 "Every shared layer a waiting/playing routine drives, whatever deck is
+shown, carries a band"; :116-118 "`RoutineEngine::stopOnLayer(layer)` stops every running routine touching that
+shared layer, whatever deck it fired from; bands show on the shared layer whatever deck is shown"): each matches
+RoutineEngine::stopOnLayer (RoutineEngine.cpp:808) and deriveRoutineDeckView (`pad.onShownDeck = true`,
+RoutineDeckView.h). NOTHING corrected in recording.md.
+
+### Item AM-18 -- the retiredDeckCount comment (state-r2 NIT 5)
+src/api/ApiServer.cpp, COMMENT ONLY (the sentence lives there, not in DeckCommands.h): "REST never reads a retired
+deck (...)" now ends "-- except the retired list's size on the next line, read on this http thread while the message
+thread may change it (state-r2 NIT 5; the read itself is filed to tsan-r5, ruling-bf9b-merge SF-8)". No code line
+changed (`git show --stat`: 1 file, +3 -1, all comment lines).

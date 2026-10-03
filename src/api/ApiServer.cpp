@@ -417,7 +417,9 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
     // each layer's settings and what it plays as {deck, deckId, column, clipId, retired} refs -- plus
     // "retiredDeckCount". decks[d].layers[l] stays as a legacy MIRROR: the shared layer's settings, its
     // activeClipColumn / previousClipColumn as seen from deck d (-1 when the ref names another deck), and deck d's row-l
-    // clips. REST never reads a retired deck (a ref into one reports retired: true, clipId -1).
+    // clips. REST never reads a retired deck (a ref into one reports retired: true, clipId -1) -- except the retired
+    // list's size on the next line, read on this http thread while the message thread may change it (state-r2 NIT 5;
+    // the read itself is filed to tsan-r5, ruling-bf9b-merge SF-8).
     obj->setProperty("retiredDeckCount", composition_.getNumRetiredDecks());
     auto refVar = [this](ClipRef ref, int row) {
         auto* r = new juce::DynamicObject();
