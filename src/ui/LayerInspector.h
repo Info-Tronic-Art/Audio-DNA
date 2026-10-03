@@ -39,6 +39,8 @@ public:
     // effect-stack edits become undo commands that re-resolve by coordinate.
     void setLayer(Layer* layer, EffectScope scope = EffectScope::none());
     Layer* getLayer() const { return layer_; }
+    // Test seam (lane bf9b fix): the Opacity row's control (what it is bound to after a re-point).
+    const UniversalParamControl& opacityControlForTest() const { return opacityControl_; }
 
     void setEffectLibrary(EffectLibrary* lib);
     void setSignalRegistry(SignalRegistry* reg);
@@ -153,6 +155,8 @@ private:
     // masterControl_ and opacityControl_ share the same LayerScalar::Opacity
     // connection (they already share the field, LayerInspector.cpp).
     void bindScalarControls();
+    // Lane bf9b fix (AM-1): drops the 7 scalar bindings WITHOUT reading them -- setLayer's first call.
+    void forgetScalarBindings();
     void updateAutopilotButtons();
     void populateBlendModes();
     void populateKeyingModes();

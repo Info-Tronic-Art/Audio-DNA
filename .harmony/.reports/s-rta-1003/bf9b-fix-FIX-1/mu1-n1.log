@@ -1,0 +1,39 @@
+Filters: "N1*"
+Randomness seeded to: 1991696996
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_show_model is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+N1 LayerInspector::setLayer(B) leaves a routine's grip and a touch on A's
+connections untouched; the control is bound to B's (bf9b fix, AM-1)
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1822
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1837: FAILED:
+  CHECK( lane.grip.kind == ParamConnection::Grip::Kind::Held )
+with expansion:
+  0 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1838: FAILED:
+  CHECK( lane.grip.rank == static_cast<uint8_t>(Hand::Lane) )
+with expansion:
+  0 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1839: FAILED:
+  CHECK( touch.grip.kind == ParamConnection::Grip::Kind::Decaying )
+with expansion:
+  0 == 2
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_show_model.cpp:1843: FAILED:
+  CHECK( lane.grip.kind == ParamConnection::Grip::Kind::Held )
+with expansion:
+  0 == 1
+
+===============================================================================
+test cases: 1 | 1 failed
+assertions: 8 | 4 passed | 4 failed
+
+exit=42

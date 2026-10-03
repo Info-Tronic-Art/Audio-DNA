@@ -1,0 +1,40 @@
+Filters: "bf9b B4h*"
+Randomness seeded to: 403070763
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_render_thread_lint is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+bf9b B4h: the stack-move hook is wired to repointInspectorsAfterStackMove,
+          setLayer / setClip forget their scalar bindings first, and the fence
+          hands over on both exits
+  (i) MainComponent's two hook statements
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:394
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:397: FAILED:
+  CHECK( count(mc, "undoService_.onLayerStackMoved =") == 1 )
+with expansion:
+  0 == 1
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:400: FAILED:
+  CHECK( countIn(moved, "repointInspectorsAfterStackMove(") == 1 )
+with expansion:
+  0 == 1
+with message:
+  onLayerStackMoved statement:
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/tests/test_render_thread_lint.cpp:401: FAILED:
+  CHECK( countIn(moved, "getSelectedLayerIndex()") == 1 )
+with expansion:
+  0 == 1
+with message:
+  onLayerStackMoved statement:
+
+===============================================================================
+test cases:  1 |  0 passed | 1 failed
+assertions: 19 | 16 passed | 3 failed
+
+exit=42

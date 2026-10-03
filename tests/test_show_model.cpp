@@ -29,6 +29,7 @@
 #include "ui/LayerStrip.h"
 #include "ui/LayerInspector.h"
 #include "ui/ClipInspector.h"
+#include "ui/InspectorRepoint.h"
 #include "analysis/FeatureSnapshot.h"
 #include "ShowFixture.h"
 #include <cmath>
@@ -1559,14 +1560,13 @@ struct AppInspectors
         clip.setSize(413, 900);
         layer.setSize(300, 900);
     }
-    // MainComponent's hook statement at this head: onLayerStackMoved -> repointLayerInspector (the Layer inspector
-    // by the selected row; nothing re-points the Clip inspector).
-    void wire(UndoService& svc, Composition&)
+    // MainComponent's two hook statements (lint B4h pins them): the production functions of ui/InspectorRepoint.h.
+    // (At FIX-1's first commit, src untouched, this was the old wiring: the Layer inspector alone, by the selected
+    // row -- the RED arm of AS5 / AS6 / AS7.)
+    void wire(UndoService& svc, Composition& c)
     {
-        svc.onLayerStackMoved = [this, &svc] {
-            layer.setLayer(selectedLayerRow >= 0 ? svc.resolveLayer(selectedLayerRow) : nullptr,
-                           selectedLayerRow >= 0 ? EffectScope::layer(-1, selectedLayerRow) : EffectScope::none());
-        };
+        svc.onLayerStackMoved = [this, &c] { repointInspectorsAfterStackMove(clip, layer, c, selectedLayerRow); };
+        svc.onFencedEdit = [this, &c] { clearClipInspectorIfUnowned(clip, c); };
     }
     void timers()
     {
@@ -1675,4 +1675,171 @@ TEST_CASE("AS7 Layer > Clear Clips while the Clip inspector shows a clip of that
     REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died
     ui.timers();
     CHECK(ui.clip.getClip() == nullptr);
+}
+
+// A 5-row deck for Load Deck into a 3-layer show (grows the shared stack by two layers).
+namespace
+{
+Deck wideDeck()
+{
+    Deck wide;
+    wide.name = "Wide";
+    wide.numColumns = 2;
+    wide.initDefault(5);
+    return wide;
+}
+const size_t kOpacity = static_cast<size_t>(LayerScalar::Opacity);
+const size_t kPosX = static_cast<size_t>(LayerScalar::PosX);
+}
+
+TEST_CASE("AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points "
+          "it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    c.layers.shrink_to_fit();
+    REQUIRE(c.layers.capacity() < 5);                                  // growing to 5 layers MUST move the storage
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    ui.timers();
+    const Layer* before = &c.layers[1];
+
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), wideDeck(), "Load Deck");
+    ins.execute();
+    REQUIRE(c.getNumLayers() == 5);
+    REQUIRE(&c.layers[1] != before);                                   // the storage moved
+    CHECK(ui.layer.getLayer() == c.getLayer(1));
+    CHECK(ui.layer.opacityControlForTest().boundConnection() == &c.layers[1].scalarConns[kOpacity]);
+    ui.timers();
+}
+
+TEST_CASE("AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on "
+          "c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    c.layers.shrink_to_fit();
+    REQUIRE(c.layers.capacity() < 5);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    ControlRef opacity;
+    opacity.conn = &c.layers[1].scalarConns[kOpacity];
+    REQUIRE(manualTouchCore(opacity, Hand::Lane, ParamConnection::Grip::Kind::Held, 10.0, c.gripHoldMs));
+    ui.timers();
+    const Layer* before = &c.layers[1];
+
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), wideDeck(), "Load Deck");
+    ins.execute();
+    REQUIRE(c.getNumLayers() == 5);
+    REQUIRE(&c.layers[1] != before);                                   // the storage moved
+    const ParamConnection& moved = c.layers[1].scalarConns[kOpacity];
+    CHECK(moved.grip.kind == ParamConnection::Grip::Kind::Held);       // a move keeps a grip; the re-point did not
+    CHECK(moved.grip.rank == static_cast<uint8_t>(Hand::Lane));        // release it (and wrote nothing to the old one)
+    CHECK(ui.layer.opacityControlForTest().boundConnection() == &moved);
+    ui.timers();
+}
+
+TEST_CASE("AS3 Remove Layer of the inspected last layer empties the Layer inspector; undo re-points it (bf9b fix, "
+          "AM-4)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 4, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 3;                                           // the last layer; the row stays selected
+    ui.layer.setLayer(&c.layers[3], EffectScope::layer(-1, 3));
+    RemoveLayerCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 3, Layer(c.layers[3]), "Remove Layer");
+    rem.execute();
+    REQUIRE(c.getNumLayers() == 3);
+    CHECK(ui.layer.getLayer() == nullptr);                             // row 3 is stale: cleared
+    ui.timers();
+    rem.undo();
+    REQUIRE(c.getNumLayers() == 4);
+    CHECK(ui.layer.getLayer() == c.getLayer(3));
+    ui.timers();
+}
+
+TEST_CASE("AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function "
+          "clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 4, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    Clip* shown = c.decks[0].getClip(3, 0);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 3, 0));
+    ui.timers();
+
+    RemoveLayerCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 3, Layer(c.layers[3]), "Remove Layer");
+    rem.execute();                                                     // erases row 3 of every deck: its clips die
+    REQUIRE(c.getNumLayers() == 3);
+    REQUIRE(c.decks[0].getNumRows() == 3);
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died with its row
+    CHECK(ui.clip.getClip() == nullptr);
+    CHECK(ui.layer.getLayer() == c.getLayer(1));                       // the Layer inspector follows its row
+    ui.timers();
+}
+
+TEST_CASE("AS4 Add Layer and its undo keep the Layer inspector on its row and leave an owned clip in the Clip "
+          "inspector (bf9b fix, AM-4)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    Clip* shown = c.decks[0].getClip(1, 0);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 1, 0));
+    AddLayerCmd add(resolverFor(c), fenced.hook(), "Add Layer");
+    add.execute();
+    REQUIRE(c.getNumLayers() == 4);
+    CHECK(ui.layer.getLayer() == c.getLayer(1));
+    CHECK(ui.clip.getClip() == c.decks[0].getClip(1, 0));              // an owned clip is left alone
+    ui.timers();
+    add.undo();
+    REQUIRE(c.getNumLayers() == 3);
+    CHECK(ui.layer.getLayer() == c.getLayer(1));
+    CHECK(ui.clip.getClip() == c.decks[0].getClip(1, 0));
+    ui.timers();
+}
+
+// N1 (AM-1's stated behaviour change, pinned): a re-point never releases a grip on the connection it leaves.
+TEST_CASE("N1 LayerInspector::setLayer(B) leaves a routine's grip and a touch on A's connections untouched; the "
+          "control is bound to B's (bf9b fix, AM-1)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    LayerInspector inspector;
+    inspector.setSize(300, 900);
+    inspector.setLayer(&c.layers[0], EffectScope::layer(-1, 0));
+    ParamConnection& lane = c.layers[0].scalarConns[kOpacity];
+    ParamConnection& touch = c.layers[0].scalarConns[kPosX];
+    ControlRef laneRef;
+    laneRef.conn = &lane;
+    REQUIRE(manualTouchCore(laneRef, Hand::Lane, ParamConnection::Grip::Kind::Held, 10.0, c.gripHoldMs));
+    touch.gripTouch(12.0);                                             // a Decaying touch (+ / - / right-click)
+
+    inspector.setLayer(&c.layers[1], EffectScope::layer(-1, 1));       // Boris selects another layer
+    CHECK(lane.grip.kind == ParamConnection::Grip::Kind::Held);
+    CHECK(lane.grip.rank == static_cast<uint8_t>(Hand::Lane));
+    CHECK(touch.grip.kind == ParamConnection::Grip::Kind::Decaying);
+    CHECK(touch.grip.lastTouch == 12.0);
+    CHECK(inspector.opacityControlForTest().boundConnection() == &c.layers[1].scalarConns[kOpacity]);
+    inspector.setLayer(nullptr);                                       // and clearing it releases nothing either
+    CHECK(lane.grip.kind == ParamConnection::Grip::Kind::Held);
+    CHECK(inspector.opacityControlForTest().boundConnection() == nullptr);
 }

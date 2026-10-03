@@ -727,6 +727,7 @@ void LayerInspector::mouseDown(const juce::MouseEvent& event)
 
 void LayerInspector::setLayer(Layer* layer, EffectScope scope)
 {
+    forgetScalarBindings();   // FIRST (lint B4h): the layer this leaves may be freed storage -- never read it
     layer_ = layer;
     if (layer)
     {
@@ -738,6 +739,22 @@ void LayerInspector::setLayer(Layer* layer, EffectScope scope)
     bindScalarControls();
     resized();
     repaint();
+}
+
+void LayerInspector::forgetScalarBindings()
+{
+    // Lane bf9b fix (ruling-bf9b-merge AM-1): a re-point never reads the pointer it leaves. syncFromLayer's
+    // setParamValue and bindConnection's implicit unbind both read the OLD connection (the grip), which is freed
+    // memory once a fenced edit moved or shrank Composition::layers. forgetConnection() drops the binding without
+    // touching it; a grip on the connection this leaves is NOT released here (a routine's stays, a touch ends by
+    // itself after gripHoldMs).
+    masterControl_.forgetConnection();
+    opacityControl_.forgetConnection();
+    posXControl_.forgetConnection();
+    posYControl_.forgetConnection();
+    scaleControl_.forgetConnection();
+    rotationControl_.forgetConnection();
+    anchorControl_.forgetConnection();
 }
 
 void LayerInspector::bindScalarControls()

@@ -207,6 +207,7 @@ TEST_CASE("bf9b: box / stack structure writers sit only in audited sites (pinned
         { "ui/ClipInspector.h", 1 },
         { "ui/DeckView.cpp", 2 },           // ClipCell::setClip calls (a UI setter)
         { "ui/InspectorPanel.cpp", 1 },     // ClipInspector::setClip call (a UI setter)
+        { "ui/InspectorRepoint.h", 1 },     // ClipInspector::setClip(nullptr) (a UI setter; fix stage, AM-2)
     };
     const fs::path root(AUDIODNA_SRC_DIR);
     std::map<std::string, int> found;
@@ -357,4 +358,75 @@ TEST_CASE("bf9b B4g: a deck switch is never an Undo step -- the tab click is exa
     REQUIRE(files > 50);   // the walk reached src/
     INFO("SwitchDeckCmd in src/ code lines:" << (hits.empty() ? std::string(" none") : hits));
     CHECK(hits.empty());
+}
+
+// Case 7 (lane bf9b fix stage, s-rta-1003; ruling-bf9b-merge AM-8 = B4h, plus Harmony's adoption item 2). The memory
+// fix has three places no unit test can drive, pinned here as TEXT (code lines, line comments stripped):
+// (i)   MainComponent.cpp holds exactly ONE `undoService_.onLayerStackMoved =` and its statement calls
+//       repointInspectorsAfterStackMove( -- the function cases AS1 / AS2 / AS3 / AS3b / AS4 / AS5 / AS6 drive; and
+//       exactly ONE `undoService_.onFencedEdit =` whose statement calls clearClipInspectorIfUnowned( (AS7).
+// (ii)  the first call in the body of LayerInspector::setLayer and of ClipInspector::setClip is
+//       `forgetScalarBindings();`, and that function forgets all 7 / 6 scalar controls (forgetConnection()).
+// (iii) UndoService.cpp: the hand-over lambda holds the one `onLayerStackMoved(` call and the one `onFencedEdit(`
+//       call, and is called on both exits of withDeckDetached (`handOver();` twice).
+TEST_CASE("bf9b B4h: the stack-move hook is wired to repointInspectorsAfterStackMove, setLayer / setClip forget their "
+          "scalar bindings first, and the fence hands over on both exits", "[lint][bf9b]")
+{
+    auto count = [](const std::vector<std::string>& lines, const std::string& token) {
+        int n = 0;
+        for (const auto& l : lines)
+            for (size_t at = l.find(token); at != std::string::npos; at = l.find(token, at + token.size()))
+                ++n;
+        return n;
+    };
+    auto countIn = [](const std::string& text, const std::string& token) {
+        int n = 0;
+        for (size_t at = text.find(token); at != std::string::npos; at = text.find(token, at + token.size()))
+            ++n;
+        return n;
+    };
+    auto squeezed = [](std::string text) {
+        text.erase(std::remove_if(text.begin(), text.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }),
+                   text.end());
+        return text;
+    };
+
+    SECTION("(i) MainComponent's two hook statements")
+    {
+        const auto mc = codeLines("MainComponent.cpp");
+        CHECK(count(mc, "undoService_.onLayerStackMoved =") == 1);
+        const std::string moved = bodyAfter(mc, "undoService_.onLayerStackMoved =");
+        INFO("onLayerStackMoved statement:\n" << moved);
+        CHECK(countIn(moved, "repointInspectorsAfterStackMove(") == 1);
+        CHECK(countIn(moved, "getSelectedLayerIndex()") == 1);
+        CHECK(count(mc, "undoService_.onFencedEdit =") == 1);
+        const std::string edited = bodyAfter(mc, "undoService_.onFencedEdit =");
+        INFO("onFencedEdit statement:\n" << edited);
+        CHECK(countIn(edited, "clearClipInspectorIfUnowned(") == 1);
+    }
+    SECTION("(ii) setLayer / setClip forget first")
+    {
+        const auto li = codeLines("ui/LayerInspector.cpp");
+        const std::string setLayer = squeezed(bodyAfter(li, "void LayerInspector::setLayer("));
+        INFO("LayerInspector::setLayer body: " << setLayer);
+        CHECK(setLayer.rfind("{forgetScalarBindings();", 0) == 0);
+        CHECK(countIn(bodyAfter(li, "void LayerInspector::forgetScalarBindings("), "forgetConnection()") == 7);
+        const auto ci = codeLines("ui/ClipInspector.cpp");
+        const std::string setClip = squeezed(bodyAfter(ci, "void ClipInspector::setClip("));
+        INFO("ClipInspector::setClip body: " << setClip);
+        CHECK(setClip.rfind("{forgetScalarBindings();", 0) == 0);
+        CHECK(countIn(bodyAfter(ci, "void ClipInspector::forgetScalarBindings("), "forgetConnection()") == 6);
+    }
+    SECTION("(iii) UndoService's hand-over")
+    {
+        const auto us = codeLines("core/UndoService.cpp");
+        const std::string handOver = bodyAfter(us, "auto handOver = [");
+        INFO("hand-over lambda:\n" << handOver);
+        REQUIRE_FALSE(handOver.empty());
+        CHECK(countIn(handOver, "onLayerStackMoved(") == 1);
+        CHECK(count(us, "onLayerStackMoved(") == 1);
+        CHECK(countIn(handOver, "onFencedEdit(") == 1);
+        CHECK(count(us, "onFencedEdit(") == 1);
+        CHECK(count(us, "handOver();") == 2);
+    }
 }

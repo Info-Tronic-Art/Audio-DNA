@@ -61,12 +61,16 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
     // onLayerStackMoved once the fence has ended (a Layer* into the old storage may dangle).
     const Layer* stackBefore = composition_ != nullptr ? composition_->layers.data() : nullptr;
     const size_t stackSizeBefore = composition_ != nullptr ? composition_->layers.size() : 0;
+    // Lane bf9b fix stage (adoption item 2): every other fenced edit goes to onFencedEdit -- it may have destroyed
+    // or moved clips without touching the stack (a Clip* held into a deck row may dangle).
     auto handOver = [this, &reaped, stackBefore, stackSizeBefore] {
         if (!reaped.empty() && onDecksReaped)
             onDecksReaped(std::move(reaped));
         if (composition_ != nullptr && onLayerStackMoved
             && (composition_->layers.data() != stackBefore || composition_->layers.size() != stackSizeBefore))
             onLayerStackMoved();
+        else if (onFencedEdit)
+            onFencedEdit();
     };
 
     if (renderer_ == nullptr)

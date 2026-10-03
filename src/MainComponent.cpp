@@ -15,6 +15,7 @@
 #include "model/AppSettings.h"
 #include "ui/UiPaintCounters.h"
 #include "ui/LoadNotice.h"   // lane bf9b S3.4
+#include "ui/InspectorRepoint.h"   // lane bf9b fix stage: the stack-move / fenced-edit hooks' functions
 #include <algorithm>
 #include <cstdlib>
 
@@ -1811,9 +1812,20 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     if (c.has_value())
                         dispose(*c);
     };
-    // Lane bf9b fix round: a fenced edit that moved or resized the shared layer stack re-points the Layer inspector
-    // (its Layer* would dangle: the inspector's tickModulation reads it every timer tick, whatever tab is shown).
-    undoService_.onLayerStackMoved = [this]() { repointLayerInspector(); };
+    // Lane bf9b fix round + fix stage (ruling-bf9b-merge AM-2): a fenced edit that moved or resized the shared layer
+    // stack clears a Clip inspector whose clip the model no longer owns and re-points the Layer inspector by the
+    // selected layer row (their raw pointers would dangle: the timers read them whatever tab is shown). Every other
+    // fenced edit runs the Clip inspector's check alone (adoption item 2: Clear Clips destroys clips without moving
+    // the stack). Both statements are one-line adapters over ui/InspectorRepoint.h, pinned by lint B4h.
+    undoService_.onLayerStackMoved = [this]() {
+        if (inspectorPanel_ != nullptr && deckView_ != nullptr)
+            repointInspectorsAfterStackMove(inspectorPanel_->getClipInspector(), inspectorPanel_->getLayerInspector(),
+                                            composition_, deckView_->getSelectedLayerIndex());
+    };
+    undoService_.onFencedEdit = [this]() {
+        if (inspectorPanel_ != nullptr)
+            clearClipInspectorIfUnowned(inspectorPanel_->getClipInspector(), composition_);
+    };
 
     // === v2: Binding System & MIDI (P9) ===
     bindingManager_.setActionCallback([this](const Binding& b, float val)
@@ -2163,6 +2175,27 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugLoadNotice = [this] {    // lane bf9b S3.4
         return loadNotice_.isVisible() ? loadNotice_.getText() : juce::String();
     };
+    // Lane bf9b fix stage (ruling-bf9b-merge AM-6): what the inspectors are bound to, for the live ASan row.
+    apiServer_->onDebugInspectedLayer = [this] {
+        const Layer* l = inspectorPanel_ != nullptr ? inspectorPanel_->getLayerInspector().getLayer() : nullptr;
+        return l != nullptr ? juce::String(l->name) : juce::String();
+    };
+    apiServer_->onDebugInspectedClip = [this] {
+        const Clip* c = inspectorPanel_ != nullptr ? inspectorPanel_->getClipInspector().getClip() : nullptr;
+        return c != nullptr ? juce::String(c->name) : juce::String();
+    };
+    apiServer_->onDebugInspectorTab = [this] {
+        if (inspectorPanel_ == nullptr)
+            return juce::String();
+        switch (inspectorPanel_->getActiveTab())
+        {
+            case InspectorPanel::Tab::Clip:        return juce::String("Clip");
+            case InspectorPanel::Tab::Layer:       return juce::String("Layer");
+            case InspectorPanel::Tab::Composition: return juce::String("Composition");
+            case InspectorPanel::Tab::Signal:      return juce::String("Signal");
+        }
+        return juce::String();
+    };
 #if AUDIODNA_TEST_SERVER
     apiServer_->setAudioDevicesProvider([this] { return audioEngine_.deviceStatusVar(); });   // s-rta-0929b btguard, before start()
     // s-rta-0930 bt2: the TEST-ONLY device-policy stand-ins (plug / unplug, a dead input's device stop).
@@ -2434,6 +2467,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         juce::MessageManager::callAsync([safe = juce::Component::SafePointer<MainComponent>(this), layerIdx] {
             if (safe == nullptr || safe->deckView_ == nullptr || safe->inspectorPanel_ == nullptr)
                 return;
+            safe->deckView_->selectLayer(layerIdx);   // the selected ROW too: the stack-move hook re-points by it
             if (safe->deckView_->onLayerSelected)
                 safe->deckView_->onLayerSelected(layerIdx);
             safe->inspectorPanel_->setActiveTab(InspectorPanel::Tab::Layer);
@@ -5453,9 +5487,8 @@ void MainComponent::refreshAfterUndoRedo(bool affectsLayerOrder)
 void MainComponent::repointLayerInspector()
 {
     // By coordinate (the selected layer row): a stale index resolves to nullptr, which setLayer clears null-safely.
-    // Lane bf9b fix round: also UndoService::onLayerStackMoved -- a fenced edit that moved or resized the shared stack
-    // (Load / Duplicate Deck of a wider deck, Add / Remove Layer) would otherwise leave the inspector's Layer* (and its
-    // effect stack's pointer into layerEffects) in freed storage, read by every tickModulation.
+    // refreshAfterUndoRedo's re-point. (After a fenced edit that moved or resized the shared stack the hook does the
+    // same through repointInspectorsAfterStackMove, ui/InspectorRepoint.h.)
     if (inspectorPanel_ == nullptr || deckView_ == nullptr)
         return;
     const int selLayer = deckView_->getSelectedLayerIndex();

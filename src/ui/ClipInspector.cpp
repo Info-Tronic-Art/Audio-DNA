@@ -811,6 +811,7 @@ void ClipInspector::resized()
 
 void ClipInspector::setClip(Clip* clip, EffectScope scope)
 {
+    forgetScalarBindings();   // FIRST (lint B4h): the clip this leaves may be freed storage -- never read it
     clip_ = clip;
     paintKeyValid_ = false;   // s-rta-0928b idlepaint: the next refresh() repaints
     if (clip)
@@ -831,6 +832,19 @@ void ClipInspector::setClip(Clip* clip, EffectScope scope)
     bindScalarControls();
     resized();
     repaint();
+}
+
+void ClipInspector::forgetScalarBindings()
+{
+    // Lane bf9b fix (ruling-bf9b-merge AM-1): see LayerInspector::forgetScalarBindings -- syncFromClip's
+    // setParamValue and bindConnection's implicit unbind read the OLD connection, freed memory once the clip this
+    // leaves died (Remove Layer, Clear Clips, an undone Load Deck, a model swap). A grip on it is not released here.
+    clipOpacityControl_.forgetConnection();
+    posXControl_.forgetConnection();
+    posYControl_.forgetConnection();
+    scaleControl_.forgetConnection();
+    rotationControl_.forgetConnection();
+    anchorControl_.forgetConnection();
 }
 
 void ClipInspector::bindScalarControls()

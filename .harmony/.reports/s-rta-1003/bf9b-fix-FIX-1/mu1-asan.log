@@ -1,0 +1,521 @@
+probe-asan-unit: build test_show_model 2026-10-03 15:07:50
+[ 66%] Built target Catch2
+[ 66%] Built target Catch2WithMain
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/ClipInspector.cpp.o
+[ 66%] Building CXX object tests/CMakeFiles/test_show_model.dir/__/src/ui/LayerInspector.cpp.o
+[ 66%] Linking CXX executable test_show_model
+[100%] Built target test_show_model
+probe-asan-unit: ctest -L asan finds 7 asan cases (expected 7)
+probe-asan-unit: ctest -L asan 2026-10-03 15:07:55
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-asan
+    Start 156: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos)
+1/7 Test #156: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos) ...***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer] 28.82 sec
+=================================================================
+==50530==ERROR: AddressSanitizer: heap-use-after-free on address 0x621000003020 at pc 0x000100741404 bp 0x00016f8e97b0 sp 0x00016f8e97a8
+READ of size 1 at 0x621000003020 thread T0
+    #0 0x000100741400 in UniversalParamControl::setParamValue(float) UniversalParamControl.cpp:349
+    #1 0x00010076cd88 in LayerInspector::syncFromLayer() LayerInspector.cpp:927
+    #2 0x00010076ca94 in LayerInspector::setLayer(Layer*, EffectScope) LayerInspector.cpp:734
+    #3 0x00010062f590 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:82
+    #4 0x00010055d558 in CATCH2_INTERNAL_TEST_83() test_show_model.cpp:1492
+    #5 0x00010142a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x000101429d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x000101408650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x000101407ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x000101407a48 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001013eb628 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+0x621000003020 is located 1824 bytes inside of 4704-byte region [0x621000002900,0x621000003b60)
+freed by thread T0 here:
+    #0 0x000102d03850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x00010057cfb0 in std::__1::vector<Layer, std::__1::allocator<Layer>>::insert(std::__1::__wrap_iter<Layer const*>, Layer&&) vector.h:1218
+    #2 0x0001005746b0 in Composition::insertLayer(int, Layer) Composition.h:484
+    #3 0x0001005b58a8 in InsertDeckCmd::execute()::'lambda'()::operator()() const DeckCommands.h:806
+    #4 0x00010062f410 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:79
+    #5 0x00010055d558 in CATCH2_INTERNAL_TEST_83() test_show_model.cpp:1492
+    #6 0x00010142a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101429d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101408650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000101407ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101407a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x0001013eb628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000102d03428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x0001006074c8 in std::__1::vector<Layer, std::__1::allocator<Layer>>::shrink_to_fit() vector.h:1097
+    #2 0x00010055cc60 in CATCH2_INTERNAL_TEST_83() test_show_model.cpp:1470
+    #3 0x00010142a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #4 0x000101429d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #5 0x000101408650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #6 0x000101407ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #7 0x000101407a48 in Catch::Session::run() catch_session.cpp:269
+    #8 0x0001013eb628 in main catch_main.cpp:36
+    #9 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:349 in UniversalParamControl::setParamValue(float)
+Shadow bytes around the buggy address:
+  0x621000002d80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x621000003000: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003080: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003100: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003180: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==50530==ABORTING
+
+    Start 157: asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4)
+2/7 Test #157: asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4) ...........................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.22 sec
+=================================================================
+==50541==ERROR: AddressSanitizer: heap-use-after-free on address 0x62a0000063a0 at pc 0x000100b5edd0 bp 0x00016f4c03b0 sp 0x00016f4c03a8
+READ of size 1 at 0x62a0000063a0 thread T0
+    #0 0x000100b5edcc in UniversalParamControl::bindConnection(ParamConnection*, LiveValue*) UniversalParamControl.cpp:128
+    #1 0x000100ba56a0 in ClipInspector::bindScalarControls() ClipInspector.cpp:856
+    #2 0x000100ba2758 in ClipInspector::setClip(Clip*, EffectScope) ClipInspector.cpp:831
+    #3 0x000100a2c220 in std::__1::__function::__func<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'(), std::__1::allocator<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'()>, void ()>::operator()() function.h:319
+    #4 0x000100a4f590 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:82
+    #5 0x0001009820d8 in CATCH2_INTERNAL_TEST_88() test_show_model.cpp:1599
+    #6 0x00010184a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101849d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101828650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000101827ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101827a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x00010180b628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+0x62a0000063a0 is located 416 bytes inside of 20448-byte region [0x62a000006200,0x62a00000b1e0)
+freed by thread T0 here:
+    #0 0x000103113850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x0001009a34cc in std::__1::vector<ClipRow, std::__1::allocator<ClipRow>>::__destroy_vector::operator()[abi:ne200100]() vector.h:248
+    #2 0x000100996b68 in std::__1::vector<Deck, std::__1::allocator<Deck>>::clear[abi:ne200100]() vector.h:531
+    #3 0x000100a2cf38 in Composition::operator=(Composition&&) Composition.h:41
+    #4 0x000100a4f410 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:79
+    #5 0x0001009820d8 in CATCH2_INTERNAL_TEST_88() test_show_model.cpp:1599
+    #6 0x00010184a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101849d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101828650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000101827ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101827a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x00010180b628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000103113428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x0001009a0c6c in std::__1::vector<std::__1::optional<Clip>, std::__1::allocator<std::__1::optional<Clip>>>::__append(unsigned long) vector.h:943
+    #2 0x000100995780 in Deck::initDefault(int) Deck.h:35
+    #3 0x000100993d8c in Composition::initDefault() Composition.h:219
+    #4 0x000100991de4 in ShowFixture::makeShow(int, int, int, bool) ShowFixture.h:18
+    #5 0x000100981af8 in CATCH2_INTERNAL_TEST_88() test_show_model.cpp:1586
+    #6 0x00010184a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101849d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101828650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000101827ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101827a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x00010180b628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:128 in UniversalParamControl::bindConnection(ParamConnection*, LiveValue*)
+Shadow bytes around the buggy address:
+  0x62a000006100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x62a000006180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x62a000006200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006300: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x62a000006380: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006400: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006480: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006500: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006580: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000006600: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==50541==ABORTING
+
+    Start 158: asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4)
+3/7 Test #158: asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4) ...........................................................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.22 sec
+=================================================================
+==50543==ERROR: AddressSanitizer: heap-use-after-free on address 0x61f00000b0c8 at pc 0x00010078edd0 bp 0x00016f88ff50 sp 0x00016f88ff48
+READ of size 1 at 0x61f00000b0c8 thread T0
+    #0 0x00010078edcc in UniversalParamControl::bindConnection(ParamConnection*, LiveValue*) UniversalParamControl.cpp:128
+    #1 0x0001007d56a0 in ClipInspector::bindScalarControls() ClipInspector.cpp:856
+    #2 0x0001007d2758 in ClipInspector::setClip(Clip*, EffectScope) ClipInspector.cpp:831
+    #3 0x00010065c220 in std::__1::__function::__func<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'(), std::__1::allocator<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'()>, void ()>::operator()() function.h:319
+    #4 0x00010067f590 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:82
+    #5 0x0001005b4094 in CATCH2_INTERNAL_TEST_90() test_show_model.cpp:1635
+    #6 0x00010147a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101479d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101458650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000101457ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101457a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x00010143b628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+0x61f00000b0c8 is located 2120 bytes inside of 3408-byte region [0x61f00000a880,0x61f00000b5d0)
+freed by thread T0 here:
+    #0 0x000102c93850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x0001005d34cc in std::__1::vector<ClipRow, std::__1::allocator<ClipRow>>::__destroy_vector::operator()[abi:ne200100]() vector.h:248
+    #2 0x0001005e884c in std::__1::vector<Deck, std::__1::allocator<Deck>>::__destruct_at_end[abi:ne200100](Deck*) vector.h:667
+    #3 0x000100607ef0 in InsertDeckCmd::undo()::'lambda'()::operator()() const DeckCommands.h:824
+    #4 0x00010067f410 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:79
+    #5 0x0001005b4094 in CATCH2_INTERNAL_TEST_90() test_show_model.cpp:1635
+    #6 0x00010147a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x000101479d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000101458650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000101457ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000101457a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x00010143b628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000102c93428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x0001005d0c6c in std::__1::vector<std::__1::optional<Clip>, std::__1::allocator<std::__1::optional<Clip>>>::__append(unsigned long) vector.h:943
+    #2 0x0001005c5780 in Deck::initDefault(int) Deck.h:35
+    #3 0x0001005b35d0 in CATCH2_INTERNAL_TEST_90() test_show_model.cpp:1620
+    #4 0x00010147a1cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #5 0x000101479d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #6 0x000101458650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #7 0x000101457ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #8 0x000101457a48 in Catch::Session::run() catch_session.cpp:269
+    #9 0x00010143b628 in main catch_main.cpp:36
+    #10 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:128 in UniversalParamControl::bindConnection(ParamConnection*, LiveValue*)
+Shadow bytes around the buggy address:
+  0x61f00000ae00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000ae80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000af00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000af80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b000: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x61f00000b080: fd fd fd fd fd fd fd fd fd[fd]fd fd fd fd fd fd
+  0x61f00000b100: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b180: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x61f00000b300: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==50543==ABORTING
+
+    Start 159: asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2)
+4/7 Test #159: asan:AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2) .........................................................   Passed    0.10 sec
+    Start 160: asan:AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4)
+5/7 Test #160: asan:AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4) ................................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.21 sec
+=================================================================
+==50546==ERROR: AddressSanitizer: heap-use-after-free on address 0x621000003020 at pc 0x000102809404 bp 0x00016d818970 sp 0x00016d818968
+READ of size 1 at 0x621000003020 thread T0
+    #0 0x000102809400 in UniversalParamControl::setParamValue(float) UniversalParamControl.cpp:349
+    #1 0x000102834d88 in LayerInspector::syncFromLayer() LayerInspector.cpp:927
+    #2 0x000102834a94 in LayerInspector::setLayer(Layer*, EffectScope) LayerInspector.cpp:734
+    #3 0x0001026d42c4 in std::__1::__function::__func<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'(), std::__1::allocator<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'()>, void ()>::operator()() function.h:319
+    #4 0x0001026f7590 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:82
+    #5 0x00010262f8f4 in CATCH2_INTERNAL_TEST_94() test_show_model.cpp:1711
+    #6 0x0001034f21cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x0001034f1d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x0001034d0650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x0001034cfee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x0001034cfa48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x0001034b3628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+0x621000003020 is located 1824 bytes inside of 4704-byte region [0x621000002900,0x621000003b60)
+freed by thread T0 here:
+    #0 0x000104d3b850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x000102644fb0 in std::__1::vector<Layer, std::__1::allocator<Layer>>::insert(std::__1::__wrap_iter<Layer const*>, Layer&&) vector.h:1218
+    #2 0x00010263c6b0 in Composition::insertLayer(int, Layer) Composition.h:484
+    #3 0x00010267d8a8 in InsertDeckCmd::execute()::'lambda'()::operator()() const DeckCommands.h:806
+    #4 0x0001026f7410 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:79
+    #5 0x00010262f8f4 in CATCH2_INTERNAL_TEST_94() test_show_model.cpp:1711
+    #6 0x0001034f21cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x0001034f1d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x0001034d0650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x0001034cfee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x0001034cfa48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x0001034b3628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000104d3b428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x0001026cf4c8 in std::__1::vector<Layer, std::__1::allocator<Layer>>::shrink_to_fit() vector.h:1097
+    #2 0x00010262f07c in CATCH2_INTERNAL_TEST_94() test_show_model.cpp:1700
+    #3 0x0001034f21cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #4 0x0001034f1d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #5 0x0001034d0650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #6 0x0001034cfee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #7 0x0001034cfa48 in Catch::Session::run() catch_session.cpp:269
+    #8 0x0001034b3628 in main catch_main.cpp:36
+    #9 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:349 in UniversalParamControl::setParamValue(float)
+Shadow bytes around the buggy address:
+  0x621000002d80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x621000003000: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003080: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003100: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003180: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==50546==ABORTING
+
+    Start 161: asan:AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4)
+6/7 Test #161: asan:AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4) ..........................................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.22 sec
+=================================================================
+==50548==ERROR: AddressSanitizer: heap-use-after-free on address 0x621000003020 at pc 0x0001028cd404 bp 0x00016d7547b0 sp 0x00016d7547a8
+READ of size 1 at 0x621000003020 thread T0
+    #0 0x0001028cd400 in UniversalParamControl::setParamValue(float) UniversalParamControl.cpp:349
+    #1 0x0001028f8d88 in LayerInspector::syncFromLayer() LayerInspector.cpp:927
+    #2 0x0001028f8a94 in LayerInspector::setLayer(Layer*, EffectScope) LayerInspector.cpp:734
+    #3 0x0001027982c4 in std::__1::__function::__func<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'(), std::__1::allocator<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'()>, void ()>::operator()() function.h:319
+    #4 0x0001027bb590 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:82
+    #5 0x0001026f57ac in CATCH2_INTERNAL_TEST_96() test_show_model.cpp:1738
+    #6 0x0001035b61cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x0001035b5d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000103594650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000103593ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000103593a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x000103577628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+0x621000003020 is located 1824 bytes inside of 4704-byte region [0x621000002900,0x621000003b60)
+freed by thread T0 here:
+    #0 0x000104dbf850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x000102708fb0 in std::__1::vector<Layer, std::__1::allocator<Layer>>::insert(std::__1::__wrap_iter<Layer const*>, Layer&&) vector.h:1218
+    #2 0x0001027006b0 in Composition::insertLayer(int, Layer) Composition.h:484
+    #3 0x0001027418a8 in InsertDeckCmd::execute()::'lambda'()::operator()() const DeckCommands.h:806
+    #4 0x0001027bb410 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:79
+    #5 0x0001026f57ac in CATCH2_INTERNAL_TEST_96() test_show_model.cpp:1738
+    #6 0x0001035b61cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x0001035b5d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x000103594650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x000103593ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x000103593a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x000103577628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x000104dbf428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x0001027934c8 in std::__1::vector<Layer, std::__1::allocator<Layer>>::shrink_to_fit() vector.h:1097
+    #2 0x0001026f4de8 in CATCH2_INTERNAL_TEST_96() test_show_model.cpp:1724
+    #3 0x0001035b61cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #4 0x0001035b5d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #5 0x000103594650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #6 0x000103593ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #7 0x000103593a48 in Catch::Session::run() catch_session.cpp:269
+    #8 0x000103577628 in main catch_main.cpp:36
+    #9 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:349 in UniversalParamControl::setParamValue(float)
+Shadow bytes around the buggy address:
+  0x621000002d80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002e80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000002f80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x621000003000: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003080: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003100: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003180: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x621000003280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==50548==ABORTING
+
+    Start 162: asan:AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1)
+7/7 Test #162: asan:AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1) ...............................................................................***Failed  Error regular expression found in output. Regex=[ERROR: AddressSanitizer]  0.21 sec
+=================================================================
+==50550==ERROR: AddressSanitizer: heap-use-after-free on address 0x62a0000123a0 at pc 0x0001024fadd0 bp 0x00016db23d10 sp 0x00016db23d08
+READ of size 1 at 0x62a0000123a0 thread T0
+    #0 0x0001024fadcc in UniversalParamControl::bindConnection(ParamConnection*, LiveValue*) UniversalParamControl.cpp:128
+    #1 0x0001025416a0 in ClipInspector::bindScalarControls() ClipInspector.cpp:856
+    #2 0x00010253e758 in ClipInspector::setClip(Clip*, EffectScope) ClipInspector.cpp:831
+    #3 0x0001023c8220 in std::__1::__function::__func<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'(), std::__1::allocator<(anonymous namespace)::AppInspectors::wire(UndoService&, Composition&)::'lambda'()>, void ()>::operator()() function.h:319
+    #4 0x0001023eb590 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:82
+    #5 0x000102329098 in CATCH2_INTERNAL_TEST_100() test_show_model.cpp:1785
+    #6 0x0001031e61cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #7 0x0001031e5d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #8 0x0001031c4650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #9 0x0001031c3ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #10 0x0001031c3a48 in Catch::Session::run() catch_session.cpp:269
+    #11 0x0001031a7628 in main catch_main.cpp:36
+    #12 0x0001813b2b94  (<unknown module>)
+
+0x62a0000123a0 is located 416 bytes inside of 20448-byte region [0x62a000012200,0x62a0000171e0)
+freed by thread T0 here:
+    #0 0x00010469f850 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b850)
+    #1 0x000102331230 in Composition::eraseLayer(int) Composition.h:529
+    #2 0x00010237fcf4 in RemoveLayerCmd::execute()::'lambda'()::operator()() const DeckCommands.h:568
+    #3 0x0001023eb410 in UndoService::withDeckDetached(std::__1::function<void ()> const&) UndoService.cpp:79
+    #4 0x000102329098 in CATCH2_INTERNAL_TEST_100() test_show_model.cpp:1785
+    #5 0x0001031e61cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x0001031e5d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x0001031c4650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x0001031c3ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x0001031c3a48 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001031a7628 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+previously allocated by thread T0 here:
+    #0 0x00010469f428 in _Znwm+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x4b428)
+    #1 0x00010233cc6c in std::__1::vector<std::__1::optional<Clip>, std::__1::allocator<std::__1::optional<Clip>>>::__append(unsigned long) vector.h:943
+    #2 0x000102330750 in Composition::insertLayer(int, Layer) Composition.h:491
+    #3 0x00010232dee4 in ShowFixture::makeShow(int, int, int, bool) ShowFixture.h:20
+    #4 0x00010232882c in CATCH2_INTERNAL_TEST_100() test_show_model.cpp:1773
+    #5 0x0001031e61cc in Catch::RunContext::runCurrentTest() catch_run_context.cpp:543
+    #6 0x0001031e5d34 in Catch::RunContext::runTest(Catch::TestCaseHandle const&) catch_run_context.cpp:240
+    #7 0x0001031c4650 in Catch::(anonymous namespace)::TestGroup::execute() catch_session.cpp:117
+    #8 0x0001031c3ee4 in Catch::Session::runInternal() catch_session.cpp:337
+    #9 0x0001031c3a48 in Catch::Session::run() catch_session.cpp:269
+    #10 0x0001031a7628 in main catch_main.cpp:36
+    #11 0x0001813b2b94  (<unknown module>)
+
+SUMMARY: AddressSanitizer: heap-use-after-free UniversalParamControl.cpp:128 in UniversalParamControl::bindConnection(ParamConnection*, LiveValue*)
+Shadow bytes around the buggy address:
+  0x62a000012100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x62a000012180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x62a000012200: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012280: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012300: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x62a000012380: fd fd fd fd[fd]fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012400: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012480: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012500: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012580: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x62a000012600: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==50550==ABORTING
+
+
+14% tests passed, 6 tests failed out of 7
+
+Label Time Summary:
+asan    =  30.01 sec*proc (7 tests)
+
+Total Test time (real) =  30.02 sec
+
+The following tests FAILED:
+	156 - asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer show; Add / Remove Layer; their undos) (Failed) asan
+	157 - asan:AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4) (Failed) asan
+	158 - asan:AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4) (Failed) asan
+	160 - asan:AS1 Load Deck of a 5-row deck with the Layer inspector on layer 1: the production hook function re-points it to the moved layer; the timer calls read no freed Layer (bf9b fix, AM-2 / AM-4) (Failed) asan
+	161 - asan:AS2 AS1 with a routine's grip (Hand::Lane) on layer 1's Opacity: after the move the grip is still held on c.layers[1]'s connection and the control is bound to it (bf9b fix, AM-4) (Failed) asan
+	162 - asan:AS3b Remove Layer while the Clip inspector shows a clip of the LAST layer: the production hook function clears it; its timer calls read no freed Clip (bf9b fix, AM-2 step 1) (Failed) asan
+Errors while running CTest
+probe-asan-unit: ctest rc=8 2026-10-03 15:08:25
+PROBE-ASAN-UNIT RED (6 of 7 failed)
+exit=8

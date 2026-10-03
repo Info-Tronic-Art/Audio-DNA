@@ -211,6 +211,12 @@ public:
     // Lane bf9b S3.4 (TEST-ONLY): /api/debug/ui_text "load_notice" -- the load notice's text ("" when hidden), read in
     // the same message-thread hop as file_label.
     std::function<juce::String()> onDebugLoadNotice;
+    // Lane bf9b fix stage (TEST-ONLY; ruling-bf9b-merge AM-6): /api/debug/ui_text "inspected_layer" / "inspected_clip"
+    // -- the name of the layer / clip the Layer / Clip inspector is bound to ("" when none) -- and "inspector_tab" --
+    // the active inspector tab's name ("Clip", "Layer", "Composition", "Signal"). Same message-thread hop as file_label.
+    std::function<juce::String()> onDebugInspectedLayer;
+    std::function<juce::String()> onDebugInspectedClip;
+    std::function<juce::String()> onDebugInspectorTab;
 #if AUDIODNA_TEST_SERVER
     // s-rta-0929b btguard (TEST-ONLY route, production port, no --test-mode): GET /api/debug/audio_devices answers
     // AudioEngine::deviceStatusVar() (a mutex-guarded copy published on the message thread). Set it BEFORE start().

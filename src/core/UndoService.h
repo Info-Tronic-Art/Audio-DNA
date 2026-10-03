@@ -105,8 +105,17 @@ public:
     // Lane bf9b fix round: called after a fenced edit that MOVED or RESIZED Composition::layers (message thread,
     // after the fence and onDecksReaped). A Layer* held into the shared stack may dangle then -- Load / Duplicate Deck
     // of a deck wider than the show and Add Layer grow the vector, Remove Layer and their undos shrink it.
-    // MainComponent re-points the Layer inspector here (the LayerStrips are re-pointed by the grid rebuild).
+    // MainComponent re-points the inspectors here (repointInspectorsAfterStackMove, ui/InspectorRepoint.h; the
+    // LayerStrips are re-pointed by the grid rebuild).
     std::function<void()> onLayerStackMoved;
+
+    // Lane bf9b fix stage (s-rta-1003, adoption item 2): called after EVERY OTHER fenced edit -- one that left
+    // Composition::layers where it was (message thread, after the fence and onDecksReaped). Such an edit can still
+    // destroy or move clips (Layer > Clear Clips, Deck > Clear Clips, a column add / remove), so a Clip* held into a
+    // deck row may dangle. MainComponent clears a Clip inspector whose clip the model no longer owns
+    // (clearClipInspectorIfUnowned -- the same check onLayerStackMoved's function runs first). So after any fenced
+    // edit exactly one of the two hooks runs.
+    std::function<void()> onFencedEdit;
 
 private:
     Composition* composition_ = nullptr;
