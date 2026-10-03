@@ -691,6 +691,18 @@ void TestServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("render_pending_fired", static_cast<juce::int64>(renderer_.getRenderPendingFired()));
     obj->setProperty("render_autopilot_advances", static_cast<juce::int64>(renderer_.getRenderAutopilotAdvances()));
     obj->setProperty("render_tuple_adopts", static_cast<juce::int64>(renderer_.getRenderTupleAdopts()));
+#ifdef AUDIODNA_HAS_PROJECTM
+    // s-rta-1003 bf9b (ruling-bf10 H2; probe-milkdrop m9b_deck_switch_live): ProjectMSource's cumulative call counts.
+    // A deck switch must move none of them.
+    {
+        const auto& ms = ProjectMSource::callStats();
+        auto* md = new juce::DynamicObject();
+        md->setProperty("load_preset", static_cast<juce::int64>(ms.loadPreset.load(std::memory_order_relaxed)));
+        md->setProperty("resize", static_cast<juce::int64>(ms.resize.load(std::memory_order_relaxed)));
+        md->setProperty("release_gl", static_cast<juce::int64>(ms.releaseGL.load(std::memory_order_relaxed)));
+        obj->setProperty("milkdrop", juce::var(md));
+    }
+#endif
     if (mediaStateProvider_)
         obj->setProperty("media", mediaStateProvider_());   // s-rta-0928b mediaopen: MediaPresence sweeps / flips
     if (loadWitnessProvider_)

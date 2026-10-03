@@ -22,6 +22,9 @@
   "m7": { "size": [1920, 1080], "redOutsidePct": 60.0 },
   "m8": { "size": [1920, 1080] },
   "m9": { "size": [1920, 1080], "transition": 0.3, "medTol": 6 },
+  "m9b": { "_why": "s-rta-1003 bf9b (ruling-bf10 HANDOFF H1-H3; R-S1). Bars reuse uniform / m2 / m5.minDiff / m9.medTol's value -- nothing looser.",
+           "size": [1920, 1080], "decks": 20, "dwell": 0.5, "medTol": 6, "h3Deck": 7, "beatBase": 100, "h3Wait": 3.5,
+           "control": [1280, 720] },
   "m10": { "size": [1920, 1080], "via": [1080, 1920], "tol": 3, "pct": 99.9 },
   "perf": { "warmup": 3.0, "samples": 10, "interval": 0.5 }
 }

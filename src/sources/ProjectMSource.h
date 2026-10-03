@@ -2,6 +2,8 @@
 #include "sources/ProceduralSource.h"
 #include "sources/ProjectMPresetManager.h"
 #include "sources/PresetSelector.h"
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -9,6 +11,16 @@
 #ifdef AUDIODNA_HAS_PROJECTM
 #include <projectM-4/projectM.h>
 #endif
+
+// TEST-ONLY witness (8080 GET /api/state "milkdrop", probe-milkdrop m9b_deck_switch_live): cumulative calls over every
+// ProjectMSource since launch -- loadPreset() calls, resize() calls that changed the size, releaseGL() calls.
+// Relaxed atomics; nothing in the app reads them.
+struct ProjectMCallStats
+{
+    std::atomic<uint32_t> loadPreset { 0 };
+    std::atomic<uint32_t> resize { 0 };
+    std::atomic<uint32_t> releaseGL { 0 };
+};
 
 // ProjectMSource: renders MilkDrop presets via libprojectM-4.
 //
@@ -80,6 +92,8 @@ public:
     std::string getCurrentPresetName() const;
     std::string getCurrentPresetPath() const;
 
+    static const ProjectMCallStats& callStats() { return callStats_; }
+
     ProjectMSource(const ProjectMSource&) = delete;
     ProjectMSource& operator=(const ProjectMSource&) = delete;
 
@@ -129,4 +143,6 @@ private:
     std::string pendingPresetPath_;
     bool hasPendingPreset_ = false;
     bool pendingPresetSmooth_ = false;
+
+    static inline ProjectMCallStats callStats_;
 };

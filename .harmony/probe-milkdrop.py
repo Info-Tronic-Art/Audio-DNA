@@ -8,7 +8,8 @@ the running app on 7070 and on the test-mode TestServer ([::1]:8080), and decode
 
 usage: probe-milkdrop.py <root> <fresh-outdir> [row,row,...]
 rows: m6_panel_bars m1_fill_legacy m2_live_no_stale m3_runtime_change m3_rewarm m4_comp_load_clip m5_preset_switch
-      m7_output_tap m9_deck_roundtrip m10_layer_over m8_context_cycle   (default: all of these, in this order)
+      m7_output_tap m9_deck_roundtrip m10_layer_over m8_context_cycle m9b_deck_switch_live
+                                                                       (default: all of these, in this order)
       perf_md_1080 perf_md_4k perf_md_1080_2l                          (A/B perf rows: only when named)
 env:  MILKDROP_MODE  lane (default): every RED / GUARD row must meet its GREEN bar (G2).
                      pre: calibration on the PRE-LANE app (amendment 2): every RED row must FAIL its GREEN bar AND
@@ -62,6 +63,27 @@ Rows (RED = must fail on the pre-lane app WITH the fingerprint; GUARD = must pas
   m10_layer_over     GUARD: deck 0 L0 = MilkDrop (bf10_solid), L1 = an opaque quadrant PNG (Normal, opacity 1), both
                      triggered: >= 99.9 % of pixels within +-3 per channel of the PNG, after 1.5 s and after a canvas
                      round trip 1920x1080 -> 1080x1920 -> 1920x1080 (1.5 s each).
+  m9b_deck_switch_live  (s-rta-1003 lane bf9b: "decks are boxes of clips; the layers are ONE shared playing stack";
+                     ruling-bf10 "HANDOFF to bf9b" H1-H3, rulings-bf9b-merge R-S1.) RED on a pre-bf9b app (there a deck
+                     switch shows the other deck's layers: nothing triggered -> the plasma fallback). A show of 20
+                     decks at 1920x1080: deck 0 L0 = a MilkDrop clip, triggered; decks 1-19 hold one untriggered clip;
+                     then load_source plasma (R-E13). The walk = 7070 switch_deck 1 .. 19, then 0; 0.5 s on each deck.
+                     Three records, every bar an EXISTING one of this file:
+                     [H1] bf10_solid: one capture per deck is "uniform" at the canvas size with a median within +-6 per
+                          channel of the capture taken on deck 0 before the walk (m9's medTol); then P1 (m2's 3 s
+                          warm): on every deck two captures 0.5 s apart meet m2's bar (G2.2).
+                     [H2] the 8080 /api/state "milkdrop" counters {load_preset, resize, release_gl} (ProjectMSource's
+                          cumulative calls) do not move across either walk, and across [H3]'s switch load_preset moves
+                          by exactly the one injected beat, resize / release_gl by 0; every capture is the canvas size.
+                          CONTROL (the counters are alive), after everything else: load_milkdrop_preset -> load_preset
+                          +1; a canvas round trip -> resize >= 1; gl_context_cycle -> release_gl >= 1. A build without
+                          the counters (any app before this row existed) FAILS [H2] as "no reader".
+                     [H3] deck 0's clip carries a two-preset playlist (bf10_solid, bf10_solid_b; Sequential, every 1
+                          beat = its shortest interval); the beat clock is injected (7070 inject_features
+                          totalBeatCount; test mode runs no analysis). Reference capture on deck 0; switch to deck 7;
+                          ONE beat is injected while deck 7 is shown; after the 2 s soft cut + 1.5 s the capture (deck 7
+                          still shown) is "uniform" and |median - reference| >= 40 in some channel (m5's reader and
+                          bar). The capture after the return to deck 0 is INFO.
   perf_md_1080 / perf_md_4k / perf_md_1080_2l   (A/B, G3; .harmony/probe-milkdrop-ab.py applies the bars): the m4
                      composition with the heavy preset (319) via load_milkdrop_preset, canvas 1920x1080 / 3840x2160
                      (2l: L0 and L1 both MilkDrop clips, 1920x1080); 3 s warm-up; 7070 /api/state 10 x 0.5 s;
@@ -653,6 +675,138 @@ def m9_deck_roundtrip():
            f"C0 {ustr(s0)}; C3 {ustr(s3)}; max |median C3 - C0| = {md:.0f}; live pair: {tl}; C0 {fps}")
 
 
+def md_counters():
+    """8080 /api/state "milkdrop": ProjectMSource's cumulative loadPreset / resize / releaseGL calls (None: no reader)."""
+    m = get(T8, "/api/state").get("milkdrop")
+    return (int(m["load_preset"]), int(m["resize"]), int(m["release_gl"])) if isinstance(m, dict) else None
+
+
+def cdelta(a, b):
+    return None if a is None or b is None else tuple(y - x for x, y in zip(a, b))
+
+
+def m9b_deck_switch_live():
+    cfg = FIX["m9b"]; W, H = cfg["size"]; n = int(cfg["decks"]); dwell = float(cfg["dwell"])
+    row = "m9b_deck_switch_live"
+    holder = solid_png("m9b_holder.png", (64, 64), (0, 0, 255))
+    walk = list(range(1, n)) + [0]
+
+    def show(tag, md_clip):
+        decks = [deck(0, [layer(0, [md_clip])])]
+        decks += [deck(i, [layer(100 + i, [img_clip(100 + i, holder)])]) for i in range(1, n)]
+        if not load_comp(tag, decks, (W, H)):
+            return False
+        trig(0, 0)
+        load_md(SOLID)
+        load_source("plasma")
+        time.sleep(1.5)
+        return True
+
+    # ---- [H1] solid walk, then live walk -------------------------------------------------------------------------
+    if not show("m9b", src_clip(1)):
+        for h in ("H1", "H2", "H3"):
+            record(f"{row}[{h}]", "RED", False, False, "load_composition failed")
+        return
+    sizes_ok = True
+    first = cap("m9b_A_first_deck00")
+    ok0, s0 = uniform(first) if first is not None else (False, None)
+    say(f"      m9b A first (deck 0, before the walk): {ustr(s0) if s0 else 'capture failed'}")
+    kA0 = md_counters()
+    badA = []; otherA = 0
+    for d in walk:
+        switch(d); time.sleep(dwell)
+        f = cap(f"m9b_A_deck{d:02d}")
+        if f is None or s0 is None:
+            badA.append(d); continue
+        ok, st = uniform(f)
+        md = float(np.abs(np.array(st["median"]) - np.array(s0["median"])).max())
+        good = ok and md <= cfg["medTol"] and size_of(f) == (W, H)
+        sizes_ok &= size_of(f) == (W, H)
+        if not good:
+            badA.append(d)
+            otherA += d != 0
+        say(f"      m9b A deck {d:2d}: {'ok ' if good else 'BAD'} PNG {size_of(f)} {ustr(st)} max |median - first| = {md:.0f}")
+    kA1 = md_counters()
+    load_md(P1)
+    load_source("plasma")
+    time.sleep(float(FIX["m2"]["warm"]))
+    kB0 = md_counters()
+    badB = []
+    for d in walk:
+        switch(d); time.sleep(dwell)
+        a, b = pair(f"m9b_B_deck{d:02d}", FIX["m2"]["gap"])
+        if a is None or b is None:
+            badB.append(d); continue
+        ok, txt = tiles(a, b, FIX["m2"])
+        good = ok and size_of(a) == (W, H) and size_of(b) == (W, H)
+        sizes_ok &= size_of(a) == (W, H) and size_of(b) == (W, H)
+        if not good:
+            badB.append(d)
+        say(f"      m9b B deck {d:2d}: {'ok ' if good else 'BAD'} PNG {size_of(a)} {txt}")
+    kB1 = md_counters()
+    h1 = ok0 and not badA and not badB
+    record(f"{row}[H1]", "RED", h1, otherA > 0,
+           f"{n} decks; first (deck 0) {ustr(s0) if s0 else 'capture failed'}; solid walk: {len(walk) - len(badA)}/"
+           f"{len(walk)} captures uniform within +-{cfg['medTol']} of the first (bad decks {badA}); live walk (P1): "
+           f"{len(walk) - len(badB)}/{len(walk)} pairs meet m2's bar (bad decks {badB})")
+
+    # ---- [H3] the playlist advances while another deck is shown --------------------------------------------------
+    base = int(cfg["beatBase"]); other = int(cfg["h3Deck"])
+    post(A, "/api/inject_features", {"bpm": 120.0, "totalBeatCount": base, "beatPhase": 0.0})
+    time.sleep(0.5)
+    pl = src_clip(1)
+    pl.update({"presetPlaylist": [{"path": SOLID, "name": "bf10_solid", "mood": "", "energy": 0.5},
+                                  {"path": SOLID_B, "name": "bf10_solid_b", "mood": "", "energy": 0.5}],
+               "playlistCycleMode": 0, "playlistTrigger": 0, "playlistTriggerBeats": 1, "playlistEnabled": True})
+    h3 = False; kC0 = kC1 = None; d3 = "load_composition failed"
+    if show("m9b_playlist", pl):
+        r0 = cap("m9b_C_ref_deck00")
+        kC0 = md_counters()
+        switch(other); time.sleep(dwell)
+        code, body = post(A, "/api/inject_features", {"bpm": 120.0, "totalBeatCount": base + 1, "beatPhase": 0.0})
+        time.sleep(float(cfg["h3Wait"]))
+        r1 = cap(f"m9b_C_deck{other:02d}_after_beat")
+        kC1 = md_counters()
+        switch(0); time.sleep(1.0)
+        r2 = cap("m9b_C_back_deck00")
+        if r0 is None or r1 is None:
+            d3 = "capture failed"
+        else:
+            okr0, sr0 = uniform(r0); okr1, sr1 = uniform(r1)
+            diff = float(np.abs(np.array(sr1["median"]) - np.array(sr0["median"])).max())
+            sizes_ok &= size_of(r0) == (W, H) and size_of(r1) == (W, H)
+            h3 = okr0 and okr1 and diff >= FIX["m5"]["minDiff"]
+            d3 = (f"inject_features HTTP {code}; reference (deck 0) {ustr(sr0)}; deck {other} shown, one beat injected, "
+                  f"+{cfg['h3Wait']} s: {'uniform' if okr1 else 'NOT uniform'} {ustr(sr1)}; max |median - reference| = "
+                  f"{diff:.0f} (bar >= {FIX['m5']['minDiff']})")
+            if r2 is not None:
+                say(f"      m9b C INFO back on deck 0: {ustr(uniform(r2)[1])}")
+    record(f"{row}[H3]", "RED", h3, not h3, d3)
+
+    # ---- [H2] the counters; control last (gl_context_cycle) ------------------------------------------------------
+    dA, dB, dC = cdelta(kA0, kA1), cdelta(kB0, kB1), cdelta(kC0, kC1)
+    k0 = md_counters()
+    load_md(SOLID); time.sleep(0.5)
+    set_size(*cfg["control"]); set_size(W, H)
+    k1 = md_counters()
+    code, body = post(T8, "/api/debug/gl_context_cycle", {})
+    time.sleep(2.0)
+    k2 = md_counters()
+    dctl = cdelta(k0, k2)
+    if k0 is None:
+        record(f"{row}[H2]", "RED", False, True,
+               f"no reader: this app's 8080 /api/state has no \"milkdrop\" counters (a build from before this row); "
+               f"every capture at the canvas size: {sizes_ok}")
+        return
+    ctl = dctl is not None and cdelta(k0, k1)[0] >= 1 and cdelta(k0, k1)[1] >= 1 and dctl[2] >= 1
+    h2 = dA == (0, 0, 0) and dB == (0, 0, 0) and dC == (1, 0, 0) and ctl and sizes_ok
+    record(f"{row}[H2]", "RED", h2, not h2,
+           f"(load_preset, resize, release_gl) across the solid walk {dA}, the live walk {dB} (bar (0, 0, 0) each), "
+           f"the [H3] switch + one beat {dC} (bar (1, 0, 0)); every capture at the canvas size: {sizes_ok}; CONTROL "
+           f"load_milkdrop_preset + canvas round trip {cdelta(k0, k1)}, + gl_context_cycle (HTTP {code}) {dctl} "
+           f"(bar >= 1 each): {'alive' if ctl else 'DEAD'}")
+
+
 def quadrant_png(size):
     W, H = size
     a = np.zeros((H, W, 4), np.uint8); a[..., 3] = 255
@@ -728,7 +882,7 @@ ROWS = [("m6_panel_bars", m6_panel_bars), ("m1_fill_legacy", m1_fill_legacy), ("
         ("m3_runtime_change", m3_runtime_change), ("m3_rewarm", m3_rewarm), ("m4_comp_load_clip", m4_comp_load_clip),
         ("m5_preset_switch", m5_preset_switch), ("m7_output_tap", m7_output_tap),
         ("m9_deck_roundtrip", m9_deck_roundtrip), ("m10_layer_over", m10_layer_over),
-        ("m8_context_cycle", m8_context_cycle)]
+        ("m8_context_cycle", m8_context_cycle), ("m9b_deck_switch_live", m9b_deck_switch_live)]
 PERF = [("perf_md_1080", lambda: perf("perf_md_1080", (1920, 1080), False)),
         ("perf_md_4k", lambda: perf("perf_md_4k", (3840, 2160), False)),
         ("perf_md_1080_2l", lambda: perf("perf_md_1080_2l", (1920, 1080), True))]

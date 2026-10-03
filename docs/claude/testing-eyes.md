@@ -109,7 +109,11 @@ first frames can be black or a bright flash). After `load_milkdrop_preset`, an e
 legacy fallback -- use `load_source` (e.g. plasma) to de-confound a deck-clip test. Diagnostic: a solid alpha box at
 the picture's bottom-left, the size of the Preview panel (756x840 px in the default layout), means something drew into
 framebuffer 0. Live witness: `.harmony/probe-milkdrop.sh` (rows m1-m10, perf_md_*; `MILKDROP_MODE=pre` for a pre-change
-calibration).
+calibration). 8080 `/api/state.milkdrop` = `{load_preset, resize, release_gl}` (test mode only; read-only): the cumulative
+`ProjectMSource::loadPreset` calls, `resize` calls that changed the size and `releaseGL` calls since launch
+(`ProjectMCallStats`, relaxed atomics, no lock). A deck switch moves none of them: row `m9b_deck_switch_live` walks a
+20-deck show with MilkDrop playing from deck 0 (the picture stays MilkDrop's on every deck, the counters stay put, the
+clip's preset playlist still advances on an injected beat while another deck is shown) -- RED on a pre-bf9b app.
 
 #### Probe rig rules (`.harmony/probe-*.sh`, distinct from Eyes above)
 
