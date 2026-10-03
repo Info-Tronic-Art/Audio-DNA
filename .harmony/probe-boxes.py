@@ -1456,7 +1456,9 @@ def main():
             ensure_arm()
             fn()
     print(f"\nPY {PASS} PASS / {FAIL} FAIL / {BLOCKED} BLOCKED (arm {ARM})", flush=True)
-    sys.exit(0 if FAIL == 0 else 1)
+    # bf9b fix round: a BLOCKED row never ran, so it is never a pass -- exit 0 only when nothing failed AND nothing was
+    # blocked; FAIL == 0 with BLOCKED rows exits 3 (probe-boxes.sh prints "PROBE-BOXES GREEN-WITH-BLOCKED <n>").
+    sys.exit(1 if FAIL else (3 if BLOCKED else 0))
 
 
 if __name__ == "__main__":

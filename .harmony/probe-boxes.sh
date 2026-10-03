@@ -19,6 +19,8 @@
 # only if still running after 30 s; any other Audio-DNA is never touched. REFUSES if Audio-DNA is already running. The
 # caller holds /tmp/audiodna-live.lock (PROBE RIG GATE below).
 #
+# Final line: "PROBE-BOXES GREEN" (exit 0) only when no row FAILED and none was BLOCKED; "PROBE-BOXES GREEN-WITH-BLOCKED
+# <n>" (exit 3) when nothing failed but n rows had no driver; "PROBE-BOXES RED" (exit 1 / 64) otherwise.
 # usage: probe-boxes.sh [out-base] [row,row,...]
 #   BOXES_APP       app bundle to launch (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app)
 #   BOXES_PY        python with PIL+numpy+requests (default: <root>/.venv, else the main checkout's .venv)
@@ -64,7 +66,7 @@ sleep 2
 RC=1
 L7070="$(lsof -nP -iTCP:7070 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1}' | head -1)"
 if [ "$UP" -eq 1 ] && [ "$L7070" != "Audio-DNA" ]; then echo "FAIL  port 7070 is answered by '$L7070', not Audio-DNA"; UP=0; fi
-if [ "$UP" -eq 1 ]; then "$PY" "$ROOT/.harmony/probe-boxes.py" "$ROOT" "$OUT" "$MEDIA" "${2:-}"; RC=$?
+if [ "$UP" -eq 1 ]; then "$PY" "$ROOT/.harmony/probe-boxes.py" "$ROOT" "$OUT" "$MEDIA" "${2:-}" | tee "$OUT/py.log"; RC=${PIPESTATUS[0]}
 else echo "FAIL  app never answered /api/health"; fi
 # Every render_frame this run asked for lands in $OUT. A capture anywhere else means another process drove
 # this app over REST during the run -- its writes invalidate every row, so the run is RED.
@@ -76,5 +78,11 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
 else echo "PASS  no foreign render_frame traffic during the run"; fi
 quit_ours || RC=1
 if ours_running; then echo "FAIL  app still running (pid $OURPID)"; RC=1; else echo "PASS  app terminated"; fi
-echo; [ "$RC" -eq 0 ] && echo "PROBE-BOXES GREEN" || echo "PROBE-BOXES RED"
+# bf9b fix round: GREEN only when no row FAILED and none was BLOCKED (the .py exits 3 for FAIL 0 with BLOCKED rows): a
+# BLOCKED row never ran, so the run is not a full pass and must not print the line a gate list copies as one.
+NBLOCKED="$(sed -n 's/^PY .* \([0-9][0-9]*\) BLOCKED (arm .*/\1/p' "$OUT/py.log" 2>/dev/null | tail -1)"
+echo
+if [ "$RC" -eq 0 ]; then echo "PROBE-BOXES GREEN"
+elif [ "$RC" -eq 3 ]; then echo "PROBE-BOXES GREEN-WITH-BLOCKED ${NBLOCKED:-?} (0 FAIL; the BLOCKED rows did not run -- not a full pass)"
+else echo "PROBE-BOXES RED"; fi
 exit "$RC"
