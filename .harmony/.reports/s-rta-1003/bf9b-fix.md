@@ -1123,3 +1123,154 @@ probe-boxes.py by path and sets sys.argv for it (inappropriate intimacy) -- chea
 fixtures, and the K rows' fixture code is then the perf rows' own.
 
 Ended 2026-10-03 16:52:39.
+
+## STAGE FIX-5 THE LAYER TAB AFTER REMOVE DECK (visual gate B7, problem 5)
+### STATUS
+DONE_WITH_CONCERNS (one deviation from the packet's test wording, two readings taken -- see STOP ITEMS)
+Started 2026-10-03 18:00:59 from 4137f60; ended 18:19:19 (last live batch). Scratch: <scratch>/bf9b-fix-FIX-5/.
+Commits: ef06be2 (tests, RED arm) -> 2bf091c (item A) -> 9ad9e90 (item B) -> 4811c8e (item C docs) -> this report.
+src final = 9ad9e90. Labels: VERIFIED = run or seen here; INFERRED = read, not run.
+
+### Item A -- Remove Deck, its Undo and its Redo leave the Layer tab on its layer (2bf091c)
+CAUSE (VERIFIED by the live RED arm and the source): MainComponent::removeDeck emptied BOTH inspectors before the
+command ("the erased deck's Layer/Clip objects die" -- no longer true for layers), and, when the removed deck was the
+one shown, also called deckView_->selectLayer(-1), so Undo's re-point by the selected row had no row to go to.
+FIX (src/MainComponent.cpp, +4 / -9): removeDeck no longer calls LayerInspector::setLayer(nullptr) and no longer calls
+selectLayer(-1). Nothing new was added: the fence's existing hand-over (UndoService -> onFencedEdit /
+onLayerStackMoved -> ui/InspectorRepoint.h) and refreshAfterUndoRedo's re-point by row already keep the Layer
+inspector right; the storage of Composition::layers is not touched by RemoveDeckCmd.
+The Clip inspector is STILL emptied by removeDeck (unchanged statement). Reason (INFERRED from the source): its effect
+scope is EffectScope::clip(deckIndex, layer, column) and a Remove Deck shifts deck indices (a retired deck has none);
+leaving a clip bound would leave effect-stack edits addressed to the wrong deck. See STOP ITEM 2.
+RED (the 4137f60 src, tests of ef06be2):
+  lint `bf9b B4k`:  test_render_thread_lint.cpp CHECK( body.find("setLayer(") == npos ) / CHECK( body.find("selectLayer(") == npos )
+                    -> `test cases: 1 | 1 failed / assertions: 5 | 3 passed | 2 failed`
+  live (app sha256 87a10c736d13d228, pid 65770, lever ADNA_INSPECT_LAYER=2, <scratch>/bf9b-fix-FIX-5/live-red.txt):
+    FAIL P1a remove_deck 0 (empty, not shown): inspected_layer '' (want 'Layer 3')
+    FAIL P1b remove_deck 1 (Layer 3 plays from it; deck 2 shown): inspected_layer '' (want 'Layer 3')
+    FAIL P1d remove_deck 1 (shown; Layer 3 plays from it): inspected_layer '' (want 'Layer 3')
+    FAIL P1d undo: inspected_layer '' (want 'Layer 3')        <- the shown-deck case: Undo did NOT bring it back
+    F5-LIVE RED RED (10 rows, 4 FAIL)
+GREEN (2bf091c and later):
+  lint B4k `All tests passed (5 assertions in 1 test case)`; AS8 `All tests passed (48 assertions in 1 test case)`
+  live (app sha256 7239a7f2616a516e, pid 70754, live-green.txt): PASS on all ten rows -- P1a remove / undo / redo /
+  undo, P1b remove (retiredDeckCount 1), P1c undo, P1d remove of the SHOWN played deck, its undo, each
+  inspected_layer 'Layer 3'; P2 load_composition -> ''. `F5-LIVE GREEN GREEN (10 rows, 0 FAIL)`
+MUTANT MU11 (the old `inspectorPanel_->getLayerInspector().setLayer(nullptr);` put back in removeDeck; never
+committed; file restored, sha256 96c4834adffdc023 before and after):
+  test_render_thread_lint.cpp:542: FAILED: CHECK( body.find("setLayer(") == std::string::npos ) with expansion: 382
+  `test cases: 1 | 1 failed`
+DEVIATION, said plainly: the packet asked for a headless case in the AS1-AS7 file that is RED at 4137f60 and fails
+under the mutant. Case AS8 is written as asked (the real RemoveDeckCmd through the real fence and the production hook
+functions; an empty deck and a deck the inspected layer plays from; execute / undo / redo; REQUIRE getLayer() is the
+same layer, the Opacity control bound to its connection, the title its name, an owned clip left in the Clip inspector)
+-- but it is GREEN at 4137f60 and blind to MU11: the emptying lived in MainComponent::removeDeck, which no headless
+test reaches, and the hand-over under it was already right. AS8 is a pin of the hand-over, not the tooth. The teeth
+are lint B4k (text; RED at 4137f60, RED under MU11) and the live rows. AS8 is not under the asan label (RemoveDeckCmd
+moves no layer storage; EXPECTED_ASAN_CASES stays 10).
+
+### Item B -- the Layer inspector's no-layer state (9ad9e90)
+VERDICT ON ORIGIN: PRE-EXISTING ON MAIN. `git diff a7491d4..4137f60 -- src/ui/LayerInspector.cpp .h` = +21 lines, all
+forgetScalarBindings / test seam (no visibility, paint or layout line). `git show main:src/ui/LayerInspector.cpp`
+(main = 882beed): setLayer / paint / resized hold the same code -- nameLabel_ and macroPanel_ are never hidden and the
+label's text is never cleared (grep of setVisible on either: 0 hits on main and on the lane). The lane only made the
+state easier to reach.
+FIX (src/ui/LayerInspector.cpp, +5 lines in resized(), which setLayer calls): nameLabel_ and macroPanel_ are visible
+only while a layer is bound. Contained visibility change; nothing else moves.
+Case "LayerInspector with no layer shows no title and no dashboard; a layer brings both back" (test_show_model.cpp;
+two seams in LayerInspector.h: titleTextForTest, dashboardVisibleForTest).
+RED (ef06be2): `:2109 FAILED CHECK_FALSE( inspector.dashboardVisibleForTest() ) !true` / `:2114 FAILED
+CHECK( inspector.titleTextForTest().isEmpty() ) false` / `:2115 FAILED ... !true` -> `assertions: 8 | 5 passed | 3 failed`
+GREEN (9ad9e90): `All tests passed (8 assertions in 1 test case)`. Seen live: capture F5-P2 (below).
+
+### Item C -- docs (4811c8e)
+BORIS_DECISIONS.md, the "Built (bf9b ...)" sentence: a strip shows the clip its layer plays and nothing about a deck
+(Boris, verbatim: "The layer strip does not need to show the deck a clip is playing from."), a tab carries no mark
+(asked whether the dot stays: "drop"), old shows convert with no note on screen. docs/claude/performance-controls.md:
+the Deck tab row paragraph says Remove Deck, its Undo and its Redo leave the Layer tab and the highlight on their
+layer while the Clip tab is emptied; the guards line reads AS0-AS8 and B4a-B4k. No CLAUDE.md line, no pitfall.
+
+### Item D -- gates at head 4811c8e (src 9ad9e90); raw lines (<scratch>/bf9b-fix-FIX-5/*.log, *.txt)
+- `git diff --quiet -- src tests rc 0` (before and after the runs)
+- `cmake --build build-lane -j6 rc 0; objects compiled 1` ; again: `rc 0; objects compiled 0`
+- ctest SERIAL under /tmp/audiodna-ctest.lock, 18:08:28 -> 18:10:35: `100% tests passed, 0 tests failed out of 1252`,
+  `Total Test time (real) = 127.04 sec`. 1252 = 1249 + 3: #1112 `bf9b B4k: MainComponent::removeDeck never empties
+  the Layer inspector nor drops the selected layer row`, #1177 `AS8 Remove Deck -- of an empty deck and of a deck a
+  layer plays from -- ...`, #1178 `LayerInspector with no layer shows no title and no dashboard; a layer brings both
+  back (bf9b fix stage 5)`
+- probe-tsan-unit rc 0: `probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)` / `100% tests passed, 0
+  tests failed out of 5`; "WARNING: ThreadSanitizer" lines: 0
+- probe-asan-unit rc 0: `PROBE-ASAN-UNIT GREEN (10 cases, 0 reports)`
+- ASan app rebuilt: `cmake --build build-asan-app --target AudioDNA -j6 rc 0; objects compiled 4`; binary sha256
+  2e15e14a2f143461 (was 62028411683ee8a8)
+- `PROBE-ASAN-LIVE GREEN (7 steps, 0 INVALID, 0 "ERROR: AddressSanitizer", app alive at the end)` rc=0, first run
+  (18:12:24-18:12:52), L0-L6 PASS; no re-run was needed
+- probe-boxes on the lane app (sha256 7239a7f2616a516e, full run, BOXES_OLD_TAKE = FIX-4's recorded take):
+  `PROBE-BOXES BLOCKED 1 [k5_queue_link_on] (0 FAIL; 1 pre-registered bar(s) did not run -- not a pass)`
+  rc=3
+  `PY 63 PASS / 0 FAIL / 1 BLOCKED (arm BF9B)`, `PASS  rows run 25 == EXPECTED_ROWS 25 (registered 25)`
+- probe-ui-files-rename (lane app): `54 PASS / 0 FAIL`, rc 0
+- After every live batch (>= 16 s after the quit): `adna after: []`, `audio-dna windows 0, Output-named 0`,
+  `UserNotificationCenter windows (OptionAll): 0`; lock released each time. No .venv symlink was created.
+NOT RUN in this stage: probe-milkdrop (H1), the perf rows (B6), MAIN0 arms -- the packet did not list them.
+
+### Item E -- captures (main checkout, .harmony/.reports/s-rta-1003/bf9b-shots/, prefix F5-; manifest section "F5")
+28 files: F5-{P0-before, P1a-after-remove-empty-deck, P1b-after-remove-played-deck, P1c-after-undo,
+P1d-after-remove-shown-played-deck, P1e-after-undo-of-shown, P2-layer-tab-no-layer}-{full,inspector,strip,tabs}.png.
+I decoded and looked at all seven states (inspector + strip + tabs on one sheet, <scratch>/bf9b-fix-FIX-5/sheet.png;
+P1a / P2 inspector and P1b / P1d / P2 full at size):
+- P1a, P1b, P1c, P1d, P1e: the Layer tab is whole -- title "Layer 3", eight knobs with values, link names and Manual
+  buttons, Autopilot / Layer / Video sections; identical to P0. The Layer 3 name box keeps its cyan highlight. The
+  removed deck's tab is gone (P1a "Deck 1"; P1b / P1d "deck1") and back after the undo. In P1b / P1d the strips and
+  the Preview still show D1 C2 / D1 C1 (the clips keep playing from the retired deck).
+- P2: an empty dark panel with "No layer selected" -- no title, no knobs; no strip highlighted; 20 tabs.
+
+### STOP ITEMS FOR HARMONY (FIX-5)
+1. The headless case AS8 has no RED arm (see Item A, DEVIATION). If a headless tooth is required, removeDeck's
+   inspector step would have to move into a header function the app calls -- a new seam I did not add (the fix is a
+   deletion; a function that does nothing for the layer has nothing to test).
+2. READING TAKEN, Clip tab: "keeps the existing rule (owned, or clear)" was read as "removeDeck's Clip statement stays
+   as it is" = the Clip tab is emptied by every Remove Deck, as at 4137f60 and as ruling AM-1 left it. The other
+   reading (drop that statement too and let the hook's owned-or-clear decide) would keep a clip of another deck in
+   the Clip tab -- with an effect scope whose deck index the removal may have shifted. Not built; Harmony's call.
+3. ADDED BEYOND THE LETTER: the selectLayer(-1) removal (the shown-deck case). Without it the Layer tab stayed bound
+   but the highlight went and Undo emptied the tab -- live RED row "P1d undo". It is the same fault by the packet's
+   own words ("same layer, same highlight"; "and its Undo").
+4. The ruling (72 KB) was read in its amendments AM-1..AM-6 and its RR section, not end to end; the adoption section
+   and the three r2 reviews were not re-read: this stage's scope is the packet's items A-E and none of them reopens
+   an amendment. AM-1's sentence "removeDeck's pre-mutation nulling is unchanged" is now true for the Clip half only.
+
+### FOUND, NOT FIXED (FIX-5)
+- After POST /api/load_composition the toolbar's second row reads "Loaded: bf9b-check" (capture F5-P2-...-full.png).
+  It is a text that says what happened (Boris 2026-10-03: "We don't need any text indicating what has happened or
+  what has happened."). Pre-existing, outside this stage; whether that line falls under his sentence is Harmony's.
+- The Layer inspector with no layer reports a preferred height of 100 px; anything laid out below that (autopilot
+  rows etc.) is hidden only because the panel is that short (INFERRED from getPreferredHeight / resized; the capture
+  shows nothing below the words).
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- MainComponent::removeDeck / refreshUiAfterModelSwap statements are not reachable headless: a fault there needs a
+  text lint (test_render_thread_lint `bodyAfter`) plus a live ui_text row; a case through UndoService's hand-over
+  passes whatever those functions do. | discovered: tests/test_show_model.cpp AS8, src/MainComponent.cpp
+- The Clip inspector's effect scope carries a deck INDEX (EffectScope::clip): any command that shifts deck indices
+  must empty or re-scope it. | discovered: src/MainComponent.cpp removeDeck, src/core/EffectScope.h
+
+INBOX-RECHECK: none (no message channel in this workflow run)
+
+### PACKET QUALITY (FIX-5)
+- Clarity: CLEAR, two HAD_TO_INFER (stop items 1 and 2).
+- Missing context: that the emptying sits in MainComponent::removeDeck (not in the hand-over), so the headless RED
+  the packet asks for cannot exist; that removeDeck also drops the selected row for the shown deck.
+- Unused context: the three r2 reviews, the plan body, bf9b-merge.md, rulings-bf9b-merge(in).md.
+- Self-brief files: the lane report's hand-over, the shots manifest, capture P1, ruling AM-1..AM-6 -- useful, none
+  stale except the packet's "ASan sha 62028411683ee8a8" against FIX-4's report "9c635c97726e0532" (the binary on disk
+  was 62028411683ee8a8 before this stage's rebuild). No DEPARTMENT / KNOWLEDGE_TOOLS block: no knowledge tools --
+  grep-only; nothing judged dead on "no callers". pulse.json not read (the rig gives this worktree to this lane).
+
+### SLIM CHECK (FIX-5)
+src: MainComponent.cpp +4 / -9, LayerInspector.cpp +5, LayerInspector.h +3 (two test seams). tests: +2 cases in
+test_show_model.cpp, +1 lint case. Docs: one sentence each in two files. No probe changed. What I would cut if
+asked: AS8 (no RED arm). Smell named: removeDeck and refreshUiAfterModelSwap each hand-roll their inspector steps
+beside the hook functions (duplicated policy in two places).
+
+Ended 2026-10-03 18:19:19 (last gate); report written after.
