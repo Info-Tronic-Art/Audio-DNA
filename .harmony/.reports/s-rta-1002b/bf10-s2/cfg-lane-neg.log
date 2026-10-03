@@ -1,0 +1,32 @@
+-- The C compiler identification is AppleClang 17.0.0.17000603
+-- The CXX compiler identification is AppleClang 17.0.0.17000603
+-- The OBJC compiler identification is AppleClang 17.0.0.17000603
+-- The OBJCXX compiler identification is AppleClang 17.0.0.17000603
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting OBJC compiler ABI info
+-- Detecting OBJC compiler ABI info - done
+-- Check for working OBJC compiler: /usr/bin/clang - skipped
+-- Detecting OBJCXX compiler ABI info
+-- Detecting OBJCXX compiler ABI info - done
+-- Check for working OBJCXX compiler: /usr/bin/clang++ - skipped
+-- Found Aubio: /opt/homebrew/lib/libaubio.dylib
+-- Found FFmpeg: /opt/homebrew/include
+-- Performing Test AUDIODNA_PROJECTM_HAS_RENDER_FBO
+-- Performing Test AUDIODNA_PROJECTM_HAS_RENDER_FBO - Failed
+CMake Error at CMakeLists.txt:33 (message):
+  libprojectM at /Users/boriskarpman/.local/lib/cmake/projectM4 lacks
+  projectm_opengl_render_frame_fbo (BF10: MilkDrop must render into its
+  canvas-sized framebuffer).  Run cmake/projectm/build-projectm.sh, then
+  re-configure.
+
+
+-- Configuring incomplete, errors occurred!

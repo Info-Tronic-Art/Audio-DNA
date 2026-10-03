@@ -1,0 +1,20 @@
+target driver: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-fix/old/.harmony/probe-vupload-ab.sh
+   | 21:30:02 [r1 A] start: load avg { 4.82 4.33 4.39 }
+   | 21:30:08 [r1 A] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.59 4.29 4.38 }, DATA stub attempt=1
+   | TAINTED (compiler) -- re-run
+   | 21:30:08 [r1 A] start: load avg { 4.59 4.29 4.38 }
+   | 21:30:13 [r1 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.94 4.37 4.41 }, DATA stub attempt=2
+   | 21:30:13 [r1 B] start: load avg { 4.94 4.37 4.41 }
+   | 21:30:19 [r1 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.87 4.36 4.40 }, DATA stub attempt=3
+   | 21:30:19 rounds 1 x 2 arms done (tainted 1)
+   attempt 1 (r1 A) .compilers lines so far: 3, compiler samples: 2
+   attempt 2 (r1 A) .compilers lines so far: 0, compiler samples: 0
+   attempt 3: not an r1 A launch
+   ok    driver exit 0 (got 0)
+   FAIL  the re-run (attempt 2) has a non-empty .compilers file with the compiler sampled
+   FAIL  r1 A: attempt 1 AND its re-run both report 'compilers seen 1'
+   FAIL  the run ends with 'tainted 2'
+   FAIL  ab.tsv keeps r1 A from attempt 3 (the first launch with no compiler)
+   FAIL  ab.tsv keeps r1 B from attempt 4
+
+SELFTEST 1 ok / 5 FAIL

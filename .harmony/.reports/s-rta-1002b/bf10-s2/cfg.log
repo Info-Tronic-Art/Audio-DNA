@@ -1,0 +1,9 @@
+configure start 2026-10-02 18:58:32
+-- Performing Test AUDIODNA_PROJECTM_HAS_RENDER_FBO
+-- Performing Test AUDIODNA_PROJECTM_HAS_RENDER_FBO - Success
+-- libprojectM: /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/cmake/projectM4 (render_frame_fbo: yes)
+configure exit=0 2026-10-02 18:58:34
+38:AUDIODNA_PROJECTM_PREFIX:PATH=/Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1
+876:projectM4_DIR:PATH=/Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/cmake/projectM4
+883://Test AUDIODNA_PROJECTM_HAS_RENDER_FBO
+884:AUDIODNA_PROJECTM_HAS_RENDER_FBO:INTERNAL=1

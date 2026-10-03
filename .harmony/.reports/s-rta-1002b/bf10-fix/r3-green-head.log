@@ -1,0 +1,23 @@
+target driver: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/.harmony/probe-vupload-ab.sh
+   | 21:34:09 [r1 A] start: load avg { 17.53 8.09 5.82 }
+   | 21:34:15 [r1 A] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 16.21 7.97 5.79 }, DATA stub attempt=1
+   | TAINTED (compiler) -- re-run
+   | 21:34:15 [r1 A] start: load avg { 16.21 7.97 5.79 }
+   | 21:34:21 [r1 A] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 14.91 7.97 5.82 }, DATA stub attempt=2
+   | TAINTED (compiler) -- re-run
+   | 21:34:21 [r1 A] start: load avg { 14.91 7.97 5.82 }
+   | 21:34:27 [r1 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 13.95 7.89 5.80 }, DATA stub attempt=3
+   | 21:34:27 [r1 B] start: load avg { 13.95 7.89 5.80 }
+   | 21:34:33 [r1 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 13.88 7.97 5.84 }, DATA stub attempt=4
+   | 21:34:33 rounds 1 x 2 arms done (tainted 2)
+   attempt 1 (r1 A) .compilers lines so far: 3, compiler samples: 2
+   attempt 2 (r1 A) .compilers lines so far: 3, compiler samples: 2
+   attempt 3 (r1 A) .compilers lines so far: 3, compiler samples: 0
+   ok    driver exit 0 (got 0)
+   ok    the re-run (attempt 2) has a non-empty .compilers file with the compiler sampled
+   ok    r1 A: attempt 1 AND its re-run both report 'compilers seen 1'
+   ok    the run ends with 'tainted 2'
+   ok    ab.tsv keeps r1 A from attempt 3 (the first launch with no compiler)
+   ok    ab.tsv keeps r1 B from attempt 4
+
+SELFTEST 6 ok / 0 FAIL

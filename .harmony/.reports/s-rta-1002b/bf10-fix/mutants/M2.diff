@@ -1,0 +1,4 @@
+65c65
+<   if [ -z "$WANTPID" ] || [ "$RUNPID" != "$WANTPID" ] || [ "$L8080" != "$RUNPID" ] \
+---
+>   if [ -z "$WANTPID" ] || [ "$L8080" != "$RUNPID" ] \

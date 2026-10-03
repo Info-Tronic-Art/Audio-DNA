@@ -1,0 +1,34 @@
+Fri Oct  2 18:13:52 EDT 2026
+=== libprobe_stock_plain plain bf10_solid 320x180 90 frames
+dyld loaded: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/libprobe_stock_plain
+dyld loaded: /Users/boriskarpman/.local/lib/libprojectM-4.4.1.1.dylib
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+GL_RENDERER=Apple M1 Pro
+mode=plain preset=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_solid.milk fbo=1 status_complete=1
+draw binding after last call=0 (ours=1)
+FINAL size=320x180 median=(0,0,0,255) medmax=0 within6=100.000% alpha255=100.000% lit=0.000% mean=(0.00,0.00,0.00)
+pixels in OUR fbo after 90 calls: 0 / 57600 non-black
+ERRORS calls=90 0x506 x90
+RESULT OK
+=== libprobe_fbo1 plain bf10_solid 320x180 90 frames
+dyld loaded: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/libprobe_fbo1
+dyld loaded: /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/libprojectM-4.4.1.1.dylib
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+GL_RENDERER=Apple M1 Pro
+mode=plain preset=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_solid.milk fbo=1 status_complete=1
+draw binding after last call=0 (ours=1)
+FINAL size=320x180 median=(0,0,0,255) medmax=0 within6=100.000% alpha255=100.000% lit=0.000% mean=(0.00,0.00,0.00)
+pixels in OUR fbo after 90 calls: 0 / 57600 non-black
+ERRORS calls=90 0x506 x90
+RESULT OK
+=== libprobe_fbo1 fbo bf10_solid 320x180 90 frames
+dyld loaded: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/libprobe_fbo1
+dyld loaded: /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/libprojectM-4.4.1.1.dylib
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+GL_RENDERER=Apple M1 Pro
+mode=fbo preset=/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/fixtures/milkdrop/bf10_solid.milk fbo=1 status_complete=1
+draw binding after last call=1 (ours=1)
+FINAL size=320x180 median=(204,51,26,255) medmax=204 within6=100.000% alpha255=100.000% lit=100.000% mean=(204.00,51.00,26.00)
+pixels in OUR fbo after 90 calls: 57600 / 57600 non-black
+ERRORS calls=90 none
+RESULT OK

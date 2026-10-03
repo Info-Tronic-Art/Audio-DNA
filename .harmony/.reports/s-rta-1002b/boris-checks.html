@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Audio-DNA — your answers needed + checks (Oct 2, afternoon)</title>
+<style>body{font:16px/1.5 -apple-system,system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1d1d1f;background:#fafafa}
+h1{font-size:22px}h2{font-size:17px;margin-top:28px}h3{font-size:15px;margin:22px 0 4px;color:#333}li{margin:6px 0}.def{color:#555}.note{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 16px}
+code{background:#eee;padding:1px 4px;border-radius:4px}
+@media (prefers-color-scheme: dark){body{color:#e8e8ea;background:#1c1c1e}h3{color:#d0d0d4}.def{color:#a8a8ae}.note{background:#2a2a2d;border-color:#3d3d41}code{background:#38383b}}</style></head><body>
+<h1>Audio-DNA — your answers needed + checks (Oct 2, afternoon)</h1>
+<div class="note">
+<p><b>Nothing waits on you.</b> Every question below has a default, and the work goes ahead with it. Reply with just the question numbers you want changed (for example “11: round dial, 31: yes”). There are 39 questions; no answer means all the defaults stand.</p>
+</div>
+
+<h2>1. Already decided from your answers</h2>
+<ul>
+<li><b>Record to clip.</b> You said: “whole ouput of select layer, stop start and snap to bar, next empty cell on top layer no need to select it, video files yes.” So: record the whole output or the selected layer, press to start and press to stop (both land on the bar), and the clip drops into the next empty cell of the top layer by itself, saved as a video file.</li>
+<li><b>Sync control.</b> You said: “-500 to +500 in 1 ms steps plus can enter in the amount then click plus or minus to fine tune.” One setting per venue, saved by name. Early only moves the beat-locked motion, not the loudness-driven motion; you said early is rarely needed, “just a control we have in case.”</li>
+<li><b>Envelope editor.</b> You said: “default is good, bigger envelope.” Draggable points, bendable segments, bar lengths; a bigger editor inside the app now, its own window later once the layout is final (your suggestion). Envelopes from a sample: “all defaults good.”</li>
+<li><b>Timeline knobs.</b> You said: “when I set any clip parameter to timeline it should be locked to the clips playhead, same with layer, not necessary for composition controls.”</li>
+<li><b>Decks.</b> You said: “treat the decks as just a box of clips and I can switch between 20 decks looking for a clip and the playing will not be affected.” The layers are what plays. The Persistent layer feature is gone (your request); Ignore Column stays.</li>
+<li><b>Taken as proposed, no objection from you:</b> codec info + Show in Finder, bars wherever there are beats, double-click to rename a deck.</li>
+</ul>
+
+<h2>2. Questions — each has a default; nothing waits on you</h2>
+<h3>Decks (deck change)</h3>
+<p class="def">Decks are now just boxes of clips; the layers hold what plays. Four edge cases:</p>
+<ol start="1">
+<li>If you delete a deck while one of its clips is playing, should that clip keep playing until you fire something else on that layer? <b>Default: yes, it keeps playing.</b></li>
+<li>If you load a deck that has more rows than your show has layers, should the show add the missing (empty) layers so you can see all of that deck's clips? <b>Default: yes.</b></li>
+<li>Clicking a deck tab used to be an Undo step (Cmd+Z flipped you back a deck). Now that switching decks never changes the picture, Undo skips deck clicks, so Cmd+Z always undoes your last real change, like a clip you fired. OK? <b>Default: Undo skips deck clicks.</b></li>
+<li>If you fire a column on a deck where some rows of that column are empty, should those layers go empty (as today) or keep what they are playing? <b>Default: go empty, as today (Ignore Column still keeps a layer).</b></li>
+</ol>
+<p class="def">Also put to you earlier today, still standing unless you object: layer settings (effects, opacity, blend, transition, autopilot) belong to the layer and are shared by every deck; every deck shows the show's layer rows; the deck-to-deck fade goes away (a deck switch has nothing to fade); the layer strip shows each layer's playing clip and the deck it came from.</p>
+<h3>Record to clip</h3>
+<ol start="5">
+<li>When a recording lands in the top row, should it go in the first empty spot from the left, or always after the last clip in that row? <b>Default: the first empty spot from the left.</b></li>
+<li>When a recording is done, should it just appear in its spot ready for you to play, or start playing by itself right away? <b>Default: appear, ready to play.</b></li>
+<li>If you forget to end a recording, when should it end by itself? <b>Default: after 64 bars (about 2 minutes at 128 BPM; up to about 0.8 GB at 1080p).</b></li>
+<li>If you record one layer that has see-through parts (like a logo), should the recording stay see-through? <b>Default: no. See-through parts become black (smaller files, lighter playback).</b></li>
+<li>When you play a recording later, should it wait for the next bar so it lines up the way it was recorded, or start the moment you press it like your other clips? <b>Default: like your other clips (your Quantize setting decides).</b></li>
+<li>If you switch decks while a recording is running, which deck should the finished clip go into? <b>Default: the deck you were on when you pressed REC (its top row, first empty spot).</b></li>
+</ol>
+<h3>Sync control</h3>
+<ol start="11">
+<li>You said “dial”. Your earlier rule says no round knobs, and every control is a long bar with a number box and - / + buttons. Want a round dial instead? <b>Default: that bar: type the number, click - or + for 1 ms, or drag the bar.</b></li>
+<li>When you open the app it comes back on the venue you used last, and a small “SYNC +42” sits next to the BPM whenever the dial isn't at 0, so a leftover setting from the last room is easy to spot. Prefer the app to start at 0 every time? <b>Default: yes, it comes back on the last venue (with the small SYNC note).</b></li>
+<li>Big changes (switching venue, typing a new number) glide over up to 2 seconds instead of jumping, so beat-synced motion runs a little slower or faster while it settles. - / + clicks and dragging always glide (one click settles in a few thousandths of a second). Prefer typed numbers and venue switches to jump instantly? <b>Default: glide.</b></li>
+<li>Where should it live? <b>Default: in the empty “BPM” panel right next to the preview (bottom row). The other choice is a small button in the top bar that opens it.</b></li>
+<li>A new venue starts from the setting you have right now (tune first, then save it under a name). Or should a new venue always start at 0? <b>Default: yes, it starts from the setting you have right now.</b></li>
+<li>With the dial set LATER (say +100), when you press Tap or Resync, should the beat land exactly where you pressed (right if you hear the same sound as the crowd), or 100 ms after you pressed, together with the music-driven flashes (right if you hear the music before the crowd does: headphones, or a booth speaker fed straight from the mixer)? <b>Default: where you pressed.</b></li>
+</ol>
+<p class="def">Good to know, no answer needed: with the dial EARLIER and BPM on Auto, beat-synced motion pauses briefly whenever the beat tracker corrects itself (usually a few thousandths of a second, up to one beat if it misses a beat). Video recordings carry the picture exactly as shown, the dial's delay included.</p>
+<h3>Envelopes</h3>
+<p class="def">You asked what the envelope editor's own window would look like. It would be the same editor in its own window. On one screen it floats over the app and covers whatever is under it, so you would keep moving it around; on a second screen it could sit beside the app. That is why the bigger view is being built inside the app now and the window comes later, once the layout is final. Putting it in a window later is a small job.</p>
+<ol start="17">
+<li>The bigger envelope view opens over the clip grid. The preview, inspector and file browser stay visible, and your keys and MIDI still fire clips; CLOSE or Esc brings the grid back. It is much wider than the small one and a bit taller. Is that the “bigger” you want? <b>Default: yes.</b></li>
+<li>The bigger view shows a moving line where the envelope is right now. The small view cannot (it would make the whole app redraw all the time). OK? <b>Default: yes (built).</b></li>
+<li>“Play once”: when you press START, should it start on the next bar or right away? <b>Default: on the next bar.</b></li>
+<li>Do you want to fire START from a pad or a key while performing? <b>Default: not now (a later job).</b></li>
+<li>Long samples: squeeze the whole sample into the envelope length (up to 10 minutes), or pick a section? <b>Default: the whole sample.</b></li>
+<li>If you save a deck and load it into a different set, should its envelopes come along? <b>Default: not in this round. Envelopes are saved with the set.</b></li>
+<li>When you load a sample, the app reads the whole file once, silently, and turns its loudness into an envelope stretched to the length you set; after that the envelope plays with the beat. It does not listen to the music playing at that moment. Is that what you meant by “extract the envelope live”? <b>Default: yes, as built.</b></li>
+</ol>
+<h3>Timeline knobs</h3>
+<ol start="24">
+<li>A still picture or a generated source (like MilkDrop) has no play position, so the Clip tab shows no timeline bar for it. If you set one of its knobs to Timeline, should (a) Timeline be greyed out there with “video clips only”, and the knob stays where you set it, or (b) the knob sweep once from low to high over a number of bars you set, starting when the clip starts? <b>Default: (a), greyed out, the knob stays where you set it.</b></li>
+<li>After this fix, “Clip Position” and “Timeline” do the same thing: the knob goes from its low end to its high end as the clip plays. Once you can draw the Timeline curve, Timeline follows your drawing and Clip Position stays a straight line. Keep both, or remove Clip Position? <b>Default: keep both.</b></li>
+<li>Should the Master Signal fader also turn down knobs that follow a clip's Timeline? (a) Yes, Timeline counts as a signal. (b) No, a Timeline knob always follows its clip fully. <b>Default: (a), yes (how it works today).</b></li>
+</ol>
+<h3>Bars everywhere</h3>
+<ol start="27">
+<li>The top bar shows the beat as a 4-part wheel, and the bar as “Bar 1, Bar 2, Bar 3, Bar 4, Bar 1…”. Is that the 1-2-3-4-1 count you asked for on 26 September? Or do you also want the beat as a number, like “Bar 3 · Beat 2”? <b>Default: keep it as it is.</b></li>
+<li>The Quantize menu in the top bar will read Off / Next Beat / Next Bar. Clips and routines can already wait 2 or 4 bars. Should the top-bar Quantize also offer “Next 2 Bars” and “Next 4 Bars”? A 4-bar wait can be up to 8 seconds at 120 BPM, and a waiting clip would also blink until it starts. <b>Default: not now.</b></li>
+<li>Autopilot “every 4 bars” counts from the moment the clip started. If a clip starts mid-bar, its changes land mid-bar too. Should autopilot changes always wait for the start of a bar? <b>Default: leave it as is (clips fired with Bar snap already start on the bar).</b></li>
+<li>Lengths that are whole bars will read “1 Bar”, “2 Bars”, “4 Bars”. Do you want just that, or both numbers, like “16 Beats (4 Bars)”? <b>Default: just bars.</b></li>
+<li>In the MilkDrop jukebox, “30 sec” and “60 sec” were never seconds: they changed presets every 32 and 64 bars. They will now read “32 Bars” and “64 Bars”. Do you also want choices in real seconds? <b>Default: no, bars only.</b></li>
+</ol>
+<p class="def">Not asked, just told: the clip panel's “Beats/Duration” row never did anything, and it is removed. When you type a length, a plain number uses the unit shown (“4” next to “2 Bars” means 4 bars); typing “6 beats” or “2 bars” always works. The time signature stays 4/4.</p>
+<h3>Codec info + deck rename</h3>
+<ol start="32">
+<li>Double-clicking a deck tab renames it. If you double-click a tab that is NOT the deck on screen, should it (a) just show that deck, so you double-click it again to rename it (and a quick double-click while you flick through decks never opens a name box), or (b) show the deck and open the name box at once? <b>Default: (a).</b></li>
+<li>When you rename: Enter, Tab or clicking anywhere else keeps the new name, Esc cancels, and an empty name keeps the old one, like renaming a file in Finder. OK? <b>Default: yes.</b></li>
+<li>For pictures (not videos), the info line just says the kind of file, like “PNG image”. Do you also want the picture's size (for example 1920 x 1080)? <b>Default: no, the kind only.</b></li>
+<li>May I show a small test strip (about 700 x 124) at the top-left of your main screen for about 10 seconds, once, to test double-click on real deck tabs? It never takes your keyboard. <b>Default: only when you say OK.</b></li>
+</ol>
+<h3>MilkDrop</h3>
+<ol start="36">
+<li>Only asked if 4K turns out to stutter: on a 4K composition, MilkDrop may be too heavy to stay smooth on this Mac. Would you rather it draw a little softer and stay smooth, or keep full sharpness even if it stutters? <b>Default: keep full sharpness.</b></li>
+<li>Coming, once the numbers are measured: when you change the composition size while MilkDrop is playing, its picture goes dark and builds back up, and the app pauses once for a moment. The old app did the same. Size changes are a setup step, so the plan is to leave this as it is. Is that fine? <b>Default: yes, fine (if not, I file a fix).</b></li>
+</ol>
+<h3>MKV / WebM reverse</h3>
+<ol start="38">
+<li>Long single-layer ping-pong clips (over about 40 seconds) keep a brief hold at the turnaround, the same hold MP4 already shows, until a follow-up. Ship the MKV / WebM reverse fix now? <b>Default: ship now (it is already in).</b></li>
+<li>WebM files with no length recorded in them (browser or streaming recordings) open as a still frame today. What should happen? <b>Default: its own separate job, not part of this fix.</b></li>
+</ol>
+
+<h2>3. Bugs we found that you didn't report</h2>
+<ul>
+<li><b>Return after a clip click clears the top layer.</b> Click a clip cell, then press Return: the TOP layer's clip is cleared and its routines stop. Fix is scheduled right after the deck change.</li>
+<li><b>A “/” in a deck name</b> makes Save Deck As propose a sub-folder instead of a file name.</li>
+<li><b>MilkDrop playlist labels.</b> “30 sec / 60 sec” really mean 32 / 64 bars. The bars work fixes the labels (question 31 above is about adding real seconds).</li>
+</ul>
+
+<h2>4. Something I did wrong today</h2>
+<div class="note"><p>At 14:37 my test script quit your running Audio-DNA. You had opened it at 14:37:11; it closed cleanly at 14:37:43. The launcher now refuses to touch any app it did not start.</p></div>
+
+<h2>5. Status</h2>
+<ul>
+<li><b>Merged today:</b> log cleanup (internal); MKV / WebM reverse playback fix (Matroska clips no longer freeze in reverse; HAP reverses fully).</li>
+<li><b>Building now:</b> codec info + double-click deck rename; the sync dial's engine; the deck change.</li>
+<li><b>Planned and ready:</b> MilkDrop full-size picture; bars everywhere; envelope editor + envelopes from samples; record to clip; Timeline follows the clip (after the deck change).</li>
+</ul>
+
+<h2>6. What only you can check (after these land)</h2>
+<ul>
+<li><b>Deck switching:</b> click through 20 decks while clips play; nothing on screen should change.</li>
+<li><b>MilkDrop:</b> it fills the picture at your composition size.</li>
+<li><b>Your own MKV / WebM clips</b> in reverse and ping-pong.</li>
+<li><b>The sync bar at a real venue:</b> does + / - line up the flashes with the sound?</li>
+<li><b>Double-click rename:</b> does it feel right?</li>
+<li><b>The bigger envelope editor:</b> does it feel right to drag and edit in?</li>
+</ul>
+
+<h2>7. Update — end of the session (Oct 2, ~11:40 pm)</h2>
+<ul>
+<li><b>Now in your app:</b> MKV / WebM clips reverse and ping-pong properly; each clip shows its codec, size and frame rate, with
+"Show in Finder"; double-click the showing deck tab to rename it; MilkDrop now fills the whole picture at any composition size.</li>
+<li><b>Built, merging next session:</b> decks as boxes of clips (switching decks never changes what plays; Persistent removed).</li>
+<li><b>Half built:</b> the sync dial's engine (the on-screen control waits for question 11: bar or round dial).</li>
+<li><b>Polish coming:</b> four design critics asked for brighter clip-info text, no jumping of the inspector controls between clip
+types, a rename box that clearly looks editable, and a tidier tooltip.</li>
+<li><b>MilkDrop question 37, now with numbers:</b> when you change the composition size while MilkDrop plays, some presets flash
+bright noise for about a tenth to a third of a second, others go dark and are back to normal after about half a second; the app
+pauses once for about 15 ms. The old version did exactly the same. Size changes are a setup step, so the plan is to leave it.
+<b>Default: fine as is.</b></li>
+</ul>
+</body></html>

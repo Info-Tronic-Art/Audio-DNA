@@ -269,3 +269,45 @@ status-note:
 artifact:
 history:     NEW(2026-09-26)
 --- /IDEA ---
+
+--- IDEA ---
+id:          idea-2026-10-02-RealTimeAudio-17909965584441726728
+raw:         here is some feedback as I evaluted the app yesterday. Ask me questions on any item you don't understand then add to the
+work we need to do. There are other issues but these stand out the most:
+
+Sampling to other layers/ clip. Think how to do this, like set a clip to record output of the composition and they be able
+to use it as soon as it is done. This would be good to have it automatically start and end on bars or beats, quantized
+
+We need a nice clean way to adjust the delay or speeding ahead for each room so we can set it per room. Like if the audio
+is slower than the video, this delays or advances signals and bpm with one very sensitive dial.
+
+Codec display for each video and easy access to that video in finder
+
+Need to manually change envelopes. Need to expand envelope controls and setup format
+
+Make it so when you load a sample into the envelope that it will emulate the envelope of the audios behavior. So basically
+use a sample to extract the envelope live, and then different envelopes can be pulled out of that sample with the envelope
+creator
+
+Timeline control is not working for parameter control
+
+Add bars to all places we have beats
+
+Need to be able to rename each deck with double click
+
+Clips in the layer should not persist between deck changes. Whatever is in the layer should be what is playing and there
+shouldn't be anything from other decks.
+context:     s-rta-1002b Audio-DNA app-evaluation feedback BF1-BF9 (+ BF10 MilkDrop, + the 'decks are boxes of clips' clarification); all planned / ruled / adopted in this repo; status per item in .harmony/boris-feedback-backlog.md and .harmony/HANDOFF.md s-rta-1002b section
+why:         
+intent:      
+target:      
+constraints: 
+related:     
+priority:    HIGH
+repo:        RealTimeAudio     session:      date: 2026-10-02
+status:      NEW
+status-changed: 2026-10-02
+status-note:
+artifact:
+history:     NEW(2026-10-02)
+--- /IDEA ---

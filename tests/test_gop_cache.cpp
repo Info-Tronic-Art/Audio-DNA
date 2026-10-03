@@ -578,3 +578,49 @@ TEST_CASE("gop2 R3: the store gate opens on a key frame, or at / after a demuxer
     CHECK_FALSE(storeGateOpens(false, true, 1000, kNoPts));
     CHECK_FALSE(storeGateOpens(false, false, 1000, 0));
 }
+
+// s-rta-1002b mkvidx P (plan item 1 + ruling AM1): the container index -> the keyframe model, one pure reading. keyTs = the
+// KEYFRAME entries' timestamps in index order (MP4 / MOV: DTS -- the first may be negative; Matroska: Cue / block times);
+// rels relative to the first keyframe; the longest interval in frames (one keyframe: the whole file; none: -1 = keep the
+// current estimate); intra-only = every entry a keyframe AND every keyframe one frame apart -- a Matroska Cues index lists
+// keyframes ONLY, so "every entry a keyframe" alone called a GOP-250 file with its Cues at the front intra-only (reverse
+// froze). RED on fa9604d: does not compile (no keyIndexFrom).
+TEST_CASE("mkvidx P: keyIndexFrom -- relative keyframes, the longest interval, the intra verdict (every keyframe one frame "
+          "apart)", "[gopcache][s-rta-1002b]")
+{
+    const double fd = 1.0 / 30.0;
+    // (a) an MP4 DTS index (B-frame delay: the first DTS is negative), 600 entries of which 3 keyframes
+    const auto a = keyIndexFrom({ -1024, 126976, 254976 }, 600, 1.0 / 15360.0, fd, 600);
+    CHECK(a.rels == std::vector<int>{ 0, 250, 500 });
+    CHECK(a.gopFrames == 250);
+    CHECK_FALSE(a.intraOnly);
+    // (b) a Matroska Cues index (ms): keyframes only, every entry a keyframe -- NOT intra (the gaps are 250 frames)
+    const auto b = keyIndexFrom({ 0, 8333, 16667 }, 3, 1.0 / 1000.0, fd, 600);
+    CHECK(b.rels == std::vector<int>{ 0, 250, 500 });
+    CHECK(b.gopFrames == 250);
+    CHECK_FALSE(b.intraOnly);
+    // (c) an all-intra stream in ms: every entry a keyframe, one frame apart -> intra
+    std::vector<int64_t> all;
+    for (int i = 0; i < 30; ++i)
+        all.push_back(std::llround(i * 1000.0 / 30.0));
+    const auto c = keyIndexFrom(all, 30, 1.0 / 1000.0, fd, 30);
+    CHECK(c.gopFrames == 1);
+    CHECK(c.intraOnly);
+    // (d) one keyframe (a lazy Matroska index at open): the whole file is one GOP, not intra
+    const auto d = keyIndexFrom({ 0 }, 1, 1.0 / 1000.0, fd, 300);
+    CHECK(d.rels == std::vector<int>{ 0 });
+    CHECK(d.gopFrames == 300);
+    CHECK_FALSE(d.intraOnly);
+    // (e) no index: no keyframes, -1 (keep the current estimate), not intra
+    const auto e = keyIndexFrom({}, 0, 1.0 / 1000.0, fd, 300);
+    CHECK(e.rels.empty());
+    CHECK(e.gopFrames == -1);
+    CHECK_FALSE(e.intraOnly);
+    // (f) every entry a keyframe but one 2-frame gap (a VFR drop): NOT intra
+    std::vector<int64_t> vfr;
+    for (int i = 0; i < 30; ++i)
+        vfr.push_back(i * 512 + (i >= 15 ? 512 : 0));
+    const auto f = keyIndexFrom(vfr, 30, 1.0 / 15360.0, fd, 31);
+    CHECK(f.gopFrames == 2);
+    CHECK_FALSE(f.intraOnly);
+}

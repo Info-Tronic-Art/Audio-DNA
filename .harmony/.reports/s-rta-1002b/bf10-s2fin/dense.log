@@ -1,0 +1,25 @@
+mutant edit lines: 1
+dense build exit=0
+dense T6 run 1 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 2 rc=0 soft-cut frames=121 reads=43 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 3 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 4 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 5 rc=0 soft-cut frames=121 reads=46 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 6 rc=0 soft-cut frames=121 reads=46 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 7 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 8 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 9 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 10 rc=0 soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 11 rc=0 soft-cut frames=121 reads=46 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 12 rc=0 soft-cut frames=121 reads=47 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 13 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 14 rc=0 soft-cut frames=121 reads=46 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 15 rc=0 soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 16 rc=0 soft-cut frames=121 reads=46 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 17 rc=0 soft-cut frames=121 reads=46 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 18 rc=0 soft-cut frames=121 reads=45 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 19 rc=0 soft-cut frames=121 reads=44 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 run 20 rc=0 soft-cut frames=121 reads=47 soft-cut mid_transition_read=1 last_read_near_B=100.0000% 
+dense T6 PASS 20/20
+restored test: IDENTICAL 96cebce76e7c4b5a097a10d5d1891948da47dabf82def69b1e3f9d183ea56f6d
+rebuild exit=0 binary sha=c5ea0243941201a4

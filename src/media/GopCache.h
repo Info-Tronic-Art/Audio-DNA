@@ -463,4 +463,38 @@ inline int retainFrames(int gopFrames, double decodeMs, double frameMsEff, int c
     const int want = std::max(kMinRetainFrames, static_cast<int>(std::min(need, 1.0e9)));
     return std::max(0, std::min(want, capFrames));
 }
+
+// s-rta-1002b mkvidx (plan item 1): the container index read as the player's keyframe model. keyTs = the index's KEYFRAME
+// entries' timestamps in index order (MP4 / MOV: DTS -- the first may be negative, a B-frame delay; Matroska: Cue / block
+// times), `entries` = every index entry, keyframe or not. rels = each keyframe relative to the first one, in frames;
+// gopFrames = the longest keyframe interval in frames (one keyframe: totalFrames -- the whole file one GOP; none, or no
+// total: -1 = keep the current estimate); intraOnly = every entry a keyframe AND every keyframe one frame apart -- a Matroska
+// Cues index lists keyframes only, so "every entry a keyframe" alone calls a GOP-250 file with its Cues at the front intra-only
+// (its reverse froze: an intra DEMAND run per frame that never lands on a keyframe). Not safe in every case (filed): an index
+// holding only a long-GOP file's first two keyframes, adjacent (a key forced at frame 1), still reads intra-only (F8); an
+// all-intra index with < 2 entries reads not-intra (F6).
+struct KeyIndex
+{
+    std::vector<int> rels;
+    int gopFrames = -1;
+    bool intraOnly = false;
+};
+inline KeyIndex keyIndexFrom(const std::vector<int64_t>& keyTs, int entries, double timeBase, double frameDur, int totalFrames)
+{
+    KeyIndex k;
+    int64_t maxGap = 0;
+    for (size_t i = 0; i < keyTs.size(); ++i)
+    {
+        if (i > 0)
+            maxGap = std::max(maxGap, keyTs[i] - keyTs[i - 1]);
+        k.rels.push_back(std::max(0, static_cast<int>(std::lround(static_cast<double>(keyTs[i] - keyTs.front()) * timeBase / frameDur))));
+    }
+    const int keys = static_cast<int>(keyTs.size());
+    if (keys >= 2 && maxGap > 0)
+        k.gopFrames = std::max(1, static_cast<int>(std::lround(static_cast<double>(maxGap) * timeBase / frameDur)));
+    else if (keys == 1 && totalFrames > 0)
+        k.gopFrames = totalFrames;   // one keyframe: the whole file is one GOP
+    k.intraOnly = entries >= 2 && keys == entries && k.gopFrames == 1;
+    return k;
+}
 } // namespace GopCache

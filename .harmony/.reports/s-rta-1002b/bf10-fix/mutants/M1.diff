@@ -1,0 +1,4 @@
+66c66
+<      || [ -z "$(curl -s --max-time 2 -H 'Connection: close' http://localhost:8080/api/health)" ]; then
+---
+>      ; then

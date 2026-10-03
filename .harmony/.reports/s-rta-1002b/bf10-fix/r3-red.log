@@ -1,0 +1,21 @@
+target driver: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-fix/old/.harmony/probe-vupload-ab.sh
+   | 21:29:09 [r1 A] start: load avg { 4.33 4.17 4.35 }
+   | 21:29:15 [r1 A] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.38 4.19 4.35 }, DATA stub attempt=1
+   | TAINTED (compiler) -- re-run
+   | 21:29:15 [r1 A] start: load avg { 4.38 4.19 4.35 }
+   | 21:29:20 [r1 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.27 4.17 4.35 }, DATA stub attempt=2
+   | 21:29:20 [r1 B] start: load avg { 4.41 4.20 4.35 }
+   | 21:29:26 [r1 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.46 4.21 4.36 }, DATA stub attempt=3
+   | 21:29:26 rounds 1 x 2 arms done (tainted 1)
+   attempt 1 (r1 A) .compilers lines so far: 3, compiler samples: 2
+   attempt 2 (r1 A) .compilers lines so far: 0, compiler samples: 0
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/.harmony/probe-vupload-ab-selftest.sh: line 54: /var/folders/xk/4b_nszfx60n0g13f6x0c3vy40000gn/T//ab-selftest.NGJcOL/compilers-attempt-3: No such file or directory
+   attempt 3 (r1 A) .compilers lines so far: , compiler samples: 0
+   ok    driver exit 0 (got 0)
+   FAIL  the re-run (attempt 2) has a non-empty .compilers file with the compiler sampled
+   FAIL  r1 A: attempt 1 AND its re-run both report 'compilers seen 1'
+   FAIL  the run ends with 'tainted 2'
+   FAIL  ab.tsv keeps r1 A from attempt 3 (the first launch with no compiler)
+   FAIL  ab.tsv keeps r1 B from attempt 4
+
+SELFTEST 1 ok / 5 FAIL

@@ -1,0 +1,22 @@
+start 2026-10-02 19:19:58 binary sha=c5ea0243941201a4
+T6 run 1 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (204,51,26,255) (182,67,51,255) (61,153,189,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 2 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (200,54,30,255) (178,69,56,255) (139,97,100,255) (95,129,150,255) (56,157,195,255) (31,174,223,255) (26,178,229,255) (26,178,229,255) 
+T6 run 3 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (204,51,26,255) (178,69,55,255) (57,156,194,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 4 rc=42 | test cases:  1 |  0 passed | 1 failed | soft-cut mid_transition_read=0 last_read_near_B=100.0000% | medians: (204,51,26,255) (204,51,26,255) (204,51,26,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 5 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (204,51,26,255) (181,67,52,255) (59,154,191,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 6 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (203,51,27,255) (191,60,41,255) (46,164,206,255) (27,177,228,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 7 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (204,51,26,255) (204,51,26,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 8 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (204,51,26,255) (181,67,52,255) (62,152,187,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T6 run 9 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (200,54,30,255) (178,70,56,255) (140,97,99,255) (95,128,150,255) (56,156,194,255) (32,174,223,255) (26,178,229,255) (26,178,229,255) 
+T6 run 10 rc=0 | All tests passed (73 assertions in 1 test case) | soft-cut mid_transition_read=1 last_read_near_B=100.0000% | medians: (204,51,26,255) (203,52,27,255) (190,61,42,255) (44,165,209,255) (27,177,228,255) (26,178,229,255) (26,178,229,255) (26,178,229,255) 
+T5 run 1 rc=0 | All tests passed (288 assertions in 1 test case) | errors seen: T5 (b) init errors=[ 0x500 ];
+T5 run 2 rc=0 | All tests passed (288 assertions in 1 test case) | errors seen: T5 (b) init errors=[ 0x500 ];
+T5 run 3 rc=0 | All tests passed (288 assertions in 1 test case) | errors seen: T5 (b) init errors=[ 0x500 ];
+T5 run 4 rc=0 | All tests passed (288 assertions in 1 test case) | errors seen: T5 (b) init errors=[ 0x500 ];
+T5 run 5 rc=0 | All tests passed (288 assertions in 1 test case) | errors seen: T5 (b) init errors=[ 0x500 ];
+T4 run 1 rc=0 | All tests passed (10 assertions in 1 test case) | 1920x1080 alpha255=100.0000% 1080x1920 alpha255=100.0000% 
+T4 run 2 rc=0 | All tests passed (10 assertions in 1 test case) | 1920x1080 alpha255=100.0000% 1080x1920 alpha255=100.0000% 
+T4 run 3 rc=0 | All tests passed (10 assertions in 1 test case) | 1920x1080 alpha255=100.0000% 1080x1920 alpha255=100.0000% 
+T4 run 4 rc=0 | All tests passed (10 assertions in 1 test case) | 1920x1080 alpha255=100.0000% 1080x1920 alpha255=100.0000% 
+T4 run 5 rc=0 | All tests passed (10 assertions in 1 test case) | 1920x1080 alpha255=100.0000% 1080x1920 alpha255=100.0000% 
+end 2026-10-02 19:20:45

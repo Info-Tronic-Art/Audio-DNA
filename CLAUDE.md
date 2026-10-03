@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), decks are boxes of clips over one shared layer stack, output to any number of connected displays incl. the main screen (macOS), beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once; eight routine pads above the deck's column numbers, the routine's name banded on every layer it plays), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation).
+**Key capabilities**: 135 effects across 11 categories (6 temporal, 3 audio-native), 15 clip-to-clip transitions, per-layer feedback system (6 presets), deck/layer/clip compositing with per-level effect chains and per-clip fit (stretch/bars/crop), decks are boxes of clips over one shared layer stack, output to any number of connected displays incl. the main screen (macOS), beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories, per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), Ableton Link tempo sync (optional, off by default), per-clip beat snap granularity, saved performance routines (fire a piece of a recorded take from an 8-slot bank, restore-then-replay on the next bar, loop/once; eight routine pads above the deck's column numbers, the routine's name banded on every layer it plays), production REST API (port 7070), OSC input (UDP 8000), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional, build-flag-gated), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — doesn't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation).
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -32,10 +32,6 @@ Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple b
 
 **Message Thread (JUCE UI, NORMAL priority)**
 Runs on user events. Handles all UI interaction — sliders, buttons, file choosers, mapping editor. Writes configuration changes (effect enable/disable, parameter values, mapping settings) via `std::atomic<T>` config variables that the render and analysis threads read. Never blocks the other threads.
-
-### Latency Budget
-
-Stage-by-stage table (audio buffer delivery -> swap, ~15-25 ms audio-to-visual): `docs/claude/architecture.md` "Latency Budget".
 
 ---
 
@@ -58,10 +54,6 @@ cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 ```
 
 Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew install ffmpeg`. JUCE is fetched automatically.
-
-### Common Build Issues
-
-FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/build-other-platforms.md`.
 
 ---
 
@@ -125,7 +117,7 @@ FetchContent, GL deprecation, Linux headers, Windows long paths: `docs/claude/bu
 
 **Periodic repaints**: a timed `repaint()` costs the whole window (Pitfall 57): an always-animating widget draws in its own layer (`NativeLayerHost`) or repaints only on change.
 
-**Deck tab row**: right-click a tab = its menu, never a deck switch (`docs/claude/performance-controls.md`).
+**Deck tab row**: right-click a tab = its menu, never a deck switch; double-click the deck on screen = rename in place (`docs/claude/performance-controls.md`).
 
 **Routine pads and bands**: the rules -- a pad's press, how a routine leaves, "Delete routine", the model-driven pads / bands / strip faders / bound controls, the reserved routine cue `AudioDNALookAndFeel::kRoutineCue` -- live verbatim in `docs/claude/recording.md` "Surfaces": read them before touching a routine pad, band, strip fader or the routine cue.
 
@@ -225,7 +217,10 @@ the named area; this index is triage-only.
 61. The app never opens a Bluetooth audio device (the guard is in the device TYPE) -- before touching AudioEngine's device open, GuardedAudioDeviceManager, setSourceMode, or adding any audio device picker.
 62. Reverse / ping-pong video = the decode thread's GOP cache + a direction-aware pick -- before touching `decodeStep`, `VideoRing::pick`, a direction change or a keyframe gate.
 63. The Layer trigger tuple is one CAS word packing (deck id, column) per slot (compare ClipRefs, never columns alone); shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.
-NN. The shown deck is the grid, never the screen -- before resolving what a layer plays (`Composition::playing(i)`, never `getActiveDeck()->rows[i]`).
+64. A run's frame seek aims at the frame's middle; the keyframe index is the demuxer's live one -- before touching `runStep`'s seek, `readKeyIndex` or the intra-only verdict.
+65. Rename box over a rebuilt row -- before a double-click or in-place editor.
+66. MilkDrop draws only through `projectm_opengl_render_frame_fbo` into its canvas FBO -- before touching ProjectMSource or libprojectM.
+67. The shown deck is the grid, never the screen -- before resolving what a layer plays (`Composition::playing(i)`, never `getActiveDeck()->rows[i]`).
 
 ---
 

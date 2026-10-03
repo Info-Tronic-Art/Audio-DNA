@@ -1,0 +1,130 @@
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Randomness seeded to: 1700476032
+DATA T1 1280x720 f=1 size=1280x720 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1280x720 f=2 size=1280x720 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1280x720 f=10 size=1280x720 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1280x720 f=20 size=1280x720 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1280x720 f=30 size=1280x720 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1920x1080 f=1 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1920x1080 f=2 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1920x1080 f=10 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1920x1080 f=20 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1920x1080 f=30 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1080x1920 f=1 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1080x1920 f=2 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1080x1920 f=10 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1080x1920 f=20 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 1080x1920 f=30 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 3840x2160 f=1 size=3840x2160 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 3840x2160 f=2 size=3840x2160 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 3840x2160 f=10 size=3840x2160 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 3840x2160 f=20 size=3840x2160 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T1 3840x2160 f=30 size=3840x2160 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1080x1920 f=1 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1080x1920 f=2 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1080x1920 f=3 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1080x1920 f=4 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1080x1920 f=5 size=1080x1920 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1080x1920 fixture colour covered at frame 1 (INFO)
+DATA T2 ->1920x1080 f=1 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1920x1080 f=2 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1920x1080 f=3 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1920x1080 f=4 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1920x1080 f=5 size=1920x1080 median=(204,51,26,255) within6=100.0000% alpha255=100.0000% sentinel=0
+DATA T2 ->1920x1080 fixture colour covered at frame 1 (INFO)
+DATA T3 tiles=510 stale(<2 levels)=0 min_delta=23.67
+DATA T4 1920x1080 blobs=1 bbox=(825,405)-(1094,674) w=270 h=270 |w/h-1|=0.0000 centre_off=(0.00%,0.00%)
+DATA T4 1920x1080 alpha255=2.9338% median_alpha=0 (INFO, not asserted)
+DATA T4 1080x1920 blobs=1 bbox=(300,720)-(779,1199) w=480 h=480 |w/h-1|=0.0000 centre_off=(0.00%,0.00%)
+DATA T4 1080x1920 alpha255=9.1576% median_alpha=0 (INFO, not asserted)
+DATA T5 (a) steady draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (b) init frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:649
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:625: FAILED:
+  CHECK( errors.empty() )
+with expansion:
+  false
+with message:
+  T5 (b) init: draw=1 read=1 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (c) resize draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (d) hard load draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +0 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ u3=8 u4=9 u5=9 u6=10 u7=10 ]
+DATA T5 (e) soft load +1 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +2 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +3 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +4 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +5 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +6 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +7 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +8 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +9 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +10 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA soft-cut t=0.145s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000%
+DATA soft-cut t=0.305s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.3513%
+DATA soft-cut t=0.466s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=15.1017%
+DATA soft-cut t=0.625s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=55.4691%
+DATA soft-cut t=0.785s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=87.5488%
+DATA soft-cut t=0.945s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=99.7733%
+DATA soft-cut t=1.105s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.265s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.425s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.585s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.745s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.856s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.887s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.918s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.948s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.979s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut frames=121 reads=16
+-------------------------------------------------------------------------------
+T6 a MilkDrop soft cut draws into the canvas texture
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:776
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:769: FAILED:
+  CHECK( anyBetween )
+with expansion:
+  false
+with message:
+  a read mid-transition (median >= 10 from both A and B in some channel): 0
+
+DATA soft-cut t=0.147s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000%
+DATA soft-cut change+1
+DATA soft-cut t=0.308s size=1080x1920 tex=1080x1920 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000%
+DATA soft-cut change+2
+DATA soft-cut t=0.338s size=1080x1920 tex=1080x1920 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.3466%
+DATA soft-cut change+3
+DATA soft-cut t=0.368s size=1080x1920 tex=1080x1920 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=1.7498%
+DATA soft-cut t=0.468s size=1080x1920 tex=1080x1920 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=18.4147%
+DATA soft-cut t=0.627s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=55.2257%
+DATA soft-cut t=0.787s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=88.3796%
+DATA soft-cut t=0.947s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=98.1617%
+DATA soft-cut t=1.107s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.267s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.427s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.587s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.747s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.860s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.891s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.922s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.955s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut t=1.987s size=1080x1920 tex=1080x1920 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000%
+DATA soft-cut frames=121 reads=18
+===============================================================================
+test cases:   7 |   5 passed | 2 failed
+assertions: 582 | 580 passed | 2 failed
+

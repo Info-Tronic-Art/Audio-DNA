@@ -1,0 +1,47 @@
+Fri Oct  2 18:11:26 EDT 2026
+--- G0.2
+0000000000088278 T _projectm_opengl_render_frame_fbo
+/Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/libprojectM-4.dylib:
+@rpath/libprojectM-4.4.dylib
+--- G0.6(a) export diff (stock < > patched)
+      52
+      53
+27a28
+> _projectm_opengl_render_frame_fbo
+--- G0.6(b) GLSL string set
+101 bffe0439eff25046bf347b39b9749b0a8c6473ef5dfd070638a19eda3f3b2dd4  -
+101 bffe0439eff25046bf347b39b9749b0a8c6473ef5dfd070638a19eda3f3b2dd4  -
+--- G0.6(c) VCS SHA
+/Users/boriskarpman/.local/lib/libprojectM-4.4.1.1.dylib: 1
+/Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/libprojectM-4.dylib: 1
+--- linkage / build version / deps / signature
+/Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/libprojectM-4.dylib:
+	@rpath/libprojectM-4.4.dylib (compatibility version 4.0.0, current version 4.1.1)
+	/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 4201.0.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 2000.67.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)
+      cmd LC_BUILD_VERSION
+  cmdsize 32
+ platform 1
+    minos 15.0
+      sdk 26.2
+CodeDirectory v=20400 size=9230 flags=0x20002(adhoc,linker-signed) hashes=285+0 location=embedded
+Signature=adhoc
+total 2464
+drwxr-xr-x@ 10 boriskarpman  staff      320 Oct  2 18:10 .
+drwxr-xr-x@  4 boriskarpman  staff      128 Oct  2 18:10 ..
+drwxr-xr-x@  4 boriskarpman  staff      128 Oct  2 18:10 cmake
+-rwxr-xr-x@  1 boriskarpman  staff    83920 Oct  2 18:10 libprojectM-4-playlist.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       34 Oct  2 18:10 libprojectM-4-playlist.4.dylib -> libprojectM-4-playlist.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       30 Oct  2 18:10 libprojectM-4-playlist.dylib -> libprojectM-4-playlist.4.dylib
+-rwxr-xr-x@  1 boriskarpman  staff  1172792 Oct  2 18:10 libprojectM-4.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       25 Oct  2 18:10 libprojectM-4.4.dylib -> libprojectM-4.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       21 Oct  2 18:10 libprojectM-4.dylib -> libprojectM-4.4.dylib
+drwxr-xr-x@  4 boriskarpman  staff      128 Oct  2 18:10 pkgconfig
+--- stock untouched
+-rwxr-xr-x@ 1 boriskarpman  staff  1172680 Mar 22  2026 /Users/boriskarpman/.local/lib/libprojectM-4.4.1.1.dylib
+755ff9316f2c6a3c97899b0267023b8854f0d274203235bfed2ca5735933361a  /Users/boriskarpman/.local/lib/libprojectM-4.4.1.1.dylib
+--- net vs offline build
+219e022130665d97fe0baacc6c092d46f1cb1bf731c73fdb79faed5b7bb46693  /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib/libprojectM-4.dylib
+219e022130665d97fe0baacc6c092d46f1cb1bf731c73fdb79faed5b7bb46693  /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/pfx-net/lib/libprojectM-4.dylib

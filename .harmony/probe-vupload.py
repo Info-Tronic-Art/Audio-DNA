@@ -13,6 +13,7 @@ usage: probe-vupload.py <root> <fresh-outdir> --make-fixtures [row,row,...]
        probe-vupload.py <root> <fresh-outdir> [row,row,...]
 rows (run order): u2_gl_thread_qos u4a_context_cycle u4b_idle_ring_trim u6_crossfade_video u7_reverse_pingpong
       u8_reverse_column_1080x4 u9_reverse_cache_drop u10_reverse_4k u11_reverse_column_return u12_reverse_pixel_identity
+      u13_container_reverse
 
 u2_gl_thread_qos: INFO "QoS not applied (VU15)": prints 8080 /api/state gl_thread_qos (the render thread samples
   qos_class_self() every frame; 21 = DEFAULT). The lane's P2 raise to USER_INTERACTIVE (33) was reverted by adoption
@@ -87,6 +88,19 @@ u12_reverse_pixel_identity (GC11): layer 167 = warm.png, layer 168 (Transparent)
   the reversing clip (the lane app serves them from the GOP cache); for each, a forward speed-0 clip seeked to the same frame
   (in-point = code / 300, the prime retrigger) captured: PASS max |diff| over every channel == 0 for all three. Run once per
   upload path (VIDEO_ENV=ADNA_VIDEO_FORCE_FALLBACK=client / malloc; the default is the blit).
+--- s-rta-1002b mkvidx (.harmony/.reports/s-rta-1002b/plan-mkvidx.md item 4 + ruling-mkvidx.md AM14) ---
+u13_container_reverse: a Matroska file reverses like the same stream in MP4, and a QuickTime 1/600 HAP clip reverses at
+  one decode per frame. Seven scenes, each a fresh load on the 1080p canvas (layers 169-172): (a) mkv_cuesfront_reverse
+  (a1080_g250_cuesfront.mkv: Cues at the front -- main calls it intra-only and freezes), (b) mkv_reverse (a1080_g250.mkv:
+  Cues at the end), (c) hap600_reverse (hap1080_tb600.mov) -- each u7's "reverse" scene (the shared helper rev_scene: 1 s,
+  a 5 s window, the mid capture's bracket, the GC4 back-to-back captures); (d) mkv_long_column_1080x4 / (e)
+  mp4_long_column_1080x4 -- four a1080_g250_60s.mkv / .mp4 players reversing by ONE trigger_column at the default budget,
+  1 s, a 10 s window (u8's window helper column_window): counters only (the code band and expected() assume 300 frames);
+  (f) mkv_long_pingpong_turn / (g) mp4_long_pingpong_turn -- one 60 s clip, PingPong, in-point 0.95 (the prime
+  retrigger), 1 s, a 12 s window (the top turn inside it): counters + turn_seen, no captures. Every scene prints one DATA
+  line (u7 / u8's keys + kf_lines = the "[VideoPlayer] Keyframe index:" lines its players wrote to err.log: item 2's
+  once-per-player witness, INFO -- 0 on a pre-lane app). The rules ([CTRL-A] [FREEZE] [MKV] [HAP] [CPU] [PARITY] [GUARD]
+  [PP-PARITY]) are .harmony/probe-vupload-ab.py's, on medians over >= 5 interleaved launches per arm; one run is INFO.
 """
 import importlib.util, json, os, subprocess, sys, time
 
@@ -114,6 +128,8 @@ ROW_FIXTURES = {
     "u8_reverse_column_1080x4": ["a1080_g250.mp4"], "u9_reverse_cache_drop": ["a1080_g250.mp4"],
     "u10_reverse_4k": ["a4k_g250.mp4"], "u11_reverse_column_return": ["a1080_g250.mp4"],
     "u12_reverse_pixel_identity": ["a1080_g250.mp4"],
+    "u13_container_reverse": ["a1080_g250.mkv", "a1080_g250_cuesfront.mkv", "a1080_g250_60s.mp4", "a1080_g250_60s.mkv",
+                              "hap1080_tb600.mov"],
 }
 ONLY_SCENES = {x for x in os.environ.get("U7_SCENES", "").split(",") if x}   # restrict u7 to these scenes (re-runs)
 ok, no, info, check = pv.ok, pv.no, pv.info, pv.check
@@ -505,82 +521,133 @@ U7_SCENES = [   # (scene, fixture, clip extras, kind, speed, in-point)
 ]
 
 
+def witness_lines():
+    """mkvidx: the "[VideoPlayer] Keyframe index:" lines in this launch's err.log so far (the decode thread's once-per-player
+    witness that a keyframe model grew past its open-time index; INFO -- a pre-lane app never writes it)."""
+    try:
+        with open(os.path.join(OUT, "err.log"), errors="replace") as f:
+            return sum("Keyframe index: " in ln for ln in f)
+    except OSError:
+        return None
+
+
+def rev_scene(tag, lid, cid, sc, name, extra, kind, speed, ip, window=5.0, captures=True, witness=False):
+    """One u7-style scene on ONE layer: a fresh load of `name`, trig (+ the prime retrigger for an in-point), 1 s, a
+    `window` s window (the mid capture's bracket at 2.5 s and, for a non-forward scene, the GC4 back-to-back captures after
+    it -- both only with `captures`), one INFO line, the VU16 hold check, one DATA line. Shared by u7 and u13 (mkvidx).
+    Returns "stop" when the compiler wait gave up (the caller ends its row), else None."""
+    ct = int(VU["u7BracketCt"]); ncap = int(VU["u7MonoCaps"])
+    clip = pv.vclip(cid, name, ip=ip, **extra); clip["speed"] = speed
+    w0 = witness_lines() if witness else None
+    if not pv.load(f"{tag}_{sc}", [pv.deck(0, [pv.layer(lid, [clip])])], "1080", 1):
+        return None
+    if not pv.wait_no_compiler(tag):
+        return "stop"
+    take = None
+    if kind == "flip":
+        take = flip_take(sc, lid, cid, 1.0)
+        pv.S.post(pv.A + "/api/perf/load", json={"folder": take}, timeout=6)
+    pv.trig(0, 0); pv.wait_active(0, 0)
+    if ip > 0.0:
+        pv.trig(0, 0)   # prime: a first trigger plays from 0; the retrigger seeks to the in-point
+    time.sleep(1.0)
+    s0 = pv.state(); pol = FastPoller().start(); phs = PlayheadSampler(0).start(); t0 = time.time(); tflip = None
+    if kind == "flip":
+        pv.S.post(pv.A + "/api/perf/play", json={"withAudio": False}, timeout=6); tflip = time.time() + 1.0
+    f = None
+    if captures:
+        time.sleep(max(0.0, 2.5 - (time.time() - t0)))
+        f, pb, pa = pv.cap_bracket(f"{tag}_{sc}_mid", 0)
+    time.sleep(max(0.0, window - (time.time() - t0)))
+    t1 = time.time(); pol.stop(); phs.stop(); s1 = pv.state()
+    upl = pv.dz(s0, s1, "video_uploads"); lt = pv.dz(s0, s1, "video_late_frames")
+    dec = pv.dz(s0, s1, "video_frames_decoded"); sk = pv.dz(s0, s1, "video_seeks")
+    kv = dict(scene=sc, uploads_per_s=None if upl is None else round(upl / window, 2), late=lt,
+              fps=pol.median(3), hold_no_texture=pv.dz(s0, s1, "video_hold_no_texture"), decoded=dec,
+              dropped=pv.dz(s0, s1, "video_frames_dropped"), seeks=sk, skipped=pv.dz(s0, s1, "video_frames_skipped"),
+              decoded_per_upload=None if not upl or dec is None else round(dec / upl, 2),
+              seeks_per_upload=None if not upl or sk is None else round(sk / upl, 3),
+              max_gap_ms=pol.max_gap_ms(t0, t1), gap_counter_ms=pv.counter(s1, "video_max_upload_gap_ms"),
+              nonmono=pv.dz(s0, s1, "video_reverse_nonmonotonic"), dirchg=pv.dz(s0, s1, "video_direction_changes"),
+              hits=pv.dz(s0, s1, "video_gopcache_hits"), misses=pv.dz(s0, s1, "video_gopcache_misses"),
+              runs=pv.dz(s0, s1, "video_gopcache_runs"), cache_mb=None if pv.counter(s1, "video_gopcache_bytes") is None
+              else round(s1["video_gopcache_bytes"] / 1048576.0, 1))
+    if f is not None:
+        c = pv.code(f, pv.BAND["1080"])
+        if kind == "forward":
+            good, br = pv.in_bracket(c, pb, pa)
+        else:
+            good, br = rev_bracket(c, pb, pa, ct)
+        kv.update(code=c, bracket_ok=int(good))
+        info(f"{tag}[{sc}]: (d) the mid-window capture's code {c} within its playhead bracket {br}: {good}")
+    if kind == "turn":
+        kv["turn_seen"] = phs.turn()
+    elif kind == "reverse":
+        kv["reversed"] = phs.falling_after(t0 + 0.2)
+    if kind == "flip":
+        st = perf_status()
+        n_after = pol.count_at(t1); n_flip = pol.count_at(tflip)
+        kv.update(post_flip_uploads_per_s=None if n_after is None or n_flip is None else round((n_after - n_flip) / (t1 - tflip), 2),
+                  flip_gap_ms=pol.max_gap_ms(tflip - 0.1, min(t1, tflip + 1.5)),
+                  reversed=phs.falling_after(tflip + 0.3))
+        info(f"{tag}[{sc}]: perf status after the flip take: {json.dumps(st)[:300]}")
+        pv.S.post(pv.A + "/api/perf/stop_play", timeout=6)   # the replay stays 'playing' past its last point
+    if kind != "forward" and captures:
+        ok, codes, bad = mono_caps(f"{tag}_{sc}", 0, ncap)
+        kv.update(mono_ok=int(ok))
+        info(f"{tag}[{sc}]: (GC4) {ncap} back-to-back captures, codes {codes} strictly decreasing and each within its "
+             f"bracket (ct {ct}): {ok}{' -- outside: ' + '; '.join(bad[:4]) if bad else ''}")
+    if witness:
+        w1 = witness_lines()
+        kv["kf_lines"] = None if w0 is None or w1 is None else w1 - w0
+    print(f"      {tag}[{sc}]: INFO " + ", ".join(f"{a} {b}" for a, b in kv.items() if a != "scene") + f", {pv.la()}",
+          flush=True)
+    h = pv.delta(f"{tag}[{sc}]", s0, s1, "video_hold_no_texture")
+    if h is not None:   # VU16 (VU5): asserted per scene, not only printed
+        check(h == 0, f"{tag}[{sc}]: (VU5) video_hold_no_texture delta over the {window:g} s window {h} == 0")
+    pv.data(tag, **kv)
+    return None
+
+
 def u7(tag):
     """Every scene prints one DATA line; the absolute bars are judged by probe-vupload-ab.py on the MEDIAN of >= 5
     interleaved launches (GC13) -- here they are INFO, except VU16 (hold_no_texture per scene, asserted)."""
-    lid = LV[tag]; k = 0; ct = int(VU["u7BracketCt"]); ncap = int(VU["u7MonoCaps"])
+    lid = LV[tag]; k = 0
     for sc, name, extra, kind, speed, ip in U7_SCENES:
         k += 1; cid = 60 + k
         if ONLY_SCENES and sc not in ONLY_SCENES:
             continue
-        clip = pv.vclip(cid, name, ip=ip, **extra); clip["speed"] = speed
-        if not pv.load(f"{tag}_{sc}", [pv.deck(0, [pv.layer(lid, [clip])])], "1080", 1):
-            continue
-        if not pv.wait_no_compiler(tag):
+        if rev_scene(tag, lid, cid, sc, name, extra, kind, speed, ip) == "stop":
             return
-        take = None
-        if kind == "flip":
-            take = flip_take(sc, lid, cid, 1.0)
-            pv.S.post(pv.A + "/api/perf/load", json={"folder": take}, timeout=6)
-        pv.trig(0, 0); pv.wait_active(0, 0)
-        if ip > 0.0:
-            pv.trig(0, 0)   # prime: a first trigger plays from 0; the retrigger seeks to the in-point
-        time.sleep(1.0)
-        s0 = pv.state(); pol = FastPoller().start(); phs = PlayheadSampler(0).start(); t0 = time.time(); tflip = None
-        if kind == "flip":
-            pv.S.post(pv.A + "/api/perf/play", json={"withAudio": False}, timeout=6); tflip = time.time() + 1.0
-        time.sleep(max(0.0, 2.5 - (time.time() - t0)))
-        f, pb, pa = pv.cap_bracket(f"{tag}_{sc}_mid", 0)
-        time.sleep(max(0.0, 5.0 - (time.time() - t0)))
-        t1 = time.time(); pol.stop(); phs.stop(); s1 = pv.state()
-        upl = pv.dz(s0, s1, "video_uploads"); lt = pv.dz(s0, s1, "video_late_frames")
-        dec = pv.dz(s0, s1, "video_frames_decoded"); sk = pv.dz(s0, s1, "video_seeks")
-        kv = dict(scene=sc, uploads_per_s=None if upl is None else round(upl / 5.0, 2), late=lt,
-                  fps=pol.median(3), hold_no_texture=pv.dz(s0, s1, "video_hold_no_texture"), decoded=dec,
-                  dropped=pv.dz(s0, s1, "video_frames_dropped"), seeks=sk, skipped=pv.dz(s0, s1, "video_frames_skipped"),
-                  decoded_per_upload=None if not upl or dec is None else round(dec / upl, 2),
-                  seeks_per_upload=None if not upl or sk is None else round(sk / upl, 3),
-                  max_gap_ms=pol.max_gap_ms(t0, t1), gap_counter_ms=pv.counter(s1, "video_max_upload_gap_ms"),
-                  nonmono=pv.dz(s0, s1, "video_reverse_nonmonotonic"), dirchg=pv.dz(s0, s1, "video_direction_changes"),
-                  hits=pv.dz(s0, s1, "video_gopcache_hits"), misses=pv.dz(s0, s1, "video_gopcache_misses"),
-                  runs=pv.dz(s0, s1, "video_gopcache_runs"), cache_mb=None if pv.counter(s1, "video_gopcache_bytes") is None
-                  else round(s1["video_gopcache_bytes"] / 1048576.0, 1))
-        if f is not None:
-            c = pv.code(f, pv.BAND["1080"])
-            if kind == "forward":
-                good, br = pv.in_bracket(c, pb, pa)
-            else:
-                good, br = rev_bracket(c, pb, pa, ct)
-            kv.update(code=c, bracket_ok=int(good))
-            info(f"{tag}[{sc}]: (d) the mid-window capture's code {c} within its playhead bracket {br}: {good}")
-        if kind == "turn":
-            kv["turn_seen"] = phs.turn()
-        elif kind == "reverse":
-            kv["reversed"] = phs.falling_after(t0 + 0.2)
-        if kind == "flip":
-            st = perf_status()
-            n_after = pol.count_at(t1); n_flip = pol.count_at(tflip)
-            kv.update(post_flip_uploads_per_s=None if n_after is None or n_flip is None else round((n_after - n_flip) / (t1 - tflip), 2),
-                      flip_gap_ms=pol.max_gap_ms(tflip - 0.1, min(t1, tflip + 1.5)),
-                      reversed=phs.falling_after(tflip + 0.3))
-            info(f"{tag}[{sc}]: perf status after the flip take: {json.dumps(st)[:300]}")
-            pv.S.post(pv.A + "/api/perf/stop_play", timeout=6)   # the replay stays 'playing' past its last point
-        if kind != "forward":
-            ok, codes, bad = mono_caps(f"{tag}_{sc}", 0, ncap)
-            kv.update(mono_ok=int(ok))
-            info(f"{tag}[{sc}]: (GC4) {ncap} back-to-back captures, codes {codes} strictly decreasing and each within its "
-                 f"bracket (ct {ct}): {ok}{' -- outside: ' + '; '.join(bad[:4]) if bad else ''}")
-        print(f"      {tag}[{sc}]: INFO " + ", ".join(f"{a} {b}" for a, b in kv.items() if a != "scene") + f", {pv.la()}",
-              flush=True)
-        h = pv.delta(f"{tag}[{sc}]", s0, s1, "video_hold_no_texture")
-        if h is not None:   # VU16 (VU5): asserted per scene, not only printed
-            check(h == 0, f"{tag}[{sc}]: (VU5) video_hold_no_texture delta over the 5 s window {h} == 0")
-        pv.data(tag, **kv)
 
 
 def column_rev(tag, lids, name, size, base, extra=None):
     return pv.deck(0, [pv.layer(lids[i], [pv.vclip(base + i, name, reverse=True, loopMode=0, **(extra or {}))])
                        for i in range(len(lids))])
+
+
+def column_window(window=5.0):
+    """A `window` s window over a triggered column (u8; u13's column scenes): pooled and per-player uploads/s, late, hold,
+    pending, the cache bytes (max over 50 ms polls), decodes per upload, fps, phys_footprint delta. Returns (kv, s0, s1,
+    pol, t0, t1)."""
+    s0 = pv.state(); t0s = tstate(); pol = FastPoller(0.05).start(); t0 = time.time(); time.sleep(window); pol.stop()
+    t1 = time.time(); s1 = pv.state(); t1s = tstate()
+    upl = pv.dz(s0, s1, "video_uploads"); sl = active_slots(s0, s1)
+    per = None if sl is None else sorted(round(v / window, 2) for v in sl.values())
+    dec = pv.dz(s0, s1, "video_frames_decoded")
+    fp0, fp1 = pv.counter(t0s, "phys_footprint_mb"), pv.counter(t1s, "phys_footprint_mb")
+    kv = dict(cap_mb=ENV_CAP_MB or 0, uploads_per_s=None if upl is None else round(upl / window, 2),
+              per_player_min=None if not per else (per[0] if len(per) >= 4 else 0.0), per_player=None if per is None else ",".join(map(str, per)),
+              late=pv.dz(s0, s1, "video_late_frames"), hold_no_texture=pv.dz(s0, s1, "video_hold_no_texture"),
+              pending=pv.dz(s0, s1, "video_pending_frames"),
+              bytes_mb=None if pol.max(4) is None else round(pol.max(4) / 1048576.0, 1),
+              frames=pv.counter(s1, "video_gopcache_frames"), active=pv.counter(s1, "video_gopcache_active"),
+              over_budget=pv.dz(s0, s1, "video_gopcache_over_budget"),
+              cap_bytes_mb=None if pv.counter(s1, "video_gopcache_cap_bytes") is None else round(s1["video_gopcache_cap_bytes"] / 1048576.0, 1),
+              decoded_per_upload=None if not upl or dec is None else round(dec / upl, 2),
+              fps=pol.median(3), footprint_delta_mb=None if fp0 is None or fp1 is None else round(fp1 - fp0, 1),
+              evictions=pv.dz(s0, s1, "video_gopcache_evictions"))
+    return kv, s0, s1, pol, t0, t1
 
 
 def u8(tag):
@@ -595,22 +662,7 @@ def u8(tag):
     for i in range(4):
         pv.wait_active(i, 0)
     time.sleep(1.0)
-    s0 = pv.state(); t0s = tstate(); pol = FastPoller(0.05).start(); time.sleep(5.0); pol.stop(); s1 = pv.state(); t1s = tstate()
-    upl = pv.dz(s0, s1, "video_uploads"); sl = active_slots(s0, s1)
-    per = None if sl is None else sorted(round(v / 5.0, 2) for v in sl.values())
-    dec = pv.dz(s0, s1, "video_frames_decoded")
-    fp0, fp1 = pv.counter(t0s, "phys_footprint_mb"), pv.counter(t1s, "phys_footprint_mb")
-    kv = dict(cap_mb=ENV_CAP_MB or 0, uploads_per_s=None if upl is None else round(upl / 5.0, 2),
-              per_player_min=None if not per else (per[0] if len(per) >= 4 else 0.0), per_player=None if per is None else ",".join(map(str, per)),
-              late=pv.dz(s0, s1, "video_late_frames"), hold_no_texture=pv.dz(s0, s1, "video_hold_no_texture"),
-              pending=pv.dz(s0, s1, "video_pending_frames"),
-              bytes_mb=None if pol.max(4) is None else round(pol.max(4) / 1048576.0, 1),
-              frames=pv.counter(s1, "video_gopcache_frames"), active=pv.counter(s1, "video_gopcache_active"),
-              over_budget=pv.dz(s0, s1, "video_gopcache_over_budget"),
-              cap_bytes_mb=None if pv.counter(s1, "video_gopcache_cap_bytes") is None else round(s1["video_gopcache_cap_bytes"] / 1048576.0, 1),
-              decoded_per_upload=None if not upl or dec is None else round(dec / upl, 2),
-              fps=pol.median(3), footprint_delta_mb=None if fp0 is None or fp1 is None else round(fp1 - fp0, 1),
-              evictions=pv.dz(s0, s1, "video_gopcache_evictions"))
+    kv = column_window(5.0)[0]
     print(f"      {tag}: INFO " + ", ".join(f"{a} {b}" for a, b in kv.items()) + f", budget {BUDGET} B, {pv.la()}", flush=True)
     pv.data(tag, **kv)
 
@@ -735,6 +787,54 @@ def u12(tag):
         no(f"{tag}: (GC11) fewer than 3 reverse / forward capture pairs")
 
 
+U13_SCENES = [   # (scene, fixture, kind) -- mkvidx plan item 4 (a)-(g)
+    ("mkv_cuesfront_reverse", "a1080_g250_cuesfront.mkv", "reverse"),
+    ("mkv_reverse", "a1080_g250.mkv", "reverse"),
+    ("hap600_reverse", "hap1080_tb600.mov", "reverse"),
+    ("mkv_long_column_1080x4", "a1080_g250_60s.mkv", "column"),
+    ("mp4_long_column_1080x4", "a1080_g250_60s.mp4", "column"),
+    ("mkv_long_pingpong_turn", "a1080_g250_60s.mkv", "turn"),
+    ("mp4_long_pingpong_turn", "a1080_g250_60s.mp4", "turn"),
+]
+
+
+def u13(tag):
+    """s-rta-1002b mkvidx: Matroska vs MP4 reverse / ping-pong and a 1/600 HAP reverse (the docstring). DATA per scene;
+    the rules are probe-vupload-ab.py's (median of >= 5 interleaved launches per arm)."""
+    lids = LV[tag]; k = 0
+    for sc, name, kind in U13_SCENES:
+        k += 1; cid = 200 + 10 * k   # clip ids 210-283 (never a layer id)
+        if kind == "reverse":
+            r = rev_scene(tag, lids[0], cid, sc, name, {"reverse": True, "loopMode": 0}, "reverse", 1.0, 0.0, witness=True)
+        elif kind == "turn":
+            r = rev_scene(tag, lids[0], cid, sc, name, {"loopMode": 1}, "turn", 1.0, 0.95, window=12.0, captures=False,
+                          witness=True)
+        else:
+            w0 = witness_lines()
+            if not pv.load(f"{tag}_{sc}", [column_rev(tag, lids, name, "1080", cid)], "1080", 4):
+                continue
+            if not pv.wait_no_compiler(tag):
+                return
+            pv.trigger_column(0)
+            for i in range(4):
+                pv.wait_active(i, 0)
+            time.sleep(1.0)
+            kv, s0, s1, pol, t0, t1 = column_window(10.0)
+            w1 = witness_lines()
+            kv = dict(scene=sc, **kv, max_gap_ms=pol.max_gap_ms(t0, t1), seeks=pv.dz(s0, s1, "video_seeks"),
+                      nonmono=pv.dz(s0, s1, "video_reverse_nonmonotonic"), dirchg=pv.dz(s0, s1, "video_direction_changes"),
+                      kf_lines=None if w0 is None or w1 is None else w1 - w0)
+            print(f"      {tag}[{sc}]: INFO " + ", ".join(f"{a} {b}" for a, b in kv.items() if a != "scene")
+                  + f", budget {BUDGET} B, {pv.la()}", flush=True)
+            h = pv.delta(f"{tag}[{sc}]", s0, s1, "video_hold_no_texture")
+            if h is not None:   # VU5, as every reverse scene
+                check(h == 0, f"{tag}[{sc}]: (VU5) video_hold_no_texture delta over the 10 s window {h} == 0")
+            pv.data(tag, **kv)
+            r = None
+        if r == "stop":
+            return
+
+
 def make_fixtures():
     need = set()
     for r, fs in ROW_FIXTURES.items():
@@ -757,7 +857,8 @@ def main():
             ("u9_reverse_cache_drop", lambda: u9("u9_reverse_cache_drop")),
             ("u10_reverse_4k", lambda: u10("u10_reverse_4k")),
             ("u11_reverse_column_return", lambda: u11("u11_reverse_column_return")),
-            ("u12_reverse_pixel_identity", lambda: u12("u12_reverse_pixel_identity"))]
+            ("u12_reverse_pixel_identity", lambda: u12("u12_reverse_pixel_identity")),
+            ("u13_container_reverse", lambda: u13("u13_container_reverse"))]
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)

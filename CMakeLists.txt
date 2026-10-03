@@ -20,6 +20,22 @@ find_package(FFmpeg REQUIRED)
 
 # --- libprojectM-4 (MilkDrop visualizer, optional) ---
 find_package(ProjectM QUIET)
+# BF10 (s-rta-1002b): MilkDrop draws straight into its own canvas-sized framebuffer, which needs
+# projectm_opengl_render_frame_fbo -- a libprojectM without it would silently draw into the Preview panel again.
+if(ProjectM_FOUND)
+    include(CheckCXXSourceCompiles)
+    unset(AUDIODNA_PROJECTM_HAS_RENDER_FBO CACHE)
+    set(CMAKE_REQUIRED_LIBRARIES ProjectM::ProjectM)
+    check_cxx_source_compiles("#include <projectM-4/projectM.h>
+int main() { projectm_opengl_render_frame_fbo(nullptr, 0u); return 0; }" AUDIODNA_PROJECTM_HAS_RENDER_FBO)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+    if(NOT AUDIODNA_PROJECTM_HAS_RENDER_FBO)
+        message(FATAL_ERROR "libprojectM at ${projectM4_DIR} lacks projectm_opengl_render_frame_fbo (BF10: MilkDrop "
+                            "must render into its canvas-sized framebuffer). Run cmake/projectm/build-projectm.sh, "
+                            "then re-configure.")
+    endif()
+    message(STATUS "libprojectM: ${projectM4_DIR} (render_frame_fbo: yes)")
+endif()
 
 # --- JUCE via FetchContent ---
 include(FetchContent)

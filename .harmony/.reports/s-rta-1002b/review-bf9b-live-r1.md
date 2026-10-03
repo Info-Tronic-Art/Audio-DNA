@@ -1,0 +1,15 @@
+# Reviewer Verdict -- bf9b live r1
+STATUS: DONE
+VERDICT: PASS_WITH_NITS
+REVIEWED_COMMIT: eef400c30dee24f487efacb19cff4b84b04b0e40 (base 11820fa), lens: live (what a performer sees)
+MUST: none
+SHOULD (4):
+ S1 probe-boxes.sh prints "PROBE-BOXES GREEN" when FAIL == 0 even with BLOCKED rows (.harmony/probe-boxes.py:1458-1459 exit 0 iff FAIL == 0; .harmony/probe-boxes.sh:79). k5_queue_link_on (:1047) and k7's save half never run, yet the gate line is GREEN. Harmony copies gate strings; print GREEN only at BLOCKED == 0, else "GREEN-WITH-BLOCKED n".
+ S2 K5 Link-on and K7/B5 save+reload have no live driver (report S4 found_not_fixed). Both are in the FINAL GATE LIST verbatim; Harmony must rule (test-only /api/debug/save_composition; or K5 Link-on covered by T5 + "tempo only, never the phase") before the gate counts as met.
+ S3 probe-canvas f2_deck_transition (.harmony/probe-canvas.py:451-508) FAILs on the BF9B arm (tests the deleted deck fade). Builder correctly stopped (not in 4.B); needs the RETIRED ruling before merge or the lane head ships a red probe.
+ S4 H3 (MilkDrop playlist walks the PLAYING layers, Renderer.cpp:551-560) has only a text lint pin (tests/test_render_thread_lint.cpp:72) and no behavioural test; H1 m9b_deck_switch_live was recorded as a follow-up because bf10 had not merged. bf10 is now on main: add the row after the rebase.
+NITS (3):
+ N1 DeckView::showDeck (src/ui/DeckView.cpp:354-362) does a full rebuildGrid (strips, tabs, undo hint) when decks differ in numColumns; plan F16 said only a layer-count change. DeckView.h:57 documents the column case, so it is honest, but K8/K8b/T1 use uniform column counts only, so the 50 ms bar and "same strip object" are never measured on mixed-width decks (equal to pre-bf9b cost, not a regression).
+ N2 ADNA_INSPECT_LAYER getenv lever remains (src/MainComponent.cpp:2326-2328, AUDIODNA_TEST_SERVER block). Sanctioned by ruling-bf9 C0 (inert unless set; same build path as the debug routes); named only because the task listed env-var hooks.
+ N3 ApiServer::handleComposition reads decks/layers/retiredDecks_ on the httplib thread (src/api/ApiServer.cpp:404-447): pre-existing tsan-r5 reader class, extended by the new top-level layers array.
+VERIFIED: Renderer one-pass + showAutopilot_ once per frame inside deckActive (Renderer.cpp:385-396, 506-519); no mutex/lock/alloc added on audio or GL paths (grep of added src lines); handleDeckSwitch is index + fence token + showDeck + take capture only (MainComponent.cpp:5552-5586), onDeckSwitched/badge are that one function; queued triggers survive (Layer.h pending ref; Autopilot.cpp:90-103); column fire: Ignore Column skipped, empty cell clears (Composition.h:437-457); momentary release by recorded refs (MainComponent.cpp:7555-7566); routine fires pinned by deck id (MainComponent.cpp:1920-1955); retire/reap inside the fence (UndoService.cpp:58-115, DeckCommands.h:892-946); CLAUDE.md 24,264 B; test_show_model (28 cases) and test_render_thread_lint (6) executed green from build-lane. MS1-MS7 mutation table read, teeth plausible. Not executed by me: live probes (need the app + lock), full ctest, TSAN.

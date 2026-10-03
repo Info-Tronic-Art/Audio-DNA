@@ -1,0 +1,96 @@
+perf start 20:36:52
+ 45.9 06-07:53:42 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 43.4       00:18 /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf2/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA
+ 25.0    02:22:05 /Applications/Stremio.app/Contents/MacOS/Stremio
+ 15.0 06-07:53:42 /usr/sbin/coreaudiod
+ 13.8    06:48:11 claude
+  8.0       35:13 claude
+A = /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/apps/pre-ui.app (e510790c77466f23)
+B = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app (b64e94db137e5a7f)
+20:36:53 re-acquire cooldown 14 s
+20:37:07 lock held by: bf2-S2 80520 1790987791 -- waiting
+20:39:07 lock held by: bf2-S2 80520 1790987791 -- waiting
+20:41:07 lock held by: bf2-S2 80520 1790987791 -- waiting
+20:43:07 lock held by: bf2-S2 80520 1790987791 -- waiting
+20:45:07 lock acquired
+20:45:07 [r1 A] start: load avg { 4.82 5.16 5.49 }
+20:45:46 [r1 A] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.73 5.34 5.55 }, PROBE-MILKDROP GREEN
+TAINTED (compiler) -- re-run
+20:45:46 [r1 A] start: load avg { 5.73 5.34 5.55 }
+20:46:23 [r1 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.20 5.49 5.59 }, PROBE-MILKDROP GREEN
+20:46:24 [r1 B] start: load avg { 6.20 5.49 5.59 }
+20:47:02 [r1 B] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.33 5.61 5.63 }, PROBE-MILKDROP GREEN
+TAINTED (compiler) -- re-run
+20:47:03 [r1 B] start: load avg { 6.33 5.61 5.63 }
+20:47:41 [r1 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.74 5.80 5.69 }, PROBE-MILKDROP GREEN
+20:47:41 [r2 A] start: load avg { 6.74 5.80 5.69 }
+20:48:20 [r2 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.67 5.89 5.73 }, PROBE-MILKDROP GREEN
+20:48:20 [r2 B] start: load avg { 6.67 5.89 5.73 }
+20:48:59 [r2 B] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 7.85 6.23 5.86 }, PROBE-MILKDROP GREEN
+TAINTED (compiler) -- re-run
+20:48:59 [r2 B] start: load avg { 7.85 6.23 5.86 }
+20:49:37 [r2 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.30 6.01 5.79 }, PROBE-MILKDROP GREEN
+20:49:37 lock released
+20:49:37 compiler running -- waiting
+20:50:17 re-acquire cooldown 5 s
+20:50:22 lock acquired
+20:50:22 [r3 A] start: load avg { 6.56 6.22 5.88 }
+20:51:01 [r3 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.86 6.07 5.84 }, PROBE-MILKDROP GREEN
+20:51:01 [r3 B] start: load avg { 5.86 6.07 5.84 }
+20:51:40 [r3 B] rc 0, compilers seen 3, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.35 5.89 5.78 }, PROBE-MILKDROP GREEN
+TAINTED (compiler) -- re-run
+20:51:40 [r3 B] start: load avg { 5.35 5.89 5.78 }
+20:52:18 [r3 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.54 5.93 5.81 }, PROBE-MILKDROP GREEN
+20:52:18 [r4 A] start: load avg { 5.54 5.93 5.81 }
+20:52:57 [r4 A] rc 0, compilers seen 3, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.00 6.00 5.84 }, PROBE-MILKDROP GREEN
+TAINTED (compiler) -- re-run
+20:52:57 lock released
+20:52:57 compiler running -- waiting
+20:54:58 compiler running -- waiting
+20:55:18 lock held by: bf2-S2 68641 1790988852 -- waiting
+20:57:18 lock held by: bf2-S2 68641 1790988852 -- waiting
+20:59:18 lock held by: bf2-S2 68641 1790988852 -- waiting
+21:01:18 lock held by: bf2-S2 68641 1790988852 -- waiting
+21:03:18 lock held by: bf9b-S2b 71645 1790989298 -- waiting
+21:05:18 lock held by: bf2-S2 33628 1790989447 -- waiting
+21:06:18 lock acquired
+21:06:18 [r4 A] start: load avg { 3.17 4.25 5.12 }
+21:06:56 [r4 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 3.66 4.24 5.07 }, PROBE-MILKDROP GREEN
+21:06:56 [r4 B] start: load avg { 3.66 4.24 5.07 }
+21:07:35 [r4 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.34 4.35 5.08 }, PROBE-MILKDROP GREEN
+21:07:35 [r5 A] start: load avg { 4.34 4.35 5.08 }
+21:08:14 [r5 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.28 4.35 5.04 }, PROBE-MILKDROP GREEN
+21:08:14 [r5 B] start: load avg { 4.28 4.35 5.04 }
+21:08:53 [r5 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 3.89 4.25 4.97 }, PROBE-MILKDROP GREEN
+21:08:53 lock released
+21:08:53 rounds 5 x 2 arms done (tainted 5)
+== perf_md_1080
+   A: fps 101.58, fps_min 89.37, frame_ms 7.284, gpu_ms 6.278, gpu_peak_ms 18.858 (n 5)
+   B: fps 101.08, fps_min 93.38, frame_ms 4.085, gpu_ms 5.995, gpu_peak_ms 16.203 (n 5)
+== perf_md_1080_2l
+   A: fps 119.93, fps_min 119.71, frame_ms 6.208, gpu_ms 5.827, gpu_peak_ms 9.045 (n 5)
+   B: fps 120.0, fps_min 119.92, frame_ms 4.205, gpu_ms 5.848, gpu_peak_ms 9.236 (n 5)
+== perf_md_4k
+   A: fps 71.68, fps_min 70.71, frame_ms 7.817, gpu_ms 11.674, gpu_peak_ms 14.948 (n 5)
+   B: fps 79.29, fps_min 77.02, frame_ms 2.556, gpu_ms 10.843, gpu_peak_ms 12.448 (n 5)
+driver rc 0 at 21:08:53
+perf_md_1080: rounds 5
+  fps    median A 101.58  median B 101.08  median d -1.12  spread(d) 23.23   per round A [89.0, 90.5, 109.6, 101.6, 105.4] B [92.7, 105.2, 101.1, 100.5, 102.5]
+  gpu_ms median A 6.278  median B 5.995  median d -0.226  spread(d) 1.063   per round A [6.89, 6.31, 5.94, 6.28, 6.26] B [5.85, 6.0, 5.87, 6.31, 6.04]
+  (a) median fps_B 101.08 >= 58 (median fps_A 101.58 >= 58) -> PASS
+  (b) d_gpu: median d -0.226 (bar <= +1.0), spread(d) 1.063 (decidable iff <= 2.0) -> PASS
+  verdict: PASS
+perf_md_4k: rounds 5
+  fps    median A 71.68  median B 79.29  median d +0.67  spread(d) 10.30   per round A [71.2, 71.7, 68.6, 80.6, 80.7] B [71.9, 79.3, 78.1, 80.5, 79.8]
+  gpu_ms median A 11.674  median B 10.843  median d -0.099  spread(d) 2.943   per round A [11.79, 11.67, 13.93, 10.71, 10.64] B [11.7, 10.84, 11.03, 10.67, 10.69]
+  (a) d_gpu: median d -0.099 (bar <= +2.0), spread(d) 2.943 (decidable iff <= 4.0) -> PASS
+  (b) d_fps: median d +0.670 (bar >= -3.0), spread(d) 10.300 (decidable iff <= 6.0) -> UNPROVEN
+  UNPROVEN after < 10 rounds: run 5 more rounds into a second OUTDIR and pass both ab.tsv files
+  verdict: UNPROVEN
+perf_md_1080_2l: rounds 5
+  fps    median A 119.93  median B 120.00  median d +0.02  spread(d) 6.37   per round A [119.8, 119.9, 120.0, 117.6, 120.0] B [120.0, 116.0, 119.0, 120.0, 120.0]
+  gpu_ms median A 5.827  median B 5.848  median d +0.116  spread(d) 0.384   per round A [5.68, 5.83, 5.74, 5.88, 5.88] B [5.81, 6.16, 5.85, 5.85, 5.83]
+  verdict: INFO (no gate)
+G3 perf_md_1080=PASS perf_md_4k=UNPROVEN perf_md_1080_2l=INFO
+UNC 16 s after: UserNotificationCenter windows 0 []
+perf end 21:09:09

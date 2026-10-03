@@ -19,6 +19,9 @@ with a frame-number CODE BAND -- the bottom bandRows rows (64 at 1080p, 128 at 4
 (frame number + base) (drawbox per bit). a1080 / b1080 (base 512 = bit 9 "B") / a4k: libx264 GOP 250 (keyframes 0 and
 8.333 s, asserted with ffprobe); g30_1080: GOP 30 (the control); pr1080: ProRes 422 (intra-only). $VIDEO_FIXTURES (a dir)
 = encode once and reuse (the keyframe list is re-asserted every run); else they go to <out>/media (deleted by the .sh).
+s-rta-1002b mkvidx: a spec with "remux": "<source fixture>" (+ "mux": [muxer options]) is a container copy of that fixture
+(`ffmpeg -i <source> -c copy <mux...> -fflags +bitexact`): the same packets under another index (a Matroska file's Cues at
+the end or, with -cues_to_front 1, at the front). Its source is made first (added to the set when not asked for).
 Helpers: code(cap, band) thresholds each cell's inner 50 % at 128 -> the frame number; playhead(li) = the layer's active
 clip playheadPosition from /api/composition; a frame check reads the playhead right BEFORE and right AFTER the capture
 and accepts expected(before) - codeTol <= code <= expected(after) + codeTol (expected(p) = int(p * 300)); settle_late()
@@ -244,12 +247,27 @@ def make_fixtures():
     for r, fs in ROW_FIXTURES.items():
         if ONLY is None or r in ONLY:
             need.update(fs)
+    while True:   # mkvidx: a remux spec needs its source fixture
+        more = {FIX["fixtures"][n]["remux"] for n in need if FIX["fixtures"][n].get("remux")} - need
+        if not more:
+            break
+        need |= more
     bad = 0
-    for name in sorted(need):
+    # non-remux specs FIRST: a remux reads its source (sorted() alone puts a1080_g250.mkv before a1080_g250.mp4)
+    for name in sorted(need, key=lambda n: (bool(FIX["fixtures"][n].get("remux")), n)):
         spec = FIX["fixtures"][name]; p = mpath(name)
         if spec.get("needEncoder") and not have_encoder(spec["needEncoder"]):
             info(f"fixture {name}: SKIP -- ffmpeg has no {spec['needEncoder']} encoder"); continue
-        if not os.path.exists(p):
+        if not os.path.exists(p) and spec.get("remux"):
+            t0 = time.time(); tmp = p + ".tmp" + os.path.splitext(p)[1]
+            cmd = (["ffmpeg", "-y", "-loglevel", "error", "-i", mpath(spec["remux"]), "-c", "copy"] + spec.get("mux", [])
+                   + ["-fflags", "+bitexact", tmp])
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0:
+                no(f"fixture {name}: ffmpeg remux of {spec['remux']} failed: {r.stderr[:300]}"); bad += 1; continue
+            os.rename(tmp, p)
+            print(f"fixture {name}: remuxed from {spec['remux']} {spec.get('mux', [])} in {time.time() - t0:.1f} s", flush=True)
+        elif not os.path.exists(p):
             t0 = time.time()
             pre = "negate," if "negate" in spec["src"] else ""
             vf = pre + band_filter(spec["band"], spec["base"])

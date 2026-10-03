@@ -48,6 +48,15 @@ inline std::string undoRemoveHint(const std::string& deckName, const std::vector
     return s;
 }
 
+// s-rta-1002b ui U3.2 (BF8): the in-place rename box over a tab (x relative to the row, like layout()). At least
+// kTabWidth wide -- a 60-px box shows about 6 characters at the tab's 14-px font -- starting at the tab, shifted left so
+// it never leaves the row: it always covers its own tab and may cover the next one while it is open.
+inline Rect editorRect(Rect tab, int rowWidth)
+{
+    const int w = std::max(tab.w, kTabWidth);
+    return { std::max(0, std::min(tab.x, rowWidth - w)), w };
+}
+
 // Menu item ids ARE these values (a JUCE PopupMenu result of 0 means "dismissed").
 enum class Action : int { NewDeck = 1, LoadDeck, SaveDeck, SaveDeckAs, Rename, Duplicate, Remove };
 

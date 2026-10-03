@@ -1411,6 +1411,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (undoManager_.undoDescription() == "Remove Deck")
             handleMenuCommand(AudioDNAMenuBar::kCompUndo);
     };
+    // s-rta-1002b ui U3.3 (BF8): the tab's in-place rename box. Every close hands the keyboard back here, BEFORE the box
+    // hides (ruling AM4): JUCE would otherwise park it on column trigger "1" and the next Return would fire that column.
+    deckView_->onDeckRenamed = [this](int deckIndex, const juce::String& name) { applyDeckRename(deckIndex, name); };
+    deckView_->onRenameClosed = [this] {
+        ++renameFocusHomeCount_;
+        grabKeyboardFocus();
+    };
+    // s-rta-1002b ui U2.5 (BF3): the clip cells' codec line (tooltip) and their menu's "Show in Finder".
+    deckView_->setVideoInfoSource([this](const Clip& clip) { return videoInfoFor(clip); });
+    deckView_->onRevealInFinder = [this](int layerIndex, int column) { revealClipAt(layerIndex, column); };
 
     // === v2: Inspector Panel ===
     inspectorPanel_ = std::make_unique<InspectorPanel>();
@@ -1447,6 +1457,12 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
     inspectorPanel_->getLayerInspector().onLayerNameChanged = [this]() {
         if (deckView_) deckView_->refresh();
+    };
+    // s-rta-1002b ui U2.5 (BF3): the Clip inspector's file-info rows and its "Show in Finder" button.
+    inspectorPanel_->getClipInspector().setVideoInfoSource([this](const Clip& clip) { return videoInfoFor(clip); });
+    inspectorPanel_->getClipInspector().onRevealInFinder = [this](Clip* clip) {
+        if (clip != nullptr)
+            revealClipFile(*clip);
     };
     inspectorPanel_->getClipInspector().onSourceParamsChanged = [this](Clip* clip) {
         if (clip && clip->mediaType == Clip::MediaType::Source)
@@ -2136,12 +2152,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onDebugLoadDeck = [this](juce::File f) { appendDeckFromFile(f); };
     apiServer_->onDebugDuplicateDeck = [this](int deckIndex) { duplicateDeck(deckIndex); };
     apiServer_->onDebugCancelLoad = [this] { cancelStagedOpen(LoadTicket::Outcome::Superseded); };
-    // Lane bf9b (ruling-bf9b amendment 4(g)): the tab menu's Remove Deck and the Cmd+Z function, by REST.
+    // Lane bf9b (ruling-bf9b amendment 4(g)): the tab menu's Remove Deck, by REST (Undo: the ui lane's onDebugUndo).
     apiServer_->onDebugRemoveDeck = [this](int deckIndex) { removeDeck(deckIndex); };
-    apiServer_->onDebugUndo = [this] {
-        const bool movesLayer = undoManager_.undoAffectsLayerOrder();
-        if (undoManager_.undo()) refreshAfterUndoRedo(movesLayer);
-    };
     // Lane bf9b fix round: File > Save As... to a given file, no chooser (K7 / B5 "save + reload").
     apiServer_->onDebugSaveComposition = [this](juce::File f) { saveCompositionTo(f); };
     apiServer_->onDebugUiText = [this] { return fileLabel_.getText(); };
@@ -2200,6 +2212,92 @@ MainComponent::MainComponent(bool testMode, int testPort)
                         [](int) {});
     };
     apiServer_->onDebugUiRepaintAll = [this] { repaint(); };
+    // s-rta-1002b ui U3.4 (TEST-ONLY routes; ruling-ui.md AM6): the deck tab row and its in-place rename box -- the same
+    // DeckView functions the mouse and keys reach, and Edit > Undo / Redo. All run on the message thread.
+    apiServer_->onDebugDeckTabs = [this]() -> juce::var {
+        auto state = deckView_ ? deckView_->tabRowStateForTests() : juce::var(new juce::DynamicObject());
+        if (auto* o = state.getDynamicObject())
+        {
+            o->setProperty("focus_home_count", renameFocusHomeCount_);
+            auto* undo = new juce::DynamicObject();
+            undo->setProperty("top", juce::String(undoManager_.undoDescription()));
+            undo->setProperty("redo_top", juce::String(undoManager_.redoDescription()));
+            undo->setProperty("index", undoManager_.undoIndex());
+            undo->setProperty("size", undoManager_.historySize());
+            o->setProperty("undo", juce::var(undo));
+        }
+        return state;
+    };
+    apiServer_->onDebugDeckRename = [this](int deckIndex, const juce::String& op, const juce::String& text) {
+        if (deckView_) deckView_->renameOpForTests(op, deckIndex, text);
+    };
+    apiServer_->onDebugTabClick = [this](int deckIndex) { if (deckView_) deckView_->clickTabForTests(deckIndex); };
+    apiServer_->onDebugTabDoubleClick = [this](int deckIndex) { if (deckView_) deckView_->doubleClickTabForTests(deckIndex); };
+    apiServer_->onDebugUndo = [this](bool redo) {
+        handleMenuCommand(redo ? AudioDNAMenuBar::kCompRedo : AudioDNAMenuBar::kCompUndo);
+    };
+    // s-rta-1002b ui U2.6 (TEST-ONLY routes; plan-ui.md U2.6 + ruling-ui.md AM10): a clip's file info as the cell, its
+    // menu and the Clip inspector show it, plus the reveal record (test mode never calls Finder). Message thread.
+    apiServer_->onDebugClipMedia = [this](int layer, int column) -> juce::var {
+        static constexpr const char* kMediaTypes[] = { "none", "image", "video", "camera", "source", "image_sequence" };
+        auto* o = new juce::DynamicObject();
+        o->setProperty("layer", layer);
+        o->setProperty("column", column);
+        auto* deck = composition_.getActiveDeck();
+        Clip* clip = deck != nullptr ? deck->getClip(layer, column) : nullptr;
+        const auto typeIndex = clip != nullptr ? static_cast<size_t>(clip->mediaType) : size_t(0);
+        o->setProperty("media_type", typeIndex < std::size(kMediaTypes) ? kMediaTypes[typeIndex] : "unknown");
+        const auto video = clip != nullptr ? videoInfoFor(*clip) : std::optional<VideoInfo>();
+        const auto d = clip != nullptr ? clipmedia::describe(*clip, video) : Described {};
+        o->setProperty("line", d.line);
+        juce::Array<juce::var> lines;
+        for (const auto& line : d.lines)
+            lines.add(line);
+        o->setProperty("lines", lines);
+        auto* cell = deckView_ ? deckView_->cellForTests(layer, column) : nullptr;
+        o->setProperty("cell", cell != nullptr);
+        o->setProperty("tooltip", cell != nullptr ? cell->getTooltip() : juce::String());
+        o->setProperty("path_tip", d.pathTip);
+        o->setProperty("reveal_target", d.revealTarget.getFullPathName());
+        o->setProperty("file_backed", d.fileBacked);
+        o->setProperty("missing", d.missing);
+        if (video.has_value())
+        {
+            auto* v = new juce::DynamicObject();
+            v->setProperty("codec", juce::String(video->codec));
+            v->setProperty("width", video->width);
+            v->setProperty("height", video->height);
+            v->setProperty("fps", video->fps);
+            o->setProperty("video", juce::var(v));
+        }
+        else
+            o->setProperty("video", juce::var());
+        juce::Array<juce::var> menu;
+        for (const auto& item : clipmedia::menuItems(clip))
+            menu.add(item);
+        o->setProperty("menu", menu);
+        auto& inspector = inspectorPanel_->getClipInspector();
+        o->setProperty("inspector_shows", clip != nullptr && inspector.getClip() == clip
+                                              && inspectorPanel_->getActiveTab() == InspectorPanel::Tab::Clip);
+        const auto shown = inspector.mediaInfoLinesShown();
+        juce::Array<juce::var> inspectorLines;
+        for (const auto& line : shown)
+            inspectorLines.add(line);
+        o->setProperty("inspector_lines", inspectorLines);
+        o->setProperty("inspector_line", shown.joinIntoString(", "));
+        o->setProperty("inspector_button_visible", inspector.revealButtonForTests().isVisible());
+        o->setProperty("last_revealed", lastRevealPath_);
+        o->setProperty("reveal_count", revealCount_);
+        return juce::var(o);
+    };
+    apiServer_->onDebugRevealClip = [this](int layer, int column) {
+        if (deckView_) deckView_->revealCellForTests(layer, column);
+    };
+    apiServer_->onDebugInspectClip = [this](int layer, int column) {   // the cell's name-bar click (select + inspect)
+        if (auto* cell = deckView_ ? deckView_->cellForTests(layer, column) : nullptr)
+            if (auto onSelect = cell->onSelect)
+                onSelect(layer, column, false);
+    };
 #endif
     apiServer_->start();
 
@@ -2957,6 +3055,11 @@ void MainComponent::refreshUiAfterModelSwap()
         inspectorPanel_->getClipInspector().setClip(nullptr);
         inspectorPanel_->getLayerInspector().setLayer(nullptr);
     }
+
+    // s-rta-1002b ui U3.3 (ruling AM12): an open deck-name box is discarded -- the loaded composition may reuse its deck
+    // id (Pitfall 36). After the inspector nulling, before the rebuild; it reads no model data when it discards.
+    if (deckView_)
+        deckView_->cancelDeckRename();
 
     // DEVIATION from the work packet's literal step order (flagged in the
     // build report): the packet's §1 sequence calls
@@ -3763,18 +3866,64 @@ void MainComponent::renameDeck(int deckIndex)
     // deleteWhenDismissed = true: ModalComponentManager runs this callback BEFORE
     // it deletes the window, so reading w's text editor inside it is safe.
     w->enterModalState(true, juce::ModalCallbackFunction::create(
-        [this, deckIndex, w, oldName](int result) {
-            const auto text = w->getTextEditorContents("name").trim();
-            if (result != 1 || text.isEmpty()
-                || deckIndex >= static_cast<int>(composition_.decks.size())
-                || text.toStdString() == oldName)
+        [this, deckIndex, w](int result) {
+            if (result != 1)
                 return;
-            std::vector<std::unique_ptr<Command>> children;
-            children.push_back(std::make_unique<RenameDeckCmd>(
-                makeCompositionResolver(), deckIndex, oldName, text.toStdString(), "Rename Deck"));
-            pushCommands(std::move(children), "Rename Deck");
-            if (deckView_) deckView_->refresh();   // relabel the tab
+            applyDeckRename(deckIndex, w->getTextEditorContents("name"));
         }), true);
+}
+
+void MainComponent::applyDeckRename(int deckIndex, const juce::String& text)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+    const auto trimmed = text.trim();
+    const std::string current = composition_.decks[static_cast<size_t>(deckIndex)].name;
+    if (trimmed.isEmpty() || trimmed.toStdString() == current)
+        return;
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<RenameDeckCmd>(
+        makeCompositionResolver(), deckIndex, current, trimmed.toStdString(), "Rename Deck"));
+    pushCommands(std::move(children), "Rename Deck");
+    if (deckView_) deckView_->refresh();   // relabel the tab
+}
+
+// s-rta-1002b ui U2.5 (BF3): the player open for the clip is the only source that is always true (plan F-U1); a player
+// still holding another file (a Replace in flight) or an unknown codec answers nothing ("Video file not loaded").
+std::optional<VideoInfo> MainComponent::videoInfoFor(const Clip& clip)
+{
+    if (clip.mediaType != Clip::MediaType::Video)
+        return std::nullopt;
+    auto* player = previewPanel_.getRenderer().getVideoPlayer(clip.id);
+    if (player == nullptr || player->getFile() != clip.mediaFile || !player->getInfo().known())
+        return std::nullopt;
+    return player->getInfo();
+}
+
+void MainComponent::revealClipFile(const Clip& clip)
+{
+    const auto target = clipmedia::revealTarget(clip);
+    if (target == juce::File())
+        return;
+    if (testMode_)
+    {
+        // Gates never open a Finder window on Boris's screen (plan F-U5): record what would have been shown.
+        lastRevealPath_ = target.getFullPathName();
+        ++revealCount_;
+        return;
+    }
+    // JUCE (macOS): an existing file is selected in Finder; a missing one's folder is opened instead.
+    if (target.exists() || target.getParentDirectory().isDirectory())
+        target.revealToUser();
+    else
+        setFileLabel("Show in Finder: not found - " + target.getFullPathName());
+}
+
+void MainComponent::revealClipAt(int layerIndex, int column)
+{
+    if (auto* deck = composition_.getActiveDeck())
+        if (auto* clip = deck->getClip(layerIndex, column))
+            revealClipFile(*clip);
 }
 
 void MainComponent::duplicateDeck(int deckIndex)

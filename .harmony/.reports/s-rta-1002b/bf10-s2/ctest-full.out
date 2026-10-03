@@ -1,0 +1,5 @@
+full ctest start 2026-10-02 19:06:49 HEAD=ab5cf4b
+ctest exit=8 2026-10-02 19:08:51
+99% tests passed, 1 tests failed out of 1130
+Total Test time (real) = 122.22 sec
+	504 - test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it (Failed)

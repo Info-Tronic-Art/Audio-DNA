@@ -28,6 +28,7 @@ extern "C" {
 
 #include <cerrno>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -148,6 +149,11 @@ struct VideoPlayerTestAccess
     }
     static int gopEst(const VideoPlayer& p) { return p.gopFramesEst_; }
     static std::vector<int> keyRels(const VideoPlayer& p) { return p.keyRels_; }
+    // s-rta-1002b mkvidx: the demuxer's index entry count for the video stream right now (no decode thread here)
+    static int indexEntries(const VideoPlayer& p)
+    {
+        return avformat_index_get_entries_count(p.formatCtx_->streams[p.videoStreamIndex_]);
+    }
 };
 
 namespace
@@ -1361,14 +1367,17 @@ struct Emulated
     long shownTotal() const { return shown[0] + shown[1]; }
 };
 
-// The player opened with a local Budget of `capFrames` frames, reversing from the Loop wrap (the T1b start).
-void openCapped(VideoPlayer& p, VideoStats& st, GopCache::Budget& budget, const juce::File& f, int capFrames)
+// The player opened with a local Budget of `capFrames` frames, reversing from the Loop wrap (the T1b start); `reverse` false
+// (s-rta-1002b mkvidx T4): opened at frame 0, not started.
+void openCapped(VideoPlayer& p, VideoStats& st, GopCache::Budget& budget, const juce::File& f, int capFrames, bool reverse = true)
 {
     VideoPlayerTestAccess::mallocPath(p);
     VideoPlayerTestAccess::setBudget(p, &budget);
     p.setStats(&st);
     REQUIRE(p.open(f));
     budget.total.store(capFrames * VideoPlayerTestAccess::frameBytes(p));
+    if (!reverse)
+        return;
     p.setReverse(true);
     p.advanceFrame(1.0 / 1000.0);   // the Loop wrap to the end, reversing
 }
@@ -1638,5 +1647,545 @@ TEST_CASE("gop2 R3: a landing on a demuxer-key packet opens the store gate -- in
         CHECK(bad == 0);
         CHECK(st.reverseNonmonotonic.load() == 0);
         p.close();
+    }
+}
+
+// ================================================================================================================================
+// s-rta-1002b mkvidx (plan-mkvidx.md items 1-3 + ruling AM5-AM12): a Matroska file's keyframe model is the demuxer's LIVE index
+// (VideoPlayer::readKeyIndex, re-read at the top of every decodeStep when the index changed: Matroska's Cues load at the first
+// seek and every keyframe read adds an entry -- the open-time index of a Cues-at-the-end file has ONE entry), its intra
+// verdict needs every index entry a keyframe AND one frame apart (GopCache::keyIndexFrom: a Cues index lists keyframes only),
+// and a RUN's seek aims at the frame's middle (container times are rounded -- Matroska 1 ms, QuickTime 1/600 -- and the
+// conversion truncates: a landing a whole GOP low). Every Matroska row is judged against the SAME stream in MP4 in the same
+// run (the gop2 T1b harness: Emulated, K decodes per 120 Hz render frame, decode ms pinned).
+//
+// Fixtures (tests/fixtures; brew FFmpeg 8.0 / libavformat 62.3.100; the committed bytes are the fixtures (R10) -- every
+// command was run twice -> byte-identical; all with `-hide_banner -loglevel error -y`):
+//   FX1  video_h264_gop250_64x64.mkv (47,251 B, sha256 f3efd8c1ef9b8fb1...) =
+//        ffmpeg -i video_h264_gop250_64x64.mp4 -c copy -fflags +bitexact <out>                      (Cues at the end)
+//   FX2  video_h264_gop250_cuesfront_64x64.mkv (47,251 B, 2cc9c9f8ec94f3f3...) = FX1's command + -cues_to_front 1
+//   FX3  video_h264_scenecut_64x64.mkv (50,486 B, a9c17605b038c2a3...) =
+//        ffmpeg -i video_h264_scenecut_64x64.mp4 -c copy -fflags +bitexact <out>
+//   FX4  video_h264_allintra_cuesfront_64x64.mkv (23,485 B, f310619d1c3af1aa...) =
+//        ffmpeg -i video_h264_allintra_64x64.mp4 -c copy -fflags +bitexact -cues_to_front 1 <out>
+//   FX4e video_h264_allintra_64x64.mkv (23,485 B, 2802512b4d266b2d...) =
+//        ffmpeg -i video_h264_allintra_64x64.mp4 -c copy -fflags +bitexact <out>                    (Cues at the end)
+//   FX5  video_h264_gop30_64x64.mkv (16,277 B, 69d77cbff6420f5b...) =
+//        ffmpeg -i video_h264_gop30_64x64.mp4 -c copy -fflags +bitexact <out>
+//   FX6  video_hap_tb600_64x64.mov (100,841 B, 83cfa97a7a1066d3...) =
+//        ffmpeg -f lavfi -i testsrc2=size=64x64:rate=30 -t 3 -c:v hap -video_track_timescale 600 -fflags +bitexact <out>
+//   FX7m video_vp9_gop60_64x64.mp4 (48,924 B, 11a157e45ecc9fc6...) =
+//        ffmpeg -f lavfi -i testsrc2=size=64x64:rate=30 -t 10 -c:v libvpx-vp9 -g 60 -keyint_min 60 -deadline good
+//        -cpu-used 4 -crf 45 -b:v 0 -row-mt 0 -threads 1 -fflags +bitexact <out>
+//   FX7  video_vp9_gop60_64x64.webm (49,568 B, c1348e3b9ffbcab5...) =
+//        ffmpeg -i video_vp9_gop60_64x64.mp4 -c copy -fflags +bitexact <out>
+//   FX8  video_h264_opengop_64x64.mkv (14,620 B, e83125cd21d1ca3f...) =
+//        ffmpeg -i video_h264_opengop_64x64.mp4 -c copy -fflags +bitexact <out>
+// The structure the product cases rely on is asserted ONCE, by "mkvidx fixture shape" (an FFmpeg that changes it turns that
+// case red: re-register, not a product defect); the product cases (T1-T4) carry no shape REQUIRE.
+namespace
+{
+// The key-flagged DECODED frames of a forward decode of `file`, as relative indices lround((pts - first output pts) / fd),
+// fd as forwardDecode's (avg_frame_rate, else r_frame_rate).
+std::vector<int> decodedKeyRels(const juce::File& file)
+{
+    std::vector<int> out;
+    AVFormatContext* fmt = nullptr;
+    REQUIRE(avformat_open_input(&fmt, file.getFullPathName().toRawUTF8(), nullptr, nullptr) == 0);
+    REQUIRE(avformat_find_stream_info(fmt, nullptr) >= 0);
+    const int si = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    REQUIRE(si >= 0);
+    auto* st = fmt->streams[si];
+    const AVCodec* codec = avcodec_find_decoder(st->codecpar->codec_id);
+    AVCodecContext* cc = avcodec_alloc_context3(codec);
+    avcodec_parameters_to_context(cc, st->codecpar);
+    cc->thread_count = 2;
+    REQUIRE(avcodec_open2(cc, codec, nullptr) == 0);
+    const double tb = av_q2d(st->time_base);
+    const double fd = 1.0 / av_q2d(st->avg_frame_rate.num > 0 && st->avg_frame_rate.den > 0 ? st->avg_frame_rate : st->r_frame_rate);
+    AVFrame* fr = av_frame_alloc();
+    AVPacket* pk = av_packet_alloc();
+    bool haveFirst = false;
+    double first = 0.0;
+    auto take = [&] {
+        while (avcodec_receive_frame(cc, fr) == 0)
+        {
+            const double pts = static_cast<double>(fr->pts) * tb;
+            if (!haveFirst)
+            {
+                first = pts;
+                haveFirst = true;
+            }
+            if ((fr->flags & AV_FRAME_FLAG_KEY) != 0)
+                out.push_back(static_cast<int>(std::lround((pts - first) / fd)));
+        }
+    };
+    while (av_read_frame(fmt, pk) >= 0)
+    {
+        if (pk->stream_index == si && avcodec_send_packet(cc, pk) >= 0)
+            take();
+        av_packet_unref(pk);
+    }
+    avcodec_send_packet(cc, nullptr);
+    take();
+    av_frame_free(&fr);
+    av_packet_free(&pk);
+    avcodec_free_context(&cc);
+    avformat_close_input(&fmt);
+    return out;
+}
+
+// Every video packet / decoded frame of `file`, and how many of each are key-flagged (an all-intra fixture's shape).
+struct KeyShape
+{
+    int packets = 0, keyPackets = 0, frames = 0, keyFrames = 0;
+};
+KeyShape keyShape(const juce::File& file)
+{
+    KeyShape k;
+    AVFormatContext* fmt = nullptr;
+    REQUIRE(avformat_open_input(&fmt, file.getFullPathName().toRawUTF8(), nullptr, nullptr) == 0);
+    REQUIRE(avformat_find_stream_info(fmt, nullptr) >= 0);
+    const int si = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    REQUIRE(si >= 0);
+    const AVCodec* codec = avcodec_find_decoder(fmt->streams[si]->codecpar->codec_id);
+    AVCodecContext* cc = avcodec_alloc_context3(codec);
+    avcodec_parameters_to_context(cc, fmt->streams[si]->codecpar);
+    REQUIRE(avcodec_open2(cc, codec, nullptr) == 0);
+    AVFrame* fr = av_frame_alloc();
+    AVPacket* pk = av_packet_alloc();
+    auto take = [&] {
+        while (avcodec_receive_frame(cc, fr) == 0)
+        {
+            ++k.frames;
+            k.keyFrames += (fr->flags & AV_FRAME_FLAG_KEY) != 0 ? 1 : 0;
+        }
+    };
+    while (av_read_frame(fmt, pk) >= 0)
+    {
+        if (pk->stream_index == si)
+        {
+            ++k.packets;
+            k.keyPackets += (pk->flags & AV_PKT_FLAG_KEY) != 0 ? 1 : 0;
+            if (avcodec_send_packet(cc, pk) >= 0)
+                take();
+        }
+        av_packet_unref(pk);
+    }
+    avcodec_send_packet(cc, nullptr);
+    take();
+    av_frame_free(&fr);
+    av_packet_free(&pk);
+    avcodec_free_context(&cc);
+    avformat_close_input(&fmt);
+    return k;
+}
+
+AVRational videoTimeBase(const juce::File& file)
+{
+    AVFormatContext* fmt = nullptr;
+    REQUIRE(avformat_open_input(&fmt, file.getFullPathName().toRawUTF8(), nullptr, nullptr) == 0);
+    REQUIRE(avformat_find_stream_info(fmt, nullptr) >= 0);
+    const int si = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    REQUIRE(si >= 0);
+    const AVRational tb = fmt->streams[si]->time_base;
+    avformat_close_input(&fmt);
+    return tb;
+}
+
+std::string keysText(const std::vector<int>& v)
+{
+    if (v.size() > 12)   // an intra-only index: every frame
+        return "{" + std::to_string(v.front()) + ", " + std::to_string(v[1]) + ", ..., " + std::to_string(v.back()) + "} ("
+               + std::to_string(v.size()) + " keys)";
+    std::string s;
+    for (size_t i = 0; i < v.size(); ++i)
+        s += (i > 0 ? ", " : "") + std::to_string(v[i]);
+    return "{" + s + "}";
+}
+
+int largestGap(const std::vector<int>& v)
+{
+    int g = 0;
+    for (size_t i = 1; i < v.size(); ++i)
+        g = std::max(g, v[i] - v[i - 1]);
+    return g;
+}
+
+// One emulated run of `f` (the T1b harness: a local budget of `cap` frames, Emulated K decodes per 120 Hz render frame):
+// Reverse = Loop reverse from the wrap for `secs`; PingPong = PingPong from frame 0 (no reverse flag); Flip = Loop reverse from
+// the wrap, setReverse(false) before the render frame at `flipAt` s. Every picked frame is compared with a forward decode of f.
+enum class Drive : uint8_t { Reverse, PingPong, Flip };
+struct Arm
+{
+    bool intra = false;   // the open-time verdict
+    long late = 0, shown = 0, decodes = 0, seeks = 0, mismatches = 0;
+    std::vector<int> keys;   // keyRels_ after the run
+    int gop = 0;             // gopFramesEst_ after the run
+};
+Arm emulateArm(const char* name, int cap, double secs, Drive drive, double flipAt = 0.0, int K = 3)
+{
+    const auto f = fixture(name);
+    auto ref = forwardDecode(f);
+    VideoStats st;
+    GopCache::Budget budget;
+    VideoPlayer p;
+    openCapped(p, st, budget, f, cap, drive != Drive::PingPong);
+    Arm a;
+    a.intra = VideoPlayerTestAccess::intraOnly(p);
+    if (drive == Drive::PingPong)
+        p.setLoopMode(VideoPlayer::LoopMode::PingPong);
+    Emulated e{ p, st, ref, K };
+    const long frames = std::lround(secs * 120.0), flipFrame = std::lround(flipAt * 120.0);
+    for (long i = 0; i < frames; ++i)
+    {
+        if (drive == Drive::Flip && i == flipFrame)
+            p.setReverse(false);
+        e.frame(0);
+    }
+    a.late = e.lateTotal();
+    a.shown = e.shownTotal();
+    a.decodes = static_cast<long>(st.framesDecoded.load());
+    a.seeks = static_cast<long>(st.seeks.load());
+    a.mismatches = e.mismatches;
+    a.keys = VideoPlayerTestAccess::keyRels(p);
+    a.gop = VideoPlayerTestAccess::gopEst(p);
+    p.close();
+    return a;
+}
+
+void printArm(const char* tag, const char* name, const Arm& a)
+{
+    std::printf("mkvidx %s %-40s intra %d late %ld shown %ld decodes %ld seeks %ld mismatches %ld keyRels %s gop %d\n", tag, name,
+                a.intra ? 1 : 0, a.late, a.shown, a.decodes, a.seeks, a.mismatches, keysText(a.keys).c_str(), a.gop);
+}
+
+// A Matroska arm against its MP4 source in the same run: decodes within `decodesFactor`, late / shown within one, identity.
+void checkParity(const Arm& mkv, const Arm& mp4, double decodesFactor = 1.02)
+{
+    CHECK(static_cast<double>(mkv.decodes) <= static_cast<double>(mp4.decodes) * decodesFactor);
+    CHECK(mkv.late <= mp4.late + 1);
+    CHECK(mkv.shown >= mp4.shown - 1);
+    CHECK(mkv.mismatches == 0);
+}
+} // namespace
+
+// AM6: the structure every mkvidx case relies on -- RED only when FFmpeg changes it (then re-register; not a product defect).
+TEST_CASE("mkvidx fixture shape: the Matroska fixtures' lazy / front-Cues index and the codec structure the mkvidx cases rely "
+          "on -- an FFmpeg that changes them turns THIS case red: re-register, not a product defect", "[video_player][gopcache][s-rta-1002b]")
+{
+    const unsigned v = avformat_version();
+    std::printf("mkvidx fixture shape: libavformat %u.%u.%u (the G3 values are registered on 62.3.100)\n", AV_VERSION_MAJOR(v),
+                AV_VERSION_MINOR(v), AV_VERSION_MICRO(v));
+    // the open-time index: a Cues-at-the-end Matroska file holds its first keyframe only (the Cues load at the first seek)
+    for (const char* name : { "video_h264_gop250_64x64.mkv", "video_h264_scenecut_64x64.mkv", "video_h264_gop30_64x64.mkv",
+                              "video_vp9_gop60_64x64.webm", "video_h264_opengop_64x64.mkv" })
+    {
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        REQUIRE(p.open(fixture(name)));
+        const auto k = VideoPlayerTestAccess::keyRels(p);
+        std::printf("mkvidx fixture shape %-40s open keyRels %s index entries %d\n", name, keysText(k).c_str(),
+                    VideoPlayerTestAccess::indexEntries(p));
+        CAPTURE(name, keysText(k));
+        REQUIRE(k == std::vector<int>{ 0 });
+        p.close();
+    }
+    {   // FX2: the Cues at the front -- the whole (keyframes-only) index at open, unlike FX1
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        REQUIRE(p.open(fixture("video_h264_gop250_cuesfront_64x64.mkv")));
+        std::printf("mkvidx fixture shape %-40s open keyRels %s index entries %d\n", "video_h264_gop250_cuesfront_64x64.mkv",
+                    keysText(VideoPlayerTestAccess::keyRels(p)).c_str(), VideoPlayerTestAccess::indexEntries(p));
+        REQUIRE(VideoPlayerTestAccess::keyRels(p) == std::vector<int>{ 0, 250 });
+        p.close();
+    }
+    {   // FX4 (front Cues) opens intra-only with 30 index entries; FX4e (end Cues) with the probe read-ahead's entries (>= 2)
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        REQUIRE(p.open(fixture("video_h264_allintra_cuesfront_64x64.mkv")));
+        VideoPlayer q;
+        VideoPlayerTestAccess::mallocPath(q);
+        REQUIRE(q.open(fixture("video_h264_allintra_64x64.mkv")));
+        std::printf("mkvidx fixture shape FX4 intra %d index entries %d | FX4e intra %d index entries %d\n",
+                    VideoPlayerTestAccess::intraOnly(p) ? 1 : 0, VideoPlayerTestAccess::indexEntries(p),
+                    VideoPlayerTestAccess::intraOnly(q) ? 1 : 0, VideoPlayerTestAccess::indexEntries(q));
+        REQUIRE(VideoPlayerTestAccess::intraOnly(p));
+        REQUIRE(VideoPlayerTestAccess::indexEntries(p) == 30);
+        REQUIRE(VideoPlayerTestAccess::intraOnly(q));
+        REQUIRE(VideoPlayerTestAccess::indexEntries(q) >= 2);
+        p.close();
+        q.close();
+    }
+    for (const char* name : { "video_h264_allintra_cuesfront_64x64.mkv", "video_h264_allintra_64x64.mkv", "video_hap_tb600_64x64.mov" })
+    {   // every packet and every decoded frame a keyframe
+        const auto k = keyShape(fixture(name));
+        std::printf("mkvidx fixture shape %-40s packets %d (key %d) frames %d (key %d)\n", name, k.packets, k.keyPackets, k.frames,
+                    k.keyFrames);
+        CAPTURE(name, k.packets, k.keyPackets, k.frames, k.keyFrames);
+        REQUIRE(k.packets > 0);
+        REQUIRE(k.keyPackets == k.packets);
+        REQUIRE(k.frames > 0);
+        REQUIRE(k.keyFrames == k.frames);
+    }
+    {   // FX6: a QuickTime 1/600 time base
+        const AVRational tb = videoTimeBase(fixture("video_hap_tb600_64x64.mov"));
+        std::printf("mkvidx fixture shape FX6 time base %d/%d\n", tb.num, tb.den);
+        REQUIRE(tb.num == 1);
+        REQUIRE(tb.den == 600);
+    }
+    for (const char* name : { "video_vp9_gop60_64x64.webm", "video_vp9_gop60_64x64.mp4" })
+    {
+        int keyPackets = 0, keyFrames = 0;
+        keyCounts(fixture(name), &keyPackets, &keyFrames);
+        CAPTURE(name, keyPackets, keyFrames);
+        REQUIRE(keyPackets == 5);
+        REQUIRE(keyFrames == 5);
+    }
+    struct Keys
+    {
+        const char* name;
+        std::vector<int> keys;
+    };
+    for (const Keys& c : { Keys{ "video_h264_gop250_64x64.mkv", { 0, 250 } },
+                           Keys{ "video_h264_scenecut_64x64.mkv", { 0, 37, 150, 190, 213, 262 } },
+                           Keys{ "video_h264_gop30_64x64.mkv", { 0, 30, 60 } },
+                           Keys{ "video_vp9_gop60_64x64.webm", { 0, 60, 120, 180, 240 } },
+                           Keys{ "video_h264_opengop_64x64.mkv", { 0, 10, 20, 30, 40, 50 } } })
+    {
+        const auto k = decodedKeyRels(fixture(c.name));
+        std::printf("mkvidx fixture shape %-40s decoded key frames %s\n", c.name, keysText(k).c_str());
+        CAPTURE(c.name, keysText(k));
+        REQUIRE(k == c.keys);
+    }
+}
+
+// AM7 (plan item 1): a GOP-250 Matroska file with its Cues at the FRONT -- every index entry a keyframe (Cues list keyframes
+// only), 250 frames apart: NOT intra-only. fa9604d called it intra-only and its reverse froze (an intra DEMAND run every
+// step: late 875, shown 1, decodes 3240 vs the MP4's 0 / 268 / 2186). Guard: the all-intra front-Cues file stays intra.
+TEST_CASE("mkvidx T1: a long-GOP Matroska file with its Cues at the FRONT is not intra-only; reverse = the same stream in MP4",
+          "[video_player][gopcache][s-rta-1002b]")
+{
+    const auto mp4 = emulateArm("video_h264_gop250_64x64.mp4", 21, 9.0, Drive::Reverse);
+    const auto mkv = emulateArm("video_h264_gop250_cuesfront_64x64.mkv", 21, 9.0, Drive::Reverse);
+    printArm("T1 CAP 21 K 3 9 s", "video_h264_gop250_64x64.mp4", mp4);
+    printArm("T1 CAP 21 K 3 9 s", "video_h264_gop250_cuesfront_64x64.mkv", mkv);
+    CHECK_FALSE(mkv.intra);
+    checkParity(mkv, mp4);
+    VideoPlayer q;
+    VideoPlayerTestAccess::mallocPath(q);
+    REQUIRE(q.open(fixture("video_h264_allintra_cuesfront_64x64.mkv")));
+    std::printf("mkvidx T1 guard video_h264_allintra_cuesfront_64x64.mkv intra %d\n", VideoPlayerTestAccess::intraOnly(q) ? 1 : 0);
+    CHECK(VideoPlayerTestAccess::intraOnly(q));
+    q.close();
+}
+
+// AM8 (plan item 2): the keyframe model follows the demuxer's index. (a) the reverse start's DEMAND seek loads FX1's Cues:
+// keyRels {0, 250}, gop 250 after 4 steps (fa9604d: {0}, 300 -- the whole file one GOP); (b) plain forward play (no seek)
+// adds each keyframe it reads: frame 250's -- seeks 0, late 0, every frame shown in order; (c) the parity table, Loop
+// reverse from the wrap: each Matroska file against its MP4 source -- keyRels == the decoder's key frames, gop == their
+// largest gap, the same decodes (fa9604d: FX1 2425 vs 2186, FX3 2141 vs 910, FX7 2212 vs 1044).
+TEST_CASE("mkvidx T2: a Matroska file's keyframe model follows the demuxer's index -- the Cues after the first seek, each "
+          "keyframe as it is read; reverse = the same stream in MP4", "[video_player][gopcache][s-rta-1002b]")
+{
+    const auto fx1 = fixture("video_h264_gop250_64x64.mkv");
+    const auto fx1Keys = decodedKeyRels(fx1);
+    {   // (a)
+        VideoStats st;
+        GopCache::Budget budget;
+        VideoPlayer p;
+        openCapped(p, st, budget, fx1, 21);
+        const auto k0 = VideoPlayerTestAccess::keyRels(p);
+        const int g0 = VideoPlayerTestAccess::gopEst(p);
+        for (int i = 0; i < 4; ++i)
+            VideoPlayerTestAccess::step(p);
+        const auto k1 = VideoPlayerTestAccess::keyRels(p);
+        const int g1 = VideoPlayerTestAccess::gopEst(p);
+        std::printf("mkvidx T2 (a) FX1 open keyRels %s gop %d -> after the reverse start + 4 steps keyRels %s gop %d (seeks %lld; "
+                    "decoded keys %s)\n", keysText(k0).c_str(), g0, keysText(k1).c_str(), g1,
+                    static_cast<long long>(st.seeks.load()), keysText(fx1Keys).c_str());
+        CHECK(k1 == fx1Keys);
+        CHECK(k1 == std::vector<int>{ 0, 250 });
+        CHECK(g1 == 250);
+        p.close();
+    }
+    {   // (b)
+        VideoStats st;
+        GopCache::Budget budget;
+        big(budget);
+        VideoPlayer p;
+        VideoPlayerTestAccess::mallocPath(p);
+        VideoPlayerTestAccess::setBudget(p, &budget);
+        p.setStats(&st);
+        REQUIRE(p.open(fx1));
+        Show s{ p };
+        for (int i = 0; i < 9 * 120; ++i)   // 9 s forward: frame 270
+            s.frame(1.0 / 120.0);
+        long badSteps = 0;
+        for (size_t i = 1; i < s.shown.size(); ++i)
+            badSteps += s.shown[i] - s.shown[i - 1] != 1 ? 1 : 0;
+        const auto k = VideoPlayerTestAccess::keyRels(p);
+        std::printf("mkvidx T2 (b) FX1 9 s forward: seeks %lld keyRels %s gop %d late %ld shown %zu (%ld..%ld) steps != 1: %ld\n",
+                    static_cast<long long>(st.seeks.load()), keysText(k).c_str(), VideoPlayerTestAccess::gopEst(p), s.late,
+                    s.shown.size(), s.shown.empty() ? -1L : s.shown.front(), s.shown.empty() ? -1L : s.shown.back(), badSteps);
+        CHECK(st.seeks.load() == 0);
+        CHECK(k == std::vector<int>{ 0, 250 });
+        CHECK(VideoPlayerTestAccess::gopEst(p) == 250);
+        CHECK(s.late == 0);
+        CHECK(s.shown.size() >= 2);
+        CHECK(badSteps == 0);
+        p.close();
+    }
+    struct Row
+    {
+        const char* mkv;
+        const char* mp4;
+        double secs;
+    };
+    for (const Row& r : { Row{ "video_h264_gop250_64x64.mkv", "video_h264_gop250_64x64.mp4", 9.0 },
+                          Row{ "video_h264_scenecut_64x64.mkv", "video_h264_scenecut_64x64.mp4", 9.0 },
+                          Row{ "video_h264_gop30_64x64.mkv", "video_h264_gop30_64x64.mp4", 2.8 },
+                          Row{ "video_vp9_gop60_64x64.webm", "video_vp9_gop60_64x64.mp4", 9.0 },
+                          Row{ "video_h264_opengop_64x64.mkv", "video_h264_opengop_64x64.mp4", 1.8 } })
+    {   // (c)
+        CAPTURE(r.mkv);
+        const auto mp4 = emulateArm(r.mp4, 21, r.secs, Drive::Reverse);
+        const auto mkv = emulateArm(r.mkv, 21, r.secs, Drive::Reverse);
+        const auto keys = decodedKeyRels(fixture(r.mkv));
+        printArm("T2 (c) CAP 21 K 3", r.mp4, mp4);
+        printArm("T2 (c) CAP 21 K 3", r.mkv, mkv);
+        CHECK(mkv.keys == keys);
+        CHECK(mkv.gop == largestGap(keys));
+        checkParity(mkv, mp4);
+    }
+}
+
+// s-rta-1002b mkvidx-fix R1 (decode review S1): an all-intra Matroska file read FORWARD grows the demuxer's index by one entry
+// per frame read (FX4e opens with the find_stream_info read-ahead: 8 entries on 62.3.100, 30 frames). keyRels_ is never read
+// for an intra-only stream (planPrefetchRun and forwardRetain return first), so the decode thread must not rebuild the model
+// each step: 79dd452 (+ the VideoStats counter) rebuilt once per frame read -- an O(N) pass + allocation per frame, quadratic
+// over a long clip.
+TEST_CASE("mkvidx T2f: an intra-only Matroska file read forward never rebuilds its keyframe model per frame",
+          "[video_player][gopcache][s-rta-1002b]")
+{
+    VideoStats st;
+    GopCache::Budget budget;
+    big(budget);
+    VideoPlayer p;
+    VideoPlayerTestAccess::mallocPath(p);
+    VideoPlayerTestAccess::setBudget(p, &budget);
+    p.setStats(&st);
+    REQUIRE(p.open(fixture("video_h264_allintra_64x64.mkv")));
+    const int entriesAtOpen = VideoPlayerTestAccess::indexEntries(p);
+    Show s{ p };
+    for (int i = 0; i < 132; ++i)   // 1.1 s forward: the whole 30-frame file, its EOF and the Loop wrap
+        s.frame(1.0 / 120.0);
+    const int entriesNow = VideoPlayerTestAccess::indexEntries(p);
+    std::printf("mkvidx T2f FX4e forward 1.1 s: intra %d index entries %d -> %d, rebuilds %lld, shown %zu (late %ld)\n",
+                VideoPlayerTestAccess::intraOnly(p) ? 1 : 0, entriesAtOpen, entriesNow,
+                static_cast<long long>(st.keyIndexRebuilds.load()), s.shown.size(), s.late);
+    CHECK(VideoPlayerTestAccess::intraOnly(p));
+    CHECK(entriesNow > entriesAtOpen + 2);   // the index really grew under the forward read (the case is not vacuous)
+    CHECK(s.shown.size() >= 30);
+    CHECK(st.keyIndexRebuilds.load() <= 2);
+    p.close();
+}
+
+// AM4 / AM10 (plan item 3): a RUN's seek aims at the frame's middle. An intra-only file's DEMAND run must land ON its frame
+// (windowLo = rel + 1): a QuickTime 1/600 HAP file and an all-intra Matroska file (1 ms) store their frames up to a tick off
+// the nominal time, and the truncated target landed one frame low -> the run restarted every step (fa9604d: HAP late 64,
+// shown 38, 834 decodes in 2.5 s; FX4 / FX4e 4 / 17 / 324 in 0.9 s). Fixed: one seek + one decode per reverse frame.
+TEST_CASE("mkvidx T3: a run's seek aims at the frame's middle -- intra-only files on a coarse time base reverse at one decode "
+          "per frame", "[video_player][gopcache][s-rta-1002b]")
+{
+    struct Row
+    {
+        const char* name;
+        double secs;
+        long shownMin;
+    };
+    for (const Row& r : { Row{ "video_hap_tb600_64x64.mov", 2.5, 72 }, Row{ "video_h264_allintra_cuesfront_64x64.mkv", 0.9, 26 },
+                          Row{ "video_h264_allintra_64x64.mkv", 0.9, 26 } })
+    {
+        CAPTURE(r.name);
+        const auto a = emulateArm(r.name, 21, r.secs, Drive::Reverse);
+        printArm("T3 CAP 21 K 3", r.name, a);
+        CHECK(a.intra);
+        CHECK(a.late <= 2);
+        CHECK(a.shown >= r.shownMin);
+        CHECK(static_cast<double>(a.decodes) <= 1.1 * static_cast<double>(a.shown) + 3.0);
+        CHECK(a.mismatches == 0);
+    }
+}
+
+// AM11: a GUARD, not a RED -- the run's half-frame aim never costs a B-frame / VFR / open-GOP MP4 more than the base. The base
+// values (fa9604d, ruling E6; decodes / late / shown, 9 s Loop reverse, CAP 21 K 3): mpeg4_bf2 561 / 4 / 269, opengop
+// 430 / 8 / 270, vfr 425 / 8 / 270, vfrgap 327 / 103 / 144. Its teeth: the sign mutant (minus half a frame) fails it.
+TEST_CASE("mkvidx T3b: a run's half-frame aim never costs a B-frame / VFR / open-GOP MP4 more than the base",
+          "[video_player][gopcache][s-rta-1002b]")
+{
+    struct Row
+    {
+        const char* name;
+        long decodes, late, shown;   // fa9604d
+    };
+    for (const Row& r : { Row{ "video_mpeg4_bf2_64x64.mp4", 561, 4, 269 }, Row{ "video_h264_opengop_64x64.mp4", 430, 8, 270 },
+                          Row{ "video_h264_vfr_64x64.mp4", 425, 8, 270 }, Row{ "video_h264_vfrgap_64x64.mp4", 327, 103, 144 } })
+    {
+        CAPTURE(r.name);
+        const auto a = emulateArm(r.name, 21, 9.0, Drive::Reverse);
+        printArm("T3b CAP 21 K 3 9 s", r.name, a);
+        CHECK(a.decodes <= r.decodes);
+        CHECK(a.late <= r.late);
+        CHECK(a.shown >= r.shown - 1);
+        CHECK(a.mismatches == 0);
+    }
+}
+
+// AM12: ping-pong and a flip, Matroska vs MP4 (Emulated K 3). (i) PingPong 25 s from frame 0 at CAP 21 and (ii) Loop reverse
+// from the wrap for 4 s, then forward to 8 s at CAP 21, on FX1 / FX2 / FX3: decodes <= MP4 x 1.02, late / shown within one
+// (fa9604d: FX1 PingPong 2891 vs 2634; FX2 4048 / late 1180 -- the front-Cues freeze; FX2 flip late 317). (iii) PingPong 25 s
+// at CAP 164 on FX1 / FX3: at most one extra seek, decodes <= MP4 x 1.05 -- F7: in the first forward leg an end-Cues file's
+// model is {0} / the whole file until frame 250's keyframe is read, so PingPong retention is sized from the larger GOP once
+// and the first window after the top turn may split (one extra seek; FX3 687 vs 668, seeks 5 vs 4; fa9604d FX3 745).
+TEST_CASE("mkvidx T4: a Matroska file ping-pongs and flips like the same stream in MP4", "[video_player][gopcache][s-rta-1002b]")
+{
+    struct Pair
+    {
+        const char* mkv;
+        const char* mp4;
+    };
+    const Pair fx1{ "video_h264_gop250_64x64.mkv", "video_h264_gop250_64x64.mp4" };
+    const Pair fx2{ "video_h264_gop250_cuesfront_64x64.mkv", "video_h264_gop250_64x64.mp4" };
+    const Pair fx3{ "video_h264_scenecut_64x64.mkv", "video_h264_scenecut_64x64.mp4" };
+    std::map<std::string, Arm> mp4PingPong, mp4Flip;
+    for (const Pair& c : { fx1, fx2, fx3 })
+    {
+        CAPTURE(c.mkv);
+        if (mp4PingPong.count(c.mp4) == 0)
+        {
+            mp4PingPong[c.mp4] = emulateArm(c.mp4, 21, 25.0, Drive::PingPong);
+            mp4Flip[c.mp4] = emulateArm(c.mp4, 21, 8.0, Drive::Flip, 4.0);
+            printArm("T4 (i) PingPong CAP 21 25 s", c.mp4, mp4PingPong[c.mp4]);
+            printArm("T4 (ii) flip CAP 21 8 s", c.mp4, mp4Flip[c.mp4]);
+        }
+        const auto pp = emulateArm(c.mkv, 21, 25.0, Drive::PingPong);
+        const auto fl = emulateArm(c.mkv, 21, 8.0, Drive::Flip, 4.0);
+        printArm("T4 (i) PingPong CAP 21 25 s", c.mkv, pp);
+        printArm("T4 (ii) flip CAP 21 8 s", c.mkv, fl);
+        checkParity(pp, mp4PingPong[c.mp4]);
+        checkParity(fl, mp4Flip[c.mp4]);
+    }
+    for (const Pair& c : { fx1, fx3 })
+    {
+        CAPTURE(c.mkv);
+        const auto mp4 = emulateArm(c.mp4, 164, 25.0, Drive::PingPong);
+        const auto mkv = emulateArm(c.mkv, 164, 25.0, Drive::PingPong);
+        printArm("T4 (iii) PingPong CAP 164 25 s", c.mp4, mp4);
+        printArm("T4 (iii) PingPong CAP 164 25 s", c.mkv, mkv);
+        CHECK(mkv.seeks <= mp4.seeks + 1);
+        CHECK(mkv.late <= mp4.late + 1);
+        CHECK(static_cast<double>(mkv.decodes) <= static_cast<double>(mp4.decodes) * 1.05);
+        CHECK(mkv.mismatches == 0);
     }
 }

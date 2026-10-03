@@ -1,0 +1,44 @@
+== pre3 start 20:15:16 app /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/../apps/pre-ui.app (e510790c77466f23) mode pre arm A rows 'm2_live_no_stale,m3_rewarm,m9_deck_roundtrip'
+UNC before: UserNotificationCenter windows 0 []
+outwins before: audio-dna windows 0, Output-named 0
+20:15:17 re-acquire cooldown 19 s
+20:15:36 lock acquired
+top cpu at start:
+ 80.7       00:01 /Library/Developer/CommandLineTools/usr/bin/clang
+ 41.8 06-07:32:26 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  8.0       07:54 /System/Library/ExtensionKit/Extensions/FaceTimeNotificationExtension.appex/Contents/MacOS/FaceTimeNotificationExtension
+  7.3 06-07:32:26 /usr/sbin/coreaudiod
+  7.3 06-07:32:21 /Applications/Ghostty.app/Contents/MacOS/ghostty
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/../apps/pre-ui.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/runs/pre3/milkdrop.ruieSW
+mode: pre arm: A attach: 0
+20:15:40 app up: 60415 
+--- m2_live_no_stale
+RED-OK  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 30.6250% / 30.6250%, tiles 510, tiles < 20% changed: 343, min tile 0.0%; A fp: box 756x840 at (0,240)-(755,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=30.62% (756x840 table 30.62%); B fp: box 756x840 at (0,240)-(755,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=30.62% (756x840 table 30.62%)
+RED-OK  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 30.6250% / 30.6250%, tiles 510, tiles < 20% changed: 354, min tile 0.0%; A fp: box 756x840 at (0,1080)-(755,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=30.62% (756x840 table 30.62%); B fp: box 756x840 at (0,1080)-(755,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=30.62% (756x840 table 30.62%)
+--- m3_rewarm
+      m3_rewarm: L0=52.58 (alpha-255 mean luminance at 1920x1080); per capture: send +0.104s recv +0.207s L/L0=3.443 PNG (2560, 1440) alpha255=17.23%; send +0.252s recv +0.339s L/L0=1.275 PNG (2560, 1440) alpha255=17.23%; send +0.505s recv +0.593s L/L0=0.974 PNG (2560, 1440) alpha255=17.23%; send +1.003s recv +1.103s L/L0=0.995 PNG (2560, 1440) alpha255=17.23%; send +2.003s recv +2.130s L/L0=1.709 PNG (2560, 1440) alpha255=17.23%
+DATA m3_rewarm arm=A t=0.104:3.443 t=0.252:1.275 t=0.505:0.974 t=1.003:0.995 t=2.003:1.709 peak_frame_ms=17.149166107177734
+PASS  m3_rewarm: INFO (amendment 17; no gate) set_composition_params HTTP 200
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+RED-OK  m9_deck_roundtrip: C0 alpha255=30.6250% within6=69.3750% median=(0, 0, 0) medmax=0; C3 alpha255=30.6250% within6=69.3750% median=(0, 0, 0) medmax=0; max |median C3 - C0| = 0; live pair: alpha255 30.6250% / 30.6250%, tiles 510, tiles < 20% changed: 343, min tile 0.0%; C0 fp: box 756x840 at (0,240)-(755,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=30.62% (756x840 table 30.62%)
+
+      fingerprint consistency: panel 756x840 px (largest box of the run; diag 756x840)
+      ok m2_live_no_stale@1920x1080: box 756x840 vs expected 756x840; coverage 30.62% vs 30.62%
+      ok m2_live_no_stale@1920x1080: box 756x840 vs expected 756x840; coverage 30.62% vs 30.62%
+      ok m2_live_no_stale@1080x1920: box 756x840 vs expected 756x840; coverage 30.62% vs 30.62%
+      ok m2_live_no_stale@1080x1920: box 756x840 vs expected 756x840; coverage 30.62% vs 30.62%
+      ok m9_deck_roundtrip: box 756x840 vs expected 756x840; coverage 30.62% vs 30.62%
+PRE 3 RED-OK / 0 VOID; GUARD 0 PASS / 0 GUARD-FAIL; fingerprint consistency ok; errors 0
+PASS  no foreign render_frame traffic during the run
+app running after quit: no
+PASS  app terminated
+
+PROBE-MILKDROP GREEN
+probe rc 0 at 20:16:15
+outwins after: audio-dna windows 0, Output-named 0
+20:16:16 lock released
+UNC 16 s after quit: UserNotificationCenter windows 0 []
+== pre3 end 20:16:32
