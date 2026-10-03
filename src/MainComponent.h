@@ -278,6 +278,8 @@ private:
     // possibly-mis-mapped multi-cell clip selection after a layer-reorder
     // round-trip (P24.13).
     void refreshAfterUndoRedo(bool affectsLayerOrder);
+    // Re-point the Layer inspector by the selected layer row (refreshAfterUndoRedo, UndoService::onLayerStackMoved).
+    void repointLayerInspector();
 
     AudioDNALookAndFeel lookAndFeel_;
 

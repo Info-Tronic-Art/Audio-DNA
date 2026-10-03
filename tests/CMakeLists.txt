@@ -3382,7 +3382,8 @@ catch_discover_tests(test_layer_runtime)
 # routines pinned by deck id, pad lights, binding targets, old-file conversion (M1-M7)). Real sources: the model,
 # the commands, UndoService (withDeckDetached's headless branch: no renderer is ever set -- the Renderer members it
 # names are inline), Autopilot, the RoutineEngine set (as test_routine_engine), the DeckView set (as
-# test_deck_thumbnails), MidiOutputHandler (padStateFor).
+# test_deck_thumbnails), MidiOutputHandler (padStateFor), the LayerInspector set (as test_layer_inspector_layer_row:
+# the fix round's onLayerStackMoved case).
 add_executable(test_show_model
     test_show_model.cpp
     ${SRC_DIR}/model/Clip.cpp
@@ -3419,6 +3420,11 @@ add_executable(test_show_model
     ${SRC_DIR}/render/TextureManager.cpp
     ${SRC_DIR}/render/FullscreenQuad.cpp
     ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/ui/LayerInspector.cpp
+    ${SRC_DIR}/ui/MacroPanel.cpp
+    ${SRC_DIR}/ui/Knob.cpp
+    ${SRC_DIR}/render/FeedbackProcessor.cpp
+    ${SRC_DIR}/ui/EffectStackView.cpp
 )
 target_include_directories(test_show_model PRIVATE ${SRC_DIR})
 target_link_libraries(test_show_model PRIVATE

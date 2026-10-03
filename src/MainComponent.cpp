@@ -1795,6 +1795,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     if (c.has_value())
                         dispose(*c);
     };
+    // Lane bf9b fix round: a fenced edit that moved or resized the shared layer stack re-points the Layer inspector
+    // (its Layer* would dangle: the inspector's tickModulation reads it every timer tick, whatever tab is shown).
+    undoService_.onLayerStackMoved = [this]() { repointLayerInspector(); };
 
     // === v2: Binding System & MIDI (P9) ===
     bindingManager_.setActionCallback([this](const Binding& b, float val)
@@ -5281,22 +5284,32 @@ void MainComponent::refreshAfterUndoRedo(bool affectsLayerOrder)
         inspectorPanel_->getClipInspector().setClip(fresh, clipScope);
 
         // Re-point the layer inspector BY COORDINATE too (risk #3): a layer
-        // add/remove/move undo can leave it holding a dangling Layer*. A stale
-        // index resolves to nullptr, which setLayer clears null-safely.
-        const int selLayer = deckView_->getSelectedLayerIndex();
-        Layer* freshLayer = (selLayer >= 0)
-            ? undoService_.resolveLayer(selLayer)   // lane bf9b: the SHARED layer
-            : nullptr;
-        const EffectScope layerScope = (selLayer >= 0)
-            ? EffectScope::layer(-1, selLayer)
-            : EffectScope::none();
-        inspectorPanel_->getLayerInspector().setLayer(freshLayer, layerScope);
+        // add/remove/move undo can leave it holding a dangling Layer*.
+        repointLayerInspector();
 
         // Global effects live on the Composition, not a selected cell, so the two
         // re-points above don't reach them. Rebuild the composition inspector's
         // stack so a global effect add/remove/bypass undo/redo reflects too.
         inspectorPanel_->rebuildCompositionEffects();
     }
+}
+
+void MainComponent::repointLayerInspector()
+{
+    // By coordinate (the selected layer row): a stale index resolves to nullptr, which setLayer clears null-safely.
+    // Lane bf9b fix round: also UndoService::onLayerStackMoved -- a fenced edit that moved or resized the shared stack
+    // (Load / Duplicate Deck of a wider deck, Add / Remove Layer) would otherwise leave the inspector's Layer* (and its
+    // effect stack's pointer into layerEffects) in freed storage, read by every tickModulation.
+    if (inspectorPanel_ == nullptr || deckView_ == nullptr)
+        return;
+    const int selLayer = deckView_->getSelectedLayerIndex();
+    Layer* freshLayer = (selLayer >= 0)
+        ? undoService_.resolveLayer(selLayer)   // lane bf9b: the SHARED layer
+        : nullptr;
+    const EffectScope layerScope = (selLayer >= 0)
+        ? EffectScope::layer(-1, selLayer)
+        : EffectScope::none();
+    inspectorPanel_->getLayerInspector().setLayer(freshLayer, layerScope);
 }
 
 std::optional<MainComponent::PreparedDrop>

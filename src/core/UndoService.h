@@ -102,6 +102,12 @@ public:
     // Receives the decks a fenced edit reaped, after the fence ends (message thread).
     std::function<void(std::vector<Deck>&&)> onDecksReaped;
 
+    // Lane bf9b fix round: called after a fenced edit that MOVED or RESIZED Composition::layers (message thread,
+    // after the fence and onDecksReaped). A Layer* held into the shared stack may dangle then -- Load / Duplicate Deck
+    // of a deck wider than the show and Add Layer grow the vector, Remove Layer and their undos shrink it.
+    // MainComponent re-points the Layer inspector here (the LayerStrips are re-pointed by the grid rebuild).
+    std::function<void()> onLayerStackMoved;
+
 private:
     Composition* composition_ = nullptr;
     Renderer* renderer_ = nullptr;

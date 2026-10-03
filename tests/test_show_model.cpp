@@ -27,6 +27,7 @@
 #include "routing/MacroBank.h"
 #include "ui/DeckView.h"
 #include "ui/LayerStrip.h"
+#include "ui/LayerInspector.h"
 #include "analysis/FeatureSnapshot.h"
 #include "ShowFixture.h"
 #include <cmath>
@@ -1449,5 +1450,83 @@ TEST_CASE("M7 the note: none for a 1-deck old show without persistent; Boris's s
         CHECK(note.find("deck fade 0.30 s dropped") != std::string::npos);
         CHECK(note.find("persistent") == std::string::npos);
         CHECK(c.layers[2].blendMode == static_cast<Layer::MixMode>(46));   // Deck 1's look kept
+    }
+}
+
+// Lane bf9b fix round (review MUST): Load / Duplicate Deck of a deck wider than the show grows the SHARED stack
+// (InsertDeckCmd -> Composition::insertLayer), which can move Composition::layers; Add / Remove Layer resize it. The
+// Layer inspector keeps a raw Layer* (and its effect stack a pointer into that layer's layerEffects), read every timer
+// tick by InspectorPanel::tickModulation. UndoService::withDeckDetached -- the fence every one of these commands runs
+// in -- hands such an edit to onLayerStackMoved, where MainComponent re-points the inspector by the selected layer row
+// (MainComponent::repointLayerInspector; the lambda below is that function's body over this test's selection).
+TEST_CASE("bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer "
+          "inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer "
+          "show; Add / Remove Layer; their undos)", "[show]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    c.layers.shrink_to_fit();
+    REQUIRE(c.layers.capacity() < 5);                          // so growing to 5 layers MUST move the storage
+    Fenced fenced(c);
+    LayerInspector inspector;
+    inspector.setSize(300, 900);
+    int selected = 1;                                          // the Layer row Boris clicked
+    inspector.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    int calls = 0;
+    fenced.svc.onLayerStackMoved = [&] {
+        ++calls;
+        inspector.setLayer(selected >= 0 ? fenced.svc.resolveLayer(selected) : nullptr,
+                           selected >= 0 ? EffectScope::layer(-1, selected) : EffectScope::none());
+    };
+
+    SECTION("Load Deck of a 5-row deck: the stack moves; the inspector follows it; undo shrinks it again")
+    {
+        const Layer* before = &c.layers[1];
+        Deck wide;
+        wide.name = "Wide";
+        wide.numColumns = 2;
+        wide.initDefault(5);
+        InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(wide), "Load Deck");
+        ins.execute();
+        REQUIRE(ins.addedLayerCount() == 2);
+        REQUIRE(c.getNumLayers() == 5);
+        REQUIRE(&c.layers[1] != before);                       // the storage moved: the old Layer* is freed memory
+        CHECK(calls == 1);
+        CHECK(inspector.getLayer() == c.getLayer(1));
+        inspector.tickModulation();                            // what the app's timer does next (reads the layer)
+        inspector.refresh();
+        ins.undo();                                            // erases the 2 added layers (a resize)
+        CHECK(calls == 2);
+        CHECK(c.getNumLayers() == 3);
+        CHECK(inspector.getLayer() == c.getLayer(1));
+    }
+    SECTION("Load Deck of a deck no wider than the show: the stack does not move, nothing is re-pointed")
+    {
+        Deck same;
+        same.name = "Same";
+        same.numColumns = 2;
+        same.initDefault(3);
+        InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(same), "Load Deck");
+        ins.execute();
+        CHECK(ins.addedLayerCount() == 0);
+        CHECK(calls == 0);
+        CHECK(inspector.getLayer() == &c.layers[1]);
+    }
+    SECTION("Add Layer grows the stack; Remove Layer of the inspected (last) layer empties the inspector")
+    {
+        AddLayerCmd add(resolverFor(c), fenced.hook(), "Add Layer");
+        add.execute();
+        REQUIRE(c.getNumLayers() == 4);
+        CHECK(calls == 1);
+        CHECK(inspector.getLayer() == c.getLayer(1));
+        selected = 3;                                          // Boris selects the new last layer
+        inspector.setLayer(&c.layers[3], EffectScope::layer(-1, 3));
+        selected = -1;                                         // removing the selected row clears the selection
+        RemoveLayerCmd rem(resolverFor(c), fenced.hook(), noMedia(), noDispose(), 3, Layer(c.layers[3]),
+                           "Remove Layer");
+        rem.execute();
+        REQUIRE(c.getNumLayers() == 3);
+        CHECK(calls == 2);
+        CHECK(inspector.getLayer() == nullptr);
     }
 }

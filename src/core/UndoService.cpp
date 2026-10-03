@@ -57,9 +57,16 @@ void UndoService::withDeckDetached(const std::function<void()>& mutation)
 
     // Lane bf9b (amendment 4(a)): the decks this edit reaps, handed to onDecksReaped once the fence has ended.
     std::vector<Deck> reaped;
-    auto handOver = [this, &reaped] {
+    // Lane bf9b fix round: where the shared layer stack lives before the edit; a move or resize goes to
+    // onLayerStackMoved once the fence has ended (a Layer* into the old storage may dangle).
+    const Layer* stackBefore = composition_ != nullptr ? composition_->layers.data() : nullptr;
+    const size_t stackSizeBefore = composition_ != nullptr ? composition_->layers.size() : 0;
+    auto handOver = [this, &reaped, stackBefore, stackSizeBefore] {
         if (!reaped.empty() && onDecksReaped)
             onDecksReaped(std::move(reaped));
+        if (composition_ != nullptr && onLayerStackMoved
+            && (composition_->layers.data() != stackBefore || composition_->layers.size() != stackSizeBefore))
+            onLayerStackMoved();
     };
 
     if (renderer_ == nullptr)
