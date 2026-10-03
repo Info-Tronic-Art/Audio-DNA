@@ -472,3 +472,330 @@ re-justified; probe: one number, one comment line. Every line traces to AM-7 / A
 probe row k9d, B7 state 9, any change of the wide Load Deck undo. Smells named: InsertDeckCmd::undo now has two
 bodies behind one flag (the ruled exception; BF31 removes it); AddDeckCmd / InsertDeckCmd / RemoveDeckCmd repeat the
 "restore, else snapshot" shape three times (duplicated code, left: the ruling confines the change to these bodies).
+
+## STAGE FIX-3 SCREEN (AM-11, AM-12, AM-14 screen lines, AM-17; adoption items 9, 10 and 11)
+STATUS: DONE_WITH_CONCERNS (2026-10-03 15:30:31 -> 15:54; concerns = "DEVIATIONS / STOP ITEMS FOR HARMONY (FIX-3)" below)
+Started 2026-10-03 15:30:31 from de2544e (git status clean). Scratch: <session scratchpad>/bf9b-fix-FIX-3/.
+(A predecessor of this stage was interrupted after writing the four skeleton lines above -- its only trace; git
+status showed no other change. The diff was read and kept.) Work done 2026-10-03 15:32:08 -> 15:53; scratch
+<session scratchpad>/bf9b-fix-FIX-3/ (scripts, logs, shots/).
+
+Commits: 1a65b85 (AM-12 + adoption 9-11), 7decfaa (AM-11), eeaa0d7 (docs), 0dd155c (make-bf9b-check.py), + this
+section's docs commit.
+
+### Item AM-12 + adoption items 9, 10, 11 -- nothing on screen names a source deck or announces an event (1a65b85)
+REMOVED (src; `git diff de2544e 0dd155c --shortstat -- src`: 10 files changed, 26 insertions(+), 405 deletions(-), AM-11's lines included)
+- LayerStrip.{h,cpp}: SourceBadge, sourceBadgeOf, getSourceBadge, sourceBadgeBounds, badgeFont, the five kBadge*
+  constants, badge_, updateSourceBadge (3 calls: setLayer, refresh, the 30 Hz timerTick), paintSourceBadge, the tooltip
+  branch, the click branch, onSourceDeckClicked; the two test hooks only the retired cases used
+  (thumbnailBoundsForTest, routineBandRowsForTest). The strip's timer stays (Pitfall 41 faders).
+- DeckView.{h,cpp}: syncTabDots + its call in refresh(), tabDotShownForTest, DeckTabButton's dot / kDotColour /
+  dotBounds / paintButton override, the `btn->dot =` line; onSourceDeckClicked and its strip wiring; the Undo Remove
+  button whole: undoHintBtn_, undoHintGeneration_, kUndoHintMs, showUndoHint, hideUndoHint (+ its call in
+  rebuildGrid), onUndoHint, the resized() slot.
+- DeckTabRow.h: Layout::hint, layout()'s hintWidth parameter, kHintGap, undoRemoveHint, `#include <string>`.
+- MainComponent.{h,cpp}: NoticeLabel, loadNotice_, showLoadNotice, clearLoadNotice (4 call sites: before a load,
+  after a load, two saves), the two deck-id-refusal showLoadNotice calls, the row-1 layout slot, the constructor
+  block, the `ui/LoadNotice.h` include; onSourceDeckClicked's handler; onUndoHint's handler; the 30 Hz syncTabDots
+  call; pushCommands' hideUndoHint line; in removeDeck the playing-layers walk, showUndoHint and
+  `setFileLabel("Removed deck \"<name>\"")` with the three locals only they used.
+- api/ApiServer.{h,cpp}: onDebugLoadNotice, Box::load, the "load_notice" property.
+- src/ui/LoadNotice.h: deleted.
+KEPT (the behaviour behind each text): `logLine(composition_.migrationNote)` once per load (unchanged line); the
+deck-id refusal still returns and still logs `[Decks] This show has used all its deck numbers. ...`;
+Composition::deckIsPlaying (retire / reap); RemoveDeckCmd and its Undo.
+B4f pins unchanged (no setClip( / structure-writer call appeared or disappeared; the lint case passes as it is).
+
+EDIT MENU (adoption item 9): the menu model NAMES actions -- "Undo " + UndoManager::undoDescription()
+(src/ui/MenuBarModel.cpp:34-45). Pinned by a new case in tests/test_show_model.cpp (the real RemoveDeckCmd with
+removeDeck's description, the real UndoManager, the real AudioDNAMenuBar): GREEN at de2544e already (19 assertions) =
+a pin of existing behaviour. The item sits in the menu named "Composition"; the app has NO menu named "Edit" (stop
+item 1).
+
+TESTS
+- THE BF14 PIN = the case "S3.1 the clip-name row never names the deck: a 20-char deck name changes no pixel, a
+  30-char clip name changes only the clip-name row (bf9b, B7 M-d)" -- NAME KEPT, body rewritten: the same clip
+  content played from the shown deck, from deck 5 and from a removed (retired) deck gives byte-equal strips; a
+  20-char deck name changes no pixel; a 30-char clip name changes only the name row; VALID: each differs from the
+  empty layer's strip.
+- M-t (new): "M-t the deck tabs say nothing about playing: ..." -- 20 decks, the tab row snapshot byte-equal with
+  nothing playing, with decks 3 / 7 / 12 playing (one mid-fade), and after rebuildGrid; VALID: showing deck 7
+  changes it.
+- M-c RESTATED (the old name is gone, see RETIRED / RENAMED): the WHOLE strip column byte-equal over showDeck 0 -> 5
+  -> 0 on same-width decks; every LayerStrip the same object by juce::Component::SafePointer (all non-null) AND by
+  the collected pointer list; VALID: clearing a layer changes the column.
+- M-a and the 16(e) header case: untouched, green.
+- LINT B4j (tests/test_render_thread_lint.cpp, new case 8): the ruling's pattern verbatim, PLUS (my addition, stop
+  item 4) `undoHint|UndoHint|undoRemoveHint|Undo Remove|loadNotice|LoadNotice|load_notice|\bNoticeLabel\b|Removed
+  deck`, over WHOLE lines of src/**/*.{h,cpp,mm} (comments included: "nothing dead left behind").
+
+RED at FIX-2's head (final test file, src = de2544e for the five files the target compiles; red2.sh, raw):
+  S3.1 the clip-name row ... :189 CHECK( diffOutside(fromShown, fromOther, {}) == 0 )   37 == 0
+                             :202 CHECK( diffOutside(fromShown, fromRemoved, {}) == 0 ) 28 == 0
+  S3.2 a 0 -> 5 -> 0 ... (M-c) :316 CHECK( diffOutside(shot0, shot5, {}) == 0 )         56 == 0
+  M-t ...                    :348 CHECK( diffOutside(idle, playing, {}) == 0 )          48 == 0
+                             :353 (after rebuildGrid)                                   48 == 0
+  G1' ...                    :409 CHECK( stripFor(g.dv, 1)->isSelected() ) false; :410  345 == 0; :414 false; :415 298 == 0
+  G2 ...                     :440 and :442 CHECK( litHeaders(g.dv, 4) == std::set<int>{ 3 } ) FAILED
+  G3 ...                     :454 CHECK( stripFor(g.dv, 1)->isSelected() ) FAILED
+  test cases: 8 | 2 passed | 6 failed;  assertions: 140 | 128 passed | 12 failed
+  B4j at de2544e: `test cases: 1 | 0 passed | 1 failed`, the INFO lists every hit (ui/LayerStrip.*, ui/DeckView.*,
+  ui/DeckTabRow.h, ui/LoadNotice.h, MainComponent.{h,cpp}, api/ApiServer.{h,cpp}); raw in red-run.txt.
+GREEN at 0dd155c: test_layer_strip_source_deck `All tests passed (140 assertions in 8 test cases)`;
+  test_render_thread_lint `All tests passed (1347 assertions in 8 test cases)`; test_deck_tab_row `All tests passed
+  (103 assertions in 4 test cases)`; the menu pin `All tests passed (19 assertions in 1 test case)`.
+
+MUTANTS (never committed; mutants.sh sleeps, touches and prints the recompiled-object count -- 2 each; raw in
+mutants-run.txt; afterwards `git diff --quiet -- src tests` rc 0 and the binary green again)
+  MU11 showDeck always rebuilds        -> M-c RED: :313 and :319 CHECK( sameStrips() ) FAILED (2 of 140)
+  MU12 predicate dropped from setupColumnTriggers -> G2 RED: :440, :442
+  MU13 a 2x2 px mark in LayerStrip::paint when the clip's deck is not the shown one -> the BF14 pin RED (:189 4 == 0,
+       :202 4 == 0), and also M-c (:316 8 == 0) and G1' (:410 8 == 0)
+  MU14 a tab's text colour follows deckIsPlaying (in refresh) -> M-t RED: :348 757 == 0
+
+RETIRED BY NAME (8; ctest name diff FIX-2 end -> now printed 9 gone / 7 new, see RENAMED)
+ AM-12's five (tests/test_layer_strip_source_deck.cpp):
+  1 "S3.1 the strip badge names the deck a playing clip came from: its tab number, dim for the shown deck, normal for
+    another, 'x' for a removed deck, none when clear (bf9b, ruling-bf9b 16(a), B7 M-b)"
+  2 "S3.1 a folded row draws no badge; the badge sits inside the thumbnail's bottom-left corner, clear of the
+    routine-band rows, wide enough for '20' (bf9b, ruling-bf9b 16(a), B7 M-d)"
+  3 "S3.1 badge contrast against its opaque background: dim >= 3:1, normal >= 7:1, normal > dim; the painted badge
+    uses those colours (bf9b, B7 M-f)"
+  4 "S3.1 a badge click shows that deck in the grid and never selects the layer; a removed deck's badge does nothing;
+    the tooltip names the deck (bf9b, ruling-bf9b 16(c))"
+  5 "S3.1 a deck tab shows a dot iff some layer's active ref, or the previous ref of a running fade, names that deck:
+    20 decks (bf9b, ruling-bf9b 16(b), B7 M-e)"
+ Adoption items 9-11 (three more):
+  6 "S3.4 the Remove Deck undo hint names the layers that keep playing a clip from the removed deck (bf9b,
+    ruling-bf9b 16(d))"                                              (tests/test_layer_strip_source_deck.cpp)
+  7 "S3.4 the load notice: an old show's conversion (details = the whole note), a routine-pad note, both, or nothing
+    (bf9b, ruling-bf9b 9(d))"                                        (tests/test_layer_strip_source_deck.cpp)
+  8 "DeckTabRow::layout -- the undo hint sits flush right and hides when it would crowd the \"+\""
+                                          (tests/test_deck_tab_row.cpp; a MAIN test, plan6 -- the button it tested is gone)
+RENAMED (1; the old name is in the "gone" list, the new one in the "new" list -- the ruling's "M-c RESTATED"):
+  "S3.2 a 0 -> 5 -> 0 showDeck walk: every LayerStrip the same object, the strip column byte-equal outside the badge
+  rects (bf9b, plan F16, B7 M-c)"  ->  "S3.2 a 0 -> 5 -> 0 showDeck walk on same-width decks: every LayerStrip the
+  same object (SafePointer), the WHOLE strip column byte-equal in all three (bf9b, plan F16, ruling-bf9b-merge AM-12,
+  B7 M-c)"
+ADDED (6): M-t; G1'; G2; G3; "bf9b B4j: no source-deck badge, tab dot, Undo Remove button or load notice identifier
+  left in src/"; "After a Remove Deck the Composition menu's Undo item reads \"Undo Remove Deck\" (Cmd+Z); ...".
+No other name disappeared (names-fix2.txt vs names-fix3.txt, from the two full ctest logs).
+
+### Item AM-11 -- the grid after a rebuild (7decfaa)
+(a) `DeckView::columnHeaderColour(int col) const` (private): lit iff col == activeColumn_ and the column's deck id is
+    the shown deck's; refresh() and setupColumnTriggers both call it. (b) rebuildGrid: `strip->setSelected(layerIdx ==
+    selectedLayerIndex_)` on each strip it creates. NOT BUILT, as ruled: the rebuildCells split (SF-3).
+TESTS G1', G2, G3: RED lines above (same run), GREEN at 7decfaa. Fixture: makeShowWithWideDeck (deck 1 = 8 columns
+among 4-column decks); each rebuild is proven by tabRowBuilds() +1 (VALID).
+
+### FACTS MEASURED
+FM-5 Is the strip column byte-equal across a rebuildGrid once the highlight is re-applied? YES.
+     G1' at 7decfaa: `CHECK( diffOutside(shot0, shotWide, {}) == 0 )` and the walk back both pass (0 differing pixels
+     of 250 x 288, three strips, two playing named clips, layer 1 selected); the assert is not loosened. Before (b):
+     345 / 298 differing pixels (the highlight). Scope of the fact: a headless 1400 x 600 DeckView, no scrollbar in
+     either width, JUCE's default LookAndFeel; thumbnails of files that do not exist.
+
+### SNAPSHOTS (decoded PNGs in <scratch>/bf9b-fix-FIX-3/shots/; I looked at each)
+Headless (written by the tests under ADNA_BF9B_SHOT_DIR, JUCE default LookAndFeel -- not the app's):
+- mc-strip-column-deck0-shown.png / mc-strip-column-deck5-shown.png (250 x 288, byte-equal): three strips, Layer 3 /
+  2 / 1 top to bottom, each with X B S, < || >, the S K V faders, the blend box and its clip name (d3r2c0, d5r1c2,
+  d0r0c1); "Layer 2" boxed in cyan (selected); the picture squares are dark (no file); NO number, letter or mark on
+  any picture corner.
+- g1-strip-column-4-columns.png / g1-strip-column-8-columns.png: the same column before and after the rebuild
+  (Layer 2 "wide c6" still boxed cyan; Layer 3 empty).
+- bf14-strip-from-removed-deck.png (250 x 96): one strip, Layer 2, clip name "short", nothing else on the picture.
+- mt-tab-row-three-decks-playing.png (1400 x 24): 20 tabs "Deck 1" .. "Deck 20" and "+"; Deck 1 green (shown); no
+  dot on any tab, also not on Deck 4 / 8 / 13 (the playing ones).
+Live (the lane's Release app, one lock hold 15:48:10 -> 15:48:31, pid 91584, REST only, window id 39793 of our pid,
+0 Output-named windows, quit by the helper, 0 UserNotificationCenter windows 16 s later; smoke-run.txt):
+- live-deck0-shown-layer2-plays-deck3.png and live-after-remove-deck3.png (3456 x 2158): the app's own look. After
+  `POST /api/debug/remove_deck {2}`: the tab row reads Deck 1, Deck 2, Deck 4 .. Deck 20, "+", nothing after the "+";
+  no dot; Layer 2's strip shows the D3 C2 picture and the name D3C2L2 with no mark; the preview still shows D1 C1 |
+  D3 C2; the file label still reads "D3C2L2.png" (`file_label before == after: True`); retiredDeckCount 1.
+  `POST /api/debug/undo`: 20 decks, 20 tabs, retired 0.
+- ui_text keys: audio_notice, file_label, inspected_clip, inspected_layer, inspector_tab, ok -- no load_notice.
+- make-bf9b-check.py's files loaded through `POST /api/debug/load_deck`: five-rows.json -> (21 decks, 5 layers),
+  undo -> (20, 3); nine-rows.json -> (21, 9). live-five-rows-loaded.png captured.
+
+### make-bf9b-check.py (0dd155c)
+Also writes, beside bf9b-check.json: five-rows.json (deck "Five Rows", 5 rows x 4 columns, 20 pictures D21 C1..C4)
+and nine-rows.json (deck "Nine Rows", 9 rows, ONE picture in row 1 / column 0, 0-based -- AM-6's L1 fixture). Deck
+files in Deck::toVar's shape (rows of "clips" only). Every deck of the show stays at 4 columns (AM-11).
+
+### End of stage FIX-3 (src / tests head 0dd155c; `git diff --quiet -- src tests` rc 0 before the runs)
+- `cmake --build build-lane -j6` rc 0, app + every test target; no new warning from the touched files (LayerStrip.cpp:
+  617 "unused variable 'w'" and the -Wdouble-promotion lines are in code this stage did not write).
+- Full ctest, serial, under /tmp/audiodna-ctest.lock (15:49:40 -> 15:51:51): `100% tests passed, 0 tests failed out of
+  1248`, `Total Test time (real) = 131.02 sec`. 1248 = 1250 - 8 retired + 6 added (one renamed).
+- `.harmony/probe-tsan-unit.sh` (unmodified), 15:51:51: `probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected
+  5)`, `100% tests passed, 0 tests failed out of 5`, rc 0, 0 "WARNING: ThreadSanitizer".
+- `.harmony/probe-asan-unit.sh` (unmodified), 15:51:56: `probe-asan-unit: ctest -L asan finds 10 asan cases (expected
+  10)`, `100% tests passed, 0 tests failed out of 10`, `PROBE-ASAN-UNIT GREEN (10 cases, 0 reports)`, rc 0.
+- Gate B4's docs grep at this head: `git grep -n -i -E "strip badge|source-deck badge|badge, dots|tab dot|shows a dot"
+  -- docs/claude CLAUDE.md .harmony/APP-INVENTORY.md tests/CMakeLists.txt` -> 0 hits; "Undo Remove" -> 1 hit,
+  performance-controls.md's Remove Deck bullet, the menu wording `Undo Remove Deck`.
+- `wc -c CLAUDE.md` = 24224 (unchanged; no CLAUDE.md line, no pitfall added). No probe script edited. No background
+  build started; none running. No new build dir.
+
+WHAT THE RULING SAID THIS STAGE MUST PROVE BEFORE FIX-4
+| claim | result | where |
+|---|---|---|
+| the five retired cases listed by name and no other | 5 + 3 (adoption 9-11) retired, 1 renamed (M-c), by name | RETIRED BY NAME |
+| the BF14 pin, M-t, G2, G3 RED at FIX-2's head | RED (37 / 28; 48 / 48; :440 :442; :454) | RED block |
+| a headless snapshot of the strip column and of the tab row, looked at | 6 PNGs + 3 live | SNAPSHOTS |
+| MU11 -> M-c, MU12 -> G2, MU13 -> the pin, MU14 -> M-t | all RED | MUTANTS |
+| FM-5 | byte-equal: YES | FACTS MEASURED |
+| the ASan app build starts in the background | NOT DONE -- Harmony constraint for this stage; FIX-4 builds it | -- |
+
+### THE BORIS PAGE (ruling section 6 with adoption items 6, 8, 9, 10, 11 applied; for Harmony's page)
+Open the test show "bf9b-check" (Harmony names the folder). Each step: do -> expect -> what wrong looks like.
+8.1 On Deck 1 click "D1 C1" in the Layer 1 row and "D1 C4" (a video with a running clock) in the Layer 3 row; click
+    the Deck 3 tab and click "D3 C2" in the Layer 2 row. Then click through all 20 deck tabs and back to Deck 1.
+    Expect: the picture keeps D1 C1 and D3 C2 and the clock keeps counting; only the grid changes. Wrong: a picture
+    changes, a flash, the clock jumps or stops.
+8.2 While you click through the tabs, look at the layer strips on the left and at the tabs themselves. Expect: the
+    strips do not change at all, and no number, dot or other mark appears on a strip or on a tab. A strip shows the
+    clip that is playing (its picture and its name), not the deck it came from. On Deck 3 the "D3 C2" cell is lit in
+    the Layer 2 row; on every other deck no cell in that row is lit, and that is correct. Wrong: a strip flickers or
+    goes empty, a fader moves, a number or a dot shows up.
+8.3 Ignore Column: select Layer 2, open the Layer tab, tick "Ignore Column Trigger"; click the Deck 5 tab; click the
+    column number 4 above the grid. Expect: Layer 2 keeps D3 C2; Layers 1 and 3 show D5 C4. Wrong: Layer 2 changes.
+8.4 Untick "Ignore Column Trigger" on Layer 2. Click the Deck 6 tab (its column 2 has nothing in the Layer 2 row) and
+    click column number 2. Expect: Layer 2 goes empty (the right half turns black); Layers 1 and 3 show D6 C2.
+8.5 On Deck 3 click "D3 C2" in the Layer 2 row; click the Deck 1 tab; right-click the Deck 3 tab -> Remove Deck.
+    Expect: D3 C2 keeps playing on the right and its strip looks the same; the Deck 3 tab is gone; no button and no
+    message appears. Press Cmd+Z: the Deck 3 tab comes back, D3 C2 still playing. Wrong: the right half goes black,
+    the strip goes empty, or a button or a line of text about the removal shows up.
+8.7 Select a layer, Layer tab: "Persistent" is gone; "Ignore Column Trigger" sits alone on its row.
+8.8 The top bar has no "Fade:" control: a deck change never changes the picture, so there is nothing to fade.
+8.9 Open your show "test with harry": your layers look as they did. No note appears.
+8.10 Save "bf9b-check", close it, open it again: the decks and the layer looks come back; the layers start empty (as
+    before: what is playing is not saved).
+8.12 Click the Layer 2 strip (it gets a highlight) and open the Layer tab. Then in the menu bar: Deck -> Load
+    Deck...; in the file window go to the bf9b-check folder and pick five-rows.json (a deck with five rows; your show
+    has three layers). Expect: a new deck tab appears and is shown, two more layers appear in the grid, the Layer tab
+    still shows Layer 2, the Layer 2 strip is still highlighted, and the picture does not change. Press Cmd+Z: the new
+    deck and the two layers go away again; the Layer tab still shows Layer 2. Wrong: the app quits, the Layer tab
+    shows another layer or nonsense, the highlight disappears.
+(Steps 8.6 and 8.11 and the "NOT on the page" note are dropped by adoption items 8 and 6. Q-D falls away.)
+NOTE for the page writer, measured live: after step 8.12's load the text line at the top reads "Loaded deck:
+five-rows" and after opening a show "Loaded: <name>" -- texts that are on main (FOUND, NOT FIXED 1).
+
+### DEVIATIONS / STOP ITEMS FOR HARMONY (FIX-3)
+1. THE EDIT MENU. Boris: "The only place that we will see undo remove, will be in the top edit menu." The app has no
+   menu named "Edit": the menus are Audio-DNA, Composition, Deck, Layer, Column, Clip, Output, Shortcuts, View
+   (src/ui/MenuBarModel.cpp:9). Undo is the FIRST item of "Composition" and it does name the action: after a Remove
+   Deck it reads "Undo Remove Deck" (Cmd+Z), pinned by the new test. Nothing in the menu was changed. Whether the
+   menu's NAME matters to Boris is not mine to decide.
+2. TWO TEXTS THAT WERE ON MAIN AT 5abdf01 WERE REMOVED, on Boris's own words in adoption items 9 and 10: the tab row's
+   "Undo Remove" button (plan6: DeckView::showUndoHint etc., main src/ui/DeckView.cpp:16-25, :990-1013) and the file
+   label `Removed deck "<name>"` (main src/MainComponent.cpp:3953). The stage text also says "Texts that exist on main
+   at 5abdf01 are NOT touched". I read that sentence as covering every OTHER text (item 9 names the button; item 10's
+   quote answers the question about that very line; the user request relayed to this run asks for the removal). If
+   Harmony reads it the other way, `Removed deck` is one setFileLabel line to put back and B4j's second pattern loses
+   `Removed deck`.
+3. THE RETIRED SET IS 8, NOT 5, and one case is RENAMED (M-c). Gate B2's "RETIRED = exactly the five names of AM-12"
+   needs the three adoption names and the rename. Name 8 is a test that exists on main.
+4. B4j is wider than the ruling's pattern: a second regex for the adoption-9/10/11 identifiers, and whole lines
+   (comments too). It bites on the pre-fix src; it would also fail on a future comment that says "Undo Remove".
+5. PROBES NOT EDITED AND NOT RUN (FIX-4's): they will FAIL on this head until their clauses change --
+   .harmony/probe-boxes.py k7_old_show (:1143 "load_notice is non-empty", :1160-1162, :1196-1197, :1213-1216 read
+   ui_text.load_notice, which no longer exists); .harmony/probe-deck-tabs.sh state `remove_hint:0|11-remove-hint`
+   (:165, :186: captures the hint, which no longer shows). probe-ui-files-rename.sh's "undo" field is the Undo
+   HISTORY (top / index / size), not the button: unaffected (read, not run).
+6. `Composition::routineLoadNote` ("N routine pad(s) left empty ...") now has NO reader in src: the notice was its only
+   display, and there never was a log line for it (at 5abdf01 it had no reader either: `git grep routineLoadNote
+   5abdf01 -- src` hits only Composition.h). The pads are still left empty (the behaviour); nothing says so, on screen
+   or in the log. Adding a logLine is not in my packet -- Harmony's call for FIX-4.
+7. AM-11 (b), a consequence not named in the ruling: the selected ROW survives a rebuild by INDEX. After Layer >
+   Remove Layer of a selected layer that is not the top one, the layer that takes its index is highlighted (the
+   stack-move hook re-points the Layer inspector to that same row, so the two agree). Before, no strip was
+   highlighted after that command. Read, not driven by a test.
+8. Commit 1a65b85 (state A = everything but AM-11's lines) was built and its four touched test binaries run green;
+   the FULL ctest ran once, at 0dd155c.
+9. RED-first ran on the uncommitted tree. M-c's and G1''s fixtures were strengthened after the first green run: their
+   VALID clause showed that ShowFixture clips draw nothing on a strip (an "all equal" snapshot of blank strips), so
+   the fired clips now carry a file name (fireNamed). The RED block above is the re-run with the FINAL test file
+   against de2544e's five files, swapped in place and put back (sha256 equal). Right after the put-back one run
+   printed 3 failures from a stale object (same-second mtime, FIX-2's notebook note); touched, rebuilt (31 objects),
+   green. Reported, not dropped.
+10. A live smoke was run although the stage only asked for headless snapshots (one 21 s lock hold, REST only): the
+   removed widgets live in MainComponent, which no unit test drives.
+11. The headless PNGs use JUCE's default LookAndFeel (the test harness's); only the three live captures show the
+   app's own look.
+12. CARRIED, still open: B4f's pin `{ "ui/InspectorRepoint.h", 1 }` awaits Harmony's confirmation (FIX-1).
+13. pulse.json not read (the rig gives this worktree to this lane alone). No DEPARTMENT / KNOWLEDGE_TOOLS block:
+   grep-only; nothing judged dead on "no callers" -- every removed symbol was removed with all its callers and the
+   app + every test target links.
+
+### FOUND, NOT FIXED (FIX-3)
+1. EVENT-ANNOUNCING TEXTS THAT ARE ON MAIN (not touched; the inventory Harmony owes Boris). All write the top text
+   line (file label) unless said; lines at 0dd155c:
+   - src/core/StagedLoad.h:59 "Loading <name>..."; :64 "Loaded: <name>"; :65 "Loaded deck: <name>"; :66 "Duplicated
+     deck: <name>"; :76 "Too many loads waiting: <name> skipped"; :77 "Duplicate skipped: <name> is gone"
+   - src/MainComponent.cpp:2988, :3553, :3581, :4407 "Saved: <file>"; :3014 "Loaded: <name>"; :3816 "Saved deck:
+     <name>"; :3895 "Show in Finder: not found - <path>"; :4504 "No images found in folder"; :4518 "Folder: <name>
+     (...)"; :4579 "Camera failed to open"; :395 and :4436 "Slot <n>: <name>"; :470-473 an audio engine error message
+   - the same line also shows the fired clip's file name on every clip fire (e.g. "D3C2L2.png", seen live)
+   - the Record panel's notice line and routine notice (src/ui/RecordPanel.cpp:192-200, :298, :305; texts such as
+     "Saved: x" come through RecorderHost / RoutineEngine notify)
+   - a modal: src/MainComponent.cpp:3559-3562 "Save failed: <path>" (AlertWindow, not in test mode)
+   The audio-device notice (audioDeviceNotice_) is a STATE ("no input"), not an event; listed for completeness.
+2. BORIS_DECISIONS.md:358 still says "a strip badge names the deck each playing clip came from (click = show it), a
+   deck tab ..." -- stale after this stage; Harmony's file, not edited.
+3. src/model/Composition.h:79-80 (a main comment): routineLoadNote "the app shows it once; never silent" -- not true
+   at 5abdf01 and not true now (stop item 6).
+4. The stale RoutinePad.h / RoutineDeckView.h comments of FIX-2's FOUND 1 are still there.
+5. src/ui/LayerStrip.cpp:617 `int w` unused (compiler warning; main's code).
+6. .harmony/HANDOFF.md, .harmony/binding-decisions.md and .harmony/undo-v1-manual-e2e.md name the badge / the notice /
+   "Undo Remove" as history or as menu wording; not docs of the gate's grep, not edited.
+
+### NOTES FOR FIX-4
+- ctest is 1248 at 0dd155c; asan label 10; tsan 5. build-lane, build-tsan (its two targets) and build-asan
+  (test_show_model) are current with 0dd155c's src. tests/CMakeLists.txt changed (test_show_model gained
+  ui/MenuBarModel.cpp): every build dir reconfigures itself on its next build.
+- src is final as of 7decfaa unless a review asks otherwise: the ASan app (ASAN-FH) is FIX-4's to build, in the
+  foreground. `git diff --stat 7decfaa -- src` must stay empty through FIX-4.
+- Probe clauses to change (stop item 5): probe-boxes k7 / B5's load_notice clauses keep the logLine clause;
+  probe-deck-tabs.sh's remove_hint state. APP-INVENTORY's test count (1234 at M1) is now 1248; T6f-T6j and the two
+  asan probes are still owed in Guards; AM-7's rule + exception in the Remove Deck bullet; integration.md's three
+  AM-6 ui_text fields (not there: `git grep -c inspected_layer -- docs/claude/integration.md` = no hit) and Pitfall
+  33's AM-14 sentence (not there: `grep -c "forget their bindings" docs/claude/pitfalls.md` = 0).
+- B7 states (3b) and the load-notice state are gone; state (3) no longer has a file_label VALID clause.
+- nine-rows.json / five-rows.json come out of `.harmony/make-bf9b-check.py <dir>` (needs the main .venv's Pillow and
+  ffmpeg): L1's fixture is ready.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- A snapshot-equality test over ShowFixture clips proves nothing: a clip without a media file draws no name and no
+  picture, so "playing" and "empty" strips are byte-equal. Give the fired clips a file name, and keep a VALID clause
+  (clear a layer -> the snapshot must change). | discovered: tests/test_layer_strip_source_deck.cpp M-c / G1'
+- A test can write its own snapshots for a look: ADNA_BF9B_SHOT_DIR=<dir> ./test_layer_strip_source_deck writes six
+  PNGs (saveShot). Headless JUCE renders with LookAndFeel_V4, not the app's.
+- Swapping files in place and copying them back within one second of a build leaves a stale object: touch AFTER the
+  copy-back and check the object count (again -- FIX-2's note; it bit once more here).
+
+INBOX-RECHECK: none (no message channel in this workflow run; the relayed user line is Boris's sentence of adoption
+item 11, already in the stage text)
+
+### PACKET QUALITY (FIX-3)
+- Clarity: CLEAR, with one HAD_TO_INFER: "texts on main are NOT touched" against adoption items 9 / 10, which remove
+  two texts that are on main (stop item 2). Also inferred: the stage title names "adoption items 9 and 10" while the
+  body adds 11 -- built all three.
+- Missing context: that the Undo Remove button and the "Removed deck" label predate the lane (found by `git grep
+  5abdf01`); that the app has no Edit menu.
+- Unused context: the three r2 reviews, rulings-bf9b-merge.md, rulings-bf9b-mergein.md, bf9b-merge.md's hand-over
+  (the ruling + adoption + FIX-2's notes carried everything); the sanitizer-app and perf rig rules.
+- Self-brief files: ruling-bf9b-merge.md (full), the plan's P7 + HARMONY ADOPTION (full), this report's FIX-2 end
+  sections -- useful, none stale. LESSONS_LEARNED / CONTEXT.md / notebook.md: not read (not a bug-fix packet; no new
+  domain term introduced).
+
+### SLIM CHECK (FIX-3)
+src: -405 / +26 lines over 10 files; the only ADDED code is columnHeaderColour (5 lines, replacing two copies of the
+colour choice) and one setSelected line. tests: 8 cases retired, 6 added, 1 restated, 1 body rewritten; helpers
+tabRowOf, saveShot, fireNamed, makeShowWithWideDeck, litHeaders (each used by >= 2 checks, saveShot env-gated). docs:
+6 lines of performance-controls.md, 2 of pitfalls.md, 1 of integration.md, 2 of APP-INVENTORY. Generator: one
+function, two calls. Not built (as ruled): rebuildCells, an 8-column deck in the check show, AM-12 (4)'s label
+sentence, B7 state 9 / 3b, any CLAUDE.md line, any probe edit, any background build. What I would cut if asked:
+B4j's second regex (stop item 4) and saveShot. Smells named: DeckView still spells the unlit colour 0xff2a2a2a in
+four places and kHeaderLit's value 0xff3a5a4a literally in two (setupDeckTabs, refresh's tab loop) -- magic numbers,
+left: the ruling asked for ONE helper for the header only.
