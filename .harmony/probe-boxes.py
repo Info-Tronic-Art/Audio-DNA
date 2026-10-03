@@ -86,12 +86,14 @@ k5_queue_link_on    BLOCKED: neither arm is built with Ableton Link (CMake AUDIO
                     switch is the TopBar toggle (no REST / OSC; no synthetic input) -- reported, never dropped.
 k7_old_show         K7: an old 2-deck show (layer settings differ; Deck 1 / L1 "persistent": true; a Deck-2 layer
                     connection; a 1.2 s deck fade). PASS iff layer settings == Deck 1's (per-arm reader), exactly one
-                    "old show converted:" logLine (the app's stdout + stderr logs in the out dir), /api/debug/ui_text
-                    "load_notice" non-empty; save + reload (bf9b fix round; BF9B-only driver POST
-                    /api/debug/save_composition, N/A on STAGE_P): the saved file has top-level "layers", no
-                    "persistent" / "globalTransitionSpeed", the save empties load_notice, its reload logs no note,
-                    load_notice stays empty and the first deck's settings come back; then a new-format show: no new
-                    logLine and load_notice empty.
+                    "old show converted:" logLine (the app's stdout + stderr logs in the out dir); save + reload
+                    (bf9b fix round; BF9B-only driver POST /api/debug/save_composition, N/A on STAGE_P): the saved
+                    file has top-level "layers", no "persistent" / "globalTransitionSpeed", its reload logs no note
+                    and the first deck's settings come back; then a new-format show: no new logLine.
+                    s-rta-1003 (plan-bf9b-merge HARMONY ADOPTION item 11; K7 / B5): the four load_notice clauses
+                    are gone, every other clause is unchanged. Boris: "We don't need any text indicating what has
+                    happened or what has happened. That is something that happens online and is not necessary in
+                    this application. It is extra overhead and bloat. Please remove it cleanly and completely."
 k7_old_take         K7 (+ K1's take-replay driver): a take recorded on the STAGE_P arm (pre-bf9b PerfState: no "layers"
                     in checkpoint0) with an activeDeck lane replays (perf/load + perf/play, wall clock) with no error,
                     its lane moves activeDeck, and every capture during the replay is within floor of before.
@@ -133,6 +135,8 @@ FIX = json.load(open(os.path.join(ROOT, ".harmony", "probe-boxes.json")))
 OLD_TAKE = os.environ.get("BOXES_OLD_TAKE", "")
 TOL = float(FIX["floor"]["tol"])
 PASS = FAIL = BLOCKED = 0
+BLOCKED_ROWS = []   # the names of the rows that printed BLOCKED (ruling-bf9b-merge AM-9): probe-boxes.sh prints them
+ROW = None          # the row main() is running
 S = requests.Session()
 # One fresh connection per request (s-rta-0927 c1-state-fix: the app's cpp-httplib server drops a request that lands
 # on a connection it is closing after 5 s idle).
@@ -154,6 +158,8 @@ def na(msg):
 
 def blocked(msg):
     global BLOCKED; BLOCKED += 1; print(f"BLOCKED  {msg}", flush=True)
+    if ROW not in BLOCKED_ROWS:
+        BLOCKED_ROWS.append(ROW)
 
 
 def info(msg):
@@ -622,6 +628,8 @@ _K1B_DUP_RAN = False
 
 
 def k1b_duplicate(cfg=None):
+    # gates-r2 NIT 5 (ruling-bf9b-merge AM-18) -- Boris: "when I switch between decks, do not change the clips playing
+    # in the layers or how they are playing. treat the decks as just a box of clips"
     """K1's duplicate_deck driver on K1b's VIDEO fixture (bf9b fix round): with K1a's static picture a Duplicate that
     restarts the copied clip looks the same, so that sub-row has no RED arm. Same show, the video still playing in
     layer 0 (t ~ 7 s): POST /api/debug/duplicate_deck {"deck": 0} (it shows the copy); K1b's bar on the canvas at
@@ -1134,13 +1142,9 @@ def k7_old_show():
             lines += [ln.strip() for ln in open(p, errors="replace") if pat in ln]
     info(f"k7_old_show: logLine(s): {lines[-1:] if lines else []}")
     check(n1 - n0 == 1, f"k7_old_show: exactly one '{pat}' logLine for the load ({n1 - n0})")
-    code, ui = 0, {}
-    try:
-        rr = S.get(A + "/api/debug/ui_text", timeout=6); code = rr.status_code; ui = rr.json()
-    except Exception as e:  # noqa: BLE001
-        ui = {"error": str(e)}
-    info(f"k7_old_show: /api/debug/ui_text -> {code} {json.dumps(ui)[:300]}")
-    check(bool(str(ui.get("load_notice", "")).strip()), "k7_old_show: /api/debug/ui_text load_notice is non-empty")
+    # s-rta-1003, adoption item 11 (K7 / B5): the "load_notice is non-empty" clause is gone -- Boris: "We don't need any
+    # text indicating what has happened or what has happened. [...] Please remove it cleanly and completely." The
+    # logLine clause above is the trace of the conversion.
     k7_save_reload(pat, n1)
     # the reload half: a NEW-format show (what Save writes: top-level layers, rows of clips only)
     new = {"name": "boxes-k7-new", "activeDeckIndex": 0, "masterOpacity": 1.0,
@@ -1153,21 +1157,20 @@ def k7_old_show():
         return
     time.sleep(0.8)
     n2 = logcount(pat)
-    try:
-        ui2 = S.get(A + "/api/debug/ui_text", timeout=6).json()
-    except Exception as e:  # noqa: BLE001
-        ui2 = {"error": str(e)}
-    check(n2 == n1 and "load_notice" in ui2 and not str(ui2.get("load_notice", "")).strip(),
-          f"k7_old_show: a new-format show loads with no note (new logLines {n2 - n1}) and load_notice empty "
-          f"({json.dumps(ui2.get('load_notice'))})")
+    # s-rta-1003, adoption item 11: the "load_notice empty" clause is gone (Boris's sentence at the row's first clause)
+    check(n2 == n1, f"k7_old_show: a new-format show loads with no note (new logLines {n2 - n1})")
 
 
 def k7_save_reload(pat, n_before):
+    # gates-r2 NIT 5 (ruling-bf9b-merge AM-18) -- Boris: "when I switch between decks, do not change the clips playing
+    # in the layers or how they are playing. treat the decks as just a box of clips"
     """K7 / B5 "save + reload" (bf9b fix round): with the converted old show loaded, POST /api/debug/save_composition
     (File > Save As... to a file in the out dir, no chooser) -> the file is written in the new shape (top-level
-    "layers"; no "persistent", no "globalTransitionSpeed") and the save retires the load notice; POST /api/load_composition
-    of that file -> no new "old show converted:" logLine and load_notice empty. The route is BF9B-only (STAGE_P has no
-    save driver: N/A)."""
+    "layers"; no "persistent", no "globalTransitionSpeed"); POST /api/load_composition of that file -> no new "old show
+    converted:" logLine. The route is BF9B-only (STAGE_P has no save driver: N/A). s-rta-1003, adoption item 11: the two
+    load_notice clauses ("the save retires the load notice", "load_notice empty" after the reload) are gone -- Boris:
+    "We don't need any text indicating what has happened or what has happened. [...] Please remove it cleanly and
+    completely."."""
     saved = os.path.join(OUT, "k7_saved.json")
     code, body = post("/api/debug/save_composition", {"path": saved})
     if code == 404:
@@ -1190,12 +1193,6 @@ def k7_save_reload(pat, n_before):
           f"k7_old_show save: the saved show has the new shape (top-level layers {nl}; key 'persistent' {has_persist}; "
           f"key 'globalTransitionSpeed' {has_fade})")
     try:
-        ui = S.get(A + "/api/debug/ui_text", timeout=6).json()
-    except Exception as e:  # noqa: BLE001
-        ui = {"error": str(e)}
-    check("load_notice" in ui and not str(ui.get("load_notice", "")).strip(),
-          f"k7_old_show save: the save retires the load notice ({json.dumps(ui.get('load_notice'))})")
-    try:
         r = S.post(A + "/api/load_composition", json={"path": saved}, timeout=15)
         good = r.ok and r.json().get("ok") is True
     except Exception as e:  # noqa: BLE001
@@ -1206,14 +1203,9 @@ def k7_save_reload(pat, n_before):
     n2 = logcount(pat)
     c = comp() or {}
     got = [(round(float(x.get("opacity", -1)), 2), x.get("blendMode")) for x in c.get("layers", [])]
-    try:
-        ui2 = S.get(A + "/api/debug/ui_text", timeout=6).json()
-    except Exception as e:  # noqa: BLE001
-        ui2 = {"error": str(e)}
-    check(n2 == n_before and "load_notice" in ui2 and not str(ui2.get("load_notice", "")).strip()
-          and got == [(1.0, 0), (0.8, 0)],
-          f"k7_old_show reload: the saved show reloads with no note (new logLines {n2 - n_before}), load_notice empty "
-          f"({json.dumps(ui2.get('load_notice'))}) and the first deck's layer settings {got}")
+    check(n2 == n_before and got == [(1.0, 0), (0.8, 0)],
+          f"k7_old_show reload: the saved show reloads with no note (new logLines {n2 - n_before}) and the first "
+          f"deck's layer settings {got}")
 
 
 def take_is_old(folder):
@@ -1536,6 +1528,7 @@ def k10_fresh_and_resume():
 
 
 def main():
+    global ROW
     rows = [("k1a_switch_static", k1a_switch_static), ("k1b_switch_video", k1b_switch_video),
             ("k1b_duplicate", k1b_duplicate),
             ("k1c_switch_midfade", k1c_switch_midfade), ("k1t_history_freeze", k1t_history_freeze),
@@ -1555,9 +1548,14 @@ def main():
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)
+            ROW = name
             ensure_arm()
             fn()
-    print(f"\nPY {PASS} PASS / {FAIL} FAIL / {BLOCKED} BLOCKED (arm {ARM})", flush=True)
+    # ruling-bf9b-merge AM-9: the names of the blocked rows and the size of the row list, for probe-boxes.sh's verdict
+    # line and its row-count pin (EXPECTED_ROWS).
+    print(f"\nPY-ROWS registered {len(rows)}", flush=True)
+    print(f"PY-BLOCKED-ROWS [{', '.join(BLOCKED_ROWS)}]", flush=True)
+    print(f"PY {PASS} PASS / {FAIL} FAIL / {BLOCKED} BLOCKED (arm {ARM})", flush=True)
     # bf9b fix round (Harmony ruling R-N3): a BLOCKED bar never ran, so it is never a pass -- exit 0 only when nothing
     # failed AND nothing was blocked; FAIL == 0 with BLOCKED rows exits 3 (probe-boxes.sh prints "PROBE-BOXES BLOCKED <n>").
     sys.exit(1 if FAIL else (3 if BLOCKED else 0))

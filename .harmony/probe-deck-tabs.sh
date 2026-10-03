@@ -15,7 +15,9 @@
 # Phase 2 (--hook): ONLY on a build carrying the TEMPORARY plan6 screenshot hook (MainComponent constructor end,
 #   NEVER committed -- .harmony/notebook.md plan6 entry): one launch per state with open -g --env AUDIODNA_DEBUG_SHOW=...
 #   04-plus-menu, 05-deck-menu, 06-rename-dialog, 07-replace-confirm, 08-browser-compositions, 09-library-menu,
-#   10-library-delete-confirm, 11-remove-hint. A JUCE PopupMenu is dismissed within ~50 ms while the app is not the
+#   10-library-delete-confirm, 11-after-remove (s-rta-1003: was 11-remove-hint, the capture of the tab row's "Undo
+#   Remove" button; the button is gone -- Boris: "I don't wanna see an under removed button at all. We just use
+#   control Z." -- so the state keeps only its REST clause: deck A removed, decks B,C, B still active). A JUCE PopupMenu is dismissed within ~50 ms while the app is not the
 #   foreground process (juce_PopupMenu.cpp checkButtonState -> doesAnyJuceCompHaveFocus), and this rig never brings
 #   the app to the front, so the three MENU states (04/05/09) are shot by the hook itself: a createComponentSnapshot
 #   of the live top-level window taken synchronously right after the menu opens (<NAME>-snapshot.png; the GL preview
@@ -162,7 +164,7 @@ if [ "$HOOK" -eq 1 ]; then
               "browser_compositions|08-browser-compositions|0|0|0" \
               "library_menu:0|09-library-menu|0|1|1" \
               "library_delete_confirm:0|10-library-delete-confirm|0|0|1" \
-              "remove_hint:0|11-remove-hint|1|0|0"; do
+              "remove_hint:0|11-after-remove|1|0|0"; do
     IFS='|' read -r STATE NAME USECOMP USESNAP USELIB <<< "$spec"
     echo "-- $NAME ($STATE)"
     if [ "$USELIB" -eq 1 ]; then
