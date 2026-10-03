@@ -1,6 +1,6 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a next)
+STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b next)
 Stage in progress: S1 DONE (ClipRef in the tuple, inert; S1 commit 475b716). S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
@@ -589,4 +589,173 @@ tuple section, so Layer.h lines after :45 moved by +38: triggerClip :386 -> :424
 column) is S1's interim only: S2's tuple-writing entries refuse it (amendment 2(c)) and pack jasserts it. Arms for K
 rows: scratchpad/bf9b-S0/apps/stagep-head.app (STAGE_P), apps/base-c0.app (C0); REF dir for a4
 scratchpad/bf9b-S0/live/run1-base/rstate.O2yu7p. Do NOT rebase until Harmony says.
+INBOX-RECHECK: none
+
+## S2a (the model split + trigger API + C1/C2/C3 + the S2a src items; ruling-bf9b S2a row) -- builder started 19:17
+STATUS(S2a): DONE
+### S2a progress log (appended per item)
+- 19:18 read the lane report, plan-bf9b (incl. HARMONY ADOPTION), ruling-bf9b in full, ruling-bf6 AM-1 / AM-6. Disk 291 GiB free.
+- 19:40 model split + trigger API + C1/C2 written (src/model ClipRef.h RowClips, NEW ClipRow.h, NEW ShowMigration.h,
+  Layer.h/.cpp, Deck.h, Composition.h), core (ClipCommands / DeckCommands / TriggerCommands / UndoService reap hook /
+  EffectCommands / CompositionLoad / MediaPresence), Autopilot (show-wide, F10 source-deck advance), render
+  (compositeShow, kShowStackKey, one show autopilot, deck fade + off-screen loop + tickMediaClock deleted; DeckClock.h,
+  AutopilotBank.h, EmbeddedShaders::deckTransition, VideoPlayer::advanceClock deleted), ConnectionEngine (C2 walks),
+  ManualWrite, MidiOutputHandler::padStateFor, recording (Program deckId pin + v2 preamble, PerfState v2, capture,
+  RoutineEngine::stopOnLayer(layer), RoutineDeckView bands on shared layers), ui (DeckView::showDeck + shared strips,
+  LayerStrip setLayer(layer, index, show)). App build (-k): every TU compiles except MainComponent.cpp, ApiServer.cpp,
+  TestServer.cpp (in progress).
+- 19:50 MainComponent.cpp (S2.7 / S2.8 rulebook pass), ApiServer.cpp (F8 top-level "layers" + "retiredDeckCount" +
+  the mirror; amendment 4(g) debug routes remove_deck / undo), TestServer.cpp: app target `cmake --build build-lane
+  --target AudioDNA -j3` rc=0, 0 error lines (build-app.log). No compile error needed a rule outside R1-R7 (no STOP).
+- 19:53 RED-first for S2a's model API: NEW tests/test_show_model.cpp (T2, T3, T9, T10, T15) + CMake target
+  test_show_model (builds alone: model sources only). RED = compiled against the S1 head's src (`git archive 475b716
+  src`, scratchpad/bf9b-S2a/s1src) with the target's own flags: rc 1, 20 error lines, first VERBATIM:
+  `tests/test_show_model.cpp:17:14: error: no member named 'getNumLayers' in 'Composition'`
+  `tests/test_show_model.cpp:18:11: error: no member named 'insertLayer' in 'Composition'`
+  GREEN (worktree): reconfigure rc 0, `--target test_show_model` rc 0, run: `All tests passed (64 assertions in 5 test cases)`.
+- 19:55-19:58 live SMOKE (lock bf9b-S2a; build-lane app; production port): GET /api/composition carries top-level
+  "layers" (3 shared layers, activeClip {deck,deckId,column,clipId,retired}), "retiredDeckCount" 0, decks[0].layers
+  mirror (3 rows, activeClipColumn -1). The UNCHANGED probe-crossfade.py (an OLD-format show POST -> the converter,
+  triggers, crossfades, pixel decode) on the new app, VERBATIM tail: `PY 35 PASS / 0 FAIL`, probe rc=0. LOOKED at
+  xf/a_both_effected_mid04.png (a mid-dissolve of two effected pictures: both visible, no black frame). App quit by
+  quit_app ("app running after quit: no"); Output-named windows 0; UserNotificationCenter windows 0 at 19:58:32.
+
+### S2a commits (one per S2 sub-item group; the sanctioned non-building window -- only the LAST builds the app)
+| sha | item | build |
+|---|---|---|
+| 8cc24c5 | S2a.1 model split (S2.1-S2.3): ClipRow.h, ShowMigration.h, Layer / Deck / Composition, RowClips, C1 / C2, CompositionLoad / MediaPresence walks, test_show_model (RED-first) | test_show_model target rc 0 (model only) |
+| 02952c1 | S2a.2 commands (S2.4) + amendment 4(a)-(c) reap / retire, 22 | (window) |
+| 1b1f1ca | S2a.3 render + autopilot (S2.5 / S2.6) + amendments 18 (Renderer half), 26; DeckClock.h, AutopilotBank.h deleted | (window) |
+| 3ea6f4b | S2a.4 recording (S2.9) + amendment 6 | (window) |
+| e26a78f | S2a.5 connections / pad lights / grid (S2.10 / S2.11) + amendment 12 padStateFor | (window) |
+| 2db77eb | S2a.6 MainComponent / ApiServer / TestServer (S2.7 / S2.8) + amendments 4(g), 7(a), 8, 19, 20 | APP rc 0 (`cmake --build build-lane --target AudioDNA -j3`, 20:01:49) |
+
+### S2a evidence (raw lines)
+- App build at 2db77eb: rc=0, 0 ` error:` lines. Warnings in the 18 touched .cpp TUs (syntax pass, scratchpad
+  warn-touched.txt): 19 lines, every one on a code line that exists verbatim at 475b716 (checked line by line:
+  LayerStrip.cpp 617 / 706 / 819, MainComponent.cpp 1505 / 2294 / 4746 / 6396, ApiServer.cpp 1081 / 1904, Autopilot.h
+  lastEnergyState_, CompositorEngine.cpp totalCells, TestServer.cpp CGL deprecations) -- no new warning.
+- test_show_model: RED vs the S1 head's src = compile errors (above); GREEN `All tests passed (64 assertions in 5 test cases)`
+  at 2db77eb (rebuilt 20:01).
+- Full tree `cmake --build build-lane -j3 -- -k` (19:58:51-20:00:51, rc=2 by design): 96 of 116 test targets build; the
+  20 that do not compile yet (S2b's list): test_autopilot test_composition test_compositor test_connection
+  test_deck_clock test_deck_thumbnails test_layer_runtime test_layer_runtime_race test_layer_state_key
+  test_layer_strip_follows_model test_layer_strip_transport_view test_manual_scalar_race test_manual_write
+  test_media_presence test_program_preamble test_recorder_host test_routine test_routine_engine test_undo_commands
+  tool_routine_deck_snapshot. (No ctest / TSan run at S2a: the sanctioned window; B2 / B3 run at S2b's end.)
+- Live smoke (above): unchanged probe-crossfade.py on the S2a app `PY 35 PASS / 0 FAIL`.
+- Text smokes at 2db77eb: B4a terms (DeckClock|AutopilotBank|deck_transition|deckTransition|prevDeckFBO_|
+  cancelPendingTriggers|compositeDeck|tickMediaClock|advanceClock) 0 hits in src, comments included;
+  globalTransitionSpeed: TopBar.cpp:197 / :204 (S3.3's half), Composition.h field + initDefault (TopBar's target until
+  S3.3; never saved, no reader), ShowMigration.h (the allowed literal). B4b: 0 `getActiveDeck(` / `activeDeckIndex` in
+  src/render/* and Autopilot.cpp (Renderer::getActiveDeck renamed getFenceToken; its one caller UndoService.cpp).
+  B4c: Renderer.cpp reads activeDeck_ once (`activeDeck_.view()`, :390) and never dereferences .ptr. B4d (smoke): the
+  bodies of handleDeckSwitch, onDeckSwitched and DeckView::showDeck contain none of
+  triggerClip|clearActiveClip|setRuntime|updateRuntime|cancelPending|refreshPreview.
+
+### Amendment 3(a): FENCE AUDIT TABLE at 2db77eb (B4f regex over code lines, ClipRow.h / Deck.h / Composition.h /
+ShowMigration.h excluded; scratchpad/bf9b-S2a/b4f.py; counts per file: MainComponent.cpp 25, ClipCommands.h 2,
+CompositionLoad.h 1, DeckCommands.h 18, UndoService.cpp 2, RoutineEngine.cpp 2, ClipCell.cpp 1, ClipCell.h 1,
+ClipInspector.cpp 1, ClipInspector.h 1, DeckView.cpp 2, InspectorPanel.cpp 1)
+| site | writer | fence |
+|---|---|---|
+| MainComponent.cpp:800 | onMultiVideoDropped `row.clips.resize` growth | withDeckDetached :792 |
+| MainComponent.cpp:887 | onMixedFilesDropped growth | withDeckDetached :880 |
+| MainComponent.cpp:986, :1003 | onEffectDropped (empty cells) ensureColumns / setClip | withDeckDetached :981 |
+| MainComponent.cpp:1115, :1141 | onSourceDropped | withDeckDetached :1109 |
+| MainComponent.cpp:1193, :1212 | onClipMoved ensureColumns (+ the cell writes) | withDeckDetached :1190 |
+| MainComponent.cpp:1282, :1284 | onMilkDropDropped | withDeckDetached :1280 |
+| MainComponent.cpp:1358, :1360 | onMilkDropPlaylistDropped | withDeckDetached :1356 |
+| MainComponent.cpp:1583 | onSourceActivated setClip | withDeckDetached (same line) |
+| MainComponent.cpp:5319 | commitDrop deck->setClip | every caller fences: :804 in :792, :890 in :880, :5337, :5474 in :5464, :5503 |
+| MainComponent.cpp:5471 | handleMultiFileDrop (2 images) growth | withDeckDetached :5464 |
+| MainComponent.cpp:6631, :6632 | kDeckClearClips row clear | withDeckDetached :6622 |
+| MainComponent.cpp:6715, :6716 | kLayerClearClips row clear | withDeckDetached :6713 |
+| MainComponent.cpp:6825 / :6849 | kColumnNew addColumn / kColumnRemove removeColumn | withDeckDetached (same lines) |
+| MainComponent.cpp:6889 | kClipClear clearCell | withDeckDetached :6884 |
+| MainComponent.cpp:2945, :3794, :5242 | ClipInspector::setClip (a UI setter, regex over-count, R-3) | n/a (not a model writer) |
+| ClipCommands.h:113 / :252 | SetClipCmd / SwapClipsCmd apply | runFenced = DeckFenceHook (MainComponent::makeDeckFence -> withDeckDetached) |
+| CompositionLoad.h:46 | validateDeck pad | staged, unpublished composition / deck (Pitfall 58) or headless test |
+| DeckCommands.h:75 / :126 / :153 | SetColumnCountCmd / RemoveColumnCmd execute / undo | runFenced |
+| DeckCommands.h:251 | clearedLayerClips `s.clips.assign` (a local snapshot, regex over-count) | n/a |
+| DeckCommands.h:494 / :500 / :510 | AddLayerCmd redo / do / undo | runFenced |
+| DeckCommands.h:568 | RemoveLayerCmd execute eraseLayer | runFenced |
+| DeckCommands.h:636 | MoveLayerCmd moveLayer | runFenced |
+| DeckCommands.h:702 / :723 | AddDeckCmd appendDeck / undo decks.erase | runFenced |
+| DeckCommands.h:783 / :812 / :814 / :830 / :832 | InsertDeckCmd redo insertLayer / do insertLayer + appendDeck / undo decks.erase + eraseLayer | runFenced |
+| DeckCommands.h:913 / :941 | RemoveDeckCmd retireOrEraseDeck / undo restoreRetiredDeck | runFenced |
+| UndoService.cpp:70 / :112 | reapRetiredDecks | inside withDeckDetached itself (headless pass-through / the fenced scope, before the restore) |
+| RoutineEngine.cpp:68 / :77 | Footprint `fp.layers` (a local vector) | n/a (regex over-count) |
+| ClipCell.* / ClipInspector.* / InspectorPanel.cpp / DeckView.cpp:190, :286 | UI `setClip` setters | n/a (regex over-count) |
+Structure writers the B4f regex does NOT name (new model methods; listed so the audit is complete -- S2b decides whether
+B4f's method list gains them): DeckCommands.h:586 `insertLayerWithRows` (RemoveLayerCmd undo, runFenced); :693 / :784 /
+:943 `insertDeckKeepingId` (AddDeckCmd redo, InsertDeckCmd redo, RemoveDeckCmd undo; runFenced); Composition::fromVar /
+normalizeRows / padRows (CompositionLoad.h:62 validateComposition on the STAGED composition; appendDeck's pad inside the
+callers' fences); MainComponent.cpp:3231 `composition_ = std::move(s->comp)` and :6482 `initDefault()` (both inside
+swapCompositionModel's withDeckDetached); MainComponent.cpp:514 constructor initDefault (before any setActiveDeck: the
+GL thread reads nothing yet).
+
+### Amendment 9(a): STORE TABLE (what an old show's per-deck layer data becomes)
+| store | lives on | at conversion |
+|---|---|---|
+| layer settings incl. layer effects, layer scalar connections, per-layer autopilot settings | the Layer (R-F18) | the winning (first) deck's row keeps its own; a dropped row loses its own and the note names it when it differs |
+| ByPosition / Selected bindings | (layer index, column) on the shown deck | no migration |
+| ThisItem bindings | a clip id | no migration (now searched in every live deck) |
+| routine / take keys | deck index + name, layer index + name | Layer scope resolves the shared layer by position / name; Clip scope as today on rows |
+| PerfState v1 (no "layers") | per deck | shared layers restored from its captured active deck only (M5) |
+| PerTypeAutopilotConfig | Composition | untouched |
+
+### S2a deviations / decisions (for the reviewer)
+1. RowClips gained `cellsFn` + `hasCell()` beside the plan's `fn` / `ctx` / `row` / `at()`: a trigger must still tell
+   "no such cell" (unchanged, as before) from "an empty cell" (clears the layer, F12).
+2. ClipRef::storable() added: the domain the tuple may hold ("none", a deck with column -1, a valid ref); used by
+   pack's jassert and by onlyIfActive refusals; trigger targets must be valid().
+3. LayerStrip::setLayer(Layer*, int, Composition*) -- non-const (the strip's transport buttons write the playing clip);
+   LayerStrip::transportViewOf(const Clip* playing, bounds) replaces (const Layer*, bounds) (its ctest follows in S2b).
+4. The column header {deckId, column} is lit only on the deck it was fired from already in S2a (S2.7 "remembers";
+   16(e) defines it) -- the only on-screen grid change before S3.
+5. Renderer::getActiveDeck renamed getFenceToken (B4b's zero `getActiveDeck(` in src/render/*).
+6. The Layer Router reads composition_->layers only inside the frame's deckActive gate (Renderer::showReadable_; a
+   standalone layer_router source on a fenced frame returns 0, as the old null deck did).
+7. Composition::globalTransitionSpeed stays as a field until S3.3 (TopBar's Fade slider writes it); never saved, no
+   reader.
+8. tests/test_show_model.cpp (+ CMake target) lands in S2a with T2, T3, T9, T10, T15 as S2a's RED-first evidence; S2b
+   extends the same file (T1, T4-T8, T11-T14, T16, M*).
+9. handleClipTrigger / handleColumnTrigger refuse a ref that is not valid() at entry (amendment 2(c) carried to the app
+   entries; a column > 16,382 cannot exist in a validated deck).
+10. Load Deck / New Deck past the deck-id cap: refused with the 7(a) text in the file label + a logLine (the load-notice
+    label is S3.4).
+11. migrationNote is logged in finishStagedLoad after the swap (a cancelled staged load logs nothing).
+12. RemoveDeckCmd's undo does not restore the triggers cancelPendingInto cancelled (runtime undo stays imperfect,
+    DeckCommands.h's spec risk #5 family).
+13. A row clear (Clear Deck / Layer Clips) touches the shared tuple only when its ACTIVE or PENDING ref is in that row of
+    that deck; a fading-out (previous) ref into it just loses its outgoing clip (the fade cuts).
+14. Momentary bindings: the press records (layer, ref) per Binding::id (MainComponent::momentaryRefs_); a release with
+    no record does nothing.
+15. PerfState capture: a layer playing a removed (retired) deck's clip records activeClipColumn -1 (nothing a take can
+    restore).
+16. deriveRoutineDeckView: pad.onShownDeck is always true and the "on Deck N" corner note is gone (every routine plays
+    on the shared layers, on screen).
+17. GET /api/composition: a ref's "retired" = it names a deck not among the live decks (REST never reads the retired
+    list's elements); "retiredDeckCount" reads its size (the decks.size()-class read tsan-r5 owns).
+
+## Resume point (for the S2b builder)
+S2a is DONE at 2db77eb (app builds; test_show_model GREEN). Next: S2b = plan S2.12 (tests) + T1 (amendment 12),
+T6c-e (4), T7 + T7b (21, 22), T11 (7), T13-T16, M1 + M6 + M7, the R-bf9b TSAN case (3(c); EXPECTED_TSAN_CASES 4 -> 5),
+B4f (3(b); decide on deviation 3(a)-list: insertLayerWithRows / insertDeckKeepingId), mutation smokes MS1-MS7 (13).
+Start with the 20 test targets listed above (they do not compile); extend tests/test_show_model.cpp (5 cases there).
+The persistent-key lint (test_render_thread_lint "no Persistent-feature identifier left in src/") must allow-list
+src/model/ShowMigration.h (B4e); its pinned CompositorEngine.cpp counts change (compositeShow: one runtime() per layer,
+no getActiveClip). ShowMigration's note format: "old show converted: layer settings come from the first deck that has
+each row; <Deck> row N: settings dropped[; K layer effect(s), M connection(s) dropped]; 'persistent' ignored on:
+<Deck> / <Layer>, ...; deck fade X.XX s dropped" (rows 1-based). Arms: STAGE_P = scratchpad/bf9b-S0/apps/stagep-head.app,
+C0 = apps/base-c0.app; REF dir for a4 scratchpad/bf9b-S0/live/run1-base/rstate.O2yu7p. Do not rebase until Harmony says.
+
+## Notes for .harmony/notebook.md (Harmony appends)
+- bf9b: a layer's clip is Composition::playing(i) / playingClip(i) (a (deck id, column) ref into ANY live or retired
+  deck) -- never getActiveDeck()->rows[i]; the shown deck is only the grid. | discovered: src/model/Composition.h playing()
+- bf9b: every fenced edit (UndoService::withDeckDetached) reaps retired decks no ref names and hands them to
+  onDecksReaped after the fence; a headless test without a renderer reaps too. | discovered: src/core/UndoService.cpp
+- `git commit -m ... -- <paths>` commits ONLY those paths (git rm'd files included) -- path-scoped commits without
+  touching the index of other files. | discovered: scratchpad/bf9b-S2a/commit.sh
 INBOX-RECHECK: none
