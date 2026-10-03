@@ -1,6 +1,6 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "model/Layer.h"
+#include "model/Composition.h"   // the shared layer + its playing clip (lane bf9b)
 #include "ui/LookAndFeel.h"
 #include "ui/UniversalParamControl.h" // for ResettableSlider
 #include "ui/RoutineDeckView.h"
@@ -35,7 +35,9 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    void setLayer(Layer* layer, int index);
+    // Lane bf9b: `layer` is a SHARED layer (Composition::layers[index]); `show` resolves the clip it plays, which may
+    // come from any deck box (Composition::playingClip) -- never the shown deck's cell.
+    void setLayer(Layer* layer, int index, Composition* show);
     Layer* getLayer() const { return layer_; }
     int getLayerIndex() const { return layerIndex_; }
     bool hasThumbnail() const { return thumbnail_.isValid(); }   // tests
@@ -60,7 +62,8 @@ public:
         int playheadX = 0;
         bool operator==(const TransportView&) const = default;
     };
-    static TransportView transportViewOf(const Layer* layer, juce::Rectangle<int> transportBounds);
+    // playing: the layer's playing clip (Composition::playingClip), nullptr when none.
+    static TransportView transportViewOf(const Clip* playing, juce::Rectangle<int> transportBounds);
 
     // The strip's 30 Hz timer body (public for tests): the transport rect and the routine band hairline repaint only
     // when what they paint changed; syncFromModel() runs every tick (Pitfall 41).
@@ -123,6 +126,8 @@ private:
 
     Layer* layer_ = nullptr;
     int layerIndex_ = 0;
+    Composition* show_ = nullptr;   // lane bf9b: resolves the playing clip (any deck)
+    Clip* playingClip() const { return show_ != nullptr ? show_->playingClip(layerIndex_) : nullptr; }
     bool selected_ = false;
 
     // Left: X B S buttons (square)

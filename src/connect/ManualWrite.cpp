@@ -100,9 +100,8 @@ std::optional<ControlRef> resolveControl(Composition& comp, MacroBank& globalMac
 
     if (path.scope == ControlPath::Scope::Layer)
     {
-        if (path.deck < 0 || static_cast<size_t>(path.deck) >= comp.decks.size())
-            return std::nullopt;
-        Layer* layer = comp.decks[static_cast<size_t>(path.deck)].getLayer(path.layer);
+        // Lane bf9b (plan-bf9b F9): a Layer-scope path names the SHARED layer; its deck part is ignored.
+        Layer* layer = comp.getLayer(path.layer);
         if (!layer)
             return std::nullopt;
         if (path.fx >= 0)

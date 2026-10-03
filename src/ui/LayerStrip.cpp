@@ -369,25 +369,25 @@ LayerStrip::LayerStrip()
 
     transportBackBtn_.onClick = [this] {
         if (!layer_) return;
-        auto* clip = layer_->getActiveClip();
+        auto* clip = playingClip();
         if (clip) { clip->reverse = true; clip->playing = true; }
         if (onTransportBack) onTransportBack(layerIndex_);
     };
     transportPauseBtn_.onClick = [this] {
         if (!layer_) return;
-        auto* clip = layer_->getActiveClip();
+        auto* clip = playingClip();
         if (clip) clip->playing = false;
         if (onTransportPause) onTransportPause(layerIndex_);
     };
     transportPlayBtn_.onClick = [this] {
         if (!layer_) return;
-        auto* clip = layer_->getActiveClip();
+        auto* clip = playingClip();
         if (clip) { clip->reverse = false; clip->playing = true; }
         if (onTransportPlay) onTransportPlay(layerIndex_);
     };
     transportForwardBtn_.onClick = [this] {
         if (!layer_) return;
-        auto* clip = layer_->getActiveClip();
+        auto* clip = playingClip();
         if (clip) { clip->reverse = false; clip->playing = true; clip->speed = std::min(clip->speed * 2.0f, 4.0f); }
         if (onTransportForward) onTransportForward(layerIndex_);
     };
@@ -403,7 +403,7 @@ LayerStrip::LayerStrip()
     speedSlider_.setLookAndFeel(&sSpeedLAF);
     speedSlider_.onValueChange = [this] {
         if (!layer_) return;
-        auto* clip = layer_->getActiveClip();
+        auto* clip = playingClip();
         if (clip)
         {
             // Map 0-1 slider to 0x-4x speed (0.25 = 1x)
@@ -694,10 +694,11 @@ void LayerStrip::resized()
     updateTransportView();   // s-rta-0928b idlepaint: the transport rect moved / resized
 }
 
-void LayerStrip::setLayer(Layer* layer, int index)
+void LayerStrip::setLayer(Layer* layer, int index, Composition* show)
 {
     layer_ = layer;
     layerIndex_ = index;
+    show_ = show;
 
     if (layer_)
     {
@@ -715,7 +716,7 @@ void LayerStrip::setLayer(Layer* layer, int index)
                                           juce::dontSendNotification);
 
         // Speed slider: read from active clip (0.25 = 1x)
-        auto* clip = layer_->getActiveClip();
+        auto* clip = playingClip();
         if (clip)
             speedSlider_.setValue(static_cast<double>(clip->speed / 4.0f), juce::dontSendNotification);
         else
@@ -738,10 +739,10 @@ void LayerStrip::refresh()
     repaint();
 }
 
-LayerStrip::TransportView LayerStrip::transportViewOf(const Layer* layer, juce::Rectangle<int> transportBounds)
+LayerStrip::TransportView LayerStrip::transportViewOf(const Clip* playing, juce::Rectangle<int> transportBounds)
 {
     TransportView v;
-    const Clip* clip = layer != nullptr ? layer->getActiveClip() : nullptr;
+    const Clip* clip = playing;
     if (clip == nullptr || !clip->isPlayable())
         return v;                                   // paint() draws only the fill + border then
     // Clip::playheadPosition is GL-written; lane tsan (s-rta-1002) converted the field to RelaxedDouble (s166 spec L5's
@@ -759,7 +760,7 @@ void LayerStrip::updateTransportView()
 {
     if (transportBounds_.isEmpty())
         return;
-    const auto tv = transportViewOf(layer_, transportBounds_);
+    const auto tv = transportViewOf(layer_ != nullptr ? playingClip() : nullptr, transportBounds_);
     if (tv.showsClip && tv.playheadX != transportView_.playheadX)
         uipaint::counters().layerStripPlayheadTicks.fetch_add(1, std::memory_order_relaxed);   // the I2 witness
     if (tv == transportView_)
@@ -839,7 +840,7 @@ void LayerStrip::syncFromModel()
 
     if (!speedSlider_.isMouseButtonDown())
     {
-        const auto* clip = layer_->getActiveClip();
+        const auto* clip = playingClip();
         const double shown = clip ? static_cast<double>(clip->speed / 4.0f) : 0.25;
         if (std::abs(speedSlider_.getValue() - shown) > 1e-4)
         {
@@ -978,7 +979,7 @@ void LayerStrip::mouseDrag(const juce::MouseEvent& event)
 void LayerStrip::scrubPlayhead(juce::Point<int> pos)
 {
     if (!layer_ || transportBounds_.isEmpty()) return;
-    auto* clip = layer_->getActiveClip();
+    auto* clip = playingClip();
     if (!clip || !clip->isPlayable()) return;
 
     float normalized = static_cast<float>(pos.x - transportBounds_.getX())
@@ -1020,7 +1021,7 @@ void LayerStrip::updateThumbnail()
     // ClipThumbnails, a video's from Clip::thumbnail; s-rta-0928b mediaopen: a sequence's from ClipThumbnails keyed by
     // its first file); rescaled / placeholder drawn only when the active clip's source or the square's size changed (it
     // used to re-decode or re-rescale on every refresh).
-    const Clip* clip = layer_ != nullptr ? layer_->getActiveClip() : nullptr;
+    const Clip* clip = layer_ != nullptr ? playingClip() : nullptr;
     int sz = thumbnailBounds_.getHeight();
     if (sz < 1) sz = 64;
     const auto type = clip != nullptr ? clip->mediaType : Clip::MediaType::None;
@@ -1071,7 +1072,7 @@ void LayerStrip::updateClipName()
         return;
     }
 
-    auto* clip = layer_->getActiveClip();
+    auto* clip = playingClip();
     if (!clip)
     {
         clipName_ = "";

@@ -336,50 +336,44 @@ void ConnectionEngine::tick(Composition& comp, const Context& ctx)
                                          ctx, nullptr, static_cast<size_t>(CompScalar::Signal));
     tickEffectVector(comp.globalEffects, ctx, nullptr);
 
-    for (auto& deck : comp.decks)
-    {
-        for (auto& layer : deck.layers)
+    // Lane bf9b (C2, the reference user): each SHARED layer's scalars and layer effects once per tick
+    // (forEachLayer), then every clip of every deck box once per tick, live and retired (forEachClip) -- a layer is
+    // never ticked once per deck, and the clip playing from a retired deck keeps its connections.
+    comp.forEachLayer([&](Layer& layer, int) {
+        tickScalars<Layer, LayerScalar>(layer, layer.scalarConns, layer.scalarLive,
+                                        layerScalarDefs(), ctx, nullptr);
+        tickEffectVector(layer.layerEffects, ctx, nullptr);
+    });
+
+    comp.forEachClip([&](Clip& clip, const ClipSite&) {
+        // ClipPosition/Envelope(Clock::ClipPosition) wiring for a
+        // real per-clip playhead is Lane 5's job (s166 spec section
+        // 5, L5); this lane passes nullptr everywhere it walks the
+        // model, which evaluate() treats as "position 0.0".
+        tickScalars<Clip, ClipScalar>(clip, clip.scalarConns, clip.scalarLive,
+                                      clipScalarDefs(), ctx, nullptr);
+        tickEffectVector(clip.effects, ctx, nullptr);
+
+        // s-rta-0925 mastersignal Step 0 (critic-#1 class): always
+        // store, same rule as tickScalars/tickEffectVector above -- a
+        // gripped/disabled source-param connection must clear its
+        // twin to NaN every tick, not skip the store and freeze at
+        // its last published value.
+        bool anyDriven = false;
+        for (auto& sp : clip.sourceParams)
         {
-            tickScalars<Layer, LayerScalar>(layer, layer.scalarConns, layer.scalarLive,
-                                            layerScalarDefs(), ctx, nullptr);
-            tickEffectVector(layer.layerEffects, ctx, nullptr);
-
-            for (auto& clipOpt : layer.clips)
+            if (!sp.conn.isConnected())
+                continue;
+            if (!sp.conn.enabled)
             {
-                if (!clipOpt.has_value())
-                    continue;
-                Clip& clip = *clipOpt;
-
-                // ClipPosition/Envelope(Clock::ClipPosition) wiring for a
-                // real per-clip playhead is Lane 5's job (s166 spec section
-                // 5, L5); this lane passes nullptr everywhere it walks the
-                // model, which evaluate() treats as "position 0.0".
-                tickScalars<Clip, ClipScalar>(clip, clip.scalarConns, clip.scalarLive,
-                                              clipScalarDefs(), ctx, nullptr);
-                tickEffectVector(clip.effects, ctx, nullptr);
-
-                // s-rta-0925 mastersignal Step 0 (critic-#1 class): always
-                // store, same rule as tickScalars/tickEffectVector above -- a
-                // gripped/disabled source-param connection must clear its
-                // twin to NaN every tick, not skip the store and freeze at
-                // its last published value.
-                bool anyDriven = false;
-                for (auto& sp : clip.sourceParams)
-                {
-                    if (!sp.conn.isConnected())
-                        continue;
-                    if (!sp.conn.enabled)
-                    {
-                        sp.live.v.store(kNan, std::memory_order_relaxed);
-                        continue;
-                    }
-                    float y = evaluate(sp.conn, sp.value, ctx, nullptr);
-                    sp.live.v.store(std::isnan(y) ? kNan : y, std::memory_order_relaxed);
-                    anyDriven = true;
-                }
-                if (anyDriven && onSourceParamsPublished)
-                    onSourceParamsPublished(&clip);
+                sp.live.v.store(kNan, std::memory_order_relaxed);
+                continue;
             }
+            float y = evaluate(sp.conn, sp.value, ctx, nullptr);
+            sp.live.v.store(std::isnan(y) ? kNan : y, std::memory_order_relaxed);
+            anyDriven = true;
         }
-    }
+        if (anyDriven && onSourceParamsPublished)
+            onSourceParamsPublished(&clip);
+    });
 }

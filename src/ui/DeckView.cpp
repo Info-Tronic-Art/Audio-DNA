@@ -79,8 +79,7 @@ void DeckView::resized()
     // Calculate grid height to know where tabs should go
     int numLayers = 0;
     if (composition_)
-        if (auto* deck = composition_->getActiveDeck())
-            numLayers = deck->getNumLayers();
+        numLayers = composition_->getNumLayers();
 
     int gridHeight = (kCellHeight + kCellGap) * numLayers;
 
@@ -131,7 +130,8 @@ void DeckView::rebuildGrid()
     if (!deck)
         return;
 
-    int numLayers = deck->getNumLayers();
+    // Lane bf9b: one strip per SHARED layer (the same on every deck); the cells are the shown deck's rows.
+    int numLayers = composition_->getNumLayers();
     int numCols = deck->numColumns;
 
     // Create layer strips and clip cells
@@ -142,13 +142,13 @@ void DeckView::rebuildGrid()
     {
         // Display row 0 = highest layer index (top of screen = top layer)
         int layerIdx = numLayers - 1 - displayRow;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_->getLayer(layerIdx);
         if (!layer) continue;
 
         // Layer strip
         auto strip = std::make_unique<LayerStrip>();
         strip->setThumbnails(&thumbnails_);
-        strip->setLayer(layer, layerIdx);
+        strip->setLayer(layer, layerIdx, composition_);
 
         // Wire callbacks
         strip->onSelect = [this](int idx) {
@@ -187,8 +187,8 @@ void DeckView::rebuildGrid()
             auto cell = std::make_unique<ClipCell>();
             cell->setGridPosition(layerIdx, col);
             cell->setThumbnails(&thumbnails_);
-            cell->setClip(layer->getClipAt(col));
-            cell->setActive(layer->runtime().activeClipColumn == col);
+            cell->setClip(deck->getClip(layerIdx, col));
+            cell->setActive(layer->runtime().activeRef() == ClipRef{ deck->id, col });
 
             // Wire callbacks
             cell->onTrigger = [this](int li, int c) {
@@ -249,7 +249,7 @@ void DeckView::rebuildGrid()
     selectedCells_.erase(
         std::remove_if(selectedCells_.begin(), selectedCells_.end(),
             [&](const CellPos& p) {
-                return p.column < 0 || p.column >= numCols || deck->getLayer(p.layer) == nullptr;
+                return p.column < 0 || p.column >= numCols || deck->getRow(p.layer) == nullptr;
             }),
         selectedCells_.end());
     updateSelectionVisuals();
@@ -265,31 +265,35 @@ void DeckView::refresh()
     auto* deck = composition_->getActiveDeck();
     if (!deck) return;
 
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_->getNumLayers();
 
     for (int displayRow = 0; displayRow < static_cast<int>(layerStrips_.size()); ++displayRow)
     {
         int layerIdx = numLayers - 1 - displayRow;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_->getLayer(layerIdx);
         if (!layer) continue;
 
         layerStrips_[static_cast<size_t>(displayRow)]->refresh();
 
+        // Lane bf9b: a cell is lit iff it is the active ref of its row's layer -- a clip playing from another deck
+        // lights no cell of this one.
+        const ClipRef active = layer->runtime().activeRef();
         auto& layerCells = clipCells_[static_cast<size_t>(displayRow)];
         for (size_t col = 0; col < layerCells.size(); ++col)
         {
             if (layerCells[col])
             {
-                layerCells[col]->setClip(layer->getClipAt(static_cast<int>(col)));
-                layerCells[col]->setActive(layer->runtime().activeClipColumn == static_cast<int>(col));
+                layerCells[col]->setClip(deck->getClip(layerIdx, static_cast<int>(col)));
+                layerCells[col]->setActive(active == ClipRef{ deck->id, static_cast<int>(col) });
             }
         }
     }
 
-    // Update column trigger highlights
+    // Update column trigger highlights (lit only on the deck the column was fired from)
     for (size_t col = 0; col < columnTriggers_.size(); ++col)
     {
-        bool isActive = static_cast<int>(col) == activeColumn_;
+        bool isActive = static_cast<int>(col) == activeColumn_
+                        && (activeColumnDeckId_ == ClipRef::kNoDeck || activeColumnDeckId_ == deck->id);
         columnTriggers_[col]->setColour(
             juce::TextButton::buttonColourId,
             isActive ? juce::Colour(0xff3a5a4a) : juce::Colour(0xff2a2a2a));
@@ -317,23 +321,39 @@ void DeckView::refresh()
     repaint();
 }
 
-void DeckView::setActiveColumn(int col)
+void DeckView::setActiveColumn(int col, uint32_t deckId)
 {
     activeColumn_ = col;
+    activeColumnDeckId_ = deckId;
     refresh();
+}
+
+void DeckView::showDeck()
+{
+    if (!composition_) return;
+    auto* deck = composition_->getActiveDeck();
+    if (!deck) return;
+    const bool sameShape = static_cast<int>(layerStrips_.size()) == composition_->getNumLayers()
+                        && static_cast<int>(columnTriggers_.size()) == deck->numColumns
+                        && std::all_of(clipCells_.begin(), clipCells_.end(), [deck](const auto& row) {
+                               return static_cast<int>(row.size()) == deck->numColumns;
+                           });
+    if (!sameShape)
+    {
+        rebuildGrid();
+        return;
+    }
+    refresh();   // the cells re-point at the shown deck's rows; the strips (the shared layers) stay as they are
 }
 
 int DeckView::getNaturalHeight() const
 {
     if (!composition_) return 200;
-    auto* deck = composition_->getActiveDeck();
-    if (!deck) return 200;
-
     static constexpr int kFoldedHeight = 22;
     int totalRowHeight = 0;
-    for (int i = 0; i < deck->getNumLayers(); ++i)
+    for (int i = 0; i < composition_->getNumLayers(); ++i)
     {
-        auto* layer = deck->getLayer(i);
+        auto* layer = composition_->getLayer(i);
         totalRowHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
     }
     return kRoutineRowHeight + kColumnTriggerHeight + totalRowHeight + kDeckTabHeight;
@@ -346,7 +366,7 @@ void DeckView::layoutGrid()
     if (!deck) return;
 
     int numCols = deck->numColumns;
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_->getNumLayers();
     static constexpr int kFoldedHeight = 22; // P24.12: collapsed row height
 
     // Calculate total content height with variable row heights
@@ -354,7 +374,7 @@ void DeckView::layoutGrid()
     int contentHeight = 0;
     for (int i = 0; i < numLayers; ++i)
     {
-        auto* layer = deck->getLayer(i);
+        auto* layer = composition_->getLayer(i);
         contentHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
     }
     gridContent_->setSize(contentWidth, contentHeight);
@@ -366,7 +386,7 @@ void DeckView::layoutGrid()
         // mirror the index like rebuildGrid()/refresh()/updateSelectionVisuals()
         // do, so a folded layer's row height is read from the right layer.
         int layerIdx = numLayers - 1 - displayRow;
-        auto* layer = deck->getLayer(layerIdx);
+        auto* layer = composition_->getLayer(layerIdx);
         int rowH = (layer && layer->folded) ? kFoldedHeight : kCellHeight;
 
         // Layer strip on the left
@@ -444,10 +464,7 @@ void DeckView::selectLayer(int layerIndex)
 void DeckView::updateSelectionVisuals()
 {
     if (!composition_) return;
-    auto* deck = composition_->getActiveDeck();
-    if (!deck) return;
-
-    int numLayers = deck->getNumLayers();
+    int numLayers = composition_->getNumLayers();
 
     for (int displayRow = 0; displayRow < static_cast<int>(clipCells_.size()); ++displayRow)
     {

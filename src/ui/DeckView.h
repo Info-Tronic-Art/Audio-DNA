@@ -29,8 +29,14 @@ public:
     void setComposition(Composition* comp);
     Composition* getComposition() const { return composition_; }
 
-    // Rebuild the grid from the current deck state
+    // Rebuild the grid from the current deck state (lane bf9b: strips over the show's SHARED layers, cells from the
+    // shown deck's rows)
     void rebuildGrid();
+
+    // Lane bf9b (plan-bf9b F16): show the deck the composition's activeDeckIndex names -- the strips stay (they are
+    // the same shared layers), only the cells, the column triggers and the tabs are re-pointed. A full rebuildGrid
+    // only when the layer count or the column count changed. Touches no playing state.
+    void showDeck();
 
     // s-rta-0929 g4cpu (probe-idle-paint a1's pass classes): the ROUTINES pads' union and the strip column of the grid
     // viewport, in DeckView coordinates.
@@ -98,9 +104,11 @@ public:
     void showUndoHint(const juce::String& text);
     void hideUndoHint();
 
-    // Get active column (-1 if none)
+    // Get active column (-1 if none). Lane bf9b: the column header remembers {deckId, column} -- it is lit only while
+    // the deck it was fired from is shown.
     int getActiveColumn() const { return activeColumn_; }
-    void setActiveColumn(int col);
+    uint32_t getActiveColumnDeckId() const { return activeColumnDeckId_; }
+    void setActiveColumn(int col, uint32_t deckId = ClipRef::kNoDeck);
 
     // Multi-selection of clip cells
     struct CellPos { int layer; int column; };
@@ -154,6 +162,7 @@ private:
     std::unique_ptr<juce::Component> gridContent_;
 
     int activeColumn_ = -1;
+    uint32_t activeColumnDeckId_ = ClipRef::kNoDeck;   // the deck the column was fired from (lane bf9b)
     int selectedLayerIndex_ = -1;
     std::vector<CellPos> selectedCells_;
 
