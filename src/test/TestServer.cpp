@@ -1631,16 +1631,16 @@ void TestServer::handleGetCompositionParams(const httplib::Request&, httplib::Re
         auto& deck = composition_.decks[di];
         auto* deckObj = new juce::DynamicObject();
         juce::Array<juce::var> layerArray;
-        for (size_t li = 0; li < deck.layers.size(); ++li)
+        for (size_t li = 0; li < deck.rows.size(); ++li)
         {
-            auto& layer = deck.layers[li];
+            auto& row = deck.rows[li];   // lane bf9b: a deck's clip rows
             auto* layerObj = new juce::DynamicObject();
             juce::Array<juce::var> clipArray;
-            for (size_t ci = 0; ci < layer.clips.size(); ++ci)
+            for (size_t ci = 0; ci < row.clips.size(); ++ci)
             {
-                if (layer.clips[ci].has_value())
+                if (row.clips[ci].has_value())
                 {
-                    auto& clip = *layer.clips[ci];
+                    auto& clip = *row.clips[ci];
                     auto* clipObj = new juce::DynamicObject();
                     clipObj->setProperty("column", static_cast<int>(ci));
                     clipObj->setProperty("clipOpacity", static_cast<double>(clip.clipOpacity));

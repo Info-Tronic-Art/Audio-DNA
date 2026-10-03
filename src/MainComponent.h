@@ -170,6 +170,9 @@ private:
         stagedload::Kind kind = stagedload::Kind::Composition;
         Composition comp;                    // Kind::Composition
         Deck deck;                           // Kind::DeckAppend / DeckDuplicate
+        // Kind::DeckAppend (lane bf9b, ruling-bf9b amendment 8): per row of the file, the legacy layer settings a
+        // pre-bf9b row carried (nullopt for a bf9b / empty row) -- used only for a row that ADDS a shared layer.
+        std::vector<std::optional<Layer>> rowSettings;
         juce::String name;                   // the label's name: file base name / the copy's deck name
         stagedload::LabelHold label;         // AL5: "Loading <name>..." while staged; a cancel shows the latest held text
         stagedload::Adopted adopted;         // every media id handed to the renderer (a cancel retires them)
@@ -236,7 +239,8 @@ private:
         std::optional<Clip> after;
     };
     // Hooks the clip commands use, bound to this component's model/renderer.
-    ClipLayerResolver makeLayerResolver();
+    ClipLayerResolver makeLayerResolver();   // lane bf9b: a SHARED layer by index
+    ClipRowResolver makeRowResolver();       // lane bf9b: a deck's clip row (deckIndex, row)
     ClipDeckResolver makeDeckResolver();
     ClipMediaHook makeClipMediaHook();
     // Close half of the risk #4 guard (media-leak fix, L1) — see the doc
@@ -258,7 +262,7 @@ private:
     // refreshAfterUndoRedo unconditionally rebuilds afterward (see the .cpp).
     std::function<void()> makeEffectStackRefresh();
     // Snapshot a cell (nullopt if empty / out of range).
-    static std::optional<Clip> snapshotCell(Layer* layer, int column);
+    static std::optional<Clip> snapshotCell(ClipRow* row, int column);
     // Build a single SetClipCmd for one cell edit.
     std::unique_ptr<Command> makeSetClipCmd(int deckIndex, const CellEdit& edit,
                                             const juce::String& description);
@@ -531,7 +535,12 @@ private:
     // post-trigger preview refresh (scan for the first layer with an active
     // Image/Source clip; purge only if none remain) so clearing one layer's X
     // can never blank a DIFFERENT layer's still-playing visual.
-    void refreshPreviewFromActiveClip(Deck& deck);
+    // Lane bf9b: the SHARED stack's first playing Image / Source clip (any deck); called after fires / clears /
+    // swaps, never on a deck switch (R7).
+    void refreshPreviewFromShow();
+    // C3 (the bf6 contract, plan-bf9b F13): a NEWLY activated playable clip whose player / sequence exists gets the
+    // player's playhead -- called by handleClipTrigger and handleColumnTrigger.
+    void syncActivatedPlayhead(Clip& clip);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
     // s-rta-0928b mediaopen: POST /api/debug/drop_files (TEST-ONLY) -- a Finder drop of `files` onto (layer, column) of
     // the active deck: ClipCell::classifyDrop + ClipCell::dispatchDrop onto the SAME DeckView callbacks a cell's
@@ -651,6 +660,12 @@ private:
 
     // Test mode
     bool testMode_ = false;
+    bool genreSwitchInertLogged_ = false;
+    std::vector<uint32_t> skippedDeckIdsNotified_;
+    // Lane bf9b (plan-bf9b S2.8): per momentary binding (Binding::id), the (shared layer, ref) pairs its press fired --
+    // its release releases exactly those (releaseMomentaryRefs).
+    std::map<uint32_t, std::vector<std::pair<int, ClipRef>>> momentaryRefs_;
+    bool releaseMomentaryRefs(uint32_t bindingId);   // lane bf9b amendment 6: a removed deck's replayed events, said once per deck   // lane bf9b F15: the one "genre auto-switch is off" logLine per session
     int testPort_ = 8080;
 #if AUDIODNA_TEST_SERVER
     std::unique_ptr<TestServer> testServer_;

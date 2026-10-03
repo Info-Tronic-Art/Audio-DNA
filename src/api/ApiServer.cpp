@@ -320,6 +320,10 @@ void ApiServer::setupRoutes()
     server_.Post("/api/debug/load_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugLoadDeck(req, res); });
     server_.Post("/api/debug/duplicate_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugDuplicateDeck(req, res); });
     server_.Post("/api/debug/cancel_load", [this](const httplib::Request& req, httplib::Response& res) { handleDebugCancelLoad(req, res); });
+    // Lane bf9b (TEST-ONLY, same build path; ruling-bf9b amendment 4(g)): Remove Deck of tab i (the tab menu's
+    // function) and the app's Undo (the Cmd+Z function). Marshalled to the message thread; answer at once.
+    server_.Post("/api/debug/remove_deck", [this](const httplib::Request& req, httplib::Response& res) { handleDebugRemoveDeck(req, res); });
+    server_.Post("/api/debug/undo", [this](const httplib::Request& req, httplib::Response& res) { handleDebugUndo(req, res); });
     // s-rta-0929b btguard (TEST-ONLY, same build path): the audio device policy's last scan and the opened devices.
     server_.Get("/api/debug/audio_devices", [this](const httplib::Request& req, httplib::Response& res) { handleDebugAudioDevices(req, res); });
     // s-rta-0930 bt2 (TEST-ONLY, same build path): swap the denied device names at runtime (the plug / unplug stand-in)
@@ -397,7 +401,51 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
     // pre-change binary — that absence IS C5's fail-first gate.
     addLiveBlock<Composition, CompScalar>(*obj, composition_, composition_.scalarConns, compScalarDefs());
 
-    // Deck details
+    // Lane bf9b (plan-bf9b F8, ruling-bf9b amendment 4(g)): the TRUTH is the top-level "layers" -- the shared stack,
+    // each layer's settings and what it plays as {deck, deckId, column, clipId, retired} refs -- plus
+    // "retiredDeckCount". decks[d].layers[l] stays as a legacy MIRROR: the shared layer's settings, its
+    // activeClipColumn / previousClipColumn as seen from deck d (-1 when the ref names another deck), and deck d's row-l
+    // clips. REST never reads a retired deck (a ref into one reports retired: true, clipId -1).
+    obj->setProperty("retiredDeckCount", composition_.getNumRetiredDecks());
+    auto refVar = [this](ClipRef ref, int row) {
+        auto* r = new juce::DynamicObject();
+        const int deckIndex = ref.column >= 0 ? composition_.findDeckIndexById(ref.deckId) : -1;
+        r->setProperty("deck", deckIndex);
+        r->setProperty("deckId", ref.column >= 0 ? static_cast<int>(ref.deckId) : -1);
+        r->setProperty("column", ref.column);
+        const Clip* clip = deckIndex >= 0 ? composition_.decks[static_cast<size_t>(deckIndex)].getClip(row, ref.column)
+                                          : nullptr;
+        r->setProperty("clipId", clip != nullptr ? static_cast<int>(clip->id) : -1);
+        r->setProperty("retired", ref.column >= 0 && deckIndex < 0);
+        return juce::var(r);
+    };
+    juce::Array<juce::var> sharedArray;
+    for (int li = 0; li < composition_.getNumLayers(); ++li)
+    {
+        const Layer& layer = composition_.layers[static_cast<size_t>(li)];
+        auto* layerObj = new juce::DynamicObject();
+        layerObj->setProperty("index", li);
+        layerObj->setProperty("id", static_cast<int>(layer.id));
+        layerObj->setProperty("name", juce::String(layer.name));
+        layerObj->setProperty("type", static_cast<int>(layer.type));
+        layerObj->setProperty("opacity", static_cast<double>(layer.opacity));
+        layerObj->setProperty("visible", layer.visible);
+        layerObj->setProperty("muted", layer.muted);
+        layerObj->setProperty("solo", layer.solo);
+        layerObj->setProperty("bypassed", layer.bypassed);
+        layerObj->setProperty("ignoreColumnTrigger", layer.ignoreColumnTrigger);
+        layerObj->setProperty("blendMode", static_cast<int>(layer.blendMode));
+        const LayerRuntimeSnapshot rt = layer.runtime();   // one consistent tuple (lane tsan)
+        layerObj->setProperty("activeClip", refVar(rt.activeRef(), li));
+        layerObj->setProperty("previousClip", refVar(rt.previousRef(), li));
+        layerObj->setProperty("pendingClip", refVar(rt.pendingRef(), li));
+        layerObj->setProperty("crossfadeProgress", static_cast<double>(rt.crossfadeProgress));
+        addLiveBlock<Layer, LayerScalar>(*layerObj, layer, layer.scalarConns, layerScalarDefs());
+        sharedArray.add(juce::var(layerObj));
+    }
+    obj->setProperty("layers", sharedArray);
+
+    // Deck details (the boxes; their "layers" are the legacy mirror)
     juce::Array<juce::var> deckArray;
     for (size_t di = 0; di < composition_.decks.size(); ++di)
     {
@@ -405,13 +453,14 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
         auto* deckObj = new juce::DynamicObject();
         deckObj->setProperty("name", juce::String(deck.name));
         deckObj->setProperty("id", static_cast<int>(deck.id));
-        deckObj->setProperty("numLayers", static_cast<int>(deck.layers.size()));
+        deckObj->setProperty("numLayers", deck.getNumRows());
         deckObj->setProperty("numColumns", deck.numColumns);
 
         juce::Array<juce::var> layerArray;
-        for (size_t li = 0; li < deck.layers.size(); ++li)
+        for (int li = 0; li < deck.getNumRows() && li < composition_.getNumLayers(); ++li)
         {
-            auto& layer = deck.layers[li];
+            auto& layer = composition_.layers[static_cast<size_t>(li)];
+            const ClipRow& row = deck.rows[static_cast<size_t>(li)];
             auto* layerObj = new juce::DynamicObject();
             layerObj->setProperty("id", static_cast<int>(layer.id));
             layerObj->setProperty("name", juce::String(layer.name));
@@ -421,19 +470,20 @@ void ApiServer::handleComposition(const httplib::Request&, httplib::Response& re
             layerObj->setProperty("solo", layer.solo);
             layerObj->setProperty("bypassed", layer.bypassed);
             const LayerRuntimeSnapshot rt = layer.runtime();   // one consistent tuple (lane tsan)
-            layerObj->setProperty("activeClipColumn", rt.activeClipColumn);
+            // The mirror: a column of THIS deck, -1 when the ref names another deck (bf9b F8).
+            layerObj->setProperty("activeClipColumn", rt.activeDeckId == deck.id ? rt.activeClipColumn : -1);
             // s-rta-0926b plan4 T7: each layer's fade state, witnessable over REST.
-            layerObj->setProperty("previousClipColumn", rt.previousClipColumn);
+            layerObj->setProperty("previousClipColumn", rt.previousDeckId == deck.id ? rt.previousClipColumn : -1);
             layerObj->setProperty("crossfadeProgress", static_cast<double>(rt.crossfadeProgress));
             layerObj->setProperty("blendMode", static_cast<int>(layer.blendMode));
             addLiveBlock<Layer, LayerScalar>(*layerObj, layer, layer.scalarConns, layerScalarDefs());
 
             juce::Array<juce::var> clipArray;
-            for (size_t ci = 0; ci < layer.clips.size(); ++ci)
+            for (size_t ci = 0; ci < row.clips.size(); ++ci)
             {
-                if (layer.clips[ci].has_value())
+                if (row.clips[ci].has_value())
                 {
-                    auto& clip = *layer.clips[ci];
+                    auto& clip = *row.clips[ci];
                     auto* clipObj = new juce::DynamicObject();
                     clipObj->setProperty("id", static_cast<int>(clip.id));
                     clipObj->setProperty("name", juce::String(clip.name));
@@ -584,13 +634,10 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
         // by firing onSetClipEffectParam, which MainComponent routes through
         // manualWrite (Decaying rank, Origin::Human).
         juce::MessageManager::callAsync([this, layer, column, effectName, paramName, value]() {
-            auto* deck = composition_.getActiveDeck();
+            auto* deck = composition_.getActiveDeck();   // a cell of the SHOWN deck (bf9b R6: a box context)
             if (!deck)
                 return;
-            auto* lay = deck->getLayer(layer);
-            if (!lay)
-                return;
-            auto* clip = lay->getClipAt(column);
+            auto* clip = deck->getClip(layer, column);
             if (!clip)
                 return;
 
@@ -2080,6 +2127,40 @@ void ApiServer::handleDebugDuplicateDeck(const httplib::Request& req, httplib::R
     }
     const int deck = static_cast<int>(json["deck"]);
     juce::MessageManager::callAsync([this, deck]() { onDebugDuplicateDeck(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// Lane bf9b (TEST-ONLY): {"deck": i} -> the deck tab menu's Remove Deck of deck i.
+void ApiServer::handleDebugRemoveDeck(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("deck"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("deck (int) required"), "application/json");
+        return;
+    }
+    if (!onDebugRemoveDeck)
+    {
+        res.status = 503;
+        res.set_content(jsonError("remove_deck not wired"), "application/json");
+        return;
+    }
+    const int deck = static_cast<int>(json["deck"]);
+    juce::MessageManager::callAsync([this, deck]() { onDebugRemoveDeck(deck); });
+    res.set_content(jsonOk(), "application/json");
+}
+
+// Lane bf9b (TEST-ONLY): the app's Undo (Cmd+Z).
+void ApiServer::handleDebugUndo(const httplib::Request&, httplib::Response& res)
+{
+    if (!onDebugUndo)
+    {
+        res.status = 503;
+        res.set_content(jsonError("undo not wired"), "application/json");
+        return;
+    }
+    juce::MessageManager::callAsync([this]() { onDebugUndo(); });
     res.set_content(jsonOk(), "application/json");
 }
 

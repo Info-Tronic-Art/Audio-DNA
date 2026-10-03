@@ -197,6 +197,10 @@ public:
     std::function<void(juce::File)> onDebugLoadDeck;
     std::function<void(int deckIndex)> onDebugDuplicateDeck;
     std::function<void()> onDebugCancelLoad;
+    // Lane bf9b (TEST-ONLY routes, ruling-bf9b amendment 4(g)): POST /api/debug/remove_deck {deck} = the tab menu's
+    // Remove Deck; POST /api/debug/undo = the app's Undo (Cmd+Z). Marshalled to the message thread; answer at once.
+    std::function<void(int deckIndex)> onDebugRemoveDeck;
+    std::function<void()> onDebugUndo;
     std::function<juce::String()> onDebugUiText;
     // s-rta-0929b btguard (TEST-ONLY): /api/debug/ui_text "audio_notice" -- the no-input / no-device notice beside the
     // file label ("" when hidden), read in the same message-thread hop as file_label.
@@ -274,6 +278,8 @@ private:
     void handleDebugLoadDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugDuplicateDeck(const httplib::Request& req, httplib::Response& res);
     void handleDebugCancelLoad(const httplib::Request& req, httplib::Response& res);
+    void handleDebugRemoveDeck(const httplib::Request& req, httplib::Response& res);   // lane bf9b
+    void handleDebugUndo(const httplib::Request& req, httplib::Response& res);         // lane bf9b
     void handleDebugAudioDevices(const httplib::Request& req, httplib::Response& res);   // s-rta-0929b btguard
     void handleDebugAudioDeny(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
     void handleDebugAudioStop(const httplib::Request& req, httplib::Response& res);      // s-rta-0930 bt2
