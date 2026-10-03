@@ -688,3 +688,9 @@ defaults; 10 forks for the council.
    the value, including "Default" at 0 — and opening such a file sets the dial to it (the SYNC note shows the change). The
    ruling's rule "a show saved while Sync is on Default at 0 carries no key" is withdrawn. A file WITHOUT the key (an old
    show) still never touches the dial. Gain: "yes" = twice as long, same scale (no low-end stretch).
+7. OVERRIDE (2026-10-03 15:30:49; Boris, verbatim: "We don't need any text indicating what has happened or what has happened. That is
+   something that happens online and is not necessary in this application. It is extra overhead and bloat. Please remove it
+   cleanly and completely."): NO notice text when a composition open changes the dial (the ruling's "notice shows old and
+   new" is withdrawn, together with any other event text S5a / S5b would add). The SYNC button always shows the CURRENT
+   value: that is a state display and stays. The ruling's "replaced value kept reachable" stays only as a control (not a
+   message), or is dropped if it needs a text: the S5a builder reports which.

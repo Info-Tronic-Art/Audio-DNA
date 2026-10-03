@@ -612,3 +612,41 @@ STATUS: DONE
    "Undo never changes what is live" is built in its own lane right after the merge (BF31), which re-registers T6h and the
    trigger-undo tests. The Boris page (ruling section 6) DROPS step 8.6 ("the D2 C1 you fired is undone") and the "NOT on
    the page" note about Q-B; step 8.5's Cmd+Z stays (it brings a deck back and changes nothing live).
+9. (2026-10-03 14:58:10) OVERRIDE FOR FIX-3 — Boris (verbatim): "I don't wanna see an under removed button at all. We just use control Z.
+   The only place that we will see undo remove, will be in the top edit menu." FIX-3 ALSO removes the "Undo Remove" button
+   from the deck tab row entirely (ruling-bf9b amendment 16(d)'s button: DeckTabRow's undo-remove hint, its 10-second timer,
+   its layout slot and its click). Its test cases are retired BY NAME and listed next to AM-12's five (the B2 "retired" list
+   grows by exactly those names, nothing else); any probe row that asserts the button (probe-ui-files-rename reads an
+   "undo" field of the tab row; probe-boxes k9 rows may read the hint) changes ONLY that clause, with Boris's quote at the
+   row, and each changed row is listed. B7 state (3b), fact FM-7 and question Q-D fall away. What STAYS: Cmd+Z brings the
+   deck back; the information sentence in the top text line (Removed deck "..." -- Layer N keeps playing its clip: AM-12) —
+   it is not a control and does not say "Undo Remove". The Edit menu: after a Remove Deck its Undo item must read "Undo
+   Remove Deck" (or the app's existing wording for that action). Verify at the head: if the Edit menu's Undo item already
+   names the action, pin it with a test; if it does NOT name actions at all, do not redesign the menu — report it in
+   stop_items_for_harmony. Docs lines and the Boris page (step 8.5) lose the button sentence. The docs grep of gate B4 also
+   covers "Undo Remove" as a button (0 hits outside the Edit-menu wording).
+10. (2026-10-03 14:59:28) OVERRIDE FOR FIX-3 — Boris (verbatim, asked whether the one-line sentence at the top after deleting a deck should
+   go too): "yes remove the visible line. not needed". So item 9's "What STAYS: the information sentence" is WITHDRAWN:
+   FIX-3 does NOT add AM-12's Remove Deck sentence to the file label, and removes any existing on-screen text that
+   announces a removed deck or names the layers still playing it (ruling-bf9b amendment 16(d) in full: button AND text).
+   After a Remove Deck the screen shows only the tab gone; a still-playing clip of that deck keeps playing and its strip
+   looks like any playing clip. Cmd+Z / Edit > Undo bring the deck back. Tests of the sentence are retired BY NAME (listed
+   with the others); probe rows that read it change only that clause, with this quote, each listed; the Boris page step
+   8.5 reads: remove the deck -> the clip keeps playing, the tab is gone; Cmd+Z -> the tab is back, still playing. The
+   "old show converted" load notice is a different text and STAYS (ruling-bf9b amendment 9(d)).
+11. (2026-10-03 15:30:49) OVERRIDE FOR FIX-3 — Boris (verbatim): "We don't need any text indicating what has happened or what has happened.
+   That is something that happens online and is not necessary in this application. It is extra overhead and bloat. Please
+   remove it cleanly and completely." So item 10's last sentence ("the load notice STAYS") is WITHDRAWN. FIX-3 removes,
+   CLEANLY AND COMPLETELY, every on-screen text this lane added that announces an event: the load-notice label of S3.4
+   (ruling-bf9b amendment 9(d): "old show converted", "routine pads left empty", the deck-id refusal text), the Undo Remove
+   button (item 9) and the Remove Deck sentence (item 10) — the widgets, their members, timers, layout slots, setters,
+   call sites, the /api/debug/ui_text "load_notice" field, their tests (retired BY NAME, listed) and their docs lines. No
+   dead member, no empty label left in the layout, no orphaned string. What STAYS: the behaviour behind each text (an old
+   show still converts; a refused deck is still refused; Cmd+Z still brings a deck back) and the app-log lines (logLine:
+   "old show converted:" exactly once per load — that is the machine-readable trace the gates read).
+   GATE CHANGES BY THIS RULING (Harmony): K7 and B5 drop their load_notice clauses ("load_notice non-empty" / "load_notice
+   empty after save + reload") and keep the logLine clause and every other clause; B7 loses state (9) (the load notice) and
+   state (3b); the Boris page loses step 8.9's "a yellow note says it was converted" (it becomes: open "test with harry" ->
+   your layers look as they did). Probe rows change ONLY those clauses, with this quote at each row, each listed.
+   Texts that were in the app BEFORE this lane (on main at 5abdf01) are NOT touched here: list any you meet in
+   found_not_fixed (file:line, the text) for the inventory Harmony owes Boris.

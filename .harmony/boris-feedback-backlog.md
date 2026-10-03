@@ -257,3 +257,18 @@ Answer c: he asks for a clarification of question C (owed in plain words).
 Answer d: Gain twice as long, same scale.
 Answer e: EVERY show remembers its sync, 0 included (REVERSES the ruling-bf2-delta default "a show saved at Default 0 does
   not remember a sync setting").
+
+## Boris on the "Undo Remove" button (recorded 2026-10-03 14:58:10) — after Harmony's clarification of question C
+VERBATIM: "I don't wanna see an under removed button at all. We just use control Z. The only place that we will see undo remove, will be in the top edit menu."
+Harmony's reading: the "Undo Remove" button in the deck tab row is removed entirely (ruling-bf9b amendment 16(d)'s button); Cmd+Z is the way back; the Edit menu's Undo item is where "Undo Remove" is read. The information sentence in the top text line (Removed deck "..." -- Layer N keeps playing its clip) is not a control and stays. Built in bf9b FIX-3 (adoption item 9).
+FOLLOW-UP (recorded 2026-10-03 14:59:28) — Harmony said the one-line sentence at the top after deleting a deck (Removed deck "Deck 3" -- Layer 2 keeps playing its clip) would stay, "Say so if you want that gone too." Boris (verbatim): "yes remove the visible line. not needed" -> that sentence is removed as well (bf9b FIX-3, adoption item 10).
+
+## Boris on notices (recorded 2026-10-03 15:30:49) — after Harmony said the yellow "old show converted" note would stay
+VERBATIM: "We don't need any text indicating what has happened or what has happened. That is something that happens online and is not necessary in this application. It is extra overhead and bloat. Please remove it cleanly and completely."
+BF32 [RULE] The app shows no text that announces what has just happened. In the deck change (bf9b FIX-3, adoption item 11): the whole load notice goes (old show converted / routine pads left empty / deck-id refusal), with the Undo Remove button and the Remove Deck sentence (items 9, 10). The app log keeps its lines (not on screen). Sync-dial plan: no "sync changed" notice on a composition open (bf2 adoption item 7). OPEN (asked): the same rule for notices that were in the app before today (inventory owed).
+FOLLOW-UP (recorded 2026-10-03 15:42:01) — Harmony asked: "For texts that were already in the app before today (for example the yellow note when a wired mic drops and the app falls back to the MacBook mic), should they go too? Default: I send you the full list first; informational ones go, ones that report a failure stay until you've seen the list." Boris (verbatim): "remove the list entirely and cleanly" -> BF32 is APP-WIDE: every on-screen text that announces what has happened is removed, the ones that were in the app before today too, failure reports included; no list review first. Own lane after the bf9b merge (inventory -> plan -> council -> ruling -> build). Harmony flags ONE risk back to him (a failed save would show nothing).
+
+## Boris on the Edit menu + session end (recorded 2026-10-03 16:06:40)
+VERBATIM: "we should have an edit menu. note this, finish current tasks then eos"
+BF33 [NEW, ui] The app gets a standard Edit menu (Undo / Redo at least; today Undo is the first item of the "Composition" menu and names the action, e.g. "Undo Remove Deck"). Next UI pass (ui-polish lane), VISUAL + interaction gate.
+SESSION: finish the tasks in flight (the deck change: last build stage -> reviews -> Harmony's gates -> merge), then EOS. Nothing new starts.

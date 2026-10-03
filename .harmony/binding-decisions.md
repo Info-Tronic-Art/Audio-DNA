@@ -688,3 +688,19 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
 - Gain — Boris: "yes" (twice as long, same scale).
 - Sync in a show — Boris: "every show remembers it's sync" -> every saved composition carries its venue and sync value, 0
   included; opening it sets the dial to that value. SUPERSEDES ruling-bf2-delta's default for a show saved at "Default" 0.
+- "Undo Remove" button (recorded 2026-10-03 14:58:10) — Boris: "I don't wanna see an under removed button at all. We just use control Z. The
+  only place that we will see undo remove, will be in the top edit menu." -> no Undo Remove button anywhere on the deck tab
+  row; Cmd+Z and Edit > Undo are the way back. SUPERSEDES ruling-bf9b amendment 16(d)'s button and closes ruling-bf9b-merge Q-D.
+- Remove Deck sentence (recorded 2026-10-03 14:59:28) — Boris: "yes remove the visible line. not needed" -> after a Remove Deck nothing is
+  written in the top text line; no button, no sentence. SUPERSEDES ruling-bf9b-merge AM-12's "Remove Deck sentence in the
+  file label" and ruling-bf9b amendment 16(d).
+- No "what happened" texts (recorded 2026-10-03 15:30:49) — Boris: "We don't need any text indicating what has happened or what has happened.
+  That is something that happens online and is not necessary in this application. It is extra overhead and bloat. Please
+  remove it cleanly and completely." -> no on-screen notice announces an event. SUPERSEDES ruling-bf9b amendment 9(d) (the
+  load notice) and 16(d), ruling-bf9b-merge AM-12's sentence, and ruling-bf2-delta's composition-open sync notice.
+- No "what happened" texts, APP-WIDE (recorded 2026-10-03 15:42:01) — asked whether texts that were in the app before today go too, with
+  failure reports kept until he had seen a list, Boris: "remove the list entirely and cleanly" -> every event-announcing
+  on-screen text in the app is removed, pre-existing ones and failure reports included. SUPERSEDES every earlier ruling that
+  created such a text (e.g. the yellow note on a microphone fallback).
+- Edit menu (recorded 2026-10-03 16:06:40) — Boris: "we should have an edit menu." -> the app gets an Edit menu (Undo / Redo); the Undo item
+  is where "Undo Remove Deck" is read. Built in the next UI pass.
