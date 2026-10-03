@@ -21,7 +21,8 @@
 #   the helper is run for real with PATH shims -- `ps -eo pid=,ucomm=` reports ONE foreign Audio-DNA (pid 99999),
 #   `open` / `osascript` only log, `curl` always fails (no request can reach any app) -- and must: exit non-zero,
 #   print the REFUSE line naming pid 99999, call `open` 0 times and `osascript` 0 times. probe-outputs.sh is NEVER
-#   run, shimmed or not (SCREEN-SAFETY LAW): it is checked statically only.
+#   run, shimmed or not (SCREEN-SAFETY LAW): it is checked statically only. probe-tsan.sh is skipped (static only)
+#   when there is no TSan app bundle to hand it (SELFTEST_TSAN_APP).
 # Part 3 (always, static): every .harmony/*.sh that launches Audio-DNA sources the helper, calls refuse_foreign_start,
 #   and has one record_ourpid per launch line; no by-name quit / kill is left outside the helper.
 #
@@ -171,7 +172,17 @@ EOF
     for v in $(grep -oE '\$\{[A-Z0-9_]+_(APP|APP_BEFORE|BUILD_DIR)(:-|\})' "$f" | sed -E 's/^\$\{//; s/(:-|\})$//' | sort -u); do
       case "$v" in *_BUILD_DIR) ENVV+=("$v=$(dirname "$(dirname "$(dirname "$SWEEP_APP")")")");; *) ENVV+=("$v=$SWEEP_APP");; esac
     done
-    out="$(env ${ENVV[@]+"${ENVV[@]}"} PATH="$D/shim:$PATH" perl -e 'alarm 60; exec @ARGV' bash "$f" "$D/out" 2>&1 </dev/null)"; rc=$?
+    ARGS=("$D/out")   # most probes: [out-base]; the two below validate other arguments before they look for the app
+    case "$b" in
+      probe-finalize-loop.sh) ARGS=(3);;
+      probe-tsan.sh)   # it validates its spec (a real TSan app bundle) before it looks for a running app
+        TS="${SELFTEST_TSAN_APP:-$(ls -d "$ROOT"/build-tsan/AudioDNA_artefacts/*/Audio-DNA.app 2>/dev/null | head -1)}"
+        if ! otool -L "$TS/Contents/MacOS/Audio-DNA" 2>/dev/null | grep -q 'libclang_rt.tsan'; then
+          echo "   skip  $b (no TSan app bundle to hand it: set SELFTEST_TSAN_APP; its refusal is covered by part 3 only)"; continue
+        fi
+        ARGS=("$D/out/tsan" "1:a@X"); ENVV+=("TSAN_APP_X=$TS");;
+    esac
+    out="$(env ${ENVV[@]+"${ENVV[@]}"} PATH="$D/shim:$PATH" perl -e 'alarm 60; exec @ARGV' bash "$f" "${ARGS[@]}" 2>&1 </dev/null)"; rc=$?
     opens=0; osas=0
     [ -f "$D/open-calls" ] && opens=$(wc -l < "$D/open-calls" | tr -d ' ')
     [ -f "$D/osascript-calls" ] && osas=$(wc -l < "$D/osascript-calls" | tr -d ' ')
