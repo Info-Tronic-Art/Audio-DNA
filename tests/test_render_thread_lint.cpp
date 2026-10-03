@@ -198,7 +198,11 @@ TEST_CASE("bf9b: box / stack structure writers sit only in audited sites (pinned
                                             // 3 x ClipInspector::setClip (a UI setter)
         { "core/ClipCommands.h", 2 },       // SetClipCmd / SwapClipsCmd apply: runFenced (DeckFenceHook)
         { "core/CompositionLoad.h", 1 },    // validateDeck: a staged, unpublished composition / deck (Pitfall 58)
-        { "core/DeckCommands.h", 22 },      // every deck / layer / column command body: runFenced; 1 local snapshot
+        { "core/DeckCommands.h", 25 },      // every deck / layer / column command body: runFenced; 1 local snapshot.
+                                            // 22 -> 25 (fix stage, ruling-bf9b-merge AM-7), all inside runFenced:
+                                            // AddDeckCmd undo retireOrEraseDeck in place of decks.erase (+1 -1), its
+                                            // redo restoreRetiredDeck (+1); InsertDeckCmd undo retireOrEraseDeck beside
+                                            // the kept decks.erase (+1), its redo restoreRetiredDeck (+1)
         { "core/UndoService.cpp", 2 },      // reapRetiredDecks: inside withDeckDetached itself
         { "recording/RoutineEngine.cpp", 2 },   // a local Footprint vector `layers`
         { "ui/ClipCell.cpp", 1 },           // ClipCell::setClip (a UI setter)

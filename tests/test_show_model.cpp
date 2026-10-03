@@ -616,6 +616,190 @@ TEST_CASE("T6e any fenced mutation reaps an unnamed retired deck and hands it to
     CHECK(c.getNumRetiredDecks() == 0);
 }
 
+// T6f-T6j (fix stage, ruling-bf9b-merge AM-7): Undo of Add / Duplicate / Load Deck RETIRES a deck that still plays
+// (as Remove Deck does) when the command added no layers. The clip is fired straight into the model -- no Undo step,
+// as a routine or a take replay fires (a hand / REST / OSC fire is an Undo step of its own and is undone first).
+namespace
+{
+Clip boxClip(uint32_t id, const std::string& name)
+{
+    Clip clip;
+    clip.id = id;
+    clip.name = name;
+    clip.mediaType = Clip::MediaType::Image;
+    return clip;
+}
+
+// `cmd` has just added the deck at index `at` (the shown one; its cells (0, 0) and (1, 1) hold clips). Layer 0 plays
+// (0, 0), layer 1 queues (1, 1); then cmd.undo() and cmd.execute() (the redo).
+void undoRetiresPlayingDeckAndRedoRestoresIt(Composition& c, Fenced& fenced, Command& cmd, int at)
+{
+    const size_t decksWith = c.decks.size();
+    REQUIRE(c.activeDeckIndex == at);
+    const uint32_t id = c.decks[static_cast<size_t>(at)].id;
+    c.fire(0, at, 0, Snap::Off, true);                    // no Undo step
+    Clip* const playing = c.playingClip(0);
+    REQUIRE(playing != nullptr);
+    REQUIRE(playing == c.decks[static_cast<size_t>(at)].getClip(0, 0));
+    c.decks[static_cast<size_t>(at)].getClip(1, 1)->beatSnapMode = Snap::Bar;
+    c.fire(1, at, 1);                                     // a queue INTO the added deck on layer 1
+    REQUIRE(c.layers[1].runtime().pendingRef() == (ClipRef{ id, 1 }));
+
+    cmd.undo();
+    CHECK(c.decks.size() == decksWith - 1);               // the tab is gone ...
+    CHECK(c.findDeckIndexById(id) == -1);
+    CHECK(c.getNumRetiredDecks() == 1);                   // ... the box is kept while its clip plays
+    REQUIRE(c.playingClip(0) == playing);                 // the SAME Clip, at its address
+    CHECK(c.playing(0).retired);
+    CHECK(c.layers[1].runtime().pendingTriggerColumn == -1);   // the queue into it is cancelled
+    CHECK(c.layers[1].runtime().pendingDeckId == ClipRef::kNoDeck);
+    CHECK(fenced.reaped.empty());                         // still playing: not reaped by its own fence
+
+    playing->playheadPosition = 0.8;                      // it keeps playing while retired
+    cmd.execute();                                        // redo
+    REQUIRE(c.decks.size() == decksWith);
+    CHECK(c.decks[static_cast<size_t>(at)].id == id);     // back at its index, under its id
+    CHECK(c.activeDeckIndex == at);
+    CHECK(c.getNumRetiredDecks() == 0);
+    REQUIRE(c.playingClip(0) == playing);                 // moved back: the live clip, not the snapshot copy
+    CHECK(static_cast<double>(playing->playheadPosition) == Approx(0.8));
+    CHECK_FALSE(c.playing(0).retired);
+}
+} // namespace
+
+TEST_CASE("T6f Undo of Add Deck while a clip of the new deck plays: the deck is retired, the SAME Clip keeps playing, a "
+          "queue into it is cancelled; redo moves it back under its id (bf9b fix, AM-7)", "[show][asan]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    AddDeckCmd add(resolverFor(c), fenced.hook(), "Add Deck");
+    add.execute();
+    REQUIRE(c.decks.size() == 3);
+    c.decks[2].setClip(0, 0, boxClip(700, "new r0 c0"));  // clips arrive in the new deck with no Undo step
+    c.decks[2].setClip(1, 1, boxClip(711, "new r1 c1"));
+    undoRetiresPlayingDeckAndRedoRestoresIt(c, fenced, add, 2);
+}
+
+TEST_CASE("T6g Undo of a Load Deck with the show's row count while its clip plays: retired, the SAME Clip keeps playing, "
+          "no cell disposed while retired; redo moves it back and reconnects nothing (bf9b fix, AM-7)", "[show][asan]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    int disposed = 0, reconnected = 0;
+    Deck loaded;
+    loaded.name = "Loaded";
+    loaded.numColumns = 3;
+    loaded.initDefault(2);                                // the show's row count: no layer is added
+    loaded.setClip(0, 0, boxClip(800, "loaded r0 c0"));
+    loaded.setClip(1, 1, boxClip(811, "loaded r1 c1"));
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), [&reconnected](const Clip&) { ++reconnected; },
+                      [&disposed](const Clip&) { ++disposed; }, std::move(loaded), "Load Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 0);
+    REQUIRE(c.decks.size() == 3);
+    undoRetiresPlayingDeckAndRedoRestoresIt(c, fenced, ins, 2);
+    CHECK(disposed == 0);                                 // never disposed: one of its clips was playing throughout
+    CHECK(reconnected == 0);                              // nothing was disposed, so the redo reconnects nothing
+}
+
+TEST_CASE("T6h THE EXCEPTION, pinned: Undo of a Load Deck that ADDED layers takes the deck and those layers back even "
+          "while its clip plays -- every cell disposed once; redo brings the layers and the deck back under its id "
+          "(bf9b fix, AM-7)", "[show]")
+{
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    std::vector<uint32_t> disposed, reconnected;
+    Deck wide;
+    wide.name = "Wide";
+    wide.numColumns = 2;
+    wide.initDefault(5);
+    wide.setClip(0, 0, boxClip(900, "wide r0 c0"));
+    wide.setClip(1, 1, boxClip(911, "wide r1 c1"));
+    wide.setClip(4, 0, boxClip(940, "wide r4 c0"));
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), [&reconnected](const Clip& k) { reconnected.push_back(k.id); },
+                      [&disposed](const Clip& k) { disposed.push_back(k.id); }, std::move(wide), "Load Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 2);
+    REQUIRE(c.getNumLayers() == 5);
+    const uint32_t id = c.decks[1].id;
+    c.fire(0, 1, 0, Snap::Off, true);                     // layer 0 plays its row-0 clip (no Undo step)
+    REQUIRE(c.playingClip(0) == c.decks[1].getClip(0, 0));
+
+    ins.undo();
+    CHECK(c.getNumLayers() == 3);                         // the two layers it added are gone ...
+    CHECK(c.decks.size() == 1);
+    CHECK(c.getNumRetiredDecks() == 0);                   // ... and the deck is ERASED, not retired
+    CHECK(c.findDeckById(id) == nullptr);
+    CHECK(c.playingClip(0) == nullptr);                   // the documented exception: that clip stops
+    CHECK(disposed == std::vector<uint32_t>{ 900, 911, 940 });   // once per occupied cell
+    CHECK(reconnected.empty());
+    CHECK(rowsEqualLayers(c));
+
+    ins.execute();                                        // redo
+    CHECK(c.getNumLayers() == 5);
+    REQUIRE(c.decks.size() == 2);
+    CHECK(c.decks[1].id == id);
+    CHECK(c.activeDeckIndex == 1);
+    CHECK(reconnected == std::vector<uint32_t>{ 900, 911, 940 });
+    CHECK(disposed.size() == 3);
+    CHECK(rowsEqualLayers(c));
+}
+
+TEST_CASE("T6i Undo of a Load Deck retires the playing deck; once its clip is replaced a later fenced edit reaps it; "
+          "redo then comes back from the snapshot with every cell reconnected (bf9b fix, AM-7)", "[show]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    std::vector<uint32_t> disposed, reconnected;
+    Deck loaded;
+    loaded.name = "Loaded";
+    loaded.numColumns = 3;
+    loaded.initDefault(2);
+    loaded.setClip(0, 0, boxClip(800, "loaded r0 c0"));
+    loaded.setClip(1, 1, boxClip(811, "loaded r1 c1"));
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), [&reconnected](const Clip& k) { reconnected.push_back(k.id); },
+                      [&disposed](const Clip& k) { disposed.push_back(k.id); }, std::move(loaded), "Load Deck");
+    ins.execute();
+    REQUIRE(c.decks.size() == 3);
+    const uint32_t id = c.decks[2].id;
+    c.fire(0, 2, 0, Snap::Off, true);                     // no Undo step
+
+    ins.undo();
+    REQUIRE(c.getNumRetiredDecks() == 1);
+    CHECK(disposed.empty());
+    c.fire(0, 0, 0, Snap::Off, true);                     // the layer is replaced (a Cut)
+    CHECK(c.getNumRetiredDecks() == 1);                   // nothing reaps outside a fence
+    fenced.svc.withDeckDetached([] {});                   // any fenced edit
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(fenced.reaped == std::vector<uint32_t>{ id });  // the reap hands it over (the app disposes its media there)
+    CHECK(c.findDeckById(id) == nullptr);
+    CHECK(disposed.empty());                              // the command itself disposed nothing
+
+    ins.execute();                                        // redo: the retired deck is gone -> the snapshot
+    REQUIRE(c.decks.size() == 3);
+    CHECK(c.decks[2].id == id);
+    CHECK(c.activeDeckIndex == 2);
+    CHECK(c.getNumRetiredDecks() == 0);
+    CHECK(rowIds(c.decks[2].rows[0]) == std::vector<uint32_t>{ 800, 0, 0 });
+    CHECK(rowIds(c.decks[2].rows[1]) == std::vector<uint32_t>{ 0, 811, 0 });
+    CHECK(reconnected == std::vector<uint32_t>{ 800, 811 });   // every occupied cell reconnected
+    CHECK(c.playingClip(0) == c.decks[0].getClip(0, 0));  // what plays did not change
+}
+
+TEST_CASE("T6j Undo of Duplicate Deck while a clip of the copy plays: the copy is retired, the SAME Clip keeps playing, a "
+          "queue into it is cancelled; redo moves it back under its id (bf9b fix, AM-7)", "[show][asan]")
+{
+    Composition c = makeShow(2, 2, 3);
+    Fenced fenced(c);
+    uint32_t nextClipId = 5000;
+    Deck copy = compload::duplicateDeck(c.decks[1], nextClipId);
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(copy), "Duplicate Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 0);
+    REQUIRE(c.decks.size() == 3);
+    undoRetiresPlayingDeckAndRedoRestoresIt(c, fenced, ins, 2);
+}
+
 TEST_CASE("T7 Add / Remove / Move layer keep rows == layers in every live and retired deck; RemoveLayerCmd's undo "
           "restores the layer and every deck's row (bf9b, ruling-bf9b amendment 22)", "[show]")
 {

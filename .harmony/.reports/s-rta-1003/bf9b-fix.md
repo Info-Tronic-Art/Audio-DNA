@@ -250,3 +250,90 @@ AM-6 src / AM-8 or adoption item 2. Not built (as ruled): forgetLayer / forgetCl
 Smells named: AS1 / AS2 repeat their set-up (duplicated code, kept so each case stands alone under the asan label);
 MainComponent::repointLayerInspector and repointInspectorsAfterStackMove's step (2) are two spellings of one re-point
 (the ruling keeps refreshAfterUndoRedo's own).
+
+## STAGE FIX-2 COMMANDS (AM-7, AM-10, AM-18's comment)
+STATUS: PENDING
+Started 2026-10-03 15:16:27 from 707818e (git status clean). Scratch: <session scratchpad>/bf9b-fix-FIX-2/.
+### Items (appended as each lands)
+
+### Item AM-7 -- Undo of Add / Duplicate / Load Deck (fork F2-C)
+SRC: `src/core/DeckCommands.h` only.
+- `AddDeckCmd::undo`: `cancelPendingInto(*comp, added_->id)`, then `retireOrEraseDeck(addedIndex_)` in place of the
+  erase. Its redo: `restoreRetiredDeck(added_->id, addedIndex_)` first; the snapshot insert only when it is gone.
+- `InsertDeckCmd::undo` WHEN `addedLayers_.empty()`: `cancelPendingInto`, `retireOrEraseDeck`; a RETIRED deck's cells
+  are not disposed (early return), an erased deck's are (today's loop). Its redo: `restoreRetiredDeck` first, no
+  media reconnect; else today's body. WHEN IT ADDED LAYERS: today's body (erase the deck, erase the layers, dispose) --
+  the documented exception. The header comments (cancelPendingInto, the deck-ops banner, both classes) say so.
+- Redo after a restore sets `activeDeckIndex = findDeckIndexById(added_->id)` (restoreRetiredDeck returns a bool).
+
+TESTS (tests/test_show_model.cpp, after T6e; helper `undoRetiresPlayingDeckAndRedoRestoresIt` = the shared
+assertions of T6f / T6g / T6j; the clip is fired with `Composition::fire`, i.e. no Undo step):
+- T6f = "T6f Undo of Add Deck while a clip of the new deck plays: the deck is retired, the SAME Clip keeps playing, a
+  queue into it is cancelled; redo moves it back under its id (bf9b fix, AM-7)" [show][asan]
+- T6g = "T6g Undo of a Load Deck with the show's row count while its clip plays: retired, the SAME Clip keeps playing,
+  no cell disposed while retired; redo moves it back and reconnects nothing (bf9b fix, AM-7)" [show][asan]
+- T6h = "T6h THE EXCEPTION, pinned: Undo of a Load Deck that ADDED layers takes the deck and those layers back even
+  while its clip plays -- every cell disposed once; redo brings the layers and the deck back under its id (bf9b fix,
+  AM-7)" [show]
+- T6i = "T6i Undo of a Load Deck retires the playing deck; once its clip is replaced a later fenced edit reaps it;
+  redo then comes back from the snapshot with every cell reconnected (bf9b fix, AM-7)" [show]
+- T6j = "T6j Undo of Duplicate Deck while a clip of the copy plays: the copy is retired, the SAME Clip keeps playing, a
+  queue into it is cancelled; redo moves it back under its id (bf9b fix, AM-7)" [show][asan]
+`.harmony/probe-asan-unit.sh`: EXPECTED_ASAN_CASES 7 -> 10 (T6f, T6g, T6j).
+
+RED at FIX-1's head (the new tests on untouched src: `git diff --quiet -- src` rc 0; build-lane Release binary,
+2026-10-03 15:18:41; logs red-T6*.log):
+```
+=== T6f rc=42
+test_show_model.cpp:652: FAILED:  CHECK( c.getNumRetiredDecks() == 1 )   with expansion: 0 == 1
+test_show_model.cpp:653: FAILED:  REQUIRE( c.playingClip(0) == playing ) with expansion: nullptr == 0x000000012d822600
+test cases:  1 | 1 failed      assertions: 10 | 8 passed | 2 failed
+=== T6g rc=42   (the same two lines; nullptr == 0x000000014e828a00)   assertions: 11 | 9 passed | 2 failed
+=== T6h rc=0    All tests passed (18 assertions in 1 test case)       <- GREEN BEFORE, as ruled
+=== T6i rc=42
+test_show_model.cpp:769: FAILED:  REQUIRE( c.getNumRetiredDecks() == 1 ) with expansion: 0 == 1
+=== T6j rc=42   (T6f's two lines; nullptr == 0x000000013f027400)      assertions: 11 | 9 passed | 2 failed
+```
+(These line numbers are one higher than in the committed file: a stale comment line of the helper was removed
+after the RED run. No assertion changed between the RED and the GREEN run.)
+GREEN with the fix (15:19:29): T6f 21 assertions, T6g 24, T6h 18 (GREEN AFTER), T6i 17, T6j 22 -- each `All tests
+passed`; whole binary `All tests passed (16990 assertions in 43 test cases)`; test_undo_commands `All tests passed
+(554 assertions in 79 test cases)` (no existing case edited: the T6 / T7 / M families and test_undo_commands'
+AddDeckCmd / InsertDeckCmd cases are untouched and green).
+
+MUTANTS (never committed; in place on DeckCommands.h, restored byte-for-byte: sha256
+d4d2f1edfc87f7411d6ce1afba46bec8c0316bcfff3b2a5b23e67a970fb8d9b0 before == after; scripts mutants.sh / mu8.sh /
+mutate.py; `test_show_model "T6*"` on build-lane):
+- MU6a (AddDeckCmd::undo: retireOrEraseDeck -> decks.erase):
+  `T6f ... :651 FAILED: CHECK( c.getNumRetiredDecks() == 1 ) 0 == 1`, `:652 FAILED: REQUIRE( c.playingClip(0) ==
+  playing ) nullptr == 0x000000011d821800`; `test cases: 9 | 8 passed | 1 failed`.
+- MU6b (InsertDeckCmd::undo: retireOrEraseDeck -> decks.erase): T6g, T6i, T6j FAILED (the same :651 / :652 lines; T6i
+  `:768 REQUIRE( c.getNumRetiredDecks() == 1 ) 0 == 1`); `test cases: 9 | 6 passed | 3 failed`. Through the ASan
+  script (15:20:23): `probe-asan-unit: ctest -L asan finds 10 asan cases (expected 10)`, `80% tests passed, 2 tests
+  failed out of 10` (162 asan:T6g, 163 asan:T6j), `PROBE-ASAN-UNIT RED (2 of 10 failed)`, exit 8. The failures are
+  the tests' own REQUIRE (it stops the case before the write through the dead pointer), not an ASan report.
+- MU7 (the `addedLayers_.empty()` guard dropped -> `if (true)`): T6h FAILED --
+  `:729 CHECK( c.getNumLayers() == 3 ) 5 == 3`, `:731 CHECK( c.getNumRetiredDecks() == 0 ) 1 == 0`,
+  `:732 CHECK( c.findDeckById(id) == nullptr )`, `:733 CHECK( c.playingClip(0) == nullptr )`,
+  `:734 CHECK( disposed == {900, 911, 940} )`, `:739 CHECK( c.getNumLayers() == 5 ) 7 == 5`,
+  `:744 CHECK( disposed.size() == 3 ) 0 == 3`; `test cases: 9 | 8 passed | 1 failed`.
+- MU8 (both redos ignore restoreRetiredDeck -> `if (false)`): T6f, T6g, T6j FAILED --
+  `:663 CHECK( c.getNumRetiredDecks() == 0 ) 1 == 0`, `:664 REQUIRE( c.playingClip(0) == playing )`
+  `nullptr == 0x0000000146020200` (T6f) / `0x000000014602ca00 == 0x0000000146027a00` (T6g, T6j: the snapshot copy
+  plays, not the live clip); `test cases: 9 | 6 passed | 3 failed`.
+  CAUGHT DURING THE RUN: MU8's FIRST run (mutants.sh) printed MU7's failures -- its build log shows no object
+  recompiled (the mutated header's mtime fell in the same second as MU7's object), so it ran MU7's stale binary. That
+  run is VOID; mu8.sh re-ran it alone (`MU8 build rc=0 (1 object(s) recompiled)`) with the lines above.
+After the restore: `test_show_model "T6*"`: `All tests passed (154 assertions in 9 test cases)`;
+`.harmony/probe-asan-unit.sh` (15:21:43): `PROBE-ASAN-UNIT GREEN (10 cases, 0 reports)`, exit 0.
+
+B4f RE-PIN (tests/test_render_thread_lint.cpp): `core/DeckCommands.h` 22 -> 25, every new site inside a command's
+runFenced body: AddDeckCmd::undo `retireOrEraseDeck(` replaces `decks.erase(` (+1 -1); AddDeckCmd redo
+`restoreRetiredDeck(` (+1); InsertDeckCmd::undo `retireOrEraseDeck(` beside the kept `decks.erase(` of the exception
+branch (+1); InsertDeckCmd redo `restoreRetiredDeck(` (+1). The other 12 pins are unchanged (the InspectorRepoint.h
+pin of FIX-1 still awaits Harmony). Lint binary: `All tests passed (1026 assertions in 7 test cases)`.
+
+BORIS'S ANSWER (a), verbatim: "Let's not allow control Z to change anything that is live in the layer strip. It
+changes anything else". T6h PINS the one place this stage leaves against it (Cmd+Z of a Load Deck that added layers
+stops that deck's clip) -- as the ruling's AM-7 and adoption item 8 order (lane BF31 re-registers T6h). Not widened
+here.

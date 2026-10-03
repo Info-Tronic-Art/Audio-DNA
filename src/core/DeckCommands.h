@@ -188,8 +188,9 @@ inline void applyLayerRuntime(Layer& layer, const LayerRuntimeSnapshot& r)
 }
 
 // Cancel every QUEUED trigger whose pending ref names deck `deckId` (lane bf9b, ruling-bf9b amendment 4(c)): a clip
-// from a box you can no longer see must not start later. Only RemoveDeckCmd calls it, inside its fence, for the deck
-// it retires or erases. A deck switch cancels nothing any more (plan-bf9b F11: a queued trigger lands in the shared,
+// from a box you can no longer see must not start later. RemoveDeckCmd calls it, inside its fence, for the deck it
+// retires or erases; so do the undos of AddDeckCmd and of an InsertDeckCmd that added no layers (ruling-bf9b-merge
+// AM-7). A deck switch cancels nothing any more (plan-bf9b F11: a queued trigger lands in the shared,
 // visible stack). Each layer's cancel is ONE compare-exchange of its tuple word. Returns the number cancelled.
 inline int cancelPendingInto(Composition& comp, uint32_t deckId)
 {
@@ -649,8 +650,9 @@ private:
 // Undo v1 step 6 — deck ops (#21 new, #22 remove).
 // (#23 deck-clear-clips landed in step 4 as a ClearLayerClipsCmd composite.)
 // Lane bf9b: a deck is a box of clips; activating one changes only the grid, so no
-// deck op cancels a queued trigger any more (plan-bf9b F11) -- except Remove Deck,
-// for the triggers queued INTO the deck it removes (cancelPendingInto). A deck switch
+// deck op cancels a queued trigger any more (plan-bf9b F11) -- except Remove Deck
+// and the undo of Add / Duplicate / Load Deck (ruling-bf9b-merge AM-7), for the
+// triggers queued INTO the deck they take away (cancelPendingInto). A deck switch
 // (#24) is no Undo step at all (bf9b S2c, ruling-bf9b amendment 10).
 // ===========================================================================
 
@@ -664,6 +666,10 @@ private:
 // AddLayerCmd): the handler does NOT pre-mutate; perform() runs the single fenced
 // mutation, because push_back is non-idempotent. The appended deck (minted id
 // included) is captured on first execute so redo re-inserts the EXACT same deck.
+// Undo (ruling-bf9b-merge AM-7) takes the deck away as Remove Deck does: a trigger
+// queued into it is cancelled; while a clip of it still plays (fired with no Undo
+// step: a routine, a take replay) the deck is RETIRED, else erased. Redo moves a
+// deck that is still retired back (live playheads kept), else re-inserts the capture.
 // GL fence: push_back can reallocate composition->decks -- withDeckDetached fences
 // the GL thread AND re-points activeDeck_ after the mutation.
 class AddDeckCmd : public Command
@@ -683,8 +689,11 @@ public:
                 return;
             if (added_.has_value())
             {
-                // redo: re-insert the exact deck captured on first execute.
-                comp->activeDeckIndex = comp->insertDeckKeepingId(addedIndex_, *added_);
+                // redo: the deck the undo retired, if it is still there; else the exact deck captured on first execute.
+                if (comp->restoreRetiredDeck(added_->id, addedIndex_))
+                    comp->activeDeckIndex = comp->findDeckIndexById(added_->id);
+                else
+                    comp->activeDeckIndex = comp->insertDeckKeepingId(addedIndex_, *added_);
             }
             else if (!refused_)
             {
@@ -714,7 +723,10 @@ public:
                 return;
             if (addedIndex_ >= 0 && addedIndex_ < static_cast<int>(comp->decks.size())
                 && comp->decks[static_cast<size_t>(addedIndex_)].id == added_->id)
-                comp->decks.erase(comp->decks.begin() + addedIndex_);
+            {
+                cancelPendingInto(*comp, added_->id);
+                comp->retireOrEraseDeck(addedIndex_);       // retired while one of its clips plays, else erased
+            }
             comp->activeDeckIndex = priorActiveIndex_;      // restore prior shown deck
         });
     }
@@ -749,7 +761,13 @@ private:
 // already on first do (the caller ran openMediaForDeck on the staged deck); undo
 // disposes every occupied cell of the inserted deck (the app's dispose hook
 // re-scans the live model, so a clip id still live elsewhere is never closed),
-// redo reconnects them. Refused (nothing added, refused() true) once the show has
+// redo reconnects them. Undo WHEN THE COMMAND ADDED NO LAYERS (ruling-bf9b-merge
+// AM-7) takes the deck away as Remove Deck does: a trigger queued into it is
+// cancelled; while a clip of it still plays (fired with no Undo step: a routine, a
+// take replay) the deck is RETIRED -- nothing disposed, the reap does that -- and
+// redo moves it back (live playheads kept, no reconnect). THE EXCEPTION, pinned by
+// test T6h: a command that ADDED layers keeps the erase -- its undo takes those
+// layers back, so a clip of that deck stops. Refused (nothing added, refused() true) once the show has
 // used every deck number (amendment 7(a)). All bodies are fenced.
 class InsertDeckCmd : public Command
 {
@@ -772,7 +790,13 @@ public:
                 return;
             if (added_.has_value())
             {
-                // redo: the exact layers, then the exact deck captured on first execute.
+                // redo: the deck the undo retired, if it is still there (nothing was disposed: no reconnect) ...
+                if (addedLayers_.empty() && comp->restoreRetiredDeck(added_->id, addedIndex_))
+                {
+                    comp->activeDeckIndex = comp->findDeckIndexById(added_->id);
+                    return;
+                }
+                // ... else the exact layers, then the exact deck captured on first execute.
                 for (const auto& l : addedLayers_)
                     comp->insertLayer(comp->getNumLayers(), l);
                 comp->activeDeckIndex = comp->insertDeckKeepingId(addedIndex_, *added_);
@@ -819,12 +843,29 @@ public:
             Composition* comp = resolve();
             if (comp == nullptr || !added_.has_value())
                 return;
-            if (addedIndex_ >= 0 && addedIndex_ < static_cast<int>(comp->decks.size())
-                && comp->decks[static_cast<size_t>(addedIndex_)].id == added_->id)
-                comp->decks.erase(comp->decks.begin() + addedIndex_);
-            for (size_t k = 0; k < addedLayers_.size(); ++k)
-                comp->eraseLayer(comp->getNumLayers() - 1);
+            const bool present = addedIndex_ >= 0 && addedIndex_ < static_cast<int>(comp->decks.size())
+                                 && comp->decks[static_cast<size_t>(addedIndex_)].id == added_->id;
+            bool retired = false;
+            if (addedLayers_.empty())
+            {
+                // No layer to take back: the deck leaves as in Remove Deck (AM-7).
+                if (present)
+                {
+                    cancelPendingInto(*comp, added_->id);
+                    retired = comp->retireOrEraseDeck(addedIndex_);
+                }
+            }
+            else
+            {
+                // The exception (T6h): the deck is erased with the layers it added, playing or not.
+                if (present)
+                    comp->decks.erase(comp->decks.begin() + addedIndex_);
+                for (size_t k = 0; k < addedLayers_.size(); ++k)
+                    comp->eraseLayer(comp->getNumLayers() - 1);
+            }
             comp->activeDeckIndex = priorActiveIndex_;      // restore prior shown deck
+            if (retired)
+                return;                                     // still playing: its media stays open (the reap disposes)
             // The inserted deck is gone from the model: dispose every occupied cell it held.
             if (disposeHook_)
                 for (const auto& row : added_->rows)

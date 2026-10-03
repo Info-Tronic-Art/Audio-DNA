@@ -27,8 +27,8 @@ JOBS=${ADNA_JOBS:-3}
 # target missing from this list is not (re)built.
 TARGETS=(test_show_model)
 # AS0 (the "bf9b fix: a fenced edit that moves or resizes the shared layer stack ..." case), AS1, AS2, AS3b, AS5, AS6,
-# AS7 (4 at FIX-1's first commit: AS0, AS5, AS6, AS7).
-EXPECTED_ASAN_CASES=7
+# AS7 (4 at FIX-1's first commit: AS0, AS5, AS6, AS7); FIX-2 (AM-7): T6f, T6g, T6j.
+EXPECTED_ASAN_CASES=10
 
 if [ ! -f "$B/CMakeCache.txt" ]; then
     COMMON=$(git -C "$TREE" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
