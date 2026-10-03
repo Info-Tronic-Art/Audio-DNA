@@ -646,23 +646,15 @@ private:
 };
 
 // ===========================================================================
-// Undo v1 step 6 — deck ops (#21 new, #22 remove, #24 switch).
+// Undo v1 step 6 — deck ops (#21 new, #22 remove).
 // (#23 deck-clear-clips landed in step 4 as a ClearLayerClipsCmd composite.)
 // Lane bf9b: a deck is a box of clips; activating one changes only the grid, so no
 // deck op cancels a queued trigger any more (plan-bf9b F11) -- except Remove Deck,
-// for the triggers queued INTO the deck it removes (cancelPendingInto).
+// for the triggers queued INTO the deck it removes (cancelPendingInto). A deck switch
+// (#24) is no Undo step at all (bf9b S2c, ruling-bf9b amendment 10).
 // ===========================================================================
 
 // CompositionResolver is defined in ClipCommands.h (included above).
-
-// Re-point the renderer's active-deck atomic at the CURRENT active deck
-// (renderer.setActiveDeck(composition.getActiveDeck())). Injected as a hook so
-// SwitchDeckCmd stays renderer-free / headless-testable; no-op in headless.
-// Deck ADD/REMOVE do NOT need this: their DeckFenceHook (withDeckDetached) already
-// re-points by re-resolving getActiveDeck() after the fenced mutation. SwitchDeckCmd
-// does not fence (no vector mutation — just an atomic pointer handoff), so it
-// re-points through this lightweight hook instead.
-using DeckActivateHook = std::function<void()>;
 
 // AddDeckCmd: deck new (#21) — a deck named "Deck N" with one empty row per
 // shared layer (x 12 columns), appended via Composition::appendDeck, which mints
@@ -968,43 +960,6 @@ private:
     Deck removed_;
     int priorActiveIndex_;
     bool retired_ = false;
-    std::string description_;
-};
-
-// SwitchDeckCmd: deck switch (#24) — the deck-tab click. Lane bf9b: a switch changes
-// only which box the grid shows (index + the activate hook; nothing plays or stops,
-// no queue is touched -- plan-bf9b F11, R7). Setting activeDeckIndex is an IDEMPOTENT
-// field write, so this is mutate-then-push (the handler's handleDeckSwitch performs
-// the live switch; perform() re-applies `after`, a harmless no-op). NO GL fence: a
-// switch does not mutate the decks vector. Stale index (deck removed) → safe no-op.
-class SwitchDeckCmd : public Command
-{
-public:
-    SwitchDeckCmd(CompositionResolver compResolver, DeckActivateHook activate,
-                  int before, int after, std::string description)
-        : compResolver_(std::move(compResolver)), activate_(std::move(activate)),
-          before_(before), after_(after), description_(std::move(description)) {}
-
-    void execute() override { apply(after_); }
-    void undo() override    { apply(before_); }
-    std::string description() const override { return description_; }
-
-private:
-    void apply(int index)
-    {
-        Composition* comp = compResolver_ ? compResolver_() : nullptr;
-        if (comp == nullptr)
-            return;
-        if (index < 0 || index >= static_cast<int>(comp->decks.size()))
-            return;                             // stale coordinate → safe no-op
-        comp->activeDeckIndex = index;
-        if (activate_)
-            activate_();                        // renderer.setActiveDeck(getActiveDeck())
-    }
-
-    CompositionResolver compResolver_;
-    DeckActivateHook activate_;
-    int before_, after_;
     std::string description_;
 };
 

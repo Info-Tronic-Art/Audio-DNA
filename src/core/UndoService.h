@@ -17,8 +17,8 @@ class DeckView;
 //      headless against a bare Composition.
 //   2. syncAfterModelChange — one shared refresh after a mutation: rebuild or
 //      refresh the deck grid. It does NOT re-point the renderer's active deck
-//      — deck add/remove/switch do that through their own command hooks
-//      (withDeckDetached / DeckActivateHook).
+//      — deck add/remove do that through their own command hook
+//      (withDeckDetached); a deck switch is no command (bf9b S2c).
 //   3. withDeckDetached — GL fence for structure-changing mutations: store
 //      nullptr into the renderer's active-deck atomic, block on an empty
 //      GL-thread job to fence out any in-flight frame, run the mutation, then

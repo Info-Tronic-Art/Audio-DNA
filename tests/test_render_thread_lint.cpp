@@ -7,6 +7,7 @@
 // not seen.
 #include <catch2/catch_test_macros.hpp>
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -287,8 +288,7 @@ std::string bodyAfter(const std::vector<std::string>& lines, const std::string& 
 
 // Case 5 (lane bf9b; ruling-bf9b B4d SMOKE + ruling-bf10 H2 relayed in the plan's adoption item 2): a deck switch does
 // exactly the index, the renderer's fence token, the grid's cells and the take capture (rulebook R7). The bodies of
-// handleDeckSwitch, the tab click's onDeckSwitched handler, SwitchDeckCmd::apply and DeckView::showDeck -- one level,
-// TEXT only (the behavioural proofs are T1 / K1 / K8) -- name none of the tuple writers or the preview refresh (B4d),
+// handleDeckSwitch, the tab click's onDeckSwitched handler and DeckView::showDeck -- one level, TEXT only (the behavioural proofs are T1 / K1 / K8) -- name none of the tuple writers or the preview refresh (B4d),
 // and none of the MilkDrop / canvas calls (H2: a switch never loads a preset, resizes or releases projectM, never
 // changes the canvas).
 TEST_CASE("bf9b B4d / H2: a deck switch path touches nothing that plays (smoke, one level)", "[lint][bf9b]")
@@ -299,7 +299,6 @@ TEST_CASE("bf9b B4d / H2: a deck switch path touches nothing that plays (smoke, 
     const Site sites[] = {
         { "MainComponent.cpp", "void MainComponent::handleDeckSwitch(", "" },
         { "MainComponent.cpp", "deckView_->onDeckSwitched = [", "" },
-        { "core/DeckCommands.h", "void apply(int index)", "class SwitchDeckCmd" },
         { "ui/DeckView.cpp", "void DeckView::showDeck()", "" },
     };
     for (const auto& site : sites)
@@ -315,4 +314,47 @@ TEST_CASE("bf9b B4d / H2: a deck switch path touches nothing that plays (smoke, 
         CHECK_FALSE(std::regex_search(body, b4d));
         CHECK_FALSE(std::regex_search(body, h2));
     }
+}
+
+// Case 6 (lane bf9b S2c; ruling-bf9b amendment 10, B4g, B4a's "after S2c also zero SwitchDeckCmd"): a deck switch is
+// never an Undo step (Q4's default). The tab click's onDeckSwitched handler is exactly `handleDeckSwitch(deckIdx);`, so
+// every switch entry (tab, REST, OSC, bindings, replay) is the one function K1 / K8 drive live; that function pushes no
+// command; no SwitchDeckCmd is left in src/ (code lines, line comments stripped). TEXT only.
+TEST_CASE("bf9b B4g: a deck switch is never an Undo step -- the tab click is exactly handleDeckSwitch(deckIdx);",
+          "[lint][bf9b]")
+{
+    namespace fs = std::filesystem;
+    const auto mc = codeLines("MainComponent.cpp");
+    std::string tab = bodyAfter(mc, "deckView_->onDeckSwitched = [");
+    INFO("onDeckSwitched body:\n" << tab);
+    tab.erase(std::remove_if(tab.begin(), tab.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }),
+              tab.end());
+    CHECK(tab == "{handleDeckSwitch(deckIdx);}");
+
+    const std::string sw = bodyAfter(mc, "void MainComponent::handleDeckSwitch(");
+    INFO("handleDeckSwitch body:\n" << sw);
+    REQUIRE_FALSE(sw.empty());
+    CHECK_FALSE(std::regex_search(sw, std::regex(R"(pushCommands|undoManager_|undoService_|Cmd\s*>)")));
+
+    const std::regex name(R"(\bSwitchDeckCmd\b)");
+    const fs::path root(AUDIODNA_SRC_DIR);
+    std::string hits;
+    int files = 0;
+    for (const auto& e : fs::recursive_directory_iterator(root))
+    {
+        if (!e.is_regular_file())
+            continue;
+        const auto ext = e.path().extension().string();
+        if (ext != ".h" && ext != ".cpp" && ext != ".mm")
+            continue;
+        ++files;
+        const auto rel = fs::relative(e.path(), root).generic_string();
+        const auto lines = codeLines(rel);
+        for (size_t i = 0; i < lines.size(); ++i)
+            if (std::regex_search(lines[i], name))
+                hits += "\n  " + rel + ":" + std::to_string(i + 1);
+    }
+    REQUIRE(files > 50);   // the walk reached src/
+    INFO("SwitchDeckCmd in src/ code lines:" << (hits.empty() ? std::string(" none") : hits));
+    CHECK(hits.empty());
 }

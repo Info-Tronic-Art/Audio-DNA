@@ -1372,25 +1372,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
     };
 
+    // The deck-tab click. Lane bf9b S2c (ruling-bf9b amendment 10, Q4's default): a deck switch changes only which box
+    // the grid shows, so it is never an Undo step -- Cmd+Z undoes the last real change. The tab is exactly the switch
+    // REST, OSC, bindings and replay make (B4g, tests/test_render_thread_lint.cpp).
     deckView_->onDeckSwitched = [this](int deckIdx) {
-        // #24: USER-initiated deck switch (tab click) — the ONLY switch path that
-        // wraps an undo command. handleDeckSwitch is ALSO called by non-user paths
-        // (REST, OSC, MIDI/controller bindings, genre auto-switch) which must NOT
-        // push commands, so the wrap lives here at the user entry point, not inside
-        // handleDeckSwitch. Mutate-then-push: switch live, then record before/after
-        // (only if the active deck actually changed — a no-op switch pushes nothing).
-        // Lane bf9b (R7, plan-bf9b F11): a switch changes only the grid -- no queued trigger is cancelled.
-        const int before = composition_.activeDeckIndex;
         handleDeckSwitch(deckIdx);
-        const int after = composition_.activeDeckIndex;
-        if (before != after)
-        {
-            std::vector<std::unique_ptr<Command>> children;
-            children.push_back(std::make_unique<SwitchDeckCmd>(
-                makeCompositionResolver(), makeDeckActivateHook(),
-                before, after, "Switch Deck"));
-            pushCommands(std::move(children), "Switch Deck");
-        }
     };
 
     // plan6 §6.4: the deck tab row -- "+" (New Deck / Load Deck..., deckIndex -1) and a tab's right-click menu.
@@ -5124,15 +5110,6 @@ CompositionResolver MainComponent::makeCompositionResolver()
     return [this]() -> Composition* { return &composition_; };
 }
 
-DeckActivateHook MainComponent::makeDeckActivateHook()
-{
-    // SwitchDeckCmd re-points the renderer at the current active deck on
-    // execute/undo/redo — the same atomic handoff handleDeckSwitch performs live.
-    return [this]() {
-        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-    };
-}
-
 std::function<void()> MainComponent::makeEffectStackRefresh()
 {
     // Fired by EffectStackCmd on execute/undo/redo — a lightweight notification
@@ -5520,10 +5497,10 @@ void MainComponent::handleDeckSwitch(int deckIndex, Origin origin)
     }
 
     // s-rta-0923/0924 step 3 (plan section 3.3 B2): capture only on an
-    // ACTUAL change -- a same-deck no-op switch records nothing. handleDeckSwitch
-    // never pushes an undo command itself (deckView_->onDeckSwitched, the user
-    // entry point, does that) so there is nothing to gate on origin here beyond
-    // the capture call, which the host also filters (never Origin::Replay).
+    // ACTUAL change -- a same-deck no-op switch records nothing. A deck switch is
+    // never an Undo step (lane bf9b S2c, ruling-bf9b amendment 10), from any
+    // entry, so there is nothing to gate on origin here beyond the capture call,
+    // which the host also filters (never Origin::Replay).
     const bool actualChange = deckIndex != composition_.activeDeckIndex;
     if (actualChange && origin != Origin::Replay)
     {

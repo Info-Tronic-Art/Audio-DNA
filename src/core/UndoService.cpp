@@ -19,10 +19,10 @@ void UndoService::syncAfterModelChange(SyncScope scope)
             deckView_->rebuildGrid();
     }
 
-    // (Deck ADD/REMOVE/SWITCH re-point the renderer's active deck through their
-    // OWN command hooks — withDeckDetached re-resolves getActiveDeck() after the
-    // fenced mutation, SwitchDeckCmd via DeckActivateHook — never through this
-    // helper, so there is no active-deck re-point here.)
+    // (Deck ADD/REMOVE re-point the renderer's active deck through their OWN
+    // command hooks — withDeckDetached re-resolves getActiveDeck() after the
+    // fenced mutation — never through this helper, so there is no active-deck
+    // re-point here. A deck switch is no command: bf9b S2c.)
     //
     // Inspector re-pointing after a mutation is handled by refreshAfterUndoRedo
     // (EffectScope-aware setClip/setLayer) at the call sites that need it, not

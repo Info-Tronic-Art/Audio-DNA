@@ -1852,60 +1852,6 @@ TEST_CASE("RemoveDeckCmd: undoing a background-deck removal keeps the active dec
 }
 
 // ---------------------------------------------------------------------------
-// SwitchDeckCmd (#24): switch active index, undo restores; double-switch redo
-// chain; renderer re-point hook fires exactly on each apply.
-// ---------------------------------------------------------------------------
-
-TEST_CASE("SwitchDeckCmd: switch + undo restores active index, redo re-applies", "[undo][deck]")
-{
-    Composition comp = makeComp();
-    comp.decks.push_back(richDeck("Deck 2", 2));
-    comp.decks.push_back(richDeck("Deck 3", 3));
-    comp.activeDeckIndex = 0;
-    UndoManager mgr;
-
-    int activateCalls = 0;
-    DeckActivateHook countingActivate = [&activateCalls]() { ++activateCalls; };
-
-    // User switches 0 -> 2 (mutate-then-push: the live switch already set index=2).
-    comp.activeDeckIndex = 2;
-    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), countingActivate,
-                0, 2, "Switch Deck"));
-    REQUIRE(comp.activeDeckIndex == 2);                // execute re-applies `after` (idempotent)
-    REQUIRE(activateCalls == 1);                       // renderer re-point on execute
-    REQUIRE(mgr.undoDescription() == "Switch Deck");
-
-    mgr.undo();
-    REQUIRE(comp.activeDeckIndex == 0);                // back to `before`
-    REQUIRE(activateCalls == 2);                       // re-point on undo too
-
-    mgr.redo();
-    REQUIRE(comp.activeDeckIndex == 2);
-    REQUIRE(activateCalls == 3);
-}
-
-TEST_CASE("SwitchDeckCmd: double-switch redo chain restores each active index", "[undo][deck]")
-{
-    Composition comp = makeComp();
-    comp.decks.push_back(richDeck("Deck 2", 2));
-    comp.decks.push_back(richDeck("Deck 3", 3));
-    comp.activeDeckIndex = 0;
-    UndoManager mgr;
-
-    // Switch 0 -> 1, then 1 -> 2 (two user gestures).
-    comp.activeDeckIndex = 1;
-    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr, 0, 1, "Switch Deck"));
-    comp.activeDeckIndex = 2;
-    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr, 1, 2, "Switch Deck"));
-    REQUIRE(comp.activeDeckIndex == 2);
-
-    mgr.undo();  REQUIRE(comp.activeDeckIndex == 1);   // undo 2nd switch
-    mgr.undo();  REQUIRE(comp.activeDeckIndex == 0);   // undo 1st switch
-    mgr.redo();  REQUIRE(comp.activeDeckIndex == 1);   // redo 1st
-    mgr.redo();  REQUIRE(comp.activeDeckIndex == 2);   // redo 2nd
-}
-
-// ---------------------------------------------------------------------------
 // Fence invocation count: AddDeckCmd routes every execute/undo/redo through the
 // fence exactly once (mirrors the app's withDeckDetached GL fence).
 // ---------------------------------------------------------------------------
@@ -1957,7 +1903,7 @@ TEST_CASE("RemoveDeckCmd: refuses to remove the last remaining deck", "[undo][de
 }
 
 // ---------------------------------------------------------------------------
-// Stale-coordinate no-op safety for all three deck commands (never crash).
+// Stale-coordinate no-op safety for the deck commands (never crash).
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][deck][resolve]")
@@ -1979,11 +1925,6 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][deck
     mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
                 9, std::move(dummy), 9, "Remove Deck"));
     REQUIRE(comp.decks.size() == 2);                   // bad index → nothing removed
-
-    // SwitchDeckCmd with an out-of-range target index → active index unchanged.
-    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr,
-                0, 9, "Switch Deck"));
-    REQUIRE(comp.activeDeckIndex == 0);                // stale target → no switch
 }
 
 // ===========================================================================
@@ -2865,36 +2806,6 @@ TEST_CASE("TriggerClipCmd: undo of a queued forced-snap trigger restores pending
     mgr.redo();
     REQUIRE(L.runtime().pendingTriggerColumn == 6);
     REQUIRE(L.runtime().pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
-}
-
-// Lane bf9b (plan-bf9b 4.B :2840, F11): a deck switch changes only which box the grid shows; a queued trigger lands in
-// the shared, visible stack -- SwitchDeckCmd's execute / undo / redo leave it untouched (S2c retires SwitchDeckCmd).
-TEST_CASE("SwitchDeckCmd: leaves a queued trigger untouched on execute, undo and redo (bf9b)",
-          "[undo][deck][trigger][quantize]")
-{
-    Composition comp = makeComp();                 // deck 0: 3 rows, 12 cols
-    comp.decks.push_back(richDeck("Deck 2", 2));    // deck 1: switch target
-    comp.activeDeckIndex = 0;
-    UndoManager mgr;
-
-    comp.decks[0].rows[0].clips[5] = richClip(99, "queued");
-    comp.fire(0, 0, 5, Clip::BeatSnapMode::Bar);    // queues: col(5) != active(-1), forced snap
-    const LayerRuntimeSnapshot queued = comp.layers[0].runtime();
-    REQUIRE(queued.pendingTriggerColumn == 5);
-    REQUIRE(queued.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
-
-    comp.activeDeckIndex = 1;                       // the live switch (index only)
-    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr, 0, 1, "Switch Deck"));
-    REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(comp.layers[0].runtime() == queued);
-
-    mgr.undo();
-    REQUIRE(comp.activeDeckIndex == 0);
-    REQUIRE(comp.layers[0].runtime() == queued);
-
-    mgr.redo();
-    REQUIRE(comp.activeDeckIndex == 1);
-    REQUIRE(comp.layers[0].runtime() == queued);
 }
 
 // Lane bf9b (plan-bf9b 4.B :2909): Add Deck shows the new box and leaves a queued trigger untouched.

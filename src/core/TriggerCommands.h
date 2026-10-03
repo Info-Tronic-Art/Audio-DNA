@@ -26,7 +26,7 @@
 // tuple on since (a fade tick, the fade ending, the queued trigger firing) --
 // re-applying `after` there would restart or re-queue the trigger. Later
 // execute() calls (redo) apply `after`. This is the same shape as
-// ClearActiveClipCmd (#13) and SwitchDeckCmd (#24), NOT the command-owns-the-
+// ClearActiveClipCmd (#13), NOT the command-owns-the-
 // mutation shape used for the non-idempotent structural layer/deck ops.
 //
 // GL-PATH LAW (spec §1 consequence 3, risk #2): command creation lives ONLY in

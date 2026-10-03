@@ -354,24 +354,15 @@ TEST_CASE("T1 every deck-switch path and deck command leaves what plays byte-ide
 
     const std::string f0 = fingerprint(c, mgr, eng);
 
-    SECTION("the model-level shown-deck walk 0 -> 1 -> 0 and SwitchDeckCmd execute / undo / redo")
+    // bf9b S2c (ruling-bf9b amendment 10): a deck switch is no Undo step any more (no SwitchDeckCmd); the switch the
+    // app makes is the index + DeckView::showDeck (handleDeckSwitch; its renderer fence token is not headless).
+    SECTION("the model-level shown-deck walk 0 -> 1 -> 0")
     {
         for (int d : { 1, 0 })
         {
             c.activeDeckIndex = d;
             CHECK(fingerprint(c, mgr, eng) == f0);
         }
-        int activations = 0;
-        SwitchDeckCmd sw(resolverFor(c), [&activations] { ++activations; }, 0, 1, "Switch Deck");
-        sw.execute();
-        CHECK(c.activeDeckIndex == 1);
-        CHECK(fingerprint(c, mgr, eng) == f0);
-        sw.undo();
-        CHECK(c.activeDeckIndex == 0);
-        CHECK(fingerprint(c, mgr, eng) == f0);
-        sw.execute();
-        CHECK(fingerprint(c, mgr, eng) == f0);
-        CHECK(activations == 3);
     }
 
     SECTION("a headless DeckView::showDeck walk 0 -> 5 -> 0: what plays is untouched, every LayerStrip the same object")
@@ -486,8 +477,14 @@ TEST_CASE("T5 a bar-snapped trigger queued on deck 0 survives a switch to deck 1
     const LayerRuntimeSnapshot queued = c.layers[0].runtime();
     REQUIRE(queued.pendingRef() == (ClipRef{ c.decks[0].id, 2 }));
 
-    SwitchDeckCmd sw(resolverFor(c), nullptr, 0, 1, "Switch Deck");   // the model's switch: the index (+ hook)
-    sw.execute();
+    // The switch as handleDeckSwitch makes it (bf9b S2c: no SwitchDeckCmd): the index, then the grid's cells
+    // (DeckView::showDeck, headless; the renderer's fence token is not).
+    juce::ScopedJuceInitialiser_GUI gui;
+    DeckView dv;
+    dv.setSize(1400, 600);
+    dv.setComposition(&c);
+    c.activeDeckIndex = 1;
+    dv.showDeck();
     REQUIRE(c.activeDeckIndex == 1);
     CHECK(c.layers[0].runtime() == queued);    // the queue survives the switch (F11)
 
