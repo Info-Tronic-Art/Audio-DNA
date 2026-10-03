@@ -1,0 +1,81 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/imgload.shiiEL
+fixtures: 42 written to /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/imgload.shiiEL/media in 32.4 s
+ours: pid 14595
+--- i1_layer_1080
+      i1_layer_1080: 1920x1080 pre-window max frame 5.902667045593262 callback 6.894875049591064; window max frame 8.99870777130127 callback 10.491915702819824; frames held 0; load avg 4.50 3.37 3.68
+PASS  i1_layer_1080: (a) longest frame while a cold 1920x1080 image is first shown 9.00 ms <= 16.7
+PASS  i1_layer_1080: (b) longest render callback in the same window 10.49 ms <= 16.7
+PASS  i1_layer_1080: (c) the picture is the cold image after 1.5 s: dbox 0.00 <= 3.0
+--- i1_layer_4k
+      i1_layer_4k: 3840x2160 pre-window max frame 7.087874889373779 callback 7.558249950408936; window max frame 10.938458442687988 callback 11.03849983215332; frames held 0; load avg 4.13 3.32 3.66
+PASS  i1_layer_4k: (a) longest frame while a cold 3840x2160 image is first shown 10.94 ms <= 16.7
+PASS  i1_layer_4k: (b) longest render callback in the same window 11.04 ms <= 16.7
+PASS  i1_layer_4k: (c) the picture is the cold image after 1.5 s: dbox 0.00 <= 3.0
+--- i2_fade_1080
+      i2_fade_1080: 1920x1080 pre-window max frame 4.347499847412109 callback 7.281792163848877; window max frame 10.040624618530273 callback 10.198541641235352; frames held 0; load avg 3.80 3.27 3.64
+PASS  i2_fade_1080: (a) longest frame while a cold 1920x1080 image is first shown 10.04 ms <= 16.7
+PASS  i2_fade_1080: (b) longest render callback in the same window 10.20 ms <= 16.7
+PASS  i2_fade_1080: (c) the picture is the cold image after 1.5 s: dbox 0.00 <= 3.0
+--- i2_fade_4k
+      i2_fade_4k: 3840x2160 pre-window max frame 3.391417026519775 callback 4.489167213439941; window max frame 6.822291851043701 callback 6.918707847595215; frames held 0; load avg 3.73 3.26 3.63
+PASS  i2_fade_4k: (a) longest frame while a cold 3840x2160 image is first shown 6.82 ms <= 16.7
+PASS  i2_fade_4k: (b) longest render callback in the same window 6.92 ms <= 16.7
+PASS  i2_fade_4k: (c) the picture is the cold image after 1.5 s: dbox 0.00 <= 3.0
+--- i5_legacy_retrigger
+      i5_legacy_retrigger: 6 re-triggers of 2 resident 1080p images: max callback 13.41795825958252, max frame 12.363707542419434; load avg 3.51 3.22 3.62
+PASS  i5_legacy_retrigger: re-triggering resident images never re-decodes on the GL thread (max callback 13.42 ms <= 16.7)
+--- i6_sequence_1080
+      i6_sequence_1080: pre max frame 0.0; window max frame 3.725457906723022 callback 3.758249998092651; load avg 3.39 3.20 3.61
+PASS  i6_sequence_1080: (a) longest frame while a 1080p sequence plays its first frames 3.73 ms <= 16.7
+PASS  i6_sequence_1080: (b) longest render callback 3.76 ms <= 16.7
+PASS  i6_sequence_1080: (c) the picture is one of the 12 frames (frame 4, dbox 0.00 <= 3.0)
+--- i7_prefetch_retain
+      i7_prefetch_retain: 6 images resident after 0.3422877788543701 s (textures 6, 47.4609375 MB); max callback during the prefetch 3.071624994277954; load avg 3.39 3.20 3.61
+PASS  i7_prefetch_retain: (1) a composition load prefetches its 6 images (resident after 0.3422877788543701 s)
+PASS  i7_prefetch_retain: (2) longest render callback during the prefetch 3.07 ms <= 16.7
+PASS  i7_prefetch_retain: (3) a prefetched image shows at once (frames held 0 == 0)
+PASS  i7_prefetch_retain: (4) images no longer in the composition are released (textures 1 <= 1)
+--- i2m_fade_start
+      i2m_fade_start: fillers resident after 1.2 s (1024 MB)
+      i2m_fade_start: dbox(warm, cold) 76.73; trigger seen after 3 ms; p = [0.018, 0.154, 0.32, 0.492]
+PASS  i2m_fade_start: fixture -- warm and cold pictures differ (dbox 76.73 >= 20.0)
+PASS  i2m_fade_start: the dissolve starts when the image lands (first answered frame p 0.018 <= 0.08)
+PASS  i2m_fade_start: dissolve progress is monotonic across 4 frames [0.018, 0.154, 0.32, 0.492]
+--- i2ms_seq_fade_start
+      i2ms_seq_fade_start: dbox(warm, cold) 108.76; trigger seen after 5 ms; p = [0.0, 0.052, 0.174, 0.328]
+PASS  i2ms_seq_fade_start: fixture -- warm and cold pictures differ (dbox 108.76 >= 20.0)
+PASS  i2ms_seq_fade_start: the dissolve starts when the image lands (first answered frame p 0.000 <= 0.08)
+PASS  i2ms_seq_fade_start: dissolve progress is monotonic across 4 frames [0.0, 0.052, 0.174, 0.328]
+--- i3_capture_after_trigger
+      i3_capture_after_trigger: fillers resident after 1.1 s (1024 MB)
+      i3_capture_after_trigger: trigger seen after 3 ms; capN round trip 778 ms; dbox(capA, capS) 76.73, dbox(capN, capS) 0.00
+PASS  i3_capture_after_trigger: fixture -- the two pictures differ (dbox 76.73 >= 20.0)
+PASS  i3_capture_after_trigger: render_frame right after the trigger shows the NEW picture (dbox 0.00 <= 3.0)
+--- i3s_capture_after_seq_trigger
+      i3s_capture_after_seq_trigger: fillers resident after 0.0 s (1151 MB)
+      i3s_capture_after_seq_trigger: trigger seen after 15 ms; capN round trip 310 ms; dbox(capA, capS) 55.70, dbox(capN, capS) 0.00
+PASS  i3s_capture_after_seq_trigger: fixture -- the two pictures differ (dbox 55.70 >= 20.0)
+PASS  i3s_capture_after_seq_trigger: render_frame right after the trigger shows the NEW picture (dbox 0.00 <= 3.0)
+--- i3n_snapshot_while_pending
+      i3n_snapshot_while_pending: fillers resident after 0.0 s (1024 MB)
+PASS  i3n_snapshot_while_pending: fixture -- the two pictures differ (dbox 76.72 >= 20.0)
+PASS  i3n_snapshot_while_pending: a snapshot while the cold image decodes answers (ok True) in 74 ms <= 500 (baseline 106 ms)
+      i3n_snapshot_while_pending: trigger seen after 5 ms; snapshot 74 ms, render_frame after it 644 ms; dbox(snap, held) 0.00, dbox(snap, cold) 76.72
+PASS  i3n_snapshot_while_pending: the snapshot is the picture of its moment -- the held picture, it did not wait for the decode (dbox(snap, capA) 0.00 <= 3.0)
+PASS  i3n_snapshot_while_pending: render_frame right after it waits and shows the NEW picture (dbox 0.00 <= 3.0)
+--- i4_hold_counters
+      i4_hold_counters: fillers resident after 0.0 s (1024 MB)
+      i4_hold_counters: frames held 59, skipped 0, pending after 0
+PASS  i4_hold_counters: a layer whose new 4K image decodes holds its last picture (held 59 >= 1, skipped 0 == 0)
+PASS  i4_hold_counters: nothing pending 1.5 s later (0)
+--- i4m_mask_hold
+      i4m_mask_hold: fillers resident after 0.0 s (1024 MB)
+      i4m_mask_hold: mask frames held 61, skipped 0
+PASS  i4m_mask_hold: a Mask whose new 4K image decodes holds its last mask (held 61 >= 1, skipped 0 == 0)
+
+PY 37 PASS / 0 FAIL
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-IMAGE-LOAD GREEN

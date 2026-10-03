@@ -1,0 +1,25 @@
+.harmony/probe-quit-ours.sh:60:      osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/probe-quit-ours.sh:84:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/probe-quit-ours-selftest.sh:137:HITS="$(grep -nE 'tell application "Audio-DNA" to quit|quit app "Audio-DNA"|pkill.*Audio-DNA|killall.*Audio-DNA|adna_kill|kill .*pgrep.*Audio-DNA|pkill.*AudioDNA|killall.*AudioDNA|kill +(-[A-Z0-9]+ +)?\$\(adna_pids|kill +\$p\b' "$HERE"/*.sh "$HERE"/*.py 2>/dev/null \
+.harmony/.reports/s-rta-0930/wf/lock.sh:38:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0929b/wf/lock.sh:38:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0928b/wf/lock.sh:38:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-1002b/wf/lock.sh:52:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/source-defects-evidence/live.sh:34:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/source-defects-evidence/live.sh:36:[ -n "$(adna_pids)" ] && { echo "kill after 30 s: $(adna_pids)"; pkill -x Audio-DNA; sleep 2; }
+.harmony/.reports/s-rta-0927/beatclock-evidence/scripts/witness.sh:51:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh:19:# Quartz 0-Output-window witness, adna_pids/adna_running/adna_kill (ucomm-based)) and
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh:47:# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh:65:# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh:68:adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh:843:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/probe-routines-timed.sh:847:    adna_kill
+.harmony/.reports/s-rta-0927/renderperf-evidence/fix/scripts/capture_race.sh:31:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/routines-timing-evidence/scripts/run-t2.sh:18:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/renderperf-evidence/fix/scripts/lock.sh:36:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0927/renderperf-evidence/scripts/lock.sh:36:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0929/wf/lock.sh:38:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0926b/routines-followup-evidence/stop-witness.sh:17:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0928/gate-scripts/lock.sh:38:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+.harmony/.reports/s-rta-0926b/render-evidence/run_diag.sh:27:osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+tests/visual/test_output_window_level.py:1015:        _say("!!! Manual remedy: pkill -9 -f Audio-DNA")

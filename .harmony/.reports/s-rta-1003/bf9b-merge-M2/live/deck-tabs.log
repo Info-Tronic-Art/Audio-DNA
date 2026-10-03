@@ -1,0 +1,16 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/deck-tabs-out
+== Phase 1 (production, no env)
+ours: pid 13352
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/deck-tabs-out/01-default-w0.png (window 39543)
+PASS  R1 load_composition accepted the three-deck fixture
+  decks: names=A,B,C ids=0,100,101
+PASS  R2 /api/composition reports decks[].id (0,100,101)
+PASS  R3 the three deck ids are pairwise distinct (0,100,101; the file had 0,0,0)
+PASS  R4 activeDeck == 1 (B)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/deck-tabs-out/02-three-decks-w0.png (window 39543)
+PASS  R5 switch_deck 2 -> activeDeck == 2 (C)
+  shot /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/deck-tabs-out/03-active-C-w0.png (window 39543)
+PASS  R6: app quit, 0 Audio-DNA windows in the FULL window list
+
+6 PASS / 0 FAIL   (artifacts in /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/deck-tabs-out)

@@ -1,0 +1,11 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/a868a537-8200-4641-a63f-f3029b3cf7ee/scratchpad/bf9b-merge-M2/live/boxes.EcTLIi
+ours: pid 16720
+--- k1b_duplicate
+PASS  k1b_duplicate: the video keeps playing on screen across Duplicate Deck (HTTP 200; numDecks 3 (was 2), activeDeck 2; t_dup 4.47 s, t at +2.01 s = 6.45 s, expected 6.48 +- 0.5)
+
+PY 1 PASS / 0 FAIL / 0 BLOCKED (arm BF9B)
+PASS  no foreign render_frame traffic during the run
+PASS  app terminated
+
+PROBE-BOXES GREEN

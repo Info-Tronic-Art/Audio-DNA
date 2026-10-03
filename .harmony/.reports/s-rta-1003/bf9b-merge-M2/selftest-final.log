@@ -1,0 +1,97 @@
+target helper: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/.harmony/probe-quit-ours.sh
+== part 1: helper branches (dummy processes, no Audio-DNA)
+   ok    a1 nothing running -> refuse_foreign_start returns 0, prints nothing
+   ok    a2 foreign running at start -> returns 1, the line names pid 17903: REFUSE: Audio-DNA already running (pid 17903) -- this run did not start it (it may be Boris's): never quit, kill or touch it
+   ok    a3 the foreign pid is alive after the refusal
+   ok    b1 one pid after launch -> OURPID = 17922 (got '17922')
+   ok    b2 the process appears 1 s after the launch -> still recorded (OURPID '17949', late pid '17949')
+   ok    b3 no pid after launch -> OURPID empty + WARN: WARN  0 Audio-DNA pids after launch () -- none is treated as ours
+   ok    b4 two pids after launch -> none is ours + WARN
+   ok    c  ours only -> quits: rc 0, quit events 1, ours alive no
+   ok    d  ours ignores the quit event -> killed after the 30 s wait: rc 0, events 1, 33 s, ours alive no
+   ok    e1 foreign appeared before the quit -> refuse: rc 1, quit events 0
+   ok    e2 the line names the foreign pid: FOREIGN Audio-DNA pid 18315 running -- untouched
+   ok    e3 the foreign pid 18315 is alive after (left alone)
+   ok    e4 ours (18300) is gone (SIGTERM to OURPID only)
+   ok    f1 no pid recorded, nothing running -> says so, rc 0, events 0: quit_ours: no pid recorded by this run -- nothing is quit
+   ok    f2 no pid recorded, a foreign pid running -> quits nothing and says so: rc 1, events 0, foreign alive yes
+   ok    g  OURPID's ucomm is no longer ours (recycled pid) -> no event, no signal: events 0, pid alive yes
+   ok    h1 ask_ours_to_quit with a foreign pid -> no event, rc 1, both alive
+   ok    h2 kill_ours signals OURPID only: ours alive no, foreign alive yes
+   ok    h3 ask_ours_to_quit, ours only -> one event: rc 0, events 1
+   ok    h4 kill_ours with no pid recorded signals nothing (rc 1)
+== part 3: static sweep of .harmony/*.sh and *.py
+   note  gate-s165.sh: QUIT-OURS: launch() runs inside $(...), so the pid it returns is handed to quit_gracefully, which sets OURPID from it
+   ok    s  gate-s165.sh: launches 1, sources the helper 1, refuse_foreign_start 1, record_ourpid 1
+   ok    s  probe-async-load.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-beatclock.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-boxes.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-btguard.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-canvas.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-capture.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-crossfade.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-deck-path.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-deck-tabs.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-downbeat-level.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-effects-parity.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-finalize-loop.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-fitmode.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-image-load.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-lane3.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-manual-bpm.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-mastersignal.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-media-open.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-milkdrop.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-onset-render.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-outputs.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-render-state.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-resync.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-routine-display.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-routines.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-seq-vram.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-step3.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 3
+   ok    s  probe-tempo-silence.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-tempo-start.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-tsan.sh: launches 1, sources the helper 1, refuse_foreign_start 3, record_ourpid 2
+   ok    s  probe-ui-files-rename.sh: launches 2, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-video.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    s  probe-vupload.sh: launches 1, sources the helper 1, refuse_foreign_start 2, record_ourpid 2
+   ok    t  by-name quit / kill outside probe-quit-ours.sh (code lines): 0 hit(s)
+== part 2: start refusal of every probe that sources the helper (PATH shims, fake foreign pid 99999)
+   app handed to every *_APP variable (never launched: open is a shim): /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+   ok    r  gate-s165.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-async-load.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-beatclock.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-boxes.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-btguard.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-canvas.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-capture.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-crossfade.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-deck-path.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-deck-tabs.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-downbeat-level.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-effects-parity.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-finalize-loop.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-fitmode.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-idle-paint.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-image-load.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-lane3.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-manual-bpm.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-mastersignal.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-media-open.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-milkdrop.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-onset-render.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   skip  probe-outputs.sh (never run, shimmed or not: it opens Output windows)
+   ok    r  probe-render-state.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-resync.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-routine-display.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-routines.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-seq-vram.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-step3.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-tempo-silence.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-tempo-start.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   skip  probe-tsan.sh (no TSan app bundle to hand it: set SELFTEST_TSAN_APP; its refusal is covered by part 3 only)
+   ok    r  probe-ui-files-rename.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-video.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+   ok    r  probe-vupload.sh: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it (it may be Boris's): never quit, ki
+SELFTEST 88 ok / 0 FAIL

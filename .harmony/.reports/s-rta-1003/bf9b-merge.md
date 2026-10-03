@@ -153,3 +153,196 @@ INBOX-RECHECK: none
 ### SLIM CHECK
 3 source files + 2 test files changed beyond the textual resolutions, each line traced to a compile failure or R-S3;
 no drive-by edits; no new abstractions; no test added (none required by the packet).
+
+---
+
+## Stage M2 -- by-name-quit sweep (R-N1; H-3, H-4)
+
+STATUS: DONE_WITH_CONCERNS (2026-10-03 13:52 -> 14:16, from 555983a). Concerns = the stop items below.
+
+### Verdict
+No script in `.harmony/*.sh|*.py`, `tests/`, `cmake/` quits or kills Audio-DNA by name any more, outside
+`.harmony/probe-quit-ours.sh`'s two only-ours lines. VERIFIED (run this stage): the by-name grep, `bash -n` /
+`py_compile` on every edited file, the helper selftest (88 ok / 0 FAIL, 7 mutants each FAIL), a shimmed run of 33
+probes that each refuse a fake foreign pid before any `open` / `osascript`, three live probes + `k1b_duplicate` on
+both arms, 0 windows after. NOT covered: the 15 archived scripts under `.harmony/.reports/**` (stop item 1);
+probe-tsan's and probe-outputs' start refusal dynamically (static only); all but 4 of the converted scripts were not run
+live end to end (only their start refusal ran).
+
+### Commits
+| sha | what |
+|---|---|
+| bcee670 | helper: `refuse_foreign_start`, `record_ourpid` waits for the process (callable right after the launch), `quit_ours` says when no pid was recorded, `ask_ours_to_quit` / `kill_ours` |
+| 5f608e2 | H-4 NITs: probe-canvas / probe-boxes / probe-render-state record the pid BEFORE the health loop (NIT 6); `k1b_duplicate` a registered row (NIT 4) |
+| 3c57c8c | `.harmony/probe-quit-ours-selftest.sh` (needed `git add -f`: `.harmony/*` is gitignored -- bcee670's message names it) |
+| 425d499 | the sweep: 33 scripts |
+| d5ddd03 | tests/visual/test_output_window_level.py's printed "pkill -9 -f Audio-DNA" remedy reworded; selftest `--sweep` arguments for finalize-loop / tsan |
+| (next) | this report + evidence (`.harmony/.reports/s-rta-1003/bf9b-merge-M2/`) |
+
+### Step 1 -- inventory (re-counted on the merged tree)
+Pattern used (the packet's, plus the `quit app "Audio-DNA"` form it did not list -- 9 more lines in 8 scripts):
+`tell application "Audio-DNA" to quit|quit app "Audio-DNA"|pkill.*Audio-DNA|killall.*Audio-DNA|adna_kill|kill .*pgrep.*Audio-DNA|pkill.*AudioDNA|killall.*AudioDNA`
+over `.harmony tests cmake` (`scripts/` does not exist), `*.sh` + `*.py`.
+- 33 scripts in `.harmony/` (32 .sh + probe-idle-paint.py) = the lane's 31 + main's probe-milkdrop.sh and
+  probe-ui-files-rename.sh. Every one defined or called `adna_kill` (= `kill` of EVERY Audio-DNA pid) and / or sent a
+  by-name Apple-event quit. Also found by a wider `kill` read: probe-step3.sh's opt-in crash row
+  (`kill -9 "$(adna_pids | head -1)"`), probe-lane3.sh (`adna_kill` with no graceful quit at all),
+  probe-idle-paint.py (`os.kill` of every Audio-DNA pid).
+- 1 in tests: tests/visual/test_output_window_level.py:1015 PRINTED "Manual remedy: pkill -9 -f Audio-DNA" (its own
+  teardown kills by pid). `tests/visual/vj_controller.py` kills its own Popen only.
+- 15 archived scripts under `.harmony/.reports/**` (21 lines): NOT converted -- stop item 1.
+Before / after per file: `git show 425d499 --stat`; the full pre-sweep hit list is the selftest's RED run below.
+
+### Step 2 -- conversion (same shape everywhere)
+1. `adna_kill` deleted; `. "$ROOT/.harmony/probe-quit-ours.sh"` right after `ROOT=`.
+2. start: `adna_running && { echo "REFUSE: ... Quit it, then re-run."; exit 64; }` -> `refuse_foreign_start || exit 64`
+   ("REFUSE: Audio-DNA already running (pid N) -- this run did not start it (it may be Boris's): never quit, kill or
+   touch it"). No script kills "the stale one".
+3. `record_ourpid; echo "ours: pid ${OURPID:-none}"` on the line after every launch, before the health wait
+   (NIT 6 -- also moved in probe-canvas / probe-boxes / probe-render-state). record_ourpid now waits up to 10 s for
+   the process to exist.
+4. every quit -> `quit_ours` (`|| RC=1` where the script has RC). Where the ROW times the quit or reports how it
+   ended, the two halves are used so the row keeps its structure and timing: `ask_ours_to_quit` (the by-name event
+   only while OURPID is the only Audio-DNA) + `kill_ours` (OURPID only): probe-async-load, probe-btguard (event in
+   the background, 30 s clock), probe-tsan (`graceful=yes|no`), gate-s165 / probe-deck-path / probe-tempo-silence
+   (their by-unix-id System Events quit stays; only the by-name fallback is guarded), probe-lane3 (it only ever
+   SIGTERMed: `kill_ours`), probe-step3's opt-in crash row (`kill_ours -9`).
+5. probe-idle-paint.py: `launch()` records the one pid it started (file `$OUT/ours.pid`), `quit_app()` runs the
+   helper's `quit_ours` on that pid through bash; probe-idle-paint.sh's safety net quits only that recorded pid.
+6. ATTACH: probe-ui-files-rename.sh `UIFR_ATTACH=1` attached to ANY single running Audio-DNA. Now bf10's rule
+   (copied from probe-milkdrop.sh): the running pid == `UIFR_ATTACH_PID`, else the lock helper's start_app record
+   (`LOCK_LIB` + `LANE`), it owns the 8080 listener and health answers; else REFUSE, exit 2, no request. Its private
+   `quit_ours` is gone (the helper's is used). probe-milkdrop.sh: attach block untouched; its standalone branch uses
+   the helper; probe-milkdrop-selftest still 51 ok / 0 FAIL.
+7. probe-outputs.sh: converted (quit path + refusal), NEVER run -- not even under the shims.
+No threshold, row, timing or fixture changed. H-3 held: quit_ours' "only OURPID running -> quit by name" branch is
+byte-identical.
+
+### Step 3 -- k1b_duplicate (gates-r2 NIT 4)
+`("k1b_duplicate", k1b_duplicate)` is in probe-boxes.py's row list. In a run that includes k1b_switch_video it still
+runs inside that row's flow on the shared fixture (t ~ 7 s) and the registered entry prints one "ran inside ..."
+line (no second PASS: full-run totals are unchanged). Selected alone it sets K1b's show up itself (same `lead` 4.5 s).
+Live, `probe-boxes.sh <out> k1b_duplicate`:
+```
+lane  (build-lane app):   PASS  k1b_duplicate: the video keeps playing on screen across Duplicate Deck (HTTP 200; numDecks 3 (was 2), activeDeck 2; t_dup 4.47 s, t at +2.01 s = 6.45 s, expected 6.48 +- 0.5)
+                          PY 1 PASS / 0 FAIL / 0 BLOCKED (arm BF9B)      PROBE-BOXES GREEN
+main 5abdf01 (H-5 arm):   FAIL  k1b_duplicate: the video keeps playing on screen across Duplicate Deck (HTTP 200; numDecks 3 (was 2), activeDeck 2; t_dup 4.47 s, t at +2.01 s = 1.84 s, expected 6.48 +- 0.5)
+                          PY 0 PASS / 1 FAIL / 0 BLOCKED (arm STAGE_P)   PROBE-BOXES RED
+```
+Same RED pattern as the lane report's STAGE_P table (1.93 vs 6.57: the copy restarts the clip). Frame looked at:
+`k1b_dup_after.png` (lane) = one flat olive colour over the whole 1920x1080 canvas (the ramp video's colour = t).
+
+### Step 4 -- proof
+(a) grep (evidence `bf9b-merge-M2/grep-final.txt`): 25 hits in the tree; outside `.harmony/.reports/` exactly 3 --
+```
+.harmony/probe-quit-ours.sh:60:      osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1     (quit_ours, only-ours branch, unchanged)
+.harmony/probe-quit-ours.sh:84:  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1         (ask_ours_to_quit, only-ours)
+.harmony/probe-quit-ours-selftest.sh:137:HITS="$(grep -nE '...                                             (the selftest's own pattern string)
+```
+0 comment-line hits are left either (headers reworded). The other 21 are the archived scripts (stop item 1).
+(b) `bash -n` on the 37 edited / new .sh: 0 errors; `python -m py_compile` probe-idle-paint.py, probe-boxes.py,
+tests/visual/test_output_window_level.py: ok.
+(c) selftest `.harmony/probe-quit-ours-selftest.sh --sweep` (evidence `selftest-final.log`): `SELFTEST 88 ok / 0 FAIL`.
+No Audio-DNA is involved: the helper is driven through its seam (the caller's `adna_pids` lists re-parented `sleep`
+dummies, `QUIT_OURS_UCOMM=sleep`, `osascript` is a shell function of the selftest).
+```
+ok a2 foreign running at start -> returns 1, the line names pid 90141: REFUSE: Audio-DNA already running (pid 90141) -- this run did not start it ...
+ok b2 the process appears 1 s after the launch -> still recorded            ok b3 no pid -> OURPID empty + WARN      ok b4 two pids -> none is ours
+ok c  ours only -> quits: rc 0, quit events 1, ours alive no
+ok d  ours ignores the quit event -> killed after the 30 s wait: rc 0, events 1, 33 s, ours alive no
+ok e1 foreign appeared before the quit -> refuse: rc 1, quit events 0     ok e2 FOREIGN Audio-DNA pid 90989 running -- untouched
+ok e3 the foreign pid 90989 is alive after (left alone)                    ok e4 ours (90974) is gone (SIGTERM to OURPID only)
+ok f1 no pid recorded, nothing running -> says so, rc 0, events 0: quit_ours: no pid recorded by this run -- nothing is quit
+ok f2 no pid recorded, a foreign pid running -> quits nothing and says so: rc 1, events 0, foreign alive yes
+ok g  OURPID's ucomm is no longer ours (recycled pid) -> no event, no signal
+ok h1-h4 ask_ours_to_quit / kill_ours
+part 3 static: 34 launching scripts each source the helper + refuse_foreign_start + record_ourpid; by-name code lines outside the helper: 0
+part 2 --sweep (lock held, no Audio-DNA running; `ps` shim reports ONE foreign Audio-DNA pid 99999, `open` / `osascript` shims only log, `curl` shim fails):
+  33 x  ok r <script>: rc 64, open calls 0, osascript calls 0 -- REFUSE: Audio-DNA already running (pid 99999) -- this run did not start it ...
+  skip probe-outputs.sh (never run)   skip probe-tsan.sh (no TSan app bundle exists on this machine to pass its spec check)
+```
+RED first: the same selftest on the unconverted tree = `SELFTEST 19 ok / 35 FAIL` (90 by-name code lines listed).
+Teeth: 7 mutated COPIES of the helper (scratch; helper sha256 f3b76ba6... before and after) each FAIL:
+M1 kills the foreign pid (e3, f2) | M2 by-name quit with a foreign pid running (e1, e2, f2) | M3 no start refusal
+(a2) | M4 record without the wait (b2) | M5 ask with foreign (h1) | M6 silent no-pid (f1, f2) | M7 recycled pid is
+ours (g).
+(d) live smoke under the lock (14:05:10 -> 14:10:57, lane app `build-lane/.../Audio-DNA.app`; logs `bf9b-merge-M2/live/`):
+```
+probe-deck-tabs    ours: pid 13352   6 PASS / 0 FAIL  (R6: app quit, 0 Audio-DNA windows in the FULL window list)   adna after: []
+probe-image-load   ours: pid 14595   PY 37 PASS / 0 FAIL   PASS  app terminated   PROBE-IMAGE-LOAD GREEN              adna after: []
+probe-crossfade    ours: pid 15207   PY 35 PASS / 0 FAIL   PASS  app terminated   PROBE-CROSSFADE GREEN               adna after: []
+probe-boxes k1b_duplicate   ours: pid 16720 (lane) GREEN / ours: pid 16915 (main arm) RED -- step 3                    adna after: []
+```
+No FOREIGN / WARN / REFUSE line in any log; each run found no Audio-DNA before and left none after.
+(e) 16 s after the last quit: `audio-dna windows 0, Output-named 0`; `UserNotificationCenter windows (OptionAll): 0`;
+same again at 14:12:38 after the last selftest. Lock released 14:12:38. No Output window was opened.
+ctest: tests/visual/test_output_window_level.py changed (a printed string; not a ctest), so per the packet: incremental
+rebuild rc 0 (nothing to compile), full serial ctest under the cross-lane mutex 14:13:20 -> 14:15:28: `100% tests passed, 0 tests failed out of 1234`,
+Total Test time (real) = 127.69 sec. TSan: not re-run (no src change; M1's result stands).
+
+### Deviations (flagged)
+- H-3 says quit_ours is not changed. Its by-name branch is untouched, but I ADDED one line at its top (the "no pid
+  recorded ... nothing is quit" message the packet's proof (c) asks for) and a second by-name line exists in the NEW
+  `ask_ours_to_quit` (same only-ours condition). Harmony may want to rule on both.
+- "Extend the helper's selftest": none existed; I wrote one.
+- The packet's pattern missed `quit app "Audio-DNA"` (8 scripts); the sweep covers it.
+
+### stop items for Harmony
+1. 15 archived evidence scripts under `.harmony/.reports/` still quit / kill by name (s-rta-0926b: run_diag.sh,
+   stop-witness.sh; s-rta-0927: witness.sh, capture_race.sh, 2 x lock.sh, probe-routines-timed.sh, run-t2.sh, live.sh
+   (`pkill -x Audio-DNA`); lock.sh of s-rta-0928 / 0928b / 0929 / 0929b / 0930 / 1002b). They are committed session
+   records, so I did not edit them. Rule: neutralise (an `exit 64` first line), convert, or leave as records.
+2. probe-ui-files-rename.sh `UIFR_ATTACH=1` now REFUSES unless `UIFR_ATTACH_PID` (or `LOCK_LIB` + `LANE`) names the
+   running test-mode app: any gate script that attached without them must pass one (M3 / Harmony's G3 runs).
+3. (from M1) probe-ui-files-rename R3 `tab_row_builds +1` still needs the ruling before M3 re-runs it.
+
+### found_not_fixed
+1. probe-lane3.sh launches with plain `open "$APPBUNDLE"` and probe-step3.sh's opt-in crash row with `open --stdout`
+   (no `-g`): both bring the app to the front. Pre-existing, outside R-N1; not changed.
+2. gate-s165.sh still finds its pid with `pgrep -f 'MacOS/Audio-DNA'` (argv match); `ours_running` re-checks the
+   ucomm before any event, so a wrong pid is never quit. Not changed.
+3. probe-tsan.sh's start refusal could not be exercised under the shims: no TSan APP bundle exists (build-tsan holds
+   tests only). Static check only.
+4. Of the converted scripts, 4 ran live to the end (deck-tabs, image-load, crossfade, boxes); the others ran only
+   to their refusal line. A typo past that line in a never-run script would
+   show at its next real run (`bash -n` is clean on all).
+5. The graphify post-commit hook fired on every commit (not mine; worktree stayed clean).
+
+### next_stage_notes (M3 builder)
+- Every probe now prints `ours: pid N` right after the launch and refuses with `REFUSE: Audio-DNA already running
+  (pid N) ...` -- a refusal means STOP and release the lock.
+- `probe-boxes.sh <out> k1b_duplicate` works alone; RED on main 5abdf01 is recorded above (H-5 arm).
+- m9b_deck_switch_live goes in probe-milkdrop.py; probe-milkdrop.sh's standalone branch now uses the helper, the
+  attach / LOCK_LIB paths are as bf10 left them.
+- probe-ui-files-rename with UIFR_ATTACH=1: export UIFR_ATTACH_PID (stop item 2).
+- No src / CMake change in M2: build-lane's app is still the 13:43 build of 98d71fe's src.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- A new file under `.harmony/` needs `git add -f` (`.gitignore:64 .harmony/*`); a plain `git add a b` with one
+  ignored path stages the tracked one and silently leaves the new one out. | discovered: .harmony/probe-quit-ours-selftest.sh
+- macOS: a symlink to /bin/sleep keeps ucomm "sleep" and a COPY of /bin/sleep did not stay alive (gone within 0.3 s; cause not looked into), so a dummy process
+  cannot be given the ucomm "Audio-DNA" cheaply; test a ucomm-keyed helper through a seam (caller-defined pid list +
+  a ucomm variable) instead. | discovered: .harmony/probe-quit-ours-selftest.sh
+- A shell FUNCTION named like a command (`osascript(){...}`) shadows PATH for everything sourced into that shell:
+  the safe way to selftest a helper that would otherwise send a real Apple event. | discovered: same
+- `kill -0` succeeds on a zombie child: selftest dummies must be re-parented (`( sleep 300 & )`) or reaped.
+  | discovered: same
+
+### PACKET QUALITY
+- Clarity: CLEAR (two HAD_TO_INFER points: "extend the helper's selftest" when none existed; whether the archived
+  `.harmony/.reports/**` scripts are in the sweep -- left as stop item 1).
+- Missing context: that `.harmony/*` is gitignored for new files; that no TSan app bundle exists.
+- Unused context: plan-bf9b.md / ruling-bf9b.md (not needed for a probe-rig sweep); the bf9b.md fix-round sections
+  (M1's notes + the review file carried the needed lines).
+- Self-brief files: rulings-bf9b-merge.md, rulings-bf9b-mergein.md, review-bf9b-gates-r2.md (NIT 4 / NIT 6),
+  probe-milkdrop.sh + its selftest (the bf10 pattern) -- all useful, none stale. No DEPARTMENT / KNOWLEDGE_TOOLS
+  block: no knowledge tools -- grep-only (nothing was judged dead on "no callers": `adna_kill` was deleted with every
+  call site converted, grep = 0).
+- pulse.json: GREEN; claims "general" by two harmony sessions (the dispatcher), no area conflict.
+INBOX-RECHECK: none
+
+### SLIM CHECK
+36 probe-rig files changed (the helper, 32 .sh + 1 .py of the sweep, probe-canvas / -boxes / -render-state,
+probe-boxes.py -- see `git diff --stat 555983a..HEAD`) + 1 new selftest + 1 test file; every line traces to R-N1 / H-4. New helper surface: 3 functions
+(refuse_foreign_start, ask_ours_to_quit, kill_ours). No src, no CMake, no threshold. Smells named: the 33 scripts
+still each carry their own copy of the lock gate + adna_pids preamble (duplicated code, pre-existing, not touched).
