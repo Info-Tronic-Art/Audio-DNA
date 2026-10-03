@@ -44,34 +44,43 @@ namespace
         return { LevelOutcome::Missing, -1 };
     }
 
-    LevelResult resolveLayer(const Deck& deck, const ControlPath& key)
+    // Lane bf9b: a layer key names a SHARED layer (Composition::layers) by position / name -- the same layer on
+    // every deck.
+    LevelResult resolveLayer(const Composition& comp, const ControlPath& key)
     {
         const int idx = key.layer;
-        if (idx >= 0 && idx < static_cast<int>(deck.layers.size()))
+        if (idx >= 0 && idx < comp.getNumLayers())
         {
-            const bool nameMatches = deck.layers[static_cast<size_t>(idx)].name == key.layerName;
+            const bool nameMatches = comp.layers[static_cast<size_t>(idx)].name == key.layerName;
             return { nameMatches ? LevelOutcome::ExactMatch : LevelOutcome::PositionOnly, idx };
         }
         if (!key.layerName.empty())
-            for (size_t i = 0; i < deck.layers.size(); ++i)
-                if (deck.layers[i].name == key.layerName)
+            for (size_t i = 0; i < comp.layers.size(); ++i)
+                if (comp.layers[i].name == key.layerName)
                     return { LevelOutcome::NameOnly, static_cast<int>(i) };
         return { LevelOutcome::Missing, -1 };
     }
 
-    LevelResult resolveCol(const Layer& layer, const ControlPath& key)
+    LevelResult resolveCol(const ClipRow& row, const ControlPath& key)
     {
         const int idx = key.col;
-        if (idx >= 0 && idx < static_cast<int>(layer.clips.size()) && layer.clips[static_cast<size_t>(idx)].has_value())
+        if (idx >= 0 && idx < static_cast<int>(row.clips.size()) && row.clips[static_cast<size_t>(idx)].has_value())
         {
-            const bool nameMatches = layer.clips[static_cast<size_t>(idx)]->name == key.clipName;
+            const bool nameMatches = row.clips[static_cast<size_t>(idx)]->name == key.clipName;
             return { nameMatches ? LevelOutcome::ExactMatch : LevelOutcome::PositionOnly, idx };
         }
         if (!key.clipName.empty())
-            for (size_t i = 0; i < layer.clips.size(); ++i)
-                if (layer.clips[i].has_value() && layer.clips[i]->name == key.clipName)
+            for (size_t i = 0; i < row.clips.size(); ++i)
+                if (row.clips[i].has_value() && row.clips[i]->name == key.clipName)
                     return { LevelOutcome::NameOnly, static_cast<int>(i) };
         return { LevelOutcome::Missing, -1 };
+    }
+
+    const ClipRow& rowOf(const Deck& deck, int row)
+    {
+        static const ClipRow kEmpty;
+        const ClipRow* r = deck.getRow(row);
+        return r != nullptr ? *r : kEmpty;
     }
 
     LevelResult resolveFx(const std::vector<Clip::EffectSlot>& fxList, const ControlPath& key)
@@ -103,29 +112,40 @@ namespace
         if (key.scope == ControlPath::Scope::Macro || key.scope == ControlPath::Scope::Routine)
             return { LevelOutcome::Missing, target, "scope not resolved in row 1 (macro/routine capture is LATER)" };
 
-        // Clip and Layer scopes both need deck -> layer.
-        auto deckR = resolveDeck(comp, key);
-        target.deck = deckR.index;
-        if (deckR.outcome == LevelOutcome::Missing)
-            return { LevelOutcome::Missing, target, "deck not found" };
-        const Deck& deck = comp.decks[static_cast<size_t>(deckR.index)];
+        // Lane bf9b (plan-bf9b F9, ruling-bf9b amendment 6): a Layer-scope key names the SHARED layer (its deck part
+        // is ignored), except an activeClip fire, which -- like every Clip-scope key -- resolves its deck here (D2:
+        // deck-relative = the deck shown at the press) and is pinned to it by id.
+        const bool needsDeck = key.scope == ControlPath::Scope::Clip || key.control == "activeClip";
+        LevelOutcome overall = LevelOutcome::ExactMatch;
+        const Deck* deck = nullptr;
+        if (needsDeck)
+        {
+            auto deckR = resolveDeck(comp, key);
+            target.deck = deckR.index;
+            if (deckR.outcome == LevelOutcome::Missing)
+                return { LevelOutcome::Missing, target, "deck not found" };
+            deck = &comp.decks[static_cast<size_t>(deckR.index)];
+            target.deckId = deck->id;
+            overall = deckR.outcome;
+        }
 
-        auto layerR = resolveLayer(deck, key);
+        auto layerR = resolveLayer(comp, key);
         target.layer = layerR.index;
-        LevelOutcome overall = combine(deckR.outcome, layerR.outcome);
+        overall = combine(overall, layerR.outcome);
         if (layerR.outcome == LevelOutcome::Missing)
             return { LevelOutcome::Missing, target, "layer not found" };
-        const Layer& layer = deck.layers[static_cast<size_t>(layerR.index)];
+        const Layer& layer = comp.layers[static_cast<size_t>(layerR.index)];
 
         const Clip* clip = nullptr;
         if (key.scope == ControlPath::Scope::Clip)
         {
-            auto colR = resolveCol(layer, key);
+            const ClipRow& row = rowOf(*deck, layerR.index);
+            auto colR = resolveCol(row, key);
             target.col = colR.index;
             overall = combine(overall, colR.outcome);
             if (colR.outcome == LevelOutcome::Missing)
                 return { LevelOutcome::Missing, target, "clip not found" };
-            clip = &layer.clips[static_cast<size_t>(colR.index)].value();
+            clip = &row.clips[static_cast<size_t>(colR.index)].value();
         }
 
         if (key.fx >= 0 || !key.fxName.empty())
@@ -171,59 +191,77 @@ namespace
             out.report.reboundByName.push_back({ key, "preamble: " + what + " rebound by name" });
     }
 
-    // One deck+layer, resolved ONCE (D2 tri-state) so every row emitted under it shares a single
+    // One shared layer, resolved ONCE (D2 tri-state) so every row emitted under it shares a single
     // rebind/unresolved Issue rather than one per row (plan section 3.2's emission-order table).
+    // Lane bf9b: `src` is the captured layer runtime (PerfState v2 `layers`, or a v1 take's active deck);
+    // srcDeck / srcDeckName = the deck its active clip came from (v1: the captured active deck).
     struct ResolvedLayerCtx
     {
-        ControlPath layerKey;   // scope=Layer; positional deck/layer + the names captured at record time
-        ResolvedTarget target;  // .deck / .layer filled; .col/.fx/.param stay -1
+        ControlPath layerKey;   // scope=Layer; positional layer + the name captured at record time
+        ResolvedTarget target;  // .layer filled; .deck / .col / .fx / .param stay -1
         const Layer* layer = nullptr;
         const PerfState::LayerRuntime* rt = nullptr;
+        int srcDeck = -1;
+        std::string srcDeckName;
     };
 
     std::vector<ResolvedLayerCtx> resolvePreambleLayers(const PerfState& cp0, const Composition& comp, Program& out)
     {
         std::vector<ResolvedLayerCtx> ctxs;
-        for (const auto& [deckIdx, deckRT] : cp0.decks)
+        // v2: the shared layers; v1 (no "layers"): the captured ACTIVE deck's layers only (plan-bf9b F9).
+        const std::map<int, PerfState::LayerRuntime>* src = nullptr;
+        std::string v1DeckName;
+        if (!cp0.layers.empty())
+            src = &cp0.layers;
+        else if (auto it = cp0.decks.find(cp0.activeDeckIndex); it != cp0.decks.end())
         {
-            ControlPath deckProbe;
-            deckProbe.scope = ControlPath::Scope::Layer;
-            deckProbe.deck = deckIdx;
-            deckProbe.deckName = deckRT.deck;
-            auto deckR = resolveDeck(comp, deckProbe);
-            if (deckR.outcome == LevelOutcome::Missing)
+            src = &it->second.layers;
+            v1DeckName = it->second.deck;
+        }
+        if (src == nullptr)
+            return ctxs;
+
+        for (const auto& [layerIdx, layerRT] : *src)
+        {
+            ControlPath layerKey;
+            layerKey.scope = ControlPath::Scope::Layer;
+            layerKey.layer = layerIdx;
+            layerKey.layerName = layerRT.layer;
+
+            auto layerR = resolveLayer(comp, layerKey);
+            if (layerR.outcome == LevelOutcome::Missing)
             {
-                out.report.preambleUnresolved.push_back({ deckProbe, "deck not found" });
+                out.report.preambleUnresolved.push_back({ layerKey, "layer not found" });
                 continue;
             }
-            const Deck& deck = comp.decks[static_cast<size_t>(deckR.index)];
+            addPreambleRebind(out, layerR.outcome, layerKey, "layer");
 
-            for (const auto& [layerIdx, layerRT] : deckRT.layers)
+            ResolvedTarget target;
+            target.layer = layerR.index;
+            ResolvedLayerCtx ctx{ layerKey, target, &comp.layers[static_cast<size_t>(layerR.index)], &layerRT, -1, {} };
+            if (cp0.layers.empty())
             {
-                ControlPath layerKey;
-                layerKey.scope = ControlPath::Scope::Layer;
-                layerKey.deck = deckIdx;
-                layerKey.deckName = deckRT.deck;
-                layerKey.layer = layerIdx;
-                layerKey.layerName = layerRT.layer;
-
-                auto layerR = resolveLayer(deck, layerKey);
-                const LevelOutcome overall = combine(deckR.outcome, layerR.outcome);
-                if (layerR.outcome == LevelOutcome::Missing)
-                {
-                    out.report.preambleUnresolved.push_back({ layerKey, "layer not found" });
-                    continue;
-                }
-                addPreambleRebind(out, overall, layerKey, "layer");
-
-                ResolvedTarget target;
-                target.deck = deckR.index;
-                target.layer = layerR.index;
-                ctxs.push_back(ResolvedLayerCtx{ layerKey, target,
-                    &deck.layers[static_cast<size_t>(layerR.index)], &layerRT });
+                ctx.srcDeck = cp0.activeDeckIndex;
+                ctx.srcDeckName = v1DeckName;
             }
+            else
+            {
+                ctx.srcDeck = layerRT.activeDeck;
+                ctx.srcDeckName = layerRT.activeDeckName;
+            }
+            ctxs.push_back(std::move(ctx));
         }
         return ctxs;
+    }
+
+    // The captured clip runtime of (deck `deckIdx`, row `layerIdx`), or nullptr.
+    const PerfState::LayerRuntime* capturedRow(const PerfState& cp0, int deckIdx, int layerIdx)
+    {
+        auto d = cp0.decks.find(deckIdx);
+        if (d == cp0.decks.end())
+            return nullptr;
+        auto l = d->second.layers.find(layerIdx);
+        return l == d->second.layers.end() ? nullptr : &l->second;
     }
 
     void buildPreamble(const PerfState& cp0, const Composition& comp, Program& out)
@@ -232,10 +270,10 @@ namespace
         // struct default and no decks at all) synthesizes NO preamble entries -- behaves exactly as
         // today. A real arm() always calls capturePerfState() (RecorderHost::arm), so this only
         // happens for a legacy/hand-built take with no checkpoint0 section.
-        if (cp0.decks.empty() && cp0.activeDeckIndex < 0)
+        if (cp0.decks.empty() && cp0.layers.empty() && cp0.activeDeckIndex < 0)
             return;
 
-        // Row 1: comp/activeDeck.
+        // Row 1: comp/activeDeck (lane bf9b: it changes only which deck the grid shows, K7).
         {
             const ControlPath key = compControlPath("activeDeck");
             const bool valid = cp0.activeDeckIndex >= 0 && cp0.activeDeckIndex < static_cast<int>(comp.decks.size());
@@ -258,7 +296,7 @@ namespace
             out.report.preambleCount++;
         }
 
-        // Pass A (rows 3-6): resolve every deck/layer ONCE, then emit flags/opacity/layer-fx/activeClip.
+        // Pass A (rows 3-6): resolve every shared layer ONCE, then emit flags/opacity/layer-fx/activeClip.
         std::vector<ResolvedLayerCtx> ctxs = resolvePreambleLayers(cp0, comp, out);
         for (auto& ctx : ctxs)
         {
@@ -313,102 +351,177 @@ namespace
             }
 
             {
+                // activeClip: -1 clears the layer; a column fires that cell of the deck the clip came from
+                // (resolved by position / name, D2; pinned by id, amendment 6).
                 const int col = rt.activeClipColumn;
-                const int numCols = static_cast<int>(ctx.layer->clips.size());
-                if (col >= numCols)
+                ControlPath k = controlKey("activeClip");
+                k.deck = ctx.srcDeck;
+                k.deckName = ctx.srcDeckName;
+                ResolvedTarget t = ctx.target;
+                bool ok = true;
+                if (col >= 0)
                 {
-                    out.report.preambleUnresolved.push_back({ controlKey("activeClip"), "clip index out of range" });
+                    auto deckR = resolveDeck(comp, k);
+                    if (deckR.outcome == LevelOutcome::Missing)
+                    {
+                        out.report.preambleUnresolved.push_back({ k, "deck not found" });
+                        ok = false;
+                    }
+                    else
+                    {
+                        const Deck& deck = comp.decks[static_cast<size_t>(deckR.index)];
+                        addPreambleRebind(out, deckR.outcome, k, "deck");
+                        t.deck = deckR.index;
+                        t.deckId = deck.id;
+                        if (col >= rowOf(deck, ctx.target.layer).getNumColumns())
+                        {
+                            out.report.preambleUnresolved.push_back({ k, "clip index out of range" });
+                            ok = false;
+                        }
+                    }
                 }
-                else
+                if (ok)
                 {
                     DiscretePoint p; p.v = col; p.origin = Origin::Preamble;
-                    out.preamble.push_back(Fired{ 0.0, 0, controlKey("activeClip"), ctx.target, std::move(p) });
+                    out.preamble.push_back(Fired{ 0.0, 0, k, t, std::move(p) });
                     out.report.preambleCount++;
                 }
             }
         }
 
-        // Pass B (rows 7-8): per captured clip, then the active column's play/pause -- run as a
-        // SEPARATE pass over every layer (not interleaved with pass A) so every layer's trigger
-        // (row 6) precedes every layer's play/pause (row 8): R4 -- Layer::triggerClipImmediate
-        // auto-plays a never-triggered clip, so the trigger must land first or the recorded
-        // play/pause state would be immediately overridden by the auto-play.
+        // Pass B (row 7): per captured clip of every deck's rows, its runtime -- AFTER every layer's trigger
+        // (pass A), then (row 8, below) each layer's active clip play/pause: R4 -- Layer::triggerClipImmediate
+        // auto-plays a never-triggered clip, so the trigger must land first or the recorded play/pause state would
+        // be immediately overridden by the auto-play.
+        for (const auto& [deckIdx, deckRT] : cp0.decks)
+        {
+            ControlPath deckProbe;
+            deckProbe.scope = ControlPath::Scope::Clip;
+            deckProbe.deck = deckIdx;
+            deckProbe.deckName = deckRT.deck;
+            bool anyClips = false;
+            for (const auto& [layerIdx, rowRT] : deckRT.layers)
+                anyClips = anyClips || !rowRT.clips.empty();
+            if (!anyClips)
+                continue;
+            auto deckR = resolveDeck(comp, deckProbe);
+            if (deckR.outcome == LevelOutcome::Missing)
+            {
+                out.report.preambleUnresolved.push_back({ deckProbe, "deck not found" });
+                continue;
+            }
+            const Deck& deck = comp.decks[static_cast<size_t>(deckR.index)];
+
+            for (const auto& [layerIdx, rowRT] : deckRT.layers)
+            {
+                if (rowRT.clips.empty())
+                    continue;
+                ControlPath layerKey;
+                layerKey.scope = ControlPath::Scope::Layer;
+                layerKey.deck = deckIdx;
+                layerKey.deckName = deckRT.deck;
+                layerKey.layer = layerIdx;
+                layerKey.layerName = rowRT.layer;
+                auto layerR = resolveLayer(comp, layerKey);
+                if (layerR.outcome == LevelOutcome::Missing)
+                {
+                    out.report.preambleUnresolved.push_back({ layerKey, "layer not found" });
+                    continue;
+                }
+                addPreambleRebind(out, combine(deckR.outcome, layerR.outcome), layerKey, "layer");
+                const ClipRow& row = rowOf(deck, layerR.index);
+                ResolvedTarget rowTarget;
+                rowTarget.deck = deckR.index;
+                rowTarget.deckId = deck.id;
+                rowTarget.layer = layerR.index;
+
+                for (const auto& [col, clipRT] : rowRT.clips)
+                {
+                    ControlPath colProbe; colProbe.col = col; colProbe.clipName = clipRT.clip;
+                    auto colR = resolveCol(row, colProbe);
+                    if (colR.outcome == LevelOutcome::Missing)
+                    {
+                        ControlPath k = layerKey; k.scope = ControlPath::Scope::Clip;
+                        k.col = col; k.clipName = clipRT.clip;
+                        out.report.preambleUnresolved.push_back({ k, "clip not found" });
+                        continue;
+                    }
+                    {
+                        ControlPath rebindKey = layerKey; rebindKey.scope = ControlPath::Scope::Clip;
+                        rebindKey.col = colR.index; rebindKey.clipName = clipRT.clip;
+                        addPreambleRebind(out, colR.outcome, rebindKey, "clip");
+                    }
+
+                    ResolvedTarget clipTarget = rowTarget; clipTarget.col = colR.index;
+                    const Clip& liveClip = row.clips[static_cast<size_t>(colR.index)].value();
+                    auto clipControlKey = [&](const std::string& control)
+                    {
+                        ControlPath k = layerKey; k.scope = ControlPath::Scope::Clip;
+                        k.col = colR.index; k.clipName = clipRT.clip; k.control = control; return k;
+                    };
+
+                    for (const auto& [fxKey, value] : clipRT.effectParams)
+                    {
+                        const int slot = PerfState::fxParamSlot(fxKey);
+                        const int param = PerfState::fxParamIndex(fxKey);
+                        if (slot < 0 || slot >= static_cast<int>(liveClip.effects.size()))
+                        {
+                            ControlPath k = clipControlKey("param"); k.fx = slot; k.param = param;
+                            out.report.preambleUnresolved.push_back({ k, "effect slot not found" });
+                            continue;
+                        }
+                        ControlPath k = clipControlKey("param"); k.fx = slot; k.param = param;
+                        ResolvedTarget t = clipTarget; t.fx = slot; t.param = param;
+                        out.preambleContinuous.push_back(PreambleSet{ k, t, value });
+                        out.report.preambleCount++;
+                    }
+
+                    for (const auto& [scalarKey, value] : clipRT.scalars)
+                    {
+                        ControlPath k = clipControlKey("scalar"); k.scalar = scalarKey;
+                        out.preambleContinuous.push_back(PreambleSet{ k, clipTarget, value });
+                        out.report.preambleCount++;
+                    }
+                }
+            }
+        }
+
+        // Row 8: each shared layer's active clip -- play or pause, as captured (in its source deck's row).
         for (auto& ctx : ctxs)
         {
             const auto& rt = *ctx.rt;
-
-            for (const auto& [col, clipRT] : rt.clips)
+            if (rt.activeClipColumn < 0)
+                continue;
+            ControlPath deckProbe; deckProbe.deck = ctx.srcDeck; deckProbe.deckName = ctx.srcDeckName;
+            auto deckR = resolveDeck(comp, deckProbe);
+            if (deckR.outcome == LevelOutcome::Missing)
+                continue;   // already reported by pass A
+            const Deck& deck = comp.decks[static_cast<size_t>(deckR.index)];
+            const PerfState::LayerRuntime* rowRT = capturedRow(cp0, ctx.srcDeck, ctx.layerKey.layer);
+            const PerfState::ClipRuntime* clipRT = nullptr;
+            if (rowRT != nullptr)
+                if (auto it = rowRT->clips.find(rt.activeClipColumn); it != rowRT->clips.end())
+                    clipRT = &it->second;
+            ControlPath colProbe; colProbe.col = rt.activeClipColumn;
+            if (clipRT != nullptr) colProbe.clipName = clipRT->clip;
+            auto colR = resolveCol(rowOf(deck, ctx.target.layer), colProbe);
+            if (colR.outcome != LevelOutcome::Missing)
             {
-                ControlPath colProbe; colProbe.col = col; colProbe.clipName = clipRT.clip;
-                auto colR = resolveCol(*ctx.layer, colProbe);
-                if (colR.outcome == LevelOutcome::Missing)
-                {
-                    ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
-                    k.col = col; k.clipName = clipRT.clip;
-                    out.report.preambleUnresolved.push_back({ k, "clip not found" });
-                    continue;
-                }
-                {
-                    ControlPath rebindKey = ctx.layerKey; rebindKey.scope = ControlPath::Scope::Clip;
-                    rebindKey.col = colR.index; rebindKey.clipName = clipRT.clip;
-                    addPreambleRebind(out, colR.outcome, rebindKey, "clip");
-                }
-
-                ResolvedTarget clipTarget = ctx.target; clipTarget.col = colR.index;
-                const Clip& liveClip = ctx.layer->clips[static_cast<size_t>(colR.index)].value();
-                auto clipControlKey = [&](const std::string& control)
-                {
-                    ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
-                    k.col = colR.index; k.clipName = clipRT.clip; k.control = control; return k;
-                };
-
-                for (const auto& [fxKey, value] : clipRT.effectParams)
-                {
-                    const int slot = PerfState::fxParamSlot(fxKey);
-                    const int param = PerfState::fxParamIndex(fxKey);
-                    if (slot < 0 || slot >= static_cast<int>(liveClip.effects.size()))
-                    {
-                        ControlPath k = clipControlKey("param"); k.fx = slot; k.param = param;
-                        out.report.preambleUnresolved.push_back({ k, "effect slot not found" });
-                        continue;
-                    }
-                    ControlPath k = clipControlKey("param"); k.fx = slot; k.param = param;
-                    ResolvedTarget t = clipTarget; t.fx = slot; t.param = param;
-                    out.preambleContinuous.push_back(PreambleSet{ k, t, value });
-                    out.report.preambleCount++;
-                }
-
-                for (const auto& [scalarKey, value] : clipRT.scalars)
-                {
-                    ControlPath k = clipControlKey("scalar"); k.scalar = scalarKey;
-                    out.preambleContinuous.push_back(PreambleSet{ k, clipTarget, value });
-                    out.report.preambleCount++;
-                }
+                // D4 table row 8: "a clip that was playing is always non-default" (PerfStateCapture
+                // only stores a ClipRuntime for a clip that differs from default), so the ABSENCE
+                // of a ClipRuntime for the active column means it was paused -- never assume playing.
+                const bool playing = clipRT != nullptr && clipRT->playing;
+                ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
+                k.deck = ctx.srcDeck; k.deckName = ctx.srcDeckName;
+                k.col = colR.index; k.clipName = colProbe.clipName; k.control = "playing";
+                ResolvedTarget t = ctx.target; t.deck = deckR.index; t.deckId = deck.id; t.col = colR.index;
+                DiscretePoint p; p.action = playing ? "resume" : "pause"; p.origin = Origin::Preamble;
+                out.preamble.push_back(Fired{ 0.0, 0, k, t, std::move(p) });
+                out.report.preambleCount++;
             }
-
-            if (rt.activeClipColumn >= 0)
-            {
-                const auto it = rt.clips.find(rt.activeClipColumn);
-                ControlPath colProbe; colProbe.col = rt.activeClipColumn;
-                if (it != rt.clips.end()) colProbe.clipName = it->second.clip;
-                auto colR = resolveCol(*ctx.layer, colProbe);
-                if (colR.outcome != LevelOutcome::Missing)
-                {
-                    // D4 table row 8: "a clip that was playing is always non-default" (PerfStateCapture
-                    // only stores a ClipRuntime for a clip that differs from default), so the ABSENCE
-                    // of a ClipRuntime for the active column means it was paused -- never assume playing.
-                    const bool playing = it != rt.clips.end() && it->second.playing;
-                    ControlPath k = ctx.layerKey; k.scope = ControlPath::Scope::Clip;
-                    k.col = colR.index; k.clipName = colProbe.clipName; k.control = "playing";
-                    ResolvedTarget t = ctx.target; t.col = colR.index;
-                    DiscretePoint p; p.action = playing ? "resume" : "pause"; p.origin = Origin::Preamble;
-                    out.preamble.push_back(Fired{ 0.0, 0, k, t, std::move(p) });
-                    out.report.preambleCount++;
-                }
-                // Missing: the active column no longer resolves at all -- already reported above if it
-                // was ALSO a captured (non-default) clip; if it was never captured (a paused default
-                // clip whose column has since been deleted), silently skip rather than double-report.
-            }
+            // Missing: the active column no longer resolves at all -- already reported above if it
+            // was ALSO a captured (non-default) clip; if it was never captured (a paused default
+            // clip whose column has since been deleted), silently skip rather than double-report.
         }
     }
 }

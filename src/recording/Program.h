@@ -27,9 +27,14 @@ struct Range { double from = 0.0, to = 0.0; };
 // ResolvedTarget -- validated COORDINATES only, never a pointer (R1). -1
 // means "not applicable to this control", not "unresolved" (that is a
 // CompileReport bucket, not a field here).
+// Lane bf9b (ruling-bf9b amendment 6): `deckId` pins a Clip-scope target (and an activeClip fire) to its deck BY
+// ID, set at compile from comp.decks[deck].id -- the replay resolves it with Composition::findDeckIndexById, so an
+// Insert / Remove Deck after the press never lands an event in another deck (a removed deck: skipped, said once).
+// Layer-scope targets name a SHARED layer: their deck is -1 (ignored).
 struct ResolvedTarget
 {
     int deck = -1;
+    uint32_t deckId = 0xFFFFFFFFu;   // ClipRef::kNoDeck = not pinned
     int layer = -1;
     int col = -1;
     int fx = -1;
@@ -140,6 +145,7 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
 // Program. Always DriveClock::Beat (x = beats since the fire boundary), `loop` from the routine,
 // `length` = Routine::lengthBeats (whole bars, not the last event). The restore list
 // (Routine::preamble) is resolved against `comp` like a lane (deck-relative keys resolve on the
-// ACTIVE deck, D2) into Program::preamble / preambleContinuous; lanes go through the same lane
-// loop compile() uses.
+// SHOWN deck at the press, D2; lane bf9b: Clip-scope targets and activeClip fires are then pinned by
+// deck id, Layer-scope targets resolve to the shared layer) into Program::preamble /
+// preambleContinuous; lanes go through the same lane loop compile() uses.
 std::shared_ptr<const Program> compileRoutine(const Routine& routine, const Composition& comp);

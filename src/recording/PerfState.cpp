@@ -92,6 +92,11 @@ juce::var PerfState::LayerRuntime::toVar() const
     obj->setProperty("muted", muted);
     obj->setProperty("autopilotEnabled", autopilotEnabled);
     obj->setProperty("effectParams", mapIntFloatToVar(effectParams));
+    if (activeDeck >= 0)
+    {
+        obj->setProperty("activeDeck", activeDeck);
+        obj->setProperty("activeDeckName", juce::String(activeDeckName));
+    }
 
     juce::Array<juce::var> clipArr;
     for (const auto& [col, clip] : clips)
@@ -122,6 +127,11 @@ PerfState::LayerRuntime PerfState::LayerRuntime::fromVar(const juce::var& v)
         l.muted = static_cast<bool>(obj->getProperty("muted"));
         l.autopilotEnabled = static_cast<bool>(obj->getProperty("autopilotEnabled"));
         l.effectParams = mapIntFloatFromVar(obj->getProperty("effectParams"));
+        if (obj->hasProperty("activeDeck"))
+        {
+            l.activeDeck = static_cast<int>(obj->getProperty("activeDeck"));
+            l.activeDeckName = obj->getProperty("activeDeckName").toString().toStdString();
+        }
 
         if (auto* clipArr = obj->getProperty("clips").getArray())
         {
@@ -191,6 +201,18 @@ juce::var PerfState::toVar() const
         deckArr.add(dv);
     }
     obj->setProperty("decks", deckArr);
+
+    if (!layers.empty())   // v2 (lane bf9b); a v1 take writes no "layers"
+    {
+        juce::Array<juce::var> layerArr;
+        for (const auto& [i, layer] : layers)
+        {
+            juce::var lv = layer.toVar();
+            lv.getDynamicObject()->setProperty("i", i);
+            layerArr.add(lv);
+        }
+        obj->setProperty("layers", layerArr);
+    }
     return juce::var(obj);
 }
 
@@ -212,6 +234,17 @@ PerfState PerfState::fromVar(const juce::var& v)
                 {
                     const int i = static_cast<int>(dObj->getProperty("i"));
                     p.decks[i] = DeckRuntime::fromVar(dv);
+                }
+            }
+        }
+        if (auto* layerArr = obj->getProperty("layers").getArray())
+        {
+            for (const auto& lv : *layerArr)
+            {
+                if (auto* lObj = lv.getDynamicObject())
+                {
+                    const int i = static_cast<int>(lObj->getProperty("i"));
+                    p.layers[i] = LayerRuntime::fromVar(lv);
                 }
             }
         }

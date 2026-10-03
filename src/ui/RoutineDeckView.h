@@ -158,7 +158,9 @@ inline RoutineDeckView deriveRoutineDeckView(const RoutineEngine::Status& status
         }
         allEmpty = false;
         pad.name = padName(s, i);
-        pad.onShownDeck = s.deck < 0 || s.deck == shownDeck;
+        // Lane bf9b: a routine plays on the SHARED layers -- on screen whatever deck is shown (shownDeck / deckNames
+        // stay for the signature and labels).
+        pad.onShownDeck = true;
         pad.loop = s.loop;
         pad.restoreFirst = s.restoreState;
         pad.startEase = s.restoreStyle != "jump";
@@ -188,10 +190,6 @@ inline RoutineDeckView deriveRoutineDeckView(const RoutineEngine::Status& status
                 {
                     tip = restartText(s.startsOn);
                 }
-                else if (!pad.onShownDeck)
-                {
-                    tip = "Playing on " + nameAt(deckNames, s.deck, "Deck") + ". Switch decks to see its layers.";
-                }
                 else
                 {
                     juce::StringArray names;
@@ -208,13 +206,13 @@ inline RoutineDeckView deriveRoutineDeckView(const RoutineEngine::Status& status
         pad.tooltip = warningText(s) + tip;
     }
 
-    // Bands: every waiting / playing routine on the SHOWN deck, one per layer it plays on, newest fire first.
+    // Bands: every waiting / playing routine, one per SHARED layer it plays on (lane bf9b: whatever deck is
+    // shown), newest fire first.
     std::vector<int> live;
     for (int i = 0; i < RoutineEngine::kBankSize; ++i)
     {
         const auto st = v.pads[i].state;
-        if ((st == State::Waiting || st == State::Playing) && status.slots[i].deck >= 0
-            && status.slots[i].deck == shownDeck)
+        if (st == State::Waiting || st == State::Playing)
             live.push_back(i);
     }
     std::stable_sort(live.begin(), live.end(), [&status](int a, int b) {
@@ -225,27 +223,10 @@ inline RoutineDeckView deriveRoutineDeckView(const RoutineEngine::Status& status
             v.bandsByLayer[l].push_back({ i, v.pads[i].name, v.pads[i].state,
                                           v.pads[i].state == State::Playing ? v.pads[i].progress01 : 0.0f });
 
-    // Corner note.
+    // Corner note (lane bf9b: no "on Deck N" note -- every routine plays on the shared layers, on screen).
+    juce::ignoreUnused(shownDeck, deckNames);
     if (allEmpty)
-    {
         v.cornerNote = dot() + " Save one in the Record tab";
-    }
-    else
-    {
-        std::map<int, juce::StringArray> offDeck;   // deck index -> names, in pad order
-        for (int i = 0; i < RoutineEngine::kBankSize; ++i)
-        {
-            const auto st = v.pads[i].state;
-            const int deck = status.slots[i].deck;
-            if ((st == State::Waiting || st == State::Playing) && deck >= 0 && deck != shownDeck)
-                offDeck[deck].add(v.pads[i].name);
-        }
-        juce::StringArray groups;
-        for (const auto& [deck, names] : offDeck)
-            groups.add(names.joinIntoString(", ") + " on " + nameAt(deckNames, deck, "Deck"));
-        if (!groups.isEmpty())
-            v.cornerNote = dot() + " " + groups.joinIntoString("; ");
-    }
     return v;
 }
 

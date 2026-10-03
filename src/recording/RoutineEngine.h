@@ -91,8 +91,8 @@ public:
             // s-rta-0927 routine display (slice A): where a pending/running routine plays -- computed ONCE
             // at fire from its compiled program's RESOLVED targets (never ControlPath::layer), so a
             // rebound-by-name lane reports the layer it really drives. -1 / empty while idle.
-            int deck = -1;                 // the deck its targets resolved on (the active deck at fire)
-            std::vector<int> layers;       // sorted, deduplicated layer indices on `deck`
+            int deck = -1;                 // the deck its clip targets resolved on (the shown deck at fire; a label)
+            std::vector<int> layers;       // sorted, deduplicated SHARED layer indices (lane bf9b)
             bool touchesComp = false;      // a target at composition level (layer -1)
             bool restartPending = false;   // re-fired while running: restarts at the next boundary
             uint32_t fireSeq = 0;          // the fire order (the engine's `fires` count at this fire)
@@ -130,8 +130,8 @@ public:
     std::string fire(const Composition& comp, int slot, RoutineSnap forcedSnap, bool beatAvailable);
     void stop(int slot);   // releases every grip (Player::stop); idle at once
     // s-rta-0927: the layer X -- stop(slot) (whole routine) for every pending/running routine whose
-    // footprint holds {deck, layer}. No-op when none does.
-    void stopOnLayer(int deck, int layer);
+    // footprint holds shared layer `layer` (lane bf9b: whatever deck it fired from). No-op when none does.
+    void stopOnLayer(int layer);
     void stopAll();        // global Stop, composition load, shutdown
 
     Status status() const;                          // mutex-guarded copy (HTTP thread reads it)
