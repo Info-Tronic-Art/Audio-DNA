@@ -354,10 +354,11 @@ See `FEATURE_CONNECTIONS.md` Scenario 11 for full details.
   whichever deck is being looked at; switching decks changes only which clips the grid shows; nothing plays invisibly;
   Persistent is removed (redundant); ignore-column stays. Consequence defaults put to Boris the same turn are recorded in
   .harmony/binding-decisions.md "2026-10-02 (s-rta-1002b)".
-  Built (bf9b, s-rta-1002b): one shared layer stack (`Composition::layers`); decks are boxes (`Deck::rows`); a deck
-  switch changes only the grid; a strip badge names the deck each playing clip came from (click = show it), a deck tab
-  dots while it has a clip playing; the deck-to-deck Fade is gone; old shows convert with the first deck's layer looks
-  (one yellow note). Defaults taken until Boris answers: Q1 a deleted deck's playing clip keeps playing until replaced;
+  Built (bf9b, s-rta-1002b; screen as of s-rta-1003): one shared layer stack (`Composition::layers`); decks are boxes
+  (`Deck::rows`); a deck switch changes only the grid; a layer strip shows the clip its layer plays and nothing about a
+  deck (Boris 2026-10-03: "The layer strip does not need to show the deck a clip is playing from."), a deck tab carries
+  no mark for a playing clip (asked whether the dot stays: "drop"); the deck-to-deck Fade is gone; old shows convert
+  with the first deck's layer looks, with no note on screen. Defaults taken until Boris answers: Q1 a deleted deck's playing clip keeps playing until replaced;
   Q2 a loaded deck with more rows adds layers; Q3 withdrawn (genre deck auto-switch stays off); Q4 Undo skips deck
   switches; Q5 a column fire empties a layer whose cell in that column is empty (Ignore Column keeps a layer).
 
