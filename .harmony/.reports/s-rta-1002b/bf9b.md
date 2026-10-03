@@ -1,7 +1,7 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 next)
-Stage in progress: S2c DONE (Undo skips deck switches, 9cce864; ctest 1144 / 0; TSAN 5 / 5; B4g; MS1 / MS4 on showDeck). S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
+STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 DONE at e1cd314 -- B7 critic panel is Harmony's; S4 next)
+Stage in progress: S3 DONE (badge / tab dot / badge click 06e26bd, grid f39ca40, TopBar fade 5cdf218, load notice + undo hint e1cd314; ctest 1156 / 0; TSAN 5 / 5; MS7 bites; B7 live captures taken). S2c DONE (Undo skips deck switches, 9cce864; ctest 1144 / 0; TSAN 5 / 5; B4g; MS1 / MS4 on showDeck). S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
 STAGE_P_HEAD: 3dac692 (C4)
@@ -1206,3 +1206,194 @@ INBOX-RECHECK: none
 - tests: a headless DeckView (ScopedJuceInitialiser_GUI + setComposition + showDeck) is the model-level stand-in for
   handleDeckSwitch (index + showDeck; only the renderer fence token is missing) -- mutate DeckView::showDeck to give a
   switch test teeth. | discovered: tests/test_show_model.cpp T5
+
+## S3 (ruling-bf9b S3 row: 16(a)-(c) badge / tab dot / badge click; 16(e) grid; 18 TopBar fade; 9(d) load notice + 16(d) undo hint; B7 machine checks + live captures; MS7) -- builder started 21:17
+STATUS(S3): DONE
+### S3 progress log (appended per item)
+- 21:17 read the lane report, plan-bf9b (incl. HARMONY ADOPTION) and ruling-bf9b in full. Branch lane/bf9b at a4488b6,
+  worktree clean. Disk 289 GiB free.
+- 21:24-21:28 S3.1 (06e26bd): LayerStrip source-deck badge (tab number / "x"; dim = shown deck; opaque 0xff111111;
+  text + 6 px wide; thumbnail >= 40 px only; bottom-left, clear of the band rows; refresh() + strip timer,
+  compare-before-set, badge-rect repaint; click -> onSourceDeckClicked, never selects; tooltip), DeckView tab dot
+  (deckIsPlaying; syncTabDots in refresh() + MainComponent's 30 Hz tick), MainComponent badge click =
+  `handleDeckSwitch(composition_.findDeckIndexById(deckId));`. NEW tests/test_layer_strip_source_deck.cpp (6 cases).
+  RED: compile vs a4488b6's src (scratchpad bf9b-S3/red_strip.sh, the target's own flags): rc 1, 70 errors, first
+  `tests/test_layer_strip_source_deck.cpp:179:18: error: no member named 'getSourceBadge' in 'LayerStrip'`; vs
+  STAGE_P_HEAD 3dac692: rc 1, 118 errors (`ShowFixture.h:19:14: error: no member named 'getNumLayers' in 'Composition'`).
+  GREEN: full build rc 0 (0 errors; warnings only on pre-existing lines), `100% tests passed, 0 tests failed out of 1150`.
+  Contrast measured by the test: dim 4.39917:1, normal 14.3044:1.
+- 21:28-21:29 S3.2 (f39ca40): column header strict (lit only on the firing deck; a deck-less column lights none).
+  RED behavioural (header accessor + the S3.1 condition): `test_layer_strip_source_deck.cpp:470: FAILED: CHECK(
+  lit().empty() )` / `test cases: 3 | 2 passed | 1 failed`. GREEN: full build rc 0, `100% tests passed, 0 tests failed
+  out of 1153`, `Total Test time (real) =  32.28 sec`.
+- 21:30-21:33 S3.3 (5cdf218, its own commit; builds alone): TopBar "Fade:" label + slider + layout +
+  fadeSliderBoundsForTest deleted; Composition::globalTransitionSpeed deleted; test_master_signal_link re-anchored to
+  the Quantize selector (case 1 renamed) + NEW "bf9b S3.3: the TopBar has no deck Fade control". RED behavioural (seam
+  first): `:384: FAILED: CHECK_FALSE( labels.contains("Fade:") )`, `:385: FAILED: CHECK( sliders == 3 )` `4 == 3`,
+  `test cases: 15 | 14 passed | 1 failed`. GREEN: full build rc 0, `100% tests passed, 0 tests failed out of 1154`.
+  B4a (b4.py): only ShowMigration.h:166 / :168 (the allowed literals) -- the TopBar.cpp / Composition.h hits are gone.
+  strings(app) "Fade:" 0 (main's pre-change app 1).
+- 21:34-21:37 S3.4 (see the S3 commits table): loadNotice_ (yellow, row-1 right slot beside audioDeviceNotice_;
+  LoadNotice::forLoad(migrationNote, routineLoadNote); tooltip = details; cleared by save / load / New / click; never
+  focus), the 7(a) refusal moved from the file label to it, /api/debug/ui_text "load_notice", the Remove Deck undo hint
+  names the layers still playing (DeckTabRow::undoRemoveHint). RED vs 5cdf218: `fatal error: 'ui/LoadNotice.h' file
+  not found`. GREEN: full build rc 0, `100% tests passed, 0 tests failed out of 1156`.
+
+### MS7 (ruling-bf9b amendment 13) -- 21:38:37-21:38:48, scratchpad bf9b-S3/mut.sh + mutants.py -> mutants.log
+On S2b's mut/tree COPY (rsync'd from the worktree: `diff -rq` src / tests identical), built by a normal cmake build in
+mut/build (reconfigured for the new target); the worktree is never edited (`git diff -- src` 0 lines).
+| mutant | edit (copy, LayerStrip::sourceBadgeOf) | named test | result (raw) |
+|---|---|---|---|
+| MS7 the strip badge shows the shown deck instead of the ref's deck | `b.tab = show->activeDeckIndex + 1;` | the S3 badge case "S3.1 the strip badge names ..." | `MS7 [S3.1 the strip badge names*] rc=42: test cases:  1 \|  0 passed \|  1 failed` (`:181: FAILED: CHECK( s->getSourceBadge().text() == text )` `1 == 2`) |
+| MS7b (extra) the badge click goes to the shown deck | `b.deckId = show->getActiveDeck()->id;` | "S3.1 a badge click ..." | `MS7b [S3.1 a badge click*] rc=42: test cases:  1 \|  0 passed \| 1 failed` (`:349` `{ 0 } == { 101 }`) |
+Copy restored: sha256 prefix fa66ad03468ddb9f before == after; the restored copy rebuilds rc 0 and passes `All tests
+passed (252 assertions in 11 test cases)`. TOOLING FINDING: the first run's "restored" check FAILED (MS7b's case) on a
+byte-identical copy -- make compares mtimes at 1-s resolution, so a restore written in the same second as the mutant's
+build left the mutant object "up to date". mutants.py now stamps every mutated / restored copy 2-4 s in the future
+(re-run above is clean). The S2b / S2c mutant scripts restore the same way (their restored-copy checks passed, so they
+were not bitten, but a same-second restore could hide a stale object).
+
+### S3 commits (each builds the app + every test target alone: full `cmake --build build-lane -j3 -- -k` rc 0 + full ctest on that exact tree before the commit)
+| sha | item | build / ctest |
+|---|---|---|
+| 06e26bd | S3.1 badge / tab dot / badge click (16(a)-(c)) + NEW tests/test_layer_strip_source_deck.cpp (6 cases) | rc 0; `100% tests passed, 0 tests failed out of 1150` (21:28:05) |
+| f39ca40 | S3.2 grid: column header only on the firing deck (16(e)) + 3 cases (M-a, header, M-c) | rc 0; `... out of 1153` (21:29:25) |
+| 5cdf218 | S3.3 TopBar Fade section + Composition::globalTransitionSpeed removed (18), its own commit; test_master_signal_link re-anchored + 1 case | rc 0; `... out of 1154` (21:33:12) |
+| e1cd314 | S3.4 load notice (9(d)) + Remove Deck undo hint (16(d)) + 2 cases | rc 0; `... out of 1156` (21:36:39) |
+
+### B2 / B3 / B4 at the S3 head e1cd314
+- B2 `ctest --test-dir build-lane -j3 --output-on-failure` (scratch ctest-s34.log), VERBATIM: `100% tests passed, 0 tests
+  failed out of 1156` / `Total Test time (real) =  32.81 sec`. Bookkeeping vs S2c (names diffed, `ctest -N`): 1144 + 13
+  added - 1 retired = 1156. ADDED: the 11 test_layer_strip_source_deck cases (S3.1 x6, S3.2 x3, S3.4 x2), "bf9b S3.3:
+  the TopBar has no deck Fade control", "layout: the Signal fader sits to the right of Quantize with no overlap on
+  Master" (RENAMED from the one RETIRED: "... to the right of Fade ..."; 4.B row test_master_signal_link :189). vs
+  STAGE_P_HEAD: 1117 + 61 - 22 = 1156.
+- B3 `.harmony/probe-tsan-unit.sh` exit 0 (21:46:07-21:46:19; scratch bf9b-S3/tsan-s3.log), VERBATIM:
+```
+probe-tsan-unit: build test_layer_runtime_race test_manual_scalar_race 2026-10-02 21:46:07
+probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)
+probe-tsan-unit: ctest -L tsan 2026-10-02 21:46:17
+1/5 Test #111: R1 message-thread triggers vs render clock / autopilot on one deck ..........   Passed    0.29 sec
+2/5 Test #112: R2 clip runtime fields: trigger writes vs render transport write-back .......   Passed    0.27 sec
+3/5 Test #113: R4 tuple consistency and no lost fade under a paced trigger storm ...........   Passed    0.26 sec
+4/5 Test #114: R-bf9b fenced box and stack edits vs the GL resolve of refs into any deck ...   Passed    0.28 sec
+5/5 Test #115: R3 manual scalar writes vs eff() reads ......................................   Passed    0.24 sec
+100% tests passed, 0 tests failed out of 5
+tsan    =   1.34 sec*proc (5 tests)
+Total Test time (real) =   1.35 sec
+probe-tsan-unit: ctest rc=0 2026-10-02 21:46:19
+```
+  "WARNING: ThreadSanitizer" count 0. (Run via S2c's tsan.sh, which writes S2c's tsan.log -- that file now holds THIS
+  run; S2c's own run is quoted verbatim above in the S2c section.)
+- B4 (b4.py, code lines): B4a = ShowMigration.h:166 / :168 only (the allowed literals) -- the TopBar.cpp / Composition.h
+  globalTransitionSpeed hits are GONE; zero SwitchDeckCmd. B4b 0. B4d (smoke) / B4e / B4f / B4g: PASS in ctest (no new
+  structure writer: B4f pins unchanged).
+- Warnings: every warning line of the S3 builds sits on a code line that existed before S3 (the S2c list shifted by the
+  added lines: MainComponent.cpp 1505 / 2296 / 4794 / 4799 / 6435, LayerStrip.cpp 618 / 707 / 708 / 714 / 823) -- no
+  new warning.
+- strings(build-lane app) "Fade:" 0; main's pre-change app 1.
+
+### B7 VISUAL WORK GATE -- MACHINE checks (headless, ctest, tests/test_layer_strip_source_deck.cpp)
+| check | case | GREEN |
+|---|---|---|
+| M-a lit cells == model refs into the shown deck (same / other / removed deck) | "S3.2 the grid lights a cell iff ..." | PASS |
+| M-b badge text == 1 + findDeckIndexById(ref.deckId), "x" retired, none clear; dim iff shown deck | "S3.1 the strip badge names ..." | PASS (MS7 makes it FAIL) |
+| M-c strip-column snapshot byte-equal outside the badge rects across showDeck 0 -> 5 -> 0; same LayerStrip objects | "S3.2 a 0 -> 5 -> 0 showDeck walk ..." | PASS (and > 0 px changed inside the badges; byte-equal everywhere back on deck 0) |
+| M-d badge inside the thumbnail, clear of the band rows, width >= text("20") + 6; folded row none; clip-name row never holds the deck name; 30-char clip name changes only the name row | "S3.1 a folded row ..." + "S3.1 the clip-name row never names the deck ..." | PASS |
+| M-e tab dot iff a layer's active ref / running fade's previous ref names the deck (20 decks) | "S3.1 a deck tab shows a dot ..." | PASS |
+| M-f WCAG contrast vs the opaque badge bg: dim 4.39917:1 (>= 3), normal 14.3044:1 (>= 7), normal > dim; painted pixels use those colours | "S3.1 badge contrast ..." | PASS |
+| badge click: shows that deck, never selects; removed deck: nothing; tooltip | "S3.1 a badge click ..." | PASS (MS7b makes it FAIL) |
+The badge CLICK has no non-synthetic live driver (rig: no synthetic input) -- unit-only, like the tab click (B4g).
+
+### B7 LIVE captures (21:42:54-21:44:36, lock bf9b-S3; scratch bf9b-S3/b7.sh -> live/b7.log; window-only, largest on-screen window of OUR pid, 3456x2158)
+Fixtures (scratch bf9b-S3/fix): PIL pictures "D<deck> C<col>" (mkimg.py; one colour per deck) and four composition files
+written by the MODEL'S OWN toVar through a scratch tool built only in the mut/tree copy (fixgen.cpp, mut/build target
+bf9b_fixgen; the worktree has no such file): b7-four-decks.json (4 decks x 3 layers; Layer 2 Ignore Column),
+b7-twenty-decks.json (20 decks; tab 5 "Twenty Char Deck Nam"; deck 5 row 1 col 2 "a_thirty_character_clip_name_x";
+Layer 3 folded), b7-old-one-deck.json and b7-old-two-decks.json (pre-bf9b shape; the second with a differing Deck 2 row 3,
+"persistent": true on Deck 1 / Layer 2, a 1.2 s deck fade). Driven by REST on 7070 (load_composition, switch_deck,
+trigger_clip, trigger_column, debug/remove_deck, debug/ui_text, composition), `--test-mode` (no analysis thread, no
+mic), fresh connection per request. Captures in scratch bf9b-S3/live/b7/ (crops in live/b7/crops/):
+| file | state | model (GET /api/composition, verbatim in b7.log) | builder's LOOK (decoded; the critic verdicts are Harmony's) |
+|---|---|---|---|
+| after-plain.png / before-plain.png | plain "deck 0 shown, layer 0 playing" (old 1-deck file on both arms) + state 4 TopBar | L0 deck 0 col 0, badge "1" dim | identical grids except AFTER's dim "1" badge on Layer 1's thumbnail and a dot on the Deck 1 tab (crops/plain-before-left-after-right.png) |
+| after-plain.png vs before-plain.png TopBar | (4) TopBar without "Fade:" | -- | BEFORE "Quantize: Off | Fade: (slider) 0.30 | Master Signal ..."; AFTER "Quantize: Off | Master Signal ..." -- the right group unmoved, the free middle 136 px wider (crops/topbar-before-over-after.png) |
+| after-s9-load-notice.png | (9) load notice after an old show | ui_text load_notice "Old show converted -- layer looks now come from the first deck (hover for details)"; file_label "Loaded: b7-old-two-decks"; one stderr line `old show converted: layer settings come from the first deck that has each row; Deck 2 row 3: settings dropped; 'persistent' ignored on: Deck 1 / Layer 2; deck fade 1.20 s dropped` (count 1) | yellow, right-aligned in row 1, whole sentence (crops/after-s9-row1.png) |
+| after-s1.png | (1) deck 1 shown, Layer 2 playing deck 2's clip | L0 deck 0 col 0 badge 1 dim; L1 deck 1 (id 100) col 1 badge 2 normal | Layer 2's thumbnail "D2 C2" with a WHITE "2" bottom-left; no lit cell in Layer 2's row; Layer 1's "1" grey; dots on Deck 1 and Deck 2 tabs |
+| after-s2.png | (2) deck 2 shown | L1 badge 2 dim, L0 badge 1 normal | cell D2C2 lit in Layer 2's row; Layer 2's "2" grey, Layer 1's "1" white; Deck 2 tab highlighted; both dots stay (crops/after-s2-grid.png) |
+| after-s5.png | (5) column 3 fired on deck 1 while Layer 2 (Ignore Column) keeps deck 2's clip | L0 / L2 deck 0 col 2; L1 deck 1 col 1 | header "3" lit; Layer 1 / 3 cells D1C3 lit; Layer 2 keeps "D2 C2" badge "2" white, its row unlit (crops/after-s5-grid.png) |
+| after-s5b-deck2.png | (5) the same, deck 2 shown | -- | header "3" NOT lit on deck 2; only D2C2 lit (Layer 2) (crops/after-s5b-deck2-grid.png) |
+| after-s3.png | (3) deck 2 removed while Layer 2 plays its clip | numDecks 3, retiredDeckCount 1, L1 retired True, badge x | Layer 2 still "D2 C2" with an "x" badge, the X button above it; tabs Deck 1 / Deck 3 / Deck 4 (dot on Deck 1 only); flush right "Undo Remove "Deck 2" -- Layer 2 keeps playing its clip"; file label `Removed deck "Deck 2"` |
+| after-s7-s8.png | (7) 20 decks, two dots, 30-char clip name, 20-char deck name; (8) a folded layer playing another deck's clip | L0 deck 4 col 1 badge 5; L2 deck 13 col 0 badge 14 | Layer 1 "D5 C2" badge "5" white, name row "a_thirty_chara..." (ellipsis); folded Layer 3 shows a 22-px "D14 C1" thumbnail and NO badge; dots on tab 5 ("Twenty Char" -- the long name fitted by JUCE) and tab "Deck 14" (crops/after-s7-s8-grid.png, after-s7-tabs-right.png) |
+| after-s6-layer-tab.png / before-s6-layer-tab.png | (6) ruling-bf9 G7's Layer tab (ADNA_INSPECT_LAYER=0) | -- | both open the Layer tab of Layer 1 (crops/*-inspector.png) |
+After the batch: every app quit by quit_app ("app running after quit: no" x4), Output-named windows 0 after each
+session, UserNotificationCenter windows 0 at 21:44:36 (16 s after the last quit), lock released 21:44:20. ps at lock
+time: three clang processes (another lane's build) -- no perf number was taken.
+
+### S3 deviations / decisions (for the reviewer and Harmony)
+1. Badge source: the badge is drawn only when the layer's playing clip EXISTS (Composition::playing(i).clip): a ref into
+   an empty cell or a reaped deck shows none (nothing plays, so nothing "came from" a deck).
+2. Tab dot = Composition::deckIsPlaying(id) (active ref, or the previous ref only while its fade runs -- the same rule
+   that keeps a retired deck alive, S2b.1); M-e's "active or previous" is read with that definition.
+3. Beyond the ruling's "set in refresh()": the badge is ALSO re-read on the strip's own 30 Hz timer and the dots on
+   MainComponent's 30 Hz tick, both compare-before-set and repainting only what changed -- a GL-thread fire (autopilot,
+   a queued trigger) or a fade completing never refreshes the grid, so refresh() alone would leave a stale badge / dot
+   (Pitfall 41). Idle cost: one runtime() load per strip per tick + decks x layers loads per tick, no repaint.
+4. Column header (16(e)): a column remembered WITHOUT a deck id now lights on no deck (it lit on every deck); no app
+   caller passes none (handleColumnTrigger always passes the deck).
+5. Amendment 7(a)'s refusal text moved from the file label (S2a's interim) to the load notice.
+6. Both notices visible: the load notice sits LEFT of the audio-device notice in the same right-aligned slot (each
+   takes at most half of what is left of row 1).
+7. The undo hint names layers by their NAME ("Layer 2" by default), not by index.
+8. The pure S3.4 helpers (src/ui/LoadNotice.h, DeckTabRow::undoRemoveHint) are tested in the new
+   test_layer_strip_source_deck.cpp (the S3 file) rather than a new target.
+9. MS7b (badge click to the shown deck) added beside MS7; both bite.
+10. B7 fixtures come from the model's own toVar via a scratch tool in the mutation copy (never in the worktree), so the
+    files are exactly what the app writes.
+
+### found_not_fixed (S3)
+- PRE-EXISTING: DeckView::rebuildGrid recreates the column triggers unlit and nothing re-applies the highlight until the
+  next refresh() -- visible in after-s3.png (header "3", lit in state 5, is unlit after Remove Deck's rebuild while
+  deck 1 stays shown). Not S3's change (rebuildGrid / removeDeck's refresh order are unchanged); a one-line
+  `refresh()` after rebuild, or setActiveColumn's state applied in setupColumnTriggers, would fix it -- Harmony's call.
+- Fixture quirk (tests/ShowFixture.h makeShow): deck 0 keeps initDefault's 12 cells per row while numColumns = 4, so
+  b7-*.json shows 12 columns on deck 1 (empty 5-12) and 4 on the others. Test-only; S4's bf9b-check.json should set
+  every deck's columns explicitly.
+- A 1-deck show always shows a dim "1" badge on every playing layer and a dot on its only tab (by the rule) -- a
+  critic may call it noise.
+- On a narrow 20-deck tab, JUCE fits a long name ("Twenty Char") and the dot sits in the right indent just after it --
+  for the critics.
+- Tooling: the S2b / S2c mutants.py restore without bumping the mtime (see MS7 above).
+
+## S3 RESULT
+S3 DONE at e1cd314 (4 commits, each builds alone): badge / tab dot / badge click, the grid's column header, the TopBar
+Fade removal (own commit; B4a's TopBar / Composition hits gone), the load notice + /api/debug/ui_text "load_notice" and
+the Remove Deck undo hint. ctest `100% tests passed, 0 tests failed out of 1156`; TSAN 5 / 5, 0 warnings; MS7 (+ MS7b)
+bite; B7 machine checks M-a..M-f PASS in ctest; B7 live captures for states (1)-(9) + BEFORE (4) / (6) / plain grid in
+scratch bf9b-S3/live/b7 -- the critic panel is Harmony's (a "no" returns the lane to S3).
+
+## Resume point (for the S4 builder)
+S3 is complete at e1cd314 (+ this report commit). Next: S4 = probe-boxes (plan S4.1 rows + k1d_*, k2v_decode,
+k4b_empty_cell, k8b_browse_fire, k9a/b/c_remove_playing, k10_fresh_and_resume; per-arm readers; K7 also reads
+/api/debug/ui_text "load_notice"), docs (amendment 23 + plan section 6; "a deck switch is never an Undo step" as ITS OWN
+hunk in performance-controls.md so a Q4 "keep" revert stays clean; the badge / tab dot / badge click / load notice /
+undo hint; TopBar has no Fade; CLAUDE.md <= 25,000 B), the Boris test show bf9b-check.json + page (amendment 24; set
+every deck's columns explicitly -- see found_not_fixed), lane report. B7 fixtures + scripts reusable: scratch
+bf9b-S3/fix (pictures + 4 composition files), fixgen.cpp (build it in mut/tree: append its target to
+mut/tree/tests/CMakeLists.txt as b7.sh's notes say; mut.sh's rsync --delete removes it), b7.sh, rest.py, comp.py,
+wincap.py. Arms: STAGE_P = scratchpad/bf9b-S0/apps/stagep-head.app, C0 = apps/base-c0.app. The S2b 4.B omissions (S2b
+deviations 3) still await Harmony's ruling. Do not rebase until Harmony says (main has hyg + mkvidx + ui).
+INBOX-RECHECK: none
+
+## Notes for .harmony/notebook.md (Harmony appends) -- S3
+- bf9b: a widget that shows WHAT A LAYER PLAYS (strip badge, tab dot) must re-read on a timer, compare-before-set: a
+  GL-thread fire (autopilot, a queued trigger) or a fade completing changes the tuple without any grid refresh. |
+  discovered: src/ui/LayerStrip.cpp updateSourceBadge, src/ui/DeckView.cpp syncTabDots
+- tests: mutation smokes on a copied tree must stamp the restored file's mtime into the future -- make compares at 1-s
+  resolution, so a restore in the same second as the mutant's build leaves the mutant object "up to date" (a stale
+  binary passes or fails for the wrong reason). | discovered: scratchpad bf9b-S3/mutants.py
+- tests: live-capture fixtures are safest written by the model's own toVar (a scratch Catch2 tool in a copied tree):
+  Layer::fromVar reads opacity / visible with no default, so a hand-written layer JSON missing a key loads invisible. |
+  discovered: src/model/Layer.cpp fromVar
+- DeckView::rebuildGrid leaves the column header unlit until the next refresh() (pre-existing). | discovered:
+  src/ui/DeckView.cpp setupColumnTriggers
