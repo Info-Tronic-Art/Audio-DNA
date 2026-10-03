@@ -59,6 +59,11 @@ public:
     {
         return deckIndex >= 0 && deckIndex < static_cast<int>(deckTabs_.size()) && deckTabs_[static_cast<size_t>(deckIndex)]->dot;
     }
+    bool columnHeaderLitForTest(int col) const
+    {
+        return col >= 0 && col < static_cast<int>(columnTriggers_.size())
+            && columnTriggers_[static_cast<size_t>(col)]->findColour(juce::TextButton::buttonColourId) == juce::Colour(kHeaderLit);
+    }
 
     // s-rta-0928: the grid's image thumbnails, decoded off the message thread; every ClipCell / LayerStrip pulls from
     // it. Public for tests (setBackendsForTests before setComposition).
@@ -188,6 +193,7 @@ private:
     juce::Viewport gridViewport_;
     std::unique_ptr<juce::Component> gridContent_;
 
+    static constexpr juce::uint32 kHeaderLit = 0xff3a5a4a;   // the lit column header / shown deck tab (one palette)
     int activeColumn_ = -1;
     uint32_t activeColumnDeckId_ = ClipRef::kNoDeck;   // the deck the column was fired from (lane bf9b)
     int selectedLayerIndex_ = -1;

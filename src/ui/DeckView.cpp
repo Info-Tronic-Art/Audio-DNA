@@ -292,11 +292,11 @@ void DeckView::refresh()
         }
     }
 
-    // Update column trigger highlights (lit only on the deck the column was fired from)
+    // Update column trigger highlights (lane bf9b, ruling-bf9b 16(e): lit only on the deck the column was fired from --
+    // a column remembered without a deck lights on none)
     for (size_t col = 0; col < columnTriggers_.size(); ++col)
     {
-        bool isActive = static_cast<int>(col) == activeColumn_
-                        && (activeColumnDeckId_ == ClipRef::kNoDeck || activeColumnDeckId_ == deck->id);
+        bool isActive = static_cast<int>(col) == activeColumn_ && activeColumnDeckId_ == deck->id;
         columnTriggers_[col]->setColour(
             juce::TextButton::buttonColourId,
             isActive ? juce::Colour(0xff3a5a4a) : juce::Colour(0xff2a2a2a));

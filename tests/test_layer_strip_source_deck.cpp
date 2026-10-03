@@ -46,6 +46,32 @@ LayerStrip* stripFor(DeckView& dv, int layerIndex)
     return nullptr;
 }
 
+// The set of lit cells the grid shows, as (layer, column).
+std::set<std::pair<int, int>> litCells(DeckView& dv)
+{
+    std::vector<ClipCell*> cells;
+    collect(dv, cells);
+    std::set<std::pair<int, int>> lit;
+    for (auto* cell : cells)
+        if (cell->isActive())
+            lit.insert({ cell->getLayerIndex(), cell->getColumn() });
+    return lit;
+}
+
+// The model's answer: (row, col) such that layers[row]'s active ref is (shown deck id, col).
+std::set<std::pair<int, int>> modelLit(const Composition& c)
+{
+    std::set<std::pair<int, int>> lit;
+    const uint32_t shown = c.getActiveDeck()->id;
+    for (int i = 0; i < c.getNumLayers(); ++i)
+    {
+        const ClipRef r = c.layers[static_cast<size_t>(i)].runtime().activeRef();
+        if (r.column >= 0 && r.deckId == shown)
+            lit.insert({ i, r.column });
+    }
+    return lit;
+}
+
 juce::MouseEvent leftPressAt(juce::Component& target, juce::Point<float> at)
 {
     const juce::ModifierKeys mods(juce::ModifierKeys::leftButtonModifier);
@@ -381,4 +407,110 @@ TEST_CASE("S3.1 a deck tab shows a dot iff some layer's active ref, or the previ
     c.layers[0].clearActiveClip(c.rowClips(0));
     g.dv.refresh();
     CHECK(dots() == std::set<int>{ 7 });
+}
+
+TEST_CASE("S3.2 the grid lights a cell iff it is the active ref of its row's layer in the SHOWN deck: same deck, other "
+          "deck, removed deck (bf9b, plan S3.2, B7 M-a)", "[show][grid]")
+{
+    Composition c = makeShow(3, 3, 4);
+    Grid g(c);
+
+    SECTION("same deck")
+    {
+        fire(c, 1, 0, 2, true);
+        g.dv.refresh();
+        CHECK(litCells(g.dv) == std::set<std::pair<int, int>>{ { 1, 2 } });
+        CHECK(litCells(g.dv) == modelLit(c));
+    }
+    SECTION("another deck: no cell of the shown deck lights; showing that deck lights it")
+    {
+        fire(c, 1, 1, 2, true);
+        g.dv.refresh();
+        CHECK(litCells(g.dv).empty());
+        CHECK(litCells(g.dv) == modelLit(c));
+        g.show(c, 1);
+        CHECK(litCells(g.dv) == std::set<std::pair<int, int>>{ { 1, 2 } });
+        CHECK(litCells(g.dv) == modelLit(c));
+        g.show(c, 0);
+        CHECK(litCells(g.dv).empty());
+    }
+    SECTION("a removed deck's clip lights nothing on any live deck")
+    {
+        fire(c, 1, 2, 2, true);
+        REQUIRE(c.retireOrEraseDeck(2));
+        g.dv.rebuildGrid();
+        for (int d : { 0, 1, 0 })
+        {
+            g.show(c, d);
+            CHECK(litCells(g.dv).empty());
+            CHECK(litCells(g.dv) == modelLit(c));
+        }
+    }
+}
+
+TEST_CASE("S3.2 the column header is lit only on the deck it was fired from (bf9b, ruling-bf9b 16(e), B7 state 5)",
+          "[show][grid]")
+{
+    Composition c = makeShow(2, 2, 4);
+    Grid g(c);
+    g.dv.setActiveColumn(2, c.decks[0].id);   // handleColumnTrigger: fired on deck 0
+    auto lit = [&] {
+        std::set<int> on;
+        for (int col = 0; col < 4; ++col)
+            if (g.dv.columnHeaderLitForTest(col))
+                on.insert(col);
+        return on;
+    };
+    CHECK(lit() == std::set<int>{ 2 });
+    g.show(c, 1);
+    CHECK(lit().empty());
+    g.show(c, 0);
+    CHECK(lit() == std::set<int>{ 2 });
+    g.dv.setActiveColumn(1);                  // a column without a deck lights on no deck
+    CHECK(lit().empty());
+    g.dv.setActiveColumn(-1);
+    CHECK(lit().empty());
+}
+
+TEST_CASE("S3.2 a 0 -> 5 -> 0 showDeck walk: every LayerStrip the same object, the strip column byte-equal outside the "
+          "badge rects (bf9b, plan F16, B7 M-c)", "[show][grid]")
+{
+    Composition c = makeShow(6, 3, 3);
+    fire(c, 0, 0, 1, true);   // layer 0 <- deck 0 (shown)
+    fire(c, 1, 5, 2, true);   // layer 1 <- deck 5
+    fire(c, 2, 3, 0, true);   // layer 2 <- deck 3
+    Grid g(c);
+    std::vector<LayerStrip*> before;
+    collect(g.dv, before);
+    REQUIRE(before.size() == 3);
+
+    std::vector<juce::Rectangle<int>> badges;
+    for (auto* s : before)
+    {
+        REQUIRE_FALSE(s->sourceBadgeBounds().isEmpty());
+        badges.push_back(g.dv.getLocalArea(s, s->sourceBadgeBounds()));
+    }
+    const auto column = g.dv.getStripColumnBounds();
+    REQUIRE_FALSE(column.isEmpty());
+    for (auto& r : badges)
+        r = r.translated(-column.getX(), -column.getY());
+    const auto shot0 = snapshot(g.dv, column);
+
+    g.show(c, 5);
+    std::vector<LayerStrip*> now;
+    collect(g.dv, now);
+    CHECK(now == before);
+    const auto shot5 = snapshot(g.dv, column);
+    CHECK(diffOutside(shot0, shot5, badges) == 0);
+    int changedInBadges = 0;
+    for (const auto& r : badges)
+        changedInBadges += diffInside(shot0, shot5, r);
+    CHECK(changedInBadges > 0);   // layers 0 and 1 changed dimness
+
+    g.show(c, 0);
+    now.clear();
+    collect(g.dv, now);
+    CHECK(now == before);
+    const auto shotBack = snapshot(g.dv, column);
+    CHECK(diffOutside(shot0, shotBack, {}) == 0);   // back to the first deck: byte-equal everywhere
 }
