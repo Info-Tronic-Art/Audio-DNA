@@ -1,7 +1,7 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c next)
-Stage in progress: S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
+STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c DONE at 9cce864; S3 next)
+Stage in progress: S2c DONE (Undo skips deck switches, 9cce864; ctest 1144 / 0; TSAN 5 / 5; B4g; MS1 / MS4 on showDeck). S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
 STAGE_P_HEAD: 3dac692 (C4)
@@ -1071,3 +1071,138 @@ INBOX-RECHECK: none
 - tests: a mutation smoke can run on an rsync'd COPY of src / tests / cmake / resources / CMakeLists.txt configured in
   its own build dir (~1.5 min for test_show_model + test_layer_runtime) -- the deliverable is never edited. |
   discovered: scratchpad bf9b-S2b/mutants.py
+
+## S2c (ruling-bf9b amendment 10: Undo skips deck switches -- ONE separable commit) -- builder started 21:08
+STATUS(S2c): DONE
+### S2c progress log (appended per item)
+- 21:08 read the lane report, plan-bf9b (incl. HARMONY ADOPTION) and ruling-bf9b in full. Branch lane/bf9b at 5532074,
+  worktree clean. Disk 289 GiB free.
+- 21:10 RED first (tests before src): NEW lint case "bf9b B4g: a deck switch is never an Undo step -- the tab click is
+  exactly handleDeckSwitch(deckIdx);" [lint][bf9b] in tests/test_render_thread_lint.cpp (onDeckSwitched's body ==
+  `{handleDeckSwitch(deckIdx);}` whitespace-stripped; handleDeckSwitch's body names no pushCommands / undoManager_ /
+  undoService_ / `Cmd>`; zero `\bSwitchDeckCmd\b` on src/ code lines = B4a's S2c clause). The B4d / H2 case drops its
+  SwitchDeckCmd::apply site. RED = the current lint compiled against 5532074's src (scratchpad bf9b-S2c/red_lint.sh
+  5532074), VERBATIM: `test_render_thread_lint.cpp:332: FAILED: CHECK( tab == "{handleDeckSwitch(deckIdx);}" )` and
+  `test_render_thread_lint.cpp:359: FAILED: CHECK( hits.empty() )` with `SwitchDeckCmd in src/ code lines:
+  core/DeckCommands.h:980 core/DeckCommands.h:983 MainComponent.cpp:1389`; `test cases: 1 | 0 passed | 1 failed`. (The
+  handleDeckSwitch no-push check passes on 5532074 too: it was already true -- a guard.)
+- 21:11 src: onDeckSwitched's body = `handleDeckSwitch(deckIdx);` (the comment moved above the lambda); SwitchDeckCmd
+  deleted (DeckCommands.h) with its now-orphaned DeckActivateHook alias and MainComponent::makeDeckActivateHook (.h
+  decl + .cpp def; SwitchDeckCmd was their only user); comments that named SwitchDeckCmd / the switch's undo reworded
+  (DeckCommands.h step-6 banner, TriggerCommands.h:29, UndoService.h:20-21, UndoService.cpp:22-25, MainComponent.cpp
+  handleDeckSwitch capture comment, MainComponent.h makeCompositionResolver comment).
+- tests: test_undo_commands -- "SwitchDeckCmd: switch + undo restores active index, redo re-applies" and "SwitchDeckCmd:
+  double-switch redo chain restores each active index" RETIRED (amendment 10: :1821 / :1849 at the ruling's base),
+  "SwitchDeckCmd: leaves a queued trigger untouched on execute, undo and redo (bf9b)" RETIRED (:2840), the SwitchDeckCmd
+  lines in "Deck commands no-op on stale coordinates (never crash)" deleted (the case stays; its banner "all three" ->
+  "the deck commands"). test_show_model -- T1's SECTION "the model-level shown-deck walk 0 -> 1 -> 0 and SwitchDeckCmd
+  execute / undo / redo" -> "the model-level shown-deck walk 0 -> 1 -> 0" (the index walk kept; T1's DeckView::showDeck
+  walk is the code-driving net); T5's switch = `c.activeDeckIndex = 1; dv.showDeck();` on a headless DeckView (what
+  handleDeckSwitch does minus the renderer fence token). Same expectations everywhere.
+- 21:11:19-21:11:42 `cmake --build build-lane -j3 -- -k` rc=0, 0 error lines (bf9b-S2c/build1.log; 9 objects incl.
+  MainComponent.cpp / UndoService.cpp / the 5 test TUs that include DeckCommands.h). Warnings in the touched files: 8
+  lines, every one on a code line present verbatim at 5532074 (MainComponent.cpp 1492 / 2280 / 4732 / 4737 / 6373,
+  MainComponent.h:97 keyStateChanged) -- no new warning.
+- GREEN: test_render_thread_lint `All tests passed (995 assertions in 6 test cases)` (B4g alone `(325 assertions in 1
+  test case)`); test_show_model `All tests passed (16812 assertions in 28 test cases)` (T5 `(8 / 1)`, T1 every
+  deck-switch `(54 / 1)`); test_undo_commands `All tests passed (554 assertions in 79 test cases)` (82 - 3 retired).
+
+### MS1 / MS4 re-run against the remaining switch path (DeckView::showDeck) -- 21:13:22-21:13:31
+scratchpad bf9b-S2c/mut.sh + mutants.py (log mutants2.log): S2b's mut/tree rsync'd from the worktree first (`diff -rq`
+src / tests: identical), each mutant = an edit of the COPY's src/ui/DeckView.cpp inserted at the top of
+DeckView::showDeck (after `if (!deck) return;`), built by a normal cmake build in mut/build (target test_show_model), the
+named tests run, the copy restored. The worktree is never edited (`git diff -- src/ui/DeckView.cpp` 0 lines; copy src ==
+worktree src after; copy file sha256 prefix f540c3a2aaad04da before == after; the restored copy rebuilds rc 0 and
+passes `All tests passed (16812 assertions in 28 test cases)`).
+| mutant | edit (copy, DeckView::showDeck) | named tests | result (raw) |
+|---|---|---|---|
+| MS1 the switch cancels the leaving deck's queued triggers | every layer's queue into a deck other than the shown one is cleared (updateRuntime) | T5, T1 | `MS1 [T5*] rc=42: test cases: 1 \| 1 failed` (`test_show_model.cpp:489: FAILED: CHECK( c.layers[0].runtime() == queued )`); `MS1 [T1 every deck-switch*] rc=42: test cases:  1 \|  0 passed \| 1 failed` (`:381 CHECK( fingerprint(c, mgr, eng) == f0 )`, the DeckView walk) |
+| MS4 the switch completes every fade | crossfadeProgress = 1 on every layer (updateRuntime) | T1 | `MS4 [T1 every deck-switch*] rc=42: test cases:  1 \|  0 passed \| 1 failed` (`:381`, the DeckView walk) |
+Both mutations made their named tests FAIL on the remaining path (no STOP). (S2b's MS1 / MS4 rows mutated
+SwitchDeckCmd::apply, which no longer exists.)
+
+### B2 / B3 / B4 at the S2c tree (9cce864's content)
+- B2 `ctest --test-dir build-lane -j3 --output-on-failure` 21:13:40-21:14:13 (bf9b-S2c/ctest1.log), VERBATIM:
+  `100% tests passed, 0 tests failed out of 1144`. Bookkeeping vs S2b's `ctest -N` list (names diffed, comm):
+  1146 - 3 retired + 1 added = 1144 == `Total Tests: 1144`. RETIRED: "SwitchDeckCmd: double-switch redo chain restores
+  each active index", "SwitchDeckCmd: leaves a queued trigger untouched on execute, undo and redo (bf9b)", "SwitchDeckCmd:
+  switch + undo restores active index, redo re-applies". ADDED: "bf9b B4g: a deck switch is never an Undo step -- the
+  tab click is exactly handleDeckSwitch(deckIdx);". vs STAGE_P_HEAD: 1117 + 48 added - 21 retired = 1144.
+- B3 `.harmony/probe-tsan-unit.sh` (bf9b-S2c/tsan.log; test_layer_runtime_race recompiled: it includes DeckCommands.h),
+  exit 0, every non-compiler line VERBATIM:
+```
+probe-tsan-unit: build test_layer_runtime_race test_manual_scalar_race 2026-10-02 21:14:34
+probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)
+probe-tsan-unit: ctest -L tsan 2026-10-02 21:14:39
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-tsan
+1/5 Test #111: R1 message-thread triggers vs render clock / autopilot on one deck ..........   Passed    0.30 sec
+2/5 Test #112: R2 clip runtime fields: trigger writes vs render transport write-back .......   Passed    0.32 sec
+3/5 Test #113: R4 tuple consistency and no lost fade under a paced trigger storm ...........   Passed    0.27 sec
+4/5 Test #114: R-bf9b fenced box and stack edits vs the GL resolve of refs into any deck ...   Passed    0.30 sec
+5/5 Test #115: R3 manual scalar writes vs eff() reads ......................................   Passed    0.26 sec
+100% tests passed, 0 tests failed out of 5
+tsan    =   1.44 sec*proc (5 tests)
+Total Test time (real) =   1.45 sec
+probe-tsan-unit: ctest rc=0 2026-10-02 21:14:41
+```
+  "WARNING: ThreadSanitizer" count: 0.
+- B4 (code lines, `//` stripped; bf9b-S2c/b4.py): B4a hits = TopBar.cpp:197 / :204 + Composition.h:144 / :232
+  (`globalTransitionSpeed`, S3.3's half, unchanged since S2a) + ShowMigration.h:166 / :168 (the allowed literals);
+  ZERO `SwitchDeckCmd` (the S2c clause). B4b 0 hits. B4d (smoke, ctest, now 3 sites: handleDeckSwitch, onDeckSwitched,
+  DeckView::showDeck) PASS. B4e / B4f PASS (ctest). B4g PASS (ctest, the new case).
+- B4f pins unchanged (counts); the audited sites' LINES moved: DeckCommands.h now 75, 126, 153, 251, 494, 500, 510, 568,
+  587, 638, 687, 696, 717, 777, 778, 806, 808, 824, 826, 907, 935, 937 (S2b's table -8 from :695 on); MainComponent.cpp
+  801, 888, 987, 1004, 1116, 1142, 1194, 1213, 1283, 1285, 1359, 1361, 1570, 2931, 3780, 5219, 5296, 5448, 6608, 6609,
+  6692, 6693, 6802, 6826, 6866 (S2b's table -14 from :1375, -23 from :5113). Same sites, same fences.
+- Binary: `strings` of the S2c app (build-lane, 21:11:35) has 0 "Switch Deck" (the undo label); main's pre-change app 1,
+  the STAGE_P arm (bf9b-S0/apps/stagep-head.app) 1.
+- No live run in S2c: a deck-tab click has no non-synthetic driver (rig: no synthetic input), and REST switch_deck
+  (handleDeckSwitch) pushed no Undo step on any arm, so no live row can tell the arms apart; B4g (the tab's body IS
+  handleDeckSwitch) is the gate the ruling names, and K1 / K8 (S4) drive handleDeckSwitch live. No lock taken, no app
+  launched.
+
+### S2c commit
+| sha | item | build |
+|---|---|---|
+| 9cce864 | S2c amendment 10 -- ONE separable commit: onDeckSwitched = handleDeckSwitch(deckIdx); SwitchDeckCmd + DeckActivateHook + makeDeckActivateHook deleted; 3 cases retired, 1 case trimmed, T1 / T5 re-pointed, B4d / H2 site list, NEW B4g | app + every test target rc 0 (21:11:42, the committed content; the worktree differs only in this report) |
+
+### S2c deviations / decisions (for the reviewer and Harmony)
+1. Orphans deleted in the same commit: `using DeckActivateHook` (DeckCommands.h) and MainComponent::makeDeckActivateHook
+   (.h + .cpp) -- SwitchDeckCmd was their only user (grep src + tests). A Q4 "keep" revert restores them with it.
+2. B4g's case also asserts (a) handleDeckSwitch's body names no pushCommands / undoManager_ / undoService_ / `Cmd>` (true
+   before S2c too -- a guard on "never an Undo step from any entry") and (b) zero `SwitchDeckCmd` on src/ code lines
+   (B4a's S2c clause as a ctest). One case, so the B2 count moves by +1.
+3. Docs ("Docs say it", amendment 10) are NOT in 9cce864: amendment 23 schedules "Undo skips deck switches (10)" for
+   performance-controls.md in S4's docs pass, and that paragraph region was just edited on main by ui (e5d81c2: deck
+   rename in place), which bf9b rebases over. No doc today says a tab click is an Undo step (grep docs/claude, CLAUDE.md,
+   APP-INVENTORY: 0 hits). S4 must add the line as ITS OWN hunk so a Q4 "keep" revert of 9cce864 + that hunk stays
+   clean.
+4. A consequence to name (inferred from the code, not run live): the Remove Deck "Undo Remove" button is hidden by
+   pushCommands on any LATER command; a tab click used to push "Switch Deck" and so hid it -- now a tab click after a
+   removal leaves the 10-s button up and working (the removal is still the top of the stack).
+5. The S2b 4.B omissions (S2b deviations 3) still await Harmony's ruling; S2c touched none of those hunks.
+
+## S2c RESULT
+S2c DONE at 9cce864 (one separable commit; builds alone: app + every test target rc 0). ctest `100% tests passed, 0
+tests failed out of 1144` (1146 - 3 + 1); TSAN 5 / 5, 0 warnings; B4g RED on 5532074's src (2 checks) and GREEN;
+B4a zero SwitchDeckCmd; MS1 (T5 + T1) and MS4 (T1) bite on the remaining switch path DeckView::showDeck.
+
+## Resume point (for the S3 builder)
+S2c is complete at 9cce864 (+ this report commit). Next: S3 = S3.1 badge / tab dot / badge click (amendment 16(a)-(c));
+S3.2 grid (16(e)); S3.3 TopBar fade removal -- its own commit (18; then B4a's globalTransitionSpeed hits at TopBar.cpp /
+Composition.h go); S3.4 load-notice label (9(d)) + undo hint (16(d)); B7 headless machine checks (M-a..M-f,
+tests/test_layer_strip_source_deck.cpp) + live captures for the critics; MS7 (the strip badge shows the shown deck ->
+the S3 badge case). The badge click is handleDeckSwitch(findDeckIndexById(id)) -- never an Undo step (S2c). S4's docs
+must add "a deck switch is never an Undo step" as its own hunk (S2c deviation 3). Tools: scratchpad bf9b-S2c/mut.sh +
+mutants.py (rsync then mutate a copy; edit the MUTANTS list), red_lint.sh <sha> (the current lint vs an old src),
+b4.py (B4a / B4b scan). Arms unchanged: STAGE_P = scratchpad/bf9b-S0/apps/stagep-head.app, C0 = apps/base-c0.app. Do
+not rebase until Harmony says (main has hyg + mkvidx + ui now).
+INBOX-RECHECK: none
+
+## Notes for .harmony/notebook.md (Harmony appends) -- S2c
+- bf9b: a deck switch is never an Undo step -- every switch entry (tab click, REST, OSC, bindings, replay, the S3 badge
+  click) is MainComponent::handleDeckSwitch, which pushes no command; the lint "bf9b B4g" pins the tab body. |
+  discovered: tests/test_render_thread_lint.cpp B4g
+- tests: a headless DeckView (ScopedJuceInitialiser_GUI + setComposition + showDeck) is the model-level stand-in for
+  handleDeckSwitch (index + showDeck; only the renderer fence token is missing) -- mutate DeckView::showDeck to give a
+  switch test teeth. | discovered: tests/test_show_model.cpp T5
