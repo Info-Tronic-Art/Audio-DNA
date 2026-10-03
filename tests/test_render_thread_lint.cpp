@@ -478,3 +478,50 @@ TEST_CASE("bf9b B4j: no source-deck badge, tab dot, Undo Remove button or load n
     INFO(count << " hit(s) in src/:" << (hits.empty() ? std::string(" none") : hits));
     CHECK(count == 0);
 }
+
+// Case 9 (lane bf9b fix stage, s-rta-1003; ruling-bf9b-merge AM-9 = B4i). K5 with Ableton Link ON has no live driver
+// (probe-boxes prints it BLOCKED: no Link build, no toggle route), so this is the text evidence that the boxes model
+// does not depend on Link: no Link identifier in the model, the render thread, the commands, the deck grid, or in the
+// three functions a deck switch and a (queued) trigger run through. TEXT only (code lines, line comments stripped);
+// NO count pin on MainComponent.cpp as a whole -- the sync lanes rewrite its Link tick.
+TEST_CASE("bf9b B4i: no Link identifier in the model, render, core, the deck grid or the switch / trigger handlers",
+          "[lint][bf9b]")
+{
+    namespace fs = std::filesystem;
+    const std::regex link(R"(LinkSync|linkSync_|AUDIODNA_HAS_LINK)");
+    const fs::path root(AUDIODNA_SRC_DIR);
+    std::string hits;
+    int files = 0;
+    const auto scan = [&](const std::string& rel)
+    {
+        ++files;
+        const auto lines = codeLines(rel);
+        for (size_t i = 0; i < lines.size(); ++i)
+            if (std::regex_search(lines[i], link))
+                hits += "\n  " + rel + ":" + std::to_string(i + 1);
+    };
+    for (const char* dir : { "model", "render", "core" })
+        for (const auto& e : fs::recursive_directory_iterator(root / dir))
+        {
+            if (!e.is_regular_file())
+                continue;
+            const auto ext = e.path().extension().string();
+            if (ext == ".h" || ext == ".cpp" || ext == ".mm")
+                scan(fs::relative(e.path(), root).generic_string());
+        }
+    scan("ui/DeckView.cpp");
+    REQUIRE(files > 30);   // the walk reached the three directories
+    INFO("Link identifiers in src/model, src/render, src/core, src/ui/DeckView.cpp:"
+         << (hits.empty() ? std::string(" none") : hits));
+    CHECK(hits.empty());
+
+    const auto mc = codeLines("MainComponent.cpp");
+    for (const char* header : { "void MainComponent::handleDeckSwitch(", "void MainComponent::handleClipTrigger(",
+                                "void MainComponent::handleColumnTrigger(" })
+    {
+        const std::string body = bodyAfter(mc, header);
+        INFO(header << ":\n" << body);
+        REQUIRE_FALSE(body.empty());
+        CHECK_FALSE(std::regex_search(body, link));
+    }
+}
