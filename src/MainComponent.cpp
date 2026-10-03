@@ -8,6 +8,7 @@
 #include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
 #include "core/CompositionLoad.h"
+#include "binding/BindingTarget.h"
 #include "core/LogLine.h"
 #include "recording/PerfStateCapture.h"
 #include "recording/RoutineSlice.h"
@@ -1932,11 +1933,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // (or retired) deck: the event is skipped (false: the replay counts it) and said once per deck. Layer-scope
         // events name the SHARED layer and ignore the deck.
         auto pinnedDeck = [this, &f]() -> int {
-            if (f.target.deckId == ClipRef::kNoDeck)
-                return f.target.deck;
-            const int idx = composition_.findDeckIndexById(f.target.deckId);
-            if (idx < 0 && std::find(skippedDeckIdsNotified_.begin(), skippedDeckIdsNotified_.end(), f.target.deckId)
-                               == skippedDeckIdsNotified_.end())
+            const int idx = pinnedDeckIndex(composition_, f.target);
+            if (idx < 0 && f.target.deckId != ClipRef::kNoDeck
+                && std::find(skippedDeckIdsNotified_.begin(), skippedDeckIdsNotified_.end(), f.target.deckId)
+                       == skippedDeckIdsNotified_.end())
             {
                 skippedDeckIdsNotified_.push_back(f.target.deckId);
                 const std::string msg = "A recorded clip change aims at a deck that was removed -- skipped.";
@@ -7529,43 +7529,15 @@ bool MainComponent::releaseMomentaryRefs(uint32_t bindingId)
 void MainComponent::handleBindingAction(const Binding& binding, float value)
 {
     // === Resolve target layer/column (and the deck box) based on targeting mode ===
-    // Lane bf9b (plan-bf9b S2.8, ruling-bf9b amendment 20): resolvedDeck = the deck the cell is in (-1 = the shown
-    // deck, ByPosition's box). A layer is a SHARED layer.
-    int resolvedLayer = binding.targetLayerIndex;
-    int resolvedColumn = binding.targetColumn;
-    int resolvedDeck = -1;
-    bool resolvedRetired = false;   // Selected on a layer playing a removed deck's clip: nothing to fire (T16)
-
-    if (binding.targetMode == Binding::TargetMode::Selected)
-    {
-        // The first SHARED layer with an active clip -- that clip's own ref (its deck may not be the shown one).
-        for (int li = 0; li < composition_.getNumLayers(); ++li)
-        {
-            if (const auto ref = composition_.layers[static_cast<size_t>(li)].runtime().activeRef(); ref.column >= 0)
-            {
-                resolvedLayer = li;
-                resolvedColumn = ref.column;
-                resolvedDeck = composition_.findDeckIndexById(ref.deckId);
-                resolvedRetired = resolvedDeck < 0;
-                break;
-            }
-        }
-    }
-    else if (binding.targetMode == Binding::TargetMode::ThisItem && binding.targetClipId > 0)
-    {
-        // Find the clip by ID in EVERY live deck ("firing a clip from ANY deck"); not found -> ByPosition on the
-        // shown deck (today's fallback).
-        composition_.forEachClip([&](const Clip& clip, const ClipSite& site) {
-            if (resolvedDeck < 0 && !site.retired && clip.id == binding.targetClipId)
-            {
-                resolvedLayer = site.row;
-                resolvedColumn = site.column;
-                resolvedDeck = site.deckIndex;
-            }
-        });
-    }
-    // ByPosition: use binding.targetLayerIndex / targetColumn directly (default) on the shown deck
-    const int velocityDeck = resolvedDeck >= 0 ? resolvedDeck : composition_.activeDeckIndex.load();
+    // Lane bf9b (plan-bf9b S2.8, ruling-bf9b amendment 20): binding/BindingTarget.h -- the deck the cell is in (-1 = the
+    // shown deck, ByPosition's box); a layer is a SHARED layer; Selected on a layer playing a removed deck's clip is
+    // `retired` (nothing fires, T16).
+    const BindingTarget target = resolveBindingTarget(composition_, binding);
+    const int resolvedLayer = target.layer;
+    const int resolvedColumn = target.column;
+    const int resolvedDeck = target.deck;
+    const bool resolvedRetired = target.retired;
+    const int velocityDeck = target.velocityDeck(composition_);
 
     switch (binding.action)
     {

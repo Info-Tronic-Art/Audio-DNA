@@ -149,3 +149,9 @@ std::shared_ptr<const Program> compile(const Take& take, const Composition& comp
 // deck id, Layer-scope targets resolve to the shared layer) into Program::preamble /
 // preambleContinuous; lanes go through the same lane loop compile() uses.
 std::shared_ptr<const Program> compileRoutine(const Routine& routine, const Composition& comp);
+
+// The live deck index a replayed event's target names (lane bf9b, ruling-bf9b amendment 6): a target pinned by deck
+// id resolves through Composition::findDeckIndexById (-1 = that deck was removed: the event is skipped); an unpinned
+// one keeps its compiled index. MainComponent's replay dispatch (dispatch.fire) resolves every Clip-scope event and
+// activeClip fire through it; tests/test_show_model.cpp T13 drives it.
+int pinnedDeckIndex(const Composition& comp, const ResolvedTarget& target);

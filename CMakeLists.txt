@@ -229,6 +229,7 @@ target_sources(AudioDNA PRIVATE
 
     # Binding (v2)
     src/binding/Binding.h
+    src/binding/BindingTarget.h
     src/binding/BindingManager.h
     src/binding/BindingManager.cpp
 

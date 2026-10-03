@@ -717,3 +717,10 @@ std::shared_ptr<const Program> compileRoutine(const Routine& routine, const Comp
     program->length = routine.lengthBeats;   // the routine's own end (whole bars), NOT maxAt
     return program;
 }
+
+int pinnedDeckIndex(const Composition& comp, const ResolvedTarget& target)
+{
+    if (target.deckId == ClipRef::kNoDeck)
+        return target.deck;
+    return comp.findDeckIndexById(target.deckId);
+}
