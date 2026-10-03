@@ -35,7 +35,8 @@ k1a_switch_static   K1a: deck 0 layer 0 = static picture, fired; the other decks
                     click, MIDI binding, keyboard): unit T1 + lints B4d / B4g.
 k1b_switch_video    K1b: deck 0 layer 0 = ramp12.mp4, t >= 4 s at the switch; at +2 s |t - (t_switch + elapsed)| <= 0.5
                     (elapsed = the time between the two capture requests, ~2.0 s, printed) and the REST playhead moved by
-                    elapsed / 12 within 0.06.
+                    elapsed / 12 within 0.06. Then k1b_duplicate (bf9b fix round): K1's duplicate_deck driver on this
+                    video (t ~ 7 s): POST /api/debug/duplicate_deck {"deck": 0} shows the copy; K1b's t bar at +2 s.
 k1c_switch_midfade  K1c: Dissolve, T = 4 s; switch 1.0 s into the A -> B fade; every frame after the switch (before 0.85 T)
                     on the OUT -> IN line (residual <= tol, 0.02 < p < 0.98); REST p rises >= 0.15 between +0.5 s and
                     +2 s after the switch; complete (p 1, no previous) by T + 1 s; the final frame == B within floor.
@@ -610,6 +611,31 @@ def k1b_switch_video():
     check(abs((float(pa) - float(pb)) - el / 12.0) <= float(cfg["phTol"]),
           f"k1b_switch_video: REST playheadPosition moved {float(pa) - float(pb):.4f} (expected {el / 12.0:.4f} "
           f"+- {cfg['phTol']})")
+    k1b_duplicate(cfg)
+
+
+def k1b_duplicate(cfg):
+    """K1's duplicate_deck driver on K1b's VIDEO fixture (bf9b fix round): with K1a's static picture a Duplicate that
+    restarts the copied clip looks the same, so that sub-row has no RED arm. Same show, the video still playing in
+    layer 0 (t ~ 7 s): POST /api/debug/duplicate_deck {"deck": 0} (it shows the copy); K1b's bar on the canvas at
+    +2 s: |t - (t_dup + elapsed)| <= tTol, and the copy is shown (numDecks + 1, activeDeck == the copy)."""
+    n0 = len((comp() or {}).get("decks", []))
+    wb = time.time(); fb = cap("k1b_dup_before")
+    code, _ = post("/api/debug/duplicate_deck", {"deck": 0})
+    sleep_until(wb + float(cfg["after"]))
+    wa = time.time(); fa = cap("k1b_dup_after")
+    c = wait_for(lambda c: len(c.get("decks", [])) == n0 + 1, limit=1.0) or comp() or {}
+    nd, ad = len(c.get("decks", [])), c.get("activeDeck")
+    switch(0)
+    if fb is None or fa is None:
+        no("k1b_duplicate: capture failed"); return
+    tb, ta, el = t_of(fb), t_of(fa), wa - wb
+    if tb < 4.0:
+        no(f"k1b_duplicate: oracle broken -- t at the duplicate {tb:.2f} s < 4 s"); return
+    check(code == 200 and nd == n0 + 1 and ad == n0 and abs(ta - (tb + el)) <= float(cfg["tTol"]),
+          f"k1b_duplicate: the video keeps playing on screen across Duplicate Deck (HTTP {code}; numDecks {nd} (was "
+          f"{n0}), activeDeck {ad}; t_dup {tb:.2f} s, t at +{el:.2f} s = {ta:.2f} s, expected {tb + el:.2f} "
+          f"+- {cfg['tTol']})")
 
 
 def k1c_switch_midfade():
