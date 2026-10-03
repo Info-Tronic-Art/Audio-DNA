@@ -1,7 +1,7 @@
 # LANE bf9b -- builder report (s-rta-1002b)
 
-STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b next)
-Stage in progress: S1 DONE (ClipRef in the tuple, inert; S1 commit 475b716). S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
+STATUS: DONE (S0 DONE at STAGE_P_HEAD 3dac692; S1 DONE at 475b716; S2a DONE at 2db77eb; S2b DONE at bb5d84e; S2c next)
+Stage in progress: S2b DONE (tests on the shared stack; the sanctioned window closed; ctest 1146 / 0; TSAN 5 / 5; MS1-MS6). S2a DONE, S1 DONE, S0 DONE (Stage P; G0-G7 PASS at STAGE_P_HEAD)
 BF9B_BASE: 11820fa (main head at lane start, 2026-10-02 17:06 EDT)
 STAGE_P_BASE: 11820fa (parent of C0 c79ea39)
 STAGE_P_HEAD: 3dac692 (C4)
@@ -759,3 +759,315 @@ C0 = apps/base-c0.app; REF dir for a4 scratchpad/bf9b-S0/live/run1-base/rstate.O
 - `git commit -m ... -- <paths>` commits ONLY those paths (git rm'd files included) -- path-scoped commits without
   touching the index of other files. | discovered: scratchpad/bf9b-S2a/commit.sh
 INBOX-RECHECK: none
+
+## S2b (tests: the 20 non-compiling targets, test_show_model extended, R-bf9b TSAN, B4f, B4e, MS1-MS7) -- builder started 20:06
+STATUS(S2b): DONE
+### S2b progress log (appended per item)
+- 20:06 read the lane report, plan-bf9b (incl. HARMONY ADOPTION) and ruling-bf9b in full. Disk 289 GiB free. Branch
+  lane/bf9b at 19b9258 (S2a code 2db77eb). Rig slip: one read-only inspection command began with `cd /dev/null` (it
+  failed; no effect) -- not repeated.
+- 20:07 full -k build (build0.log): exactly the 20 listed targets fail (195 capped error lines). NEW tests/ShowFixture.h
+  (makeShow(decks, layers, columns, fill) / row / fire / ref); test_show_model's local makeShow moved there.
+- 20:08 test_layer_state_key (fixture: two stack halves over the show's shared layer ids; case 1's premise -- ids
+  repeated across decks -- is gone, the key function is still pinned): `All tests passed (324 assertions in 3 test cases)`.
+- 20:08 test_deck_clock RETIRED (git rm): (a)-(d), (f) retired with DeckClock / AutopilotBank (4.B); (e) moved
+  unchanged (minus `layer.ensureColumns(2)`, Layer has no clips) to NEW tests/test_layer_clock.cpp, CMake target
+  renamed test_layer_clock: `All tests passed (6 assertions in 1 test case)`.
+- 20:11 test_layer_runtime: fixture Rig (one-deck show, deck id 0; Rig::S writes a column tuple with deck ids -- deck 0
+  for a column, none for -1: the tuple's type now carries the deck, values unchanged); the 4.B case renamed
+  "a queued trigger cancelled by cancelPendingInto never fires" (same expectation): `All tests passed (2475 assertions in 17 test cases)`.
+- 20:14 test_layer_runtime_race: R1 / R2 / R4 on a one-deck show (R1's GL driver = LayerClock::tick per shared layer
+  + the show autopilot, DeckClock gone; cancelPendingInto; the live Layer copy checks id). NEW "R-bf9b fenced box and
+  stack edits vs the GL resolve of refs into any deck" [tsan][layer_runtime] (amendment 3(c); emulated fence =
+  detachFenced + drain 2 GL loop passes + mutate + reap + set; cells / columns / ClearLayerClipsCmd + undo /
+  RemoveDeckCmd retire + undo / retire, re-fire, reap, re-insert / insertLayer / moveLayer / eraseLayer; unfenced
+  triggers interleave; the GL checks every resolved Clip* lies in a live or retired deck's row storage).
+  FOUND (src, S2a): the normal-build run went RED on `reapsAfterRefire == 166` -> `0 == 166` ("frames 6769, held 94614,
+  resolved 40235, outside 0, retires 167, restores 167, reaps after a re-fire 0"): a Cut (transitionSpeed <= 0, the
+  layer DEFAULT -1 included) or a clear leaves `previous` naming the old clip at progress 1, so
+  Composition::deckIsPlaying kept a retired deck alive forever after its layer was replaced. Fix (amendment 4(b)
+  / R-F6 intent: "a fade OUT keeps it alive until the fade completes"): previous counts only while
+  crossfadeProgress < 1. Then `All tests passed (1204 assertions in 4 test cases)`.
+- 20:16 small fixtures: test_manual_scalar_race / test_manual_write (comp.layers / comp.getLayer), test_media_presence
+  (one shared layer + one row), tool_routine_deck_snapshot (setLayer(&layer, i, nullptr)), test_recorder_host
+  (makeComposition = Composition::initDefault; the [perfstate] case reads the shared layers' opacity / bypassed from
+  PerfState v2 `layers`, the clip from decks[0] row 0), test_routine (rows / comp.layers).
+- 20:17 test_routine_engine D3: 4.B OMISSION (for Harmony): stopOnLayer(layer) has no deck any more (plan S2.9 / F9
+  "stops every running routine touching that shared layer, whatever deck"), so the step `stopOnLayer(1, 0); // another
+  deck: nothing` (+ its two CHECKs) cannot be expressed and was removed; the case is renamed "... stops every routine
+  on that shared layer, whole, grips released"; every other assertion unchanged. `All tests passed (1145 assertions in 37 test cases)`.
+- 20:18 FOUND (src, S2a): test_routine:509 `CHECK( e.norm == Approx(0.4f) )` -> `1.0f == Approx( 0.4 )`: RoutineSlice
+  still read a layer's checkpoint settings from cp0.decks[deck].layers (PerfState v1), but v2 keeps them in
+  cp0.layers. Fix: RoutineSlice::checkpointLayerSettings (v2 `layers` by position, else v1 per deck) for Layer scope;
+  Clip scope stays per deck. Then `All tests passed (201 assertions in 8 test cases)`.
+- 20:19 test_program_preamble: the 4.B row (:196) applied -- Layer scope resolves the shared layer, so only Clip scope
+  can miss a deck: deck 9's row gets a clip runtime (the unresolved count stays 2, deck + layer), and "deck 0's
+  entries are still present" checks a Layer-scope entry on layer 0 (its target carries no deck). Cases 1 / 2 / 6:
+  shared layer + deck-0 rows (+ activeDeckId), case 6 reads checkpoint0.layers (v2). `All tests passed (169 assertions in 6 test cases)`.
+- 20:20-20:23 test_connection / test_deck_thumbnails / test_layer_strip_follows_model / test_layer_strip_transport_view /
+  test_autopilot / test_compositor: fixture rewrites (comp.layers, deck rows, Composition::fire / playingClip,
+  LayerStrip::setLayer(layer, i, show), transportViewOf(playingClip)); test_compositor's deck-transition comment
+  reworded (plan addendum). All GREEN (raw: `All tests passed (159 assertions in 39 test cases)` connection, `(62 / 4)`
+  thumbnails, `(42 / 8)` follows_model, `(23 / 6)` transport_view, `(49 / 11)` autopilot, `(42 / 8)` compositor).
+- COMMITS fbe2adb (S2b.1 deckIsPlaying fix), 740f0b2 (S2b.2 RoutineSlice v2), 0cc35a4 (S2b.3 tests, 18 targets).
+- 20:25 test_composition GREEN `All tests passed (369 assertions in 28 test cases)` (4.B :1322 imagePaths applied + a
+  NEW SECTION for a non-shown deck; duplicateDeck: rows only -- its layer-id / pending-trigger checks are 4.B
+  omissions, plan S2.3 "there is no tuple to clear any more").
+- 20:32 test_undo_commands: 81 -> 82 cases. FOUND (src, S2a): `REQUIRE( comp.getNumLayers() == 3 )` -> `4 == 3` in
+  "RemoveLayerCmd: stale coordinate is a safe no-op": its undo inserted the layer even when execute had refused. Fix
+  (erased_ flag). Then `All tests passed (575 assertions in 82 test cases)`.
+- 20:34 FIRST FULL BUILD of the window's end: `cmake --build build-lane -j3 -- -k` rc=0, 0 error lines (build1.log):
+  the app + all test targets build. ctest (`ctest --test-dir build-lane -j3 --output-on-failure`, ctest1.log):
+  `99% tests passed, 3 tests failed out of 1121` -- #690 RoutineDeckView off-deck (a 4.B omission: plan S2.9 / F9 make
+  bands show whatever deck is shown; re-pointed), #1088 tuple-load pins (re-pinned), #1089 Persistent lint
+  (allow-list ShowMigration.h). Rig slip: that ctest command line began with `cd <worktree> 2>/dev/null; true;`
+  (no effect on the run; not repeated).
+- 20:37 test_render_thread_lint: re-pins + B4e + NEW B4f, `All tests passed (656 assertions in 4 test cases)`. RED vs
+  STAGE_P_HEAD 3dac692's src (scratchpad red_lint.sh): every new / changed check FAILS; B4f teeth (an extra
+  `c.decks.push_back` in a src copy): `core/MediaPresence.h: 1 (pinned 0)`, case FAILED.
+- COMMITS 10c80a9 (S2b.4 RemoveLayerCmd undo fix), fd1bc5e (S2b.5 tests + lint).
+- 20:39 refactor for testability (no behaviour change): recording Program pinnedDeckIndex (dispatch.fire's pinned
+  deck) + NEW binding/BindingTarget.h resolveBindingTarget (handleBindingAction's target) -- so T13 / T16 / MS6 drive
+  the code the app runs. App build rc 0 (20:40:16).
+- 20:43-20:48 test_show_model: + T1 (two cases: the 6-deck fingerprint over the walk / SwitchDeckCmd / headless
+  DeckView::showDeck walk 0 -> 5 -> 0 with same-object strips / Add-Insert-Remove Deck execute-undo-redo, with a
+  routine running and queues on two layers; and a 20-deck walk), T4, T5, T6, T6c, T6d, T6e, T7 (+ amendment 22),
+  T7b, T8, T11, T12, T13, T14, T16, M1-M7. Link set widened (commands, UndoService headless branch -- its Renderer
+  calls are inline, Autopilot, RoutineEngine set, DeckView set, MidiOutputHandler). `All tests passed (16818
+  assertions in 28 test cases)`. RED: the file against STAGE_P_HEAD 3dac692's src (red_show.sh, test_show_model's own
+  flags, -fsyntax-only): `tests/test_show_model.cpp:12:10: fatal error: 'model/ShowMigration.h' file not found`.
+- 20:49-20:50 FULL BUILD `cmake --build build-lane -j3 -- -k` rc=0, 0 error lines, 0 warning lines (build2.log,
+  incremental). FULL CTEST (`ctest --test-dir build-lane -j3 --output-on-failure`, ctest2.log), VERBATIM:
+  `100% tests passed, 0 tests failed out of 1145` / `Total Test time (real) =  33.78 sec`.
+- COMMITS f8b6f3a (S2b.6 refactor), a269971 (S2b.7 test_show_model).
+- 20:51 B3 TSAN: .harmony/probe-tsan-unit.sh EXPECTED_TSAN_CASES 4 -> 5 (TARGETS unchanged); build-tsan reconfigured
+  (`cmake -S <wt> -B <wt>/build-tsan` rc 0); probe exit 0 (scratchpad tsan-s2b.log), every non-compiler line VERBATIM:
+```
+probe-tsan-unit: build test_layer_runtime_race test_manual_scalar_race 2026-10-02 20:51:27
+probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)
+probe-tsan-unit: ctest -L tsan 2026-10-02 20:51:37
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf9b/build-tsan
+    Start 111: R1 message-thread triggers vs render clock / autopilot on one deck
+1/5 Test #111: R1 message-thread triggers vs render clock / autopilot on one deck ..........   Passed    0.31 sec
+    Start 112: R2 clip runtime fields: trigger writes vs render transport write-back
+2/5 Test #112: R2 clip runtime fields: trigger writes vs render transport write-back .......   Passed    0.33 sec
+    Start 113: R4 tuple consistency and no lost fade under a paced trigger storm
+3/5 Test #113: R4 tuple consistency and no lost fade under a paced trigger storm ...........   Passed    0.26 sec
+    Start 114: R-bf9b fenced box and stack edits vs the GL resolve of refs into any deck
+4/5 Test #114: R-bf9b fenced box and stack edits vs the GL resolve of refs into any deck ...   Passed    0.29 sec
+    Start 115: R3 manual scalar writes vs eff() reads
+5/5 Test #115: R3 manual scalar writes vs eff() reads ......................................   Passed    0.24 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Label Time Summary:
+tsan    =   1.42 sec*proc (5 tests)
+
+Total Test time (real) =   1.43 sec
+probe-tsan-unit: ctest rc=0 2026-10-02 20:51:39
+```
+  "WARNING: ThreadSanitizer" count in the log: 0. The TSan binary is fresh (20:51:32 > the test source 20:14:12); a
+  direct rerun of the R-bf9b case under TSan: `All tests passed (15 assertions in 1 test case)`.
+- 20:54 NEW lint case "bf9b B4d / H2: a deck switch path touches nothing that plays (smoke, one level)" (ruling-bf10 H2
+  via the plan's adoption item 2): GREEN `All tests passed (674 assertions in 5 test cases)`; RED vs STAGE_P_HEAD src:
+  handleDeckSwitch / onDeckSwitched / SwitchDeckCmd::apply FAIL. COMMIT c7ddff3 (S2b.8, + EXPECTED_TSAN_CASES 5).
+
+### MUTATION SMOKES (ruling-bf9b amendment 13) -- 20:54:31-20:55:42, scratchpad mutants.py / mutants.log
+Each mutant is an edit of a COPY of the tree (scratchpad mut/tree, rsync of src / tests / cmake / resources /
+CMakeLists.txt) built by a normal cmake build in its own build dir (mut/build, configured like build-lane); the
+worktree is never edited. After the run the copy's files are restored (sha256 before == after: True), `diff -r` of
+the copy's src vs the worktree's src is empty, `git diff -- src tests` in the worktree is 0 lines, and the restored
+copy rebuilds and passes (`All tests passed (16818 assertions in 28 test cases)`, `All tests passed (2475 assertions in 17 test cases)`).
+| mutant | edit (copy) | named tests | result (raw) |
+|---|---|---|---|
+| MS1 the shown-deck switch cancels the leaving deck's queued triggers | SwitchDeckCmd::apply: cancelPendingInto(leaving deck) | T5, T1 | `MS1 [T5*] rc=42: test cases: 1 \| 1 failed`; `MS1 [T1 every deck-switch*] rc=42: test cases:  1 \|  0 passed \| 1 failed` |
+| MS2 clipAt ignores ref.deckId (the shown deck) | both Composition::clipAt overloads resolve in getActiveDeck() | T2, T9 | `MS2 [T2*] rc=42: test cases: 1 \| 1 failed`; `MS2 [T9*] rc=42: test cases:  1 \|  0 passed \| 1 failed` |
+| MS3 pack writes the no-deck field in every slot | packSlot 0xFFFF + packPending 0x3FFF whatever the deck | S1 packing case, bijection case | `rc=42: test cases:  1 \|  0 passed \|  1 failed`; `rc=42: test cases:    1 \|    0 passed \|   1 failed` |
+| MS4 the switch completes every fade | SwitchDeckCmd::apply sets crossfadeProgress 1 on every layer | T1 | `MS4 [T1 every deck-switch*] rc=42: test cases:  1 \|  0 passed \| 1 failed` |
+| MS5 reapRetiredDecks ignores previous refs | reapRetiredDecks keeps a deck only for an ACTIVE ref | T6c | `MS5 [T6c*] rc=42: test cases:  1 \|  0 passed \| 1 failed` |
+| MS6 dispatch.fire resolves by target index | pinnedDeckIndex returns target.deck | T13 | `MS6 [T13*] rc=42: test cases:  1 \|  0 passed \| 1 failed` |
+| MS7 the strip badge shows the shown deck | -- | the S3 badge case | NOT RUN: the badge (S3.1) does not exist yet -- S3's builder records MS7 |
+Every mutation made its named tests FAIL (no STOP).
+
+### B2 bookkeeping vs STAGE_P_HEAD (names diffed: S0's ctest-head.log vs `ctest -N` now, scratchpad added.txt / retired.txt)
+count(STAGE_P_HEAD) 1117 + added 47 - retired 18 = 1146 == `ctest -N` "Total Tests: 1146" (1145 at the 20:50 run + the
+B4d / H2 lint case added after it).
+- RETIRED 18: test_deck_clock (a), (b), (c), (d), (f) (4.B: DeckClock / AutopilotBank deleted); and 13 RENAMED (old
+  name retired, new name added, the same case): "AddDeckCmd: cancels ..." / "InsertDeckCmd: cancels ..." /
+  "SwitchDeckCmd: cancels ..." / "RemoveDeckCmd: undo cancels ..." x2 (4.B: now "... untouched"); "a queued trigger
+  cancelled by cancelPendingTriggers ..." (4.B :156 -> cancelPendingInto); "Deck layer management" -> "Layer
+  management on the shared stack"; "Deck::fromVar bumps the layer-id mint ..." -> "Composition::fromVar bumps ...";
+  "Deck::triggerColumn: forced snap ..." -> "Composition::triggerColumn: forced snap ..."; "compload::imagePaths ..."
+  (4.B :1322); "compload::duplicateDeck ... and no queued trigger" -> "... (a deck holds no tuple)"; "RoutineDeckView
+  off-deck ..." -> "RoutineDeckView fired from another deck ..."; "RoutineEngine display D3 ... of that deck ..." ->
+  "... on that shared layer ...". (test_deck_clock (e) kept its name in test_layer_clock.)
+- ADDED 34 new: S1's 2 (packing, bijection); test_show_model 28 (T1 x2, T2-T16 with T6c / T6d / T6e / T7b, M1-M7);
+  "ClearLayerClipsCmd: a layer playing another deck's clip keeps playing (bf9b)"; "R-bf9b fenced box and stack edits
+  ..." [tsan]; "bf9b: box / stack structure writers sit only in audited sites (pinned counts)" (B4f); "bf9b B4d / H2:
+  a deck switch path touches nothing that plays (smoke, one level)". (+ the 13 renames above = 47.)
+Required present and passing: S1 packing + bijection; T1 (amendment 12); T2-T5; T6 incl. T6c-e; T7 incl. T7b; T8-T10;
+T11 (amendment 7); T12; T13-T16; M1-M7; test_layer_clock (e); test_render_thread_lint incl. B4f with its pins
+re-justified (S2b.5 commit). The S3 badge / tab-dot / grid / snapshot / contrast cases are S3's.
+
+### FENCE AUDIT TABLE at this head (B4f pins; the S2a table at 2db77eb holds, lines now +1 in MainComponent.cpp after
+the S2b include; DeckCommands.h +2 after the S2b.4 fix) -- the B4f regex adds insertLayerWithRows / insertDeckKeepingId
+(S2a deviation 3(a), decided here); every site and its fence:
+| file (count) | lines | fence |
+|---|---|---|
+| MainComponent.cpp (25) | 801, 888, 987, 1004, 1116, 1142, 1194, 1213, 1283, 1285, 1359, 1361, 1584, 5319, 5471, 6631, 6632, 6715, 6716, 6825, 6849, 6889 | withDeckDetached (the S2a table's sites, +1); 2945 / 3794 / 5242 = ClipInspector::setClip (a UI setter) |
+| core/ClipCommands.h (2) | 113, 252 | SetClipCmd / SwapClipsCmd apply: runFenced (DeckFenceHook) |
+| core/CompositionLoad.h (1) | 46 | validateDeck: a staged, unpublished deck / composition (Pitfall 58) or a headless test |
+| core/DeckCommands.h (22) | 75, 126, 153 (column cmds), 251 (a local snapshot `s.clips.assign`), 494, 500, 510 (AddLayerCmd), 568, 587 (RemoveLayerCmd execute / undo insertLayerWithRows), 638 (MoveLayerCmd), 695 (AddDeckCmd redo insertDeckKeepingId), 704, 725 (AddDeckCmd), 785, 786 (InsertDeckCmd redo insertLayer + insertDeckKeepingId), 814, 816, 832, 834 (InsertDeckCmd), 915, 943, 945 (RemoveDeckCmd execute / undo restoreRetiredDeck + insertDeckKeepingId) | runFenced (DeckFenceHook = UndoService::withDeckDetached in the app); 251 n/a |
+| core/UndoService.cpp (2) | 70, 112 | reapRetiredDecks inside withDeckDetached itself |
+| recording/RoutineEngine.cpp (2) | 68, 77 | a local Footprint vector `layers` (n/a) |
+| ui/ClipCell.cpp / .h, ui/ClipInspector.cpp / .h, ui/InspectorPanel.cpp (1 each), ui/DeckView.cpp (2: 190, 286) | -- | UI setClip setters (n/a, regex over-count, ruling risk R-3) |
+Not matched by the regex (listed so the audit is complete): Composition::fromVar / normalizeRows / padRows (a staged
+composition: CompositionLoad validateComposition, or appendDeck's pad inside the callers' fences);
+MainComponent's `composition_ = std::move(...)` and `initDefault()` inside swapCompositionModel's withDeckDetached; the
+constructor's initDefault before any setActiveDeck.
+- 20:56 test_tempo_start fixture -> Composition::initDefault (it compiled with a bare deck and NO shared layer; passes
+  either way: no layer is read) `All tests passed (311 assertions in 13 test cases)`. COMMIT bb5d84e (S2b.9).
+
+### S2b deviations / decisions (for the reviewer and Harmony)
+1. THREE src bugs of S2a found by the S2b tests and fixed, RED-first (each its own commit):
+   (a) fbe2adb Composition::deckIsPlaying -- a Cut (transitionSpeed <= 0; the layer DEFAULT is -1) or a clear leaves
+       `previous` at progress 1, so a retired deck was never reaped once replaced; previous now counts only while
+       crossfadeProgress < 1 (amendment 4(b) / R-F6's intent). Affects K9a/b/c and Boris page 8.5.
+   (b) 740f0b2 RoutineSlice read a v2 take's layer settings from checkpoint0.decks (v1 shape): a routine sliced from a
+       take recorded since S2a restored the wrong look.
+   (c) 10c80a9 RemoveLayerCmd::undo inserted a layer even after its execute refused.
+2. Two extractions for testability, no behaviour change (f8b6f3a): pinnedDeckIndex (recording/Program) and
+   binding/BindingTarget.h -- so T13 / T16 / MS6 drive the code the app runs (amendments 6 / 20 and 13).
+3. 4.B OMISSIONS -- assertions the plan body makes impossible but 4.B does not list. Each was re-pointed to the plan
+   body (not left red) and is listed here for Harmony to rule (a revert is per-hunk):
+   - test_routine_engine D3 "another deck: nothing" step removed (plan S2.9 / F9: stopOnLayer(layer) has no deck).
+   - test_routine_deck_view "off-deck" case -> bands on the shared layers whatever deck is shown, no corner note (plan
+     S2.9 / F9; S2a deviation 16).
+   - test_composition duplicateDeck: its layer-id and queued-trigger checks removed (plan S2.3: a deck holds no
+     layers and no tuple); rows / re-mint checks kept.
+   - test_undo_commands: TriggerClipCmd's "stale DECK index" sub-steps -> a stale composition / stale layer index (plan
+     S2.4: a trigger addresses the shared layer; plan R9 accepts an undo naming a reaped deck); AddLayerCmd /
+     MoveLayerCmd "stale DECK index" -> null composition / stale layer index; RemoveLayerCmd "stale DECK" -> stale
+     layer index.
+   - test_layer_state_key case 1: its premise (layer ids repeat across decks) is gone; the two-half key function is
+     still pinned with two stack halves over the show's layer ids.
+   - test_recorder_host [perfstate] / test_program_preamble rr-fix: shared-layer settings read from PerfState v2
+     `layers` (plan S2.9 "PerfStateCapture captures the shared layers once and, per deck, only clip runtime").
+4. Expected tuples in test_layer_runtime / test_undo_commands carry deck ids (the tuple's type changed in S1/S2;
+   every value is the old one plus "deck 0 for a column, none for -1").
+5. B4f regex = the ruling's + insertLayerWithRows / insertDeckKeepingId (S2a deviation 3(a), decided: they are
+   structure writers of the same class). Pinned map: DeckCommands.h 22 (was 18 + those 4).
+6. Tuple-load lint: Composition::playing( / playingClip( counted as the successor spelling of getActiveClip( (one
+   runtime() load inside) -- otherwise the GL thread's Autopilot / compositor / playlist loads would go unpinned.
+7. T1's DeckView walk and every deck command run headless; the command steps call execute / undo / execute directly
+   (not through UndoManager) so the fingerprint's history size is a constant of the walk; UndoService is linked into
+   test_show_model (its Renderer calls are inline; no renderer is ever set).
+8. T5 / T1 switch through SwitchDeckCmd (the model's switch command) so MS1 / MS4 bite; S2c deletes SwitchDeckCmd ->
+   S2c must re-point T5's switch (and T1's SwitchDeckCmd section) to the remaining model-level switch (the index +
+   DeckView::showDeck) and re-run MS1 / MS4 against it.
+9. Mutation smokes ran on a COPY of the tree in its own build dir (never the deliverable; Iron Law 7).
+10. MS7 not run: the strip badge is S3's (S3 records MS7).
+11. H1 (m9b_deck_switch_live): bf10 has not merged -> a follow-up row for S4 / bf10's probe-milkdrop.py. H2: the
+    B4d / H2 smoke lint (c7ddff3). H3: implemented in S2a (Renderer's playlist loop walks the shared layers'
+    playingClip inside the deckActive gate); pinned by the tuple-load lint (Renderer.cpp playingClip 1).
+12. Rig slips (no effect): one read-only command began `cd /dev/null`; the 20:34 ctest command began
+    `cd <worktree> 2>/dev/null; true;`. Neither repeated.
+13. probe-routines.sh was NOT run: it quits by name (osascript quit "Audio-DNA" + adna_kill), which the rig forbids
+    (a Boris app could be quit); Harmony's merge gate runs it with its own safety.
+
+### found_not_fixed (S2b)
+- .harmony/probe-routines.sh (and other pre-S0 probes) still quit / kill by app name -- outside this lane's fence; a
+  probe-safety follow-up (S0's quit_ours covers probe-render-state / probe-deck-clock only).
+- K-row note for S4: the Cut-transition reap fix (S2b.1) is what makes K9b's "duplicate_deck reaps the retired deck"
+  hold when a layer leaves a deck by a Cut; K9a/b fixtures that use Dissolve are unaffected.
+
+### B1 / B2 at the S2b head bb5d84e (the window CLOSES here: app + every test target build)
+- B1: `cmake --build build-lane -j3 -- -k` 20:57:43-20:57:48 rc=0, 0 error lines (build3.log; incremental after the
+  20:49 full build of the same tree minus S2b.8 / S2b.9's test files). Per S2b commit: fbe2adb / 740f0b2 / 0cc35a4 /
+  10c80a9 / fd1bc5e sit inside the sanctioned window (their trees built every target I had fixed so far; the window
+  closed at fd1bc5e: the 20:34 full -k build of that content was rc 0); f8b6f3a app rc 0 (20:40:16); a269971 /
+  c7ddff3 / bb5d84e: full builds rc 0 (20:50:14, 20:57:48).
+- B2: `ctest --test-dir build-lane -j3 --output-on-failure` 20:57:48-20:58:21 (ctest3.log), VERBATIM:
+  `100% tests passed, 0 tests failed out of 1146` / `Total Test time (real) =  33.09 sec`.
+- B3: 5 / 5 at c7ddff3's tree (above; the S2b.9 change touches no [tsan] target).
+- B4 smokes at bb5d84e (code lines, `//` stripped): B4a hits = TopBar.cpp:197 / :204 + Composition.h:144 / :232
+  (`globalTransitionSpeed`: the TopBar Fade slider's field until S3.3 deletes that half -- unchanged since S2a) and
+  ShowMigration.h:166 / :168 (the allowed JSON key literals); 0 other. B4b: 0 hits. B4c / B4d: unchanged since S2a (B4d
+  now also a ctest smoke). B4e / B4f: ctest PASS.
+
+### LIVE SMOKE at the S2b app (build-lane, bb5d84e's src; scratchpad bf9b-S2b/smoke1.sh -> live/smoke1.log)
+Lock bf9b-S2b (waited for bf2-S2's lock 20:55:57-21:01:38), production port, `open -g` via start_app, quit via
+quit_app. NOT a gate (the K rows are S4's); it shows the S2b src fixes / extractions did not break the app.
+```
+21:01:38 lock acquired
+21:01:38 ps top:
+ 59.2       00:01 bash
+ 23.6 06-08:18:25 /usr/libexec/knowledge-agent
+  7.5    07:12:57 claude
+  6.6 06-08:18:28 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  3.1 06-08:18:23 /Applications/Ghostty.app/Contents/MacOS/ghostty
+21:01:42 app up: 81771
+===== GET /api/composition (default show)
+top-level keys: ['activeDeck', 'decks', 'layers', 'numDecks', 'retiredDeckCount']
+shared layers: [(0, 0, 'Layer 1', {'deck': -1, 'deckId': -1, 'column': -1, 'clipId': -1, 'retired': False}), (1, 1, 'Layer 2', {'deck': -1, 'deckId': -1, 'column': -1, 'clipId': -1, 'retired': False}), (2, 2, 'Layer 3', {'deck': -1, 'deckId': -1, 'column': -1, 'clipId': -1, 'retired': False})]
+retiredDeckCount: 0 numDecks: 1
+deck0 mirror layers: 3 [(0, -1), (1, -1), (2, -1)]
+===== probe-crossfade.py (an OLD-format show POST: exercises the converter + triggers + crossfades)
+...
+PY 35 PASS / 0 FAIL
+probe rc=0
+===== after: GET /api/composition
+shared layers: [(0, 0, 'L1', 0, 0)]
+decks: [('A', 0, 1)] retired: 0
+app running after quit: no
+audio-dna windows 0, Output-named 0
+21:04:02 lock released
+UserNotificationCenter windows 0
+21:04:18
+smoke exit=0
+```
+The unchanged probe-crossfade.py (an OLD-format show POSTed -> the converter; triggers; crossfades; pixel decode):
+`PY 35 PASS / 0 FAIL`, rc 0. LOOKED at live/smoke1/xf/a_both_effected_mid04.png: a mid-dissolve of the two effected
+pictures, both visible, no black frame. Output-named windows 0; UserNotificationCenter windows 0 at 21:04:18 (16 s
+after the quit). An Audio-DNA pid 69891 was running at 21:04:25 -- NOT this lane's (ours was 81771, quit at 21:04:02;
+the lock had passed on): untouched.
+
+## S2b RESULT
+S2b DONE: the sanctioned non-building window is CLOSED -- the app and every test target build (B1 rc 0), ctest
+`100% tests passed, 0 tests failed out of 1146` (B2: 1117 + 47 - 18), B3 TSAN 5 / 5 with the new R-bf9b case and 0
+TSan warnings, B4e (one allow-listed file) and B4f (pinned structure writers) in ctest, the B4d / H2 smoke lint in
+ctest, mutation smokes MS1-MS6 each fail their named tests (MS7 is S3's). Three S2a src bugs found by the new tests and
+fixed RED-first (deckIsPlaying after a Cut, RoutineSlice v2 checkpoint, RemoveLayerCmd undo after a refusal). The
+4.B omissions in "S2b deviations 3" need Harmony's ruling (applied per the plan body, revertible per hunk).
+
+## Resume point (for the S2c builder)
+S2b is complete at bb5d84e (+ this report commit). Next: S2c = ruling-bf9b amendment 10 ONLY (one separable commit):
+onDeckSwitched's body becomes exactly `handleDeckSwitch(deckIdx);` (MainComponent.cpp, the `deckView_->onDeckSwitched
+= [this](int deckIdx) {` lambda ~:1375); SwitchDeckCmd and its cases are deleted (DeckCommands.h class SwitchDeckCmd
+~:980; test_undo_commands "SwitchDeckCmd: switch + undo ..." / "SwitchDeckCmd: double-switch redo chain ..." retired,
+the SwitchDeckCmd lines inside "Deck commands no-op on stale coordinates (never crash)" [undo][deck][resolve] deleted
+(the case stays), "SwitchDeckCmd: leaves a queued trigger untouched on execute, undo and redo (bf9b)" retired).
+ALSO re-point (S2b deviation 8): test_show_model T5 (it switches through SwitchDeckCmd) and T1's "the model-level
+shown-deck walk 0 -> 1 -> 0 and SwitchDeckCmd ..." SECTION, and test_render_thread_lint's B4d / H2 site list (drop the
+"class SwitchDeckCmd" / "void apply(int index)" site); re-run MS1 / MS4 against the remaining switch path
+(DeckView::showDeck -- T1's headless DeckView walk is the net there) and record. B4a gains zero `SwitchDeckCmd`; B4g =
+onDeckSwitched's body is exactly `handleDeckSwitch(deckIdx);` (add it to the B4d / H2 lint case or a sibling).
+Tools left in the scratchpad: bf9b-S2b/build_all.sh (target build + error count), errs.sh (full error list of one
+test TU), red_lint.sh / red_show.sh (RED vs an old sha's src), mutants.py + mut/tree + mut/build (a configured copy:
+rsync the worktree's src / tests / CMakeLists.txt into mut/tree before reuse). Arms unchanged: STAGE_P =
+scratchpad/bf9b-S0/apps/stagep-head.app, C0 = apps/base-c0.app. Do not rebase until Harmony says (main has hyg +
+mkvidx; ui merges next).
+INBOX-RECHECK: none
+
+## Notes for .harmony/notebook.md (Harmony appends) -- S2b
+- bf9b: a Cut (transitionSpeed <= 0 -- the Layer default -1) or a clear leaves the tuple's `previous` naming the old
+  clip at crossfadeProgress 1; "is this deck playing" must ignore a previous ref unless progress < 1. | discovered:
+  src/model/Composition.h deckIsPlaying
+- bf9b: PerfState v2 keeps the shared layers' settings in `layers`; any checkpoint reader (Program preamble,
+  RoutineSlice) must read v2 `layers` first and only fall back to decks[deck].layers for a v1 take. | discovered:
+  src/recording/RoutineSlice.cpp checkpointLayerSettings
+- tests: UndoService.cpp links headless (its Renderer calls are inline) -- a unit test can drive withDeckDetached's
+  reap + onDecksReaped without a renderer. | discovered: tests/CMakeLists.txt test_show_model
+- tests: a mutation smoke can run on an rsync'd COPY of src / tests / cmake / resources / CMakeLists.txt configured in
+  its own build dir (~1.5 min for test_show_model + test_layer_runtime) -- the deliverable is never edited. |
+  discovered: scratchpad bf9b-S2b/mutants.py
