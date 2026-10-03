@@ -1,0 +1,9 @@
+== perf_md_1080
+   A: fps 101.58, fps_min 89.37, frame_ms 7.284, gpu_ms 6.278, gpu_peak_ms 18.858 (n 5)
+   B: fps 101.08, fps_min 93.38, frame_ms 4.085, gpu_ms 5.995, gpu_peak_ms 16.203 (n 5)
+== perf_md_1080_2l
+   A: fps 119.93, fps_min 119.71, frame_ms 6.208, gpu_ms 5.827, gpu_peak_ms 9.045 (n 5)
+   B: fps 120.0, fps_min 119.92, frame_ms 4.205, gpu_ms 5.848, gpu_peak_ms 9.236 (n 5)
+== perf_md_4k
+   A: fps 71.68, fps_min 70.71, frame_ms 7.817, gpu_ms 11.674, gpu_peak_ms 14.948 (n 5)
+   B: fps 79.29, fps_min 77.02, frame_ms 2.556, gpu_ms 10.843, gpu_peak_ms 12.448 (n 5)

@@ -1,0 +1,23 @@
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/perf2/runs/milkdrop.t1eOWz
+mode: lane arm: ? attach: 0
+20:49:03 app up: 73681 
+--- perf_md_1080
+DATA perf_md_1080 fps=105.24 fps_min=100.92 frame_ms=3.927 gpu_ms=5.995 gpu_peak_ms=15.154
+      perf_md_1080: PNG (1920, 1080) alpha255=100.00%; load avg 6.84 6.08 5.81; top cpu: 81.6 00:15 Audio-DNA | 48.1 01:02 bash | 41.4 06-08:06:04 WindowServer | 14.9 00:11 Python | 11.4 06-08:06:04 coreaudiod
+PASS  perf_md_1080: perf DATA above (G3: .harmony/probe-milkdrop-ab.py applies the bars)
+--- perf_md_4k
+DATA perf_md_4k fps=79.29 fps_min=77.02 frame_ms=2.556 gpu_ms=10.843 gpu_peak_ms=11.935
+      perf_md_4k: PNG (3840, 2160) alpha255=100.00%; load avg 6.47 6.03 5.79; top cpu: 68.9 00:25 Audio-DNA | 39.7 00:00 bash | 23.0 06-08:06:14 WindowServer | 18.4 00:21 Python | 13.0 06-08:06:14 coreaudiod
+PASS  perf_md_4k: perf DATA above (G3: .harmony/probe-milkdrop-ab.py applies the bars)
+--- perf_md_1080_2l
+DATA perf_md_1080_2l fps=115.96 fps_min=104.90 frame_ms=4.805 gpu_ms=6.161 gpu_peak_ms=14.955
+      perf_md_1080_2l: PNG (1920, 1080) alpha255=100.00%; load avg 6.41 6.03 5.80; top cpu: 97.6 00:03 clang | 94.0 00:36 Audio-DNA | 45.8 00:00 (ld) | 39.9 06-08:06:25 WindowServer | 11.9 06-08:06:25 coreaudiod
+PASS  perf_md_1080_2l: perf DATA above (G3: .harmony/probe-milkdrop-ab.py applies the bars)
+
+PY 0 PASS / 0 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+app running after quit: no
+PASS  app terminated
+
+PROBE-MILKDROP GREEN

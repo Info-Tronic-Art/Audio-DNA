@@ -1,0 +1,28 @@
+A = /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/apps/pre-ui.app (e510790c77466f23)
+B = /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app (b64e94db137e5a7f)
+20:24:33 [r1 A] start: load avg { 6.73 6.74 6.34 }
+20:25:12 [r1 A] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.75 6.50 6.27 }, PROBE-MILKDROP GREEN
+20:25:12 [r1 A] start: load avg { 5.75 6.50 6.27 }
+20:25:50 [r1 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.25 6.30 6.21 }, PROBE-MILKDROP GREEN
+20:25:50 [r1 B] start: load avg { 5.25 6.30 6.21 }
+20:26:29 [r1 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.75 6.06 6.12 }, PROBE-MILKDROP GREEN
+20:26:29 [r2 A] start: load avg { 4.75 6.06 6.12 }
+20:27:08 [r2 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.09 6.01 6.10 }, PROBE-MILKDROP GREEN
+20:27:08 [r2 B] start: load avg { 5.09 6.01 6.10 }
+20:27:47 [r2 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.05 5.89 6.06 }, PROBE-MILKDROP GREEN
+20:27:47 [r3 A] start: load avg { 5.05 5.89 6.06 }
+20:28:26 [r3 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.57 5.91 6.05 }, PROBE-MILKDROP GREEN
+20:28:26 [r3 B] start: load avg { 5.57 5.91 6.05 }
+20:29:05 [r3 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.41 5.81 6.01 }, PROBE-MILKDROP GREEN
+20:29:05 [r4 A] start: load avg { 5.41 5.81 6.01 }
+20:29:44 [r4 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.49 5.52 5.89 }, PROBE-MILKDROP GREEN
+20:29:44 [r4 B] start: load avg { 4.49 5.52 5.89 }
+20:30:23 [r4 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 6.05 5.78 5.97 }, PROBE-MILKDROP GREEN
+20:30:23 [r5 A] start: load avg { 6.05 5.78 5.97 }
+20:31:02 [r5 A] rc 0, compilers seen 3, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.56 5.70 5.93 }, PROBE-MILKDROP GREEN
+20:34:27 [r5 A] start: load avg { 5.36 5.55 5.81 }
+20:35:05 [r5 A] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.29 5.56 5.80 }, PROBE-MILKDROP GREEN
+20:35:05 [r5 B] start: load avg { 5.29 5.56 5.80 }
+20:35:44 [r5 B] rc 0, compilers seen 1, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 4.88 5.43 5.75 }, PROBE-MILKDROP GREEN
+20:35:44 [r5 B] start: load avg { 4.88 5.43 5.75 }
+20:36:22 [r5 B] rc 0, compilers seen 0, burners seen 0, UserNotificationCenter windows 0, audio-dna windows 0, Output-named 0, end load avg { 5.79 5.62 5.80 }, PROBE-MILKDROP GREEN

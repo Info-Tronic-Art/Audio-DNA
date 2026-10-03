@@ -1,0 +1,23 @@
+app: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/apps/pre-ui.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/perf1/runs/milkdrop.pcfttH
+mode: lane arm: ? attach: 0
+20:25:16 app up: 87068 
+--- perf_md_1080
+DATA perf_md_1080 fps=85.65 fps_min=82.04 frame_ms=8.692 gpu_ms=6.816 gpu_peak_ms=18.690
+      perf_md_1080: PNG (1920, 1080) alpha255=30.63%; load avg 5.55 6.41 6.25; top cpu: 61.4 00:14 Audio-DNA | 44.6 06-07:42:17 WindowServer | 10.0 06-07:42:17 coreaudiod | 8.8 06:36:46 claude | 8.6 06-07:42:13 callservicesd
+PASS  perf_md_1080: perf DATA above (G3: .harmony/probe-milkdrop-ab.py applies the bars)
+--- perf_md_4k
+DATA perf_md_4k fps=75.30 fps_min=71.41 frame_ms=7.398 gpu_ms=11.001 gpu_peak_ms=12.395
+      perf_md_4k: PNG (3840, 2160) alpha255=7.66%; load avg 5.84 6.45 6.26; top cpu: 46.0 06-07:42:28 WindowServer | 45.9 00:25 Audio-DNA | 18.3 00:22 Python | 12.3 06-07:42:28 coreaudiod | 9.8 06-07:42:24 callservicesd
+PASS  perf_md_4k: perf DATA above (G3: .harmony/probe-milkdrop-ab.py applies the bars)
+--- perf_md_1080_2l
+DATA perf_md_1080_2l fps=119.43 fps_min=117.88 frame_ms=6.175 gpu_ms=5.661 gpu_peak_ms=8.254
+      perf_md_1080_2l: PNG (1920, 1080) alpha255=30.63%; load avg 5.25 6.30 6.21; top cpu: 73.3 00:35 Audio-DNA | 42.8 06-07:42:38 WindowServer | 11.0 06-07:42:38 coreaudiod | 8.3 18:06 FaceTimeNotificationExtension | 7.9 06-07:42:34 callservicesd
+PASS  perf_md_1080_2l: perf DATA above (G3: .harmony/probe-milkdrop-ab.py applies the bars)
+
+PY 0 PASS / 0 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+app running after quit: no
+PASS  app terminated
+
+PROBE-MILKDROP GREEN

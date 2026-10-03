@@ -1,0 +1,17 @@
+perf_md_1080: rounds 10
+  fps    median A 90.39  median B 96.69  median d +1.12  spread(d) 34.86   per round A [85.7, 90.3, 92.0, 88.2, 82.4, 89.0, 90.5, 109.6, 101.6, 105.4] B [89.0, 88.2, 87.1, 92.9, 108.8, 92.7, 105.2, 101.1, 100.5, 102.5]
+  gpu_ms median A 6.481  median B 6.015  median d -0.321  spread(d) 2.472   per round A [6.82, 6.47, 6.49, 6.99, 8.03, 6.89, 6.31, 5.94, 6.28, 6.26] B [6.16, 6.22, 6.17, 5.82, 5.58, 5.85, 6.0, 5.87, 6.31, 6.04]
+  (a) median fps_B 96.69 >= 58 (median fps_A 90.39 >= 58) -> PASS
+  (b) d_gpu: median d -0.321 (bar <= +1.0), spread(d) 2.472 (decidable iff <= 2.0) -> UNPROVEN
+  verdict: UNPROVEN
+perf_md_4k: rounds 10
+  fps    median A 73.81  median B 75.34  median d -0.10  spread(d) 10.69   per round A [75.3, 75.5, 74.3, 72.9, 73.3, 71.2, 71.7, 68.6, 80.6, 80.7] B [75.5, 75.2, 73.1, 72.4, 73.2, 71.9, 79.3, 78.1, 80.5, 79.8]
+  gpu_ms median A 11.297  median B 11.023  median d -0.033  spread(d) 3.367   per round A [11.0, 11.02, 11.17, 11.54, 11.42, 11.79, 11.67, 13.93, 10.71, 10.64] B [10.96, 11.02, 11.64, 11.6, 11.4, 11.7, 10.84, 11.03, 10.67, 10.69]
+  (a) d_gpu: median d -0.033 (bar <= +2.0), spread(d) 3.367 (decidable iff <= 4.0) -> PASS
+  (b) d_fps: median d -0.100 (bar >= -3.0), spread(d) 10.690 (decidable iff <= 6.0) -> UNPROVEN
+  verdict: UNPROVEN
+perf_md_1080_2l: rounds 10
+  fps    median A 119.80  median B 119.95  median d +0.11  spread(d) 6.37   per round A [119.4, 118.2, 119.6, 120.0, 119.8, 119.8, 119.9, 120.0, 117.6, 120.0] B [118.5, 118.7, 119.9, 120.0, 120.0, 120.0, 116.0, 119.0, 120.0, 120.0]
+  gpu_ms median A 5.764  median B 5.817  median d +0.022  spread(d) 0.384   per round A [5.66, 5.78, 5.84, 5.75, 5.63, 5.68, 5.83, 5.74, 5.88, 5.88] B [5.72, 5.75, 5.83, 5.8, 5.59, 5.81, 6.16, 5.85, 5.85, 5.83]
+  verdict: INFO (no gate)
+G3 perf_md_1080=UNPROVEN perf_md_4k=UNPROVEN perf_md_1080_2l=INFO
