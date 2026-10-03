@@ -102,6 +102,14 @@ the defaults, "load, then update one param" renders defaults + that param. The T
 256x256 pin the composition to 256x256 for their module (`conftest.py` `tier1_canvas_256`): with the composition and
 the capture lock the same size the canvas never resizes between captures, so stateful sources keep their state.
 
+**MilkDrop captures (BF10, s-rta-1002b, Pitfall 66).** Set the canvas with `set_composition_params`, wait >= 1.5 s, then
+`render_frame` WITHOUT a width/height override: a canvas change re-creates projectM's buffers (its trails restart; the
+first frames can be black or a bright flash). After `load_milkdrop_preset`, an empty deck shows MilkDrop through the
+legacy fallback -- use `load_source` (e.g. plasma) to de-confound a deck-clip test. Diagnostic: a solid alpha box at
+the picture's bottom-left, the size of the Preview panel (756x840 px in the default layout), means something drew into
+framebuffer 0. Live witness: `.harmony/probe-milkdrop.sh` (rows m1-m10, perf_md_*; `MILKDROP_MODE=pre` for a pre-change
+calibration).
+
 #### Probe rig rules (`.harmony/probe-*.sh`, distinct from Eyes above)
 
 The production-mode live probes in `.harmony/probe-*.sh` (not the `--test-mode` Eyes harness) each

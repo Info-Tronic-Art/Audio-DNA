@@ -172,8 +172,9 @@ All data flows forward. No backward dependencies on the hot path.
 | **cpp-httplib** | 0.57.1 | MIT | HTTP server for production REST API (port 7070) and Eyes test server (port 8080) | Single-header C++ HTTP library. Always linked (promoted from test-only in P22). | `CMakeLists.txt` FetchContent |
 | **juce_osc** | (bundled) | GPLv3 | OSC message receiving for external control (TouchOSC, Max/MSP, etc.) | JUCE built-in OSC module. | JUCE module `juce_osc` |
 | **Syphon** | latest | BSD | macOS inter-app GPU texture sharing (zero-copy via IOSurface). Optional. | Enables sending/receiving textures to/from MadMapper, VDMX, OBS. Requires Syphon.framework in /Library/Frameworks/. | `CMakeLists.txt`, `AUDIODNA_BUILD_SYPHON` option |
+| **libprojectM** | 4.1.1 + local patch | LGPL-2.1 | MilkDrop preset rendering (`ProjectMSource`). Optional: built only when found. | The reference MilkDrop engine. The app links a PATCHED 4.1.1 (`projectm_opengl_render_frame_fbo` backported, BF10 / Pitfall 66) from `$HOME/.local/opt/projectm-4.1.1-fbo1`; configure fails on a libprojectM without that function. | `cmake/FindProjectM.cmake`, `cmake/projectm/` |
 
-**Total runtime dependencies: 4 (JUCE, Aubio, FFmpeg, cpp-httplib). Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib). FFmpeg is located via Homebrew on macOS.**
+**Total runtime dependencies: 4 (JUCE, Aubio, FFmpeg, cpp-httplib), plus optional libprojectM (MilkDrop; the patched 4.1.1, `docs/claude/build-other-platforms.md`) and Syphon. Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib). FFmpeg is located via Homebrew on macOS.**
 
 ---
 
@@ -189,7 +190,9 @@ AudioDNA/
 ├── cmake/
 │   ├── CompilerWarnings.cmake           # Per-compiler warning flags (-Wall -Wextra etc.)
 │   ├── FindAubio.cmake                  # [M2] Locate libaubio
-│   └── FindFFmpeg.cmake              ✅ # [P11] Locate FFmpeg (libavformat/libavcodec/libavutil/libswscale)
+│   ├── FindFFmpeg.cmake              ✅ # [P11] Locate FFmpeg (libavformat/libavcodec/libavutil/libswscale)
+│   ├── FindProjectM.cmake               # Locate libprojectM-4: the patched prefix first (BF10, s-rta-1002b)
+│   └── projectm/                        # 0001-render-frame-fbo.patch + build-projectm.sh (the patched 4.1.1)
 ├── src/
 │   ├── Main.cpp                         # JUCE app entry point (JUCEApplication subclass)
 │   ├── MainComponent.h/cpp              # Top-level component, owns all systems, layout

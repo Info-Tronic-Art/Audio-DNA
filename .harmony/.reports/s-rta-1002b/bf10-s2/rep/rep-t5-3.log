@@ -1,0 +1,42 @@
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T5 render() leaves the caller's GL state exactly as it found it"
+Randomness seeded to: 1188089450
+DATA T5 (a) steady draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (b) init frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:649
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:625: FAILED:
+  CHECK( errors.empty() )
+with expansion:
+  false
+with message:
+  T5 (b) init: draw=1 read=1 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (c) resize draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (d) hard load draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +0 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ u3=8 u4=9 u5=9 u6=10 u7=10 ]
+DATA T5 (e) soft load +1 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +2 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +3 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +4 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +5 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +6 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +7 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +8 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +9 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +10 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+===============================================================================
+test cases:   1 |   0 passed | 1 failed
+assertions: 270 | 269 passed | 1 failed
+

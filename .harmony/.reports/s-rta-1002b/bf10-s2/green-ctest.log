@@ -1,0 +1,65 @@
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane
+    Start 500: test_projectm_canvas_gl:T1 MilkDrop fills its whole canvas-sized texture at every size
+1/7 Test #500: test_projectm_canvas_gl:T1 MilkDrop fills its whole canvas-sized texture at every size ....   Passed    2.19 sec
+    Start 501: test_projectm_canvas_gl:T2 MilkDrop follows a canvas change from the first frame
+2/7 Test #501: test_projectm_canvas_gl:T2 MilkDrop follows a canvas change from the first frame ..........   Passed    0.42 sec
+    Start 502: test_projectm_canvas_gl:T3 MilkDrop keeps every region of the canvas live
+3/7 Test #502: test_projectm_canvas_gl:T3 MilkDrop keeps every region of the canvas live .................   Passed    1.05 sec
+    Start 503: test_projectm_canvas_gl:T4 MilkDrop draws round shapes round at the canvas's shape
+4/7 Test #503: test_projectm_canvas_gl:T4 MilkDrop draws round shapes round at the canvas's shape ........   Passed    3.09 sec
+    Start 504: test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it
+5/7 Test #504: test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it ...***Failed    1.13 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T5 render() leaves the caller's GL state exactly as it found it"
+Randomness seeded to: 1558847170
+DATA T5 (a) steady draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (b) init draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (b) init frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:649
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:625: FAILED:
+  CHECK( errors.empty() )
+with expansion:
+  false
+with message:
+  T5 (b) init: draw=1 read=1 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (c) resize draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (d) hard load draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +0 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ u3=8 u4=9 u5=9 u6=10 u7=10 ]
+DATA T5 (e) soft load +1 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +2 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +3 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +4 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +5 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +6 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +7 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +8 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +9 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+DATA T5 (e) soft load +10 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+===============================================================================
+test cases:   1 |   0 passed | 1 failed
+assertions: 270 | 269 passed | 1 failed
+
+
+    Start 505: test_projectm_canvas_gl:T6 a MilkDrop soft cut draws into the canvas texture
+6/7 Test #505: test_projectm_canvas_gl:T6 a MilkDrop soft cut draws into the canvas texture ..............   Passed    2.57 sec
+    Start 506: test_projectm_canvas_gl:T6b a MilkDrop soft cut survives a canvas change
+7/7 Test #506: test_projectm_canvas_gl:T6b a MilkDrop soft cut survives a canvas change ..................   Passed    2.58 sec
+
+86% tests passed, 1 tests failed out of 7
+
+Total Test time (real) =  13.06 sec
+
+The following tests FAILED:
+	504 - test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it (Failed)

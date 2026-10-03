@@ -1,0 +1,29 @@
+Fri Oct  2 18:15:33 EDT 2026
+== flexi - grind my glitch up [319].milk 320x180 (fbo mode, 120 calls)
+FIRST_ERROR 0x506 at call 1 (frame arg 0)
+FINAL size=320x180 median=(72,86,89,255) medmax=89 within6=0.082% alpha255=100.000% lit=99.998% mean=(78.29,80.01,91.21)
+ERRORS calls=120 0x506 x1
+== flexi - grind my glitch up [319].milk 1920x1080 (fbo mode, 120 calls)
+FIRST_ERROR 0x506 at call 1 (frame arg 0)
+FINAL size=1920x1080 median=(128,200,205,255) medmax=205 within6=0.310% alpha255=100.000% lit=100.000% mean=(137.83,189.71,201.98)
+ERRORS calls=120 0x506 x1
+== Geiss - Confetti (Jelly).milk 320x180 (fbo mode, 120 calls)
+FIRST_ERROR 0x506 at call 1 (frame arg 0)
+FINAL size=320x180 median=(19,3,48,255) medmax=48 within6=2.434% alpha255=100.000% lit=100.000% mean=(39.74,9.54,73.98)
+ERRORS calls=120 0x506 x1
+== Geiss - Confetti (Jelly).milk 1920x1080 (fbo mode, 120 calls)
+FIRST_ERROR 0x506 at call 1 (frame arg 0)
+FINAL size=1920x1080 median=(7,6,44,255) medmax=44 within6=6.131% alpha255=100.000% lit=99.799% mean=(15.54,18.29,66.27)
+ERRORS calls=120 0x506 x1
+== EVET - Superstrings I.milk 320x180 (fbo mode, 120 calls)
+FINAL size=320x180 median=(24,10,2,255) medmax=24 within6=64.116% alpha255=100.000% lit=100.000% mean=(36.68,15.78,1.96)
+ERRORS calls=120 none
+== EVET - Superstrings I.milk 1920x1080 (fbo mode, 120 calls)
+FINAL size=1920x1080 median=(14,5,1,255) medmax=14 within6=94.575% alpha255=100.000% lit=100.000% mean=(15.35,6.28,0.63)
+ERRORS calls=120 none
+== yin - 363 - Organic circuits (warming up).milk 320x180 (fbo mode, 120 calls)
+FINAL size=320x180 median=(234,97,185,116) medmax=234 within6=0.057% alpha255=23.293% lit=100.000% mean=(227.89,105.91,175.21)
+ERRORS calls=120 none
+== yin - 363 - Organic circuits (warming up).milk 1920x1080 (fbo mode, 120 calls)
+FINAL size=1920x1080 median=(229,111,161,96) medmax=229 within6=3.115% alpha255=22.464% lit=100.000% mean=(223.95,106.58,159.58)
+ERRORS calls=120 none

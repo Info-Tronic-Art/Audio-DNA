@@ -1,0 +1,227 @@
+   ok    selftest (capped-only): exit code 0
+   ok    selftest (capped-only): 0 PASS / FAIL lines naming cap 0.0
+   ok    selftest (capped-only): exactly 1 INFO 'cap 0.0: pre-lane arm only -- no rule'
+   ok    selftest (capped-only): exactly 5 'u8 cap 256.0' rule lines
+   ok    selftest (capped-only): every rule line PASS
+   ok    selftest (mixed): exit code 0
+   ok    selftest (mixed): exactly 6 cap-0.0 rule lines (pooled / GC6 / late / bytes / over_budget / hold)
+   ok    selftest (mixed): exactly 5 cap-256.0 rule lines
+   ok    selftest (mixed): every rule line PASS
+   ok    selftest (A-only): exit code 1
+   ok    selftest (A-only): exactly 1 FAIL 'u8: no B launch'
+   ok    selftest (A-only): no other rule line
+   ok    selftest (u13-all-pass): exit code 0
+   ok    selftest (u13-all-pass): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-all-pass): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-all-pass): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-all-pass): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-frozen-B-a): exit code 1
+   ok    selftest (u13-frozen-B-a): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-frozen-B-a): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-frozen-B-a): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   ok    selftest (u13-frozen-B-a): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-too-few): exit code 1
+   ok    selftest (u13-too-few): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-too-few): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-too-few): every u13 rule FAIL, none PASS
+   ok    selftest (u13-[FREEZE]-uploads-over): exit code 1
+   ok    selftest (u13-[FREEZE]-uploads-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-uploads-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-uploads-over): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-uploads-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[FREEZE]-uploads-under): exit code 0
+   ok    selftest (u13-[FREEZE]-uploads-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-uploads-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-uploads-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-uploads-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[FREEZE]-late-over): exit code 1
+   ok    selftest (u13-[FREEZE]-late-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-late-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-late-over): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-late-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[FREEZE]-late-under): exit code 0
+   ok    selftest (u13-[FREEZE]-late-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-late-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-late-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-late-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[FREEZE]-bracket-one-launch): exit code 1
+   ok    selftest (u13-[FREEZE]-bracket-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-bracket-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-bracket-one-launch): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-bracket-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[FREEZE]-mono-one-launch): exit code 1
+   ok    selftest (u13-[FREEZE]-mono-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-mono-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-mono-one-launch): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-mono-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[FREEZE]-nonmono-one-launch): exit code 1
+   ok    selftest (u13-[FREEZE]-nonmono-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[FREEZE]-nonmono-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[FREEZE]-nonmono-one-launch): FAIL exactly ['[FREEZE]'], every other u13 rule PASS
+   ok    selftest (u13-[FREEZE]-nonmono-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-uploads-over): exit code 1
+   ok    selftest (u13-[MKV]-uploads-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-uploads-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-uploads-over): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   ok    selftest (u13-[MKV]-uploads-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-uploads-under): exit code 0
+   ok    selftest (u13-[MKV]-uploads-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-uploads-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-uploads-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[MKV]-uploads-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-late-over): exit code 1
+   ok    selftest (u13-[MKV]-late-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-late-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-late-over): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   ok    selftest (u13-[MKV]-late-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-late-under): exit code 0
+   ok    selftest (u13-[MKV]-late-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-late-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-late-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[MKV]-late-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-bracket-one-launch): exit code 1
+   ok    selftest (u13-[MKV]-bracket-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-bracket-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-bracket-one-launch): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   ok    selftest (u13-[MKV]-bracket-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-mono-one-launch): exit code 1
+   ok    selftest (u13-[MKV]-mono-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-mono-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-mono-one-launch): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   ok    selftest (u13-[MKV]-mono-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[MKV]-nonmono-one-launch): exit code 1
+   ok    selftest (u13-[MKV]-nonmono-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[MKV]-nonmono-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[MKV]-nonmono-one-launch): FAIL exactly ['[MKV]'], every other u13 rule PASS
+   ok    selftest (u13-[MKV]-nonmono-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-uploads-over): exit code 1
+   ok    selftest (u13-[HAP]-uploads-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-uploads-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-uploads-over): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   ok    selftest (u13-[HAP]-uploads-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-uploads-under): exit code 0
+   ok    selftest (u13-[HAP]-uploads-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-uploads-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-uploads-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[HAP]-uploads-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-late-over): exit code 1
+   ok    selftest (u13-[HAP]-late-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-late-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-late-over): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   ok    selftest (u13-[HAP]-late-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-late-under): exit code 0
+   ok    selftest (u13-[HAP]-late-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-late-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-late-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[HAP]-late-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-bracket-one-launch): exit code 1
+   ok    selftest (u13-[HAP]-bracket-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-bracket-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-bracket-one-launch): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   ok    selftest (u13-[HAP]-bracket-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-mono-one-launch): exit code 1
+   ok    selftest (u13-[HAP]-mono-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-mono-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-mono-one-launch): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   ok    selftest (u13-[HAP]-mono-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-nonmono-one-launch): exit code 1
+   ok    selftest (u13-[HAP]-nonmono-one-launch): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-nonmono-one-launch): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-nonmono-one-launch): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   ok    selftest (u13-[HAP]-nonmono-one-launch): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-dpu-over): exit code 1
+   ok    selftest (u13-[HAP]-dpu-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-dpu-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-dpu-over): FAIL exactly ['[HAP]'], every other u13 rule PASS
+   ok    selftest (u13-[HAP]-dpu-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[HAP]-dpu-under): exit code 0
+   ok    selftest (u13-[HAP]-dpu-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[HAP]-dpu-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[HAP]-dpu-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[HAP]-dpu-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[CPU]-over): exit code 1
+   ok    selftest (u13-[CPU]-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CPU]-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CPU]-over): FAIL exactly ['[CPU]'], every other u13 rule PASS
+   ok    selftest (u13-[CPU]-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[CPU]-under): exit code 0
+   ok    selftest (u13-[CPU]-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CPU]-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CPU]-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CPU]-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[PARITY]-over): exit code 1
+   ok    selftest (u13-[PARITY]-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[PARITY]-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[PARITY]-over): FAIL exactly ['[PARITY]'], every other u13 rule PASS
+   ok    selftest (u13-[PARITY]-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[PARITY]-under): exit code 0
+   ok    selftest (u13-[PARITY]-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[PARITY]-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[PARITY]-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[PARITY]-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[GUARD]-late-over): exit code 1
+   ok    selftest (u13-[GUARD]-late-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[GUARD]-late-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[GUARD]-late-over): FAIL exactly ['[GUARD]'], every other u13 rule PASS
+   ok    selftest (u13-[GUARD]-late-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[GUARD]-late-under): exit code 0
+   ok    selftest (u13-[GUARD]-late-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[GUARD]-late-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[GUARD]-late-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[GUARD]-late-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[GUARD]-player-over): exit code 1
+   ok    selftest (u13-[GUARD]-player-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[GUARD]-player-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[GUARD]-player-over): FAIL exactly ['[GUARD]'], every other u13 rule PASS
+   ok    selftest (u13-[GUARD]-player-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[GUARD]-player-under): exit code 0
+   ok    selftest (u13-[GUARD]-player-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[GUARD]-player-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[GUARD]-player-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[GUARD]-player-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[PP-PARITY]-over): exit code 1
+   ok    selftest (u13-[PP-PARITY]-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[PP-PARITY]-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[PP-PARITY]-over): FAIL exactly ['[PP-PARITY]'], every other u13 rule PASS
+   ok    selftest (u13-[PP-PARITY]-over): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[PP-PARITY]-under): exit code 0
+   ok    selftest (u13-[PP-PARITY]-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[PP-PARITY]-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[PP-PARITY]-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[PP-PARITY]-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[CTRL-A]-i-over): exit code 0
+   ok    selftest (u13-[CTRL-A]-i-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-i-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-i-over): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-i-over): [CTRL-A] non-discriminating exactly ['(i)']
+   ok    selftest (u13-[CTRL-A]-i-under): exit code 0
+   ok    selftest (u13-[CTRL-A]-i-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-i-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-i-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-i-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[CTRL-A]-ii-over): exit code 0
+   ok    selftest (u13-[CTRL-A]-ii-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-ii-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-ii-over): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-ii-over): [CTRL-A] non-discriminating exactly ['(ii)']
+   ok    selftest (u13-[CTRL-A]-ii-uploads-under): exit code 0
+   ok    selftest (u13-[CTRL-A]-ii-uploads-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-ii-uploads-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-ii-uploads-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-ii-uploads-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[CTRL-A]-ii-dpu-under): exit code 0
+   ok    selftest (u13-[CTRL-A]-ii-dpu-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-ii-dpu-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-ii-dpu-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-ii-dpu-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+   ok    selftest (u13-[CTRL-A]-iii-over): exit code 0
+   ok    selftest (u13-[CTRL-A]-iii-over): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-iii-over): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-iii-over): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-iii-over): [CTRL-A] non-discriminating exactly ['(iii)']
+   ok    selftest (u13-[CTRL-A]-iii-under): exit code 0
+   ok    selftest (u13-[CTRL-A]-iii-under): exactly 7 rule lines, one per u13 tag
+   ok    selftest (u13-[CTRL-A]-iii-under): exactly 3 [CTRL-A] INFO lines
+   ok    selftest (u13-[CTRL-A]-iii-under): FAIL exactly none, every other u13 rule PASS
+   ok    selftest (u13-[CTRL-A]-iii-under): [CTRL-A] non-discriminating exactly none (the A arm reproduces main)
+SELFTEST PASS

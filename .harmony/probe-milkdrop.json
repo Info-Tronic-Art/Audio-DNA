@@ -1,0 +1,27 @@
+{
+  "_comment": "probe-milkdrop (s-rta-1002b bf10, plan-bf10 I4 + ruling-bf10 amendments 2/3/5/9/14/17). Paths are relative to the repo root. Bars are pre-registered in ruling-bf10 FINAL CONSOLIDATED GATE LIST -- never retune.",
+  "fixtures": {
+    "solid": "tests/fixtures/milkdrop/bf10_solid.milk",
+    "solid_b": "tests/fixtures/milkdrop/bf10_solid_b.milk"
+  },
+  "colourA": [204, 51, 26],
+  "colourB": [26, 178, 229],
+  "presetDir": "resources/projectm_presets",
+  "p1": "BEST OF ADAMFX 2 Flexi + Geiss - Bipolar vs reaction diffusion + Another Flexi + Fishbrain  + Phat Zylot 5.milk",
+  "heavy": "flexi - grind my glitch up [319].milk",
+  "uniform": { "alpha255Pct": 100.0, "within6Pct": 99.99, "tol": 6, "medianMaxMin": 64 },
+  "fingerprint": { "insideAlphaPct": 99.9, "sizeTolPx": 2, "covTolPts": 1.0, "panelDiag": [756, 840] },
+  "m1": { "red": [[1280, 720], [1920, 1080], [3840, 2160], [1080, 1920]], "guard": [[640, 360]] },
+  "m2": { "sizes": [[1920, 1080], [1080, 1920]], "gap": 0.5, "tile": 64, "levels": 8, "minChangedPct": 20.0, "warm": 3.0 },
+  "m3": { "seq": [[1920, 1080], [2560, 1440], [1920, 1080]], "after": 0.5,
+          "rewarm": { "from": [1920, 1080], "to": [2560, 1440], "warm": 3.0, "at": [0.1, 0.25, 0.5, 1.0, 2.0] } },
+  "m4": { "sizes": [[1280, 720], [1080, 1920]] },
+  "m5": { "size": [1920, 1080], "after": 0.5, "minDiff": 40 },
+  "m6": { "sizes": [[640, 360], [3840, 2160], [1080, 1920]], "strip": 12, "ctlStdMax": 3.0, "ctlMaxChan": 40,
+          "insidePct": 99.5, "insideTol": 10, "stripStdMax": 3.0, "stripMeanTol": 6 },
+  "m7": { "size": [1920, 1080], "redOutsidePct": 60.0 },
+  "m8": { "size": [1920, 1080] },
+  "m9": { "size": [1920, 1080], "transition": 0.3, "medTol": 6 },
+  "m10": { "size": [1920, 1080], "via": [1080, 1920], "tol": 3, "pct": 99.9 },
+  "perf": { "warmup": 3.0, "samples": 10, "interval": 0.5 }
+}

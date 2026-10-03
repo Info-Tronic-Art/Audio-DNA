@@ -1,0 +1,4 @@
+52c52
+< if [ -n "${MILKDROP_P1:-}" ] && [ "${MILKDROP_MODE:-lane}" != pre ]; then
+---
+> if false; then

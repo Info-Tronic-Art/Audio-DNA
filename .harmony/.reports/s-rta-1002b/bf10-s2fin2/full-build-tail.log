@@ -1,0 +1,4 @@
+[  0%] Built target syphon-check
+[ 99%] Built target test_layer_runtime
+[100%] Built target test_clip_transport_sync
+[100%] Built target test_shared_field_types

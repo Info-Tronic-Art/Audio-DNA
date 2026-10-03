@@ -1,0 +1,9 @@
+21:33:59 acquiring
+21:33:59 lock acquired
+21:33:59 HEAD 7ca8c50; Audio-DNA running now: '' (must be empty)
+selftest at HEAD rc 0: SELFTEST 51 ok / 0 FAIL
+real helper OURPID for LANE=bf10-fix: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/lib/.ours-pid-bf10-fix
+real helper, record 5555, running 4242: rc 2, body not run, curl calls 0, REFUSE: the running Audio-DNA is not a test-mode app this run started (it may be Boris's)
+real helper, record 4242, running 4242: rc 0, body ran, curl calls 1, 
+21:34:02 Audio-DNA running now: ''
+21:34:02 lock released

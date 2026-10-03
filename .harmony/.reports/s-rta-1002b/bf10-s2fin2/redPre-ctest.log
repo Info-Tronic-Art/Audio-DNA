@@ -1,0 +1,2505 @@
+Test project /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane
+    Start 500: test_projectm_canvas_gl:T1 MilkDrop fills its whole canvas-sized texture at every size
+1/7 Test #500: test_projectm_canvas_gl:T1 MilkDrop fills its whole canvas-sized texture at every size ....***Failed    2.18 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T1 MilkDrop fills its whole canvas-sized texture at every size"
+Randomness seeded to: 1845430967
+DATA T1 1280x720 f=1 size=1280x720 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=921600
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T1 MilkDrop fills its whole canvas-sized texture at every size
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:283
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1280x720 f=1 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1280x720 f=1 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  921600 (0xe1000) == 0
+with message:
+  T1 1280x720 f=1 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+DATA T1 1280x720 f=2 size=1280x720 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=921600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1280x720 f=2 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1280x720 f=2 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  921600 (0xe1000) == 0
+with message:
+  T1 1280x720 f=2 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+DATA T1 1280x720 f=10 size=1280x720 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=921600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1280x720 f=10 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1280x720 f=10 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  921600 (0xe1000) == 0
+with message:
+  T1 1280x720 f=10 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+DATA T1 1280x720 f=20 size=1280x720 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=921600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1280x720 f=20 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1280x720 f=20 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  921600 (0xe1000) == 0
+with message:
+  T1 1280x720 f=20 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+DATA T1 1280x720 f=30 size=1280x720 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=921600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1280x720 f=30 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1280x720 f=30 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  921600 (0xe1000) == 0
+with message:
+  T1 1280x720 f=30 tex=1280x720 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=921600
+
+DATA T1 1920x1080 f=1 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1920x1080 f=1 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1920x1080 f=1 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1920x1080 f=1 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1920x1080 f=2 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1920x1080 f=2 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1920x1080 f=2 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1920x1080 f=2 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1920x1080 f=10 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1920x1080 f=10 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1920x1080 f=10 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1920x1080 f=10 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1920x1080 f=20 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1920x1080 f=20 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1920x1080 f=20 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1920x1080 f=20 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1920x1080 f=30 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1920x1080 f=30 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1920x1080 f=30 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1920x1080 f=30 tex=1920x1080 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1080x1920 f=1 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1080x1920 f=1 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1080x1920 f=1 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1080x1920 f=1 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1080x1920 f=2 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1080x1920 f=2 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1080x1920 f=2 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1080x1920 f=2 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1080x1920 f=10 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1080x1920 f=10 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1080x1920 f=10 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1080x1920 f=10 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1080x1920 f=20 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1080x1920 f=20 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1080x1920 f=20 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1080x1920 f=20 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 1080x1920 f=30 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 1080x1920 f=30 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 1080x1920 f=30 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  2073600 (0x1fa400) == 0
+with message:
+  T1 1080x1920 f=30 tex=1080x1920 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=2073600
+
+DATA T1 3840x2160 f=1 size=3840x2160 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=8294400
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 3840x2160 f=1 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 3840x2160 f=1 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  8294400 (0x7e9000) == 0
+with message:
+  T1 3840x2160 f=1 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+DATA T1 3840x2160 f=2 size=3840x2160 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=8294400
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 3840x2160 f=2 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 3840x2160 f=2 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  8294400 (0x7e9000) == 0
+with message:
+  T1 3840x2160 f=2 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+DATA T1 3840x2160 f=10 size=3840x2160 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=8294400
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 3840x2160 f=10 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 3840x2160 f=10 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  8294400 (0x7e9000) == 0
+with message:
+  T1 3840x2160 f=10 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+DATA T1 3840x2160 f=20 size=3840x2160 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=8294400
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 3840x2160 f=20 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 3840x2160 f=20 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  8294400 (0x7e9000) == 0
+with message:
+  T1 3840x2160 f=20 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+DATA T1 3840x2160 f=30 size=3840x2160 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=8294400
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:274: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T1 3840x2160 f=30 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:276: FAILED:
+  CHECK( medianNear(s, kA, 6) )
+with expansion:
+  false
+with message:
+  T1 3840x2160 f=30 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:277: FAILED:
+  CHECK( s.sentinel == 0 )
+with expansion:
+  8294400 (0x7e9000) == 0
+with message:
+  T1 3840x2160 f=30 tex=3840x2160 median=(255,0,255,0) within6=100% alpha255=0%
+  sentinel=8294400
+
+===============================================================================
+test cases:   1 |  0 passed |  1 failed
+assertions: 120 | 60 passed | 60 failed
+
+
+    Start 501: test_projectm_canvas_gl:T2 MilkDrop follows a canvas change from the first frame
+2/7 Test #501: test_projectm_canvas_gl:T2 MilkDrop follows a canvas change from the first frame ..........***Failed    0.43 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T2 MilkDrop follows a canvas change from the first frame"
+Randomness seeded to: 2000246706
+DATA T2 ->1080x1920 f=1 size=1080x1920 median=(0,0,0,0) within6=100.0000% alpha255=0.0000% sentinel=0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T2 MilkDrop follows a canvas change from the first frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:311
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1080x1920 f=1 tex=1080x1920 alpha255=0% within6=100%
+
+DATA T2 ->1080x1920 f=2 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1080x1920 f=2 tex=1080x1920 alpha255=0% within6=100%
+
+DATA T2 ->1080x1920 f=3 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1080x1920 f=3 tex=1080x1920 alpha255=0% within6=100%
+
+DATA T2 ->1080x1920 f=4 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1080x1920 f=4 tex=1080x1920 alpha255=0% within6=100%
+
+DATA T2 ->1080x1920 f=5 size=1080x1920 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1080x1920 f=5 tex=1080x1920 alpha255=0% within6=100%
+
+DATA T2 ->1080x1920 fixture colour covered at frame -1 (INFO)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:343: FAILED:
+  CHECK( coveredAt >= 1 )
+with expansion:
+  -1 >= 1
+with message:
+  ->1080x1920 covered at frame -1
+
+DATA T2 ->1920x1080 f=1 size=1920x1080 median=(0,0,0,0) within6=100.0000% alpha255=0.0000% sentinel=0
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1920x1080 f=1 tex=1920x1080 alpha255=0% within6=100%
+
+DATA T2 ->1920x1080 f=2 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1920x1080 f=2 tex=1920x1080 alpha255=0% within6=100%
+
+DATA T2 ->1920x1080 f=3 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1920x1080 f=3 tex=1920x1080 alpha255=0% within6=100%
+
+DATA T2 ->1920x1080 f=4 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1920x1080 f=4 tex=1920x1080 alpha255=0% within6=100%
+
+DATA T2 ->1920x1080 f=5 size=1920x1080 median=(255,0,255,0) within6=100.0000% alpha255=0.0000% sentinel=2073600
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:337: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  T2 ->1920x1080 f=5 tex=1920x1080 alpha255=0% within6=100%
+
+DATA T2 ->1920x1080 fixture colour covered at frame -1 (INFO)
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:343: FAILED:
+  CHECK( coveredAt >= 1 )
+with expansion:
+  -1 >= 1
+with message:
+  ->1920x1080 covered at frame -1
+
+===============================================================================
+test cases:  1 |  0 passed |  1 failed
+assertions: 34 | 22 passed | 12 failed
+
+
+    Start 502: test_projectm_canvas_gl:T3 MilkDrop keeps every region of the canvas live
+3/7 Test #502: test_projectm_canvas_gl:T3 MilkDrop keeps every region of the canvas live .................***Failed    0.99 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T3 MilkDrop keeps every region of the canvas live"
+Randomness seeded to: 495205992
+DATA T3 tiles=510 stale(<2 levels)=510 min_delta=0.00
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T3 MilkDrop keeps every region of the canvas live
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:351
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:393: FAILED:
+  CHECK( stale == 0 )
+with expansion:
+  510 (0x1fe) == 0
+with message:
+  tiles=510 stale=510 min_delta=0
+
+===============================================================================
+test cases: 1 | 1 failed
+assertions: 1 | 1 failed
+
+
+    Start 503: test_projectm_canvas_gl:T4 MilkDrop draws round shapes round at the canvas's shape
+4/7 Test #503: test_projectm_canvas_gl:T4 MilkDrop draws round shapes round at the canvas's shape ........***Failed    3.01 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T4 MilkDrop draws round shapes round at the canvas's shape"
+Randomness seeded to: 916259589
+DATA T4 1920x1080 blobs=0 bbox=(0,0)-(-1,-1) w=0 h=0 |w/h-1|=1.0000 centre_off=(-50.00%,-50.00%)
+DATA T4 1920x1080 alpha255=0.0000% median_alpha=0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T4 MilkDrop draws round shapes round at the canvas's shape
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:399
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:449: FAILED:
+  CHECK( comps == 1 )
+with expansion:
+  0 == 1
+with message:
+  1920x1080 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:450: FAILED:
+  CHECK( std::fabs(ratio - 1.0) <= 0.04 )
+with expansion:
+  1.0 <= 0.04
+with message:
+  1920x1080 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:451: FAILED:
+  CHECK( std::fabs(offx) <= 2.0 )
+with expansion:
+  50.0 <= 2.0
+with message:
+  1920x1080 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:452: FAILED:
+  CHECK( std::fabs(offy) <= 2.0 )
+with expansion:
+  50.0 <= 2.0
+with message:
+  1920x1080 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:453: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  1920x1080 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+DATA T4 1080x1920 blobs=0 bbox=(0,0)-(-1,-1) w=0 h=0 |w/h-1|=1.0000 centre_off=(-50.00%,-50.00%)
+DATA T4 1080x1920 alpha255=0.0000% median_alpha=0
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:449: FAILED:
+  CHECK( comps == 1 )
+with expansion:
+  0 == 1
+with message:
+  1080x1920 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:450: FAILED:
+  CHECK( std::fabs(ratio - 1.0) <= 0.04 )
+with expansion:
+  1.0 <= 0.04
+with message:
+  1080x1920 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:451: FAILED:
+  CHECK( std::fabs(offx) <= 2.0 )
+with expansion:
+  50.0 <= 2.0
+with message:
+  1080x1920 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:452: FAILED:
+  CHECK( std::fabs(offy) <= 2.0 )
+with expansion:
+  50.0 <= 2.0
+with message:
+  1080x1920 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:453: FAILED:
+  CHECK( s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  1080x1920 blobs=0 w/h=0 off=(-50%,-50%) alpha255=0%
+
+===============================================================================
+test cases:  1 |  1 failed
+assertions: 10 | 10 failed
+
+
+    Start 504: test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it
+5/7 Test #504: test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it ...***Failed    1.11 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T5 render() leaves the caller's GL state exactly as it found it"
+Randomness seeded to: 2567856027
+DATA T5 (a) steady draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (a) steady frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:657
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (a) steady: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (b) init draw=0 read=0 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x500 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (b) init frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:664
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:617: FAILED:
+  CHECK( after.draw == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (b) init: draw=0 read=0 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:618: FAILED:
+  CHECK( after.read == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (b) init: draw=0 read=0 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:620: FAILED:
+  CHECK( after.program == before.program )
+with expansion:
+  0 == 3
+with message:
+  T5 (b) init: draw=0 read=0 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:621: FAILED:
+  CHECK( after.vao == before.vao )
+with expansion:
+  0 == 1
+with message:
+  T5 (b) init: draw=0 read=0 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:622: FAILED:
+  CHECK( after.active == GLint(GL_TEXTURE2) )
+with expansion:
+  33984 (0x84c0) == 33986 (0x84c2)
+with message:
+  T5 (b) init: draw=0 read=0 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:623: FAILED:
+  CHECK( after.tex2D == before.tex2D )
+with expansion:
+  0 == 2
+with message:
+  T5 (b) init: draw=0 read=0 (sentinel 1) errors=[ 0x500 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (b) init drained=[ 0x500 ] tolerated={0x500} (INFO: libprojectM projectm_create + first load)
+DATA T5 (b) init +1 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (b) init +1: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (c) resize draw=0 read=0 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (c) resize frame
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:674
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:617: FAILED:
+  CHECK( after.draw == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (c) resize: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:618: FAILED:
+  CHECK( after.read == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (c) resize: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:623: FAILED:
+  CHECK( after.tex2D == before.tex2D )
+with expansion:
+  3 == 2
+with message:
+  T5 (c) resize: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (c) resize: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (d) hard load draw=0 read=0 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (d) pending hard load
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:681
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:617: FAILED:
+  CHECK( after.draw == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:618: FAILED:
+  CHECK( after.read == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:620: FAILED:
+  CHECK( after.program == before.program )
+with expansion:
+  0 == 3
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:621: FAILED:
+  CHECK( after.vao == before.vao )
+with expansion:
+  0 == 1
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:622: FAILED:
+  CHECK( after.active == GLint(GL_TEXTURE2) )
+with expansion:
+  33984 (0x84c0) == 33986 (0x84c2)
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:623: FAILED:
+  CHECK( after.tex2D == before.tex2D )
+with expansion:
+  0 == 2
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (d) hard load: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[ ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +0 draw=0 read=0 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ u3=8 u4=9 u5=9 u6=10 u7=10 ]
+-------------------------------------------------------------------------------
+T5 render() leaves the caller's GL state exactly as it found it
+  (e) pending soft load, then 10 frames of the soft cut
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:689
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:617: FAILED:
+  CHECK( after.draw == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:618: FAILED:
+  CHECK( after.read == GLint(caller.fbo) )
+with expansion:
+  0 == 1
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:620: FAILED:
+  CHECK( after.program == before.program )
+with expansion:
+  0 == 3
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:621: FAILED:
+  CHECK( after.vao == before.vao )
+with expansion:
+  0 == 1
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:622: FAILED:
+  CHECK( after.active == GLint(GL_TEXTURE2) )
+with expansion:
+  33984 (0x84c0) == 33986 (0x84c2)
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:623: FAILED:
+  CHECK( after.tex2D == before.tex2D )
+with expansion:
+  0 == 2
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +0: draw=0 read=0 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +1 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +1: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +1: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +2 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +2: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +2: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +3 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +3: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +3: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +4 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +4: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +4: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +5 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +5: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +5: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +6 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +6: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +6: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +7 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +7: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +7: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +8 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +8: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +8: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +9 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +9: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +9: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+DATA T5 (e) soft load +10 draw=1 read=1 (sentinel 1) viewport=(1,2,33,44) errors=[ 0x506 ] samplers=[ u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ] sentinel_intact=100.00% other_unit_textures(INFO)=[ ]
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:632: FAILED:
+  CHECK( samplers.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +10: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:640: FAILED:
+  CHECK( untolerated.empty() )
+with expansion:
+  false
+with message:
+  T5 (e) soft load +10: draw=1 read=1 (sentinel 1) errors=[ 0x506 ] samplers=[
+  u0=10 u1=10 u2=3 u3=4 u4=3 u5=4 u6=3 u7=4 u8=3 u9=4 u10=3 u11=4 ]
+  sentinel_intact=100%
+
+===============================================================================
+test cases:   1 |   0 passed |  1 failed
+assertions: 288 | 241 passed | 47 failed
+
+
+    Start 505: test_projectm_canvas_gl:T6 a MilkDrop soft cut draws into the canvas texture
+6/7 Test #505: test_projectm_canvas_gl:T6 a MilkDrop soft cut draws into the canvas texture ..............***Failed    2.57 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T6 a MilkDrop soft cut draws into the canvas texture"
+Randomness seeded to: 1060624115
+DATA soft-cut t=0.148s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.212s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.242s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.272s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.302s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.332s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.363s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.392s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.422s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.452s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.483s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.512s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.542s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.572s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.602s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.631s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.661s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.690s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.719s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.750s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.780s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.810s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.840s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.870s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.899s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.929s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.960s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.990s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.020s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.050s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.080s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.110s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.139s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.169s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.199s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.229s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.264s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.300s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.335s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.427s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.587s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.746s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.858s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.888s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.917s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.947s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.976s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut frames=121 reads=47
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T6 a MilkDrop soft cut draws into the canvas texture
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:812
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.147853 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.147853 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.211956 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.211956 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.241966 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.241966 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.271995 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.271995 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.30188 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.30188 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.332082 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.332082 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.362632 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.362632 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.392482 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.392482 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.422474 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.422474 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.452078 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.452078 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.482727 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.482727 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.512436 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.512436 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.541984 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.541984 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.572206 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.572206 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.601761 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.601761 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.631378 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.631378 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.660634 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.660634 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.689914 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.689914 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.719366 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.719366 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.749526 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.749526 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.780163 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.780163 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.810358 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.810358 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.839986 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.839986 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.870015 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.870015 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.899471 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.899471 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.929338 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.929338 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.95984 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.95984 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.99018 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.99018 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.02012 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.02012 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.05009 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.05009 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.07998 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.07998 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.10969 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.10969 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.13929 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.13929 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.16923 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.16923 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.19911 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.19911 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.22935 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.22935 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.26409 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.26409 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.29984 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.29984 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.33522 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.33522 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.42693 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.42693 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.58737 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.58737 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.58737 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.7461 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.7461 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.7461 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.94696 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.94696 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.94696 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.85766 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.85766 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.85766 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.8875 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.8875 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.8875 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.91691 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.91691 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.91691 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.9764 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.9764 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.9764 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+DATA soft-cut mid_transition_read=1 last_read_near_B=0.0000%
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:803: FAILED:
+  CHECK( lastNearB >= 95.0 )
+with expansion:
+  0.0 >= 95.0
+with message:
+  a read mid-transition (>= 5 % near A AND >= 5 % near B, or a median >= 10
+  from both): 1; the window's last read near_B=0%
+
+===============================================================================
+test cases:   1 |  0 passed |   1 failed
+assertions: 197 | 95 passed | 102 failed
+
+
+    Start 506: test_projectm_canvas_gl:T6b a MilkDrop soft cut survives a canvas change
+7/7 Test #506: test_projectm_canvas_gl:T6b a MilkDrop soft cut survives a canvas change ..................***Failed    2.56 sec
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T6b a MilkDrop soft cut survives a canvas change"
+Randomness seeded to: 3245376744
+DATA soft-cut t=0.144s size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut change+1
+DATA soft-cut t=0.306s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut change+2
+DATA soft-cut t=0.336s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut change+3
+DATA soft-cut t=0.366s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.462s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.625s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.783s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.944s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.104s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.265s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.424s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.584s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.745s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.854s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.884s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.914s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.943s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=1.973s size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0.0000% in_box=0.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut frames=121 reads=18
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+test_projectm_canvas_gl is a Catch2 v3.7.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+T6b a MilkDrop soft cut survives a canvas change
+-------------------------------------------------------------------------------
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:820
+...............................................................................
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.143955 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.143955 size=1920x1080 tex=1920x1080 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.305576 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=-
+  1% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.336117 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=-
+  1% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.366465 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.366465 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.462067 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.462067 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.624992 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.624992 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.782587 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.782587 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.943902 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=0.943902 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=
+  0% near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.10389 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.10389 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.26455 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.26455 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.42406 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.42406 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.58406 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.58406 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.58406 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.74452 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.74452 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.74452 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.94344 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.94344 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.94344 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.85359 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.85359 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.85359 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.88404 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.88404 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.88404 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.9138 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.9138 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.9138 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:789: FAILED:
+  CHECK( r.s.alpha255 == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.97303 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:790: FAILED:
+  CHECK( r.inBox == 100.0 )
+with expansion:
+  0.0 == 100.0
+with message:
+  t=1.97303 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+/Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/tests/test_projectm_canvas_gl.cpp:791: FAILED:
+  CHECK( r.nearB >= 99.99 )
+with expansion:
+  0.0 >= 99.98999999999999488
+with message:
+  t=1.97303 size=1080x1920 tex=1080x1920 median=(0,0,0,0) alpha255=0% in_box=0%
+  near_B=0%
+
+===============================================================================
+test cases:  1 |  0 passed |  1 failed
+assertions: 77 | 36 passed | 41 failed
+
+
+
+0% tests passed, 7 tests failed out of 7
+
+Total Test time (real) =  12.87 sec
+
+The following tests FAILED:
+	500 - test_projectm_canvas_gl:T1 MilkDrop fills its whole canvas-sized texture at every size (Failed)
+	501 - test_projectm_canvas_gl:T2 MilkDrop follows a canvas change from the first frame (Failed)
+	502 - test_projectm_canvas_gl:T3 MilkDrop keeps every region of the canvas live (Failed)
+	503 - test_projectm_canvas_gl:T4 MilkDrop draws round shapes round at the canvas's shape (Failed)
+	504 - test_projectm_canvas_gl:T5 render() leaves the caller's GL state exactly as it found it (Failed)
+	505 - test_projectm_canvas_gl:T6 a MilkDrop soft cut draws into the canvas texture (Failed)
+	506 - test_projectm_canvas_gl:T6b a MilkDrop soft cut survives a canvas change (Failed)
+Errors while running CTest

@@ -1,0 +1,73 @@
+== p1live start 20:10:35
+UNC before: UserNotificationCenter windows 0 []
+20:10:36 lock acquired
+ 40.1 06-07:27:26 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 12.0    06:21:55 claude
+  9.2 06-07:27:22 /System/Library/PrivateFrameworks/TelephonyUtilities.framework/callservicesd
+  8.1       02:54 /System/Library/ExtensionKit/Extensions/FaceTimeNotificationExtension.appex/Contents/MacOS/FaceTimeNotificationExtension
+20:10:39 app up: 21232 
+#### candidate: BEST OF ADAMFX 2 Flexi + Geiss - Bipolar vs reaction diffusion + Another Flexi + Fishbrain  + Phat Zylot 5.milk
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 63.4%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 67.9%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 69.4%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 75.6%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 67.9%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 76.1%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 82.4%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 70.5%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 67.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 72.2%; A fp: box 1080x1
+PY 10 PASS / 0 FAIL; errors 0
+#### candidate: suksma - sun pod gambit couch - flx infinity within a finite boundary --- Isosceles edit6.milk
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 54.2%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 38.5%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 38.8%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 33.5%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 42.0%; A fp: box 1920x1
+FAIL  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 1, min tile 10.0%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 41.8%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 37.3%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 55.4%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 49.5%; A fp: box 1080x1
+PY 9 PASS / 1 FAIL; errors 0
+#### candidate: Hexcollie, Krash, bdrv, EoS n aderassi - Fractal rebirth - from hell nz+2.milk
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 26.6%; A fp: box 1080x1
+PY 10 PASS / 0 FAIL; errors 0
+#### candidate: 304.milk
+FAIL  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 1, min tile 5.7%; A fp: box 1920x10
+FAIL  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 2, min tile 11.1%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 22.1%; A fp: box 1920x1
+FAIL  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 2, min tile 2.2%; A fp: box 1080x19
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 23.1%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 49.8%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 51.0%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 83.5%; A fp: box 1080x1
+FAIL  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 3, min tile 13.5%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 87.9%; A fp: box 1080x1
+PY 6 PASS / 4 FAIL; errors 0
+#### candidate: yin - 363 - Organic circuits (warming up).milk
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 83.3%; A fp: box 1920x1
+FAIL  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 5, min tile 5.9%; A fp: box 1080x19
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 87.3%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 62.7%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 96.0%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 75.8%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 99.6%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 99.4%; A fp: box 1080x1
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 78.1%; A fp: box 1920x1
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 93.3%; A fp: box 1080x1
+PY 9 PASS / 1 FAIL; errors 0
+app running after quit: no
+outwins: audio-dna windows 0, Output-named 0
+20:14:51 lock released
+UNC 16 s after quit: UserNotificationCenter windows 0 []
+== p1live end 20:15:07

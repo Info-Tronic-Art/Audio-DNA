@@ -1,0 +1,51 @@
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T6 a MilkDrop soft cut draws into the canvas texture"
+Randomness seeded to: 3134916364
+DATA soft-cut t=0.143s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.208s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.243s size=1920x1080 tex=1920x1080 median=(204,51,26,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.278s size=1920x1080 tex=1920x1080 median=(204,51,27,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.312s size=1920x1080 tex=1920x1080 median=(203,52,27,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.349s size=1920x1080 tex=1920x1080 median=(203,52,28,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.383s size=1920x1080 tex=1920x1080 median=(201,53,29,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.417s size=1920x1080 tex=1920x1080 median=(199,55,32,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=100.0000%
+DATA soft-cut t=0.450s size=1920x1080 tex=1920x1080 median=(194,58,37,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.482s size=1920x1080 tex=1920x1080 median=(185,64,48,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.515s size=1920x1080 tex=1920x1080 median=(166,78,70,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.548s size=1920x1080 tex=1920x1080 median=(125,107,116,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.581s size=1920x1080 tex=1920x1080 median=(75,143,173,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.615s size=1920x1080 tex=1920x1080 median=(50,161,202,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.647s size=1920x1080 tex=1920x1080 median=(38,169,215,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.680s size=1920x1080 tex=1920x1080 median=(32,174,222,255) alpha255=100.0000% in_box=100.0000% near_B=0.0000% near_A=0.0000%
+DATA soft-cut t=0.715s size=1920x1080 tex=1920x1080 median=(29,176,225,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.750s size=1920x1080 tex=1920x1080 median=(28,177,227,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.784s size=1920x1080 tex=1920x1080 median=(27,177,228,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.818s size=1920x1080 tex=1920x1080 median=(27,178,228,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.859s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.894s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.927s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.961s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=0.996s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.031s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.064s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.099s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.132s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.164s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.196s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.236s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.275s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.317s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.354s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.422s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.585s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.742s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.851s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.883s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.915s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.946s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut t=1.978s size=1920x1080 tex=1920x1080 median=(26,178,229,255) alpha255=100.0000% in_box=100.0000% near_B=100.0000% near_A=0.0000%
+DATA soft-cut frames=121 reads=43
+DATA soft-cut mid_transition_read=1 last_read_near_B=100.0000%
+===============================================================================
+All tests passed (181 assertions in 1 test case)
+

@@ -1,0 +1,14 @@
+Fri Oct  2 18:13:43 EDT 2026
+=== RED: fbo-capable probe against the STOCK library (must fail to link)
+Undefined symbols for architecture arm64:
+  "_projectm_opengl_render_frame_fbo", referenced from:
+clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+link exit=1
+ls: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S01/libprobe_stock: No such file or directory
+=== plain-only probe against STOCK
+exit=0
+=== probe against the PATCHED prefix
+exit=0
+	@rpath/libprojectM-4.4.dylib (compatibility version 4.0.0, current version 4.1.1)
+         path /Users/boriskarpman/.local/opt/projectm-4.1.1-fbo1/lib (offset 12)
+         path /Users/boriskarpman/.local/lib (offset 12)

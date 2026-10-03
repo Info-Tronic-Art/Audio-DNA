@@ -1,0 +1,61 @@
+== lane-rep5 start 20:07:22 app /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app (b64e94db137e5a7f) mode lane arm B rows 'm2_live_no_stale,m9_deck_roundtrip,m2_live_no_stale,m9_deck_roundtrip,m2_live_no_stale,m9_deck_roundtrip,m2_live_no_stale,m9_deck_roundtrip,m2_live_no_stale,m9_deck_roundtrip'
+UNC before: UserNotificationCenter windows 0 []
+outwins before: audio-dna windows 0, Output-named 0
+20:07:22 lock acquired
+top cpu at start:
+ 98.9       00:02 /Library/Developer/CommandLineTools/usr/bin/clang
+ 24.0 06-07:24:12 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+ 20.0       00:00 /Library/Developer/CommandLineTools/usr/bin/make
+ 18.5    01:52:35 /Applications/Stremio.app/Contents/MacOS/Stremio
+ 15.2       05:43 claude
+app: /Users/boriskarpman/projects/RealTimeAudio/.claude/worktrees/bf10/build-lane/AudioDNA_artefacts/Release/Audio-DNA.app
+out: /private/tmp/claude-501/-Users-boriskarpman-projects-RealTimeAudio/73d4f54c-e9d5-409c-8b5d-694bfd57c171/scratchpad/bf10-S3/runs/lane-rep5/milkdrop.L0GqIX
+mode: lane arm: B attach: 0
+20:07:26 app up: 18470 
+--- m2_live_no_stale
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 33.3%; A fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 68.3%; A fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+PASS  m9_deck_roundtrip: C0 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; C3 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; max |median C3 - C0| = 0; live pair: alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 23.4%; C0 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m2_live_no_stale
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 27.1%; A fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 67.6%; A fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+PASS  m9_deck_roundtrip: C0 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; C3 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; max |median C3 - C0| = 0; live pair: alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 35.6%; C0 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m2_live_no_stale
+FAIL  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 4, min tile 9.2%; A fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 50.9%; A fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+PASS  m9_deck_roundtrip: C0 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; C3 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; max |median C3 - C0| = 0; live pair: alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 30.3%; C0 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m2_live_no_stale
+FAIL  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 3, min tile 3.7%; A fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 62.6%; A fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+PASS  m9_deck_roundtrip: C0 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; C3 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; max |median C3 - C0| = 0; live pair: alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 54.9%; C0 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m2_live_no_stale
+PASS  m2_live_no_stale@1920x1080: PNG (1920, 1080) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 28.2%; A fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+PASS  m2_live_no_stale@1080x1920: PNG (1080, 1920) alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 72.4%; A fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%); B fp: box 1080x1920 at (0,0)-(1079,1919) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+--- m9_deck_roundtrip
+      m9 INFO C1 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+      m9 INFO C2 (another deck shown): alpha255=100.0000% within6=100.0000% median=(0, 0, 0) medmax=0
+PASS  m9_deck_roundtrip: C0 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; C3 alpha255=100.0000% within6=100.0000% median=(204, 51, 26) medmax=204; max |median C3 - C0| = 0; live pair: alpha255 100.0000% / 100.0000%, tiles 510, tiles < 20% changed: 0, min tile 51.6%; C0 fp: box 1920x1080 at (0,0)-(1919,1079) bottom-left=True inside_alpha255=100.000% outside=0 coverage=100.00% (756x840 table 30.62%)
+
+PY 13 PASS / 2 FAIL; errors 0
+PASS  no foreign render_frame traffic during the run
+app running after quit: no
+PASS  app terminated
+
+PROBE-MILKDROP RED
+probe rc 1 at 20:09:42
+outwins after: audio-dna windows 0, Output-named 0
+20:09:43 lock released
+UNC 16 s after quit: UserNotificationCenter windows 0 []
+== lane-rep5 end 20:09:59

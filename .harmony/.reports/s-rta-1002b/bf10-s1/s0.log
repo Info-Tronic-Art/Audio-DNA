@@ -1,0 +1,61 @@
+Fri Oct  2 18:03:27 EDT 2026
+--- network (20 s timeout)
+dd89dfba0852c0c7e0c4e668929118d91ec3a3f0	HEAD
+dd89dfba0852c0c7e0c4e668929118d91ec3a3f0	refs/heads/master
+b529b0d69ed063320b2557a1d1a4d54191353aac	refs/heads/release-automation-master
+03aa8a7ffdf81165136ee64643c6a781f5c6a391	refs/tags/v4.1.1
+ls-remote exit=0
+total 2464
+drwxr-xr-x@ 10 boriskarpman  staff      320 Mar 22  2026 .
+drwxr-xr-x@  8 boriskarpman  staff      256 Mar 22  2026 ..
+drwxr-xr-x@  4 boriskarpman  staff      128 Mar 22  2026 cmake
+-rwxr-xr-x@  1 boriskarpman  staff    83936 Mar 22  2026 libprojectM-4-playlist.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       34 Mar 22  2026 libprojectM-4-playlist.4.dylib -> libprojectM-4-playlist.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       30 Mar 22  2026 libprojectM-4-playlist.dylib -> libprojectM-4-playlist.4.dylib
+-rwxr-xr-x@  1 boriskarpman  staff  1172680 Mar 22  2026 libprojectM-4.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       25 Mar 22  2026 libprojectM-4.4.dylib -> libprojectM-4.4.1.1.dylib
+lrwxr-xr-x@  1 boriskarpman  staff       21 Mar 22  2026 libprojectM-4.dylib -> libprojectM-4.4.dylib
+drwxr-xr-x@  4 boriskarpman  staff      128 Mar 22  2026 pkgconfig
+--- stock identity
+exports count:       52
+exports sha256: e2eae5a7bac6585617ee2f1f2ce5665cecd30818ad8d3af8fa34447d12be944f  -
+glsl count:      101
+glsl sha256: bffe0439eff25046bf347b39b9749b0a8c6473ef5dfd070638a19eda3f3b2dd4  -
+VCS SHA present: 1
+/Users/boriskarpman/.local/lib/libprojectM-4.4.1.1.dylib:
+@rpath/libprojectM-4.4.dylib
+/Users/boriskarpman/.local/lib/libprojectM-4.4.1.1.dylib:
+	@rpath/libprojectM-4.4.dylib (compatibility version 4.0.0, current version 4.1.1)
+	/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL (compatibility version 1.0.0, current version 1.0.0)
+	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3208.0.0)
+	/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1800.105.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)
+      cmd LC_BUILD_VERSION
+  cmdsize 32
+ platform 1
+    minos 15.0
+      sdk 15.2
+ls: /Users/boriskarpman/.local/opt: No such file or directory
+ls: /Users/boriskarpman/.local/src: No such file or directory
+set(projectM4_VERSION 4.1.1)
+# This is a basic version file for the Config-mode of find_package().
+# It is used by write_basic_package_version_file() as input file for configure_file()
+# to create a version-file which can be installed along a config.cmake file.
+# The created file sets PACKAGE_VERSION_EXACT if the current version string and
+# the requested version string are exactly the same and it sets
+# PACKAGE_VERSION_COMPATIBLE if the current version is >= requested version.
+# The variable CVF_VERSION must be set before calling configure_file().
+set(PACKAGE_VERSION "4.1.1")
+if (PACKAGE_FIND_VERSION_RANGE)
+  # Package version must be in the requested version range
+  if ((PACKAGE_FIND_VERSION_RANGE_MIN STREQUAL "INCLUDE" AND PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION_MIN)
+      OR ((PACKAGE_FIND_VERSION_RANGE_MAX STREQUAL "INCLUDE" AND PACKAGE_VERSION VERSION_GREATER PACKAGE_FIND_VERSION_MAX)
+        OR (PACKAGE_FIND_VERSION_RANGE_MAX STREQUAL "EXCLUDE" AND PACKAGE_VERSION VERSION_GREATER_EQUAL PACKAGE_FIND_VERSION_MAX)))
+    set(PACKAGE_VERSION_COMPATIBLE FALSE)
+    set(PACKAGE_VERSION_COMPATIBLE TRUE)
+  if(PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION)
+    set(PACKAGE_VERSION_COMPATIBLE FALSE)
+    set(PACKAGE_VERSION_COMPATIBLE TRUE)
+    if(PACKAGE_FIND_VERSION STREQUAL PACKAGE_VERSION)
+projectM4
+projectM4Playlist

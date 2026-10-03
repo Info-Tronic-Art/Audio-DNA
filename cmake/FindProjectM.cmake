@@ -1,6 +1,20 @@
 # FindProjectM.cmake — locate libprojectM-4 via cmake config or manual search.
 # Defines: ProjectM::ProjectM imported target.
 
+# BF10 (s-rta-1002b): the PATCHED libprojectM 4.1.1 (adds projectm_opengl_render_frame_fbo) lives in its own
+# prefix, installed by cmake/projectm/build-projectm.sh. Search it FIRST. A projectM4_DIR cached from an earlier
+# configure (e.g. the stock ~/.local) that lies outside the prefix is dropped, so a re-configure picks the prefix.
+set(AUDIODNA_PROJECTM_PREFIX "$ENV{HOME}/.local/opt/projectm-4.1.1-fbo1" CACHE PATH
+    "Prefix of the patched libprojectM 4.1.1 (cmake/projectm/build-projectm.sh)")
+if(DEFINED CACHE{projectM4_DIR})
+    string(FIND "${projectM4_DIR}" "${AUDIODNA_PROJECTM_PREFIX}/" _audiodna_pm_pos)
+    if(NOT _audiodna_pm_pos EQUAL 0)
+        unset(projectM4_DIR CACHE)
+    endif()
+    unset(_audiodna_pm_pos)
+endif()
+find_package(projectM4 CONFIG QUIET PATHS ${AUDIODNA_PROJECTM_PREFIX}/lib/cmake NO_DEFAULT_PATH)
+
 # Try CMake config mode first (libprojectM-4 installs cmake config files)
 find_package(projectM4 QUIET CONFIG
     PATHS

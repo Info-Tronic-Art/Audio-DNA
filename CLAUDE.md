@@ -33,10 +33,6 @@ Runs every 16.67ms (60fps). Reads the latest `FeatureSnapshot` from the triple b
 **Message Thread (JUCE UI, NORMAL priority)**
 Runs on user events. Handles all UI interaction — sliders, buttons, file choosers, mapping editor. Writes configuration changes (effect enable/disable, parameter values, mapping settings) via `std::atomic<T>` config variables that the render and analysis threads read. Never blocks the other threads.
 
-### Latency Budget
-
-Stage-by-stage table (audio buffer delivery -> swap, ~15-25 ms audio-to-visual): `docs/claude/architecture.md` "Latency Budget".
-
 ---
 
 ## Build Essentials
@@ -223,6 +219,7 @@ the named area; this index is triage-only.
 63. The Layer trigger tuple is one CAS word; shared model fields are `Relaxed<T>` -- before touching Layer runtime fields or a render write-back.
 64. A run's frame seek aims at the frame's middle; the keyframe index is the demuxer's live one -- before touching `runStep`'s seek, `readKeyIndex` or the intra-only verdict.
 65. Rename box over a rebuilt row -- before a double-click or in-place editor.
+66. MilkDrop draws only through `projectm_opengl_render_frame_fbo` into its canvas FBO -- before touching ProjectMSource or libprojectM.
 
 ---
 

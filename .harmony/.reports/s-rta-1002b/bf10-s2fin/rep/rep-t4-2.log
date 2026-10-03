@@ -1,0 +1,10 @@
+UNSUPPORTED (log once): POSSIBLE ISSUE: unit 0 GLD_TEXTURE_INDEX_2D is unloadable and bound to sampler type (Float) - using zero texture because texture unloadable
+Filters: "T4 MilkDrop draws round shapes round at the canvas's shape"
+Randomness seeded to: 3821043341
+DATA T4 1920x1080 blobs=1 bbox=(825,405)-(1094,674) w=270 h=270 |w/h-1|=0.0000 centre_off=(0.00%,0.00%)
+DATA T4 1920x1080 alpha255=100.0000% median_alpha=255
+DATA T4 1080x1920 blobs=1 bbox=(300,720)-(779,1199) w=480 h=480 |w/h-1|=0.0000 centre_off=(0.00%,0.00%)
+DATA T4 1080x1920 alpha255=100.0000% median_alpha=255
+===============================================================================
+All tests passed (10 assertions in 1 test case)
+

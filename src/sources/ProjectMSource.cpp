@@ -121,6 +121,11 @@ GLuint ProjectMSource::render(ShaderManager& /*shaderMgr*/, FullscreenQuad& /*qu
                                float /*time*/, int width, int height,
                                const FeatureSnapshot& snapshot)
 {
+    // Save the caller's GL state FIRST and restore it on every return: initGL / resize (createFBO) and a pending
+    // preset load all bind framebuffers of their own (BF10).
+    GLState savedState;
+    saveGLState(savedState);
+
     if (!glInitialized_)
         initGL(width, height);
 
@@ -128,7 +133,10 @@ GLuint ProjectMSource::render(ShaderManager& /*shaderMgr*/, FullscreenQuad& /*qu
 
 #ifdef AUDIODNA_HAS_PROJECTM
     if (!pm_)
+    {
+        restoreGLState(savedState);
         return outputTex_;
+    }
 
     // Process pending preset load (queued from non-GL threads)
     {
@@ -160,26 +168,22 @@ GLuint ProjectMSource::render(ShaderManager& /*shaderMgr*/, FullscreenQuad& /*qu
         }
     }
 
-    // Save GL state
-    GLState savedState;
-    saveGLState(savedState);
-
-    // projectM renders to FBO 0 (default framebuffer) internally,
-    // managing its own multi-pass rendering pipeline.
-    // We render to screen, then copy the result to our FBO.
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // projectM draws its final picture straight into outputFBO_ (canvas-sized). Framebuffer 0 is the Preview
+    // panel's drawable, never the canvas (BF10, Pitfall 66).
+    glBindFramebuffer(GL_FRAMEBUFFER, outputFBO_);
     glViewport(0, 0, fboWidth_, fboHeight_);
-    projectm_opengl_render_frame(pm_);
+    projectm_opengl_render_frame_fbo(pm_, static_cast<uint32_t>(outputFBO_));
 
-    // Copy the rendered result to our output FBO
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    // A preset without a comp shader writes its own alpha (< 1, often 0) into outputFBO_. MilkDrop is a full-frame
+    // generator, so a layer expects an opaque picture: force alpha to 1 on draw buffer 0 only, through a clear that
+    // leaves the clear colour alone, then put the caller's mask back (BF10 FOUND 1, Pitfall 66).
+    GLboolean colourMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+    glGetBooleani_v(GL_COLOR_WRITEMASK, 0, colourMask);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, outputFBO_);
-    glBlitFramebuffer(0, 0, fboWidth_, fboHeight_,
-                      0, 0, fboWidth_, fboHeight_,
-                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-    // Restore GL state
-    restoreGLState(savedState);
+    glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    const GLfloat opaque[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glClearBufferfv(GL_COLOR, 0, opaque);
+    glColorMaski(0, colourMask[0], colourMask[1], colourMask[2], colourMask[3]);
 #else
     // No projectM: render a placeholder pattern
     // (Rendered by base class shader if one were set, but we don't have one)
@@ -187,10 +191,10 @@ GLuint ProjectMSource::render(ShaderManager& /*shaderMgr*/, FullscreenQuad& /*qu
     glViewport(0, 0, width, height);
     glClearColor(0.05f, 0.0f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     (void)snapshot;
 #endif
 
+    restoreGLState(savedState);
     return outputTex_;
 }
 
@@ -319,4 +323,9 @@ void ProjectMSource::restoreGLState(const GLState& state)
                         static_cast<GLenum>(state.blendSrcAlpha),
                         static_cast<GLenum>(state.blendDstAlpha));
     glDepthFunc(static_cast<GLenum>(state.depthFunc));
+
+    // libprojectM leaves its own sampler objects bound (units 1-4 every frame, 0-11 during a soft cut;
+    // ruling-bf10). The app binds no sampler object anywhere, so the caller's state is sampler 0 on every unit.
+    for (GLuint unit = 0; unit < 16; ++unit)   // 16 = the GL 4.1 minimum GL_MAX_TEXTURE_IMAGE_UNITS
+        glBindSampler(unit, 0);
 }

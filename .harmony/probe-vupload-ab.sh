@@ -46,6 +46,7 @@ for r in $(seq 1 "$ROUNDS"); do
       if [ $held -eq 1 ] && { [ "$(compilers)" != "0" ] || [ $(( $(date +%s) - lockT )) -gt 660 ]; }; then release_lock; held=0; fi
       if [ $held -eq 0 ]; then acquire_quiet_lock || { echo "no quiet lock"; exit 1; }; held=1; lockT=$(date +%s); fi
       LOG="$OUT/r${r}_$arm.log"
+      rm -f "$LOG.done"   # a re-run keeps LOG's name: a stale .done would end the sampler before its first sample (bf10 R3)
       ( while [ ! -f "$LOG.done" ]; do b=0; [ -n "$(adna)" ] && b=$(burners); echo "$(date +%s) $(compilers) $b"; sleep 2; done ) > "$LOG.compilers" &
       SP=$!
       echo "$(date +%T) [r$r $arm] start: load avg $(sysctl -n vm.loadavg)" | tee -a "$OUT/meta.txt"
