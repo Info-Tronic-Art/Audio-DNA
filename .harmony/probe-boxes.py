@@ -30,7 +30,8 @@ k1a_switch_static   K1a: deck 0 layer 0 = static picture, fired; the other decks
                     every d(after, before) <= floor, and the driver took effect (activeDeck / numDecks). Drivers: REST
                     switch_deck, OSC /audiodna/deck/1, /api/debug/duplicate_deck and /api/debug/load_deck (each shows
                     the new deck; the deck file has the show's row count), BF9B-only: /api/debug/remove_deck of the
-                    SHOWN deck no layer plays from (the grid moves) and /api/debug/undo of that removal. The take-replay
+                    SHOWN deck no layer plays from (the grid moves) and /api/debug/undo of that removal (the ui lane's
+                    one undo route, {"redo": false}; Harmony ruling R-S3). The take-replay
                     activeDeck lane is K7's k7_old_take (same bar). Switch paths with no non-synthetic driver (tab
                     click, MIDI binding, keyboard): unit T1 + lints B4d / B4g.
 k1b_switch_video    K1b: deck 0 layer 0 = ramp12.mp4, t >= 4 s at the switch; at +2 s |t - (t_switch + elapsed)| <= 0.5
@@ -569,7 +570,7 @@ def k1a_switch_static():
                back=lambda: switch(0))
     # BF9B-only: remove the SHOWN deck no layer plays from, then undo that removal
     if ARM != "BF9B":
-        na("k1a_remove_deck / k1a_undo: BF9B-only drivers (/api/debug/remove_deck, /api/debug/undo)")
+        na("k1a_remove_deck / k1a_undo: BF9B-only driver (/api/debug/remove_deck; the undo row undoes that removal)")
         return
     switch(1)
     n2 = len((comp() or {}).get("decks", []))
@@ -585,7 +586,7 @@ def k1a_switch_static():
         c = wait_for(lambda c: len(c.get("decks", [])) == n2, limit=3.0) or comp() or {}
         return (len(c.get("decks", [])) == n2,
                 f"undo -> numDecks {len(c.get('decks', []))}, activeDeck {c.get('activeDeck')}")
-    switch_bar("k1a_undo", ref, fl, lambda: post("/api/debug/undo"), undo_effect)
+    switch_bar("k1a_undo", ref, fl, lambda: post("/api/debug/undo", {"redo": False}), undo_effect)
 
 
 def k1b_switch_video():
@@ -1401,7 +1402,7 @@ def k9c_remove_undo():
     post("/api/debug/remove_deck", {"deck": 2})
     wait_for(lambda c: len(c.get("decks", [])) == n0 - 1, limit=1.5)
     time.sleep(1.0)
-    k1b_bar("k9c", lambda: post("/api/debug/undo"), lambda: wait_for(lambda c: len(c.get("decks", [])) == n0, limit=1.5))
+    k1b_bar("k9c", lambda: post("/api/debug/undo", {"redo": False}), lambda: wait_for(lambda c: len(c.get("decks", [])) == n0, limit=1.5))
     c = comp() or {}
     a1 = (c.get("layers", [{}, {}])[1].get("activeClip") or {})
     ds = c.get("decks", [])
