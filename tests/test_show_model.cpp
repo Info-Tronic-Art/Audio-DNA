@@ -28,6 +28,7 @@
 #include "ui/DeckView.h"
 #include "ui/LayerStrip.h"
 #include "ui/LayerInspector.h"
+#include "ui/ClipInspector.h"
 #include "analysis/FeatureSnapshot.h"
 #include "ShowFixture.h"
 #include <cmath>
@@ -1461,7 +1462,7 @@ TEST_CASE("M7 the note: none for a 1-deck old show without persistent; Boris's s
 // (MainComponent::repointLayerInspector; the lambda below is that function's body over this test's selection).
 TEST_CASE("bf9b fix: a fenced edit that moves or resizes the shared layer stack calls onLayerStackMoved, so a Layer "
           "inspector re-pointed there never holds a moved or removed Layer (Load Deck of a 5-row deck into a 3-layer "
-          "show; Add / Remove Layer; their undos)", "[show]")
+          "show; Add / Remove Layer; their undos)", "[show][asan]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     Composition c = makeShow(1, 3, 2);
@@ -1529,4 +1530,149 @@ TEST_CASE("bf9b fix: a fenced edit that moves or resizes the shared layer stack 
         CHECK(calls == 2);
         CHECK(inspector.getLayer() == nullptr);
     }
+}
+
+// ---- Lane bf9b fix stage (s-rta-1003; ruling-bf9b-merge.md AM-4 / AM-5 and Harmony's adoption item 2): the memory
+// cases. Tag [asan]: in a -DADNA_SANITIZE=address build they run under the ctest label `asan`
+// (.harmony/probe-asan-unit.sh), where one "ERROR: AddressSanitizer" fails the case. Each REQUIREs that the storage it
+// is about moved or died -- a failed precondition is a failure, never a pass. AS0 is the case above, unedited.
+namespace
+{
+// An address walk over every clip of every live and retired deck; `p` is never dereferenced.
+bool showHoldsClipAt(const Composition& c, const Clip* p)
+{
+    bool found = false;
+    c.forEachClip([&found, p](const Clip& clip, const ClipSite&) { found = found || &clip == p; });
+    return found;
+}
+
+// The app's two inspectors over the test's show, wired to the fence as MainComponent wires them, plus the calls its
+// timers make (InspectorPanel::tickModulation at timer rate; refresh at ~10 Hz for the shown tab -- both tabs here).
+struct AppInspectors
+{
+    ClipInspector clip;
+    LayerInspector layer;
+    int selectedLayerRow = -1;   // DeckView::getSelectedLayerIndex()
+
+    AppInspectors()
+    {
+        clip.setSize(413, 900);
+        layer.setSize(300, 900);
+    }
+    // MainComponent's hook statement at this head: onLayerStackMoved -> repointLayerInspector (the Layer inspector
+    // by the selected row; nothing re-points the Clip inspector).
+    void wire(UndoService& svc, Composition&)
+    {
+        svc.onLayerStackMoved = [this, &svc] {
+            layer.setLayer(selectedLayerRow >= 0 ? svc.resolveLayer(selectedLayerRow) : nullptr,
+                           selectedLayerRow >= 0 ? EffectScope::layer(-1, selectedLayerRow) : EffectScope::none());
+        };
+    }
+    void timers()
+    {
+        clip.tickModulation();
+        layer.tickModulation();
+        clip.refresh();
+        layer.refresh();
+    }
+};
+}
+
+TEST_CASE("AS5 a model swap inside the fence with both inspectors bound, then the app's setClip(nullptr) / "
+          "setLayer(nullptr) and its timer calls, reads no Layer or Clip the swap destroyed (bf9b fix, AM-4)",
+          "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    ui.selectedLayerRow = 1;
+    ui.layer.setLayer(&c.layers[1], EffectScope::layer(-1, 1));
+    Clip* shown = c.decks[0].getClip(1, 0);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(0, 1, 0));
+    ui.timers();
+    const Layer* layerBefore = &c.layers[1];
+
+    Composition loaded = makeShow(2, 4, 3);                            // the staged model of a load
+    fenced.svc.withDeckDetached([&] { c = std::move(loaded); });       // MainComponent::swapCompositionModel
+    REQUIRE(&c.layers[1] != layerBefore);                              // the old stack died
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the old clip died
+    ui.clip.setClip(nullptr);                                          // MainComponent::refreshUiAfterModelSwap's order
+    ui.layer.setLayer(nullptr);
+    ui.timers();
+    CHECK(ui.clip.getClip() == nullptr);
+    CHECK(ui.layer.getLayer() == nullptr);
+}
+
+TEST_CASE("AS6 Undo of a wide Load Deck while the Clip inspector shows a clip of that deck, then the app's "
+          "setClip(fresh), reads no Clip the undo destroyed (bf9b fix, AM-4)", "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;                                                  // no layer selected: the Layer tab stays empty
+    ui.wire(fenced.svc, c);
+    Deck wide;
+    wide.name = "Wide";
+    wide.numColumns = 2;
+    wide.initDefault(5);
+    Clip loadedClip;
+    loadedClip.id = 901;
+    loadedClip.name = "wide r1 c1";
+    loadedClip.mediaType = Clip::MediaType::Image;
+    wide.setClip(1, 1, loadedClip);
+    InsertDeckCmd ins(resolverFor(c), fenced.hook(), noMedia(), noDispose(), std::move(wide), "Load Deck");
+    ins.execute();
+    REQUIRE(ins.addedLayerCount() == 2);
+    REQUIRE(c.activeDeckIndex == 1);                                   // the loaded deck is the shown one
+    Clip* shown = c.decks[1].getClip(1, 1);
+    REQUIRE(shown != nullptr);
+    ui.clip.setClip(shown, EffectScope::clip(1, 1, 1));                // Boris clicked that cell
+    ui.timers();
+
+    ins.undo();                                                        // the deck and its two layers are erased
+    REQUIRE(c.decks.size() == 1);
+    REQUIRE(c.getNumLayers() == 3);
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died with its deck
+    // MainComponent::refreshAfterUndoRedo: the Clip inspector re-pointed by the selected cell on the shown deck.
+    Clip* fresh = fenced.svc.resolveClip(c.activeDeckIndex, 1, 1);
+    REQUIRE(fresh != nullptr);
+    ui.clip.setClip(fresh, EffectScope::clip(c.activeDeckIndex, 1, 1));
+    ui.timers();
+    CHECK(ui.clip.getClip() == fresh);
+}
+
+TEST_CASE("AS7 Layer > Clear Clips while the Clip inspector shows a clip of that row that has one effect: the "
+          "inspector's next timer calls read no dead clip, and it shows no clip (bf9b fix, adoption item 2)",
+          "[show][asan]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition c = makeShow(1, 3, 2);
+    Fenced fenced(c);
+    AppInspectors ui;
+    ui.wire(fenced.svc, c);
+    Clip* shown = c.decks[0].getClip(1, 0);
+    REQUIRE(shown != nullptr);
+    Clip::EffectSlot fx;
+    fx.effectName = "Ripple";
+    fx.addParam(0.5f);
+    shown->effects.push_back(fx);                                      // the heap block that dies with the clip
+    ui.clip.setClip(shown, EffectScope::clip(0, 1, 0));
+    ui.timers();
+    const Layer* stackBefore = c.layers.data();
+    const size_t layersBefore = c.layers.size();
+
+    // MainComponent's Layer > Clear Clips (case kLayerClearClips): the shown deck's row, in its own fence.
+    fenced.svc.withDeckDetached([&c] {
+        ClipRow* row = c.decks[0].getRow(1);
+        row->clips.clear();
+        row->ensureColumns(c.decks[0].numColumns);
+    });
+    REQUIRE(c.layers.data() == stackBefore);                           // the stack did not move or resize:
+    REQUIRE(c.layers.size() == layersBefore);                          // onLayerStackMoved never sees this edit
+    REQUIRE_FALSE(showHoldsClipAt(c, shown));                          // the clip died
+    ui.timers();
+    CHECK(ui.clip.getClip() == nullptr);
 }

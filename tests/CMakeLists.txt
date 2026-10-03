@@ -3286,6 +3286,19 @@ set(ADNA_TSAN_TEST_PROPERTIES
     FAIL_REGULAR_EXPRESSION "WARNING: ThreadSanitizer"
 )
 
+# --- lane bf9b fix (s-rta-1003; ruling-bf9b-merge.md AM-5, gate B3b): the AddressSanitizer unit gate, the tsan set's
+# shape. A case tagged [asan] drives real code over storage that moved or died; in a -DADNA_SANITIZE=address build
+# (.harmony/probe-asan-unit.sh) one "ERROR: AddressSanitizer" fails it: ENVIRONMENT pins ASAN_OPTIONS (it overrides the
+# caller's shell) and FAIL_REGULAR_EXPRESSION catches a report whatever the exit code. The cases are registered under
+# the label by a SECOND catch_discover_tests of their binary (TEST_SPEC "[asan]", TEST_PREFIX "asan: "), only when
+# ADNA_SANITIZE holds "address": a normal build's test count does not change. `ctest -L asan` selects them.
+set(ADNA_ASAN_TEST_PROPERTIES
+    LABELS asan
+    TIMEOUT 300
+    ENVIRONMENT "ASAN_OPTIONS=abort_on_error=0:halt_on_error=1"
+    FAIL_REGULAR_EXPRESSION "ERROR: AddressSanitizer"
+)
+
 # --- test_layer_runtime_race (R1 / R2 / R4: the Layer trigger tuple + clip runtime fields, message thread vs GL
 # thread). Sources as test_autopilot + UndoManager.cpp; link set as test_undo_commands.
 add_executable(test_layer_runtime_race
@@ -3429,7 +3442,7 @@ catch_discover_tests(test_layer_runtime)
 # the commands, UndoService (withDeckDetached's headless branch: no renderer is ever set -- the Renderer members it
 # names are inline), Autopilot, the RoutineEngine set (as test_routine_engine), the DeckView set (as
 # test_deck_thumbnails), MidiOutputHandler (padStateFor), the LayerInspector set (as test_layer_inspector_layer_row:
-# the fix round's onLayerStackMoved case).
+# the fix round's onLayerStackMoved case) plus ClipInspector.cpp (the fix stage's memory cases bind both inspectors).
 add_executable(test_show_model
     test_show_model.cpp
     ${SRC_DIR}/model/Clip.cpp
@@ -3467,6 +3480,7 @@ add_executable(test_show_model
     ${SRC_DIR}/render/FullscreenQuad.cpp
     ${SRC_DIR}/render/LUTLoader.cpp
     ${SRC_DIR}/ui/LayerInspector.cpp
+    ${SRC_DIR}/ui/ClipInspector.cpp
     ${SRC_DIR}/ui/MacroPanel.cpp
     ${SRC_DIR}/ui/Knob.cpp
     ${SRC_DIR}/render/FeedbackProcessor.cpp
@@ -3494,6 +3508,13 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_show_model)
 catch_discover_tests(test_show_model)
+# The [asan] cases once more under the asan label (AM-5), in an address-sanitizer build only.
+if("address" IN_LIST ADNA_SANITIZE)
+    catch_discover_tests(test_show_model
+        TEST_SPEC "[asan]"
+        TEST_PREFIX "asan: "
+        PROPERTIES ${ADNA_ASAN_TEST_PROPERTIES})
+endif()
 
 # --- test_layer_strip_source_deck (lane bf9b S3, plan-bf9b S3.1 / S3.2, ruling-bf9b amendments 16(a)-(c), 16(e) and the
 # B7 MACHINE checks M-a .. M-f): the strip's source-deck badge (tab number / "x", dim for the shown deck, click = show
