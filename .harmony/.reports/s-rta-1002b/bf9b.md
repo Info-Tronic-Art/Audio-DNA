@@ -1845,7 +1845,7 @@ src tests CMakeLists.txt cmake` empty); STAGE_P = scratch bf9b-S0/apps/stagep-he
 ### found_not_fixed (fix round)
 - K5 Link-on: no driver on either arm (needs a Link build + a toggle route + a Link-built STAGE_P arm) -- Harmony's
   ruling (T5 + "tempo only, never the phase", or a Link lane). probe-boxes now prints `PROBE-BOXES BLOCKED 1` for it.
-- R-N1 beyond probe-canvas: 32 other .harmony scripts still quit Audio-DNA by name or kill by name (grep of `tell
+- R-N1 beyond probe-canvas: 31 other .harmony scripts (30 .sh + probe-idle-paint.py) still quit Audio-DNA by name or kill by name (grep of `tell
   application "Audio-DNA" to quit|pkill.*Audio-DNA|killall.*Audio-DNA|adna_kill`): gate-s165.sh probe-beatclock.sh
   probe-async-load.sh probe-btguard.sh probe-capture.sh probe-crossfade.sh probe-deck-path.sh probe-deck-tabs.sh
   probe-downbeat-level.sh probe-effects-parity.sh probe-finalize-loop.sh probe-fitmode.sh probe-idle-paint.sh (+ .py)
