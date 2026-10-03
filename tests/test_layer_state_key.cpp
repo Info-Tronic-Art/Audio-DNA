@@ -5,17 +5,17 @@
 // feedback processor): render/LayerStateKey.h. It is pure (no GL), so this is
 // not a mirror of compositor logic.
 //
-// The bug it pins: layer ids repeat across decks (Deck::initDefault numbers each
-// deck's layers 0, 1, 2 ...), so keying the state by layer id alone would hand
-// deck A's layer-0 history to deck B's layer 0 after a deck switch -- history
-// must not cross a deck switch.
+// The bug it pinned: layer ids repeated across decks, so keying the state by layer
+// id alone would hand deck A's layer-0 history to deck B's layer 0 after a deck
+// switch. Lane bf9b: one shared stack whose layer ids are unique per show keys
+// every layer with kShowStackKey; the two-half key function stays pinned here.
 //
 // What it does NOT cover: that every compositor call site passes the right key
 // (GL call sites). The live per-deck call-site rows r2_* were retired with
 // Persistent (bf9 Stage P); successor: bf9b gate K1t.
 
 #include <catch2/catch_test_macros.hpp>
-#include "model/Deck.h"
+#include "model/Composition.h"
 #include "render/LayerStateKey.h"
 
 #include <cstdint>
@@ -23,16 +23,17 @@
 
 TEST_CASE("LayerStateKey: the same layer id in two decks gets two keys", "[layer_state_key]")
 {
-    // Two decks built the way the app builds them: both number their layers 0, 1, 2.
-    Deck a; a.id = 0; a.initDefault();
-    Deck b; b.id = 1; b.initDefault();
-    REQUIRE(a.layers[0].id == b.layers[0].id);   // the collision precondition
+    // Lane bf9b: decks hold no layers any more (one shared stack, keyed with kShowStackKey), but the key function
+    // keeps its (stack, layer) halves: the same layer ids under two stack halves must still give two keys.
+    Composition show; show.initDefault();
+    const std::uint32_t a = LayerStateKey::kShowStackKey, b = a + 1;
 
-    for (size_t i = 0; i < a.layers.size(); ++i)
+    for (size_t i = 0; i < show.layers.size(); ++i)
     {
         INFO("layer index " << i);
-        REQUIRE(LayerStateKey::clipChain(a.id, a.layers[i].id) != LayerStateKey::clipChain(b.id, b.layers[i].id));
-        REQUIRE(LayerStateKey::layerChain(a.id, a.layers[i].id) != LayerStateKey::layerChain(b.id, b.layers[i].id));
+        const std::uint32_t id = show.layers[i].id;
+        REQUIRE(LayerStateKey::clipChain(a, id) != LayerStateKey::clipChain(b, id));
+        REQUIRE(LayerStateKey::layerChain(a, id) != LayerStateKey::layerChain(b, id));
     }
 }
 

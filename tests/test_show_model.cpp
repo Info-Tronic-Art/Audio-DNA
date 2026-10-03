@@ -4,43 +4,10 @@
 // RED on STAGE_P_HEAD / S1 head: does not compile (no Composition::layers, no ClipRef trigger API).
 #include <catch2/catch_test_macros.hpp>
 #include "model/Composition.h"
+#include "ShowFixture.h"
 #include <vector>
 
-namespace
-{
-// A show of `decks` decks x `layers` shared layers x `columns` columns; every cell holds an Image clip with a unique id
-// (100 * deck + 10 * row + column) so a test can tell clips apart.
-Composition makeShow(int decks, int layers, int columns)
-{
-    Composition c;
-    c.initDefault();
-    while (c.getNumLayers() < layers)
-        c.insertLayer(c.getNumLayers(), c.makeLayer());
-    while (c.getNumLayers() > layers)
-        c.eraseLayer(c.getNumLayers() - 1);
-    c.decks.front().numColumns = columns;
-    for (auto& row : c.decks.front().rows)
-        row.ensureColumns(columns);
-    while (static_cast<int>(c.decks.size()) < decks)
-    {
-        Deck d;
-        d.name = "Deck " + std::to_string(c.decks.size() + 1);
-        d.numColumns = columns;
-        d.initDefault(layers);
-        REQUIRE(c.appendDeck(std::move(d)) >= 0);
-    }
-    for (int d = 0; d < decks; ++d)
-        for (int r = 0; r < layers; ++r)
-            for (int col = 0; col < columns; ++col)
-            {
-                Clip clip;
-                clip.id = static_cast<uint32_t>(100 * d + 10 * r + col + 1);
-                clip.mediaType = Clip::MediaType::Image;
-                c.decks[static_cast<size_t>(d)].setClip(r, col, clip);
-            }
-    return c;
-}
-}
+using ShowFixture::makeShow;
 
 TEST_CASE("T2 firing a cell of a deck that is not shown puts its ClipRef in that row's shared layer (bf9b)", "[show]")
 {

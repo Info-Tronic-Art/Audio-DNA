@@ -1777,7 +1777,9 @@ TEST_CASE("RoutineEngine display D2: a deck-relative routine resolves on the dec
     CHECK(rig.slot(0).deck == 1);
 }
 
-TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that layer of that deck, whole, grips released", "[routine][engine][display]")
+// Lane bf9b (plan-bf9b S2.9 / F9): stopOnLayer(layer) names a SHARED layer -- it stops every routine touching it,
+// whatever deck the routine fired from (the old "another deck: nothing" step has no deck to name any more).
+TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that shared layer, whole, grips released", "[routine][engine][display]")
 {
     Rig rig;
     const ControlPath op0 = opacityKey(0);
@@ -1799,17 +1801,16 @@ TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that lay
     CHECK(rig.fd.count(Ev::Release, op0) == 0);
     CHECK(rig.fd.count(Ev::Release, speed0) == 0);
 
-    rig.eng.stopOnLayer(0, 1);   // only A plays on layer 1
+    rig.eng.stopOnLayer(1);   // only A plays on layer 1
     CHECK(rig.slot(0).state == "idle");
     CHECK(rig.slot(0).layers.empty());
     CHECK(rig.slot(1).state == "running");
     CHECK(rig.fd.count(Ev::Release, op0) == 1);   // A's gesture on layer 0 let go too: the WHOLE routine stops
 
-    rig.eng.stopOnLayer(1, 0);   // another deck: nothing
     CHECK(rig.slot(1).state == "running");
     CHECK(rig.fd.count(Ev::Release, speed0) == 0);
 
-    rig.eng.stopOnLayer(0, 0);
+    rig.eng.stopOnLayer(0);
     CHECK(rig.slot(1).state == "idle");
     CHECK(rig.fd.count(Ev::Release, speed0) == 1);
 
@@ -1822,7 +1823,7 @@ TEST_CASE("RoutineEngine display D3: stopOnLayer stops every routine on that lay
         r2.runTo(1.0);
         CHECK(r2.fire(0).empty());
         CHECK(r2.fire(1).empty());
-        r2.eng.stopOnLayer(0, 0);   // while still pending
+        r2.eng.stopOnLayer(0);   // while still pending
         CHECK(r2.slot(0).state == "idle");
         CHECK(r2.slot(1).state == "idle");
     }

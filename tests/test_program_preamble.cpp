@@ -49,10 +49,11 @@ TEST_CASE("Program::compile builds the preamble from checkpoint0 in restore orde
     comp.activeDeckIndex = 0;
     comp.quantizeMode = Composition::QuantizeMode::NextDownbeat;   // v = 2
 
-    Layer& layer0 = comp.decks[0].layers[0];
+    Layer& layer0 = comp.layers[0];   // lane bf9b: the shared layer; its clip is deck 0's row-0 cell
     {
         LayerRuntimeSnapshot rt = layer0.runtime();
         rt.activeClipColumn = 2;
+        rt.activeDeckId = comp.decks[0].id;
         layer0.setRuntime(rt);
     }
     layer0.opacity = 0.5f;
@@ -74,7 +75,7 @@ TEST_CASE("Program::compile builds the preamble from checkpoint0 in restore orde
     slot.paramValues[1] = std::clamp(def->params[1].defaultValue + 0.4f, 0.0f, 1.0f);
     clip.effects.push_back(slot);
     clip.clipOpacity = 0.25f;   // ClipScalar::Opacity, identity toNorm -> 0.25
-    layer0.clips[2] = clip;
+    comp.decks[0].rows[0].clips[2] = clip;
 
     Take take;
     take.checkpoint0 = capturePerfState(comp, 120.0f, "");
@@ -164,13 +165,14 @@ TEST_CASE("Program::compile: an active clip with no captured ClipRuntime restore
     Composition comp = makeComposition();
     comp.activeDeckIndex = 0;
 
-    Layer& layer1 = comp.decks[0].layers[1];
+    Layer& layer1 = comp.layers[1];   // lane bf9b: the shared layer; its clip is deck 0's row-1 cell
     {
         LayerRuntimeSnapshot rt = layer1.runtime();
         rt.activeClipColumn = 0;
+        rt.activeDeckId = comp.decks[0].id;
         layer1.setRuntime(rt);
     }
-    layer1.clips[0] = Clip{};   // present, but every field at its default -- PerfStateCapture will
+    comp.decks[0].rows[1].clips[0] = Clip{};   // present, but every field at its default -- PerfStateCapture will
                                 // NOT capture a ClipRuntime for it (nonDefault check fails).
 
     Take take;
@@ -211,10 +213,16 @@ TEST_CASE("Program::compile: a missing deck or layer is counted in preambleUnres
     deck0RT.layers[7] = layer7RT;
     cp0.decks[0] = deck0RT;
 
+    // Lane bf9b (plan-bf9b 4.B, test_program_preamble.cpp:196): Layer scope resolves the SHARED layer (a v1 take's
+    // from its captured active deck), so only Clip scope can miss a deck -- deck 9's row carries a clip runtime.
     PerfState::DeckRuntime deck9RT;   // index 3 -- comp only has one deck (index 0)
     deck9RT.deck = "Deck 9";
     PerfState::LayerRuntime someLayerRT;
     someLayerRT.layer = "Layer 1";
+    PerfState::ClipRuntime someClipRT;
+    someClipRT.clip = "C";
+    someClipRT.playing = true;
+    someLayerRT.clips[0] = someClipRT;
     deck9RT.layers[0] = someLayerRT;
     cp0.decks[3] = deck9RT;
 
@@ -232,10 +240,11 @@ TEST_CASE("Program::compile: a missing deck or layer is counted in preambleUnres
     CHECK(namesDeck);
     CHECK(namesLayer);
 
-    // deck 0's entries (the valid layer 0) are still present -- not swallowed by the two failures.
+    // deck 0's entries (the valid layer 0) are still present -- not swallowed by the two failures. Lane bf9b (4.B):
+    // a Layer-scope entry targets the shared layer only (no deck in its target).
     bool foundDeck0Entry = false;
     for (const auto& f : p->preamble)
-        if (f.target.deck == 0 && f.target.layer == 0)
+        if (f.key.scope == ControlPath::Scope::Layer && f.target.layer == 0)
             foundDeck0Entry = true;
     CHECK(foundDeck0Entry);
 }
@@ -339,7 +348,7 @@ TEST_CASE("Program::compile: a layer opacity captured AT the scalar default stil
     Composition comp = makeComposition();
     comp.activeDeckIndex = 0;
 
-    Layer& layer0 = comp.decks[0].layers[0];
+    Layer& layer0 = comp.layers[0];   // lane bf9b: the shared layer
     {
         LayerRuntimeSnapshot rt = layer0.runtime();
         rt.activeClipColumn = -1;   // clean, matches the live-gate fixture exactly
@@ -349,7 +358,7 @@ TEST_CASE("Program::compile: a layer opacity captured AT the scalar default stil
 
     Take take;
     take.checkpoint0 = capturePerfState(comp, 120.0f, "");
-    REQUIRE(take.checkpoint0.decks.at(0).layers.at(0).opacity == Approx(1.0f));   // capture is unconditional
+    REQUIRE(take.checkpoint0.layers.at(0).opacity == Approx(1.0f));   // capture is unconditional (PerfState v2: the shared layers)
 
     auto p = compile(take, comp, DriveClock::Wall);
     REQUIRE(p->report.preambleUnresolved.empty());

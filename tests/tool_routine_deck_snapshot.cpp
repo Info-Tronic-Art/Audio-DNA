@@ -101,7 +101,7 @@ namespace
         Layer layer;
         layer.name = "Layer " + std::to_string(stripLayer + 1);
         LayerStrip strip;
-        strip.setLayer(&layer, stripLayer);
+        strip.setLayer(&layer, stripLayer, nullptr);   // lane bf9b: no show -- the strip draws no playing clip
         strip.setSize(250, 96);
         const auto it = v.bandsByLayer.find(stripLayer);
         strip.setRoutineBands(it == v.bandsByLayer.end() ? std::vector<RoutineDeckView::Band>{} : bandsToDraw(it->second));

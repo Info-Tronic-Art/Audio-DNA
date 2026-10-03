@@ -1322,39 +1322,37 @@ endif()
 apply_sanitizers(test_render_geometry)
 catch_discover_tests(test_render_geometry)
 
-# --- test_deck_clock (s-rta-0926b plan4 item 2: decks that are not on screen
-# keep time -- DeckClock::tick / LayerClock::advanceCrossfade, pure headers in
-# src/render/; B2 adds AutopilotBank, src/model/AutopilotBank.h). Built like
-# test_compositor: real Clip / Layer / Autopilot sources, juce_core +
-# juce_graphics, no GL.
-add_executable(test_deck_clock
-    test_deck_clock.cpp
+# --- test_layer_clock (LayerClock::advanceCrossfade, the one crossfade clock --
+# a pure header in src/render/; lane bf9b moved case (e) here from the retired
+# test_layer_clock: DeckClock and AutopilotBank were deleted). Real Clip / Layer
+# sources, juce_core + juce_graphics, no GL.
+add_executable(test_layer_clock
+    test_layer_clock.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
     ${SRC_DIR}/connect/ConnSerialization.cpp
-    ${SRC_DIR}/model/Autopilot.cpp
 )
-target_include_directories(test_deck_clock PRIVATE ${SRC_DIR})
-target_link_libraries(test_deck_clock PRIVATE
+target_include_directories(test_layer_clock PRIVATE ${SRC_DIR})
+target_link_libraries(test_layer_clock PRIVATE
     Catch2::Catch2WithMain
     juce::juce_core
     juce::juce_graphics
 )
-target_compile_definitions(test_deck_clock PRIVATE
+target_compile_definitions(test_layer_clock PRIVATE
     _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 if(NOT MSVC)
-    target_compile_options(test_deck_clock PRIVATE
+    target_compile_options(test_layer_clock PRIVATE
         -Wno-old-style-cast
         -Wno-conversion
         -Wno-sign-conversion
     )
 endif()
-apply_sanitizers(test_deck_clock)
-catch_discover_tests(test_deck_clock)
+apply_sanitizers(test_layer_clock)
+catch_discover_tests(test_layer_clock)
 
 # --- test_conn_picker (s-rta-0923 lane 3, Lane C0 scaffold: the picker ->
 # ConnSource translation, headless -- .harmony/specs/s-rta-0923-lane3-plan.md
