@@ -8,7 +8,7 @@
 
 // TopBar: the main application toolbar below the menu bar.
 // Contains: audio source, gain, transport, tempo display,
-// tap/resync, BPM multiplier, quantize, fade, FPS/DSP stats.
+// tap/resync, BPM multiplier, quantize, FPS/DSP stats.
 class TopBar : public juce::Component, private juce::Timer
 {
 public:
@@ -55,10 +55,11 @@ public:
     void syncMasterSignalFromComposition();
 
     // Layout test seams (tests/test_master_signal_link.cpp): confirm the
-    // "Master Signal:" label sits to the right of the existing Fade slider
+    // "Master Signal:" label sits to the right of the Quantize selector, its
+    // left neighbour since the deck Fade section was removed (lane bf9b S3.3)
     // (no overlap with the widget immediately to its left in the bar).
     juce::Rectangle<int> masterSignalLabelBoundsForTest() const { return masterSignalLabel_.getBounds(); }
-    juce::Rectangle<int> fadeSliderBoundsForTest() const { return fadeSlider_.getBounds(); }
+    juce::Rectangle<int> quantizeSelectorBoundsForTest() const { return quantizeSelector_.getBounds(); }
     // s-rta-0926 polish: label text/bounds test seams for the whole-word-label
     // + readout + width-budget checks in test_master_signal_link.cpp.
     juce::String masterSignalLabelTextForTest() const { return masterSignalLabel_.getText(); }
@@ -116,10 +117,6 @@ private:
     // === Quantize Section ===
     juce::Label quantizeLabel_{"", "Quantize:"};
     juce::ComboBox quantizeSelector_;
-
-    // === Fade Section ===
-    juce::Label fadeLabel_{"", "Fade:"};
-    ResettableSlider fadeSlider_;
 
     // === Master Signal (s-rta-0925 mastersignal Step 1; label/readout/accent
     // polish s-rta-0926) ===

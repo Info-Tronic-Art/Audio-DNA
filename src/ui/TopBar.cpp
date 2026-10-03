@@ -187,23 +187,6 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
             onQuantizeChanged(mode);
     };
 
-    // Fade
-    addAndMakeVisible(fadeLabel_);
-    fadeLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
-    fadeLabel_.setColour(juce::Label::textColourId,
-                         juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    addAndMakeVisible(fadeSlider_);
-    fadeSlider_.setRange(0.0, 5.0, 0.01);
-    fadeSlider_.setValue(static_cast<double>(composition_.globalTransitionSpeed),
-                        juce::dontSendNotification);
-    fadeSlider_.setDefaultValue(0.5);
-    fadeSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    fadeSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
-    fadeSlider_.onValueChange = [this]
-    {
-        composition_.globalTransitionSpeed = static_cast<float>(fadeSlider_.getValue());
-    };
-
     // Master Signal (s-rta-0925 mastersignal Step 1) -- built exactly like
     // the Master fader immediately below it: direct model write on change,
     // Held grip for the duration of a drag, Decaying touch on right-click
@@ -225,7 +208,7 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     masterSignalSlider_.setValue(1.0, juce::dontSendNotification);
     masterSignalSlider_.setDefaultValue(1.0);
     masterSignalSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    // 35 wide matches Fade's own readout (proven to fit "0.30" et al in this
+    // 35 wide (proven to fit "0.30" et al in this
     // bar); a narrower box measured here clipped "1.00" to "1..." (s-rta-0926
     // polish -- caught on a live-app screenshot, not by the headless test).
     masterSignalSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
@@ -262,8 +245,8 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     masterLevelSlider_.setValue(1.0, juce::dontSendNotification);
     masterLevelSlider_.setDefaultValue(1.0);
     masterLevelSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    // Numeric readout: s-rta-0926 polish, same TextBoxRight convention (and
-    // width) Fade already uses in this bar.
+    // Numeric readout: s-rta-0926 polish, the same TextBoxRight convention (and
+    // width) as the Master Signal fader.
     masterLevelSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
     masterLevelSlider_.setTooltip(kMasterTooltip);
     // s-rta-0925 link: this fader is a SHORTCUT to the Composition tab's
@@ -618,11 +601,6 @@ void TopBar::resized()
     // Quantize
     quantizeLabel_.setBounds(area.removeFromLeft(55));
     quantizeSelector_.setBounds(area.removeFromLeft(100));
-    area.removeFromLeft(6);
-
-    // Fade
-    fadeLabel_.setBounds(area.removeFromLeft(30));
-    fadeSlider_.setBounds(area.removeFromLeft(100));
     area.removeFromLeft(6);
 
     // Right side: stats + output + master

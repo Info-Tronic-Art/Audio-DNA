@@ -174,7 +174,7 @@ TEST_CASE("the Signal and Master faders are independent", "[link][signal]")
     REQUIRE(bar.getMasterLevelSlider().getValue() == Approx(1.0).margin(0.006));
 }
 
-TEST_CASE("layout: the Signal fader sits to the right of Fade with no overlap on Master",
+TEST_CASE("layout: the Signal fader sits to the right of Quantize with no overlap on Master",
          "[link][signal][layout]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
@@ -186,7 +186,9 @@ TEST_CASE("layout: the Signal fader sits to the right of Fade with no overlap on
     // this is a same-row ordering/overlap check, not a pixel-budget test.
     bar.setSize(1728, 40);
 
-    auto sig = bar.fadeSliderBoundsForTest();      // existing Fade slider (left neighbour)
+    // Lane bf9b S3.3 (ruling-bf9b amendment 18): the deck Fade section is gone; the left neighbour is the control
+    // that stood before it, the Quantize selector.
+    auto sig = bar.quantizeSelectorBoundsForTest();
     auto sigLabel = bar.masterSignalLabelBoundsForTest();
     auto& sigSlider = bar.getMasterSignalSlider();
     auto& masterSlider = bar.getMasterLevelSlider();
@@ -297,7 +299,7 @@ TEST_CASE("layout at 1728: the Master Signal label is not truncated and both rea
     TopBar bar(bus, comp);
     bar.setSize(1728, 40);
 
-    auto fade = bar.fadeSliderBoundsForTest();
+    auto fade = bar.quantizeSelectorBoundsForTest();   // bf9b S3.3: the left neighbour (the Fade section is gone)
     auto sigLabel = bar.masterSignalLabelBoundsForTest();
     auto masterLabel = bar.masterLabelBoundsForTest();
     auto& sigSlider = bar.getMasterSignalSlider();
@@ -337,7 +339,7 @@ TEST_CASE("layout at the minimum window width (1280): Signal/Master group never 
     // 1280 == Main.cpp's setResizeLimits(1280, ...) minimum width.
     bar.setSize(1280, 40);
 
-    auto fade = bar.fadeSliderBoundsForTest();
+    auto fade = bar.quantizeSelectorBoundsForTest();   // bf9b S3.3: the left neighbour (the Fade section is gone)
     auto sigLabel = bar.masterSignalLabelBoundsForTest();
     auto masterLabel = bar.masterLabelBoundsForTest();
     auto& sigSlider = bar.getMasterSignalSlider();
@@ -357,4 +359,29 @@ TEST_CASE("layout at the minimum window width (1280): Signal/Master group never 
     REQUIRE(sigLabel.getX() >= fade.getRight());
     REQUIRE(sigSlider.getX() >= sigLabel.getRight());
     REQUIRE(masterSlider.getX() >= masterLabel.getRight());
+}
+
+// Lane bf9b S3.3 (ruling-bf9b amendment 18): with one shared layer stack a deck switch never changes the picture, so the
+// deck-to-deck Fade has nothing to fade -- the TopBar shows no "Fade:" label and no slider writes a deck fade.
+TEST_CASE("bf9b S3.3: the TopBar has no deck Fade control", "[link][layout][bf9b]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    Composition comp;
+    comp.initDefault();
+    FeatureBus bus;
+    TopBar bar(bus, comp);
+    bar.setSize(1728, 40);
+    juce::StringArray labels;
+    int sliders = 0;
+    for (auto* child : bar.getChildren())
+    {
+        if (auto* l = dynamic_cast<juce::Label*>(child))
+            labels.add(l->getText());
+        if (dynamic_cast<juce::Slider*>(child) != nullptr && child->isVisible())
+            ++sliders;
+    }
+    INFO("labels: " << labels.joinIntoString(" | ").toStdString());
+    CHECK_FALSE(labels.contains("Fade:"));
+    CHECK(sliders == 3);   // Gain, Master Signal, Master
+    CHECK(bar.quantizeSelectorBoundsForTest().getRight() <= bar.masterSignalLabelBoundsForTest().getX());
 }

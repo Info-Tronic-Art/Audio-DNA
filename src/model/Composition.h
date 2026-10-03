@@ -139,9 +139,6 @@ struct Composition
     float handBackGlideMs = 120.0f;
 
     // === Global Settings ===
-    // The removed deck-to-deck fade (lane bf9b, ruling-bf9b amendment 18): no reader and never saved; only the TopBar
-    // Fade slider still writes it until S3.3 deletes that half.
-    float globalTransitionSpeed = 0.3f; // seconds
     int bpmMultiplier = 1; // -4 = ÷4, -2 = ÷2, 1 = ×1, 2 = ×2, 4 = ×4
 
     enum class QuantizeMode : uint8_t { Off, NextBeat, NextDownbeat };
@@ -229,7 +226,6 @@ struct Composition
         migrationNote.clear();
         masterOpacity = 1.0f;
         masterSignal = 1.0f;
-        globalTransitionSpeed = 0.3f;
         bpmMultiplier = 1;
         quantizeMode = QuantizeMode::Off;
     }
