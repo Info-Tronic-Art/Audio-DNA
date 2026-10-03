@@ -3,7 +3,7 @@ Spec: .harmony/.reports/s-rta-1003/ruling-bf9b-merge.md (AM-1..AM-18) + the HARM
 plan-bf9b-merge.md. Worktree .claude/worktrees/bf9b, branch lane/bf9b. Scratch: <session scratchpad>/bf9b-fix-FIX-1/.
 
 ## STAGE FIX-1 MEMORY (AM-1, AM-2, AM-4, AM-5, AM-6 src, AM-8, adoption item 2 / AS7)
-STATUS: PENDING
+STATUS: DONE (2026-10-03 14:56 -> 15:16; concerns = "DEVIATIONS / STOP ITEMS FOR HARMONY" below)
 Started 2026-10-03 14:56:47 from b70ce61 (git status clean).
 
 ### Commit 1 -- the gate + the RED run on untouched src (AM-5; AS0 tag, AS5, AS6, AS7)
@@ -152,8 +152,101 @@ STOP CLAUSES OF THIS STAGE: (a) AS0 RED on the pre-fix src: YES (FM-2) -- no sto
 ruling does not name: none (the label runs only the named cases; AS7 is the adoption's). (c) an existing test that
 asserted a release on a rebind: none -- 1244 / 1244 with the fix, no existing test edited.
 
+### End of stage (head fed5510; tree == the tree the full ctest ran on: `git diff --quiet -- src tests` rc 0)
+- Full ctest, serial, under /tmp/audiodna-ctest.lock: `100% tests passed, 0 tests failed out of 1244` (15:09:56 ->
+  15:12:06).
+- `.harmony/probe-tsan-unit.sh` (unmodified: `git diff --quiet b70ce61 -- .harmony/probe-tsan-unit.sh` rc 0), 15:13:13:
+  `probe-tsan-unit: ctest -L tsan finds 5 [tsan] cases (expected 5)`, `100% tests passed, 0 tests failed out of 5`,
+  exit 0, 0 "WARNING: ThreadSanitizer" (final-tsan.log).
+- `.harmony/probe-asan-unit.sh`, 15:13:20: `PROBE-ASAN-UNIT GREEN (7 cases, 0 reports)`, exit 0 (final-asan.log).
+- `wc -c CLAUDE.md` = 24224 (unchanged; no CLAUDE.md line, no pitfall).
+- No app was launched in this stage, no lock taken, no Output window, no build left running. New build dir:
+  build-asan (gitignored; 300 GB free before it).
+- Commits: 8487a57 (commit 1), fed5510 (commit 2), + this report's docs commit.
+
+### FACTS MEASURED
+- FM-2: YES -- `1/4 Test #150: asan:bf9b fix: a fenced edit that moves or resizes the shared layer stack ...
+  ***Failed` / `==48080==ERROR: AddressSanitizer: heap-use-after-free on address 0x621000003020 ... READ of size 1`
+  (UniversalParamControl::setParamValue <- LayerInspector::syncFromLayer <- LayerInspector::setLayer), through
+  probe-asan-unit.sh on untouched src: `PROBE-ASAN-UNIT RED (4 of 4 failed)`.
+- FM-4: YES -- `ctest --test-dir build-asan -N -L asan` -> `Total Tests: 4` at commit 1 (7 at commit 2) from the
+  second catch_discover_tests (TEST_SPEC "[asan]", TEST_PREFIX "asan:"); no dedicated binary needed.
+
+### DEVIATIONS / STOP ITEMS FOR HARMONY
+1. B4f (the ruling's "B4f counts unchanged" proof for FIX-1): the 12 existing pins are unchanged, but the lint needed
+   ONE NEW pin, `{ "ui/InspectorRepoint.h", 1 }`: AM-2's own `setClip(nullptr)` in the new header matches B4f's
+   `setClip(` token (a UI setter, the class the lint's comment already names for ClipInspector / InspectorPanel).
+   Without it the lint is RED. Needs Harmony's confirmation (or the ruling's wording corrected).
+2. Adoption item 2's call site is an `else` (onLayerStackMoved on a stack move, onFencedEdit otherwise), not a second
+   unconditional call. Every fenced edit still runs the check exactly once. Reason: an unconditional call would make
+   step (1) of the hook function unkillable and void the pre-registered MU2. If Harmony wants it unconditional: one
+   word in UndoService.cpp, and MU2 must then be redefined (remove the check's body -> AS3b and AS7).
+3. AS7 on the pre-fix src: RED by its CHECK and by an ASan heap-use-after-free at the effect row control's
+   destruction; the two timer calls themselves printed no report (see commit 1). The adoption's wording
+   ("..., Clear Layer Clips, tickModulation") is met as a sequence, not as "tickModulation is the reporting frame".
+4. AS2 under MU1 reports a READ (first report wins under halt_on_error=1), not the WRITE the ruling wrote.
+5. MU1 also turns AS3b RED (not in the ruling's MU1 list; a named case, same cause).
+6. The three ui_text fields and the lever's selectLayer line were compiled and read only -- no app was launched
+   here. FIX-4's probe-asan-live.sh is their first live reader (L0's VALID clause).
+7. The stash-guard hook twice refused a command whose TEXT (a commit message, then this report's text) it read as a
+   whole-tree stage; the same work went through with the text in a file. Paths were staged one by one; the guard
+   was never overridden.
+
+### FOUND, NOT FIXED
+1. A consequence of adoption item 2 worth a note: Column > Add Column / Remove Column (fenced `deck->addColumn()` /
+   `removeColumn`) can move a row's clips; before this stage the Clip inspector kept the stale pointer (the same
+   freed-memory class, not in the ruling's lists); now the Clip tab goes EMPTY when its clip moved. Memory-safe;
+   whether it should instead re-point by the selected cell is Q-C's territory. INFERRED from reading (Deck.h
+   addColumn -> ClipRow::ensureColumns resize); no test drives it.
+2. LayerStrip has no destructor and strips are not forgotten (ruling SF-2 / RR-6): untouched.
+3. docs: integration.md (ui_text's three fields), testing-eyes.md (the lever now selects the row), Pitfall 33's
+   sentence, APP-INVENTORY -- AM-14 assigns them to FIX-3 / FIX-4; not written here.
+
+### NOTES FOR THE NEXT STAGES
+- FIX-2: T6f / T6g / T6j join the asan label: tag them `[asan]`, raise EXPECTED_ASAN_CASES 7 -> 10 in
+  .harmony/probe-asan-unit.sh (TARGETS already holds test_show_model). B4f: DeckCommands.h re-pin as ruled; the
+  InspectorRepoint.h pin is item 1 above.
+- Tests that need both inspectors: `AppInspectors` (tests/test_show_model.cpp) = both inspectors wired through the
+  production functions; `showHoldsClipAt` = the tests' own address walk.
+- FIX-4: ui_text now answers inspected_layer / inspected_clip / inspector_tab; the default show's layer names must be
+  read live before L0's `"Layer 2"` is trusted (not checked here). ASAN-MU3 = delete the
+  `undoService_.onLayerStackMoved = [this]() { ... };` statement (5 lines) in MainComponent.cpp; with it gone the
+  `else` branch sends stack moves to onFencedEdit, which still clears the Clip inspector but does NOT re-point the
+  Layer inspector -- so L1 stays the expected RED step (INFERRED).
+- build-asan exists (RelWithDebInfo, ADNA_SANITIZE=address, only test_show_model built). The ASan APP needs its own
+  dir (build-asan-app) or the AudioDNA target built there.
+
+### Notes for .harmony/notebook.md (Harmony appends)
+- A destroyed Clip in a ClipRow whose buffer stays allocated (clips.clear() + ensureColumns) is invisible to ASan
+  for reads of the Clip's own inline fields (scalarConns is a std::array); only its heap children (effects, strings)
+  report. A memory test for "Clear Clips" must give the clip a heap child AND assert the functional outcome.
+  | discovered: tests/test_show_model.cpp AS7
+- catch_discover_tests can be called twice on one binary: a second call with TEST_SPEC "[tag]" + TEST_PREFIX +
+  PROPERTIES registers the tagged cases again under a label; guard it with `if("address" IN_LIST ADNA_SANITIZE)` so
+  a normal build's count does not change. | discovered: tests/CMakeLists.txt (FM-4)
+- The B4f lint counts every `setClip(` in src/, UI setters included: a new file that calls ClipInspector::setClip
+  needs its own pin. | discovered: tests/test_render_thread_lint.cpp
+- Harmony's stash-guard hook reads the whole command text, heredocs included: keep commit messages and report text
+  in files. | discovered: this stage
+
+INBOX-RECHECK: none (no message channel in this workflow run; nothing relayed after the packet)
+
 ### PACKET QUALITY
-(pending)
+- Clarity: CLEAR, two HAD_TO_INFER points: (a) how adoption item 2's "one more call site" sits beside the ruling's MU2
+  (deviation 2); (b) "B4f counts unchanged" against AM-2's setClip(nullptr) in a new file (deviation 1).
+- Missing context: none that blocked. The ruling could not know that the Clear Clips tick does not report under ASan.
+- Unused context: review-bf9b-live-r2 / gates-r2 and the plan body (read: state-r2, the ruling, the adoption), the
+  live-app rig rules (no app was needed in this stage).
+- Self-brief files: ruling-bf9b-merge.md (full), the plan's HARMONY ADOPTION, rulings-bf9b-mergein.md,
+  rulings-bf9b-merge.md, bf9b-merge.md's hand-over -- all useful, none stale. No DEPARTMENT / KNOWLEDGE_TOOLS block:
+  no knowledge tools -- grep-only (nothing judged dead on "no callers").
+- pulse.json: GREEN; claims "general" by two harmony sessions (the dispatcher), no area conflict.
 
 ### SLIM CHECK
-(pending)
+src: 1 new header (3 inline functions), 2 forget methods + 2 first statements, 1 std::function + 1 `else` branch in
+the hand-over, 2 hook statements, 1 lever line, 3 ui_text fields, 1 test seam. tests: 9 cases + 1 lint case + 1 pin;
+1 probe script; 1 CMake property set + 1 conditional discovery. Every line traces to AM-1 / AM-2 / AM-4 / AM-5 /
+AM-6 src / AM-8 or adoption item 2. Not built (as ruled): forgetLayer / forgetClip / the grip rule / strip forget.
+Smells named: AS1 / AS2 repeat their set-up (duplicated code, kept so each case stands alone under the asan label);
+MainComponent::repointLayerInspector and repointInspectorsAfterStackMove's step (2) are two spellings of one re-point
+(the ruling keeps refreshAfterUndoRedo's own).
