@@ -26,8 +26,8 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${VIDEO_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${VIDEO_PY:-}"
@@ -35,7 +35,7 @@ if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set VIDEO_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests (set VIDEO_PY)"; exit 64; }
 command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1 || { echo "REFUSE: ffmpeg / ffprobe not on PATH (the fixtures are encoded per run)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 for PT in 7070 8080; do
   lsof -nP -iTCP:$PT -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port $PT already has a listener: $(lsof -nP -iTCP:$PT -sTCP:LISTEN | tail -n +2 | awk '{print $1" "$2}' | head -2 | tr '\n' ' ')"; exit 64; }
 done
@@ -45,6 +45,7 @@ echo "app: $APP"; echo "out: $OUT"
 "$PY" "$ROOT/.harmony/probe-vupload.py" "$ROOT" "$OUT" --make-fixtures "${2:-}" || { echo "FAIL  fixtures"; exit 1; }
 ENVARGS=(); [ -n "${VIDEO_ENV:-}" ] && ENVARGS=(--env "$VIDEO_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP" --args --test-mode
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 http://localhost:8080/api/health)" ] && [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
@@ -61,9 +62,7 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
   RC=1
 else echo "PASS  no foreign render_frame traffic during the run"; fi
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
+quit_ours || RC=1
 if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 rm -rf "$OUT/media"
 echo; [ "$RC" -eq 0 ] && echo "PROBE-VUPLOAD GREEN" || echo "PROBE-VUPLOAD RED"

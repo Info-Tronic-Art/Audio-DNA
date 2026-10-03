@@ -45,7 +45,7 @@
 # device for ~1 minute (same as probe-step3.sh).
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
-# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# file's first field. Every pgrep below is replaced by adna_pids/adna_running; every quit is quit_ours
 # (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
 # exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
 # exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
@@ -63,14 +63,14 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT_BASE="${1:-/tmp/audiodna-manual-bpm}"
 OUT="$OUT_BASE/run-$(date +%Y%m%d-%H%M%S)-$$"
 mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${MANUALBPM_BUILD_DIR:-build-lane}"
 APPBUNDLE="${MANUALBPM_APP:-$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app}"
 VENV_PY="${MANUALBPM_PY:-$ROOT/.venv/bin/python}"
@@ -95,7 +95,7 @@ INTERVAL="$(python3 -c "print(round(48000*60/$CLICK_BPM))")"
 python3 "$ROOT/.harmony/gen-click-wav.py" "$CLICK_WAV" --interval "$INTERVAL" --duration-s 150 >/dev/null \
   && ok "click WAV generated: $CLICK_BPM BPM (interval $INTERVAL frames @ 48 kHz), 150 s" \
   || { echo "REFUSE: click WAV generation failed"; exit 64; }
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set MANUALBPM_APP or MANUALBPM_BUILD_DIR)"; exit 64; }
 [ -e "$TAKE_FOLDER" ] && { echo "REFUSE: $TAKE_FOLDER already exists"; exit 64; }
 echo "INFO  app: $APPBUNDLE"
@@ -103,10 +103,11 @@ echo "INFO  app: $APPBUNDLE"
 # --- 1. production launch (probe-resync.sh section 1) ---------------------------------------------
 : > "$OUT/adna-out.log"; : > "$OUT/adna-err.log"      # open --stdout/--stderr APPEND: clear first
 open -g --stdout "$OUT/adna-out.log" --stderr "$OUT/adna-err.log" "$APPBUNDLE"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 if [ -z "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ]; then
     echo "FAIL: health never came up on $A -- STOP, do not click anything; report (TCC prompt?)"
-    osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
+    quit_ours
     exit 1
 fi
 PID="$(adna_pids | head -1)"
@@ -364,13 +365,7 @@ grep -q 'Traceback' "$OUT"/rows-*.txt && no "a python helper crashed (see $OUT/r
 echo "INFO  'leave manual mode -> AUTO resets on beats again' is not drivable over REST/OSC (no route leaves manual mode); ctest-pinned instead."
 
 # --- 4. teardown (probe-resync.sh section 8) -------------------------------------------------------
-osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-if adna_running; then
-    echo "graceful osascript quit did not clear the process -- falling back to pkill (last resort)"
-    adna_kill
-    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
-fi
+quit_ours
 adna_running && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
 case "$TAKE_FOLDER" in
     "$TAKES_DIR"/probe-manual-bpm-*.adna-take) [ -d "$TAKE_FOLDER" ] && rm -rf "$TAKE_FOLDER" && echo "INFO  removed this run's take folder $TAKE_FOLDER" ;;

@@ -43,7 +43,7 @@
 #     launch after a rebuild needs the mic-permission (TCC) prompt clicked
 #     once -- if /api/health never answers, screencapture -x and LOOK
 #     before concluding (same as probe-lane3.sh).
-#   * EXACT-MATCH (probehygiene2): every pgrep/pkill below is adna_pids/adna_running/adna_kill
+#   * EXACT-MATCH (probehygiene2): every pgrep below is adna_pids/adna_running; every quit is quit_ours
 #     (ucomm-based, immune to argv[0] spoofing) -- see the PROBE RIG GATE note below.
 #   * SCREEN-SAFETY LAW: never open the Output window (title "Audio-DNA
 #     Output"); no endpoint this recipe touches reaches
@@ -100,7 +100,7 @@
 #     never auto-deleted). Nothing in the default run changes.
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
-# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# file's first field. Every pgrep below is replaced by adna_pids/adna_running; every quit is quit_ours
 # (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
 # exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
 # exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
@@ -118,12 +118,12 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT="${1:-/tmp/audiodna-step3}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${STEP3_BUILD_DIR:-build-gate}"
 APPBUNDLE="$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app"
 A='http://127.0.0.1:7070'
@@ -216,7 +216,7 @@ if [ "$LONG" = "1" ]; then
 fi
 
 # --- 1. preconditions ------------------------------------------------------
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set STEP3_BUILD_DIR to override the build dir name)"; exit 64; }
 [ -f "$CLICK_WAV" ] || { echo "REFUSE: click WAV missing after generation step"; exit 64; }
 [ "$LONG" = "1" ] && { [ -f "$CLICK_WAV_LONG" ] || { echo "REFUSE: long click WAV missing after generation step"; exit 64; }; }
@@ -229,6 +229,7 @@ python3 -m json.tool "$FIXTURE" >/dev/null 2>&1 && ok "fixture $FIXTURE is valid
 : > /tmp/adna-step3-out.log
 : > /tmp/adna-step3-err.log
 open -g --stdout /tmp/adna-step3-out.log --stderr /tmp/adna-step3-err.log "$APPBUNDLE"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (production launch needs the mic-permission prompt clicked once -- screencapture -x and LOOK before concluding)"; exit 1; }
 PID="$(adna_pids | head -1)"
@@ -1135,12 +1136,12 @@ if [ "${STEP3_RUN_CRASH_TEST:-0}" = "1" ]; then
     curl -s --max-time 6 -X POST "$A/api/perf/record" -H 'Content-Type: application/json' \
       -d '{"name":"step3gate3","audio":true,"audioFile":"'"$CLICK_WAV"'"}' >/dev/null
     sleep 30
-    KPID="$(adna_pids | head -1)"
-    [ -n "$KPID" ] && kill -9 "$KPID" 2>/dev/null
+    kill_ours -9   # the pid this run launched, nothing else (probe-quit-ours.sh)
     for _ in $(seq 1 20); do adna_running || break; sleep 1; done
     : > /tmp/adna-step3-out2.log
     : > /tmp/adna-step3-err2.log
     open --stdout /tmp/adna-step3-out2.log --stderr /tmp/adna-step3-err2.log "$APPBUNDLE"
+    record_ourpid; echo "ours: pid ${OURPID:-none}"
     for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
     GATE3_FOLDER="$TAKES_DIR/step3gate3.adna-take"
     curl -s --max-time 6 -X POST "$A/api/perf/load" -H 'Content-Type: application/json' \
@@ -1180,13 +1181,7 @@ TRUNC_LOG="$(grep -c 'truncated (header' /tmp/adna-step3-err.log 2>/dev/null)"; 
 # --- 13. teardown (SCREEN-SAFETY LAW) --------------------------------------
 # Graceful quit FIRST (~MainComponent runs recorderHost_.shutdown before the
 # process exits) -- never pkill while a window could still be open.
-osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-if adna_running; then
-    echo "graceful osascript quit did not clear the process -- falling back to pkill (last resort)"
-    adna_kill
-    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
-fi
+quit_ours
 adna_running && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
 
 # Screen-safety: confirm the OUTPUT window specifically was never opened.

@@ -177,29 +177,39 @@ def listener(port):
     return rows[0].split()[0] if rows else ""
 
 
+OUR_PID = None   # the pid launch() started: the ONLY Audio-DNA this probe ever quits (.harmony/probe-quit-ours.sh)
+_QUIT_OURS = ('adna_pids() { ps -eo pid=,ucomm= | awk \'$2=="Audio-DNA"{print $1}\'; }; '
+              '. "$1"; OURPID="$2"; quit_ours')
+
+
+def _ours_file():
+    return os.path.join(OUT, "ours.pid")   # probe-idle-paint.sh's safety net reads it
+
+
 def quit_app():
-    if adna_pids():
-        subprocess.run(["osascript", "-e", 'tell application "Audio-DNA" to quit'], capture_output=True)
-    for _ in range(30):
-        if not adna_pids():
-            break
-        time.sleep(1)
-    if adna_pids():
-        print("  app still running after 30 s -- kill", flush=True)
-        for p in adna_pids():
-            try:
-                os.kill(p, 15)
-            except OSError:
-                pass
-        time.sleep(2)
+    """Quit ONLY the app launch() started (quit_ours): any other Audio-DNA is named and left alone."""
+    global OUR_PID
+    if OUR_PID is None and not adna_pids():
+        return
+    helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "probe-quit-ours.sh")
+    r = subprocess.run(["bash", "-c", _QUIT_OURS, "quit_ours", helper, str(OUR_PID or "")],
+                       capture_output=True, text=True)
+    for line in (r.stdout + r.stderr).splitlines():
+        print("  " + line, flush=True)
+    if OUR_PID not in adna_pids():
+        OUR_PID = None
+        if os.path.exists(_ours_file()):
+            os.remove(_ours_file())
 
 
 def launch(app, tag, env=(), test=False):
     """-> (pid, dir) or (None, dir). Refuses when an Audio-DNA or a 7070 / 8080 listener exists."""
     d = os.path.join(OUT, tag)
     os.makedirs(d, exist_ok=True)
+    global OUR_PID
     if adna_pids() or listener(7070) or listener(8080):
-        print(f"  REFUSE launch {tag}: Audio-DNA running or a port is taken", flush=True)
+        print(f"  REFUSE launch {tag}: Audio-DNA already running (pid {adna_pids()}) -- this run did not start it: "
+              f"never quit, kill or touch it -- or a port is taken", flush=True)
         return None, d
     for f in ("out.log", "err.log"):
         open(os.path.join(d, f), "w").close()   # open --stdout/--stderr APPEND: truncate first
@@ -210,6 +220,17 @@ def launch(app, tag, env=(), test=False):
     if test:
         cmd += ["--args", "--test-mode"]
     subprocess.run(cmd, check=False)
+    for _ in range(20):   # record OUR pid right after the launch, BEFORE the health wait (record_ourpid's rule)
+        if adna_pids():
+            break
+        time.sleep(0.5)
+    started = adna_pids()
+    OUR_PID = started[0] if len(started) == 1 else None
+    if OUR_PID is not None:
+        with open(_ours_file(), "w") as fh:
+            fh.write(str(OUR_PID))
+    else:
+        print(f"  WARN  {len(started)} Audio-DNA pids after launch {started} -- none is treated as ours", flush=True)
     up = False
     for _ in range(60):
         if get("/api/health", timeout=1) is not None:

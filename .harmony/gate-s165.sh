@@ -37,13 +37,18 @@ note() { echo "      $*"; }
 echo "=== gate-s165 — the app-level gates s165 deferred ==="
 
 # ---------------------------------------------------------------- preflight
+# QUIT-OURS: launch() runs inside $(...), so the pid it returns is handed to quit_gracefully, which sets OURPID from it
+adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
+. "$REPO/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / ask_ours_to_quit: never a quit event while another Audio-DNA runs
+refuse_foreign_start || exit 64
 if pgrep -f 'MacOS/Audio-DNA' >/dev/null 2>&1; then
     echo "REFUSING TO RUN: an Audio-DNA instance is already running."
     pgrep -fl 'MacOS/Audio-DNA'
     echo
     echo "This app is single-instance. A second launch does not happen — 'open' silently"
     echo "activates the running window and reports success, which is exactly the false"
-    echo "green this script exists to avoid. Quit that instance, then re-run."
+    echo "green this script exists to avoid. It was not started by this run (it may be Boris's):"
+    echo "never quit, kill or touch it -- re-run when it is closed."
     exit 64
 fi
 ok "preflight: no Audio-DNA running"
@@ -56,7 +61,8 @@ quit_gracefully() {   # $1 = pid
     # form as the real quit.
     osascript -e "tell application \"System Events\" to tell (first process whose unix id is $1) to quit" >/dev/null 2>&1
     sleep 2
-    kill -0 "$1" 2>/dev/null && osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+    OURPID="$1"   # the pid launch() returned: it did not exist before the launch (see launch)
+    kill -0 "$1" 2>/dev/null && ask_ours_to_quit   # by name ONLY while that pid is the only Audio-DNA running
     for _ in $(seq 1 20); do
         kill -0 "$1" 2>/dev/null || return 0
         sleep 1

@@ -54,7 +54,7 @@
 #     if /api/health never answers, this is surfaced as a FAIL with that
 #     hint; per the SCREEN-SAFETY LAW below this script does NOT
 #     screencapture to check (that would be a full-screen capture).
-#   * EXACT-MATCH (probehygiene2): every pgrep/pkill below is adna_pids/adna_running/adna_kill
+#   * EXACT-MATCH (probehygiene2): every pgrep below is adna_pids/adna_running; every quit is quit_ours
 #     (ucomm-based, immune to argv[0] spoofing) -- see the PROBE RIG GATE note below.
 #   * Hue Shift declares only u_texture + u_hue_shift (EmbeddedShaders.h,
 #     VERIFIED via EffectLibrary.cpp "Hue Shift" registration) -- no
@@ -93,7 +93,7 @@
 # own expected main window) runs at the very end, before the final tally.
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
-# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# file's first field. Every pgrep below is replaced by adna_pids/adna_running; every quit is quit_ours
 # (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
 # exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
 # exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
@@ -111,12 +111,12 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT="${1:-/tmp/audiodna-mastersignal}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 BUILD_DIR="${MS_BUILD_DIR:-build}"
 APPBUNDLE="$ROOT/$BUILD_DIR/AudioDNA_artefacts/Release/Audio-DNA.app"
 A='http://127.0.0.1:7070'
@@ -263,7 +263,7 @@ sample_clip_scale(){
 }
 
 # --- preconditions -------------------------------------------------------
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -d "$APPBUNDLE" ] || { echo "REFUSE: no built app at $APPBUNDLE (set MS_BUILD_DIR to override the build dir name)"; exit 64; }
 [ -x "$PXPY" ] || { echo "REFUSE: no python venv at $PXPY (needed for the PIL+numpy pixel oracle) -- python3 -m venv .venv && .venv/bin/pip install pillow numpy"; exit 64; }
 "$PXPY" -c "import PIL, numpy" >/dev/null 2>&1 || { echo "REFUSE: $PXPY lacks PIL and/or numpy -- .venv/bin/pip install pillow numpy"; exit 64; }
@@ -272,6 +272,7 @@ adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit i
 : > /tmp/adna-mastersignal-out.log
 : > /tmp/adna-mastersignal-err.log
 open -g --stdout /tmp/adna-mastersignal-out.log --stderr /tmp/adna-mastersignal-err.log "$APPBUNDLE"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for i in $(seq 1 60); do [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$A/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up on $A (a production launch needs the mic-permission prompt clicked once -- do NOT full-screen screencapture to check; re-run after clicking Allow once)"; exit 1; }
 PID="$(adna_pids | head -1)"
@@ -493,13 +494,7 @@ set_master_signal 1.0 >/dev/null
 # its normal shutdown path), pkill only as an absolute last resort. Same
 # pattern as probe-step3.sh's teardown.
 # ---------------------------------------------------------------------------
-osascript -e 'quit app "Audio-DNA"' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-if adna_running; then
-    echo "graceful osascript quit did not clear the process -- falling back to pkill (last resort)"
-    adna_kill
-    for _ in $(seq 1 20); do adna_running || break; sleep 1; done
-fi
+quit_ours
 adna_running && no "APP STILL RUNNING AFTER graceful quit + pkill fallback" || ok "app terminated, no process remains"
 
 # Screen-safety: confirm the OUTPUT window specifically was never opened.

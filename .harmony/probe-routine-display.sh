@@ -60,9 +60,9 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${ROUTINE_DISPLAY_APP:-$ROOT/${ROUTINE_DISPLAY_BUILD_DIR:-build}/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${ROUTINE_DISPLAY_PY:-}"
@@ -71,7 +71,7 @@ OUT="${1:-}"; [ -n "$OUT" ] || { echo "usage: $0 OUT_DIR [--hook]"; exit 64; }
 HOOK=0; [ "${2:-}" = "--hook" ] && HOOK=1
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set ROUTINE_DISPLAY_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import Quartz, json, numpy, PIL' 2>/dev/null || { echo "REFUSE: no python with pyobjc Quartz + PIL + numpy (set ROUTINE_DISPLAY_PY)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 lsof -nP -iTCP:7070 -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port 7070 already has a listener"; exit 64; }
 mkdir -p "$OUT" || exit 64
 OUT="$(cd "$OUT" && pwd)"   # absolute: the app's cwd is not ours (AUDIODNA_DEBUG_SNAP)
@@ -152,11 +152,10 @@ wait_for() {   # wait_for SECONDS EXPR(status) -> 0 when EXPR prints True within
 launch() {   # launch [--env K=V ...]
   : > "$OUT/out.log"; : > "$OUT/err.log"   # open --stdout/--stderr APPEND: truncate first
   open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" "$@" "$APP"
+  record_ourpid; echo "ours: pid ${OURPID:-none}"
 }
 quit_app() {
-  adna_running && osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-  local _; for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-  adna_running && { echo "  app still running after 30 s -- pkill"; adna_kill; sleep 2; }
+  quit_ours   # ONLY the pid launch() recorded (probe-quit-ours.sh)
 }
 zero_windows() {
   local W

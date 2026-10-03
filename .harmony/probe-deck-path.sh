@@ -27,7 +27,7 @@
 #   * Probe with Invert / Vignette / Thermal. A warp effect can be invisible on a uniform source.
 # PROBE RIG GATE (probehygiene2, s-rta-0926b): refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists; if AUDIODNA_LOCK_OWNER is set, it must match the owner
-# file's first field. Every pgrep/pkill below is replaced by adna_pids/adna_running/adna_kill
+# file's first field. Every pgrep below is replaced by adna_pids/adna_running; every quit is quit_ours
 # (defined right after the lock gate), which filter on `ps -o ucomm=` -- the KERNEL's real
 # exec-time process name, set from the actual binary that was exec'd, NOT from argv[0] -- being
 # exactly "Audio-DNA". Verified both directions: (1) a build's linker/compiler command line whose
@@ -45,12 +45,12 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 OUT="${1:-/tmp/audiodna-probe}"; mkdir -p "$OUT"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 APP="$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA"
 T='http://[::1]:8080'; A='http://127.0.0.1:7070'
 PASS=0; FAIL=0
@@ -60,11 +60,12 @@ R(){ curl -s --max-time 20 -X POST "$A/api/render_frame" -H 'Content-Type: appli
        -d "{\"output_path\":\"$OUT/$1\"}" >/dev/null; }
 H(){ md5 -q "$OUT/$1"; }
 
-adna_running && { echo "REFUSE: an Audio-DNA instance is already running. Quit it, then re-run."; exit 64; }
+refuse_foreign_start || exit 64
 [ -x "$APP" ] || { echo "REFUSE: no built app at $APP"; exit 64; }
 
 "$APP" --test-mode > "$OUT/app.log" 2>&1 &
 PID=$!
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 for i in $(seq 1 40); do [ -n "$(curl -s --max-time 2 "$T/api/health" 2>/dev/null)" ] && break; sleep 1; done
 [ -n "$(curl -s --max-time 2 "$T/api/health" 2>/dev/null)" ] || { echo "FAIL: health never came up"; kill $PID 2>/dev/null; exit 1; }
 
@@ -130,7 +131,7 @@ else
 fi
 
 osascript -e "tell application \"System Events\" to tell (first process whose unix id is $PID) to quit" >/dev/null 2>&1
-sleep 2; kill -0 "$PID" 2>/dev/null && osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
+sleep 2; kill -0 "$PID" 2>/dev/null && ask_ours_to_quit
 for _ in $(seq 1 20); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
 adna_running && no "APP STILL RUNNING AFTER QUIT -- screen-safety breach, deal with it now" || ok "app quit gracefully, no process remains"
 W=$("$ROOT/.venv/bin/python" -c "

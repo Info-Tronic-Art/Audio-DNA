@@ -7,7 +7,7 @@
 #
 # Clone of .harmony/probe-image-load.sh with ONE difference: TEST MODE (`open -g ... --args --test-mode`, 8080 is
 # needed by cr2); it waits for 7070 AND http://localhost:8080 (8080 listens on localhost only). Screen-safe: open -g,
-# no screen capture, no Output window, no synthetic input; graceful quit, pkill only if still running after 30 s.
+# no screen capture, no Output window, no synthetic input; quit_ours: graceful quit of the launched pid, kill of that pid after 30 s.
 # REFUSES if Audio-DNA is already running. The caller holds /tmp/audiodna-live.lock (PROBE RIG GATE below).
 #
 # usage: probe-capture.sh [out-base] [row,row,...]
@@ -28,15 +28,15 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${CAPT_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${CAPT_PY:-}"
 if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"; do [ -x "$c" ] && { PY="$c"; break; }; done; fi
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set CAPT_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests (set CAPT_PY)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 MEDIA="$ROOT/media"; [ -f "$MEDIA/P16_01_baseline.png" ] || MEDIA="$MAIN/media"
 [ -f "$MEDIA/P16_01_baseline.png" ] || { echo "REFUSE: media/P16_01_baseline.png not found"; exit 64; }
 for PORT in 7070 8080; do
@@ -46,6 +46,7 @@ BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/capt.XXXXXX")" || e
 echo "app: $APP"; echo "out: $OUT"
 ENVARGS=(); [ -n "${CAPT_ENV:-}" ] && ENVARGS=(--env "$CAPT_ENV")
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" ${ENVARGS[@]+"${ENVARGS[@]}"} "$APP" --args --test-mode
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && [ -n "$(curl -s --max-time 1 http://localhost:8080/api/health)" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
@@ -59,9 +60,7 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
   RC=1
 else echo "PASS  no foreign render_frame traffic during the run"; fi
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
+quit_ours || RC=1
 if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 echo; [ "$RC" -eq 0 ] && echo "PROBE-CAPTURE GREEN" || echo "PROBE-CAPTURE RED"
 exit "$RC"

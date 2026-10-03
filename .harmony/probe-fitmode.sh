@@ -9,7 +9,7 @@
 #
 # Clone of .harmony/probe-render-state.sh (live-lock gate, adna_* ucomm filters, open -g, 7070 listener check,
 # foreign-traffic check, graceful quit). Screen-safe: open -g (never plain open / foreground exec), no screen
-# capture, no Output window, no synthetic input; graceful quit, pkill only if still running after 30 s.
+# capture, no Output window, no synthetic input; quit_ours: graceful quit of the launched pid, kill of that pid after 30 s.
 # REFUSES if Audio-DNA is already running. The caller holds /tmp/audiodna-live.lock.
 #
 # usage: probe-fitmode.sh [out-base] [row,row,...]
@@ -29,11 +29,11 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
   [ "$LOCK_OWNER" = "$AUDIODNA_LOCK_OWNER" ] || { echo "REFUSE: live lock owner '$LOCK_OWNER' != AUDIODNA_LOCK_OWNER '$AUDIODNA_LOCK_OWNER'"; exit 64; }
 fi
 # adna_pids: PIDs whose REAL kernel process name (ucomm, set at exec() time from the actual binary
-# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running/adna_kill build on it.
+# run -- immune to argv[0] spoofing) is exactly "Audio-DNA". adna_running builds on it.
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${FIT_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${FIT_PY:-}"
@@ -42,7 +42,7 @@ MEDIA="$ROOT/media"; [ -f "$MEDIA/P16_01_baseline.png" ] || MEDIA="$MAIN/media"
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set FIT_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests (set FIT_PY)"; exit 64; }
 [ -f "$MEDIA/P16_01_baseline.png" ] || { echo "REFUSE: media/P16_01_baseline.png not found"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 # s-rta-0926b render2: another process listening on 7070 (seen: a lane's stub_server.py) would either take the
 # app's REST port or answer this probe itself -- refuse rather than measure the wrong process.
 lsof -nP -iTCP:7070 -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port 7070 already has a listener: $(lsof -nP -iTCP:7070 -sTCP:LISTEN | tail -n +2 | awk '{print $1" "$2}' | head -2 | tr '\n' ' ')"; exit 64; }
@@ -51,6 +51,7 @@ lsof -nP -iUDP:8000 >/dev/null 2>&1 && { echo "REFUSE: UDP 8000 already bound: $
 BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/fit.XXXXXX")" || exit 64
 echo "app: $APP"; echo "out: $OUT"
 open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" "$APP"
+record_ourpid; echo "ours: pid ${OURPID:-none}"
 UP=0; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "$A/api/health")" ] && { UP=1; break; }; sleep 1; done
 sleep 2
 RC=1
@@ -67,9 +68,7 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
   grep -o 'Captured frame: [^ ]*' "$OUT/err.log" | grep -v "Captured frame: $OUT/" | head -3 | sed 's/^/      /'
   RC=1
 else echo "PASS  no foreign render_frame traffic during the run"; fi
-osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-adna_running && { adna_kill; sleep 2; }
+quit_ours || RC=1
 if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 echo; [ "$RC" -eq 0 ] && echo "PROBE-FITMODE GREEN" || echo "PROBE-FITMODE RED"
 exit "$RC"

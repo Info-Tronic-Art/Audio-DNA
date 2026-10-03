@@ -28,8 +28,8 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${IDLEPAINT_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 APPB="${IDLEPAINT_APP_BEFORE:-$MAIN/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
@@ -37,18 +37,17 @@ PY="${IDLEPAINT_PY:-}"
 if [ -z "$PY" ]; then for c in "$ROOT/.venv/bin/python" "$MAIN/.venv/bin/python"; do [ -x "$c" ] && { PY="$c"; break; }; done; fi
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set IDLEPAINT_APP)"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import PIL, numpy, requests, Quartz' 2>/dev/null || { echo "REFUSE: no python with PIL+numpy+requests+Quartz (set IDLEPAINT_PY)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 for p in 7070 8080; do
   lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port $p already has a listener: $(lsof -nP -iTCP:$p -sTCP:LISTEN | tail -n +2 | awk '{print $1" "$2}' | head -2 | tr '\n' ' ')"; exit 64; }
 done
 BASE="${1:-/tmp}"; mkdir -p "$BASE"; OUT="$(mktemp -d "$BASE/idlepaint.XXXXXX")" || exit 64
 echo "app: $APP"; echo "app before: $APPB"; echo "out: $OUT"; echo "load: $(sysctl -n vm.loadavg)"
 IDLEPAINT_APP="$APP" IDLEPAINT_APP_BEFORE="$APPB" "$PY" "$ROOT/.harmony/probe-idle-paint.py" "$ROOT" "$OUT" "${2:-}"; RC=$?
-if adna_running; then
-  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-  for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-  adna_running && { adna_kill; sleep 2; }
-fi
+# probe-idle-paint.py launches and quits (its launch() records the pid in $OUT/ours.pid, its quit_app() calls quit_ours);
+# this is the safety net for a .py that died with its app up: quit ONLY that recorded pid.
+OURPID="$(cat "$OUT/ours.pid" 2>/dev/null | tr -d ' \n')"
+if adna_running; then quit_ours || RC=1; fi
 if adna_running; then echo "FAIL  app still running"; RC=1; else echo "PASS  app terminated"; fi
 rm -rf "$OUT/media"
 echo; [ "$RC" -eq 0 ] && echo "PROBE-IDLE-PAINT GREEN" || echo "PROBE-IDLE-PAINT RED"

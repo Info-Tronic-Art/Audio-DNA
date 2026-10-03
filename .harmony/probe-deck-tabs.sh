@@ -50,9 +50,9 @@ if [ -n "${AUDIODNA_LOCK_OWNER:-}" ]; then
 fi
 adna_pids() { ps -eo pid=,ucomm= | awk '$2=="Audio-DNA"{print $1}'; }
 adna_running() { [ -n "$(adna_pids)" ]; }
-adna_kill() { local p; p="$(adna_pids)"; [ -n "$p" ] && kill $p 2>/dev/null; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; A='http://127.0.0.1:7070'
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 MAIN="$(cd "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/.." 2>/dev/null && pwd)"
 APP="${DECKTABS_APP:-$ROOT/build/AudioDNA_artefacts/Release/Audio-DNA.app}"
 PY="${DECKTABS_PY:-}"
@@ -63,7 +63,7 @@ FIX="$ROOT/.harmony/probe-deck-tabs.json"
 [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set DECKTABS_APP)"; exit 64; }
 [ -f "$FIX" ] || { echo "REFUSE: fixture $FIX missing"; exit 64; }
 [ -n "$PY" ] && "$PY" -c 'import Quartz, json' 2>/dev/null || { echo "REFUSE: no python with pyobjc Quartz (set DECKTABS_PY)"; exit 64; }
-adna_running && { echo "REFUSE: Audio-DNA already running"; exit 64; }
+refuse_foreign_start || exit 64
 lsof -nP -iTCP:7070 -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port 7070 already has a listener"; exit 64; }
 mkdir -p "$OUT" || exit 64
 echo "app: $APP"; echo "out: $OUT"
@@ -101,11 +101,10 @@ wait_health() { local _; for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 "
 launch() {   # launch [--env K=V ...]
   : > "$OUT/out.log"; : > "$OUT/err.log"   # open --stdout/--stderr APPEND (gotchas): truncate first
   open -g --stdout "$OUT/out.log" --stderr "$OUT/err.log" "$@" "$APP"
+  record_ourpid; echo "ours: pid ${OURPID:-none}"
 }
 quit_app() {
-  adna_running && osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-  local _; for _ in $(seq 1 30); do adna_running || break; sleep 1; done
-  adna_running && { echo "  app still running after 30 s -- pkill"; adna_kill; sleep 2; }
+  quit_ours   # ONLY the pid launch() recorded (probe-quit-ours.sh)
 }
 zero_windows() {   # $1 = row label
   local W

@@ -7,7 +7,11 @@
 #   UIFR_APP     app bundle (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app); launched
 #                `open -g ... --args --test-mode` (never brought to the front, never an Output window)
 #   UIFR_ATTACH=1  do NOT launch or quit: the caller already started ONE Audio-DNA (--test-mode) and quits it after
-#                (e.g. the live-lock helper's start_app / quit_app). With --hook the caller must have launched the
+#                (e.g. the live-lock helper's start_app / quit_app). It attaches ONLY to the harness's own test-mode app
+#                (the bf10 attach rule, probe-milkdrop.sh; Harmony ruling R-N1): the one running Audio-DNA pid must
+#                equal UIFR_ATTACH_PID, else the pid the lock helper's start_app recorded (LOCK_LIB + LANE); that pid
+#                must own the 8080 listener and 8080 /api/health must answer. Otherwise: REFUSE, exit 2, no request
+#                sent. With --hook the caller must have launched the
 #                HOOK build with --env AUDIODNA_DEBUG_SHOW=<state> --env AUDIODNA_DEBUG_SNAP=<OUT>/<C6|C7 file name>.
 #   UIFR_PY      python with pyobjc Quartz (default: <root>/.venv, else the main checkout's .venv)
 #
@@ -36,8 +40,8 @@
 #   decodes. The V / R rows are skipped in this mode.
 #
 # Screen-safe: open -g only, --test-mode, window-only captures, no synthetic OS input, never an Output window.
-# Quits ONLY the Audio-DNA pid this script launched (osascript quit, then SIGTERM to THAT pid after 30 s); refuses to
-# start when any Audio-DNA runs (it may be Boris's). PROBE RIG GATE: refuses (exit 64) unless
+# Quits ONLY the Audio-DNA pid this script launched (quit_ours, .harmony/probe-quit-ours.sh: osascript quit, then a
+# kill of THAT pid after 30 s); refuses to start when any Audio-DNA runs (it may be Boris's). PROBE RIG GATE: refuses (exit 64) unless
 # /tmp/audiodna-live.lock/owner exists and, when AUDIODNA_LOCK_OWNER is set, its first field matches.
 set -u
 LOCK_OWNER_FILE=/tmp/audiodna-live.lock/owner
@@ -77,14 +81,27 @@ SNAP=""
 [ "$HOOK" = "cell-menu" ] && SNAP="$OUT/C6-cell-menu.png"
 [ "$HOOK" = "cell-tooltip" ] && SNAP="$OUT/C7-cell-tooltip.png"
 
-OURPID=""
+. "$ROOT/.harmony/probe-quit-ours.sh"   # refuse_foreign_start / record_ourpid / quit_ours: quit ONLY the app this run launched
 if [ "$ATTACH" = "1" ]; then
   [ -n "$(adna_pids)" ] || { echo "REFUSE: UIFR_ATTACH=1 but no Audio-DNA is running"; exit 64; }
   [ "$(adna_pids | wc -l | tr -d ' ')" = "1" ] || { echo "REFUSE: more than one Audio-DNA running"; exit 64; }
-  echo "attach: Audio-DNA pid $(adna_pids | tr -d ' \n') (started and quit by the caller)"
+  # An Audio-DNA no harness started is Boris's: the R rows rename decks and load a composition over 7070 / 8080.
+  RUNPID="$(adna_pids | tr -d ' \n')"
+  WANTPID="${UIFR_ATTACH_PID:-}"
+  if [ -z "$WANTPID" ] && [ -n "${LOCK_LIB:-}" ]; then   # the helper names start_app's pid record OURPID
+    WANTPID="$(LANE="${LANE:-${LOCK_LANE:-}}"; . "$LOCK_LIB" >/dev/null 2>&1 && cat "$OURPID" 2>/dev/null | tr -d ' \n')"
+  fi
+  L8080="$(lsof -nP -t -iTCP:8080 -sTCP:LISTEN 2>/dev/null | sort -u | tr -d ' \n')"
+  if [ -z "$WANTPID" ] || [ "$RUNPID" != "$WANTPID" ] || [ "$L8080" != "$RUNPID" ] \
+     || [ -z "$(curl -s --max-time 2 -H 'Connection: close' http://localhost:8080/api/health)" ]; then
+    echo "REFUSE: the running Audio-DNA is not a test-mode app this run started (it may be Boris's)"
+    echo "        running pid ${RUNPID:-none}; expected ${WANTPID:-none} (UIFR_ATTACH_PID, else LOCK_LIB + LANE's start_app record); 8080 listener ${L8080:-none}"
+    exit 2
+  fi
+  echo "attach: Audio-DNA pid $RUNPID (started and quit by the caller)"
 else
   [ -d "$APP" ] || { echo "REFUSE: no app at $APP (set UIFR_APP)"; exit 64; }
-  [ -n "$(adna_pids)" ] && { echo "REFUSE: an Audio-DNA is already running (pid $(adna_pids | tr '\n' ' ')) -- it may be Boris's; not touching it"; exit 64; }
+  refuse_foreign_start || exit 64
   for p in 7070 8080; do lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1 && { echo "REFUSE: port $p already has a listener"; exit 64; }; done
   : > "$OUT/app-out.log"; : > "$OUT/app-err.log"   # open --stdout / --stderr APPEND: truncate first
   ENVS=()
@@ -92,20 +109,9 @@ else
   echo "launch: $APP ${ENVS[*]:-} --test-mode"
   # ${ENVS[@]+...}: macOS /bin/bash 3.2 treats an EMPTY array as unbound under set -u (the default standalone path)
   open -g --stdout "$OUT/app-out.log" --stderr "$OUT/app-err.log" ${ENVS[@]+"${ENVS[@]}"} "$APP" --args --test-mode
+  record_ourpid; echo "app pid: ${OURPID:-none}"
   for _ in $(seq 1 60); do [ -n "$(curl -s --max-time 1 -H 'Connection: close' "$A/api/health")" ] && break; sleep 1; done
-  OURPID="$(adna_pids | tr -d ' \n')"
-  echo "app pid: ${OURPID:-none}"
 fi
-quit_ours() {
-  [ -z "$OURPID" ] && return 0
-  local run; run="$(adna_pids | tr -d ' \n')"
-  [ -z "$run" ] && { echo "app running after quit: no"; return 0; }
-  [ "$run" = "$OURPID" ] || { echo "REFUSE quit: the running Audio-DNA ($run) is not the one this probe started ($OURPID)"; return 1; }
-  osascript -e 'tell application "Audio-DNA" to quit' >/dev/null 2>&1
-  local _; for _ in $(seq 1 30); do [ -z "$(adna_pids)" ] && break; sleep 1; done
-  [ -n "$(adna_pids)" ] && { echo "app still running after 30 s -- SIGTERM to pid $OURPID"; kill "$OURPID" 2>/dev/null; sleep 3; }
-  echo "app running after quit: $([ -n "$(adna_pids)" ] && echo YES || echo no)"
-}
 
 "$PY" - "$OUT" "$FX" "$SHOTS" "$HOOK" "$SNAP" <<'PYEOF'
 import json, os, shutil, subprocess, sys, time, urllib.error, urllib.request
@@ -419,5 +425,5 @@ print("\n%d PASS / %d FAIL   (artifacts in %s)" % (PASS, FAIL, OUT))
 sys.exit(0 if FAIL == 0 else 1)
 PYEOF
 RC=$?
-[ "$ATTACH" = "1" ] || quit_ours
+[ "$ATTACH" = "1" ] || { quit_ours; echo "app running after quit: $([ -n "$(adna_pids)" ] && echo YES || echo no)"; }
 exit $RC
