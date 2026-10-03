@@ -17,7 +17,7 @@
     "tolBack": 8.0
   },
   "legacy": {
-    "_why": "deck 0 has a layer whose clip is never triggered (compositeDeck returns 0), so the legacy single image (7070 /api/load_image, a probe-made 600x600 solid red PNG) is what shows: it must be FITTED inside the 1920x1080 canvas (1080x1080 at x 420..1500) over black.",
+    "_why": "deck 0 has a layer whose clip is never triggered (compositeShow returns 0), so the legacy single image (7070 /api/load_image, a probe-made 600x600 solid red PNG) is what shows: it must be FITTED inside the 1920x1080 canvas (1080x1080 at x 420..1500) over black.",
     "size": 600,
     "barCols": [0, 400],
     "imgCols": [440, 1480]
@@ -34,12 +34,5 @@
     "interval": 0.5,
     "minFps": 58.0,
     "maxFrameMs": 12.0
-  },
-  "f2": {
-    "_why": "plan4 F2: deck 0 L0 = A, deck 1 L0 = B, globalTransitionSpeed T (Alpha). Frames ~1 s and ~2 s into a deck switch must be strictly between A and B (fit on the A -> B line); a cut (outgoing texture = the new deck's frame) gives p ~= 1.",
-    "T": 4.0,
-    "at": [1.0, 2.0],
-    "trials": 3,
-    "tol": 2.0
   }
 }

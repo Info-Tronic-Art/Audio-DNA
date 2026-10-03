@@ -9,6 +9,10 @@ response is checked; a failed capture is a FAIL. The output dir is fresh per run
 usage: probe-canvas.py <root> <fresh-outdir> <media-dir> [row,row,...]
 rows: c_default_shape c_4k_shape c_custom_4x3 c_runtime_change_keeps_history c_legacy_image_fit
       c_capture_deterministic c_capture_cost c_perf_1080 c_perf_4k
+RETIRED (lane bf9b, s-rta-1002b; Harmony ruling R-S2, rulings-bf9b-merge.md): f2_deck_transition (plan4 F2, "a deck
+switch fades from the OUTGOING deck"). The deck-to-deck fade no longer exists: a deck switch changes nothing on screen
+(BORIS_DECISIONS.md "Decks are boxes of clips": "when I switch between decks, do not change the clips playing in the
+layers or how they are playing"). Successors: probe-boxes k1a / k1c / k1t (a switch shows no transition at all).
 
 Metric: d(X, Y) = mean |X - Y| over RGB, 0..255. non-blank = alpha>0 fraction >= 0.5 and RGB std >= 3.
 Fixtures A = media/P16_01_baseline.png, B = media/P16_02_Screen_Split_2x2.png (both 756x878).
@@ -29,7 +33,7 @@ c_runtime_change_keeps_history (RED -- the teeth row for the rescale-blit): 1080
   (Calibrated on the lane: the plan's Freeze 0.95 / 0.4 s had NO teeth on this 120 Hz rig -- a no-rescale mutant
   passed with d 4.31 / 2.63 because 0.95^~78 frames is only 2% -- so the row was re-tuned and re-proven on the
   mutant; see the lane report.)
-c_legacy_image_fit (RED): deck 0 has a layer whose clip is never triggered (compositeDeck returns 0), and 7070
+c_legacy_image_fit (RED): deck 0 has a layer whose clip is never triggered (compositeShow returns 0), and 7070
   /api/load_image shows a probe-made 600x600 solid red PNG (the legacy fallback). PASS: PNG 1920x1080, columns
   x in [0, 400) mean RGB <= 2 (black bars INSIDE the canvas), x in [440, 1480) mean R >= 250 (the image fitted
   1080x1080 at x 420..1500, never stretched).
@@ -129,10 +133,6 @@ def trig(li, col):
     S.post(A + "/api/trigger_clip", json={"layer": li, "column": col}, timeout=6)
 
 
-def switch(dk):
-    S.post(A + "/api/switch_deck", json={"deck": dk}, timeout=6)
-
-
 def decode(p):
     return np.asarray(Image.open(p).convert("RGBA")).astype(float)
 
@@ -182,13 +182,6 @@ def d(x, y):
 
 def nonblank(a):
     return float((a[..., 3] > 0).mean()) >= 0.5 and float(a[..., :3].std()) >= 3.0
-
-
-def fit_line(f, x, y):
-    dx = (y - x)[..., :3].ravel(); df = (f - x)[..., :3].ravel()
-    den = float(dx @ dx)
-    p = float(df @ dx) / den if den > 0 else 0.0
-    return p, float(np.abs(f[..., :3] - (x[..., :3] + p * (y - x)[..., :3])).mean())
 
 
 def state(base=A):
@@ -352,7 +345,7 @@ def c_legacy_image_fit():
     cfg = FIX["legacy"]; n = int(cfg["size"])
     red = os.path.join(OUT, "red600.png")
     Image.new("RGBA", (n, n), (255, 0, 0, 255)).save(red)
-    if not a_comp("legacy"):        # the clip is never triggered: compositeDeck returns 0
+    if not a_comp("legacy"):        # the clip is never triggered: compositeShow returns 0
         return
     r = S.post(A + "/api/load_image", json={"filepath": red}, timeout=10)
     if not (r.ok and r.json().get("ok")):
@@ -448,53 +441,6 @@ def perf(tag, size, gate):
         f"{mt:.2f} <= {cfg['maxFrameMs']}")
 
 
-def f2_deck_transition():
-    """F2 (plan4 section 7): the P25 cross-deck transition's OUTGOING picture. deck 0 L0 = A, deck 1 L0 = B,
-    globalTransitionSpeed T s (Alpha blend). After both decks were shown (refs = each deck settled), switch
-    deck 0 -> 1 three times; frames ~1.0 s and ~2.0 s into each switch must lie ON the A -> B line strictly
-    between the ends (least-squares p in (0.08, 0.92), residual <= tol) and p must rise; T + 1.5 s after the
-    switch the frame is B. A transition whose outgoing texture is the NEW deck's frame is a cut: p ~= 1.0."""
-    cfg = FIX["f2"]; T = float(cfg["T"]); tol = float(cfg["tol"])
-    if not load("f2", [deck(0, [layer(0, [clip(1, IMG_A)])]), deck(1, [layer(0, [clip(2, IMG_B)])])],
-                globalTransitionSpeed=T):
-        return
-    trig(0, 0); time.sleep(1.0)
-    switch(1); time.sleep(0.5); trig(0, 0); time.sleep(T + 1.5)
-    refB = cap("f2_refB")
-    switch(0); time.sleep(T + 1.5)
-    refA = cap("f2_refA")
-    if refA is None or refB is None:
-        no("f2_deck_transition: reference capture failed"); return
-    dab = d(refA, refB)
-    print(f"      f2: d(refA, refB)={dab:.2f} (deck frames {size_of(refA)})", flush=True)
-    if dab < 20:
-        no(f"f2_deck_transition: references not distinct (d(A,B)={dab:.2f} < 20)"); return
-    bad, trials = [], []
-    for k in range(int(cfg["trials"])):
-        switch(1); t0 = time.time(); ps = []
-        for j, at in enumerate(cfg["at"]):
-            time.sleep(max(0.0, float(at) - (time.time() - t0)))
-            ta = time.time(); f = cap(f"f2_t{k}_mid{j}"); tt = (ta + time.time()) / 2 - t0
-            if f is None:
-                bad.append(f"trial {k} frame {j} capture failed"); continue
-            p, res = fit_line(f, refA, refB); ps.append(p)
-            print(f"      f2 trial {k}: t={tt:.2f}s p={p:.2f} residual={res:.2f} d(f,A)={d(f, refA):.2f} "
-                  f"d(f,B)={d(f, refB):.2f}", flush=True)
-            if not (0.08 < p < 0.92 and res <= tol):
-                bad.append(f"trial {k} t={tt:.2f}s p={p:.2f} res={res:.2f}")
-        if len(ps) >= 2 and ps[-1] - ps[0] < 0.1:
-            bad.append(f"trial {k} p not rising {[round(x, 2) for x in ps]}")
-        trials.append([round(x, 2) for x in ps])
-        time.sleep(max(0.0, T + 1.5 - (time.time() - t0)))
-        fe = cap(f"f2_t{k}_end")
-        if fe is not None and d(fe, refB) > tol:
-            bad.append(f"trial {k} end d(f,B)={d(fe, refB):.2f}")
-        switch(0); time.sleep(T + 1.5)
-    (ok if not bad else no)(
-        f"f2_deck_transition: a deck switch with a {T:.0f} s transition shows the OUTGOING deck fading into the new "
-        f"one (p per trial {trials}; failures {bad[:4]})")
-
-
 def main():
     rows = [("c_default_shape", c_default_shape),
             ("c_4k_shape", c_4k_shape),
@@ -505,7 +451,6 @@ def main():
             ("c_capture_cost", c_capture_cost),
             ("c_perf_1080", lambda: perf("c_perf_1080", (1920, 1080), True)),
             ("c_perf_4k", lambda: perf("c_perf_4k", tuple(FIX["shape"]["fourK"]), False))]
-    rows.append(("f2_deck_transition", f2_deck_transition))
     for name, fn in rows:
         if ONLY is None or name in ONLY:
             print(f"--- {name}", flush=True)
