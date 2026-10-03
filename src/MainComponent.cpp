@@ -3956,14 +3956,12 @@ void MainComponent::removeDeck(int deckIndex)
 
     const bool activeChanges = (deckIndex == composition_.activeDeckIndex);
 
-    // Null both inspectors FIRST: the erased deck's Layer/Clip objects die, and
-    // an inspector can be showing one of them even when a BACKGROUND deck is
-    // removed (handleDeckSwitch never re-points the inspectors).
+    // Empty the Clip inspector FIRST: the erased deck's Clip objects die, an inspector can be showing one of them even
+    // when a BACKGROUND deck is removed (handleDeckSwitch never re-points the inspectors), and its effect scope names
+    // a deck INDEX the erase shifts. The Layer inspector and the selected layer row are left alone (lane bf9b fix
+    // stage 5): the layers are the show's, a deck is a box of clips -- removing one takes no layer away (lint B4k).
     if (inspectorPanel_)
-    {
         inspectorPanel_->getClipInspector().setClip(nullptr);
-        inspectorPanel_->getLayerInspector().setLayer(nullptr);
-    }
 
     // #22: command-owns-the-mutation. Snapshot the full Deck VALUE + the prior
     // active index; the fenced execute() erases and keeps the on-screen deck
@@ -3979,10 +3977,7 @@ void MainComponent::removeDeck(int deckIndex)
     if (deckView_)
     {
         if (activeChanges)
-        {
             deckView_->clearSelection();
-            deckView_->selectLayer(-1);
-        }
         deckView_->rebuildGrid();
         // After rebuildGrid (refreshUiAfterModelSwap's order): setActiveColumn
         // refreshes the strips, which must already point into the live model.
