@@ -36,8 +36,11 @@ k1a_switch_static   K1a: deck 0 layer 0 = static picture, fired; the other decks
                     click, MIDI binding, keyboard): unit T1 + lints B4d / B4g.
 k1b_switch_video    K1b: deck 0 layer 0 = ramp12.mp4, t >= 4 s at the switch; at +2 s |t - (t_switch + elapsed)| <= 0.5
                     (elapsed = the time between the two capture requests, ~2.0 s, printed) and the REST playhead moved by
-                    elapsed / 12 within 0.06. Then k1b_duplicate (bf9b fix round): K1's duplicate_deck driver on this
-                    video (t ~ 7 s): POST /api/debug/duplicate_deck {"deck": 0} shows the copy; K1b's t bar at +2 s.
+                    elapsed / 12 within 0.06. Then, in the same flow, k1b_duplicate.
+k1b_duplicate       K1b (bf9b fix round): K1's duplicate_deck driver on K1b's video: POST /api/debug/duplicate_deck
+                    {"deck": 0} shows the copy; K1b's t bar at +2 s. A registered row (gates-r2 NIT 4): in a run that
+                    includes k1b_switch_video it runs inside that row's flow on the shared fixture (t ~ 7 s) and is
+                    not run twice; selected alone it sets K1b's show up itself (same lead, t >= 4 s).
 k1c_switch_midfade  K1c: Dissolve, T = 4 s; switch 1.0 s into the A -> B fade; every frame after the switch (before 0.85 T)
                     on the OUT -> IN line (residual <= tol, 0.02 < p < 0.98); REST p rises >= 0.15 between +0.5 s and
                     +2 s after the switch; complete (p 1, no previous) by T + 1 s; the final frame == B within floor.
@@ -615,11 +618,27 @@ def k1b_switch_video():
     k1b_duplicate(cfg)
 
 
-def k1b_duplicate(cfg):
+_K1B_DUP_RAN = False
+
+
+def k1b_duplicate(cfg=None):
     """K1's duplicate_deck driver on K1b's VIDEO fixture (bf9b fix round): with K1a's static picture a Duplicate that
     restarts the copied clip looks the same, so that sub-row has no RED arm. Same show, the video still playing in
     layer 0 (t ~ 7 s): POST /api/debug/duplicate_deck {"deck": 0} (it shows the copy); K1b's bar on the canvas at
-    +2 s: |t - (t_dup + elapsed)| <= tTol, and the copy is shown (numDecks + 1, activeDeck == the copy)."""
+    +2 s: |t - (t_dup + elapsed)| <= tTol, and the copy is shown (numDecks + 1, activeDeck == the copy).
+    cfg given = called from k1b_switch_video's flow (the shared fixture); cfg None = the registered row: it runs once
+    per launch, and selected alone it sets K1b's show up itself first."""
+    global _K1B_DUP_RAN
+    if cfg is None:
+        if _K1B_DUP_RAN:
+            print("k1b_duplicate: ran inside k1b_switch_video's flow on the shared fixture (see above)", flush=True)
+            return
+        cfg = FIX["k1b"]
+        v = ramp("k1b")
+        if v is None or not show("k1b_dup", 2, 1, 1, {(0, 0, 0): vid(v), (1, 0, 0): img(1, 0)}):
+            return
+        trig(0, 0); time.sleep(float(cfg["lead"]))
+    _K1B_DUP_RAN = True
     n0 = len((comp() or {}).get("decks", []))
     wb = time.time(); fb = cap("k1b_dup_before")
     code, _ = post("/api/debug/duplicate_deck", {"deck": 0})
@@ -1518,6 +1537,7 @@ def k10_fresh_and_resume():
 
 def main():
     rows = [("k1a_switch_static", k1a_switch_static), ("k1b_switch_video", k1b_switch_video),
+            ("k1b_duplicate", k1b_duplicate),
             ("k1c_switch_midfade", k1c_switch_midfade), ("k1t_history_freeze", k1t_history_freeze),
             ("k1t_history_feedback", k1t_history_feedback), ("k1d_ia_speed_half", k1d_ia_speed_half),
             ("k1d_ib_pingpong", k1d_ib_pingpong), ("k1d_ii_opacity_blend", k1d_ii_opacity_blend),
