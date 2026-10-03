@@ -19,8 +19,8 @@
 # only if still running after 30 s; any other Audio-DNA is never touched. REFUSES if Audio-DNA is already running. The
 # caller holds /tmp/audiodna-live.lock (PROBE RIG GATE below).
 #
-# Final line: "PROBE-BOXES GREEN" (exit 0) only when no row FAILED and none was BLOCKED; "PROBE-BOXES GREEN-WITH-BLOCKED
-# <n>" (exit 3) when nothing failed but n rows had no driver; "PROBE-BOXES RED" (exit 1 / 64) otherwise.
+# Final line: "PROBE-BOXES GREEN" (exit 0) only when no row FAILED and none was BLOCKED; "PROBE-BOXES BLOCKED <n>"
+# (exit 3) when nothing failed but n pre-registered bars had no driver; "PROBE-BOXES RED" (exit 1 / 64) otherwise.
 # usage: probe-boxes.sh [out-base] [row,row,...]
 #   BOXES_APP       app bundle to launch (default: <root>/build/AudioDNA_artefacts/Release/Audio-DNA.app)
 #   BOXES_PY        python with PIL+numpy+requests (default: <root>/.venv, else the main checkout's .venv)
@@ -78,11 +78,11 @@ if [ "${FOREIGN:-0}" -gt 0 ]; then
 else echo "PASS  no foreign render_frame traffic during the run"; fi
 quit_ours || RC=1
 if ours_running; then echo "FAIL  app still running (pid $OURPID)"; RC=1; else echo "PASS  app terminated"; fi
-# bf9b fix round: GREEN only when no row FAILED and none was BLOCKED (the .py exits 3 for FAIL 0 with BLOCKED rows): a
-# BLOCKED row never ran, so the run is not a full pass and must not print the line a gate list copies as one.
+# bf9b fix round (Harmony ruling R-N3, rulings-bf9b-merge.md): GREEN only when no row FAILED and none was BLOCKED (the
+# .py exits 3 for FAIL 0 with BLOCKED rows): a BLOCKED bar never ran, so the verdict line says BLOCKED, never GREEN.
 NBLOCKED="$(sed -n 's/^PY .* \([0-9][0-9]*\) BLOCKED (arm .*/\1/p' "$OUT/py.log" 2>/dev/null | tail -1)"
 echo
 if [ "$RC" -eq 0 ]; then echo "PROBE-BOXES GREEN"
-elif [ "$RC" -eq 3 ]; then echo "PROBE-BOXES GREEN-WITH-BLOCKED ${NBLOCKED:-?} (0 FAIL; the BLOCKED rows did not run -- not a full pass)"
+elif [ "$RC" -eq 3 ]; then echo "PROBE-BOXES BLOCKED ${NBLOCKED:-?} (0 FAIL; ${NBLOCKED:-?} pre-registered bar(s) did not run -- not a pass)"
 else echo "PROBE-BOXES RED"; fi
 exit "$RC"
