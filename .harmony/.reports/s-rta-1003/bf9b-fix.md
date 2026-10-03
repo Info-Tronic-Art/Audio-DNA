@@ -3,7 +3,7 @@ Spec: .harmony/.reports/s-rta-1003/ruling-bf9b-merge.md (AM-1..AM-18) + the HARM
 plan-bf9b-merge.md. Worktree .claude/worktrees/bf9b, branch lane/bf9b. Scratch: <session scratchpad>/bf9b-fix-FIX-1/.
 
 ## STAGE FIX-1 MEMORY (AM-1, AM-2, AM-4, AM-5, AM-6 src, AM-8, adoption item 2 / AS7)
-STATUS: DONE (2026-10-03 14:56 -> 15:16; concerns = "DEVIATIONS / STOP ITEMS FOR HARMONY" below)
+STATUS: DONE (2026-10-03 14:56:10 -> 15:14:51; concerns = "DEVIATIONS / STOP ITEMS FOR HARMONY" below)
 Started 2026-10-03 14:56:47 from b70ce61 (git status clean).
 
 ### Commit 1 -- the gate + the RED run on untouched src (AM-5; AS0 tag, AS5, AS6, AS7)
